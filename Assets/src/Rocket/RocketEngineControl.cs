@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using Assets.Src.Targeting;
 using UnityEngine;
+using Assets.Src.ObjectManagement;
 
 namespace Assets.Src.Rocket
 {
@@ -56,7 +57,8 @@ namespace Assets.Src.Rocket
             var plume = engine.transform.Find("EnginePlume").GetComponent<ParticleSystem>();
             _enginePlumes.Add(plume);
             plume.Stop();
-            _torqueApplier.AddTorquer(engine);
+            if(alsoATorqer)
+                _torqueApplier.AddTorquer(engine);
         }
 
         public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody engine, float tanShootAngle, float engineForce, float fuel, int startDelay)
@@ -84,13 +86,13 @@ namespace Assets.Src.Rocket
 
             foreach (var engine in engines.ToList())
             {
-                Debug.Log("adding engine " + engine);
                 AddEngine(engine);
             }
         }
 
         public void FlyAtTargetMaxSpeed(PotentialTarget target)
         {
+            RemoveNullEngines();
             if (ShouldTurn())
             {
                 var reletiveLocation = VectorTowardsTargetInWorldSpace(target);
@@ -112,14 +114,9 @@ namespace Assets.Src.Rocket
             }
         }
 
-        private bool ShouldTurn()
-        {
-            _turningStartDelay--;
-            return _turningStartDelay <= 0;
-        }
-
         public void FlyToTarget(PotentialTarget target, float approachVelocity = 0, float absoluteLocationTollerance = 20, float velocityTollerance = 1)
         {
+            RemoveNullEngines();
             if (ShouldTurn())
             {
                 var reletiveLocation = VectorTowardsTargetInWorldSpace(target);
@@ -162,6 +159,12 @@ namespace Assets.Src.Rocket
             }
         }
 
+        private bool ShouldTurn()
+        {
+            _turningStartDelay--;
+            return _turningStartDelay <= 0;
+        }
+
         private Vector3 CalculateSlowdownVector(PotentialTarget target, float approachVelocity, float absoluteLocationTollerance)
         {
             var targetsVelosity = WorldSpaceReletiveVelocityOfTarget(target);
@@ -190,14 +193,24 @@ namespace Assets.Src.Rocket
             }
             return hasFuel;
         }
-        
+
         private Vector3 VectorTowardsTargetInWorldSpace(PotentialTarget target)
         {
-            if (_engines.Any()) {
+            if (_engines.FirstOrDefault() != null &&_engines.First().transform.IsValid() && target.Target.IsValid())
+            {
+
                 var location = target.Target.position - _engines.First().position;
                 return location;
             }
-            Debug.Log("NotTorquers (VectorTowardsTargetInWorldSpace) " + _engines.Count());
+
+            if (target.Target.IsInvalid())
+            {
+                Debug.Log("Target transform is invalid");
+            }
+            //if (_engines.FirstOrDefault() == null)
+            //{
+            //    Debug.Log("No Engines (VectorTowardsTargetInWorldSpace) ");
+            //}
             return Vector3.zero;
         }
 
@@ -223,7 +236,7 @@ namespace Assets.Src.Rocket
 
 
             var targetsVelocity = targetRigidBody == null ? Vector3.zero : targetRigidBody.velocity;
-            var ownVelocity = _engines.Any() ? _engines.First().velocity : Vector3.zero;
+            var ownVelocity = _engines.FirstOrDefault() != null ? _engines.First().velocity : Vector3.zero;
             return targetsVelocity - ownVelocity;
         }
 
@@ -250,9 +263,15 @@ namespace Assets.Src.Rocket
             }
         }
 
+        private void RemoveNullEngines()
+        {
+            _engines = _engines.Where(t => t != null).Distinct().ToList();
+            _enginePlumes = _enginePlumes.Where(t => t != null).Distinct().ToList();
+        }
+
         private bool IsAimedAtWorldVector(Vector3 worldSpaceVector)
         {
-            if (_engines.Any())
+            if (_engines.FirstOrDefault() != null)
             {
                 var localSpaceVector = _engines.First().transform.InverseTransformVector(worldSpaceVector);
                 if (localSpaceVector.z < 0)
@@ -265,7 +284,7 @@ namespace Assets.Src.Rocket
                 return localSpaceVector.magnitude < _tanShootAngle * distance;
             }
 
-            Debug.Log("NotTorquers (IsAimedAtWorldVector) " + _engines.Count());
+            //Debug.Log("No Engines (IsAimedAtWorldVector)");
             return false;
         }
     }

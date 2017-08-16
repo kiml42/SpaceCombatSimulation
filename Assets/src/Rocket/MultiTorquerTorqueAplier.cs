@@ -22,7 +22,7 @@ namespace Assets.Src.Rocket
 
         public void TurnToVectorInWorldSpace(Vector3 vector)
         {
-            if (_torquers.Any())
+            if (_torquers.FirstOrDefault() != null)
             {
                 var localSpaceVector = _torquers.First().transform.InverseTransformVector(vector).normalized;
                 var rotationVector = new Vector3(-localSpaceVector.y, localSpaceVector.x, 0);
@@ -36,11 +36,13 @@ namespace Assets.Src.Rocket
 
         public void AddTorquer(Rigidbody torquer)
         {
+            RemoveNullTorquers();
             _torquers.Add(torquer);
         }
 
         public void Activate()
         {
+            RemoveNullTorquers();
             foreach (var torquer in _torquers)
             {
                 torquer.angularDrag = AngularDragWhenActive;
@@ -49,10 +51,16 @@ namespace Assets.Src.Rocket
 
         public void Deactivate()
         {
+            RemoveNullTorquers();
             foreach (var torquer in _torquers)
             {
                 torquer.angularDrag = 0;
             }
+        }
+
+        private void RemoveNullTorquers()
+        {
+            _torquers = _torquers.Where(t => t != null).Distinct().ToList();
         }
     }
 }

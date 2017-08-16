@@ -59,7 +59,9 @@ public class ShipBuilder : MonoBehaviour, IKnowsEnemyTagAndtag
                     addedModule.transform.parent = currentHub;
                     addedModule.GetComponent<FixedJoint>().connectedBody = currentHub.GetComponent<Rigidbody>();
                     addedModule.SendMessage("SetEnemyTag", EnemyTag, SendMessageOptions.DontRequireReceiver);
-                    if (TagChildren) { addedModule.tag = tag; }
+                    if (TagChildren) {
+                        addedModule.tag = tag;
+                    }
                     if (letter == '0')
                     {
                         //spawn modules on this module
