@@ -43,6 +43,11 @@ public class ShipBuilder : MonoBehaviour, IKnowsEnemyTagAndtag
         SpawnModules(transform);
 	}
 
+    public void SetGenome(string genome)
+    {
+        Genome = genome;
+    }
+
     private void SpawnModules(Transform currentHub)
     {
         var _spawnPoints = GetSpawnPoints(currentHub);

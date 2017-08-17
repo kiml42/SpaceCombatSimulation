@@ -6,7 +6,7 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/1v1Ships.unity
+    path: Assets/Scenes/1v1Ships.unity
     guid: 56d8e6f0e2de7d04a94542bc4cce9dc3
   - enabled: 0
     path: Assets/Scenes/World.unity
@@ -20,3 +20,6 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/TeamTest.unity
     guid: 0f683d2d14133fd428d9cf8e2a198c24
+  - enabled: 1
+    path: Assets/Scenes/SelfBuldingShip.unity
+    guid: 77de0301d76e60e4eb791b66693e3705
