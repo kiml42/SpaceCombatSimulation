@@ -27,6 +27,10 @@ namespace Assets.src.Evolution
             {
                 //is seed line
                 Victor = recordLine;
+                Competitors = new string[]
+                {
+                    null,null
+                };
             }
         }
 

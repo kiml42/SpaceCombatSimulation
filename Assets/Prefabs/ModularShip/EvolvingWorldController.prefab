@@ -437,6 +437,10 @@ MonoBehaviour:
   Location2: {fileID: 4754386304018410}
   Tag1: Team1
   Tag2: Team2
+  FilePath: ./tmp/evolvingShips/evolvingShips.csv
+  SpaceShipTag: SpaceShip
+  GenerationSize: 10
+  MatchTimeout: 10000
 --- !u!114 &114478410833897430
 MonoBehaviour:
   m_ObjectHideFlags: 1
