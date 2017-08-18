@@ -23,6 +23,12 @@ public class EvolutionControler : MonoBehaviour
     public int GenerationSize = 10;
     public int MatchTimeout = 10000;
 
+    public int MinMutations = 1;
+    public float MutationsPerGene = 0.01f;
+
+    //TODO include 1 when engines work
+    public string AllowedCharacters = " 023456789";
+
     // Use this for initialization
     void Start()
     {
@@ -122,7 +128,58 @@ public class EvolutionControler : MonoBehaviour
 
     private string Mutate(string baseGenome)
     {
+        var mutations = MinMutations + (baseGenome.Length * MutationsPerGene);
+        Debug.Log(mutations + " mutations");
+        for(int i=0; i<mutations; i++)
+        {
+            var n = UnityEngine.Random.value;
+            if (n < 0.5)
+            {
+                //no mutation
+            }
+            else if (n < 0.8)
+            {
+                //insert
+                baseGenome = InsertionMutation(baseGenome);
+            }
+            else if (n < 0.9)
+            {
+                //delete
+                baseGenome = DeletionMutation(baseGenome);
+            }
+            else
+            {
+                //duplicate
+                baseGenome = DuplicationMutation(baseGenome);
+            }
+        }
+
         return baseGenome;
+    }
+
+    private string InsertionMutation(string genome)
+    {
+        int n = (int)(UnityEngine.Random.value * AllowedCharacters.Length);
+        var character = AllowedCharacters[n];
+        int m = (int)(UnityEngine.Random.value * genome.Length);
+        return genome.Insert(m, character.ToString());
+    }
+
+    private string DeletionMutation(string genome)
+    {
+        int n = (int)(UnityEngine.Random.value * genome.Length);
+        int count = Math.Max((int)(UnityEngine.Random.value * (genome.Length - n))-1,1);
+        Debug.Log("n:" + n + ", count:" + count + ", length:" + genome.Length);
+        return genome.Remove(n, count);
+    }
+
+    private string DuplicationMutation(string genome)
+    {
+        int n = (int)(UnityEngine.Random.value * genome.Length);
+        int count = Math.Max((int)(UnityEngine.Random.value * (genome.Length - n)) - 1, 1);
+        var duplicated = genome.Substring(n, count);
+
+        return genome.Insert(n, duplicated);
     }
 
     private string[] PickTwoGenomesFromHistory()
