@@ -84,6 +84,11 @@ public class TurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurretCont
     // Update is called once per frame
     void Update()
     {
+        if (_runner == null)
+        {
+            Debug.Log("runner is null");
+            return;
+        }
         if(_active)
             _runner.RunTurret();
     }

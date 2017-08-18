@@ -24,10 +24,10 @@ public class EvolutionControler : MonoBehaviour
     public int MatchTimeout = 10000;
 
     public int MinMutations = 1;
-    public float MutationsPerGene = 0.01f;
+    public float MutationsperGene = 0.1f;
 
     //TODO include 1 when engines work
-    public string AllowedCharacters = " 023456789";
+    public string AllowedCharacters = " 023456789  ";
 
     // Use this for initialization
     void Start()
@@ -44,7 +44,8 @@ public class EvolutionControler : MonoBehaviour
         {
             MatchTimeout--;
             return;
-        } else if (MatchTimeout <= 0)
+        }
+        else if (MatchTimeout <= 0)
         {
             Debug.Log("Timeout - draw");
             winningGenomes = GetDrawGenomes();
@@ -82,7 +83,7 @@ public class EvolutionControler : MonoBehaviour
 
         SpawnShip(g1, Tag1, Tag2, Location1);
         SpawnShip(g2, Tag2, Tag1, Location2);
-        
+
         _currentGenomes = new Dictionary<string, string>
         {
             {Tag1,g1 },
@@ -100,19 +101,37 @@ public class EvolutionControler : MonoBehaviour
 
     private string[] DetectVictorsGenome()
     {
-        var ships = GameObject.FindGameObjectsWithTag(SpaceShipTag);
-        if (ships.Length == 1)
+        var ships = GameObject.FindGameObjectsWithTag(SpaceShipTag)
+            .Where(s =>
+            s.transform.parent != null &&
+            s.transform.parent.GetComponent("Rigidbody") != null
+            );
+        //Debug.Log(ships.Count() + " ships exist");
+
+        if (ships.Count() == 1)
         {
-            var ship = ships[0].transform.parent;
+            var ship = ships.First().transform.parent;
             var winningTag = ship.tag;
 
+            Debug.Log(StringifyGenomes() + " winning tag: " + winningTag);
             return new string[] { _currentGenomes[winningTag] };
         }
-        if(ships.Length == 0)
+        if (ships.Count() == 0)
         {
+            Debug.Log("Everyone's dead!");
             return GetDrawGenomes();
         }
         return null;
+    }
+
+    private string StringifyGenomes()
+    {
+        var s = "";
+        foreach (var item in _currentGenomes)
+        {
+            s += item.Key + ":" + item.Value + ",";
+        }
+        return s;
     }
 
     private string[] GetDrawGenomes()
@@ -128,9 +147,8 @@ public class EvolutionControler : MonoBehaviour
 
     private string Mutate(string baseGenome)
     {
-        var mutations = MinMutations + (baseGenome.Length * MutationsPerGene);
-        Debug.Log(mutations + " mutations");
-        for(int i=0; i<mutations; i++)
+        var mutations = MinMutations + (baseGenome.Length * MutationsperGene);
+        for (int i = 0; i < mutations; i++)
         {
             var n = UnityEngine.Random.value;
             if (n < 0.5)
@@ -168,15 +186,15 @@ public class EvolutionControler : MonoBehaviour
     private string DeletionMutation(string genome)
     {
         int n = (int)(UnityEngine.Random.value * genome.Length);
-        int count = Math.Max((int)(UnityEngine.Random.value * (genome.Length - n))-1,1);
-        Debug.Log("n:" + n + ", count:" + count + ", length:" + genome.Length);
+        int count = Math.Max((int)((UnityEngine.Random.value * (genome.Length - n)) / 2 - 1), 1);
+        //Debug.Log("n:" + n + ", count:" + count + ", length:" + genome.Length);
         return genome.Remove(n, count);
     }
 
     private string DuplicationMutation(string genome)
     {
         int n = (int)(UnityEngine.Random.value * genome.Length);
-        int count = Math.Max((int)(UnityEngine.Random.value * (genome.Length - n)) - 1, 1);
+        int count = Math.Max((int)((UnityEngine.Random.value * (genome.Length - n)) / 2 - 1), 1);
         var duplicated = genome.Substring(n, count);
 
         return genome.Insert(n, duplicated);
@@ -184,7 +202,7 @@ public class EvolutionControler : MonoBehaviour
 
     private string[] PickTwoGenomesFromHistory()
     {
-        var skip = Math.Max(records.Count - GenerationSize,0);
+        var skip = Math.Max(records.Count - GenerationSize, 0);
         var g1 = records.Skip(skip).FirstOrDefault();
         var g2 = records.Skip(++skip).FirstOrDefault();
         return new string[] { g1.Victor, g2.Victor };

@@ -92,7 +92,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     // Update is called once per frame
     void Update()
     {
-        if (_active && _runner != null)
+        if (_active && _runner != null && _beams != null)
         {
             _runner.RunTurret();
         } else

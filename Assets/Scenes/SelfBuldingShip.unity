@@ -195,11 +195,6 @@ Prefab:
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: f3b4cb1aa8e6d4d4d9102e7e65998466, type: 2}
   m_IsPrefabParent: 0
---- !u!54 &425672283 stripped
-Rigidbody:
-  m_PrefabParentObject: {fileID: 54983575459867008, guid: f3b4cb1aa8e6d4d4d9102e7e65998466,
-    type: 2}
-  m_PrefabInternal: {fileID: 475325399}
 --- !u!1001 &475325399
 Prefab:
   m_ObjectHideFlags: 0
@@ -456,7 +451,7 @@ MonoBehaviour:
     type: 2}
   LocationTollerance: 20
   VelociyTollerance: 1
-  Engine: {fileID: 425672283}
+  Engine: {fileID: 0}
   AngularDragForTorquers: 20
   EnemyTag: Team1
 --- !u!54 &1536012146

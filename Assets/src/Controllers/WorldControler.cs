@@ -63,7 +63,7 @@ namespace Assets.Src.Controllers
             for (int i = 0; i < cameras.Count(); i++)
             {
                 var cam = cameras[i];
-                if(_activeCamera != null)
+                if (_activeCamera != null)
                 {
                     //if we already know the active camera, deactivate all others
                     cam.enabled = false;
@@ -91,7 +91,11 @@ namespace Assets.Src.Controllers
 
         private void MoveToAverageLoc()
         {
-            var objects = GameObject.FindGameObjectsWithTag("SpaceShip");
+            var objects = GameObject.FindGameObjectsWithTag("SpaceShip")
+            .Where(s =>
+            s.transform.parent != null &&
+            s.transform.parent.GetComponent("Rigidbody") != null
+            ); ;
 
             var averageXLocation = objects.Average(t => t.transform.position.x);
             var averageYLocation = objects.Average(t => t.transform.position.y);
@@ -109,7 +113,7 @@ namespace Assets.Src.Controllers
             {
                 CycleCameras(false);
             }
-            
+
             if (Input.touchCount > 0)
             {
                 var touch = Input.GetTouch(0);
@@ -124,7 +128,7 @@ namespace Assets.Src.Controllers
                     _touchedInPreviousFrame = true;
                     return;
                 }
-            } 
+            }
             _touchedInPreviousFrame = false;
         }
 
@@ -140,12 +144,12 @@ namespace Assets.Src.Controllers
                     // Get movement of the finger since last frame
                     Vector2 touchDeltaPosition = touch.deltaPosition;
 
-                    if(touch.position.x < ZoomOrSwitchThreshold)
+                    if (touch.position.x < ZoomOrSwitchThreshold)
                     {
-                        scroll += touchDeltaPosition.y/4;
+                        scroll += touchDeltaPosition.y / 4;
                     }
                 }
-                
+
                 _activeCamera.transform.position += scroll * ZoomMultiplier * _activeCamera.transform.forward;
             }
         }

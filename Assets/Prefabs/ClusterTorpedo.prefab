@@ -265,7 +265,7 @@ MonoBehaviour:
   Fuel: 1000
   StartDelay: 30
   TurningStartDelay: 20
-  MinimumMass: 0
+  MinimumMass: 80
   EnemyTag: Enemy
   DetonationDistance: 150
   Shrapnel: {fileID: 54991379400455944, guid: 8bf03007d4e417c4087307829906f7d6, type: 2}

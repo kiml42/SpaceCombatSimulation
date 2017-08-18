@@ -221,7 +221,7 @@ GameObject:
   - component: {fileID: 81958719930174362}
   m_Layer: 0
   m_Name: Camera
-  m_TagString: Untagged
+  m_TagString: MainCamera
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -629,9 +629,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a2aeaa676ae4da40b02b9861e0dc174, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Resilience: 8
+  Resilience: 10
   Armour: 0
-  Health: 300
+  Health: 500
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
   ExplosionForce: 30

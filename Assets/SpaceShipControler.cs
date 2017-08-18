@@ -87,6 +87,11 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
             ExplosionEffect =
             DeathExplosion
         };
+
+        foreach (var engine in _engines)
+        {
+            engine.tag = tag;
+        }
     }
 
     // Update is called once per frame
