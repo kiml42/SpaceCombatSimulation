@@ -368,7 +368,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 10
   Armour: 0
-  Health: 50
+  Health: 20
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
   ExplosionForce: 1000

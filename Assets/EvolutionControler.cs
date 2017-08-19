@@ -29,6 +29,9 @@ public class EvolutionControler : MonoBehaviour
     //TODO include 1 when engines work
     public string AllowedCharacters = " 023456789  ";
 
+    public int MaxMutationLength = 5;
+    public int MaxDesiredDistance = 1000;
+
     // Use this for initialization
     void Start()
     {
@@ -93,10 +96,40 @@ public class EvolutionControler : MonoBehaviour
 
     private void SpawnShip(string genome, string ownTag, string enemyTag, Transform location)
     {
-        var ship1 = Instantiate(ShipToEvolve, location.position, location.rotation);
-        ship1.tag = ownTag;
-        ship1.SendMessage("SetEnemyTag", enemyTag);
-        ship1.SendMessage("SetGenome", genome);
+        var ship = Instantiate(ShipToEvolve, location.position, location.rotation);
+        ship.tag = ownTag;
+        ship.SendMessage("SetEnemyTag", enemyTag);
+        ship.SendMessage("SetGenome", genome);
+        ConfigureShip(ship, genome);
+    }
+
+    private void ConfigureShip(Rigidbody ship, string genome)
+    {
+        var controller = ship.GetComponent<SpaceShipControler> ();
+        controller.LocationTollerance = GetNumberFromGenome(genome, 0) * MaxDesiredDistance;
+    }
+
+    private float GetNumberFromGenome(string genome, int fromEnd)
+    {
+        var simplified = genome.Replace(" ", "");
+        if (simplified.Length > fromEnd)
+        {
+            simplified = Reverse(simplified) + "  ";
+            var stringNumber = simplified.Substring(fromEnd, 2);
+            int number;
+            if (int.TryParse(stringNumber, out number))
+            {
+                return (float)(number)/99f;
+            }
+        }
+        return 1;
+    }
+    
+    public static string Reverse(string s)
+    {
+        char[] charArray = s.ToCharArray();
+        Array.Reverse(charArray);
+        return new string(charArray);
     }
 
     private string[] DetectVictorsGenome()
@@ -186,7 +219,7 @@ public class EvolutionControler : MonoBehaviour
     private string DeletionMutation(string genome)
     {
         int n = (int)(UnityEngine.Random.value * genome.Length);
-        int count = Math.Max((int)((UnityEngine.Random.value * (genome.Length - n)) / 2 - 1), 1);
+        int count = PickALength(n, genome.Length);
         //Debug.Log("n:" + n + ", count:" + count + ", length:" + genome.Length);
         return genome.Remove(n, count);
     }
@@ -194,10 +227,18 @@ public class EvolutionControler : MonoBehaviour
     private string DuplicationMutation(string genome)
     {
         int n = (int)(UnityEngine.Random.value * genome.Length);
-        int count = Math.Max((int)((UnityEngine.Random.value * (genome.Length - n)) / 2 - 1), 1);
+        int count = PickALength(n, genome.Length);
         var duplicated = genome.Substring(n, count);
 
         return genome.Insert(n, duplicated);
+    }
+
+    private int PickALength(int start, int fullLength)
+    {
+        var remaining = fullLength - start;
+        var limit = Math.Min(remaining, MaxMutationLength);
+        var result = (int) UnityEngine.Random.value * limit;
+        return Math.Max(result, 1);
     }
 
     private string[] PickTwoGenomesFromHistory()

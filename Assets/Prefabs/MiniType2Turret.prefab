@@ -1078,7 +1078,7 @@ HingeJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0, y: 1, z: 0}
+  m_ConnectedAnchor: {x: 0, y: 2, z: 0}
   m_UseSpring: 0
   m_Spring:
     spring: 0
@@ -1177,8 +1177,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 20
   Armour: 0
-  Health: 400
-  DeathExplosion: {fileID: 0}
+  Health: 300
+  DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
+    type: 2}
   ExplosionForce: 1000
   ExplosionRadius: 1000
 --- !u!114 &114320484002594652
@@ -1194,8 +1195,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 20
   Armour: 0
-  Health: 600
-  DeathExplosion: {fileID: 0}
+  Health: 300
+  DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
+    type: 2}
   ExplosionForce: 1000
   ExplosionRadius: 1000
 --- !u!114 &114399403742783732
@@ -1236,8 +1238,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 20
   Armour: 0
-  Health: 500
-  DeathExplosion: {fileID: 0}
+  Health: 300
+  DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
+    type: 2}
   ExplosionForce: 1000
   ExplosionRadius: 1000
 --- !u!124 &124263177976741210
