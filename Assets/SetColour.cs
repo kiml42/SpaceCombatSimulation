@@ -23,7 +23,6 @@ public class SetColour : MonoBehaviour
     private void SetColor(Transform transform, int depth = 0)
     {
         var colour = new Color(R, G, B);
-        //Debug.Log(transform);
         var renderer = transform.GetComponent("Renderer") as Renderer;
         if (renderer != null)
         {

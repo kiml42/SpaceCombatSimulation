@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using System;
+using Assets.Src.ObjectManagement;
 
 public class ShipBuilder : MonoBehaviour, IKnowsEnemyTagAndtag
 {
@@ -39,7 +40,13 @@ public class ShipBuilder : MonoBehaviour, IKnowsEnemyTagAndtag
     private int _genomePosition = 0;
 
     // Use this for initialization
-    void Start () {
+    void Start ()
+    {
+        transform.SetColor(
+            GetNumberFromGenome( 0),
+            GetNumberFromGenome( 2),
+            GetNumberFromGenome( 4)
+            );
         SpawnModules(transform);
 	}
 
@@ -72,9 +79,30 @@ public class ShipBuilder : MonoBehaviour, IKnowsEnemyTagAndtag
                         //spawn modules on this module
                         SpawnModules(addedModule.transform);
                     }
+                    addedModule.transform.SetColor(
+                        GetNumberFromGenome( 0),
+                        GetNumberFromGenome( 2),
+                        GetNumberFromGenome( 4)
+                        );
                 }
             }
         }
+    }
+    
+    private float GetNumberFromGenome(int fromStart)
+    {
+        var simplified = Genome.Replace(" ", "");
+        if (simplified.Length > fromStart)
+        {
+            simplified = simplified + "  ";
+            var stringNumber = simplified.Substring(fromStart, 2);
+            int number;
+            if (int.TryParse(stringNumber, out number))
+            {
+                return number / 99f;
+            }
+        }
+        return 1;
     }
 
     private List<Transform> GetSpawnPoints(Transform currentHub)

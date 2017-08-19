@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using System;
 using System.IO;
+using Assets.Src.ObjectManagement;
 
 public class EvolutionControler : MonoBehaviour
 {
@@ -119,7 +120,7 @@ public class EvolutionControler : MonoBehaviour
             int number;
             if (int.TryParse(stringNumber, out number))
             {
-                return (float)(number)/99f;
+                return number/99f;
             }
         }
         return 1;
