@@ -170,7 +170,7 @@ public class EvolutionControler : MonoBehaviour
 
     private string[] GetDrawGenomes()
     {
-        return _currentGenomes.Values.ToArray();
+        return new string[] { _currentGenomes.Values.FirstOrDefault() };
     }
 
     private string[] GenerateGenomes()
