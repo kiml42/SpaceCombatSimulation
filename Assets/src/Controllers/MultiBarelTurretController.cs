@@ -16,7 +16,6 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
     public float ProjectileSpeed = 10f;
     public float TanShootAngle = 0.1f;
     public float RandomSpeed = 0.1f;
-    public float RandomStartTime = 30;
 
     public Transform TurnTable;
     public Transform ElevationHub;
@@ -57,7 +56,6 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
     // Use this for initialization
     void Start()
     {
-        RandomStartTime = RandomStartTime * UnityEngine.Random.value;
         var emitterCount = EmitterParent.childCount;
 
         _emitters = new List<Transform>();
@@ -108,8 +106,6 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
     public void Shoot(bool shouldShoot)
     {
         if(_active && TurnTable.IsValid() && ElevationHub.IsValid())
-        if (RandomStartTime < 0)
-        {
             if (shouldShoot && _reload <= 0)
             {
                 var emitter = _emitters[_nextEmitterToShoot];
@@ -130,10 +126,6 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
             {
                 _reload--;
             }
-        } else
-        {
-            RandomStartTime--;
-        }
     }
 
     public void Deactivate()

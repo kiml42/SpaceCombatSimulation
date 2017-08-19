@@ -39,6 +39,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
     private ProximityDetonator _detonator;
     public bool TagShrapnel = false;
     public bool SetEnemyTagOnShrapnel = false;
+    public int DetonateWithLessThanXRemainingFuel = -100;
 
     public string GetEnemyTag()
     {
@@ -88,7 +89,10 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
             TagShrapnel = TagShrapnel,
             SetEnemyTagOnShrapnel = SetEnemyTagOnShrapnel
         };
-        _runner = new RocketRunner(_detector, _targetPicker, _engineControl, _detonator);
+        _runner = new RocketRunner(_detector, _targetPicker, _engineControl, _detonator)
+        {
+            DetonateWithLessThanXRemainingFuel = DetonateWithLessThanXRemainingFuel
+        };
         
         //Debug.Log("starting");
     }

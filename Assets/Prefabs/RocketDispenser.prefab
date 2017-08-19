@@ -270,7 +270,8 @@ MonoBehaviour:
   Emitter: {fileID: 4429018364606006}
   OnlyWithTargets: 1
   EnemyTag: Team1
-  RandomStartTime: 30
+  RandomStartTime: 100
+  MinStartTime: 5
   Velocity: {x: 0, y: 15, z: 0}
   RandomSpeed: 0.5
   LoadTime: 100

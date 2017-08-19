@@ -858,7 +858,7 @@ MonoBehaviour:
   Projectile: {fileID: 54662518417675552, guid: 312ddd340d56b9a4bab4336158c6b546,
     type: 2}
   LoadTime: 26
-  ProjectileSpeed: 80
+  ProjectileSpeed: 800
   TanShootAngle: 0.5
   RandomSpeed: 4
   RandomStartTime: 30

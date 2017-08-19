@@ -26,16 +26,8 @@ public class ShipBuilder : MonoBehaviour, IKnowsEnemyTagAndtag
     /// <summary>
     /// Module 0 should be the only one with its own spawnPoints
     /// </summary>
-    public Rigidbody Module0;
-    public Rigidbody Module1;
-    public Rigidbody Module2;
-    public Rigidbody Module3;
-    public Rigidbody Module4;
-    public Rigidbody Module5;
-    public Rigidbody Module6;
-    public Rigidbody Module7;
-    public Rigidbody Module8;
-    public Rigidbody Module9;
+    public Rigidbody Module0, Module1, Module2, Module3, Module4,
+        Module5, Module6, Module7, Module8, Module9;
 
     private int _genomePosition = 0;
 

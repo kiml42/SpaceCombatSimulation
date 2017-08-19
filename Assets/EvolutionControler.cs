@@ -147,7 +147,7 @@ public class EvolutionControler : MonoBehaviour
             var ship = ships.First().transform.parent;
             var winningTag = ship.tag;
 
-            Debug.Log(StringifyGenomes() + " winning tag: " + winningTag);
+            //Debug.Log(StringifyGenomes() + " winning tag: " + winningTag);
             return new string[] { _currentGenomes[winningTag] };
         }
         if (ships.Count() == 0)

@@ -17,6 +17,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
 
     public string EnemyTag = "Enemy";
     public float RandomStartTime = 30;
+    public int MinStartTime = 30;
     private bool _active = true;
 
     public string GetEnemyTag()
@@ -38,7 +39,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
     // Use this for initialization
     void Start()
     {
-        _reload = LoadTime;
+        _reload = (int)(UnityEngine.Random.value * RandomStartTime) + MinStartTime;
         Emitter = Emitter ?? transform;
 
         if (OnlyWithTargets)
@@ -56,39 +57,32 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
     void Update()
     {
         if (_active)
-            if (RandomStartTime < 0)
+            if (_reload <= 0 && ShouldShoot())
             {
-                if (_reload <= 0 && ShouldShoot())
+                var projectile = Instantiate(Projectile, Emitter.position, Emitter.rotation);
+
+                //Debug.Log("Velocity " + Velocity);
+                Vector3 velocity = Emitter.TransformVector(Velocity);
+                //velocity = Velocity.magnitude * Emitter.transform.forward;
+                //Debug.Log("velocity " + velocity);
+
+                if (_spawner != null)
                 {
-                    var projectile = Instantiate(Projectile, Emitter.position, Emitter.rotation);
-
-                    //Debug.Log("Velocity " + Velocity);
-                    Vector3 velocity = Emitter.TransformVector(Velocity);
-                    //velocity = Velocity.magnitude * Emitter.transform.forward;
-                    //Debug.Log("velocity " + velocity);
-
-                    if (_spawner != null)
-                    {
-                        velocity = velocity + _spawner.velocity;
-                    }
-
-                    velocity += RandomSpeed * UnityEngine.Random.insideUnitSphere;
-
-                    projectile.velocity = velocity;
-
-                    projectile.SendMessage("SetEnemyTag", EnemyTag);
-                    if (TagChildren) { projectile.tag = tag; }
-
-                    _reload = LoadTime;
+                    velocity = velocity + _spawner.velocity;
                 }
-                else
-                {
-                    _reload--;
-                }
+
+                velocity += RandomSpeed * UnityEngine.Random.insideUnitSphere;
+
+                projectile.velocity = velocity;
+
+                projectile.SendMessage("SetEnemyTag", EnemyTag);
+                if (TagChildren) { projectile.tag = tag; }
+
+                _reload = LoadTime;
             }
             else
             {
-                RandomStartTime--;
+                _reload--;
             }
     }
 

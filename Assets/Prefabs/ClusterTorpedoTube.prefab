@@ -176,10 +176,11 @@ MonoBehaviour:
   Emitter: {fileID: 4426288644404970}
   OnlyWithTargets: 1
   EnemyTag: Enemy
-  RandomStartTime: 100
+  RandomStartTime: 500
+  MinStartTime: 30
   Velocity: {x: 0, y: 0, z: 60}
   RandomSpeed: 1
-  LoadTime: 700
+  LoadTime: 1000
 --- !u!114 &114833497415421746
 MonoBehaviour:
   m_ObjectHideFlags: 1

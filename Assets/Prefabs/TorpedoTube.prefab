@@ -194,10 +194,11 @@ MonoBehaviour:
   Emitter: {fileID: 4447427867770762}
   OnlyWithTargets: 1
   EnemyTag: Enemy
-  RandomStartTime: 100
+  RandomStartTime: 500
+  MinStartTime: 30
   Velocity: {x: 0, y: 0, z: 60}
   RandomSpeed: 1
-  LoadTime: 700
+  LoadTime: 1000
 --- !u!136 &136304497176015924
 CapsuleCollider:
   m_ObjectHideFlags: 1

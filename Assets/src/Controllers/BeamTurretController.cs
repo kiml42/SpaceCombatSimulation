@@ -16,7 +16,6 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     public int ShootTime = 200;
     public int StartOffset = 10;
     public float TanShootAngle = 0.1f;
-    public int RandomStartTime = 30;
     public float BeamForce = 0;
     public float BeamDamage = 10;
     public float MinimumMass = 0;
@@ -53,7 +52,6 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     // Use this for initialization
     void Start()
     {
-        RandomStartTime = (int)(RandomStartTime * UnityEngine.Random.value);
         var emitterCount = BeamsParent.childCount;
 
         _beams = new List<Beam>();

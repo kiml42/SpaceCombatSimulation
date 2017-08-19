@@ -342,7 +342,7 @@ MonoBehaviour:
   TanShootAngle: 0.2
   TorqueMultiplier: 30
   LocationAimWeighting: 0.1
-  Fuel: 500
+  Fuel: 1500
   StartDelay: 25
   TurningStartDelay: 15
   MinimumMass: 0
@@ -355,6 +355,7 @@ MonoBehaviour:
   ExplosionForce: 25
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 0
+  DetonateWithLessThanXRemainingFuel: 0
 --- !u!114 &114210379376876750
 MonoBehaviour:
   m_ObjectHideFlags: 1
