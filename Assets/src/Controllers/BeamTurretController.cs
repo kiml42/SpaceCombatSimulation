@@ -19,6 +19,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     public int RandomStartTime = 30;
     public float BeamForce = 0;
     public float BeamDamage = 10;
+    public float MinimumMass = 0;
     public Transform HitEffect;
 
     public Transform TurnTable;
@@ -75,12 +76,19 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
             EnemyTag = EnemyTag
         };
 
-        _targetPicker = new CombinedTargetPicker(new List<ITargetPicker>
+        var pickers = new List<ITargetPicker>
         {
             new AboveTurnTableTargetPicker(transform),
             new ProximityTargetPicker(transform),
             new LookingAtTargetPicker(transform, ElevationHub)
-        });
+        };
+
+        if (MinimumMass > 0)
+        {
+            pickers.Add(new MinimumMassTargetPicker(MinimumMass));
+        }
+
+        _targetPicker = new CombinedTargetPicker(pickers);
 
         _turner = new UnityTurretTurner(transform, TurnTable, ElevationHub, RestTarget);
 

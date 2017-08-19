@@ -24,8 +24,8 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
     private List<Transform> _emitters;
     private int _nextEmitterToShoot = 0;
     private bool _active = true;
-
-
+    public float MinimumMass = 0;
+    
     public bool TagChildren = false;
 
     private ITargetDetector _detector;
@@ -75,13 +75,20 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
             ProjectileSpeed = ProjectileSpeed,
             EnemyTag = EnemyTag
         };
-        
-        _targetPicker = new CombinedTargetPicker(new List<ITargetPicker>
+
+        var pickers = new List<ITargetPicker>
         {
             new AboveTurnTableTargetPicker(_thisTurret),
             new ProximityTargetPicker(_thisTurret),
             new LookingAtTargetPicker(_thisTurret, ElevationHub)
-        });
+        };
+
+        if (MinimumMass > 0)
+        {
+            pickers.Add(new MinimumMassTargetPicker(MinimumMass));
+        }
+
+        _targetPicker = new CombinedTargetPicker(pickers);
 
         _turner = new UnityTurretTurner(_thisTurret, TurnTable, ElevationHub, RestTarget);
 

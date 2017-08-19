@@ -162,10 +162,10 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4087408875352314}
-  - component: {fileID: 114039612499075124}
   - component: {fileID: 54298971192452022}
   - component: {fileID: 138934033157855350}
   - component: {fileID: 114375893224788504}
+  - component: {fileID: 114422725068886292}
   m_Layer: 8
   m_Name: TurretParent
   m_TagString: Team2
@@ -228,8 +228,8 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1721119589249582}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -15.32}
+  m_LocalRotation: {x: 0, y: 0, z: 1, w: 0}
+  m_LocalPosition: {x: 0, y: 31.1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4489758503198134}
@@ -807,31 +807,6 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1168437702678772}
   m_Enabled: 1
---- !u!114 &114039612499075124
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1721119589249582}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 67f00b43cf0a6dd429d7bbd08477092f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  RestTarget: {fileID: 4616440911490974}
-  Projectile: {fileID: 54662518417675552, guid: 312ddd340d56b9a4bab4336158c6b546,
-    type: 2}
-  LoadTime: 26
-  ProjectileSpeed: 800
-  TanShootAngle: 0.5
-  RandomSpeed: 4
-  RandomStartTime: 30
-  TurnTable: {fileID: 4291995321138198}
-  ElevationHub: {fileID: 4489758503198134}
-  Emitter: {fileID: 4421406927992510}
-  TagChildren: 0
-  EnemyTag: Enemy
-  SetChildrensEnemy: 0
 --- !u!114 &114201230822804862
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -868,6 +843,32 @@ MonoBehaviour:
     type: 2}
   ExplosionForce: 1000
   ExplosionRadius: 1000
+--- !u!114 &114422725068886292
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1721119589249582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90fe067e2d1dba34980b24b8f5d74be5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  RestTarget: {fileID: 4616440911490974}
+  Projectile: {fileID: 54662518417675552, guid: 312ddd340d56b9a4bab4336158c6b546,
+    type: 2}
+  LoadTime: 26
+  ProjectileSpeed: 80
+  TanShootAngle: 0.5
+  RandomSpeed: 4
+  RandomStartTime: 30
+  TurnTable: {fileID: 4291995321138198}
+  ElevationHub: {fileID: 4489758503198134}
+  EmitterParent: {fileID: 4762531310836884}
+  MinimumMass: 80
+  TagChildren: 0
+  EnemyTag: Enemy
+  SetChildrensEnemy: 0
 --- !u!114 &114735797348154080
 MonoBehaviour:
   m_ObjectHideFlags: 1

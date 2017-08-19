@@ -93,14 +93,17 @@ namespace Assets.Src.Controllers
         {
             var objects = GameObject.FindGameObjectsWithTag("SpaceShip")
             .Where(s =>
-            s.transform.parent != null &&
-            s.transform.parent.GetComponent("Rigidbody") != null
+                s.transform.parent != null &&
+                s.transform.parent.GetComponent("Rigidbody") != null
             ); ;
 
-            var averageXLocation = objects.Average(t => t.transform.position.x);
-            var averageYLocation = objects.Average(t => t.transform.position.y);
-            var averageZLocation = objects.Average(t => t.transform.position.z);
-            transform.position = new Vector3(averageXLocation, averageYLocation, averageZLocation);
+            if (objects.Any())
+            {
+                var averageXLocation = objects.Average(t => t.transform.position.x);
+                var averageYLocation = objects.Average(t => t.transform.position.y);
+                var averageZLocation = objects.Average(t => t.transform.position.z);
+                transform.position = new Vector3(averageXLocation, averageYLocation, averageZLocation);
+            }
         }
 
         private void HandleCameraCycling()
