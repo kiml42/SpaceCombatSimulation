@@ -660,7 +660,8 @@ MonoBehaviour:
   LocationTollerance: 400
   VelociyTollerance: 10
   Engine: {fileID: 54983575459867008}
-  AngularDragForTorquers: 20
+  Torquer: {fileID: 54288706851983332}
+  AngularDragForTorquers: 1
   EnemyTag: Team2
 --- !u!114 &114636715906188710
 MonoBehaviour:
@@ -674,8 +675,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EnemyTag: Team2
-  TagChildren: 1
-  Genome: 7777777
+  Genome: 99
   Module0: {fileID: 54570345499317062, guid: b6e297582f25e22439032bba93cfe02a, type: 2}
   Module1: {fileID: 54223752741852356, guid: 08efacbbb059a534586d7c97183f30e6, type: 2}
   Module2: {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
@@ -685,7 +685,7 @@ MonoBehaviour:
   Module6: {fileID: 54540809518397602, guid: ecb13bd8e1b25e74c820d8d87b56d573, type: 2}
   Module7: {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
   Module8: {fileID: 54298971192452022, guid: c19e2a0e8fe94a2458f1f5141511d791, type: 2}
-  Module9: {fileID: 54337837379328534, guid: 93127d888f371974f9da6a1edd9ae9fd, type: 2}
+  Module9: {fileID: 54566524727042172, guid: 8629b68d84c101a458451c49aaba15dc, type: 2}
 --- !u!124 &124958046666288838
 Behaviour:
   m_ObjectHideFlags: 1

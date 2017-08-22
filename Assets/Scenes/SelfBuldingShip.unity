@@ -280,10 +280,6 @@ Prefab:
       propertyPath: m_RootOrder
       value: 6
       objectReference: {fileID: 0}
-    - target: {fileID: 1176053855654468, guid: f3b4cb1aa8e6d4d4d9102e7e65998466, type: 2}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: f3b4cb1aa8e6d4d4d9102e7e65998466, type: 2}
   m_IsPrefabParent: 0
@@ -540,6 +536,7 @@ MonoBehaviour:
   LocationTollerance: 20
   VelociyTollerance: 1
   Engine: {fileID: 0}
+  Torquer: {fileID: 0}
   AngularDragForTorquers: 20
   EnemyTag: Team1
 --- !u!54 &1536012146

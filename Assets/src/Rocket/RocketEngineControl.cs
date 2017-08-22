@@ -98,14 +98,12 @@ namespace Assets.Src.Rocket
             AddEngine(pilotAndEngine);
         }
 
-        public void AddEngine(Rigidbody engine, bool alsoATorqer = true)
+        public void AddEngine(Rigidbody engine)
         {
             _engines.Add(engine);
             var plume = engine.transform.Find("EnginePlume").GetComponent<ParticleSystem>();
             _enginePlumes.Add(plume);
             plume.Stop();
-            if (alsoATorqer)
-                _torqueApplier.AddTorquer(engine);
         }
 
         public void FlyAtTargetMaxSpeed(PotentialTarget target)

@@ -12,25 +12,42 @@ namespace Assets.Src.Rocket
         private List<Rigidbody> _torquers = new List<Rigidbody>();
         public float TorqueMultiplier;
         public float AngularDragWhenActive;
+        Rigidbody _pilot;
 
-        public MultiTorquerTorqueAplier(Rigidbody torquer, float torqueMultiplier, float angularDragWhenActive)
+        public MultiTorquerTorqueAplier(Rigidbody pilot, Rigidbody torquer, float torqueMultiplier, float angularDragWhenActive)
         {
+            _pilot = pilot;
             _torquers = new List<Rigidbody> { torquer };
+            TorqueMultiplier = torqueMultiplier;
+            AngularDragWhenActive = angularDragWhenActive;
+        }
+
+        public MultiTorquerTorqueAplier(Rigidbody pilotAndTorquer, float torqueMultiplier, float angularDragWhenActive)
+        {
+            _pilot = pilotAndTorquer;
+            _torquers = new List<Rigidbody> { pilotAndTorquer };
+            TorqueMultiplier = torqueMultiplier;
+            AngularDragWhenActive = angularDragWhenActive;
+        }
+
+        public MultiTorquerTorqueAplier(Rigidbody pilot, List<Rigidbody> torquers, float torqueMultiplier, float angularDragWhenActive)
+        {
+            _pilot = pilot;
+            _torquers = torquers;
             TorqueMultiplier = torqueMultiplier;
             AngularDragWhenActive = angularDragWhenActive;
         }
 
         public void TurnToVectorInWorldSpace(Vector3 vector)
         {
-            if (_torquers.FirstOrDefault() != null)
+            var vectorInPilotSpace =  _pilot.transform.InverseTransformVector(vector).normalized;
+            var rotationVector = new Vector3(-vectorInPilotSpace.y, vectorInPilotSpace.x, 0);   //set z to 0 to not add spin
+
+            var worldTorque = _pilot.transform.TransformVector(rotationVector).normalized;
+            foreach (var torquer in _torquers)
             {
-                var localSpaceVector = _torquers.First().transform.InverseTransformVector(vector).normalized;
-                var rotationVector = new Vector3(-localSpaceVector.y, localSpaceVector.x, 0);
-                foreach (var torquer in _torquers)
-                {
-                    torquer.AddRelativeTorque(TorqueMultiplier * rotationVector.normalized);
-                }
-                return;
+                var localSpaceVector = torquer.transform.InverseTransformVector(worldTorque).normalized;    //transform vector to torquer space
+                torquer.AddRelativeTorque(TorqueMultiplier * localSpaceVector); //apply torque to torquer
             }
         }
 

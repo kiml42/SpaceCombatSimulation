@@ -23,7 +23,10 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     public float LocationTollerance = 20;
     public float VelociyTollerance = 1;
     public Rigidbody Engine;
+    public Rigidbody Torquer;
     private List<Rigidbody> _engines = new List<Rigidbody>();
+    private List<Rigidbody> _torquers = new List<Rigidbody>();
+    
 
     public float AngularDragForTorquers = 20;
 
@@ -55,6 +58,10 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
         {
             _engines.Add(Engine);
         }
+        if (Torquer != null)
+        {
+            _torquers.Add(Torquer);
+        }
         Initialise();
     }
 
@@ -66,7 +73,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
             EnemyTag = EnemyTag
         };
 
-        var torqueApplier = new MultiTorquerTorqueAplier(Engine, TorqueMultiplier, AngularDragForTorquers);
+        var torqueApplier = new MultiTorquerTorqueAplier(_thisSpaceship, _torquers, TorqueMultiplier, AngularDragForTorquers);
         
         _engineControl = new RocketEngineControl(torqueApplier, _thisSpaceship, _engines, TanShootAngle, EngineForce, Fuel, StartDelay)
         {
@@ -121,4 +128,13 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
         //_engineControl.SetEngine(Engine);
 
     }
+
+    public void RegisterTorquer(Transform torquer)
+    {
+        _torquers.Add(torquer.GetComponent<Rigidbody>());
+        Initialise();
+        //_engineControl.SetEngine(Engine);
+
+    }
+    
 }

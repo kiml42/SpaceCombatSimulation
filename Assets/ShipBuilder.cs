@@ -9,7 +9,6 @@ using Assets.Src.ObjectManagement;
 public class ShipBuilder : MonoBehaviour, IKnowsEnemyTagAndtag
 {
     public string EnemyTag = "Enemy";
-    public bool TagChildren = false;
 
     public string GetEnemyTag()
     {
@@ -63,14 +62,11 @@ public class ShipBuilder : MonoBehaviour, IKnowsEnemyTagAndtag
                     addedModule.transform.parent = currentHub;
                     addedModule.GetComponent<FixedJoint>().connectedBody = currentHub.GetComponent<Rigidbody>();
                     addedModule.SendMessage("SetEnemyTag", EnemyTag, SendMessageOptions.DontRequireReceiver);
-                    if (TagChildren) {
-                        addedModule.tag = tag;
-                    }
-                    if (letter == '0')
-                    {
-                        //spawn modules on this module
-                        SpawnModules(addedModule.transform);
-                    }
+                    
+                    addedModule.tag = tag;
+
+                    SpawnModules(addedModule.transform);    //spawn modules on this module
+
                     addedModule.transform.SetColor(
                         GetNumberFromGenome( 0),
                         GetNumberFromGenome( 2),

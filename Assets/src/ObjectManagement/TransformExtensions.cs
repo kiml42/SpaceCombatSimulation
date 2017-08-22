@@ -46,5 +46,15 @@ namespace Assets.Src.ObjectManagement
                 }
             }
         }
+
+        public static Transform FindOldestParent(this Transform transform)
+        {
+            var parent = transform.parent;
+            if (parent == null)
+            {
+                return transform;
+            }
+            return FindOldestParent(parent);
+        }
     }
 }
