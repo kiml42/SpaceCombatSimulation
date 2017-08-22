@@ -33,6 +33,8 @@ public class EvolutionControler : MonoBehaviour
     public int MaxMutationLength = 5;
     public int MaxDesiredDistance = 1000;
 
+    public int MaxGenomeLength = 200;
+
     // Use this for initialization
     void Start()
     {
@@ -194,7 +196,7 @@ public class EvolutionControler : MonoBehaviour
                 //insert
                 baseGenome = InsertionMutation(baseGenome);
             }
-            else if (n < 0.9)
+            else if (n < 0.93)
             {
                 //delete
                 baseGenome = DeletionMutation(baseGenome);
@@ -206,6 +208,10 @@ public class EvolutionControler : MonoBehaviour
             }
         }
 
+        if(baseGenome.Length > MaxGenomeLength)
+        {
+            return baseGenome.Substring(0, MaxGenomeLength);
+        }
         return baseGenome;
     }
 
@@ -237,6 +243,10 @@ public class EvolutionControler : MonoBehaviour
     private int PickALength(int start, int fullLength)
     {
         var remaining = fullLength - start;
+        if(remaining == 0)
+        {
+            return remaining;
+        }
         var limit = Math.Min(remaining, MaxMutationLength);
         var result = (int) UnityEngine.Random.value * limit;
         return Math.Max(result, 1);

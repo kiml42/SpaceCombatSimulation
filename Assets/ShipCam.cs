@@ -21,14 +21,16 @@ public class ShipCam : MonoBehaviour {
             s.transform.parent.GetComponent("Rigidbody") != null
             ).OrderBy(s=> (s.transform.position - transform.position).magnitude);
 
-        transform.position = ships.First().transform.position;
-        var target = ships.Skip(1).FirstOrDefault();
-        if(target != null)
+        if (ships.FirstOrDefault() != null)
         {
-            var _direction = (target.transform.position - transform.position).normalized;
-            var _lookRotation = Quaternion.LookRotation(_direction);
-            transform.rotation = Quaternion.Slerp(transform.rotation, _lookRotation, Time.deltaTime * RotationSpeed);
+            transform.position = ships.First().transform.position;
+            var target = ships.Skip(1).FirstOrDefault();
+            if (target != null)
+            {
+                var _direction = (target.transform.position - transform.position).normalized;
+                var _lookRotation = Quaternion.LookRotation(_direction);
+                transform.rotation = Quaternion.Slerp(transform.rotation, _lookRotation, Time.deltaTime * RotationSpeed);
+            }
         }
-
     }
 }
