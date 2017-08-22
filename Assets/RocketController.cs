@@ -9,7 +9,6 @@ using System;
 
 public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 {
-    public float EngineForce = 10f;
     public float TanShootAngle = 0.1f;
     public float TorqueMultiplier = 1f;
     public float LocationAimWeighting = 3f;
@@ -39,7 +38,6 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
     private ProximityDetonator _detonator;
     public bool TagShrapnel = false;
     public bool SetEnemyTagOnShrapnel = false;
-    public int DetonateWithLessThanXRemainingFuel = -100;
 
     public string GetEnemyTag()
     {
@@ -76,7 +74,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 
         var initialAngularDrag = _rigidbody.angularDrag;
         var torqueApplier = new MultiTorquerTorqueAplier(_rigidbody, TorqueMultiplier, initialAngularDrag);
-        _engineControl = new RocketEngineControl(torqueApplier, _rigidbody, TanShootAngle, EngineForce, Fuel, StartDelay)
+        _engineControl = new RocketEngineControl(torqueApplier, _rigidbody, TanShootAngle, Fuel, StartDelay)
         {
             LocationAimWeighting = LocationAimWeighting,
             TurningStartDelay = TurningStartDelay
@@ -89,10 +87,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
             TagShrapnel = TagShrapnel,
             SetEnemyTagOnShrapnel = SetEnemyTagOnShrapnel
         };
-        _runner = new RocketRunner(_detector, _targetPicker, _engineControl, _detonator)
-        {
-            DetonateWithLessThanXRemainingFuel = DetonateWithLessThanXRemainingFuel
-        };
+        _runner = new RocketRunner(_detector, _targetPicker, _engineControl, _detonator);
         
         //Debug.Log("starting");
     }

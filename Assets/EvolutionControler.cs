@@ -28,9 +28,8 @@ public class EvolutionControler : MonoBehaviour
 
     public int MinMutations = 1;
     public float MutationsperGene = 0.1f;
-
-    //TODO include 1 when engines work
-    public string AllowedCharacters = " 023456789  ";
+    
+    public string AllowedCharacters = " 0123456789  ";
 
     public int MaxMutationLength = 5;
     public int MaxDesiredDistance = 1000;

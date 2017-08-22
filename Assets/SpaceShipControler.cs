@@ -13,7 +13,6 @@ using System.Linq;
 public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatable
 {
     public float TanShootAngle = 0.3f;
-    public float EngineForce = 800;
     public float TorqueMultiplier = 9;
     public float LocationAimWeighting = 1;
     public int StartDelay = 2;
@@ -22,9 +21,9 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     public Rigidbody DeathExplosion;
     public float LocationTollerance = 20;
     public float VelociyTollerance = 1;
-    public Rigidbody Engine;
+    public Transform Engine;
     public Rigidbody Torquer;
-    private List<Rigidbody> _engines = new List<Rigidbody>();
+    private List<Transform> _engines = new List<Transform>();
     private List<Rigidbody> _torquers = new List<Rigidbody>();
     
 
@@ -75,7 +74,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
 
         var torqueApplier = new MultiTorquerTorqueAplier(_thisSpaceship, _torquers, TorqueMultiplier, AngularDragForTorquers);
         
-        _engineControl = new RocketEngineControl(torqueApplier, _thisSpaceship, _engines, TanShootAngle, EngineForce, Fuel, StartDelay)
+        _engineControl = new RocketEngineControl(torqueApplier, _thisSpaceship, _engines, TanShootAngle, Fuel, StartDelay)
         {
             LocationAimWeighting = LocationAimWeighting,
             SlowdownWeighting = SlowdownWeighting,
@@ -123,7 +122,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     public void RegisterEngine(Transform engine)
     {
         //Debug.Log("Registering engine");
-        _engines.Add(engine.GetComponent<Rigidbody>());
+        _engines.Add(engine);
         Initialise();
         //_engineControl.SetEngine(Engine);
 

@@ -527,7 +527,7 @@ MonoBehaviour:
   MatchTimeout: 15000
   MinMutations: 1
   MutationsperGene: 0.07
-  AllowedCharacters: ' 023456789  '
+  AllowedCharacters: ' 0123456789  '
   MaxMutationLength: 5
   MaxDesiredDistance: 1000
   MaxGenomeLength: 200

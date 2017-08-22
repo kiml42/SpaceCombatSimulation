@@ -8,7 +8,7 @@ namespace Assets.Src.Rocket
 {
     class RocketRunner : IRocketRunner
     {
-        public int DetonateWithLessThanXRemainingFuel = -100;
+        //public int DetonateWithLessThanXRemainingFuel = -100;
         private ITargetDetector _targetDetector;
         private ITargetPicker _targetPicker;
         private IRocketEngineControl _engineControl;
@@ -34,13 +34,16 @@ namespace Assets.Src.Rocket
                 _engineControl.FlyAtTargetMaxSpeed(bestTarget);
             }
 
-            if(_engineControl.RemainingFuel < DetonateWithLessThanXRemainingFuel)
-            {
-                _detonator.DetonateNow();
-            } else if(_engineControl.StartDelay <= 0)
+            if (_engineControl.StartDelay <= 0)
             {
                 _detonator.AutoDetonate(bestTarget);
             }
+
+            //Disabled detonation when out of fuel.
+            //if(_engineControl.RemainingFuel < DetonateWithLessThanXRemainingFuel)
+            //{
+            //    _detonator.DetonateNow();
+            //}
         }
     }
 }

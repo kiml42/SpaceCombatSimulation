@@ -2,7 +2,6 @@
 A Unity 3D project to simulate combat between space ships with vaguely realistic physics - Space ships are not aeroplanes!
 
 TODO:
-Make adding engines to ships work.
 improve muzzle flashes.
 Make mini type 2 actually manage to hit torpedoes.
 Make explosions do damage.

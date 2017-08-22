@@ -230,7 +230,7 @@ Prefab:
       propertyPath: m_LocalEulerAnglesHint.y
       value: 180
       objectReference: {fileID: 0}
-    - target: {fileID: 1059079212928402, guid: f3b4cb1aa8e6d4d4d9102e7e65998466, type: 2}
+    - target: {fileID: 0}
       propertyPath: m_TagString
       value: Team2
       objectReference: {fileID: 0}
@@ -241,7 +241,7 @@ Prefab:
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: f3b4cb1aa8e6d4d4d9102e7e65998466, type: 2}
   m_IsPrefabParent: 0
---- !u!1001 &475325399
+--- !u!1001 &482620883
 Prefab:
   m_ObjectHideFlags: 0
   serializedVersion: 2

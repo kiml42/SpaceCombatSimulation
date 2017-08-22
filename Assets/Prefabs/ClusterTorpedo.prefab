@@ -74,6 +74,7 @@ GameObject:
   - component: {fileID: 54626451642089132}
   - component: {fileID: 136759748819616910}
   - component: {fileID: 114101606245805576}
+  - component: {fileID: 114350638461489442}
   m_Layer: 0
   m_Name: ClusterTorpedo
   m_TagString: Untagged
@@ -260,9 +261,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EngineForce: 800
   TanShootAngle: 0.1
-  TorqueMultiplier: 2500
+  TorqueMultiplier: 3000
   LocationAimWeighting: 0.1
-  Fuel: 1000
+  Fuel: 5000
   StartDelay: 30
   TurningStartDelay: 20
   MinimumMass: 80
@@ -275,7 +276,21 @@ MonoBehaviour:
   ExplosionForce: 150
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 1
-  DetonateWithLessThanXRemainingFuel: -100
+--- !u!114 &114350638461489442
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1977664886136184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  EngineForce: {x: 0, y: 0, z: 800}
+  ForceApplier: {fileID: 54626451642089132}
+  IsOn: 0
+  Plume: {fileID: 198596238376995270}
 --- !u!136 &136759748819616910
 CapsuleCollider:
   m_ObjectHideFlags: 1

@@ -4,10 +4,14 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class EngineControler : MonoBehaviour {
+    public Vector3 EngineForce;
+    public Rigidbody ForceApplier;
+    public bool IsOn;
+    public ParticleSystem Plume;
 	// Use this for initialization
 	void Start () {
-        var particleSystem = transform.Find("EnginePlume").GetComponent<ParticleSystem>();
-        particleSystem.Stop();
+        if(!IsOn)
+            TurnOff();  //to deactivate the particle system if off
         
         Transform parent = FindOldestParent(transform);
         
@@ -33,11 +37,24 @@ public class EngineControler : MonoBehaviour {
         parent.SendMessage("RegisterEngine", transform, SendMessageOptions.DontRequireReceiver);
     }
 
+    public void TurnOn()
+    {
+        IsOn = true;
+        Plume.Play();
+    }
+
+    public void TurnOff()
+    {
+        IsOn = false;
+        Plume.Stop();
+    }
+
+
     // Update is called once per frame
     void Update () {
-        //if (!_parentFound)
-        //{
-        //    Start();
-        //}
+        if (IsOn)
+        {
+            ForceApplier.AddRelativeForce(EngineForce);
+        }
 	}
 }

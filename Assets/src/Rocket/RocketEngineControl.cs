@@ -14,8 +14,7 @@ namespace Assets.Src.Rocket
         public float RemainingFuel { get; private set; }
         public float SlowdownWeighting { get; set; }
         public float LocationAimWeighting { get; set; }
-
-
+        
         public int StartDelay
         {
             get
@@ -40,10 +39,8 @@ namespace Assets.Src.Rocket
             }
         }
 
-        private List<Rigidbody> _engines = new List<Rigidbody>();
-        private List<ParticleSystem> _enginePlumes = new List<ParticleSystem>();
-
-        private Vector3 _mainEngineForce;
+        private List<Transform> _engines = new List<Transform>();
+        
         private float _tanShootAngle;
 
         public int _startDelay = 0;
@@ -53,12 +50,11 @@ namespace Assets.Src.Rocket
 
         private Rigidbody _pilotObject;
 
-        public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody pilotObject, Rigidbody engine, float tanShootAngle, float engineForce, float fuel, int startDelay)
+        public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody pilotObject, Transform engine, float tanShootAngle, float fuel, int startDelay)
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
             _tanShootAngle = tanShootAngle;
-            _mainEngineForce = new Vector3(0, 0, engineForce);
             RemainingFuel = fuel;
             _startDelay = startDelay;
             SlowdownWeighting = 10;
@@ -67,12 +63,11 @@ namespace Assets.Src.Rocket
             AddEngine(engine);
         }
 
-        public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<Rigidbody> engines, float tanShootAngle, float engineForce, float fuel, int startDelay)
+        public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<Transform> engines, float tanShootAngle, float fuel, int startDelay)
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
             _tanShootAngle = tanShootAngle;
-            _mainEngineForce = new Vector3(0, 0, engineForce);
             RemainingFuel = fuel;
             _startDelay = startDelay;
             SlowdownWeighting = 10;
@@ -84,32 +79,28 @@ namespace Assets.Src.Rocket
             }
         }
 
-        public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody pilotAndEngine, float tanShootAngle, float engineForce, float fuel, int startDelay)
+        public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody pilotAndEngine, float tanShootAngle, float fuel, int startDelay)
         {
             _pilotObject = pilotAndEngine;
             _torqueApplier = torqueApplier;
             _tanShootAngle = tanShootAngle;
-            _mainEngineForce = new Vector3(0, 0, engineForce);
             RemainingFuel = fuel;
             _startDelay = startDelay;
             SlowdownWeighting = 10;
             LocationAimWeighting = 1;
 
-            AddEngine(pilotAndEngine);
+            AddEngine(pilotAndEngine.transform);
         }
 
-        public void AddEngine(Rigidbody engine)
+        public void AddEngine(Transform engine)
         {
             _engines.Add(engine);
-            var plume = engine.transform.Find("EnginePlume").GetComponent<ParticleSystem>();
-            _enginePlumes.Add(plume);
-            plume.Stop();
         }
 
         public void FlyAtTargetMaxSpeed(PotentialTarget target)
         {
             RemoveNullEngines();
-            if (ShouldTurn())
+            if (ShouldTurn() && HasFuel())
             {
                 var reletiveLocation = VectorTowardsTargetInWorldSpace(target);
                 var cancelationVector = VectorToCancelLateralVelocityInWorldSpace(target);
@@ -117,16 +108,13 @@ namespace Assets.Src.Rocket
                 var turningVector = cancelationVector + (reletiveLocation * LocationAimWeighting);
 
                 _torqueApplier.TurnToVectorInWorldSpace(turningVector);
-
-                if (HasFuel())
-                {
-                    //try firing the main engine even with no fuel to turn it off if there is no fuel.
-                    FireMainEngine(IsAimedAtWorldVector(turningVector));
-                    return;
-                }
-
-                //use fuel for counter of frames with no fuel.
-                RemainingFuel--;
+                
+                //try firing the main engine even with no fuel to turn it off if there is no fuel.
+                SetEngineActivationState(IsAimedAtWorldVector(turningVector));
+            }
+            else
+            {
+                SetEngineActivationState(false);  //turn off the engine
             }
         }
 
@@ -161,23 +149,20 @@ namespace Assets.Src.Rocket
                 //    ", turningVector: " + turningVector);
 
                 _torqueApplier.TurnToVectorInWorldSpace(turningVector);
-
-                if (HasFuel())
-                {
-                    //try firing the main engine even with no fuel to turn it off if there is no fuel.
-                    FireMainEngine(IsAimedAtWorldVector(turningVector) && !closeEnough);
-
-                    return;
-                }
-
-                //use fuel for counter of frames with no fuel.
-                RemainingFuel--;
+                
+                //try firing the main engine even with no fuel to turn it off if there is no fuel.
+                SetEngineActivationState(IsAimedAtWorldVector(turningVector) && !closeEnough);
+            }
+            else
+            {
+                SetEngineActivationState(false);  //turn off the engine
             }
         }
 
         private bool ShouldTurn()
         {
             _turningStartDelay--;
+            StartDelay--;
             return _turningStartDelay <= 0;
         }
 
@@ -195,12 +180,10 @@ namespace Assets.Src.Rocket
             var hasFuel = RemainingFuel > 0 && StartDelay <= 0;
             if (!hasFuel)
             {
-                StartDelay--;
                 _torqueApplier.Deactivate();
             }
             else
             {
-                //Debug.Log("drag on");
                 _torqueApplier.Activate();
             }
             return hasFuel;
@@ -252,33 +235,28 @@ namespace Assets.Src.Rocket
             return targetsVelocity - ownVelocity;
         }
 
-        private void FireMainEngine(bool fire)
+        private void SetEngineActivationState(bool fire)
         {
             if (fire && HasFuel())
             {
                 foreach (var engine in _engines)
                 {
-                    engine.AddRelativeForce(_mainEngineForce);
+                    engine.SendMessage("TurnOn");
                     //every engine uses 1 fuel
-                    RemainingFuel -= 1;
+                    RemainingFuel--;
                 }
-                foreach (var plume in _enginePlumes)
-                {
-                    plume.Play();
-                }
-                return;
-            }
-
-            foreach (var plume in _enginePlumes)
+            } else
             {
-                plume.Stop();
+                foreach (var engine in _engines)
+                {
+                    engine.SendMessage("TurnOff");
+                }
             }
         }
 
         private void RemoveNullEngines()
         {
-            _engines = _engines.Where(t => t != null).Distinct().ToList();
-            _enginePlumes = _enginePlumes.Where(t => t != null).Distinct().ToList();
+            _engines = _engines.Where(t => t.IsValid()).Distinct().ToList();
         }
 
         private bool IsAimedAtWorldVector(Vector3 worldSpaceVector)
