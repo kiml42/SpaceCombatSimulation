@@ -10,3 +10,4 @@ Handle very high speed collisions
 Moving towards detonator for missiles
 Finish configuring behavior variables on ships.
 Ships should be able to try to get to a specific distance.
+Camera controller to handle zoom - active when camera is active

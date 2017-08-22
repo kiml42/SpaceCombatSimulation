@@ -51,7 +51,7 @@ namespace Assets.Src.Controllers
                 DeathExplosion
             };
 
-            DetectActiveCamera();
+            //DetectActiveCamera();
         }
 
         private void DetectActiveCamera()

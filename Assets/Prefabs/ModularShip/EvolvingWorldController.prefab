@@ -517,6 +517,8 @@ MonoBehaviour:
     type: 2}
   Location1: {fileID: 4530287190188008}
   Location2: {fileID: 4754386304018410}
+  RandomiseRotation: 1
+  LocationRandomisationRadius: 1000
   Tag1: Team1
   Tag2: Team2
   FilePath: ./tmp/evolvingShips/evolvingShips.csv
@@ -528,6 +530,7 @@ MonoBehaviour:
   AllowedCharacters: ' 023456789  '
   MaxMutationLength: 5
   MaxDesiredDistance: 1000
+  MaxGenomeLength: 200
 --- !u!114 &114478410833897430
 MonoBehaviour:
   m_ObjectHideFlags: 1

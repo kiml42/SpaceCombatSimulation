@@ -13,6 +13,8 @@ public class EvolutionControler : MonoBehaviour
     public Rigidbody ShipToEvolve;
     public Transform Location1;
     public Transform Location2;
+    public bool RandomiseRotation = true;
+    public float LocationRandomisationRadius = 0;
     public string Tag1 = "Team1";
     public string Tag2 = "Team2";
     public string FilePath = "./tmp/evolvingShips/evolvingShips.csv";
@@ -99,7 +101,9 @@ public class EvolutionControler : MonoBehaviour
 
     private void SpawnShip(string genome, string ownTag, string enemyTag, Transform location)
     {
-        var ship = Instantiate(ShipToEvolve, location.position, location.rotation);
+        var orientation = RandomiseRotation ? UnityEngine.Random.rotation : location.rotation;
+        var randomPlacement = (LocationRandomisationRadius * UnityEngine.Random.insideUnitSphere) + location.position;
+        var ship = Instantiate(ShipToEvolve, randomPlacement, orientation);
         ship.tag = ownTag;
         ship.SendMessage("SetEnemyTag", enemyTag);
         ship.SendMessage("SetGenome", genome);
