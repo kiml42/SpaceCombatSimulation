@@ -51,18 +51,11 @@ namespace Assets.Src.Rocket
 
         private ITorqueApplier _torqueApplier;
 
-        public void AddEngine(Rigidbody engine, bool alsoATorqer = true)
-        {
-            _engines.Add(engine);
-            var plume = engine.transform.Find("EnginePlume").GetComponent<ParticleSystem>();
-            _enginePlumes.Add(plume);
-            plume.Stop();
-            if(alsoATorqer)
-                _torqueApplier.AddTorquer(engine);
-        }
+        private Rigidbody _pilotObject;
 
-        public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody engine, float tanShootAngle, float engineForce, float fuel, int startDelay)
+        public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody pilotObject, Rigidbody engine, float tanShootAngle, float engineForce, float fuel, int startDelay)
         {
+            _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
             _tanShootAngle = tanShootAngle;
             _mainEngineForce = new Vector3(0, 0, engineForce);
@@ -74,8 +67,9 @@ namespace Assets.Src.Rocket
             AddEngine(engine);
         }
 
-        public RocketEngineControl(ITorqueApplier torqueApplier, List<Rigidbody> engines, float tanShootAngle, float engineForce, float fuel, int startDelay)
+        public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<Rigidbody> engines, float tanShootAngle, float engineForce, float fuel, int startDelay)
         {
+            _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
             _tanShootAngle = tanShootAngle;
             _mainEngineForce = new Vector3(0, 0, engineForce);
@@ -88,6 +82,30 @@ namespace Assets.Src.Rocket
             {
                 AddEngine(engine);
             }
+        }
+
+        public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody pilotAndEngine, float tanShootAngle, float engineForce, float fuel, int startDelay)
+        {
+            _pilotObject = pilotAndEngine;
+            _torqueApplier = torqueApplier;
+            _tanShootAngle = tanShootAngle;
+            _mainEngineForce = new Vector3(0, 0, engineForce);
+            RemainingFuel = fuel;
+            _startDelay = startDelay;
+            SlowdownWeighting = 10;
+            LocationAimWeighting = 1;
+
+            AddEngine(pilotAndEngine);
+        }
+
+        public void AddEngine(Rigidbody engine, bool alsoATorqer = true)
+        {
+            _engines.Add(engine);
+            var plume = engine.transform.Find("EnginePlume").GetComponent<ParticleSystem>();
+            _enginePlumes.Add(plume);
+            plume.Stop();
+            if (alsoATorqer)
+                _torqueApplier.AddTorquer(engine);
         }
 
         public void FlyAtTargetMaxSpeed(PotentialTarget target)
@@ -179,10 +197,6 @@ namespace Assets.Src.Rocket
             var hasFuel = RemainingFuel > 0 && StartDelay <= 0;
             if (!hasFuel)
             {
-                //if(_torquers != _engines)
-                //{
-                //    Debug.Log("drag to 0, RF:" + RemainingFuel + ", sd:" + StartDelay);
-                //}
                 StartDelay--;
                 _torqueApplier.Deactivate();
             }
@@ -196,10 +210,10 @@ namespace Assets.Src.Rocket
 
         private Vector3 VectorTowardsTargetInWorldSpace(PotentialTarget target)
         {
-            if (_engines.FirstOrDefault() != null &&_engines.First().transform.IsValid() && target.Target.IsValid())
+            if (_pilotObject != null && target.Target.IsValid())
             {
 
-                var location = target.Target.position - _engines.First().position;
+                var location = target.Target.position - _pilotObject.position;
                 return location;
             }
 
@@ -207,10 +221,10 @@ namespace Assets.Src.Rocket
             {
                 Debug.Log("Target transform is invalid");
             }
-            //if (_engines.FirstOrDefault() == null)
-            //{
-            //    Debug.Log("No Engines (VectorTowardsTargetInWorldSpace) ");
-            //}
+            if(_pilotObject == null)
+            {
+                Debug.Log("_pilotObject is null");
+            }
             return Vector3.zero;
         }
 
@@ -236,7 +250,7 @@ namespace Assets.Src.Rocket
 
 
             var targetsVelocity = targetRigidBody == null ? Vector3.zero : targetRigidBody.velocity;
-            var ownVelocity = _engines.FirstOrDefault() != null ? _engines.First().velocity : Vector3.zero;
+            var ownVelocity = _pilotObject.velocity;
             return targetsVelocity - ownVelocity;
         }
 
@@ -271,9 +285,9 @@ namespace Assets.Src.Rocket
 
         private bool IsAimedAtWorldVector(Vector3 worldSpaceVector)
         {
-            if (_engines.FirstOrDefault() != null)
+            if (_pilotObject != null)
             {
-                var localSpaceVector = _engines.First().transform.InverseTransformVector(worldSpaceVector);
+                var localSpaceVector = _pilotObject.transform.InverseTransformVector(worldSpaceVector);
                 if (localSpaceVector.z < 0)
                 {
                     //rocket is pointed away from target

@@ -30,7 +30,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     private const float Fuel = Mathf.Infinity;
     private Rigidbody _marker;
     private SpaceshipRunner _runner;
-    private Rigidbody _thisRocket;
+    private Rigidbody _thisSpaceship;
     private bool _active = true;
 
     private IDestroyer _destroyer;
@@ -60,6 +60,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
 
     private void Initialise()
     {
+        _thisSpaceship = GetComponent<Rigidbody>();
         var _detector = new UnityTargetDetector()
         {
             EnemyTag = EnemyTag
@@ -67,7 +68,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
 
         var torqueApplier = new MultiTorquerTorqueAplier(Engine, TorqueMultiplier, AngularDragForTorquers);
         
-        _engineControl = new RocketEngineControl(torqueApplier, _engines, TanShootAngle, EngineForce, Fuel, StartDelay)
+        _engineControl = new RocketEngineControl(torqueApplier, _thisSpaceship, _engines, TanShootAngle, EngineForce, Fuel, StartDelay)
         {
             LocationAimWeighting = LocationAimWeighting,
             SlowdownWeighting = SlowdownWeighting,

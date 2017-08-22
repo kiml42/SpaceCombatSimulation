@@ -95,11 +95,11 @@ GameObject:
   - component: {fileID: 81741496692316888}
   m_Layer: 0
   m_Name: Camera
-  m_TagString: Untagged
+  m_TagString: MainCamera
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &4425622940298872
 Transform:
   m_ObjectHideFlags: 1
@@ -325,7 +325,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 4
   Armour: 0
-  Health: 60
+  Health: 20
   DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
   ExplosionForce: 1000
@@ -350,7 +350,7 @@ MonoBehaviour:
   TurningStartDelay: 20
   MinimumMass: 50
   EnemyTag: Enemy
-  DetonationDistance: 50
+  DetonationDistance: 10
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ExplosionEffect: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
@@ -358,6 +358,7 @@ MonoBehaviour:
   ExplosionForce: 500
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 0
+  DetonateWithLessThanXRemainingFuel: -100
 --- !u!124 &124272854357906246
 Behaviour:
   m_ObjectHideFlags: 1

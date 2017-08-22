@@ -92,6 +92,7 @@ GameObject:
   - component: {fileID: 114731063394109334}
   - component: {fileID: 54639548059498068}
   - component: {fileID: 138899810941611596}
+  - component: {fileID: 114548822602743814}
   m_Layer: 8
   m_Name: RocketTurret
   m_TagString: Untagged
@@ -178,6 +179,7 @@ GameObject:
   - component: {fileID: 4061959393769108}
   - component: {fileID: 54109599909455274}
   - component: {fileID: 59883538907965154}
+  - component: {fileID: 114583591685629450}
   m_Layer: 8
   m_Name: TurnTable
   m_TagString: Untagged
@@ -198,6 +200,7 @@ GameObject:
   - component: {fileID: 23319858227049140}
   - component: {fileID: 54962058733534410}
   - component: {fileID: 59665642108064322}
+  - component: {fileID: 114738284784392492}
   m_Layer: 8
   m_Name: ElevationHub
   m_TagString: Untagged
@@ -803,6 +806,40 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1280613731734218}
   m_Enabled: 1
+--- !u!114 &114548822602743814
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1232396845400902}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a2aeaa676ae4da40b02b9861e0dc174, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Resilience: 10
+  Armour: 0
+  Health: 200
+  DeathExplosion: {fileID: 0}
+  ExplosionForce: 1000
+  ExplosionRadius: 1000
+--- !u!114 &114583591685629450
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1894978669908588}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a2aeaa676ae4da40b02b9861e0dc174, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Resilience: 10
+  Armour: 0
+  Health: 200
+  DeathExplosion: {fileID: 0}
+  ExplosionForce: 1000
+  ExplosionRadius: 1000
 --- !u!114 &114731063394109334
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -829,6 +866,23 @@ MonoBehaviour:
   ReticleObject: {fileID: 4743134519585372, guid: b1fa19db76056a642a4e60d89370933f,
     type: 2}
   SetChildrensEnemy: 0
+--- !u!114 &114738284784392492
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1987489121464814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a2aeaa676ae4da40b02b9861e0dc174, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Resilience: 10
+  Armour: 0
+  Health: 200
+  DeathExplosion: {fileID: 0}
+  ExplosionForce: 1000
+  ExplosionRadius: 1000
 --- !u!124 &124756949968105552
 Behaviour:
   m_ObjectHideFlags: 1

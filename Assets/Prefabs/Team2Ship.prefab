@@ -115,7 +115,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!1 &1363081659786636
 GameObject:
   m_ObjectHideFlags: 0
@@ -919,6 +919,7 @@ MonoBehaviour:
   LocationTollerance: 800
   VelociyTollerance: 10
   Engine: {fileID: 54279884852327786}
+  AngularDragForTorquers: 20
   EnemyTag: Team1
 --- !u!114 &114907229060552898
 MonoBehaviour:

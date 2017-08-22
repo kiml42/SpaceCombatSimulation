@@ -242,7 +242,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 4
   Armour: 0
-  Health: 60
+  Health: 20
   DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
   ExplosionForce: 1000
@@ -275,6 +275,7 @@ MonoBehaviour:
   ExplosionForce: 150
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 1
+  DetonateWithLessThanXRemainingFuel: -100
 --- !u!136 &136759748819616910
 CapsuleCollider:
   m_ObjectHideFlags: 1

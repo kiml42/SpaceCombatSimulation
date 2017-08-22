@@ -1258,7 +1258,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a2aeaa676ae4da40b02b9861e0dc174, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Resilience: 20
+  Resilience: 10
   Armour: 0
   Health: 300
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
@@ -1276,7 +1276,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a2aeaa676ae4da40b02b9861e0dc174, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Resilience: 20
+  Resilience: 10
   Armour: 0
   Health: 300
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
@@ -1301,7 +1301,6 @@ MonoBehaviour:
   ProjectileSpeed: 800
   TanShootAngle: 0.1
   RandomSpeed: 5
-  RandomStartTime: 0
   TurnTable: {fileID: 4096309798173986}
   ElevationHub: {fileID: 4985851871091600}
   EmitterParent: {fileID: 4095713925445172}
@@ -1320,7 +1319,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a2aeaa676ae4da40b02b9861e0dc174, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Resilience: 20
+  Resilience: 10
   Armour: 0
   Health: 300
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
