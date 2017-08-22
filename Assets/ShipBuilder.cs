@@ -9,6 +9,8 @@ using Assets.Src.ObjectManagement;
 public class ShipBuilder : MonoBehaviour, IKnowsEnemyTagAndtag
 {
     public string EnemyTag = "Enemy";
+    public int MaxModules = 20;
+    private int _modulesAdded = 0;
 
     public string GetEnemyTag()
     {
@@ -51,7 +53,7 @@ public class ShipBuilder : MonoBehaviour, IKnowsEnemyTagAndtag
         var _spawnPoints = GetSpawnPoints(currentHub);
         foreach (var spawnPoint in _spawnPoints)
         {
-            if(_genomePosition < Genome.Length) {
+            if(_genomePosition < Genome.Length && _modulesAdded < MaxModules) {
                 var letter = Genome.ElementAt(_genomePosition);
                 _genomePosition++;
 
@@ -59,6 +61,7 @@ public class ShipBuilder : MonoBehaviour, IKnowsEnemyTagAndtag
                 if (moduleToAdd != null)
                 {
                     var addedModule = Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, spawnPoint);
+                    _modulesAdded++;
                     addedModule.transform.parent = currentHub;
                     addedModule.GetComponent<FixedJoint>().connectedBody = currentHub.GetComponent<Rigidbody>();
                     addedModule.SendMessage("SetEnemyTag", EnemyTag, SendMessageOptions.DontRequireReceiver);
