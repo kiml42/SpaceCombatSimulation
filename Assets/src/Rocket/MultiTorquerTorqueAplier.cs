@@ -40,6 +40,7 @@ namespace Assets.Src.Rocket
 
         public void TurnToVectorInWorldSpace(Vector3 vector)
         {
+            RemoveNullTorquers();
             var vectorInPilotSpace =  _pilot.transform.InverseTransformVector(vector).normalized;
             var rotationVector = new Vector3(-vectorInPilotSpace.y, vectorInPilotSpace.x, 0);   //set z to 0 to not add spin
 
