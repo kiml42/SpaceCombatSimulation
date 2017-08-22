@@ -3,7 +3,6 @@ A Unity 3D project to simulate combat between space ships with vaguely realistic
 
 TODO:
 Make adding engines to ships work.
-Add torquers as separate to engines - make a torquer module that has spawn points
 improve muzzle flashes.
 Make mini type 2 actually manage to hit torpedoes.
 Make explosions do damage.
