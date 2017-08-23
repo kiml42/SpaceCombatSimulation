@@ -26,6 +26,9 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
     public Rigidbody ExplosionEffect;
     public int ShrapnelCount = 10;
     public float ExplosionForce = 1;
+    public float ShrapnelSpeed = 100;
+    public float ExplosionDamage = 10000;
+    public float ExplosionRadius = 20;
     //public bool ExplodeOnAnyCollision = true;
 
     private ITargetDetector _detector;
@@ -86,7 +89,10 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
             ExplosionForce = ExplosionForce,
             EnemyTag = EnemyTag,
             TagShrapnel = TagShrapnel,
-            SetEnemyTagOnShrapnel = SetEnemyTagOnShrapnel
+            SetEnemyTagOnShrapnel = SetEnemyTagOnShrapnel,
+            ExplosionBaseDamage = ExplosionDamage,
+            ShrapnelSpeed = ShrapnelSpeed,
+            ExplosionRadius = ExplosionRadius
         };
 
         _detonator = new ProximityDetonator(exploder, _rigidbody, DetonationDistance);

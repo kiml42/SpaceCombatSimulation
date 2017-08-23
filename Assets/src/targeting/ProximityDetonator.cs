@@ -14,15 +14,7 @@ namespace Assets.Src.Targeting
         private readonly float _detonationDistance;
 
         private IExploder _exploder;
-
-        [Obsolete("Use Dependency injection constructor instead.")]
-        public ProximityDetonator(Rigidbody thisExploder, float detonationDistance, Rigidbody shrapnel, Rigidbody explosionEffect, string explodableTag, int shrapnelCount = 50)
-        {
-            _exploderRigidbody = thisExploder;
-            _detonationDistance = detonationDistance;
-
-            _exploder = new ShrapnelAndDamageExploder(_exploderRigidbody, shrapnel, explosionEffect, shrapnelCount);
-        }
+        
         public ProximityDetonator(IExploder exploder, Rigidbody exploderRigidBody, float detonationDistance)
         {
             _exploderRigidbody = exploderRigidBody;

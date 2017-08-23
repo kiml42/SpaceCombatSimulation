@@ -324,7 +324,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: 0, z: 900}
+  EngineForce: {x: 0, y: 0, z: 1300}
   ForceApplier: {fileID: 54678280250609056}
   IsOn: 0
   Plume: {fileID: 198110838053188260}
@@ -358,10 +358,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TanShootAngle: 0.1
-  TorqueMultiplier: 8000
+  TorqueMultiplier: 10000
   LocationAimWeighting: 0.05
   Fuel: 10000
-  StartDelay: 30
+  StartDelay: 60
   TurningStartDelay: 20
   MinimumMass: 50
   EnemyTag: Enemy
@@ -370,7 +370,10 @@ MonoBehaviour:
   ExplosionEffect: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
   ShrapnelCount: 800
-  ExplosionForce: 500
+  ExplosionForce: 2000
+  ShrapnelSpeed: 120
+  ExplosionDamage: 100000
+  ExplosionRadius: 100
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 0
 --- !u!124 &124272854357906246
