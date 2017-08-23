@@ -2,8 +2,7 @@
 A Unity 3D project to simulate combat between space ships with vaguely realistic physics - Space ships are not aeroplanes!
 
 TODO:
-Add deactivate method to engine and torquer controllers.
-Finish configuring behavior variables on ships.
+Make evolution controller build the ships.
 Moving towards detonator for missiles
 Ships should be able to try to get to a specific distance.
 Engines handle their own fuel.
@@ -15,3 +14,6 @@ improve muzzle flashes.
 Make mini type 2 actually manage to hit torpedoes.
 Handle very high speed collisions
 use engines to turn.
+
+Bugs:
+Beams don't turn off when the turret dies.
