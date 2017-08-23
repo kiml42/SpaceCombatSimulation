@@ -34,7 +34,7 @@ public class EvolutionControler : MonoBehaviour
     public int MaxMutationLength = 5;
     public int MaxDesiredDistance = 1000;
 
-    public int MaxGenomeLength = 200;
+    public int GenomeLength = 100;
 
     // Use this for initialization
     void Start()
@@ -83,7 +83,7 @@ public class EvolutionControler : MonoBehaviour
     {
         var genomes = GenerateGenomes();
 
-        Debug.Log(string.Join(" vs ", genomes));
+        Debug.Log("\"" + string.Join("\" vs \"", genomes) + "\"");
 
         var g1 = genomes[0];
         var g2 = genomes[1];
@@ -186,6 +186,7 @@ public class EvolutionControler : MonoBehaviour
 
     private string Mutate(string baseGenome)
     {
+        baseGenome = baseGenome.PadRight(GenomeLength, ' ');
         var mutations = MinMutations + (baseGenome.Length * MutationsperGene);
         for (int i = 0; i < mutations; i++)
         {
@@ -207,13 +208,13 @@ public class EvolutionControler : MonoBehaviour
             else
             {
                 //duplicate
-                baseGenome = DuplicationMutation(baseGenome);
+                baseGenome = ReverseMutation(baseGenome);
             }
         }
 
-        if(baseGenome.Length > MaxGenomeLength)
+        if(baseGenome.Length > GenomeLength)
         {
-            return baseGenome.Substring(0, MaxGenomeLength);
+            return baseGenome.Substring(0, GenomeLength);
         }
         return baseGenome;
     }
@@ -223,6 +224,7 @@ public class EvolutionControler : MonoBehaviour
         int n = (int)(UnityEngine.Random.value * AllowedCharacters.Length);
         var character = AllowedCharacters[n];
         int m = (int)(UnityEngine.Random.value * genome.Length);
+        genome.Remove(m, 1);
         return genome.Insert(m, character.ToString());
     }
 
@@ -231,16 +233,18 @@ public class EvolutionControler : MonoBehaviour
         int n = (int)(UnityEngine.Random.value * genome.Length);
         int count = PickALength(n, genome.Length);
         //Debug.Log("n:" + n + ", count:" + count + ", length:" + genome.Length);
-        return genome.Remove(n, count);
+        genome = genome.Remove(n, count);
+        genome = genome.PadRight(GenomeLength, ' ');
+        return genome;
     }
 
-    private string DuplicationMutation(string genome)
+    private string ReverseMutation(string genome)
     {
         int n = (int)(UnityEngine.Random.value * genome.Length);
         int count = PickALength(n, genome.Length);
-        var duplicated = genome.Substring(n, count);
-
-        return genome.Insert(n, duplicated);
+        var sectionToReverse = Reverse(genome.Substring(n, count));
+        genome.Remove(n, count);
+        return genome.Insert(n, sectionToReverse);
     }
 
     private int PickALength(int start, int fullLength)
