@@ -21,9 +21,9 @@ namespace Assets.src.targeting
         private readonly Rigidbody _explosionEffect;
         public float ExplosionRadius = 20;
 
-        public ShrapnelAndDamageExploder(Rigidbody exploder, Rigidbody shrapnel, Rigidbody explosionEffect, int shrapnelCount = 50)
+        public ShrapnelAndDamageExploder(Rigidbody explodingRigidbody, Rigidbody shrapnel, Rigidbody explosionEffect, int shrapnelCount = 50)
         {
-            _exploder = exploder;
+            _exploder = explodingRigidbody;
             _shrapnel = shrapnel;
             _shrapnelCOunt = shrapnelCount;
             _explosionEffect = explosionEffect;
@@ -51,7 +51,7 @@ namespace Assets.src.targeting
             }
 
             //add shrapnel to be exploded
-            if (_shrapnelCOunt > 0)
+            if (_shrapnelCOunt > 0 && _shrapnel != null)
             {
                 for (int i = 0; i < _shrapnelCOunt; i++)
                 {
@@ -73,6 +73,11 @@ namespace Assets.src.targeting
             }
 
             GameObject.Destroy(_exploder.gameObject);
+        }
+
+        public void SetExplodingObject(Rigidbody explodingRigidbody)
+        {
+            _exploder = explodingRigidbody;
         }
     }
 }

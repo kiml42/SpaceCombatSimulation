@@ -18,7 +18,6 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     public int StartDelay = 2;
     public float SlowdownWeighting = 10;
     public Rigidbody TargetMarker;
-    public Rigidbody DeathExplosion;
     public float LocationTollerance = 20;
     public float VelociyTollerance = 1;
     public Transform Engine;
@@ -89,12 +88,6 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
             VelociyTollerance = VelociyTollerance
         };
 
-        _destroyer = new WithChildrenDestroyer()
-        {
-            ExplosionEffect =
-            DeathExplosion
-        };
-
         foreach (var engine in _engines)
         {
             engine.tag = tag;
@@ -106,12 +99,6 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     {
         if (_active && _runner != null)
             _runner.RunSpaceship();
-
-        if (Input.GetKeyDown("space"))
-        {
-            Debug.Log("spacePushed");
-            _destroyer.Destroy(gameObject, true);
-        }
     }
     
     public void Deactivate()

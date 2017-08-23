@@ -2,7 +2,7 @@
 A Unity 3D project to simulate combat between space ships with vaguely realistic physics - Space ships are not aeroplanes!
 
 TODO:
-Make explosions do damage.
+Add deactivate method to engine and torquer controllers.
 Finish configuring behavior variables on ships.
 Moving towards detonator for missiles
 Ships should be able to try to get to a specific distance.

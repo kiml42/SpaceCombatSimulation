@@ -10,20 +10,10 @@ namespace Assets.Src.ObjectManagement
 {
     public class WithChildrenDestroyer : IDestroyer
     {
-        public Rigidbody ExplosionEffect;
-        public float ExplosionForce = 1000;
-        public float ExplosionRadius = 1000;
         public bool UntagChildren = true;
-        private Rigidbody deathExplosion;
         public string DeadObjectTag = "Untagged";
-
-        //TODO make death use exploder
-        //private IExploder _exploder;
-
-        //public WithChildrenDestroyer(IExploder exploder)
-        //{
-        //    _exploder = exploder;
-        //}
+        
+        public IExploder Exploder;
 
         public void Destroy(GameObject toDestroy, bool useExplosion)
         {
@@ -68,10 +58,6 @@ namespace Assets.Src.ObjectManagement
                         hingeJoint.breakTorque = 0;
                         hingeJoint.breakForce = 0;
                     }
-                    if (useExplosion)
-                    {
-                        rigidbody.AddExplosionForce(ExplosionForce, toDestroy.transform.position, ExplosionRadius);
-                    }
                 }
                 else
                 {
@@ -79,11 +65,11 @@ namespace Assets.Src.ObjectManagement
                 }
             }
 
-            if (useExplosion && ExplosionEffect != null)
+            if (useExplosion && Exploder != null)
             {
                 var rigidBodyToExplode = toDestroy.GetComponent<Rigidbody>();
-                var explosion = GameObject.Instantiate(ExplosionEffect, rigidBodyToExplode.position, rigidBodyToExplode.rotation);
-                explosion.velocity = rigidBodyToExplode.velocity;
+                Exploder.SetExplodingObject(rigidBodyToExplode);
+                Exploder.ExplodeNow();
             }
 
             GameObject.Destroy(toDestroy);

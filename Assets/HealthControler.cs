@@ -20,15 +20,15 @@ public class HealthControler : MonoBehaviour
     public float Health = 200;
 
     public Rigidbody DeathExplosion;
-    public float ExplosionForce = 1000;
-    public float ExplosionRadius = 1000;
+    public float ExplosionForce2 = 200;
+    public float ExplosionRadius2 = 30;
 
     private IDestroyer _destroyer;
     
     public Rigidbody Shrapnel;
-    public int ShrapnelCount = 10;
-    public float ShrapnelSpeed = 100;
-    public float ExplosionDamage = 10000;
+    public int ShrapnelCount2 = 30;
+    public float ShrapnelSpeed2 = 20;
+    public float ExplosionDamage2 = 100;
 
     private Rigidbody _rigidbody;
 
@@ -37,19 +37,18 @@ public class HealthControler : MonoBehaviour
     {
         _rigidbody = GetComponent<Rigidbody>();
 
-        var exploder = new ShrapnelAndDamageExploder(_rigidbody, Shrapnel, DeathExplosion, ShrapnelCount)
+        var exploder = new ShrapnelAndDamageExploder(_rigidbody, Shrapnel, DeathExplosion, ShrapnelCount2)
         {
-            ExplosionForce = ExplosionForce,
-            ExplosionBaseDamage = ExplosionDamage,
-            ShrapnelSpeed = ShrapnelSpeed,
-            ExplosionRadius = ExplosionRadius
+            ExplosionForce = ExplosionForce2,
+            ExplosionBaseDamage = ExplosionDamage2,
+            ShrapnelSpeed = ShrapnelSpeed2,
+            ExplosionRadius = ExplosionRadius2
         };
 
         _destroyer = new WithChildrenDestroyer()
         {
-            ExplosionEffect = DeathExplosion,
-            ExplosionForce = ExplosionForce,
-            ExplosionRadius = ExplosionRadius
+            Exploder = exploder,
+            UntagChildren = false
         };
     }
 

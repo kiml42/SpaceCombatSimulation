@@ -45,11 +45,7 @@ namespace Assets.Src.Controllers
         // Use this for initialization
         void Start()
         {
-            _destroyer = new WithChildrenDestroyer()
-            {
-                ExplosionEffect =
-                DeathExplosion
-            };
+            _destroyer = new WithChildrenDestroyer();
 
             //DetectActiveCamera();
         }
