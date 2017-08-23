@@ -357,10 +357,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 20dff57476741ff4781682649ce23934, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: 900
   TanShootAngle: 0.1
-  TorqueMultiplier: 4000
-  LocationAimWeighting: 0.1
+  TorqueMultiplier: 8000
+  LocationAimWeighting: 0.05
   Fuel: 10000
   StartDelay: 30
   TurningStartDelay: 20
