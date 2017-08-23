@@ -34,6 +34,8 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
 
     private Transform _thisTurret;
 
+    private string InactiveTag = "Untagged";
+
 
     public string EnemyTag = "Enemy";
     public string GetEnemyTag()
@@ -131,5 +133,6 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
     public void Deactivate()
     {
         _active = false;
+        tag = InactiveTag;
     }
 }

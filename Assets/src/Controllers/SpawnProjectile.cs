@@ -36,6 +36,8 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
     private int _reload = 0;
     public int LoadTime = 200;
 
+    private string InactiveTag = "Untagged";
+
     // Use this for initialization
     void Start()
     {
@@ -99,5 +101,6 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
     public void Deactivate()
     {
         _active = false;
+        tag = InactiveTag;
     }
 }

@@ -1,9 +1,14 @@
-﻿using Assets.Src.ObjectManagement;
+﻿using Assets.Src.Interfaces;
+using Assets.Src.ObjectManagement;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TorquerController : MonoBehaviour {
+public class TorquerController : MonoBehaviour, IDeactivatable
+{
+    private bool _active;
+    private string InactiveTag = "Untagged";
+
     // Use this for initialization
     void Start()
     {
@@ -27,5 +32,11 @@ public class TorquerController : MonoBehaviour {
         //{
         //    Start();
         //}
+    }
+
+    public void Deactivate()
+    {
+        _active = false;
+        tag = InactiveTag;
     }
 }

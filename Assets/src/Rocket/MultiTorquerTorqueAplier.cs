@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Assets.Src.Rocket
 {
-    public class MultiTorquerTorqueAplier : ITorqueApplier
+    public class MultiTorquerTorqueAplier : ITorqueApplier, IDeactivatable
     {
         private List<Rigidbody> _torquers = new List<Rigidbody>();
         public float TorqueMultiplier;

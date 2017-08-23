@@ -39,6 +39,8 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     public string EnemyTag = "Enemy";
     private IRocketEngineControl _engineControl;
 
+    private string InactiveTag = "Untagged";
+
     public string GetEnemyTag()
     {
         return EnemyTag;
@@ -104,6 +106,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     public void Deactivate()
     {
         _active = false;
+        tag = InactiveTag;
     }
 
     public void RegisterEngine(Transform engine)

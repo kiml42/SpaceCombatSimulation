@@ -37,6 +37,8 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
 
     public string EnemyTag = "Enemy";
 
+    private string InactiveTag = "Untagged";
+
     public string GetEnemyTag()
     {
         return EnemyTag;
@@ -147,5 +149,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
         }
         //scrub the list now they've all been turned off.
         _beams = new List<Beam>();
+
+        tag = InactiveTag;
     }
 }

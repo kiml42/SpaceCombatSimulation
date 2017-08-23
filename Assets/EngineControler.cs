@@ -8,8 +8,11 @@ public class EngineControler : MonoBehaviour {
     public Rigidbody ForceApplier;
     public bool IsOn;
     public ParticleSystem Plume;
-	// Use this for initialization
-	void Start () {
+    private bool _active;
+    private string InactiveTag = "Untagged";
+
+    // Use this for initialization
+    void Start () {
         if(!IsOn)
             TurnOff();  //to deactivate the particle system if off
         
@@ -56,5 +59,12 @@ public class EngineControler : MonoBehaviour {
         {
             ForceApplier.AddRelativeForce(EngineForce);
         }
-	}
+    }
+
+    public void Deactivate()
+    {
+        _active = false;
+        TurnOff();
+        tag = InactiveTag;
+    }
 }
