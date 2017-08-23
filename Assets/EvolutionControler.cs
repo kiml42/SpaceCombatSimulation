@@ -43,6 +43,10 @@ public class EvolutionControler : MonoBehaviour
 
     public int GenomeLength = 100;
 
+
+    public Rigidbody Module0, Module1, Module2, Module3, Module4,
+        Module5, Module6, Module7, Module8, Module9;
+
     // Use this for initialization
     void Start()
     {
@@ -111,37 +115,21 @@ public class EvolutionControler : MonoBehaviour
         var randomPlacement = (LocationRandomisationRadius * UnityEngine.Random.insideUnitSphere) + location.position;
         var ship = Instantiate(ShipToEvolve, randomPlacement, orientation);
         ship.tag = ownTag;
-        ship.SendMessage("SetEnemyTag", enemyTag);
-        ship.SendMessage("SetGenome", genome);
-        ConfigureShip(ship, genome);
-    }
 
-    private void ConfigureShip(Rigidbody ship, string genome)
-    {
-        var controller = ship.GetComponent<SpaceShipControler> ();
-        controller.TanShootAngle = GetNumberFromGenome(genome, 0) * MaxTanShootAngle;
-        controller.TorqueMultiplier = GetNumberFromGenome(genome, 2) * MaxTorqueMultiplier;
-        controller.LocationAimWeighting = GetNumberFromGenome(genome, 4) * MaxLocationAimWeighting;
-        controller.SlowdownWeighting = GetNumberFromGenome(genome, 6) * MaxSlowdownWeighting;
-        controller.LocationTollerance = GetNumberFromGenome(genome, 8) * MaxLocationTollerance;
-        controller.VelociyTollerance = GetNumberFromGenome(genome, 10) * MaxVelociyTollerance;
-        controller.AngularDragForTorquers = GetNumberFromGenome(genome, 12) * MaxAngularDragForTorquers;
-    }
-
-    private float GetNumberFromGenome(string genome, int fromEnd)
-    {
-        var simplified = genome.Replace(" ", "");
-        if (simplified.Length > fromEnd)
+        new ShipBuilder(genome, ship.transform, Module0,
+            Module1, Module2, Module3, Module4, Module5, Module6, Module7, Module8, Module9)
         {
-            simplified = Reverse(simplified) + "  ";
-            var stringNumber = simplified.Substring(fromEnd, 2);
-            int number;
-            if (int.TryParse(stringNumber, out number))
-            {
-                return number/99f;
-            }
-        }
-        return 1;
+            MaxTanShootAngle = MaxTanShootAngle,
+            MaxTorqueMultiplier = MaxTorqueMultiplier,
+            MaxLocationAimWeighting = MaxLocationAimWeighting,
+            MaxSlowdownWeighting = MaxSlowdownWeighting,
+            MaxLocationTollerance = MaxLocationTollerance,
+            MaxVelociyTollerance = MaxVelociyTollerance,
+            MaxAngularDragForTorquers = MaxAngularDragForTorquers,
+            EnemyTag = enemyTag
+        }.BuildShip();
+
+        ship.SendMessage("SetEnemyTag", enemyTag);
     }
     
     public static string Reverse(string s)

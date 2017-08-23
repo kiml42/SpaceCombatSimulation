@@ -39,7 +39,7 @@ namespace Assets.Src.ObjectManagement
                 }
                 if (UntagChildren)
                 {
-                    Debug.Log("untagging " + child);
+                    //Debug.Log("untagging " + child);
                     child.tag = DeadObjectTag;
                 }
 

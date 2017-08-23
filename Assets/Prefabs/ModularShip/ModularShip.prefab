@@ -51,7 +51,6 @@ GameObject:
   - component: {fileID: 4023756119448736}
   - component: {fileID: 54288706851983332}
   - component: {fileID: 114169913862654500}
-  - component: {fileID: 114636715906188710}
   - component: {fileID: 114477379494518138}
   m_Layer: 0
   m_Name: ModularShip
@@ -682,8 +681,12 @@ MonoBehaviour:
   Health: 600
   DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
-  ExplosionForce: 1000
-  ExplosionRadius: 1000
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
 --- !u!114 &114477379494518138
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -702,38 +705,12 @@ MonoBehaviour:
   SlowdownWeighting: 30
   TargetMarker: {fileID: 54381550272298364, guid: b1fa19db76056a642a4e60d89370933f,
     type: 2}
-  DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
-    type: 2}
   LocationTollerance: 400
   VelociyTollerance: 10
   Engine: {fileID: 0}
   Torquer: {fileID: 54288706851983332}
   AngularDragForTorquers: 1
   EnemyTag: Team2
---- !u!114 &114636715906188710
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1176053855654468}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 61399976d9dc3754aa4d5a7a05c3ec7c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  EnemyTag: Team2
-  MaxModules: 20
-  Genome: 909090909090909090
-  Module0: {fileID: 54570345499317062, guid: b6e297582f25e22439032bba93cfe02a, type: 2}
-  Module1: {fileID: 54223752741852356, guid: 08efacbbb059a534586d7c97183f30e6, type: 2}
-  Module2: {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
-  Module3: {fileID: 54016053239248472, guid: a5aecdf99e8c0d540a795c7a769bf0f7, type: 2}
-  Module4: {fileID: 54085703227121582, guid: fb971bf036914224882cb762d5469d0a, type: 2}
-  Module5: {fileID: 54431323037331960, guid: 7a6fbabb0bc555d40912d26e6bc4beb5, type: 2}
-  Module6: {fileID: 54540809518397602, guid: ecb13bd8e1b25e74c820d8d87b56d573, type: 2}
-  Module7: {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
-  Module8: {fileID: 54298971192452022, guid: c19e2a0e8fe94a2458f1f5141511d791, type: 2}
-  Module9: {fileID: 54566524727042172, guid: 8629b68d84c101a458451c49aaba15dc, type: 2}
 --- !u!124 &124958046666288838
 Behaviour:
   m_ObjectHideFlags: 1
