@@ -32,7 +32,14 @@ public class EvolutionControler : MonoBehaviour
     public string AllowedCharacters = " 0123456789  ";
 
     public int MaxMutationLength = 5;
-    public int MaxDesiredDistance = 1000;
+    
+    public int MaxTanShootAngle = 1;
+    public int MaxTorqueMultiplier = 2000;
+    public int MaxLocationAimWeighting = 10;
+    public int MaxSlowdownWeighting = 60;
+    public int MaxLocationTollerance = 1000;
+    public int MaxVelociyTollerance = 200;
+    public int MaxAngularDragForTorquers = 1;
 
     public int GenomeLength = 100;
 
@@ -112,7 +119,13 @@ public class EvolutionControler : MonoBehaviour
     private void ConfigureShip(Rigidbody ship, string genome)
     {
         var controller = ship.GetComponent<SpaceShipControler> ();
-        controller.LocationTollerance = GetNumberFromGenome(genome, 0) * MaxDesiredDistance;
+        controller.TanShootAngle = GetNumberFromGenome(genome, 0) * MaxTanShootAngle;
+        controller.TorqueMultiplier = GetNumberFromGenome(genome, 2) * MaxTorqueMultiplier;
+        controller.LocationAimWeighting = GetNumberFromGenome(genome, 4) * MaxLocationAimWeighting;
+        controller.SlowdownWeighting = GetNumberFromGenome(genome, 6) * MaxSlowdownWeighting;
+        controller.LocationTollerance = GetNumberFromGenome(genome, 8) * MaxLocationTollerance;
+        controller.VelociyTollerance = GetNumberFromGenome(genome, 10) * MaxVelociyTollerance;
+        controller.AngularDragForTorquers = GetNumberFromGenome(genome, 12) * MaxAngularDragForTorquers;
     }
 
     private float GetNumberFromGenome(string genome, int fromEnd)
