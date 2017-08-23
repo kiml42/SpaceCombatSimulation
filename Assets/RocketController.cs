@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using Assets.src.targeting;
 
 public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 {
@@ -80,13 +81,16 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
             TurningStartDelay = TurningStartDelay
         };
 
-        _detonator = new ProximityDetonator(this, DetonationDistance, Shrapnel, ExplosionEffect, EnemyTag, ShrapnelCount)
+        var exploder = new ShrapnelAndDamageExploder(_rigidbody, Shrapnel, ExplosionEffect, ShrapnelCount)
         {
             ExplosionForce = ExplosionForce,
             EnemyTag = EnemyTag,
             TagShrapnel = TagShrapnel,
             SetEnemyTagOnShrapnel = SetEnemyTagOnShrapnel
         };
+
+        _detonator = new ProximityDetonator(exploder, _rigidbody, DetonationDistance);
+
         _runner = new RocketRunner(_detector, _targetPicker, _engineControl, _detonator);
         
         //Debug.Log("starting");
