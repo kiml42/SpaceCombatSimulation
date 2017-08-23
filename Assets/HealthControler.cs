@@ -1,4 +1,5 @@
-﻿using Assets.Src.Interfaces;
+﻿using Assets.src.targeting;
+using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using System.Collections;
 using System.Collections.Generic;
@@ -23,11 +24,27 @@ public class HealthControler : MonoBehaviour
     public float ExplosionRadius = 1000;
 
     private IDestroyer _destroyer;
+    
+    public Rigidbody Shrapnel;
+    public int ShrapnelCount = 10;
+    public float ShrapnelSpeed = 100;
+    public float ExplosionDamage = 10000;
 
+    private Rigidbody _rigidbody;
 
     // Use this for initialization
     void Start()
     {
+        _rigidbody = GetComponent<Rigidbody>();
+
+        var exploder = new ShrapnelAndDamageExploder(_rigidbody, Shrapnel, DeathExplosion, ShrapnelCount)
+        {
+            ExplosionForce = ExplosionForce,
+            ExplosionBaseDamage = ExplosionDamage,
+            ShrapnelSpeed = ShrapnelSpeed,
+            ExplosionRadius = ExplosionRadius
+        };
+
         _destroyer = new WithChildrenDestroyer()
         {
             ExplosionEffect = DeathExplosion,

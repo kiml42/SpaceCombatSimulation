@@ -1,4 +1,5 @@
-﻿using Assets.Src.Interfaces;
+﻿using Assets.src.interfaces;
+using Assets.Src.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +16,14 @@ namespace Assets.Src.ObjectManagement
         public bool UntagChildren = true;
         private Rigidbody deathExplosion;
         public string DeadObjectTag = "Untagged";
+
+        //TODO make death use exploder
+        //private IExploder _exploder;
+
+        //public WithChildrenDestroyer(IExploder exploder)
+        //{
+        //    _exploder = exploder;
+        //}
 
         public void Destroy(GameObject toDestroy, bool useExplosion)
         {
