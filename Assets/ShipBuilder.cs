@@ -6,6 +6,7 @@ using UnityEngine;
 using System;
 using Assets.Src.ObjectManagement;
 
+[Obsolete("should be handled by class called from evolution controller")]
 public class ShipBuilder : MonoBehaviour, IKnowsEnemyTagAndtag
 {
     public string EnemyTag = "Enemy";
