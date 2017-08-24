@@ -123,9 +123,9 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4589377682424178}
-  - component: {fileID: 135682450383112948}
-  - component: {fileID: 114478410833897430}
   - component: {fileID: 114150487081735056}
+  - component: {fileID: 114478410833897430}
+  - component: {fileID: 135682450383112948}
   m_Layer: 0
   m_Name: EvolvingWorldController
   m_TagString: Untagged
@@ -874,6 +874,7 @@ MonoBehaviour:
   MatchTimeout: 15000
   MinMutations: 1
   MutationsperGene: 0.07
+  MaxTurrets: 10
   AllowedCharacters: ' 0123456789  '
   MaxMutationLength: 5
   MaxTanShootAngle: 1
@@ -883,17 +884,18 @@ MonoBehaviour:
   MaxLocationTollerance: 1000
   MaxVelociyTollerance: 200
   MaxAngularDragForTorquers: 1
-  GenomeLength: 100
-  Module0: {fileID: 54570345499317062, guid: b6e297582f25e22439032bba93cfe02a, type: 2}
-  Module1: {fileID: 54566524727042172, guid: 8629b68d84c101a458451c49aaba15dc, type: 2}
-  Module2: {fileID: 54223752741852356, guid: 08efacbbb059a534586d7c97183f30e6, type: 2}
-  Module3: {fileID: 54540809518397602, guid: ecb13bd8e1b25e74c820d8d87b56d573, type: 2}
-  Module4: {fileID: 54016053239248472, guid: a5aecdf99e8c0d540a795c7a769bf0f7, type: 2}
-  Module5: {fileID: 54298971192452022, guid: c19e2a0e8fe94a2458f1f5141511d791, type: 2}
-  Module6: {fileID: 54085703227121582, guid: fb971bf036914224882cb762d5469d0a, type: 2}
-  Module7: {fileID: 54431323037331960, guid: 7a6fbabb0bc555d40912d26e6bc4beb5, type: 2}
-  Module8: {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
-  Module9: {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
+  GenomeLength: 50
+  Modules:
+  - {fileID: 54570345499317062, guid: b6e297582f25e22439032bba93cfe02a, type: 2}
+  - {fileID: 54566524727042172, guid: 8629b68d84c101a458451c49aaba15dc, type: 2}
+  - {fileID: 54223752741852356, guid: 08efacbbb059a534586d7c97183f30e6, type: 2}
+  - {fileID: 54540809518397602, guid: ecb13bd8e1b25e74c820d8d87b56d573, type: 2}
+  - {fileID: 54016053239248472, guid: a5aecdf99e8c0d540a795c7a769bf0f7, type: 2}
+  - {fileID: 54298971192452022, guid: c19e2a0e8fe94a2458f1f5141511d791, type: 2}
+  - {fileID: 54085703227121582, guid: fb971bf036914224882cb762d5469d0a, type: 2}
+  - {fileID: 54431323037331960, guid: 7a6fbabb0bc555d40912d26e6bc4beb5, type: 2}
+  - {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
+  - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
 --- !u!114 &114478410833897430
 MonoBehaviour:
   m_ObjectHideFlags: 1

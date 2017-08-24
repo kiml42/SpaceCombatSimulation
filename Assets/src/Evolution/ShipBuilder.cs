@@ -11,8 +11,8 @@ namespace Assets.src.Evolution
     public class ShipBuilder : IKnowsEnemyTagAndtag
     {
         public string EnemyTag = "Enemy";
-        public int MaxModules = 20;
-        private int _modulesAdded = 0;
+        public int MaxTurrets = 10;
+        private int _turretsAdded = 0;
         
         public int MaxTanShootAngle = 1;
         public int MaxTorqueMultiplier = 2000;
@@ -33,9 +33,9 @@ namespace Assets.src.Evolution
         }
 
         private string _genome;
+        public int GeneLength = 1;
         
-        public Rigidbody Module0, Module1, Module2, Module3, Module4,
-            Module5, Module6, Module7, Module8, Module9;
+        public List<Rigidbody> Modules;
 
         private int _genomePosition = 0;
         private float _r;
@@ -43,29 +43,18 @@ namespace Assets.src.Evolution
         private float _b;
         private Transform _shipToBuildOn;
 
-        public ShipBuilder(string genome, Transform shipToBuildOn, Rigidbody module0, Rigidbody module1, Rigidbody module2, Rigidbody module3, Rigidbody module4,
-            Rigidbody module5, Rigidbody module6, Rigidbody module7, Rigidbody module8, Rigidbody module9)
+        public ShipBuilder(string genome, Transform shipToBuildOn, List<Rigidbody> modules)
         {
             _shipToBuildOn = shipToBuildOn;
-            Module0 = module0;
-            Module1 = module1;
-            Module2 = module2;
-            Module3 = module3;
-            Module4 = module4;
-            Module5 = module5;
-            Module6 = module6;
-            Module7 = module7;
-            Module8 = module8;
-            Module9 = module9;
+            Modules = modules;
             _genome = genome;
         }
-        
+
         public void BuildShip()
         {
-            _r = GetNumberFromGenome(0);
-            _g = GetNumberFromGenome(2);
-            _b = GetNumberFromGenome(4);
-
+            _r = GetNumberFromGenome(0, 8);
+            _g = GetNumberFromGenome(10, 8);
+            _b = GetNumberFromGenome(20, 8);
             _shipToBuildOn.SetColor(_r,_g,_b);
             SpawnModules(_shipToBuildOn);
 
@@ -80,44 +69,49 @@ namespace Assets.src.Evolution
         private void SpawnModules(Transform currentHub)
         {
             var spawnPoints = GetSpawnPoints(currentHub);
-            foreach (var spawnPoint in spawnPoints)
+            if (spawnPoints.Any())
             {
-                if (_genomePosition < _genome.Length && _modulesAdded < MaxModules)
+                //this is a hub - add more modules to it
+                foreach (var spawnPoint in spawnPoints)
                 {
-                    var letter = _genome.ElementAt(_genomePosition);
-                    _genomePosition++;
-
-                    var moduleToAdd = SelectModule(letter);
-                    if (moduleToAdd != null)
+                    if (_genomePosition < _genome.Length && _turretsAdded < MaxTurrets)
                     {
-                        var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, spawnPoint);
+                        var moduleToAdd = SelectModule();
 
-                        _modulesAdded++;
-                        addedModule.transform.parent = currentHub;
-                        addedModule.GetComponent<FixedJoint>().connectedBody = currentHub.GetComponent<Rigidbody>();
-                        addedModule.SendMessage("SetEnemyTag", EnemyTag, SendMessageOptions.DontRequireReceiver);
+                        if (moduleToAdd != null)
+                        {
+                            var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, spawnPoint);
 
-                        addedModule.tag = currentHub.tag;
+                            addedModule.transform.parent = currentHub;
+                            addedModule.GetComponent<FixedJoint>().connectedBody = currentHub.GetComponent<Rigidbody>();
+                            addedModule.SendMessage("SetEnemyTag", EnemyTag, SendMessageOptions.DontRequireReceiver);
 
-                        SpawnModules(addedModule.transform);    //spawn modules on this module
+                            addedModule.tag = currentHub.tag;
 
-                        addedModule.transform.SetColor(_r,_g,_b);
+                            SpawnModules(addedModule.transform);    //spawn modules on this module
+
+                            addedModule.transform.SetColor(_r,_g,_b);
+                        }
                     }
                 }
+            } else
+            {
+                //this has no spawn points, so it must be aturret or engine - increment added turrets.
+                _turretsAdded++;
             }
         }
 
-        private float GetNumberFromGenome(int fromStart)
+        private float GetNumberFromGenome(int fromStart, int length = 2)
         {
-            var simplified = _genome.Replace(" ", "");
-            if (simplified.Length > fromStart)
+            if(fromStart + length < _genome.Length)
             {
-                simplified = simplified + "  ";
-                var stringNumber = simplified.Substring(fromStart, 2);
+                var substring = _genome.Substring(fromStart, length);
+
+                var simplified = substring.Replace(" ", "0");
                 int number;
-                if (int.TryParse(stringNumber, out number))
+                if (int.TryParse(simplified, out number))
                 {
-                    return number / 99f;
+                    return (float) (number / (Math.Pow(10, length)-1));
                 }
             }
             return 1;
@@ -138,33 +132,26 @@ namespace Assets.src.Evolution
             return _spawnPoints;
         }
 
-        private Rigidbody SelectModule(char letter)
+        private Rigidbody SelectModule()
         {
-            switch (letter)
+            if (_genomePosition + GeneLength < _genome.Length)
             {
-                case '0':
-                    return Module0;
-                case '1':
-                    return Module1;
-                case '2':
-                    return Module2;
-                case '3':
-                    return Module3;
-                case '4':
-                    return Module4;
-                case '5':
-                    return Module5;
-                case '6':
-                    return Module6;
-                case '7':
-                    return Module7;
-                case '8':
-                    return Module8;
-                case '9':
-                    return Module9;
-                default:
-                    return null;
+                var substring = _genome.Substring(_genomePosition, GeneLength);
+
+                _genomePosition += GeneLength;
+
+                var simplified = substring.Replace(" ", "");
+
+                int number;
+                if (int.TryParse(simplified, out number))
+                {
+                    if(number < _genome.Length)
+                    {
+                        return Modules[number];
+                    }
+                }
             }
+            return null;
         }
         private void ConfigureShip()
         {

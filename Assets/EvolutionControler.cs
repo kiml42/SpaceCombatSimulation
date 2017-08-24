@@ -26,10 +26,12 @@ public class EvolutionControler : MonoBehaviour
     public int GenerationSize = 10;
     public int MatchTimeout = 10000;
 
-    public int MinMutations = 1;
-    public float MutationsperGene = 0.1f;
+    public int Mutations = 3;
     
+    public int MaxTurrets = 10;
     public string AllowedCharacters = " 0123456789  ";
+
+
 
     public int MaxMutationLength = 5;
     
@@ -41,11 +43,9 @@ public class EvolutionControler : MonoBehaviour
     public int MaxVelociyTollerance = 200;
     public int MaxAngularDragForTorquers = 1;
 
-    public int GenomeLength = 100;
-
-
-    public Rigidbody Module0, Module1, Module2, Module3, Module4,
-        Module5, Module6, Module7, Module8, Module9;
+    public int GenomeLength = 50;
+    
+    public List<Rigidbody> Modules;
 
     // Use this for initialization
     void Start()
@@ -94,7 +94,7 @@ public class EvolutionControler : MonoBehaviour
     {
         var genomes = GenerateGenomes();
 
-        Debug.Log("\"" + string.Join("\" vs \"", genomes) + "\"");
+        Debug.Log("\"" + string.Join("\" vs \"", genomes.Select(g => g.TrimEnd()).ToArray()) + "\"");
 
         var g1 = genomes[0];
         var g2 = genomes[1];
@@ -116,8 +116,7 @@ public class EvolutionControler : MonoBehaviour
         var ship = Instantiate(ShipToEvolve, randomPlacement, orientation);
         ship.tag = ownTag;
 
-        new ShipBuilder(genome, ship.transform, Module0,
-            Module1, Module2, Module3, Module4, Module5, Module6, Module7, Module8, Module9)
+        new ShipBuilder(genome, ship.transform, Modules)
         {
             MaxTanShootAngle = MaxTanShootAngle,
             MaxTorqueMultiplier = MaxTorqueMultiplier,
@@ -126,7 +125,8 @@ public class EvolutionControler : MonoBehaviour
             MaxLocationTollerance = MaxLocationTollerance,
             MaxVelociyTollerance = MaxVelociyTollerance,
             MaxAngularDragForTorquers = MaxAngularDragForTorquers,
-            EnemyTag = enemyTag
+            EnemyTag = enemyTag,
+            MaxTurrets = MaxTurrets
         }.BuildShip();
 
         ship.SendMessage("SetEnemyTag", enemyTag);
@@ -176,7 +176,7 @@ public class EvolutionControler : MonoBehaviour
 
     private string[] GetDrawGenomes()
     {
-        return new string[] { _currentGenomes.Values.FirstOrDefault() };
+        return new string[] { /*_currentGenomes.Values.FirstOrDefault()*/ };
     }
 
     private string[] GenerateGenomes()
@@ -188,8 +188,7 @@ public class EvolutionControler : MonoBehaviour
     private string Mutate(string baseGenome)
     {
         baseGenome = baseGenome.PadRight(GenomeLength, ' ');
-        var mutations = MinMutations + (baseGenome.Length * MutationsperGene);
-        for (int i = 0; i < mutations; i++)
+        for (int i = 0; i < Mutations; i++)
         {
             var n = UnityEngine.Random.value;
             if (n < 0.5)
@@ -264,7 +263,7 @@ public class EvolutionControler : MonoBehaviour
     {
         var skip = Math.Max(records.Count - GenerationSize, 0);
         var g1 = records.Skip(skip).FirstOrDefault();
-        var g2 = records.Skip(++skip).FirstOrDefault();
+        var g2 = records.Skip(++skip).FirstOrDefault() ?? g1;
         return new string[] { g1.Victor, g2.Victor };
     }
 
