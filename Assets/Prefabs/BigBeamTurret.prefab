@@ -1973,7 +1973,7 @@ Rigidbody:
   serializedVersion: 2
   m_Mass: 2.5
   m_Drag: 0
-  m_AngularDrag: 20
+  m_AngularDrag: 10
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -2153,8 +2153,12 @@ MonoBehaviour:
   Health: 200
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce: 1000
-  ExplosionRadius: 1000
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
 --- !u!114 &114478780097900660
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2199,8 +2203,12 @@ MonoBehaviour:
   Health: 300
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce: 1000
-  ExplosionRadius: 1000
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
 --- !u!114 &114666555797963870
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2231,8 +2239,12 @@ MonoBehaviour:
   Health: 300
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce: 1000
-  ExplosionRadius: 1000
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
 --- !u!114 &114801988552399958
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2250,7 +2262,7 @@ MonoBehaviour:
   StartOffset: 30
   TanShootAngle: 0.1
   BeamForce: 4
-  BeamDamage: 2
+  BeamDamage: 3
   MinimumMass: 80
   HitEffect: {fileID: 4113682021108320, guid: e6ef866ccc6cd2c4fb5f402be7b7a1d0, type: 2}
   TurnTable: {fileID: 4388559009984546}

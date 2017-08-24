@@ -105,6 +105,7 @@ GameObject:
   - component: {fileID: 114005634925885068}
   - component: {fileID: 114726184140751052}
   - component: {fileID: 114361333263954078}
+  - component: {fileID: 114558417272495310}
   m_Layer: 0
   m_Name: Team1Ship
   m_TagString: Team1
@@ -338,6 +339,7 @@ GameObject:
   - component: {fileID: 54996993457620460}
   - component: {fileID: 138491033253873322}
   - component: {fileID: 114209580765381854}
+  - component: {fileID: 114668481676445708}
   m_Layer: 0
   m_Name: Engine
   m_TagString: Team1
@@ -1071,18 +1073,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TanShootAngle: 0.3
-  EngineForce: 4000
   TorqueMultiplier: 200000
   LocationAimWeighting: 1
   StartDelay: 0
   SlowdownWeighting: 30
   TargetMarker: {fileID: 54381550272298364, guid: b1fa19db76056a642a4e60d89370933f,
     type: 2}
-  DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
-    type: 2}
   LocationTollerance: 400
   VelociyTollerance: 10
-  Engine: {fileID: 54996993457620460}
+  Engine: {fileID: 4632310518447138}
+  Torquer: {fileID: 54348881928324954}
   AngularDragForTorquers: 48
   EnemyTag: Team2
 --- !u!114 &114016450482012260
@@ -1176,8 +1176,12 @@ MonoBehaviour:
   Health: 300
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce: 30
-  ExplosionRadius: 60
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
 --- !u!114 &114335314299087854
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1222,6 +1226,17 @@ MonoBehaviour:
   R: 0.5
   G: 0.4
   B: 0.7
+--- !u!114 &114558417272495310
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1151259579637064}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a124bb2bf147381439ad8c81fc59a1eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114573316238929026
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1252,6 +1267,21 @@ MonoBehaviour:
   TagChildren: 1
   TurretParent: {fileID: 4414052338548664, guid: bc715fe91c385714393b939f46d9eb66,
     type: 2}
+--- !u!114 &114668481676445708
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1833914359827252}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  EngineForce: {x: 0, y: 0, z: 1000}
+  ForceApplier: {fileID: 54996993457620460}
+  IsOn: 0
+  Plume: {fileID: 198387038657943950}
 --- !u!114 &114726184140751052
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1268,8 +1298,12 @@ MonoBehaviour:
   Health: 10000
   DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
-  ExplosionForce: 1000
-  ExplosionRadius: 1000
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
 --- !u!114 &114777325519764418
 MonoBehaviour:
   m_ObjectHideFlags: 1
