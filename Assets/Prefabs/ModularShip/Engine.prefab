@@ -266,7 +266,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -800, z: 0}
+  EngineForce: {x: 0, y: -1200, z: 0}
   ForceApplier: {fileID: 54223752741852356}
   IsOn: 1
   Plume: {fileID: 198180660864587914}
@@ -286,8 +286,12 @@ MonoBehaviour:
   Health: 500
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce: 30
-  ExplosionRadius: 60
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
 --- !u!138 &138388483758250644
 FixedJoint:
   m_ObjectHideFlags: 1

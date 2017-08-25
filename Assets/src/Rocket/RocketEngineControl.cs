@@ -176,7 +176,7 @@ namespace Assets.Src.Rocket
 
         private bool HasFuel()
         {
-            //Debug.Log("startDelay:" + StartDelay + ", RemainignFule:" + RemainingFuel);
+            //Debug.Log("RemainignFule:" + RemainingFuel);
             var hasFuel = RemainingFuel > 0 && StartDelay <= 0;
             if (!hasFuel)
             {

@@ -342,7 +342,7 @@ MonoBehaviour:
   TanShootAngle: 0.2
   TorqueMultiplier: 80
   LocationAimWeighting: 0.01
-  Fuel: 1500
+  Fuel: 600
   StartDelay: 20
   TurningStartDelay: 10
   MinimumMass: 0

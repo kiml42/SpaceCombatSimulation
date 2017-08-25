@@ -370,6 +370,19 @@ Prefab:
       propertyPath: m_RootOrder
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
+        type: 2}
+      propertyPath: LocationRandomisationRadius
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4530287190188008, guid: 590da46f61a57f34ba77094de519068c, type: 2}
+      propertyPath: m_LocalPosition.x
+      value: -2000
+      objectReference: {fileID: 0}
+    - target: {fileID: 4754386304018410, guid: 590da46f61a57f34ba77094de519068c, type: 2}
+      propertyPath: m_LocalPosition.x
+      value: 2000
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 590da46f61a57f34ba77094de519068c, type: 2}
   m_IsPrefabParent: 0
