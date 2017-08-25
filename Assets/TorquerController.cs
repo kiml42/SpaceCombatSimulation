@@ -25,15 +25,6 @@ public class TorquerController : MonoBehaviour, IDeactivatable
         parent.SendMessage("RegisterTorquer", transform, SendMessageOptions.DontRequireReceiver);
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        //if (!_parentFound)
-        //{
-        //    Start();
-        //}
-    }
-
     public void Deactivate()
     {
         _active = false;

@@ -14,12 +14,6 @@ public class SetColour : MonoBehaviour
         SetColor(transform, 1);
     }
 
-    //// Update is called once per frame
-    //void Update()
-    //{
-    //    SetColor(transform, 10);
-    //}
-
     private void SetColor(Transform transform, int depth = 0)
     {
         var colour = new Color(R, G, B);
