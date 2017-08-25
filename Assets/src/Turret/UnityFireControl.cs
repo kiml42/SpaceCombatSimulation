@@ -10,16 +10,16 @@ namespace Assets.Src.Targeting
     public class UnityFireControl : IFireControl
     {
         private const float _defaulShootAngle = 1f;
-        private float _tanShootAngle;
+        private float _shootAngle;
         Transform _thisTurret;
         ITurretController _controller;
         private readonly Transform _aimingObject;
 
-        public UnityFireControl(ITurretController controller, Transform thisTurret, Transform aimingObject, float tanShootAngle = _defaulShootAngle)
+        public UnityFireControl(ITurretController controller, Transform thisTurret, Transform aimingObject, float shootAngle = _defaulShootAngle)
         {
             _thisTurret = thisTurret;
             _controller = controller;
-            _tanShootAngle = tanShootAngle;
+            _shootAngle = shootAngle;
             _aimingObject = aimingObject;
         }
 
@@ -42,15 +42,8 @@ namespace Assets.Src.Targeting
             //return true;
             if (target != null)
             {
-                var location = target.LocationInAimedSpace(_thisTurret, _aimingObject);
-                if(location.z < 0)
-                {
-                    //turret is pointed away from target
-                    return false;
-                }
-                var distance = location.z;
-                location.z = 0;
-                return location.magnitude < _tanShootAngle * distance;
+                var angle = Vector3.Angle(_aimingObject.forward, target.Target.position - _aimingObject.position);
+                return angle < _shootAngle;
             }
             return false;
         }

@@ -15,7 +15,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     public int LoadTime = 50;
     public int ShootTime = 200;
     public int StartOffset = 10;
-    public float TanShootAngle = 0.1f;
+    public float ShootAngle = 5;
     public float BeamForce = 0;
     public float BeamDamage = 10;
     public float MinimumMass = 0;
@@ -92,7 +92,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
 
         _turner = new UnityTurretTurner(transform, TurnTable, ElevationHub, RestTarget);
 
-        _fireControl = new UnityFireControl(this, transform, ElevationHub, TanShootAngle);
+        _fireControl = new UnityFireControl(this, transform, ElevationHub, ShootAngle);
 
         _runner = new TurretRunner(_detector, _targetPicker, _turner, _fireControl);
     }

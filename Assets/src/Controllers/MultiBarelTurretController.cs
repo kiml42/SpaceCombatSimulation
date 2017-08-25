@@ -14,7 +14,7 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
     public Rigidbody Projectile;
     public int LoadTime = 200;
     public float ProjectileSpeed = 10f;
-    public float TanShootAngle = 0.1f;
+    public float ShootAngle = 10;
     public float RandomSpeed = 0.1f;
 
     public Transform TurnTable;
@@ -92,7 +92,7 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
 
         _turner = new UnityTurretTurner(_thisTurret, TurnTable, ElevationHub, RestTarget);
 
-        _fireControl = new UnityFireControl(this, _thisTurret, ElevationHub, TanShootAngle);
+        _fireControl = new UnityFireControl(this, _thisTurret, ElevationHub, ShootAngle);
 
         _runner = new TurretRunner(_detector, _targetPicker, _turner, _fireControl);
     }

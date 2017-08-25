@@ -41,7 +41,7 @@ namespace Assets.Src.Rocket
 
         private List<Transform> _engines = new List<Transform>();
         
-        private float _tanShootAngle;
+        private float _shootAngle;
 
         public int _startDelay = 0;
         private int _turningStartDelay;
@@ -50,11 +50,11 @@ namespace Assets.Src.Rocket
 
         private Rigidbody _pilotObject;
 
-        public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody pilotObject, Transform engine, float tanShootAngle, float fuel, int startDelay)
+        public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody pilotObject, Transform engine, float shootAngle, float fuel, int startDelay)
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
-            _tanShootAngle = tanShootAngle;
+            _shootAngle = shootAngle;
             RemainingFuel = fuel;
             _startDelay = startDelay;
             SlowdownWeighting = 10;
@@ -63,11 +63,11 @@ namespace Assets.Src.Rocket
             AddEngine(engine);
         }
 
-        public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<Transform> engines, float tanShootAngle, float fuel, int startDelay)
+        public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<Transform> engines, float shootAngle, float fuel, int startDelay)
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
-            _tanShootAngle = tanShootAngle;
+            _shootAngle = shootAngle;
             RemainingFuel = fuel;
             _startDelay = startDelay;
             SlowdownWeighting = 10;
@@ -79,11 +79,11 @@ namespace Assets.Src.Rocket
             }
         }
 
-        public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody pilotAndEngine, float tanShootAngle, float fuel, int startDelay)
+        public RocketEngineControl(ITorqueApplier torqueApplier, Rigidbody pilotAndEngine, float shootAngle, float fuel, int startDelay)
         {
             _pilotObject = pilotAndEngine;
             _torqueApplier = torqueApplier;
-            _tanShootAngle = tanShootAngle;
+            _shootAngle = shootAngle;
             RemainingFuel = fuel;
             _startDelay = startDelay;
             SlowdownWeighting = 10;
@@ -263,15 +263,8 @@ namespace Assets.Src.Rocket
         {
             if (_pilotObject != null)
             {
-                var localSpaceVector = _pilotObject.transform.InverseTransformVector(worldSpaceVector);
-                if (localSpaceVector.z < 0)
-                {
-                    //rocket is pointed away from target
-                    return false;
-                }
-                var distance = localSpaceVector.z;
-                localSpaceVector.z = 0;
-                return localSpaceVector.magnitude < _tanShootAngle * distance;
+                var angle = Vector3.Angle(_pilotObject.transform.forward, worldSpaceVector);
+                return angle < _shootAngle;
             }
 
             //Debug.Log("No Engines (IsAimedAtWorldVector)");

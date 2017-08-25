@@ -10,7 +10,7 @@ using Assets.src.targeting;
 
 public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 {
-    public float TanShootAngle = 0.1f;
+    public float ShootAngle = 10;
     public float TorqueMultiplier = 1f;
     public float LocationAimWeighting = 3f;
     public float Fuel = 200f;
@@ -78,7 +78,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 
         var initialAngularDrag = _rigidbody.angularDrag;
         var torqueApplier = new MultiTorquerTorqueAplier(_rigidbody, TorqueMultiplier, initialAngularDrag);
-        _engineControl = new RocketEngineControl(torqueApplier, _rigidbody, TanShootAngle, Fuel, StartDelay)
+        _engineControl = new RocketEngineControl(torqueApplier, _rigidbody, ShootAngle, Fuel, StartDelay)
         {
             LocationAimWeighting = LocationAimWeighting,
             TurningStartDelay = TurningStartDelay
