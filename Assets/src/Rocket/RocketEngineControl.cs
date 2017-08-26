@@ -14,6 +14,7 @@ namespace Assets.Src.Rocket
         public float RemainingFuel { get; private set; }
         public float SlowdownWeighting { get; set; }
         public float LocationAimWeighting { get; set; }
+        public Transform VectorArrow;
         
         public int StartDelay
         {
@@ -111,6 +112,11 @@ namespace Assets.Src.Rocket
                 
                 //try firing the main engine even with no fuel to turn it off if there is no fuel.
                 SetEngineActivationState(IsAimedAtWorldVector(turningVector));
+                if (VectorArrow != null)
+                {
+                    VectorArrow.rotation = Quaternion.LookRotation(turningVector);
+                    //VectorArrow.localScale = Vector3.one * turningVector.magnitude;
+                }
             }
             else
             {
@@ -149,6 +155,12 @@ namespace Assets.Src.Rocket
                 //    ", turningVector: " + turningVector);
 
                 _torqueApplier.TurnToVectorInWorldSpace(turningVector);
+
+                if(VectorArrow != null)
+                {
+                    VectorArrow.rotation = Quaternion.LookRotation(turningVector);
+                    //VectorArrow.localScale = Vector3.one * turningVector.magnitude;
+                }
                 
                 //try firing the main engine even with no fuel to turn it off if there is no fuel.
                 SetEngineActivationState(IsAimedAtWorldVector(turningVector) && !closeEnough);

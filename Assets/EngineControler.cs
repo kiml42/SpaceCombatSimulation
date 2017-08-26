@@ -8,7 +8,7 @@ public class EngineControler : MonoBehaviour {
     public Rigidbody ForceApplier;
     public bool IsOn;
     public ParticleSystem Plume;
-    private bool _active;
+    private bool _active = true;
     private string InactiveTag = "Untagged";
 
     // Use this for initialization
@@ -42,8 +42,14 @@ public class EngineControler : MonoBehaviour {
 
     public void TurnOn()
     {
-        IsOn = true;
-        Plume.Play();
+        if (_active)
+        {
+            IsOn = true;
+            Plume.Play();
+        } else
+        {
+            TurnOff();
+        }
     }
 
     public void TurnOff()
@@ -55,7 +61,7 @@ public class EngineControler : MonoBehaviour {
 
     // Update is called once per frame
     void Update () {
-        if (IsOn)
+        if (IsOn && _active)
         {
             ForceApplier.AddRelativeForce(EngineForce);
         }

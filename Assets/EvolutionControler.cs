@@ -35,7 +35,7 @@ public class EvolutionControler : MonoBehaviour
 
     public int MaxMutationLength = 5;
     
-    public int MaxTanShootAngle = 1;
+    public int MaxShootAngle = 180;
     public int MaxTorqueMultiplier = 2000;
     public int MaxLocationAimWeighting = 10;
     public int MaxSlowdownWeighting = 60;
@@ -46,6 +46,7 @@ public class EvolutionControler : MonoBehaviour
     public int GenomeLength = 50;
     
     public List<Rigidbody> Modules;
+    private string DrawKeyword = "DRAW";
 
     // Use this for initialization
     void Start()
@@ -66,7 +67,7 @@ public class EvolutionControler : MonoBehaviour
         else if (MatchTimeout <= 0)
         {
             Debug.Log("Timeout - draw");
-            winningGenomes = GetDrawGenomes();
+            winningGenomes = GetDrawGenomes(true);
         }
 
         foreach (var genome in winningGenomes)
@@ -118,7 +119,7 @@ public class EvolutionControler : MonoBehaviour
 
         new ShipBuilder(genome, ship.transform, Modules)
         {
-            MaxTanShootAngle = MaxTanShootAngle,
+            MaxShootAngle = MaxShootAngle,
             MaxTorqueMultiplier = MaxTorqueMultiplier,
             MaxLocationAimWeighting = MaxLocationAimWeighting,
             MaxSlowdownWeighting = MaxSlowdownWeighting,
@@ -159,7 +160,7 @@ public class EvolutionControler : MonoBehaviour
         if (ships.Count() == 0)
         {
             Debug.Log("Everyone's dead!");
-            return GetDrawGenomes();
+            return GetDrawGenomes(false);
         }
         return null;
     }
@@ -174,9 +175,9 @@ public class EvolutionControler : MonoBehaviour
         return s;
     }
 
-    private string[] GetDrawGenomes()
+    private string[] GetDrawGenomes(bool timeout)
     {
-        return new string[] { /*_currentGenomes.Values.FirstOrDefault()*/ };
+        return new string[] { DrawKeyword + (timeout ? " - timeout" : " - EveryoneDied") };
     }
 
     private string[] GenerateGenomes()
@@ -261,9 +262,10 @@ public class EvolutionControler : MonoBehaviour
 
     private string[] PickTwoGenomesFromHistory()
     {
-        var skip = Math.Max(records.Count - GenerationSize, 0);
-        var g1 = records.Skip(skip).FirstOrDefault();
-        var g2 = records.Skip(++skip).FirstOrDefault() ?? g1;
+        var validRecords = records.Where(r => !string.IsNullOrEmpty(r.Victor) && !r.Victor.Contains(DrawKeyword)).ToList();
+        var skip = Math.Max(validRecords.Count - GenerationSize, 0);
+        var g1 = validRecords.Skip(skip).FirstOrDefault();
+        var g2 = validRecords.Skip(++skip).FirstOrDefault() ?? g1;
         return new string[] { g1.Victor, g2.Victor };
     }
 

@@ -255,13 +255,13 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1580177786865768}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -600, y: 0, z: 0}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: -2000, y: 0, z: 0}
   m_LocalScale: {x: 5, y: 5, z: 5}
   m_Children: []
   m_Father: {fileID: 4589377682424178}
   m_RootOrder: 3
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!4 &4547696801224138
 Transform:
   m_ObjectHideFlags: 1
@@ -354,13 +354,13 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1878389135126328}
-  m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 600, y: 0, z: 0}
+  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 2000, y: 0, z: 0}
   m_LocalScale: {x: 5, y: 5, z: 5}
   m_Children: []
   m_Father: {fileID: 4589377682424178}
   m_RootOrder: 4
-  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!4 &4942318532456050
 Transform:
   m_ObjectHideFlags: 1
@@ -864,26 +864,25 @@ MonoBehaviour:
     type: 2}
   Location1: {fileID: 4530287190188008}
   Location2: {fileID: 4754386304018410}
-  RandomiseRotation: 1
-  LocationRandomisationRadius: 1000
+  RandomiseRotation: 0
+  LocationRandomisationRadius: 0
   Tag1: Team1
   Tag2: Team2
   FilePath: ./tmp/evolvingShips/evolvingShips.csv
   SpaceShipTag: SpaceShip
-  GenerationSize: 10
+  GenerationSize: 15
   MatchTimeout: 15000
-  MinMutations: 1
-  MutationsperGene: 0.07
-  MaxTurrets: 10
+  Mutations: 3
+  MaxTurrets: 15
   AllowedCharacters: ' 0123456789  '
   MaxMutationLength: 5
-  MaxTanShootAngle: 1
-  MaxTorqueMultiplier: 2000
+  MaxShootAngle: 180
+  MaxTorqueMultiplier: 40000
   MaxLocationAimWeighting: 10
   MaxSlowdownWeighting: 60
-  MaxLocationTollerance: 1000
-  MaxVelociyTollerance: 200
-  MaxAngularDragForTorquers: 1
+  MaxLocationTollerance: 2000
+  MaxVelociyTollerance: 100
+  MaxAngularDragForTorquers: 5
   GenomeLength: 50
   Modules:
   - {fileID: 54570345499317062, guid: b6e297582f25e22439032bba93cfe02a, type: 2}

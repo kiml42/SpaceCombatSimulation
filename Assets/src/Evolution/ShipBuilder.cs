@@ -14,7 +14,7 @@ namespace Assets.src.Evolution
         public int MaxTurrets = 10;
         private int _turretsAdded = 0;
         
-        public int MaxTanShootAngle = 1;
+        public int MaxShootAngle = 1;
         public int MaxTorqueMultiplier = 2000;
         public int MaxLocationAimWeighting = 10;
         public int MaxSlowdownWeighting = 60;
@@ -156,7 +156,7 @@ namespace Assets.src.Evolution
         private void ConfigureShip()
         {
             var controller = _shipToBuildOn.GetComponent<SpaceShipControler>();
-            controller.TanShootAngle = GetNumberFromGenome(_genome, 0) * MaxTanShootAngle;
+            controller.ShootAngle = GetNumberFromGenome(_genome, 0) * MaxShootAngle;
             controller.TorqueMultiplier = GetNumberFromGenome(_genome, 2) * MaxTorqueMultiplier;
             controller.LocationAimWeighting = GetNumberFromGenome(_genome, 4) * MaxLocationAimWeighting;
             controller.SlowdownWeighting = GetNumberFromGenome(_genome, 6) * MaxSlowdownWeighting;

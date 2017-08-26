@@ -1,4 +1,5 @@
 ﻿using Assets.Src.Interfaces;
+using Assets.Src.ObjectManagement;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,13 +12,11 @@ namespace Assets.Src.Targeting
     {
         private const float _defaulShootAngle = 1f;
         private float _shootAngle;
-        Transform _thisTurret;
         ITurretController _controller;
         private readonly Transform _aimingObject;
 
-        public UnityFireControl(ITurretController controller, Transform thisTurret, Transform aimingObject, float shootAngle = _defaulShootAngle)
+        public UnityFireControl(ITurretController controller, Transform aimingObject, float shootAngle = _defaulShootAngle)
         {
-            _thisTurret = thisTurret;
             _controller = controller;
             _shootAngle = shootAngle;
             _aimingObject = aimingObject;
@@ -40,7 +39,7 @@ namespace Assets.Src.Targeting
         public bool ShouldShoot(PotentialTarget target)
         {
             //return true;
-            if (target != null)
+            if (target != null && target.Target.transform.IsValid() && _aimingObject.IsValid())
             {
                 var angle = Vector3.Angle(_aimingObject.forward, target.Target.position - _aimingObject.position);
                 return angle < _shootAngle;

@@ -12,7 +12,7 @@ using System.Linq;
 
 public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatable
 {
-    public float TanShootAngle = 0.3f;
+    public float ShootAngle = 30;
     public float TorqueMultiplier = 9;
     public float LocationAimWeighting = 1;
     public int StartDelay = 2;
@@ -40,6 +40,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     private IRocketEngineControl _engineControl;
 
     private string InactiveTag = "Untagged";
+    public Transform VectorArrow;
 
     public string GetEnemyTag()
     {
@@ -75,10 +76,11 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
 
         var torqueApplier = new MultiTorquerTorqueAplier(_thisSpaceship, _torquers, TorqueMultiplier, AngularDragForTorquers);
         
-        _engineControl = new RocketEngineControl(torqueApplier, _thisSpaceship, _engines, TanShootAngle, Fuel, StartDelay)
+        _engineControl = new RocketEngineControl(torqueApplier, _thisSpaceship, _engines, ShootAngle, Fuel, StartDelay)
         {
             LocationAimWeighting = LocationAimWeighting,
             SlowdownWeighting = SlowdownWeighting,
+            VectorArrow = VectorArrow
         };
 
         _marker = Instantiate(TargetMarker);

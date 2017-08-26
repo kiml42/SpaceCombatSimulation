@@ -42,6 +42,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
     private ProximityDetonator _detonator;
     public bool TagShrapnel = false;
     public bool SetEnemyTagOnShrapnel = false;
+    public Transform VectorArrow;
 
     public string GetEnemyTag()
     {
@@ -81,7 +82,8 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
         _engineControl = new RocketEngineControl(torqueApplier, _rigidbody, ShootAngle, Fuel, StartDelay)
         {
             LocationAimWeighting = LocationAimWeighting,
-            TurningStartDelay = TurningStartDelay
+            TurningStartDelay = TurningStartDelay,
+            VectorArrow = VectorArrow
         };
 
         var exploder = new ShrapnelAndDamageExploder(_rigidbody, Shrapnel, ExplosionEffect, ShrapnelCount)

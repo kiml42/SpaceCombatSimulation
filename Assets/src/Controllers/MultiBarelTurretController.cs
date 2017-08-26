@@ -92,7 +92,7 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
 
         _turner = new UnityTurretTurner(_thisTurret, TurnTable, ElevationHub, RestTarget);
 
-        _fireControl = new UnityFireControl(this, _thisTurret, ElevationHub, ShootAngle);
+        _fireControl = new UnityFireControl(this, ElevationHub, ShootAngle);
 
         _runner = new TurretRunner(_detector, _targetPicker, _turner, _fireControl);
     }

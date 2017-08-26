@@ -1072,8 +1072,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6cc8ba250bdfeb74ca72df3ebf9e4267, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  TanShootAngle: 0.3
-  TorqueMultiplier: 200000
+  ShootAngle: 30
+  TorqueMultiplier: 400000
   LocationAimWeighting: 1
   StartDelay: 0
   SlowdownWeighting: 30
@@ -1278,7 +1278,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: 0, z: 1000}
+  EngineForce: {x: 0, y: 0, z: 10000}
   ForceApplier: {fileID: 54996993457620460}
   IsOn: 0
   Plume: {fileID: 198387038657943950}
