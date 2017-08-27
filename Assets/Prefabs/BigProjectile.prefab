@@ -232,7 +232,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e7e9b134a8dfa0f40bfe0f3cbe42332f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Lifetime: 400
+  Lifetime: 600
   RandomLifetime: 20
 --- !u!135 &135496945170436356
 SphereCollider:
