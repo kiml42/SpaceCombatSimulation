@@ -14,21 +14,36 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
     private Rigidbody _spawner;
     public bool OnlyWithTargets = false;
     private ITargetDetector _detector;
-
-    public string EnemyTag = "Enemy";
+    
     public float RandomStartTime = 30;
     public int MinStartTime = 30;
     private bool _active = true;
-
-    public string GetEnemyTag()
+    
+    #region EnemyTags
+    public void AddEnemyTag(string newTag)
     {
-        return EnemyTag;
+        var tags = EnemyTags.ToList();
+        tags.Add(newTag);
+        EnemyTags = tags.Distinct();
     }
 
-    public void SetEnemyTag(string newTag)
+    public string GetFirstEnemyTag()
     {
-        EnemyTag = newTag;
+        return EnemyTags.FirstOrDefault();
     }
+
+    public void SetEnemyTags(IEnumerable<string> allEnemyTags)
+    {
+        EnemyTags = allEnemyTags;
+    }
+
+    public IEnumerable<string> GetEnemyTags()
+    {
+        return EnemyTags;
+    }
+
+    public IEnumerable<string> EnemyTags;
+    #endregion
 
     public Vector3 Velocity = new Vector3(0, 0, 10);
     public float RandomSpeed = 1;
@@ -48,7 +63,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
         {
             _detector = new UnityTargetDetector()
             {
-                EnemyTag = EnemyTag
+                EnemyTags = EnemyTags
             };
         }
 
@@ -77,7 +92,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
 
                 projectile.velocity = velocity;
 
-                projectile.SendMessage("SetEnemyTag", EnemyTag);
+                projectile.SendMessage("SetEnemyTags", EnemyTags);
                 if (TagChildren) { projectile.tag = tag; }
 
                 _reload = LoadTime;

@@ -9,7 +9,7 @@ namespace Assets.Src.Targeting
 {
     public class UnityTargetDetector : ITargetDetector
     {
-        public string EnemyTag = "Enemy";
+        public IEnumerable<string> EnemyTags = new List<string> { "Enemy" };
         public float ProjectileSpeed = 0;
 
         public UnityTargetDetector()
@@ -19,19 +19,15 @@ namespace Assets.Src.Targeting
 
         public IEnumerable<PotentialTarget> DetectTargets()
         {
-            var gameObjects = GameObject.FindGameObjectsWithTag(EnemyTag)
-                .Where(o => o.GetComponent("Rigidbody"));
-            //Debug.Log("enemy tag: " + EnemyTag + ", count: " + gameObjects.Count());
-            //foreach (var obj in gameObjects)
-            //{
-            //    Debug.Log(obj.name + ", parent:" + obj.transform.parent + ", loc:" +obj.transform.position);
-            //    if (obj.transform.parent != null)
-            //    {
-            //        Debug.Log(obj.transform.parent.transform.parent);
-            //    }
-            //}
+            var targets = new List<PotentialTarget>();
+            foreach (var tag in EnemyTags)
+            {
+                var gameObjects = GameObject.FindGameObjectsWithTag(tag)
+                    .Where(o => o.GetComponent("Rigidbody"));
+                targets.AddRange(gameObjects.Select(g => new PotentialTarget(g.transform, ProjectileSpeed)));
+            }
 
-            return gameObjects.Select(g => new PotentialTarget(g.transform, ProjectileSpeed));
+            return targets;
         }
     }
 }

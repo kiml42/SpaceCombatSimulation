@@ -15,7 +15,7 @@ namespace Assets.src.targeting
         public float ShrapnelSpeed = 100;
         public float ExplosionForce = 30;
         public float ExplosionBaseDamage = 100;
-        public string EnemyTag;
+        public IEnumerable<string> EnemyTags;
         public bool SetEnemyTagOnShrapnel = false;
         public bool TagShrapnel = false;
         private readonly Rigidbody _explosionEffect;
@@ -60,9 +60,9 @@ namespace Assets.src.targeting
                     fragment.velocity = _exploder.velocity + (ShrapnelSpeed * location);
                     //gameObjects.Add(fragment);
 
-                    if (SetEnemyTagOnShrapnel && !string.IsNullOrEmpty(EnemyTag))
+                    if (SetEnemyTagOnShrapnel && EnemyTags != null && EnemyTags.Any())
                     {
-                        fragment.SendMessage("SetEnemyTag", EnemyTag);
+                        fragment.SendMessage("SetEnemyTags", EnemyTags);
                     }
 
                     if (TagShrapnel)

@@ -10,7 +10,32 @@ namespace Assets.src.Evolution
 {
     public class ShipBuilder : IKnowsEnemyTagAndtag
     {
-        public string EnemyTag = "Enemy";
+        #region EnemyTags
+            public void AddEnemyTag(string newTag)
+            {
+                var tags = EnemyTags.ToList();
+                tags.Add(newTag);
+                EnemyTags = tags.Distinct();
+            }
+
+            public string GetFirstEnemyTag()
+            {
+                return EnemyTags.FirstOrDefault();
+            }
+
+            public void SetEnemyTags(IEnumerable<string> allEnemyTags)
+            {
+                EnemyTags = allEnemyTags;
+            }
+
+            public IEnumerable<string> GetEnemyTags()
+            {
+            return EnemyTags;
+            }
+
+            public IEnumerable<string> EnemyTags;
+        #endregion
+
         public int MaxTurrets = 10;
         private int _turretsAdded = 0;
         
@@ -21,16 +46,7 @@ namespace Assets.src.Evolution
         public int MaxLocationTollerance = 1000;
         public int MaxVelociyTollerance = 200;
         public int MaxAngularDragForTorquers = 1;
-
-        public string GetEnemyTag()
-        {
-            return EnemyTag;
-        }
-
-        public void SetEnemyTag(string newTag)
-        {
-            EnemyTag = newTag;
-        }
+        
 
         private string _genome;
         public int GeneLength = 1;
@@ -84,7 +100,7 @@ namespace Assets.src.Evolution
 
                             addedModule.transform.parent = currentHub;
                             addedModule.GetComponent<FixedJoint>().connectedBody = currentHub.GetComponent<Rigidbody>();
-                            addedModule.SendMessage("SetEnemyTag", EnemyTag, SendMessageOptions.DontRequireReceiver);
+                            addedModule.SendMessage("SetEnemyTags", EnemyTags, SendMessageOptions.DontRequireReceiver);
 
                             addedModule.tag = currentHub.tag;
 

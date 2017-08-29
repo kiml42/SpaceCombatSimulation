@@ -116,6 +116,7 @@ public class EvolutionControler : MonoBehaviour
         var randomPlacement = (LocationRandomisationRadius * UnityEngine.Random.insideUnitSphere) + location.position;
         var ship = Instantiate(ShipToEvolve, randomPlacement, orientation);
         ship.tag = ownTag;
+        var enemyTags = new List<string> { enemyTag };
 
         new ShipBuilder(genome, ship.transform, Modules)
         {
@@ -126,11 +127,11 @@ public class EvolutionControler : MonoBehaviour
             MaxLocationTollerance = MaxLocationTollerance,
             MaxVelociyTollerance = MaxVelociyTollerance,
             MaxAngularDragForTorquers = MaxAngularDragForTorquers,
-            EnemyTag = enemyTag,
+            EnemyTags = enemyTags,
             MaxTurrets = MaxTurrets
         }.BuildShip();
 
-        ship.SendMessage("SetEnemyTag", enemyTag);
+        ship.SendMessage("SetEnemyTags", enemyTags);
     }
     
     public static string Reverse(string s)

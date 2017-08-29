@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using Assets.src.targeting;
+using System.Linq;
 
 public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 {
@@ -16,10 +17,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
     public float Fuel = 200f;
     public int StartDelay = 10;
     public int TurningStartDelay = 2;
-    public float MinimumMass = 0;
-
-    public string EnemyTag = "Enemy";
-    
+    public float MinimumMass = 0;    
 
     public float DetonationDistance = 20f;
     public Rigidbody Shrapnel;
@@ -34,7 +32,6 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
     private ITargetDetector _detector;
     private ITargetPicker _targetPicker;
     private IRocketEngineControl _engineControl;
-    private IFireControl _fireControl;
 
     private Rigidbody _rigidbody;
     
@@ -43,17 +40,33 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
     public bool TagShrapnel = false;
     public bool SetEnemyTagOnShrapnel = false;
     public Transform VectorArrow;
-
-    public string GetEnemyTag()
-    {
-        return EnemyTag;
-    }
-
-    public void SetEnemyTag(string newTag)
-    {
-        EnemyTag = newTag;
-    }
     
+    #region EnemyTags
+    public void AddEnemyTag(string newTag)
+    {
+        var tags = EnemyTags.ToList();
+        tags.Add(newTag);
+        EnemyTags = tags.Distinct();
+    }
+
+    public string GetFirstEnemyTag()
+    {
+        return EnemyTags.FirstOrDefault();
+    }
+
+    public void SetEnemyTags(IEnumerable<string> allEnemyTags)
+    {
+        EnemyTags = allEnemyTags;
+    }
+
+    public IEnumerable<string> GetEnemyTags()
+    {
+        return EnemyTags;
+    }
+
+    public IEnumerable<string> EnemyTags;
+    #endregion
+
     // Use this for initialization
     void Start()
     {
@@ -61,7 +74,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 
         _detector = new UnityTargetDetector()
         {
-            EnemyTag = EnemyTag
+            EnemyTags = EnemyTags
         };
 
         var pickers = new List<ITargetPicker>
@@ -89,7 +102,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
         var exploder = new ShrapnelAndDamageExploder(_rigidbody, Shrapnel, ExplosionEffect, ShrapnelCount)
         {
             ExplosionForce = ExplosionForce,
-            EnemyTag = EnemyTag,
+            EnemyTags = EnemyTags,
             TagShrapnel = TagShrapnel,
             SetEnemyTagOnShrapnel = SetEnemyTagOnShrapnel,
             ExplosionBaseDamage = ExplosionDamage,

@@ -24,7 +24,6 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     public Rigidbody Torquer;
     private List<Transform> _engines = new List<Transform>();
     private List<Rigidbody> _torquers = new List<Rigidbody>();
-    
 
     public float AngularDragForTorquers = 20;
 
@@ -33,24 +32,37 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     private SpaceshipRunner _runner;
     private Rigidbody _thisSpaceship;
     private bool _active = true;
-
-    private IDestroyer _destroyer;
-
-    public string EnemyTag = "Enemy";
+    
     private IRocketEngineControl _engineControl;
 
     private string InactiveTag = "Untagged";
     public Transform VectorArrow;
 
-    public string GetEnemyTag()
+    #region EnemyTags
+    public void AddEnemyTag(string newTag)
     {
-        return EnemyTag;
+        var tags = EnemyTags.ToList();
+        tags.Add(newTag);
+        EnemyTags = tags.Distinct();
     }
 
-    public void SetEnemyTag(string newTag)
+    public string GetFirstEnemyTag()
     {
-        EnemyTag = newTag;
+        return EnemyTags.FirstOrDefault();
     }
+
+    public void SetEnemyTags(IEnumerable<string> allEnemyTags)
+    {
+        EnemyTags = allEnemyTags;
+    }
+
+    public IEnumerable<string> GetEnemyTags()
+    {
+        return EnemyTags;
+    }
+
+    public IEnumerable<string> EnemyTags;
+    #endregion
 
     // Use this for initialization
     void Start()
@@ -71,7 +83,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
         _thisSpaceship = GetComponent<Rigidbody>();
         var _detector = new UnityTargetDetector()
         {
-            EnemyTag = EnemyTag
+            EnemyTags = EnemyTags
         };
 
         var torqueApplier = new MultiTorquerTorqueAplier(_thisSpaceship, _torquers, TorqueMultiplier, AngularDragForTorquers);
@@ -127,5 +139,4 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
         //_engineControl.SetEngine(Engine);
 
     }
-    
 }

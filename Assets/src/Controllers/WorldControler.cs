@@ -16,15 +16,31 @@ namespace Assets.Src.Controllers
         public bool ShouldSetEnemyTag = false;
         private Camera _currentCamera;
 
-        public string GetEnemyTag()
+        #region EnemyTags
+        public void AddEnemyTag(string newTag)
         {
-            return TarGetTag;
+            var tags = _enemyTags.ToList();
+            tags.Add(newTag);
+            _enemyTags = tags.Distinct();
         }
 
-        public void SetEnemyTag(string newTag)
+        public string GetFirstEnemyTag()
         {
-            TarGetTag = newTag;
+            return _enemyTags.FirstOrDefault();
         }
+
+        public void SetEnemyTags(IEnumerable<string> allEnemyTags)
+        {
+            _enemyTags = allEnemyTags;
+        }
+
+        public IEnumerable<string> GetEnemyTags()
+        {
+            return _enemyTags;
+        }
+
+        public IEnumerable<string> _enemyTags;
+        #endregion
 
         public Rigidbody Drone;
         public float Radius = 100;
@@ -33,7 +49,6 @@ namespace Assets.Src.Controllers
         public int LoadTime = 200;
         public float SpeedScaler = 0.1f;
         private IDestroyer _destroyer;
-        public Rigidbody DeathExplosion;
 
         private int _activeCameraIndex = 0;
         public float ZoomMultiplier = 30;
@@ -210,7 +225,7 @@ namespace Assets.Src.Controllers
                     var velocity = SpeedScaler * UnityEngine.Random.insideUnitSphere;
                     drone.velocity = velocity;
 
-                    if (ShouldSetEnemyTag) { drone.SendMessage("SetEnemyTag", TarGetTag); }
+                    if (ShouldSetEnemyTag) { drone.SendMessage("SetEnemyTags", TarGetTag); }
                     if (TagChildren) { drone.tag = tag; }
 
                     _reload = LoadTime;

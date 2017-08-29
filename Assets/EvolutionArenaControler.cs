@@ -17,7 +17,7 @@ public class EvolutionArenaControler : MonoBehaviour
 
     public string SpaceShipTag = "SpaceShip";
     private Dictionary<string, string> _currentGenomes;
-    private List<MatchRecord> records = new List<MatchRecord>();
+    private List<ArenaRecord> records = new List<ArenaRecord>();
 
     public int ConcurrentShips = 5;
 
@@ -43,34 +43,52 @@ public class EvolutionArenaControler : MonoBehaviour
 
     public int MatchCountdown;
     private int _originalCountdown;
+    public bool SetVelocity;
+    private IEnumerable<KeyValuePair<string, string>> _extantGenomes;
+    private IEnumerable<KeyValuePair<string, string>> _extinctGenomes;
 
     // Use this for initialization
     void Start()
     {
         _originalCountdown = MatchCountdown;
         ReadPreviousMatches();
-        SpawnShips();
+        SpawnInitialShips();
     }
 
     // Update is called once per frame
     void Update()
     {
-        var deadGenomes = DetectDeadTeams();
-        if (deadGenomes == null)
+        DetectSurvivingAndDeadTeams();
+
+        if(_extantGenomes.Count() < ConcurrentShips)
+        {
+            records.Add(new ArenaRecord(_extantGenomes.Select(g => g.Value)));
+
+            Debug.Log(records.Count + " matches completed");
+            SaveRecords();
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            MatchCountdown = _originalCountdown;
+
+            string genome = PickRandomSurvivor();
+            genome = Mutate(genome);
+
+            var tag = GetUnusedTag();
+
+            SpawnShip(genome, tag);
+        } else
         {
             MatchCountdown--;
-            return;
         }
+    }
 
-        foreach (var genome in deadGenomes)
-        {
-            Debug.Log(genome + " Wins!");
-            records.Add(new MatchRecord(_currentGenomes.Values.ToArray(), genome));
-        }
+    private string GetUnusedTag()
+    {
+        throw new NotImplementedException();
+    }
 
-        Debug.Log(records.Count + " matches completed");
-        SaveRecords();
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    private string PickRandomSurvivor()
+    {
+        throw new NotImplementedException();
     }
 
     private void SaveRecords()
@@ -83,31 +101,38 @@ public class EvolutionArenaControler : MonoBehaviour
         File.WriteAllLines(FilePath, records.Select(r => r.ToString()).ToArray());
     }
 
-    private void SpawnShips()
+    private void SpawnInitialShips()
     {
-        var genomes = GenerateGenomes();
-
+        var genomes = GetGenomesFromHistory();
         Debug.Log("\"" + string.Join("\" vs \"", genomes.Select(g => g.TrimEnd()).ToArray()) + "\"");
 
-        var g1 = genomes[0];
-        var g2 = genomes[1];
+        var tags = Tags.ToList();
+        var i = 0;
 
-        SpawnShip(g1, Tag1, Tag2, Location1);
-        SpawnShip(g2, Tag2, Tag1, Location2);
+        _currentGenomes = new Dictionary<string, string>();
 
-        _currentGenomes = new Dictionary<string, string>
+        foreach (var g in genomes)
         {
-            {Tag1,g1 },
-            {Tag2,g2 }
-        };
+            var tag = tags[i];
+            SpawnShip(g, tag);
+            i++;
+            _currentGenomes.Add(tag, g);
+        }
     }
 
-    private void SpawnShip(string genome, string ownTag, string enemyTag, Transform location)
+    private void SpawnShip(string genome, string ownTag)
     {
-        var orientation = RandomiseRotation ? UnityEngine.Random.rotation : location.rotation;
-        var randomPlacement = (SpawnSphereRadius * UnityEngine.Random.insideUnitSphere) + location.position;
+        var orientation = UnityEngine.Random.rotation;
+        var randomPlacement = (SpawnSphereRadius * UnityEngine.Random.insideUnitSphere) + transform.position;
         var ship = Instantiate(ShipToEvolve, randomPlacement, orientation);
         ship.tag = ownTag;
+
+        if (SetVelocity)
+        {
+            ship.velocity = GetComponent<Rigidbody>().velocity;
+        }
+
+        var enemyTags = Tags.Where(t => t != ownTag);
 
         new ShipBuilder(genome, ship.transform, Modules)
         {
@@ -118,11 +143,11 @@ public class EvolutionArenaControler : MonoBehaviour
             MaxLocationTollerance = MaxLocationTollerance,
             MaxVelociyTollerance = MaxVelociyTollerance,
             MaxAngularDragForTorquers = MaxAngularDragForTorquers,
-            EnemyTag = enemyTag,
+            EnemyTags = enemyTags,
             MaxTurrets = MaxTurrets
         }.BuildShip();
 
-        ship.SendMessage("SetEnemyTag", enemyTag);
+        ship.SendMessage("SetEnemyTags", enemyTags);
     }
     
     public static string Reverse(string s)
@@ -132,27 +157,17 @@ public class EvolutionArenaControler : MonoBehaviour
         return new string(charArray);
     }
 
-    private IEnumerable<KeyValuePair<string,string>> DetectDeadTeams()
+    private void DetectSurvivingAndDeadTeams()
     {
-        var ships = GameObject.FindGameObjectsWithTag(SpaceShipTag)
+        var livingShips = GameObject.FindGameObjectsWithTag(SpaceShipTag)
             .Where(s =>
-            s.transform.parent != null &&
-            s.transform.parent.GetComponent("Rigidbody") != null
-            );
-        //Debug.Log(ships.Count() + " ships exist");
+                s.transform.parent != null &&
+                s.transform.parent.GetComponent("Rigidbody") != null
+            )
+            .Select(s => s.transform.parent.tag);
 
-        if (ships.Count() < ConcurrentShips)
-        {
-            var livingShips = ships.Select(s => s.transform.parent.tag);
-
-            return _currentGenomes.Where(g => !livingShips.Contains(g.Key));
-        }
-        if (ships.Count() == 0)
-        {
-            Debug.Log("Everyone's dead!");
-            return _currentGenomes;
-        }
-        return new List<KeyValuePair<string,string>>();
+        _extantGenomes = _currentGenomes.Where(g => livingShips.Contains(g.Key));
+        _extinctGenomes = _currentGenomes.Where(g => !livingShips.Contains(g.Key));
     }
 
     private string StringifyGenomes()
@@ -170,11 +185,11 @@ public class EvolutionArenaControler : MonoBehaviour
         return new string[] { DrawKeyword + (timeout ? " - timeout" : " - EveryoneDied") };
     }
 
-    private string[] GenerateGenomes()
-    {
-        var baseGenome = PickTwoGenomesFromHistory();
-        return baseGenome.Select(g => Mutate(g)).ToArray();
-    }
+    //private string[] GenerateGenomes()
+    //{
+    //    var baseGenome = PickTwoGenomesFromHistory();
+    //    return baseGenome.Select(g => Mutate(g)).ToArray();
+    //}
 
     private string Mutate(string baseGenome)
     {
@@ -250,24 +265,22 @@ public class EvolutionArenaControler : MonoBehaviour
         return Math.Max(result, 1);
     }
 
-    private string[] PickTwoGenomesFromHistory()
+    private IEnumerable<string> GetGenomesFromHistory()
     {
-        var validRecords = records.Where(r => !string.IsNullOrEmpty(r.Victor) && !r.Victor.Contains(DrawKeyword)).ToList();
-        var skip = Math.Max(validRecords.Count - ConcurrentShips, 0);
-        var g1 = validRecords.Skip(skip).FirstOrDefault();
-        var g2 = validRecords.Skip(++skip).FirstOrDefault() ?? g1;
-        return new string[] { g1.Victor, g2.Victor };
+        var validRecords = records.Where(r => r.Survivors.Any()).ToList();
+        var last = validRecords.LastOrDefault() ?? new ArenaRecord(";;;");
+        return last.Survivors;
     }
 
     private void ReadPreviousMatches()
     {
         if (File.Exists(FilePath))
         {
-            records = new List<MatchRecord>();
+            records = new List<ArenaRecord>();
             var lines = File.ReadAllLines(FilePath);
             foreach (var line in lines)
             {
-                records.Add(new MatchRecord(line));
+                records.Add(new ArenaRecord(line));
             }
             if (records.Any())
             {
@@ -277,16 +290,6 @@ public class EvolutionArenaControler : MonoBehaviour
 
         //falback to seeding
         Debug.Log("File not found");
-        records = new List<MatchRecord>
-        {
-            new MatchRecord("22222"),
-            new MatchRecord("33333"),
-            new MatchRecord("44444"),
-            new MatchRecord("55555"),
-            new MatchRecord("66666"),
-            new MatchRecord("77777"),
-            new MatchRecord("88888"),
-            new MatchRecord("99999")
-        };
+        records = new List<ArenaRecord>();
     }
 }

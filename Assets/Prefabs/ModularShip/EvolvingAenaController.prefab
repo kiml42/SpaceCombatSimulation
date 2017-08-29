@@ -178,6 +178,7 @@ GameObject:
   - component: {fileID: 114839289257973830}
   - component: {fileID: 114112479859384182}
   - component: {fileID: 135302773511490192}
+  - component: {fileID: 114794766112093422}
   m_Layer: 0
   m_Name: EvolvingAenaController
   m_TagString: Untagged
@@ -868,8 +869,6 @@ MonoBehaviour:
   Radius: 100
   LoadTime: 200
   SpeedScaler: 20
-  DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
-    type: 2}
   ZoomMultiplier: 30
   ZoomOrSwitchThreshold: 500
 --- !u!114 &114275107626707262
@@ -886,13 +885,45 @@ MonoBehaviour:
   R: 0.5
   G: 0.5
   B: 3
---- !u!114 &114839289257973830
+--- !u!114 &114794766112093422
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1892942396869408}
   m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2858fd7f94d5be446a26c1353d1b208a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShipToEvolve: {fileID: 0}
+  SpawnSphereRadius: 1000
+  Tags: []
+  FilePath: ./tmp/evolvingShips/evolvingShipsArena.csv
+  SpaceShipTag: SpaceShip
+  ConcurrentShips: 5
+  Mutations: 3
+  MaxTurrets: 15
+  AllowedCharacters: ' 0123456789  '
+  MaxMutationLength: 5
+  MaxShootAngle: 180
+  MaxTorqueMultiplier: 60000
+  MaxLocationAimWeighting: 10
+  MaxSlowdownWeighting: 60
+  MaxLocationTollerance: 2000
+  MaxVelociyTollerance: 100
+  MaxAngularDragForTorquers: 5
+  GenomeLength: 50
+  Modules: []
+  MatchCountdown: 0
+  SetVelocity: 0
+--- !u!114 &114839289257973830
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1892942396869408}
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3dff911269bfe564ba0a3d2fd1db1d11, type: 3}
   m_Name: 

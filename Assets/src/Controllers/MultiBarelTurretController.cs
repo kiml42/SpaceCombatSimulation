@@ -37,16 +37,31 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
     private string InactiveTag = "Untagged";
 
 
-    public string EnemyTag = "Enemy";
-    public string GetEnemyTag()
+    #region EnemyTags
+    public void AddEnemyTag(string newTag)
     {
-        return EnemyTag;
+        var tags = EnemyTags.ToList();
+        tags.Add(newTag);
+        EnemyTags = tags.Distinct();
     }
 
-    public void SetEnemyTag(string newTag)
+    public string GetFirstEnemyTag()
     {
-        EnemyTag = newTag;
+        return EnemyTags.FirstOrDefault();
     }
+
+    public void SetEnemyTags(IEnumerable<string> allEnemyTags)
+    {
+        EnemyTags = allEnemyTags;
+    }
+
+    public IEnumerable<string> GetEnemyTags()
+    {
+        return EnemyTags;
+    }
+
+    public IEnumerable<string> EnemyTags;
+    #endregion
 
     private int _reload = 0;
 
@@ -73,7 +88,7 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
         _detector = new UnityTargetDetector()
         {
             ProjectileSpeed = ProjectileSpeed,
-            EnemyTag = EnemyTag
+            EnemyTags = EnemyTags
         };
 
         var pickers = new List<ITargetPicker>
@@ -121,7 +136,7 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
                 _reload = LoadTime;
                 emitter.parent.parent.GetComponent<Rigidbody>().AddForce(100 * (-emitter.forward));
 
-                if (SetChildrensEnemy) { projectile.SendMessage("SetEnemyTag", EnemyTag); }
+                if (SetChildrensEnemy) { projectile.SendMessage("SetEnemyTags", EnemyTags); }
                 if (TagChildren) { projectile.tag = tag; }
             }
             else

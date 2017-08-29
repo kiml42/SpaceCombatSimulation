@@ -34,20 +34,34 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     private bool _onInPrevFrame = false;
     private bool _active = true;
 
-
-    public string EnemyTag = "Enemy";
-
     private string InactiveTag = "Untagged";
 
-    public string GetEnemyTag()
+
+    #region EnemyTags
+    public void AddEnemyTag(string newTag)
     {
-        return EnemyTag;
+        var tags = EnemyTags.ToList();
+        tags.Add(newTag);
+        EnemyTags = tags.Distinct();
     }
 
-    public void SetEnemyTag(string newTag)
+    public string GetFirstEnemyTag()
     {
-        EnemyTag = newTag;
+        return EnemyTags.FirstOrDefault();
     }
+
+    public void SetEnemyTags(IEnumerable<string> allEnemyTags)
+    {
+        EnemyTags = allEnemyTags;
+    }
+
+    public IEnumerable<string> GetEnemyTags()
+    {
+        return EnemyTags;
+    }
+
+    public IEnumerable<string> EnemyTags;
+    #endregion
 
     private ITurretRunner _runner;
 
@@ -73,7 +87,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
         _detector = new UnityTargetDetector()
         {
             ProjectileSpeed = 0,
-            EnemyTag = EnemyTag
+            EnemyTags = EnemyTags
         };
 
         var pickers = new List<ITargetPicker>
