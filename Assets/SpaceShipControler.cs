@@ -43,7 +43,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     {
         var tags = EnemyTags.ToList();
         tags.Add(newTag);
-        EnemyTags = tags.Distinct();
+        EnemyTags = tags.Distinct().ToList();
     }
 
     public string GetFirstEnemyTag()
@@ -51,17 +51,17 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
         return EnemyTags.FirstOrDefault();
     }
 
-    public void SetEnemyTags(IEnumerable<string> allEnemyTags)
+    public void SetEnemyTags(List<string> allEnemyTags)
     {
         EnemyTags = allEnemyTags;
     }
 
-    public IEnumerable<string> GetEnemyTags()
+    public List<string> GetEnemyTags()
     {
         return EnemyTags;
     }
 
-    public IEnumerable<string> EnemyTags;
+    public List<string> EnemyTags;
     #endregion
 
     // Use this for initialization

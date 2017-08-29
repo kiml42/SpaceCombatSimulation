@@ -13,11 +13,9 @@ public class EvolutionArenaControler : MonoBehaviour
     public Rigidbody ShipToEvolve;
     public float SpawnSphereRadius = 1000;
     public List<string> Tags;
-    public string FilePath = "./tmp/evolvingShips/evolvingShipsArena.csv";
+    public string FilePath = "./tmp/evolvingShipsArena/evolvingShipsArena.csv";
 
     public string SpaceShipTag = "SpaceShip";
-    private Dictionary<string, string> _currentGenomes;
-    private List<ArenaRecord> records = new List<ArenaRecord>();
 
     public int ConcurrentShips = 5;
 
@@ -39,13 +37,17 @@ public class EvolutionArenaControler : MonoBehaviour
     public int GenomeLength = 50;
     
     public List<Rigidbody> Modules;
-    private string DrawKeyword = "DRAW";
 
     public int MatchCountdown;
-    private int _originalCountdown;
     public bool SetVelocity;
-    private IEnumerable<KeyValuePair<string, string>> _extantGenomes;
-    private IEnumerable<KeyValuePair<string, string>> _extinctGenomes;
+    public string DefaultGenome = "";
+
+
+    private List<ArenaRecord> records = new List<ArenaRecord>();
+    private string DrawKeyword = "DRAW";
+
+    private int _originalCountdown;
+    private Dictionary<string, string> _extantGenomes;
 
     // Use this for initialization
     void Start()
@@ -63,18 +65,14 @@ public class EvolutionArenaControler : MonoBehaviour
         if(_extantGenomes.Count() < ConcurrentShips)
         {
             records.Add(new ArenaRecord(_extantGenomes.Select(g => g.Value)));
-
-            Debug.Log(records.Count + " matches completed");
             SaveRecords();
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+
             MatchCountdown = _originalCountdown;
 
-            string genome = PickRandomSurvivor();
+            string genome = PickRandomSurvivorGenome();
             genome = Mutate(genome);
 
-            var tag = GetUnusedTag();
-
-            SpawnShip(genome, tag);
+            SpawnShip(genome);
         } else
         {
             MatchCountdown--;
@@ -83,12 +81,21 @@ public class EvolutionArenaControler : MonoBehaviour
 
     private string GetUnusedTag()
     {
-        throw new NotImplementedException();
+        if(Tags == null || !Tags.Any())
+        {
+            return null;
+        }
+        return Tags.FirstOrDefault(t => _extantGenomes == null || !_extantGenomes.Any(g => g.Key == t));
     }
 
-    private string PickRandomSurvivor()
+    private string PickRandomSurvivorGenome()
     {
-        throw new NotImplementedException();
+        if (_extantGenomes.Any())
+        {
+            var skip = (int)UnityEngine.Random.value * _extantGenomes.Count();
+            return _extantGenomes.Skip(skip).First().Value;
+        }
+        return DefaultGenome;
     }
 
     private void SaveRecords()
@@ -105,23 +112,17 @@ public class EvolutionArenaControler : MonoBehaviour
     {
         var genomes = GetGenomesFromHistory();
         Debug.Log("\"" + string.Join("\" vs \"", genomes.Select(g => g.TrimEnd()).ToArray()) + "\"");
-
-        var tags = Tags.ToList();
-        var i = 0;
-
-        _currentGenomes = new Dictionary<string, string>();
-
+        
         foreach (var g in genomes)
         {
-            var tag = tags[i];
-            SpawnShip(g, tag);
-            i++;
-            _currentGenomes.Add(tag, g);
+            SpawnShip(g);
         }
     }
 
-    private void SpawnShip(string genome, string ownTag)
+    private void SpawnShip(string genome)
     {
+        Debug.Log("Spawning \"" + genome + "\"");
+        var ownTag = GetUnusedTag();
         var orientation = UnityEngine.Random.rotation;
         var randomPlacement = (SpawnSphereRadius * UnityEngine.Random.insideUnitSphere) + transform.position;
         var ship = Instantiate(ShipToEvolve, randomPlacement, orientation);
@@ -132,7 +133,7 @@ public class EvolutionArenaControler : MonoBehaviour
             ship.velocity = GetComponent<Rigidbody>().velocity;
         }
 
-        var enemyTags = Tags.Where(t => t != ownTag);
+        var enemyTags = Tags.Where(t => t != ownTag).ToList();
 
         new ShipBuilder(genome, ship.transform, Modules)
         {
@@ -148,13 +149,18 @@ public class EvolutionArenaControler : MonoBehaviour
         }.BuildShip();
 
         ship.SendMessage("SetEnemyTags", enemyTags);
+
+        RememberNewExtantGenome(ownTag, genome);
     }
-    
-    public static string Reverse(string s)
+
+    private void RememberNewExtantGenome(string tag, string genome)
     {
-        char[] charArray = s.ToCharArray();
-        Array.Reverse(charArray);
-        return new string(charArray);
+        if(_extantGenomes == null)
+        {
+            _extantGenomes = new Dictionary<string, string>();
+        }
+
+        _extantGenomes.Add(tag, genome);
     }
 
     private void DetectSurvivingAndDeadTeams()
@@ -166,31 +172,10 @@ public class EvolutionArenaControler : MonoBehaviour
             )
             .Select(s => s.transform.parent.tag);
 
-        _extantGenomes = _currentGenomes.Where(g => livingShips.Contains(g.Key));
-        _extinctGenomes = _currentGenomes.Where(g => !livingShips.Contains(g.Key));
+        _extantGenomes = _extantGenomes.Where(g => livingShips.Contains(g.Key)).ToDictionary(g => g.Key, g => g.Value);
     }
 
-    private string StringifyGenomes()
-    {
-        var s = "";
-        foreach (var item in _currentGenomes)
-        {
-            s += item.Key + ":" + item.Value + ",";
-        }
-        return s;
-    }
-
-    private string[] GetDrawGenomes(bool timeout)
-    {
-        return new string[] { DrawKeyword + (timeout ? " - timeout" : " - EveryoneDied") };
-    }
-
-    //private string[] GenerateGenomes()
-    //{
-    //    var baseGenome = PickTwoGenomesFromHistory();
-    //    return baseGenome.Select(g => Mutate(g)).ToArray();
-    //}
-
+    #region Mutation
     private string Mutate(string baseGenome)
     {
         baseGenome = baseGenome.PadRight(GenomeLength, ' ');
@@ -253,6 +238,13 @@ public class EvolutionArenaControler : MonoBehaviour
         return genome.Insert(n, sectionToReverse);
     }
 
+    public static string Reverse(string s)
+    {
+        char[] charArray = s.ToCharArray();
+        Array.Reverse(charArray);
+        return new string(charArray);
+    }
+
     private int PickALength(int start, int fullLength)
     {
         var remaining = fullLength - start;
@@ -264,11 +256,13 @@ public class EvolutionArenaControler : MonoBehaviour
         var result = (int) UnityEngine.Random.value * limit;
         return Math.Max(result, 1);
     }
+    #endregion
 
     private IEnumerable<string> GetGenomesFromHistory()
     {
         var validRecords = records.Where(r => r.Survivors.Any()).ToList();
-        var last = validRecords.LastOrDefault() ?? new ArenaRecord(";;;");
+        var last = validRecords.LastOrDefault() ?? new ArenaRecord(DefaultGenome);
+        Debug.Log(last);
         return last.Survivors;
     }
 

@@ -10,30 +10,31 @@ namespace Assets.src.Evolution
 {
     public class ShipBuilder : IKnowsEnemyTagAndtag
     {
+
         #region EnemyTags
-            public void AddEnemyTag(string newTag)
-            {
-                var tags = EnemyTags.ToList();
-                tags.Add(newTag);
-                EnemyTags = tags.Distinct();
-            }
+        public void AddEnemyTag(string newTag)
+        {
+            var tags = EnemyTags.ToList();
+            tags.Add(newTag);
+            EnemyTags = tags.Distinct().ToList();
+        }
 
-            public string GetFirstEnemyTag()
-            {
-                return EnemyTags.FirstOrDefault();
-            }
+        public string GetFirstEnemyTag()
+        {
+            return EnemyTags.FirstOrDefault();
+        }
 
-            public void SetEnemyTags(IEnumerable<string> allEnemyTags)
-            {
-                EnemyTags = allEnemyTags;
-            }
+        public void SetEnemyTags(List<string> allEnemyTags)
+        {
+            EnemyTags = allEnemyTags;
+        }
 
-            public IEnumerable<string> GetEnemyTags()
-            {
+        public List<string> GetEnemyTags()
+        {
             return EnemyTags;
-            }
+        }
 
-            public IEnumerable<string> EnemyTags;
+        public List<string> EnemyTags;
         #endregion
 
         public int MaxTurrets = 10;

@@ -7,6 +7,7 @@ public class ShipCam : MonoBehaviour {
 
     public string SpaceShipTag = "SpaceShip";
     public float RotationSpeed = 0.5f;
+    public float TranslateSpeed = 0.5f;
 
     // Use this for initialization
     void Start () {
@@ -23,7 +24,8 @@ public class ShipCam : MonoBehaviour {
 
         if (ships.FirstOrDefault() != null)
         {
-            transform.position = ships.First().transform.position;
+            transform.position = Vector3.Slerp(transform.position, ships.First().transform.position, Time.deltaTime * TranslateSpeed);
+
             var target = ships.Skip(1).FirstOrDefault();
             if (target != null)
             {

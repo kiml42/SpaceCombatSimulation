@@ -23,12 +23,12 @@ namespace Assets.Src.Interfaces
         /// sets all the enemy tags
         /// </summary>
         /// <param name="allEnemyTags"></param>
-        void SetEnemyTags(IEnumerable<string> allEnemyTags);
+        void SetEnemyTags(List<string> allEnemyTags);
 
         /// <summary>
         /// Retrieves the list of enemy tags
         /// </summary>
         /// <returns></returns>
-        IEnumerable<string> GetEnemyTags();
+        List<string> GetEnemyTags();
     }
 }

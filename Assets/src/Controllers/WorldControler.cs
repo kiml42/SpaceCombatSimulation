@@ -19,27 +19,27 @@ namespace Assets.Src.Controllers
         #region EnemyTags
         public void AddEnemyTag(string newTag)
         {
-            var tags = _enemyTags.ToList();
+            var tags = EnemyTags.ToList();
             tags.Add(newTag);
-            _enemyTags = tags.Distinct();
+            EnemyTags = tags.Distinct().ToList();
         }
 
         public string GetFirstEnemyTag()
         {
-            return _enemyTags.FirstOrDefault();
+            return EnemyTags.FirstOrDefault();
         }
 
-        public void SetEnemyTags(IEnumerable<string> allEnemyTags)
+        public void SetEnemyTags(List<string> allEnemyTags)
         {
-            _enemyTags = allEnemyTags;
+            EnemyTags = allEnemyTags;
         }
 
-        public IEnumerable<string> GetEnemyTags()
+        public List<string> GetEnemyTags()
         {
-            return _enemyTags;
+            return EnemyTags;
         }
 
-        public IEnumerable<string> _enemyTags;
+        public List<string> EnemyTags;
         #endregion
 
         public Rigidbody Drone;

@@ -9,6 +9,9 @@ TagManager:
   - Team2
   - Explodable
   - SpaceShip
+  - Team3
+  - Team4
+  - Team5
   layers:
   - Default
   - TransparentFX
