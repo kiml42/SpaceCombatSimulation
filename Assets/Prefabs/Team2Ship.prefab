@@ -500,7 +500,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1249936944491648}
   m_LocalRotation: {x: 0.27059805, y: 0.27059805, z: 0.6532815, w: 0.6532815}
-  m_LocalPosition: {x: -1000, y: 0, z: 0}
+  m_LocalPosition: {x: 1441.7104, y: -140.7861, z: -56.832043}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4883552422616708}
@@ -1169,8 +1169,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
 --- !u!114 &114195862481846182
@@ -1184,8 +1188,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5,
     type: 2}
 --- !u!114 &114240588793415512
@@ -1199,8 +1207,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
 --- !u!114 &114298744820957838
@@ -1214,8 +1226,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4591031957274470, guid: ecb13bd8e1b25e74c820d8d87b56d573,
     type: 2}
 --- !u!114 &114313480017677072
@@ -1229,8 +1245,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4121223800764556, guid: 6ab6feab40aaa5d4d8d3e711a86dd712,
     type: 2}
 --- !u!114 &114317863401166388
@@ -1258,8 +1278,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4591031957274470, guid: ecb13bd8e1b25e74c820d8d87b56d573,
     type: 2}
 --- !u!114 &114329369993175836
@@ -1273,8 +1297,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4591031957274470, guid: ecb13bd8e1b25e74c820d8d87b56d573,
     type: 2}
 --- !u!114 &114348856064056662
@@ -1288,8 +1316,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4121223800764556, guid: 6ab6feab40aaa5d4d8d3e711a86dd712,
     type: 2}
 --- !u!114 &114399145190215854
@@ -1303,8 +1335,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
 --- !u!114 &114418977453750346
@@ -1340,8 +1376,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4047970151895330, guid: 2cf111255dce5d94ca7b02db1dcffd57,
     type: 2}
 --- !u!114 &114509901029198870
@@ -1355,8 +1395,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
 --- !u!114 &114588122642984816
@@ -1396,8 +1440,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
 --- !u!114 &114676278195169948
@@ -1411,8 +1459,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4591031957274470, guid: ecb13bd8e1b25e74c820d8d87b56d573,
     type: 2}
 --- !u!114 &114747107200871312
@@ -1438,7 +1490,12 @@ MonoBehaviour:
   Engine: {fileID: 4055083103871718}
   Torquer: {fileID: 54276188861948588}
   AngularDragForTorquers: 20
-  EnemyTag: Team1
+  VectorArrow: {fileID: 0}
+  EnemyTags:
+  - Team1
+  - Team4
+  - Team3
+  - Team5
 --- !u!114 &114786272439021768
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1450,8 +1507,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5,
     type: 2}
 --- !u!114 &114856220346818776
@@ -1465,8 +1526,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5,
     type: 2}
 --- !u!114 &114907229060552898
@@ -1480,8 +1545,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
 --- !u!114 &114911307968119844
@@ -1495,8 +1564,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
 --- !u!114 &114956335456203722
@@ -1532,8 +1605,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4047970151895330, guid: 2cf111255dce5d94ca7b02db1dcffd57,
     type: 2}
 --- !u!114 &114991033818541756
@@ -1547,8 +1624,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
 --- !u!114 &114995939610876586
@@ -1562,8 +1643,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team1
   TagChildren: 1
+  EnemyTags:
+  - Team1
+  - Team3
+  - Team4
+  - Team5
   TurretParent: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5,
     type: 2}
 --- !u!124 &124240570874645640

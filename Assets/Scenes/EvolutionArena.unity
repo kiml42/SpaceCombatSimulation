@@ -151,6 +151,10 @@ Prefab:
       propertyPath: m_Name
       value: ShipCam (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 1452437122874096, guid: 4b859b23543de9c4fa4e8d2403b1dcd6, type: 2}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 4b859b23543de9c4fa4e8d2403b1dcd6, type: 2}
   m_IsPrefabParent: 0
@@ -323,11 +327,6 @@ Prefab:
       propertyPath: m_RootOrder
       value: 4
       objectReference: {fileID: 0}
-    - target: {fileID: 20013574022079046, guid: 4b859b23543de9c4fa4e8d2403b1dcd6,
-        type: 2}
-      propertyPath: m_NormalizedViewPortRect.x
-      value: 0.5
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 4b859b23543de9c4fa4e8d2403b1dcd6, type: 2}
   m_IsPrefabParent: 0
@@ -370,10 +369,14 @@ Prefab:
       propertyPath: m_RootOrder
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1663904402529582, guid: aa758057f785e2046ab47aecd17a792b, type: 2}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 114794766112093422, guid: aa758057f785e2046ab47aecd17a792b,
         type: 2}
-      propertyPath: DefaultGenome
-      value: 27
+      propertyPath: SpawnSphereRadius
+      value: 2000
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: aa758057f785e2046ab47aecd17a792b, type: 2}

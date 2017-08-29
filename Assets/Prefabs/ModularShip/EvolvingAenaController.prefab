@@ -95,7 +95,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!1 &1672642606029554
 GameObject:
   m_ObjectHideFlags: 1
@@ -899,7 +899,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShipToEvolve: {fileID: 54288706851983332, guid: f3b4cb1aa8e6d4d4d9102e7e65998466,
     type: 2}
-  SpawnSphereRadius: 1000
+  SpawnSphereRadius: 2000
   Tags:
   - Team1
   - Team2
