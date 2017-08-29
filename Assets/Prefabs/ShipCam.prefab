@@ -260,7 +260,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SpaceShipTag: SpaceShip
   RotationSpeed: 0.5
-  TranslateSpeed: 0.5
+  TranslateSpeed: 2
 --- !u!124 &124710498464623014
 Behaviour:
   m_ObjectHideFlags: 1

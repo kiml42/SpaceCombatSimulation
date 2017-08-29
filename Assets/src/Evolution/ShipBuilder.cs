@@ -38,7 +38,9 @@ namespace Assets.src.Evolution
         #endregion
 
         public int MaxTurrets = 10;
+        public int MaxModules = 15;
         private int _turretsAdded = 0;
+        private int _modulesAdded = 0;
         
         public int MaxShootAngle = 1;
         public int MaxTorqueMultiplier = 2000;
@@ -91,7 +93,7 @@ namespace Assets.src.Evolution
                 //this is a hub - add more modules to it
                 foreach (var spawnPoint in spawnPoints)
                 {
-                    if (_genomePosition < _genome.Length && _turretsAdded < MaxTurrets)
+                    if (_genomePosition < _genome.Length && _turretsAdded < MaxTurrets && _modulesAdded < MaxModules)
                     {
                         var moduleToAdd = SelectModule();
 
@@ -116,6 +118,7 @@ namespace Assets.src.Evolution
                 //this has no spawn points, so it must be aturret or engine - increment added turrets.
                 _turretsAdded++;
             }
+            _modulesAdded++;
         }
 
         private float GetNumberFromGenome(int fromStart, int length = 2)
