@@ -45,14 +45,15 @@ public class EvolutionArenaControler : MonoBehaviour
 
 
     private List<ArenaRecord> records = new List<ArenaRecord>();
-    private string DrawKeyword = "DRAW";
 
     private int _originalCountdown;
     private Dictionary<string, string> _extantGenomes;
+    private StringMutator _mutator;
 
     // Use this for initialization
     void Start()
     {
+        _mutator = new StringMutator();
         _originalCountdown = MatchCountdown;
         ReadPreviousMatches();
         SpawnInitialShips();
@@ -71,7 +72,7 @@ public class EvolutionArenaControler : MonoBehaviour
             MatchCountdown = _originalCountdown;
 
             string genome = PickRandomSurvivorGenome();
-            genome = Mutate(genome);
+            genome = _mutator.Mutate(genome);
 
             SpawnShip(genome);
         } else
@@ -176,89 +177,6 @@ public class EvolutionArenaControler : MonoBehaviour
 
         _extantGenomes = _extantGenomes.Where(g => livingShips.Contains(g.Key)).ToDictionary(g => g.Key, g => g.Value);
     }
-
-    #region Mutation
-    private string Mutate(string baseGenome)
-    {
-        baseGenome = baseGenome.PadRight(GenomeLength, ' ');
-        for (int i = 0; i < Mutations; i++)
-        {
-            var n = UnityEngine.Random.value;
-            if (n < 0.5)
-            {
-                //no mutation
-            }
-            else if (n < 0.8)
-            {
-                //insert
-                baseGenome = InsertionMutation(baseGenome);
-            }
-            else if (n < 0.93)
-            {
-                //delete
-                baseGenome = DeletionMutation(baseGenome);
-            }
-            else
-            {
-                //duplicate
-                baseGenome = ReverseMutation(baseGenome);
-            }
-        }
-
-        if(baseGenome.Length > GenomeLength)
-        {
-            return baseGenome.Substring(0, GenomeLength);
-        }
-        return baseGenome;
-    }
-
-    private string InsertionMutation(string genome)
-    {
-        int n = (int)(UnityEngine.Random.value * AllowedCharacters.Length);
-        var character = AllowedCharacters[n];
-        int m = (int)(UnityEngine.Random.value * genome.Length);
-        genome.Remove(m, 1);
-        return genome.Insert(m, character.ToString());
-    }
-
-    private string DeletionMutation(string genome)
-    {
-        int n = (int)(UnityEngine.Random.value * genome.Length);
-        int count = PickALength(n, genome.Length);
-        //Debug.Log("n:" + n + ", count:" + count + ", length:" + genome.Length);
-        genome = genome.Remove(n, count);
-        genome = genome.PadRight(GenomeLength, ' ');
-        return genome;
-    }
-
-    private string ReverseMutation(string genome)
-    {
-        int n = (int)(UnityEngine.Random.value * genome.Length);
-        int count = PickALength(n, genome.Length);
-        var sectionToReverse = Reverse(genome.Substring(n, count));
-        genome.Remove(n, count);
-        return genome.Insert(n, sectionToReverse);
-    }
-
-    public static string Reverse(string s)
-    {
-        char[] charArray = s.ToCharArray();
-        Array.Reverse(charArray);
-        return new string(charArray);
-    }
-
-    private int PickALength(int start, int fullLength)
-    {
-        var remaining = fullLength - start;
-        if(remaining == 0)
-        {
-            return remaining;
-        }
-        var limit = Math.Min(remaining, MaxMutationLength);
-        var result = (int) UnityEngine.Random.value * limit;
-        return Math.Max(result, 1);
-    }
-    #endregion
 
     private IEnumerable<string> GetGenomesFromHistory()
     {

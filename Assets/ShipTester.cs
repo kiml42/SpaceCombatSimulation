@@ -22,7 +22,6 @@ public class ShipTester : MonoBehaviour {
     public int GenomeLength = 50;
 
     public List<Rigidbody> Modules;
-    private string DrawKeyword = "DRAW";
     private Rigidbody Ship;
     private string _previousGenome;
 
