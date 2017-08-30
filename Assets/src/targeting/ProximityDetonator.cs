@@ -26,6 +26,7 @@ namespace Assets.Src.Targeting
         {
             if (ShouldDetonate(target))
             {
+                //Debug.Log(_exploderRigidbody + " is auto-detonating");
                 DetonateNow();
             }
         }

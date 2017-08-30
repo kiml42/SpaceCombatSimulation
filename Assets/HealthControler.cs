@@ -30,6 +30,8 @@ public class HealthControler : MonoBehaviour
     public float ShrapnelSpeed2 = 20;
     public float ExplosionDamage2 = 100;
 
+    public int FramesOfInvulnerability = 1;
+
     private Rigidbody _rigidbody;
 
     // Use this for initialization
@@ -55,14 +57,24 @@ public class HealthControler : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if(FramesOfInvulnerability > 0)
+        {
+            FramesOfInvulnerability--;
+            return;
+        }
         if (Health <= 0)
         {
+            //Debug.Log(transform + " is dead from lack of health");
             _destroyer.Destroy(gameObject, true);
         }
     }
 
     void OnCollisionEnter(Collision collision)
     {
+        if(FramesOfInvulnerability > 0)
+        {
+            return;
+        }
         //Debug.Log("hit by " + collision.collider.name + ",v=" + collision.relativeVelocity + ",m=" + collision.rigidbody.mass);
         var p = collision.impulse;
         var damage = (p.magnitude / Resilience) - Armour;
@@ -76,6 +88,10 @@ public class HealthControler : MonoBehaviour
     /// <param name="damage"></param>
     void ApplyDamage(float damage)
     {
+        if (FramesOfInvulnerability > 0)
+        {
+            return;
+        }
         Health -= damage;
     }
 }

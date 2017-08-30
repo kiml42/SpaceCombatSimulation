@@ -451,8 +451,8 @@ GameObject:
   - component: {fileID: 65885898761975774}
   - component: {fileID: 23506221247845434}
   m_Layer: 0
-  m_Name: Cube
-  m_TagString: Untagged
+  m_Name: CubeAndShipTag
+  m_TagString: SpaceShip
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1989,8 +1989,13 @@ MonoBehaviour:
   Health: 30
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce: 1
-  ExplosionRadius: 10
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
+  FramesOfInvulnerability: 10
 --- !u!114 &114289748474641262
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2007,8 +2012,13 @@ MonoBehaviour:
   Health: 30
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce: 1
-  ExplosionRadius: 10
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
+  FramesOfInvulnerability: 10
 --- !u!114 &114460910438468606
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2025,8 +2035,13 @@ MonoBehaviour:
   Health: 30
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce: 1
-  ExplosionRadius: 10
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
+  FramesOfInvulnerability: 10
 --- !u!114 &114681710286532980
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2043,8 +2058,13 @@ MonoBehaviour:
   Health: 30
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce: 1
-  ExplosionRadius: 10
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
+  FramesOfInvulnerability: 10
 --- !u!114 &114721831878187516
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2061,8 +2081,13 @@ MonoBehaviour:
   Health: 200
   DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
-  ExplosionForce: 1000
-  ExplosionRadius: 1000
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
+  FramesOfInvulnerability: 10
 --- !u!114 &114746570164193246
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2079,8 +2104,13 @@ MonoBehaviour:
   Health: 30
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce: 1
-  ExplosionRadius: 10
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
+  FramesOfInvulnerability: 10
 --- !u!114 &114799857601973848
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2097,8 +2127,13 @@ MonoBehaviour:
   Health: 30
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce: 1
-  ExplosionRadius: 10
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
+  FramesOfInvulnerability: 10
 --- !u!135 &135142990606702622
 SphereCollider:
   m_ObjectHideFlags: 1

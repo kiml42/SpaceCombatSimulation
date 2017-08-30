@@ -31,6 +31,7 @@ namespace Assets.src.targeting
 
         public void ExplodeNow()
         {
+            //Debug.Log(_exploder + " is exploding");
             //list all existing objects to be exploded.
             var gameObjects = UnityEngine.Object.FindObjectsOfType<Rigidbody>()
                 .Where(r => r != _exploder && Vector3.Distance(r.position, _exploder.position) < ExplosionRadius);
@@ -59,7 +60,7 @@ namespace Assets.src.targeting
                     var fragment = UnityEngine.Object.Instantiate(_shrapnel, _exploder.position + location, _exploder.transform.rotation);
                     fragment.velocity = _exploder.velocity + (ShrapnelSpeed * location);
                     //gameObjects.Add(fragment);
-
+                
                     if (SetEnemyTagOnShrapnel && EnemyTags != null && EnemyTags.Any())
                     {
                         fragment.SendMessage("SetEnemyTags", EnemyTags);
@@ -69,6 +70,7 @@ namespace Assets.src.targeting
                     {
                         fragment.tag = _exploder.tag;
                     }
+                    Debug.Log("aDDED FRAGMENT" + fragment);
                 }
             }
 

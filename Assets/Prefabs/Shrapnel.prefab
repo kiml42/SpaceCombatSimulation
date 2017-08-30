@@ -212,8 +212,13 @@ MonoBehaviour:
   Armour: 0
   Health: 1
   DeathExplosion: {fileID: 0}
-  ExplosionForce: 1000
-  ExplosionRadius: 1000
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!114 &114405143691550202
 MonoBehaviour:
   m_ObjectHideFlags: 1

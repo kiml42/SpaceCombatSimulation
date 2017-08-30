@@ -37,7 +37,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4185955713731756}
   - component: {fileID: 33345346339146160}
-  - component: {fileID: 135011018793952528}
   - component: {fileID: 23704479775353194}
   m_Layer: 0
   m_Name: Sphere
@@ -91,6 +90,21 @@ GameObject:
   m_Layer: 0
   m_Name: Cube
   m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!1 &1601450865820600
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 4380936534810120}
+  m_Layer: 0
+  m_Name: ShipTag
+  m_TagString: SpaceShip
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -186,6 +200,19 @@ Transform:
   m_Father: {fileID: 4797086269142920}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 180, y: 0, z: 0}
+--- !u!4 &4380936534810120
+Transform:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1601450865820600}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 4797086269142920}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4454898622004248
 Transform:
   m_ObjectHideFlags: 1
@@ -213,6 +240,7 @@ Transform:
   - {fileID: 4454898622004248}
   - {fileID: 4295242808521880}
   - {fileID: 4175057121454258}
+  - {fileID: 4380936534810120}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -422,6 +450,7 @@ MonoBehaviour:
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!114 &114116952395043294
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -440,7 +469,6 @@ MonoBehaviour:
   StartDelay: 80
   TurningStartDelay: 20
   MinimumMass: 80
-  EnemyTag: Enemy
   DetonationDistance: 100
   Shrapnel: {fileID: 54991379400455944, guid: 8bf03007d4e417c4087307829906f7d6, type: 2}
   ExplosionEffect: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
@@ -453,6 +481,8 @@ MonoBehaviour:
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 1
   VectorArrow: {fileID: 4175057121454258}
+  EnemyTags:
+  - Enemy
 --- !u!114 &114350638461489442
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -468,18 +498,6 @@ MonoBehaviour:
   ForceApplier: {fileID: 54626451642089132}
   IsOn: 0
   Plume: {fileID: 198596238376995270}
---- !u!135 &135011018793952528
-SphereCollider:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1385627718516612}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!136 &136759748819616910
 CapsuleCollider:
   m_ObjectHideFlags: 1
