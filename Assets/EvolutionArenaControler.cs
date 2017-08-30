@@ -43,12 +43,15 @@ public class EvolutionArenaControler : MonoBehaviour
     public bool SetVelocity;
     public string DefaultGenome = "";
 
+    public Rigidbody SuddenDeathObject;
+    public int SuddenDeathObjectReloadTime = 200;
 
     private List<ArenaRecord> records = new List<ArenaRecord>();
 
     private int _originalCountdown;
     private Dictionary<string, string> _extantGenomes;
     private StringMutator _mutator;
+
 
     // Use this for initialization
     void Start()
@@ -79,6 +82,21 @@ public class EvolutionArenaControler : MonoBehaviour
         {
             MatchCountdown--;
         }
+
+        if(MatchCountdown <= 0 && SuddenDeathObject != null)
+        {
+            ActivateSuddenDeath();
+        }
+    }
+
+    private void ActivateSuddenDeath()
+    {
+        Debug.Log("Sudden Death!");
+        var orientation = UnityEngine.Random.rotation;
+        var randomPlacement = (SpawnSphereRadius * UnityEngine.Random.insideUnitSphere) + transform.position;
+        var death = Instantiate(SuddenDeathObject, randomPlacement, orientation);
+        death.SendMessage("SetEnemyTags", Tags);
+        MatchCountdown = SuddenDeathObjectReloadTime;
     }
 
     private string GetUnusedTag()
@@ -182,7 +200,6 @@ public class EvolutionArenaControler : MonoBehaviour
     {
         var validRecords = records.Where(r => r.Survivors.Any()).ToList();
         var last = validRecords.LastOrDefault() ?? new ArenaRecord(DefaultGenome);
-        Debug.Log(last);
         return last.Survivors;
     }
 

@@ -7,7 +7,7 @@ namespace Assets.src.Evolution
 {
     public class StringMutator
     {
-        public int GenomeLength = 5;
+        public int GenomeLength = 50;
         public int Mutations = 3;
         public int MaxMutationLength = 3;
         public string AllowedCharacters = " 0123456789  ";
