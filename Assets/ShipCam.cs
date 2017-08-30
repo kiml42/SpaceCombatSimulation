@@ -8,22 +8,23 @@ public class ShipCam : MonoBehaviour {
 
     public string SpaceShipTag = "SpaceShip";
     public float RotationSpeed = 0.5f;
-    public float TranslateSpeed = 0.5f;
+    public float TranslateSpeed = 2;
+    public float FocusMoveSpeed = 1;
     public Transform _shipToFollow;
     private Transform _focus;
     public Camera Camera;
 
-    public float FocusAngleIntercept = 90;
-    public float FocusAngleNumerator = 10;
+
+    public float FocusAnglePower = -0.67f;
+    public float FocusAngleMultiplier = 1000;
     public float SetbackIntercept = -50;
-    public float SetBackDenominator = 2;
+    public float SetBackDenominator = 0.5f;
 
 
     // Use this for initialization
     void Start () {
         _focus = Instantiate(new GameObject("Focus")).transform;
         _focus.parent = transform;
-        Debug.Log(_focus);
     }
 	
 	// Update is called once per frame
@@ -56,7 +57,7 @@ public class ShipCam : MonoBehaviour {
                 var _direction = (target.transform.position - transform.position).normalized;
                 var _lookRotation = Quaternion.LookRotation(_direction);
                 transform.rotation = Quaternion.Slerp(transform.rotation, _lookRotation, Time.deltaTime * RotationSpeed);
-                _focus.position = Vector3.Slerp(_focus.position, target.position, Time.deltaTime * TranslateSpeed/3);
+                _focus.position = Vector3.Slerp(_focus.position, target.position, Time.deltaTime * FocusMoveSpeed);
             }
             else
             {
@@ -65,7 +66,7 @@ public class ShipCam : MonoBehaviour {
             if(Camera != null)
             {
                 var focusDistance = Vector3.Distance(transform.position, _focus.position);
-                var angle = /*Clamp(*/FocusAngleIntercept + (FocusAngleNumerator/focusDistance)/*, 5, 90)*/;
+                var angle = Clamp((float)(FocusAngleMultiplier * Math.Pow (focusDistance, FocusAnglePower)), 1, 90);
                 Camera.fieldOfView = angle;
                 var setBack = SetbackIntercept - focusDistance / SetBackDenominator;
                 var camPosition = Camera.transform.localPosition;
