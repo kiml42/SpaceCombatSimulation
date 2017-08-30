@@ -440,9 +440,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a2aeaa676ae4da40b02b9861e0dc174, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Resilience: 4
+  Resilience: 10
   Armour: 0
-  Health: 20
+  Health: 50
   DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
   ExplosionForce2: 200
@@ -451,7 +451,7 @@ MonoBehaviour:
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
-  FramesOfInvulnerability: 1
+  FramesOfInvulnerability: 3
 --- !u!114 &114116952395043294
 MonoBehaviour:
   m_ObjectHideFlags: 1

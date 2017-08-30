@@ -231,7 +231,7 @@ MonoBehaviour:
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
-  FramesOfInvulnerability: 1
+  FramesOfInvulnerability: 3
 --- !u!135 &135815212136094150
 SphereCollider:
   m_ObjectHideFlags: 1
