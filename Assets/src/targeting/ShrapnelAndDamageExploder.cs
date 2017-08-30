@@ -70,7 +70,6 @@ namespace Assets.src.targeting
                     {
                         fragment.tag = _exploder.tag;
                     }
-                    Debug.Log("aDDED FRAGMENT" + fragment);
                 }
             }
 

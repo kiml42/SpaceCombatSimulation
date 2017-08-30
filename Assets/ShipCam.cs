@@ -24,8 +24,15 @@ public class ShipCam : MonoBehaviour {
 
         if (ships.FirstOrDefault() != null)
         {
-            transform.position = Vector3.Slerp(transform.position, ships.First().transform.position, Time.deltaTime * TranslateSpeed);
-
+            if (Input.GetKeyUp(KeyCode.Z) && ships.Count() > 1)
+            {
+                transform.position = ships.OrderBy(s => Random.value).First().transform.position;
+            }
+            else
+            {
+                transform.position = Vector3.Slerp(transform.position, ships.First().transform.position, Time.deltaTime * TranslateSpeed);
+            }
+            
             var target = ships.Skip(1).FirstOrDefault();
             if (target != null)
             {
@@ -34,5 +41,6 @@ public class ShipCam : MonoBehaviour {
                 transform.rotation = Quaternion.Slerp(transform.rotation, _lookRotation, Time.deltaTime * RotationSpeed);
             }
         }
+
     }
 }
