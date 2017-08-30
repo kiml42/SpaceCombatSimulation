@@ -24,8 +24,8 @@ GameObject:
   - component: {fileID: 23130494841122304}
   - component: {fileID: 54986314514754160}
   - component: {fileID: 96921101706924734}
-  - component: {fileID: 114405143691550202}
   - component: {fileID: 114300878083939292}
+  - component: {fileID: 114262324465099578}
   m_Layer: 0
   m_Name: Shrapnel
   m_TagString: Untagged
@@ -197,6 +197,19 @@ TrailRenderer:
     generateLightingData: 0
   m_MinVertexDistance: 0.1
   m_Autodestruct: 0
+--- !u!114 &114262324465099578
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1776022614564172}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6312b7bfe9030e40b858f67cf019e96, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Lifetime: 50
+  RandomLifetime: 40
 --- !u!114 &114300878083939292
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -219,19 +232,6 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
---- !u!114 &114405143691550202
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1776022614564172}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e7e9b134a8dfa0f40bfe0f3cbe42332f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Lifetime: 50
-  RandomLifetime: 40
 --- !u!135 &135815212136094150
 SphereCollider:
   m_ObjectHideFlags: 1

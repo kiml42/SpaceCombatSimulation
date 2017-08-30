@@ -24,10 +24,10 @@ GameObject:
   - component: {fileID: 23834554680752894}
   - component: {fileID: 54662518417675552}
   - component: {fileID: 96405224812634666}
-  - component: {fileID: 114268347757923144}
   - component: {fileID: 198406713867812718}
   - component: {fileID: 199415608578746542}
   - component: {fileID: 114050329038561162}
+  - component: {fileID: 114031993041432958}
   m_Layer: 0
   m_Name: BigProjectile
   m_TagString: Untagged
@@ -199,6 +199,19 @@ TrailRenderer:
     generateLightingData: 0
   m_MinVertexDistance: 0.1
   m_Autodestruct: 0
+--- !u!114 &114031993041432958
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1896722452323280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6312b7bfe9030e40b858f67cf019e96, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Lifetime: 600
+  RandomLifetime: 20
 --- !u!114 &114050329038561162
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -222,19 +235,6 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
---- !u!114 &114268347757923144
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1896722452323280}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e7e9b134a8dfa0f40bfe0f3cbe42332f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Lifetime: 600
-  RandomLifetime: 20
 --- !u!135 &135496945170436356
 SphereCollider:
   m_ObjectHideFlags: 1

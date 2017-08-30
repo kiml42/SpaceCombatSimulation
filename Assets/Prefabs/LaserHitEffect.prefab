@@ -20,10 +20,10 @@ GameObject:
   m_Component:
   - component: {fileID: 4113682021108320}
   - component: {fileID: 33776339449827188}
-  - component: {fileID: 114479383243777530}
   - component: {fileID: 54368247732877992}
   - component: {fileID: 198575638471518982}
   - component: {fileID: 199790660456684666}
+  - component: {fileID: 114777130459260602}
   m_Layer: 0
   m_Name: LaserHitEffect
   m_TagString: Untagged
@@ -146,7 +146,7 @@ Light:
   m_UseColorTemperature: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
---- !u!114 &114479383243777530
+--- !u!114 &114777130459260602
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
@@ -154,7 +154,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1103777410261294}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e7e9b134a8dfa0f40bfe0f3cbe42332f, type: 3}
+  m_Script: {fileID: 11500000, guid: b6312b7bfe9030e40b858f67cf019e96, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   Lifetime: 3

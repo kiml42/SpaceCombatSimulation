@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ExplosionEffectControler : MonoBehaviour {
+public class DestroyAfterTimeout : MonoBehaviour {
     public float Lifetime = 4;
     public float RandomLifetime = 0;
 
@@ -17,7 +17,7 @@ public class ExplosionEffectControler : MonoBehaviour {
 	void Update () {
         if(_age > Lifetime)
         {
-            Destroy(this.gameObject);
+            Destroy(gameObject);
         }
         _age++;
     }

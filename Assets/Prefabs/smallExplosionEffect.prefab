@@ -36,10 +36,10 @@ GameObject:
   m_Component:
   - component: {fileID: 4342016299730166}
   - component: {fileID: 33965184792373172}
-  - component: {fileID: 114865788280713882}
   - component: {fileID: 54600725210186288}
   - component: {fileID: 198341795136170286}
   - component: {fileID: 199099836237986650}
+  - component: {fileID: 114023983566809114}
   m_Layer: 0
   m_Name: smallExplosionEffect
   m_TagString: Untagged
@@ -146,7 +146,7 @@ Light:
   m_UseColorTemperature: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
---- !u!114 &114865788280713882
+--- !u!114 &114023983566809114
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
@@ -154,7 +154,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1855715873590362}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e7e9b134a8dfa0f40bfe0f3cbe42332f, type: 3}
+  m_Script: {fileID: 11500000, guid: b6312b7bfe9030e40b858f67cf019e96, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   Lifetime: 200
