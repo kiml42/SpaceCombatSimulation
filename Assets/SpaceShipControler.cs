@@ -28,7 +28,6 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     public float AngularDragForTorquers = 20;
 
     private const float Fuel = Mathf.Infinity;
-    private Rigidbody _marker;
     private SpaceshipRunner _runner;
     private Rigidbody _thisSpaceship;
     private bool _active = true;
@@ -94,11 +93,10 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
             SlowdownWeighting = SlowdownWeighting,
             VectorArrow = VectorArrow
         };
+        
+        var chooser = new AverageTargetLocationDestinationChooser(_detector, TargetMarker);
 
-        _marker = Instantiate(TargetMarker);
-        var chooser = new AverageTargetLocationDestinationChooser(_detector, _marker);
-
-        _runner = new SpaceshipRunner(chooser, _engineControl, _marker)
+        _runner = new SpaceshipRunner(chooser, _engineControl, TargetMarker)
         {
             LocationTollerance = LocationTollerance,
             VelociyTollerance = VelociyTollerance
