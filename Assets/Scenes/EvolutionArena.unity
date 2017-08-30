@@ -158,6 +158,11 @@ Prefab:
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 4b859b23543de9c4fa4e8d2403b1dcd6, type: 2}
   m_IsPrefabParent: 0
+--- !u!20 &101916276 stripped
+Camera:
+  m_PrefabParentObject: {fileID: 20197087680658222, guid: 4b859b23543de9c4fa4e8d2403b1dcd6,
+    type: 2}
+  m_PrefabInternal: {fileID: 836391406}
 --- !u!1001 &285617148
 Prefab:
   m_ObjectHideFlags: 0
@@ -327,6 +332,11 @@ Prefab:
       propertyPath: m_RootOrder
       value: 4
       objectReference: {fileID: 0}
+    - target: {fileID: 114217615723430598, guid: 4b859b23543de9c4fa4e8d2403b1dcd6,
+        type: 2}
+      propertyPath: Camera
+      value: 
+      objectReference: {fileID: 101916276}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 4b859b23543de9c4fa4e8d2403b1dcd6, type: 2}
   m_IsPrefabParent: 0
