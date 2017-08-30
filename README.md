@@ -4,6 +4,7 @@ A Unity 3D project to simulate combat between space ships with vaguely realistic
 TODO:
 Ships should be able to try to get to a specific distance.
 Clean up reticles of dead ships - make reticle a child.
+Moving towards target picker for missiles
 Moving towards detonator for missiles
 Engines handle their own fuel.
 Camera controller to handle zoom - active when camera is active

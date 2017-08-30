@@ -71,10 +71,12 @@ namespace Assets.src.Evolution
 
         public void BuildShip()
         {
+            //Debug.Log("Building " + _genome);
             _r = GetNumberFromGenome(0, 8);
             _g = GetNumberFromGenome(10, 8);
             _b = GetNumberFromGenome(20, 8);
             _shipToBuildOn.SetColor(_r,_g,_b);
+            //Debug.Log("Spawning modules");
             SpawnModules(_shipToBuildOn);
 
             ConfigureShip();
@@ -112,10 +114,15 @@ namespace Assets.src.Evolution
                             addedModule.transform.SetColor(_r,_g,_b);
                         }
                     }
+                    //else
+                    //{
+                    //    Debug.Log("Can Spawn No More modules. _genomePosition: " + _genomePosition + ", _turretsAdded: " + _turretsAdded + ", _modulesAdded: " + _modulesAdded);
+                    //}
                 }
             } else
             {
                 //this has no spawn points, so it must be aturret or engine - increment added turrets.
+                //Debug.Log("Cannot spawn on " + currentHub);
                 _turretsAdded++;
             }
             _modulesAdded++;
@@ -157,7 +164,7 @@ namespace Assets.src.Evolution
             if (_genomePosition + GeneLength < _genome.Length)
             {
                 var substring = _genome.Substring(_genomePosition, GeneLength);
-
+                //Debug.Log("Gene to spawn: " + substring);
                 _genomePosition += GeneLength;
 
                 var simplified = substring.Replace(" ", "");
@@ -165,12 +172,26 @@ namespace Assets.src.Evolution
                 int number;
                 if (int.TryParse(simplified, out number))
                 {
-                    if(number < _genome.Length)
+                    //Debug.Log("Gene as number: " + number);
+                    if(number < Modules.Count())
                     {
+                        //Debug.Log("Adding Module " + number + ": " + Modules[number] );
                         return Modules[number];
                     }
+                    //else
+                    //{
+                    //    Debug.Log("there are " + Modules.Count() + " modules, so cannot spawn number " + number);
+                    //}
                 }
+                //else
+                //{
+                //    Debug.Log("Failed to parse " + simplified + "as a number");
+                //}
             }
+            //else
+            //{
+            //    Debug.Log("Cannot read gene of length" + GeneLength + " at position " + _genomePosition + " in " + _genome);
+            //}
             return null;
         }
         private void ConfigureShip()

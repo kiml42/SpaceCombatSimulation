@@ -576,7 +576,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShootAngle: 10
   TorqueMultiplier: 10000
-  LocationAimWeighting: 0.01
+  LocationAimWeighting: 0.005
   Fuel: 8000
   StartDelay: 60
   TurningStartDelay: 20
