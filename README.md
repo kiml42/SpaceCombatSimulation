@@ -11,6 +11,8 @@ Camera controller to handle zoom - active when camera is active
 Camera controller should allow panning also
 Improve generation management - make it a bit more random.
 
+Make shipSam point at the target of the followed object.
+
 
 Engines only fire when pointed in the right direction.
 improve muzzle flashes.
