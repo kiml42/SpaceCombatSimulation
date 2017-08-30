@@ -17,8 +17,8 @@ public class ShipCam : MonoBehaviour {
 
     public float FocusAnglePower = -0.67f;
     public float FocusAngleMultiplier = 1000;
-    public float SetbackIntercept = -50;
-    public float SetBackDenominator = 0.5f;
+    public float SetbackIntercept = -70;
+    public float SetBackMultiplier = 0.5f;
 
 
     // Use this for initialization
@@ -54,10 +54,18 @@ public class ShipCam : MonoBehaviour {
             var target = ships.FirstOrDefault(s => s.tag != _shipToFollow.tag);
             if (target != null)
             {
+                //rotate enpty parent
                 var _direction = (target.transform.position - transform.position).normalized;
                 var _lookRotation = Quaternion.LookRotation(_direction);
                 transform.rotation = Quaternion.Slerp(transform.rotation, _lookRotation, Time.deltaTime * RotationSpeed);
+
+                //move the focus
                 _focus.position = Vector3.Slerp(_focus.position, target.position, Time.deltaTime * FocusMoveSpeed);
+
+                ////rotate the camera itself - Doesn't look quite right.
+                //_direction = (target.transform.position - Camera.transform.position).normalized;
+                //_lookRotation = Quaternion.LookRotation(_direction);
+                //Camera.transform.rotation = Quaternion.Lerp(Camera.transform.rotation, _lookRotation, Time.deltaTime * RotationSpeed);
             }
             else
             {
@@ -68,7 +76,7 @@ public class ShipCam : MonoBehaviour {
                 var focusDistance = Vector3.Distance(transform.position, _focus.position);
                 var angle = Clamp((float)(FocusAngleMultiplier * Math.Pow (focusDistance, FocusAnglePower)), 1, 90);
                 Camera.fieldOfView = angle;
-                var setBack = SetbackIntercept - focusDistance / SetBackDenominator;
+                var setBack = SetbackIntercept - focusDistance * SetBackMultiplier;
                 var camPosition = Camera.transform.localPosition;
                 camPosition.z = setBack;
                 Camera.transform.localPosition = camPosition;

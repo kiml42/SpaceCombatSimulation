@@ -102,7 +102,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1596262510301064}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 15, y: 30, z: -70}
+  m_LocalPosition: {x: 43, y: 30, z: -70}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4822790151158226}
@@ -261,8 +261,13 @@ MonoBehaviour:
   SpaceShipTag: SpaceShip
   RotationSpeed: 0.5
   TranslateSpeed: 2
+  FocusMoveSpeed: 1
   _shipToFollow: {fileID: 0}
   Camera: {fileID: 20197087680658222}
+  FocusAnglePower: -0.67
+  FocusAngleMultiplier: 1000
+  SetbackIntercept: -70
+  SetBackMultiplier: 0.5
 --- !u!124 &124710498464623014
 Behaviour:
   m_ObjectHideFlags: 1
