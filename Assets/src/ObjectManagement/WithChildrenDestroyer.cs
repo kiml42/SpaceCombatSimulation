@@ -15,6 +15,11 @@ namespace Assets.Src.ObjectManagement
         
         public IExploder Exploder;
 
+        /// <summary>
+        /// if true, completely kills the object and it's children, without severing attached children.
+        /// </summary>
+        public bool KillCompletely = false;
+
         public void Destroy(GameObject toDestroy, bool useExplosion)
         {
             //Debug.Log("Destroy called for " + toDestroy.name + ", useExplosion = " + useExplosion);
@@ -28,41 +33,46 @@ namespace Assets.Src.ObjectManagement
             var allChilldren = FindImediateChildren(toDestroy);
             foreach (var child in allChilldren)
             {
-                child.SendMessage("Deactivate", SendMessageOptions.DontRequireReceiver);
-                var rigidbody = child.GetComponent("Rigidbody") as Rigidbody;
-                child.parent = null;
-                var behaviour = child.GetComponent("Behaviour") as Behaviour;
-
-                if (behaviour != null)
-                {
-                    behaviour.enabled = false;
-                }
-                if (UntagChildren)
-                {
-                    //Debug.Log("untagging " + child);
-                    child.tag = DeadObjectTag;
-                }
-
-                if (rigidbody != null)
-                {
-                    //Debug.Log("Severing " + rigidbody.name);
-                    rigidbody.angularDrag = 0;
-                    var fixedJoint = child.GetComponent("FixedJoint") as FixedJoint;
-                    if (fixedJoint != null)
-                    {
-                        fixedJoint.breakTorque = 0;
-                        fixedJoint.breakForce = 0;
-                    }
-                    var hingeJoint = child.GetComponent("HingeJoint") as HingeJoint;
-                    if (hingeJoint != null)
-                    {
-                        hingeJoint.breakTorque = 0;
-                        hingeJoint.breakForce = 0;
-                    }
-                }
-                else
+                if (KillCompletely)
                 {
                     DestroyWithoutLookingForParent(child.gameObject, false);
+                } else
+                {
+                    child.SendMessage("Deactivate", SendMessageOptions.DontRequireReceiver);
+                    var rigidbody = child.GetComponent("Rigidbody") as Rigidbody;
+                    child.parent = null;
+                    if (UntagChildren)
+                    {
+                        //Debug.Log("untagging " + child);
+                        child.tag = DeadObjectTag;
+                    }
+
+                    if (rigidbody != null)
+                    {
+                        //Debug.Log("Severing " + rigidbody.name);
+                        rigidbody.angularDrag = 0;
+                        var fixedJoint = child.GetComponent("FixedJoint") as FixedJoint;
+                        if (fixedJoint != null)
+                        {
+                            fixedJoint.breakTorque = 0;
+                            fixedJoint.breakForce = 0;
+                        }
+                        var hingeJoint = child.GetComponent("HingeJoint") as HingeJoint;
+                        if (hingeJoint != null)
+                        {
+                            hingeJoint.breakTorque = 0;
+                            hingeJoint.breakForce = 0;
+                        }
+                        if(fixedJoint==null && hingeJoint == null)
+                        {
+                            //destroy anything that wasnt jointed to this object.
+                            DestroyWithoutLookingForParent(child.gameObject, false);
+                        }
+                    }
+                    else
+                    {
+                        DestroyWithoutLookingForParent(child.gameObject, false);
+                    }
                 }
             }
 

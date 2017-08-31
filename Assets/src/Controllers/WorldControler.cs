@@ -60,7 +60,10 @@ namespace Assets.Src.Controllers
         // Use this for initialization
         void Start()
         {
-            _destroyer = new WithChildrenDestroyer();
+            _destroyer = new WithChildrenDestroyer()
+            {
+                KillCompletely = true
+            };
 
             //DetectActiveCamera();
         }
