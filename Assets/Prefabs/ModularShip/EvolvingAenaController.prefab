@@ -872,6 +872,7 @@ MonoBehaviour:
   SpeedScaler: 20
   ZoomMultiplier: 30
   ZoomOrSwitchThreshold: 500
+  TranslateSpeed: 2
 --- !u!114 &114275107626707262
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -908,7 +909,7 @@ MonoBehaviour:
   - Team5
   FilePath: ./tmp/evolvingShipsArena/evolvingShipsArena.csv
   SpaceShipTag: SpaceShip
-  ConcurrentShips: 5
+  ConcurrentShips: 4
   Mutations: 3
   MaxTurrets: 8
   MaxModules: 15

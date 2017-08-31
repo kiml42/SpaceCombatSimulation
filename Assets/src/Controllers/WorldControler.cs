@@ -55,6 +55,7 @@ namespace Assets.Src.Controllers
         public float ZoomOrSwitchThreshold = 500;
         private bool _touchedInPreviousFrame;
         private Camera _activeCamera;
+        public float TranslateSpeed = 2;
 
 
         // Use this for initialization
@@ -116,7 +117,8 @@ namespace Assets.Src.Controllers
                 var averageXLocation = objects.Average(t => t.transform.position.x);
                 var averageYLocation = objects.Average(t => t.transform.position.y);
                 var averageZLocation = objects.Average(t => t.transform.position.z);
-                transform.position = new Vector3(averageXLocation, averageYLocation, averageZLocation);
+
+                transform.position = Vector3.Slerp(transform.position, new Vector3(averageXLocation, averageYLocation, averageZLocation), Time.deltaTime * TranslateSpeed);
             }
         }
 

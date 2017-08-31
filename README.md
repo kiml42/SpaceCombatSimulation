@@ -2,6 +2,7 @@
 A Unity 3D project to simulate combat between space ships with vaguely realistic physics - Space ships are not aeroplanes!
 
 TODO:
+Prevent untagging of detached modules.
 Ships should be able to try to get to a specific distance.
 Moving towards target picker for missiles
 Moving towards detonator for missiles

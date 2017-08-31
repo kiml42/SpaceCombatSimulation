@@ -191,7 +191,8 @@ public class EvolutionArenaControler : MonoBehaviour
                 s.transform.parent != null &&
                 s.transform.parent.GetComponent("Rigidbody") != null
             )
-            .Select(s => s.transform.parent.tag);
+            .Select(s => s.transform.parent.tag)
+            .Distinct();
 
         _extantGenomes = _extantGenomes.Where(g => livingShips.Contains(g.Key)).ToDictionary(g => g.Key, g => g.Value);
     }
