@@ -73,7 +73,7 @@ GameObject:
   - component: {fileID: 59749975434152018}
   - component: {fileID: 114933443936390894}
   m_Layer: 8
-  m_Name: TurnTable
+  m_Name: TurnTableMiniType2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1263,8 +1263,13 @@ MonoBehaviour:
   Health: 300
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce: 1000
-  ExplosionRadius: 1000
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!114 &114320484002594652
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1281,8 +1286,13 @@ MonoBehaviour:
   Health: 300
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce: 1000
-  ExplosionRadius: 1000
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!114 &114399403742783732
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1299,14 +1309,14 @@ MonoBehaviour:
     type: 2}
   LoadTime: 6
   ProjectileSpeed: 800
-  TanShootAngle: 0.1
+  ShootAngle: 10
   RandomSpeed: 5
   TurnTable: {fileID: 4096309798173986}
   ElevationHub: {fileID: 4985851871091600}
   EmitterParent: {fileID: 4095713925445172}
   MinimumMass: 0
   TagChildren: 0
-  EnemyTag: Enemy
+  EnemyTags: []
   SetChildrensEnemy: 0
 --- !u!114 &114933443936390894
 MonoBehaviour:
@@ -1324,8 +1334,13 @@ MonoBehaviour:
   Health: 300
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce: 1000
-  ExplosionRadius: 1000
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!124 &124263177976741210
 Behaviour:
   m_ObjectHideFlags: 1

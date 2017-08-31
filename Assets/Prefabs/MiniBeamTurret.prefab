@@ -41,7 +41,7 @@ GameObject:
   - component: {fileID: 59977673465149604}
   - component: {fileID: 114447421175719934}
   m_Layer: 8
-  m_Name: TurnTable
+  m_Name: TurnTableMiniBeam
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2001,6 +2001,7 @@ MonoBehaviour:
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!114 &114188688253643346
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2044,7 +2045,7 @@ MonoBehaviour:
   LoadTime: 50
   ShootTime: 100
   StartOffset: 10
-  TanShootAngle: 0.1
+  ShootAngle: 5
   BeamForce: 2
   BeamDamage: 0.12
   MinimumMass: 0
@@ -2052,7 +2053,7 @@ MonoBehaviour:
   TurnTable: {fileID: 4091882775532256}
   ElevationHub: {fileID: 4349780392635840}
   BeamsParent: {fileID: 4174025852522500}
-  EnemyTag: Enemy
+  EnemyTags: []
 --- !u!114 &114447421175719934
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2075,6 +2076,7 @@ MonoBehaviour:
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!114 &114593840909099678
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2125,6 +2127,7 @@ MonoBehaviour:
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!124 &124357949528397776
 Behaviour:
   m_ObjectHideFlags: 1
