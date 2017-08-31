@@ -334,10 +334,10 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4591031957274470}
+  - component: {fileID: 114801988552399958}
   - component: {fileID: 54540809518397602}
   - component: {fileID: 138486339295732342}
   - component: {fileID: 114722879647281656}
-  - component: {fileID: 114801988552399958}
   m_Layer: 8
   m_Name: BigBeamTurret
   m_TagString: Team2
@@ -1011,7 +1011,7 @@ MeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_Materials:
-  - {fileID: 10302, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1267,7 +1267,7 @@ MeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_Materials:
-  - {fileID: 10302, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1299,7 +1299,7 @@ MeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_Materials:
-  - {fileID: 10302, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1491,7 +1491,7 @@ MeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_Materials:
-  - {fileID: 10302, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1747,7 +1747,7 @@ MeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_Materials:
-  - {fileID: 10302, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -2121,7 +2121,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   R: 0.5
-  G: 90
+  G: 10
   B: 2
 --- !u!114 &114265599851846702
 MonoBehaviour:
@@ -2135,7 +2135,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   R: 0.5
-  G: 90
+  G: 10
   B: 2
 --- !u!114 &114372935907962804
 MonoBehaviour:
@@ -2159,6 +2159,7 @@ MonoBehaviour:
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!114 &114478780097900660
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2171,7 +2172,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   R: 0.5
-  G: 90
+  G: 10
   B: 2
 --- !u!114 &114519631080791748
 MonoBehaviour:
@@ -2185,7 +2186,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   R: 0.5
-  G: 90
+  G: 10
   B: 2
 --- !u!114 &114570703834796536
 MonoBehaviour:
@@ -2209,6 +2210,7 @@ MonoBehaviour:
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!114 &114666555797963870
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2221,7 +2223,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   R: 0.5
-  G: 90
+  G: 10
   B: 2
 --- !u!114 &114722879647281656
 MonoBehaviour:
@@ -2245,6 +2247,7 @@ MonoBehaviour:
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!114 &114801988552399958
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2260,7 +2263,7 @@ MonoBehaviour:
   LoadTime: 90
   ShootTime: 80
   StartOffset: 30
-  TanShootAngle: 0.1
+  ShootAngle: 5
   BeamForce: 4
   BeamDamage: 3
   MinimumMass: 80
@@ -2268,7 +2271,8 @@ MonoBehaviour:
   TurnTable: {fileID: 4388559009984546}
   ElevationHub: {fileID: 4936335685901844}
   BeamsParent: {fileID: 4240506007227012}
-  EnemyTag: Enemy
+  EnemyTags:
+  - Enemy
 --- !u!124 &124147918906010302
 Behaviour:
   m_ObjectHideFlags: 1
