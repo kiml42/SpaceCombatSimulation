@@ -163,6 +163,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
         //scrub the list now they've all been turned off.
         _beams = new List<Beam>();
 
+        //Debug.Log("Deactivating " + name);
         tag = InactiveTag;
     }
 }

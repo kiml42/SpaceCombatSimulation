@@ -117,6 +117,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     
     public void Deactivate()
     {
+        //Debug.Log("Deactivating " + name);
         _active = false;
         tag = InactiveTag;
     }

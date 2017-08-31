@@ -69,6 +69,7 @@ public class EngineControler : MonoBehaviour {
 
     public void Deactivate()
     {
+        //Debug.Log("Deactivating " + name);
         _active = false;
         TurnOff();
         tag = InactiveTag;

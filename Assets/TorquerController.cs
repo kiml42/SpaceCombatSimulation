@@ -7,7 +7,13 @@ using UnityEngine;
 public class TorquerController : MonoBehaviour, IDeactivatable
 {
     private bool _active;
-    private string InactiveTag = "Untagged";
+
+    /// <summary>
+    /// Tag to set on the torquer when it is deactivated.
+    /// "Unteagged" is the correct tag for untagged objects,
+    /// null (default) will not untag torquer whaen deactivated.
+    /// </summary>
+    public string InactiveTag = null;
 
     // Use this for initialization
     void Start()
@@ -27,7 +33,11 @@ public class TorquerController : MonoBehaviour, IDeactivatable
 
     public void Deactivate()
     {
+        //Debug.Log("Deactivating " + name);
         _active = false;
-        tag = InactiveTag;
+        if(!string.IsNullOrEmpty(InactiveTag))
+        {
+            tag = InactiveTag;
+        }
     }
 }

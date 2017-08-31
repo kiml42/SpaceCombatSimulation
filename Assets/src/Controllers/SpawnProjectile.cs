@@ -116,6 +116,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
 
     public void Deactivate()
     {
+        //Debug.Log("Deactivating " + name);
         _active = false;
         tag = InactiveTag;
     }
