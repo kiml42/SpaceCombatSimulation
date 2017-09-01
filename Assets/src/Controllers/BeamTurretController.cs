@@ -162,7 +162,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
         foreach (var beam in _beams)
         {
             beam.TurnOff();
-            Destroy(beam.Transform);
+            Destroy(beam.Transform.gameObject);
         }
         //scrub the list now they've all been turned off.
         _beams = new List<Beam>();
