@@ -11,27 +11,37 @@ namespace Assets.Src.Targeting
     {
         public static Vector3 LocationInTurnTableSpace(this PotentialTarget target, Rigidbody turnTable, float? projectileSpeed)
         {
-            return target.TargetRigidbody.LocationInTurnTableSpace(turnTable, projectileSpeed);
+            return target.TargetRigidbody != null ? 
+                target.TargetRigidbody.LocationInTurnTableSpace(turnTable, projectileSpeed):
+                target.TargetTransform.LocationInTurnTableSpace(turnTable);
         }
 
         public static Vector3 LocationInElevationHubSpace(this PotentialTarget target, Rigidbody elevationHub, float? projectileSpeed)
         {
-            return target.TargetRigidbody.LocationInElevationHubSpace(elevationHub, projectileSpeed);
+            return target.TargetRigidbody != null ?
+                target.TargetRigidbody.LocationInElevationHubSpace(elevationHub, projectileSpeed):
+                target.TargetTransform.LocationInElevationHubSpace(elevationHub);
         }
 
         public static Vector3 LocationInElevationHubSpaceAfterTurnTableTurn(this PotentialTarget target, Rigidbody thisTurret, Transform turnTable, Rigidbody elevationHub, float? projectileSpeed)
         {
-            return target.TargetRigidbody.LocationInElevationHubSpaceAfterTurnTableTurn(thisTurret, turnTable, elevationHub, projectileSpeed);
+            return target.TargetRigidbody != null ?
+                target.TargetRigidbody.LocationInElevationHubSpaceAfterTurnTableTurn(thisTurret, turnTable, elevationHub, projectileSpeed):
+                target.TargetTransform.LocationInElevationHubSpaceAfterTurnTableTurn(thisTurret, turnTable, elevationHub);
         }
         
         public static Vector3 LocationInAimedSpace(this PotentialTarget target, Rigidbody aimingObject, float? projectileSpeed)
         {
-            return target.TargetRigidbody.LocationInAimedSpace(aimingObject, projectileSpeed);
+            return target.TargetRigidbody != null ?
+                target.TargetRigidbody.LocationInAimedSpace(aimingObject, projectileSpeed):
+                target.TargetTransform.LocationInAimedSpace(aimingObject);
         }
         
         public static Vector3 CorrectForVelocity(this PotentialTarget target, Rigidbody baseObject, float? projectileSpeed)
         {
-            return target.TargetRigidbody.CorrectForVelocity(baseObject, projectileSpeed);
+            return target.TargetRigidbody != null ?
+                target.TargetRigidbody.CorrectForVelocity(baseObject, projectileSpeed):
+                target.TargetTransform.position;
         }
 
         /// <summary>
@@ -44,12 +54,16 @@ namespace Assets.Src.Targeting
         /// <returns></returns>
         public static float DistanceToTurret(this PotentialTarget target, Rigidbody thisTurret, float? projectileSpeed)
         {
-            return target.TargetRigidbody.DistanceToTurret(thisTurret, projectileSpeed);
+            return target.TargetRigidbody != null ?
+                 target.TargetRigidbody.DistanceToTurret(thisTurret, projectileSpeed):
+                 target.TargetTransform.DistanceToTurret(thisTurret);
         }
 
         public static Vector3 LocationInOtherTransformSpace(this PotentialTarget target, Rigidbody otherTransform, float? projectileSpeed)
         {
-            return target.TargetRigidbody.LocationInOtherTransformSpace(otherTransform, projectileSpeed);
+            return target.TargetRigidbody != null ?
+                 target.TargetRigidbody.LocationInOtherTransformSpace(otherTransform, projectileSpeed):
+                 target.TargetTransform.LocationInOtherTransformSpace(otherTransform);
         }
 
         public static Vector3 LocationInTurnTableSpace(this Rigidbody target, Rigidbody turnTable, float? projectileSpeed)
@@ -159,6 +173,94 @@ namespace Assets.Src.Targeting
         public static Vector3 LocationInOtherTransformSpace(this Rigidbody potentialTarget, Rigidbody otherTransform, float? projectileSpeed)
         {
             var location = potentialTarget.CorrectForVelocity(otherTransform, projectileSpeed);
+
+            return otherTransform.transform.InverseTransformPoint(location);
+        }
+
+
+
+        public static Vector3 LocationInTurnTableSpace(this Transform target, Rigidbody turnTable)
+        {
+            if (turnTable == null)
+            {
+                return Vector3.zero;
+            }
+            var location = target.position;
+
+            return turnTable.transform.InverseTransformPoint(location);
+        }
+
+        public static Vector3 LocationInElevationHubSpace(this Transform target, Rigidbody elevationHub)
+        {
+            var location = target.position;
+
+            if (elevationHub == null)
+            {
+                return Vector3.zero;
+            }
+
+            return elevationHub.transform.InverseTransformPoint(location);
+        }
+
+        public static Vector3 LocationInElevationHubSpaceAfterTurnTableTurn(this Transform target, Rigidbody thisTurret, Transform turnTable, Rigidbody elevationHub)
+        {
+            if (turnTable == null || elevationHub == null)
+            {
+                return Vector3.zero;
+            }
+
+            var location = target.position;
+
+            //Debug.Log("WorldLocation Now: " + location);
+            location = turnTable.InverseTransformPoint(location);
+            //Debug.Log("LocationInTurnTableSpace Now: " + location);
+
+            var elevation = location.y;
+
+            location.y = 0;
+
+            var distance = location.magnitude;
+
+            var effectiveLocation = new Vector3(0, elevation, distance);
+            //Debug.Log("effectiveLocation: " + effectiveLocation);
+
+            var locationInWorldSpace = turnTable.TransformPoint(effectiveLocation);
+            //Debug.Log("locationInWorldSpace: " + locationInWorldSpace);
+
+            //Debug.Log("EffectiveLocation in hub space: " + ElevationHub.transform.InverseTransformPoint(locationInWorldSpace));
+
+            return elevationHub.transform.InverseTransformPoint(locationInWorldSpace);
+        }
+
+        public static Vector3 LocationInAimedSpace(this Transform target, Rigidbody aimingObject)
+        {
+            var location = target.position;
+
+            return aimingObject == null ? Vector3.zero : aimingObject.transform.InverseTransformPoint(location);
+        }
+
+        /// <summary>
+        /// Returns the distance to the target from the given Rigidbody.
+        /// Returns float.MaxValue if the target or turret Rigidbody is null.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="thisTurret"></param>
+        /// <param name="projectileSpeed"></param>
+        /// <returns></returns>
+        public static float DistanceToTurret(this Transform target, Rigidbody thisTurret)
+        {
+            if (target == null || thisTurret == null)
+            {
+                return float.MaxValue;
+            }
+            var location = target.position;
+            var dist = Vector3.Distance(location, thisTurret.position);
+            return dist;
+        }
+
+        public static Vector3 LocationInOtherTransformSpace(this Transform target, Rigidbody otherTransform)
+        {
+            var location = target.position;
 
             return otherTransform.transform.InverseTransformPoint(location);
         }
