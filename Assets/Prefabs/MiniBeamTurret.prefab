@@ -2050,8 +2050,8 @@ MonoBehaviour:
   BeamDamage: 0.12
   MinimumMass: 0
   HitEffect: {fileID: 4113682021108320, guid: e6ef866ccc6cd2c4fb5f402be7b7a1d0, type: 2}
-  TurnTable: {fileID: 4091882775532256}
-  ElevationHub: {fileID: 4349780392635840}
+  TurnTable: {fileID: 54882056251725972}
+  ElevationHub: {fileID: 54867097553581106}
   BeamsParent: {fileID: 4174025852522500}
   EnemyTags:
   - Enemy

@@ -821,8 +821,13 @@ MonoBehaviour:
   Armour: 0
   Health: 200
   DeathExplosion: {fileID: 0}
-  ExplosionForce: 1000
-  ExplosionRadius: 1000
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!114 &114714754333530302
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -839,15 +844,14 @@ MonoBehaviour:
     type: 2}
   LoadTime: 15
   ProjectileSpeed: 800
-  TanShootAngle: 0.1
+  ShootAngle: 10
   RandomSpeed: 5
-  RandomStartTime: 30
-  TurnTable: {fileID: 4346923769378568}
-  ElevationHub: {fileID: 4212047924796032}
+  TurnTable: {fileID: 54160784929646596}
+  ElevationHub: {fileID: 54136877300926014}
   EmitterParent: {fileID: 4882124771513916}
   MinimumMass: 0
   TagChildren: 0
-  EnemyTag: Enemy
+  EnemyTags: []
   SetChildrensEnemy: 0
 --- !u!114 &114792225503145664
 MonoBehaviour:
@@ -864,8 +868,13 @@ MonoBehaviour:
   Armour: 0
   Health: 200
   DeathExplosion: {fileID: 0}
-  ExplosionForce: 1000
-  ExplosionRadius: 1000
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!114 &114904066030491806
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -881,8 +890,13 @@ MonoBehaviour:
   Armour: 0
   Health: 300
   DeathExplosion: {fileID: 0}
-  ExplosionForce: 1000
-  ExplosionRadius: 1000
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!124 &124455642874896686
 Behaviour:
   m_ObjectHideFlags: 1

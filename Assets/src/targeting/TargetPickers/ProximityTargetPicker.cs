@@ -9,9 +9,9 @@ namespace Assets.Src.Targeting.TargetPickers
 {
     class ProximityTargetPicker : ITargetPicker
     {
-        private Transform _sourceObject;
+        private Rigidbody _sourceObject;
 
-        public ProximityTargetPicker(Transform sourceObject)
+        public ProximityTargetPicker(Rigidbody sourceObject)
         {
             _sourceObject = sourceObject;
         }

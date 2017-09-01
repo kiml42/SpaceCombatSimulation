@@ -79,8 +79,8 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 
         var pickers = new List<ITargetPicker>
         {
-            new ProximityTargetPicker(transform),
-            new LookingAtTargetPicker(transform, null)
+            new ProximityTargetPicker(_rigidbody),
+            new LookingAtTargetPicker(_rigidbody)
         };
 
         if(MinimumMass > 0)

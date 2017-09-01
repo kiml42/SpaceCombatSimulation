@@ -37,7 +37,7 @@ namespace Assets.Src.Targeting
             {
                 return false;
             }
-            var distance = target.DistanceToTurret(_exploderRigidbody.transform);
+            var distance = target.DistanceToTurret(_exploderRigidbody);
             return distance <= _detonationDistance;
         }
 

@@ -22,30 +22,17 @@ namespace Assets.Src.Targeting
             _projectileSpeed = projectileSpeed;
         }
 
-        [Obsolete("Use transform version instead")]
-        public Vector3 LocationInAimedSpace(GameObject thisTurret, Transform aimingObject, bool correctForVelocity = true)
+        public Vector3 LocationInAimedSpace(Rigidbody aimingObject, bool correctForVelocity = true)
         {
-            return LocationInAimedSpace(thisTurret.transform, aimingObject, correctForVelocity);
-        }
-
-        public Vector3 LocationInAimedSpace(Transform thisTurret, Transform aimingObject, bool correctForVelocity = true)
-        {
-            var location = correctForVelocity ? CorrectForVelocity(thisTurret) : Target.transform.position;
+            var location = correctForVelocity ? CorrectForVelocity(aimingObject) : Target.transform.position;
             
             return aimingObject == null ? Vector3.zero: aimingObject.transform.InverseTransformPoint(location);
         }
-
-
+        
         public float Score { get; set; }
         public Transform Target { get; set; }
-
-        [System.Obsolete("Use Transform version instead")]
-        public Vector3 CorrectForVelocity(GameObject thisTurret)
-        {
-            return CorrectForVelocity(thisTurret.transform);
-        }
-
-        public Vector3 CorrectForVelocity(Transform thisTurret)
+        
+        public Vector3 CorrectForVelocity(Rigidbody baseObject)
         {
             var location = Target.position;
 
@@ -63,14 +50,9 @@ namespace Assets.Src.Targeting
 
             var velocity = rigidBody.velocity;
 
-            if(velocity.magnitude == 0){
-                return location;
-            }
-
-            var distance = DistanceToTurret(thisTurret, false);
-
-            var turretRigidbody = thisTurret.GetComponent("Rigidbody") as Rigidbody;
-            velocity = turretRigidbody == null ? velocity : velocity - turretRigidbody.velocity;
+            var distance = DistanceToTurret(baseObject, false);
+            
+            velocity = baseObject == null ? velocity : velocity - baseObject.velocity;
 
             var offsetdistance =  _extraOffsetScaler * distance * velocity / _projectileSpeed;
 
@@ -79,32 +61,18 @@ namespace Assets.Src.Targeting
             return location + offsetdistance;
         }
 
-        [System.Obsolete("Use Transform version instead")]
-        public float DistanceToTurret(GameObject thisTurret, bool correctForVelocity = true)
+        public float DistanceToTurret(Rigidbody thisTurret, bool correctForVelocity = true)
         {
             var location = correctForVelocity ? CorrectForVelocity(thisTurret) : Target.position;
             var dist = Vector3.Distance(location, thisTurret.transform.position);
             return dist;
         }
 
-        public float DistanceToTurret(Transform thisTurret, bool correctForVelocity = true)
+        public Vector3 LocationInOtherTransformSpace(Rigidbody otherTransform, bool correctForVelocity = true)
         {
-            var location = correctForVelocity ? CorrectForVelocity(thisTurret) : Target.position;
-            var dist = Vector3.Distance(location, thisTurret.transform.position);
-            return dist;
-        }
+            var location = correctForVelocity ? CorrectForVelocity(otherTransform) : Target.transform.position;
 
-        [Obsolete("use transform version instead")]
-        public Vector3 LocationInTurretParentSpace(GameObject thisTurret, bool correctForVelocity = true)
-        {
-            return LocationInTurretParentSpace(thisTurret.transform, correctForVelocity);
-        }
-
-        public Vector3 LocationInTurretParentSpace(Transform thisTurret, bool correctForVelocity = true)
-        {
-            var location = correctForVelocity ? CorrectForVelocity(thisTurret) : Target.transform.position;
-
-            return thisTurret.transform.InverseTransformPoint(location);
+            return otherTransform.transform.InverseTransformPoint(location);
         }
     }
 }

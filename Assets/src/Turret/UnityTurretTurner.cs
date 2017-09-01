@@ -11,12 +11,14 @@ namespace Assets.Src.Targeting
 {
     public class UnityTurretTurner : ITurretTurner
     {
-        Transform _thisTurret;
-        PotentialTarget _restTarget;
-        private readonly Transform _turnTable;
-        private readonly Transform _elevationHub;
+        private readonly Rigidbody _thisTurret;
+        private readonly PotentialTarget _restTarget;
+        private readonly Rigidbody _turnTable;
+        private readonly HingeJoint _turnTableHinge;
+        private readonly Rigidbody _elevationHub;
+        private readonly HingeJoint _elevationHubHinge;
 
-        public UnityTurretTurner(Transform thisTurret, Transform turnTable, Transform elevationHub, Transform restTarget)
+        public UnityTurretTurner(Rigidbody thisTurret, Rigidbody turnTable, Rigidbody elevationHub, Transform restTarget)
         {
             _thisTurret = thisTurret;
             if(restTarget != null)
@@ -24,7 +26,9 @@ namespace Assets.Src.Targeting
                 _restTarget = new PotentialTarget(restTarget, 0f);
             }
             _turnTable = turnTable;
+            _turnTableHinge = turnTable.GetComponent("HingeJoint") as HingeJoint;
             _elevationHub = elevationHub;
+            _elevationHubHinge = elevationHub.GetComponent("HingeJoint") as HingeJoint;
         }
 
         public void ReturnToRest()
@@ -37,7 +41,7 @@ namespace Assets.Src.Targeting
 
         public void TurnToTarget(PotentialTarget target)
         {
-            if (target != null && target.Target.IsValid() && _turnTable.IsValid() && _elevationHub.IsValid())
+            if (target != null && target.Target.IsValid() && _turnTable != null && _elevationHub != null)
             {
                 HingeJoint hinge = _turnTable.GetComponent("HingeJoint") as HingeJoint;
                 if(hinge != null)
@@ -46,18 +50,17 @@ namespace Assets.Src.Targeting
 
                     //Debug.Log("getting location in turn table space");
                     
+                    var LocationInTurnTableSpace = target.LocationInTurnTableSpace(_turnTable);
 
-                    var LocationInTurnTableSpace = target.LocationInTurnTableSpace(_thisTurret, _turnTable);
-
-                    TurnToTarget(_turnTable, LocationInTurnTableSpace);
+                    TurnToTarget(_turnTableHinge, LocationInTurnTableSpace);
                     
                     //var locationInElevationHubSpace = target.LocationInElevationHubSpace(_thisTurret);
-                    var locationInElevationHubSpace = target.LocationInElevationHubSpaceAfterTurnTableTurn(_thisTurret, _turnTable, _elevationHub, false);
+                    var locationInElevationHubSpace = target.LocationInElevationHubSpaceAfterTurnTableTurn(_thisTurret, _turnTable.transform, _elevationHub, false);
 
-                    TurnToTarget(_elevationHub, locationInElevationHubSpace);
+                    TurnToTarget(_elevationHubHinge, locationInElevationHubSpace);
 
                     var location = target.Target.transform.position;
-                    var relative = target.LocationInTurnTableSpace(_thisTurret, _turnTable);
+                    var relative = target.LocationInTurnTableSpace(_turnTable);
                     
                     JointMotor motor = hinge.motor;
                     motor.force = 30;
@@ -75,24 +78,19 @@ namespace Assets.Src.Targeting
             }
         }
 
-        private void TurnToTarget(Transform objectToTurn, Vector3 relativeLocation)
+        private void TurnToTarget(HingeJoint hingeToTurn, Vector3 relativeLocation)
         {
-            if (objectToTurn != null)
+            if (hingeToTurn != null)
             {
-                HingeJoint hinge = objectToTurn.GetComponent("HingeJoint") as HingeJoint;
-                if(hinge != null)
-                {
-                    JointMotor motor = hinge.motor;
-                    motor.force = 30;
-                    relativeLocation.y = 0;
-                    motor.targetVelocity = relativeLocation.normalized.x * 500;
-                    //motor.freeSpin = false;
-                    hinge.motor = motor;
-                    //hinge.useMotor = true;
-                    //Debug.Log(objectToTurn.name + " turning at " + hinge.motor.targetVelocity);
-                }
+                JointMotor motor = hingeToTurn.motor;
+                motor.force = 30;
+                relativeLocation.y = 0;
+                motor.targetVelocity = relativeLocation.normalized.x * 500;
+                //motor.freeSpin = false;
+                hingeToTurn.motor = motor;
+                //hinge.useMotor = true;
+                //Debug.Log(objectToTurn.name + " turning at " + hinge.motor.targetVelocity);
             }
-
         }
     }
 }

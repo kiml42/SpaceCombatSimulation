@@ -829,6 +829,7 @@ MonoBehaviour:
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!114 &114375893224788504
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -851,6 +852,7 @@ MonoBehaviour:
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!114 &114422725068886292
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -867,14 +869,14 @@ MonoBehaviour:
     type: 2}
   LoadTime: 26
   ProjectileSpeed: 800
-  TanShootAngle: 0.5
+  ShootAngle: 10
   RandomSpeed: 4
-  TurnTable: {fileID: 4291995321138198}
-  ElevationHub: {fileID: 4489758503198134}
+  TurnTable: {fileID: 54079204794469090}
+  ElevationHub: {fileID: 54683890212850012}
   EmitterParent: {fileID: 4762531310836884}
   MinimumMass: 80
   TagChildren: 0
-  EnemyTag: Enemy
+  EnemyTags: []
   SetChildrensEnemy: 0
 --- !u!114 &114735797348154080
 MonoBehaviour:
@@ -898,6 +900,7 @@ MonoBehaviour:
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
 --- !u!124 &124123618135675836
 Behaviour:
   m_ObjectHideFlags: 1

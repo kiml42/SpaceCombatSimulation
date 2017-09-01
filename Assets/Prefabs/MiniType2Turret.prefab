@@ -1311,8 +1311,8 @@ MonoBehaviour:
   ProjectileSpeed: 800
   ShootAngle: 10
   RandomSpeed: 5
-  TurnTable: {fileID: 4096309798173986}
-  ElevationHub: {fileID: 4985851871091600}
+  TurnTable: {fileID: 54663574418112234}
+  ElevationHub: {fileID: 54647014223265010}
   EmitterParent: {fileID: 4095713925445172}
   MinimumMass: 0
   TagChildren: 0
