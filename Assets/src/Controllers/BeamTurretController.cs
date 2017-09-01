@@ -104,7 +104,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
 
         _targetPicker = new CombinedTargetPicker(pickers);
 
-        _turner = new UnityTurretTurner(rigidbody, TurnTable, ElevationHub, RestTarget);
+        _turner = new UnityTurretTurner(rigidbody, TurnTable, ElevationHub, RestTarget, null);
 
         _fireControl = new UnityFireControl(this, ElevationHub.transform, ShootAngle);
 

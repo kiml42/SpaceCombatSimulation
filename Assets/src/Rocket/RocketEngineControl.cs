@@ -203,14 +203,14 @@ namespace Assets.Src.Rocket
 
         private Vector3 VectorTowardsTargetInWorldSpace(PotentialTarget target)
         {
-            if (_pilotObject != null && target.Target.IsValid())
+            if (_pilotObject != null && target.TargetTransform.IsValid())
             {
 
-                var location = target.Target.position - _pilotObject.position;
+                var location = target.TargetRigidbody.position - _pilotObject.position;
                 return location;
             }
 
-            if (target.Target.IsInvalid())
+            if (target.TargetTransform.IsInvalid())
             {
                 Debug.Log("Target transform is invalid");
             }
@@ -239,7 +239,7 @@ namespace Assets.Src.Rocket
 
         private Vector3 WorldSpaceReletiveVelocityOfTarget(PotentialTarget target)
         {
-            var targetRigidBody = target.Target.GetComponent("Rigidbody") as Rigidbody;
+            var targetRigidBody = target.TargetRigidbody.GetComponent("Rigidbody") as Rigidbody;
 
 
             var targetsVelocity = targetRigidBody == null ? Vector3.zero : targetRigidBody.velocity;

@@ -23,7 +23,7 @@ namespace Assets.Src.SpaceShip
         {
             var targets = _detector
                 .DetectTargets()
-                .Select(t => t.Target.GetComponent("Rigidbody") as Rigidbody)
+                .Select(t => t.TargetRigidbody.GetComponent("Rigidbody") as Rigidbody)
                 .Where(t => t != null);
 
             //Vector3 locationSum = SumVecors(targets.Select(t => t.position));

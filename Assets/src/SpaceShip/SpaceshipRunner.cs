@@ -27,7 +27,7 @@ namespace Assets.Src.SpaceShip
         public void RunSpaceship()
         {
             var destination = _destinationChooser.GetDestinationObject();
-            var target = new PotentialTarget(destination.transform, 0);
+            var target = new PotentialTarget(destination);
 
             _engineControl.FlyToTarget(target, 0, LocationTollerance, VelociyTollerance);
         }

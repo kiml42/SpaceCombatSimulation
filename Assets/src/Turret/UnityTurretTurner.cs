@@ -17,18 +17,20 @@ namespace Assets.Src.Targeting
         private readonly HingeJoint _turnTableHinge;
         private readonly Rigidbody _elevationHub;
         private readonly HingeJoint _elevationHubHinge;
+        private readonly float? _projectileSpeed;
 
-        public UnityTurretTurner(Rigidbody thisTurret, Rigidbody turnTable, Rigidbody elevationHub, Transform restTarget)
+        public UnityTurretTurner(Rigidbody thisTurret, Rigidbody turnTable, Rigidbody elevationHub, Transform restTarget, float? projectileSpeed)
         {
             _thisTurret = thisTurret;
             if(restTarget != null)
             {
-                _restTarget = new PotentialTarget(restTarget, 0f);
+                _restTarget = new PotentialTarget(restTarget);
             }
             _turnTable = turnTable;
             _turnTableHinge = turnTable.GetComponent("HingeJoint") as HingeJoint;
             _elevationHub = elevationHub;
             _elevationHubHinge = elevationHub.GetComponent("HingeJoint") as HingeJoint;
+            _projectileSpeed = projectileSpeed;
         }
 
         public void ReturnToRest()
@@ -41,7 +43,7 @@ namespace Assets.Src.Targeting
 
         public void TurnToTarget(PotentialTarget target)
         {
-            if (target != null && target.Target.IsValid() && _turnTable != null && _elevationHub != null)
+            if (target != null && target.TargetTransform.IsValid() && _turnTable != null && _elevationHub != null)
             {
                 HingeJoint hinge = _turnTable.GetComponent("HingeJoint") as HingeJoint;
                 if(hinge != null)
@@ -50,17 +52,17 @@ namespace Assets.Src.Targeting
 
                     //Debug.Log("getting location in turn table space");
                     
-                    var LocationInTurnTableSpace = target.LocationInTurnTableSpace(_turnTable);
+                    var LocationInTurnTableSpace = target.LocationInTurnTableSpace(_turnTable, _projectileSpeed);
 
                     TurnToTarget(_turnTableHinge, LocationInTurnTableSpace);
                     
                     //var locationInElevationHubSpace = target.LocationInElevationHubSpace(_thisTurret);
-                    var locationInElevationHubSpace = target.LocationInElevationHubSpaceAfterTurnTableTurn(_thisTurret, _turnTable.transform, _elevationHub, false);
+                    var locationInElevationHubSpace = target.LocationInElevationHubSpaceAfterTurnTableTurn(_thisTurret, _turnTable.transform, _elevationHub, _projectileSpeed);
 
                     TurnToTarget(_elevationHubHinge, locationInElevationHubSpace);
 
-                    var location = target.Target.transform.position;
-                    var relative = target.LocationInTurnTableSpace(_turnTable);
+                    var location = target.TargetTransform.position;
+                    var relative = target.LocationInTurnTableSpace(_turnTable, _projectileSpeed);
                     
                     JointMotor motor = hinge.motor;
                     motor.force = 30;

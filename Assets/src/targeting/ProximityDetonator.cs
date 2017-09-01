@@ -5,6 +5,7 @@ using System.Linq;
 using Assets.src.interfaces;
 using Assets.src.targeting;
 using Assets.Src.ObjectManagement;
+using Assets.Src.Turret;
 
 namespace Assets.Src.Targeting
 {
@@ -33,11 +34,11 @@ namespace Assets.Src.Targeting
 
         private bool ShouldDetonate(PotentialTarget target)
         {
-            if(target == null || target.Target.IsInvalid())
+            if(target == null)
             {
                 return false;
             }
-            var distance = target.DistanceToTurret(_exploderRigidbody);
+            var distance = target.DistanceToTurret(_exploderRigidbody, _exploderRigidbody.velocity.magnitude);
             return distance <= _detonationDistance;
         }
 

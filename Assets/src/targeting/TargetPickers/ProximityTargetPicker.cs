@@ -23,7 +23,7 @@ namespace Assets.Src.Targeting.TargetPickers
 
         private PotentialTarget AddScoreForDifference(PotentialTarget target)
         {
-            var dist = target.DistanceToTurret(_sourceObject);
+            var dist = target.DistanceToTurret(_sourceObject, null);
             target.Score = target.Score - dist;
             return target;
         }

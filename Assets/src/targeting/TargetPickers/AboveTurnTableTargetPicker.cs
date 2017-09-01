@@ -20,7 +20,7 @@ namespace Assets.Src.Targeting.TargetPickers
         public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             return potentialTargets.Select(t => {
-                if (t.LocationInOtherTransformSpace(_sourceObject).y >= 0)
+                if (t.LocationInOtherTransformSpace(_sourceObject, null).y >= 0)
                 {
                     t.Score += ExtraScoreForValidTargets;
                 }

@@ -20,7 +20,7 @@ namespace Assets.Src.Targeting.TargetPickers
         public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             return potentialTargets.Select(t => {
-                var rigidbody = t.Target.GetComponent("Rigidbody") as Rigidbody;
+                var rigidbody = t.TargetRigidbody.GetComponent("Rigidbody") as Rigidbody;
                 if (rigidbody == null)
                 {
                     t.Score -= AdditionalScore;

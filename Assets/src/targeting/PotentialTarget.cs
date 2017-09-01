@@ -6,73 +6,30 @@ using UnityEngine;
 
 namespace Assets.Src.Targeting
 {
+    /// <summary>
+    /// Class for keeping a score for a potential target rigidbody
+    /// </summary>
     public class PotentialTarget
     {
-        private float _projectileSpeed;
-        private float _extraOffsetScaler = 1f;
+        public float Score { get; set; }
+        public Transform TargetTransform { get; set; }
+        public Rigidbody TargetRigidbody { get; set; }
 
         public PotentialTarget()
         {
 
         }
         
-        public PotentialTarget(Transform target, float projectileSpeed)
+        public PotentialTarget(Rigidbody target)
         {
-            Target = target;
-            _projectileSpeed = projectileSpeed;
+            TargetRigidbody = target;
+            TargetTransform = target.transform;
         }
 
-        public Vector3 LocationInAimedSpace(Rigidbody aimingObject, bool correctForVelocity = true)
+        public PotentialTarget(Transform target)
         {
-            var location = correctForVelocity ? CorrectForVelocity(aimingObject) : Target.transform.position;
-            
-            return aimingObject == null ? Vector3.zero: aimingObject.transform.InverseTransformPoint(location);
-        }
-        
-        public float Score { get; set; }
-        public Transform Target { get; set; }
-        
-        public Vector3 CorrectForVelocity(Rigidbody baseObject)
-        {
-            var location = Target.position;
-
-            if(_projectileSpeed == 0)
-            {
-                return location;
-            }
-
-            var rigidBody = Target.GetComponent("Rigidbody") as Rigidbody;
-
-            if(rigidBody == null)
-            {
-                return location;
-            }
-
-            var velocity = rigidBody.velocity;
-
-            var distance = DistanceToTurret(baseObject, false);
-            
-            velocity = baseObject == null ? velocity : velocity - baseObject.velocity;
-
-            var offsetdistance =  _extraOffsetScaler * distance * velocity / _projectileSpeed;
-
-            //Debug.Log("s=" + distance + "v=" + velocity + ", vp=" + _projectileSpeed + ", aiming " + offsetdistance + " ahead.");
-
-            return location + offsetdistance;
-        }
-
-        public float DistanceToTurret(Rigidbody thisTurret, bool correctForVelocity = true)
-        {
-            var location = correctForVelocity ? CorrectForVelocity(thisTurret) : Target.position;
-            var dist = Vector3.Distance(location, thisTurret.transform.position);
-            return dist;
-        }
-
-        public Vector3 LocationInOtherTransformSpace(Rigidbody otherTransform, bool correctForVelocity = true)
-        {
-            var location = correctForVelocity ? CorrectForVelocity(otherTransform) : Target.transform.position;
-
-            return otherTransform.transform.InverseTransformPoint(location);
+            TargetTransform = target;
+            TargetRigidbody = target.GetComponent("Rigidbody") as Rigidbody;
         }
     }
 }

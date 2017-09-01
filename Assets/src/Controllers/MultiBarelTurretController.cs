@@ -94,6 +94,9 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
             new AboveTurnTableTargetPicker(rigidbody),
             new ProximityTargetPicker(rigidbody),
             new LookingAtTargetPicker(ElevationHub)
+            {
+                ProjectileSpeed = ProjectileSpeed
+            }
         };
 
         if (MinimumMass > 0)
@@ -103,7 +106,7 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
 
         _targetPicker = new CombinedTargetPicker(pickers);
 
-        _turner = new UnityTurretTurner(rigidbody, TurnTable, ElevationHub, RestTarget);
+        _turner = new UnityTurretTurner(rigidbody, TurnTable, ElevationHub, RestTarget, ProjectileSpeed);
 
         _fireControl = new UnityFireControl(this, ElevationHub.transform, ShootAngle);
 
