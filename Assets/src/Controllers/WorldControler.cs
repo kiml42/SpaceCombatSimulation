@@ -10,6 +10,7 @@ namespace Assets.Src.Controllers
 {
     class WorldControler : MonoBehaviour, IKnowsEnemyTagAndtag
     {
+        public bool FollowShips = true;
         public string TarGetTag = "Enemy";
         public bool TagChildren = false;
         public bool ShouldSpawnDrones = true;
@@ -100,8 +101,8 @@ namespace Assets.Src.Controllers
 
             HandleCameraCycling();
 
-            MoveToAverageLoc();
-
+            if(FollowShips)
+                MoveToAverageLoc();
         }
 
         private void MoveToAverageLoc()
