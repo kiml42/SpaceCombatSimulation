@@ -105,7 +105,6 @@ GameObject:
   - component: {fileID: 136732948526313666}
   - component: {fileID: 114313381351599964}
   - component: {fileID: 114210906408566512}
-  - component: {fileID: 114456885560501284}
   m_Layer: 0
   m_Name: Torpedo
   m_TagString: Untagged
@@ -550,19 +549,6 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 3
---- !u!114 &114456885560501284
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1301380948880376}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b6312b7bfe9030e40b858f67cf019e96, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Lifetime: 30000
-  RandomLifetime: 200
 --- !u!114 &114902674925534566
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -596,6 +582,7 @@ MonoBehaviour:
   EnemyTags:
   - Enemy
   ApproachTargetPickerWeighting: 20
+  TimeToLive: 10000
 --- !u!124 &124272854357906246
 Behaviour:
   m_ObjectHideFlags: 1

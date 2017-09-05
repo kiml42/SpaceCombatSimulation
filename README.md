@@ -3,11 +3,12 @@ A Unity 3D project to simulate combat between space ships with vaguely realistic
 
 TODO:
 Ships should be able to try to get to a specific distance.
-Have beam turret controller set beam colour instead of each beam.
 Engines handle their own fuel. - possibly by accessing the fuel number on the ship or rocket controller.
 Improve generation management (1v1 evolution) - make it a bit more random.
 make ships pick a single target - maybe
 Make rockets self detonate after a given time, instead of using the timeout - so there's shrapnel.
+
+Make beams look glowy
 
 shipCam:
     Make shipSam point at the target of the followed object (if there is one)

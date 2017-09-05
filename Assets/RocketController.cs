@@ -66,6 +66,11 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 
     public List<string> EnemyTags;
     public float ApproachTargetPickerWeighting = 20;
+
+    /// <summary>
+    /// Rocket with detonate after this time.
+    /// </summary>
+    public float TimeToLive = Mathf.Infinity;
     #endregion
 
     // Use this for initialization
@@ -129,6 +134,12 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
         {
             Debug.Log("Runner is null! " + transform.name);
         }
+
+        if(TimeToLive < 0)
+        {
+            _detonator.DetonateNow();
+        }
+        TimeToLive--;
     }
 
     //void OnCollisionEnter(Collision colision)

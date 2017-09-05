@@ -109,7 +109,6 @@ GameObject:
   - component: {fileID: 136980939259080866}
   - component: {fileID: 96877103916523674}
   - component: {fileID: 114864640778098476}
-  - component: {fileID: 114261625652806328}
   m_Layer: 0
   m_Name: Rocket
   m_TagString: Untagged
@@ -522,7 +521,7 @@ MonoBehaviour:
   ExplosionEffect: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
   ShrapnelCount: 12
-  ExplosionForce: 400
+  ExplosionForce: 600
   ShrapnelSpeed: 20
   ExplosionDamage: 1000
   ExplosionRadius: 20
@@ -532,6 +531,7 @@ MonoBehaviour:
   EnemyTags:
   - Enemy
   ApproachTargetPickerWeighting: 20
+  TimeToLive: 1000
 --- !u!114 &114210379376876750
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -555,19 +555,6 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 400
   FramesOfInvulnerability: 3
---- !u!114 &114261625652806328
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1844183048995594}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b6312b7bfe9030e40b858f67cf019e96, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Lifetime: 3000
-  RandomLifetime: 200
 --- !u!114 &114864640778098476
 MonoBehaviour:
   m_ObjectHideFlags: 1
