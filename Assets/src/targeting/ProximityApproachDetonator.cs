@@ -30,7 +30,7 @@ namespace Assets.Src.Targeting
         {
             if (ShouldDetonate(target))
             {
-                Debug.Log(_exploderRigidbody + " is auto-detonating");
+                //Debug.Log(_exploderRigidbody + " is auto-detonating");
                 DetonateNow();
             }
         }
@@ -54,7 +54,7 @@ namespace Assets.Src.Targeting
             //var TangentialVelocity = velocity.ComponentPerpendicularTo(reletiveLocation);
 
             var shrapnelConeAngel = Math.Atan(_shrapnelSpeed / approachVelocity.magnitude);
-            if(approachAngle > shrapnelConeAngel || approachAngle < -shrapnelConeAngel)
+            if(approachAngle > shrapnelConeAngel)
             {
                 //Debug.Log("Target not in shrapnel cone");
                 return false;

@@ -551,7 +551,7 @@ MonoBehaviour:
   ShootAngle: 10
   TorqueMultiplier: 80
   LocationAimWeighting: 0.01
-  Fuel: 600
+  Fuel: 400
   StartDelay: 5
   TurningStartDelay: 0
   MinimumMass: 0
@@ -569,6 +569,7 @@ MonoBehaviour:
   VectorArrow: {fileID: 4652279574369954}
   EnemyTags:
   - Enemy
+  ApproachTargetPickerWeighting: 20
 --- !u!114 &114811701224170014
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -580,8 +581,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6312b7bfe9030e40b858f67cf019e96, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Lifetime: 3000
-  RandomLifetime: 200
+  Lifetime: 1500
+  RandomLifetime: 80
 --- !u!135 &135228887540377652
 SphereCollider:
   m_ObjectHideFlags: 1

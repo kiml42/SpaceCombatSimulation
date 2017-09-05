@@ -65,6 +65,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
     }
 
     public List<string> EnemyTags;
+    public float ApproachTargetPickerWeighting = 20;
     #endregion
 
     // Use this for initialization
@@ -80,7 +81,8 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
         var pickers = new List<ITargetPicker>
         {
             new ProximityTargetPicker(_rigidbody),
-            new LookingAtTargetPicker(_rigidbody)
+            new LookingAtTargetPicker(_rigidbody),
+            new ApproachingTargetPicker(_rigidbody, ApproachTargetPickerWeighting)
         };
 
         if(MinimumMass > 0)
