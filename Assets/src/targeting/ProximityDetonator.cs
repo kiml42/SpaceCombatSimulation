@@ -9,6 +9,7 @@ using Assets.Src.Turret;
 
 namespace Assets.Src.Targeting
 {
+    [Obsolete ("ProximityApproachDetonator does a better job")]
     public class ProximityDetonator : IDetonator
     {
         private readonly Rigidbody _exploderRigidbody;

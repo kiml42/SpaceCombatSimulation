@@ -68,8 +68,8 @@ namespace Assets.Src.Targeting
 
             var shouldDetonate = timeToTaget < _detonationTimeToTarget;
 
-            if(shouldDetonate)
-                Debug.Log("Detonating: Time to target " + timeToTaget);
+            //if(shouldDetonate)
+            //    Debug.Log("Detonating: Time to target " + timeToTaget);
 
             return shouldDetonate;
         }
