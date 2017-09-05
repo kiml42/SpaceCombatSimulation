@@ -61,6 +61,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     }
 
     public List<string> EnemyTags;
+    public float MinimumMass = 80;
     #endregion
 
     // Use this for initialization
@@ -93,8 +94,10 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
             SlowdownWeighting = SlowdownWeighting,
             VectorArrow = VectorArrow
         };
+
+        var picker = new MinimumMassTargetPicker(MinimumMass);
         
-        var chooser = new AverageTargetLocationDestinationChooser(_detector, TargetMarker);
+        var chooser = new AverageTargetLocationDestinationChooser(_detector, picker, TargetMarker);
 
         _runner = new SpaceshipRunner(chooser, _engineControl, TargetMarker)
         {
