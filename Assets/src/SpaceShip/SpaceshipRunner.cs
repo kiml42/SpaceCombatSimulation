@@ -29,7 +29,7 @@ namespace Assets.Src.SpaceShip
         public void RunSpaceship()
         {
             var targets = _picker.FilterTargets(_detector.DetectTargets());
-            var target = targets.FirstOrDefault();
+            var target = targets.OrderByDescending(t => t.Score).FirstOrDefault();
 
             _engineControl.FlyToTarget(target, 0, LocationTollerance, VelociyTollerance);
         }

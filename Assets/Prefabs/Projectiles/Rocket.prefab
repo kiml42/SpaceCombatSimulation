@@ -516,7 +516,7 @@ MonoBehaviour:
   StartDelay: 20
   TurningStartDelay: 10
   MinimumMass: 0
-  TimeToTargetForDetonation: 0.3
+  TimeToTargetForDetonation: 0.2
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ExplosionEffect: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
