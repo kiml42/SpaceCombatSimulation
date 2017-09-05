@@ -17,7 +17,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     public float LocationAimWeighting = 1;
     public int StartDelay = 2;
     public float SlowdownWeighting = 10;
-    public Rigidbody TargetMarker;
+    //public Rigidbody TargetMarker;
     public float LocationTollerance = 20;
     public float VelociyTollerance = 1;
     public Transform Engine;
@@ -95,11 +95,21 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
             VectorArrow = VectorArrow
         };
 
-        var picker = new MinimumMassTargetPicker(MinimumMass);
-        
-        var chooser = new AverageTargetLocationDestinationChooser(_detector, picker, TargetMarker);
 
-        _runner = new SpaceshipRunner(chooser, _engineControl, TargetMarker)
+
+        var pickers = new List<ITargetPicker>
+        {
+            new ProximityTargetPicker(_thisSpaceship)
+        };
+
+        if (MinimumMass > 0)
+        {
+            pickers.Add(new MinimumMassTargetPicker(MinimumMass));
+        }
+
+        var picker = new CombinedTargetPicker(pickers);
+        
+        _runner = new SpaceshipRunner(_detector, picker, _engineControl)
         {
             LocationTollerance = LocationTollerance,
             VelociyTollerance = VelociyTollerance
