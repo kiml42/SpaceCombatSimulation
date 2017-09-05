@@ -164,7 +164,6 @@ GameObject:
   - component: {fileID: 33841341737790196}
   - component: {fileID: 136889084518598590}
   - component: {fileID: 23242871702952972}
-  - component: {fileID: 114188688253643346}
   m_Layer: 8
   m_Name: Beam
   m_TagString: Untagged
@@ -183,7 +182,6 @@ GameObject:
   - component: {fileID: 33360527124121026}
   - component: {fileID: 136201781043080844}
   - component: {fileID: 23869010430977132}
-  - component: {fileID: 114328513920674942}
   m_Layer: 8
   m_Name: Beam
   m_TagString: Untagged
@@ -376,7 +374,6 @@ GameObject:
   - component: {fileID: 33889011449633146}
   - component: {fileID: 136230182649767004}
   - component: {fileID: 23070145625723378}
-  - component: {fileID: 114640672437615472}
   m_Layer: 8
   m_Name: Beam
   m_TagString: Untagged
@@ -395,7 +392,6 @@ GameObject:
   - component: {fileID: 33236686407401346}
   - component: {fileID: 136531110700614996}
   - component: {fileID: 23268299329802296}
-  - component: {fileID: 114593840909099678}
   m_Layer: 8
   m_Name: Beam
   m_TagString: Untagged
@@ -2002,34 +1998,6 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
---- !u!114 &114188688253643346
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1314632240578084}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  R: 10
-  G: 0.2
-  B: 0.2
---- !u!114 &114328513920674942
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1328594864438688}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  R: 10
-  G: 0.2
-  B: 0.2
 --- !u!114 &114404345958453862
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2055,6 +2023,7 @@ MonoBehaviour:
   BeamsParent: {fileID: 4174025852522500}
   EnemyTags:
   - Enemy
+  BeamColour: {r: 1, g: 0.06300002, b: 0.06300002, a: 0.678}
 --- !u!114 &114447421175719934
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2078,34 +2047,6 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
---- !u!114 &114593840909099678
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1843343440003576}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  R: 10
-  G: 0.2
-  B: 0.2
---- !u!114 &114640672437615472
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1823782275969784}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  R: 10
-  G: 0.2
-  B: 0.2
 --- !u!114 &114844622593280128
 MonoBehaviour:
   m_ObjectHideFlags: 1

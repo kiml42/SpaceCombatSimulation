@@ -63,6 +63,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     #endregion
 
     private ITurretRunner _runner;
+    public Color BeamColour;
 
     // Use this for initialization
     void Start()
@@ -75,6 +76,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
         {
             var beam = BeamsParent.GetChild(i);
             beam.localScale = Vector3.zero;
+            beam.SetColor(BeamColour);
             _beams.Add(new Beam(beam, ShootTime, LoadTime)
             {
                 BeamForce = BeamForce,

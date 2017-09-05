@@ -57,7 +57,6 @@ GameObject:
   - component: {fileID: 33095406134461236}
   - component: {fileID: 136333657159511186}
   - component: {fileID: 23667672526179954}
-  - component: {fileID: 114666555797963870}
   m_Layer: 8
   m_Name: Beam
   m_TagString: Untagged
@@ -389,7 +388,6 @@ GameObject:
   - component: {fileID: 33317388960003460}
   - component: {fileID: 136374803221564214}
   - component: {fileID: 23014179073906952}
-  - component: {fileID: 114519631080791748}
   m_Layer: 8
   m_Name: Beam
   m_TagString: Untagged
@@ -408,7 +406,6 @@ GameObject:
   - component: {fileID: 33756708213566066}
   - component: {fileID: 136853783132189174}
   - component: {fileID: 23327819168298598}
-  - component: {fileID: 114265599851846702}
   m_Layer: 8
   m_Name: Beam
   m_TagString: Untagged
@@ -462,7 +459,6 @@ GameObject:
   - component: {fileID: 33686915581960600}
   - component: {fileID: 136528157950372230}
   - component: {fileID: 23981794788156992}
-  - component: {fileID: 114478780097900660}
   m_Layer: 8
   m_Name: Beam
   m_TagString: Untagged
@@ -535,7 +531,6 @@ GameObject:
   - component: {fileID: 33053351887974986}
   - component: {fileID: 136546425243204432}
   - component: {fileID: 23323727542670766}
-  - component: {fileID: 114180281173910372}
   m_Layer: 8
   m_Name: Beam
   m_TagString: Untagged
@@ -2109,34 +2104,6 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1218274604022836}
   m_Enabled: 1
---- !u!114 &114180281173910372
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1958137249077834}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  R: 0.5
-  G: 10
-  B: 2
---- !u!114 &114265599851846702
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1678895147089038}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  R: 0.5
-  G: 10
-  B: 2
 --- !u!114 &114372935907962804
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2160,34 +2127,6 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
---- !u!114 &114478780097900660
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1764174114070356}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  R: 0.5
-  G: 10
-  B: 2
---- !u!114 &114519631080791748
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1670868951365218}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  R: 0.5
-  G: 10
-  B: 2
 --- !u!114 &114570703834796536
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2211,20 +2150,6 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
---- !u!114 &114666555797963870
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1192832488054628}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  R: 0.5
-  G: 10
-  B: 2
 --- !u!114 &114722879647281656
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2273,6 +2198,7 @@ MonoBehaviour:
   BeamsParent: {fileID: 4240506007227012}
   EnemyTags:
   - Enemy
+  BeamColour: {r: 0.065999985, g: 1, b: 0.63013583, a: 0.772}
 --- !u!124 &124147918906010302
 Behaviour:
   m_ObjectHideFlags: 1
