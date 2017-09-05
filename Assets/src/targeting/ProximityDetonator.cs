@@ -27,7 +27,7 @@ namespace Assets.Src.Targeting
         {
             if (ShouldDetonate(target))
             {
-                //Debug.Log(_exploderRigidbody + " is auto-detonating");
+                Debug.Log(_exploderRigidbody + " is auto-detonating - proximity detonator");
                 DetonateNow();
             }
         }
@@ -38,7 +38,9 @@ namespace Assets.Src.Targeting
             {
                 return false;
             }
+
             var distance = target.DistanceToTurret(_exploderRigidbody, _exploderRigidbody.velocity.magnitude);
+            Debug.Log("target = " + target.TargetTransform + ", distance = " + distance + ", should detonate = " + (distance <= _detonationDistance));
             return distance <= _detonationDistance;
         }
 

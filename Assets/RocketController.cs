@@ -19,7 +19,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
     public int TurningStartDelay = 2;
     public float MinimumMass = 0;    
 
-    public float DetonationDistance = 20f;
+    public float TimeToTargetForDetonation = 0.5f;
     public Rigidbody Shrapnel;
     public Rigidbody ExplosionEffect;
     public int ShrapnelCount = 10;
@@ -36,7 +36,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
     private Rigidbody _rigidbody;
     
     private IRocketRunner _runner;
-    private ProximityDetonator _detonator;
+    private IDetonator _detonator;
     public bool TagShrapnel = false;
     public bool SetEnemyTagOnShrapnel = false;
     public Transform VectorArrow;
@@ -110,7 +110,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
             ExplosionRadius = ExplosionRadius
         };
 
-        _detonator = new ProximityDetonator(exploder, _rigidbody, DetonationDistance);
+        _detonator = new ProximityApproachDetonator(exploder, _rigidbody, TimeToTargetForDetonation, ShrapnelSpeed);
 
         _runner = new RocketRunner(_detector, _targetPicker, _engineControl, _detonator);
         

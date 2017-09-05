@@ -470,13 +470,13 @@ MonoBehaviour:
   StartDelay: 80
   TurningStartDelay: 20
   MinimumMass: 80
-  DetonationDistance: 100
+  TimeToTargetForDetonation: 3
   Shrapnel: {fileID: 54991379400455944, guid: 8bf03007d4e417c4087307829906f7d6, type: 2}
   ExplosionEffect: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
   ShrapnelCount: 10
   ExplosionForce: 500
-  ShrapnelSpeed: 30
+  ShrapnelSpeed: 15
   ExplosionDamage: 1000
   ExplosionRadius: 20
   TagShrapnel: 0

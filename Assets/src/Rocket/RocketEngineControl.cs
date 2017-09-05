@@ -206,7 +206,7 @@ namespace Assets.Src.Rocket
             if (_pilotObject != null && target.TargetTransform.IsValid())
             {
 
-                var location = target.TargetRigidbody.position - _pilotObject.position;
+                var location = target.TargetTransform.position - _pilotObject.position;
                 return location;
             }
 
@@ -226,23 +226,12 @@ namespace Assets.Src.Rocket
             var vectorTowardsTarget = VectorTowardsTargetInWorldSpace(target);
             var targetReletiveVelocity = WorldSpaceReletiveVelocityOfTarget(target);
 
-            //https://math.stackexchange.com/questions/1455740/resolve-u-into-components-that-are-parallel-and-perpendicular-to-any-other-nonze
-
-            var numerator = Vector3.Dot(targetReletiveVelocity, vectorTowardsTarget);
-            var denominator = Vector3.Dot(vectorTowardsTarget, vectorTowardsTarget);
-            var division = numerator / denominator;
-
-            var perpendicularComponent = targetReletiveVelocity - (division * vectorTowardsTarget);
-
-            return perpendicularComponent;
+            return targetReletiveVelocity.ComponentPerpendicularTo(vectorTowardsTarget);
         }
 
         private Vector3 WorldSpaceReletiveVelocityOfTarget(PotentialTarget target)
         {
-            var targetRigidBody = target.TargetRigidbody.GetComponent("Rigidbody") as Rigidbody;
-
-
-            var targetsVelocity = targetRigidBody == null ? Vector3.zero : targetRigidBody.velocity;
+            var targetsVelocity = target.TargetRigidbody == null ? Vector3.zero : target.TargetRigidbody.velocity;
             var ownVelocity = _pilotObject.velocity;
             return targetsVelocity - ownVelocity;
         }

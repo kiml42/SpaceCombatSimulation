@@ -264,5 +264,23 @@ namespace Assets.Src.Targeting
 
             return otherTransform.transform.InverseTransformPoint(location);
         }
+
+        public static Vector3 ComponentPerpendicularTo(this Vector3 u, Vector3 v)
+        {
+            //https://math.stackexchange.com/questions/1455740/resolve-u-into-components-that-are-parallel-and-perpendicular-to-any-other-nonze
+            var perpendicularComponent = u - u.ComponentParalellTo(v);
+            return perpendicularComponent;
+        }
+
+        public static Vector3 ComponentParalellTo(this Vector3 u, Vector3 v)
+        {
+            //https://math.stackexchange.com/questions/1455740/resolve-u-into-components-that-are-parallel-and-perpendicular-to-any-other-nonze
+            var numerator = Vector3.Dot(u, v);
+            var denominator = Vector3.Dot(v, v);
+            var division = numerator / denominator;
+
+            var paralell = (division * v);
+            return paralell;
+        }
     }
 }
