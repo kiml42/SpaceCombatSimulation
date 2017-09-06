@@ -33,7 +33,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     private Rigidbody _thisSpaceship;
     private bool _active = true;
     
-    private ISpaceshipPilot _pilot;
+    private IPilot _pilot;
 
     private string InactiveTag = "Untagged";
     public Transform VectorArrow;
@@ -93,10 +93,10 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
         {
             LocationAimWeighting = LocationAimWeighting,
             SlowdownWeighting = SlowdownWeighting,
-            VectorArrow = VectorArrow
+            VectorArrow = VectorArrow,
+            LocationTollerance = LocationTollerance,
+            VelociyTollerance = VelociyTollerance
         };
-
-
 
         var pickers = new List<ITargetPicker>
         {
@@ -110,11 +110,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
 
         var picker = new CombinedTargetPicker(pickers);
         
-        _runner = new SpaceshipRunner(_detector, picker, _pilot)
-        {
-            LocationTollerance = LocationTollerance,
-            VelociyTollerance = VelociyTollerance
-        };
+        _runner = new SpaceshipRunner(_detector, picker, _pilot);
 
         foreach (var engine in _engines)
         {

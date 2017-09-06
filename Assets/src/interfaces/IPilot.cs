@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Assets.Src.Interfaces
 {
-    public interface IRocketPilot
+    public interface IPilot
     {
         /// <summary>
         /// The amount of fuel remaining, one is used per frame where the engine is on.
@@ -23,7 +23,7 @@ namespace Assets.Src.Interfaces
         /// Remaining delay until the rocket starts turning
         /// </summary>
         int TurningStartDelay { get; set; }
-
-        void FlyAtTarget(PotentialTarget target);
+        
+        void Fly(PotentialTarget target);
     }
 }

@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Assets.src.Pilots
 {
-    public class SpaceshipPilot : BasePilot, ISpaceshipPilot
+    public class SpaceshipPilot : BasePilot
     {
         public float SlowdownWeighting { get; set; }
 
@@ -57,19 +57,24 @@ namespace Assets.src.Pilots
             _engines.Add(engine);
         }
 
-        public void FlyToTarget(PotentialTarget target, float approachVelocity = 0, float absoluteLocationTollerance = 20, float velocityTollerance = 1)
+
+        public float ApproachVelocity = 0;
+        public float LocationTollerance = 20;
+        public float VelociyTollerance = 1;
+
+        public override void Fly(PotentialTarget target)
         {
             RemoveNullEngines();
             if (ShouldTurn())
             {
                 var reletiveLocation = VectorTowardsTargetInWorldSpace(target);
-                var needsToMoveToTarget = reletiveLocation.magnitude > absoluteLocationTollerance;
+                var needsToMoveToTarget = reletiveLocation.magnitude > LocationTollerance;
 
                 var moveTowardsTargetVector = needsToMoveToTarget ? reletiveLocation : Vector3.zero;
 
                 var targetsVelosity = WorldSpaceReletiveVelocityOfTarget(target);
                 var targetsSpeed = targetsVelosity.magnitude;
-                var needsSlowdown = targetsSpeed > (approachVelocity + velocityTollerance);
+                var needsSlowdown = targetsSpeed > (ApproachVelocity + VelociyTollerance);
                 var slowdownVecor = needsSlowdown ? targetsVelosity : Vector3.zero;
 
                 var closeEnough = !needsToMoveToTarget && !needsSlowdown;

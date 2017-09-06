@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Assets.src.Pilots
 {
-    public class BasePilot
+    public abstract class BasePilot : IPilot
     {
         public float LocationAimWeighting { get; set; }
         public Transform VectorArrow;
@@ -146,5 +146,7 @@ namespace Assets.src.Pilots
             //Debug.Log("No Engines (IsAimedAtWorldVector)");
             return false;
         }
+
+        public abstract void Fly(PotentialTarget target);
     }
 }

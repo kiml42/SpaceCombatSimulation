@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Assets.src.Pilots
 {
-    class RocketPilot : BasePilot, IRocketPilot
+    class RocketPilot : BasePilot
     {
         public RocketPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, Transform engine, float shootAngle, float fuel, int startDelay)
         {
@@ -52,7 +52,7 @@ namespace Assets.src.Pilots
             _engines.Add(engine);
         }
 
-        public void FlyAtTarget(PotentialTarget target)
+        public override void Fly(PotentialTarget target)
         {
             RemoveNullEngines();
             if (ShouldTurn() && HasFuel())

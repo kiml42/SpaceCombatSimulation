@@ -12,26 +12,21 @@ namespace Assets.Src.SpaceShip
     {
         private readonly ITargetDetector _detector;
         private readonly ITargetPicker _picker;
-        private readonly ISpaceshipPilot _pilot;
+        private readonly IPilot _pilot;
 
-        public SpaceshipRunner(ITargetDetector detector, ITargetPicker picker, ISpaceshipPilot pilot)
+        public SpaceshipRunner(ITargetDetector detector, ITargetPicker picker, IPilot pilot)
         {
             _detector = detector;
             _picker = picker;
             _pilot = pilot;
-            LocationTollerance = 20;
-            VelociyTollerance = 0.05f;
         }
-
-        public float LocationTollerance { get; set; }
-        public float VelociyTollerance { get; set; }
-
+        
         public void RunSpaceship()
         {
             var targets = _picker.FilterTargets(_detector.DetectTargets());
             var target = targets.OrderByDescending(t => t.Score).FirstOrDefault();
 
-            _pilot.FlyToTarget(target, 0, LocationTollerance, VelociyTollerance);
+            _pilot.Fly(target);
         }
     }
 }

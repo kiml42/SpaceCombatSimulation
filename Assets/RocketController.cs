@@ -32,7 +32,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 
     private ITargetDetector _detector;
     private ITargetPicker _targetPicker;
-    private IRocketPilot _pilot;
+    private IPilot _pilot;
 
     private Rigidbody _rigidbody;
     
