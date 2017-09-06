@@ -8,28 +8,21 @@ namespace Assets.src.Pilots
 {
     public class SpaceshipPilot : BasePilot
     {
-        public float SlowdownWeighting { get; set; }
+        public float SlowdownWeighting = 1;
+        public float TangentialSpeedWeighting = 1;
 
-        public SpaceshipPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, Transform engine, float shootAngle, float fuel = Mathf.Infinity, int startDelay = 0)
+        public float MinTangentialVelocity = 0;
+        public float MaxTangentialVelocity = 10;
+
+        public float MaxRange = 100;
+        public float MinRange = 20;
+
+        public SpaceshipPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<Transform> engines, float angleTollerance, float fuel = Mathf.Infinity)
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
-            _shootAngle = shootAngle;
+            AngleTollerance = angleTollerance;
             RemainingFuel = fuel;
-            StartDelay = startDelay;
-            SlowdownWeighting = 10;
-            LocationAimWeighting = 1;
-
-            AddEngine(engine);
-        }
-
-        public SpaceshipPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<Transform> engines, float shootAngle, float fuel = Mathf.Infinity, int startDelay = 0)
-        {
-            _pilotObject = pilotObject;
-            _torqueApplier = torqueApplier;
-            _shootAngle = shootAngle;
-            RemainingFuel = fuel;
-            StartDelay = startDelay;
             SlowdownWeighting = 10;
             LocationAimWeighting = 1;
 
@@ -39,56 +32,54 @@ namespace Assets.src.Pilots
             }
         }
 
-        public SpaceshipPilot(ITorqueApplier torqueApplier, Rigidbody pilotAndEngine, float shootAngle, float fuel, int startDelay)
-        {
-            _pilotObject = pilotAndEngine;
-            _torqueApplier = torqueApplier;
-            _shootAngle = shootAngle;
-            RemainingFuel = fuel;
-            StartDelay = startDelay;
-            SlowdownWeighting = 10;
-            LocationAimWeighting = 1;
-
-            AddEngine(pilotAndEngine.transform);
-        }
-
-        public void AddEngine(Transform engine)
-        {
-            _engines.Add(engine);
-        }
-
-
-        public float ApproachVelocity = 0;
-        public float LocationTollerance = 20;
-        public float VelociyTollerance = 1;
-
         public override void Fly(PotentialTarget target)
         {
             RemoveNullEngines();
             if (ShouldTurn())
             {
-                var reletiveLocation = VectorTowardsTargetInWorldSpace(target);
-                var needsToMoveToTarget = reletiveLocation.magnitude > LocationTollerance;
+                var reletiveLocation = target == null
+                    ? -_pilotObject.position     //Return to the centre if there is no target
+                    : ReletiveLocationInWorldSpace(target);
+                
+                var distance = reletiveLocation.magnitude;
+                
+                var isTooFar = distance > MaxRange;
+                var isTooClose = distance < MinRange;
+                
+                var targetsVelosity = target == null
+                    ? -_pilotObject.velocity    //if there's no target, go to stationary target at centre.
+                    : WorldSpaceReletiveVelocityOfTarget(target);
+                var targetsTangentialVelocity = targetsVelosity.ComponentPerpendicularTo(reletiveLocation);
 
-                var moveTowardsTargetVector = needsToMoveToTarget ? reletiveLocation : Vector3.zero;
+                var tanSpeed = targetsTangentialVelocity.magnitude;
 
-                var targetsVelosity = WorldSpaceReletiveVelocityOfTarget(target);
-                var targetsSpeed = targetsVelosity.magnitude;
-                var needsSlowdown = targetsSpeed > (ApproachVelocity + VelociyTollerance);
-                var slowdownVecor = needsSlowdown ? targetsVelosity : Vector3.zero;
+                var targetsApproachVelocity = targetsVelosity.ComponentParalellTo(reletiveLocation);
 
-                var closeEnough = !needsToMoveToTarget && !needsSlowdown;
+                //var isApproaching = Vector3.Angle(targetsApproachVelocity, reletiveLocation) > 90;
+                //var approachSpeed = isApproaching
+                //    ? targetsApproachVelocity.magnitude
+                //    : -targetsApproachVelocity.magnitude;
 
-                var turningVector = closeEnough
+                var tangentialTooFast = tanSpeed > MaxTangentialVelocity;
+                var tangentialTooSlow = tanSpeed < MinTangentialVelocity;
+                
+                var happyWithSpeed = !tangentialTooFast && !tangentialTooSlow && targetsVelosity.magnitude < MaxTangentialVelocity;
+                var happyWithLocation = !isTooClose && !isTooFar;
+
+                var completelyHappy = happyWithSpeed && happyWithLocation;
+
+                var approachVector = CalculateWeightedApproachVector(reletiveLocation, isTooClose, isTooFar);
+                var tanSpeedVector = CalculateWeightedTanSpeedVector(targetsTangentialVelocity, tangentialTooSlow, tangentialTooFast);
+                var slowdownVector = CalculateWeightedSlowdownVector(targetsApproachVelocity);
+
+                var turningVector = completelyHappy
                     ? reletiveLocation
-                    : (SlowdownWeighting * slowdownVecor) + VectorToCancelLateralVelocityInWorldSpace(target) + (moveTowardsTargetVector * LocationAimWeighting);
+                    : approachVector + tanSpeedVector + slowdownVector;
 
                 //Debug.Log(
-                //    "needsToMoveToTarget: " + needsToMoveToTarget +
-                //    ", needsSlowdown: " + needsSlowdown +
-                //    ", closeEnough: " + closeEnough +
-                //    ", slowdownVecor: " + slowdownVecor +
-                //    ", velocityTollerance: " + velocityTollerance +
+                //    "approachVector: " + approachVector +
+                //    ", tanSpeedVector: " + tanSpeedVector +
+                //    ", slowdownVector: " + slowdownVector +
                 //    ", reletiveLocation: " + reletiveLocation +
                 //    ", turningVector: " + turningVector);
 
@@ -101,20 +92,54 @@ namespace Assets.src.Pilots
                 }
 
                 //try firing the main engine even with no fuel to turn it off if there is no fuel.
-                SetEngineActivationState(IsAimedAtWorldVector(turningVector) && !closeEnough);
+                SetEngineActivationState(IsAimedAtWorldVector(turningVector) && !completelyHappy);
             }
             else
             {
                 SetEngineActivationState(false);  //turn off the engine
             }
         }
-        
-        private Vector3 CalculateSlowdownVector(PotentialTarget target, float approachVelocity, float absoluteLocationTollerance)
-        {
-            var targetsVelosity = WorldSpaceReletiveVelocityOfTarget(target);
-            var targetsSpeed = targetsVelosity.magnitude;
 
-            return targetsVelosity;
+        private Vector3 CalculateWeightedApproachVector(Vector3 reletiveLocation, bool isTooClose, bool isTooFar)
+        {
+            var locationError = isTooClose
+                ? MinRange - reletiveLocation.magnitude
+                : isTooFar
+                    ? reletiveLocation.magnitude - MaxRange
+                    : 0;
+
+            var correvctRadialLocationVector = isTooFar
+                ? reletiveLocation.normalized
+                : isTooClose
+                    ? -reletiveLocation.normalized
+                    : Vector3.zero;
+
+            var weightedRadialLocationVector = correvctRadialLocationVector * locationError * LocationAimWeighting;
+            return weightedRadialLocationVector;
+        }
+
+        private Vector3 CalculateWeightedTanSpeedVector(Vector3 targetsTangentialVelocity, bool tangentialTooSlow, bool tangentialTooFast)
+        {
+            var correctTangentialSpeedVector = tangentialTooFast
+                ? targetsTangentialVelocity.normalized
+                : tangentialTooSlow
+                    ? -targetsTangentialVelocity.normalized
+                    : Vector3.zero;
+
+            var tanSpeedError = tangentialTooSlow
+                ? MinTangentialVelocity - targetsTangentialVelocity.magnitude
+                : tangentialTooFast
+                    ? targetsTangentialVelocity.magnitude - MaxTangentialVelocity
+                    : 0;
+
+            var weightedTangentialSpeedVector = correctTangentialSpeedVector * tanSpeedError * TangentialSpeedWeighting;
+            return weightedTangentialSpeedVector;
+        }
+
+        private Vector3 CalculateWeightedSlowdownVector(Vector3 targetsApproachVelocity)
+        {
+            var weightedSlowdownVector = targetsApproachVelocity * SlowdownWeighting;
+            return weightedSlowdownVector;
         }
     }
 }

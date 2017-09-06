@@ -12,7 +12,7 @@ namespace Assets.src.Pilots
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
-            _shootAngle = shootAngle;
+            AngleTollerance = shootAngle;
             RemainingFuel = fuel;
             StartDelay = startDelay;
             LocationAimWeighting = 1;
@@ -24,7 +24,7 @@ namespace Assets.src.Pilots
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
-            _shootAngle = shootAngle;
+            AngleTollerance = shootAngle;
             RemainingFuel = fuel;
             StartDelay = startDelay;
             LocationAimWeighting = 1;
@@ -39,7 +39,7 @@ namespace Assets.src.Pilots
         {
             _pilotObject = pilotAndEngine;
             _torqueApplier = torqueApplier;
-            _shootAngle = shootAngle;
+            AngleTollerance = shootAngle;
             RemainingFuel = fuel;
             StartDelay = startDelay;
             LocationAimWeighting = 1;
@@ -47,17 +47,12 @@ namespace Assets.src.Pilots
             AddEngine(pilotAndEngine.transform);
         }
 
-        public void AddEngine(Transform engine)
-        {
-            _engines.Add(engine);
-        }
-
         public override void Fly(PotentialTarget target)
         {
             RemoveNullEngines();
             if (ShouldTurn() && HasFuel())
             {
-                var reletiveLocation = VectorTowardsTargetInWorldSpace(target);
+                var reletiveLocation = ReletiveLocationInWorldSpace(target);
                 var cancelationVector = VectorToCancelLateralVelocityInWorldSpace(target);
 
                 var turningVector = cancelationVector + (reletiveLocation * LocationAimWeighting);

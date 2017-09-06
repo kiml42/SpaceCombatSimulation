@@ -201,8 +201,8 @@ namespace Assets.src.Evolution
             controller.TorqueMultiplier = GetNumberFromGenome(_genome, 2) * MaxTorqueMultiplier;
             controller.LocationAimWeighting = GetNumberFromGenome(_genome, 4) * MaxLocationAimWeighting;
             controller.SlowdownWeighting = GetNumberFromGenome(_genome, 6) * MaxSlowdownWeighting;
-            controller.LocationTollerance = GetNumberFromGenome(_genome, 8) * MaxLocationTollerance;
-            controller.VelociyTollerance = GetNumberFromGenome(_genome, 10) * MaxVelociyTollerance;
+            controller.MaxRange = GetNumberFromGenome(_genome, 8) * MaxLocationTollerance;
+            controller.MaxTangentialVelocity = GetNumberFromGenome(_genome, 10) * MaxVelociyTollerance;
             controller.AngularDragForTorquers = GetNumberFromGenome(_genome, 12) * MaxAngularDragForTorquers;
         }
 

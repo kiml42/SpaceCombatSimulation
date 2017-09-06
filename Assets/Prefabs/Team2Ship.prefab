@@ -548,7 +548,7 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1249936944491648}
-  m_LocalRotation: {x: 0.27059805, y: 0.27059805, z: 0.6532815, w: 0.6532815}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
   m_LocalPosition: {x: -1000, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
@@ -1651,11 +1651,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShootAngle: 30
   TorqueMultiplier: 1000000
-  LocationAimWeighting: 1
   StartDelay: 0
-  SlowdownWeighting: 30
-  LocationTollerance: 800
-  VelociyTollerance: 10
+  SlowdownWeighting: 10
+  MaxRange: 500
+  MinRange: 200
+  LocationAimWeighting: 1
+  MaxTangentialVelocity: 10
+  MinTangentialVelocity: 0
+  TangentialSpeedWeighting: 10
   Engine: {fileID: 4055083103871718}
   Torquer: {fileID: 54276188861948588}
   AngularDragForTorquers: 20

@@ -2,7 +2,8 @@
 A Unity 3D project to simulate combat between space ships with vaguely realistic physics - Space ships are not aeroplanes!
 
 TODO:
-Ships should be able to try to get to a specific distance.
+Ships should be able to try to get to a specific distance. - done, works pretty well
+    Make the ship know if it's in appoach or slowdown mode, and have different multipliers for the slowdown vector, so it doesn't keep switching with every burst of thrust.
 Engines handle their own fuel. - possibly by accessing the fuel number on the ship or rocket controller.
 Improve generation management (1v1 evolution) - make it a bit more random.
 

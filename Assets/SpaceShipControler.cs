@@ -15,12 +15,17 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
 {
     public float ShootAngle = 30;
     public float TorqueMultiplier = 9;
-    public float LocationAimWeighting = 1;
     public int StartDelay = 2;
-    public float SlowdownWeighting = 10;
     //public Rigidbody TargetMarker;
-    public float LocationTollerance = 20;
-    public float VelociyTollerance = 1;
+
+    public float SlowdownWeighting = 10;
+    public float MaxRange = 100;
+    public float MinRange = 20;
+    public float LocationAimWeighting = 1;
+    public float MaxTangentialVelocity = 10;
+    public float MinTangentialVelocity = 0;
+    public float TangentialSpeedWeighting = 1;
+
     public Transform Engine;
     public Rigidbody Torquer;
     private List<Transform> _engines = new List<Transform>();
@@ -89,14 +94,19 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
 
         var torqueApplier = new MultiTorquerTorqueAplier(_thisSpaceship, _torquers, TorqueMultiplier, AngularDragForTorquers);
         
-        _pilot = new SpaceshipPilot(torqueApplier, _thisSpaceship, _engines, ShootAngle, Fuel, StartDelay)
+        _pilot = new SpaceshipPilot(torqueApplier, _thisSpaceship, _engines, ShootAngle, Fuel)
         {
-            LocationAimWeighting = LocationAimWeighting,
+            StartDelay = StartDelay,
             SlowdownWeighting = SlowdownWeighting,
+            TangentialSpeedWeighting = TangentialSpeedWeighting,
+            LocationAimWeighting = LocationAimWeighting,
             VectorArrow = VectorArrow,
-            LocationTollerance = LocationTollerance,
-            VelociyTollerance = VelociyTollerance
+            MaxRange = MaxRange,
+            MinRange = MinRange,
+            MaxTangentialVelocity = MaxTangentialVelocity,
+            MinTangentialVelocity = MinTangentialVelocity
         };
+        
 
         var pickers = new List<ITargetPicker>
         {

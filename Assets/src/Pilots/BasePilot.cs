@@ -51,7 +51,7 @@ namespace Assets.src.Pilots
             return TurningStartDelay <= 0;
         }
 
-        protected float _shootAngle;
+        protected float AngleTollerance;
 
         protected ITorqueApplier _torqueApplier;
 
@@ -72,7 +72,7 @@ namespace Assets.src.Pilots
             return hasFuel;
         }
 
-        protected Vector3 VectorTowardsTargetInWorldSpace(PotentialTarget target)
+        protected Vector3 ReletiveLocationInWorldSpace(PotentialTarget target)
         {
             if (_pilotObject != null && target != null && target.TargetTransform.IsValid())
             {
@@ -93,7 +93,7 @@ namespace Assets.src.Pilots
 
         protected Vector3 VectorToCancelLateralVelocityInWorldSpace(PotentialTarget target)
         {
-            var vectorTowardsTarget = VectorTowardsTargetInWorldSpace(target);
+            var vectorTowardsTarget = ReletiveLocationInWorldSpace(target);
             var targetReletiveVelocity = WorldSpaceReletiveVelocityOfTarget(target);
 
             return targetReletiveVelocity.ComponentPerpendicularTo(vectorTowardsTarget);
@@ -140,11 +140,16 @@ namespace Assets.src.Pilots
             if (_pilotObject != null)
             {
                 var angle = Vector3.Angle(_pilotObject.transform.forward, worldSpaceVector);
-                return angle < _shootAngle;
+                return angle < AngleTollerance;
             }
 
             //Debug.Log("No Engines (IsAimedAtWorldVector)");
             return false;
+        }
+        
+        public void AddEngine(Transform engine)
+        {
+            _engines.Add(engine);
         }
 
         public abstract void Fly(PotentialTarget target);
