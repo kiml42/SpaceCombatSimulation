@@ -67,10 +67,10 @@ public class ShipCam : MonoBehaviour {
                 //_lookRotation = Quaternion.LookRotation(_direction);
                 //Camera.transform.rotation = Quaternion.Lerp(Camera.transform.rotation, _lookRotation, Time.deltaTime * RotationSpeed);
             }
-            else
-            {
-                Debug.Log("Camera found no ships to turn to. Tag being followed: " + _shipToFollow.tag);
-            }
+            //else
+            //{
+            //    Debug.Log("Camera found no ships to turn to. Tag being followed: " + _shipToFollow.tag);
+            //}
             if(Camera != null)
             {
                 var focusDistance = Vector3.Distance(transform.position, _focus.position);

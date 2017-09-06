@@ -10,26 +10,23 @@ namespace Assets.Src.SpaceShip
 {
     public class SpaceshipRunner
     {
-        private readonly IDestinationChooser _destinationChooser;
-        private readonly IRocketEngineControl _engineControl;
+        private readonly ITargetDetector _detector;
+        private readonly ITargetPicker _picker;
+        private readonly IPilot _pilot;
 
-        public SpaceshipRunner(IDestinationChooser destinationChooser, IRocketEngineControl engineControl, Rigidbody targetMarker)
+        public SpaceshipRunner(ITargetDetector detector, ITargetPicker picker, IPilot pilot)
         {
-            _destinationChooser = destinationChooser;
-            _engineControl = engineControl;
-            LocationTollerance = 20;
-            VelociyTollerance = 0.05f;
+            _detector = detector;
+            _picker = picker;
+            _pilot = pilot;
         }
-
-        public float LocationTollerance { get; set; }
-        public float VelociyTollerance { get; set; }
-
+        
         public void RunSpaceship()
         {
-            var destination = _destinationChooser.GetDestinationObject();
-            var target = new PotentialTarget(destination.transform, 0);
+            var targets = _picker.FilterTargets(_detector.DetectTargets());
+            var target = targets.OrderByDescending(t => t.Score).FirstOrDefault();
 
-            _engineControl.FlyToTarget(target, 0, LocationTollerance, VelociyTollerance);
+            _pilot.Fly(target);
         }
     }
 }

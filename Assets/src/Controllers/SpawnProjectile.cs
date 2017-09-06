@@ -108,8 +108,8 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
     {
         if (OnlyWithTargets)
         {
-            return _detector.DetectTargets().Any();
-
+            var targets = _detector.DetectTargets();
+            return targets.Any();
         }
         return true;
     }

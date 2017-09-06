@@ -18,9 +18,16 @@ namespace Assets.Src.ObjectManagement
             return !IsInvalid(transform);
         }
 
-        public static void SetColor(this Transform transform, float R, float G, float B, int depth = 20)
+        public static void SetColor(this Transform transform, float R, float G, float B, float A = 1, int depth = 20)
         {
-            var colour = new Color(R, G, B);
+            var colour = new Color(R, G, B, A);
+            //Debug.Log(colour);
+            //Debug.Log(transform);
+            transform.SetColor(colour, depth);
+        }
+
+        public static void SetColor(this Transform transform, Color colour, int depth = 20)
+        {
             //Debug.Log(colour);
             //Debug.Log(transform);
             var renderer = transform.GetComponent("Renderer") as Renderer;
@@ -40,7 +47,7 @@ namespace Assets.Src.ObjectManagement
                         var child = transform.GetChild(i);
                         if (child != null)
                         {
-                            child.SetColor( R,G,B, --depth);
+                            child.SetColor(colour, --depth);
                         }
                     }
                 }

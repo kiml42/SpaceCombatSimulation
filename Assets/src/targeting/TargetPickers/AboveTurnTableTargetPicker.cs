@@ -9,10 +9,10 @@ namespace Assets.Src.Targeting.TargetPickers
 {
     class AboveTurnTableTargetPicker : ITargetPicker
     {
-        private Transform _sourceObject;
+        private Rigidbody _sourceObject;
         public float ExtraScoreForValidTargets = 1000;
 
-        public AboveTurnTableTargetPicker(Transform sourceObject)
+        public AboveTurnTableTargetPicker(Rigidbody sourceObject)
         {
             _sourceObject = sourceObject;
         }
@@ -20,7 +20,7 @@ namespace Assets.Src.Targeting.TargetPickers
         public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             return potentialTargets.Select(t => {
-                if (t.LocationInTurretParentSpace(_sourceObject).y >= 0)
+                if (t.LocationInOtherTransformSpace(_sourceObject, null).y >= 0)
                 {
                     t.Score += ExtraScoreForValidTargets;
                 }

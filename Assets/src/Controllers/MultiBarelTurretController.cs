@@ -17,8 +17,8 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
     public float ShootAngle = 10;
     public float RandomSpeed = 0.1f;
 
-    public Transform TurnTable;
-    public Transform ElevationHub;
+    public Rigidbody TurnTable;
+    public Rigidbody ElevationHub;
     public Transform EmitterParent;
     private List<Transform> _emitters;
     private int _nextEmitterToShoot = 0;
@@ -72,6 +72,7 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
     // Use this for initialization
     void Start()
     {
+        var rigidbody = GetComponent<Rigidbody>();
         var emitterCount = EmitterParent.childCount;
 
         _emitters = new List<Transform>();
@@ -82,8 +83,6 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
         
         _reload = LoadTime;
 
-        _thisTurret = transform;
-
         _detector = new UnityTargetDetector()
         {
             ProjectileSpeed = ProjectileSpeed,
@@ -92,9 +91,12 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
 
         var pickers = new List<ITargetPicker>
         {
-            new AboveTurnTableTargetPicker(_thisTurret),
-            new ProximityTargetPicker(_thisTurret),
-            new LookingAtTargetPicker(_thisTurret, ElevationHub)
+            new AboveTurnTableTargetPicker(rigidbody),
+            new ProximityTargetPicker(rigidbody),
+            new LookingAtTargetPicker(ElevationHub)
+            {
+                ProjectileSpeed = ProjectileSpeed
+            }
         };
 
         if (MinimumMass > 0)
@@ -104,9 +106,9 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
 
         _targetPicker = new CombinedTargetPicker(pickers);
 
-        _turner = new UnityTurretTurner(_thisTurret, TurnTable, ElevationHub, RestTarget);
+        _turner = new UnityTurretTurner(rigidbody, TurnTable, ElevationHub, RestTarget, ProjectileSpeed);
 
-        _fireControl = new UnityFireControl(this, ElevationHub, ShootAngle);
+        _fireControl = new UnityFireControl(this, ElevationHub.transform, ShootAngle);
 
         _runner = new TurretRunner(_detector, _targetPicker, _turner, _fireControl);
     }
@@ -121,7 +123,7 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
 
     public void Shoot(bool shouldShoot)
     {
-        if(_active && TurnTable.IsValid() && ElevationHub.IsValid())
+        if(_active && TurnTable != null && ElevationHub != null)
             if (shouldShoot && _reload <= 0)
             {
                 var emitter = _emitters[_nextEmitterToShoot];

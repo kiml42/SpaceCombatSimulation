@@ -21,8 +21,8 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     public float MinimumMass = 0;
     public Transform HitEffect;
 
-    public Transform TurnTable;
-    public Transform ElevationHub;
+    public Rigidbody TurnTable;
+    public Rigidbody ElevationHub;
     public Transform BeamsParent;
     private List<Beam> _beams;
 
@@ -35,7 +35,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     private bool _active = true;
 
     private string InactiveTag = "Untagged";
-    
+
     #region EnemyTags
     public void AddEnemyTag(string newTag)
     {
@@ -63,10 +63,12 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     #endregion
 
     private ITurretRunner _runner;
+    public Color BeamColour;
 
     // Use this for initialization
     void Start()
     {
+        var rigidbody = GetComponent<Rigidbody>();
         var emitterCount = BeamsParent.childCount;
 
         _beams = new List<Beam>();
@@ -74,6 +76,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
         {
             var beam = BeamsParent.GetChild(i);
             beam.localScale = Vector3.zero;
+            beam.SetColor(BeamColour);
             _beams.Add(new Beam(beam, ShootTime, LoadTime)
             {
                 BeamForce = BeamForce,
@@ -91,9 +94,9 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
 
         var pickers = new List<ITargetPicker>
         {
-            new AboveTurnTableTargetPicker(transform),
-            new ProximityTargetPicker(transform),
-            new LookingAtTargetPicker(transform, ElevationHub)
+            new AboveTurnTableTargetPicker(rigidbody),
+            new ProximityTargetPicker(rigidbody),
+            new LookingAtTargetPicker(ElevationHub)
         };
 
         if (MinimumMass > 0)
@@ -103,9 +106,9 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
 
         _targetPicker = new CombinedTargetPicker(pickers);
 
-        _turner = new UnityTurretTurner(transform, TurnTable, ElevationHub, RestTarget);
+        _turner = new UnityTurretTurner(rigidbody, TurnTable, ElevationHub, RestTarget, null);
 
-        _fireControl = new UnityFireControl(this, ElevationHub, ShootAngle);
+        _fireControl = new UnityFireControl(this, ElevationHub.transform, ShootAngle);
 
         _runner = new TurretRunner(_detector, _targetPicker, _turner, _fireControl);
     }
@@ -116,7 +119,8 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
         if (_active && _runner != null && _beams != null)
         {
             _runner.RunTurret();
-        } else
+        }
+        else
         {
             foreach (var beam in _beams)
             {
@@ -131,7 +135,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     {
         if (_active)
         {
-            var shouldTurnOn = shouldShoot & TurnTable.IsValid() && ElevationHub.IsValid();
+            var shouldTurnOn = shouldShoot & TurnTable != null && ElevationHub != null;
             var i = 0;
             foreach (var beam in _beams)
             {
@@ -160,7 +164,8 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
         foreach (var beam in _beams)
         {
             beam.TurnOff();
-            Destroy(beam.Transform);
+            if(beam.Transform.IsValid())
+                Destroy(beam.Transform.gameObject);
         }
         //scrub the list now they've all been turned off.
         _beams = new List<Beam>();

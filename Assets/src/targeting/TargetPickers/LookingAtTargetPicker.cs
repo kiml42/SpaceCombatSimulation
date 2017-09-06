@@ -9,12 +9,16 @@ namespace Assets.Src.Targeting.TargetPickers
 {
     class LookingAtTargetPicker : ITargetPicker
     {
-        private Transform _sourceObject;
-        private Transform _aimingObject;
+        private Rigidbody _aimingObject;
 
-        public LookingAtTargetPicker(Transform sourceObject, Transform aimingObject)
+        /// <summary>
+        /// used for velocity correction.
+        /// Set to null to not correct for velocity (default)
+        /// </summary>
+        public float? ProjectileSpeed;
+
+        public LookingAtTargetPicker(Rigidbody aimingObject)
         {
-            _sourceObject = sourceObject;
             _aimingObject = aimingObject;
         }
 
@@ -25,7 +29,7 @@ namespace Assets.Src.Targeting.TargetPickers
 
         private PotentialTarget AddScoreForAngle(PotentialTarget target)
         {
-            var reletiveLocation = target.LocationInAimedSpace(_sourceObject.transform, _aimingObject);
+            var reletiveLocation = target.LocationInAimedSpace(_aimingObject, ProjectileSpeed);
             var distanceInFront = reletiveLocation.z;
             reletiveLocation.z = 0;
             var distanceToSide = reletiveLocation.magnitude;

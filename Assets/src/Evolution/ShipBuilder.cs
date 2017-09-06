@@ -197,13 +197,17 @@ namespace Assets.src.Evolution
         private void ConfigureShip()
         {
             var controller = _shipToBuildOn.GetComponent<SpaceShipControler>();
+
             controller.ShootAngle = GetNumberFromGenome(_genome, 0) * MaxShootAngle;
             controller.TorqueMultiplier = GetNumberFromGenome(_genome, 2) * MaxTorqueMultiplier;
             controller.LocationAimWeighting = GetNumberFromGenome(_genome, 4) * MaxLocationAimWeighting;
             controller.SlowdownWeighting = GetNumberFromGenome(_genome, 6) * MaxSlowdownWeighting;
-            controller.LocationTollerance = GetNumberFromGenome(_genome, 8) * MaxLocationTollerance;
-            controller.VelociyTollerance = GetNumberFromGenome(_genome, 10) * MaxVelociyTollerance;
-            controller.AngularDragForTorquers = GetNumberFromGenome(_genome, 12) * MaxAngularDragForTorquers;
+            controller.MaxRange = GetNumberFromGenome(_genome, 8) * MaxLocationTollerance;
+            controller.MinRange = GetNumberFromGenome(_genome, 10) * MaxLocationTollerance;
+            controller.MaxTangentialVelocity = GetNumberFromGenome(_genome, 12) * MaxVelociyTollerance;
+            controller.MinTangentialVelocity = GetNumberFromGenome(_genome, 14) * MaxVelociyTollerance;
+            controller.TangentialSpeedWeighting = GetNumberFromGenome(_genome, 16) * MaxSlowdownWeighting;
+            controller.AngularDragForTorquers = GetNumberFromGenome(_genome, 18) * MaxAngularDragForTorquers;
         }
 
 

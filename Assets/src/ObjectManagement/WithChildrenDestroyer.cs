@@ -54,14 +54,12 @@ namespace Assets.Src.ObjectManagement
                         var fixedJoint = child.GetComponent("FixedJoint") as FixedJoint;
                         if (fixedJoint != null)
                         {
-                            fixedJoint.breakTorque = 0;
-                            fixedJoint.breakForce = 0;
+                            UnityEngine.Object.Destroy(fixedJoint);
                         }
                         var hingeJoint = child.GetComponent("HingeJoint") as HingeJoint;
                         if (hingeJoint != null)
                         {
-                            hingeJoint.breakTorque = 0;
-                            hingeJoint.breakForce = 0;
+                            UnityEngine.Object.Destroy(fixedJoint);
                         }
                         if(fixedJoint==null && hingeJoint == null)
                         {

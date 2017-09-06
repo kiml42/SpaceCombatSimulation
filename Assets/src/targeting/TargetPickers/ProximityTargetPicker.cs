@@ -9,9 +9,9 @@ namespace Assets.Src.Targeting.TargetPickers
 {
     class ProximityTargetPicker : ITargetPicker
     {
-        private Transform _sourceObject;
+        private Rigidbody _sourceObject;
 
-        public ProximityTargetPicker(Transform sourceObject)
+        public ProximityTargetPicker(Rigidbody sourceObject)
         {
             _sourceObject = sourceObject;
         }
@@ -23,7 +23,7 @@ namespace Assets.Src.Targeting.TargetPickers
 
         private PotentialTarget AddScoreForDifference(PotentialTarget target)
         {
-            var dist = target.DistanceToTurret(_sourceObject);
+            var dist = target.DistanceToTurret(_sourceObject, null);
             target.Score = target.Score - dist;
             return target;
         }

@@ -9,17 +9,24 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using System.Linq;
+using Assets.src.Pilots;
 
 public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatable
 {
     public float ShootAngle = 30;
     public float TorqueMultiplier = 9;
-    public float LocationAimWeighting = 1;
     public int StartDelay = 2;
+    //public Rigidbody TargetMarker;
+
     public float SlowdownWeighting = 10;
-    public Rigidbody TargetMarker;
-    public float LocationTollerance = 20;
-    public float VelociyTollerance = 1;
+    public float RadialSpeedThreshold = 10;
+    public float MaxRange = 100;
+    public float MinRange = 20;
+    public float LocationAimWeighting = 1;
+    public float MaxTangentialVelocity = 10;
+    public float MinTangentialVelocity = 0;
+    public float TangentialSpeedWeighting = 1;
+
     public Transform Engine;
     public Rigidbody Torquer;
     private List<Transform> _engines = new List<Transform>();
@@ -32,7 +39,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     private Rigidbody _thisSpaceship;
     private bool _active = true;
     
-    private IRocketEngineControl _engineControl;
+    private IPilot _pilot;
 
     private string InactiveTag = "Untagged";
     public Transform VectorArrow;
@@ -61,6 +68,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     }
 
     public List<string> EnemyTags;
+    public float MinimumMass = 80;
     #endregion
 
     // Use this for initialization
@@ -87,20 +95,34 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
 
         var torqueApplier = new MultiTorquerTorqueAplier(_thisSpaceship, _torquers, TorqueMultiplier, AngularDragForTorquers);
         
-        _engineControl = new RocketEngineControl(torqueApplier, _thisSpaceship, _engines, ShootAngle, Fuel, StartDelay)
+        _pilot = new SpaceshipPilot(torqueApplier, _thisSpaceship, _engines, ShootAngle, Fuel)
         {
-            LocationAimWeighting = LocationAimWeighting,
+            StartDelay = StartDelay,
             SlowdownWeighting = SlowdownWeighting,
-            VectorArrow = VectorArrow
+            TangentialSpeedWeighting = TangentialSpeedWeighting,
+            LocationAimWeighting = LocationAimWeighting,
+            VectorArrow = VectorArrow,
+            MaxRange = MaxRange,
+            MinRange = MinRange,
+            MaxTangentialSpeed = MaxTangentialVelocity,
+            MinTangentialSpeed = MinTangentialVelocity,
+            RadialSpeedThreshold = RadialSpeedThreshold
         };
         
-        var chooser = new AverageTargetLocationDestinationChooser(_detector, TargetMarker);
 
-        _runner = new SpaceshipRunner(chooser, _engineControl, TargetMarker)
+        var pickers = new List<ITargetPicker>
         {
-            LocationTollerance = LocationTollerance,
-            VelociyTollerance = VelociyTollerance
+            new ProximityTargetPicker(_thisSpaceship)
         };
+
+        if (MinimumMass > 0)
+        {
+            pickers.Add(new MinimumMassTargetPicker(MinimumMass));
+        }
+
+        var picker = new CombinedTargetPicker(pickers);
+        
+        _runner = new SpaceshipRunner(_detector, picker, _pilot);
 
         foreach (var engine in _engines)
         {

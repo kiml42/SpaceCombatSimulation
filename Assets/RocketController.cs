@@ -8,6 +8,7 @@ using UnityEngine;
 using System;
 using Assets.src.targeting;
 using System.Linq;
+using Assets.src.Pilots;
 
 public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 {
@@ -19,7 +20,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
     public int TurningStartDelay = 2;
     public float MinimumMass = 0;    
 
-    public float DetonationDistance = 20f;
+    public float TimeToTargetForDetonation = 0.5f;
     public Rigidbody Shrapnel;
     public Rigidbody ExplosionEffect;
     public int ShrapnelCount = 10;
@@ -31,12 +32,12 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 
     private ITargetDetector _detector;
     private ITargetPicker _targetPicker;
-    private IRocketEngineControl _engineControl;
+    private IPilot _pilot;
 
     private Rigidbody _rigidbody;
     
     private IRocketRunner _runner;
-    private ProximityDetonator _detonator;
+    private IDetonator _detonator;
     public bool TagShrapnel = false;
     public bool SetEnemyTagOnShrapnel = false;
     public Transform VectorArrow;
@@ -65,6 +66,12 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
     }
 
     public List<string> EnemyTags;
+    public float ApproachTargetPickerWeighting = 20;
+
+    /// <summary>
+    /// Rocket with detonate after this time.
+    /// </summary>
+    public float TimeToLive = Mathf.Infinity;
     #endregion
 
     // Use this for initialization
@@ -79,8 +86,9 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 
         var pickers = new List<ITargetPicker>
         {
-            new ProximityTargetPicker(transform),
-            new LookingAtTargetPicker(transform, null)
+            new ProximityTargetPicker(_rigidbody),
+            new LookingAtTargetPicker(_rigidbody),
+            new ApproachingTargetPicker(_rigidbody, ApproachTargetPickerWeighting)
         };
 
         if(MinimumMass > 0)
@@ -92,7 +100,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 
         var initialAngularDrag = _rigidbody.angularDrag;
         var torqueApplier = new MultiTorquerTorqueAplier(_rigidbody, TorqueMultiplier, initialAngularDrag);
-        _engineControl = new RocketEngineControl(torqueApplier, _rigidbody, ShootAngle, Fuel, StartDelay)
+        _pilot = new RocketPilot(torqueApplier, _rigidbody, ShootAngle, Fuel, StartDelay)
         {
             LocationAimWeighting = LocationAimWeighting,
             TurningStartDelay = TurningStartDelay,
@@ -110,9 +118,9 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
             ExplosionRadius = ExplosionRadius
         };
 
-        _detonator = new ProximityDetonator(exploder, _rigidbody, DetonationDistance);
+        _detonator = new ProximityApproachDetonator(exploder, _rigidbody, TimeToTargetForDetonation, ShrapnelSpeed);
 
-        _runner = new RocketRunner(_detector, _targetPicker, _engineControl, _detonator);
+        _runner = new RocketRunner(_detector, _targetPicker, _pilot, _detonator);
         
         //Debug.Log("starting");
     }
@@ -127,6 +135,12 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
         {
             Debug.Log("Runner is null! " + transform.name);
         }
+
+        if(TimeToLive < 0)
+        {
+            _detonator.DetonateNow();
+        }
+        TimeToLive--;
     }
 
     //void OnCollisionEnter(Collision colision)

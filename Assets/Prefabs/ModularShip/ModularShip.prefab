@@ -956,17 +956,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShootAngle: 30
   TorqueMultiplier: 2000
-  LocationAimWeighting: 1
   StartDelay: 0
-  SlowdownWeighting: 30
-  TargetMarker: {fileID: 54271067563300674}
-  LocationTollerance: 400
-  VelociyTollerance: 10
+  SlowdownWeighting: 50
+  MaxRange: 100
+  MinRange: 20
+  LocationAimWeighting: 1
+  MaxTangentialVelocity: 50
+  MinTangentialVelocity: 0
+  TangentialSpeedWeighting: 10
   Engine: {fileID: 0}
   Torquer: {fileID: 54288706851983332}
   AngularDragForTorquers: 1
   VectorArrow: {fileID: 4644144218678962}
   EnemyTags: []
+  MinimumMass: 80
 --- !u!124 &124958046666288838
 Behaviour:
   m_ObjectHideFlags: 1
