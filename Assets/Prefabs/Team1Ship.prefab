@@ -1244,13 +1244,13 @@ MonoBehaviour:
   ShootAngle: 30
   TorqueMultiplier: 800000
   StartDelay: 0
-  SlowdownWeighting: 10
+  SlowdownWeighting: 50
   MaxRange: 50
   MinRange: 20
   LocationAimWeighting: 1
   MaxTangentialVelocity: 10
   MinTangentialVelocity: 0
-  TangentialSpeedWeighting: 10
+  TangentialSpeedWeighting: 50
   Engine: {fileID: 4632310518447138}
   Torquer: {fileID: 54348881928324954}
   AngularDragForTorquers: 10
@@ -1506,10 +1506,10 @@ MonoBehaviour:
     type: 2}
   ExplosionForce2: 200
   ExplosionRadius2: 30
-  Shrapnel: {fileID: 0}
-  ShrapnelCount2: 30
-  ShrapnelSpeed2: 20
-  ExplosionDamage2: 100
+  Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
+  ShrapnelCount2: 50
+  ShrapnelSpeed2: 200
+  ExplosionDamage2: 1000
   FramesOfInvulnerability: 1
 --- !u!114 &114777325519764418
 MonoBehaviour:

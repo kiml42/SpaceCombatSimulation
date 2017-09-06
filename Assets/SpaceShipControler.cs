@@ -19,6 +19,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     //public Rigidbody TargetMarker;
 
     public float SlowdownWeighting = 10;
+    public float RadialSpeedThreshold = 10;
     public float MaxRange = 100;
     public float MinRange = 20;
     public float LocationAimWeighting = 1;
@@ -103,8 +104,9 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
             VectorArrow = VectorArrow,
             MaxRange = MaxRange,
             MinRange = MinRange,
-            MaxTangentialVelocity = MaxTangentialVelocity,
-            MinTangentialVelocity = MinTangentialVelocity
+            MaxTangentialSpeed = MaxTangentialVelocity,
+            MinTangentialSpeed = MinTangentialVelocity,
+            RadialSpeedThreshold = RadialSpeedThreshold
         };
         
 

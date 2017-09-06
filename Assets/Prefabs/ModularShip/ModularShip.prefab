@@ -957,11 +957,11 @@ MonoBehaviour:
   ShootAngle: 30
   TorqueMultiplier: 2000
   StartDelay: 0
-  SlowdownWeighting: 10
+  SlowdownWeighting: 50
   MaxRange: 100
   MinRange: 20
   LocationAimWeighting: 1
-  MaxTangentialVelocity: 10
+  MaxTangentialVelocity: 50
   MinTangentialVelocity: 0
   TangentialSpeedWeighting: 10
   Engine: {fileID: 0}
