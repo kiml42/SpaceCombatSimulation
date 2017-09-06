@@ -28,4 +28,4 @@ use engines to turn.
 Bugs:
 Graphical - Beams don't turn off when the turret dies.
 "Can't remove Rigidbody because HingeJoint depends on it"
-If tangential velocity(Vt) is too low, trying to turn to add to it, creates Vt in the oposite direction, this leads to endless indecision about which way to go. - Fixed, I think (uses forward orientation of ship at very low speeds.)
+If tangential velocity(Vt) is too low, trying to turn to add to it, creates Vt in the opposite direction, this leads to endless indecision about which way to go. - Fixed, I think (uses forward orientation of ship at very low speeds.)
