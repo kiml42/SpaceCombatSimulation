@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using System.Linq;
+using Assets.src.Pilots;
 
 public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatable
 {
@@ -32,7 +33,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     private Rigidbody _thisSpaceship;
     private bool _active = true;
     
-    private IRocketEngineControl _engineControl;
+    private ISpaceshipPilot _pilot;
 
     private string InactiveTag = "Untagged";
     public Transform VectorArrow;
@@ -88,7 +89,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
 
         var torqueApplier = new MultiTorquerTorqueAplier(_thisSpaceship, _torquers, TorqueMultiplier, AngularDragForTorquers);
         
-        _engineControl = new RocketEngineControl(torqueApplier, _thisSpaceship, _engines, ShootAngle, Fuel, StartDelay)
+        _pilot = new SpaceshipPilot(torqueApplier, _thisSpaceship, _engines, ShootAngle, Fuel, StartDelay)
         {
             LocationAimWeighting = LocationAimWeighting,
             SlowdownWeighting = SlowdownWeighting,
@@ -109,7 +110,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
 
         var picker = new CombinedTargetPicker(pickers);
         
-        _runner = new SpaceshipRunner(_detector, picker, _engineControl)
+        _runner = new SpaceshipRunner(_detector, picker, _pilot)
         {
             LocationTollerance = LocationTollerance,
             VelociyTollerance = VelociyTollerance

@@ -8,6 +8,7 @@ using UnityEngine;
 using System;
 using Assets.src.targeting;
 using System.Linq;
+using Assets.src.Pilots;
 
 public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 {
@@ -31,7 +32,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 
     private ITargetDetector _detector;
     private ITargetPicker _targetPicker;
-    private IRocketEngineControl _engineControl;
+    private IRocketPilot _pilot;
 
     private Rigidbody _rigidbody;
     
@@ -99,7 +100,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 
         var initialAngularDrag = _rigidbody.angularDrag;
         var torqueApplier = new MultiTorquerTorqueAplier(_rigidbody, TorqueMultiplier, initialAngularDrag);
-        _engineControl = new RocketEngineControl(torqueApplier, _rigidbody, ShootAngle, Fuel, StartDelay)
+        _pilot = new RocketPilot(torqueApplier, _rigidbody, ShootAngle, Fuel, StartDelay)
         {
             LocationAimWeighting = LocationAimWeighting,
             TurningStartDelay = TurningStartDelay,
@@ -119,7 +120,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 
         _detonator = new ProximityApproachDetonator(exploder, _rigidbody, TimeToTargetForDetonation, ShrapnelSpeed);
 
-        _runner = new RocketRunner(_detector, _targetPicker, _engineControl, _detonator);
+        _runner = new RocketRunner(_detector, _targetPicker, _pilot, _detonator);
         
         //Debug.Log("starting");
     }

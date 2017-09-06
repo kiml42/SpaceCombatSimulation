@@ -11,12 +11,12 @@ namespace Assets.Src.Rocket
         //public int DetonateWithLessThanXRemainingFuel = -100;
         private ITargetDetector _targetDetector;
         private ITargetPicker _targetPicker;
-        private IRocketEngineControl _engineControl;
+        private IRocketPilot _engineControl;
         private readonly RocketController _rocketController;
         private string _previousTarget;
         private IDetonator _detonator;
 
-        public RocketRunner(ITargetDetector targetDetector, ITargetPicker targetPicker, IRocketEngineControl engineControl, IDetonator detonator)
+        public RocketRunner(ITargetDetector targetDetector, ITargetPicker targetPicker, IRocketPilot engineControl, IDetonator detonator)
         {
             _targetDetector = targetDetector;
             _targetPicker = targetPicker;
@@ -31,7 +31,7 @@ namespace Assets.Src.Rocket
 
             if (bestTarget != null)
             {
-                _engineControl.FlyAtTargetMaxSpeed(bestTarget);
+                _engineControl.FlyAtTarget(bestTarget);
             }
 
             if (_engineControl.StartDelay <= 0)

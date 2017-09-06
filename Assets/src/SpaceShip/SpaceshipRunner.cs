@@ -12,13 +12,13 @@ namespace Assets.Src.SpaceShip
     {
         private readonly ITargetDetector _detector;
         private readonly ITargetPicker _picker;
-        private readonly IRocketEngineControl _engineControl;
+        private readonly ISpaceshipPilot _pilot;
 
-        public SpaceshipRunner(ITargetDetector detector, ITargetPicker picker, IRocketEngineControl engineControl)
+        public SpaceshipRunner(ITargetDetector detector, ITargetPicker picker, ISpaceshipPilot pilot)
         {
             _detector = detector;
             _picker = picker;
-            _engineControl = engineControl;
+            _pilot = pilot;
             LocationTollerance = 20;
             VelociyTollerance = 0.05f;
         }
@@ -31,7 +31,7 @@ namespace Assets.Src.SpaceShip
             var targets = _picker.FilterTargets(_detector.DetectTargets());
             var target = targets.OrderByDescending(t => t.Score).FirstOrDefault();
 
-            _engineControl.FlyToTarget(target, 0, LocationTollerance, VelociyTollerance);
+            _pilot.FlyToTarget(target, 0, LocationTollerance, VelociyTollerance);
         }
     }
 }
