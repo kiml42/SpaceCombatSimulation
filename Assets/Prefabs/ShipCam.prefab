@@ -268,15 +268,16 @@ MonoBehaviour:
   - Enemy
   RotationSpeed: 0.5
   TranslateSpeed: 2
-  FocusMoveSpeed: 1
+  FocusMoveSpeed: 0.8
   Camera: {fileID: 20197087680658222}
-  FocusAnglePower: -0.67
+  FocusAnglePower: -0.65
   FocusAngleMultiplier: 1000
-  SetbackIntercept: -70
-  SetBackMultiplier: 0.5
+  SetbackIntercept: -40
+  SetBackMultiplier: 0.4
   ApproachTargetPickerWeighting: 20
   MinimumMass: 0
-  AdditionalScoreForSameTag: -100000
+  AdditionalScoreForSameTagOrCurrentlyFllowed: -100000
+  _focusDistance: 0
 --- !u!124 &124710498464623014
 Behaviour:
   m_ObjectHideFlags: 1

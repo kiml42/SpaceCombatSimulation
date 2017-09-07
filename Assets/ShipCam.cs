@@ -159,17 +159,26 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 
     private void PickTargetToWatch()
     {
-        //Debug.Log("To Watch");
-        var targets = _detector.DetectTargets();
-        targets = _watchPicker.FilterTargets(targets)
-            .OrderByDescending(s => s.Score);
-        //foreach (var item in targets)
-        //{
-        //    Debug.Log(item.TargetTransform.name + ": " + item.Score);
-        //}
+        //Debug.Log("to watch");
+        var knower = _followedTarget.TargetTransform.GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
+        if (knower != null)
+        {
+            _targetToWatch = knower.CurrentTarget;
+            //Debug.Log("Watching followed object's target: " + _targetToWatch.TargetTransform.name);
+        } else
+        {
+            var targets = _detector.DetectTargets();
+            targets = _watchPicker.FilterTargets(targets)
+                .OrderByDescending(s => s.Score);
+            //foreach (var item in targets)
+            //{
+            //    Debug.Log(item.TargetTransform.name + ": " + item.Score);
+            //}
         
-        _targetToWatch = targets
-            .FirstOrDefault();
+            _targetToWatch = targets
+                .FirstOrDefault();
+            //Debug.Log("Watching picked target: " + _targetToWatch.TargetTransform.name);
+        }
     }
 
     private void PickBestTargetToFollow()

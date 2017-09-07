@@ -9,7 +9,6 @@ Target shooting evolution
 Make beams look glowy
 
 shipCam:
-****    Make shipSam point at the target of the followed object (if there is one)
     Make shipcam move faster if the followed object is faster or add a set chunk to the location based on the followed object's speed.
         Aternatively make the shipcam have a rigidbody and actually accelerate up to the speed of the tracked object.
     only watch torpedoes instead of other ships when they are close.

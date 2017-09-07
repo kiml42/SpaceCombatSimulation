@@ -19,7 +19,6 @@ namespace Assets.Src.Targeting
 
         public IEnumerable<PotentialTarget> DetectTargets()
         {
-            var targets = new List<PotentialTarget>();
             var gameObjects = GameObject.FindGameObjectsWithTag(Tag)
                 .Select(o => o.transform.parent)
                 .Where(o => o!= null && o.GetComponent("Rigidbody"));

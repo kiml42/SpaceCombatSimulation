@@ -582,7 +582,7 @@ MonoBehaviour:
   EnemyTags:
   - Enemy
   ApproachTargetPickerWeighting: 20
-  TimeToLive: 10000
+  TimeToLive: 5000
 --- !u!124 &124272854357906246
 Behaviour:
   m_ObjectHideFlags: 1

@@ -469,7 +469,7 @@ MonoBehaviour:
   StartDelay: 80
   TurningStartDelay: 20
   MinimumMass: 80
-  TimeToTargetForDetonation: 3
+  TimeToTargetForDetonation: 3.5
   Shrapnel: {fileID: 54172732429601216, guid: 64a8db6279a423644be913ab3dd17046, type: 2}
   ExplosionEffect: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
@@ -484,7 +484,7 @@ MonoBehaviour:
   EnemyTags:
   - Enemy
   ApproachTargetPickerWeighting: 20
-  TimeToLive: 8000
+  TimeToLive: 4000
 --- !u!114 &114350638461489442
 MonoBehaviour:
   m_ObjectHideFlags: 1

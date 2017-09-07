@@ -569,7 +569,7 @@ MonoBehaviour:
   EnemyTags:
   - Enemy
   ApproachTargetPickerWeighting: 20
-  TimeToLive: 500
+  TimeToLive: 1000
 --- !u!135 &135228887540377652
 SphereCollider:
   m_ObjectHideFlags: 1
