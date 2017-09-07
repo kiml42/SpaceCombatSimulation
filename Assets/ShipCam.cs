@@ -11,28 +11,58 @@ using Assets.Src.ObjectManagement;
 
 public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 {
-
+    /// <summary>
+    /// tag of a child object of a fhing to watch or follow.
+    /// </summary>
     public string SpaceShipTag = "SpaceShip";
-    public List<string> TagsToFollow = new List<string>
-    {
-        "Team1",
-        "Team2",
-        "Team3",
-        "Team4",
-        "Team5",
-        "Enemy",
-    };
+    
+    /// <summary>
+    /// Rotation speed multiplier
+    /// </summary>
     public float RotationSpeed = 0.5f;
+
+    /// <summary>
+    /// transtlation speed multiplier. Higher values will be able to track faster objects, but may move from object to object too fast.
+    /// </summary>
     public float TranslateSpeed = 2;
+
+    /// <summary>
+    /// rate at which the camera will zoom in and out.
+    /// </summary>
     public float FocusMoveSpeed = 1;
+
     public Camera Camera;
-    private Rigidbody _rigidbody;
 
     public float FocusAnglePower = -0.67f;
     public float FocusAngleMultiplier = 1000;
     public float SetbackIntercept = -70;
     public float SetBackMultiplier = 0.5f;
+    
+    public float ApproachTargetPickerWeighting = 20;
 
+    /// <summary>
+    /// Minimum mass of objects to follow or look at.
+    /// </summary>
+    public float MinimumMass = 0;
+
+    /// <summary>
+    /// added to the score of the currently followed object and other objectes with the same tag.
+    /// Used when picking a target to look at, if the object being followed doensn't have its own target.
+    /// </summary>
+    public float AdditionalScoreForSameTagOrCurrentlyFllowed = -100000;
+
+    /// <summary>
+    /// The distance the camera is trying to zoom in to to see well.
+    /// Should be private, but exposed for debuging reasons.
+    /// </summary>
+    public float _focusDistance = 0;
+
+    /// <summary>
+    /// when the parent is within this angle of looking at the watched object, the camera tself starts tracking.
+    /// </summary>
+    public float NearlyAimedAngle = 3;
+
+    private Rigidbody _rigidbody;
     private ITargetDetector _detector;
 
     private PotentialTarget _followedTarget;
@@ -43,11 +73,6 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 
     private HasTagTargetPicker _tagPicker;
     private PreviousTargetPicker _currentlyFollowingPicker;
-
-    public float ApproachTargetPickerWeighting = 20;
-    public float MinimumMass = 0;
-    public float AdditionalScoreForSameTagOrCurrentlyFllowed = -100000;
-    public float _focusDistance = 0;
 
     public PotentialTarget CurrentTarget
     {
@@ -132,27 +157,27 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
             {
                 //Debug.Log("Following " + _followedTarget.TargetTransform.name + ", Watching " + _targetToWatch.TargetTransform.name);
                 //rotate enpty parent
-                var _direction = (_targetToWatch.TargetTransform.position - transform.position).normalized;
-                var _lookRotation = Quaternion.LookRotation(_direction);
-                transform.rotation = Quaternion.Slerp(transform.rotation, _lookRotation, Time.deltaTime * RotationSpeed);
+                var direction = (_targetToWatch.TargetTransform.position - transform.position).normalized;
+                var lookRotation = Quaternion.LookRotation(direction);
+                transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * RotationSpeed);
 
                 //move the focus
                 _focusDistance = Mathf.Lerp(_focusDistance, Vector3.Distance(transform.position, _targetToWatch.TargetTransform.position), Time.deltaTime * FocusMoveSpeed);
 
-                ////rotate the camera itself - Doesn't look quite right.
-                //_direction = (target.transform.position - Camera.transform.position).normalized;
-                //_lookRotation = Quaternion.LookRotation(_direction);
-                //Camera.transform.rotation = Quaternion.Lerp(Camera.transform.rotation, _lookRotation, Time.deltaTime * RotationSpeed);
+                if(Quaternion.Angle(lookRotation, transform.rotation) < NearlyAimedAngle)
+                {
+                    //rotate the camera itself - only if the parent is looking in vaguely the right direction.
+                    direction = (_targetToWatch.TargetTransform.position - Camera.transform.position).normalized;
+                    lookRotation = Quaternion.LookRotation(direction);
+                    Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, lookRotation, Time.deltaTime * RotationSpeed * 0.3f);
+                }
             }
-            if(Camera != null)
-            {
-                var angle = Clamp((float)(FocusAngleMultiplier * Math.Pow (_focusDistance, FocusAnglePower)), 1, 90);
-                Camera.fieldOfView = angle;
-                var setBack = SetbackIntercept - _focusDistance * SetBackMultiplier;
-                var camPosition = Camera.transform.localPosition;
-                camPosition.z = setBack;
-                Camera.transform.localPosition = camPosition;
-            }
+            var angle = Clamp((float)(FocusAngleMultiplier * Math.Pow (_focusDistance, FocusAnglePower)), 1, 90);
+            Camera.fieldOfView = angle;
+            var setBack = SetbackIntercept - _focusDistance * SetBackMultiplier;
+            var camPosition = Camera.transform.localPosition;
+            camPosition.z = setBack;
+            Camera.transform.localPosition = camPosition;
         }
 
     }
