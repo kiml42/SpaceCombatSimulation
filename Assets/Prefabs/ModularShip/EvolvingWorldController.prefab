@@ -895,6 +895,7 @@ MonoBehaviour:
   - {fileID: 54431323037331960, guid: 7a6fbabb0bc555d40912d26e6bc4beb5, type: 2}
   - {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
   - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
+  DefaultGenome: 24 6
 --- !u!114 &114478410833897430
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -906,18 +907,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 628a885e0d9e74e42b03f443753e47a0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  FollowShips: 1
   TarGetTag: Enemy
   TagChildren: 0
   ShouldSpawnDrones: 0
   ShouldSetEnemyTag: 0
+  EnemyTags: []
   Drone: {fileID: 54175251741429924, guid: 1d1e7608339a5a94981ee9e3f3de752a, type: 2}
   Radius: 100
   LoadTime: 200
   SpeedScaler: 20
-  DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
-    type: 2}
   ZoomMultiplier: 30
   ZoomOrSwitchThreshold: 500
+  TranslateSpeed: 2
 --- !u!114 &114502806315632148
 MonoBehaviour:
   m_ObjectHideFlags: 1

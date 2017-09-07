@@ -5,6 +5,7 @@ TODO:
 Engines handle their own fuel. - possibly by accessing the fuel number on the ship or rocket controller.
 Improve generation management (1v1 evolution) - make it a bit more random.
 Target shooting evolution
+Fighters - using engines as weapons/using guns/both.
 
 Make beams look glowy
 

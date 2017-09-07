@@ -30,9 +30,7 @@ public class EvolutionControler : MonoBehaviour
     
     public int MaxTurrets = 10;
     public string AllowedCharacters = " 0123456789  ";
-
-
-
+    
     public int MaxMutationLength = 5;
     
     public int MaxShootAngle = 180;
@@ -48,6 +46,7 @@ public class EvolutionControler : MonoBehaviour
     public List<Rigidbody> Modules;
     private string DrawKeyword = "DRAW";
     private StringMutator _mutator;
+    public string DefaultGenome = "";
 
     // Use this for initialization
     void Start()
@@ -176,7 +175,7 @@ public class EvolutionControler : MonoBehaviour
     {
         var validRecords = records.Where(r => !string.IsNullOrEmpty(r.Victor) && !r.Victor.Contains(DrawKeyword)).ToList();
         var skip = Math.Max(validRecords.Count - GenerationSize, 0);
-        var g1 = validRecords.Skip(skip).FirstOrDefault();
+        var g1 = validRecords.Skip(skip).FirstOrDefault() ?? new MatchRecord(DefaultGenome);
         var g2 = validRecords.Skip(++skip).FirstOrDefault() ?? g1;
         return new string[] { g1.Victor, g2.Victor };
     }
