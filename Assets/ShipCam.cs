@@ -79,12 +79,12 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         var watchPickers = new List<ITargetPicker>
         {
             _tagPicker,
-            _currentlyFollowingPicker
+            _currentlyFollowingPicker,
+            new ProximityTargetPicker(transform)
         };
 
         if(_rigidbody != null)
         {
-            watchPickers.Add(new ProximityTargetPicker(_rigidbody));
             watchPickers.Add(new LookingAtTargetPicker(_rigidbody));
         }
 
@@ -94,14 +94,14 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         }
 
         _watchPicker = new CombinedTargetPicker(watchPickers);
-
-
-
-        var followPickers = new List<ITargetPicker>();
+        
+        var followPickers = new List<ITargetPicker>
+        {
+            new ProximityTargetPicker(transform)
+        };
 
         if (_rigidbody != null)
         {
-            followPickers.Add(new ProximityTargetPicker(_rigidbody));
             followPickers.Add(new ApproachingTargetPicker(_rigidbody, ApproachTargetPickerWeighting));
         }
 
@@ -130,7 +130,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
             PickTargetToWatch();
             if (_targetToWatch != null)
             {
-                Debug.Log("Following " + _followedTarget.TargetTransform.name + ", Watching " + _targetToWatch.TargetTransform.name);
+                //Debug.Log("Following " + _followedTarget.TargetTransform.name + ", Watching " + _targetToWatch.TargetTransform.name);
                 //rotate enpty parent
                 var _direction = (_targetToWatch.TargetTransform.position - transform.position).normalized;
                 var _lookRotation = Quaternion.LookRotation(_direction);
@@ -144,10 +144,6 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
                 //_lookRotation = Quaternion.LookRotation(_direction);
                 //Camera.transform.rotation = Quaternion.Lerp(Camera.transform.rotation, _lookRotation, Time.deltaTime * RotationSpeed);
             }
-            //else
-            //{
-            //    Debug.Log("Camera found no ships to turn to. Tag being followed: " + _shipToFollow.tag);
-            //}
             if(Camera != null)
             {
                 var angle = Clamp((float)(FocusAngleMultiplier * Math.Pow (_focusDistance, FocusAnglePower)), 1, 90);
@@ -163,7 +159,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 
     private void PickTargetToWatch()
     {
-        Debug.Log("To Watch");
+        //Debug.Log("To Watch");
         var targets = _detector.DetectTargets();
         targets = _watchPicker.FilterTargets(targets)
             .OrderByDescending(s => s.Score);
@@ -178,7 +174,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 
     private void PickBestTargetToFollow()
     {
-        Debug.Log("To Follow");
+        //Debug.Log("To Follow");
         var targets = _detector.DetectTargets();
         targets = _followPicker.FilterTargets(targets)
             .OrderByDescending(s => s.Score);

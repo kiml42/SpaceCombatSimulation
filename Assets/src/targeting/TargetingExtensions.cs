@@ -1,4 +1,5 @@
-﻿using Assets.Src.Targeting;
+﻿using Assets.Src.ObjectManagement;
+using Assets.Src.Targeting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -56,7 +57,20 @@ namespace Assets.Src.Targeting
         {
             return target.TargetRigidbody != null ?
                  target.TargetRigidbody.DistanceToTurret(thisTurret, projectileSpeed):
-                 target.TargetTransform.DistanceToTurret(thisTurret);
+                 target.TargetTransform.DistanceToTurret(thisTurret.transform);
+        }
+
+        /// <summary>
+        /// Returns the distance to the target from the given Rigidbody.
+        /// Returns float.MaxValue if the target or turret Rigidbody is null.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="thisTurret"></param>
+        /// <param name="projectileSpeed"></param>
+        /// <returns></returns>
+        public static float DistanceToTurret(this PotentialTarget target, Transform thisTurret)
+        {
+            return target.TargetTransform.DistanceToTurret(thisTurret);
         }
 
         public static Vector3 LocationInOtherTransformSpace(this PotentialTarget target, Rigidbody otherTransform, float? projectileSpeed)
@@ -247,9 +261,9 @@ namespace Assets.Src.Targeting
         /// <param name="thisTurret"></param>
         /// <param name="projectileSpeed"></param>
         /// <returns></returns>
-        public static float DistanceToTurret(this Transform target, Rigidbody thisTurret)
+        public static float DistanceToTurret(this Transform target, Transform thisTurret)
         {
-            if (target == null || thisTurret == null)
+            if (target == null || thisTurret.IsInvalid())
             {
                 return float.MaxValue;
             }
