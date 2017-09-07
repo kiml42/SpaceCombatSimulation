@@ -1,4 +1,5 @@
-﻿using Assets.Src.Interfaces;
+﻿using Assets.src.interfaces;
+using Assets.Src.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,13 +14,15 @@ namespace Assets.Src.Targeting
         private ITargetPicker _targetPicker;
         private ITurretTurner _turretTurner;
         private IFireControl _fireControl;
+        private readonly IKnowsCurrentTarget _knower;
 
-        public TurretRunner(ITargetDetector targetDetector, ITargetPicker targetPicker, ITurretTurner turretTurner, IFireControl fireControl)
+        public TurretRunner(ITargetDetector targetDetector, ITargetPicker targetPicker, ITurretTurner turretTurner, IFireControl fireControl, IKnowsCurrentTarget knower)
         {
             _targetDetector = targetDetector;
             _targetPicker = targetPicker;
             _turretTurner = turretTurner;
             _fireControl = fireControl;
+            _knower = knower;
         }
 
         public void RunTurret()
@@ -27,7 +30,12 @@ namespace Assets.Src.Targeting
             var allTargets = _targetDetector.DetectTargets();
             var bestTarget = _targetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).FirstOrDefault();
 
-            if(bestTarget != null)
+            if (_knower != null)
+            {
+                _knower.CurrentTarget = bestTarget;
+            }
+
+            if (bestTarget != null)
             {
                 _turretTurner.TurnToTarget(bestTarget);
                 _fireControl.ShootIfAimed(bestTarget);

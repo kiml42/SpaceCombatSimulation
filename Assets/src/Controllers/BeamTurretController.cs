@@ -1,4 +1,5 @@
-﻿using Assets.Src.Interfaces;
+﻿using Assets.src.interfaces;
+using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
 using Assets.Src.Targeting.TargetPickers;
@@ -9,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurretController, IDeactivatable
+public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurretController, IDeactivatable, IKnowsCurrentTarget
 {
     public Transform RestTarget;
     public int LoadTime = 50;
@@ -62,6 +63,10 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     public List<string> EnemyTags;
     #endregion
 
+    #region knowsCurrentTarget
+    public PotentialTarget CurrentTarget { get; set; }
+    #endregion
+
     private ITurretRunner _runner;
     public Color BeamColour;
 
@@ -110,7 +115,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
 
         _fireControl = new UnityFireControl(this, ElevationHub.transform, ShootAngle);
 
-        _runner = new TurretRunner(_detector, _targetPicker, _turner, _fireControl);
+        _runner = new TurretRunner(_detector, _targetPicker, _turner, _fireControl, this);
     }
 
     // Update is called once per frame

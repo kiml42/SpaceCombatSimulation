@@ -1,9 +1,10 @@
-﻿using UnityEngine;
+﻿using Assets.Src.Targeting;
+using UnityEngine;
 
 namespace Assets.src.interfaces
 {
     public interface IKnowsCurrentTarget
     {
-        Transform GetCurrentTarget();
+        PotentialTarget CurrentTarget { get; set; }
     }
 }

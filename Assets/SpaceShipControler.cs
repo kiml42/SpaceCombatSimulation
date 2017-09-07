@@ -10,8 +10,9 @@ using UnityEngine;
 using System;
 using System.Linq;
 using Assets.src.Pilots;
+using Assets.src.interfaces;
 
-public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatable
+public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatable, IKnowsCurrentTarget
 {
     public float ShootAngle = 30;
     public float TorqueMultiplier = 9;
@@ -38,7 +39,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     private SpaceshipRunner _runner;
     private Rigidbody _thisSpaceship;
     private bool _active = true;
-    
+
     private IPilot _pilot;
 
     private string InactiveTag = "Untagged";
@@ -69,6 +70,10 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
 
     public List<string> EnemyTags;
     public float MinimumMass = 80;
+    #endregion
+
+    #region knowsCurrentTarget
+    public PotentialTarget CurrentTarget {get;set;}
     #endregion
 
     // Use this for initialization
@@ -122,7 +127,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
 
         var picker = new CombinedTargetPicker(pickers);
         
-        _runner = new SpaceshipRunner(_detector, picker, _pilot);
+        _runner = new SpaceshipRunner(_detector, picker, _pilot, this);
 
         foreach (var engine in _engines)
         {

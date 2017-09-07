@@ -1,4 +1,5 @@
-﻿using Assets.Src.Interfaces;
+﻿using Assets.src.interfaces;
+using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
 using Assets.Src.Targeting.TargetPickers;
@@ -8,7 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurretController, IDeactivatable
+public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurretController, IDeactivatable, IKnowsCurrentTarget
 {
     public Transform RestTarget;
     public Rigidbody Projectile;
@@ -62,6 +63,10 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
     public List<string> EnemyTags;
     #endregion
 
+    #region knowsCurrentTarget
+    public PotentialTarget CurrentTarget { get; set; }
+    #endregion
+
     private int _reload = 0;
 
     private ITurretRunner _runner;
@@ -110,7 +115,7 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
 
         _fireControl = new UnityFireControl(this, ElevationHub.transform, ShootAngle);
 
-        _runner = new TurretRunner(_detector, _targetPicker, _turner, _fireControl);
+        _runner = new TurretRunner(_detector, _targetPicker, _turner, _fireControl, this);
     }
 
     // Update is called once per frame

@@ -9,7 +9,7 @@ Target shooting evolution
 Make beams look glowy
 
 shipCam:
-    Make shipSam point at the target of the followed object (if there is one)
+****    Make shipSam point at the target of the followed object (if there is one)
     Make shipcam know what it's following, and not try follow other things that happen to get closer.
     Make shipcam use targetpickers - will need a list of all tags, and to know the currently followed object.
     Make shipcam move faster if the followed object is faster or add a set chunk to the location based on the followed object's speed.

@@ -9,8 +9,9 @@ using System;
 using Assets.src.targeting;
 using System.Linq;
 using Assets.src.Pilots;
+using Assets.src.interfaces;
 
-public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
+public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurrentTarget
 {
     public float ShootAngle = 10;
     public float TorqueMultiplier = 1f;
@@ -73,6 +74,10 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
     /// </summary>
     public float TimeToLive = Mathf.Infinity;
     #endregion
+    
+    #region knowsCurrentTarget
+    public PotentialTarget CurrentTarget { get; set; }
+    #endregion
 
     // Use this for initialization
     void Start()
@@ -120,7 +125,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag
 
         _detonator = new ProximityApproachDetonator(exploder, _rigidbody, TimeToTargetForDetonation, ShrapnelSpeed);
 
-        _runner = new RocketRunner(_detector, _targetPicker, _pilot, _detonator);
+        _runner = new RocketRunner(_detector, _targetPicker, _pilot, _detonator, this);
         
         //Debug.Log("starting");
     }

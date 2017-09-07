@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using System;
+using Assets.src.interfaces;
 
-public class ShipCam : MonoBehaviour {
+public class ShipCam : MonoBehaviour
+{
 
     public string SpaceShipTag = "SpaceShip";
     public float RotationSpeed = 0.5f;
@@ -19,8 +21,7 @@ public class ShipCam : MonoBehaviour {
     public float FocusAngleMultiplier = 1000;
     public float SetbackIntercept = -70;
     public float SetBackMultiplier = 0.5f;
-
-
+    
     // Use this for initialization
     void Start () {
         _focus = Instantiate(new GameObject("Focus")).transform;

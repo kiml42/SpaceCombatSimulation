@@ -1,4 +1,5 @@
-﻿using Assets.Src.Interfaces;
+﻿using Assets.src.interfaces;
+using Assets.Src.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,13 +16,15 @@ namespace Assets.Src.Rocket
         private readonly RocketController _rocketController;
         private string _previousTarget;
         private IDetonator _detonator;
+        private readonly IKnowsCurrentTarget _knower;
 
-        public RocketRunner(ITargetDetector targetDetector, ITargetPicker targetPicker, IPilot engineControl, IDetonator detonator)
+        public RocketRunner(ITargetDetector targetDetector, ITargetPicker targetPicker, IPilot engineControl, IDetonator detonator, IKnowsCurrentTarget knower)
         {
             _targetDetector = targetDetector;
             _targetPicker = targetPicker;
             _pilot = engineControl;
             _detonator = detonator;
+            _knower = knower;
         }
 
         public void RunRocket()
@@ -29,10 +32,12 @@ namespace Assets.Src.Rocket
             var allTargets = _targetDetector.DetectTargets();
             var bestTarget = _targetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).FirstOrDefault();
 
-            if (bestTarget != null)
+            if (_knower != null)
             {
-                _pilot.Fly(bestTarget);
+                _knower.CurrentTarget = bestTarget;
             }
+            
+            _pilot.Fly(bestTarget);
 
             if (_pilot.StartDelay <= 0)
             {
