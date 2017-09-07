@@ -198,16 +198,6 @@ public class EvolutionControler : MonoBehaviour
 
         //falback to seeding
         Debug.Log("File not found");
-        records = new List<MatchRecord>
-        {
-            new MatchRecord("22222"),
-            new MatchRecord("33333"),
-            new MatchRecord("44444"),
-            new MatchRecord("55555"),
-            new MatchRecord("66666"),
-            new MatchRecord("77777"),
-            new MatchRecord("88888"),
-            new MatchRecord("99999")
-        };
+        records = new List<MatchRecord>();
     }
 }
