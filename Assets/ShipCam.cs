@@ -27,6 +27,11 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     public float TranslateSpeed = 2;
 
     /// <summary>
+    /// This value times the speed of the followed object is added to the translate speed.
+    /// </summary>
+    public float FollowedObjectTranslateSpeedMultiplier = 0;
+
+    /// <summary>
     /// rate at which the camera will zoom in and out.
     /// </summary>
     public float FocusMoveSpeed = 1;
@@ -150,7 +155,12 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 
         if (_followedTarget != null)
         {
-            transform.position = Vector3.Slerp(transform.position, _followedTarget.TargetTransform.position, Time.deltaTime * TranslateSpeed);
+            var totalTranslateSpeed = TranslateSpeed;
+            if(_followedTarget.TargetRigidbody != null && FollowedObjectTranslateSpeedMultiplier != 0)
+            {
+                totalTranslateSpeed += FollowedObjectTranslateSpeedMultiplier * _followedTarget.TargetRigidbody.velocity.magnitude;
+            }
+            transform.position = Vector3.Slerp(transform.position, _followedTarget.TargetTransform.position, Time.deltaTime * totalTranslateSpeed);
 
             PickTargetToWatch();
             if (_targetToWatch != null)

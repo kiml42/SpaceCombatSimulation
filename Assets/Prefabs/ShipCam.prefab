@@ -87,7 +87,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1452437122874096}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 619.99554, y: 288.73, z: 407.99}
+  m_LocalPosition: {x: -1000, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4532283485335798}
@@ -259,15 +259,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   SpaceShipTag: SpaceShip
-  TagsToFollow:
-  - Team1
-  - Team2
-  - Team3
-  - Team4
-  - Team5
-  - Enemy
   RotationSpeed: 0.5
   TranslateSpeed: 2
+  FollowedObjectTranslateSpeedMultiplier: 0.5
   FocusMoveSpeed: 0.8
   Camera: {fileID: 20197087680658222}
   FocusAnglePower: -0.65
@@ -278,6 +272,7 @@ MonoBehaviour:
   MinimumMass: 0
   AdditionalScoreForSameTagOrCurrentlyFllowed: -100000
   _focusDistance: 0
+  NearlyAimedAngle: 3
 --- !u!124 &124710498464623014
 Behaviour:
   m_ObjectHideFlags: 1
