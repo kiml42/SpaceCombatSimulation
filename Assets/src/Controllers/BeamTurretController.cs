@@ -91,7 +91,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
             });
         }
 
-        _detector = new UnityTargetDetector()
+        _detector = new MultiTagTargetDetector()
         {
             ProjectileSpeed = 0,
             EnemyTags = EnemyTags

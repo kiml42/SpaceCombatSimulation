@@ -87,7 +87,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1452437122874096}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1000, y: 0, z: 0}
+  m_LocalPosition: {x: 619.99554, y: 288.73, z: 407.99}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4532283485335798}
@@ -225,7 +225,7 @@ AudioListener:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1596262510301064}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!81 &81403531107376652
 AudioListener:
   m_ObjectHideFlags: 1
@@ -259,15 +259,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   SpaceShipTag: SpaceShip
+  TagsToFollow:
+  - Team1
+  - Team2
+  - Team3
+  - Team4
+  - Team5
+  - Enemy
   RotationSpeed: 0.5
   TranslateSpeed: 2
   FocusMoveSpeed: 1
-  _shipToFollow: {fileID: 0}
   Camera: {fileID: 20197087680658222}
   FocusAnglePower: -0.67
   FocusAngleMultiplier: 1000
   SetbackIntercept: -70
   SetBackMultiplier: 0.5
+  ApproachTargetPickerWeighting: 20
+  MinimumMass: 0
+  AdditionalScoreForSameTag: -100000
 --- !u!124 &124710498464623014
 Behaviour:
   m_ObjectHideFlags: 1

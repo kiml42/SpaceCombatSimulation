@@ -84,7 +84,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     {
         _rigidbody = GetComponent<Rigidbody>();
 
-        _detector = new UnityTargetDetector()
+        _detector = new MultiTagTargetDetector()
         {
             EnemyTags = EnemyTags
         };

@@ -15,23 +15,28 @@ namespace Assets.Src.Targeting.TargetPickers
     /// </summary>
     class HasTagTargetPicker : ITargetPicker
     {
-        private readonly string _tag;
+        public string Tag;
         public float AdditionalScore = -10000;
 
         public HasTagTargetPicker(string tag)
         {
-            _tag = tag;
+            Tag = tag;
         }
 
         public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
-            return potentialTargets.Select(t => {
-                if(t.TargetTransform.IsValid() && t.TargetTransform.tag == _tag)
-                {
-                    t.Score += AdditionalScore;
-                }
-                return t;
-            });
+            if(AdditionalScore != 0 && !string.IsNullOrEmpty(Tag))
+            {
+                return potentialTargets.Select(t => {
+                    if(t.TargetTransform.IsValid() && t.TargetTransform.tag == Tag)
+                    {
+                        //Debug.Log(t.TargetTransform + " score += " + AdditionalScore);
+                        t.Score += AdditionalScore;
+                    }
+                    return t;
+                });
+            }
+            return potentialTargets;
         }
     }
 }

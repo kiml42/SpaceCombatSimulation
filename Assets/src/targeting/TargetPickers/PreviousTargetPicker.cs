@@ -24,7 +24,7 @@ namespace Assets.Src.Targeting.TargetPickers
         public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             return potentialTargets.Select(t => {
-                if(t == _knower.CurrentTarget)
+                if(t.TargetTransform == _knower.CurrentTarget.TargetTransform)
                 {
                     t.Score += AdditionalScore;
                 }

@@ -7,12 +7,12 @@ using UnityEngine;
 
 namespace Assets.Src.Targeting
 {
-    public class UnityTargetDetector : ITargetDetector
+    public class MultiTagTargetDetector : ITargetDetector
     {
         public IEnumerable<string> EnemyTags = new List<string> { "Enemy" };
         public float ProjectileSpeed = 0;
 
-        public UnityTargetDetector()
+        public MultiTagTargetDetector()
         {
 
         }
@@ -24,8 +24,11 @@ namespace Assets.Src.Targeting
             {
                 var gameObjects = GameObject.FindGameObjectsWithTag(tag)
                     .Where(o => o.GetComponent("Rigidbody"));
+                //Debug.Log(gameObjects.Count() + " for tag " + tag);
                 targets.AddRange(gameObjects.Select(g => new PotentialTarget(g.transform)));
             }
+
+            //Debug.Log(targets.Count() + " total " );
 
             return targets;
         }
