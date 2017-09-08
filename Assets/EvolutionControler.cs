@@ -17,13 +17,24 @@ public class EvolutionControler : MonoBehaviour
     public float LocationRandomisationRadius = 0;
     public string Tag1 = "Team1";
     public string Tag2 = "Team2";
-    public string FilePath = "./tmp/evolvingShips/evolvingShips.csv";
+    public string CurrentGenerationFilePath = "./tmp/evolvingShips/currentGeneration.txt";
+    public string GenerationFilePathBase = "./tmp/evolvingShips/Generations/G-";
 
     public string SpaceShipTag = "SpaceShip";
     private Dictionary<string, string> _currentGenomes;
-    private List<MatchRecord> records = new List<MatchRecord>();
 
     public int GenerationSize = 10;
+
+    /// <summary>
+    /// The generation is over when every individual has had at least this many matches.
+    /// </summary>
+    public int MinMatchesPerIndividual = 3;
+
+    /// <summary>
+    /// The number of individuals to keep for the next generation
+    /// </summary>
+    public int WinnersFromEachGeneration = 3;
+
     public int MatchTimeout = 10000;
 
     public int Mutations = 3;
@@ -47,49 +58,90 @@ public class EvolutionControler : MonoBehaviour
     private string DrawKeyword = "DRAW";
     private StringMutator _mutator;
     public string DefaultGenome = "";
+    private int GenerationNumber;
+    private Generation _currentGeneration;
+
+    public Rigidbody SuddenDeathObject;
+    public int SuddenDeathObjectReloadTime = 200;
+    public float SuddenDeathSpawnSphereRadius = 1000;
 
     // Use this for initialization
     void Start()
     {
         _mutator = new StringMutator();
-        ReadPreviousMatches();
+        ReadCurrentGeneration();
         SpawnShips();
     }
 
     // Update is called once per frame
     void Update()
     {
-        var winningGenomes = DetectVictorsGenome();
-        if (winningGenomes == null && MatchTimeout > 0)
+        var winningGenome = DetectVictorsGenome();
+        if (winningGenome == null && MatchTimeout > 0)
         {
             MatchTimeout--;
             return;
         }
-        else if (MatchTimeout <= 0)
+        else if (MatchTimeout <= 0 SuddenDeathObject != null)
         {
-            Debug.Log("Timeout - draw");
-            winningGenomes = GetDrawGenomes(true);
+            Debug.Log("Timeout - Starting sudden death");
+            ActivateSuddenDeath();
         }
 
-        foreach (var genome in winningGenomes)
+        if (winningGenome != null)
         {
-            Debug.Log(genome + " Wins!");
-            records.Add(new MatchRecord(_currentGenomes.Values.ToArray(), genome));
-        }
+            Debug.Log(winningGenome + " Wins!");
+            var a = _currentGenomes.Keys.First();
+            var b = _currentGenomes.Keys.Skip(1).First();
 
-        Debug.Log(records.Count + " matches completed");
-        SaveRecords();
+            _currentGeneration.RecordMatch(a, b, winningGenome);
+        }
+        
+        SaveGeneration();
+
+        PrepareForNextMatch();
+
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
-    private void SaveRecords()
+    private void ActivateSuddenDeath()
     {
-        Debug.Log("Saving to " + Path.GetFullPath(FilePath));
-        if (!File.Exists(FilePath))
+        Debug.Log("Sudden Death!");
+        var orientation = UnityEngine.Random.rotation;
+        var randomPlacement = (SuddenDeathSpawnSphereRadius * UnityEngine.Random.insideUnitSphere) + transform.position;
+        var death = Instantiate(SuddenDeathObject, randomPlacement, orientation);
+        death.SendMessage("SetEnemyTags", new List<string> { Tag1, Tag2 });
+        MatchTimeout = SuddenDeathObjectReloadTime;
+    }
+
+    private void PrepareForNextMatch()
+    {
+        if(_currentGeneration.MinimumMatchesPlayed() >= MinMatchesPerIndividual)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
+            //should move to next generation
+            var winners = _currentGeneration.PickWinners(WinnersFromEachGeneration);
+            GenerationNumber = GenerationNumber+1;
+            _currentGeneration = CreateGenerationOfMutants(winners.ToList());
+            SaveGeneration();
         }
-        File.WriteAllLines(FilePath, records.Select(r => r.ToString()).ToArray());
+    }
+
+    private void SaveGeneration()
+    {
+        string path = PathForThisGeneration();
+        Debug.Log("Saving to " + Path.GetFullPath(path));
+        if (!File.Exists(path))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+        }
+        File.WriteAllText(path, _currentGeneration.ToString());
+        File.WriteAllText(CurrentGenerationFilePath, GenerationNumber.ToString());
+    }
+
+    private string PathForThisGeneration()
+    {
+        var generationFilePath = GenerationFilePathBase + (GenerationNumber.ToString().PadLeft(6, '0'));
+        return generationFilePath;
     }
 
     private void SpawnShips()
@@ -135,36 +187,38 @@ public class EvolutionControler : MonoBehaviour
         ship.SendMessage("SetEnemyTags", enemyTags);
     }
     
-    private string[] DetectVictorsGenome()
+    /// <summary>
+    /// Returns the genome of the victor.
+    /// Or null if there's no victor yet.
+    /// Or empty string if everyone's dead.
+    /// </summary>
+    /// <returns></returns>
+    private string DetectVictorsGenome()
     {
-        var ships = GameObject.FindGameObjectsWithTag(SpaceShipTag)
+        var tags = GameObject.FindGameObjectsWithTag(SpaceShipTag)
             .Where(s =>
-            s.transform.parent != null &&
-            s.transform.parent.GetComponent("Rigidbody") != null
-            );
+                s.transform.parent != null &&
+                s.transform.parent.GetComponent("Rigidbody") != null
+            )
+            .Select(s => s.transform.parent.tag)
+            .Distinct();
         //Debug.Log(ships.Count() + " ships exist");
 
-        if (ships.Count() == 1)
+        if (tags.Count() == 1)
         {
-            var ship = ships.First().transform.parent;
-            var winningTag = ship.tag;
+            var winningTag = tags.First();
 
             //Debug.Log(StringifyGenomes() + " winning tag: " + winningTag);
-            return new string[] { _currentGenomes[winningTag] };
+            return _currentGenomes[winningTag];
         }
-        if (ships.Count() == 0)
+        if (tags.Count() == 0)
         {
             Debug.Log("Everyone's dead!");
-            return GetDrawGenomes(false);
+            return string.Empty;
         }
         return null;
     }
-
-    private string[] GetDrawGenomes(bool timeout)
-    {
-        return new string[] { DrawKeyword + (timeout ? " - timeout" : " - EveryoneDied") };
-    }
-
+    
     private string[] GenerateGenomes()
     {
         var baseGenome = PickTwoGenomesFromHistory();
@@ -173,31 +227,47 @@ public class EvolutionControler : MonoBehaviour
     
     private string[] PickTwoGenomesFromHistory()
     {
-        var validRecords = records.Where(r => !string.IsNullOrEmpty(r.Victor) && !r.Victor.Contains(DrawKeyword)).ToList();
-        var skip = Math.Max(validRecords.Count - GenerationSize, 0);
-        var g1 = validRecords.Skip(skip).FirstOrDefault() ?? new MatchRecord(DefaultGenome);
-        var g2 = validRecords.Skip(++skip).FirstOrDefault() ?? g1;
-        return new string[] { g1.Victor, g2.Victor };
+        var g1 = _currentGeneration.PickCompetitor();
+        var g2 = _currentGeneration.PickCompetitor(g1);
+        return new string[] { g1, g2 };
     }
 
-    private void ReadPreviousMatches()
+    private void ReadCurrentGeneration()
     {
-        if (File.Exists(FilePath))
-        {
-            records = new List<MatchRecord>();
-            var lines = File.ReadAllLines(FilePath);
-            foreach (var line in lines)
-            {
-                records.Add(new MatchRecord(line));
-            }
-            if (records.Any())
-            {
-                return;
-            }
-        }
 
-        //falback to seeding
-        Debug.Log("File not found");
-        records = new List<MatchRecord>();
+        if (File.Exists(CurrentGenerationFilePath))
+        {
+            var GenerationNumberText = File.ReadAllText(CurrentGenerationFilePath);
+            if(!int.TryParse(GenerationNumberText, out GenerationNumber))
+            {
+                GenerationNumber = 0;
+            }
+            string path = PathForThisGeneration();
+            
+            var lines = File.ReadAllLines(path);
+            _currentGeneration = new Generation(lines);
+        } else
+        {
+            Debug.Log("Current generation File not found mutating default for new generation");
+        }
+        if(_currentGeneration.CountIndividuals() < 2)
+        {
+            _currentGeneration = CreateGenerationOfMutants(new List<string> { DefaultGenome });
+        }
+    }
+
+    private Generation CreateGenerationOfMutants(List<string> baseGenomes)
+    {
+        var genration = new Generation();
+        int i = 0;
+        while(genration.CountIndividuals() < GenerationSize)
+        {
+            var baseGenome = baseGenomes[i];
+            var mutant = _mutator.Mutate(baseGenome);
+            genration.AddGenome(mutant);
+            i++;
+            i = i % baseGenomes.Count;
+        }
+        return genration;
     }
 }

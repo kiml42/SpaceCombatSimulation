@@ -11,15 +11,45 @@ namespace Assets.src.Evolution
         private Random _rng = new Random();
         private Dictionary<string, IndividualInGeneration> Individuals;
 
+        public Generation()
+        {
+
+        }
+
         public Generation(string[] lines)
         {
             Individuals = lines.Select(l => new IndividualInGeneration(l)).ToDictionary(i => i.Genome, i => i);
+        }
+
+        public int CountIndividuals()
+        {
+            return Individuals.Count;
+        }
+
+        public bool AddGenome(string genome)
+        {
+            if (Individuals.ContainsKey(genome))
+            {
+                return false;
+            }
+            Individuals.Add(genome, new IndividualInGeneration(genome));
+            return true;
         }
 
         public void RecordMatch(string a, string b, string victor)
         {
             Individuals[a].RecordMatch(b, victor);
             Individuals[b].RecordMatch(a, victor);
+        }
+
+        public int MinimumMatchesPlayed()
+        {
+            return Individuals.Values.Min(i => i.MatchesPlayed);
+        }
+
+        public IEnumerable<string> PickWinners(int WinnersCount)
+        {
+            return Individuals.Values.OrderBy(i => _rng.NextDouble()).OrderByDescending(i => i.GetScore()).Take(WinnersCount).Select(i => i.Genome);
         }
 
         /// <summary>
@@ -63,7 +93,15 @@ namespace Assets.src.Evolution
             public int MatchesPlayed { get { return Wins + Draws + Loses; } }
 
             public List<string> PreviousCombatants = new List<string>();
+            private const int WIN_SCORE = 10;
+            private const int DRAW_SCORE = -2;
+            private const int LOOSE_SCORE = -10;
 
+            /// <summary>
+            /// Construct from a generation line.
+            /// If one section (i.e. no semicolons) is given, it will be interpereted as a new genome with no matches completed.
+            /// </summary>
+            /// <param name="line"></param>
             public IndividualInGeneration(string line)
             {
                 var parts = line.Split(';');
@@ -112,6 +150,12 @@ namespace Assets.src.Evolution
             {
                 var competitorsString = string.Join(",", PreviousCombatants.ToArray());
                 return Genome + ";" + Wins + ";" + Draws + ";" + Loses + ";" + competitorsString;
+            }
+
+            internal float GetScore()
+            {
+                var totalScore = Wins * WIN_SCORE + Draws * DRAW_SCORE + Loses * LOOSE_SCORE;
+                return totalScore / MatchesPlayed;
             }
         }
     }
