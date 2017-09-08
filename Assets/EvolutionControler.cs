@@ -84,7 +84,7 @@ public class EvolutionControler : MonoBehaviour
             MatchTimeout--;
             return;
         }
-        else if (MatchTimeout <= 0)
+        else if (MatchTimeout <= 0 && _previousWinner == null)
         {
             Debug.Log("Match Timeout!");
             if(SuddenDeathObject != null)
