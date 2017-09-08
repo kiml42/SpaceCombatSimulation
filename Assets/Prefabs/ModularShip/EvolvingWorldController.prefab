@@ -898,7 +898,7 @@ MonoBehaviour:
   - {fileID: 54431323037331960, guid: 7a6fbabb0bc555d40912d26e6bc4beb5, type: 2}
   - {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
   - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
-  DefaultGenome: 24 6
+  DefaultGenome: 2
   SuddenDeathObject: {fileID: 54991379400455944, guid: 8bf03007d4e417c4087307829906f7d6,
     type: 2}
   SuddenDeathObjectReloadTime: 6

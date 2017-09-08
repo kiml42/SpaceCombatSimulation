@@ -96,17 +96,17 @@ public class EvolutionControler : MonoBehaviour
         if (winningGenome != null)
         {
             Debug.Log("\"" + winningGenome + "\" Wins!");
-            var a = _currentGenomes.Keys.First();
-            var b = _currentGenomes.Keys.Skip(1).First();
+            var a = _currentGenomes.Values.First();
+            var b = _currentGenomes.Values.Skip(1).First();
 
             _currentGeneration.RecordMatch(a, b, winningGenome);
-        }
         
-        SaveGeneration();
+            SaveGeneration();
 
-        PrepareForNextMatch();
+            PrepareForNextMatch();
 
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
     }
 
     private void ActivateSuddenDeath()

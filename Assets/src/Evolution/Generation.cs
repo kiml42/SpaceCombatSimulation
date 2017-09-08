@@ -40,6 +40,8 @@ namespace Assets.src.Evolution
 
         public void RecordMatch(string a, string b, string victor)
         {
+            Debug.Log("Recording Match: " + a + " vs " + b + " victor: " + victor);
+
             Individuals[a].RecordMatch(b, victor);
             Individuals[b].RecordMatch(a, victor);
         }
@@ -62,16 +64,25 @@ namespace Assets.src.Evolution
         /// <returns>genome of a competetor from this generation</returns>
         public string PickCompetitor(string genomeToCompeteWith = null)
         {
-            IEnumerable<IndividualInGeneration> validCompetitors = Individuals.Values.OrderBy(i => _rng.NextDouble())
-                .OrderByDescending(i => i.MatchesPlayed);
+            List<IndividualInGeneration> validCompetitors;
 
             if (!string.IsNullOrEmpty(genomeToCompeteWith))
             {
-                validCompetitors = validCompetitors
-                    .Where(i => i.Genome != genomeToCompeteWith && !i.PreviousCombatants.Contains(genomeToCompeteWith));
+                validCompetitors = Individuals.Values
+                    .Where(i => i.Genome != genomeToCompeteWith && !i.PreviousCombatants.Contains(genomeToCompeteWith))
+                    .OrderBy(i => i.MatchesPlayed)
+                    .ThenBy(i => _rng.NextDouble())
+                    .ToList();
+            } else
+            {
+                validCompetitors = Individuals.Values
+                    .OrderBy(i => i.MatchesPlayed)
+                    .ThenBy(i => _rng.NextDouble())
+                    .ToList();
             }
 
             var best = validCompetitors.FirstOrDefault();
+            //Debug.Log("Picked Individual has played " + best.MatchesPlayed);
             if (best != null)
             {
                 return best.Genome;
