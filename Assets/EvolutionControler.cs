@@ -82,15 +82,21 @@ public class EvolutionControler : MonoBehaviour
             MatchTimeout--;
             return;
         }
-        else if (MatchTimeout <= 0 SuddenDeathObject != null)
+        else if (MatchTimeout <= 0)
         {
-            Debug.Log("Timeout - Starting sudden death");
-            ActivateSuddenDeath();
+            Debug.Log("Match Timeout!");
+            if(SuddenDeathObject != null)
+            {
+                ActivateSuddenDeath();
+            } else
+            {
+                winningGenome = string.Empty;
+            }
         }
 
         if (winningGenome != null)
         {
-            Debug.Log(winningGenome + " Wins!");
+            Debug.Log("\"" + winningGenome + "\" Wins!");
             var a = _currentGenomes.Keys.First();
             var b = _currentGenomes.Keys.Skip(1).First();
 
@@ -146,9 +152,9 @@ public class EvolutionControler : MonoBehaviour
 
     private void SpawnShips()
     {
-        var genomes = GenerateGenomes();
+        var genomes = PickTwoGenomesFromHistory();
 
-        Debug.Log("\"" + string.Join("\" vs \"", genomes.Select(g => g.TrimEnd()).ToArray()) + "\"");
+        Debug.Log("\"" + string.Join("\" vs \"", genomes.ToArray()) + "\"");
 
         var g1 = genomes[0];
         var g2 = genomes[1];
@@ -218,13 +224,7 @@ public class EvolutionControler : MonoBehaviour
         }
         return null;
     }
-    
-    private string[] GenerateGenomes()
-    {
-        var baseGenome = PickTwoGenomesFromHistory();
-        return baseGenome.Select(g => _mutator.Mutate(g)).ToArray();
-    }
-    
+        
     private string[] PickTwoGenomesFromHistory()
     {
         var g1 = _currentGeneration.PickCompetitor();

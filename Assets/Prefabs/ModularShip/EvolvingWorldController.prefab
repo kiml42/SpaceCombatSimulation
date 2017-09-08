@@ -865,12 +865,15 @@ MonoBehaviour:
   Location1: {fileID: 4530287190188008}
   Location2: {fileID: 4754386304018410}
   RandomiseRotation: 0
-  LocationRandomisationRadius: 0
+  LocationRandomisationRadius: 10
   Tag1: Team1
   Tag2: Team2
-  FilePath: ./tmp/evolvingShips/evolvingShips.csv
+  CurrentGenerationFilePath: ./tmp/evolvingShips/currentGeneration.txt
+  GenerationFilePathBase: ./tmp/evolvingShips/Generations/G-
   SpaceShipTag: SpaceShip
   GenerationSize: 15
+  MinMatchesPerIndividual: 3
+  WinnersFromEachGeneration: 3
   MatchTimeout: 15000
   Mutations: 3
   MaxTurrets: 15
@@ -896,6 +899,10 @@ MonoBehaviour:
   - {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
   - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
   DefaultGenome: 24 6
+  SuddenDeathObject: {fileID: 54991379400455944, guid: 8bf03007d4e417c4087307829906f7d6,
+    type: 2}
+  SuddenDeathObjectReloadTime: 6
+  SuddenDeathSpawnSphereRadius: 1000
 --- !u!114 &114478410833897430
 MonoBehaviour:
   m_ObjectHideFlags: 1

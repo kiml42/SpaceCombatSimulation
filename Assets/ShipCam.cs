@@ -230,7 +230,10 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         _followedTarget = targets
             .FirstOrDefault();
 
-        _tagPicker.Tag = _followedTarget.TargetTransform.tag;
+        if(_followedTarget != null)
+        {
+            _tagPicker.Tag = _followedTarget.TargetTransform.tag;
+        }
     }
 
     private void PickRandomToFollow()
