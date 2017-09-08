@@ -64,6 +64,9 @@ public class EvolutionControler : MonoBehaviour
     public int SuddenDeathObjectReloadTime = 200;
     public float SuddenDeathSpawnSphereRadius = 1000;
 
+    public int WinnerPollPeriod = 100;
+    private int _winnerPollCountdown = 0;
+
     // Use this for initialization
     void Start()
     {
@@ -191,7 +194,8 @@ public class EvolutionControler : MonoBehaviour
 
         ship.SendMessage("SetEnemyTags", enemyTags);
     }
-    
+
+    public string _previousWinner;
     /// <summary>
     /// Returns the genome of the victor.
     /// Or null if there's no victor yet.
@@ -200,26 +204,36 @@ public class EvolutionControler : MonoBehaviour
     /// <returns></returns>
     private string DetectVictorsGenome()
     {
-        var tags = GameObject.FindGameObjectsWithTag(SpaceShipTag)
-            .Where(s =>
-                s.transform.parent != null &&
-                s.transform.parent.GetComponent("Rigidbody") != null
-            )
-            .Select(s => s.transform.parent.tag)
-            .Distinct();
-        //Debug.Log(ships.Count() + " ships exist");
-
-        if (tags.Count() == 1)
+        if(_winnerPollCountdown-- <= 0)
         {
-            var winningTag = tags.First();
+            string currentWinner = null;
+            _winnerPollCountdown = WinnerPollPeriod;
+            var tags = GameObject.FindGameObjectsWithTag(SpaceShipTag)
+                .Where(s =>
+                    s.transform.parent != null &&
+                    s.transform.parent.GetComponent("Rigidbody") != null
+                )
+                .Select(s => s.transform.parent.tag)
+                .Distinct();
+            //Debug.Log(ships.Count() + " ships exist");
 
-            //Debug.Log(StringifyGenomes() + " winning tag: " + winningTag);
-            return _currentGenomes[winningTag];
-        }
-        if (tags.Count() == 0)
-        {
-            Debug.Log("Everyone's dead!");
-            return string.Empty;
+            if (tags.Count() == 1)
+            {
+                var winningTag = tags.First();
+
+                //Debug.Log(StringifyGenomes() + " winning tag: " + winningTag);
+                currentWinner = _currentGenomes[winningTag];
+            }
+            if (tags.Count() == 0)
+            {
+                Debug.Log("Everyone's dead!");
+                currentWinner = string.Empty;
+            }
+
+            var actualWinner = currentWinner == _previousWinner ? currentWinner : null;
+            _previousWinner = currentWinner;
+            //if there's ben the same winner for two consectutive periods return that, otherise null.
+            return actualWinner;
         }
         return null;
     }

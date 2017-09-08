@@ -901,8 +901,10 @@ MonoBehaviour:
   DefaultGenome: 2
   SuddenDeathObject: {fileID: 54991379400455944, guid: 8bf03007d4e417c4087307829906f7d6,
     type: 2}
-  SuddenDeathObjectReloadTime: 6
+  SuddenDeathObjectReloadTime: 20
   SuddenDeathSpawnSphereRadius: 1000
+  WinnerPollPeriod: 100
+  _previousWinner: 
 --- !u!114 &114478410833897430
 MonoBehaviour:
   m_ObjectHideFlags: 1
