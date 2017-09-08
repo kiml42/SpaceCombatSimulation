@@ -6,6 +6,7 @@ Engines handle their own fuel. - possibly by accessing the fuel number on the sh
 Improve generation management (1v1 evolution) - make it a bit more random.
 Target shooting evolution
 Fighters - using engines as weapons/using guns/both.
+projectiles apply force to cancel lateral V. Target set on projectile when fired.
 
 Make beams look glowy
 

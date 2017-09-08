@@ -1310,7 +1310,7 @@ MonoBehaviour:
   LoadTime: 6
   ProjectileSpeed: 800
   ShootAngle: 10
-  RandomSpeed: 5
+  RandomSpeed: 2
   TurnTable: {fileID: 54663574418112234}
   ElevationHub: {fileID: 54647014223265010}
   EmitterParent: {fileID: 4095713925445172}

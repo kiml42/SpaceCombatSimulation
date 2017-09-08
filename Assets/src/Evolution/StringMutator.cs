@@ -52,7 +52,7 @@ namespace Assets.src.Evolution
             int n = (int)(UnityEngine.Random.value * AllowedCharacters.Length);
             var character = AllowedCharacters[n];
             int m = (int)(UnityEngine.Random.value * genome.Length);
-            genome.Remove(m, 1);
+            genome = genome.Remove(m, 1);
             return genome.Insert(m, character.ToString());
         }
 
@@ -71,7 +71,7 @@ namespace Assets.src.Evolution
             int n = (int)(UnityEngine.Random.value * genome.Length);
             int count = PickALength(n, genome.Length);
             var sectionToReverse = Reverse(genome.Substring(n, count));
-            genome.Remove(n, count);
+            genome = genome.Remove(n, count);
             return genome.Insert(n, sectionToReverse);
         }
 
