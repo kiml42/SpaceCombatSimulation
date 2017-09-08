@@ -55,7 +55,6 @@ public class EvolutionControler : MonoBehaviour
     public int GenomeLength = 50;
     
     public List<Rigidbody> Modules;
-    private string DrawKeyword = "DRAW";
     private StringMutator _mutator;
     public string DefaultGenome = "";
     private int GenerationNumber;
@@ -234,7 +233,6 @@ public class EvolutionControler : MonoBehaviour
 
     private void ReadCurrentGeneration()
     {
-
         if (File.Exists(CurrentGenerationFilePath))
         {
             var GenerationNumberText = File.ReadAllText(CurrentGenerationFilePath);
@@ -243,31 +241,39 @@ public class EvolutionControler : MonoBehaviour
                 GenerationNumber = 0;
             }
             string path = PathForThisGeneration();
-            
+
+            //Debug.Log("looking for genreation at " + path);
+
             var lines = File.ReadAllLines(path);
             _currentGeneration = new Generation(lines);
         } else
         {
             Debug.Log("Current generation File not found mutating default for new generation");
         }
-        if(_currentGeneration.CountIndividuals() < 2)
+        if(_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
         {
+            //Debug.Log("Generating generation from default genomes");
             _currentGeneration = CreateGenerationOfMutants(new List<string> { DefaultGenome });
         }
+        //Debug.Log("_currentGeneration: " + _currentGeneration);
     }
 
     private Generation CreateGenerationOfMutants(List<string> baseGenomes)
     {
+        //Debug.Log("Generating generation from [" + string.Join(",", baseGenomes.ToArray()) + "]");
         var genration = new Generation();
         int i = 0;
-        while(genration.CountIndividuals() < GenerationSize)
+        //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
+        while (genration.CountIndividuals() < GenerationSize)
         {
             var baseGenome = baseGenomes[i];
             var mutant = _mutator.Mutate(baseGenome);
             genration.AddGenome(mutant);
             i++;
             i = i % baseGenomes.Count;
+            //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
         }
+        //Debug.Log("mutant Generation: " + genration);
         return genration;
     }
 }

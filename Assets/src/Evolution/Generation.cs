@@ -3,17 +3,19 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 namespace Assets.src.Evolution
 {
     public class Generation
     {
-        private Random _rng = new Random();
+        private System.Random _rng = new System.Random();
         private Dictionary<string, IndividualInGeneration> Individuals;
 
         public Generation()
         {
-
+            //Debug.Log("Default Constructor");
+            Individuals = new Dictionary<string, IndividualInGeneration>();
         }
 
         public Generation(string[] lines)
