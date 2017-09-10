@@ -877,6 +877,7 @@ MonoBehaviour:
   MatchTimeout: 15000
   Mutations: 3
   MaxTurrets: 15
+  MaxModules: 15
   AllowedCharacters: ' 0123456789  '
   MaxMutationLength: 5
   MaxShootAngle: 180
@@ -899,10 +900,8 @@ MonoBehaviour:
   - {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
   - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
   DefaultGenome: 2 6
-  SuddenDeathObject: {fileID: 54991379400455944, guid: 8bf03007d4e417c4087307829906f7d6,
-    type: 2}
-  SuddenDeathObjectReloadTime: 30
-  SuddenDeathSpawnSphereRadius: 1000
+  SuddenDeathDamage: 10
+  SuddenDeathObjectReloadTime: 100
   WinnerPollPeriod: 200
   _previousWinner: 
 --- !u!114 &114478410833897430

@@ -62,9 +62,8 @@ public class EvolutionControler : MonoBehaviour
     private int GenerationNumber;
     private Generation _currentGeneration;
 
-    public Rigidbody SuddenDeathObject;
+    public float SuddenDeathDamage = 10;
     public int SuddenDeathObjectReloadTime = 200;
-    public float SuddenDeathSpawnSphereRadius = 1000;
 
     public int WinnerPollPeriod = 100;
     private int _winnerPollCountdown = 0;
@@ -86,16 +85,10 @@ public class EvolutionControler : MonoBehaviour
             MatchTimeout--;
             return;
         }
-        else if (MatchTimeout <= 0 && _previousWinner == null)
+        else if (MatchTimeout <= 0/* && _previousWinner == null*/)
         {
-            Debug.Log("Match Timeout!");
-            if(SuddenDeathObject != null)
-            {
-                ActivateSuddenDeath();
-            } else
-            {
-                winningGenome = string.Empty;
-            }
+            //Debug.Log("Match Timeout!");
+            ActivateSuddenDeath();
         }
 
         if (winningGenome != null)
@@ -116,11 +109,12 @@ public class EvolutionControler : MonoBehaviour
 
     private void ActivateSuddenDeath()
     {
-        Debug.Log("Sudden Death!");
-        var orientation = UnityEngine.Random.rotation;
-        var randomPlacement = (SuddenDeathSpawnSphereRadius * UnityEngine.Random.insideUnitSphere) + transform.position;
-        var death = Instantiate(SuddenDeathObject, randomPlacement, orientation);
-        death.SendMessage("SetEnemyTags", new List<string> { Tag1, Tag2 });
+        //Debug.Log("Sudden Death!");
+        var ships = ListShips();
+        foreach (var ship in ships)
+        {
+            ship.transform.SendMessage("ApplyDamage", SuddenDeathDamage, SendMessageOptions.DontRequireReceiver);
+        }
         MatchTimeout = SuddenDeathObjectReloadTime;
     }
 
@@ -211,12 +205,8 @@ public class EvolutionControler : MonoBehaviour
         {
             string currentWinner = null;
             _winnerPollCountdown = WinnerPollPeriod;
-            var tags = GameObject.FindGameObjectsWithTag(SpaceShipTag)
-                .Where(s =>
-                    s.transform.parent != null &&
-                    s.transform.parent.GetComponent("Rigidbody") != null
-                )
-                .Select(s => s.transform.parent.tag)
+            var tags = ListShips()
+                .Select(s => s.tag)
                 .Distinct();
             //Debug.Log(ships.Count() + " ships exist");
 
@@ -239,6 +229,15 @@ public class EvolutionControler : MonoBehaviour
             return actualWinner;
         }
         return null;
+    }
+
+    private IEnumerable<Transform> ListShips()
+    {
+        return GameObject.FindGameObjectsWithTag(SpaceShipTag)
+                .Where(s =>
+                    s.transform.parent != null &&
+                    s.transform.parent.GetComponent("Rigidbody") != null
+                ).Select(s => s.transform.parent);
     }
         
     private string[] PickTwoGenomesFromHistory()

@@ -79,6 +79,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     private HasTagTargetPicker _tagPicker;
     private PreviousTargetPicker _currentlyFollowingPicker;
     public float DefaultFocusDistance = 200;
+    private float IdleRotationSpeed = -0.05f;
 
     public PotentialTarget CurrentTarget
     {
@@ -156,15 +157,16 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 
         if (_followedTarget != null)
         {
+            //Debug.Log("following " + _followedTarget.TargetTransform);
             var totalTranslateSpeed = TranslateSpeed;
-            if(_followedTarget.TargetRigidbody != null && FollowedObjectTranslateSpeedMultiplier != 0)
+            if (_followedTarget.TargetRigidbody != null && FollowedObjectTranslateSpeedMultiplier != 0)
             {
                 totalTranslateSpeed += FollowedObjectTranslateSpeedMultiplier * _followedTarget.TargetRigidbody.velocity.magnitude;
             }
             transform.position = Vector3.Slerp(transform.position, _followedTarget.TargetTransform.position, Time.deltaTime * totalTranslateSpeed);
 
             PickTargetToWatch();
-            if (_targetToWatch != null)
+            if (_targetToWatch != null && _followedTarget.TargetTransform != _targetToWatch.TargetTransform)
             {
                 //Debug.Log("Following " + _followedTarget.TargetTransform.name + ", Watching " + _targetToWatch.TargetTransform.name);
                 //rotate enpty parent
@@ -175,7 +177,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
                 //move the focus
                 _focusDistance = Mathf.Lerp(_focusDistance, Vector3.Distance(transform.position, _targetToWatch.TargetTransform.position), Time.deltaTime * FocusMoveSpeed);
 
-                if(Quaternion.Angle(lookRotation, transform.rotation) < NearlyAimedAngle)
+                if (Quaternion.Angle(lookRotation, transform.rotation) < NearlyAimedAngle)
                 {
                     //rotate the camera itself - only if the parent is looking in vaguely the right direction.
                     direction = (_targetToWatch.TargetTransform.position - Camera.transform.position).normalized;
@@ -185,23 +187,33 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
             }
             else
             {
-                _focusDistance = Mathf.Lerp(_focusDistance, DefaultFocusDistance, Time.deltaTime * FocusMoveSpeed);
+                //Debug.Log("Nothing to watch");
+                IdleRotation();
             }
-            var angle = Clamp((float)(FocusAngleMultiplier * Math.Pow (_focusDistance, FocusAnglePower)), 1, 90);
-            Camera.fieldOfView = angle;
-            var setBack = SetbackIntercept - _focusDistance * SetBackMultiplier;
-            var camPosition = Camera.transform.localPosition;
-            camPosition.z = setBack;
-            Camera.transform.localPosition = camPosition;
+        } else {
+            //Debug.Log("Nothing to follow");
+            IdleRotation();
         }
+        var angle = Clamp((float)(FocusAngleMultiplier * Math.Pow(_focusDistance, FocusAnglePower)), 1, 90);
+        Camera.fieldOfView = angle;
+        var setBack = SetbackIntercept - _focusDistance * SetBackMultiplier;
+        var camPosition = Camera.transform.localPosition;
+        camPosition.z = setBack;
+        Camera.transform.localPosition = camPosition;
+    }
 
+    private void IdleRotation()
+    {
+        //Debug.Log("IdleRotation");
+        transform.rotation *= Quaternion.Euler(transform.up * IdleRotationSpeed);
+        _focusDistance = Mathf.Lerp(_focusDistance, DefaultFocusDistance, Time.deltaTime * FocusMoveSpeed);
     }
 
     private void PickTargetToWatch()
     {
         //Debug.Log("to watch");
         var knower = _followedTarget.TargetTransform.GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
-        if (knower != null)
+        if (knower != null && knower.CurrentTarget != null)
         {
             _targetToWatch = knower.CurrentTarget;
             //Debug.Log("Watching followed object's target: " + _targetToWatch.TargetTransform.name);
