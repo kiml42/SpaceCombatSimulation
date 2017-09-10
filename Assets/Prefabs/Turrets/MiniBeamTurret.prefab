@@ -2015,12 +2015,14 @@ MonoBehaviour:
   StartOffset: 10
   ShootAngle: 5
   BeamForce: 2
-  BeamDamage: 0.12
+  BeamDamage: 0.03
   MinimumMass: 0
   HitEffect: {fileID: 4113682021108320, guid: e6ef866ccc6cd2c4fb5f402be7b7a1d0, type: 2}
   TurnTable: {fileID: 54882056251725972}
   ElevationHub: {fileID: 54867097553581106}
   BeamsParent: {fileID: 4174025852522500}
+  InitialRadius: 0.15
+  Divergence: 0.00015
   EnemyTags:
   - Enemy
   BeamColour: {r: 1, g: 0.06300002, b: 0.06300002, a: 0.678}
