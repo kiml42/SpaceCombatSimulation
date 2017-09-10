@@ -36,6 +36,9 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     private bool _active = true;
 
     private string InactiveTag = "Untagged";
+    
+    public float InitialRadius = 1;
+    public float Divergence = 0.0005f;
 
     #region EnemyTags
     public void AddEnemyTag(string newTag)
@@ -87,7 +90,9 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
                 BeamForce = BeamForce,
                 HitEffect = HitEffect,
                 BeamDamage = BeamDamage,
-                FriendlyTag = tag
+                FriendlyTag = tag,
+                InitialRadius = InitialRadius,
+                Divergence = Divergence
             });
         }
 
