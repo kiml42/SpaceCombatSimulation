@@ -1126,7 +1126,7 @@ HingeJoint:
     targetVelocity: -0.5098131
     force: 30
     freeSpin: 0
-  m_UseLimits: 0
+  m_UseLimits: 1
   m_Limits:
     min: -90
     max: 90
@@ -1160,10 +1160,10 @@ HingeJoint:
     targetVelocity: -451.02094
     force: 30
     freeSpin: 0
-  m_UseLimits: 0
+  m_UseLimits: 1
   m_Limits:
-    min: -90
-    max: 90
+    min: -100
+    max: 100
     bounciness: 0
     bounceMinVelocity: 0.2
     contactDistance: 0
@@ -1310,7 +1310,7 @@ MonoBehaviour:
   LoadTime: 6
   ProjectileSpeed: 800
   ShootAngle: 10
-  RandomSpeed: 2
+  RandomSpeed: 0
   TurnTable: {fileID: 54663574418112234}
   ElevationHub: {fileID: 54647014223265010}
   EmitterParent: {fileID: 4095713925445172}

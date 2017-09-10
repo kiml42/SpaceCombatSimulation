@@ -61,10 +61,9 @@ namespace Assets.src.Pilots
                 
                 //try firing the main engine even with no fuel to turn it off if there is no fuel.
                 SetEngineActivationState(IsAimedAtWorldVector(turningVector));
-                if (VectorArrow != null)
+                if (VectorArrow != null && turningVector.magnitude > 0)
                 {
                     VectorArrow.rotation = Quaternion.LookRotation(turningVector);
-                    //VectorArrow.localScale = Vector3.one * turningVector.magnitude;
                 }
             }
             else
