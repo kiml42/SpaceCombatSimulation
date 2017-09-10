@@ -21,8 +21,8 @@ namespace Assets.Src.Turret
         public int RemainingOffTime =0;
         public float BeamDamage = 10;
         public float MaxDistance = 5000;
-        private float InitialRadius = 1;
-        private float Divergence = 0.0005f;
+        public float InitialRadius = 1;
+        public float Divergence = 0.0005f;
 
         public Beam(Transform beam, int runTime, int offTime)
         {
