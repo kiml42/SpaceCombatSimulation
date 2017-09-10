@@ -23,10 +23,15 @@ namespace Assets.src.Evolution
                 {
                     //no mutation
                 }
-                else if (n < 0.8)
+                else if (n < 0.6)
                 {
                     //insert
                     baseGenome = InsertionMutation(baseGenome);
+                }
+                else if (n < 0.8)
+                {
+                    //Replace one character
+                    baseGenome = CharReplaceMutation(baseGenome);
                 }
                 else if (n < 0.93)
                 {
@@ -48,6 +53,14 @@ namespace Assets.src.Evolution
         }
 
         private string InsertionMutation(string genome)
+        {
+            int n = (int)(UnityEngine.Random.value * AllowedCharacters.Length);
+            var character = AllowedCharacters[n];
+            int m = (int)(UnityEngine.Random.value * genome.Length);
+            return genome.Insert(m, character.ToString());
+        }
+
+        private string CharReplaceMutation(string genome)
         {
             int n = (int)(UnityEngine.Random.value * AllowedCharacters.Length);
             var character = AllowedCharacters[n];
