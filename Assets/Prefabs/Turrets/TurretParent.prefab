@@ -867,7 +867,7 @@ MonoBehaviour:
   RestTarget: {fileID: 4616440911490974}
   Projectile: {fileID: 54662518417675552, guid: 312ddd340d56b9a4bab4336158c6b546,
     type: 2}
-  LoadTime: 26
+  LoadTime: 40
   ProjectileSpeed: 800
   ShootAngle: 10
   RandomSpeed: 4

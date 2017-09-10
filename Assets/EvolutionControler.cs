@@ -40,6 +40,8 @@ public class EvolutionControler : MonoBehaviour
     public int Mutations = 3;
     
     public int MaxTurrets = 10;
+    public int MaxModules = 15;
+
     public string AllowedCharacters = " 0123456789  ";
     
     public int MaxMutationLength = 5;
@@ -189,7 +191,8 @@ public class EvolutionControler : MonoBehaviour
             MaxVelociyTollerance = MaxVelociyTollerance,
             MaxAngularDragForTorquers = MaxAngularDragForTorquers,
             EnemyTags = enemyTags,
-            MaxTurrets = MaxTurrets
+            MaxTurrets = MaxTurrets,
+            MaxModules = MaxModules
         }.BuildShip();
 
         ship.SendMessage("SetEnemyTags", enemyTags);

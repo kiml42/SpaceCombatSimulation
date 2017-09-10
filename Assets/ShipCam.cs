@@ -78,6 +78,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 
     private HasTagTargetPicker _tagPicker;
     private PreviousTargetPicker _currentlyFollowingPicker;
+    public float DefaultFocusDistance = 200;
 
     public PotentialTarget CurrentTarget
     {
@@ -181,6 +182,10 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
                     lookRotation = Quaternion.LookRotation(direction);
                     Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, lookRotation, Time.deltaTime * RotationSpeed * 0.3f);
                 }
+            }
+            else
+            {
+                _focusDistance = Mathf.Lerp(_focusDistance, DefaultFocusDistance, Time.deltaTime * FocusMoveSpeed);
             }
             var angle = Clamp((float)(FocusAngleMultiplier * Math.Pow (_focusDistance, FocusAnglePower)), 1, 90);
             Camera.fieldOfView = angle;

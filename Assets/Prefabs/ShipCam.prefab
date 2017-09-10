@@ -86,8 +86,8 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1452437122874096}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1000, y: 0, z: 0}
+  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 2000, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4532283485335798}
@@ -152,7 +152,7 @@ Camera:
   m_GameObject: {fileID: 1596262510301064}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 2
+  m_ClearFlags: 1
   m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
   m_NormalizedViewPortRect:
     serializedVersion: 2
@@ -271,8 +271,9 @@ MonoBehaviour:
   ApproachTargetPickerWeighting: 20
   MinimumMass: 0
   AdditionalScoreForSameTagOrCurrentlyFllowed: -100000
-  _focusDistance: 0
+  _focusDistance: 3000
   NearlyAimedAngle: 3
+  DefaultFocusDistance: 200
 --- !u!124 &124710498464623014
 Behaviour:
   m_ObjectHideFlags: 1
