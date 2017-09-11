@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using System.Linq;
 using System;
 using Assets.src.interfaces;
@@ -81,6 +82,10 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     public float DefaultFocusDistance = 200;
     public float IdleRotationSpeed = -0.05f;
 
+    public Canvas Canvas;
+    //public Image HealthBarPrefab;
+    public GameObject ReticlePrefab;
+
     public PotentialTarget CurrentTarget
     {
         get
@@ -146,6 +151,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 	
 	// Update is called once per frame
 	void Update () {
+
         if (Input.GetKeyUp(KeyCode.Z))
         {
             PickRandomToFollow();
@@ -200,6 +206,54 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         var camPosition = Camera.transform.localPosition;
         camPosition.z = setBack;
         Camera.transform.localPosition = camPosition;
+
+
+        DrawHealthBars();
+    }
+
+    private void DrawHealthBars()
+    {
+        if(ReticlePrefab != null && Canvas!=null)
+        {
+            for (int i = 0; i < Canvas.transform.childCount; i++)
+            {
+                Debug.Log("Destroying " + Canvas.transform.GetChild(i));
+                Destroy(Canvas.transform.GetChild(i).gameObject);
+            }
+            var targets = _detector.DetectTargets();
+
+            foreach (var target in targets)
+            {
+                Debug.Log(target.TargetTransform.name);
+                var coords = this.Camera.WorldToScreenPoint(target.TargetTransform.position);
+                Debug.Log(coords);
+
+                Debug.Log(Screen.width);
+                //coords.x = Screen.width - coords.x;
+                //coords.y = Screen.height - coords.y;
+
+                var reticle = Instantiate(ReticlePrefab);
+                reticle.transform.SetParent(Canvas.transform);
+
+                RectTransform CanvasRect = Canvas.GetComponent<RectTransform>();
+
+                var rect = reticle.GetComponent<RectTransform>();
+
+                Vector2 WorldObject_ScreenPosition = new Vector2(
+                     ((coords.x * CanvasRect.sizeDelta.x) - (CanvasRect.sizeDelta.x * 0.5f)),
+                     ((coords.y * CanvasRect.sizeDelta.y) - (CanvasRect.sizeDelta.y * 0.5f)));
+
+                //rect.localPosition = coords;
+                rect.anchoredPosition = WorldObject_ScreenPosition;
+                //Debug.Log(rect.localPosition);
+
+
+
+                //rect.anchorMin = new Vector2(0.5f, 0.5f);
+                //rect.anchorMax = new Vector2(0.5f, 0.5f);
+                //rect.pivot = new Vector2(0.5f, 0.5f);
+            }
+        }
     }
 
     private void IdleRotation()
