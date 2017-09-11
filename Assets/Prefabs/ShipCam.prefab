@@ -274,6 +274,7 @@ MonoBehaviour:
   _focusDistance: 3000
   NearlyAimedAngle: 3
   DefaultFocusDistance: 500
+  IdleRotationSpeed: -0.2
 --- !u!124 &124710498464623014
 Behaviour:
   m_ObjectHideFlags: 1

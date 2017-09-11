@@ -2,15 +2,12 @@
 A Unity 3D project to simulate combat between space ships with vaguely realistic physics - Space ships are not aeroplanes!
 
 TODO:
-Sudden death applies damage to all.
 Engines handle their own fuel. - possibly by accessing the fuel number on the ship or rocket controller.
-Improve generation management (1v1 evolution) - make it a bit more random.
 Target shooting evolution
 Fighters - using engines as weapons/using guns/both.
 projectiles apply force to cancel lateral V. Target set on projectile when fired.
 Health bars
-
-Make beams look glowy
+Pass damage up option for health controller
 
 shipCam:
     Make shipcam move faster if the followed object is faster or add a set chunk to the location based on the followed object's speed. - done

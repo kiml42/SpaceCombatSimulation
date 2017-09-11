@@ -79,7 +79,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     private HasTagTargetPicker _tagPicker;
     private PreviousTargetPicker _currentlyFollowingPicker;
     public float DefaultFocusDistance = 200;
-    private float IdleRotationSpeed = -0.05f;
+    public float IdleRotationSpeed = -0.05f;
 
     public PotentialTarget CurrentTarget
     {

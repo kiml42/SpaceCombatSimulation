@@ -873,7 +873,7 @@ MonoBehaviour:
   SpaceShipTag: SpaceShip
   GenerationSize: 15
   MinMatchesPerIndividual: 3
-  WinnersFromEachGeneration: 3
+  WinnersFromEachGeneration: 5
   MatchTimeout: 15000
   Mutations: 3
   MaxTurrets: 15
