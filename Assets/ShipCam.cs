@@ -229,8 +229,8 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
                 Debug.Log(coords);
 
                 Debug.Log(Screen.width);
-                //coords.x = Screen.width - coords.x;
-                //coords.y = Screen.height - coords.y;
+                coords.x = -coords.x;
+                coords.y = -coords.y;
 
                 var reticle = Instantiate(ReticlePrefab);
                 reticle.transform.SetParent(Canvas.transform);
@@ -243,12 +243,12 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
                      ((coords.x * CanvasRect.sizeDelta.x) - (CanvasRect.sizeDelta.x * 0.5f)),
                      ((coords.y * CanvasRect.sizeDelta.y) - (CanvasRect.sizeDelta.y * 0.5f)));
 
+                rect.anchoredPosition = coords;
+
+
+
                 //rect.localPosition = coords;
-                rect.anchoredPosition = WorldObject_ScreenPosition;
                 //Debug.Log(rect.localPosition);
-
-
-
                 //rect.anchorMin = new Vector2(0.5f, 0.5f);
                 //rect.anchorMax = new Vector2(0.5f, 0.5f);
                 //rect.pivot = new Vector2(0.5f, 0.5f);
