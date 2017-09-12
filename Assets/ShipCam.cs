@@ -85,6 +85,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     public Canvas Canvas;
     //public Image HealthBarPrefab;
     public GameObject ReticlePrefab;
+    public Image TestImage;
 
     public PotentialTarget CurrentTarget
     {
@@ -211,6 +212,11 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         //DrawHealthBars();
     }
 
+    public void OnGUI()
+    {
+        DrawHealthBars();
+    }
+
     private void DrawHealthBars()
     {
         if(ReticlePrefab != null && Canvas!=null)
@@ -224,36 +230,66 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 
             foreach (var target in targets)
             {
-                Debug.Log(target.TargetTransform.name);
-                var coords = this.Camera.WorldToScreenPoint(target.TargetTransform.position);
-                Debug.Log(coords);
+                DrawSingleLable(target);
 
-                Debug.Log(Screen.width);
-                coords.x = -coords.x;
-                coords.y = -coords.y;
+                //Debug.Log(target.TargetTransform.name);
+                //Vector2 viewportPosition = Camera.WorldToScreenPoint(target.TargetTransform.position);
+                //Debug.Log(viewportPosition);
 
-                var reticle = Instantiate(ReticlePrefab);
-                reticle.transform.SetParent(Canvas.transform);
+                //Debug.Log(Screen.width);
+                //viewportPosition.x = -viewportPosition.x;
+                //viewportPosition.y = -viewportPosition.y;
 
-                RectTransform CanvasRect = Canvas.GetComponent<RectTransform>();
+                //var reticle = Instantiate(ReticlePrefab);
+                //reticle.transform.SetParent(Canvas.transform);
 
-                var rect = reticle.GetComponent<RectTransform>();
+                //RectTransform CanvasRect = Canvas.GetComponent<RectTransform>();
 
-                Vector2 WorldObject_ScreenPosition = new Vector2(
-                     ((coords.x * CanvasRect.sizeDelta.x) - (CanvasRect.sizeDelta.x * 0.5f)),
-                     ((coords.y * CanvasRect.sizeDelta.y) - (CanvasRect.sizeDelta.y * 0.5f)));
+                //var uiOffset = new Vector2((float)CanvasRect.sizeDelta.x / 2f, (float)CanvasRect.sizeDelta.y / 2f);
 
-                rect.anchoredPosition = coords;
+                //var rect = reticle.GetComponent<RectTransform>();
 
+                //Vector2 proportionalPosition = new Vector2(viewportPosition.x * CanvasRect.sizeDelta.x, viewportPosition.y * CanvasRect.sizeDelta.y);
 
+                //Vector2 WorldObject_ScreenPosition = new Vector2(
+                //     ((viewportPosition.x * CanvasRect.sizeDelta.x) - (CanvasRect.sizeDelta.x * 0.5f)),
+                //     ((viewportPosition.y * CanvasRect.sizeDelta.y) - (CanvasRect.sizeDelta.y * 0.5f)));
 
-                //rect.localPosition = coords;
-                //Debug.Log(rect.localPosition);
-                //rect.anchorMin = new Vector2(0.5f, 0.5f);
-                //rect.anchorMax = new Vector2(0.5f, 0.5f);
-                //rect.pivot = new Vector2(0.5f, 0.5f);
+                //Vector2 screenPosition = new Vector2
+                // (
+                //     viewportPosition.x * CanvasRect.sizeDelta.x,
+                //     viewportPosition.y * CanvasRect.sizeDelta.y
+                // );
+
+                //// this is reversed because of the anchor we are using for this element
+                //viewportPosition.y = -viewportPosition.y;
+
+                //var extraOffset = new Vector2(1000, 0);
+
+                //rect.anchoredPosition = extraOffset + viewportPosition - CanvasRect.sizeDelta/2f;
             }
         }
+    }
+
+    private void DrawSingleLable(PotentialTarget target)
+    {
+        // Find the 2D position of the object using the main camera
+        Vector3 boxPosition = Camera.main.WorldToScreenPoint(target.TargetTransform.position);
+
+        // "Flip" it into screen coordinates
+        boxPosition.y = Screen.height - boxPosition.y;
+
+        // Center the label over the coordinates
+        //boxPosition.x -= boxW * 0.5f;
+        //boxPosition.y -= boxH * 0.5f;
+        var healthControler = target.TargetTransform.GetComponent("HealthControler") as HealthControler;
+        if(healthControler != null && healthControler.IsDamaged)
+        {
+            GUI.Box(new Rect(boxPosition.x - 50, boxPosition.y-50, 100, 100), Math.Round(healthControler.HealthProportion * 100).ToString());
+            //Debug.Log(boxPosition.z + "--x--" + boxPosition.x + "----y--" + boxPosition.y);
+        }
+        
+
     }
 
     private void IdleRotation()
