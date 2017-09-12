@@ -41,7 +41,7 @@ namespace Assets.src.Evolution
         public int MaxModules = 15;
         private int _turretsAdded = 0;
         private int _modulesAdded = 0;
-        
+
         public int MaxShootAngle = 1;
         public int MaxTorqueMultiplier = 2000;
         public int MaxLocationAimWeighting = 10;
@@ -49,11 +49,11 @@ namespace Assets.src.Evolution
         public int MaxLocationTollerance = 1000;
         public int MaxVelociyTollerance = 200;
         public int MaxAngularDragForTorquers = 1;
-        
+
 
         private string _genome;
         public int GeneLength = 1;
-        
+
         public List<Rigidbody> Modules;
 
         private int _genomePosition = 0;
@@ -75,7 +75,7 @@ namespace Assets.src.Evolution
             _r = GetNumberFromGenome(0, 8);
             _g = GetNumberFromGenome(10, 8);
             _b = GetNumberFromGenome(20, 8);
-            _shipToBuildOn.SetColor(_r,_g,_b);
+            _shipToBuildOn.SetColor(_r, _g, _b);
             //Debug.Log("Spawning modules");
             SpawnModules(_shipToBuildOn);
 
@@ -111,7 +111,7 @@ namespace Assets.src.Evolution
 
                             SpawnModules(addedModule.transform);    //spawn modules on this module
 
-                            addedModule.transform.SetColor(_r,_g,_b);
+                            addedModule.transform.SetColor(_r, _g, _b);
                         }
                     }
                     //else
@@ -119,29 +119,14 @@ namespace Assets.src.Evolution
                     //    Debug.Log("Can Spawn No More modules. _genomePosition: " + _genomePosition + ", _turretsAdded: " + _turretsAdded + ", _modulesAdded: " + _modulesAdded);
                     //}
                 }
-            } else
+            }
+            else
             {
                 //this has no spawn points, so it must be aturret or engine - increment added turrets.
                 //Debug.Log("Cannot spawn on " + currentHub);
                 _turretsAdded++;
             }
             _modulesAdded++;
-        }
-
-        private float GetNumberFromGenome(int fromStart, int length = 2)
-        {
-            if(fromStart + length < _genome.Length)
-            {
-                var substring = _genome.Substring(fromStart, length);
-
-                var simplified = substring.Replace(" ", "0");
-                int number;
-                if (int.TryParse(simplified, out number))
-                {
-                    return (float) (number / (Math.Pow(10, length)-1));
-                }
-            }
-            return 1;
         }
 
         private List<Transform> GetSpawnPoints(Transform currentHub)
@@ -173,7 +158,7 @@ namespace Assets.src.Evolution
                 if (int.TryParse(simplified, out number))
                 {
                     //Debug.Log("Gene as number: " + number);
-                    if(number < Modules.Count())
+                    if (number < Modules.Count())
                     {
                         //Debug.Log("Adding Module " + number + ": " + Modules[number] );
                         return Modules[number];
@@ -194,39 +179,45 @@ namespace Assets.src.Evolution
             //}
             return null;
         }
+
         private void ConfigureShip()
         {
             var controller = _shipToBuildOn.GetComponent<SpaceShipControler>();
 
-            controller.ShootAngle = GetNumberFromGenome(_genome, 0) * MaxShootAngle;
-            controller.TorqueMultiplier = GetNumberFromGenome(_genome, 2) * MaxTorqueMultiplier;
-            controller.LocationAimWeighting = GetNumberFromGenome(_genome, 4) * MaxLocationAimWeighting;
-            controller.SlowdownWeighting = GetNumberFromGenome(_genome, 6) * MaxSlowdownWeighting;
-            controller.MaxRange = GetNumberFromGenome(_genome, 8) * MaxLocationTollerance;
-            controller.MinRange = GetNumberFromGenome(_genome, 10) * MaxLocationTollerance;
-            controller.MaxTangentialVelocity = GetNumberFromGenome(_genome, 12) * MaxVelociyTollerance;
-            controller.MinTangentialVelocity = GetNumberFromGenome(_genome, 14) * MaxVelociyTollerance;
-            controller.TangentialSpeedWeighting = GetNumberFromGenome(_genome, 16) * MaxSlowdownWeighting;
-            controller.AngularDragForTorquers = GetNumberFromGenome(_genome, 18) * MaxAngularDragForTorquers;
+            //Debug.Log("ConfiguringShip");
+
+            controller.ShootAngle = GetNumberFromGenome(0) * MaxShootAngle;
+            controller.TorqueMultiplier = GetNumberFromGenome(2) * MaxTorqueMultiplier;
+            controller.LocationAimWeighting = GetNumberFromGenome(4) * MaxLocationAimWeighting;
+            controller.SlowdownWeighting = GetNumberFromGenome(6) * MaxSlowdownWeighting;
+            controller.MaxRange = GetNumberFromGenome(8) * MaxLocationTollerance;
+            controller.MinRange = GetNumberFromGenome(10) * MaxLocationTollerance;
+            controller.MaxTangentialVelocity = GetNumberFromGenome(12) * MaxVelociyTollerance;
+            controller.MinTangentialVelocity = GetNumberFromGenome(14) * MaxVelociyTollerance;
+            controller.TangentialSpeedWeighting = GetNumberFromGenome(16) * MaxSlowdownWeighting;
+            controller.AngularDragForTorquers = GetNumberFromGenome(18) * MaxAngularDragForTorquers;
+            controller.RadialSpeedThreshold = GetNumberFromGenome(20) * MaxVelociyTollerance;
         }
 
-
-        private float GetNumberFromGenome(string genome, int fromEnd)
+        private float GetNumberFromGenome(int fromEnd, int length = 2)
         {
-            var simplified = genome.Replace(" ", "");
-            if (simplified.Length > fromEnd)
+            var reversed = Reverse(_genome);
+            if (fromEnd + length < reversed.Length)
             {
-                simplified = Reverse(simplified) + "  ";
-                var stringNumber = simplified.Substring(fromEnd, 2);
+                var substring = reversed.Substring(fromEnd, length);
+                
+                var simplified = substring.TrimStart().Replace(" ", "0");
+                //Debug.Log(simplified);
                 int number;
-                if (int.TryParse(stringNumber, out number))
+                if (int.TryParse(simplified, out number))
                 {
-                    return number / 99f;
+                    return (float)(number / (Math.Pow(10, length) - 1));
                 }
             }
-            return 1;
+            //Debug.Log("Defaulted to 0.5");
+            return .5f;
         }
-        
+
         public static string Reverse(string s)
         {
             char[] charArray = s.ToCharArray();

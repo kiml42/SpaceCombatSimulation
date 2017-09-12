@@ -71,7 +71,13 @@ public class EvolutionControler : MonoBehaviour
     // Use this for initialization
     void Start()
     {
-        _mutator = new StringMutator();
+        _mutator = new StringMutator
+        {
+            AllowedCharacters = AllowedCharacters,
+            GenomeLength = GenomeLength,
+            MaxMutationLength = MaxMutationLength,
+            Mutations = Mutations
+        };
         ReadCurrentGeneration();
         SpawnShips();
     }

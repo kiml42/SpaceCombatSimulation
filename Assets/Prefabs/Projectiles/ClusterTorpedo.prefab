@@ -444,12 +444,12 @@ MonoBehaviour:
   Health: 25
   DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
-  Shrapnel: {fileID: 0}
+  ExplosionForce2: 500
+  ExplosionRadius2: 20
+  Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 100
+  ExplosionDamage2: 1000
   FramesOfInvulnerability: 3
 --- !u!114 &114116952395043294
 MonoBehaviour:
@@ -465,7 +465,7 @@ MonoBehaviour:
   ShootAngle: 10
   TorqueMultiplier: 8000
   LocationAimWeighting: 0.02
-  Fuel: 5000
+  Fuel: 2500
   StartDelay: 80
   TurningStartDelay: 20
   MinimumMass: 80

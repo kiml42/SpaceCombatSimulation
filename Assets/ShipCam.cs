@@ -208,7 +208,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         Camera.transform.localPosition = camPosition;
 
 
-        DrawHealthBars();
+        //DrawHealthBars();
     }
 
     private void DrawHealthBars()

@@ -877,7 +877,7 @@ MonoBehaviour:
   MatchTimeout: 15000
   Mutations: 3
   MaxTurrets: 15
-  MaxModules: 15
+  MaxModules: 20
   AllowedCharacters: ' 0123456789  '
   MaxMutationLength: 5
   MaxShootAngle: 180
@@ -887,7 +887,7 @@ MonoBehaviour:
   MaxLocationTollerance: 2000
   MaxVelociyTollerance: 100
   MaxAngularDragForTorquers: 5
-  GenomeLength: 50
+  GenomeLength: 100
   Modules:
   - {fileID: 54570345499317062, guid: b6e297582f25e22439032bba93cfe02a, type: 2}
   - {fileID: 54566524727042172, guid: 8629b68d84c101a458451c49aaba15dc, type: 2}
