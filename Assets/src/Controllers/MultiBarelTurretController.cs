@@ -72,6 +72,7 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
     private ITurretRunner _runner;
 
     public bool SetChildrensEnemy = false;
+    public float RecoilForce = 0;
 
 
     // Use this for initialization
@@ -140,7 +141,7 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
                     (RandomSpeed * UnityEngine.Random.insideUnitSphere);
 
                 _reload = LoadTime;
-                emitter.parent.parent.GetComponent<Rigidbody>().AddForce(100 * (-emitter.forward));
+                ElevationHub.AddForceAtPosition(RecoilForce * (-emitter.forward), emitter.position, ForceMode.Impulse);
 
                 if (SetChildrensEnemy) { projectile.SendMessage("SetEnemyTags", EnemyTags); }
                 if (TagChildren) { projectile.tag = tag; }

@@ -830,6 +830,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114375893224788504
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -853,6 +854,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114422725068886292
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -876,8 +878,10 @@ MonoBehaviour:
   EmitterParent: {fileID: 4762531310836884}
   MinimumMass: 80
   TagChildren: 0
-  EnemyTags: []
+  EnemyTags:
+  - Enemy
   SetChildrensEnemy: 0
+  RecoilForce: 400
 --- !u!114 &114735797348154080
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -901,6 +905,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!124 &124123618135675836
 Behaviour:
   m_ObjectHideFlags: 1

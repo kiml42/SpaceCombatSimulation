@@ -221,11 +221,11 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     {
         if(ReticlePrefab != null && Canvas!=null)
         {
-            for (int i = 0; i < Canvas.transform.childCount; i++)
-            {
-                Debug.Log("Destroying " + Canvas.transform.GetChild(i));
-                Destroy(Canvas.transform.GetChild(i).gameObject);
-            }
+            //for (int i = 0; i < Canvas.transform.childCount; i++)
+            //{
+            //    Debug.Log("Destroying " + Canvas.transform.GetChild(i));
+            //    Destroy(Canvas.transform.GetChild(i).gameObject);
+            //}
             var targets = _detector.DetectTargets();
 
             foreach (var target in targets)
@@ -285,7 +285,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         var healthControler = target.TargetTransform.GetComponent("HealthControler") as HealthControler;
         if(healthControler != null && healthControler.IsDamaged)
         {
-            GUI.Box(new Rect(boxPosition.x - 50, boxPosition.y-50, 100, 100), Math.Round(healthControler.HealthProportion * 100).ToString());
+            GUI.Box(new Rect(boxPosition.x - 50, boxPosition.y-50, 100, 100), Math.Round(healthControler.HealthProportion * 100) + "%");
             //Debug.Log(boxPosition.z + "--x--" + boxPosition.x + "----y--" + boxPosition.y);
         }
         

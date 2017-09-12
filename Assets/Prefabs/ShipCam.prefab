@@ -82,7 +82,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!1 &1749335211364802
 GameObject:
   m_ObjectHideFlags: 1
@@ -138,8 +138,8 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1452437122874096}
-  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 2000, y: 0, z: 0}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4532283485335798}
@@ -331,6 +331,7 @@ MonoBehaviour:
   Canvas: {fileID: 223384815311491308}
   ReticlePrefab: {fileID: 1702426583133082, guid: ae8c5ac63a0d80b4dabf78050dfc5da6,
     type: 2}
+  TestImage: {fileID: 0}
 --- !u!114 &114559164490886276
 MonoBehaviour:
   m_ObjectHideFlags: 1

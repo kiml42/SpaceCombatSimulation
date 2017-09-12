@@ -1854,7 +1854,7 @@ HingeJoint:
     targetVelocity: -0.5098131
     force: 30
     freeSpin: 0
-  m_UseLimits: 0
+  m_UseLimits: 1
   m_Limits:
     min: -90
     max: 90
@@ -1890,8 +1890,8 @@ HingeJoint:
     freeSpin: 0
   m_UseLimits: 0
   m_Limits:
-    min: -90
-    max: 90
+    min: -100
+    max: 100
     bounciness: 0
     bounceMinVelocity: 0.2
     contactDistance: 0
@@ -1998,6 +1998,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114404345958453862
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2049,6 +2050,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114844622593280128
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2072,6 +2074,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!124 &124357949528397776
 Behaviour:
   m_ObjectHideFlags: 1
