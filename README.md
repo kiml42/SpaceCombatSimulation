@@ -8,6 +8,7 @@ Controls (such as they are):
 Z - make the ship cam follow a different object.
 
 TODO:
+Prevent friendly fire - all turrets and missiles.
 Engines handle their own fuel. - possibly by accessing the fuel number on the ship or rocket controller.
 Target shooting evolution
 Fighters - using engines as weapons/using guns/both.
