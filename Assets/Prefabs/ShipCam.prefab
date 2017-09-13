@@ -138,8 +138,8 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1452437122874096}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 2000, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4532283485335798}
@@ -311,7 +311,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad345fb19f8229744818c9dfeb8b677a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  SpaceShipTag: SpaceShip
+  SpaceShipTags:
+  - SpaceShip
+  - Projectile
   RotationSpeed: 0.5
   TranslateSpeed: 2
   FollowedObjectTranslateSpeedMultiplier: 0.5
@@ -332,6 +334,9 @@ MonoBehaviour:
   ReticlePrefab: {fileID: 1702426583133082, guid: ae8c5ac63a0d80b4dabf78050dfc5da6,
     type: 2}
   TestImage: {fileID: 0}
+  ReticleTexture: {fileID: 2800000, guid: 14bf342960bd97948b0b45ba35ebf57f, type: 3}
+  HealthFGTexture: {fileID: 2800000, guid: 05d0476b5848f0441a101a2ccfa62101, type: 3}
+  HealthBGTexture: {fileID: 2800000, guid: 21488ce2c0d040c4a94c9999c6beee92, type: 3}
 --- !u!114 &114559164490886276
 MonoBehaviour:
   m_ObjectHideFlags: 1
