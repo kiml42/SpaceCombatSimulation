@@ -12,6 +12,7 @@ TagManager:
   - Team3
   - Team4
   - Team5
+  - Projectile
   layers:
   - Default
   - TransparentFX

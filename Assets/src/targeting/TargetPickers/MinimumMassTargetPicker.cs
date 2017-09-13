@@ -7,29 +7,28 @@ using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
 {
-    class MinimumMassTargetPicker : ITargetPicker
+    /// <summary>
+    /// Target's score is alered by this function:
+    ///     S = S + (mass * MassMultiplier)
+    /// if mass > MinMass:
+    ///     S = S + OverMinMassBonus
+    /// as well.
+    /// </summary>
+    class MassTargetPicker : ITargetPicker
     {
-        private float _minMass;
-        public float AdditionalScore = 10000;
-
-        public MinimumMassTargetPicker(float minMass)
-        {
-            _minMass = minMass;
-        }
+        public float MinMass = 80;
+        public float OverMinMassBonus = 10000;
+        public float MassMultiplier = 1;
 
         public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             return potentialTargets.Select(t => {
-                var rigidbody = t.TargetRigidbody.GetComponent("Rigidbody") as Rigidbody;
-                if (rigidbody == null)
-                {
-                    t.Score -= AdditionalScore;
-                    return t;
-                }
-                if (rigidbody.mass > _minMass)
+                var rigidbody = t.TargetRigidbody;
+                t.Score += MassMultiplier * rigidbody.mass;
+                if (rigidbody.mass > MinMass)
                 {
                     //Debug.Log("Adding score for mass. m=" + rigidbody.mass + ", original score = " + t.Score);
-                    t.Score += AdditionalScore;
+                    t.Score += OverMinMassBonus;
                 }
                 return t;
             });

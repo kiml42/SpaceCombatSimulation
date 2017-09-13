@@ -38,12 +38,12 @@ namespace Assets.src.Evolution
             return true;
         }
 
-        public void RecordMatch(string a, string b, string victor)
+        public void RecordMatch(string a, string b, string victor, bool wentToSuddenDeath)
         {
             Debug.Log("Recording Match: " + a + " vs " + b + " victor: " + victor);
 
-            Individuals[a].RecordMatch(b, victor);
-            Individuals[b].RecordMatch(a, victor);
+            Individuals[a].RecordMatch(b, victor, wentToSuddenDeath);
+            Individuals[b].RecordMatch(a, victor, wentToSuddenDeath);
         }
 
         public int MinimumMatchesPlayed()
@@ -100,13 +100,15 @@ namespace Assets.src.Evolution
             public string Genome;
 
             public int Wins;
+            public int SuddenDeathWins;
             public int Draws;
             public int Loses;
 
-            public int MatchesPlayed { get { return Wins + Draws + Loses; } }
+            public int MatchesPlayed { get { return Wins + SuddenDeathWins + Draws + Loses; } }
 
             public List<string> PreviousCombatants = new List<string>();
             private const int WIN_SCORE = 10;
+            private const int SUDDEN_DEATH_WIN_SCORE = 7;
             private const int DRAW_SCORE = -2;
             private const int LOOSE_SCORE = -10;
 
@@ -120,23 +122,28 @@ namespace Assets.src.Evolution
                 var parts = line.Split(';');
                 Genome = parts[0];
                 Wins = ParsePart(parts, 1);
-                Draws = ParsePart(parts, 2);
-                Loses = ParsePart(parts, 3);
+                SuddenDeathWins = ParsePart(parts, 2);
+                Draws = ParsePart(parts, 3);
+                Loses = ParsePart(parts, 4);
 
-                if (parts.Length > 4)
+                if (parts.Length > 5)
                 {
-                    var competitorsString = parts[4];
+                    var competitorsString = parts[5];
                     PreviousCombatants = competitorsString.Split(',').ToList();
                 }
             }
 
-            public void RecordMatch(string otherCompetitor, string victor)
+            public void RecordMatch(string otherCompetitor, string victor, bool wentToSuddenDeath)
             {
                 PreviousCombatants.Add(otherCompetitor);
 
-                if (Genome == victor)
+                if (Genome == victor && !wentToSuddenDeath)
                 {
                     Wins++;
+                }
+                else if (Genome == victor && wentToSuddenDeath)
+                {
+                    SuddenDeathWins++;
                 }
                 else if (victor == otherCompetitor)
                 {
@@ -162,12 +169,12 @@ namespace Assets.src.Evolution
             public override string ToString()
             {
                 var competitorsString = string.Join(",", PreviousCombatants.ToArray());
-                return Genome + ";" + Wins + ";" + Draws + ";" + Loses + ";" + competitorsString;
+                return Genome + ";" + Wins + ";" + SuddenDeathWins + ";" + Draws + ";" + Loses + ";" + competitorsString;
             }
 
             internal float GetScore()
             {
-                var totalScore = Wins * WIN_SCORE + Draws * DRAW_SCORE + Loses * LOOSE_SCORE;
+                var totalScore = Wins * WIN_SCORE + SuddenDeathWins * SUDDEN_DEATH_WIN_SCORE + Draws * DRAW_SCORE + Loses * LOOSE_SCORE;
                 return totalScore / MatchesPlayed;
             }
         }

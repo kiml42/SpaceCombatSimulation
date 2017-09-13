@@ -15,7 +15,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     /// <summary>
     /// tag of a child object of a fhing to watch or follow.
     /// </summary>
-    public string SpaceShipTag = "SpaceShip";
+    public List<string> SpaceShipTags = new List<string>{ "SpaceShip", "Projectile" };
     
     /// <summary>
     /// Rotation speed multiplier
@@ -105,10 +105,10 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         _rigidbody = GetComponent("Rigidbody") as Rigidbody;
         _detector = new ChildTagTargetDetector
         {
-            Tag = SpaceShipTag
+            Tags = SpaceShipTags
         };
 
-        _tagPicker = new HasTagTargetPicker(SpaceShipTag);
+        _tagPicker = new HasTagTargetPicker(null);
         _currentlyFollowingPicker = new PreviousTargetPicker(this)
         {
             AdditionalScore = AdditionalScoreForSameTagOrCurrentlyFllowed
@@ -128,7 +128,9 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 
         if (MinimumMass > 0)
         {
-            watchPickers.Add(new MinimumMassTargetPicker(MinimumMass));
+            watchPickers.Add(new MassTargetPicker{
+                MinMass = MinimumMass
+            });
         }
 
         _watchPicker = new CombinedTargetPicker(watchPickers);
@@ -145,7 +147,10 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 
         if (MinimumMass > 0)
         {
-            followPickers.Add(new MinimumMassTargetPicker(MinimumMass));
+            followPickers.Add(new MassTargetPicker
+            {
+                MinMass = MinimumMass
+            });
         }
         _followPicker = new CombinedTargetPicker(followPickers);
     }

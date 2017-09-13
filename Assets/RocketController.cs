@@ -19,7 +19,6 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     public float Fuel = 200f;
     public int StartDelay = 10;
     public int TurningStartDelay = 2;
-    public float MinimumMass = 0;    
 
     public float TimeToTargetForDetonation = 0.5f;
     public Rigidbody Shrapnel;
@@ -42,6 +41,17 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     public bool TagShrapnel = false;
     public bool SetEnemyTagOnShrapnel = false;
     public Transform VectorArrow;
+    
+    #region TargetPickerVariables
+    public float PickerDistanceMultiplier = 1;
+    public float PickerInRangeBonus = 0;
+    public float PickerRange = 500;
+    public float PickerAimedAtMultiplier = 100;
+    public float MinimumMass = 0;
+    public float PickerMasMultiplier = 1;
+    public float PickerOverMinMassBonus = 10000;
+    public float PickerApproachWeighting = 20;
+    #endregion
 
     #region EnemyTags
     public void AddEnemyTag(string newTag)
@@ -67,7 +77,6 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     }
 
     public List<string> EnemyTags;
-    public float ApproachTargetPickerWeighting = 20;
 
     /// <summary>
     /// Rocket with detonate after this time.
@@ -91,14 +100,26 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
 
         var pickers = new List<ITargetPicker>
         {
-            new ProximityTargetPicker(_rigidbody),
-            new LookingAtTargetPicker(_rigidbody),
-            new ApproachingTargetPicker(_rigidbody, ApproachTargetPickerWeighting)
+            new ProximityTargetPicker(_rigidbody){
+                DistanceMultiplier = PickerDistanceMultiplier,
+                InRangeBonus = PickerInRangeBonus,
+                Range = PickerRange
+            },
+            new LookingAtTargetPicker(_rigidbody)
+            {
+                Multiplier = PickerAimedAtMultiplier
+            },
+            new ApproachingTargetPicker(_rigidbody, PickerApproachWeighting)
         };
 
-        if(MinimumMass > 0)
+        if (MinimumMass > 0 || PickerMasMultiplier != 0)
         {
-            pickers.Add(new MinimumMassTargetPicker(MinimumMass));
+            pickers.Add(new MassTargetPicker
+            {
+                MinMass = MinimumMass,
+                MassMultiplier = PickerMasMultiplier,
+                OverMinMassBonus = PickerOverMinMassBonus
+            });
         }
 
         _targetPicker = new CombinedTargetPicker(pickers);

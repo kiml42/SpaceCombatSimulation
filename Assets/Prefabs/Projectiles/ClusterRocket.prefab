@@ -521,6 +521,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 16
   ExplosionDamage2: 800
   FramesOfInvulnerability: 3
+  OriginalHealth: 0
 --- !u!114 &114485005418520164
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -553,7 +554,6 @@ MonoBehaviour:
   Fuel: 400
   StartDelay: 5
   TurningStartDelay: 0
-  MinimumMass: 0
   TimeToTargetForDetonation: 0.2
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ExplosionEffect: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
@@ -566,9 +566,16 @@ MonoBehaviour:
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 0
   VectorArrow: {fileID: 4652279574369954}
+  PickerDistanceMultiplier: 2
+  PickerInRangeBonus: 600
+  PickerRange: 100
+  PickerAimedAtMultiplier: 100
+  MinimumMass: 10
+  PickerMasMultiplier: 1
+  PickerOverMinMassBonus: 200
+  PickerApproachWeighting: 100
   EnemyTags:
   - Enemy
-  ApproachTargetPickerWeighting: 20
   TimeToLive: 1000
 --- !u!135 &135228887540377652
 SphereCollider:

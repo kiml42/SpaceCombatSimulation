@@ -40,7 +40,7 @@ GameObject:
   - component: {fileID: 114479078115912028}
   m_Layer: 0
   m_Name: RocketDispenser
-  m_TagString: Team2
+  m_TagString: Team1
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -88,7 +88,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1489824746261682}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1500, y: 0, z: 0}
+  m_LocalPosition: {x: 100, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4429018364606006}
@@ -273,6 +273,7 @@ MonoBehaviour:
   MinStartTime: 5
   EnemyTags:
   - Enemy
+  - Team2
   Velocity: {x: 0, y: 15, z: 0}
   RandomSpeed: 0.5
   LoadTime: 150
@@ -299,6 +300,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!138 &138880674774939810
 FixedJoint:
   m_ObjectHideFlags: 1

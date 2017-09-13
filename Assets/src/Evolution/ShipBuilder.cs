@@ -76,6 +76,7 @@ namespace Assets.src.Evolution
             _g = GetNumberFromGenome(10, 8);
             _b = GetNumberFromGenome(20, 8);
             _shipToBuildOn.SetColor(_r, _g, _b);
+            _shipToBuildOn.name = _genome;
             //Debug.Log("Spawning modules");
             SpawnModules(_shipToBuildOn);
 

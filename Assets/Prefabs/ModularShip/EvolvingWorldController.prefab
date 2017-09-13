@@ -902,7 +902,7 @@ MonoBehaviour:
   DefaultGenome: 2 6
   SuddenDeathDamage: 10
   SuddenDeathObjectReloadTime: 100
-  WinnerPollPeriod: 200
+  WinnerPollPeriod: 300
   _previousWinner: 
 --- !u!114 &114478410833897430
 MonoBehaviour:

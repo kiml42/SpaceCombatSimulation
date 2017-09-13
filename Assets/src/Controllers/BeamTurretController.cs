@@ -19,7 +19,6 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     public float ShootAngle = 5;
     public float BeamForce = 0;
     public float BeamDamage = 10;
-    public float MinimumMass = 0;
     public Transform HitEffect;
 
     public Rigidbody TurnTable;
@@ -73,6 +72,18 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     private ITurretRunner _runner;
     public Color BeamColour;
 
+
+    #region TargetPickerVariables
+    public float PickerDistanceMultiplier = 1;
+    public float PickerInRangeBonus = 0;
+    public float PickerRange = 500;
+    public float PickerAimedAtMultiplier = 100;
+    public float PickerMinimumMass = 0;
+    public float PickerMasMultiplier = 1;
+    public float PickerOverMinMassBonus = 10000;
+    public float PickerApproachWeighting = 20;
+    #endregion
+
     // Use this for initialization
     void Start()
     {
@@ -101,17 +112,30 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
             ProjectileSpeed = 0,
             EnemyTags = EnemyTags
         };
-
+        
         var pickers = new List<ITargetPicker>
         {
             new AboveTurnTableTargetPicker(rigidbody),
-            new ProximityTargetPicker(rigidbody),
+            new ProximityTargetPicker(rigidbody){
+                DistanceMultiplier = PickerDistanceMultiplier,
+                InRangeBonus = PickerInRangeBonus,
+                Range = PickerRange
+            },
             new LookingAtTargetPicker(ElevationHub)
+            {
+                Multiplier = PickerAimedAtMultiplier
+            },
+            new ApproachingTargetPicker(rigidbody, PickerApproachWeighting)
         };
 
-        if (MinimumMass > 0)
+        if (PickerMinimumMass > 0 || PickerMasMultiplier != 0)
         {
-            pickers.Add(new MinimumMassTargetPicker(MinimumMass));
+            pickers.Add(new MassTargetPicker
+            {
+                MinMass = PickerMinimumMass,
+                MassMultiplier = PickerMasMultiplier,
+                OverMinMassBonus = PickerOverMinMassBonus
+            });
         }
 
         _targetPicker = new CombinedTargetPicker(pickers);

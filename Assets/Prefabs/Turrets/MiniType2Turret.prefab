@@ -227,7 +227,7 @@ GameObject:
   - component: {fileID: 114320484002594652}
   m_Layer: 8
   m_Name: MiniType2Turret
-  m_TagString: Untagged
+  m_TagString: Team1
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1312,16 +1312,24 @@ MonoBehaviour:
   LoadTime: 6
   ProjectileSpeed: 800
   ShootAngle: 10
-  RandomSpeed: 0
+  RandomSpeed: 3
   TurnTable: {fileID: 54663574418112234}
   ElevationHub: {fileID: 54647014223265010}
   EmitterParent: {fileID: 4095713925445172}
-  MinimumMass: 0
   TagChildren: 0
   EnemyTags:
   - Enemy
+  - Team2
   SetChildrensEnemy: 0
   RecoilForce: 3
+  PickerDistanceMultiplier: 0.2
+  PickerInRangeBonus: 500
+  PickerRange: 1000
+  PickerAimedAtMultiplier: 100
+  MinimumMass: 10
+  PickerMasMultiplier: 5
+  PickerOverMinMassBonus: 600
+  PickerApproachWeighting: 20
 --- !u!114 &114933443936390894
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -103,7 +103,7 @@ public class EvolutionControler : MonoBehaviour
             var a = _currentGenomes.Values.First();
             var b = _currentGenomes.Values.Skip(1).First();
 
-            _currentGeneration.RecordMatch(a, b, winningGenome);
+            _currentGeneration.RecordMatch(a, b, winningGenome, _inSuddedDeath);
         
             SaveGeneration();
 
@@ -116,6 +116,7 @@ public class EvolutionControler : MonoBehaviour
     private void ActivateSuddenDeath()
     {
         //Debug.Log("Sudden Death!");
+        _inSuddedDeath = true;
         var ships = ListShips();
         foreach (var ship in ships)
         {
@@ -199,6 +200,8 @@ public class EvolutionControler : MonoBehaviour
     }
 
     public string _previousWinner;
+    private bool _inSuddedDeath = false;
+
     /// <summary>
     /// Returns the genome of the victor.
     /// Or null if there's no victor yet.

@@ -480,7 +480,7 @@ GameObject:
   - component: {fileID: 114140716898617586}
   m_Layer: 8
   m_Name: MiniBeamTurret
-  m_TagString: Untagged
+  m_TagString: Team1
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -581,7 +581,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1882431109449294}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4171709090844946}
@@ -624,8 +624,8 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1766433606808900}
   m_LocalRotation: {x: 0.5, y: -0.5, z: -0.5, w: 0.5}
-  m_LocalPosition: {x: 0.2, y: 0.5, z: 1.5}
-  m_LocalScale: {x: 0.25, y: 1, z: 0.25}
+  m_LocalPosition: {x: 0.2, y: 0.5, z: 2.5}
+  m_LocalScale: {x: 0.25, y: 2, z: 0.25}
   m_Children: []
   m_Father: {fileID: 4349780392635840}
   m_RootOrder: 5
@@ -713,8 +713,8 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1030888115456606}
   m_LocalRotation: {x: 0.5, y: -0.5, z: -0.5, w: 0.5}
-  m_LocalPosition: {x: -0.2, y: 0.5, z: 1.5}
-  m_LocalScale: {x: 0.25, y: 1, z: 0.25}
+  m_LocalPosition: {x: -0.2, y: 0.5, z: 2.5}
+  m_LocalScale: {x: 0.25, y: 2, z: 0.25}
   m_Children: []
   m_Father: {fileID: 4349780392635840}
   m_RootOrder: 0
@@ -808,8 +808,8 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1095451343636278}
   m_LocalRotation: {x: 0.5, y: -0.5, z: -0.5, w: 0.5}
-  m_LocalPosition: {x: 0.2, y: -0.5, z: 1.5}
-  m_LocalScale: {x: 0.25, y: 1, z: 0.25}
+  m_LocalPosition: {x: 0.2, y: -0.5, z: 2.5}
+  m_LocalScale: {x: 0.25, y: 2, z: 0.25}
   m_Children: []
   m_Father: {fileID: 4349780392635840}
   m_RootOrder: 6
@@ -861,8 +861,8 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1287825796266960}
   m_LocalRotation: {x: 0.5, y: -0.5, z: -0.5, w: 0.5}
-  m_LocalPosition: {x: -0.2, y: -0.5, z: 1.5}
-  m_LocalScale: {x: 0.25, y: 1, z: 0.25}
+  m_LocalPosition: {x: -0.2, y: -0.5, z: 2.5}
+  m_LocalScale: {x: 0.25, y: 2, z: 0.25}
   m_Children: []
   m_Father: {fileID: 4349780392635840}
   m_RootOrder: 1
@@ -1888,7 +1888,7 @@ HingeJoint:
     targetVelocity: -451.02094
     force: 30
     freeSpin: 0
-  m_UseLimits: 0
+  m_UseLimits: 1
   m_Limits:
     min: -100
     max: 100
@@ -2017,16 +2017,24 @@ MonoBehaviour:
   ShootAngle: 5
   BeamForce: 2
   BeamDamage: 0.03
-  MinimumMass: 0
   HitEffect: {fileID: 4113682021108320, guid: e6ef866ccc6cd2c4fb5f402be7b7a1d0, type: 2}
   TurnTable: {fileID: 54882056251725972}
   ElevationHub: {fileID: 54867097553581106}
   BeamsParent: {fileID: 4174025852522500}
   InitialRadius: 0.15
-  Divergence: 0.00015
+  Divergence: 0.0015
   EnemyTags:
   - Enemy
+  - Team2
   BeamColour: {r: 1, g: 0.06300002, b: 0.06300002, a: 0.678}
+  PickerDistanceMultiplier: 0.2
+  PickerInRangeBonus: 500
+  PickerRange: 2500
+  PickerAimedAtMultiplier: 100
+  PickerMinimumMass: 10
+  PickerMasMultiplier: 5
+  PickerOverMinMassBonus: 500
+  PickerApproachWeighting: 20
 --- !u!114 &114447421175719934
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -168,7 +168,7 @@ GameObject:
   - component: {fileID: 114375893224788504}
   m_Layer: 8
   m_Name: TurretParent
-  m_TagString: Team2
+  m_TagString: Team1
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -228,8 +228,8 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1721119589249582}
-  m_LocalRotation: {x: 0, y: 0, z: 1, w: 0}
-  m_LocalPosition: {x: 0, y: 31.1, z: 0}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -15.32}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4489758503198134}
@@ -245,8 +245,9 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1547687066501114}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.5, z: 0}
+  m_LocalRotation: {x: -0.000005099922, y: 0.0000046503055, z: 0.000000029425728,
+    w: 1}
+  m_LocalPosition: {x: 0.0000000057734155, y: 0.5000071, z: -0.0000038146973}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4735048584263052}
@@ -285,8 +286,8 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1554187838490230}
-  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 3, z: 0}
+  m_LocalRotation: {x: 0.12939848, y: -0.12939204, z: 0.6951663, w: 0.69516736}
+  m_LocalPosition: {x: -0.00000017419461, y: 3.0000052, z: -0.000024795532}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4762531310836884}
@@ -687,7 +688,7 @@ HingeJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0, y: 0.5, z: 0}
+  m_ConnectedAnchor: {x: 0.0000000057734155, y: 0.5000071, z: -0.0000038146973}
   m_UseSpring: 0
   m_Spring:
     spring: 0
@@ -695,7 +696,7 @@ HingeJoint:
     targetPosition: 0
   m_UseMotor: 1
   m_Motor:
-    targetVelocity: -1.2489303
+    targetVelocity: 0
     force: 30
     freeSpin: 0
   m_UseLimits: 0
@@ -721,7 +722,7 @@ HingeJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0, y: 2.5, z: 0}
+  m_ConnectedAnchor: {x: -0.000000032762955, y: 2.499998, z: 0.0000045187535}
   m_UseSpring: 0
   m_Spring:
     spring: 0
@@ -729,7 +730,7 @@ HingeJoint:
     targetPosition: 0
   m_UseMotor: 1
   m_Motor:
-    targetVelocity: 3.2039757
+    targetVelocity: -466.51205
     force: 30
     freeSpin: 0
   m_UseLimits: 0
@@ -820,7 +821,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 10
   Armour: 0
-  Health: 300
+  Health: 299.84113
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
   ExplosionForce2: 200
@@ -829,8 +830,8 @@ MonoBehaviour:
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
-  FramesOfInvulnerability: 1
-  OriginalHealth: 0
+  FramesOfInvulnerability: 0
+  OriginalHealth: 300
 --- !u!114 &114375893224788504
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -853,8 +854,8 @@ MonoBehaviour:
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
-  FramesOfInvulnerability: 1
-  OriginalHealth: 0
+  FramesOfInvulnerability: 0
+  OriginalHealth: 300
 --- !u!114 &114422725068886292
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -876,12 +877,20 @@ MonoBehaviour:
   TurnTable: {fileID: 54079204794469090}
   ElevationHub: {fileID: 54683890212850012}
   EmitterParent: {fileID: 4762531310836884}
-  MinimumMass: 80
   TagChildren: 0
   EnemyTags:
   - Enemy
+  - Team2
   SetChildrensEnemy: 0
   RecoilForce: 400
+  PickerDistanceMultiplier: 1
+  PickerInRangeBonus: 200
+  PickerRange: 300
+  PickerAimedAtMultiplier: 100
+  PickerMinimumMass: 80
+  PickerMasMultiplier: 50
+  PickerOverMinMassBonus: 2000
+  PickerApproachWeighting: 10
 --- !u!114 &114735797348154080
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -895,7 +904,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 10
   Armour: 0
-  Health: 300
+  Health: 299.84113
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
   ExplosionForce2: 200
@@ -904,8 +913,8 @@ MonoBehaviour:
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
-  FramesOfInvulnerability: 1
-  OriginalHealth: 0
+  FramesOfInvulnerability: 0
+  OriginalHealth: 300
 --- !u!124 &124123618135675836
 Behaviour:
   m_ObjectHideFlags: 1
