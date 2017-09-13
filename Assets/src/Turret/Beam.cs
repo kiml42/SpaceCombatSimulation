@@ -20,7 +20,7 @@ namespace Assets.Src.Turret
         public int RemainingOnTime =0;
         public int RemainingOffTime =0;
         public float BeamDamage = 10;
-        public float MaxDistance = 5000;
+        public float MaxDistance = 10000;
         public float InitialRadius = 1;
         public float Divergence = 0.0005f;
 

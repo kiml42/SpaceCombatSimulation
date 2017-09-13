@@ -1,0 +1,151 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>10.0.20506</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{229CE127-35D9-669D-8BB8-727A9EB179EC}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AssemblyName>Assembly-CSharp</AssemblyName>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{E097FAD1-6243-4DAD-9C02-E9B9EFC3FFC1};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile>Unity Subset v3.5</TargetFrameworkProfile>
+    <CompilerResponseFile>
+    </CompilerResponseFile>
+    <UnityProjectType>Game:1</UnityProjectType>
+    <UnityBuildTarget>Android:13</UnityBuildTarget>
+    <UnityVersion>2017.1.0f3</UnityVersion>
+    <RootNamespace>
+    </RootNamespace>
+    <LangVersion>4</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>Temp\UnityVS_bin\Debug\</OutputPath>
+    <IntermediateOutputPath>Temp\UnityVS_obj\Debug\</IntermediateOutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DefineConstants>DEBUG;TRACE;UNITY_5_3_OR_NEWER;UNITY_5_4_OR_NEWER;UNITY_5_5_OR_NEWER;UNITY_5_6_OR_NEWER;UNITY_2017_1_OR_NEWER;UNITY_2017_1_0;UNITY_2017_1;UNITY_2017;UNITY_ANALYTICS;ENABLE_AUDIO;ENABLE_CACHING;ENABLE_CLOTH;ENABLE_GENERICS;ENABLE_PVR_GI;ENABLE_MICROPHONE;ENABLE_MULTIPLE_DISPLAYS;ENABLE_PHYSICS;ENABLE_RUNTIME_NAVMESH_BUILDING;ENABLE_SPRITERENDERER_FLIPPING;ENABLE_SPRITES;ENABLE_TERRAIN;ENABLE_RAKNET;ENABLE_DIRECTOR;ENABLE_UNET;ENABLE_LZMA;ENABLE_UNITYEVENTS;ENABLE_WEBCAM;ENABLE_WWW;ENABLE_CLOUD_SERVICES_COLLAB;ENABLE_CLOUD_SERVICES_COLLAB_SOFTLOCKS;ENABLE_CLOUD_SERVICES_ADS;ENABLE_CLOUD_HUB;ENABLE_CLOUD_PROJECT_ID;ENABLE_CLOUD_SERVICES_USE_WEBREQUEST;ENABLE_CLOUD_SERVICES_UNET;ENABLE_CLOUD_SERVICES_BUILD;ENABLE_CLOUD_LICENSE;ENABLE_WEBSOCKET_CLIENT;ENABLE_DIRECTOR_AUDIO;ENABLE_TIMELINE;ENABLE_EDITOR_METRICS;ENABLE_EDITOR_METRICS_CACHING;ENABLE_NATIVE_ARRAY;ENABLE_SPRITE_MASKING;INCLUDE_DYNAMIC_GI;INCLUDE_GI;ENABLE_MONO_BDWGC;PLATFORM_SUPPORTS_MONO;INCLUDE_PUBNUB;ENABLE_PLAYMODE_TESTS_RUNNER;ENABLE_VIDEO;ENABLE_RMGUI;ENABLE_CUSTOM_RENDER_TEXTURE;ENABLE_STYLE_SHEETS;PLATFORM_ANDROID;UNITY_ANDROID;UNITY_ANDROID_API;ENABLE_SUBSTANCE;ENABLE_EGL;ENABLE_NETWORK;ENABLE_RUNTIME_GI;ENABLE_CRUNCH_TEXTURE_COMPRESSION;ENABLE_UNITYWEBREQUEST;ENABLE_CLOUD_SERVICES;ENABLE_CLOUD_SERVICES_ANALYTICS;ENABLE_CLOUD_SERVICES_PURCHASING;ENABLE_CLOUD_SERVICES_CRASH_REPORTING;PLATFORM_SUPPORTS_ADS_ID;UNITY_CAN_SHOW_SPLASH_SCREEN;ENABLE_VR;ENABLE_UNITYADS_RUNTIME;UNITY_UNITYADS_API;ENABLE_MONO;NET_2_0_SUBSET;ENABLE_PROFILER;DEBUG;TRACE;UNITY_ASSERTIONS;UNITY_EDITOR;UNITY_EDITOR_64;UNITY_EDITOR_WIN;ENABLE_NATIVE_ARRAY_CHECKS;UNITY_TEAM_LICENSE;ENABLE_VSTU;UNITY_HAS_GOOGLEVR</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>Temp\UnityVS_bin\Release\</OutputPath>
+    <IntermediateOutputPath>Temp\UnityVS_obj\Release\</IntermediateOutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DefineConstants>TRACE;UNITY_5_3_OR_NEWER;UNITY_5_4_OR_NEWER;UNITY_5_5_OR_NEWER;UNITY_5_6_OR_NEWER;UNITY_2017_1_OR_NEWER;UNITY_2017_1_0;UNITY_2017_1;UNITY_2017;UNITY_ANALYTICS;ENABLE_AUDIO;ENABLE_CACHING;ENABLE_CLOTH;ENABLE_GENERICS;ENABLE_PVR_GI;ENABLE_MICROPHONE;ENABLE_MULTIPLE_DISPLAYS;ENABLE_PHYSICS;ENABLE_RUNTIME_NAVMESH_BUILDING;ENABLE_SPRITERENDERER_FLIPPING;ENABLE_SPRITES;ENABLE_TERRAIN;ENABLE_RAKNET;ENABLE_DIRECTOR;ENABLE_UNET;ENABLE_LZMA;ENABLE_UNITYEVENTS;ENABLE_WEBCAM;ENABLE_WWW;ENABLE_CLOUD_SERVICES_COLLAB;ENABLE_CLOUD_SERVICES_COLLAB_SOFTLOCKS;ENABLE_CLOUD_SERVICES_ADS;ENABLE_CLOUD_HUB;ENABLE_CLOUD_PROJECT_ID;ENABLE_CLOUD_SERVICES_USE_WEBREQUEST;ENABLE_CLOUD_SERVICES_UNET;ENABLE_CLOUD_SERVICES_BUILD;ENABLE_CLOUD_LICENSE;ENABLE_WEBSOCKET_CLIENT;ENABLE_DIRECTOR_AUDIO;ENABLE_TIMELINE;ENABLE_EDITOR_METRICS;ENABLE_EDITOR_METRICS_CACHING;ENABLE_NATIVE_ARRAY;ENABLE_SPRITE_MASKING;INCLUDE_DYNAMIC_GI;INCLUDE_GI;ENABLE_MONO_BDWGC;PLATFORM_SUPPORTS_MONO;INCLUDE_PUBNUB;ENABLE_PLAYMODE_TESTS_RUNNER;ENABLE_VIDEO;ENABLE_RMGUI;ENABLE_CUSTOM_RENDER_TEXTURE;ENABLE_STYLE_SHEETS;PLATFORM_ANDROID;UNITY_ANDROID;UNITY_ANDROID_API;ENABLE_SUBSTANCE;ENABLE_EGL;ENABLE_NETWORK;ENABLE_RUNTIME_GI;ENABLE_CRUNCH_TEXTURE_COMPRESSION;ENABLE_UNITYWEBREQUEST;ENABLE_CLOUD_SERVICES;ENABLE_CLOUD_SERVICES_ANALYTICS;ENABLE_CLOUD_SERVICES_PURCHASING;ENABLE_CLOUD_SERVICES_CRASH_REPORTING;PLATFORM_SUPPORTS_ADS_ID;UNITY_CAN_SHOW_SPLASH_SCREEN;ENABLE_VR;ENABLE_UNITYADS_RUNTIME;UNITY_UNITYADS_API;ENABLE_MONO;NET_2_0_SUBSET;ENABLE_PROFILER;DEBUG;TRACE;UNITY_ASSERTIONS;UNITY_EDITOR;UNITY_EDITOR_64;UNITY_EDITOR_WIN;ENABLE_NATIVE_ARRAY_CHECKS;UNITY_TEAM_LICENSE;ENABLE_VSTU;UNITY_HAS_GOOGLEVR</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="mscorlib" />
+    <Reference Include="System" />
+    <Reference Include="System.XML" />
+    <Reference Include="System.Core" />
+    <Reference Include="Boo.Lang" />
+    <Reference Include="UnityScript.Lang" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="UnityEditor">
+      <HintPath>Library\UnityAssemblies\UnityEditor.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>Library\UnityAssemblies\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>Library\UnityAssemblies\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.Networking">
+      <HintPath>Library\UnityAssemblies\UnityEngine.Networking.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TestRunner">
+      <HintPath>Library\UnityAssemblies\UnityEngine.TestRunner.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.framework">
+      <HintPath>Library\UnityAssemblies\nunit.framework.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.Timeline">
+      <HintPath>Library\UnityAssemblies\UnityEngine.Timeline.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.Analytics">
+      <HintPath>Library\UnityAssemblies\UnityEngine.Analytics.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.HoloLens">
+      <HintPath>Library\UnityAssemblies\UnityEngine.HoloLens.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Assets\DestroyAfterTimeout.cs" />
+    <Compile Include="Assets\EngineControler.cs" />
+    <Compile Include="Assets\EvolutionArenaControler.cs" />
+    <Compile Include="Assets\EvolutionControler.cs" />
+    <Compile Include="Assets\HealthControler.cs" />
+    <Compile Include="Assets\RocketController.cs" />
+    <Compile Include="Assets\SetColour.cs" />
+    <Compile Include="Assets\ShipCam.cs" />
+    <Compile Include="Assets\ShipTester.cs" />
+    <Compile Include="Assets\SpaceShipControler.cs" />
+    <Compile Include="Assets\src\Controllers\BeamTurretController.cs" />
+    <Compile Include="Assets\src\Controllers\MultiBarelTurretController.cs" />
+    <Compile Include="Assets\src\Controllers\SpawnProjectile.cs" />
+    <Compile Include="Assets\src\Controllers\SpawnTurret.cs" />
+    <Compile Include="Assets\src\Controllers\WorldControler.cs" />
+    <Compile Include="Assets\src\Evolution\ArenaRecord.cs" />
+    <Compile Include="Assets\src\Evolution\Generation.cs" />
+    <Compile Include="Assets\src\Evolution\MatchRecord.cs" />
+    <Compile Include="Assets\src\Evolution\ShipBuilder.cs" />
+    <Compile Include="Assets\src\Evolution\StringMutator.cs" />
+    <Compile Include="Assets\src\interfaces\IDeactivatable.cs" />
+    <Compile Include="Assets\src\interfaces\IDestinationChooser.cs" />
+    <Compile Include="Assets\src\interfaces\IDestroyer.cs" />
+    <Compile Include="Assets\src\interfaces\IDetonator.cs" />
+    <Compile Include="Assets\src\interfaces\IExploder.cs" />
+    <Compile Include="Assets\src\interfaces\IFireControl.cs" />
+    <Compile Include="Assets\src\interfaces\IKnowsCurrentTarget.cs" />
+    <Compile Include="Assets\src\interfaces\IKnowsEnemyTag.cs" />
+    <Compile Include="Assets\src\interfaces\IPilot.cs" />
+    <Compile Include="Assets\src\interfaces\IRocketRunner.cs" />
+    <Compile Include="Assets\src\interfaces\ITargetDetector.cs" />
+    <Compile Include="Assets\src\interfaces\ITargetPicker.cs" />
+    <Compile Include="Assets\src\interfaces\ITorqueApplier.cs" />
+    <Compile Include="Assets\src\interfaces\ITurretController.cs" />
+    <Compile Include="Assets\src\interfaces\ITurretRunner.cs" />
+    <Compile Include="Assets\src\interfaces\ITurretTurner.cs" />
+    <Compile Include="Assets\src\ObjectManagement\TransformExtensions.cs" />
+    <Compile Include="Assets\src\ObjectManagement\WithChildrenDestroyer.cs" />
+    <Compile Include="Assets\src\Pilots\BasePilot.cs" />
+    <Compile Include="Assets\src\Pilots\RocketPilot.cs" />
+    <Compile Include="Assets\src\Pilots\SpaceshipPilot.cs" />
+    <Compile Include="Assets\src\Rocket\MultiTorquerTorqueAplier.cs" />
+    <Compile Include="Assets\src\Rocket\RocketRunner.cs" />
+    <Compile Include="Assets\src\SpaceShip\AverageTargetLocationDestinationChooser.cs" />
+    <Compile Include="Assets\src\SpaceShip\SpaceshipRunner.cs" />
+    <Compile Include="Assets\src\targeting\ChildTagTargetDetector.cs" />
+    <Compile Include="Assets\src\targeting\PotentialTarget.cs" />
+    <Compile Include="Assets\src\targeting\ProximityApproachDetonator.cs" />
+    <Compile Include="Assets\src\targeting\ProximityDetonator.cs" />
+    <Compile Include="Assets\src\targeting\ShrapnelAndDamageExploder.cs" />
+    <Compile Include="Assets\src\targeting\TargetingExtensions.cs" />
+    <Compile Include="Assets\src\targeting\TargetPickers\AboveTurnTableTargetPicker.cs" />
+    <Compile Include="Assets\src\targeting\TargetPickers\ApproachingTargetPicker.cs" />
+    <Compile Include="Assets\src\targeting\TargetPickers\CombinedTargetPicker.cs" />
+    <Compile Include="Assets\src\targeting\TargetPickers\LookingAtTargetPicker.cs" />
+    <Compile Include="Assets\src\targeting\TargetPickers\HasTagTargetPicker.cs" />
+    <Compile Include="Assets\src\targeting\TargetPickers\PreviousTargetPicker.cs" />
+    <Compile Include="Assets\src\targeting\TargetPickers\MinimumMassTargetPicker.cs" />
+    <Compile Include="Assets\src\targeting\TargetPickers\ProximityTargetPicker.cs" />
+    <Compile Include="Assets\src\targeting\MultiTagTargetDetector.cs" />
+    <Compile Include="Assets\src\Turret\Beam.cs" />
+    <Compile Include="Assets\src\Turret\TurretRunner.cs" />
+    <Compile Include="Assets\src\Turret\UnityFireControl.cs" />
+    <Compile Include="Assets\src\Turret\UnityTurretTurner.cs" />
+    <Compile Include="Assets\TorquerController.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="GenerateTargetFrameworkMonikerAttribute" />
+</Project>

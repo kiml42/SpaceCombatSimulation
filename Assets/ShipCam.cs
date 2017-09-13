@@ -177,7 +177,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
             transform.position = Vector3.Slerp(transform.position, _followedTarget.TargetTransform.position, Time.deltaTime * totalTranslateSpeed);
 
             PickTargetToWatch();
-            if (_targetToWatch != null && _followedTarget.TargetTransform != _targetToWatch.TargetTransform)
+            if (_targetToWatch != null && _followedTarget.TargetTransform != _targetToWatch.TargetTransform && _targetToWatch.TargetTransform.IsValid())
             {
                 //Debug.Log("Following " + _followedTarget.TargetTransform.name + ", Watching " + _targetToWatch.TargetTransform.name);
                 //rotate enpty parent

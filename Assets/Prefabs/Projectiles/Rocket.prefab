@@ -533,7 +533,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 100
   MinimumMass: 10
   PickerMasMultiplier: 10
-  PickerOverMinMassBonus: 1500
+  PickerOverMinMassBonus: 2000
   PickerApproachWeighting: 60
   EnemyTags:
   - Enemy
