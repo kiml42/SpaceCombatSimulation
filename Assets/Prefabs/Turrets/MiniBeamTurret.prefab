@@ -2027,13 +2027,13 @@ MonoBehaviour:
   - Enemy
   - Team2
   BeamColour: {r: 1, g: 0.06300002, b: 0.06300002, a: 0.678}
-  PickerDistanceMultiplier: 0.2
-  PickerInRangeBonus: 500
+  PickerDistanceMultiplier: 0.5
+  PickerInRangeBonus: 10000
   PickerRange: 2500
   PickerAimedAtMultiplier: 100
   PickerMinimumMass: 10
-  PickerMasMultiplier: 5
-  PickerOverMinMassBonus: 500
+  PickerMasMultiplier: 30
+  PickerOverMinMassBonus: 5000
   PickerApproachWeighting: 20
 --- !u!114 &114447421175719934
 MonoBehaviour:

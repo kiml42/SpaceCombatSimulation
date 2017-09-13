@@ -146,7 +146,10 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
 
         _detonator = new ProximityApproachDetonator(exploder, _rigidbody, TimeToTargetForDetonation, ShrapnelSpeed);
 
-        _runner = new RocketRunner(_detector, _targetPicker, _pilot, _detonator, this);
+        _runner = new RocketRunner(_detector, _targetPicker, _pilot, _detonator, this)
+        {
+            name = transform.name
+        };
         
         //Debug.Log("starting");
     }

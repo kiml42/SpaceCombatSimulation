@@ -264,7 +264,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83e58fa7165ce5a45928cef3bc7fa9c2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  TagChildren: 0
+  TagChildren: 1
   Projectile: {fileID: 54991379400455944, guid: 8bf03007d4e417c4087307829906f7d6,
     type: 2}
   Emitter: {fileID: 4429018364606006}

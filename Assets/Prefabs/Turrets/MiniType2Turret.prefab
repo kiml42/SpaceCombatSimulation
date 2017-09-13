@@ -1322,12 +1322,12 @@ MonoBehaviour:
   - Team2
   SetChildrensEnemy: 0
   RecoilForce: 3
-  PickerDistanceMultiplier: 0.2
-  PickerInRangeBonus: 500
+  PickerDistanceMultiplier: 0.5
+  PickerInRangeBonus: 10000
   PickerRange: 1000
   PickerAimedAtMultiplier: 100
-  MinimumMass: 10
-  PickerMasMultiplier: 5
+  PickerMinimumMass: 10
+  PickerMasMultiplier: 100
   PickerOverMinMassBonus: 600
   PickerApproachWeighting: 20
 --- !u!114 &114933443936390894

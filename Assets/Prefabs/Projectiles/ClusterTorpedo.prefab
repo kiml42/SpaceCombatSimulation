@@ -466,7 +466,7 @@ MonoBehaviour:
   ShootAngle: 10
   TorqueMultiplier: 8000
   LocationAimWeighting: 0.02
-  Fuel: 850
+  Fuel: 1000
   StartDelay: 80
   TurningStartDelay: 20
   TimeToTargetForDetonation: 3.5
@@ -478,17 +478,17 @@ MonoBehaviour:
   ShrapnelSpeed: 15
   ExplosionDamage: 1000
   ExplosionRadius: 20
-  TagShrapnel: 0
+  TagShrapnel: 1
   SetEnemyTagOnShrapnel: 1
   VectorArrow: {fileID: 4175057121454258}
   PickerDistanceMultiplier: 0.2
-  PickerInRangeBonus: 600
-  PickerRange: 2000
-  PickerAimedAtMultiplier: 100
-  MinimumMass: 80
-  PickerMasMultiplier: 10
-  PickerOverMinMassBonus: 2000
-  PickerApproachWeighting: 1000
+  PickerInRangeBonus: 0
+  PickerRange: 0
+  PickerAimedAtMultiplier: 10
+  MinimumMass: 50
+  PickerMasMultiplier: 100
+  PickerOverMinMassBonus: 10000
+  PickerApproachWeighting: 60
   EnemyTags:
   - Enemy
   TimeToLive: 4000

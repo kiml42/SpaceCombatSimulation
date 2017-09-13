@@ -519,22 +519,22 @@ MonoBehaviour:
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ExplosionEffect: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ShrapnelCount: 12
+  ShrapnelCount: 20
   ExplosionForce: 600
   ShrapnelSpeed: 20
-  ExplosionDamage: 1000
+  ExplosionDamage: 500
   ExplosionRadius: 20
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 0
   VectorArrow: {fileID: 4346285404244058}
-  PickerDistanceMultiplier: 0.5
+  PickerDistanceMultiplier: 0.3
   PickerInRangeBonus: 300
   PickerRange: 1000
   PickerAimedAtMultiplier: 100
   MinimumMass: 10
-  PickerMasMultiplier: 0.5
-  PickerOverMinMassBonus: 500
-  PickerApproachWeighting: 20
+  PickerMasMultiplier: 10
+  PickerOverMinMassBonus: 1500
+  PickerApproachWeighting: 60
   EnemyTags:
   - Enemy
   TimeToLive: 2000

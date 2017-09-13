@@ -138,7 +138,10 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
 
         _fireControl = new UnityFireControl(this, ElevationHub.transform, ShootAngle);
 
-        _runner = new TurretRunner(_detector, _targetPicker, _turner, _fireControl, this);
+        _runner = new TurretRunner(_detector, _targetPicker, _turner, _fireControl, this)
+        {
+            name = transform.name
+        };
     }
 
     // Update is called once per frame
