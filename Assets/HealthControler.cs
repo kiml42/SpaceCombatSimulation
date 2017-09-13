@@ -33,10 +33,12 @@ public class HealthControler : MonoBehaviour
     public int FramesOfInvulnerability = 1;
 
     private Rigidbody _rigidbody;
+    public float OriginalHealth;
 
     // Use this for initialization
     void Start()
     {
+        OriginalHealth = Health;
         _rigidbody = GetComponent<Rigidbody>();
 
         var exploder = new ShrapnelAndDamageExploder(_rigidbody, Shrapnel, DeathExplosion, ShrapnelCount2)
@@ -94,4 +96,21 @@ public class HealthControler : MonoBehaviour
         }
         Health -= damage;
     }
+
+    public bool IsDamaged
+    {
+        get
+        {
+            return Health < (OriginalHealth * 0.99);
+        }
+    }
+
+    /// <summary>
+    /// The proportion of the original health the object still has.
+    /// 0 to 1
+    /// </summary>
+    public float HealthProportion { get
+        {
+            return Health / OriginalHealth;
+        } }
 }

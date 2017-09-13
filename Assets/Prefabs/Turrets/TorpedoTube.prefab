@@ -59,7 +59,7 @@ GameObject:
   - component: {fileID: 136704149641470258}
   m_Layer: 0
   m_Name: TorpedoTube
-  m_TagString: Untagged
+  m_TagString: Team2
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -71,7 +71,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1973778278608190}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -200, y: 0, z: 0}
+  m_LocalPosition: {x: -773, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4447427867770762}
@@ -182,6 +182,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114698199192881328
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -202,6 +203,7 @@ MonoBehaviour:
   MinStartTime: 30
   EnemyTags:
   - Enemy
+  - Team1
   Velocity: {x: 0, y: 0, z: 60}
   RandomSpeed: 1
   LoadTime: 1000

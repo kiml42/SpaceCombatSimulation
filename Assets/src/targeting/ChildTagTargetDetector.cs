@@ -9,7 +9,7 @@ namespace Assets.Src.Targeting
 {
     public class ChildTagTargetDetector : ITargetDetector
     {
-        public string Tag = "SpaceShip";
+        public List<string> Tags = new List<string> { "SpaceShip" };
         public float ProjectileSpeed = 0;
 
         public ChildTagTargetDetector()
@@ -19,11 +19,19 @@ namespace Assets.Src.Targeting
 
         public IEnumerable<PotentialTarget> DetectTargets()
         {
-            var gameObjects = GameObject.FindGameObjectsWithTag(Tag)
-                .Select(o => o.transform.parent)
-                .Where(o => o!= null && o.GetComponent("Rigidbody"));
+            var targets = new List<PotentialTarget>();
+            foreach (var tag in Tags)
+            {
+                var gameObjects = GameObject.FindGameObjectsWithTag(tag)
+                    .Select(o => o.transform.parent)
+                    .Where(o => o.GetComponent("Rigidbody"));
+                //Debug.Log(gameObjects.Count() + " for tag " + tag);
+                targets.AddRange(gameObjects.Select(g => new PotentialTarget(g.transform)));
+            }
 
-            return gameObjects.Select(g => new PotentialTarget(g.transform));
+            //Debug.Log(targets.Count() + " total " );
+
+            return targets;
         }
     }
 }

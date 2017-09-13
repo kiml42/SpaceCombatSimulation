@@ -21,7 +21,7 @@ GameObject:
   - component: {fileID: 4288269177775160}
   m_Layer: 0
   m_Name: ShipTag
-  m_TagString: SpaceShip
+  m_TagString: Projectile
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -542,13 +542,14 @@ MonoBehaviour:
   Health: 25
   DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
-  Shrapnel: {fileID: 0}
-  ShrapnelCount2: 30
-  ShrapnelSpeed2: 20
-  ExplosionDamage2: 100
+  ExplosionForce2: 2000
+  ExplosionRadius2: 90
+  Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
+  ShrapnelCount2: 150
+  ShrapnelSpeed2: 80
+  ExplosionDamage2: 40000
   FramesOfInvulnerability: 3
+  OriginalHealth: 0
 --- !u!114 &114902674925534566
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -563,25 +564,31 @@ MonoBehaviour:
   ShootAngle: 10
   TorqueMultiplier: 10000
   LocationAimWeighting: 0.005
-  Fuel: 8000
+  Fuel: 1500
   StartDelay: 60
   TurningStartDelay: 20
-  MinimumMass: 50
-  TimeToTargetForDetonation: 0.6
+  TimeToTargetForDetonation: 0.3
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ExplosionEffect: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
   ShrapnelCount: 200
   ExplosionForce: 2000
-  ShrapnelSpeed: 120
+  ShrapnelSpeed: 80
   ExplosionDamage: 40000
   ExplosionRadius: 90
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 0
   VectorArrow: {fileID: 4961188936187718}
+  PickerDistanceMultiplier: 0.2
+  PickerInRangeBonus: 0
+  PickerRange: 0
+  PickerAimedAtMultiplier: 10
+  MinimumMass: 50
+  PickerMasMultiplier: 100
+  PickerOverMinMassBonus: 10000
+  PickerApproachWeighting: 60
   EnemyTags:
   - Enemy
-  ApproachTargetPickerWeighting: 20
   TimeToLive: 5000
 --- !u!124 &124272854357906246
 Behaviour:

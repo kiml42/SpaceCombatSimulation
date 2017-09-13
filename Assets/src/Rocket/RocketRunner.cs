@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 namespace Assets.Src.Rocket
 {
@@ -17,6 +18,11 @@ namespace Assets.Src.Rocket
         private string _previousTarget;
         private IDetonator _detonator;
         private readonly IKnowsCurrentTarget _knower;
+
+        /// <summary>
+        /// For debugging;
+        /// </summary>
+        public string name;
 
         public RocketRunner(ITargetDetector targetDetector, ITargetPicker targetPicker, IPilot engineControl, IDetonator detonator, IKnowsCurrentTarget knower)
         {
@@ -36,7 +42,8 @@ namespace Assets.Src.Rocket
             {
                 _knower.CurrentTarget = bestTarget;
             }
-            
+
+            //Debug.Log(name + " is flying at " + bestTarget.TargetTransform);
             _pilot.Fly(bestTarget);
 
             if (_pilot.StartDelay <= 0)

@@ -393,7 +393,7 @@ Rigidbody:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1923394915539256}
   serializedVersion: 2
-  m_Mass: 2
+  m_Mass: 1
   m_Drag: 0
   m_AngularDrag: 30
   m_UseGravity: 0
@@ -514,13 +514,14 @@ MonoBehaviour:
   Health: 3
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce2: 400
-  ExplosionRadius2: 10
+  ExplosionForce2: 300
+  ExplosionRadius2: 15
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 8
-  ShrapnelSpeed2: 20
-  ExplosionDamage2: 400
+  ShrapnelSpeed2: 16
+  ExplosionDamage2: 800
   FramesOfInvulnerability: 3
+  OriginalHealth: 0
 --- !u!114 &114485005418520164
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -553,8 +554,7 @@ MonoBehaviour:
   Fuel: 400
   StartDelay: 5
   TurningStartDelay: 0
-  MinimumMass: 0
-  TimeToTargetForDetonation: 0.3
+  TimeToTargetForDetonation: 0.2
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ExplosionEffect: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
@@ -566,9 +566,16 @@ MonoBehaviour:
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 0
   VectorArrow: {fileID: 4652279574369954}
+  PickerDistanceMultiplier: 2
+  PickerInRangeBonus: 600
+  PickerRange: 100
+  PickerAimedAtMultiplier: 100
+  MinimumMass: 10
+  PickerMasMultiplier: 1
+  PickerOverMinMassBonus: 200
+  PickerApproachWeighting: 100
   EnemyTags:
   - Enemy
-  ApproachTargetPickerWeighting: 20
   TimeToLive: 1000
 --- !u!135 &135228887540377652
 SphereCollider:

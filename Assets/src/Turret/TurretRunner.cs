@@ -16,6 +16,11 @@ namespace Assets.Src.Targeting
         private IFireControl _fireControl;
         private readonly IKnowsCurrentTarget _knower;
 
+        /// <summary>
+        /// For debugging;
+        /// </summary>
+        public string name;
+
         public TurretRunner(ITargetDetector targetDetector, ITargetPicker targetPicker, ITurretTurner turretTurner, IFireControl fireControl, IKnowsCurrentTarget knower)
         {
             _targetDetector = targetDetector;
@@ -37,6 +42,7 @@ namespace Assets.Src.Targeting
 
             if (bestTarget != null)
             {
+                //Debug.Log(name + " is aiming at " + bestTarget.TargetTransform);
                 _turretTurner.TurnToTarget(bestTarget);
                 _fireControl.ShootIfAimed(bestTarget);
             } else

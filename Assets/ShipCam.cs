@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using System.Linq;
 using System;
 using Assets.src.interfaces;
@@ -14,7 +15,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     /// <summary>
     /// tag of a child object of a fhing to watch or follow.
     /// </summary>
-    public string SpaceShipTag = "SpaceShip";
+    public List<string> SpaceShipTags = new List<string>{ "SpaceShip", "Projectile" };
     
     /// <summary>
     /// Rotation speed multiplier
@@ -80,6 +81,10 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     private PreviousTargetPicker _currentlyFollowingPicker;
     public float DefaultFocusDistance = 200;
     public float IdleRotationSpeed = -0.05f;
+    
+    public Texture ReticleTexture;
+    public Texture HealthFGTexture;
+    public Texture HealthBGTexture;
 
     public PotentialTarget CurrentTarget
     {
@@ -99,10 +104,10 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         _rigidbody = GetComponent("Rigidbody") as Rigidbody;
         _detector = new ChildTagTargetDetector
         {
-            Tag = SpaceShipTag
+            Tags = SpaceShipTags
         };
 
-        _tagPicker = new HasTagTargetPicker(SpaceShipTag);
+        _tagPicker = new HasTagTargetPicker(null);
         _currentlyFollowingPicker = new PreviousTargetPicker(this)
         {
             AdditionalScore = AdditionalScoreForSameTagOrCurrentlyFllowed
@@ -122,7 +127,9 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 
         if (MinimumMass > 0)
         {
-            watchPickers.Add(new MinimumMassTargetPicker(MinimumMass));
+            watchPickers.Add(new MassTargetPicker{
+                MinMass = MinimumMass
+            });
         }
 
         _watchPicker = new CombinedTargetPicker(watchPickers);
@@ -139,13 +146,17 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 
         if (MinimumMass > 0)
         {
-            followPickers.Add(new MinimumMassTargetPicker(MinimumMass));
+            followPickers.Add(new MassTargetPicker
+            {
+                MinMass = MinimumMass
+            });
         }
         _followPicker = new CombinedTargetPicker(followPickers);
     }
 	
 	// Update is called once per frame
 	void Update () {
+
         if (Input.GetKeyUp(KeyCode.Z))
         {
             PickRandomToFollow();
@@ -200,6 +211,54 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         var camPosition = Camera.transform.localPosition;
         camPosition.z = setBack;
         Camera.transform.localPosition = camPosition;
+
+
+        //DrawHealthBars();
+    }
+
+    public void OnGUI()
+    {
+        DrawHealthBars();
+    }
+
+    private void DrawHealthBars()
+    {
+        var targets = _detector.DetectTargets();
+
+        foreach (var target in targets)
+        {
+            DrawSingleLable(target);
+        }
+    }
+
+    private void DrawSingleLable(PotentialTarget target)
+    {
+        // Find the 2D position of the object using the main camera
+        Vector3 boxPosition = Camera.main.WorldToScreenPoint(target.TargetTransform.position);
+        var distance = Vector3.Distance(transform.position, target.TargetTransform.position);
+
+        // "Flip" it into screen coordinates
+        boxPosition.y = Screen.height - boxPosition.y;
+
+        //Draw the distance from the followed object to this object
+        GUI.Box(new Rect(boxPosition.x - 20, boxPosition.y + 25, 40, 40), Math.Round(distance).ToString());
+
+        var rect = new Rect(boxPosition.x - 50, boxPosition.y - 50, 100, 100);
+        if (ReticleTexture != null)
+            GUI.DrawTexture(rect, ReticleTexture);
+
+        var healthControler = target.TargetTransform.GetComponent("HealthControler") as HealthControler;
+        if(healthControler != null && healthControler.IsDamaged)
+        {
+            if(HealthBGTexture != null)
+                GUI.DrawTexture(rect, HealthBGTexture);
+            if(HealthFGTexture != null)
+            {
+                rect.width *= healthControler.HealthProportion;
+                GUI.DrawTexture(rect, HealthFGTexture);
+            }
+            //Debug.Log(boxPosition.z + "--x--" + boxPosition.x + "----y--" + boxPosition.y);
+        }
     }
 
     private void IdleRotation()

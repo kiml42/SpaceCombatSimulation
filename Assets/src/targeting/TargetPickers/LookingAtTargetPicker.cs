@@ -10,6 +10,7 @@ namespace Assets.Src.Targeting.TargetPickers
     class LookingAtTargetPicker : ITargetPicker
     {
         private Rigidbody _aimingObject;
+        public float Multiplier = 100;
 
         /// <summary>
         /// used for velocity correction.
@@ -36,7 +37,7 @@ namespace Assets.Src.Targeting.TargetPickers
 
             var angle = Math.Atan2(distanceToSide, distanceInFront);
             
-            var newScore = 100 * (1 - (Math.Abs(angle)/ Math.PI));
+            var newScore = Multiplier * (1 - (Math.Abs(angle)/ Math.PI));
             target.Score = target.Score + (float) newScore;
             return target;
         }

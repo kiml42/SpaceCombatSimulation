@@ -24,7 +24,6 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
     private List<Transform> _emitters;
     private int _nextEmitterToShoot = 0;
     private bool _active = true;
-    public float MinimumMass = 0;
     
     public bool TagChildren = false;
 
@@ -72,6 +71,19 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
     private ITurretRunner _runner;
 
     public bool SetChildrensEnemy = false;
+    public float RecoilForce = 0;
+
+
+    #region TargetPickerVariables
+    public float PickerDistanceMultiplier = 1;
+    public float PickerInRangeBonus = 0;
+    public float PickerRange = 500;
+    public float PickerAimedAtMultiplier = 100;
+    public float PickerMinimumMass = 10;
+    public float PickerMasMultiplier = 1;
+    public float PickerOverMinMassBonus = 10000;
+    public float PickerApproachWeighting = 20;
+    #endregion
 
 
     // Use this for initialization
@@ -97,16 +109,27 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
         var pickers = new List<ITargetPicker>
         {
             new AboveTurnTableTargetPicker(rigidbody),
-            new ProximityTargetPicker(rigidbody),
+            new ProximityTargetPicker(rigidbody){
+                DistanceMultiplier = PickerDistanceMultiplier,
+                InRangeBonus = PickerInRangeBonus,
+                Range = PickerRange
+            },
             new LookingAtTargetPicker(ElevationHub)
             {
-                ProjectileSpeed = ProjectileSpeed
-            }
+                ProjectileSpeed = ProjectileSpeed,
+                Multiplier = PickerAimedAtMultiplier
+            },
+            new ApproachingTargetPicker(rigidbody, PickerApproachWeighting)
         };
 
-        if (MinimumMass > 0)
+        if (PickerMinimumMass > 0 || PickerMasMultiplier != 0)
         {
-            pickers.Add(new MinimumMassTargetPicker(MinimumMass));
+            pickers.Add(new MassTargetPicker
+            {
+                MinMass = PickerMinimumMass,
+                MassMultiplier = PickerMasMultiplier,
+                OverMinMassBonus = PickerOverMinMassBonus
+            });
         }
 
         _targetPicker = new CombinedTargetPicker(pickers);
@@ -115,7 +138,10 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
 
         _fireControl = new UnityFireControl(this, ElevationHub.transform, ShootAngle);
 
-        _runner = new TurretRunner(_detector, _targetPicker, _turner, _fireControl, this);
+        _runner = new TurretRunner(_detector, _targetPicker, _turner, _fireControl, this)
+        {
+            name = transform.name
+        };
     }
 
     // Update is called once per frame
@@ -140,7 +166,7 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
                     (RandomSpeed * UnityEngine.Random.insideUnitSphere);
 
                 _reload = LoadTime;
-                emitter.parent.parent.GetComponent<Rigidbody>().AddForce(100 * (-emitter.forward));
+                ElevationHub.AddForceAtPosition(RecoilForce * (-emitter.forward), emitter.position, ForceMode.Impulse);
 
                 if (SetChildrensEnemy) { projectile.SendMessage("SetEnemyTags", EnemyTags); }
                 if (TagChildren) { projectile.tag = tag; }

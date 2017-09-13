@@ -871,13 +871,13 @@ MonoBehaviour:
   CurrentGenerationFilePath: ./tmp/evolvingShips/currentGeneration.txt
   GenerationFilePathBase: ./tmp/evolvingShips/Generations/G-
   SpaceShipTag: SpaceShip
-  GenerationSize: 15
+  GenerationSize: 12
   MinMatchesPerIndividual: 3
-  WinnersFromEachGeneration: 5
+  WinnersFromEachGeneration: 4
   MatchTimeout: 15000
   Mutations: 3
   MaxTurrets: 15
-  MaxModules: 15
+  MaxModules: 20
   AllowedCharacters: ' 0123456789  '
   MaxMutationLength: 5
   MaxShootAngle: 180
@@ -887,7 +887,7 @@ MonoBehaviour:
   MaxLocationTollerance: 2000
   MaxVelociyTollerance: 100
   MaxAngularDragForTorquers: 5
-  GenomeLength: 50
+  GenomeLength: 100
   Modules:
   - {fileID: 54570345499317062, guid: b6e297582f25e22439032bba93cfe02a, type: 2}
   - {fileID: 54566524727042172, guid: 8629b68d84c101a458451c49aaba15dc, type: 2}
@@ -902,7 +902,7 @@ MonoBehaviour:
   DefaultGenome: 2 6
   SuddenDeathDamage: 10
   SuddenDeathObjectReloadTime: 100
-  WinnerPollPeriod: 200
+  WinnerPollPeriod: 300
   _previousWinner: 
 --- !u!114 &114478410833897430
 MonoBehaviour:

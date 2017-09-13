@@ -288,7 +288,7 @@ Prefab:
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: f3b4cb1aa8e6d4d4d9102e7e65998466, type: 2}
   m_IsPrefabParent: 0
---- !u!1001 &836391406
+--- !u!1001 &798340242
 Prefab:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -327,6 +327,21 @@ Prefab:
       propertyPath: m_RootOrder
       value: 4
       objectReference: {fileID: 0}
+    - target: {fileID: 114217615723430598, guid: 4b859b23543de9c4fa4e8d2403b1dcd6,
+        type: 2}
+      propertyPath: ReticleTexture
+      value: 
+      objectReference: {fileID: 10906, guid: 0000000000000000f000000000000000, type: 0}
+    - target: {fileID: 114217615723430598, guid: 4b859b23543de9c4fa4e8d2403b1dcd6,
+        type: 2}
+      propertyPath: HealthFGTexture
+      value: 
+      objectReference: {fileID: 10912, guid: 0000000000000000f000000000000000, type: 0}
+    - target: {fileID: 114217615723430598, guid: 4b859b23543de9c4fa4e8d2403b1dcd6,
+        type: 2}
+      propertyPath: HealthBGTexture
+      value: 
+      objectReference: {fileID: 10912, guid: 0000000000000000f000000000000000, type: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 4b859b23543de9c4fa4e8d2403b1dcd6, type: 2}
   m_IsPrefabParent: 0

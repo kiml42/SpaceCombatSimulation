@@ -2127,6 +2127,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114570703834796536
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2150,6 +2151,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114722879647281656
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2173,6 +2175,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114801988552399958
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2191,7 +2194,6 @@ MonoBehaviour:
   ShootAngle: 5
   BeamForce: 4
   BeamDamage: 3
-  MinimumMass: 80
   HitEffect: {fileID: 4113682021108320, guid: e6ef866ccc6cd2c4fb5f402be7b7a1d0, type: 2}
   TurnTable: {fileID: 54504467688077488}
   ElevationHub: {fileID: 54685917326791822}
@@ -2201,6 +2203,14 @@ MonoBehaviour:
   EnemyTags:
   - Enemy
   BeamColour: {r: 0.065999985, g: 1, b: 0.63013583, a: 0.772}
+  PickerDistanceMultiplier: 1
+  PickerInRangeBonus: 50
+  PickerRange: 500
+  PickerAimedAtMultiplier: 600
+  PickerMinimumMass: 80
+  PickerMasMultiplier: 50
+  PickerOverMinMassBonus: 10000
+  PickerApproachWeighting: 10
 --- !u!124 &124147918906010302
 Behaviour:
   m_ObjectHideFlags: 1

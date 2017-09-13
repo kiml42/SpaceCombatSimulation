@@ -45,6 +45,13 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     private string InactiveTag = "Untagged";
     public Transform VectorArrow;
 
+    #region TargetPickerVariables
+    public float PickerDistanceMultiplier = 1;
+    public float MinimumMass = 80;
+    public float PickerMasMultiplier = 1;
+    public float PickerOverMinMassBonus = 10000;
+    #endregion
+
     #region EnemyTags
     public void AddEnemyTag(string newTag)
     {
@@ -69,7 +76,6 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     }
 
     public List<string> EnemyTags;
-    public float MinimumMass = 80;
     #endregion
 
     #region knowsCurrentTarget
@@ -113,16 +119,22 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
             MinTangentialSpeed = MinTangentialVelocity,
             RadialSpeedThreshold = RadialSpeedThreshold
         };
-        
 
         var pickers = new List<ITargetPicker>
         {
-            new ProximityTargetPicker(_thisSpaceship)
+            new ProximityTargetPicker(_thisSpaceship){
+                DistanceMultiplier = PickerDistanceMultiplier
+            }
         };
 
-        if (MinimumMass > 0)
+        if (MinimumMass > 0 || PickerMasMultiplier != 0)
         {
-            pickers.Add(new MinimumMassTargetPicker(MinimumMass));
+            pickers.Add(new MassTargetPicker
+            {
+                MinMass = MinimumMass,
+                MassMultiplier = PickerMasMultiplier,
+                OverMinMassBonus = PickerOverMinMassBonus
+            });
         }
 
         var picker = new CombinedTargetPicker(pickers);

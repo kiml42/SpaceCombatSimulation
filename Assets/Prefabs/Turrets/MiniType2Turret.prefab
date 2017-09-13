@@ -227,7 +227,7 @@ GameObject:
   - component: {fileID: 114320484002594652}
   m_Layer: 8
   m_Name: MiniType2Turret
-  m_TagString: Untagged
+  m_TagString: Team1
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -362,8 +362,8 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1951523427257924}
   m_LocalRotation: {x: 0.5, y: -0.5, z: -0.5, w: 0.5}
-  m_LocalPosition: {x: 0.2, y: -0.5, z: 1.5}
-  m_LocalScale: {x: 0.25, y: 1, z: 0.25}
+  m_LocalPosition: {x: 0.2, y: -0.5, z: 2.5}
+  m_LocalScale: {x: 0.25, y: 2, z: 0.25}
   m_Children: []
   m_Father: {fileID: 4985851871091600}
   m_RootOrder: 6
@@ -388,7 +388,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1981278653712676}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 1.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4901461670534548}
@@ -500,8 +500,8 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1494600163332824}
   m_LocalRotation: {x: 0.5, y: -0.5, z: -0.5, w: 0.5}
-  m_LocalPosition: {x: 0.2, y: 0.5, z: 1.5}
-  m_LocalScale: {x: 0.25, y: 1, z: 0.25}
+  m_LocalPosition: {x: 0.2, y: 0.5, z: 2.5}
+  m_LocalScale: {x: 0.25, y: 2, z: 0.25}
   m_Children: []
   m_Father: {fileID: 4985851871091600}
   m_RootOrder: 5
@@ -526,8 +526,8 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1767941246930234}
   m_LocalRotation: {x: 0.5, y: -0.5, z: -0.5, w: 0.5}
-  m_LocalPosition: {x: -0.2, y: 0.5, z: 1.5}
-  m_LocalScale: {x: 0.25, y: 1, z: 0.25}
+  m_LocalPosition: {x: -0.2, y: 0.5, z: 2.5}
+  m_LocalScale: {x: 0.25, y: 2, z: 0.25}
   m_Children: []
   m_Father: {fileID: 4985851871091600}
   m_RootOrder: 0
@@ -628,8 +628,8 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1362050051057860}
   m_LocalRotation: {x: 0.5, y: -0.5, z: -0.5, w: 0.5}
-  m_LocalPosition: {x: -0.2, y: -0.5, z: 1.5}
-  m_LocalScale: {x: 0.25, y: 1, z: 0.25}
+  m_LocalPosition: {x: -0.2, y: -0.5, z: 2.5}
+  m_LocalScale: {x: 0.25, y: 2, z: 0.25}
   m_Children: []
   m_Father: {fileID: 4985851871091600}
   m_RootOrder: 1
@@ -1160,7 +1160,7 @@ HingeJoint:
     targetVelocity: -451.02094
     force: 30
     freeSpin: 0
-  m_UseLimits: 1
+  m_UseLimits: 0
   m_Limits:
     min: -100
     max: 100
@@ -1270,6 +1270,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114320484002594652
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1293,6 +1294,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114399403742783732
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1310,14 +1312,24 @@ MonoBehaviour:
   LoadTime: 6
   ProjectileSpeed: 800
   ShootAngle: 10
-  RandomSpeed: 0
+  RandomSpeed: 3
   TurnTable: {fileID: 54663574418112234}
   ElevationHub: {fileID: 54647014223265010}
   EmitterParent: {fileID: 4095713925445172}
-  MinimumMass: 0
   TagChildren: 0
-  EnemyTags: []
+  EnemyTags:
+  - Enemy
+  - Team2
   SetChildrensEnemy: 0
+  RecoilForce: 3
+  PickerDistanceMultiplier: 0.5
+  PickerInRangeBonus: 10000
+  PickerRange: 1000
+  PickerAimedAtMultiplier: 100
+  PickerMinimumMass: 10
+  PickerMasMultiplier: 100
+  PickerOverMinMassBonus: 600
+  PickerApproachWeighting: 20
 --- !u!114 &114933443936390894
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1341,6 +1353,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!124 &124263177976741210
 Behaviour:
   m_ObjectHideFlags: 1
