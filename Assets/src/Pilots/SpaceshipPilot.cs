@@ -112,7 +112,7 @@ namespace Assets.src.Pilots
 
                 if (VectorArrow != null)
                 {
-                    if (!completelyHappy)
+                    if (!completelyHappy && turningVector.magnitude > 0)
                     {
                         VectorArrow.rotation = Quaternion.LookRotation(turningVector);
                         VectorArrow.localScale = Vector3.one;

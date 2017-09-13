@@ -1,12 +1,14 @@
 # SpaceCombatSimulation
 A Unity 3D project to simulate combat between space ships with vaguely realistic physics - Space ships are not aeroplanes!
 
+Contribution:
+Anyone is welcome to contribute to this project,. I would prefer that any changes are put on a pull request for me before being merged onto master.
+
 TODO:
 Engines handle their own fuel. - possibly by accessing the fuel number on the ship or rocket controller.
 Target shooting evolution
 Fighters - using engines as weapons/using guns/both.
 projectiles apply force to cancel lateral V. Target set on projectile when fired.
-Health bars
 Pass damage up option for health controller
 
 shipCam:
