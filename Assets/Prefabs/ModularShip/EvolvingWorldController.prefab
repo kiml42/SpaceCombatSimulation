@@ -878,7 +878,7 @@ MonoBehaviour:
   Mutations: 3
   MaxTurrets: 15
   MaxModules: 20
-  AllowedCharacters: ' 0123456789  '
+  AllowedCharacters: ' 01223456789  '
   MaxMutationLength: 5
   MaxShootAngle: 180
   MaxTorqueMultiplier: 60000
@@ -899,7 +899,7 @@ MonoBehaviour:
   - {fileID: 54431323037331960, guid: 7a6fbabb0bc555d40912d26e6bc4beb5, type: 2}
   - {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
   - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
-  DefaultGenome: 2 6
+  DefaultGenome: 
   SuddenDeathDamage: 10
   SuddenDeathObjectReloadTime: 100
   WinnerPollPeriod: 300

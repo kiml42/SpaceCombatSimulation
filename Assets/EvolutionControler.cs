@@ -291,14 +291,31 @@ public class EvolutionControler : MonoBehaviour
         //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
         while (genration.CountIndividuals() < GenerationSize)
         {
+
             var baseGenome = baseGenomes[i];
             var mutant = _mutator.Mutate(baseGenome);
-            genration.AddGenome(mutant);
+            if (IsValidGenome(mutant))
+            {
+                Debug.Log(mutant + " Son of " + baseGenome + " is born");
+                genration.AddGenome(mutant);
+                //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
+            } else
+            {
+                Debug.Log(mutant + " Son of " + baseGenome + " is too rubbish to be born");
+            }
             i++;
             i = i % baseGenomes.Count;
-            //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
         }
         //Debug.Log("mutant Generation: " + genration);
         return genration;
+    }
+    
+    private bool IsValidGenome(string baseGenome)
+    {
+        var start = baseGenome.Substring(0, 6).Trim();
+        Debug.Log("'" + start + "'");
+        var valid = !string.IsNullOrEmpty(start);
+        Debug.Log("'" + baseGenome + "' valid? " + valid);
+        return valid;
     }
 }
