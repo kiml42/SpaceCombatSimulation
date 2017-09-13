@@ -4,6 +4,9 @@ A Unity 3D project to simulate combat between space ships with vaguely realistic
 Contribution:
 Anyone is welcome to contribute to this project,. I would prefer that any changes are put on a pull request for me before being merged onto master.
 
+Controls (such as they are):
+Z - make the ship cam follow a different object.
+
 TODO:
 Engines handle their own fuel. - possibly by accessing the fuel number on the ship or rocket controller.
 Target shooting evolution

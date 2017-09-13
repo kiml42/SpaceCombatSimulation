@@ -871,7 +871,7 @@ MonoBehaviour:
   CurrentGenerationFilePath: ./tmp/evolvingShips/currentGeneration.txt
   GenerationFilePathBase: ./tmp/evolvingShips/Generations/G-
   SpaceShipTag: SpaceShip
-  GenerationSize: 12
+  GenerationSize: 11
   MinMatchesPerIndividual: 3
   WinnersFromEachGeneration: 4
   MatchTimeout: 15000
