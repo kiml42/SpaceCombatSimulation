@@ -19,6 +19,10 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
     public int MinStartTime = 30;
     private bool _active = true;
 
+    public int BurstCount = 1;
+    private int _projectilesThisBurst = 0;
+    public int BurstInterval = 1;
+
 
     #region EnemyTags
     public void AddEnemyTag(string newTag)
@@ -96,7 +100,11 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
                 projectile.SendMessage("SetEnemyTags", EnemyTags);
                 if (TagChildren) { projectile.tag = tag; }
 
-                _reload = LoadTime;
+                _projectilesThisBurst++;
+                var stilBursting = _projectilesThisBurst < BurstCount;
+                _projectilesThisBurst = stilBursting ? _projectilesThisBurst : 0;
+
+                _reload = stilBursting ? BurstInterval :LoadTime;
             }
             else
             {
