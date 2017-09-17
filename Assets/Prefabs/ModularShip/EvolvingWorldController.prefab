@@ -900,8 +900,8 @@ MonoBehaviour:
   - {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
   - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
   DefaultGenome: 
-  SuddenDeathDamage: 10
-  SuddenDeathReloadTime: 100
+  SuddenDeathDamage: 60
+  SuddenDeathReloadTime: 200
   WinnerPollPeriod: 300
   _previousWinner: 
 --- !u!114 &114478410833897430
