@@ -320,9 +320,9 @@ public class EvolutionControler : MonoBehaviour
     private bool IsValidGenome(string baseGenome)
     {
         var start = baseGenome.Substring(0, 6).Trim();
-        Debug.Log("'" + start + "'");
+        //Debug.Log("'" + start + "'");
         var valid = !string.IsNullOrEmpty(start);
-        Debug.Log("'" + baseGenome + "' valid? " + valid);
+        //Debug.Log("'" + baseGenome + "' valid? " + valid);
         return valid;
     }
 }
