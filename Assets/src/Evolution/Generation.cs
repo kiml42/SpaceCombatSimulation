@@ -38,12 +38,14 @@ namespace Assets.src.Evolution
             return true;
         }
 
-        public void RecordMatch(string a, string b, string victor, bool wentToSuddenDeath)
+        public void RecordMatch(string a, string b, string victor, int winScore, int losScore, int drawScore)
         {
             Debug.Log("Recording Match: " + a + " vs " + b + " victor: " + victor);
 
-            Individuals[a].RecordMatch(b, victor, wentToSuddenDeath);
-            Individuals[b].RecordMatch(a, victor, wentToSuddenDeath);
+            Individuals[a].RecordMatch(b, victor,  winScore,  losScore,  drawScore);
+            Individuals[b].RecordMatch(a, victor,  winScore,  losScore,  drawScore);
+
+            Individuals = Individuals.OrderByDescending(i => i.Value.Score).ToDictionary(i => i.Key, i=> i.Value);
         }
 
         public int MinimumMatchesPlayed()
@@ -53,7 +55,7 @@ namespace Assets.src.Evolution
 
         public IEnumerable<string> PickWinners(int WinnersCount)
         {
-            return Individuals.Values.OrderBy(i => _rng.NextDouble()).OrderByDescending(i => i.GetScore()).Take(WinnersCount).Select(i => i.Genome);
+            return Individuals.Values.OrderByDescending(i => i.Score).ThenBy(i => _rng.NextDouble()).Take(WinnersCount).Select(i => i.Genome);
         }
 
         /// <summary>
@@ -99,16 +101,21 @@ namespace Assets.src.Evolution
         {
             public string Genome;
 
+            public int Score;
+            private const int SCORE_INDEX = 1;
             public int Wins;
-            public int SuddenDeathWins;
+            private const int WINS_INDEX = 2;
             public int Draws;
+            private const int DRAWS_INDEX = 3;
             public int Loses;
+            private const int LOSES_INDEX = 4;
 
-            public int MatchesPlayed { get { return Wins + SuddenDeathWins + Draws + Loses; } }
+            public int MatchesPlayed { get { return Wins + Draws + Loses; } }
 
             public List<string> PreviousCombatants = new List<string>();
+            private const int PC_INDEX = 5;
+
             private const int WIN_SCORE = 10;
-            private const int SUDDEN_DEATH_WIN_SCORE = 7;
             private const int DRAW_SCORE = -2;
             private const int LOOSE_SCORE = -10;
 
@@ -121,37 +128,36 @@ namespace Assets.src.Evolution
             {
                 var parts = line.Split(';');
                 Genome = parts[0];
-                Wins = ParsePart(parts, 1);
-                SuddenDeathWins = ParsePart(parts, 2);
-                Draws = ParsePart(parts, 3);
-                Loses = ParsePart(parts, 4);
+                Score = ParsePart(parts, SCORE_INDEX);
+                Wins = ParsePart(parts, WINS_INDEX);
+                Draws = ParsePart(parts, DRAWS_INDEX);
+                Loses = ParsePart(parts, LOSES_INDEX);
 
-                if (parts.Length > 5)
+                if (parts.Length > PC_INDEX+1)
                 {
-                    var competitorsString = parts[5];
+                    var competitorsString = parts[PC_INDEX];
                     PreviousCombatants = competitorsString.Split(',').ToList();
                 }
             }
 
-            public void RecordMatch(string otherCompetitor, string victor, bool wentToSuddenDeath)
+            public void RecordMatch(string otherCompetitor, string victor, int winScore, int losScore, int drawScore)
             {
                 PreviousCombatants.Add(otherCompetitor);
 
-                if (Genome == victor && !wentToSuddenDeath)
+                if (Genome == victor)
                 {
                     Wins++;
-                }
-                else if (Genome == victor && wentToSuddenDeath)
-                {
-                    SuddenDeathWins++;
+                    Score += winScore;
                 }
                 else if (victor == otherCompetitor)
                 {
                     Loses++;
+                    Score += losScore;
                 }
                 else
                 {
                     Draws++;
+                    Score += drawScore;
                 }
             }
 
@@ -169,13 +175,7 @@ namespace Assets.src.Evolution
             public override string ToString()
             {
                 var competitorsString = string.Join(",", PreviousCombatants.ToArray());
-                return Genome + ";" + Wins + ";" + SuddenDeathWins + ";" + Draws + ";" + Loses + ";" + competitorsString;
-            }
-
-            internal float GetScore()
-            {
-                var totalScore = Wins * WIN_SCORE + SuddenDeathWins * SUDDEN_DEATH_WIN_SCORE + Draws * DRAW_SCORE + Loses * LOOSE_SCORE;
-                return totalScore / MatchesPlayed;
+                return Genome + ";" + Score + ";" + Wins + ";" + Draws + ";" + Loses + ";" + competitorsString;
             }
         }
     }

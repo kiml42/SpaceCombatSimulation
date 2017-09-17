@@ -63,7 +63,11 @@ public class EvolutionControler : MonoBehaviour
     private Generation _currentGeneration;
 
     public float SuddenDeathDamage = 10;
-    public int SuddenDeathObjectReloadTime = 200;
+    /// <summary>
+    /// Time for repeating the sudden death damage.
+    /// Also used as the minimum score for winning a match.
+    /// </summary>
+    public int SuddenDeathReloadTime = 200;
 
     public int WinnerPollPeriod = 100;
     private int _winnerPollCountdown = 0;
@@ -103,7 +107,12 @@ public class EvolutionControler : MonoBehaviour
             var a = _currentGenomes.Values.First();
             var b = _currentGenomes.Values.Skip(1).First();
 
-            _currentGeneration.RecordMatch(a, b, winningGenome, _inSuddedDeath);
+            var winScore = Math.Max(MatchTimeout, SuddenDeathReloadTime);
+
+            int losScore = -SuddenDeathReloadTime;
+            int drawScore = -SuddenDeathReloadTime/2;
+
+            _currentGeneration.RecordMatch(a, b, winningGenome, winScore, losScore, drawScore);
         
             SaveGeneration();
 
@@ -116,13 +125,12 @@ public class EvolutionControler : MonoBehaviour
     private void ActivateSuddenDeath()
     {
         //Debug.Log("Sudden Death!");
-        _inSuddedDeath = true;
         var ships = ListShips();
         foreach (var ship in ships)
         {
             ship.transform.SendMessage("ApplyDamage", SuddenDeathDamage, SendMessageOptions.DontRequireReceiver);
         }
-        MatchTimeout = SuddenDeathObjectReloadTime;
+        MatchTimeout = SuddenDeathReloadTime;
     }
 
     private void PrepareForNextMatch()
@@ -200,7 +208,6 @@ public class EvolutionControler : MonoBehaviour
     }
 
     public string _previousWinner;
-    private bool _inSuddedDeath = false;
 
     /// <summary>
     /// Returns the genome of the victor.
