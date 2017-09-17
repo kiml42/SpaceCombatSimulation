@@ -296,12 +296,12 @@ public class EvolutionControler : MonoBehaviour
             var mutant = _mutator.Mutate(baseGenome);
             if (IsValidGenome(mutant))
             {
-                Debug.Log(mutant + " Son of " + baseGenome + " is born");
+                Debug.Log(mutant + " spawn of " + baseGenome + " is born");
                 genration.AddGenome(mutant);
                 //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
             } else
             {
-                Debug.Log(mutant + " Son of " + baseGenome + " is too rubbish to be born");
+                Debug.Log(mutant + " spawn of " + baseGenome + " is too rubbish to be born");
             }
             i++;
             i = i % baseGenomes.Count;
