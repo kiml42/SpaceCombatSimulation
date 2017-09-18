@@ -45,7 +45,7 @@ namespace Assets.src.Evolution
             Individuals.First(i => i.Genome == a).RecordMatch(b, victor,  winScore,  losScore,  drawScore);
             Individuals.First(i => i.Genome == b).RecordMatch(a, victor,  winScore,  losScore,  drawScore);
 
-            Individuals = Individuals.OrderByDescending(i => i.Score).ToList();
+            Individuals = Individuals.OrderByDescending(i => i.AverageScore).ToList();
         }
 
         public int MinimumMatchesPlayed()
@@ -55,7 +55,7 @@ namespace Assets.src.Evolution
 
         public IEnumerable<string> PickWinners(int WinnersCount)
         {
-            return Individuals.OrderByDescending(i => i.Score).ThenBy(i => _rng.NextDouble()).Take(WinnersCount).Select(i => i.Genome);
+            return Individuals.OrderByDescending(i => i.AverageScore).ThenBy(i => _rng.NextDouble()).Take(WinnersCount).Select(i => i.Genome);
         }
 
         /// <summary>
@@ -118,6 +118,12 @@ namespace Assets.src.Evolution
             private const int WIN_SCORE = 10;
             private const int DRAW_SCORE = -2;
             private const int LOOSE_SCORE = -10;
+
+            public float AverageScore { get
+                {
+                    return Score / MatchesPlayed;
+                }
+            }
 
             /// <summary>
             /// Construct from a generation line.
