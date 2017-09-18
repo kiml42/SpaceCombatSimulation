@@ -10,17 +10,17 @@ namespace Assets.src.Evolution
     public class Generation
     {
         private System.Random _rng = new System.Random();
-        private Dictionary<string, IndividualInGeneration> Individuals;
+        private List<IndividualInGeneration> Individuals;
 
         public Generation()
         {
             //Debug.Log("Default Constructor");
-            Individuals = new Dictionary<string, IndividualInGeneration>();
+            Individuals = new List<IndividualInGeneration>();
         }
 
         public Generation(string[] lines)
         {
-            Individuals = lines.Select(l => new IndividualInGeneration(l)).ToDictionary(i => i.Genome, i => i);
+            Individuals = lines.Select(l => new IndividualInGeneration(l)).ToList();
         }
 
         public int CountIndividuals()
@@ -30,32 +30,32 @@ namespace Assets.src.Evolution
 
         public bool AddGenome(string genome)
         {
-            if (Individuals.ContainsKey(genome))
+            if (Individuals.Any(i => i.Genome == genome))
             {
                 return false;
             }
-            Individuals.Add(genome, new IndividualInGeneration(genome));
+            Individuals.Add(new IndividualInGeneration(genome));
             return true;
         }
 
         public void RecordMatch(string a, string b, string victor, int winScore, int losScore, int drawScore)
         {
-            Debug.Log("Recording Match: " + a + " vs " + b + " victor: " + victor);
+            //Debug.Log("Recording Match: " + a + " vs " + b + " victor: " + victor);
 
-            Individuals[a].RecordMatch(b, victor,  winScore,  losScore,  drawScore);
-            Individuals[b].RecordMatch(a, victor,  winScore,  losScore,  drawScore);
+            Individuals.First(i => i.Genome == a).RecordMatch(b, victor,  winScore,  losScore,  drawScore);
+            Individuals.First(i => i.Genome == b).RecordMatch(a, victor,  winScore,  losScore,  drawScore);
 
-            Individuals = Individuals.OrderByDescending(i => i.Value.Score).ToDictionary(i => i.Key, i=> i.Value);
+            Individuals = Individuals.OrderByDescending(i => i.Score).ToList();
         }
 
         public int MinimumMatchesPlayed()
         {
-            return Individuals.Values.Min(i => i.MatchesPlayed);
+            return Individuals.Min(i => i.MatchesPlayed);
         }
 
         public IEnumerable<string> PickWinners(int WinnersCount)
         {
-            return Individuals.Values.OrderByDescending(i => i.Score).ThenBy(i => _rng.NextDouble()).Take(WinnersCount).Select(i => i.Genome);
+            return Individuals.OrderByDescending(i => i.Score).ThenBy(i => _rng.NextDouble()).Take(WinnersCount).Select(i => i.Genome);
         }
 
         /// <summary>
@@ -70,14 +70,14 @@ namespace Assets.src.Evolution
 
             if (!string.IsNullOrEmpty(genomeToCompeteWith))
             {
-                validCompetitors = Individuals.Values
+                validCompetitors = Individuals
                     .Where(i => i.Genome != genomeToCompeteWith && !i.PreviousCombatants.Contains(genomeToCompeteWith))
                     .OrderBy(i => i.MatchesPlayed)
                     .ThenBy(i => _rng.NextDouble())
                     .ToList();
             } else
             {
-                validCompetitors = Individuals.Values
+                validCompetitors = Individuals
                     .OrderBy(i => i.MatchesPlayed)
                     .ThenBy(i => _rng.NextDouble())
                     .ToList();
@@ -94,7 +94,7 @@ namespace Assets.src.Evolution
 
         public override string ToString()
         {
-            return string.Join(Environment.NewLine, Individuals.Values.Select(i => i.ToString()).ToArray());
+            return string.Join(Environment.NewLine, Individuals.Select(i => i.ToString()).ToArray());
         }
 
         internal class IndividualInGeneration
@@ -144,22 +144,31 @@ namespace Assets.src.Evolution
 
             public void RecordMatch(string otherCompetitor, string victor, int winScore, int losScore, int drawScore)
             {
-                PreviousCombatants.Add(otherCompetitor);
-
-                if (Genome == victor)
-                {
-                    Wins++;
-                    Score += winScore;
-                }
-                else if (victor == otherCompetitor)
-                {
-                    Loses++;
-                    Score += losScore;
-                }
-                else
+                if (string.IsNullOrEmpty(victor))
                 {
                     Draws++;
                     Score += drawScore;
+                }
+                else
+                {
+                    PreviousCombatants.Add(otherCompetitor);
+
+                    if (Genome == victor)
+                    {
+                        Wins++;
+                        Score += winScore;
+                    }
+                    else if (victor == otherCompetitor)
+                    {
+                        Loses++;
+                        Score += losScore;
+                    }
+                    else
+                    {
+                        Debug.LogWarning("Victor '" + victor + "' was not '" + Genome + "' or '" + otherCompetitor + "'");
+                        Draws++;
+                        Score += drawScore;
+                    }
                 }
             }
 
@@ -177,7 +186,23 @@ namespace Assets.src.Evolution
             public override string ToString()
             {
                 var competitorsString = string.Join(",", PreviousCombatants.ToArray());
-                return Genome + ";" + Score + ";" + Wins + ";" + Draws + ";" + Loses + ";" + competitorsString;
+                var strings = new List<string>
+                {
+                    Genome,
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                };
+                
+                strings[SCORE_INDEX] = Score.ToString();
+                strings[WINS_INDEX] = Wins.ToString();
+                strings[DRAWS_INDEX] = Draws.ToString();
+                strings[LOSES_INDEX] = Loses.ToString();
+                strings[PC_INDEX] = competitorsString.ToString();
+
+                return string.Join(";", strings.ToArray());
             }
         }
     }
