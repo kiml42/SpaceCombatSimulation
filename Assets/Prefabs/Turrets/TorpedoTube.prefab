@@ -180,7 +180,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 100
+  ExplosionDamage2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
 --- !u!114 &114698199192881328
@@ -201,6 +201,8 @@ MonoBehaviour:
   OnlyWithTargets: 1
   RandomStartTime: 500
   MinStartTime: 30
+  BurstCount: 1
+  BurstInterval: 1
   EnemyTags:
   - Enemy
   - Team1

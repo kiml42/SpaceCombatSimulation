@@ -855,8 +855,9 @@ MonoBehaviour:
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 100
+  ExplosionDamage2: 20
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114477379494518138
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -883,8 +884,11 @@ MonoBehaviour:
   Torquer: {fileID: 54288706851983332}
   AngularDragForTorquers: 1
   VectorArrow: {fileID: 4644144218678962}
-  EnemyTags: []
+  PickerDistanceMultiplier: 1
   MinimumMass: 80
+  PickerMasMultiplier: 1
+  PickerOverMinMassBonus: 10000
+  EnemyTags: []
 --- !u!124 &124958046666288838
 Behaviour:
   m_ObjectHideFlags: 1

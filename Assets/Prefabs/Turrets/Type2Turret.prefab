@@ -826,8 +826,9 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 100
+  ExplosionDamage2: 20
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114714754333530302
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -849,10 +850,18 @@ MonoBehaviour:
   TurnTable: {fileID: 54160784929646596}
   ElevationHub: {fileID: 54136877300926014}
   EmitterParent: {fileID: 4882124771513916}
-  MinimumMass: 0
   TagChildren: 0
   EnemyTags: []
   SetChildrensEnemy: 0
+  RecoilForce: 0
+  PickerDistanceMultiplier: 1
+  PickerInRangeBonus: 0
+  PickerRange: 500
+  PickerAimedAtMultiplier: 100
+  PickerMinimumMass: 10
+  PickerMasMultiplier: 1
+  PickerOverMinMassBonus: 10000
+  PickerApproachWeighting: 20
 --- !u!114 &114792225503145664
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -873,8 +882,9 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 100
+  ExplosionDamage2: 20
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114904066030491806
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -895,8 +905,9 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 100
+  ExplosionDamage2: 20
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!124 &124455642874896686
 Behaviour:
   m_ObjectHideFlags: 1
