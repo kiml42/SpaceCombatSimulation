@@ -68,6 +68,8 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     /// </summary>
     public float NearlyAimedAngle = 3;
 
+    public float MinShowDistanceDistance = 20;
+
     private Rigidbody _rigidbody;
     private ITargetDetector _detector;
 
@@ -235,29 +237,35 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     {
         // Find the 2D position of the object using the main camera
         Vector3 boxPosition = Camera.main.WorldToScreenPoint(target.TargetTransform.position);
-        var distance = Vector3.Distance(transform.position, target.TargetTransform.position);
-
-        // "Flip" it into screen coordinates
-        boxPosition.y = Screen.height - boxPosition.y;
-
-        //Draw the distance from the followed object to this object
-        GUI.Box(new Rect(boxPosition.x - 20, boxPosition.y + 25, 40, 40), Math.Round(distance).ToString());
-
-        var rect = new Rect(boxPosition.x - 50, boxPosition.y - 50, 100, 100);
-        if (ReticleTexture != null)
-            GUI.DrawTexture(rect, ReticleTexture);
-
-        var healthControler = target.TargetTransform.GetComponent("HealthControler") as HealthControler;
-        if(healthControler != null && healthControler.IsDamaged)
+        if (boxPosition.z > 0)
         {
-            if(HealthBGTexture != null)
-                GUI.DrawTexture(rect, HealthBGTexture);
-            if(HealthFGTexture != null)
+            var distance = Vector3.Distance(transform.position, target.TargetTransform.position);
+
+            // "Flip" it into screen coordinates
+            boxPosition.y = Screen.height - boxPosition.y;
+
+            //Draw the distance from the followed object to this object
+            if (distance > MinShowDistanceDistance)
             {
-                rect.width *= healthControler.HealthProportion;
-                GUI.DrawTexture(rect, HealthFGTexture);
+                GUI.Box(new Rect(boxPosition.x - 20, boxPosition.y + 25, 40, 40), Math.Round(distance).ToString());
             }
-            //Debug.Log(boxPosition.z + "--x--" + boxPosition.x + "----y--" + boxPosition.y);
+
+            var rect = new Rect(boxPosition.x - 50, boxPosition.y - 50, 100, 100);
+            if (ReticleTexture != null)
+                GUI.DrawTexture(rect, ReticleTexture);
+
+            var healthControler = target.TargetTransform.GetComponent("HealthControler") as HealthControler;
+            if (healthControler != null && healthControler.IsDamaged)
+            {
+                if (HealthBGTexture != null)
+                    GUI.DrawTexture(rect, HealthBGTexture);
+                if (HealthFGTexture != null)
+                {
+                    rect.width *= healthControler.HealthProportion;
+                    GUI.DrawTexture(rect, HealthFGTexture);
+                }
+                //Debug.Log(boxPosition.z + "--x--" + boxPosition.x + "----y--" + boxPosition.y);
+            }
         }
     }
 
