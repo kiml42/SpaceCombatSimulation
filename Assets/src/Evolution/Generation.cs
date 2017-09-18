@@ -121,7 +121,13 @@ namespace Assets.src.Evolution
 
             public float AverageScore { get
                 {
-                    return Score / MatchesPlayed;
+                    if(MatchesPlayed > 0)
+                    {
+                        return Score / MatchesPlayed;
+                    } else
+                    {
+                        return 0;
+                    }
                 }
             }
 
