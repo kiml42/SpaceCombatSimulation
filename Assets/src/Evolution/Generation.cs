@@ -127,14 +127,16 @@ namespace Assets.src.Evolution
             public IndividualInGeneration(string line)
             {
                 var parts = line.Split(';');
+                //Debug.Log(parts.Length);
                 Genome = parts[0];
                 Score = ParsePart(parts, SCORE_INDEX);
                 Wins = ParsePart(parts, WINS_INDEX);
                 Draws = ParsePart(parts, DRAWS_INDEX);
                 Loses = ParsePart(parts, LOSES_INDEX);
 
-                if (parts.Length > PC_INDEX+1)
+                if (parts.Length > PC_INDEX)
                 {
+                    //Debug.Log(parts[PC_INDEX]);
                     var competitorsString = parts[PC_INDEX];
                     PreviousCombatants = competitorsString.Split(',').ToList();
                 }
