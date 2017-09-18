@@ -8,8 +8,8 @@ Controls (such as they are):
 Z - make the ship cam follow a different object.
 
 TODO:
-More points for quick victory - winner gets points for the remaining match timeout counter, loser gets fixed -ve score.
-    In sudden death, winner gets fixed minimum score.
+Draws should be penalised less if the ships killed each other simultaneously. probably give them the win score - some constant.
+Colour projectiles the same as teh ship.
 Prevent friendly fire - all turrets and missiles.
 Engines handle their own fuel. - possibly by accessing the fuel number on the ship or rocket controller.
 Target shooting evolution

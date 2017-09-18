@@ -40,8 +40,8 @@ namespace Assets.src.targeting
             foreach (var explodedThing in gameObjects)
             {
                 explodedThing.AddExplosionForce(ExplosionForce, _exploder.position, 100);
-                var distance = (explodedThing.position - _exploder.position).magnitude;
-                var damage = ExplosionBaseDamage / (distance * distance);
+                var distance = Vector3.Distance(explodedThing.position, _exploder.position);
+                var damage = distance > 1 ? ExplosionBaseDamage / (distance * distance) : ExplosionBaseDamage;
                 explodedThing.transform.SendMessage("ApplyDamage", damage, SendMessageOptions.DontRequireReceiver);
             }
 
