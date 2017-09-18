@@ -83,6 +83,7 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
     public float PickerMasMultiplier = 1;
     public float PickerOverMinMassBonus = 10000;
     public float PickerApproachWeighting = 20;
+    private Renderer _renderer;
     #endregion
 
 
@@ -142,6 +143,8 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
         {
             name = transform.name
         };
+
+        _renderer = transform.GetComponent("Renderer") as Renderer;
     }
 
     // Update is called once per frame
@@ -170,6 +173,12 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
 
                 if (SetChildrensEnemy) { projectile.SendMessage("SetEnemyTags", EnemyTags); }
                 if (TagChildren) { projectile.tag = tag; }
+
+                if (_renderer != null)
+                {
+                    //Debug.Log("has renderer");
+                    projectile.transform.SetColor(_renderer.material.color);
+                }
             }
             else
             {

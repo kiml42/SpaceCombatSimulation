@@ -1,4 +1,5 @@
 ﻿using Assets.Src.Interfaces;
+using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
 using System;
 using System.Collections;
@@ -57,6 +58,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
     public int LoadTime = 200;
 
     private string InactiveTag = "Untagged";
+    private Renderer _renderer;
 
     // Use this for initialization
     void Start()
@@ -71,6 +73,8 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
                 EnemyTags = EnemyTags
             };
         }
+
+        _renderer = transform.GetComponent("Renderer") as Renderer;
 
         _spawner = GetComponent("Rigidbody") as Rigidbody;
     }
@@ -99,6 +103,12 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
 
                 projectile.SendMessage("SetEnemyTags", EnemyTags);
                 if (TagChildren) { projectile.tag = tag; }
+
+                if (_renderer != null)
+                {
+                    //Debug.Log("has renderer");
+                    projectile.transform.SetColor(_renderer.material.color);
+                }
 
                 _projectilesThisBurst++;
                 var stilBursting = _projectilesThisBurst < BurstCount;

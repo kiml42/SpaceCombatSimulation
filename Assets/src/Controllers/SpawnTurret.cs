@@ -1,4 +1,5 @@
 ﻿using Assets.Src.Interfaces;
+using Assets.Src.ObjectManagement;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,11 +39,21 @@ public class SpawnTurret : MonoBehaviour, IKnowsEnemyTagAndtag
 
 	// Use this for initialization
 	void Start () {
+
         var turret = Instantiate(TurretParent, transform.position, transform.rotation, transform);
         turret.parent = transform.parent;
+
         turret.GetComponent<FixedJoint>().connectedBody = transform.parent.GetComponent<Rigidbody>();
         turret.SendMessage("SetEnemyTags", EnemyTags);
         if (TagChildren) { turret.tag = tag; }
+
+        var renderer = transform.parent.GetComponent("Renderer") as Renderer;
+        if (renderer != null)
+        {
+            //Debug.Log("has renderer");
+            turret.transform.SetColor(renderer.material.color);
+        }
+
         Destroy(gameObject);
     }
 	
