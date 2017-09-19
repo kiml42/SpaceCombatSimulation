@@ -1,5 +1,4 @@
-﻿using Assets.src.interfaces;
-using Assets.Src.Interfaces;
+﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
 using Assets.Src.Targeting.TargetPickers;

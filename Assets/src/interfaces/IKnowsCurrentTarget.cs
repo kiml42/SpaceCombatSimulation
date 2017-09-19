@@ -1,7 +1,7 @@
 ﻿using Assets.Src.Targeting;
 using UnityEngine;
 
-namespace Assets.src.interfaces
+namespace Assets.Src.Interfaces
 {
     public interface IKnowsCurrentTarget
     {

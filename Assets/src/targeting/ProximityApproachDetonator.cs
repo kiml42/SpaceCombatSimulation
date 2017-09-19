@@ -2,8 +2,6 @@
 using Assets.Src.Interfaces;
 using UnityEngine;
 using System.Linq;
-using Assets.src.interfaces;
-using Assets.src.targeting;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Turret;
 

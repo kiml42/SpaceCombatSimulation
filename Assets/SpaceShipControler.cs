@@ -9,8 +9,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using System.Linq;
-using Assets.src.Pilots;
-using Assets.src.interfaces;
+using Assets.Src.Pilots;
 
 public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatable, IKnowsCurrentTarget
 {

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace Assets.src.Pilots
+namespace Assets.Src.Pilots
 {
     public class SpaceshipPilot : BasePilot
     {

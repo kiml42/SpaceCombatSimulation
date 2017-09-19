@@ -4,7 +4,7 @@ using System.Linq;
 using Assets.Src.Targeting;
 using UnityEngine;
 
-namespace Assets.src.Pilots
+namespace Assets.Src.Pilots
 {
     class RocketPilot : BasePilot
     {

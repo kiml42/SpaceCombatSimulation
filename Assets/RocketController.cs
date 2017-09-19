@@ -2,14 +2,11 @@
 using Assets.Src.Rocket;
 using Assets.Src.Targeting;
 using Assets.Src.Targeting.TargetPickers;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System;
-using Assets.src.targeting;
 using System.Linq;
-using Assets.src.Pilots;
-using Assets.src.interfaces;
+using Assets.Src.Pilots;
+using Assets.Src.ObjectManagement;
 
 public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurrentTarget
 {

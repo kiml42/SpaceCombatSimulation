@@ -1,11 +1,11 @@
-﻿using Assets.src.interfaces;
+﻿using Assets.Src.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
 
-namespace Assets.src.targeting
+namespace Assets.Src.ObjectManagement
 {
     public class ShrapnelAndDamageExploder : IExploder
     {

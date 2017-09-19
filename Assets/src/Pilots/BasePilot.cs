@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 
-namespace Assets.src.Pilots
+namespace Assets.Src.Pilots
 {
     public abstract class BasePilot : IPilot
     {
