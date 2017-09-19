@@ -156,6 +156,8 @@ namespace Assets.src.Evolution
 
             public void RecordMatch(string otherCompetitor, string victor, int winScore, int losScore, int drawScore)
             {
+                PreviousCombatants.Add(otherCompetitor);
+
                 if (string.IsNullOrEmpty(victor))
                 {
                     Draws++;
@@ -163,8 +165,6 @@ namespace Assets.src.Evolution
                 }
                 else
                 {
-                    PreviousCombatants.Add(otherCompetitor);
-
                     if (Genome == victor)
                     {
                         Wins++;
