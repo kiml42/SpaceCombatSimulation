@@ -197,7 +197,7 @@ namespace Assets.src.Evolution
 
             public override string ToString()
             {
-                var competitorsString = string.Join(",", PreviousCombatants.ToArray());
+                var competitorsString = string.Join(",", PreviousCombatants.Where(s => !string.IsNullOrEmpty(s)).ToArray());
                 var strings = new List<string>
                 {
                     Genome,
