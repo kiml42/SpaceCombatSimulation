@@ -14,8 +14,10 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     /// <summary>
     /// tag of a child object of a fhing to watch or follow.
     /// </summary>
-    public List<string> SpaceShipTags = new List<string>{ "SpaceShip", "Projectile" };
-    
+    public List<string> MainTags = new List<string>{ "SpaceShip"};
+    public List<string> SecondaryTags = new List<string>{ "Projectile" };
+    private List<string> _tags = new List<string> { "SpaceShip", "Projectile" };
+
     /// <summary>
     /// Rotation speed multiplier
     /// </summary>
@@ -87,6 +89,8 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     public Texture HealthFGTexture;
     public Texture HealthBGTexture;
 
+    public ReticleState ShowReticles = ReticleState.ALL;
+
     public PotentialTarget CurrentTarget
     {
         get
@@ -105,7 +109,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         _rigidbody = GetComponent("Rigidbody") as Rigidbody;
         _detector = new ChildTagTargetDetector
         {
-            Tags = SpaceShipTags
+            Tags = _tags
         };
 
         _tagPicker = new HasTagTargetPicker(null);
@@ -158,6 +162,10 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 	// Update is called once per frame
 	void Update () {
 
+        if (Input.GetKeyUp(KeyCode.R))
+        {
+            CycleReticleState();
+        }
         if (Input.GetKeyUp(KeyCode.Z))
         {
             PickRandomToFollow();
@@ -224,11 +232,14 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 
     private void DrawHealthBars()
     {
-        var targets = _detector.DetectTargets();
-
-        foreach (var target in targets)
+        if(ShowReticles != ReticleState.NONE)
         {
-            DrawSingleLable(target);
+            var targets = _detector.DetectTargets();
+
+            foreach (var target in targets)
+            {
+                DrawSingleLable(target);
+            }
         }
     }
 
@@ -331,5 +342,39 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     public static float Clamp(float value, float min, float max)
     {
         return (value < min) ? min : (value > max) ? max : value;
+    }
+    
+    private void CycleReticleState()
+    {
+        switch (ShowReticles)
+        {
+            case ReticleState.NONE:
+                ShowReticles = ReticleState.ALL;
+                _tags = new List<string>();
+                _tags.AddRange(MainTags);
+                _tags.AddRange(SecondaryTags);
+                _detector = new ChildTagTargetDetector
+                {
+                    Tags = _tags
+                };
+                break;
+            case ReticleState.ALL:
+                ShowReticles = ReticleState.MAIN;
+                _tags = MainTags;
+                _detector = new ChildTagTargetDetector
+                {
+                    Tags = _tags
+                };
+                break;
+            case ReticleState.MAIN:
+                ShowReticles = ReticleState.NONE;
+                break;
+        }
+        Debug.Log(ShowReticles);
+    }
+
+    public enum ReticleState
+    {
+        NONE,MAIN,ALL
     }
 }

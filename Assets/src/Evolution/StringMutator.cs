@@ -23,7 +23,7 @@ namespace Assets.src.Evolution
                 {
                     //no mutation
                 }
-                else if (n < 0.4)
+                else if (n < 0.3)
                 {
                     //insert
                     baseGenome = InsertionMutation(baseGenome);
@@ -33,7 +33,7 @@ namespace Assets.src.Evolution
                     //Replace one character
                     baseGenome = CharReplaceMutation(baseGenome);
                 }
-                else if (n < 0.8)
+                else if (n < 0.7)
                 {
                     //delete
                     baseGenome = DeletionMutation(baseGenome);

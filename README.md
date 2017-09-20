@@ -6,6 +6,7 @@ Anyone is welcome to contribute to this project,. I would prefer that any change
 
 Controls (such as they are):
 Z - make the ship cam follow a different object.
+R - cycle reticle state
 
 TODO:
 Draws should be penalised less if the ships killed each other simultaneously. probably give them the win score - some constant.
@@ -18,7 +19,7 @@ projectiles apply force to cancel lateral V. Target set on projectile when fired
 Pass damage up option for health controller
 
 shipCam:
-    Ensure object is in front of camera to render reticle.  
+    Ensure object is in front of camera to render reticle.
     Make shipcam move faster if the followed object is faster or add a set chunk to the location based on the followed object's speed. - done
         Aternatively make the shipcam have a rigidbody and actually accelerate up to the speed of the tracked object.   - may still want to do this for continuing to track dead things.
     only watch torpedoes instead of other ships when they are close.

@@ -214,7 +214,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 14000
+  far clip plane: 50000
   field of view: 60
   orthographic: 0
   orthographic size: 5
@@ -328,12 +328,9 @@ MonoBehaviour:
   AdditionalScoreForSameTagOrCurrentlyFllowed: -100000
   _focusDistance: 3000
   NearlyAimedAngle: 3
+  MinShowDistanceDistance: 20
   DefaultFocusDistance: 500
   IdleRotationSpeed: -0.2
-  Canvas: {fileID: 223384815311491308}
-  ReticlePrefab: {fileID: 1702426583133082, guid: ae8c5ac63a0d80b4dabf78050dfc5da6,
-    type: 2}
-  TestImage: {fileID: 0}
   ReticleTexture: {fileID: 2800000, guid: 14bf342960bd97948b0b45ba35ebf57f, type: 3}
   HealthFGTexture: {fileID: 2800000, guid: 05d0476b5848f0441a101a2ccfa62101, type: 3}
   HealthBGTexture: {fileID: 2800000, guid: 21488ce2c0d040c4a94c9999c6beee92, type: 3}
