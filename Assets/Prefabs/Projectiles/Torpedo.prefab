@@ -834,7 +834,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1467482982973368}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -4.4}
+  m_LocalPosition: {x: 0, y: 0, z: -4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4912300414633036}
@@ -874,7 +874,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1821733991163330}
   m_LocalRotation: {x: 0, y: 0, z: 1, w: 0}
-  m_LocalPosition: {x: 0, y: 0, z: -4.4}
+  m_LocalPosition: {x: 0, y: 0, z: -4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4823131383601914}
@@ -888,7 +888,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1062997562689200}
   m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: -4.4}
+  m_LocalPosition: {x: 0, y: 0, z: -4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4269195522573422}
@@ -902,7 +902,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1426804054001380}
   m_LocalRotation: {x: 0, y: 0, z: -0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: -4.4}
+  m_LocalPosition: {x: 0, y: 0, z: -4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4198318812015968}
@@ -2717,8 +2717,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1000, z: 0}
   ForceApplier: {fileID: 54946477878249090}
-  IsOn: 0
   Plume: {fileID: 198134475753680740}
+  FireAngle: 10
+  UseAsTorquer: 1
+  UseAsTranslator: 1
+  _torqueVector: {x: 0, y: 0, z: 0}
 --- !u!114 &114205327518238268
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2732,8 +2735,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1000, z: 0}
   ForceApplier: {fileID: 54608508979459868}
-  IsOn: 0
   Plume: {fileID: 198569108970823734}
+  FireAngle: 10
+  UseAsTorquer: 1
+  UseAsTranslator: 1
+  _torqueVector: {x: 0, y: 0, z: 0}
 --- !u!114 &114313381351599964
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2771,8 +2777,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1300, z: 0}
   ForceApplier: {fileID: 54777632800728330}
-  IsOn: 1
   Plume: {fileID: 198110838053188260}
+  FireAngle: 10
+  UseAsTorquer: 0
+  UseAsTranslator: 1
+  _torqueVector: {x: 0, y: 0, z: 0}
 --- !u!114 &114403901151772014
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2786,8 +2795,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1000, z: 0}
   ForceApplier: {fileID: 54523633740283928}
-  IsOn: 0
   Plume: {fileID: 198164070875419518}
+  FireAngle: 10
+  UseAsTorquer: 1
+  UseAsTranslator: 1
+  _torqueVector: {x: 0, y: 0, z: 0}
 --- !u!114 &114565309780138334
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2801,8 +2813,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1000, z: 0}
   ForceApplier: {fileID: 54000304772487538}
-  IsOn: 0
   Plume: {fileID: 198892520938477230}
+  FireAngle: 10
+  UseAsTorquer: 1
+  UseAsTranslator: 1
+  _torqueVector: {x: 0, y: 0, z: 0}
 --- !u!114 &114621118424015926
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2816,8 +2831,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1000, z: 0}
   ForceApplier: {fileID: 54866261443377734}
-  IsOn: 0
   Plume: {fileID: 198523780556023134}
+  FireAngle: 10
+  UseAsTorquer: 1
+  UseAsTranslator: 1
+  _torqueVector: {x: 0, y: 0, z: 0}
 --- !u!114 &114802830622270584
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2831,8 +2849,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1000, z: 0}
   ForceApplier: {fileID: 54124096280392848}
-  IsOn: 0
   Plume: {fileID: 198854087139118114}
+  FireAngle: 10
+  UseAsTorquer: 1
+  UseAsTranslator: 1
+  _torqueVector: {x: 0, y: 0, z: 0}
 --- !u!114 &114829031791185520
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2846,8 +2867,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1000, z: 0}
   ForceApplier: {fileID: 54035027201126790}
-  IsOn: 0
   Plume: {fileID: 198935905387125504}
+  FireAngle: 10
+  UseAsTorquer: 1
+  UseAsTranslator: 1
+  _torqueVector: {x: 0, y: 0, z: 0}
 --- !u!114 &114879168298503238
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2861,8 +2885,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1000, z: 0}
   ForceApplier: {fileID: 54488483981884984}
-  IsOn: 0
   Plume: {fileID: 198058686675471074}
+  FireAngle: 10
+  UseAsTorquer: 1
+  UseAsTranslator: 1
+  _torqueVector: {x: 0, y: 0, z: 0}
 --- !u!114 &114902674925534566
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2892,17 +2919,16 @@ MonoBehaviour:
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 0
   VectorArrow: {fileID: 4961188936187718}
-  TorqueOnlyEngines:
-  - {fileID: 4442588816209452}
-  - {fileID: 4416893000533318}
-  - {fileID: 4360529475980794}
-  - {fileID: 4613424297978254}
-  - {fileID: 4125681096952382}
-  - {fileID: 4057068257846252}
-  - {fileID: 4180701268189872}
-  - {fileID: 4173018633797924}
-  TranslationEngines:
-  - {fileID: 4378821328922914}
+  Engines:
+  - {fileID: 114802830622270584}
+  - {fileID: 114621118424015926}
+  - {fileID: 114879168298503238}
+  - {fileID: 114205327518238268}
+  - {fileID: 114187712391752756}
+  - {fileID: 114565309780138334}
+  - {fileID: 114829031791185520}
+  - {fileID: 114403901151772014}
+  - {fileID: 114399943264876254}
   PickerDistanceMultiplier: 0.2
   PickerInRangeBonus: 0
   PickerRange: 0

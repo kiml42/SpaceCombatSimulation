@@ -42,7 +42,7 @@ namespace Assets.Src.Pilots
         private int _startDelay = 0;
         private int _turningStartDelay;
 
-        protected List<Transform> _engines = new List<Transform>();
+        protected List<EngineControler> _engines = new List<EngineControler>();
 
         public float RemainingFuel { get; protected set; }
 
@@ -112,29 +112,17 @@ namespace Assets.Src.Pilots
             return targetsVelocity - ownVelocity;
         }
 
-        protected void SetEngineActivationState(bool fire)
+        protected void SetFlightVectorOnEngines(Vector3? FlightVector)
         {
-            if (fire && HasFuel())
+            foreach (var engine in _engines)
             {
-                foreach (var engine in _engines)
-                {
-                    engine.SendMessage("TurnOn");
-                    //every engine uses 1 fuel
-                    RemainingFuel--;
-                }
-            }
-            else
-            {
-                foreach (var engine in _engines)
-                {
-                    engine.SendMessage("TurnOff");
-                }
+                engine.FlightVector = FlightVector;
             }
         }
 
         protected void RemoveNullEngines()
         {
-            _engines = _engines.Where(t => t.IsValid()).Distinct().ToList();
+            _engines = _engines.Where(t => t != null).Distinct().ToList();
         }
 
         protected bool IsAimedAtWorldVector(Vector3 worldSpaceVector)
@@ -149,7 +137,7 @@ namespace Assets.Src.Pilots
             return false;
         }
         
-        public void AddEngine(Transform engine)
+        public void AddEngine(EngineControler engine)
         {
             _engines.Add(engine);
         }

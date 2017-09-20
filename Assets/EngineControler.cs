@@ -6,22 +6,29 @@ using UnityEngine;
 public class EngineControler : MonoBehaviour {
     public Vector3 EngineForce;
     public Rigidbody ForceApplier;
-    public bool IsOn;
     public ParticleSystem Plume;
     private bool _active = true;
     private string InactiveTag = "Untagged";
+    public float FireAngle = 10;
+
+    public bool UseAsTorquer = true;
+    public bool UseAsTranslator = true;
+
+    /// <summary>
+    /// The world space vector the engine should try to fly towards.
+    /// Use null or zero for no force
+    /// </summary>
+    public Vector3? FlightVector;
 
     // Use this for initialization
-    void Start () {
-        if(!IsOn)
-            TurnOff();  //to deactivate the particle system if off
+    void Start () {        
+        _pilot = FindOldestParent(transform);
         
-        Transform parent = FindOldestParent(transform);
-        
-        if(parent != transform)
+        if(_pilot != transform)
         {
-            NotifyParent(parent);
+            NotifyParent();
         }
+        CalculateEngineTorqueVector();
     }
 
     private Transform FindOldestParent(Transform transform)
@@ -34,36 +41,37 @@ public class EngineControler : MonoBehaviour {
         return FindOldestParent(parent);
     }
 
-    private void NotifyParent(Transform parent)
+    private void NotifyParent()
     {
         //Debug.Log("Registering engine with " + parent);
-        parent.SendMessage("RegisterEngine", transform, SendMessageOptions.DontRequireReceiver);
+        _pilot.SendMessage("RegisterEngine", transform, SendMessageOptions.DontRequireReceiver);
     }
-
-    public void TurnOn()
-    {
-        if (_active)
+    
+    // Update is called once per frame
+    void Update () {
+        if (_active && (UseAsTranslator && IsAimedAtFlightVector()) || (UseAsTorquer && ApplysCorrectTorque()))
         {
-            IsOn = true;
+            SetPlumeState(true);
+            ForceApplier.AddRelativeForce(EngineForce);
+        } else
+        {
+            SetPlumeState(false);
+        }
+    }
+    
+    public Vector3 _torqueVector;
+    private Transform _pilot;
+
+    private void SetPlumeState(bool on)
+    {
+        if (on)
+        {
+            //Debug.Log("turning plume on");
             Plume.Play();
         } else
         {
-            TurnOff();
-        }
-    }
-
-    public void TurnOff()
-    {
-        IsOn = false;
-        Plume.Stop();
-    }
-
-
-    // Update is called once per frame
-    void Update () {
-        if (IsOn && _active)
-        {
-            ForceApplier.AddRelativeForce(EngineForce);
+            //Debug.Log("turning plume off");
+            Plume.Stop();
         }
     }
 
@@ -71,7 +79,43 @@ public class EngineControler : MonoBehaviour {
     {
         //Debug.Log("Deactivating " + name);
         _active = false;
-        TurnOff();
+        SetPlumeState(false);
         tag = InactiveTag;
+    }
+
+    private bool ApplysCorrectTorque()
+    {
+        if (FlightVector.HasValue && FlightVector.Value.magnitude > 0 && _torqueVector.magnitude > 0.5)
+        {
+            //Debug.Log(enginePair.Key + " - angle" + Vector3.Angle(enginePair.Value, rotationVector) + " mag:" + enginePair.Value.magnitude);
+            //Debug.Log(enginePair.Value + " - " + rotationVector);
+            var pilotSpaceVector = _pilot.InverseTransformVector(FlightVector.Value);
+            return Vector3.Angle(_torqueVector, pilotSpaceVector) < 90;
+        }
+        return false;
+    }
+
+    private bool IsAimedAtFlightVector()
+    {
+        if(FlightVector.HasValue && FlightVector.Value.magnitude > 0)
+        {
+            //the enemy's gate is down
+            var angle = Vector3.Angle(-transform.up, FlightVector.Value);
+            //Debug.Log("fire angle = " + angle);
+            return angle < FireAngle;
+        }
+        //Debug.Log("No FlightVector set Defaulting To False");
+        return false;
+    }
+
+    private Vector3 CalculateEngineTorqueVector()
+    {
+        var pilotSpaceVector = _pilot.InverseTransformVector(-transform.up);
+        var pilotSpaceEngineLocation = _pilot.InverseTransformPoint(transform.position);
+        var xTorque = (pilotSpaceEngineLocation.y * pilotSpaceVector.z) - (pilotSpaceEngineLocation.z * pilotSpaceVector.y);
+        var yTorque = (pilotSpaceEngineLocation.x * pilotSpaceVector.z) + (pilotSpaceEngineLocation.z * pilotSpaceVector.x);
+        var zTorque = (pilotSpaceEngineLocation.y * pilotSpaceVector.x) + (pilotSpaceEngineLocation.x * pilotSpaceVector.y);
+        _torqueVector = new Vector3(xTorque, yTorque, zTorque);
+        return _torqueVector;
     }
 }

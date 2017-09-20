@@ -38,9 +38,8 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     public bool TagShrapnel = false;
     public bool SetEnemyTagOnShrapnel = false;
     public Transform VectorArrow;
-
-    public List<Transform> TorqueOnlyEngines;
-    public List<Transform> TranslationEngines;
+    
+    public List<EngineControler> Engines;
     
     #region TargetPickerVariables
     public float PickerDistanceMultiplier = 1;
@@ -127,15 +126,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
         var initialAngularDrag = _rigidbody.angularDrag;
         var torqueApplier = new MultiTorquerTorqueAplier(_rigidbody, TorqueMultiplier, initialAngularDrag);
 
-        if(TorqueOnlyEngines != null || TorqueOnlyEngines.Any())
-        {
-            foreach (var engine in TorqueOnlyEngines)
-            {
-                torqueApplier.AddEngine(engine);
-            }
-        }
-
-        _pilot = new RocketPilot(torqueApplier, _rigidbody, TranslationEngines, ShootAngle, Fuel, StartDelay)
+        _pilot = new RocketPilot(torqueApplier, _rigidbody, Engines, ShootAngle, Fuel, StartDelay)
         {
             LocationAimWeighting = LocationAimWeighting,
             TurningStartDelay = TurningStartDelay,
