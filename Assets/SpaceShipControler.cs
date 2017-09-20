@@ -174,6 +174,5 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
         _torquers.Add(torquer.GetComponent<Rigidbody>());
         Initialise();
         //_engineControl.SetEngine(Engine);
-
     }
 }

@@ -55,7 +55,9 @@ namespace Assets.Src.Pilots
                 var reletiveLocation = ReletiveLocationInWorldSpace(target);
                 var cancelationVector = VectorToCancelLateralVelocityInWorldSpace(target);
 
-                var turningVector = cancelationVector + (reletiveLocation * LocationAimWeighting);
+                var targetReletiveVelocity = WorldSpaceReletiveVelocityOfTarget(target);
+
+                var turningVector = (targetReletiveVelocity.magnitude * targetReletiveVelocity.magnitude * cancelationVector) + (reletiveLocation * LocationAimWeighting);
 
                 _torqueApplier.TurnToVectorInWorldSpace(turningVector);
                 
