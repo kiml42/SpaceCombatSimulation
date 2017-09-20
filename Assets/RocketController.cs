@@ -40,6 +40,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     public Transform VectorArrow;
 
     public List<Transform> TorqueOnlyEngines;
+    public List<Transform> TranslationEngines;
     
     #region TargetPickerVariables
     public float PickerDistanceMultiplier = 1;
@@ -134,7 +135,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
             }
         }
 
-        _pilot = new RocketPilot(torqueApplier, _rigidbody, ShootAngle, Fuel, StartDelay)
+        _pilot = new RocketPilot(torqueApplier, _rigidbody, TranslationEngines, ShootAngle, Fuel, StartDelay)
         {
             LocationAimWeighting = LocationAimWeighting,
             TurningStartDelay = TurningStartDelay,
