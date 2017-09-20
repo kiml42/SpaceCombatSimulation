@@ -59,7 +59,11 @@ namespace Assets.Src.Pilots
 
                 var turningVector = (targetReletiveVelocity.magnitude * targetReletiveVelocity.magnitude * cancelationVector) + (reletiveLocation * LocationAimWeighting);
 
-                _torqueApplier.TurnToVectorInWorldSpace(turningVector);
+                Debug.Log("Pilot angle: " + Vector3.Angle(turningVector, _pilotObject.transform.forward));
+                if(Vector3.Angle(turningVector, _pilotObject.transform.forward) > CloseEnoughAngle)
+                {
+                    _torqueApplier.TurnToVectorInWorldSpace(turningVector);
+                }
                 
                 //try firing the main engine even with no fuel to turn it off if there is no fuel.
                 SetEngineActivationState(IsAimedAtWorldVector(turningVector));

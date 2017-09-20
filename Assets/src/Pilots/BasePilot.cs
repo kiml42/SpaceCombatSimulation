@@ -11,6 +11,8 @@ namespace Assets.Src.Pilots
 {
     public abstract class BasePilot : IPilot
     {
+        public float CloseEnoughAngle = 0;
+
         public float LocationAimWeighting { get; set; }
         public Transform VectorArrow;
 

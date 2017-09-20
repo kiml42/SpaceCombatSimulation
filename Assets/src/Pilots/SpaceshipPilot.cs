@@ -97,7 +97,7 @@ namespace Assets.Src.Pilots
                     : tanSpeedVector + (_slowdownMode
                         ? slowdownVector
                         : approachVector);
-                
+
                 //Debug.Log(
                 //    "slowdownMode: " + _slowdownMode +
                 //    ", distance: " + Math.Round(distance, 1) +
@@ -108,7 +108,10 @@ namespace Assets.Src.Pilots
                 //    ", slowdownVector: " + slowdownVector +
                 //    ", turningVector: " + turningVector);
 
-                _torqueApplier.TurnToVectorInWorldSpace(turningVector);
+                if (Vector3.Angle(turningVector, _pilotObject.transform.forward) > CloseEnoughAngle)
+                {
+                    _torqueApplier.TurnToVectorInWorldSpace(turningVector);
+                }
 
                 if (VectorArrow != null)
                 {
