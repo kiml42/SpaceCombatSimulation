@@ -33,12 +33,11 @@ namespace Assets.Src.Pilots
 
         private bool _slowdownMode;
 
-        public SpaceshipPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<Transform> engines, float angleTollerance, float fuel = Mathf.Infinity)
+        public SpaceshipPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<EngineControler> engines, float angleTollerance, float fuel = Mathf.Infinity)
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
             AngleTollerance = angleTollerance;
-            RemainingFuel = fuel;
             SlowdownWeighting = 10;
             LocationAimWeighting = 1;
 
@@ -97,7 +96,7 @@ namespace Assets.Src.Pilots
                     : tanSpeedVector + (_slowdownMode
                         ? slowdownVector
                         : approachVector);
-                
+
                 //Debug.Log(
                 //    "slowdownMode: " + _slowdownMode +
                 //    ", distance: " + Math.Round(distance, 1) +
@@ -108,7 +107,10 @@ namespace Assets.Src.Pilots
                 //    ", slowdownVector: " + slowdownVector +
                 //    ", turningVector: " + turningVector);
 
-                _torqueApplier.TurnToVectorInWorldSpace(turningVector);
+                if (Vector3.Angle(turningVector, _pilotObject.transform.forward) > CloseEnoughAngle)
+                {
+                    _torqueApplier.TurnToVectorInWorldSpace(turningVector);
+                }
 
                 if (VectorArrow != null)
                 {
@@ -122,12 +124,19 @@ namespace Assets.Src.Pilots
                     }
                 }
 
-                //try firing the main engine even with no fuel to turn it off if there is no fuel.
-                SetEngineActivationState(IsAimedAtWorldVector(turningVector) && !completelyHappy);
+                if (completelyHappy)
+                {
+                    SetFlightVectorOnEngines(null);
+                }
+                else
+                {
+                    //try firing the main engine even with no fuel to turn it off if there is no fuel.
+                    SetFlightVectorOnEngines(turningVector);
+                }
             }
             else
             {
-                SetEngineActivationState(false);  //turn off the engine
+                SetFlightVectorOnEngines(null);  //turn off the engine
             }
         }
 

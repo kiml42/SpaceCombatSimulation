@@ -11,6 +11,8 @@ namespace Assets.Src.Pilots
 {
     public abstract class BasePilot : IPilot
     {
+        public float CloseEnoughAngle = 0;
+
         public float LocationAimWeighting { get; set; }
         public Transform VectorArrow;
 
@@ -40,9 +42,7 @@ namespace Assets.Src.Pilots
         private int _startDelay = 0;
         private int _turningStartDelay;
 
-        protected List<Transform> _engines = new List<Transform>();
-
-        public float RemainingFuel { get; protected set; }
+        protected List<EngineControler> _engines = new List<EngineControler>();
 
         protected bool ShouldTurn()
         {
@@ -57,10 +57,10 @@ namespace Assets.Src.Pilots
 
         protected Rigidbody _pilotObject;
 
-        protected bool HasFuel()
+        protected bool HasStarted()
         {
             //Debug.Log("RemainignFule:" + RemainingFuel);
-            var hasFuel = RemainingFuel > 0 && StartDelay <= 0;
+            var hasFuel = StartDelay <= 0;
             if (!hasFuel)
             {
                 _torqueApplier.Deactivate();
@@ -110,29 +110,17 @@ namespace Assets.Src.Pilots
             return targetsVelocity - ownVelocity;
         }
 
-        protected void SetEngineActivationState(bool fire)
+        protected void SetFlightVectorOnEngines(Vector3? FlightVector)
         {
-            if (fire && HasFuel())
+            foreach (var engine in _engines)
             {
-                foreach (var engine in _engines)
-                {
-                    engine.SendMessage("TurnOn");
-                    //every engine uses 1 fuel
-                    RemainingFuel--;
-                }
-            }
-            else
-            {
-                foreach (var engine in _engines)
-                {
-                    engine.SendMessage("TurnOff");
-                }
+                engine.FlightVector = FlightVector;
             }
         }
 
         protected void RemoveNullEngines()
         {
-            _engines = _engines.Where(t => t.IsValid()).Distinct().ToList();
+            _engines = _engines.Where(t => t != null).Distinct().ToList();
         }
 
         protected bool IsAimedAtWorldVector(Vector3 worldSpaceVector)
@@ -147,7 +135,7 @@ namespace Assets.Src.Pilots
             return false;
         }
         
-        public void AddEngine(Transform engine)
+        public void AddEngine(EngineControler engine)
         {
             _engines.Add(engine);
         }

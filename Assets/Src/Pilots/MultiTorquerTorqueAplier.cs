@@ -1,4 +1,5 @@
 ﻿using Assets.Src.Interfaces;
+using Assets.Src.ObjectManagement;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +14,7 @@ namespace Assets.Src.Pilots
         public float TorqueMultiplier;
         public float AngularDragWhenActive;
         Rigidbody _pilot;
+        private Dictionary<Transform, Vector3> _engineTorquers = new Dictionary<Transform, Vector3>();
 
         public MultiTorquerTorqueAplier(Rigidbody pilot, Rigidbody torquer, float torqueMultiplier, float angularDragWhenActive)
         {
@@ -41,8 +43,12 @@ namespace Assets.Src.Pilots
         public void TurnToVectorInWorldSpace(Vector3 vector)
         {
             RemoveNullTorquers();
-            var vectorInPilotSpace =  _pilot.transform.InverseTransformVector(vector).normalized;
+            RemoveDeadEngines();
+            //Debug.Log("vector" + vector);
+            var vectorInPilotSpace =  _pilot.transform.InverseTransformVector(vector);
+            //Debug.Log(_pilot + " vectorInPilotSpace " + vectorInPilotSpace);
             var rotationVector = new Vector3(-vectorInPilotSpace.y, vectorInPilotSpace.x, 0);   //set z to 0 to not add spin
+            //Debug.Log("rotationVector" + rotationVector);
 
             var worldTorque = _pilot.transform.TransformVector(rotationVector).normalized;
             foreach (var torquer in _torquers)
@@ -54,8 +60,8 @@ namespace Assets.Src.Pilots
 
         public void AddTorquer(Rigidbody torquer)
         {
-            RemoveNullTorquers();
             _torquers.Add(torquer);
+            RemoveNullTorquers();
         }
 
         public void Activate()
@@ -79,6 +85,11 @@ namespace Assets.Src.Pilots
         private void RemoveNullTorquers()
         {
             _torquers = _torquers.Where(t => t != null).Distinct().ToList();
+        }
+
+        private void RemoveDeadEngines()
+        {
+            _engineTorquers = _engineTorquers.Where(p => p.Key.IsValid()).ToDictionary(p => p.Key, p => p.Value);
         }
     }
 }

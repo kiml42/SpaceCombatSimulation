@@ -27,9 +27,9 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     public float MinTangentialVelocity = 0;
     public float TangentialSpeedWeighting = 1;
 
-    public Transform Engine;
+    public EngineControler Engine;
     public Rigidbody Torquer;
-    private List<Transform> _engines = new List<Transform>();
+    private List<EngineControler> _engines = new List<EngineControler>();
     private List<Rigidbody> _torquers = new List<Rigidbody>();
 
     public float AngularDragForTorquers = 20;
@@ -160,7 +160,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
         tag = InactiveTag;
     }
 
-    public void RegisterEngine(Transform engine)
+    public void RegisterEngine(EngineControler engine)
     {
         //Debug.Log("Registering engine");
         _engines.Add(engine);
@@ -174,6 +174,5 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
         _torquers.Add(torquer.GetComponent<Rigidbody>());
         Initialise();
         //_engineControl.SetEngine(Engine);
-
     }
 }

@@ -10,10 +10,11 @@ R - cycle reticle state
 
 TODO:
 Ships start moving towards each other + small random velocity.
+FuelTank option to balance fuel with parent.
+Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
 Draws should be penalised less if the ships killed each other simultaneously. probably give them the win score - some constant.
 Colour projectiles the same as teh ship.
 Prevent friendly fire - all turrets and missiles.
-Engines handle their own fuel. - possibly by accessing the fuel number on the ship or rocket controller.
 Target shooting evolution
 Fighters - using engines as weapons/using guns/both.
 projectiles apply force to cancel lateral V. Target set on projectile when fired.
@@ -22,7 +23,6 @@ Destructin only leaves objects with a rigibdbody and a health controller
 Spherical modules with two angles given for where to spawn the sub modules and something to specify termination of that module's spawning (going back up to the previous)
 
 shipCam:
-    Ensure object is in front of camera to render reticle.
     Make shipcam move faster if the followed object is faster or add a set chunk to the location based on the followed object's speed. - done
         Aternatively make the shipcam have a rigidbody and actually accelerate up to the speed of the tracked object.   - may still want to do this for continuing to track dead things.
     only watch torpedoes instead of other ships when they are close.
@@ -30,11 +30,9 @@ shipCam:
 
 Camera controller should allow panning also - moot for ship cam
 Camera controller to handle zoom - active when camera is active - moot for shipcam
-Engines only fire when pointed in the right direction.
 improve muzzle flashes.
 Make mini type 2 actually manage to hit torpedoes.
 Handle very high speed collisions -sort of done.
-use engines to turn.
 
 Bugs:
 Graphical - Beams don't turn off when the turret dies.

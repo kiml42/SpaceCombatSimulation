@@ -13,7 +13,6 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     public float ShootAngle = 10;
     public float TorqueMultiplier = 1f;
     public float LocationAimWeighting = 3f;
-    public float Fuel = 200f;
     public int StartDelay = 10;
     public int TurningStartDelay = 2;
 
@@ -38,6 +37,8 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     public bool TagShrapnel = false;
     public bool SetEnemyTagOnShrapnel = false;
     public Transform VectorArrow;
+    
+    public List<EngineControler> Engines;
     
     #region TargetPickerVariables
     public float PickerDistanceMultiplier = 1;
@@ -123,7 +124,8 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
 
         var initialAngularDrag = _rigidbody.angularDrag;
         var torqueApplier = new MultiTorquerTorqueAplier(_rigidbody, TorqueMultiplier, initialAngularDrag);
-        _pilot = new RocketPilot(torqueApplier, _rigidbody, ShootAngle, Fuel, StartDelay)
+
+        _pilot = new RocketPilot(torqueApplier, _rigidbody, Engines, ShootAngle, StartDelay)
         {
             LocationAimWeighting = LocationAimWeighting,
             TurningStartDelay = TurningStartDelay,
@@ -168,13 +170,4 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
         }
         TimeToLive--;
     }
-
-    //void OnCollisionEnter(Collision colision)
-    //{
-    //    if (ExplodeOnAnyCollision)
-    //    {
-    //        colision.rigidbody.AddExplosionForce(ExplosionForce, transform.position, 100);
-    //        _detonator.DetonateNow();
-    //    }
-    //}
 }
