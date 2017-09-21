@@ -38,43 +38,24 @@ public class EngineControler : MonoBehaviour {
         }
         CalculateEngineTorqueVector();
     }
-
-    private Transform FindOldestParentAndFuelTank(Transform transform)
-    {
-        if(_fuelTank == null)
-        {
-            _fuelTank = transform.GetComponent("FuelTank") as FuelTank;
-        }
-        var parent = transform.parent;
-        if(parent == null)
-        {
-            return transform;
-        }
-        return FindOldestParentAndFuelTank(parent);
-    }
-
-    private void NotifyParent()
-    {
-        //Debug.Log("Registering engine with " + parent);
-        _pilot.SendMessage("RegisterEngine", transform, SendMessageOptions.DontRequireReceiver);
-    }
     
     // Update is called once per frame
     void Update () {
         //Debug.Log(transform + ":");
-        if (_active)
+        if (_active && HasFuel())
         {
             float throttle = 0;
 
-            if (UseAsTranslator && IsAimedAtFlightVector())
+            if (UseAsTranslator)
             {
-                throttle = 1;
+                throttle = TranslateThrotleSetting();
             }
 
             if (UseAsTorquer && throttle < 1 && ApplysCorrectTorque())
             {
                 var angle = Vector3.Angle(_pilot.forward, FlightVector.Value);
-                throttle = Math.Min((throttle + angle / TorquerFullThrottleAngle), 1);
+                var additionalThrottle = angle / TorquerFullThrottleAngle;
+                throttle = Math.Min(throttle + additionalThrottle, 1);
             }
 
             if(throttle > 0)
@@ -88,8 +69,17 @@ public class EngineControler : MonoBehaviour {
                     return;
                 }
             }
-            SetPlumeState(false);
         }
+        SetPlumeState(false);
+    }
+
+    private bool HasFuel()
+    {
+        if(_fuelTank != null)
+        {
+            return _fuelTank.Fuel > 0;
+        }
+        return true;
     }
 
     private float AdjustThrottleForFuel(float throttle)
@@ -152,17 +142,40 @@ public class EngineControler : MonoBehaviour {
         return false;
     }
 
-    private bool IsAimedAtFlightVector()
+    private float TranslateThrotleSetting()
     {
         if(FlightVector.HasValue && FlightVector.Value.magnitude > 0)
         {
             //the enemy's gate is down
             var angle = Vector3.Angle(-transform.up, FlightVector.Value);
             //Debug.Log("fire angle = " + angle);
-            return angle < TranslateFireAngle;
+
+            var throttle = Math.Max(0, 1 - (angle / TranslateFireAngle));
+            //Debug.Log("TranslateThrotleSetting=" + throttle);
+            return throttle;
         }
         //Debug.Log("No FlightVector set Defaulting To False");
-        return false;
+        return 0;
+    }
+
+    private Transform FindOldestParentAndFuelTank(Transform transform)
+    {
+        if (_fuelTank == null)
+        {
+            _fuelTank = transform.GetComponent("FuelTank") as FuelTank;
+        }
+        var parent = transform.parent;
+        if (parent == null)
+        {
+            return transform;
+        }
+        return FindOldestParentAndFuelTank(parent);
+    }
+
+    private void NotifyParent()
+    {
+        //Debug.Log("Registering engine with " + parent);
+        _pilot.SendMessage("RegisterEngine", transform, SendMessageOptions.DontRequireReceiver);
     }
 
     private Vector3 CalculateEngineTorqueVector()
