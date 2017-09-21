@@ -182,7 +182,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!1 &1211061139269366
 GameObject:
   m_ObjectHideFlags: 1
@@ -2718,7 +2718,8 @@ MonoBehaviour:
   EngineForce: {x: 0, y: -1000, z: 0}
   ForceApplier: {fileID: 54946477878249090}
   Plume: {fileID: 198134475753680740}
-  FireAngle: 10
+  TranslateFireAngle: 45
+  TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
   _torqueVector: {x: 0, y: 0, z: 0}
@@ -2736,7 +2737,8 @@ MonoBehaviour:
   EngineForce: {x: 0, y: -1000, z: 0}
   ForceApplier: {fileID: 54608508979459868}
   Plume: {fileID: 198569108970823734}
-  FireAngle: 10
+  TranslateFireAngle: 45
+  TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
   _torqueVector: {x: 0, y: 0, z: 0}
@@ -2778,7 +2780,8 @@ MonoBehaviour:
   EngineForce: {x: 0, y: -1300, z: 0}
   ForceApplier: {fileID: 54777632800728330}
   Plume: {fileID: 198110838053188260}
-  FireAngle: 10
+  TranslateFireAngle: 2
+  TorqueFireAngle: 90
   UseAsTorquer: 0
   UseAsTranslator: 1
   _torqueVector: {x: 0, y: 0, z: 0}
@@ -2796,7 +2799,8 @@ MonoBehaviour:
   EngineForce: {x: 0, y: -1000, z: 0}
   ForceApplier: {fileID: 54523633740283928}
   Plume: {fileID: 198164070875419518}
-  FireAngle: 10
+  TranslateFireAngle: 45
+  TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
   _torqueVector: {x: 0, y: 0, z: 0}
@@ -2814,7 +2818,8 @@ MonoBehaviour:
   EngineForce: {x: 0, y: -1000, z: 0}
   ForceApplier: {fileID: 54000304772487538}
   Plume: {fileID: 198892520938477230}
-  FireAngle: 10
+  TranslateFireAngle: 45
+  TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
   _torqueVector: {x: 0, y: 0, z: 0}
@@ -2832,7 +2837,8 @@ MonoBehaviour:
   EngineForce: {x: 0, y: -1000, z: 0}
   ForceApplier: {fileID: 54866261443377734}
   Plume: {fileID: 198523780556023134}
-  FireAngle: 10
+  TranslateFireAngle: 45
+  TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
   _torqueVector: {x: 0, y: 0, z: 0}
@@ -2850,7 +2856,8 @@ MonoBehaviour:
   EngineForce: {x: 0, y: -1000, z: 0}
   ForceApplier: {fileID: 54124096280392848}
   Plume: {fileID: 198854087139118114}
-  FireAngle: 10
+  TranslateFireAngle: 45
+  TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
   _torqueVector: {x: 0, y: 0, z: 0}
@@ -2868,7 +2875,8 @@ MonoBehaviour:
   EngineForce: {x: 0, y: -1000, z: 0}
   ForceApplier: {fileID: 54035027201126790}
   Plume: {fileID: 198935905387125504}
-  FireAngle: 10
+  TranslateFireAngle: 45
+  TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
   _torqueVector: {x: 0, y: 0, z: 0}
@@ -2886,7 +2894,8 @@ MonoBehaviour:
   EngineForce: {x: 0, y: -1000, z: 0}
   ForceApplier: {fileID: 54488483981884984}
   Plume: {fileID: 198058686675471074}
-  FireAngle: 10
+  TranslateFireAngle: 45
+  TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
   _torqueVector: {x: 0, y: 0, z: 0}
@@ -2903,7 +2912,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShootAngle: 5
   TorqueMultiplier: 0
-  LocationAimWeighting: 2
+  LocationAimWeighting: 50
   Fuel: 1500
   StartDelay: 60
   TurningStartDelay: 20

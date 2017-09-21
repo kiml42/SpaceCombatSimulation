@@ -9,7 +9,8 @@ public class EngineControler : MonoBehaviour {
     public ParticleSystem Plume;
     private bool _active = true;
     private string InactiveTag = "Untagged";
-    public float FireAngle = 10;
+    public float TranslateFireAngle = 45;
+    public float TorqueFireAngle = 90;
 
     public bool UseAsTorquer = true;
     public bool UseAsTranslator = true;
@@ -49,26 +50,42 @@ public class EngineControler : MonoBehaviour {
     
     // Update is called once per frame
     void Update () {
-        Debug.Log(transform + ":");
+        //Debug.Log(transform + ":");
         if (_active)
         {
-            var translateOn = UseAsTranslator && IsAimedAtFlightVector();
-            var torqueOn = UseAsTorquer && ApplysCorrectTorque();
-            Debug.Log(torqueOn);
+            float throttle = 0;
 
-            if (translateOn || torqueOn)
+            if (UseAsTranslator && IsAimedAtFlightVector())
             {
-                SetPlumeState(true);
-                ForceApplier.AddRelativeForce(EngineForce);
-            } else
-            {
-                SetPlumeState(false);
+                throttle = 1;
             }
+
+            if (UseAsTorquer && throttle < 1 && ApplysCorrectTorque())
+            {
+                var angle = Vector3.Angle(_pilot.forward, FlightVector.Value);
+                throttle = Math.Min((throttle + angle / TorquerFullThrottleAngle), 1);
+            }
+
+            if(throttle > 0)
+            {
+                ForceApplier.AddRelativeForce(EngineForce * throttle);
+                if(throttle > 0.3)
+                {
+                    SetPlumeState(true);
+                    return;
+                }
+            }
+            SetPlumeState(false);
         }
     }
     
     public Vector3 _torqueVector;
     private Transform _pilot;
+
+    /// <summary>
+    /// throttle for torquing will be set to angle to turn / TorquerFullThrottleAngle capped at 1.
+    /// </summary>
+    public float TorquerFullThrottleAngle = 10;
 
     private void SetPlumeState(bool on)
     {
@@ -101,11 +118,11 @@ public class EngineControler : MonoBehaviour {
 
             var angle = Vector3.Angle(_torqueVector, rotationVector);
 
-            Debug.Log("torquer to vector angle: " + angle);
-            Debug.Log(_torqueVector + " - " + FlightVector.Value);
-            return angle < 90;
+            //Debug.Log("torquer to vector angle: " + angle);
+            //Debug.Log(_torqueVector + " - " + FlightVector.Value);
+            return angle < TorqueFireAngle;
         }
-        Debug.Log("vectors not set");
+        //Debug.Log("vectors not set");
         return false;
     }
 
@@ -115,10 +132,10 @@ public class EngineControler : MonoBehaviour {
         {
             //the enemy's gate is down
             var angle = Vector3.Angle(-transform.up, FlightVector.Value);
-            Debug.Log("fire angle = " + angle);
-            return angle < FireAngle;
+            //Debug.Log("fire angle = " + angle);
+            return angle < TranslateFireAngle;
         }
-        Debug.Log("No FlightVector set Defaulting To False");
+        //Debug.Log("No FlightVector set Defaulting To False");
         return false;
     }
 
