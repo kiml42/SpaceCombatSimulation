@@ -993,44 +993,8 @@ Prefab:
       propertyPath: m_RootOrder
       value: 17
       objectReference: {fileID: 0}
-    - target: {fileID: 114621118424015926, guid: e1363427697fac546a554aa229b862b5,
-        type: 2}
-      propertyPath: UseAsTorquer
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114565309780138334, guid: e1363427697fac546a554aa229b862b5,
-        type: 2}
-      propertyPath: UseAsTorquer
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114205327518238268, guid: e1363427697fac546a554aa229b862b5,
-        type: 2}
-      propertyPath: UseAsTorquer
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114802830622270584, guid: e1363427697fac546a554aa229b862b5,
-        type: 2}
-      propertyPath: UseAsTorquer
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114187712391752756, guid: e1363427697fac546a554aa229b862b5,
-        type: 2}
-      propertyPath: UseAsTorquer
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114403901151772014, guid: e1363427697fac546a554aa229b862b5,
-        type: 2}
-      propertyPath: UseAsTorquer
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114879168298503238, guid: e1363427697fac546a554aa229b862b5,
-        type: 2}
-      propertyPath: UseAsTorquer
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114829031791185520, guid: e1363427697fac546a554aa229b862b5,
-        type: 2}
-      propertyPath: UseAsTorquer
+    - target: {fileID: 1208417949232398, guid: e1363427697fac546a554aa229b862b5, type: 2}
+      propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []

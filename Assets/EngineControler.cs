@@ -49,13 +49,21 @@ public class EngineControler : MonoBehaviour {
     
     // Update is called once per frame
     void Update () {
-        if (_active && (UseAsTranslator && IsAimedAtFlightVector()) || (UseAsTorquer && ApplysCorrectTorque()))
+        Debug.Log(transform + ":");
+        if (_active)
         {
-            SetPlumeState(true);
-            ForceApplier.AddRelativeForce(EngineForce);
-        } else
-        {
-            SetPlumeState(false);
+            var translateOn = UseAsTranslator && IsAimedAtFlightVector();
+            var torqueOn = UseAsTorquer && ApplysCorrectTorque();
+            Debug.Log(torqueOn);
+
+            if (translateOn || torqueOn)
+            {
+                SetPlumeState(true);
+                ForceApplier.AddRelativeForce(EngineForce);
+            } else
+            {
+                SetPlumeState(false);
+            }
         }
     }
     
@@ -87,11 +95,17 @@ public class EngineControler : MonoBehaviour {
     {
         if (FlightVector.HasValue && FlightVector.Value.magnitude > 0 && _torqueVector.magnitude > 0.5)
         {
-            //Debug.Log(enginePair.Key + " - angle" + Vector3.Angle(enginePair.Value, rotationVector) + " mag:" + enginePair.Value.magnitude);
-            //Debug.Log(enginePair.Value + " - " + rotationVector);
             var pilotSpaceVector = _pilot.InverseTransformVector(FlightVector.Value);
-            return Vector3.Angle(_torqueVector, pilotSpaceVector) < 90;
+
+            var rotationVector = new Vector3(-pilotSpaceVector.y, pilotSpaceVector.x, 0);   //set z to 0 to not add spin
+
+            var angle = Vector3.Angle(_torqueVector, rotationVector);
+
+            Debug.Log("torquer to vector angle: " + angle);
+            Debug.Log(_torqueVector + " - " + FlightVector.Value);
+            return angle < 90;
         }
+        Debug.Log("vectors not set");
         return false;
     }
 
@@ -101,10 +115,10 @@ public class EngineControler : MonoBehaviour {
         {
             //the enemy's gate is down
             var angle = Vector3.Angle(-transform.up, FlightVector.Value);
-            //Debug.Log("fire angle = " + angle);
+            Debug.Log("fire angle = " + angle);
             return angle < FireAngle;
         }
-        //Debug.Log("No FlightVector set Defaulting To False");
+        Debug.Log("No FlightVector set Defaulting To False");
         return false;
     }
 
