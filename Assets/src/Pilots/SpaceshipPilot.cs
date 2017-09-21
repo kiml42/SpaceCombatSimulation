@@ -38,7 +38,6 @@ namespace Assets.Src.Pilots
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
             AngleTollerance = angleTollerance;
-            RemainingFuel = fuel;
             SlowdownWeighting = 10;
             LocationAimWeighting = 1;
 

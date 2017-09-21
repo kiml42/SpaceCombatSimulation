@@ -8,24 +8,22 @@ namespace Assets.Src.Pilots
 {
     class RocketPilot : BasePilot
     {
-        public RocketPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, EngineControler engine, float shootAngle, float fuel, int startDelay)
+        public RocketPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, EngineControler engine, float shootAngle, int startDelay)
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
             AngleTollerance = shootAngle;
-            RemainingFuel = fuel;
             StartDelay = startDelay;
             LocationAimWeighting = 1;
 
             AddEngine(engine);
         }
 
-        public RocketPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<EngineControler> engines, float shootAngle, float fuel, int startDelay)
+        public RocketPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<EngineControler> engines, float shootAngle, int startDelay)
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
             AngleTollerance = shootAngle;
-            RemainingFuel = fuel;
             StartDelay = startDelay;
             LocationAimWeighting = 1;
 
@@ -38,7 +36,7 @@ namespace Assets.Src.Pilots
         public override void Fly(PotentialTarget target)
         {
             RemoveNullEngines();
-            if (ShouldTurn() && HasFuel())
+            if (ShouldTurn() && HasStarted())
             {
                 var reletiveLocation = ReletiveLocationInWorldSpace(target);
                 var cancelationVector = VectorToCancelLateralVelocityInWorldSpace(target);

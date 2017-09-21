@@ -13,7 +13,6 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     public float ShootAngle = 10;
     public float TorqueMultiplier = 1f;
     public float LocationAimWeighting = 3f;
-    public float Fuel = 200f;
     public int StartDelay = 10;
     public int TurningStartDelay = 2;
 
@@ -126,7 +125,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
         var initialAngularDrag = _rigidbody.angularDrag;
         var torqueApplier = new MultiTorquerTorqueAplier(_rigidbody, TorqueMultiplier, initialAngularDrag);
 
-        _pilot = new RocketPilot(torqueApplier, _rigidbody, Engines, ShootAngle, Fuel, StartDelay)
+        _pilot = new RocketPilot(torqueApplier, _rigidbody, Engines, ShootAngle, StartDelay)
         {
             LocationAimWeighting = LocationAimWeighting,
             TurningStartDelay = TurningStartDelay,

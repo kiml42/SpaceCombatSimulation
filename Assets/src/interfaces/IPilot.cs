@@ -9,12 +9,6 @@ namespace Assets.Src.Interfaces
     public interface IPilot
     {
         /// <summary>
-        /// The amount of fuel remaining, one is used per frame where the engine is on.
-        /// After fuel runs out, -ve numbers indicate the amount of frames since fuel ran out.
-        /// </summary>
-        float RemainingFuel { get; }
-
-        /// <summary>
         /// Remaining delay before the engine starts.
         /// </summary>
         int StartDelay { get; set; }

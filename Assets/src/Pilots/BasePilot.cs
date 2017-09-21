@@ -44,8 +44,6 @@ namespace Assets.Src.Pilots
 
         protected List<EngineControler> _engines = new List<EngineControler>();
 
-        public float RemainingFuel { get; protected set; }
-
         protected bool ShouldTurn()
         {
             TurningStartDelay--;
@@ -59,10 +57,10 @@ namespace Assets.Src.Pilots
 
         protected Rigidbody _pilotObject;
 
-        protected bool HasFuel()
+        protected bool HasStarted()
         {
             //Debug.Log("RemainignFule:" + RemainingFuel);
-            var hasFuel = RemainingFuel > 0 && StartDelay <= 0;
+            var hasFuel = StartDelay <= 0;
             if (!hasFuel)
             {
                 _torqueApplier.Deactivate();
