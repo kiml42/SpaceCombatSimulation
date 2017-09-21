@@ -50,6 +50,8 @@ namespace Assets.src.Evolution
         public int MaxVelociyTollerance = 200;
         public int MaxAngularDragForTorquers = 1;
 
+        public Vector3 InitialVelocity = Vector3.zero;
+
 
         private string _genome;
         public int GeneLength = 1;
@@ -113,6 +115,7 @@ namespace Assets.src.Evolution
                             SpawnModules(addedModule.transform);    //spawn modules on this module
 
                             addedModule.transform.SetColor(_r, _g, _b);
+                            addedModule.velocity = InitialVelocity;
                         }
                     }
                     //else

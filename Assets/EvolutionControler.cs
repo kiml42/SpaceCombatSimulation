@@ -19,6 +19,8 @@ public class EvolutionControler : MonoBehaviour
     public string Tag2 = "Team2";
     public string CurrentGenerationFilePath = "./tmp/evolvingShips/currentGeneration.txt";
     public string GenerationFilePathBase = "./tmp/evolvingShips/Generations/G-";
+    public float InitialSpeed = 0;
+    public float RandomInitialSpeed = 0;
 
     public string SpaceShipTag = "SpaceShip";
     private Dictionary<string, string> _currentGenomes;
@@ -190,6 +192,7 @@ public class EvolutionControler : MonoBehaviour
         ship.tag = ownTag;
         var enemyTags = new List<string> { enemyTag };
 
+        var velocity = location.forward * InitialSpeed + UnityEngine.Random.insideUnitSphere * RandomInitialSpeed;
         new ShipBuilder(genome, ship.transform, Modules)
         {
             MaxShootAngle = MaxShootAngle,
@@ -201,8 +204,10 @@ public class EvolutionControler : MonoBehaviour
             MaxAngularDragForTorquers = MaxAngularDragForTorquers,
             EnemyTags = enemyTags,
             MaxTurrets = MaxTurrets,
-            MaxModules = MaxModules
+            MaxModules = MaxModules,
+            InitialVelocity = velocity
         }.BuildShip();
+        ship.velocity = velocity;
 
         ship.SendMessage("SetEnemyTags", enemyTags);
     }
