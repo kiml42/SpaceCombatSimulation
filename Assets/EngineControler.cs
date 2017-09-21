@@ -15,15 +15,22 @@ public class EngineControler : MonoBehaviour {
     public bool UseAsTorquer = true;
     public bool UseAsTranslator = true;
 
+    public float FullThrottleFuelConsumption = 1;
+
     /// <summary>
     /// The world space vector the engine should try to fly towards.
     /// Use null or zero for no force
     /// </summary>
     public Vector3? FlightVector;
 
+    /// <summary>
+    /// public for debug only;
+    /// </summary>
+    public FuelTank _fuelTank;
+
     // Use this for initialization
     void Start () {        
-        _pilot = FindOldestParent(transform);
+        _pilot = FindOldestParentAndFuelTank(transform);
         
         if(_pilot != transform)
         {
@@ -32,14 +39,18 @@ public class EngineControler : MonoBehaviour {
         CalculateEngineTorqueVector();
     }
 
-    private Transform FindOldestParent(Transform transform)
+    private Transform FindOldestParentAndFuelTank(Transform transform)
     {
+        if(_fuelTank == null)
+        {
+            _fuelTank = transform.GetComponent("FuelTank") as FuelTank;
+        }
         var parent = transform.parent;
         if(parent == null)
         {
             return transform;
         }
-        return FindOldestParent(parent);
+        return FindOldestParentAndFuelTank(parent);
     }
 
     private void NotifyParent()
@@ -68,6 +79,8 @@ public class EngineControler : MonoBehaviour {
 
             if(throttle > 0)
             {
+                throttle = AdjustThrottleForFuel(throttle);
+                
                 ForceApplier.AddRelativeForce(EngineForce * throttle);
                 if(throttle > 0.3)
                 {
@@ -78,7 +91,20 @@ public class EngineControler : MonoBehaviour {
             SetPlumeState(false);
         }
     }
-    
+
+    private float AdjustThrottleForFuel(float throttle)
+    {
+        if(_fuelTank != null)
+        {
+            var fuel = _fuelTank.DrainFuel(throttle * FullThrottleFuelConsumption);
+            throttle = fuel * FullThrottleFuelConsumption;
+        } else
+        {
+            Debug.Log("no fuel tank found - INFINITE FUEL!");
+        }
+        return throttle;
+    }
+
     public Vector3 _torqueVector;
     private Transform _pilot;
 

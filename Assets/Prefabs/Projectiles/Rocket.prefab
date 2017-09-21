@@ -179,6 +179,7 @@ GameObject:
   - component: {fileID: 54991379400455944}
   - component: {fileID: 136980939259080866}
   - component: {fileID: 96877103916523674}
+  - component: {fileID: 114274753216163754}
   m_Layer: 0
   m_Name: Rocket
   m_TagString: Untagged
@@ -261,7 +262,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1844183048995594}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6.85, y: 0, z: 0}
+  m_LocalPosition: {x: -6.85, y: 8.59, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4309450258221040}
@@ -777,6 +778,18 @@ MonoBehaviour:
   ExplosionDamage2: 400
   FramesOfInvulnerability: 3
   OriginalHealth: 0
+--- !u!114 &114274753216163754
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1844183048995594}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00495207fc630df479e0d4f227bb1949, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Fuel: 600
 --- !u!114 &114647872415290320
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -795,7 +808,10 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 0
   UseAsTranslator: 1
+  FullThrottleFuelConsumption: 1
+  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
+  TorquerFullThrottleAngle: 10
 --- !u!135 &135943773985880198
 SphereCollider:
   m_ObjectHideFlags: 1

@@ -284,6 +284,7 @@ GameObject:
   - component: {fileID: 54678280250609056}
   - component: {fileID: 136732948526313666}
   - component: {fileID: 114313381351599964}
+  - component: {fileID: 114488115583942366}
   m_Layer: 0
   m_Name: Torpedo
   m_TagString: Untagged
@@ -2722,7 +2723,10 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
+  FullThrottleFuelConsumption: 0.8
+  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
+  TorquerFullThrottleAngle: 20
 --- !u!114 &114205327518238268
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2741,7 +2745,10 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
+  FullThrottleFuelConsumption: 0.8
+  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
+  TorquerFullThrottleAngle: 20
 --- !u!114 &114313381351599964
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2784,7 +2791,10 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 0
   UseAsTranslator: 1
+  FullThrottleFuelConsumption: 1
+  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
+  TorquerFullThrottleAngle: 10
 --- !u!114 &114403901151772014
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2803,7 +2813,22 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
+  FullThrottleFuelConsumption: 0.8
+  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
+  TorquerFullThrottleAngle: 20
+--- !u!114 &114488115583942366
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1301380948880376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00495207fc630df479e0d4f227bb1949, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Fuel: 1500
 --- !u!114 &114565309780138334
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2822,7 +2847,10 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
+  FullThrottleFuelConsumption: 0.8
+  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
+  TorquerFullThrottleAngle: 20
 --- !u!114 &114621118424015926
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2841,7 +2869,10 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
+  FullThrottleFuelConsumption: 0.8
+  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
+  TorquerFullThrottleAngle: 20
 --- !u!114 &114802830622270584
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2860,7 +2891,10 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
+  FullThrottleFuelConsumption: 0.8
+  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
+  TorquerFullThrottleAngle: 20
 --- !u!114 &114829031791185520
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2879,7 +2913,10 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
+  FullThrottleFuelConsumption: 0.8
+  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
+  TorquerFullThrottleAngle: 20
 --- !u!114 &114879168298503238
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2898,7 +2935,10 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
+  FullThrottleFuelConsumption: 0.8
+  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
+  TorquerFullThrottleAngle: 20
 --- !u!114 &114902674925534566
 MonoBehaviour:
   m_ObjectHideFlags: 1

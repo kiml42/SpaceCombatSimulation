@@ -210,11 +210,6 @@ Prefab:
       propertyPath: m_RootOrder
       value: 16
       objectReference: {fileID: 0}
-    - target: {fileID: 114116952395043294, guid: f799f57ace58a9d4eb0f518258a0971c,
-        type: 2}
-      propertyPath: LocationAimWeighting
-      value: 20
-      objectReference: {fileID: 0}
     - target: {fileID: 1977664886136184, guid: f799f57ace58a9d4eb0f518258a0971c, type: 2}
       propertyPath: m_IsActive
       value: 0
@@ -1236,45 +1231,9 @@ Prefab:
       propertyPath: m_RootOrder
       value: 17
       objectReference: {fileID: 0}
-    - target: {fileID: 114621118424015926, guid: e1363427697fac546a554aa229b862b5,
-        type: 2}
-      propertyPath: TorquerFullThrottleAngle
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 114403901151772014, guid: e1363427697fac546a554aa229b862b5,
-        type: 2}
-      propertyPath: TorquerFullThrottleAngle
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 114802830622270584, guid: e1363427697fac546a554aa229b862b5,
-        type: 2}
-      propertyPath: TorquerFullThrottleAngle
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 114879168298503238, guid: e1363427697fac546a554aa229b862b5,
-        type: 2}
-      propertyPath: TorquerFullThrottleAngle
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 114187712391752756, guid: e1363427697fac546a554aa229b862b5,
-        type: 2}
-      propertyPath: TorquerFullThrottleAngle
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 114205327518238268, guid: e1363427697fac546a554aa229b862b5,
-        type: 2}
-      propertyPath: TorquerFullThrottleAngle
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 114565309780138334, guid: e1363427697fac546a554aa229b862b5,
-        type: 2}
-      propertyPath: TorquerFullThrottleAngle
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 114829031791185520, guid: e1363427697fac546a554aa229b862b5,
-        type: 2}
-      propertyPath: TorquerFullThrottleAngle
-      value: 20
+    - target: {fileID: 1301380948880376, guid: e1363427697fac546a554aa229b862b5, type: 2}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: e1363427697fac546a554aa229b862b5, type: 2}
