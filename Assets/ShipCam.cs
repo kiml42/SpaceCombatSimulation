@@ -254,8 +254,8 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
             // "Flip" it into screen coordinates
             boxPosition.y = Screen.height - boxPosition.y;
 
-            //Draw the distance from the followed object to this object
-            if (distance > MinShowDistanceDistance)
+            //Draw the distance from the followed object to this object - only if it's suitably distant, and has no parent.
+            if (distance > MinShowDistanceDistance && target.TargetTransform.parent == null)
             {
                 GUI.Box(new Rect(boxPosition.x - 20, boxPosition.y + 25, 40, 40), Math.Round(distance).ToString());
             }
@@ -296,7 +296,8 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
             //Debug.Log("Watching followed object's target: " + _targetToWatch.TargetTransform.name);
         } else
         {
-            var targets = _detector.DetectTargets();
+            var targets = _detector.DetectTargets()
+                .Where(t => t.TargetTransform.parent == null);  //Don't watch anything that still has a parent.
             targets = _watchPicker.FilterTargets(targets)
                 .OrderByDescending(s => s.Score);
             //foreach (var item in targets)
@@ -313,7 +314,8 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     private void PickBestTargetToFollow()
     {
         //Debug.Log("To Follow");
-        var targets = _detector.DetectTargets();
+        var targets = _detector.DetectTargets()
+            .Where(t => t.TargetTransform.parent == null);  //Don't follow anything that still has a parent.
         targets = _followPicker.FilterTargets(targets)
             .OrderByDescending(s => s.Score);
         //foreach (var item in targets)
@@ -334,7 +336,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     {
         _followedTarget = _detector
             .DetectTargets()
-            .Where(s => s.TargetTransform != _followedTarget.TargetTransform)
+            .Where(s => s.TargetTransform.parent == null && s.TargetTransform != _followedTarget.TargetTransform)
             .OrderBy(s => UnityEngine.Random.value)
             .FirstOrDefault();
     }

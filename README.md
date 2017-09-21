@@ -9,6 +9,7 @@ Z - make the ship cam follow a different object.
 R - cycle reticle state
 
 TODO:
+Ships start moving towards each other + small random velocity.
 Draws should be penalised less if the ships killed each other simultaneously. probably give them the win score - some constant.
 Colour projectiles the same as teh ship.
 Prevent friendly fire - all turrets and missiles.
@@ -17,6 +18,8 @@ Target shooting evolution
 Fighters - using engines as weapons/using guns/both.
 projectiles apply force to cancel lateral V. Target set on projectile when fired.
 Pass damage up option for health controller
+Destructin only leaves objects with a rigibdbody and a health controller
+Spherical modules with two angles given for where to spawn the sub modules and something to specify termination of that module's spawning (going back up to the previous)
 
 shipCam:
     Ensure object is in front of camera to render reticle.
@@ -36,3 +39,10 @@ use engines to turn.
 Bugs:
 Graphical - Beams don't turn off when the turret dies.
 "Can't remove Rigidbody because HingeJoint depends on it"
+
+Limerick;
+There once was a man from Toronto
+Who needed a rhyming word pronto
+He wanted to be 
+In a limerick, see
+So he named his daughter McGonto
