@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+//TODO neaten up fields and methods.
 public class EngineControler : MonoBehaviour {
     public Vector3 EngineForce;
     public Rigidbody ForceApplier;
@@ -22,11 +23,8 @@ public class EngineControler : MonoBehaviour {
     /// Use null or zero for no force
     /// </summary>
     public Vector3? FlightVector;
-
-    /// <summary>
-    /// public for debug only;
-    /// </summary>
-    public FuelTank _fuelTank;
+    
+    private FuelTank _fuelTank;
 
     // Use this for initialization
     void Start () {        
@@ -35,6 +33,10 @@ public class EngineControler : MonoBehaviour {
         if(_pilot != transform)
         {
             NotifyParent();
+        }
+        if (_fuelTank == null)
+        {
+            Debug.LogWarning(transform.name + " found no fuel tank - INFINITE FUEL!");
         }
         CalculateEngineTorqueVector();
     }
@@ -88,9 +90,6 @@ public class EngineControler : MonoBehaviour {
         {
             var fuel = _fuelTank.DrainFuel(throttle * FullThrottleFuelConsumption);
             throttle = fuel * FullThrottleFuelConsumption;
-        } else
-        {
-            Debug.Log("no fuel tank found - INFINITE FUEL!");
         }
         return throttle;
     }
@@ -175,7 +174,7 @@ public class EngineControler : MonoBehaviour {
     private void NotifyParent()
     {
         //Debug.Log("Registering engine with " + parent);
-        _pilot.SendMessage("RegisterEngine", transform, SendMessageOptions.DontRequireReceiver);
+        _pilot.SendMessage("RegisterEngine", this, SendMessageOptions.DontRequireReceiver);
     }
 
     private Vector3 CalculateEngineTorqueVector()
