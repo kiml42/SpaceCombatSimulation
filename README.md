@@ -11,6 +11,7 @@ R - cycle reticle state
 TODO:
 Ships start moving towards each other + small random velocity.
 FuelTank option to balance fuel with parent.
+Engine plumes emission rate should be proportional to throttle.
 Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
 Draws should be penalised less if the ships killed each other simultaneously. probably give them the win score - some constant.
 Colour projectiles the same as teh ship.
