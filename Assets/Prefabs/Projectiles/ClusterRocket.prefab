@@ -707,6 +707,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Fuel: 400
+  UseFuelMass: 1
+  FuelDensity: 0.001
 --- !u!114 &114095532759699856
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -730,6 +732,7 @@ MonoBehaviour:
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 1
   TorquerFullThrottleAngle: 10
+  _fullTrhrottlePlumeRate: 0
 --- !u!114 &114161706696368820
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -4106,6 +4106,7 @@ MonoBehaviour:
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
   TorquerFullThrottleAngle: 10
+  _fullTrhrottlePlumeRate: 0
 --- !u!114 &114101606245805576
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4203,6 +4204,7 @@ MonoBehaviour:
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
   TorquerFullThrottleAngle: 10
+  _fullTrhrottlePlumeRate: 0
 --- !u!114 &114126897734597358
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4238,6 +4240,7 @@ MonoBehaviour:
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
   TorquerFullThrottleAngle: 10
+  _fullTrhrottlePlumeRate: 0
 --- !u!114 &114170774721990032
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4261,6 +4264,7 @@ MonoBehaviour:
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
   TorquerFullThrottleAngle: 10
+  _fullTrhrottlePlumeRate: 0
 --- !u!114 &114227681578196334
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4284,6 +4288,7 @@ MonoBehaviour:
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
   TorquerFullThrottleAngle: 10
+  _fullTrhrottlePlumeRate: 0
 --- !u!114 &114401707968426666
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4307,6 +4312,7 @@ MonoBehaviour:
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
   TorquerFullThrottleAngle: 10
+  _fullTrhrottlePlumeRate: 0
 --- !u!114 &114419003778581402
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4330,6 +4336,7 @@ MonoBehaviour:
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
   TorquerFullThrottleAngle: 10
+  _fullTrhrottlePlumeRate: 0
 --- !u!114 &114698388319875676
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4353,6 +4360,7 @@ MonoBehaviour:
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 1
   TorquerFullThrottleAngle: 10
+  _fullTrhrottlePlumeRate: 0
 --- !u!114 &114766246677591618
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4365,6 +4373,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Fuel: 2000
+  UseFuelMass: 1
+  FuelDensity: 0.001
 --- !u!114 &114925099274032058
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4388,6 +4398,7 @@ MonoBehaviour:
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
   TorquerFullThrottleAngle: 10
+  _fullTrhrottlePlumeRate: 0
 --- !u!136 &136759748819616910
 CapsuleCollider:
   m_ObjectHideFlags: 1

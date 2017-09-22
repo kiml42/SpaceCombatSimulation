@@ -773,6 +773,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Fuel: 600
+  UseFuelMass: 1
+  FuelDensity: 0.001
 --- !u!114 &114310481633652866
 MonoBehaviour:
   m_ObjectHideFlags: 1
