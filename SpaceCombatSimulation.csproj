@@ -13,11 +13,13 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Subset v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile></CompilerResponseFile>
+    <CompilerResponseFile>
+    </CompilerResponseFile>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>Android:13</UnityBuildTarget>
     <UnityVersion>2017.1.0f3</UnityVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -122,6 +124,7 @@
     <Compile Include="Assets\Src\Pilots\MultiTorquerTorqueAplier.cs" />
     <Compile Include="Assets\Src\Pilots\RocketPilot.cs" />
     <Compile Include="Assets\Src\Pilots\SpaceshipPilot.cs" />
+    <Compile Include="Assets\GroupUnder.cs" />
     <Compile Include="Assets\Src\Rocket\RocketRunner.cs" />
     <Compile Include="Assets\Src\SpaceShip\AverageTargetLocationDestinationChooser.cs" />
     <Compile Include="Assets\Src\SpaceShip\SpaceshipRunner.cs" />

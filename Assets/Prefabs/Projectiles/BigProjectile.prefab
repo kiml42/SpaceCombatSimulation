@@ -28,6 +28,7 @@ GameObject:
   - component: {fileID: 199415608578746542}
   - component: {fileID: 114050329038561162}
   - component: {fileID: 114031993041432958}
+  - component: {fileID: 114985888697979568}
   m_Layer: 0
   m_Name: BigProjectile
   m_TagString: Untagged
@@ -235,6 +236,19 @@ MonoBehaviour:
   ShrapnelSpeed2: 60
   ExplosionDamage2: 200
   FramesOfInvulnerability: 3
+  OriginalHealth: 0
+--- !u!114 &114985888697979568
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1896722452323280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ad7694a60ae99147840ec29ed46a196, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GroupName: Projectiles
 --- !u!135 &135496945170436356
 SphereCollider:
   m_ObjectHideFlags: 1

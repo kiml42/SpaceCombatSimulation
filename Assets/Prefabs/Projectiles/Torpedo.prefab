@@ -275,6 +275,7 @@ GameObject:
   - component: {fileID: 136732948526313666}
   - component: {fileID: 114313381351599964}
   - component: {fileID: 114488115583942366}
+  - component: {fileID: 114804116594877402}
   m_Layer: 0
   m_Name: Torpedo
   m_TagString: Untagged
@@ -2749,6 +2750,18 @@ MonoBehaviour:
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
   TorquerFullThrottleAngle: 20
+--- !u!114 &114804116594877402
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1301380948880376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ad7694a60ae99147840ec29ed46a196, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GroupName: Projectiles
 --- !u!114 &114829031791185520
 MonoBehaviour:
   m_ObjectHideFlags: 1

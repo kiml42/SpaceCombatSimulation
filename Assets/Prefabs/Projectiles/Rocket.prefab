@@ -178,6 +178,7 @@ GameObject:
   - component: {fileID: 136980939259080866}
   - component: {fileID: 96877103916523674}
   - component: {fileID: 114274753216163754}
+  - component: {fileID: 114310481633652866}
   m_Layer: 0
   m_Name: Rocket
   m_TagString: Untagged
@@ -772,6 +773,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Fuel: 600
+--- !u!114 &114310481633652866
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1844183048995594}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ad7694a60ae99147840ec29ed46a196, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GroupName: Projectiles
 --- !u!114 &114647872415290320
 MonoBehaviour:
   m_ObjectHideFlags: 1

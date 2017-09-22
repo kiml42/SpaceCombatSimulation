@@ -11,7 +11,6 @@ R - cycle reticle state
 TODO:
     Just set a single name for evolution files (all types) and have it work out the folders from there.
     Store full config of evolution in current generation file.
-    Possibly have separate start delays for different engines. - probably not, just have one start delay for everything.
     FuelTank option to balance fuel with parent.
     Engine plumes emission rate should be proportional to throttle.
     Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
