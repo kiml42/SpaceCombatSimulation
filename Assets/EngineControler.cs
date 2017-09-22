@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Assets.Src.ObjectManagement;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -158,7 +159,7 @@ public class EngineControler : MonoBehaviour {
 
     private bool ApplysCorrectTorque()
     {
-        if (FlightVector.HasValue && FlightVector.Value.magnitude > 0 && TorqueVector.HasValue && TorqueVector.Value.magnitude > 0.5)
+        if (Pilot != null && Pilot.IsValid() && FlightVector.HasValue && FlightVector.Value.magnitude > 0 && TorqueVector.HasValue && TorqueVector.Value.magnitude > 0.5)
         {
             var pilotSpaceVector = Pilot.InverseTransformVector(FlightVector.Value);
 
