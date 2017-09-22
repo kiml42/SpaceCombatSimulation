@@ -9,7 +9,6 @@ Z - make the ship cam follow a different object.
 R - cycle reticle state
 
 TODO:
-    Just set a single name for evolution files (all types) and have it work out the folders from there.
     Store full config of evolution in current generation file.
     FuelTank option to balance fuel with parent.
     Engine plumes emission rate should be proportional to throttle.
@@ -35,6 +34,8 @@ TODO:
     improve muzzle flashes.
     Make mini type 2 actually manage to hit torpedoes.
     Handle very high speed collisions -sort of done.
+    Just set a single name for evolution files (all types) and have it work out the folders from there.
+        Done for 1v1 evolution
 
     From Endarren:
         Option to just disable the object at zero health, instead of destroying it.
