@@ -885,7 +885,7 @@ MonoBehaviour:
   MaxShootAngle: 180
   MaxTorqueMultiplier: 60000
   MaxLocationAimWeighting: 10
-  MaxSlowdownWeighting: 100
+  MaxSlowdownWeighting: 150
   MaxLocationTollerance: 2000
   MaxVelociyTollerance: 100
   MaxAngularDragForTorquers: 14

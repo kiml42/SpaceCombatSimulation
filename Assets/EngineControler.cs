@@ -5,11 +5,21 @@ using UnityEngine;
 
 //TODO neaten up fields and methods.
 public class EngineControler : MonoBehaviour {
+    /// <summary>
+    /// old version of engineFoce - retained to copy values
+    /// </summary>
     public Vector3 EngineForce;
+
+    /// <summary>
+    /// The force the engine applys at this transform's position in this transfornm's -up direction
+    /// </summary>
+    public float EngineForce2;
+
+    public Transform Pilot;
+    public FuelTank FuelTank;
     public Rigidbody ForceApplier;
     public ParticleSystem Plume;
-    private bool _active = true;
-    private string InactiveTag = "Untagged";
+
     public float TranslateFireAngle = 45;
     public float TorqueFireAngle = 90;
 
@@ -24,19 +34,40 @@ public class EngineControler : MonoBehaviour {
     /// </summary>
     public Vector3? FlightVector;
     
-    private FuelTank _fuelTank;
+    /// <summary>
+    /// Calculated if not set (default)
+    /// </summary>
+    public Vector3? TorqueVector = null;
+
+    /// <summary>
+    /// throttle for torquing will be set to angle to turn / TorquerFullThrottleAngle capped at 1.
+    /// </summary>
+    public float TorquerFullThrottleAngle = 10;
+
+    private bool _active = true;
+    private string InactiveTag = "Untagged";
 
     // Use this for initialization
-    void Start () {        
-        _pilot = FindOldestParentAndFuelTank(transform);
-        
-        if(_pilot != transform)
+    void Start () { 
+        if(EngineForce2 <= 0)
         {
-            NotifyParent();
+            Debug.Log(transform.name + " needs it's engine force set correctly.");
+            EngineForce2 = EngineForce.magnitude;
         }
-        if (_fuelTank == null)
+
+        Pilot = FindOtherComponents(transform);
+        
+        if(Pilot != transform)
+        {
+            NotifyPilot();
+        }
+        if (FuelTank == null)
         {
             Debug.LogWarning(transform.name + " found no fuel tank - INFINITE FUEL!");
+        }
+        if(ForceApplier == null)
+        {
+            Debug.LogError("Engine found no rigidbody to apply forces to");
         }
         CalculateEngineTorqueVector();
     }
@@ -55,7 +86,7 @@ public class EngineControler : MonoBehaviour {
 
             if (UseAsTorquer && throttle < 1 && ApplysCorrectTorque())
             {
-                var angle = Vector3.Angle(_pilot.forward, FlightVector.Value);
+                var angle = Vector3.Angle(Pilot.forward, FlightVector.Value);
                 var additionalThrottle = angle / TorquerFullThrottleAngle;
                 throttle = Math.Min(throttle + additionalThrottle, 1);
             }
@@ -63,8 +94,9 @@ public class EngineControler : MonoBehaviour {
             if(throttle > 0)
             {
                 throttle = AdjustThrottleForFuel(throttle);
-                
-                ForceApplier.AddRelativeForce(EngineForce * throttle);
+
+                ForceApplier.AddForceAtPosition(-transform.up * EngineForce2 * throttle, transform.position);
+                //ForceApplier.AddRelativeForce(EngineForce * throttle);
                 if(throttle > 0.3)
                 {
                     SetPlumeState(true);
@@ -77,30 +109,22 @@ public class EngineControler : MonoBehaviour {
 
     private bool HasFuel()
     {
-        if(_fuelTank != null)
+        if(FuelTank != null)
         {
-            return _fuelTank.Fuel > 0;
+            return FuelTank.Fuel > 0;
         }
         return true;
     }
 
     private float AdjustThrottleForFuel(float throttle)
     {
-        if(_fuelTank != null)
+        if(FuelTank != null)
         {
-            var fuel = _fuelTank.DrainFuel(throttle * FullThrottleFuelConsumption);
+            var fuel = FuelTank.DrainFuel(throttle * FullThrottleFuelConsumption);
             throttle = fuel * FullThrottleFuelConsumption;
         }
         return throttle;
     }
-
-    public Vector3 _torqueVector;
-    private Transform _pilot;
-
-    /// <summary>
-    /// throttle for torquing will be set to angle to turn / TorquerFullThrottleAngle capped at 1.
-    /// </summary>
-    public float TorquerFullThrottleAngle = 10;
 
     private void SetPlumeState(bool on)
     {
@@ -125,13 +149,13 @@ public class EngineControler : MonoBehaviour {
 
     private bool ApplysCorrectTorque()
     {
-        if (FlightVector.HasValue && FlightVector.Value.magnitude > 0 && _torqueVector.magnitude > 0.5)
+        if (FlightVector.HasValue && FlightVector.Value.magnitude > 0 && TorqueVector.HasValue && TorqueVector.Value.magnitude > 0.5)
         {
-            var pilotSpaceVector = _pilot.InverseTransformVector(FlightVector.Value);
+            var pilotSpaceVector = Pilot.InverseTransformVector(FlightVector.Value);
 
             var rotationVector = new Vector3(-pilotSpaceVector.y, pilotSpaceVector.x, 0);   //set z to 0 to not add spin
 
-            var angle = Vector3.Angle(_torqueVector, rotationVector);
+            var angle = Vector3.Angle(TorqueVector.Value, rotationVector);
 
             //Debug.Log("torquer to vector angle: " + angle);
             //Debug.Log(_torqueVector + " - " + FlightVector.Value);
@@ -157,34 +181,50 @@ public class EngineControler : MonoBehaviour {
         return 0;
     }
 
-    private Transform FindOldestParentAndFuelTank(Transform transform)
+    private Transform FindOtherComponents(Transform transform)
     {
-        if (_fuelTank == null)
+        if(Pilot != null && FuelTank != null && ForceApplier != null)
         {
-            _fuelTank = transform.GetComponent("FuelTank") as FuelTank;
+            //everyhting's set already, so stop looking.
+            return Pilot;
+        }
+        if (FuelTank == null)
+        {
+            //first object found with a fuel tank
+            FuelTank = transform.GetComponent("FuelTank") as FuelTank;
+        }
+        if(ForceApplier == null)
+        {
+            //firstComponent with a rigidbody
+            ForceApplier = transform.GetComponent("Rigidbody") as Rigidbody;
         }
         var parent = transform.parent;
-        if (parent == null)
+        if (parent == null && Pilot == null)
         {
+            //pilot is highest in hierarchy
+            Pilot = transform;
             return transform;
         }
-        return FindOldestParentAndFuelTank(parent);
+        return FindOtherComponents(parent);
     }
 
-    private void NotifyParent()
+    private void NotifyPilot()
     {
         //Debug.Log("Registering engine with " + parent);
-        _pilot.SendMessage("RegisterEngine", this, SendMessageOptions.DontRequireReceiver);
+        Pilot.SendMessage("RegisterEngine", this, SendMessageOptions.DontRequireReceiver);
     }
 
-    private Vector3 CalculateEngineTorqueVector()
+    private Vector3? CalculateEngineTorqueVector()
     {
-        var pilotSpaceVector = _pilot.InverseTransformVector(-transform.up);
-        var pilotSpaceEngineLocation = _pilot.InverseTransformPoint(transform.position);
-        var xTorque = (pilotSpaceEngineLocation.y * pilotSpaceVector.z) - (pilotSpaceEngineLocation.z * pilotSpaceVector.y);
-        var yTorque = (pilotSpaceEngineLocation.x * pilotSpaceVector.z) + (pilotSpaceEngineLocation.z * pilotSpaceVector.x);
-        var zTorque = (pilotSpaceEngineLocation.y * pilotSpaceVector.x) + (pilotSpaceEngineLocation.x * pilotSpaceVector.y);
-        _torqueVector = new Vector3(xTorque, yTorque, zTorque);
-        return _torqueVector;
+        if (!TorqueVector.HasValue)
+        {
+            var pilotSpaceVector = Pilot.InverseTransformVector(-transform.up);
+            var pilotSpaceEngineLocation = Pilot.InverseTransformPoint(transform.position);
+            var xTorque = (pilotSpaceEngineLocation.y * pilotSpaceVector.z) - (pilotSpaceEngineLocation.z * pilotSpaceVector.y);
+            var yTorque = (pilotSpaceEngineLocation.x * pilotSpaceVector.z) + (pilotSpaceEngineLocation.z * pilotSpaceVector.x);
+            var zTorque = (pilotSpaceEngineLocation.y * pilotSpaceVector.x) + (pilotSpaceEngineLocation.x * pilotSpaceVector.y);
+            TorqueVector = new Vector3(xTorque, yTorque, zTorque);
+        }
+        return TorqueVector;
     }
 }

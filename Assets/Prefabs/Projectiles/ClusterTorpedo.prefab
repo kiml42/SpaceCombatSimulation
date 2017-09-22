@@ -248,8 +248,6 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4909971658279928}
-  - component: {fileID: 54084983982082650}
-  - component: {fileID: 138162051470003970}
   - component: {fileID: 114158890808086460}
   m_Layer: 0
   m_Name: Engine (7)
@@ -281,8 +279,6 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4629341221480950}
-  - component: {fileID: 54600188987024458}
-  - component: {fileID: 138911089548846674}
   - component: {fileID: 114170774721990032}
   m_Layer: 0
   m_Name: Engine (1)
@@ -349,8 +345,6 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4780294776703482}
-  - component: {fileID: 54329645971918402}
-  - component: {fileID: 138141616174329810}
   - component: {fileID: 114419003778581402}
   m_Layer: 0
   m_Name: Engine (2)
@@ -587,8 +581,6 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4016634380929760}
-  - component: {fileID: 54231748162894720}
-  - component: {fileID: 138111159845357522}
   - component: {fileID: 114401707968426666}
   m_Layer: 0
   m_Name: Engine
@@ -755,8 +747,6 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4527964470998976}
-  - component: {fileID: 54083528145477522}
-  - component: {fileID: 138634750348370038}
   - component: {fileID: 114698388319875676}
   m_Layer: 0
   m_Name: MainEngine
@@ -805,8 +795,6 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4123530995038114}
-  - component: {fileID: 54843324262685554}
-  - component: {fileID: 138952429704968184}
   - component: {fileID: 114227681578196334}
   m_Layer: 0
   m_Name: Engine (3)
@@ -972,8 +960,6 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4367194063002922}
-  - component: {fileID: 54411372791117856}
-  - component: {fileID: 138774790656489834}
   - component: {fileID: 114117903943063150}
   m_Layer: 0
   m_Name: Engine (4)
@@ -990,8 +976,6 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4926214805557054}
-  - component: {fileID: 54716030286979238}
-  - component: {fileID: 138737954046528390}
   - component: {fileID: 114070394222970280}
   m_Layer: 0
   m_Name: Engine (6)
@@ -1177,8 +1161,6 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4981695559033890}
-  - component: {fileID: 54050101182394442}
-  - component: {fileID: 138241682514643342}
   - component: {fileID: 114925099274032058}
   m_Layer: 0
   m_Name: Engine (5)
@@ -3869,111 +3851,6 @@ MeshFilter:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1871954604439530}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
---- !u!54 &54050101182394442
-Rigidbody:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1926768408163196}
-  serializedVersion: 2
-  m_Mass: 0.1
-  m_Drag: 0
-  m_AngularDrag: 1
-  m_UseGravity: 0
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
---- !u!54 &54083528145477522
-Rigidbody:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1573532878143942}
-  serializedVersion: 2
-  m_Mass: 0.1
-  m_Drag: 0
-  m_AngularDrag: 1
-  m_UseGravity: 0
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
---- !u!54 &54084983982082650
-Rigidbody:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1234357995877348}
-  serializedVersion: 2
-  m_Mass: 0.1
-  m_Drag: 0
-  m_AngularDrag: 1
-  m_UseGravity: 0
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
---- !u!54 &54231748162894720
-Rigidbody:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1467748698332638}
-  serializedVersion: 2
-  m_Mass: 0.1
-  m_Drag: 0
-  m_AngularDrag: 1
-  m_UseGravity: 0
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
---- !u!54 &54329645971918402
-Rigidbody:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1282067302038078}
-  serializedVersion: 2
-  m_Mass: 0.1
-  m_Drag: 0
-  m_AngularDrag: 1
-  m_UseGravity: 0
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
---- !u!54 &54411372791117856
-Rigidbody:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1715652520182774}
-  serializedVersion: 2
-  m_Mass: 0.1
-  m_Drag: 0
-  m_AngularDrag: 1
-  m_UseGravity: 0
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
---- !u!54 &54600188987024458
-Rigidbody:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1248564214312462}
-  serializedVersion: 2
-  m_Mass: 0.1
-  m_Drag: 0
-  m_AngularDrag: 1
-  m_UseGravity: 0
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
 --- !u!54 &54626451642089132
 Rigidbody:
   m_ObjectHideFlags: 1
@@ -3984,36 +3861,6 @@ Rigidbody:
   m_Mass: 40
   m_Drag: 0
   m_AngularDrag: 4
-  m_UseGravity: 0
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
---- !u!54 &54716030286979238
-Rigidbody:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1740323336806174}
-  serializedVersion: 2
-  m_Mass: 0.1
-  m_Drag: 0
-  m_AngularDrag: 1
-  m_UseGravity: 0
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
---- !u!54 &54843324262685554
-Rigidbody:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1601851113026190}
-  serializedVersion: 2
-  m_Mass: 0.1
-  m_Drag: 0
-  m_AngularDrag: 1
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -4247,14 +4094,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1000, z: 0}
-  ForceApplier: {fileID: 54716030286979238}
+  EngineForce2: 1000
+  Pilot: {fileID: 4797086269142920}
+  FuelTank: {fileID: 114766246677591618}
+  ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198172756332906458}
   TranslateFireAngle: 45
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
-  _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114101606245805576
 MonoBehaviour:
@@ -4342,14 +4191,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1000, z: 0}
-  ForceApplier: {fileID: 54411372791117856}
+  EngineForce2: 1000
+  Pilot: {fileID: 4797086269142920}
+  FuelTank: {fileID: 114766246677591618}
+  ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198697009466859478}
   TranslateFireAngle: 45
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
-  _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114158890808086460
 MonoBehaviour:
@@ -4363,14 +4214,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1000, z: 0}
-  ForceApplier: {fileID: 54084983982082650}
+  EngineForce2: 1000
+  Pilot: {fileID: 4797086269142920}
+  FuelTank: {fileID: 114766246677591618}
+  ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198795999527558018}
   TranslateFireAngle: 45
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
-  _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114170774721990032
 MonoBehaviour:
@@ -4384,14 +4237,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1000, z: 0}
-  ForceApplier: {fileID: 54600188987024458}
+  EngineForce2: 1000
+  Pilot: {fileID: 4797086269142920}
+  FuelTank: {fileID: 114766246677591618}
+  ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198351732653024364}
   TranslateFireAngle: 45
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
-  _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114227681578196334
 MonoBehaviour:
@@ -4405,14 +4260,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1000, z: 0}
-  ForceApplier: {fileID: 54843324262685554}
+  EngineForce2: 1000
+  Pilot: {fileID: 4797086269142920}
+  FuelTank: {fileID: 114766246677591618}
+  ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198997727831111070}
   TranslateFireAngle: 45
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
-  _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114401707968426666
 MonoBehaviour:
@@ -4426,14 +4283,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1000, z: 0}
-  ForceApplier: {fileID: 54231748162894720}
+  EngineForce2: 1000
+  Pilot: {fileID: 4797086269142920}
+  FuelTank: {fileID: 114766246677591618}
+  ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198664285877725190}
   TranslateFireAngle: 45
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
-  _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114419003778581402
 MonoBehaviour:
@@ -4447,14 +4306,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1000, z: 0}
-  ForceApplier: {fileID: 54329645971918402}
+  EngineForce2: 1000
+  Pilot: {fileID: 4797086269142920}
+  FuelTank: {fileID: 114766246677591618}
+  ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198039860592788054}
   TranslateFireAngle: 45
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
-  _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114698388319875676
 MonoBehaviour:
@@ -4468,14 +4329,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1300, z: 0}
-  ForceApplier: {fileID: 54083528145477522}
+  EngineForce2: 1300
+  Pilot: {fileID: 4797086269142920}
+  FuelTank: {fileID: 114766246677591618}
+  ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198998497963058642}
   TranslateFireAngle: 2
   TorqueFireAngle: 90
   UseAsTorquer: 0
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 1
-  _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114766246677591618
 MonoBehaviour:
@@ -4501,14 +4364,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -1000, z: 0}
-  ForceApplier: {fileID: 54050101182394442}
+  EngineForce2: 1000
+  Pilot: {fileID: 4797086269142920}
+  FuelTank: {fileID: 114766246677591618}
+  ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198484535861951196}
   TranslateFireAngle: 45
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
-  _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!136 &136759748819616910
 CapsuleCollider:
@@ -4523,123 +4388,6 @@ CapsuleCollider:
   m_Height: 10
   m_Direction: 2
   m_Center: {x: 0, y: 0, z: 0}
---- !u!138 &138111159845357522
-FixedJoint:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1467748698332638}
-  m_ConnectedBody: {fileID: 54626451642089132}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
-  m_EnableCollision: 0
-  m_EnablePreprocessing: 1
-  m_MassScale: 1
-  m_ConnectedMassScale: 1
---- !u!138 &138141616174329810
-FixedJoint:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1282067302038078}
-  m_ConnectedBody: {fileID: 54626451642089132}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
-  m_EnableCollision: 0
-  m_EnablePreprocessing: 1
-  m_MassScale: 1
-  m_ConnectedMassScale: 1
---- !u!138 &138162051470003970
-FixedJoint:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1234357995877348}
-  m_ConnectedBody: {fileID: 54626451642089132}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
-  m_EnableCollision: 0
-  m_EnablePreprocessing: 1
-  m_MassScale: 1
-  m_ConnectedMassScale: 1
---- !u!138 &138241682514643342
-FixedJoint:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1926768408163196}
-  m_ConnectedBody: {fileID: 54626451642089132}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
-  m_EnableCollision: 0
-  m_EnablePreprocessing: 1
-  m_MassScale: 1
-  m_ConnectedMassScale: 1
---- !u!138 &138634750348370038
-FixedJoint:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1573532878143942}
-  m_ConnectedBody: {fileID: 54626451642089132}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
-  m_EnableCollision: 0
-  m_EnablePreprocessing: 1
-  m_MassScale: 1
-  m_ConnectedMassScale: 1
---- !u!138 &138737954046528390
-FixedJoint:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1740323336806174}
-  m_ConnectedBody: {fileID: 54626451642089132}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
-  m_EnableCollision: 0
-  m_EnablePreprocessing: 1
-  m_MassScale: 1
-  m_ConnectedMassScale: 1
---- !u!138 &138774790656489834
-FixedJoint:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1715652520182774}
-  m_ConnectedBody: {fileID: 54626451642089132}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
-  m_EnableCollision: 0
-  m_EnablePreprocessing: 1
-  m_MassScale: 1
-  m_ConnectedMassScale: 1
---- !u!138 &138911089548846674
-FixedJoint:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1248564214312462}
-  m_ConnectedBody: {fileID: 54626451642089132}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
-  m_EnableCollision: 0
-  m_EnablePreprocessing: 1
-  m_MassScale: 1
-  m_ConnectedMassScale: 1
---- !u!138 &138952429704968184
-FixedJoint:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1601851113026190}
-  m_ConnectedBody: {fileID: 54626451642089132}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
-  m_EnableCollision: 0
-  m_EnablePreprocessing: 1
-  m_MassScale: 1
-  m_ConnectedMassScale: 1
 --- !u!198 &198039860592788054
 ParticleSystem:
   m_ObjectHideFlags: 1

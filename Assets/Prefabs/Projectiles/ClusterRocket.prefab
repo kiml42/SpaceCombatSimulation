@@ -160,8 +160,6 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4365959887145080}
-  - component: {fileID: 54195320058609508}
-  - component: {fileID: 138766054555800040}
   - component: {fileID: 114095532759699856}
   m_Layer: 0
   m_Name: MainEngine
@@ -575,21 +573,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!54 &54195320058609508
-Rigidbody:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1948943214812786}
-  serializedVersion: 2
-  m_Mass: 0.1
-  m_Drag: 0
-  m_AngularDrag: 1
-  m_UseGravity: 0
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
 --- !u!65 &65293034576647460
 BoxCollider:
   m_ObjectHideFlags: 1
@@ -735,15 +718,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -150, z: 0}
-  ForceApplier: {fileID: 54195320058609508}
+  EngineForce2: 150
+  Pilot: {fileID: 4832477793392458}
+  FuelTank: {fileID: 114087177041280492}
+  ForceApplier: {fileID: 54172732429601216}
   Plume: {fileID: 198136737767437928}
   TranslateFireAngle: 10
   TorqueFireAngle: 90
   UseAsTorquer: 0
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 1
-  _fuelTank: {fileID: 0}
-  _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114315273727274886
 MonoBehaviour:
@@ -783,7 +767,6 @@ MonoBehaviour:
   ShootAngle: 10
   TorqueMultiplier: 80
   LocationAimWeighting: 8
-  Fuel: 400
   StartDelay: 5
   TurningStartDelay: 0
   TimeToTargetForDetonation: 0.2
@@ -837,19 +820,6 @@ CapsuleCollider:
   m_Height: 2.5
   m_Direction: 2
   m_Center: {x: 0, y: 0, z: 0}
---- !u!138 &138766054555800040
-FixedJoint:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1948943214812786}
-  m_ConnectedBody: {fileID: 54172732429601216}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
-  m_EnableCollision: 0
-  m_EnablePreprocessing: 1
-  m_MassScale: 1
-  m_ConnectedMassScale: 1
 --- !u!198 &198136737767437928
 ParticleSystem:
   m_ObjectHideFlags: 1
