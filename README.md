@@ -9,6 +9,7 @@ Z - make the ship cam follow a different object.
 R - cycle reticle state
 
 TODO:
+    Pass damage up option for health controller
     Store full config of evolution in current generation file.
     Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
     Draws should be penalised less if the ships killed each other simultaneously. probably give them the win score - some constant.
@@ -17,7 +18,6 @@ TODO:
     Target shooting evolution
     Fighters - using engines as weapons/using guns/both.
     projectiles apply force to cancel lateral V. Target set on projectile when fired.
-    Pass damage up option for health controller
     Destructin only leaves objects with a rigibdbody and a health controller
     Spherical modules with two angles given for where to spawn the sub modules and something to specify termination of that module's spawning (going back up to the previous)
     FuelTank option to balance fuel with parent.
