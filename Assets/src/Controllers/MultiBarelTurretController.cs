@@ -99,9 +99,8 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
         
         _reload = LoadTime;
 
-        _detector = new MultiTagTargetDetector()
+        _detector = new RepositoryTargetDetector()
         {
-            ProjectileSpeed = ProjectileSpeed,
             EnemyTags = EnemyTags
         };
 

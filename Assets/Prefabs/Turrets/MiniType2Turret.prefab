@@ -225,6 +225,7 @@ GameObject:
   - component: {fileID: 54085703227121582}
   - component: {fileID: 138790836030370796}
   - component: {fileID: 114320484002594652}
+  - component: {fileID: 114637876101054592}
   m_Layer: 8
   m_Name: MiniType2Turret
   m_TagString: Team1
@@ -1330,6 +1331,17 @@ MonoBehaviour:
   PickerMasMultiplier: 100
   PickerOverMinMassBonus: 600
   PickerApproachWeighting: 20
+--- !u!114 &114637876101054592
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1714305623586720}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114933443936390894
 MonoBehaviour:
   m_ObjectHideFlags: 1

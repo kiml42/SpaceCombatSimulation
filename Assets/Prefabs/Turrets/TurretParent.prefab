@@ -166,6 +166,7 @@ GameObject:
   - component: {fileID: 54298971192452022}
   - component: {fileID: 138934033157855350}
   - component: {fileID: 114375893224788504}
+  - component: {fileID: 114602804500640632}
   m_Layer: 8
   m_Name: TurretParent
   m_TagString: Team1
@@ -891,6 +892,17 @@ MonoBehaviour:
   PickerMasMultiplier: 50
   PickerOverMinMassBonus: 2000
   PickerApproachWeighting: 10
+--- !u!114 &114602804500640632
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1721119589249582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114735797348154080
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -106,9 +106,8 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
             });
         }
 
-        _detector = new MultiTagTargetDetector()
+        _detector = new RepositoryTargetDetector()
         {
-            ProjectileSpeed = 0,
             EnemyTags = EnemyTags
         };
         

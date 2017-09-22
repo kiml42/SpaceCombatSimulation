@@ -182,6 +182,7 @@ GameObject:
   - component: {fileID: 138417226499093484}
   - component: {fileID: 114792225503145664}
   - component: {fileID: 114714754333530302}
+  - component: {fileID: 114941792179239686}
   m_Layer: 8
   m_Name: Type2Turret
   m_TagString: Untagged
@@ -908,6 +909,17 @@ MonoBehaviour:
   ExplosionDamage2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+--- !u!114 &114941792179239686
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1866709225031140}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!124 &124455642874896686
 Behaviour:
   m_ObjectHideFlags: 1

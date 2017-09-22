@@ -102,7 +102,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     {
         _rigidbody = GetComponent<Rigidbody>();
 
-        _detector = new MultiTagTargetDetector()
+        _detector = new RepositoryTargetDetector()
         {
             EnemyTags = EnemyTags
         };

@@ -11,16 +11,10 @@ namespace Assets.Src.Targeting
     public class RepositoryTargetDetector : ITargetDetector
     {
         public IEnumerable<string> EnemyTags = new List<string> { "Enemy" };
-        public float ProjectileSpeed = 0;
-
-        public RepositoryTargetDetector()
-        {
-
-        }
 
         public IEnumerable<PotentialTarget> DetectTargets()
         {
-            return TargetRepository.ListTargetsForTags(EnemyTags);
+            return TargetRepository.ListTargetsForTags(EnemyTags).Select(t => new PotentialTarget(t));
         }
     }
 }

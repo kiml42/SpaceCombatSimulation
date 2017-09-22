@@ -179,6 +179,7 @@ GameObject:
   - component: {fileID: 96877103916523674}
   - component: {fileID: 114274753216163754}
   - component: {fileID: 114310481633652866}
+  - component: {fileID: 114916808352173484}
   m_Layer: 0
   m_Name: Rocket
   m_TagString: Untagged
@@ -725,6 +726,8 @@ MonoBehaviour:
   VectorArrow: {fileID: 4346285404244058}
   Engines:
   - {fileID: 114647872415290320}
+  ContinuallyCheckForTargets: 0
+  NeverRetarget: 1
   PickerDistanceMultiplier: 0.3
   PickerInRangeBonus: 300
   PickerRange: 1000
@@ -811,6 +814,17 @@ MonoBehaviour:
   FullThrottleFuelConsumption: 1
   TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
+--- !u!114 &114916808352173484
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1844183048995594}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!135 &135943773985880198
 SphereCollider:
   m_ObjectHideFlags: 1

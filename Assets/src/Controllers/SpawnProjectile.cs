@@ -66,7 +66,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
 
         if (OnlyWithTargets)
         {
-            _detector = new MultiTagTargetDetector()
+            _detector = new RepositoryTargetDetector()
             {
                 EnemyTags = EnemyTags
             };

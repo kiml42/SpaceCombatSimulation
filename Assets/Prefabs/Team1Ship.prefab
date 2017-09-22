@@ -106,6 +106,7 @@ GameObject:
   - component: {fileID: 114726184140751052}
   - component: {fileID: 114361333263954078}
   - component: {fileID: 114558417272495310}
+  - component: {fileID: 114538699749200336}
   m_Layer: 0
   m_Name: Team1Ship
   m_TagString: Team1
@@ -1245,22 +1246,26 @@ MonoBehaviour:
   TorqueMultiplier: 800000
   StartDelay: 0
   SlowdownWeighting: 50
+  RadialSpeedThreshold: 10
   MaxRange: 50
   MinRange: 20
   LocationAimWeighting: 1
   MaxTangentialVelocity: 10
   MinTangentialVelocity: 0
   TangentialSpeedWeighting: 50
-  Engine: {fileID: 4632310518447138}
+  Engine: {fileID: 0}
   Torquer: {fileID: 54348881928324954}
   AngularDragForTorquers: 10
   VectorArrow: {fileID: 4455403608566486}
+  PickerDistanceMultiplier: 1
+  MinimumMass: 80
+  PickerMasMultiplier: 1
+  PickerOverMinMassBonus: 10000
   EnemyTags:
   - Team2
   - Team3
   - Team4
   - Team5
-  MinimumMass: 80
 --- !u!114 &114016450482012260
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1375,6 +1380,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114335314299087854
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1427,6 +1433,17 @@ MonoBehaviour:
   R: 0.5
   G: 0.4
   B: 0.7
+--- !u!114 &114538699749200336
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1151259579637064}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114558417272495310
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1485,9 +1502,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: 0, z: 10000}
+  EngineForce2: 0
+  Pilot: {fileID: 0}
+  FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54996993457620460}
-  IsOn: 0
   Plume: {fileID: 198387038657943950}
+  TranslateFireAngle: 45
+  TorqueFireAngle: 90
+  UseAsTorquer: 1
+  UseAsTranslator: 1
+  FullThrottleFuelConsumption: 1
+  TorquerFullThrottleAngle: 10
+  _fullTrhrottlePlumeRate: 0
 --- !u!114 &114726184140751052
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1511,6 +1537,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 200
   ExplosionDamage2: 1000
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114777325519764418
 MonoBehaviour:
   m_ObjectHideFlags: 1

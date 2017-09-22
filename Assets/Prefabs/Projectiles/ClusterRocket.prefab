@@ -799,6 +799,8 @@ MonoBehaviour:
   VectorArrow: {fileID: 4652279574369954}
   Engines:
   - {fileID: 114095532759699856}
+  ContinuallyCheckForTargets: 0
+  NeverRetarget: 1
   PickerDistanceMultiplier: 2
   PickerInRangeBonus: 600
   PickerRange: 100

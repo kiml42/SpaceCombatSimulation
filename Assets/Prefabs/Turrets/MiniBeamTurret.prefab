@@ -478,6 +478,7 @@ GameObject:
   - component: {fileID: 54016053239248472}
   - component: {fileID: 138157655960534944}
   - component: {fileID: 114140716898617586}
+  - component: {fileID: 114310215052602218}
   m_Layer: 8
   m_Name: MiniBeamTurret
   m_TagString: Team1
@@ -1999,6 +2000,17 @@ MonoBehaviour:
   ExplosionDamage2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+--- !u!114 &114310215052602218
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1964144153646322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114404345958453862
 MonoBehaviour:
   m_ObjectHideFlags: 1

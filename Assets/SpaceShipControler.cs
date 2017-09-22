@@ -98,7 +98,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     private void Initialise()
     {
         _thisSpaceship = GetComponent<Rigidbody>();
-        var _detector = new MultiTagTargetDetector()
+        var _detector = new RepositoryTargetDetector()
         {
             EnemyTags = EnemyTags
         };

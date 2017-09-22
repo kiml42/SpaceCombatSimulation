@@ -1269,6 +1269,7 @@ GameObject:
   - component: {fileID: 114101606245805576}
   - component: {fileID: 114766246677591618}
   - component: {fileID: 114126897734597358}
+  - component: {fileID: 114317394816442712}
   m_Layer: 0
   m_Name: ClusterTorpedo
   m_TagString: Team2
@@ -4169,6 +4170,8 @@ MonoBehaviour:
   - {fileID: 114070394222970280}
   - {fileID: 114158890808086460}
   - {fileID: 114698388319875676}
+  ContinuallyCheckForTargets: 0
+  NeverRetarget: 0
   PickerDistanceMultiplier: 0.2
   PickerInRangeBonus: 0
   PickerRange: 0
@@ -4289,6 +4292,17 @@ MonoBehaviour:
   FullThrottleFuelConsumption: 0.8
   TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
+--- !u!114 &114317394816442712
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1977664886136184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114401707968426666
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -103,6 +103,7 @@ GameObject:
   - component: {fileID: 114418977453750346}
   - component: {fileID: 114317863401166388}
   - component: {fileID: 114588122642984816}
+  - component: {fileID: 114288527176595656}
   m_Layer: 0
   m_Name: Team2Ship
   m_TagString: Team2
@@ -1384,6 +1385,17 @@ MonoBehaviour:
   - Team5
   TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
+--- !u!114 &114288527176595656
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1249936944491648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114298744820957838
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1535,6 +1547,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 200
   ExplosionDamage2: 1000
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114431514535820162
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1597,9 +1610,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: 0, z: 10000}
+  EngineForce2: 0
+  Pilot: {fileID: 0}
+  FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54279884852327786}
-  IsOn: 0
   Plume: {fileID: 198919546160319070}
+  TranslateFireAngle: 45
+  TorqueFireAngle: 90
+  UseAsTorquer: 1
+  UseAsTranslator: 1
+  FullThrottleFuelConsumption: 1
+  TorquerFullThrottleAngle: 10
+  _fullTrhrottlePlumeRate: 0
 --- !u!114 &114656143969148516
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1653,22 +1675,26 @@ MonoBehaviour:
   TorqueMultiplier: 1000000
   StartDelay: 0
   SlowdownWeighting: 50
+  RadialSpeedThreshold: 10
   MaxRange: 500
   MinRange: 200
   LocationAimWeighting: 1
   MaxTangentialVelocity: 50
   MinTangentialVelocity: 0
   TangentialSpeedWeighting: 10
-  Engine: {fileID: 4055083103871718}
+  Engine: {fileID: 0}
   Torquer: {fileID: 54276188861948588}
   AngularDragForTorquers: 20
   VectorArrow: {fileID: 4485696577621294}
+  PickerDistanceMultiplier: 1
+  MinimumMass: 80
+  PickerMasMultiplier: 1
+  PickerOverMinMassBonus: 10000
   EnemyTags:
   - Team1
   - Team4
   - Team3
   - Team5
-  MinimumMass: 80
 --- !u!114 &114786272439021768
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1768,6 +1794,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114968263175229238
 MonoBehaviour:
   m_ObjectHideFlags: 1

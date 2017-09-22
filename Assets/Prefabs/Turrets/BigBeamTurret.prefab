@@ -337,6 +337,7 @@ GameObject:
   - component: {fileID: 54540809518397602}
   - component: {fileID: 138486339295732342}
   - component: {fileID: 114722879647281656}
+  - component: {fileID: 114203286078623678}
   m_Layer: 8
   m_Name: BigBeamTurret
   m_TagString: Team2
@@ -2104,6 +2105,17 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1218274604022836}
   m_Enabled: 1
+--- !u!114 &114203286078623678
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1617297998928176}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114372935907962804
 MonoBehaviour:
   m_ObjectHideFlags: 1

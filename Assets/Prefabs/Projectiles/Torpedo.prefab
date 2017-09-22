@@ -276,6 +276,7 @@ GameObject:
   - component: {fileID: 114313381351599964}
   - component: {fileID: 114488115583942366}
   - component: {fileID: 114804116594877402}
+  - component: {fileID: 114939486053213880}
   m_Layer: 0
   m_Name: Torpedo
   m_TagString: Untagged
@@ -2857,6 +2858,8 @@ MonoBehaviour:
   - {fileID: 114829031791185520}
   - {fileID: 114403901151772014}
   - {fileID: 114399943264876254}
+  ContinuallyCheckForTargets: 0
+  NeverRetarget: 0
   PickerDistanceMultiplier: 0.2
   PickerInRangeBonus: 0
   PickerRange: 0
@@ -2869,6 +2872,17 @@ MonoBehaviour:
   - Enemy
   - Team1
   TimeToLive: 5000
+--- !u!114 &114939486053213880
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1301380948880376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!124 &124272854357906246
 Behaviour:
   m_ObjectHideFlags: 1

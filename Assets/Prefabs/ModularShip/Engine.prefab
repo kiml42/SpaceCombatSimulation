@@ -76,6 +76,7 @@ GameObject:
   - component: {fileID: 138388483758250644}
   - component: {fileID: 114426916586840510}
   - component: {fileID: 114161418504762722}
+  - component: {fileID: 114198735893420614}
   m_Layer: 0
   m_Name: Engine
   m_TagString: Team1
@@ -267,6 +268,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -2000, z: 0}
+  EngineForce2: 0
+  Pilot: {fileID: 0}
+  FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54223752741852356}
   Plume: {fileID: 198180660864587914}
   TranslateFireAngle: 45
@@ -274,8 +278,19 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 1
-  _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
+  _fullTrhrottlePlumeRate: 0
+--- !u!114 &114198735893420614
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1998849172333536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114426916586840510
 MonoBehaviour:
   m_ObjectHideFlags: 1

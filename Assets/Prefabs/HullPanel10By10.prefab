@@ -25,6 +25,7 @@ GameObject:
   - component: {fileID: 114476758949942600}
   - component: {fileID: 54444783515745654}
   - component: {fileID: 138965745144876302}
+  - component: {fileID: 114474482657998810}
   m_Layer: 0
   m_Name: HullPanel10By10
   m_TagString: Untagged
@@ -111,6 +112,17 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &114474482657998810
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1463553886010154}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114476758949942600
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -127,8 +139,14 @@ MonoBehaviour:
   Health: 200
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce: 1000
-  ExplosionRadius: 1000
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!138 &138965745144876302
 FixedJoint:
   m_ObjectHideFlags: 1

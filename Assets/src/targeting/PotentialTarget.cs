@@ -7,13 +7,23 @@ using UnityEngine;
 namespace Assets.Src.Targeting
 {
     /// <summary>
-    /// Class for keeping a score for a potential target rigidbody
+    /// Class for keeping a score for a potential target
     /// </summary>
     public class PotentialTarget
     {
         public float Score { get; set; }
-        public Transform TargetTransform { get; set; }
-        public Rigidbody TargetRigidbody { get; set; }
+        private Target _target;
+
+        public Transform TargetTransform { get
+            {
+               return _target.Transform;
+            }
+        }
+        public Rigidbody TargetRigidbody { get
+            {
+                return _target.Rigidbody;
+            }
+        }
 
         public PotentialTarget()
         {
@@ -22,14 +32,17 @@ namespace Assets.Src.Targeting
         
         public PotentialTarget(Rigidbody target)
         {
-            TargetRigidbody = target;
-            TargetTransform = target.transform;
+            _target = new Target(target);
         }
 
         public PotentialTarget(Transform target)
         {
-            TargetTransform = target;
-            TargetRigidbody = target.GetComponent("Rigidbody") as Rigidbody;
+            _target = new Target(target);
+        }
+
+        public PotentialTarget(Target target)
+        {
+            _target = target;
         }
     }
 }

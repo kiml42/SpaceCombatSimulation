@@ -57,6 +57,7 @@ GameObject:
   - component: {fileID: 138980356805944930}
   - component: {fileID: 114833497415421746}
   - component: {fileID: 136551450638705920}
+  - component: {fileID: 114414139633770338}
   m_Layer: 0
   m_Name: ClusterTorpedoTube
   m_TagString: Untagged
@@ -184,6 +185,17 @@ MonoBehaviour:
   Velocity: {x: 0, y: 0, z: 60}
   RandomSpeed: 1
   LoadTime: 1000
+--- !u!114 &114414139633770338
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1897952689785042}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114833497415421746
 MonoBehaviour:
   m_ObjectHideFlags: 1

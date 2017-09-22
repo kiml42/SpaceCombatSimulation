@@ -38,6 +38,7 @@ GameObject:
   - component: {fileID: 54431323037331960}
   - component: {fileID: 138880674774939810}
   - component: {fileID: 114479078115912028}
+  - component: {fileID: 114162562862355962}
   m_Layer: 0
   m_Name: RocketDispenser
   m_TagString: Team1
@@ -253,6 +254,17 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &114162562862355962
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1489824746261682}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114223081111915522
 MonoBehaviour:
   m_ObjectHideFlags: 1
