@@ -1,4 +1,5 @@
 ﻿using Assets.Src.Interfaces;
+using Assets.Src.ObjectManagement;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,12 +17,15 @@ namespace Assets.Src.Rocket
         private readonly RocketController _rocketController;
         private string _previousTarget;
         private IDetonator _detonator;
-        private readonly IKnowsCurrentTarget _knower;
+        private readonly IKnowsCurrentTarget _targetKnower;
 
         /// <summary>
         /// For debugging;
         /// </summary>
         public string name;
+        public bool ContinuallyCheckForTargets = false;
+        public bool NeverRetarget = false;
+        private bool _hasHadTarget = false;
 
         public RocketRunner(ITargetDetector targetDetector, ITargetPicker targetPicker, IPilot engineControl, IDetonator detonator, IKnowsCurrentTarget knower)
         {
@@ -29,32 +33,42 @@ namespace Assets.Src.Rocket
             _targetPicker = targetPicker;
             _pilot = engineControl;
             _detonator = detonator;
-            _knower = knower;
+            _targetKnower = knower;
         }
 
         public void RunRocket()
         {
-            var allTargets = _targetDetector.DetectTargets();
-            var bestTarget = _targetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).FirstOrDefault();
-
-            if (_knower != null)
+            if(!NeverRetarget || !_hasHadTarget)
             {
-                _knower.CurrentTarget = bestTarget;
+                var targetIsInvalid = _targetKnower.CurrentTarget == null || _targetKnower.CurrentTarget.TargetTransform.IsInvalid();
+
+                if (ContinuallyCheckForTargets || targetIsInvalid)
+                {
+                    //Debug.Log(name + " aquiring new target");
+                    var allTargets = _targetDetector.DetectTargets();
+                    var bestTarget = _targetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).FirstOrDefault();
+                    _targetKnower.CurrentTarget = bestTarget;
+                    if(bestTarget != null)
+                    {
+                        _hasHadTarget = true;
+                    }
+                }
             }
 
-            //Debug.Log(name + " is flying at " + bestTarget.TargetTransform);
-            _pilot.Fly(bestTarget);
-
-            if (_pilot.StartDelay <= 0)
+            var targetIsValid = _targetKnower.CurrentTarget != null && _targetKnower.CurrentTarget.TargetTransform.IsValid();
+            if (targetIsValid)
             {
-                _detonator.AutoDetonate(bestTarget);
-            }
+                //Debug.Log(name + " is flying at " + _targetKnower.CurrentTarget.TargetTransform);
+                _pilot.Fly(_targetKnower.CurrentTarget);
 
-            //Disabled detonation when out of fuel.
-            //if(_engineControl.RemainingFuel < DetonateWithLessThanXRemainingFuel)
-            //{
-            //    _detonator.DetonateNow();
-            //}
+                if (_pilot.StartDelay <= 0)
+                {
+                    _detonator.AutoDetonate(_targetKnower.CurrentTarget);
+                }
+            } else
+            {
+                Debug.Log(name + " has no target");
+            }
         }
     }
 }

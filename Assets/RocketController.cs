@@ -43,7 +43,14 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     public Transform VectorArrow;
     
     public List<EngineControler> Engines;
-    
+
+    [Tooltip("Check for best targets every frame if true, otherwise only on target loss")]
+    public bool ContinuallyCheckForTargets = false;
+
+    [Tooltip("If set to true a target will be aquired once only, once lost the rocket will deactivate." +
+        " Emulates rockets being told their target by their launcher at launch.")]
+    public bool NeverRetarget = false;
+
     #region TargetPickerVariables
     public float PickerDistanceMultiplier = 1;
     public float PickerInRangeBonus = 0;
@@ -151,7 +158,8 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
 
         _runner = new RocketRunner(_detector, _targetPicker, _pilot, _detonator, this)
         {
-            name = transform.name
+            name = transform.name,
+            ContinuallyCheckForTargets = ContinuallyCheckForTargets
         };
         
         //Debug.Log("starting");
