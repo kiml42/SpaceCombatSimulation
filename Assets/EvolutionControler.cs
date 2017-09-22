@@ -17,8 +17,10 @@ public class EvolutionControler : MonoBehaviour
     public float LocationRandomisationRadius = 0;
     public string Tag1 = "Team1";
     public string Tag2 = "Team2";
-    public string CurrentGenerationFilePath = "./tmp/evolvingShips/currentGeneration.txt";
-    public string GenerationFilePathBase = "./tmp/evolvingShips/Generations/G-";
+    public string GeneralFolder = "./tmp/evolvingShips";
+    public string ThisRunFolder = "1";
+    private string _currentGenerationFilePath;
+    private string _generationFilePathBase;
     public float InitialSpeed = 0;
     public float RandomInitialSpeed = 0;
 
@@ -77,6 +79,10 @@ public class EvolutionControler : MonoBehaviour
     // Use this for initialization
     void Start()
     {
+        var basePath = Path.Combine(GeneralFolder, ThisRunFolder);
+        _currentGenerationFilePath = Path.Combine(basePath, "CurrentGeneration.txt");
+        _generationFilePathBase = Path.Combine(basePath, "Generations/G-");
+
         _mutator = new StringMutator
         {
             AllowedCharacters = AllowedCharacters,
@@ -156,12 +162,12 @@ public class EvolutionControler : MonoBehaviour
             Directory.CreateDirectory(Path.GetDirectoryName(path));
         }
         File.WriteAllText(path, _currentGeneration.ToString());
-        File.WriteAllText(CurrentGenerationFilePath, GenerationNumber.ToString());
+        File.WriteAllText(_currentGenerationFilePath, GenerationNumber.ToString());
     }
 
     private string PathForThisGeneration()
     {
-        var generationFilePath = GenerationFilePathBase + (GenerationNumber.ToString().PadLeft(6, '0'));
+        var generationFilePath = _generationFilePathBase + (GenerationNumber.ToString().PadLeft(6, '0'));
         return generationFilePath;
     }
 
@@ -270,9 +276,9 @@ public class EvolutionControler : MonoBehaviour
 
     private void ReadCurrentGeneration()
     {
-        if (File.Exists(CurrentGenerationFilePath))
+        if (File.Exists(_currentGenerationFilePath))
         {
-            var GenerationNumberText = File.ReadAllText(CurrentGenerationFilePath);
+            var GenerationNumberText = File.ReadAllText(_currentGenerationFilePath);
             if(!int.TryParse(GenerationNumberText, out GenerationNumber))
             {
                 GenerationNumber = 0;

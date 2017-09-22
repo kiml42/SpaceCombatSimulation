@@ -868,6 +868,8 @@ MonoBehaviour:
   LocationRandomisationRadius: 10
   Tag1: Team1
   Tag2: Team2
+  GeneralFolder: ./tmp/evolvingShips
+  ThisRunFolder: CollisionCourse
   CurrentGenerationFilePath: ./tmp/evolvingShips/collisionCourse/currentGeneration.txt
   GenerationFilePathBase: ./tmp/evolvingShips/collisionCourse/Generations/G-
   InitialSpeed: 50
