@@ -117,6 +117,7 @@
     <Compile Include="Assets\Src\Interfaces\ITurretController.cs" />
     <Compile Include="Assets\Src\Interfaces\ITurretRunner.cs" />
     <Compile Include="Assets\Src\Interfaces\ITurretTurner.cs" />
+    <Compile Include="Assets\Src\ObjectManagement\TargetRepository.cs" />
     <Compile Include="Assets\Src\ObjectManagement\ShrapnelAndDamageExploder.cs" />
     <Compile Include="Assets\Src\ObjectManagement\TransformExtensions.cs" />
     <Compile Include="Assets\Src\ObjectManagement\WithChildrenDestroyer.cs" />
@@ -129,6 +130,7 @@
     <Compile Include="Assets\Src\SpaceShip\AverageTargetLocationDestinationChooser.cs" />
     <Compile Include="Assets\Src\SpaceShip\SpaceshipRunner.cs" />
     <Compile Include="Assets\Src\Targeting\ChildTagTargetDetector.cs" />
+    <Compile Include="Assets\Src\Targeting\RepositoryTargetDetector.cs" />
     <Compile Include="Assets\Src\Targeting\MultiTagTargetDetector.cs" />
     <Compile Include="Assets\Src\Targeting\PotentialTarget.cs" />
     <Compile Include="Assets\Src\Targeting\ProximityApproachDetonator.cs" />
