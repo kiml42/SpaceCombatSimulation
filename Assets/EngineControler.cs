@@ -47,8 +47,14 @@ public class EngineControler : MonoBehaviour {
     private bool _active = true;
     private string InactiveTag = "Untagged";
 
+    public float _fullTrhrottlePlumeRate;
+
     // Use this for initialization
     void Start () { 
+        if(Plume != null)
+        {
+            _fullTrhrottlePlumeRate = Plume.emission.rateOverTime.constant;
+        }
         if(EngineForce2 <= 0)
         {
             Debug.Log(transform.name + " needs it's engine force set correctly.");
@@ -97,14 +103,11 @@ public class EngineControler : MonoBehaviour {
 
                 ForceApplier.AddForceAtPosition(-transform.up * EngineForce2 * throttle, transform.position);
                 //ForceApplier.AddRelativeForce(EngineForce * throttle);
-                if(throttle > 0.3)
-                {
-                    SetPlumeState(true);
-                    return;
-                }
+                SetPlumeState(throttle);
+                return;
             }
         }
-        SetPlumeState(false);
+        SetPlumeState(0);
     }
 
     private bool HasFuel()
@@ -126,12 +129,18 @@ public class EngineControler : MonoBehaviour {
         return throttle;
     }
 
-    private void SetPlumeState(bool on)
+    private void SetPlumeState(float throttle)
     {
-        if (on)
+        if (throttle > 0)
         {
             //Debug.Log("turning plume on");
             Plume.Play();
+
+            //reduce rate for throttle.
+            var emission = Plume.emission;
+            var rate = emission.rateOverTime;
+            rate.constant = _fullTrhrottlePlumeRate * throttle;
+            emission.rateOverTime = rate;
         } else
         {
             //Debug.Log("turning plume off");
@@ -143,7 +152,7 @@ public class EngineControler : MonoBehaviour {
     {
         //Debug.Log("Deactivating " + name);
         _active = false;
-        SetPlumeState(false);
+        SetPlumeState(0);
         tag = InactiveTag;
     }
 

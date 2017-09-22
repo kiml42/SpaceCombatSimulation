@@ -808,6 +808,7 @@ MonoBehaviour:
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 1
   TorquerFullThrottleAngle: 10
+  _fullTrhrottlePlumeRate: 0
 --- !u!135 &135943773985880198
 SphereCollider:
   m_ObjectHideFlags: 1
@@ -1452,7 +1453,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1000
+      scalar: 300
       minScalar: 10
       maxCurve:
         serializedVersion: 2
