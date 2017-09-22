@@ -39,8 +39,6 @@ TODO:
     From Endarren:
         Option to just disable the object at zero health, instead of destroying it.
 
-        I would suggest when you spawn in projectile that you parent them to an empty game object. That way, the project heirchy is not messy. I wrote up a Projectile script that does that. I made a fork of this project and put the script in it. You can find it here https://github.com/Endarren/SpaceCombatSimulation/blob/master/Assets/src/Projectile.cs
-
         I would suggest using Scriptable Objects to hold data, such as projectile speed and damage. This would save memory, since you wouldn't have duplicate data in objects.
 
         I would suggest using a different method to detect enemies. GameObject.FindGameObjectsWithTag is not very effiecent.
