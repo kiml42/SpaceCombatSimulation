@@ -37,7 +37,6 @@ namespace Assets.Src.Pilots
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
-            AngleTollerance = angleTollerance;
             SlowdownWeighting = 10;
             LocationAimWeighting = 1;
 

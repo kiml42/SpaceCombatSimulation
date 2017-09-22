@@ -10,7 +10,6 @@ R - cycle reticle state
 
 TODO:
     Store full config of evolution in current generation file.
-    FuelTank option to balance fuel with parent.
     Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
     Draws should be penalised less if the ships killed each other simultaneously. probably give them the win score - some constant.
     Colour projectiles the same as teh ship.
@@ -21,6 +20,7 @@ TODO:
     Pass damage up option for health controller
     Destructin only leaves objects with a rigibdbody and a health controller
     Spherical modules with two angles given for where to spawn the sub modules and something to specify termination of that module's spawning (going back up to the previous)
+    FuelTank option to balance fuel with parent.
 
     shipCam:
         Make shipcam move faster if the followed object is faster or add a set chunk to the location based on the followed object's speed. - done

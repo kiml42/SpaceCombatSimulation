@@ -12,7 +12,6 @@ namespace Assets.Src.Pilots
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
-            AngleTollerance = shootAngle;
             StartDelay = startDelay;
             LocationAimWeighting = 1;
 
@@ -23,7 +22,6 @@ namespace Assets.Src.Pilots
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
-            AngleTollerance = shootAngle;
             StartDelay = startDelay;
             LocationAimWeighting = 1;
 

@@ -51,8 +51,6 @@ namespace Assets.Src.Pilots
             return TurningStartDelay <= 0;
         }
 
-        protected float AngleTollerance;
-
         protected ITorqueApplier _torqueApplier;
 
         protected Rigidbody _pilotObject;
@@ -121,18 +119,6 @@ namespace Assets.Src.Pilots
         protected void RemoveNullEngines()
         {
             _engines = _engines.Where(t => t != null).Distinct().ToList();
-        }
-
-        protected bool IsAimedAtWorldVector(Vector3 worldSpaceVector)
-        {
-            if (_pilotObject != null)
-            {
-                var angle = Vector3.Angle(_pilotObject.transform.forward, worldSpaceVector);
-                return angle < AngleTollerance;
-            }
-
-            //Debug.Log("No Engines (IsAimedAtWorldVector)");
-            return false;
         }
         
         public void AddEngine(EngineControler engine)

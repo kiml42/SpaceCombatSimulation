@@ -13,7 +13,11 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     public float ShootAngle = 10;
     public float TorqueMultiplier = 1f;
     public float LocationAimWeighting = 3f;
+
+    [Tooltip("Delay until engines (including RCS) will start and warhead will arm")]
     public int StartDelay = 10;
+
+    [Tooltip("Delay until non-engine torquers will start")]
     public int TurningStartDelay = 2;
 
     public float TimeToTargetForDetonation = 0.5f;
