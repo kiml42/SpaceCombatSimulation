@@ -868,9 +868,9 @@ MonoBehaviour:
   LocationRandomisationRadius: 10
   Tag1: Team1
   Tag2: Team2
-  CurrentGenerationFilePath: ./tmp/evolvingShips/currentGeneration.txt
-  GenerationFilePathBase: ./tmp/evolvingShips/Generations/G-
-  InitialSpeed: 100
+  CurrentGenerationFilePath: ./tmp/evolvingShips/collisionCourse/currentGeneration.txt
+  GenerationFilePathBase: ./tmp/evolvingShips/collisionCourse/Generations/G-
+  InitialSpeed: 50
   RandomInitialSpeed: 0
   SpaceShipTag: SpaceShip
   GenerationSize: 11
@@ -878,17 +878,17 @@ MonoBehaviour:
   WinnersFromEachGeneration: 4
   MatchTimeout: 15000
   Mutations: 3
-  MaxTurrets: 15
-  MaxModules: 20
+  MaxTurrets: 10
+  MaxModules: 15
   AllowedCharacters: ' 01223456789  '
   MaxMutationLength: 5
   MaxShootAngle: 180
   MaxTorqueMultiplier: 60000
   MaxLocationAimWeighting: 10
-  MaxSlowdownWeighting: 60
+  MaxSlowdownWeighting: 100
   MaxLocationTollerance: 2000
   MaxVelociyTollerance: 100
-  MaxAngularDragForTorquers: 5
+  MaxAngularDragForTorquers: 14
   GenomeLength: 100
   Modules:
   - {fileID: 54570345499317062, guid: b6e297582f25e22439032bba93cfe02a, type: 2}

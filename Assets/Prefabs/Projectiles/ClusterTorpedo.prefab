@@ -4254,7 +4254,6 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
-  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114101606245805576
@@ -4295,9 +4294,8 @@ MonoBehaviour:
   ShootAngle: 5
   TorqueMultiplier: 0
   LocationAimWeighting: 8
-  Fuel: 1000
-  StartDelay: 80
-  TurningStartDelay: 20
+  StartDelay: 50
+  TurningStartDelay: 10
   TimeToTargetForDetonation: 3.5
   Shrapnel: {fileID: 54172732429601216, guid: 64a8db6279a423644be913ab3dd17046, type: 2}
   ExplosionEffect: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
@@ -4351,7 +4349,6 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
-  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114158890808086460
@@ -4373,7 +4370,6 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
-  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114170774721990032
@@ -4395,7 +4391,6 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
-  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114227681578196334
@@ -4417,7 +4412,6 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
-  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114401707968426666
@@ -4439,7 +4433,6 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
-  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114419003778581402
@@ -4461,7 +4454,6 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
-  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114698388319875676
@@ -4483,7 +4475,6 @@ MonoBehaviour:
   UseAsTorquer: 0
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 1
-  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!114 &114766246677591618
@@ -4497,7 +4488,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00495207fc630df479e0d4f227bb1949, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Fuel: 1000
+  Fuel: 2000
 --- !u!114 &114925099274032058
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4517,7 +4508,6 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 0.8
-  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!136 &136759748819616910

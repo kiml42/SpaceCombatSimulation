@@ -725,7 +725,6 @@ MonoBehaviour:
   ShootAngle: 10
   TorqueMultiplier: 80
   LocationAimWeighting: 8
-  Fuel: 600
   StartDelay: 20
   TurningStartDelay: 10
   TimeToTargetForDetonation: 0.2
@@ -735,7 +734,7 @@ MonoBehaviour:
   ShrapnelCount: 20
   ExplosionForce: 600
   ShrapnelSpeed: 20
-  ExplosionDamage: 500
+  ExplosionDamage: 200
   ExplosionRadius: 20
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 0
@@ -753,7 +752,7 @@ MonoBehaviour:
   EnemyTags:
   - Enemy
   - Team1
-  TimeToLive: 2000
+  TimeToLive: 3000
 --- !u!114 &114210379376876750
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -775,7 +774,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 8
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 400
+  ExplosionDamage2: 150
   FramesOfInvulnerability: 3
   OriginalHealth: 0
 --- !u!114 &114274753216163754
@@ -809,7 +808,6 @@ MonoBehaviour:
   UseAsTorquer: 0
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 1
-  _fuelTank: {fileID: 0}
   _torqueVector: {x: 0, y: 0, z: 0}
   TorquerFullThrottleAngle: 10
 --- !u!135 &135943773985880198

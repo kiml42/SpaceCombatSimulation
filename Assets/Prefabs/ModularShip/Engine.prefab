@@ -266,10 +266,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1200, z: 0}
+  EngineForce: {x: 0, y: -2000, z: 0}
   ForceApplier: {fileID: 54223752741852356}
-  IsOn: 1
   Plume: {fileID: 198180660864587914}
+  TranslateFireAngle: 45
+  TorqueFireAngle: 90
+  UseAsTorquer: 1
+  UseAsTranslator: 1
+  FullThrottleFuelConsumption: 1
+  _torqueVector: {x: 0, y: 0, z: 0}
+  TorquerFullThrottleAngle: 10
 --- !u!114 &114426916586840510
 MonoBehaviour:
   m_ObjectHideFlags: 1
