@@ -30,5 +30,30 @@ namespace Assets.Src.Targeting
             Transform = target;
             Rigidbody = target.GetComponent("Rigidbody") as Rigidbody;
         }
+
+        public bool Equals(Target other)
+        {
+            Debug.Log("Using my equals");
+            return Transform == other.Transform;
+        }
+    }
+
+    sealed class CompareTargetsByTransform : IEqualityComparer<Target>
+    {
+        public bool Equals(Target x, Target y)
+        {
+            Debug.Log("MyEquals");
+            if (x == null)
+                return y == null;
+            else if (y == null)
+                return false;
+            else
+                return x.Transform == y.Transform;
+        }
+
+        public int GetHashCode(Target obj)
+        {
+            return obj.Transform.GetHashCode();
+        }
     }
 }

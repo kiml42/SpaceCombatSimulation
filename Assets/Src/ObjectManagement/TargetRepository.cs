@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 namespace Assets.Src.ObjectManagement
 {
@@ -51,7 +52,7 @@ namespace Assets.Src.ObjectManagement
             }
             return  list
                 .Where(target => target != null && target.Transform != null && target.Transform.IsValid())
-                .Distinct()
+                .Distinct(new CompareTargetsByTransform())  //Specify the comparer to use 
                 .ToList();
         }
     }
