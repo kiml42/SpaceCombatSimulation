@@ -65,10 +65,11 @@ namespace Assets.Src.Rocket
                 {
                     _detonator.AutoDetonate(_targetKnower.CurrentTarget);
                 }
-            } else
-            {
-                Debug.Log(name + " has no target");
             }
+            //else
+            //{
+            //    Debug.Log(name + " has no target");
+            //}
         }
     }
 }
