@@ -24,6 +24,7 @@ GameObject:
   - component: {fileID: 198575638471518982}
   - component: {fileID: 199790660456684666}
   - component: {fileID: 114777130459260602}
+  - component: {fileID: 114810051653132316}
   m_Layer: 0
   m_Name: LaserHitEffect
   m_TagString: Untagged
@@ -159,6 +160,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Lifetime: 3
   RandomLifetime: 0
+--- !u!114 &114810051653132316
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1103777410261294}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ad7694a60ae99147840ec29ed46a196, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GroupName: Explosions
 --- !u!198 &198575638471518982
 ParticleSystem:
   m_ObjectHideFlags: 1

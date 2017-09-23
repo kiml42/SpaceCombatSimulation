@@ -40,6 +40,7 @@ GameObject:
   - component: {fileID: 198341795136170286}
   - component: {fileID: 199099836237986650}
   - component: {fileID: 114067011622820928}
+  - component: {fileID: 114236479665353144}
   m_Layer: 0
   m_Name: smallExplosionEffect
   m_TagString: Untagged
@@ -163,6 +164,18 @@ MonoBehaviour:
   ExplosionForce: 600
   ExplosionRadius: 20
   ExplosionBaseDamage: 200
+--- !u!114 &114236479665353144
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1855715873590362}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ad7694a60ae99147840ec29ed46a196, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GroupName: Explosions
 --- !u!198 &198341795136170286
 ParticleSystem:
   m_ObjectHideFlags: 1

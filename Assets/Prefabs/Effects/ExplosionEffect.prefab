@@ -24,6 +24,7 @@ GameObject:
   - component: {fileID: 198339282544451348}
   - component: {fileID: 199006236806981554}
   - component: {fileID: 114130350593235908}
+  - component: {fileID: 114875940264887714}
   m_Layer: 0
   m_Name: ExplosionEffect
   m_TagString: Untagged
@@ -163,6 +164,18 @@ MonoBehaviour:
   ExplosionForce: 2000
   ExplosionRadius: 150
   ExplosionBaseDamage: 80000
+--- !u!114 &114875940264887714
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1592529400755888}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ad7694a60ae99147840ec29ed46a196, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GroupName: Explosions
 --- !u!198 &198339282544451348
 ParticleSystem:
   m_ObjectHideFlags: 1

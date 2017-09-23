@@ -54,6 +54,10 @@ Bugs:
     Graphical - Beams don't turn off when the turret dies.
     "Can't remove Rigidbody because HingeJoint depends on it"
 
+Balance:
+    Cluster torpedoes do practically no damage, even when some of the submunitions hit, which happens quite rarely.
+    Big lasers should be capable at a bit of a longer range.
+
 Limerick;
 There once was a man from Toronto
 Who needed a rhyming word pronto
