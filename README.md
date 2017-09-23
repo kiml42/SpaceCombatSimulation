@@ -9,7 +9,6 @@ Z - make the ship cam follow a different object.
 R - cycle reticle state
 
 TODO:
-    Pass damage up option for health controller
     Store full config of evolution in current generation file.
     Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
     Draws should be penalised less if the ships killed each other simultaneously. probably give them the win score - some constant.
@@ -48,7 +47,7 @@ TODO:
         To make it more customizable, it would be nice if the turret turn speeds were changable in the inspector.
 
         You might want to make the OnCollisionEnter for HealthController do some checks to make sure certain colliders do not accidently do damage.
-            Health controller should ignore triggers, but a trigger wouldn't be seen by the beams, so I'll probably approach this by having a tag on the shield that health controller is told to ignore.
+            HealthController ignores certian tags, but the collisions with any force field still wreck things by physics.
 
 
 Bugs:
