@@ -9,11 +9,6 @@ Z - make the ship cam follow a different object.
 R - cycle reticle state
 
 TODO:
-    Expanding sphere for explosion damage so it doesn't check all objects.
-        Add this to the explosion effects
-        Make sure everything uses the right sort of explosion
-        Set the explosion force on collision with this sphere too.
-    Health controllers register themselves as a thing to be damaged by explosions.
     Pass damage up option for health controller
     Store full config of evolution in current generation file.
     Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
