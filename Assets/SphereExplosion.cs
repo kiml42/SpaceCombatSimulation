@@ -45,26 +45,16 @@ public class SphereExplosion : MonoBehaviour {
     {
         if (!collider.isTrigger)
         {
-            var hc = FindHealthController(collider.transform);
+            var rb = collider.attachedRigidbody;
+            var hc = rb.GetComponent("HealthControler") as HealthControler;
+            if (rb != null)
+            {
+                Debug.Log(rb.transform);
+            }
             if (hc != null)
             {
-                Debug.Log(hc.transform);
+
             }
         }
-    }
-
-    private HealthControler FindHealthController(Transform transform)
-    {
-        var hc = transform.GetComponent("HealthControler") as HealthControler;
-        if(hc != null)
-        {
-            return hc;
-        }
-        if(transform.parent != null)
-        {
-            return FindHealthController(transform.parent);
-        }
-        Debug.Log(transform + " has no parent or health controler");
-        return null;
     }
 }
