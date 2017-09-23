@@ -527,6 +527,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DeactivateParent: 0
   DeactivateOnBreak: 1
+  DisconectFromParent: 1
+  BreakExplosion: {fileID: 54668735992167884, guid: b20315eb9dac9e942a8aeabfcded0980,
+    type: 2}
 --- !u!114 &114605144179052602
 MonoBehaviour:
   m_ObjectHideFlags: 1
