@@ -17,6 +17,14 @@ public class SphereExplosion : MonoBehaviour {
     private float _intensityScaler;
     private List<Rigidbody> _previousCollisions = new List<Rigidbody>();
 
+    [Tooltip("base force for the explosion force")]
+    public float ExplosionForce = 30;
+    [Tooltip("radius for the explosion force (can be larger than the radius of objects that will be touched)")]
+    public float ExplosionRadius = 20;
+
+    [Tooltip("Maximum damage from the explosion, reduced by a factor of distance squared")]
+    public float ExplosionBaseDamage = 100;
+
     void Start()
     {
         _collider = gameObject.AddComponent<SphereCollider>();
@@ -45,14 +53,6 @@ public class SphereExplosion : MonoBehaviour {
         Lifetime--;
     }
 
-    [Tooltip("base force for the explosion force")]
-    public float ExplosionForce = 30;
-    [Tooltip("radius for the explosion force (can be larger than the radius of objects that will be touched)")]
-    public float ExplosionRadius = 20;
-
-    [Tooltip("Maximum damage from the explosion, reduced by a factor of distance squared")]
-    public float ExplosionBaseDamage = 100;
-
     private void OnTriggerEnter(Collider collider)
     {
         if (!collider.isTrigger)
@@ -66,7 +66,6 @@ public class SphereExplosion : MonoBehaviour {
                     rb.AddExplosionForce(ExplosionForce, transform.position, ExplosionRadius);
 
                     var hc = rb.GetComponent("HealthControler") as HealthControler;
-                        Debug.Log(rb.transform);
 
                     if (hc != null)
                     {
