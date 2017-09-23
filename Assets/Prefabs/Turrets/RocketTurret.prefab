@@ -94,6 +94,7 @@ GameObject:
   - component: {fileID: 138899810941611596}
   - component: {fileID: 114548822602743814}
   - component: {fileID: 114381770602534690}
+  - component: {fileID: 114179297776511906}
   m_Layer: 8
   m_Name: RocketTurret
   m_TagString: Untagged
@@ -181,6 +182,7 @@ GameObject:
   - component: {fileID: 54109599909455274}
   - component: {fileID: 59883538907965154}
   - component: {fileID: 114583591685629450}
+  - component: {fileID: 114182629851243410}
   m_Layer: 8
   m_Name: TurnTable
   m_TagString: Untagged
@@ -202,6 +204,7 @@ GameObject:
   - component: {fileID: 54962058733534410}
   - component: {fileID: 59665642108064322}
   - component: {fileID: 114738284784392492}
+  - component: {fileID: 114013202800805262}
   m_Layer: 8
   m_Name: ElevationHub
   m_TagString: Untagged
@@ -705,8 +708,8 @@ HingeJoint:
     bounciness: 0
     bounceMinVelocity: 0.2
     contactDistance: 0
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
+  m_BreakForce: 100000
+  m_BreakTorque: 100000
   m_EnableCollision: 0
   m_EnablePreprocessing: 1
   m_MassScale: 1
@@ -739,8 +742,8 @@ HingeJoint:
     bounciness: 0
     bounceMinVelocity: 0.2
     contactDistance: 0
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
+  m_BreakForce: 100000
+  m_BreakTorque: 100000
   m_EnableCollision: 0
   m_EnablePreprocessing: 1
   m_MassScale: 1
@@ -807,6 +810,45 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1280613731734218}
   m_Enabled: 1
+--- !u!114 &114013202800805262
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1987489121464814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e927d7ab301976247bdc08793117b61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeactivateParent: 1
+  DeactivateOnBreak: 1
+--- !u!114 &114179297776511906
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1232396845400902}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e927d7ab301976247bdc08793117b61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeactivateParent: 0
+  DeactivateOnBreak: 1
+--- !u!114 &114182629851243410
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1894978669908588}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e927d7ab301976247bdc08793117b61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeactivateParent: 1
+  DeactivateOnBreak: 1
 --- !u!114 &114381770602534690
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -834,12 +876,9 @@ MonoBehaviour:
   Health: 200
   DeathExplosion: {fileID: 54668735992167884, guid: b20315eb9dac9e942a8aeabfcded0980,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
 --- !u!114 &114583591685629450
@@ -857,12 +896,9 @@ MonoBehaviour:
   Armour: 0
   Health: 200
   DeathExplosion: {fileID: 0}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
 --- !u!114 &114731063394109334
@@ -906,12 +942,9 @@ MonoBehaviour:
   Armour: 0
   Health: 200
   DeathExplosion: {fileID: 0}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
 --- !u!124 &124756949968105552
@@ -954,8 +987,8 @@ FixedJoint:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1232396845400902}
   m_ConnectedBody: {fileID: 0}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
+  m_BreakForce: 100000
+  m_BreakTorque: 100000
   m_EnableCollision: 1
   m_EnablePreprocessing: 1
   m_MassScale: 1

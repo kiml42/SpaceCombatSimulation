@@ -40,6 +40,7 @@ GameObject:
   - component: {fileID: 54882056251725972}
   - component: {fileID: 59977673465149604}
   - component: {fileID: 114447421175719934}
+  - component: {fileID: 114395788500693144}
   m_Layer: 8
   m_Name: TurnTableMiniBeam
   m_TagString: Untagged
@@ -301,6 +302,7 @@ GameObject:
   - component: {fileID: 54867097553581106}
   - component: {fileID: 59126025736455676}
   - component: {fileID: 114844622593280128}
+  - component: {fileID: 114233701405603516}
   m_Layer: 8
   m_Name: ElevationHub
   m_TagString: Untagged
@@ -479,6 +481,7 @@ GameObject:
   - component: {fileID: 138157655960534944}
   - component: {fileID: 114140716898617586}
   - component: {fileID: 114310215052602218}
+  - component: {fileID: 114634532448284018}
   m_Layer: 8
   m_Name: MiniBeamTurret
   m_TagString: Team1
@@ -1862,8 +1865,8 @@ HingeJoint:
     bounciness: 0
     bounceMinVelocity: 0.2
     contactDistance: 0
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
+  m_BreakForce: 100000
+  m_BreakTorque: 100000
   m_EnableCollision: 0
   m_EnablePreprocessing: 1
   m_MassScale: 1
@@ -1896,8 +1899,8 @@ HingeJoint:
     bounciness: 0
     bounceMinVelocity: 0.2
     contactDistance: 0
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
+  m_BreakForce: 100000
+  m_BreakTorque: 100000
   m_EnableCollision: 0
   m_EnablePreprocessing: 1
   m_MassScale: 1
@@ -1992,14 +1995,24 @@ MonoBehaviour:
   Health: 300
   DeathExplosion: {fileID: 54668735992167884, guid: b20315eb9dac9e942a8aeabfcded0980,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+--- !u!114 &114233701405603516
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1649118934938034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e927d7ab301976247bdc08793117b61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeactivateParent: 1
+  DeactivateOnBreak: 1
 --- !u!114 &114310215052602218
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2011,6 +2024,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &114395788500693144
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1060150790031920}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e927d7ab301976247bdc08793117b61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeactivateParent: 1
+  DeactivateOnBreak: 1
 --- !u!114 &114404345958453862
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2063,14 +2089,24 @@ MonoBehaviour:
   Health: 300
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+--- !u!114 &114634532448284018
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1964144153646322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e927d7ab301976247bdc08793117b61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeactivateParent: 0
+  DeactivateOnBreak: 1
 --- !u!114 &114844622593280128
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2087,12 +2123,9 @@ MonoBehaviour:
   Health: 300
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
 --- !u!124 &124357949528397776
@@ -2226,8 +2259,8 @@ FixedJoint:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1964144153646322}
   m_ConnectedBody: {fileID: 0}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
+  m_BreakForce: 100000
+  m_BreakTorque: 100000
   m_EnableCollision: 1
   m_EnablePreprocessing: 1
   m_MassScale: 1

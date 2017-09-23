@@ -77,6 +77,7 @@ GameObject:
   - component: {fileID: 114426916586840510}
   - component: {fileID: 114161418504762722}
   - component: {fileID: 114198735893420614}
+  - component: {fileID: 114378008843930622}
   m_Layer: 0
   m_Name: Engine
   m_TagString: Team1
@@ -291,6 +292,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &114378008843930622
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1998849172333536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e927d7ab301976247bdc08793117b61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeactivateParent: 0
+  DeactivateOnBreak: 1
 --- !u!114 &114426916586840510
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -307,12 +321,9 @@ MonoBehaviour:
   Health: 500
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
 --- !u!138 &138388483758250644

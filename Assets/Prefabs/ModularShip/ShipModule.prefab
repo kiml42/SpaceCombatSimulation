@@ -195,6 +195,7 @@ GameObject:
   - component: {fileID: 114621391504342684}
   - component: {fileID: 138166615921016154}
   - component: {fileID: 114605144179052602}
+  - component: {fileID: 114456467286586328}
   m_Layer: 0
   m_Name: ShipModule
   m_TagString: Untagged
@@ -513,6 +514,19 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 10, y: 10, z: 10}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &114456467286586328
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1887750702999502}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e927d7ab301976247bdc08793117b61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeactivateParent: 0
+  DeactivateOnBreak: 1
 --- !u!114 &114605144179052602
 MonoBehaviour:
   m_ObjectHideFlags: 1

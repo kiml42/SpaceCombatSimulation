@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 54160784929646596}
   - component: {fileID: 59637156536051532}
   - component: {fileID: 114306497983771438}
+  - component: {fileID: 114904709351601692}
   m_Layer: 8
   m_Name: TurnTable
   m_TagString: Untagged
@@ -163,6 +164,7 @@ GameObject:
   - component: {fileID: 54136877300926014}
   - component: {fileID: 59932577043065196}
   - component: {fileID: 114904066030491806}
+  - component: {fileID: 114902381399359470}
   m_Layer: 8
   m_Name: ElevationHub
   m_TagString: Untagged
@@ -183,6 +185,7 @@ GameObject:
   - component: {fileID: 114792225503145664}
   - component: {fileID: 114714754333530302}
   - component: {fileID: 114941792179239686}
+  - component: {fileID: 114078591662564136}
   m_Layer: 8
   m_Name: Type2Turret
   m_TagString: Untagged
@@ -705,8 +708,8 @@ HingeJoint:
     bounciness: 0
     bounceMinVelocity: 0.2
     contactDistance: 0
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
+  m_BreakForce: 100000
+  m_BreakTorque: 100000
   m_EnableCollision: 0
   m_EnablePreprocessing: 1
   m_MassScale: 1
@@ -739,8 +742,8 @@ HingeJoint:
     bounciness: 0
     bounceMinVelocity: 0.2
     contactDistance: 0
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
+  m_BreakForce: 100000
+  m_BreakTorque: 100000
   m_EnableCollision: 0
   m_EnablePreprocessing: 1
   m_MassScale: 1
@@ -807,6 +810,19 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1909525305750614}
   m_Enabled: 1
+--- !u!114 &114078591662564136
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1866709225031140}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e927d7ab301976247bdc08793117b61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeactivateParent: 0
+  DeactivateOnBreak: 1
 --- !u!114 &114306497983771438
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -822,12 +838,9 @@ MonoBehaviour:
   Armour: 0
   Health: 200
   DeathExplosion: {fileID: 0}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
 --- !u!114 &114714754333530302
@@ -879,14 +892,24 @@ MonoBehaviour:
   Health: 200
   DeathExplosion: {fileID: 54668735992167884, guid: b20315eb9dac9e942a8aeabfcded0980,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+--- !u!114 &114902381399359470
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1851867619676866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e927d7ab301976247bdc08793117b61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeactivateParent: 1
+  DeactivateOnBreak: 1
 --- !u!114 &114904066030491806
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -902,14 +925,24 @@ MonoBehaviour:
   Armour: 0
   Health: 300
   DeathExplosion: {fileID: 0}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+--- !u!114 &114904709351601692
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1053151280372486}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e927d7ab301976247bdc08793117b61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeactivateParent: 1
+  DeactivateOnBreak: 1
 --- !u!114 &114941792179239686
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -961,8 +994,8 @@ FixedJoint:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1866709225031140}
   m_ConnectedBody: {fileID: 0}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
+  m_BreakForce: 100000
+  m_BreakTorque: 100000
   m_EnableCollision: 1
   m_EnablePreprocessing: 1
   m_MassScale: 1
