@@ -7,11 +7,6 @@ using UnityEngine;
 //TODO neaten up fields and methods.
 public class EngineControler : MonoBehaviour {
     /// <summary>
-    /// old version of engineFoce - retained to copy values
-    /// </summary>
-    public Vector3 EngineForce;
-
-    /// <summary>
     /// The force the engine applys at this transform's position in this transfornm's -up direction
     /// </summary>
     public float EngineForce2;
@@ -55,11 +50,6 @@ public class EngineControler : MonoBehaviour {
         if(Plume != null)
         {
             _fullTrhrottlePlumeRate = Plume.emission.rateOverTime.constant;
-        }
-        if(EngineForce2 <= 0)
-        {
-            Debug.Log(transform.name + " needs it's engine force set correctly.");
-            EngineForce2 = EngineForce.magnitude;
         }
 
         Pilot = FindOtherComponents(transform);

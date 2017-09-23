@@ -4095,7 +4095,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1000, z: 0}
   EngineForce2: 1000
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
@@ -4124,12 +4123,9 @@ MonoBehaviour:
   Health: 25
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce2: 500
-  ExplosionRadius2: 20
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 1000
   FramesOfInvulnerability: 3
   OriginalHealth: 0
 --- !u!114 &114116952395043294
@@ -4148,7 +4144,7 @@ MonoBehaviour:
   LocationAimWeighting: 8
   StartDelay: 50
   TurningStartDelay: 10
-  TimeToTargetForDetonation: 3.5
+  TimeToTargetForDetonation: 2.5
   Shrapnel: {fileID: 54172732429601216, guid: 64a8db6279a423644be913ab3dd17046, type: 2}
   ExplosionEffect: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
@@ -4192,7 +4188,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1000, z: 0}
   EngineForce2: 1000
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
@@ -4228,7 +4223,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1000, z: 0}
   EngineForce2: 1000
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
@@ -4252,7 +4246,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1000, z: 0}
   EngineForce2: 1000
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
@@ -4276,7 +4269,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1000, z: 0}
   EngineForce2: 1000
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
@@ -4311,7 +4303,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1000, z: 0}
   EngineForce2: 1000
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
@@ -4335,7 +4326,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1000, z: 0}
   EngineForce2: 1000
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
@@ -4359,7 +4349,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1300, z: 0}
   EngineForce2: 1300
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
@@ -4397,7 +4386,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1000, z: 0}
   EngineForce2: 1000
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}

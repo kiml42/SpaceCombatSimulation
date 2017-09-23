@@ -2013,6 +2013,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DeactivateParent: 1
   DeactivateOnBreak: 1
+  DisconectFromParent: 1
+  BreakExplosion: {fileID: 0}
 --- !u!114 &114310215052602218
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2037,6 +2039,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DeactivateParent: 1
   DeactivateOnBreak: 1
+  DisconectFromParent: 1
+  BreakExplosion: {fileID: 0}
 --- !u!114 &114404345958453862
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2065,9 +2069,9 @@ MonoBehaviour:
   - Enemy
   - Team2
   BeamColour: {r: 1, g: 0.06300002, b: 0.06300002, a: 0.678}
-  PickerDistanceMultiplier: 0.5
+  PickerDistanceMultiplier: 0.7
   PickerInRangeBonus: 10000
-  PickerRange: 2500
+  PickerRange: 1000
   PickerAimedAtMultiplier: 100
   PickerMinimumMass: 10
   PickerMasMultiplier: 30
@@ -2107,6 +2111,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DeactivateParent: 0
   DeactivateOnBreak: 1
+  DisconectFromParent: 1
+  BreakExplosion: {fileID: 0}
 --- !u!114 &114844622593280128
 MonoBehaviour:
   m_ObjectHideFlags: 1

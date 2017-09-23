@@ -865,17 +865,15 @@ MonoBehaviour:
   Location1: {fileID: 4530287190188008}
   Location2: {fileID: 4754386304018410}
   RandomiseRotation: 0
-  LocationRandomisationRadius: 10
+  LocationRandomisationRadius: 0
   Tag1: Team1
   Tag2: Team2
   GeneralFolder: ./tmp/evolvingShips
   ThisRunFolder: CollisionCourse
-  CurrentGenerationFilePath: ./tmp/evolvingShips/collisionCourse/currentGeneration.txt
-  GenerationFilePathBase: ./tmp/evolvingShips/collisionCourse/Generations/G-
-  InitialSpeed: 50
+  InitialSpeed: 30
   RandomInitialSpeed: 0
   SpaceShipTag: SpaceShip
-  GenerationSize: 11
+  GenerationSize: 17
   MinMatchesPerIndividual: 3
   WinnersFromEachGeneration: 4
   MatchTimeout: 15000

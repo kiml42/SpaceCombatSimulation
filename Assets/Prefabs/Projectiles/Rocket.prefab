@@ -60,7 +60,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!1 &1367533256219350
 GameObject:
   m_ObjectHideFlags: 1
@@ -262,7 +262,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1844183048995594}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6.85, y: 8.59, z: 0}
+  m_LocalPosition: {x: 283.7, y: 70.289536, z: -148.54}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4309450258221040}
@@ -613,7 +613,7 @@ TrailRenderer:
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
   m_Materials:
-  - {fileID: 10301, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -641,13 +641,13 @@ TrailRenderer:
       m_Curve:
       - serializedVersion: 2
         time: 0
-        value: 0.8734131
+        value: 0.5781746
         inSlope: 0
         outSlope: 0
         tangentMode: 0
       - serializedVersion: 2
-        time: 0.2123146
-        value: 1
+        time: 0.21397781
+        value: 0.8904762
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -663,7 +663,7 @@ TrailRenderer:
     colorGradient:
       serializedVersion: 2
       key0: {r: 1, g: 1, b: 1, a: 1}
-      key1: {r: 1, g: 1, b: 0.666, a: 0.6117647}
+      key1: {r: 1, g: 1, b: 0.666, a: 0}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
@@ -678,7 +678,7 @@ TrailRenderer:
       ctime5: 0
       ctime6: 0
       ctime7: 0
-      atime0: 31226
+      atime0: 17540
       atime1: 65535
       atime2: 0
       atime3: 0
@@ -708,7 +708,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShootAngle: 10
-  TorqueMultiplier: 80
+  TorqueMultiplier: 90
   LocationAimWeighting: 8
   StartDelay: 20
   TurningStartDelay: 10
@@ -717,10 +717,7 @@ MonoBehaviour:
   ExplosionEffect: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
   ShrapnelCount: 20
-  ExplosionForce: 600
   ShrapnelSpeed: 20
-  ExplosionDamage: 200
-  ExplosionRadius: 20
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 0
   VectorArrow: {fileID: 4346285404244058}
@@ -756,12 +753,9 @@ MonoBehaviour:
   Health: 3
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce2: 400
-  ExplosionRadius2: 10
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 8
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 150
   FramesOfInvulnerability: 3
   OriginalHealth: 0
 --- !u!114 &114274753216163754
@@ -801,8 +795,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -150, z: 0}
-  EngineForce2: 150
+  EngineForce2: 200
   Pilot: {fileID: 4469671951430032}
   FuelTank: {fileID: 114274753216163754}
   ForceApplier: {fileID: 54991379400455944}
@@ -3351,7 +3344,7 @@ ParticleSystem:
   LightsModule:
     enabled: 0
     ratio: 0.01
-    light: {fileID: 108030273114456356, guid: 35dfec220b15b814d9cc2bd28d309187, type: 2}
+    light: {fileID: 0}
     randomDistribution: 1
     color: 1
     range: 1

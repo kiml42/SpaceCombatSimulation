@@ -130,7 +130,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!1 &1923394915539256
 GameObject:
   m_ObjectHideFlags: 0
@@ -612,7 +612,7 @@ TrailRenderer:
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
   m_Materials:
-  - {fileID: 10301, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -640,13 +640,13 @@ TrailRenderer:
       m_Curve:
       - serializedVersion: 2
         time: 0
-        value: 0.8734131
+        value: 0.5781746
         inSlope: 0
         outSlope: 0
         tangentMode: 0
       - serializedVersion: 2
-        time: 0.2123146
-        value: 1
+        time: 0.21397781
+        value: 0.8904762
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -662,7 +662,7 @@ TrailRenderer:
     colorGradient:
       serializedVersion: 2
       key0: {r: 1, g: 1, b: 1, a: 1}
-      key1: {r: 1, g: 1, b: 0.666, a: 0.6117647}
+      key1: {r: 1, g: 1, b: 0.666, a: 0}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
@@ -677,7 +677,7 @@ TrailRenderer:
       ctime5: 0
       ctime6: 0
       ctime7: 0
-      atime0: 31226
+      atime0: 17540
       atime1: 65535
       atime2: 0
       atime3: 0
@@ -720,8 +720,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -150, z: 0}
-  EngineForce2: 150
+  EngineForce2: 200
   Pilot: {fileID: 4832477793392458}
   FuelTank: {fileID: 114087177041280492}
   ForceApplier: {fileID: 54172732429601216}
@@ -761,12 +760,9 @@ MonoBehaviour:
   Health: 3
   DeathExplosion: {fileID: 54668735992167884, guid: b20315eb9dac9e942a8aeabfcded0980,
     type: 2}
-  ExplosionForce2: 300
-  ExplosionRadius2: 15
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 8
   ShrapnelSpeed2: 16
-  ExplosionDamage2: 800
   FramesOfInvulnerability: 3
   OriginalHealth: 0
 --- !u!114 &114634549180162652
@@ -781,7 +777,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShootAngle: 10
-  TorqueMultiplier: 80
+  TorqueMultiplier: 90
   LocationAimWeighting: 8
   StartDelay: 5
   TurningStartDelay: 0
@@ -789,7 +785,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ExplosionEffect: {fileID: 54668735992167884, guid: b20315eb9dac9e942a8aeabfcded0980,
     type: 2}
-  ShrapnelCount: 8
+  ShrapnelCount: 10
   ShrapnelSpeed: 16
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 0
