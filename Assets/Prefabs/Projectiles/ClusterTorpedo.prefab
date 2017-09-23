@@ -4122,7 +4122,7 @@ MonoBehaviour:
   Resilience: 10
   Armour: 0
   Health: 25
-  DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
+  DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
   ExplosionForce2: 500
   ExplosionRadius2: 20
@@ -4153,10 +4153,7 @@ MonoBehaviour:
   ExplosionEffect: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
   ShrapnelCount: 10
-  ExplosionForce: 500
   ShrapnelSpeed: 15
-  ExplosionDamage: 1000
-  ExplosionRadius: 20
   TagShrapnel: 1
   SetEnemyTagOnShrapnel: 1
   VectorArrow: {fileID: 4175057121454258}

@@ -847,7 +847,7 @@ MonoBehaviour:
   Resilience: 10
   Armour: 0
   Health: 300
-  DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
+  DeathExplosion: {fileID: 54668735992167884, guid: b20315eb9dac9e942a8aeabfcded0980,
     type: 2}
   ExplosionForce2: 200
   ExplosionRadius2: 30

@@ -22,20 +22,12 @@ public class HealthControler : MonoBehaviour
 
     public Rigidbody DeathExplosion;
 
-    [Obsolete("Retained for value reference only")]
-    public float ExplosionForce2 = 200;
-    [Obsolete("Retained for value reference only")]
-    public float ExplosionRadius2 = 30;
-
     private IDestroyer _destroyer;
     
     public Rigidbody Shrapnel;
     public int ShrapnelCount2 = 30;
     public float ShrapnelSpeed2 = 20;
-
-    [Obsolete("Retained for value reference only")]
-    public float ExplosionDamage2 = 100;
-
+    
     public int FramesOfInvulnerability = 1;
 
     private Rigidbody _rigidbody;
