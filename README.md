@@ -53,10 +53,11 @@ TODO:
 Bugs:
     Graphical - Beams don't turn off when the turret dies.
     "Can't remove Rigidbody because HingeJoint depends on it"
+    rocket engines carry on regardless if the rocket has no target.
 
 Balance:
     Cluster torpedoes do practically no damage, even when some of the submunitions hit, which happens quite rarely.
-    Big lasers should be capable at a bit of a longer range.
+    Big lasers should be capable at a bit of a longer range, and a little less up close.
 
 Limerick;
 There once was a man from Toronto

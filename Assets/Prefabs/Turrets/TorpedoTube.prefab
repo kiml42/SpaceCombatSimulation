@@ -209,7 +209,7 @@ MonoBehaviour:
     type: 2}
   Emitter: {fileID: 4447427867770762}
   OnlyWithTargets: 1
-  RandomStartTime: 500
+  RandomStartTime: 20
   MinStartTime: 30
   BurstCount: 1
   BurstInterval: 1
@@ -232,6 +232,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DeactivateParent: 0
   DeactivateOnBreak: 1
+  DisconectFromParent: 1
+  BreakExplosion: {fileID: 0}
 --- !u!136 &136304497176015924
 CapsuleCollider:
   m_ObjectHideFlags: 1
