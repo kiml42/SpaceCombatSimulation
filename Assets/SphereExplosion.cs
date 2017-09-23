@@ -1,25 +1,46 @@
-﻿using System.Collections;
+﻿using Assets.Src.ObjectManagement;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class SphereExplosion : MonoBehaviour {
-    public Transform ExplosionSphere;
+    [Tooltip("Amount the collider's radius is increased each fixedUpdate")]
     public float ExpandRate;
-    private Vector3 _expansion;
 
-    public float Lifetime = 4;
-    
-    void Start () {
-        ExplosionSphere.localScale = Vector3.zero;
-        _expansion = Vector3.one * ExpandRate;
-	}
+    [Tooltip("Frames for which the collision trigger will cause damage to collited objects.")]
+    public float Lifetime = 100;
+
+    public Light Light;
+
+    private SphereCollider _collider;
+
+    void Start()
+    {
+        _collider = gameObject.AddComponent<SphereCollider>();
+        _collider.radius = 0;
+
+        //Light.intensity;
+    }
 	
 	void FixedUpdate () {
-        ExplosionSphere.localScale += _expansion;
-        if (Lifetime <= 0)
+        if (_collider != null)
+        {
+            _collider.radius += ExpandRate;
+            if (Lifetime <= 0)
+            {
+                Destroy(_collider);
+            }
+        }
+        if(Lifetime < -100)
         {
             Destroy(gameObject);
         }
         Lifetime--;
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+
+        //Debug.Log(collision.rigidbody);
     }
 }

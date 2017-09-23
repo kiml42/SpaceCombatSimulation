@@ -97,7 +97,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
 
                 projectile.velocity = velocity;
 
-                projectile.SendMessage("SetEnemyTags", EnemyTags);
+                projectile.SendMessage("SetEnemyTags", EnemyTags, SendMessageOptions.DontRequireReceiver);
                 if (TagChildren) { projectile.tag = tag; }
 
                 _projectilesThisBurst++;

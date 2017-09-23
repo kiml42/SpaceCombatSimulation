@@ -23,7 +23,7 @@ GameObject:
   - component: {fileID: 54927953782019320}
   - component: {fileID: 198339282544451348}
   - component: {fileID: 199006236806981554}
-  - component: {fileID: 114261419182939520}
+  - component: {fileID: 114130350593235908}
   m_Layer: 0
   m_Name: ExplosionEffect
   m_TagString: Untagged
@@ -54,7 +54,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1592529400755888}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 131.97092, y: 11.921829, z: 128.3326}
+  m_LocalPosition: {x: -404.82138, y: 223.37874, z: -417.7636}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4965789171254134}
@@ -146,7 +146,7 @@ Light:
   m_UseColorTemperature: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
---- !u!114 &114261419182939520
+--- !u!114 &114130350593235908
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
@@ -154,11 +154,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1592529400755888}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b6312b7bfe9030e40b858f67cf019e96, type: 3}
+  m_Script: {fileID: 11500000, guid: ba093a9bb57dade4db9c2fccb71aae8f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Lifetime: 200
-  RandomLifetime: 0
+  ExpandRate: 0.25
+  Lifetime: 140
 --- !u!198 &198339282544451348
 ParticleSystem:
   m_ObjectHideFlags: 1
@@ -218,7 +218,7 @@ ParticleSystem:
   moveWithTransform: 1
   moveWithCustomTransform: {fileID: 0}
   scalingMode: 1
-  randomSeed: -1314776432
+  randomSeed: -1195307339
   InitialModule:
     serializedVersion: 3
     enabled: 1
