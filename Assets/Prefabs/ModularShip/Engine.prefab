@@ -268,12 +268,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: -2000, z: 0}
-  EngineForce2: 0
+  EngineForce2: 2000
   Pilot: {fileID: 0}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54223752741852356}
   Plume: {fileID: 198180660864587914}
-  TranslateFireAngle: 45
+  TranslateFireAngle: 30
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
