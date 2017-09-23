@@ -14,6 +14,7 @@ public class SphereExplosion : MonoBehaviour {
 
     private SphereCollider _collider;
     private float _intensityScaler;
+    private List<Rigidbody> _previousCollisions = new List<Rigidbody>();
 
     void Start()
     {
@@ -46,14 +47,18 @@ public class SphereExplosion : MonoBehaviour {
         if (!collider.isTrigger)
         {
             var rb = collider.attachedRigidbody;
-            var hc = rb.GetComponent("HealthControler") as HealthControler;
             if (rb != null)
             {
-                Debug.Log(rb.transform);
-            }
-            if (hc != null)
-            {
+                if (!_previousCollisions.Contains(rb))
+                {
+                    _previousCollisions.Add(rb);
+                    var hc = rb.GetComponent("HealthControler") as HealthControler;
+                        Debug.Log(rb.transform);
+                    if (hc != null)
+                    {
 
+                    }
+                }
             }
         }
     }
