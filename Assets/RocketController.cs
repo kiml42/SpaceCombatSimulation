@@ -7,6 +7,7 @@ using UnityEngine;
 using System.Linq;
 using Assets.Src.Pilots;
 using Assets.Src.ObjectManagement;
+using System;
 
 public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurrentTarget
 {
@@ -24,12 +25,9 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     public Rigidbody Shrapnel;
     public Rigidbody ExplosionEffect;
     public int ShrapnelCount = 10;
-    public float ExplosionForce = 1;
+    
     public float ShrapnelSpeed = 100;
-    public float ExplosionDamage = 10000;
-    public float ExplosionRadius = 20;
-    //public bool ExplodeOnAnyCollision = true;
-
+    
     private ITargetDetector _detector;
     private ITargetPicker _targetPicker;
     private IPilot _pilot;
@@ -143,15 +141,12 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
             VectorArrow = VectorArrow
         };
 
-        var exploder = new ShrapnelAndDamageExploder(_rigidbody, Shrapnel, ExplosionEffect, ShrapnelCount)
+        var exploder = new ShrapnelExploder(_rigidbody, Shrapnel, ExplosionEffect, ShrapnelCount)
         {
-            ExplosionForce = ExplosionForce,
             EnemyTags = EnemyTags,
             TagShrapnel = TagShrapnel,
             SetEnemyTagOnShrapnel = SetEnemyTagOnShrapnel,
-            ExplosionBaseDamage = ExplosionDamage,
-            ShrapnelSpeed = ShrapnelSpeed,
-            ExplosionRadius = ExplosionRadius
+            ShrapnelSpeed = ShrapnelSpeed
         };
 
         _detonator = new ProximityApproachDetonator(exploder, _rigidbody, TimeToTargetForDetonation, ShrapnelSpeed);

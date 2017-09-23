@@ -4,6 +4,7 @@ using Assets.Src.ObjectManagement;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 public class HealthControler : MonoBehaviour
 {
@@ -20,7 +21,10 @@ public class HealthControler : MonoBehaviour
     public float Health = 200;
 
     public Rigidbody DeathExplosion;
+
+    [Obsolete("Retained for value reference only")]
     public float ExplosionForce2 = 200;
+    [Obsolete("Retained for value reference only")]
     public float ExplosionRadius2 = 30;
 
     private IDestroyer _destroyer;
@@ -28,6 +32,8 @@ public class HealthControler : MonoBehaviour
     public Rigidbody Shrapnel;
     public int ShrapnelCount2 = 30;
     public float ShrapnelSpeed2 = 20;
+
+    [Obsolete("Retained for value reference only")]
     public float ExplosionDamage2 = 100;
 
     public int FramesOfInvulnerability = 1;
@@ -41,12 +47,9 @@ public class HealthControler : MonoBehaviour
         OriginalHealth = Health;
         _rigidbody = GetComponent<Rigidbody>();
 
-        var exploder = new ShrapnelAndDamageExploder(_rigidbody, Shrapnel, DeathExplosion, ShrapnelCount2)
+        var exploder = new ShrapnelExploder(_rigidbody, Shrapnel, DeathExplosion, ShrapnelCount2)
         {
-            ExplosionForce = ExplosionForce2,
-            ExplosionBaseDamage = ExplosionDamage2,
-            ShrapnelSpeed = ShrapnelSpeed2,
-            ExplosionRadius = ExplosionRadius2
+            ShrapnelSpeed = ShrapnelSpeed2
         };
 
         _destroyer = new WithChildrenDestroyer()
@@ -88,7 +91,7 @@ public class HealthControler : MonoBehaviour
     /// Applys damage, ignores resistance and armour
     /// </summary>
     /// <param name="damage"></param>
-    void ApplyDamage(float damage)
+    public void ApplyDamage(float damage)
     {
         if (FramesOfInvulnerability > 0)
         {

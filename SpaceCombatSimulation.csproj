@@ -13,11 +13,13 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Subset v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile></CompilerResponseFile>
+    <CompilerResponseFile>
+    </CompilerResponseFile>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>Android:13</UnityBuildTarget>
     <UnityVersion>2017.1.0f3</UnityVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -118,7 +120,7 @@
     <Compile Include="Assets\Src\Interfaces\ITurretController.cs" />
     <Compile Include="Assets\Src\Interfaces\ITurretRunner.cs" />
     <Compile Include="Assets\Src\Interfaces\ITurretTurner.cs" />
-    <Compile Include="Assets\Src\ObjectManagement\ShrapnelAndDamageExploder.cs" />
+    <Compile Include="Assets\Src\ObjectManagement\ShrapnelExploder.cs" />
     <Compile Include="Assets\Src\ObjectManagement\TargetRepository.cs" />
     <Compile Include="Assets\Src\ObjectManagement\TransformExtensions.cs" />
     <Compile Include="Assets\Src\ObjectManagement\WithChildrenDestroyer.cs" />

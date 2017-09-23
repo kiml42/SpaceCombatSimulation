@@ -106,7 +106,7 @@ Light:
   serializedVersion: 8
   m_Type: 2
   m_Color: {r: 0.9338235, g: 0.86298174, b: 0.8170956, a: 1}
-  m_Intensity: 3
+  m_Intensity: 20
   m_Range: 300
   m_SpotAngle: 30
   m_CookieSize: 10
@@ -160,6 +160,9 @@ MonoBehaviour:
   ExpandRate: 0.25
   Lifetime: 140
   Light: {fileID: 108364923058811672}
+  ExplosionForce: 2000
+  ExplosionRadius: 150
+  ExplosionBaseDamage: 80000
 --- !u!198 &198339282544451348
 ParticleSystem:
   m_ObjectHideFlags: 1

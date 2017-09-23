@@ -158,8 +158,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ExpandRate: 0.15
-  Lifetime: 90
+  Lifetime: 120
   Light: {fileID: 108317884293641784}
+  ExplosionForce: 600
+  ExplosionRadius: 20
+  ExplosionBaseDamage: 200
 --- !u!198 &198341795136170286
 ParticleSystem:
   m_ObjectHideFlags: 1
