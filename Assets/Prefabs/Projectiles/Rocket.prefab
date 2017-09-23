@@ -725,14 +725,14 @@ MonoBehaviour:
   - {fileID: 114647872415290320}
   ContinuallyCheckForTargets: 0
   NeverRetarget: 1
-  PickerDistanceMultiplier: 0.3
-  PickerInRangeBonus: 300
+  PickerDistanceMultiplier: 1
+  PickerInRangeBonus: 1000
   PickerRange: 1000
-  PickerAimedAtMultiplier: 100
+  PickerAimedAtMultiplier: 80
   MinimumMass: 10
-  PickerMasMultiplier: 40
+  PickerMasMultiplier: 15
   PickerOverMinMassBonus: 2000
-  PickerApproachWeighting: 60
+  PickerApproachWeighting: 50
   EnemyTags:
   - Enemy
   - Team1
@@ -758,6 +758,15 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   FramesOfInvulnerability: 3
   OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!114 &114274753216163754
 MonoBehaviour:
   m_ObjectHideFlags: 1

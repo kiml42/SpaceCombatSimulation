@@ -879,7 +879,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 10
   Armour: 0
-  Health: 200
+  Health: 350
   DeathExplosion: {fileID: 54668735992167884, guid: b20315eb9dac9e942a8aeabfcded0980,
     type: 2}
   Shrapnel: {fileID: 0}
@@ -895,6 +895,7 @@ MonoBehaviour:
   - Team3ForceField
   - Team4ForceField
   - Team5ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!114 &114583591685629450
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -923,6 +924,7 @@ MonoBehaviour:
   - Team3ForceField
   - Team4ForceField
   - Team5ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!114 &114731063394109334
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -977,6 +979,7 @@ MonoBehaviour:
   - Team3ForceField
   - Team4ForceField
   - Team5ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!124 &124756949968105552
 Behaviour:
   m_ObjectHideFlags: 1
