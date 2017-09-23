@@ -80,6 +80,8 @@ namespace Assets.Src.ObjectManagement
                 Exploder.ExplodeNow();
             }
 
+            toDestroy.transform.SendMessage("DieNow", SendMessageOptions.DontRequireReceiver);
+
             GameObject.Destroy(toDestroy);
         }
 

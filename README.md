@@ -20,6 +20,7 @@ TODO:
     projectiles apply force to cancel lateral V. Target set on projectile when fired.
     Destructin only leaves objects with a rigibdbody and a health controller
     Spherical modules with two angles given for where to spawn the sub modules and something to specify termination of that module's spawning (going back up to the previous)
+    Create base class for turret controllers to reduce code duplication.
     FuelTank option to balance fuel with parent.
 
     shipCam:

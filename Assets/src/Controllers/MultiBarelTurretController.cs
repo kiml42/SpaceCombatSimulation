@@ -181,4 +181,25 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
         _active = false;
         tag = InactiveTag;
     }
+
+    public void DieNow()
+    {
+        Deactivate();
+        DestroyJoint(ElevationHub);
+        DestroyJoint(TurnTable);
+        //Don't remove the turret itself, that will be done by the thing calling DieNow (which can't tell that DieNow exists)
+    }
+
+    private void DestroyJoint(Rigidbody jointedObject)
+    {
+        if (jointedObject != null)
+        {
+            var hinge = jointedObject.GetComponent("HingeJoint") as HingeJoint;
+            if (hinge != null)
+            {
+                GameObject.Destroy(hinge);
+            }
+            jointedObject.transform.parent = null;
+        }
+    }
 }

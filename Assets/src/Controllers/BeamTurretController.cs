@@ -208,4 +208,25 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
         //Debug.Log("Deactivating " + name);
         tag = InactiveTag;
     }
+
+    public void DieNow()
+    {
+        Deactivate();
+        DestroyJoint(ElevationHub);
+        DestroyJoint(TurnTable);
+    }
+
+    private void DestroyJoint(Rigidbody jointedObject)
+    {
+        if(jointedObject != null)
+        {
+            var hinge = jointedObject.GetComponent("HingeJoint") as HingeJoint;
+            if(hinge!= null)
+            {
+                GameObject.Destroy(hinge);
+            }
+            jointedObject.transform.parent = null;
+        }
+
+    }
 }

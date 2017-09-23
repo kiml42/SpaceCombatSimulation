@@ -33,6 +33,9 @@ public class HealthControler : MonoBehaviour
     private Rigidbody _rigidbody;
     public float OriginalHealth;
 
+    [Tooltip("if set, damage is passed to this object untill it is destroyed, then damage is taken by this object.")]
+    public HealthControler DamageDelegate;
+
     // Use this for initialization
     void Start()
     {
@@ -75,8 +78,9 @@ public class HealthControler : MonoBehaviour
         //Debug.Log("hit by " + collision.collider.name + ",v=" + collision.relativeVelocity + ",m=" + collision.rigidbody.mass);
         var p = collision.impulse;
         var damage = (p.magnitude / Resilience) - Armour;
-        Health = Health - (Mathf.Max(0, damage));
         //Debug.Log("h=" + Health + ",d=" + damage);
+
+        ApplyDamage(Mathf.Max(0, damage));
     }
 
     /// <summary>
@@ -88,6 +92,15 @@ public class HealthControler : MonoBehaviour
         if (FramesOfInvulnerability > 0)
         {
             return;
+        }
+        if(DamageDelegate != null)
+        {
+            //Debug.Log("Delegating " + damage + " Damage to " + DamageDelegate.name);
+            DamageDelegate.ApplyDamage(damage);
+
+            //If this killed it, take ther rest o the damage in this one.
+            damage = DamageDelegate.Health > 0 ? 0 : -DamageDelegate.Health;
+            //Debug.Log(damage + "left for " + name);
         }
         Health -= damage;
     }
