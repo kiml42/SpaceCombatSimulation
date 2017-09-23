@@ -823,6 +823,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DeactivateParent: 0
   DeactivateOnBreak: 1
+  DisconectFromParent: 1
+  BreakExplosion: {fileID: 0}
 --- !u!114 &114306497983771438
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -843,6 +845,14 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+  DamageDelegate: {fileID: 114792225503145664}
+  IgnoredTags:
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
 --- !u!114 &114714754333530302
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -897,6 +907,14 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
 --- !u!114 &114902381399359470
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -910,6 +928,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DeactivateParent: 1
   DeactivateOnBreak: 1
+  DisconectFromParent: 1
+  BreakExplosion: {fileID: 0}
 --- !u!114 &114904066030491806
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -930,6 +950,14 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+  DamageDelegate: {fileID: 114792225503145664}
+  IgnoredTags:
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
 --- !u!114 &114904709351601692
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -943,6 +971,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DeactivateParent: 1
   DeactivateOnBreak: 1
+  DisconectFromParent: 1
+  BreakExplosion: {fileID: 0}
 --- !u!114 &114941792179239686
 MonoBehaviour:
   m_ObjectHideFlags: 1

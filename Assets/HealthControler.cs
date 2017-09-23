@@ -36,6 +36,15 @@ public class HealthControler : MonoBehaviour
     [Tooltip("if set, damage is passed to this object untill it is destroyed, then damage is taken by this object.")]
     public HealthControler DamageDelegate;
 
+    [Tooltip("Objects with any of these tags will not cause damage on collision.")]
+    public List<string> IgnoredTags = new List<string>
+    {
+        "ForceField"
+    };
+
+    [Tooltip("set this to make this heatlth controller immune to <tag><TeamTagForceFieldSuffix> as well.")]
+    public string TeamTagForceFieldSuffix = "FoceField";
+
     // Use this for initialization
     void Start()
     {
@@ -52,6 +61,11 @@ public class HealthControler : MonoBehaviour
             Exploder = exploder,
             UntagChildren = false
         };
+
+        if (!string.IsNullOrEmpty(TeamTagForceFieldSuffix))
+        {
+            IgnoredTags.Add(tag + TeamTagForceFieldSuffix);
+        }
     }
 
     // Update is called once per frame
@@ -71,6 +85,11 @@ public class HealthControler : MonoBehaviour
 
     void OnCollisionEnter(Collision collision)
     {
+        if (IgnoredTags.Contains(collision.transform.tag))
+        {
+            //Debug.Log(name + " hit ignored tag: " + collision.transform.tag);
+            return;
+        }
         if(FramesOfInvulnerability > 0)
         {
             return;

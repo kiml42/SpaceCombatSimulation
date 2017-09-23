@@ -2000,6 +2000,14 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
 --- !u!114 &114233701405603516
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2098,6 +2106,14 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+  DamageDelegate: {fileID: 114140716898617586}
+  IgnoredTags:
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
 --- !u!114 &114634532448284018
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2134,6 +2150,14 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+  DamageDelegate: {fileID: 114140716898617586}
+  IgnoredTags:
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
 --- !u!124 &124357949528397776
 Behaviour:
   m_ObjectHideFlags: 1

@@ -214,6 +214,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
         Deactivate();
         DestroyJoint(ElevationHub);
         DestroyJoint(TurnTable);
+        //Don't remove the turret itself, that will be done by the thing calling DieNow (which can't tell that DieNow exists)
     }
 
     private void DestroyJoint(Rigidbody jointedObject)
@@ -227,6 +228,5 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
             }
             jointedObject.transform.parent = null;
         }
-
     }
 }

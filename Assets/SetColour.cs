@@ -7,6 +7,7 @@ public class SetColour : MonoBehaviour
     public float R = 0.5f;
     public float G = 0.5f;
     public float B = 0.5f;
+    public float A = 1;
 
     // Use this for initialization
     void Start()
@@ -16,7 +17,7 @@ public class SetColour : MonoBehaviour
 
     private void SetColor(Transform transform, int depth = 0)
     {
-        var colour = new Color(R, G, B);
+        var colour = new Color(R, G, B, A);
         var renderer = transform.GetComponent("Renderer") as Renderer;
         if (renderer != null)
         {
