@@ -720,7 +720,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 200
+  EngineForce2: 250
   Pilot: {fileID: 4832477793392458}
   FuelTank: {fileID: 114087177041280492}
   ForceApplier: {fileID: 54172732429601216}
@@ -765,6 +765,15 @@ MonoBehaviour:
   ShrapnelSpeed2: 16
   FramesOfInvulnerability: 3
   OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!114 &114634549180162652
 MonoBehaviour:
   m_ObjectHideFlags: 1

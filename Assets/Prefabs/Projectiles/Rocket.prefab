@@ -724,13 +724,13 @@ MonoBehaviour:
   Engines:
   - {fileID: 114647872415290320}
   ContinuallyCheckForTargets: 0
-  NeverRetarget: 1
-  PickerDistanceMultiplier: 1
-  PickerInRangeBonus: 1000
+  NeverRetarget: 0
+  PickerDistanceMultiplier: 3
+  PickerInRangeBonus: 10000
   PickerRange: 1000
   PickerAimedAtMultiplier: 80
   MinimumMass: 10
-  PickerMasMultiplier: 15
+  PickerMasMultiplier: 10
   PickerOverMinMassBonus: 2000
   PickerApproachWeighting: 50
   EnemyTags:
@@ -778,7 +778,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00495207fc630df479e0d4f227bb1949, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Fuel: 600
+  Fuel: 500
   UseFuelMass: 1
   FuelDensity: 0.001
 --- !u!114 &114310481633652866
@@ -804,7 +804,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 200
+  EngineForce2: 250
   Pilot: {fileID: 4469671951430032}
   FuelTank: {fileID: 114274753216163754}
   ForceApplier: {fileID: 54991379400455944}

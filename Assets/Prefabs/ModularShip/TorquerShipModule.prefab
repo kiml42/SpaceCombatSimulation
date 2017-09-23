@@ -542,7 +542,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 15
   Armour: 0
-  Health: 500
+  Health: 600
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
@@ -550,6 +550,15 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!114 &114872883001157344
 MonoBehaviour:
   m_ObjectHideFlags: 1
