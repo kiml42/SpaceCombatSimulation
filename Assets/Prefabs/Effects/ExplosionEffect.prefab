@@ -88,7 +88,7 @@ Rigidbody:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1592529400755888}
   serializedVersion: 2
-  m_Mass: 0.0000001
+  m_Mass: 1
   m_Drag: 0
   m_AngularDrag: 0
   m_UseGravity: 0
@@ -159,6 +159,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ExpandRate: 0.25
   Lifetime: 140
+  Light: {fileID: 108364923058811672}
 --- !u!198 &198339282544451348
 ParticleSystem:
   m_ObjectHideFlags: 1
