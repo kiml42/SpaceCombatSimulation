@@ -2565,7 +2565,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1000, z: 0}
   EngineForce2: 1000
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
@@ -2589,7 +2588,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1000, z: 0}
   EngineForce2: 1000
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
@@ -2618,14 +2616,20 @@ MonoBehaviour:
   Health: 25
   DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
-  ExplosionForce2: 2000
-  ExplosionRadius2: 90
-  Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
+  Shrapnel: {fileID: 54002987854370330, guid: 703fe97760e4ba242b609b399cf889d9, type: 2}
   ShrapnelCount2: 150
   ShrapnelSpeed2: 80
-  ExplosionDamage2: 40000
   FramesOfInvulnerability: 3
   OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!114 &114399943264876254
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2637,7 +2641,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1700, z: 0}
   EngineForce2: 1700
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
@@ -2661,7 +2664,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1000, z: 0}
   EngineForce2: 1000
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
@@ -2699,7 +2701,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1000, z: 0}
   EngineForce2: 1000
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
@@ -2723,7 +2724,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1000, z: 0}
   EngineForce2: 1000
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
@@ -2747,7 +2747,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1000, z: 0}
   EngineForce2: 1000
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
@@ -2783,7 +2782,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1000, z: 0}
   EngineForce2: 1000
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
@@ -2807,7 +2805,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -1000, z: 0}
   EngineForce2: 1000
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
@@ -2837,14 +2834,11 @@ MonoBehaviour:
   StartDelay: 40
   TurningStartDelay: 10
   TimeToTargetForDetonation: 0.3
-  Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
+  Shrapnel: {fileID: 54002987854370330, guid: 703fe97760e4ba242b609b399cf889d9, type: 2}
   ExplosionEffect: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
   ShrapnelCount: 200
-  ExplosionForce: 2000
   ShrapnelSpeed: 80
-  ExplosionDamage: 80000
-  ExplosionRadius: 150
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 0
   VectorArrow: {fileID: 4961188936187718}
