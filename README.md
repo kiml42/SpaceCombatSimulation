@@ -10,6 +10,7 @@ R - cycle reticle state
 
 TODO:
     Store full config of evolution in current generation file.
+    Create target picker controller for consistent target picking - use the knower to have the main controller pick up the selected target.
     Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
     Draws should be penalised less if the ships killed each other simultaneously. probably give them the win score - some constant.
     Colour projectiles the same as teh ship.
@@ -21,10 +22,11 @@ TODO:
     Spherical modules with two angles given for where to spawn the sub modules and something to specify termination of that module's spawning (going back up to the previous)
     Create base class for turret controllers to reduce code duplication.
     FuelTank option to balance fuel with parent.
-
     Repulsive shield- repells objects in trigger
-    Separate turn and translate vectors for rockets (both set by fly vector)
+    Shrapnel and bullets diwe on any hit (no health controller)
+
     Secondary translate vector for engines (angle error is sum of angle between pointed vector and each - angle between two translate vectors)
+        Implemented and partially tested for engines, but nothing actually uses it.
     Ships and rockets cast rays in direction of v. Set engines to increase v tangeñt when close(secondary translate vector when distant, primary and turn when close)
     Clear line target picker for turrets(cast rays to PT if ray hits friendly give negative score 
     Turrets cast a short ray in aimed direction to see if there is a friendly close in front of the turret.
@@ -58,6 +60,7 @@ TODO:
 
 
 Bugs:
+    Explosion spheres damage turrets 3 times(once for each of their rigidbodies)
     Graphical - Beams don't turn off when the turret dies.
     "Can't remove Rigidbody because HingeJoint depends on it"
     rocket engines carry on regardless if the rocket has no target.
