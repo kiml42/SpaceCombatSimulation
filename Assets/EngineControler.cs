@@ -25,10 +25,33 @@ public class EngineControler : MonoBehaviour {
     public float FullThrottleFuelConsumption = 1;
 
     /// <summary>
+    /// vector the engine should try to make the pilot turn to face
+    /// </summary>
+    public Vector3? OrientationVector;
+
+    /// <summary>
+    /// Vector the engine should apply forces towards.
+    /// </summary>
+    public Vector3? PrimaryTranslateVector;
+
+    ///// <summary>
+    ///// Secondarry Vector the engine should apply forces towards.
+    ///// Engine will fire if it is pointed near the arc between these two vectors.
+    ///// </summary>
+    //public Vector3? SecondaryTranslateVector;
+
+    /// <summary>
     /// The world space vector the engine should try to fly towards.
     /// Use null or zero for no force
     /// </summary>
-    public Vector3? FlightVector;
+    public Vector3? FlightVector
+    {
+        set
+        {
+            OrientationVector = value;
+            PrimaryTranslateVector = value;
+        }
+    }
     
     /// <summary>
     /// Calculated if not set (default)
@@ -83,7 +106,7 @@ public class EngineControler : MonoBehaviour {
 
             if (UseAsTorquer && throttle < 1 && ApplysCorrectTorque())
             {
-                var angle = Vector3.Angle(Pilot.forward, FlightVector.Value);
+                var angle = Vector3.Angle(Pilot.forward, OrientationVector.Value);
                 var additionalThrottle = angle / TorquerFullThrottleAngle;
                 throttle = Math.Min(throttle + additionalThrottle, 1);
             }
@@ -149,9 +172,9 @@ public class EngineControler : MonoBehaviour {
 
     private bool ApplysCorrectTorque()
     {
-        if (Pilot != null && Pilot.IsValid() && FlightVector.HasValue && FlightVector.Value.magnitude > 0 && TorqueVector.HasValue && TorqueVector.Value.magnitude > 0.5)
+        if (Pilot != null && Pilot.IsValid() && OrientationVector.HasValue && OrientationVector.Value.magnitude > 0 && TorqueVector.HasValue && TorqueVector.Value.magnitude > 0.5)
         {
-            var pilotSpaceVector = Pilot.InverseTransformVector(FlightVector.Value);
+            var pilotSpaceVector = Pilot.InverseTransformVector(OrientationVector.Value);
 
             var rotationVector = new Vector3(-pilotSpaceVector.y, pilotSpaceVector.x, 0);   //set z to 0 to not add spin
 
@@ -167,10 +190,10 @@ public class EngineControler : MonoBehaviour {
 
     private float TranslateThrotleSetting()
     {
-        if(FlightVector.HasValue && FlightVector.Value.magnitude > 0)
+        if(PrimaryTranslateVector.HasValue && PrimaryTranslateVector.Value.magnitude > 0)
         {
             //the enemy's gate is down
-            var angle = Vector3.Angle(-transform.up, FlightVector.Value);
+            var angle = Vector3.Angle(-transform.up, PrimaryTranslateVector.Value);
             //Debug.Log("fire angle = " + angle);
 
             var throttle = Math.Max(0, 1 - (angle / TranslateFireAngle));
