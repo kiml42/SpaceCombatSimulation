@@ -22,6 +22,13 @@ TODO:
     Create base class for turret controllers to reduce code duplication.
     FuelTank option to balance fuel with parent.
 
+    Repulsive shield- repells objects in trigger
+    Separate turn and translate vectors for rockets (both set by fly vector)
+    Secondary translate vector for engines (angle error is sum of angle between pointed vector and each - angle between two translate vectors)
+    Ships and rockets cast rays in direction of v. Set engines to increase v tangeñt when close(secondary translate vector when distant, primary and turn when close)
+    Clear line target picker for turrets(cast rays to PT if ray hits friendly give negative score 
+    Turrets cast a short ray in aimed direction to see if there is a friendly close in front of the turret.
+
     shipCam:
         Make shipcam move faster if the followed object is faster or add a set chunk to the location based on the followed object's speed. - done
             Aternatively make the shipcam have a rigidbody and actually accelerate up to the speed of the tracked object.   - may still want to do this for continuing to track dead things.
