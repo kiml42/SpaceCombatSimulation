@@ -9,40 +9,26 @@ namespace Assets.Src.Targeting
     /// <summary>
     /// Class for keeping a score for a potential target
     /// </summary>
-    public class PotentialTarget
+    public class PotentialTarget : Target
     {
-        public float Score { get; set; }
-        private Target _target;
-
-        public Transform TargetTransform { get
-            {
-               return _target.Transform;
-            }
-        }
-        public Rigidbody TargetRigidbody { get
-            {
-                return _target.Rigidbody;
-            }
-        }
+        public float Score { get; set; }        
 
         public PotentialTarget()
         {
 
         }
         
-        public PotentialTarget(Rigidbody target)
+        public PotentialTarget(Rigidbody target) : base (target)
         {
-            _target = new Target(target);
         }
 
-        public PotentialTarget(Transform target)
+        public PotentialTarget(Transform target) : base(target)
         {
-            _target = new Target(target);
         }
 
-        public PotentialTarget(Target target)
+        public PotentialTarget(Target target) : base(target)
         {
-            _target = target;
+
         }
     }
 }

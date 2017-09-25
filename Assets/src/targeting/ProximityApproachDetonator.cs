@@ -24,7 +24,7 @@ namespace Assets.Src.Targeting
             _exploder = exploder;
         }
 
-        public void AutoDetonate(PotentialTarget target)
+        public void AutoDetonate(Target target)
         {
             if (ShouldDetonate(target))
             {
@@ -33,18 +33,18 @@ namespace Assets.Src.Targeting
             }
         }
 
-        private bool ShouldDetonate(PotentialTarget target)
+        private bool ShouldDetonate(Target target)
         {
             if(target == null)
             {
                 return false;
             }
 
-            Vector3 targetVelocity = target.TargetRigidbody == null ? Vector3.zero : target.TargetRigidbody.velocity;
+            Vector3 targetVelocity = target.Rigidbody == null ? Vector3.zero : target.Rigidbody.velocity;
 
             var relativeVelocity = _exploderRigidbody.velocity - targetVelocity;
 
-            var reletiveLocation = target.TargetTransform.position - _exploderRigidbody.position;
+            var reletiveLocation = target.Transform.position - _exploderRigidbody.position;
 
             var approachAngle = Vector3.Angle(relativeVelocity, reletiveLocation);
             

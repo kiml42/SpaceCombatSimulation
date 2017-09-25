@@ -46,7 +46,7 @@ namespace Assets.Src.Pilots
             }
         }
 
-        public override void Fly(PotentialTarget target)
+        public override void Fly(Target target)
         {
             RemoveNullEngines();
             if (ShouldTurn())

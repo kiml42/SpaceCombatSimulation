@@ -92,8 +92,12 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     #endregion
     
     #region knowsCurrentTarget
-    public PotentialTarget CurrentTarget { get; set; }
+    public Target CurrentTarget { get; set; }
     #endregion
+
+    public float TimeThresholdForMaximumEvasion = 2;
+    public float TimeThresholdForMediumEvasion = 4;
+    public float TimeThresholdForMinimalEvasion = 6;
 
     // Use this for initialization
     void Start()
@@ -138,7 +142,10 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
         {
             LocationAimWeighting = LocationAimWeighting,
             TurningStartDelay = TurningStartDelay,
-            VectorArrow = VectorArrow
+            VectorArrow = VectorArrow,
+            TimeThresholdForMaximumEvasion = TimeThresholdForMaximumEvasion,
+            TimeThresholdForMediumEvasion = TimeThresholdForMediumEvasion,
+            TimeThresholdForMinimalEvasion = TimeThresholdForMinimalEvasion
         };
 
         var exploder = new ShrapnelExploder(_rigidbody, Shrapnel, ExplosionEffect, ShrapnelCount)

@@ -25,7 +25,7 @@ namespace Assets.Src.SpaceShip
         {
             var targets = _detector
                 .DetectTargets()
-                .Select(t => t.TargetRigidbody.GetComponent("Rigidbody") as Rigidbody)
+                .Select(t => t.Rigidbody.GetComponent("Rigidbody") as Rigidbody)
                 .Where(t => t != null)
                 .Select(t => new PotentialTarget(t));
 
@@ -43,14 +43,14 @@ namespace Assets.Src.SpaceShip
             //Vector3 locationSum = SumVecors(targets.Select(t => t.position));
             if (targets.Any())
             {
-                var averageXLocation = targets.Average(t => t.TargetRigidbody.position.x);
-                var averageYLocation = targets.Average(t => t.TargetRigidbody.position.y);
-                var averageZLocation = targets.Average(t => t.TargetRigidbody.position.z);
+                var averageXLocation = targets.Average(t => t.Rigidbody.position.x);
+                var averageYLocation = targets.Average(t => t.Rigidbody.position.y);
+                var averageZLocation = targets.Average(t => t.Rigidbody.position.z);
                 _destination.position = new Vector3(averageXLocation, averageYLocation, averageZLocation);
 
-                var averageXVelocity = targets.Average(t => t.TargetRigidbody.velocity.x);
-                var averageYVelocity = targets.Average(t => t.TargetRigidbody.velocity.y);
-                var averageZVelocity = targets.Average(t => t.TargetRigidbody.velocity.z);
+                var averageXVelocity = targets.Average(t => t.Rigidbody.velocity.x);
+                var averageYVelocity = targets.Average(t => t.Rigidbody.velocity.y);
+                var averageZVelocity = targets.Average(t => t.Rigidbody.velocity.z);
                 _destination.velocity = new Vector3(averageXVelocity, averageYVelocity, averageZVelocity);
             }
             else

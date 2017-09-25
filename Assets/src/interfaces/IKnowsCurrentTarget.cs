@@ -5,6 +5,6 @@ namespace Assets.Src.Interfaces
 {
     public interface IKnowsCurrentTarget
     {
-        PotentialTarget CurrentTarget { get; set; }
+        Target CurrentTarget { get; set; }
     }
 }

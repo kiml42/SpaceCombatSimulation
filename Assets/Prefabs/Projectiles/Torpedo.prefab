@@ -279,7 +279,7 @@ GameObject:
   - component: {fileID: 114939486053213880}
   m_Layer: 0
   m_Name: Torpedo
-  m_TagString: Untagged
+  m_TagString: Team1
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1211,8 +1211,8 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1301380948880376}
-  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0.2940404, y: 0, z: 0, w: 0.955793}
+  m_LocalPosition: {x: 0, y: 0, z: 200}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4652412389224268}
@@ -1223,7 +1223,7 @@ Transform:
   - {fileID: 4581064459756716}
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
+  m_LocalEulerAnglesHint: {x: -34.2, y: 0, z: 0}
 --- !u!4 &4696415111820658
 Transform:
   m_ObjectHideFlags: 1
@@ -2864,8 +2864,11 @@ MonoBehaviour:
   PickerApproachWeighting: 60
   EnemyTags:
   - Enemy
-  - Team1
+  - Team2
   TimeToLive: 5000
+  TimeThresholdForMaximumEvasion: 4
+  TimeThresholdForMediumEvasion: 8
+  TimeThresholdForMinimalEvasion: 12
 --- !u!114 &114939486053213880
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -8660,7 +8663,7 @@ ParticleSystem:
   LightsModule:
     enabled: 0
     ratio: 0.2
-    light: {fileID: 108030273114456356, guid: 35dfec220b15b814d9cc2bd28d309187, type: 2}
+    light: {fileID: 0}
     randomDistribution: 1
     color: 1
     range: 1

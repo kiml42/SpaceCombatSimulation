@@ -65,7 +65,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     #endregion
 
     #region knowsCurrentTarget
-    public PotentialTarget CurrentTarget { get; set; }
+    public Target CurrentTarget { get; set; }
     #endregion
 
     private ITurretRunner _runner;

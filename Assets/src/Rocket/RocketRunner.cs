@@ -40,7 +40,7 @@ namespace Assets.Src.Rocket
         {
             if(!NeverRetarget || !_hasHadTarget)
             {
-                var targetIsInvalid = _targetKnower.CurrentTarget == null || _targetKnower.CurrentTarget.TargetTransform.IsInvalid();
+                var targetIsInvalid = _targetKnower.CurrentTarget == null || _targetKnower.CurrentTarget.Transform.IsInvalid();
 
                 if (ContinuallyCheckForTargets || targetIsInvalid)
                 {
@@ -55,10 +55,10 @@ namespace Assets.Src.Rocket
                 }
             }
 
-            var targetIsValid = _targetKnower.CurrentTarget != null && _targetKnower.CurrentTarget.TargetTransform.IsValid();
+            var targetIsValid = _targetKnower.CurrentTarget != null && _targetKnower.CurrentTarget.Transform.IsValid();
             if (targetIsValid)
             {
-                //Debug.Log(name + " is flying at " + _targetKnower.CurrentTarget.TargetTransform);
+                //Debug.Log(name + " is flying at " + _targetKnower.CurrentTarget.Transform);
                 _pilot.Fly(_targetKnower.CurrentTarget);
 
                 if (_pilot.StartDelay <= 0)
