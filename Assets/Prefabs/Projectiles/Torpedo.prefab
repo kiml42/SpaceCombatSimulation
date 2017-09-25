@@ -2867,8 +2867,8 @@ MonoBehaviour:
   - Team2
   TimeToLive: 5000
   TimeThresholdForMaximumEvasion: 4
-  TimeThresholdForMediumEvasion: 8
-  TimeThresholdForMinimalEvasion: 12
+  TimeThresholdForMediumEvasion: 12
+  TimeThresholdForMinimalEvasion: 36
 --- !u!114 &114939486053213880
 MonoBehaviour:
   m_ObjectHideFlags: 1

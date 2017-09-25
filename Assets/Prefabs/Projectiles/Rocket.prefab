@@ -737,6 +737,9 @@ MonoBehaviour:
   - Enemy
   - Team1
   TimeToLive: 3000
+  TimeThresholdForMaximumEvasion: 4
+  TimeThresholdForMediumEvasion: 4
+  TimeThresholdForMinimalEvasion: 4
 --- !u!114 &114210379376876750
 MonoBehaviour:
   m_ObjectHideFlags: 1
