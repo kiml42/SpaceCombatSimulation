@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using Assets.Src.Targeting;
 using UnityEngine;
+using System;
 
 namespace Assets.Src.Pilots
 {
     class RocketPilot : BasePilot
     {
+        public float CollisionDetectionDistance;
+
         public RocketPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, EngineControler engine, float shootAngle, int startDelay)
         {
             _pilotObject = pilotObject;
@@ -36,6 +39,9 @@ namespace Assets.Src.Pilots
             RemoveNullEngines();
             if (ShouldTurn() && HasStarted())
             {
+                //float timeToImpact;
+                //var friendly = FriendlyAvoidenceVector(out timeToImpact);
+
                 var reletiveLocation = ReletiveLocationInWorldSpace(target);
                 var cancelationVector = VectorToCancelLateralVelocityInWorldSpace(target);
 
@@ -49,8 +55,10 @@ namespace Assets.Src.Pilots
                     _torqueApplier.TurnToVectorInWorldSpace(turningVector);
                 }
                                 
-                //try firing the main engine even with no fuel to turn it off if there is no fuel.
-                SetFlightVectorOnEngines(turningVector);
+                SetTurningVectorOnEngines(turningVector);
+                SetPrimaryTranslationVectorOnEngines(reletiveLocation);
+                SetSecondaryTranslateVectorOnEngines(cancelationVector);
+
                 if (VectorArrow != null && turningVector.magnitude > 0)
                 {
                     VectorArrow.rotation = Quaternion.LookRotation(turningVector);
@@ -61,5 +69,25 @@ namespace Assets.Src.Pilots
                 SetFlightVectorOnEngines(null);  //turn off the engine
             }
         }
+
+        //private Vector3? FriendlyAvoidenceVector(out float timeToimpact)
+        //{
+        //    var ray = new Ray(_pilotObject.position, _pilotObject.velocity);
+
+        //    RaycastHit hit;
+
+        //    if (Physics.Raycast(ray, out hit, CollisionDetectionDistance, -1, QueryTriggerInteraction.Ignore))
+        //    {
+        //        if (hit.transform.tag == _pilotObject.tag)
+        //        {
+        //            //isFriendly
+        //            //TODO calculate this.
+        //            timeToimpact = 1;
+        //            return -VectorToCancelLateralVelocityInWorldSpace(new Target(hit.rigidbody));
+        //        }
+        //    }
+        //    timeToimpact = 0;
+        //    return null;
+        //}
     }
 }

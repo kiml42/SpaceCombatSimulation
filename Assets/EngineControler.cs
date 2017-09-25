@@ -70,6 +70,7 @@ public class EngineControler : MonoBehaviour {
     }
     
     /// <summary>
+    /// Vector of the torque applied to the pilot y this engine.
     /// Calculated if not set (default)
     /// </summary>
     public Vector3? TorqueVector = null;

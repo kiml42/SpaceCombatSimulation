@@ -89,7 +89,7 @@ namespace Assets.Src.Pilots
             return Vector3.zero;
         }
 
-        protected Vector3 VectorToCancelLateralVelocityInWorldSpace(PotentialTarget target)
+        protected Vector3 VectorToCancelLateralVelocityInWorldSpace(Target target)
         {
             var vectorTowardsTarget = ReletiveLocationInWorldSpace(target);
             var targetReletiveVelocity = WorldSpaceReletiveVelocityOfTarget(target);
@@ -108,11 +108,35 @@ namespace Assets.Src.Pilots
             return targetsVelocity - ownVelocity;
         }
 
-        protected void SetFlightVectorOnEngines(Vector3? FlightVector)
+        protected void SetFlightVectorOnEngines(Vector3? flightVector)
         {
             foreach (var engine in _engines)
             {
-                engine.FlightVector = FlightVector;
+                engine.FlightVector = flightVector;
+            }
+        }
+
+        protected void SetTurningVectorOnEngines(Vector3? torqueVector)
+        {
+            foreach (var engine in _engines)
+            {
+                engine.OrientationVector = torqueVector;
+            }
+        }
+
+        protected void SetPrimaryTranslationVectorOnEngines(Vector3? primaryTranslateVector)
+        {
+            foreach (var engine in _engines)
+            {
+                engine.PrimaryTranslateVector = primaryTranslateVector;
+            }
+        }
+
+        protected void SetSecondaryTranslateVectorOnEngines(Vector3? secondaryTranslateVector)
+        {
+            foreach (var engine in _engines)
+            {
+                engine.SecondaryTranslateVector = secondaryTranslateVector;
             }
         }
 
