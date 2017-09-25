@@ -21,6 +21,8 @@ TODO:
     Spherical modules with two angles given for where to spawn the sub modules and something to specify termination of that module's spawning (going back up to the previous)
     Create base class for turret controllers to reduce code duplication.
     FuelTank option to balance fuel with parent.
+    TargetPickers have option to kull all but the best x.
+    TargetPickers with an in/out score have an option to drop all outs if there are no ins ( add is in bool to PT set by these so they can just do if( Any(in)) {where(in)})
 
     Repulsive shield- repells objects in trigger
     Separate turn and translate vectors for rockets (both set by fly vector)
