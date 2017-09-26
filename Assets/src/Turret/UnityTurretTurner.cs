@@ -54,7 +54,7 @@ namespace Assets.Src.Targeting
 
                 //Debug.Log("getting location in turn table space");
                     
-                var LocationInTurnTableSpace = target.LocationInTurnTableSpace(_turnTable, _projectileSpeed);
+                var LocationInTurnTableSpace = target.LocationInOthersSpace(_turnTable, _projectileSpeed);
 
                 TurnToTarget(_turnTableHinge, LocationInTurnTableSpace, TurnTableMotorForce, TurnTableMotorSpeedMultiplier);
                     

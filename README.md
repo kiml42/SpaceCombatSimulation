@@ -52,8 +52,6 @@ TODO:
         I would suggest using a different method to detect enemies. GameObject.FindGameObjectsWithTag is not very effiecent.
             My current idea is to have every bahaviour register it's self as a PotentialTarget with a static class that everything will ask for targets.
 
-        To make it more customizable, it would be nice if the turret turn speeds were changable in the inspector.
-
         You might want to make the OnCollisionEnter for HealthController do some checks to make sure certain colliders do not accidently do damage.
             HealthController ignores certian tags, but the collisions with any force field still wreck things by physics.
 
