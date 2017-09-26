@@ -34,7 +34,7 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
     public bool SetChildrensEnemy = false;
     public float RecoilForce = 0;
 
-    float IKnowsProjectileSpeed.ProjectileSpeed
+    float? IKnowsProjectileSpeed.ProjectileSpeed
     {
         get
         {

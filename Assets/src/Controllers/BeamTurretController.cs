@@ -36,18 +36,17 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     
     public Color BeamColour;
 
-    public float ProjectileSpeed
+    public float? ProjectileSpeed
     {
         get
         {
-            return Mathf.Infinity;
+            return null;
         }
     }
 
     // Use this for initialization
     void Start()
     {
-        var rigidbody = GetComponent<Rigidbody>();
         var emitterCount = BeamsParent.childCount;
 
         _beams = new List<Beam>();

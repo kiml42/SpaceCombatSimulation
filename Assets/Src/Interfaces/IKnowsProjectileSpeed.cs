@@ -7,6 +7,6 @@ namespace Assets.Src.Interfaces
 {
     public interface IKnowsProjectileSpeed
     {
-        float ProjectileSpeed { get; }
+        float? ProjectileSpeed { get; }
     }
 }

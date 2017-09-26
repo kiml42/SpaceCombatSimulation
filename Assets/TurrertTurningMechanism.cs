@@ -7,7 +7,6 @@ using UnityEngine;
 public class TurrertTurningMechanism : MonoBehaviour {
     public TargetChoosingMechanism TargetChoosingMechanism;
     public Transform RestTarget;
-    private IKnowsProjectileSpeed _speedKnower;
 
     public Rigidbody TurnTable;
     public Rigidbody ElevationHub;
@@ -18,14 +17,26 @@ public class TurrertTurningMechanism : MonoBehaviour {
     private string InactiveTag = "Untagged";
 
     private ITurretRunner _runner;
-    
+
+    public float TurnTableMotorFoce = 30;
+    public float TurnTableMotorSpeedMultiplier = 500;
+    public float ElevationHubMotorFoce = 30;
+    public float ElevationHubMotorSpeedMultiplier = 500;
+
     // Use this for initialization
     void Start()
     {
-        _speedKnower = GetComponent<IKnowsProjectileSpeed>();
+        var speedKnower = GetComponent("IKnowsProjectileSpeed") as IKnowsProjectileSpeed;
+        var projectileSpeed = speedKnower != null ? speedKnower.ProjectileSpeed : null;
         var rigidbody = GetComponent<Rigidbody>();
 
-        _turner = new UnityTurretTurner(rigidbody, TurnTable, ElevationHub, RestTarget, _speedKnower.ProjectileSpeed);
+        _turner = new UnityTurretTurner(rigidbody, TurnTable, ElevationHub, RestTarget, projectileSpeed)
+        {
+            TurnTableMotorForce = TurnTableMotorFoce,
+            TurnTableMotorSpeedMultiplier = TurnTableMotorSpeedMultiplier,
+            ElevationHubMotorForce = ElevationHubMotorFoce,
+            ElevationHubMotorSpeedMultiplier = ElevationHubMotorSpeedMultiplier
+        };
 
         _runner = new TurretRunner(TargetChoosingMechanism, _turner);
     }

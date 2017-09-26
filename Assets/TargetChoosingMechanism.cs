@@ -69,7 +69,10 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTagAndtag, IKno
     private bool _hasHadTarget = false;
 
     // Use this for initialization
-    void Start () {
+    void Start ()
+    {
+        var speedKnower = GetComponent("IKnowsProjectileSpeed") as IKnowsProjectileSpeed;
+        var projectileSpeed = speedKnower != null ? speedKnower.ProjectileSpeed : null;
         _rigidbody = GetComponent<Rigidbody>();
 
         _detector = new RepositoryTargetDetector()
@@ -86,7 +89,8 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTagAndtag, IKno
             },
             new LookingAtTargetPicker(_rigidbody)
             {
-                Multiplier = PickerAimedAtMultiplier
+                Multiplier = PickerAimedAtMultiplier,
+                ProjectileSpeed = projectileSpeed
             },
             new ApproachingTargetPicker(_rigidbody, PickerApproachWeighting)
         };
