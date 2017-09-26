@@ -2064,7 +2064,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TargetChoosingMechanism: {fileID: 114642220478021410}
-  RestTarget: {fileID: 4550382481658926}
   LoadTime: 50
   ShootTime: 100
   StartOffset: 10
@@ -2072,7 +2071,6 @@ MonoBehaviour:
   BeamForce: 2
   BeamDamage: 0.03
   HitEffect: {fileID: 4113682021108320, guid: e6ef866ccc6cd2c4fb5f402be7b7a1d0, type: 2}
-  TurnTable: {fileID: 54882056251725972}
   ElevationHub: {fileID: 54867097553581106}
   BeamsParent: {fileID: 4174025852522500}
   InitialRadius: 0.15
@@ -2136,6 +2134,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
+  DropInvalidTargetsWhenTereAreValidTargets: 1
   PickerDistanceMultiplier: 3
   PickerRange: 1000
   PickerInRangeBonus: 10000
@@ -2144,6 +2143,9 @@ MonoBehaviour:
   PickerOverMinMassBonus: 5000
   PickerAimedAtMultiplier: 80
   PickerApproachWeighting: 20
+  LineOfSightBonus: 20000
+  HemisphereFilterObject: {fileID: 4302048105835624}
+  InCorrectHemisphereBonus: 1000
   EnemyTags:
   - Enemy
 --- !u!114 &114844622593280128
@@ -2189,9 +2191,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   TargetChoosingMechanism: {fileID: 114642220478021410}
   RestTarget: {fileID: 4550382481658926}
-  ProjectileSpeed: Infinity
   TurnTable: {fileID: 54882056251725972}
   ElevationHub: {fileID: 54867097553581106}
+  TurnTableMotorFoce: 30
+  TurnTableMotorSpeedMultiplier: 500
+  ElevationHubMotorFoce: 30
+  ElevationHubMotorSpeedMultiplier: 500
 --- !u!124 &124357949528397776
 Behaviour:
   m_ObjectHideFlags: 1

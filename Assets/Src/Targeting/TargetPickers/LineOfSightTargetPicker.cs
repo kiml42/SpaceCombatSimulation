@@ -11,6 +11,7 @@ namespace Assets.Src.Targeting.TargetPickers
     {
         private Transform _sourceObject;
         public float BonusForCorrectObject = 1000;
+        public bool KullInvalidTargets = true;
 
         public LineOfSightTargetPicker(Transform sourceObject)
         {
@@ -19,7 +20,7 @@ namespace Assets.Src.Targeting.TargetPickers
 
         public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
-            return potentialTargets.Select(t => {
+            potentialTargets =  potentialTargets.Select(t => {
                 var direction = t.Transform.position - _sourceObject.position;
 
                 RaycastHit hit;
@@ -30,12 +31,22 @@ namespace Assets.Src.Targeting.TargetPickers
                     if (hit.transform == t.Transform)
                     {
                         //is hiting correct object
+                        t.IsValidForCurrentPicker = true;
                         t.Score += BonusForCorrectObject;
+                    } else
+                    {
+                        t.IsValidForCurrentPicker = false;
                     }
                 }
 
                 return t;
             });
+
+            if (KullInvalidTargets && potentialTargets.Any(t => t.IsValidForCurrentPicker))
+            {
+                return potentialTargets.Where(t => t.IsValidForCurrentPicker);
+            }
+            return potentialTargets;
         }
     }
 }

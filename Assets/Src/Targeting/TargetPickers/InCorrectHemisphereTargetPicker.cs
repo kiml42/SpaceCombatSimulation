@@ -11,6 +11,7 @@ namespace Assets.Src.Targeting.TargetPickers
     {
         private Transform _sourceObject;
         public float ExtraScoreForValidTargets = 1000;
+        public bool KullInvalidTargets = true;
 
         public InCorrectHemisphereTargetPicker(Transform sourceObject)
         {
@@ -19,14 +20,24 @@ namespace Assets.Src.Targeting.TargetPickers
 
         public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
-            return potentialTargets.Select(t => {
+            potentialTargets = potentialTargets.Select(t => {
                 if (t.LocationInOthersSpace(_sourceObject, null).y >= 0)
                 {
+                    t.IsValidForCurrentPicker = true;
                     t.Score += ExtraScoreForValidTargets;
+                } else
+                {
+                    t.IsValidForCurrentPicker = false;
                 }
                 return t;
             }
             );
+            if (KullInvalidTargets && potentialTargets.Any(t => t.IsValidForCurrentPicker))
+            {
+                return potentialTargets.Where(t => t.IsValidForCurrentPicker);
+            }
+
+            return potentialTargets;
         }
     }
 }

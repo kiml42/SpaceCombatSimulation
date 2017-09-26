@@ -840,6 +840,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
+  DropInvalidTargetsWhenTereAreValidTargets: 1
   PickerDistanceMultiplier: 1
   PickerRange: 500
   PickerInRangeBonus: 200
@@ -848,6 +849,9 @@ MonoBehaviour:
   PickerOverMinMassBonus: 5000
   PickerAimedAtMultiplier: 80
   PickerApproachWeighting: 5
+  LineOfSightBonus: 1000
+  HemisphereFilterObject: {fileID: 4592822217735520}
+  InCorrectHemisphereBonus: 1000
   EnemyTags:
   - Enemy
 --- !u!114 &114269210039907450

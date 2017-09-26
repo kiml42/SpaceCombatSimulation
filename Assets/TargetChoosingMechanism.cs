@@ -21,6 +21,10 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTagAndtag, IKno
         " Emulates rockets being told their target by their launcher at launch.")]
     public bool NeverRetarget = false;
 
+    [Tooltip("Set to true to kull invalid targets rather than simply giving them much lower scores." +
+        " Targets will not be kulled if there are no valid targets (so invalid targets will be tracked in case they become valid later)")]
+    public bool DropInvalidTargetsWhenTereAreValidTargets = false;
+
     #region TargetPickerVariables
     public float PickerDistanceMultiplier = 1;
     public float PickerRange = 500;
@@ -86,26 +90,14 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTagAndtag, IKno
             EnemyTags = EnemyTags
         };
 
-        var pickers = new List<ITargetPicker>
-        {
-            new ProximityTargetPicker(_rigidbody){
-                DistanceMultiplier = PickerDistanceMultiplier,
-                InRangeBonus = PickerInRangeBonus,
-                Range = PickerRange
-            },
-            new LookingAtTargetPicker(_rigidbody)
-            {
-                Multiplier = PickerAimedAtMultiplier,
-                ProjectileSpeed = projectileSpeed
-            },
-            new ApproachingTargetPicker(_rigidbody, PickerApproachWeighting)
-        };
+        var pickers = new List<ITargetPicker>();
 
         if(HemisphereFilterObject != null && InCorrectHemisphereBonus != 0)
         {
             pickers.Add(new InCorrectHemisphereTargetPicker(HemisphereFilterObject)
             {
-                ExtraScoreForValidTargets = InCorrectHemisphereBonus
+                ExtraScoreForValidTargets = InCorrectHemisphereBonus,
+                KullInvalidTargets = DropInvalidTargetsWhenTereAreValidTargets
             });
         }
 
@@ -115,20 +107,46 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTagAndtag, IKno
             {
                 MinMass = MinimumMass,
                 MassMultiplier = PickerMassMultiplier,
-                OverMinMassBonus = PickerOverMinMassBonus
+                OverMinMassBonus = PickerOverMinMassBonus,
+                KullInvalidTargets = DropInvalidTargetsWhenTereAreValidTargets
             });
         }
 
+        if(PickerDistanceMultiplier != 0 || (PickerInRangeBonus != 0 && PickerRange > 0))
+        {
+            pickers.Add(new ProximityTargetPicker(_rigidbody)
+            {
+                DistanceMultiplier = PickerDistanceMultiplier,
+                InRangeBonus = PickerInRangeBonus,
+                Range = PickerRange,
+                KullInvalidTargets = DropInvalidTargetsWhenTereAreValidTargets
+            });
+        }
+        
         if(LineOfSightBonus != 0)
         {
             pickers.Add(new LineOfSightTargetPicker(transform)
             {
-                BonusForCorrectObject = LineOfSightBonus
+                BonusForCorrectObject = LineOfSightBonus,
+                KullInvalidTargets = DropInvalidTargetsWhenTereAreValidTargets
+            });
+        }
+        
+        if(PickerAimedAtMultiplier != 0)
+        {
+            pickers.Add(new LookingAtTargetPicker(_rigidbody)
+            {
+                Multiplier = PickerAimedAtMultiplier,
+                ProjectileSpeed = projectileSpeed
             });
         }
 
-        _targetPicker = new CombinedTargetPicker(pickers);
+        if(PickerApproachWeighting != 0)
+        {
+            pickers.Add(new ApproachingTargetPicker(_rigidbody, PickerApproachWeighting));
+        }
 
+        _targetPicker = new CombinedTargetPicker(pickers);
     }
 	
 	// Update is called once per frame

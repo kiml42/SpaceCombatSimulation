@@ -21,6 +21,11 @@ namespace Assets.Src.Targeting.TargetPickers
         public float InRangeBonus = 0;
         public float DistanceMultiplier = 1;
 
+        /// <summary>
+        /// Remove targets outside the given range
+        /// </summary>
+        public bool KullInvalidTargets = true;
+
         public ProximityTargetPicker(Rigidbody sourceObject)
         {
             _sourceObject = sourceObject.transform;
@@ -33,7 +38,12 @@ namespace Assets.Src.Targeting.TargetPickers
 
         public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
-            return potentialTargets.Select(t => AddScoreForDifference(t));
+            potentialTargets = potentialTargets.Select(t => AddScoreForDifference(t));
+            if (KullInvalidTargets && potentialTargets.Any(t => t.IsValidForCurrentPicker))
+            {
+                return potentialTargets.Where(t => t.IsValidForCurrentPicker);
+            }
+            return potentialTargets;
         }
 
         private PotentialTarget AddScoreForDifference(PotentialTarget target)
@@ -42,7 +52,11 @@ namespace Assets.Src.Targeting.TargetPickers
             target.Score = target.Score - (dist * DistanceMultiplier);
             if(dist < Range)
             {
+                target.IsValidForCurrentPicker = true;
                 target.Score += InRangeBonus;
+            } else
+            {
+                target.IsValidForCurrentPicker = false;
             }
             return target;
         }

@@ -9,7 +9,6 @@ Z - make the ship cam follow a different object.
 R - cycle reticle state
 
 TODO:
-    Clear line target picker for turrets(cast rays to PT if ray hits friendly give negative score 
     Turrets cast a short ray in aimed direction to see if there is a friendly close in front of the turret.
     Colour projectiles the same as tehe ship.
     Store full config of evolution in current generation file.
@@ -24,7 +23,6 @@ TODO:
     Spherical modules with two angles given for where to spawn the sub modules and something to specify termination of that module's spawning (going back up to the previous)
     FuelTank option to balance fuel with parent.
     TargetPickers have option to kull all but the best x.
-    TargetPickers with an in/out score have an option to drop all outs if there are no ins ( add is in bool to PT set by these so they can just do if( Any(in)) {where(in)})
 
     Repulsive shield- repells objects in trigger
     Shrapnel and bullets die on any hit (no health controller)
