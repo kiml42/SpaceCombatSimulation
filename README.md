@@ -57,6 +57,7 @@ TODO:
     Camera controller to handle zoom - active when camera is active - moot for shipcam
     Make mini type 2 actually manage to hit torpedoes.
     Handle very high speed collisions -sort of done.
+        new idea Projectiles cast a ray from previous position to current position jump to location of a hit, forcing a physics collision.
     Just set a single name for evolution files (all types) and have it work out the folders from there.
         Done for 1v1 evolution
 
