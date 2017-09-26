@@ -708,6 +708,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 20dff57476741ff4781682649ce23934, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  TargetChoosingMechanism: {fileID: 114954702964643402}
   ShootAngle: 10
   TorqueMultiplier: 90
   LocationAimWeighting: 8
@@ -726,17 +727,6 @@ MonoBehaviour:
   - {fileID: 114647872415290320}
   ContinuallyCheckForTargets: 0
   NeverRetarget: 0
-  PickerDistanceMultiplier: 3
-  PickerInRangeBonus: 10000
-  PickerRange: 1000
-  PickerAimedAtMultiplier: 80
-  MinimumMass: 10
-  PickerMasMultiplier: 10
-  PickerOverMinMassBonus: 5000
-  PickerApproachWeighting: 50
-  EnemyTags:
-  - Enemy
-  - Team1
   TimeToLive: 3000
   TimeThresholdForMaximumEvasion: 8
   TimeThresholdForMediumEvasion: 30

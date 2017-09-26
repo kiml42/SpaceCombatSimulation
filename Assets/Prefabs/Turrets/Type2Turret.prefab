@@ -180,6 +180,7 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4592822217735520}
+  - component: {fileID: 114190460903209974}
   - component: {fileID: 54337837379328534}
   - component: {fileID: 138417226499093484}
   - component: {fileID: 114792225503145664}
@@ -825,6 +826,29 @@ MonoBehaviour:
   DeactivateOnBreak: 1
   DisconectFromParent: 1
   BreakExplosion: {fileID: 0}
+--- !u!114 &114190460903209974
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1866709225031140}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ContinuallyCheckForTargets: 1
+  NeverRetarget: 0
+  PickerDistanceMultiplier: 1
+  PickerRange: 500
+  PickerInRangeBonus: 200
+  PickerMassMultiplier: 50
+  MinimumMass: 80
+  PickerOverMinMassBonus: 5000
+  PickerAimedAtMultiplier: 80
+  PickerApproachWeighting: 5
+  EnemyTags:
+  - Enemy
 --- !u!114 &114306497983771438
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -865,6 +889,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 90fe067e2d1dba34980b24b8f5d74be5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  TargetChoosingMechanism: {fileID: 114190460903209974}
   RestTarget: {fileID: 4507754672032468}
   Projectile: {fileID: 54055825812382558, guid: 9332290abb101c54e870bf45e5c06ec1,
     type: 2}
@@ -876,17 +901,8 @@ MonoBehaviour:
   ElevationHub: {fileID: 54136877300926014}
   EmitterParent: {fileID: 4882124771513916}
   TagChildren: 0
-  EnemyTags: []
   SetChildrensEnemy: 0
   RecoilForce: 0
-  PickerDistanceMultiplier: 1
-  PickerInRangeBonus: 0
-  PickerRange: 500
-  PickerAimedAtMultiplier: 100
-  PickerMinimumMass: 10
-  PickerMasMultiplier: 1
-  PickerOverMinMassBonus: 10000
-  PickerApproachWeighting: 20
 --- !u!114 &114792225503145664
 MonoBehaviour:
   m_ObjectHideFlags: 1

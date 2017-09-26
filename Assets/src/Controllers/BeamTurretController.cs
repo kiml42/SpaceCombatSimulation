@@ -9,8 +9,9 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurretController, IDeactivatable, IKnowsCurrentTarget
+public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivatable
 {
+    public TargetChoosingMechanism TargetChoosingMechanism;
     public Transform RestTarget;
     public int LoadTime = 50;
     public int ShootTime = 200;
@@ -24,9 +25,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     public Rigidbody ElevationHub;
     public Transform BeamsParent;
     private List<Beam> _beams;
-
-    private ITargetDetector _detector;
-    private ITargetPicker _targetPicker;
+    
     private ITurretTurner _turner;
     private IFireControl _fireControl;
 
@@ -37,51 +36,9 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     
     public float InitialRadius = 1;
     public float Divergence = 0.0005f;
-
-    #region EnemyTags
-    public void AddEnemyTag(string newTag)
-    {
-        var tags = EnemyTags.ToList();
-        tags.Add(newTag);
-        EnemyTags = tags.Distinct().ToList();
-    }
-
-    public string GetFirstEnemyTag()
-    {
-        return EnemyTags.FirstOrDefault();
-    }
-
-    public void SetEnemyTags(List<string> allEnemyTags)
-    {
-        EnemyTags = allEnemyTags;
-    }
-
-    public List<string> GetEnemyTags()
-    {
-        return EnemyTags;
-    }
-
-    public List<string> EnemyTags;
-    #endregion
-
-    #region knowsCurrentTarget
-    public Target CurrentTarget { get; set; }
-    #endregion
-
+    
     private ITurretRunner _runner;
     public Color BeamColour;
-
-
-    #region TargetPickerVariables
-    public float PickerDistanceMultiplier = 1;
-    public float PickerInRangeBonus = 0;
-    public float PickerRange = 500;
-    public float PickerAimedAtMultiplier = 100;
-    public float PickerMinimumMass = 0;
-    public float PickerMasMultiplier = 1;
-    public float PickerOverMinMassBonus = 10000;
-    public float PickerApproachWeighting = 20;
-    #endregion
 
     // Use this for initialization
     void Start()
@@ -106,43 +63,11 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
             });
         }
 
-        _detector = new RepositoryTargetDetector()
-        {
-            EnemyTags = EnemyTags
-        };
-        
-        var pickers = new List<ITargetPicker>
-        {
-            new AboveTurnTableTargetPicker(rigidbody),
-            new ProximityTargetPicker(rigidbody){
-                DistanceMultiplier = PickerDistanceMultiplier,
-                InRangeBonus = PickerInRangeBonus,
-                Range = PickerRange
-            },
-            new LookingAtTargetPicker(ElevationHub)
-            {
-                Multiplier = PickerAimedAtMultiplier
-            },
-            new ApproachingTargetPicker(rigidbody, PickerApproachWeighting)
-        };
-
-        if (PickerMinimumMass > 0 || PickerMasMultiplier != 0)
-        {
-            pickers.Add(new MassTargetPicker
-            {
-                MinMass = PickerMinimumMass,
-                MassMultiplier = PickerMasMultiplier,
-                OverMinMassBonus = PickerOverMinMassBonus
-            });
-        }
-
-        _targetPicker = new CombinedTargetPicker(pickers);
-
         _turner = new UnityTurretTurner(rigidbody, TurnTable, ElevationHub, RestTarget, null);
 
         _fireControl = new UnityFireControl(this, ElevationHub.transform, ShootAngle);
 
-        _runner = new TurretRunner(_detector, _targetPicker, _turner, _fireControl, this)
+        _runner = new TurretRunner(TargetChoosingMechanism, _turner, _fireControl)
         {
             name = transform.name
         };

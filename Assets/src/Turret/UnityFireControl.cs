@@ -27,7 +27,7 @@ namespace Assets.Src.Targeting
             _controller.Shoot(shouldShoot);
         }
 
-        public bool ShootIfAimed(PotentialTarget target)
+        public bool ShootIfAimed(Target target)
         {
             var shouldShoot = ShouldShoot(target);
 
@@ -36,7 +36,7 @@ namespace Assets.Src.Targeting
             return shouldShoot;
         }
 
-        public bool ShouldShoot(PotentialTarget target)
+        public bool ShouldShoot(Target target)
         {
             //return true;
             if (target != null && target.Rigidbody.transform.IsValid() && _aimingObject.IsValid())

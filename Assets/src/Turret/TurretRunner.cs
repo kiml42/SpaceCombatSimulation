@@ -9,8 +9,6 @@ namespace Assets.Src.Targeting
 {
     public class TurretRunner : ITurretRunner
     {
-        private ITargetDetector _targetDetector;
-        private ITargetPicker _targetPicker;
         private ITurretTurner _turretTurner;
         private IFireControl _fireControl;
         private readonly IKnowsCurrentTarget _knower;
@@ -20,10 +18,8 @@ namespace Assets.Src.Targeting
         /// </summary>
         public string name;
 
-        public TurretRunner(ITargetDetector targetDetector, ITargetPicker targetPicker, ITurretTurner turretTurner, IFireControl fireControl, IKnowsCurrentTarget knower)
+        public TurretRunner(IKnowsCurrentTarget knower, ITurretTurner turretTurner, IFireControl fireControl)
         {
-            _targetDetector = targetDetector;
-            _targetPicker = targetPicker;
             _turretTurner = turretTurner;
             _fireControl = fireControl;
             _knower = knower;
@@ -31,19 +27,11 @@ namespace Assets.Src.Targeting
 
         public void RunTurret()
         {
-            var allTargets = _targetDetector.DetectTargets();
-            var bestTarget = _targetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).FirstOrDefault();
-
-            if (_knower != null)
-            {
-                _knower.CurrentTarget = bestTarget;
-            }
-
-            if (bestTarget != null)
+            if (_knower.CurrentTarget != null)
             {
                 //Debug.Log(name + " is aiming at " + bestTarget.Transform);
-                _turretTurner.TurnToTarget(bestTarget);
-                _fireControl.ShootIfAimed(bestTarget);
+                _turretTurner.TurnToTarget(_knower.CurrentTarget);
+                _fireControl.ShootIfAimed(_knower.CurrentTarget);
             } else
             {
                 _turretTurner.ReturnToRest();

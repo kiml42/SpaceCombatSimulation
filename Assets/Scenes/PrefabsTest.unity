@@ -850,7 +850,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 1721119589249582, guid: c19e2a0e8fe94a2458f1f5141511d791, type: 2}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: c19e2a0e8fe94a2458f1f5141511d791, type: 2}
@@ -896,7 +896,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 1714305623586720, guid: fb971bf036914224882cb762d5469d0a, type: 2}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: fb971bf036914224882cb762d5469d0a, type: 2}
@@ -1138,7 +1138,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 1489824746261682, guid: 7a6fbabb0bc555d40912d26e6bc4beb5, type: 2}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5, type: 2}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -1196,7 +1196,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 1617297998928176, guid: ecb13bd8e1b25e74c820d8d87b56d573, type: 2}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: ecb13bd8e1b25e74c820d8d87b56d573, type: 2}
@@ -1271,7 +1271,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 1721119589249582, guid: c19e2a0e8fe94a2458f1f5141511d791, type: 2}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: c19e2a0e8fe94a2458f1f5141511d791, type: 2}
@@ -1823,7 +1823,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 1964144153646322, guid: a5aecdf99e8c0d540a795c7a769bf0f7, type: 2}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: a5aecdf99e8c0d540a795c7a769bf0f7, type: 2}
@@ -1869,7 +1869,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 1088526681955390, guid: 60a29330d6f81dd44831e849ab27dd87, type: 2}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4032442292318084, guid: 60a29330d6f81dd44831e849ab27dd87, type: 2}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -1895,7 +1895,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!23 &1706808101
 MeshRenderer:
   m_ObjectHideFlags: 0

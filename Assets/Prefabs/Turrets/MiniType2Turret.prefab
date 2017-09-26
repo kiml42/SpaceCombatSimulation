@@ -223,6 +223,7 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4541375484301278}
+  - component: {fileID: 114801315628883180}
   - component: {fileID: 114399403742783732}
   - component: {fileID: 54085703227121582}
   - component: {fileID: 138790836030370796}
@@ -1337,6 +1338,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 90fe067e2d1dba34980b24b8f5d74be5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  TargetChoosingMechanism: {fileID: 114801315628883180}
   RestTarget: {fileID: 4689014570261280}
   Projectile: {fileID: 54055825812382558, guid: 9332290abb101c54e870bf45e5c06ec1,
     type: 2}
@@ -1348,19 +1350,8 @@ MonoBehaviour:
   ElevationHub: {fileID: 54647014223265010}
   EmitterParent: {fileID: 4095713925445172}
   TagChildren: 0
-  EnemyTags:
-  - Enemy
-  - Team2
   SetChildrensEnemy: 0
   RecoilForce: 3
-  PickerDistanceMultiplier: 3
-  PickerInRangeBonus: 10000
-  PickerRange: 1000
-  PickerAimedAtMultiplier: 80
-  PickerMinimumMass: 10
-  PickerMasMultiplier: 15
-  PickerOverMinMassBonus: 600
-  PickerApproachWeighting: 20
 --- !u!114 &114583833557891480
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1402,6 +1393,29 @@ MonoBehaviour:
   DeactivateOnBreak: 1
   DisconectFromParent: 1
   BreakExplosion: {fileID: 0}
+--- !u!114 &114801315628883180
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1714305623586720}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ContinuallyCheckForTargets: 1
+  NeverRetarget: 0
+  PickerDistanceMultiplier: 3
+  PickerRange: 1000
+  PickerInRangeBonus: 10000
+  PickerMassMultiplier: 15
+  MinimumMass: 10
+  PickerOverMinMassBonus: 5000
+  PickerAimedAtMultiplier: 80
+  PickerApproachWeighting: 20
+  EnemyTags:
+  - Enemy
 --- !u!114 &114933443936390894
 MonoBehaviour:
   m_ObjectHideFlags: 1

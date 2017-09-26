@@ -8,8 +8,8 @@ namespace Assets.Src.Interfaces
 {
     public interface IFireControl
     {
-        bool ShouldShoot(PotentialTarget target);
+        bool ShouldShoot(Target target);
         void Shoot(bool shouldShoot);
-        bool ShootIfAimed(PotentialTarget target);
+        bool ShootIfAimed(Target target);
     }
 }

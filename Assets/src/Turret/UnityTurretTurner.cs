@@ -41,7 +41,7 @@ namespace Assets.Src.Targeting
             }
         }
 
-        public void TurnToTarget(PotentialTarget target)
+        public void TurnToTarget(Target target)
         {
             if (target != null && target.Transform.IsValid() && _turnTable != null && _elevationHub != null)
             {
