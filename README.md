@@ -9,27 +9,26 @@ Z - make the ship cam follow a different object.
 R - cycle reticle state
 
 TODO:
-    Store full config of evolution in current generation file.
     Create target picker controller for consistent target picking - use the knower to have the main controller pick up the selected target.
+    Create base class for turret controllers to reduce code duplication.
+        Better yet split turning from shooting.
+    Clear line target picker for turrets(cast rays to PT if ray hits friendly give negative score 
+    Turrets cast a short ray in aimed direction to see if there is a friendly close in front of the turret.
+    Colour projectiles the same as tehe ship.
+    Store full config of evolution in current generation file.
     Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
     Draws should be penalised less if the ships killed each other simultaneously. probably give them the win score - some constant.
-    Colour projectiles the same as teh ship.
     Prevent friendly fire - all turrets and missiles.
+        Done for missiles
     Target shooting evolution
     Fighters - using engines as weapons/using guns/both.
     projectiles apply force to cancel lateral V. Target set on projectile when fired.
     Destructin only leaves objects with a rigibdbody and a health controller
     Spherical modules with two angles given for where to spawn the sub modules and something to specify termination of that module's spawning (going back up to the previous)
-    Create base class for turret controllers to reduce code duplication.
     FuelTank option to balance fuel with parent.
     Repulsive shield- repells objects in trigger
-    Shrapnel and bullets diwe on any hit (no health controller)
+    Shrapnel and bullets die on any hit (no health controller)
 
-    Secondary translate vector for engines (angle error is sum of angle between pointed vector and each - angle between two translate vectors)
-        Implemented and partially tested for engines, but nothing actually uses it.
-    Ships and rockets cast rays in direction of v. Set engines to increase v tangeñt when close(secondary translate vector when distant, primary and turn when close)
-    Clear line target picker for turrets(cast rays to PT if ray hits friendly give negative score 
-    Turrets cast a short ray in aimed direction to see if there is a friendly close in front of the turret.
 
     shipCam:
         Make shipcam move faster if the followed object is faster or add a set chunk to the location based on the followed object's speed. - done
