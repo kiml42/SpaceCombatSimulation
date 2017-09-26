@@ -11,11 +11,18 @@ namespace Assets.Src.Targeting
     public static class TargetingExtensions
     {
         #region TargetVersions
-        public static Vector3 LocationInOthersSpace(this Target target, Rigidbody turnTable, float? projectileSpeed)
+        public static Vector3 LocationInOthersSpace(this Target target, Rigidbody origin, float? projectileSpeed)
         {
             return target.Rigidbody != null ?
-                target.Rigidbody.LocationInOthersSpace(turnTable, projectileSpeed) :
-                target.Transform.LocationInOthersSpace(turnTable);
+                target.Rigidbody.LocationInOthersSpace(origin, projectileSpeed) :
+                target.Transform.LocationInOthersSpace(origin);
+        }
+
+        public static Vector3 LocationInOthersSpace(this Target target, Transform origin, float? projectileSpeed)
+        {
+            return target.Rigidbody != null ?
+                target.Rigidbody.LocationInOthersSpace(origin, projectileSpeed) :
+                target.Transform.LocationInOthersSpace(origin);
         }
 
         public static Vector3 LocationInElevationHubSpaceAfterTurnTableTurn(this Target target, Rigidbody thisTurret, Transform turnTable, Rigidbody elevationHub, float? projectileSpeed)
@@ -79,6 +86,18 @@ namespace Assets.Src.Targeting
             var location = target.CorrectForVelocity(origin, projectileSpeed);
 
             return origin.transform.InverseTransformPoint(location);
+        }
+
+        public static Vector3 LocationInOthersSpace(this Rigidbody target, Transform origin, float? projectileSpeed)
+        {
+            if (origin == null)
+            {
+                return Vector3.zero;
+            }
+
+            var location = target.transform.position;
+
+            return origin.InverseTransformPoint(location);
         }
 
         public static Vector3 LocationInElevationHubSpaceAfterTurnTableTurn(this Rigidbody target, Rigidbody thisTurret, Transform turnTable, Rigidbody elevationHub, float? projectileSpeed)
@@ -165,6 +184,17 @@ namespace Assets.Src.Targeting
             var location = target.position;
 
             return origin.transform.InverseTransformPoint(location);
+        }
+
+        public static Vector3 LocationInOthersSpace(this Transform target, Transform origin)
+        {
+            if (origin == null)
+            {
+                return Vector3.zero;
+            }
+            var location = target.position;
+
+            return origin.InverseTransformPoint(location);
         }
 
         public static Vector3 LocationInElevationHubSpaceAfterTurnTableTurn(this Transform target, Rigidbody thisTurret, Transform turnTable, Rigidbody elevationHub)

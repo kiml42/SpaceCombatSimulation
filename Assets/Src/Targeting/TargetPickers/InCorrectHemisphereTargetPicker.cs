@@ -7,12 +7,12 @@ using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
 {
-    class AboveTurnTableTargetPicker : ITargetPicker
+    class InCorrectHemisphereTargetPicker : ITargetPicker
     {
-        private Rigidbody _sourceObject;
+        private Transform _sourceObject;
         public float ExtraScoreForValidTargets = 1000;
 
-        public AboveTurnTableTargetPicker(Rigidbody sourceObject)
+        public InCorrectHemisphereTargetPicker(Transform sourceObject)
         {
             _sourceObject = sourceObject;
         }

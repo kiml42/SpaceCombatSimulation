@@ -197,12 +197,22 @@ Prefab:
     - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
         type: 2}
       propertyPath: ThisRunFolder
-      value: CollisionCourse2
+      value: Passing
       objectReference: {fileID: 0}
     - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
         type: 2}
       propertyPath: DefaultGenome
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
+        type: 2}
+      propertyPath: RandomInitialSpeed
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
+        type: 2}
+      propertyPath: InitialSpeed
+      value: 40
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 590da46f61a57f34ba77094de519068c, type: 2}

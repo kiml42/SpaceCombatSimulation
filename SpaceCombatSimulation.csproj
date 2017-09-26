@@ -140,10 +140,11 @@
     <Compile Include="Assets\Src\Targeting\RepositoryTargetDetector.cs" />
     <Compile Include="Assets\Src\Targeting\Target.cs" />
     <Compile Include="Assets\Src\Targeting\TargetingExtensions.cs" />
-    <Compile Include="Assets\Src\Targeting\TargetPickers\AboveTurnTableTargetPicker.cs" />
+    <Compile Include="Assets\Src\Targeting\TargetPickers\InCorrectHemisphereTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\ApproachingTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\CombinedTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\HasTagTargetPicker.cs" />
+    <Compile Include="Assets\Src\Targeting\TargetPickers\LineOfSightTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\LookingAtTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\MinimumMassTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\PreviousTargetPicker.cs" />

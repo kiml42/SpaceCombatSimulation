@@ -929,7 +929,7 @@ MonoBehaviour:
   LoadTime: 80
   ProjectileSpeed: 800
   ShootAngle: 1
-  RandomSpeed: 1
+  RandomSpeed: 0.2
   ElevationHub: {fileID: 54683890212850012}
   EmitterParent: {fileID: 4762531310836884}
   TagChildren: 0

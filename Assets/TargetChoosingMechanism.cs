@@ -33,6 +33,12 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTagAndtag, IKno
     public float PickerAimedAtMultiplier = 100;
 
     public float PickerApproachWeighting = 20;
+
+    public float LineOfSightBonus = 1000;
+
+    [Tooltip("Targets in the +y hemisphere of this object get the InCorrectHemisphereBonus")]
+    public Transform HemisphereFilterObject;
+    public float InCorrectHemisphereBonus = 1000;
     #endregion
 
     #region knowsCurrentTarget
@@ -95,6 +101,14 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTagAndtag, IKno
             new ApproachingTargetPicker(_rigidbody, PickerApproachWeighting)
         };
 
+        if(HemisphereFilterObject != null && InCorrectHemisphereBonus != 0)
+        {
+            pickers.Add(new InCorrectHemisphereTargetPicker(HemisphereFilterObject)
+            {
+                ExtraScoreForValidTargets = InCorrectHemisphereBonus
+            });
+        }
+
         if (MinimumMass > 0 || PickerMassMultiplier != 0)
         {
             pickers.Add(new MassTargetPicker
@@ -102,6 +116,14 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTagAndtag, IKno
                 MinMass = MinimumMass,
                 MassMultiplier = PickerMassMultiplier,
                 OverMinMassBonus = PickerOverMinMassBonus
+            });
+        }
+
+        if(LineOfSightBonus != 0)
+        {
+            pickers.Add(new LineOfSightTargetPicker(transform)
+            {
+                BonusForCorrectObject = LineOfSightBonus
             });
         }
 

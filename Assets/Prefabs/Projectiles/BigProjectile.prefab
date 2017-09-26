@@ -211,7 +211,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6312b7bfe9030e40b858f67cf019e96, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Lifetime: 600
+  Lifetime: 1000
   RandomLifetime: 20
 --- !u!114 &114050329038561162
 MonoBehaviour:
@@ -229,14 +229,15 @@ MonoBehaviour:
   Health: 1
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 20
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 10
   ShrapnelSpeed2: 60
-  ExplosionDamage2: 200
   FramesOfInvulnerability: 3
   OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!114 &114985888697979568
 MonoBehaviour:
   m_ObjectHideFlags: 1
