@@ -181,6 +181,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4592822217735520}
   - component: {fileID: 114190460903209974}
+  - component: {fileID: 114269210039907450}
   - component: {fileID: 54337837379328534}
   - component: {fileID: 138417226499093484}
   - component: {fileID: 114792225503145664}
@@ -849,6 +850,22 @@ MonoBehaviour:
   PickerApproachWeighting: 5
   EnemyTags:
   - Enemy
+--- !u!114 &114269210039907450
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1866709225031140}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ec4508e0c0d409448a9d406412cb2b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TargetChoosingMechanism: {fileID: 114190460903209974}
+  RestTarget: {fileID: 4507754672032468}
+  ProjectileSpeed: 800
+  TurnTable: {fileID: 54160784929646596}
+  ElevationHub: {fileID: 54136877300926014}
 --- !u!114 &114306497983771438
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -165,6 +165,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4087408875352314}
   - component: {fileID: 114078742538678138}
+  - component: {fileID: 114699345676702336}
   - component: {fileID: 114422725068886292}
   - component: {fileID: 54298971192452022}
   - component: {fileID: 138934033157855350}
@@ -977,6 +978,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &114699345676702336
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1721119589249582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ec4508e0c0d409448a9d406412cb2b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TargetChoosingMechanism: {fileID: 114078742538678138}
+  RestTarget: {fileID: 4616440911490974}
+  ProjectileSpeed: 800
+  TurnTable: {fileID: 54079204794469090}
+  ElevationHub: {fileID: 54683890212850012}
 --- !u!114 &114735797348154080
 MonoBehaviour:
   m_ObjectHideFlags: 1

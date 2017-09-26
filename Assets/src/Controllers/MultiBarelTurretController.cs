@@ -8,17 +8,15 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDeactivatable
+public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDeactivatable, IKnowsProjectileSpeed
 {
     public TargetChoosingMechanism TargetChoosingMechanism;
-    public Transform RestTarget;
     public Rigidbody Projectile;
     public int LoadTime = 200;
     public float ProjectileSpeed = 10f;
     public float ShootAngle = 10;
     public float RandomSpeed = 0.1f;
-
-    public Rigidbody TurnTable;
+    
     public Rigidbody ElevationHub;
     public Transform EmitterParent;
     private List<Transform> _emitters;
@@ -27,24 +25,26 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
     
     public bool TagChildren = false;
     
-    private ITurretTurner _turner;
     private IFireControl _fireControl;
-
-    private Transform _thisTurret;
 
     private string InactiveTag = "Untagged";
     
     private int _reload = 0;
 
-    private ITurretRunner _runner;
-
     public bool SetChildrensEnemy = false;
     public float RecoilForce = 0;
-    
+
+    float IKnowsProjectileSpeed.ProjectileSpeed
+    {
+        get
+        {
+            return ProjectileSpeed;
+        }
+    }
+
     // Use this for initialization
     void Start()
     {
-        var rigidbody = GetComponent<Rigidbody>();
         var emitterCount = EmitterParent.childCount;
 
         _emitters = new List<Transform>();
@@ -55,27 +55,19 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
         
         _reload = LoadTime;
         
-        _turner = new UnityTurretTurner(rigidbody, TurnTable, ElevationHub, RestTarget, ProjectileSpeed);
-
         _fireControl = new UnityFireControl(this, ElevationHub.transform, ShootAngle);
-
-        _runner = new TurretRunner(TargetChoosingMechanism, _turner, _fireControl)
-        {
-            name = transform.name
-        };
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (_active)
-            _runner.RunTurret();
+        _fireControl.ShootIfAimed(TargetChoosingMechanism.CurrentTarget);
     }
 
 
     public void Shoot(bool shouldShoot)
     {
-        if(_active && TurnTable != null && ElevationHub != null)
+        if(_active && ElevationHub != null)
             if (shouldShoot && _reload <= 0)
             {
                 var emitter = _emitters[_nextEmitterToShoot];
@@ -103,14 +95,6 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
         //Debug.Log("Deactivating " + name);
         _active = false;
         tag = InactiveTag;
-    }
-
-    public void DieNow()
-    {
-        Deactivate();
-        DestroyJoint(ElevationHub);
-        DestroyJoint(TurnTable);
-        //Don't remove the turret itself, that will be done by the thing calling DieNow (which can't tell that DieNow exists)
     }
 
     private void DestroyJoint(Rigidbody jointedObject)

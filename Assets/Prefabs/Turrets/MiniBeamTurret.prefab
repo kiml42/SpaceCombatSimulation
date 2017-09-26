@@ -477,6 +477,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4302048105835624}
   - component: {fileID: 114642220478021410}
+  - component: {fileID: 114919527460496792}
   - component: {fileID: 114404345958453862}
   - component: {fileID: 54016053239248472}
   - component: {fileID: 138157655960534944}
@@ -2175,6 +2176,22 @@ MonoBehaviour:
   - Team4ForceField
   - Team5ForceField
   TeamTagForceFieldSuffix: FoceField
+--- !u!114 &114919527460496792
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1964144153646322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ec4508e0c0d409448a9d406412cb2b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TargetChoosingMechanism: {fileID: 114642220478021410}
+  RestTarget: {fileID: 4550382481658926}
+  ProjectileSpeed: Infinity
+  TurnTable: {fileID: 54882056251725972}
+  ElevationHub: {fileID: 54867097553581106}
 --- !u!124 &124357949528397776
 Behaviour:
   m_ObjectHideFlags: 1
