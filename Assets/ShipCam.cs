@@ -74,8 +74,8 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     private Rigidbody _rigidbody;
     private ITargetDetector _detector;
 
-    private Target _followedTarget;
-    private Target _targetToWatch;
+    public Rigidbody FollowedTarget;
+    public Rigidbody TargetToWatch;
 
     private ITargetPicker _watchPicker;
     private ITargetPicker _followPicker;
@@ -95,12 +95,12 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     {
         get
         {
-            return _followedTarget;
+            return new Target(FollowedTarget);
         }
 
         set
         {
-            _followedTarget = value;
+            FollowedTarget = value.Rigidbody;
         }
     }
 
@@ -123,17 +123,24 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
             _tagPicker,
             _currentlyFollowingPicker,
             new ProximityTargetPicker(transform)
+            {
+                KullInvalidTargets = false
+            }
         };
 
         if(_rigidbody != null)
         {
-            watchPickers.Add(new LookingAtTargetPicker(_rigidbody));
+            watchPickers.Add(new LookingAtTargetPicker(_rigidbody)
+            {
+                KullInvalidTargets = false
+            });
         }
 
         if (MinimumMass > 0)
         {
             watchPickers.Add(new MassTargetPicker{
-                MinMass = MinimumMass
+                MinMass = MinimumMass,
+                KullInvalidTargets = false
             });
         }
 
@@ -142,6 +149,9 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         var followPickers = new List<ITargetPicker>
         {
             new ProximityTargetPicker(transform)
+            {
+                KullInvalidTargets = false
+            }
         };
 
         if (_rigidbody != null)
@@ -153,7 +163,8 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         {
             followPickers.Add(new MassTargetPicker
             {
-                MinMass = MinimumMass
+                MinMass = MinimumMass,
+                KullInvalidTargets = false
             });
         }
         _followPicker = new CombinedTargetPicker(followPickers);
@@ -170,37 +181,37 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         {
             PickRandomToFollow();
         }
-        else if(_followedTarget == null || _followedTarget.Transform.IsInvalid())
+        else if(FollowedTarget == null)
         {
             PickBestTargetToFollow();
         }
 
-        if (_followedTarget != null)
+        if (FollowedTarget != null)
         {
             //Debug.Log("following " + _followedTarget.Transform);
             var totalTranslateSpeed = TranslateSpeed;
-            if (_followedTarget.Rigidbody != null && FollowedObjectTranslateSpeedMultiplier != 0)
+            if (FollowedTarget != null && FollowedObjectTranslateSpeedMultiplier != 0)
             {
-                totalTranslateSpeed += FollowedObjectTranslateSpeedMultiplier * _followedTarget.Rigidbody.velocity.magnitude;
+                totalTranslateSpeed += FollowedObjectTranslateSpeedMultiplier * FollowedTarget.velocity.magnitude;
             }
-            transform.position = Vector3.Slerp(transform.position, _followedTarget.Transform.position, Time.deltaTime * totalTranslateSpeed);
+            transform.position = Vector3.Slerp(transform.position, FollowedTarget.position, Time.deltaTime * totalTranslateSpeed);
 
             PickTargetToWatch();
-            if (_targetToWatch != null && _followedTarget.Transform != _targetToWatch.Transform && _targetToWatch.Transform.IsValid())
+            if (TargetToWatch != null && FollowedTarget != TargetToWatch)
             {
                 //Debug.Log("Following " + _followedTarget.Transform.name + ", Watching " + _targetToWatch.Transform.name);
                 //rotate enpty parent
-                var direction = (_targetToWatch.Transform.position - transform.position).normalized;
+                var direction = (TargetToWatch.position - transform.position).normalized;
                 var lookRotation = Quaternion.LookRotation(direction);
                 transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * RotationSpeed);
 
                 //move the focus
-                _focusDistance = Mathf.Lerp(_focusDistance, Vector3.Distance(transform.position, _targetToWatch.Transform.position), Time.deltaTime * FocusMoveSpeed);
+                _focusDistance = Mathf.Lerp(_focusDistance, Vector3.Distance(transform.position, TargetToWatch.position), Time.deltaTime * FocusMoveSpeed);
 
                 if (Quaternion.Angle(lookRotation, transform.rotation) < NearlyAimedAngle)
                 {
                     //rotate the camera itself - only if the parent is looking in vaguely the right direction.
-                    direction = (_targetToWatch.Transform.position - Camera.transform.position).normalized;
+                    direction = (TargetToWatch.position - Camera.transform.position).normalized;
                     lookRotation = Quaternion.LookRotation(direction);
                     Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, lookRotation, Time.deltaTime * RotationSpeed * 0.3f);
                 }
@@ -289,10 +300,10 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     private void PickTargetToWatch()
     {
         //Debug.Log("to watch");
-        var knower = _followedTarget.Transform.GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
+        var knower = FollowedTarget.GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
         if (knower != null && knower.CurrentTarget != null)
         {
-            _targetToWatch = knower.CurrentTarget;
+            TargetToWatch = knower.CurrentTarget.Rigidbody;
             //Debug.Log("Watching followed object's target: " + _targetToWatch.Transform.name);
         } else
         {
@@ -305,8 +316,9 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
             //    Debug.Log(item.Transform.name + ": " + item.Score);
             //}
         
-            _targetToWatch = targets
-                .FirstOrDefault();
+            TargetToWatch = targets
+                .FirstOrDefault()
+                .Rigidbody;
             //Debug.Log("Watching picked target: " + _targetToWatch.Transform.name);
         }
     }
@@ -323,22 +335,24 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         //    Debug.Log(item.Transform.name + ": " + item.Score);
         //}
 
-        _followedTarget = targets
-            .FirstOrDefault();
+        FollowedTarget = targets
+            .FirstOrDefault()
+            .Rigidbody;
 
-        if(_followedTarget != null)
+        if(FollowedTarget != null)
         {
-            _tagPicker.Tag = _followedTarget.Transform.tag;
+            _tagPicker.Tag = FollowedTarget.tag;
         }
     }
 
     private void PickRandomToFollow()
     {
-        _followedTarget = _detector
+        FollowedTarget = _detector
             .DetectTargets()
-            .Where(s => s.Transform.parent == null && s.Transform != _followedTarget.Transform)
+            .Where(s => s.Transform.parent == null && s.Rigidbody != FollowedTarget)
             .OrderBy(s => UnityEngine.Random.value)
-            .FirstOrDefault();
+            .FirstOrDefault()
+            .Rigidbody;
     }
 
     public static float Clamp(float value, float min, float max)

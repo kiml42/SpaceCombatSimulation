@@ -125,7 +125,9 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
         var pickers = new List<ITargetPicker>
         {
             new ProximityTargetPicker(_thisSpaceship){
-                DistanceMultiplier = PickerDistanceMultiplier
+                DistanceMultiplier = PickerDistanceMultiplier,
+                Range = Mathf.Infinity,
+                KullInvalidTargets = false
             }
         };
 
@@ -135,7 +137,8 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
             {
                 MinMass = MinimumMass,
                 MassMultiplier = PickerMasMultiplier,
-                OverMinMassBonus = PickerOverMinMassBonus
+                OverMinMassBonus = PickerOverMinMassBonus,
+                KullInvalidTargets = false
             });
         }
 

@@ -21,6 +21,8 @@ TODO:
         Prevent friendly fire - all turrets and missiles.
             Done for missiles
             Turrets cast a short ray in aimed direction to see if there is a friendly close in front of the turret.
+        Seperate Triggering turrets from shooting
+            Have a ray trigger and an angle trigger (considering velocity)
         Colour projectiles the same as the ship.
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
         Refactor rocket controller's start delay feature.
