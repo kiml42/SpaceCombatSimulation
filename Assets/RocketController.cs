@@ -9,7 +9,7 @@ using Assets.Src.Pilots;
 using Assets.Src.ObjectManagement;
 using System;
 
-public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurrentTarget
+public class RocketController : MonoBehaviour
 {
     public TargetChoosingMechanism TargetChoosingMechanism;
     public float ShootAngle = 10;
@@ -48,40 +48,10 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
         " Emulates rockets being told their target by their launcher at launch.")]
     public bool NeverRetarget = false;
     
-    #region EnemyTags
-    public void AddEnemyTag(string newTag)
-    {
-        var tags = EnemyTags.ToList();
-        tags.Add(newTag);
-        EnemyTags = tags.Distinct().ToList();
-    }
-
-    public string GetFirstEnemyTag()
-    {
-        return EnemyTags.FirstOrDefault();
-    }
-
-    public void SetEnemyTags(List<string> allEnemyTags)
-    {
-        EnemyTags = allEnemyTags;
-    }
-
-    public List<string> GetEnemyTags()
-    {
-        return EnemyTags;
-    }
-
-    public List<string> EnemyTags;
-
     /// <summary>
     /// Rocket with detonate after this time.
     /// </summary>
     public float TimeToLive = Mathf.Infinity;
-    #endregion
-    
-    #region knowsCurrentTarget
-    public Target CurrentTarget { get; set; }
-    #endregion
 
     [Tooltip("Time to friendly collision to activate maximum evasion")]
     public float TimeThresholdForMaximumEvasion = 2;
@@ -116,7 +86,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
 
         var exploder = new ShrapnelExploder(_rigidbody, Shrapnel, ExplosionEffect, ShrapnelCount)
         {
-            EnemyTags = EnemyTags,
+            EnemyTags = TargetChoosingMechanism.EnemyTags,
             TagShrapnel = TagShrapnel,
             SetEnemyTagOnShrapnel = SetEnemyTagOnShrapnel,
             ShrapnelSpeed = ShrapnelSpeed
