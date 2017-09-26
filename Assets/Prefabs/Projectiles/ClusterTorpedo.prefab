@@ -4188,7 +4188,8 @@ MonoBehaviour:
   TimeToLive: 4000
   TimeThresholdForMaximumEvasion: 4
   TimeThresholdForMediumEvasion: 12
-  TimeThresholdForMinimalEvasion: 36
+  TimeThresholdForMinimalEvasion: 200
+  EvasionModeTime: 30
 --- !u!114 &114117903943063150
 MonoBehaviour:
   m_ObjectHideFlags: 1

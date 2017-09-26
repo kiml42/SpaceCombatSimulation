@@ -28,7 +28,7 @@ namespace Assets.Src.Pilots
         private FriendlyAvoidencelevel _evasionLevel;
         private Vector3 _friendlyAvoidenceVector;
         private Vector3 _vectorAwayFromFriendly;
-        public int EvasionModeTimeMultiplier = 30;
+        public int EvasionModeTime = 30;
 
         public RocketPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, EngineControler engine, float shootAngle, int startDelay)
         {
@@ -77,15 +77,15 @@ namespace Assets.Src.Pilots
                 
                 var primaryVector = _evasionLevel == FriendlyAvoidencelevel.MED
                     ? _friendlyAvoidenceVector 
-                    : reletiveLocation;
+                    : turningVector;
 
-                var secondaryVector = cancelationVector;
+                var secondaryVector = _evasionLevel == FriendlyAvoidencelevel.MIN
+                    ? _friendlyAvoidenceVector
+                    : cancelationVector;
                 if (_evasionLevel == FriendlyAvoidencelevel.MIN) {
                     //set the secondary to the friendlyAvoidenceVector, and primary to the turningVector
                     //so engines will fire if they are on the ark between the friendlyAvoidenceVector, and the turningVector
                     secondaryVector =  _friendlyAvoidenceVector;
-                    primaryVector = turningVector;  //turning vector is used instead of reletive location, so that the main engine 
-                    //will still fire if the rocket is pointed at the turning vector, but not at the target.
                 }
 
                 SetFlightVectors(turningVector, primaryVector, secondaryVector);
@@ -120,12 +120,12 @@ namespace Assets.Src.Pilots
             {
                 if (turningVector.HasValue && turningVector.Value.magnitude > 0)
                 {
-                    Debug.Log("Arrow on");
+                    //Debug.Log("Arrow on");
                     VectorArrow.rotation = Quaternion.LookRotation(turningVector.Value);
                     VectorArrow.localScale = Vector3.one;
                     return;
                 }
-                Debug.Log("Arrow off");
+                //Debug.Log("Arrow off");
                 VectorArrow.localScale = Vector3.zero;
             }
         }
@@ -157,9 +157,8 @@ namespace Assets.Src.Pilots
                     
                     //var minShrapnelApproachSpeed = approachVelocity.magnitude - _shrapnelSpeed;
                     var distance = hit.distance;
-
-
-                    _friendlyAvoidenceVector = - VectorToCancelLateralVelocityInWorldSpace(new Target(hit.rigidbody));
+                    
+                    _friendlyAvoidenceVector = - VectorToCancelLateralVelocityInWorldSpace(new Target(hit.transform));
                     _vectorAwayFromFriendly = _pilotObject.position - hit.transform.position;
 
                     var timeToImpact = distance / approachSpeed;
@@ -178,18 +177,17 @@ namespace Assets.Src.Pilots
                     {
                         newLevel = FriendlyAvoidencelevel.MIN;
                     }
-
-                    _evasionModeTimeout = Math.Max(_evasionModeTimeout, (int)newLevel * EvasionModeTimeMultiplier);
-
-                    if(newLevel > _evasionLevel)
+                    
+                    if(newLevel >= _evasionLevel)
                     {
-
+                        _evasionModeTimeout = EvasionModeTime;
                         _evasionLevel = newLevel;
                     }
                 }
             }
 
             _evasionModeTimeout--;
+            Debug.Log(_evasionLevel);
             return _evasionLevel;
         }
 
