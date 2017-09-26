@@ -1340,14 +1340,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TargetChoosingMechanism: {fileID: 114801315628883180}
-  RestTarget: {fileID: 4689014570261280}
   Projectile: {fileID: 54055825812382558, guid: 9332290abb101c54e870bf45e5c06ec1,
     type: 2}
   LoadTime: 6
   ProjectileSpeed: 800
   ShootAngle: 10
-  RandomSpeed: 3
-  TurnTable: {fileID: 54663574418112234}
+  RandomSpeed: 2
   ElevationHub: {fileID: 54647014223265010}
   EmitterParent: {fileID: 4095713925445172}
   TagChildren: 0
@@ -1366,9 +1364,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   TargetChoosingMechanism: {fileID: 114801315628883180}
   RestTarget: {fileID: 4689014570261280}
-  ProjectileSpeed: 800
   TurnTable: {fileID: 54663574418112234}
   ElevationHub: {fileID: 54647014223265010}
+  TurnTableMotorFoce: 30
+  TurnTableMotorSpeedMultiplier: 500
+  ElevationHubMotorFoce: 30
+  ElevationHubMotorSpeedMultiplier: 500
 --- !u!114 &114583833557891480
 MonoBehaviour:
   m_ObjectHideFlags: 1
