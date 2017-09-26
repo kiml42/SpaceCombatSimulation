@@ -132,17 +132,4 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
         //Debug.Log("Deactivating " + name);
         tag = InactiveTag;
     }
-
-    private void DestroyJoint(Rigidbody jointedObject)
-    {
-        if(jointedObject != null)
-        {
-            var hinge = jointedObject.GetComponent("HingeJoint") as HingeJoint;
-            if(hinge!= null)
-            {
-                GameObject.Destroy(hinge);
-            }
-            jointedObject.transform.parent = null;
-        }
-    }
 }

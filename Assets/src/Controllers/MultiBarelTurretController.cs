@@ -96,17 +96,4 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
         _active = false;
         tag = InactiveTag;
     }
-
-    private void DestroyJoint(Rigidbody jointedObject)
-    {
-        if (jointedObject != null)
-        {
-            var hinge = jointedObject.GetComponent("HingeJoint") as HingeJoint;
-            if (hinge != null)
-            {
-                GameObject.Destroy(hinge);
-            }
-            jointedObject.transform.parent = null;
-        }
-    }
 }

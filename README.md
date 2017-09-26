@@ -9,9 +9,6 @@ Z - make the ship cam follow a different object.
 R - cycle reticle state
 
 TODO:
-    Create target picker controller for consistent target picking - use the knower to have the main controller pick up the selected target.
-    Create base class for turret controllers to reduce code duplication.
-        Better yet split turning from shooting.
     Clear line target picker for turrets(cast rays to PT if ray hits friendly give negative score 
     Turrets cast a short ray in aimed direction to see if there is a friendly close in front of the turret.
     Colour projectiles the same as tehe ship.

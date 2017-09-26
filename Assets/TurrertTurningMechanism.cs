@@ -42,6 +42,14 @@ public class TurrertTurningMechanism : MonoBehaviour {
         //Debug.Log("Deactivating " + name);
         _active = false;
         tag = InactiveTag;
+        if(ElevationHub != null)
+        {
+            ElevationHub.tag = InactiveTag;
+        }
+        if (TurnTable != null)
+        {
+            TurnTable.tag = InactiveTag;
+        }
     }
 
     public void DieNow()
