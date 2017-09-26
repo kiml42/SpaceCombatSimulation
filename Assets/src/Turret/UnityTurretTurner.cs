@@ -43,7 +43,7 @@ namespace Assets.Src.Targeting
 
         public void TurnToTarget(PotentialTarget target)
         {
-            if (target != null && target.TargetTransform.IsValid() && _turnTable != null && _elevationHub != null)
+            if (target != null && target.Transform.IsValid() && _turnTable != null && _elevationHub != null)
             {
                 HingeJoint hinge = _turnTable.GetComponent("HingeJoint") as HingeJoint;
                 if(hinge != null)
@@ -61,7 +61,7 @@ namespace Assets.Src.Targeting
 
                     TurnToTarget(_elevationHubHinge, locationInElevationHubSpace);
 
-                    var location = target.TargetTransform.position;
+                    var location = target.Transform.position;
                     var relative = target.LocationInTurnTableSpace(_turnTable, _projectileSpeed);
                     
                     JointMotor motor = hinge.motor;

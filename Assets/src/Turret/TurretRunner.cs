@@ -41,7 +41,7 @@ namespace Assets.Src.Targeting
 
             if (bestTarget != null)
             {
-                //Debug.Log(name + " is aiming at " + bestTarget.TargetTransform);
+                //Debug.Log(name + " is aiming at " + bestTarget.Transform);
                 _turretTurner.TurnToTarget(bestTarget);
                 _fireControl.ShootIfAimed(bestTarget);
             } else

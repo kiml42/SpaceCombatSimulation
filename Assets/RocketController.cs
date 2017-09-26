@@ -92,8 +92,20 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     #endregion
     
     #region knowsCurrentTarget
-    public PotentialTarget CurrentTarget { get; set; }
+    public Target CurrentTarget { get; set; }
     #endregion
+
+    [Tooltip("Time to friendly collision to activate maximum evasion")]
+    public float TimeThresholdForMaximumEvasion = 2;
+
+    [Tooltip("Time to friendly collision to activate medium evasion")]
+    public float TimeThresholdForMediumEvasion = 4;
+
+    [Tooltip("Time to friendly collision to activate minimal evasion")]
+    public float TimeThresholdForMinimalEvasion = 6;
+
+    [Tooltip("Frames to stay in evasion mode after no longer being on a collision course with a friendly.")]
+    public int EvasionModeTime = 30;
 
     // Use this for initialization
     void Start()
@@ -138,7 +150,11 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
         {
             LocationAimWeighting = LocationAimWeighting,
             TurningStartDelay = TurningStartDelay,
-            VectorArrow = VectorArrow
+            VectorArrow = VectorArrow,
+            TimeThresholdForMaximumEvasion = TimeThresholdForMaximumEvasion,
+            TimeThresholdForMediumEvasion = TimeThresholdForMediumEvasion,
+            TimeThresholdForMinimalEvasion = TimeThresholdForMinimalEvasion,
+            EvasionModeTime = EvasionModeTime
         };
 
         var exploder = new ShrapnelExploder(_rigidbody, Shrapnel, ExplosionEffect, ShrapnelCount)

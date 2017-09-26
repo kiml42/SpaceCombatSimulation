@@ -9,27 +9,29 @@ Z - make the ship cam follow a different object.
 R - cycle reticle state
 
 TODO:
+    Create target picker controller for consistent target picking - use the knower to have the main controller pick up the selected target.
+    Create base class for turret controllers to reduce code duplication.
+        Better yet split turning from shooting.
+    Clear line target picker for turrets(cast rays to PT if ray hits friendly give negative score 
+    Turrets cast a short ray in aimed direction to see if there is a friendly close in front of the turret.
+    Colour projectiles the same as tehe ship.
     Store full config of evolution in current generation file.
     Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
     Draws should be penalised less if the ships killed each other simultaneously. probably give them the win score - some constant.
-    Colour projectiles the same as teh ship.
     Prevent friendly fire - all turrets and missiles.
+        Done for missiles
     Target shooting evolution
     Fighters - using engines as weapons/using guns/both.
     projectiles apply force to cancel lateral V. Target set on projectile when fired.
     Destructin only leaves objects with a rigibdbody and a health controller
     Spherical modules with two angles given for where to spawn the sub modules and something to specify termination of that module's spawning (going back up to the previous)
-    Create base class for turret controllers to reduce code duplication.
     FuelTank option to balance fuel with parent.
     TargetPickers have option to kull all but the best x.
     TargetPickers with an in/out score have an option to drop all outs if there are no ins ( add is in bool to PT set by these so they can just do if( Any(in)) {where(in)})
 
     Repulsive shield- repells objects in trigger
-    Separate turn and translate vectors for rockets (both set by fly vector)
-    Secondary translate vector for engines (angle error is sum of angle between pointed vector and each - angle between two translate vectors)
-    Ships and rockets cast rays in direction of v. Set engines to increase v tangeñt when close(secondary translate vector when distant, primary and turn when close)
-    Clear line target picker for turrets(cast rays to PT if ray hits friendly give negative score 
-    Turrets cast a short ray in aimed direction to see if there is a friendly close in front of the turret.
+    Shrapnel and bullets die on any hit (no health controller)
+
 
     shipCam:
         Make shipcam move faster if the followed object is faster or add a set chunk to the location based on the followed object's speed. - done
@@ -60,6 +62,7 @@ TODO:
 
 
 Bugs:
+    Explosion spheres damage turrets 3 times(once for each of their rigidbodies)
     Graphical - Beams don't turn off when the turret dies.
     "Can't remove Rigidbody because HingeJoint depends on it"
     rocket engines carry on regardless if the rocket has no target.

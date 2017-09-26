@@ -23,7 +23,7 @@ namespace Assets.Src.Targeting.TargetPickers
         public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             return potentialTargets.Select(t => {
-                var rigidbody = t.TargetRigidbody;
+                var rigidbody = t.Rigidbody;
                 t.Score += MassMultiplier * rigidbody.mass;
                 if (rigidbody.mass > MinMass)
                 {

@@ -31,6 +31,12 @@ namespace Assets.Src.Targeting
             Rigidbody = target.GetComponent("Rigidbody") as Rigidbody;
         }
 
+        public Target(Target target)
+        {
+            Transform = target.Transform;
+            Rigidbody = target.Rigidbody;
+        }
+
         public bool Equals(Target other)
         {
             Debug.Log("Using my equals");

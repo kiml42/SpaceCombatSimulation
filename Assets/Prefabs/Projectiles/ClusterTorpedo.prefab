@@ -4128,6 +4128,15 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   FramesOfInvulnerability: 3
   OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!114 &114116952395043294
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4177,6 +4186,10 @@ MonoBehaviour:
   - Enemy
   - Team1
   TimeToLive: 4000
+  TimeThresholdForMaximumEvasion: 4
+  TimeThresholdForMediumEvasion: 12
+  TimeThresholdForMinimalEvasion: 200
+  EvasionModeTime: 30
 --- !u!114 &114117903943063150
 MonoBehaviour:
   m_ObjectHideFlags: 1

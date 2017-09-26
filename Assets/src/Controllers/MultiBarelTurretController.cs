@@ -62,7 +62,7 @@ public class MultiBarelTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, I
     #endregion
 
     #region knowsCurrentTarget
-    public PotentialTarget CurrentTarget { get; set; }
+    public Target CurrentTarget { get; set; }
     #endregion
 
     private int _reload = 0;

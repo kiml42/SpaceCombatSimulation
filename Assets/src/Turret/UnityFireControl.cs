@@ -39,9 +39,9 @@ namespace Assets.Src.Targeting
         public bool ShouldShoot(PotentialTarget target)
         {
             //return true;
-            if (target != null && target.TargetRigidbody.transform.IsValid() && _aimingObject.IsValid())
+            if (target != null && target.Rigidbody.transform.IsValid() && _aimingObject.IsValid())
             {
-                var angle = Vector3.Angle(_aimingObject.forward, target.TargetRigidbody.position - _aimingObject.position);
+                var angle = Vector3.Angle(_aimingObject.forward, target.Rigidbody.position - _aimingObject.position);
                 return angle < _shootAngle;
             }
             return false;

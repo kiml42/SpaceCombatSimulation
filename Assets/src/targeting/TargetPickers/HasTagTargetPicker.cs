@@ -27,9 +27,9 @@ namespace Assets.Src.Targeting.TargetPickers
             if(AdditionalScore != 0 && !string.IsNullOrEmpty(Tag))
             {
                 return potentialTargets.Select(t => {
-                    if(t.TargetTransform.IsValid() && t.TargetTransform.tag == Tag)
+                    if(t.Transform.IsValid() && t.Transform.tag == Tag)
                     {
-                        //Debug.Log(t.TargetTransform + " score += " + AdditionalScore);
+                        //Debug.Log(t.Transform + " score += " + AdditionalScore);
                         t.Score += AdditionalScore;
                     }
                     return t;

@@ -578,8 +578,8 @@ FixedJoint:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1887750702999502}
   m_ConnectedBody: {fileID: 0}
-  m_BreakForce: 100000
-  m_BreakTorque: 100000
+  m_BreakForce: 400000
+  m_BreakTorque: 400000
   m_EnableCollision: 0
   m_EnablePreprocessing: 1
   m_MassScale: 1

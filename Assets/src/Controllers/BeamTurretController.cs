@@ -65,7 +65,7 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     #endregion
 
     #region knowsCurrentTarget
-    public PotentialTarget CurrentTarget { get; set; }
+    public Target CurrentTarget { get; set; }
     #endregion
 
     private ITurretRunner _runner;
@@ -196,11 +196,14 @@ public class BeamTurretController : MonoBehaviour, IKnowsEnemyTagAndtag, ITurret
     {
         Destroy(TurnTable);
         _active = false;
-        foreach (var beam in _beams)
+        if(_beams != null)
         {
-            beam.TurnOff();
-            if(beam.Transform.IsValid())
-                Destroy(beam.Transform.gameObject);
+            foreach (var beam in _beams)
+            {
+                beam.TurnOff();
+                if(beam.Transform.IsValid())
+                    Destroy(beam.Transform.gameObject);
+            }
         }
         //scrub the list now they've all been turned off.
         _beams = new List<Beam>();

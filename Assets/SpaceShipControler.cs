@@ -78,7 +78,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
     #endregion
 
     #region knowsCurrentTarget
-    public PotentialTarget CurrentTarget {get;set;}
+    public Target CurrentTarget {get;set;}
     #endregion
 
     // Use this for initialization

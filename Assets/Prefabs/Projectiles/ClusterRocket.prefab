@@ -634,7 +634,7 @@ TrailRenderer:
   m_Time: 1.5
   m_Parameters:
     serializedVersion: 2
-    widthMultiplier: 0.5
+    widthMultiplier: 0.3
     widthCurve:
       serializedVersion: 2
       m_Curve:
@@ -661,7 +661,7 @@ TrailRenderer:
       m_RotationOrder: 0
     colorGradient:
       serializedVersion: 2
-      key0: {r: 1, g: 1, b: 1, a: 1}
+      key0: {r: 1, g: 1, b: 1, a: 0.5019608}
       key1: {r: 1, g: 1, b: 0.666, a: 0}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
@@ -815,6 +815,9 @@ MonoBehaviour:
   - Enemy
   - Team1
   TimeToLive: 1000
+  TimeThresholdForMaximumEvasion: 4
+  TimeThresholdForMediumEvasion: 4
+  TimeThresholdForMinimalEvasion: 4
 --- !u!135 &135228887540377652
 SphereCollider:
   m_ObjectHideFlags: 1

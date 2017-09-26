@@ -70,15 +70,15 @@ namespace Assets.Src.Pilots
             return hasFuel;
         }
 
-        protected Vector3 ReletiveLocationInWorldSpace(PotentialTarget target)
+        protected Vector3 ReletiveLocationInWorldSpace(Target target)
         {
-            if (_pilotObject != null && target != null && target.TargetTransform.IsValid())
+            if (_pilotObject != null && target != null && target.Transform.IsValid())
             {
-                var location = target.TargetTransform.position - _pilotObject.position;
+                var location = target.Transform.position - _pilotObject.position;
                 return location;
             }
 
-            //if (target == null || target.TargetTransform.IsInvalid())
+            //if (target == null || target.Transform.IsInvalid())
             //{
             //    Debug.Log("Target transform is invalid");
             //}
@@ -89,7 +89,7 @@ namespace Assets.Src.Pilots
             return Vector3.zero;
         }
 
-        protected Vector3 VectorToCancelLateralVelocityInWorldSpace(PotentialTarget target)
+        protected Vector3 VectorToCancelLateralVelocityInWorldSpace(Target target)
         {
             var vectorTowardsTarget = ReletiveLocationInWorldSpace(target);
             var targetReletiveVelocity = WorldSpaceReletiveVelocityOfTarget(target);
@@ -97,22 +97,51 @@ namespace Assets.Src.Pilots
             return targetReletiveVelocity.ComponentPerpendicularTo(vectorTowardsTarget);
         }
 
-        protected Vector3 WorldSpaceReletiveVelocityOfTarget(PotentialTarget target)
+        protected Vector3 WorldSpaceReletiveVelocityOfTarget(Target target)
         {
             if (target == null)
             {
                 return Vector3.zero;
             }
-            var targetsVelocity = target.TargetRigidbody == null ? Vector3.zero : target.TargetRigidbody.velocity;
+            return WorldSpaceReletiveVelocityOfTarget(target.Rigidbody);
+        }
+
+        protected Vector3 WorldSpaceReletiveVelocityOfTarget(Rigidbody target)
+        {
+            var targetsVelocity = target == null ? Vector3.zero : target.velocity;
             var ownVelocity = _pilotObject.velocity;
             return targetsVelocity - ownVelocity;
         }
 
-        protected void SetFlightVectorOnEngines(Vector3? FlightVector)
+        protected void SetFlightVectorOnEngines(Vector3? flightVector)
         {
             foreach (var engine in _engines)
             {
-                engine.FlightVector = FlightVector;
+                engine.FlightVector = flightVector;
+            }
+        }
+
+        protected void SetTurningVectorOnEngines(Vector3? torqueVector)
+        {
+            foreach (var engine in _engines)
+            {
+                engine.OrientationVector = torqueVector;
+            }
+        }
+
+        protected void SetPrimaryTranslationVectorOnEngines(Vector3? primaryTranslateVector)
+        {
+            foreach (var engine in _engines)
+            {
+                engine.PrimaryTranslateVector = primaryTranslateVector;
+            }
+        }
+
+        protected void SetSecondaryTranslateVectorOnEngines(Vector3? secondaryTranslateVector)
+        {
+            foreach (var engine in _engines)
+            {
+                engine.SecondaryTranslateVector = secondaryTranslateVector;
             }
         }
 
@@ -126,6 +155,6 @@ namespace Assets.Src.Pilots
             _engines.Add(engine);
         }
 
-        public abstract void Fly(PotentialTarget target);
+        public abstract void Fly(Target target);
     }
 }
