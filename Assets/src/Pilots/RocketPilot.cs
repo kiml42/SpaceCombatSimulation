@@ -63,7 +63,7 @@ namespace Assets.Src.Pilots
                 if(_evasionLevel == FriendlyAvoidencelevel.MAX)
                 {
                     //Impact is imanent, push and turn away.
-                    Debug.Log("maximum evasion !");
+                    //Debug.Log("maximum evasion !");
                     SetFlightVectors(_friendlyAvoidenceVector, _friendlyAvoidenceVector, _vectorAwayFromFriendly);
                     return;
                 }
@@ -137,7 +137,7 @@ namespace Assets.Src.Pilots
                 _evasionLevel = FriendlyAvoidencelevel.NONE;
             }
 
-            Debug.Log("casting ray from " + _pilotObject.position + " on vector " + _pilotObject.velocity);
+            //Debug.Log("casting ray from " + _pilotObject.position + " on vector " + _pilotObject.velocity);
             var ray = new Ray(_pilotObject.position, _pilotObject.velocity);
 
             RaycastHit hit;
@@ -162,7 +162,7 @@ namespace Assets.Src.Pilots
                     _vectorAwayFromFriendly = _pilotObject.position - hit.transform.position;
 
                     var timeToImpact = distance / approachSpeed;
-                    Debug.Log(hit.transform.name + " is in the way, " + timeToImpact + " to impact. Evading on vector " + _friendlyAvoidenceVector + ", vector away = " + _vectorAwayFromFriendly);
+                    //Debug.Log(hit.transform.name + " is in the way, " + timeToImpact + " to impact. Evading on vector " + _friendlyAvoidenceVector + ", vector away = " + _vectorAwayFromFriendly);
                     
                     FriendlyAvoidencelevel newLevel = FriendlyAvoidencelevel.NONE;
                     
@@ -187,7 +187,6 @@ namespace Assets.Src.Pilots
             }
 
             _evasionModeTimeout--;
-            Debug.Log(_evasionLevel);
             return _evasionLevel;
         }
 

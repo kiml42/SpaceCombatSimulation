@@ -10,9 +10,6 @@ namespace Assets.Src.Rocket
 {
     class RocketRunner : IRocketRunner
     {
-        //public int DetonateWithLessThanXRemainingFuel = -100;
-        private ITargetDetector _targetDetector;
-        private ITargetPicker _targetPicker;
         private IPilot _pilot;
         private readonly RocketController _rocketController;
         private string _previousTarget;
@@ -23,14 +20,9 @@ namespace Assets.Src.Rocket
         /// For debugging;
         /// </summary>
         public string name;
-        public bool ContinuallyCheckForTargets = false;
-        public bool NeverRetarget = false;
-        private bool _hasHadTarget = false;
 
-        public RocketRunner(ITargetDetector targetDetector, ITargetPicker targetPicker, IPilot engineControl, IDetonator detonator, IKnowsCurrentTarget knower)
+        public RocketRunner(IKnowsCurrentTarget knower, IPilot engineControl, IDetonator detonator)
         {
-            _targetDetector = targetDetector;
-            _targetPicker = targetPicker;
             _pilot = engineControl;
             _detonator = detonator;
             _targetKnower = knower;
@@ -38,23 +30,6 @@ namespace Assets.Src.Rocket
 
         public void RunRocket()
         {
-            if(!NeverRetarget || !_hasHadTarget)
-            {
-                var targetIsInvalid = _targetKnower.CurrentTarget == null || _targetKnower.CurrentTarget.Transform.IsInvalid();
-
-                if (ContinuallyCheckForTargets || targetIsInvalid)
-                {
-                    //Debug.Log(name + " aquiring new target");
-                    var allTargets = _targetDetector.DetectTargets();
-                    var bestTarget = _targetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).FirstOrDefault();
-                    _targetKnower.CurrentTarget = bestTarget;
-                    if(bestTarget != null)
-                    {
-                        _hasHadTarget = true;
-                    }
-                }
-            }
-
             var targetIsValid = _targetKnower.CurrentTarget != null && _targetKnower.CurrentTarget.Transform.IsValid();
             if (targetIsValid)
             {

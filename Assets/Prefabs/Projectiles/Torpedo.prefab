@@ -270,6 +270,7 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4671683596493828}
+  - component: {fileID: 114754498876685630}
   - component: {fileID: 114902674925534566}
   - component: {fileID: 54678280250609056}
   - component: {fileID: 136732948526313666}
@@ -2736,6 +2737,29 @@ MonoBehaviour:
   FullThrottleFuelConsumption: 0.8
   TorquerFullThrottleAngle: 20
   _fullTrhrottlePlumeRate: 0
+--- !u!114 &114754498876685630
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1301380948880376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ContinuallyCheckForTargets: 0
+  NeverRetarget: 0
+  PickerDistanceMultiplier: 0.2
+  PickerRange: 0
+  PickerInRangeBonus: 0
+  PickerMassMultiplier: 100
+  MinimumMass: 50
+  PickerOverMinMassBonus: 10000
+  PickerAimedAtMultiplier: 10
+  PickerApproachWeighting: 60
+  EnemyTags:
+  - Enemy
 --- !u!114 &114802830622270584
 MonoBehaviour:
   m_ObjectHideFlags: 1

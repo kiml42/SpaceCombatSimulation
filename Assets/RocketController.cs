@@ -11,6 +11,7 @@ using System;
 
 public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurrentTarget
 {
+    public TargetChoosingMechanism TargetChoosingMechanism;
     public float ShootAngle = 10;
     public float TorqueMultiplier = 1f;
     public float LocationAimWeighting = 3f;
@@ -28,8 +29,6 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     
     public float ShrapnelSpeed = 100;
     
-    private ITargetDetector _detector;
-    private ITargetPicker _targetPicker;
     private IPilot _pilot;
 
     private Rigidbody _rigidbody;
@@ -48,18 +47,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     [Tooltip("If set to true a target will be aquired once only, once lost the rocket will deactivate." +
         " Emulates rockets being told their target by their launcher at launch.")]
     public bool NeverRetarget = false;
-
-    #region TargetPickerVariables
-    public float PickerDistanceMultiplier = 1;
-    public float PickerInRangeBonus = 0;
-    public float PickerRange = 500;
-    public float PickerAimedAtMultiplier = 100;
-    public float MinimumMass = 0;
-    public float PickerMasMultiplier = 1;
-    public float PickerOverMinMassBonus = 10000;
-    public float PickerApproachWeighting = 20;
-    #endregion
-
+    
     #region EnemyTags
     public void AddEnemyTag(string newTag)
     {
@@ -111,38 +99,7 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     void Start()
     {
         _rigidbody = GetComponent<Rigidbody>();
-
-        _detector = new RepositoryTargetDetector()
-        {
-            EnemyTags = EnemyTags
-        };
-
-        var pickers = new List<ITargetPicker>
-        {
-            new ProximityTargetPicker(_rigidbody){
-                DistanceMultiplier = PickerDistanceMultiplier,
-                InRangeBonus = PickerInRangeBonus,
-                Range = PickerRange
-            },
-            new LookingAtTargetPicker(_rigidbody)
-            {
-                Multiplier = PickerAimedAtMultiplier
-            },
-            new ApproachingTargetPicker(_rigidbody, PickerApproachWeighting)
-        };
-
-        if (MinimumMass > 0 || PickerMasMultiplier != 0)
-        {
-            pickers.Add(new MassTargetPicker
-            {
-                MinMass = MinimumMass,
-                MassMultiplier = PickerMasMultiplier,
-                OverMinMassBonus = PickerOverMinMassBonus
-            });
-        }
-
-        _targetPicker = new CombinedTargetPicker(pickers);
-
+        
         var initialAngularDrag = _rigidbody.angularDrag;
         var torqueApplier = new MultiTorquerTorqueAplier(_rigidbody, TorqueMultiplier, initialAngularDrag);
 
@@ -167,13 +124,10 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
 
         _detonator = new ProximityApproachDetonator(exploder, _rigidbody, TimeToTargetForDetonation, ShrapnelSpeed);
 
-        _runner = new RocketRunner(_detector, _targetPicker, _pilot, _detonator, this)
+        _runner = new RocketRunner(TargetChoosingMechanism, _pilot, _detonator)
         {
-            name = transform.name,
-            ContinuallyCheckForTargets = ContinuallyCheckForTargets
+            name = transform.name
         };
-        
-        //Debug.Log("starting");
     }
 
     // Update is called once per frame

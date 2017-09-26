@@ -149,6 +149,7 @@
     <Compile Include="Assets\Src\Turret\TurretRunner.cs" />
     <Compile Include="Assets\Src\Turret\UnityFireControl.cs" />
     <Compile Include="Assets\Src\Turret\UnityTurretTurner.cs" />
+    <Compile Include="Assets\TargetChoosingMechanism.cs" />
     <Compile Include="Assets\TorquerController.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

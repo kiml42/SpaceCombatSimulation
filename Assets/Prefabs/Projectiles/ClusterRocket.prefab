@@ -139,6 +139,7 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4832477793392458}
+  - component: {fileID: 114958396777747442}
   - component: {fileID: 114634549180162652}
   - component: {fileID: 114315273727274886}
   - component: {fileID: 54172732429601216}
@@ -818,6 +819,30 @@ MonoBehaviour:
   TimeThresholdForMaximumEvasion: 4
   TimeThresholdForMediumEvasion: 4
   TimeThresholdForMinimalEvasion: 4
+  EvasionModeTime: 30
+--- !u!114 &114958396777747442
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1923394915539256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ContinuallyCheckForTargets: 0
+  NeverRetarget: 1
+  PickerDistanceMultiplier: 2
+  PickerRange: 200
+  PickerInRangeBonus: 10000
+  PickerMassMultiplier: 1
+  MinimumMass: 10
+  PickerOverMinMassBonus: 200
+  PickerAimedAtMultiplier: 80
+  PickerApproachWeighting: 100
+  EnemyTags:
+  - Enemy
 --- !u!135 &135228887540377652
 SphereCollider:
   m_ObjectHideFlags: 1
