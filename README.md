@@ -23,6 +23,9 @@ TODO:
             Turrets cast a short ray in aimed direction to see if there is a friendly close in front of the turret.
         Colour projectiles the same as the ship.
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
+        Refactor rocket controller's start delay feature.
+        Some way to set the roll of ships to have a direction that should be pointed at the enemy where possible.
+        Sperical trigger around missiles that puts them into max evasion mode regardless of velocity
         Fighters - using engines as weapons/using guns/both.
         Destructin only leaves objects with a rigibdbody and a health controller
         TargetPickers have option to kull all but the best x.
