@@ -24,6 +24,8 @@ TODO:
         Seperate Triggering turrets from shooting
             Have a ray trigger and an angle trigger (considering velocity)
         Colour projectiles the same as the ship.
+        Railgun turret
+            Single beam beam turret with very short on, long reload and huge damage ignoring range.
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
         Refactor rocket controller's start delay feature.
         Some way to set the roll of ships to have a direction that should be pointed at the enemy where possible.

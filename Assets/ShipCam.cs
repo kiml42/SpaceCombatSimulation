@@ -315,10 +315,12 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
             //{
             //    Debug.Log(item.Transform.name + ": " + item.Score);
             //}
-        
-            TargetToWatch = targets
+
+            TargetToWatch = targets.Any()
+                ? targets
                 .FirstOrDefault()
-                .Rigidbody;
+                .Rigidbody
+                : null;
             //Debug.Log("Watching picked target: " + _targetToWatch.Transform.name);
         }
     }
@@ -335,11 +337,13 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         //    Debug.Log(item.Transform.name + ": " + item.Score);
         //}
 
-        FollowedTarget = targets
+        FollowedTarget = targets.Any()
+            ? targets
             .FirstOrDefault()
-            .Rigidbody;
+            .Rigidbody
+            : null;
 
-        if(FollowedTarget != null)
+        if (FollowedTarget != null)
         {
             _tagPicker.Tag = FollowedTarget.tag;
         }
@@ -347,12 +351,12 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 
     private void PickRandomToFollow()
     {
-        FollowedTarget = _detector
+        var tagrgetToFollow = _detector
             .DetectTargets()
             .Where(s => s.Transform.parent == null && s.Rigidbody != FollowedTarget)
             .OrderBy(s => UnityEngine.Random.value)
-            .FirstOrDefault()
-            .Rigidbody;
+            .FirstOrDefault();
+        FollowedTarget = tagrgetToFollow != null ? tagrgetToFollow.Rigidbody : null;
     }
 
     public static float Clamp(float value, float min, float max)
