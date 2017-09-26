@@ -73,7 +73,7 @@ public class RocketController : MonoBehaviour
         var initialAngularDrag = _rigidbody.angularDrag;
         var torqueApplier = new MultiTorquerTorqueAplier(_rigidbody, TorqueMultiplier, initialAngularDrag);
 
-        _pilot = new RocketPilot(torqueApplier, _rigidbody, Engines, ShootAngle, StartDelay)
+        _pilot = new RocketPilot(torqueApplier, _rigidbody, Engines, StartDelay)
         {
             LocationAimWeighting = LocationAimWeighting,
             TurningStartDelay = TurningStartDelay,

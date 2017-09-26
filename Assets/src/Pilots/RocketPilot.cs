@@ -29,18 +29,8 @@ namespace Assets.Src.Pilots
         private Vector3 _friendlyAvoidenceVector;
         private Vector3 _vectorAwayFromFriendly;
         public int EvasionModeTime = 30;
-
-        public RocketPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, EngineControler engine, float shootAngle, int startDelay)
-        {
-            _pilotObject = pilotObject;
-            _torqueApplier = torqueApplier;
-            StartDelay = startDelay;
-            LocationAimWeighting = 1;
-
-            AddEngine(engine);
-        }
-
-        public RocketPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<EngineControler> engines, float shootAngle, int startDelay)
+        
+        public RocketPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<EngineControler> engines, int startDelay)
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
