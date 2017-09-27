@@ -143,7 +143,7 @@ namespace Assets.Src.Pilots
                 //Debug.Log(_pilotObject + " is flying at " + hit.transform);
                 if(hit.rigidbody == _pilotObject)
                 {
-                    Debug.LogError(_pilotObject + " is detecting itself as a possible collision.");
+                    Debug.LogError(_pilotObject + " is detecting itself as a possible collision. Distance: " + hit.distance + ", MinDetection distance: " + MinimumFriendlyDetectionDistance);
                 }
                 if (hit.transform.tag == _pilotObject.tag)
                 {

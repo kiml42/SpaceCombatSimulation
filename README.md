@@ -20,6 +20,8 @@ TODO:
     Priority:
         Handle very high speed collisions -sort of done.
             new idea Projectiles cast a ray from previous position to current position jump to location of a hit, forcing a physics collision.
+                This works but is damn heavy
+            Plan C - have a trigger going behind the projectile and only cast the ray if that collides. (or use the collision point, if that's a thing.)
         Target choosing mechanism has an option to set how many frames between polling (always polls when target is null.)
         Colour projectiles the same as the ship.
         Railgun turret
@@ -35,6 +37,7 @@ TODO:
         improve muzzle flashes.
             Create a muzzle flash prefab that is spawned with no additional velocity, or even parented to emitter
         Prevent fluttery torpedoes.
+        Make turrets account for the thing they're on's rotation.
 
 
     Store full config of evolution in current generation file.
