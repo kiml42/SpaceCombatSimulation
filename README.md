@@ -18,7 +18,9 @@ Bugs:
 
 TODO:
     Priority:
-        Check that missiles never detect themselves when checking for friendlies in their path.
+        Handle very high speed collisions -sort of done.
+            new idea Projectiles cast a ray from previous position to current position jump to location of a hit, forcing a physics collision.
+        Target choosing mechanism has an option to set how many frames between polling (always polls when target is null.)
         Colour projectiles the same as the ship.
         Railgun turret
             Single beam beam turret with very short on, long reload and huge damage ignoring range.
@@ -32,6 +34,7 @@ TODO:
         Shrapnel and bullets die on any hit (no health controller)
         improve muzzle flashes.
             Create a muzzle flash prefab that is spawned with no additional velocity, or even parented to emitter
+        Prevent fluttery torpedoes.
 
 
     Store full config of evolution in current generation file.
@@ -40,6 +43,9 @@ TODO:
     projectiles apply force to cancel lateral V. Target set on projectile when fired.
     Spherical modules with two angles given for where to spawn the sub modules and something to specify termination of that module's spawning (going back up to the previous)
     FuelTank option to balance fuel with parent.
+
+    Use fixed update for time critical scripts, update for others
+
 
     Repulsive shield- repells objects in trigger
 
@@ -52,8 +58,6 @@ TODO:
     Camera controller should allow panning also - moot for ship cam
     Camera controller to handle zoom - active when camera is active - moot for shipcam
     Make mini type 2 actually manage to hit torpedoes.
-    Handle very high speed collisions -sort of done.
-        new idea Projectiles cast a ray from previous position to current position jump to location of a hit, forcing a physics collision.
     Just set a single name for evolution files (all types) and have it work out the folders from there.
         Done for 1v1 evolution
 

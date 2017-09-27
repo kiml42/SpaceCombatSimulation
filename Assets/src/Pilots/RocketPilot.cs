@@ -29,7 +29,8 @@ namespace Assets.Src.Pilots
         private Vector3 _friendlyAvoidenceVector;
         private Vector3 _vectorAwayFromFriendly;
         public int EvasionModeTime = 30;
-        
+        public float MinimumFriendlyDetectionDistance = 4;
+
         public RocketPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<EngineControler> engines, int startDelay)
         {
             _pilotObject = pilotObject;
@@ -128,6 +129,7 @@ namespace Assets.Src.Pilots
             }
 
             //Debug.Log("casting ray from " + _pilotObject.position + " on vector " + _pilotObject.velocity);
+            var positionOffset = _pilotObject.velocity.normalized * MinimumFriendlyDetectionDistance;
             var ray = new Ray(_pilotObject.position, _pilotObject.velocity);
 
             RaycastHit hit;
@@ -138,6 +140,11 @@ namespace Assets.Src.Pilots
 
             if (Physics.Raycast(ray, out hit, collisionDetectionDistance, -1, QueryTriggerInteraction.Ignore))
             {
+                //Debug.Log(_pilotObject + " is flying at " + hit.transform);
+                if(hit.rigidbody == _pilotObject)
+                {
+                    Debug.LogError(_pilotObject + " is detecting itself as a possible collision.");
+                }
                 if (hit.transform.tag == _pilotObject.tag)
                 {
                     //isFriendly

@@ -65,6 +65,9 @@ public class RocketController : MonoBehaviour
     [Tooltip("Frames to stay in evasion mode after no longer being on a collision course with a friendly.")]
     public int EvasionModeTime = 30;
 
+    [Tooltip("Distance in front of the rocket to start looking for friendlies on a collision cource - useful to avoid detecting itself.")]
+    public float MinimumFriendlyDetectionDistance = 4;
+
     // Use this for initialization
     void Start()
     {
@@ -81,7 +84,8 @@ public class RocketController : MonoBehaviour
             TimeThresholdForMaximumEvasion = TimeThresholdForMaximumEvasion,
             TimeThresholdForMediumEvasion = TimeThresholdForMediumEvasion,
             TimeThresholdForMinimalEvasion = TimeThresholdForMinimalEvasion,
-            EvasionModeTime = EvasionModeTime
+            EvasionModeTime = EvasionModeTime,
+            MinimumFriendlyDetectionDistance = MinimumFriendlyDetectionDistance
         };
 
         var exploder = new ShrapnelExploder(_rigidbody, Shrapnel, ExplosionEffect, ShrapnelCount)
