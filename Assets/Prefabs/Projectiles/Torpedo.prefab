@@ -2760,6 +2760,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 10
   PickerApproachWeighting: 60
   LineOfSightBonus: 1000
+  MinLineOfSightDetectionDistance: 2
   HemisphereFilterObject: {fileID: 0}
   InCorrectHemisphereBonus: 1000
   EnemyTags:
@@ -2888,6 +2889,7 @@ MonoBehaviour:
   TimeThresholdForMediumEvasion: 12
   TimeThresholdForMinimalEvasion: 200
   EvasionModeTime: 30
+  MinimumFriendlyDetectionDistance: 5
 --- !u!114 &114939486053213880
 MonoBehaviour:
   m_ObjectHideFlags: 1
