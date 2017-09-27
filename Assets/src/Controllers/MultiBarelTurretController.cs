@@ -10,11 +10,11 @@ using UnityEngine;
 
 public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDeactivatable, IKnowsProjectileSpeed
 {
-    public TargetChoosingMechanism TargetChoosingMechanism;
+    private IKnowsCurrentTarget _targetChoosingMechanism;
+    private IKnowsEnemyTags _tagKnower;
     public Rigidbody Projectile;
     public int LoadTime = 200;
     public float ProjectileSpeed = 10f;
-    public float ShootAngle = 10;
     public float RandomSpeed = 0.1f;
     
     public Rigidbody ElevationHub;
@@ -45,6 +45,8 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
     // Use this for initialization
     void Start()
     {
+        _targetChoosingMechanism = GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
+        _tagKnower = GetComponent("IKnowsEnemyTags") as IKnowsEnemyTags;
         var emitterCount = EmitterParent.childCount;
 
         _emitters = new List<Transform>();
@@ -54,14 +56,17 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
         }
         
         _reload = LoadTime;
-        
-        _fireControl = new UnityFireControl(this, ElevationHub.transform, ShootAngle);
+
+        _fireControl = GetComponent("IFireControl") as IFireControl;
     }
 
     // Update is called once per frame
     void Update()
     {
-        _fireControl.ShootIfAimed(TargetChoosingMechanism.CurrentTarget);
+        if (_active && _fireControl != null)
+        {
+            Shoot(_fireControl.ShouldShoot(_targetChoosingMechanism.CurrentTarget));
+        }
     }
 
 
@@ -81,7 +86,9 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
                 _reload = LoadTime;
                 ElevationHub.AddForceAtPosition(RecoilForce * (-emitter.forward), emitter.position, ForceMode.Impulse);
 
-                if (SetChildrensEnemy) { projectile.SendMessage("SetEnemyTags", TargetChoosingMechanism.EnemyTags); }
+                if (SetChildrensEnemy && _tagKnower != null) {
+                    projectile.SendMessage("SetEnemyTags", _tagKnower.GetEnemyTags());
+                }
                 if (TagChildren) { projectile.tag = tag; }
             }
             else

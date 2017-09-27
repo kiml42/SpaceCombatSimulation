@@ -11,7 +11,7 @@ using System;
 using System.Linq;
 using Assets.Src.Pilots;
 
-public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatable, IKnowsCurrentTarget
+public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTags, IDeactivatable, IKnowsCurrentTarget
 {
     public float ShootAngle = 30;
     public float TorqueMultiplier = 9;
@@ -57,11 +57,6 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactiva
         var tags = EnemyTags.ToList();
         tags.Add(newTag);
         EnemyTags = tags.Distinct().ToList();
-    }
-
-    public string GetFirstEnemyTag()
-    {
-        return EnemyTags.FirstOrDefault();
     }
 
     public void SetEnemyTags(List<string> allEnemyTags)

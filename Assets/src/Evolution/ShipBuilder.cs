@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Assets.src.Evolution
 {
-    public class ShipBuilder : IKnowsEnemyTagAndtag
+    public class ShipBuilder : IKnowsEnemyTags
     {
 
         #region EnemyTags
@@ -17,11 +17,6 @@ namespace Assets.src.Evolution
             var tags = EnemyTags.ToList();
             tags.Add(newTag);
             EnemyTags = tags.Distinct().ToList();
-        }
-
-        public string GetFirstEnemyTag()
-        {
-            return EnemyTags.FirstOrDefault();
         }
 
         public void SetEnemyTags(List<string> allEnemyTags)

@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Assets.Src.Controllers
 {
-    class WorldControler : MonoBehaviour, IKnowsEnemyTagAndtag
+    class WorldControler : MonoBehaviour, IKnowsEnemyTags
     {
         public bool FollowShips = true;
         public string TarGetTag = "Enemy";
@@ -23,11 +23,6 @@ namespace Assets.Src.Controllers
             var tags = EnemyTags.ToList();
             tags.Add(newTag);
             EnemyTags = tags.Distinct().ToList();
-        }
-
-        public string GetFirstEnemyTag()
-        {
-            return EnemyTags.FirstOrDefault();
         }
 
         public void SetEnemyTags(List<string> allEnemyTags)

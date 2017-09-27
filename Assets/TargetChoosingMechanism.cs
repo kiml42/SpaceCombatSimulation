@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurrentTarget
+public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCurrentTarget
 {
 
     private ITargetDetector _detector;
@@ -56,11 +56,6 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTagAndtag, IKno
         var tags = EnemyTags.ToList();
         tags.Add(newTag);
         EnemyTags = tags.Distinct().ToList();
-    }
-
-    public string GetFirstEnemyTag()
-    {
-        return EnemyTags.FirstOrDefault();
     }
 
     public void SetEnemyTags(List<string> allEnemyTags)

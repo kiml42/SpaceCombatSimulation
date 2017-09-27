@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class TurrertTurningMechanism : MonoBehaviour {
-    public TargetChoosingMechanism TargetChoosingMechanism;
+    private IKnowsCurrentTarget _targetChoosingMechanism;
     public Transform RestTarget;
 
     public Rigidbody TurnTable;
@@ -26,6 +26,7 @@ public class TurrertTurningMechanism : MonoBehaviour {
     // Use this for initialization
     void Start()
     {
+        _targetChoosingMechanism = GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
         var speedKnower = GetComponent("IKnowsProjectileSpeed") as IKnowsProjectileSpeed;
         var projectileSpeed = speedKnower != null ? speedKnower.ProjectileSpeed : null;
         var rigidbody = GetComponent<Rigidbody>();
@@ -38,7 +39,7 @@ public class TurrertTurningMechanism : MonoBehaviour {
             ElevationHubMotorSpeedMultiplier = ElevationHubMotorSpeedMultiplier
         };
 
-        _runner = new TurretRunner(TargetChoosingMechanism, _turner);
+        _runner = new TurretRunner(_targetChoosingMechanism, _turner);
     }
 
     // Update is called once per frame

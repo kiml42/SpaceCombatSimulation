@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatable
+public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
 {
     public bool TagChildren = false;
     public Rigidbody Projectile;
@@ -30,11 +30,6 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
         var tags = EnemyTags.ToList();
         tags.Add(newTag);
         EnemyTags = tags.Distinct().ToList();
-    }
-
-    public string GetFirstEnemyTag()
-    {
-        return EnemyTags.FirstOrDefault();
     }
 
     public void SetEnemyTags(List<string> allEnemyTags)

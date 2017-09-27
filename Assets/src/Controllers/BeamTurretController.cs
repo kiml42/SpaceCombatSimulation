@@ -11,11 +11,10 @@ using UnityEngine;
 
 public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivatable, IKnowsProjectileSpeed
 {
-    public TargetChoosingMechanism TargetChoosingMechanism;
+    private IKnowsCurrentTarget _targetChoosingMechanism;
     public int LoadTime = 50;
     public int ShootTime = 200;
     public int StartOffset = 10;
-    public float ShootAngle = 5;
     public float BeamForce = 0;
     public float BeamDamage = 10;
     public Transform HitEffect;
@@ -36,6 +35,10 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     
     public Color BeamColour;
 
+    [Tooltip("extra frames to keep shooting after trigger says to stop - emulates slower control mechanism")]
+    public int KeepShootingFrames = 1;
+    private int _shootingTime = 1;
+
     public float? ProjectileSpeed
     {
         get
@@ -47,6 +50,7 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     // Use this for initialization
     void Start()
     {
+        _targetChoosingMechanism = GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
         var emitterCount = BeamsParent.childCount;
 
         _beams = new List<Beam>();
@@ -65,8 +69,8 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
                 Divergence = Divergence
             });
         }
-        
-        _fireControl = new UnityFireControl(this, ElevationHub.transform, ShootAngle);
+
+        _fireControl = GetComponent("IFireControl") as IFireControl;
     }
 
     // Update is called once per frame
@@ -74,7 +78,8 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     {
         if (_active && _fireControl != null && _beams != null)
         {
-            _fireControl.ShootIfAimed(TargetChoosingMechanism.CurrentTarget);
+            _shootingTime = _fireControl.ShouldShoot() ? KeepShootingFrames : --_shootingTime;
+            Shoot(_shootingTime >= 0);
         }
         else
         {

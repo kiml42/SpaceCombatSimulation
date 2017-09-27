@@ -42,9 +42,6 @@ namespace Assets.Src.Targeting.TargetPickers
         private PotentialTarget AddScoreForAngle(PotentialTarget target)
         {
             var reletiveLocation = target.LocationInAimedSpace(_aimingObject, ProjectileSpeed);
-            var distanceInFront = reletiveLocation.z;
-            reletiveLocation.z = 0;
-            var distanceToSide = reletiveLocation.magnitude;
 
             var angle = Vector3.Angle(reletiveLocation, Vector3.forward);
             

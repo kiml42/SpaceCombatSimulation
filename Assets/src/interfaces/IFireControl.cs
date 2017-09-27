@@ -8,8 +8,17 @@ namespace Assets.Src.Interfaces
 {
     public interface IFireControl
     {
+        /// <summary>
+        /// Should shoot at the given target
+        /// </summary>
+        /// <param name="target"></param>
+        /// <returns></returns>
         bool ShouldShoot(Target target);
-        void Shoot(bool shouldShoot);
-        bool ShootIfAimed(Target target);
+
+        /// <summary>
+        /// Shouldshoot at the target given by some other means.
+        /// </summary>
+        /// <returns></returns>
+        bool ShouldShoot();
     }
 }

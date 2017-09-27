@@ -200,7 +200,7 @@ GameObject:
   - component: {fileID: 114372935907962804}
   - component: {fileID: 114184997240908936}
   m_Layer: 8
-  m_Name: ElevationHub
+  m_Name: ElevationHubBigBeam
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -336,6 +336,7 @@ GameObject:
   - component: {fileID: 4591031957274470}
   - component: {fileID: 114921045998262274}
   - component: {fileID: 114999525060518296}
+  - component: {fileID: 114190020084589416}
   - component: {fileID: 114801988552399958}
   - component: {fileID: 54540809518397602}
   - component: {fileID: 138486339295732342}
@@ -784,7 +785,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1617297998928176}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 14, y: 0, z: -15.32}
+  m_LocalPosition: {x: 14, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4936335685901844}
@@ -2125,6 +2126,21 @@ MonoBehaviour:
   DeactivateOnBreak: 1
   DisconectFromParent: 1
   BreakExplosion: {fileID: 0}
+--- !u!114 &114190020084589416
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1617297998928176}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7de348467e8d61f48a82215da1c07a1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  AimingObject: {fileID: 4936335685901844}
+  MaxDistance: 100000
+  MinDistance: 1
+  ShootAnyEnemy: 1
 --- !u!114 &114203286078623678
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2267,11 +2283,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 68e58c7298f333b43baf85609c9e6403, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  TargetChoosingMechanism: {fileID: 114921045998262274}
   LoadTime: 90
   ShootTime: 80
   StartOffset: 30
-  ShootAngle: 5
   BeamForce: 4
   BeamDamage: 3
   HitEffect: {fileID: 4113682021108320, guid: e6ef866ccc6cd2c4fb5f402be7b7a1d0, type: 2}
@@ -2280,6 +2294,7 @@ MonoBehaviour:
   InitialRadius: 0.3
   Divergence: 0.007
   BeamColour: {r: 0.065999985, g: 1, b: 0.63013583, a: 0.772}
+  KeepShootingFrames: 25
 --- !u!114 &114921045998262274
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2318,7 +2333,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ec4508e0c0d409448a9d406412cb2b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  TargetChoosingMechanism: {fileID: 114921045998262274}
   RestTarget: {fileID: 4539354648138898}
   TurnTable: {fileID: 54504467688077488}
   ElevationHub: {fileID: 54685917326791822}

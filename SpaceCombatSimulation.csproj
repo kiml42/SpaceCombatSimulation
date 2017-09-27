@@ -80,6 +80,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\AngleTrigger.cs" />
     <Compile Include="Assets\DestroyAfterTimeout.cs" />
     <Compile Include="Assets\EngineControler.cs" />
     <Compile Include="Assets\EvolutionArenaControler.cs" />
@@ -88,6 +89,7 @@
     <Compile Include="Assets\GroupUnder.cs" />
     <Compile Include="Assets\HealthControler.cs" />
     <Compile Include="Assets\JointBreakHandler.cs" />
+    <Compile Include="Assets\RayTrigger.cs" />
     <Compile Include="Assets\RegisterAsTarget.cs" />
     <Compile Include="Assets\RocketController.cs" />
     <Compile Include="Assets\SetColour.cs" />
@@ -140,10 +142,10 @@
     <Compile Include="Assets\Src\Targeting\RepositoryTargetDetector.cs" />
     <Compile Include="Assets\Src\Targeting\Target.cs" />
     <Compile Include="Assets\Src\Targeting\TargetingExtensions.cs" />
-    <Compile Include="Assets\Src\Targeting\TargetPickers\InCorrectHemisphereTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\ApproachingTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\CombinedTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\HasTagTargetPicker.cs" />
+    <Compile Include="Assets\Src\Targeting\TargetPickers\InCorrectHemisphereTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\LineOfSightTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\LookingAtTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\MinimumMassTargetPicker.cs" />
@@ -151,7 +153,6 @@
     <Compile Include="Assets\Src\Targeting\TargetPickers\ProximityTargetPicker.cs" />
     <Compile Include="Assets\Src\Turret\Beam.cs" />
     <Compile Include="Assets\Src\Turret\TurretRunner.cs" />
-    <Compile Include="Assets\Src\Turret\UnityFireControl.cs" />
     <Compile Include="Assets\Src\Turret\UnityTurretTurner.cs" />
     <Compile Include="Assets\TargetChoosingMechanism.cs" />
     <Compile Include="Assets\TorquerController.cs" />
