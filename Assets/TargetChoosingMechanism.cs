@@ -39,6 +39,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
     public float PickerApproachWeighting = 20;
 
     public float LineOfSightBonus = 1000;
+    public float MinLineOfSightDetectionDistance = 2;
 
     [Tooltip("Targets in the +y hemisphere of this object get the InCorrectHemisphereBonus")]
     public Transform HemisphereFilterObject;
@@ -123,7 +124,8 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
             pickers.Add(new LineOfSightTargetPicker(transform)
             {
                 BonusForCorrectObject = LineOfSightBonus,
-                KullInvalidTargets = DropInvalidTargetsWhenTereAreValidTargets
+                KullInvalidTargets = DropInvalidTargetsWhenTereAreValidTargets,
+                MinDetectionDistance = MinLineOfSightDetectionDistance
             });
         }
         

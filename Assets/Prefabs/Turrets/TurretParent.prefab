@@ -964,8 +964,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e74601cf9d2f67a4daff32dea07fee84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ShootAngle: 0.2
   AimingObject: {fileID: 54683890212850012}
+  ShootAngle: 0.2
+  AvoidFriendlyFire: 1
+  FriendlyDetectionDistance: 80
+  MinFriendlyDetectionDistance: 1.5
 --- !u!114 &114575880276079734
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -1344,7 +1344,6 @@ MonoBehaviour:
     type: 2}
   LoadTime: 6
   ProjectileSpeed: 800
-  ShootAngle: 10
   RandomSpeed: 2
   ElevationHub: {fileID: 54647014223265010}
   EmitterParent: {fileID: 4095713925445172}
@@ -1448,8 +1447,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e74601cf9d2f67a4daff32dea07fee84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ShootAngle: 10
   AimingObject: {fileID: 54647014223265010}
+  ShootAngle: 10
+  AvoidFriendlyFire: 1
+  FriendlyDetectionDistance: 80
 --- !u!114 &114933443936390894
 MonoBehaviour:
   m_ObjectHideFlags: 1

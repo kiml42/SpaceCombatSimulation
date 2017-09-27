@@ -6,9 +6,13 @@ using UnityEngine;
 
 public class AngleTrigger : MonoBehaviour, IFireControl
 {
-    private IKnowsCurrentTarget _targetChoosingMechanism;
-    public float ShootAngle = 10;
     public Rigidbody AimingObject;
+    public float ShootAngle = 10;
+    public bool AvoidFriendlyFire = true;
+    public float FriendlyDetectionDistance = 20;
+    public float MinFriendlyDetectionDistance = 0.5f;
+
+    private IKnowsCurrentTarget _targetChoosingMechanism;
     private IFireControl _fireControl;
     private float? _projectileSpeed;
 
@@ -22,6 +26,23 @@ public class AngleTrigger : MonoBehaviour, IFireControl
 
     public bool ShouldShoot(Target target)
     {
+        if (AvoidFriendlyFire)
+        {
+            //Debug.Log("looking for friendlies");
+            RaycastHit hit;
+            var ray = new Ray(AimingObject.position + (AimingObject.transform.forward * MinFriendlyDetectionDistance), AimingObject.transform.forward);
+            if (Physics.Raycast(ray, out hit, FriendlyDetectionDistance, -1, QueryTriggerInteraction.Ignore))
+            {
+                //Debug.Log(hit.transform);
+                //is a hit
+                if (hit.transform.tag == tag)
+                {
+                    //Debug.Log("Is friendly, so don't shoot.");
+                    //is aimed at a friendly
+                    return false;
+                }
+            }
+        }
         if (target != null)
         {
             var location = target.LocationInOthersSpace(AimingObject, _projectileSpeed);

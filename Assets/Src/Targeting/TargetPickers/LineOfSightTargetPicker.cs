@@ -12,6 +12,7 @@ namespace Assets.Src.Targeting.TargetPickers
         private Transform _sourceObject;
         public float BonusForCorrectObject = 1000;
         public bool KullInvalidTargets = true;
+        public float MinDetectionDistance = 2;
 
         public LineOfSightTargetPicker(Transform sourceObject)
         {
@@ -24,7 +25,7 @@ namespace Assets.Src.Targeting.TargetPickers
                 var direction = t.Transform.position - _sourceObject.position;
 
                 RaycastHit hit;
-                var ray = new Ray(_sourceObject.position, direction);
+                var ray = new Ray(_sourceObject.position + (direction * MinDetectionDistance), direction);
                 if (Physics.Raycast(ray, out hit, direction.magnitude, -1, QueryTriggerInteraction.Ignore))
                 {
                     //is a hit - should always be a hit, because it's aimed at an object
