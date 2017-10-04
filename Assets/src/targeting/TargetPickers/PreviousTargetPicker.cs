@@ -1,5 +1,4 @@
-﻿using Assets.src.interfaces;
-using Assets.Src.Interfaces;
+﻿using Assets.Src.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,7 +23,7 @@ namespace Assets.Src.Targeting.TargetPickers
         public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             return potentialTargets.Select(t => {
-                if(t.TargetTransform == _knower.CurrentTarget.TargetTransform)
+                if(t.Transform == _knower.CurrentTarget.Transform)
                 {
                     t.Score += AdditionalScore;
                 }

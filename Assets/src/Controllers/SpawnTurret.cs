@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class SpawnTurret : MonoBehaviour, IKnowsEnemyTagAndtag
+public class SpawnTurret : MonoBehaviour, IKnowsEnemyTags
 {
     public bool TagChildren = false;
 
@@ -15,11 +15,6 @@ public class SpawnTurret : MonoBehaviour, IKnowsEnemyTagAndtag
         var tags = EnemyTags.ToList();
         tags.Add(newTag);
         EnemyTags = tags.Distinct().ToList();
-    }
-
-    public string GetFirstEnemyTag()
-    {
-        return EnemyTags.FirstOrDefault();
     }
 
     public void SetEnemyTags(List<string> allEnemyTags)

@@ -20,18 +20,34 @@ namespace Assets.Src.Targeting.TargetPickers
         public float OverMinMassBonus = 10000;
         public float MassMultiplier = 1;
 
+        public bool KullInvalidTargets = true;
+
         public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
-            return potentialTargets.Select(t => {
-                var rigidbody = t.TargetRigidbody;
+            //Debug.Log(potentialTargets.Count());
+            potentialTargets = potentialTargets.Select(t => {
+                var rigidbody = t.Rigidbody;
                 t.Score += MassMultiplier * rigidbody.mass;
                 if (rigidbody.mass > MinMass)
                 {
                     //Debug.Log("Adding score for mass. m=" + rigidbody.mass + ", original score = " + t.Score);
+                    t.IsValidForCurrentPicker = true;
                     t.Score += OverMinMassBonus;
+                } else
+                {
+                    t.IsValidForCurrentPicker = false;
                 }
                 return t;
             });
+
+            //Debug.Log(string.Join(",",potentialTargets.Select(t => t.IsValidForCurrentPicker.ToString()).ToArray()));
+            if (KullInvalidTargets && potentialTargets.Any(t => t.IsValidForCurrentPicker))
+            {
+                //Debug.Log(potentialTargets.Count(t => t.IsValidForCurrentPicker) + " after kull");
+                return potentialTargets.Where(t => t.IsValidForCurrentPicker);
+            }
+
+            return potentialTargets;
         }
     }
 }

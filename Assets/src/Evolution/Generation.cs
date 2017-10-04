@@ -156,6 +156,8 @@ namespace Assets.src.Evolution
 
             public void RecordMatch(string otherCompetitor, string victor, int winScore, int losScore, int drawScore)
             {
+                PreviousCombatants.Add(otherCompetitor);
+
                 if (string.IsNullOrEmpty(victor))
                 {
                     Draws++;
@@ -163,8 +165,6 @@ namespace Assets.src.Evolution
                 }
                 else
                 {
-                    PreviousCombatants.Add(otherCompetitor);
-
                     if (Genome == victor)
                     {
                         Wins++;
@@ -197,7 +197,7 @@ namespace Assets.src.Evolution
 
             public override string ToString()
             {
-                var competitorsString = string.Join(",", PreviousCombatants.ToArray());
+                var competitorsString = string.Join(",", PreviousCombatants.Where(s => !string.IsNullOrEmpty(s)).ToArray());
                 var strings = new List<string>
                 {
                     Genome,

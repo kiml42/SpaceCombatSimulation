@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatable
+public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
 {
     public bool TagChildren = false;
     public Rigidbody Projectile;
@@ -31,11 +31,6 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
         var tags = EnemyTags.ToList();
         tags.Add(newTag);
         EnemyTags = tags.Distinct().ToList();
-    }
-
-    public string GetFirstEnemyTag()
-    {
-        return EnemyTags.FirstOrDefault();
     }
 
     public void SetEnemyTags(List<string> allEnemyTags)
@@ -68,7 +63,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
 
         if (OnlyWithTargets)
         {
-            _detector = new MultiTagTargetDetector()
+            _detector = new RepositoryTargetDetector()
             {
                 EnemyTags = EnemyTags
             };
@@ -101,7 +96,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTagAndtag, IDeactivatab
 
                 projectile.velocity = velocity;
 
-                projectile.SendMessage("SetEnemyTags", EnemyTags);
+                projectile.SendMessage("SetEnemyTags", EnemyTags, SendMessageOptions.DontRequireReceiver);
                 if (TagChildren) { projectile.tag = tag; }
 
                 if (_renderer != null)

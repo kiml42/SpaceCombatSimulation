@@ -19,21 +19,21 @@ namespace Assets.src.Evolution
             for (int i = 0; i < Mutations; i++)
             {
                 var n = UnityEngine.Random.value;
-                if (n < 0.5)
+                if (n < 0.2)
                 {
                     //no mutation
                 }
-                else if (n < 0.6)
+                else if (n < 0.3)
                 {
                     //insert
                     baseGenome = InsertionMutation(baseGenome);
                 }
-                else if (n < 0.8)
+                else if (n < 0.6)
                 {
                     //Replace one character
                     baseGenome = CharReplaceMutation(baseGenome);
                 }
-                else if (n < 0.93)
+                else if (n < 0.7)
                 {
                     //delete
                     baseGenome = DeletionMutation(baseGenome);

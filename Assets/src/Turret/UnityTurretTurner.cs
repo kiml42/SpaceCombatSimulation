@@ -11,6 +11,11 @@ namespace Assets.Src.Targeting
 {
     public class UnityTurretTurner : ITurretTurner
     {
+        public float TurnTableMotorForce = 30;
+        public float TurnTableMotorSpeedMultiplier = 500;
+        public float ElevationHubMotorForce = 30;
+        public float ElevationHubMotorSpeedMultiplier = 500;
+
         private readonly Rigidbody _thisTurret;
         private readonly PotentialTarget _restTarget;
         private readonly Rigidbody _turnTable;
@@ -41,53 +46,33 @@ namespace Assets.Src.Targeting
             }
         }
 
-        public void TurnToTarget(PotentialTarget target)
+        public void TurnToTarget(Target target)
         {
-            if (target != null && target.TargetTransform.IsValid() && _turnTable != null && _elevationHub != null)
+            if (target != null && target.Transform.IsValid() && _turnTableHinge != null && _elevationHubHinge != null)
             {
-                HingeJoint hinge = _turnTable.GetComponent("HingeJoint") as HingeJoint;
-                if(hinge != null)
-                {
-                    //Debug.Log(_thisTurret.name + " Turning to target with named " + target.Target.name + " with score " + target.Score);
+                //Debug.Log(_thisTurret.name + " Turning to target with named " + target.Target.name + " with score " + target.Score);
 
-                    //Debug.Log("getting location in turn table space");
+                //Debug.Log("getting location in turn table space");
                     
-                    var LocationInTurnTableSpace = target.LocationInTurnTableSpace(_turnTable, _projectileSpeed);
+                var LocationInTurnTableSpace = target.LocationInOthersSpace(_turnTable, _projectileSpeed);
 
-                    TurnToTarget(_turnTableHinge, LocationInTurnTableSpace);
+                TurnToTarget(_turnTableHinge, LocationInTurnTableSpace, TurnTableMotorForce, TurnTableMotorSpeedMultiplier);
                     
-                    //var locationInElevationHubSpace = target.LocationInElevationHubSpace(_thisTurret);
-                    var locationInElevationHubSpace = target.LocationInElevationHubSpaceAfterTurnTableTurn(_thisTurret, _turnTable.transform, _elevationHub, _projectileSpeed);
+                //var locationInElevationHubSpace = target.LocationInElevationHubSpace(_thisTurret);
+                var locationInElevationHubSpace = target.LocationInElevationHubSpaceAfterTurnTableTurn(_thisTurret, _turnTable.transform, _elevationHub, _projectileSpeed);
 
-                    TurnToTarget(_elevationHubHinge, locationInElevationHubSpace);
-
-                    var location = target.TargetTransform.position;
-                    var relative = target.LocationInTurnTableSpace(_turnTable, _projectileSpeed);
-                    
-                    JointMotor motor = hinge.motor;
-                    motor.force = 30;
-
-                    relative.y = 0;
-                    motor.targetVelocity = relative.normalized.x * 500;
-                    motor.freeSpin = false;
-                    hinge.motor = motor;
-                    hinge.useMotor = true;
-                    //Debug.Log(hinge.motor.targetVelocity);
-                }
-            } else
-            {
-                //Debug.Log(_thisTurret.name + " Turning to null target");
+                TurnToTarget(_elevationHubHinge, locationInElevationHubSpace, ElevationHubMotorForce, ElevationHubMotorSpeedMultiplier);
             }
         }
 
-        private void TurnToTarget(HingeJoint hingeToTurn, Vector3 relativeLocation)
+        private void TurnToTarget(HingeJoint hingeToTurn, Vector3 relativeLocation, float MotorForce, float MotorSpeedMultiplier)
         {
             if (hingeToTurn != null)
             {
                 JointMotor motor = hingeToTurn.motor;
-                motor.force = 30;
+                motor.force = MotorForce;
                 relativeLocation.y = 0;
-                motor.targetVelocity = relativeLocation.normalized.x * 500;
+                motor.targetVelocity = relativeLocation.normalized.x * MotorSpeedMultiplier;
                 //motor.freeSpin = false;
                 hingeToTurn.motor = motor;
                 //hinge.useMotor = true;

@@ -23,6 +23,8 @@ GameObject:
   - component: {fileID: 54474293438533010}
   - component: {fileID: 138875538257973814}
   - component: {fileID: 114844752098337668}
+  - component: {fileID: 114032262329232008}
+  - component: {fileID: 114568050524591240}
   m_Layer: 0
   m_Name: BurstRocketDispenser
   m_TagString: Team1
@@ -253,6 +255,32 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &114032262329232008
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1088526681955390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &114568050524591240
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1088526681955390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e927d7ab301976247bdc08793117b61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeactivateParent: 0
+  DeactivateOnBreak: 1
+  DisconectFromParent: 1
+  BreakExplosion: {fileID: 0}
 --- !u!114 &114844752098337668
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -264,19 +292,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a2aeaa676ae4da40b02b9861e0dc174, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Resilience: 10
+  Resilience: 15
   Armour: 0
-  Health: 200
-  DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
+  Health: 400
+  DeathExplosion: {fileID: 54668735992167884, guid: b20315eb9dac9e942a8aeabfcded0980,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 100
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!114 &114976614141140552
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -310,8 +339,8 @@ FixedJoint:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1088526681955390}
   m_ConnectedBody: {fileID: 0}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
+  m_BreakForce: 100000
+  m_BreakTorque: 100000
   m_EnableCollision: 0
   m_EnablePreprocessing: 1
   m_MassScale: 1

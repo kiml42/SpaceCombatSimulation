@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 
-namespace Assets.src.interfaces
+namespace Assets.Src.Interfaces
 {
     public interface IExploder
     {

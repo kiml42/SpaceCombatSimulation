@@ -52,6 +52,7 @@ GameObject:
   - component: {fileID: 114477379494518138}
   - component: {fileID: 114169913862654500}
   - component: {fileID: 54288706851983332}
+  - component: {fileID: 114236226548321350}
   m_Layer: 0
   m_Name: ModularShip
   m_TagString: Team1
@@ -293,7 +294,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1176053855654468}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 767.71735, y: 3261.25, z: 218.37895}
+  m_LocalPosition: {x: 131.42078, y: 32.642097, z: 221.27211}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4931801260557888}
@@ -328,13 +329,13 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1100674293584388}
-  m_LocalRotation: {x: 0.5, y: 0.5, z: -0.5, w: 0.5}
+  m_LocalRotation: {x: 0, y: 0, z: -0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 5, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1.0000005, z: 1.0000005}
   m_Children: []
   m_Father: {fileID: 4023756119448736}
   m_RootOrder: 5
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: -90}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90}
 --- !u!4 &4143227445870114
 Transform:
   m_ObjectHideFlags: 1
@@ -436,13 +437,13 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1834111732550164}
-  m_LocalRotation: {x: 1, y: 0, z: 0, w: 0}
+  m_LocalRotation: {x: 0, y: 0, z: -1, w: 0}
   m_LocalPosition: {x: 0, y: -5, z: 0}
   m_LocalScale: {x: 1, y: 1.0000005, z: 1.0000005}
   m_Children: []
   m_Father: {fileID: 4023756119448736}
   m_RootOrder: 3
-  m_LocalEulerAnglesHint: {x: 180, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 180, y: 180, z: 0}
 --- !u!4 &4616310214423324
 Transform:
   m_ObjectHideFlags: 1
@@ -800,9 +801,9 @@ Rigidbody:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1176053855654468}
   serializedVersion: 2
-  m_Mass: 300
+  m_Mass: 800
   m_Drag: 0
-  m_AngularDrag: 0
+  m_AngularDrag: 6.987
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -818,7 +819,7 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Size: {x: 10, y: 10, z: 10}
+  m_Size: {x: 9.5, y: 9.5, z: 9.5}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!81 &81958719930174362
 AudioListener:
@@ -847,16 +848,34 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 15
   Armour: 0
-  Health: 600
-  DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
+  Health: 700
+  DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 100
   FramesOfInvulnerability: 1
+  OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
+  TeamTagForceFieldSuffix: FoceField
+--- !u!114 &114236226548321350
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1176053855654468}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114477379494518138
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -883,8 +902,11 @@ MonoBehaviour:
   Torquer: {fileID: 54288706851983332}
   AngularDragForTorquers: 1
   VectorArrow: {fileID: 4644144218678962}
-  EnemyTags: []
+  PickerDistanceMultiplier: 1
   MinimumMass: 80
+  PickerMasMultiplier: 1
+  PickerOverMinMassBonus: 10000
+  EnemyTags: []
 --- !u!124 &124958046666288838
 Behaviour:
   m_ObjectHideFlags: 1

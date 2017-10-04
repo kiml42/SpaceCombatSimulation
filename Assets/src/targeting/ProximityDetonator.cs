@@ -2,8 +2,6 @@
 using Assets.Src.Interfaces;
 using UnityEngine;
 using System.Linq;
-using Assets.src.interfaces;
-using Assets.src.targeting;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Turret;
 
@@ -24,7 +22,7 @@ namespace Assets.Src.Targeting
             _exploder = exploder;
         }
 
-        public void AutoDetonate(PotentialTarget target)
+        public void AutoDetonate(Target target)
         {
             if (ShouldDetonate(target))
             {
@@ -33,15 +31,14 @@ namespace Assets.Src.Targeting
             }
         }
 
-        private bool ShouldDetonate(PotentialTarget target)
+        private bool ShouldDetonate(Target target)
         {
             if(target == null)
             {
                 return false;
             }
-
             var distance = target.DistanceToTurret(_exploderRigidbody, _exploderRigidbody.velocity.magnitude);
-            Debug.Log("target = " + target.TargetTransform + ", distance = " + distance + ", should detonate = " + (distance <= _detonationDistance));
+            Debug.Log("target = " + target.Transform + ", distance = " + distance + ", should detonate = " + (distance <= _detonationDistance));
             return distance <= _detonationDistance;
         }
 

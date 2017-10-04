@@ -242,6 +242,7 @@ GameObject:
   - component: {fileID: 54285501303745234}
   - component: {fileID: 114504512197277578}
   - component: {fileID: 114495674111247940}
+  - component: {fileID: 114062780359788020}
   m_Layer: 0
   m_Name: SpaceShip
   m_TagString: Team1
@@ -749,6 +750,17 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1210417539930836}
   m_Enabled: 1
+--- !u!114 &114062780359788020
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1684298247115438}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114088469747992042
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -760,8 +772,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team2
   TagChildren: 1
+  EnemyTags: []
   TurretParent: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
     type: 2}
 --- !u!114 &114106910282841678
@@ -775,8 +787,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team2
   TagChildren: 1
+  EnemyTags: []
   TurretParent: {fileID: 4121223800764556, guid: 6ab6feab40aaa5d4d8d3e711a86dd712,
     type: 2}
 --- !u!114 &114310482617623930
@@ -790,8 +802,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team2
   TagChildren: 1
+  EnemyTags: []
   TurretParent: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
     type: 2}
 --- !u!114 &114495674111247940
@@ -810,8 +822,14 @@ MonoBehaviour:
   Health: 4000
   DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
-  ExplosionForce: 1000
-  ExplosionRadius: 1000
+  ExplosionForce2: 200
+  ExplosionRadius2: 30
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  ExplosionDamage2: 100
+  FramesOfInvulnerability: 1
+  OriginalHealth: 0
 --- !u!114 &114504512197277578
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -823,20 +841,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6cc8ba250bdfeb74ca72df3ebf9e4267, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  TanShootAngle: 0.3
-  EngineForce: 400
+  ShootAngle: 30
   TorqueMultiplier: 60000
-  LocationAimWeighting: 1
-  Fuel: 1000000
   StartDelay: 0
   SlowdownWeighting: 30
-  TargetMarker: {fileID: 54381550272298364, guid: b1fa19db76056a642a4e60d89370933f,
-    type: 2}
-  DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
-    type: 2}
-  LocationTollerance: 200
-  VelociyTollerance: 10
-  EnemyTag: Team2
+  RadialSpeedThreshold: 10
+  MaxRange: 100
+  MinRange: 20
+  LocationAimWeighting: 1
+  MaxTangentialVelocity: 10
+  MinTangentialVelocity: 0
+  TangentialSpeedWeighting: 1
+  Engine: {fileID: 0}
+  Torquer: {fileID: 0}
+  AngularDragForTorquers: 20
+  VectorArrow: {fileID: 0}
+  PickerDistanceMultiplier: 1
+  MinimumMass: 80
+  PickerMasMultiplier: 1
+  PickerOverMinMassBonus: 10000
+  EnemyTags: []
 --- !u!114 &114688480772534870
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -848,8 +872,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team2
   TagChildren: 1
+  EnemyTags: []
   TurretParent: {fileID: 4592822217735520, guid: 93127d888f371974f9da6a1edd9ae9fd,
     type: 2}
 --- !u!114 &114757542679937062
@@ -863,8 +887,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team2
   TagChildren: 1
+  EnemyTags: []
   TurretParent: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
     type: 2}
 --- !u!114 &114803389142857774
@@ -878,8 +902,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team2
   TagChildren: 1
+  EnemyTags: []
   TurretParent: {fileID: 4047970151895330, guid: 2cf111255dce5d94ca7b02db1dcffd57,
     type: 2}
 --- !u!114 &114833933637663548
@@ -893,8 +917,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team2
   TagChildren: 1
+  EnemyTags: []
   TurretParent: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5,
     type: 2}
 --- !u!114 &114848885704803456
@@ -908,8 +932,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team2
   TagChildren: 1
+  EnemyTags: []
   TurretParent: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5,
     type: 2}
 --- !u!114 &114959523983196230
@@ -923,8 +947,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EnemyTag: Team2
   TagChildren: 1
+  EnemyTags: []
   TurretParent: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
     type: 2}
 --- !u!124 &124302998585640880

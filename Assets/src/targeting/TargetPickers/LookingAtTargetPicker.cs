@@ -13,6 +13,11 @@ namespace Assets.Src.Targeting.TargetPickers
         public float Multiplier = 100;
 
         /// <summary>
+        /// kull targets more than 90 degrees awy from looked direction
+        /// </summary>
+        public bool KullInvalidTargets = false;
+
+        /// <summary>
         /// used for velocity correction.
         /// Set to null to not correct for velocity (default)
         /// </summary>
@@ -25,20 +30,24 @@ namespace Assets.Src.Targeting.TargetPickers
 
         public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
-            return potentialTargets.Select(t => AddScoreForAngle(t));
+            potentialTargets = potentialTargets.Select(t => AddScoreForAngle(t));
+
+            if (KullInvalidTargets && potentialTargets.Any(t => t.IsValidForCurrentPicker))
+            {
+                return potentialTargets.Where(t => t.IsValidForCurrentPicker);
+            }
+            return potentialTargets;
         }
 
         private PotentialTarget AddScoreForAngle(PotentialTarget target)
         {
             var reletiveLocation = target.LocationInAimedSpace(_aimingObject, ProjectileSpeed);
-            var distanceInFront = reletiveLocation.z;
-            reletiveLocation.z = 0;
-            var distanceToSide = reletiveLocation.magnitude;
 
-            var angle = Math.Atan2(distanceToSide, distanceInFront);
+            var angle = Vector3.Angle(reletiveLocation, Vector3.forward);
             
-            var newScore = Multiplier * (1 - (Math.Abs(angle)/ Math.PI));
-            target.Score = target.Score + (float) newScore;
+            var newScore = Multiplier * (1 - (angle/ 180));
+            target.Score = target.Score + newScore;
+            target.IsValidForCurrentPicker = angle < 90;
             return target;
         }
     }

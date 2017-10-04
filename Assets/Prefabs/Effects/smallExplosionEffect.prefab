@@ -39,7 +39,8 @@ GameObject:
   - component: {fileID: 54600725210186288}
   - component: {fileID: 198341795136170286}
   - component: {fileID: 199099836237986650}
-  - component: {fileID: 114023983566809114}
+  - component: {fileID: 114067011622820928}
+  - component: {fileID: 114236479665353144}
   m_Layer: 0
   m_Name: smallExplosionEffect
   m_TagString: Untagged
@@ -54,7 +55,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1855715873590362}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -167.4152, y: 38.72812, z: -14.99141}
+  m_LocalPosition: {x: -406.69638, y: 235.64436, z: -408.23236}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4649061172185880}
@@ -88,7 +89,7 @@ Rigidbody:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1855715873590362}
   serializedVersion: 2
-  m_Mass: 0.0000001
+  m_Mass: 1
   m_Drag: 0
   m_AngularDrag: 0
   m_UseGravity: 0
@@ -146,7 +147,7 @@ Light:
   m_UseColorTemperature: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
---- !u!114 &114023983566809114
+--- !u!114 &114067011622820928
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
@@ -154,11 +155,27 @@ MonoBehaviour:
   m_GameObject: {fileID: 1855715873590362}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b6312b7bfe9030e40b858f67cf019e96, type: 3}
+  m_Script: {fileID: 11500000, guid: ba093a9bb57dade4db9c2fccb71aae8f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Lifetime: 200
-  RandomLifetime: 0
+  ExpandRate: 0.15
+  Lifetime: 120
+  Light: {fileID: 108317884293641784}
+  ExplosionForce: 600
+  ExplosionRadius: 20
+  ExplosionBaseDamage: 200
+--- !u!114 &114236479665353144
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1855715873590362}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ad7694a60ae99147840ec29ed46a196, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GroupName: Explosions
 --- !u!198 &198341795136170286
 ParticleSystem:
   m_ObjectHideFlags: 1
@@ -218,7 +235,7 @@ ParticleSystem:
   moveWithTransform: 1
   moveWithCustomTransform: {fileID: 0}
   scalingMode: 1
-  randomSeed: -1533469407
+  randomSeed: -839910799
   InitialModule:
     serializedVersion: 3
     enabled: 1

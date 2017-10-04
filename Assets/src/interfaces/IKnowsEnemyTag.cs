@@ -5,19 +5,13 @@ using System.Text;
 
 namespace Assets.Src.Interfaces
 {
-    public interface IKnowsEnemyTagAndtag
+    public interface IKnowsEnemyTags
     {
         /// <summary>
         /// Sets the enemy tag
         /// </summary>
         /// <param name="newTag"></param>
         void AddEnemyTag(string newTag);
-
-        /// <summary>
-        /// retrieves the first enemy tag
-        /// </summary>
-        /// <returns></returns>
-        string GetFirstEnemyTag();
 
         /// <summary>
         /// sets all the enemy tags

@@ -1,9 +1,11 @@
-﻿using Assets.src.targeting;
+﻿using Assets.Src.Targeting;
 using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
+using Assets.Src.Health;
 
 public class HealthControler : MonoBehaviour
 {
@@ -20,20 +22,29 @@ public class HealthControler : MonoBehaviour
     public float Health = 200;
 
     public Rigidbody DeathExplosion;
-    public float ExplosionForce2 = 200;
-    public float ExplosionRadius2 = 30;
 
     private IDestroyer _destroyer;
     
     public Rigidbody Shrapnel;
     public int ShrapnelCount2 = 30;
     public float ShrapnelSpeed2 = 20;
-    public float ExplosionDamage2 = 100;
-
+    
     public int FramesOfInvulnerability = 1;
 
     private Rigidbody _rigidbody;
     public float OriginalHealth;
+
+    [Tooltip("if set, damage is passed to this object untill it is destroyed, then damage is taken by this object.")]
+    public HealthControler DamageDelegate;
+
+    [Tooltip("Objects with any of these tags will not cause damage on collision.")]
+    public List<string> IgnoredTags = new List<string>
+    {
+        "ForceField"
+    };
+
+    [Tooltip("set this to make this heatlth controller immune to <tag><TeamTagForceFieldSuffix> as well.")]
+    public string TeamTagForceFieldSuffix = "FoceField";
 
     // Use this for initialization
     void Start()
@@ -41,12 +52,9 @@ public class HealthControler : MonoBehaviour
         OriginalHealth = Health;
         _rigidbody = GetComponent<Rigidbody>();
 
-        var exploder = new ShrapnelAndDamageExploder(_rigidbody, Shrapnel, DeathExplosion, ShrapnelCount2)
+        var exploder = new ShrapnelExploder(_rigidbody, Shrapnel, DeathExplosion, ShrapnelCount2)
         {
-            ExplosionForce = ExplosionForce2,
-            ExplosionBaseDamage = ExplosionDamage2,
-            ShrapnelSpeed = ShrapnelSpeed2,
-            ExplosionRadius = ExplosionRadius2
+            ShrapnelSpeed = ShrapnelSpeed2
         };
 
         _destroyer = new WithChildrenDestroyer()
@@ -54,6 +62,11 @@ public class HealthControler : MonoBehaviour
             Exploder = exploder,
             UntagChildren = false
         };
+
+        if (!string.IsNullOrEmpty(TeamTagForceFieldSuffix))
+        {
+            IgnoredTags.Add(tag + TeamTagForceFieldSuffix);
+        }
     }
 
     // Update is called once per frame
@@ -73,6 +86,11 @@ public class HealthControler : MonoBehaviour
 
     void OnCollisionEnter(Collision collision)
     {
+        if (IgnoredTags.Contains(collision.transform.tag))
+        {
+            //Debug.Log(name + " hit ignored tag: " + collision.transform.tag);
+            return;
+        }
         if(FramesOfInvulnerability > 0)
         {
             return;
@@ -80,21 +98,46 @@ public class HealthControler : MonoBehaviour
         //Debug.Log("hit by " + collision.collider.name + ",v=" + collision.relativeVelocity + ",m=" + collision.rigidbody.mass);
         var p = collision.impulse;
         var damage = (p.magnitude / Resilience) - Armour;
-        Health = Health - (Mathf.Max(0, damage));
         //Debug.Log("h=" + Health + ",d=" + damage);
+
+        ApplyDamage(Mathf.Max(0, damage));
     }
 
     /// <summary>
     /// Applys damage, ignores resistance and armour
     /// </summary>
     /// <param name="damage"></param>
-    void ApplyDamage(float damage)
+    public void ApplyDamage(float damage)
     {
         if (FramesOfInvulnerability > 0)
         {
             return;
         }
+        if(DamageDelegate != null)
+        {
+            //Debug.Log("Delegating " + damage + " Damage to " + DamageDelegate.name);
+            DamageDelegate.ApplyDamage(damage);
+
+            //If this killed it, take ther rest o the damage in this one.
+            damage = DamageDelegate.Health > 0 ? 0 : -DamageDelegate.Health;
+            //Debug.Log(damage + "left for " + name);
+        }
         Health -= damage;
+    }
+
+    /// <summary>
+    /// Applys damage, ignores resistance and armour
+    /// </summary>
+    /// <param name="damage"></param>
+    public void ApplyDamage(DamagePacket damage)
+    {
+        if(damage.IsAOE && DamageDelegate != null)
+        {
+            Debug.Log(transform.name + " Ignoring AOE damage because it has a delegate");
+        } else
+        {
+            ApplyDamage(damage.Damage);
+        }
     }
 
     public bool IsDamaged

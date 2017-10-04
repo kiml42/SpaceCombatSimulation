@@ -13,6 +13,12 @@ TagManager:
   - Team4
   - Team5
   - Projectile
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
   layers:
   - Default
   - TransparentFX

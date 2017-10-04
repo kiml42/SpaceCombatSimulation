@@ -28,6 +28,8 @@ GameObject:
   - component: {fileID: 199196440053259074}
   - component: {fileID: 114700651417826980}
   - component: {fileID: 114731812363550124}
+  - component: {fileID: 114490638514146656}
+  - component: {fileID: 114451202902444972}
   m_Layer: 0
   m_Name: Projectile
   m_TagString: Untagged
@@ -199,6 +201,29 @@ TrailRenderer:
     generateLightingData: 0
   m_MinVertexDistance: 0.1
   m_Autodestruct: 0
+--- !u!114 &114451202902444972
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1570081493313536}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35b52ee304ad6454d8b5f67bcd1d706a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &114490638514146656
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1570081493313536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ad7694a60ae99147840ec29ed46a196, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GroupName: Projectiles
 --- !u!114 &114700651417826980
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -215,13 +240,15 @@ MonoBehaviour:
   Health: 1
   DeathExplosion: {fileID: 54368247732877992, guid: e6ef866ccc6cd2c4fb5f402be7b7a1d0,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 0
   ShrapnelSpeed2: 0
-  ExplosionDamage2: 0
   FramesOfInvulnerability: 3
+  OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!114 &114731812363550124
 MonoBehaviour:
   m_ObjectHideFlags: 1

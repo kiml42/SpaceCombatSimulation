@@ -7,10 +7,12 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 
-namespace Assets.src.Pilots
+namespace Assets.Src.Pilots
 {
     public abstract class BasePilot : IPilot
     {
+        public float CloseEnoughAngle = 0;
+
         public float LocationAimWeighting { get; set; }
         public Transform VectorArrow;
 
@@ -40,9 +42,7 @@ namespace Assets.src.Pilots
         private int _startDelay = 0;
         private int _turningStartDelay;
 
-        protected List<Transform> _engines = new List<Transform>();
-
-        public float RemainingFuel { get; protected set; }
+        protected List<EngineControler> _engines = new List<EngineControler>();
 
         protected bool ShouldTurn()
         {
@@ -51,16 +51,14 @@ namespace Assets.src.Pilots
             return TurningStartDelay <= 0;
         }
 
-        protected float AngleTollerance;
-
         protected ITorqueApplier _torqueApplier;
 
         protected Rigidbody _pilotObject;
 
-        protected bool HasFuel()
+        protected bool HasStarted()
         {
             //Debug.Log("RemainignFule:" + RemainingFuel);
-            var hasFuel = RemainingFuel > 0 && StartDelay <= 0;
+            var hasFuel = StartDelay <= 0;
             if (!hasFuel)
             {
                 _torqueApplier.Deactivate();
@@ -72,15 +70,15 @@ namespace Assets.src.Pilots
             return hasFuel;
         }
 
-        protected Vector3 ReletiveLocationInWorldSpace(PotentialTarget target)
+        protected Vector3 ReletiveLocationInWorldSpace(Target target)
         {
-            if (_pilotObject != null && target != null && target.TargetTransform.IsValid())
+            if (_pilotObject != null && target != null && target.Transform.IsValid())
             {
-                var location = target.TargetTransform.position - _pilotObject.position;
+                var location = target.Transform.position - _pilotObject.position;
                 return location;
             }
 
-            //if (target == null || target.TargetTransform.IsInvalid())
+            //if (target == null || target.Transform.IsInvalid())
             //{
             //    Debug.Log("Target transform is invalid");
             //}
@@ -91,7 +89,7 @@ namespace Assets.src.Pilots
             return Vector3.zero;
         }
 
-        protected Vector3 VectorToCancelLateralVelocityInWorldSpace(PotentialTarget target)
+        protected Vector3 VectorToCancelLateralVelocityInWorldSpace(Target target)
         {
             var vectorTowardsTarget = ReletiveLocationInWorldSpace(target);
             var targetReletiveVelocity = WorldSpaceReletiveVelocityOfTarget(target);
@@ -99,59 +97,64 @@ namespace Assets.src.Pilots
             return targetReletiveVelocity.ComponentPerpendicularTo(vectorTowardsTarget);
         }
 
-        protected Vector3 WorldSpaceReletiveVelocityOfTarget(PotentialTarget target)
+        protected Vector3 WorldSpaceReletiveVelocityOfTarget(Target target)
         {
             if (target == null)
             {
                 return Vector3.zero;
             }
-            var targetsVelocity = target.TargetRigidbody == null ? Vector3.zero : target.TargetRigidbody.velocity;
+            return WorldSpaceReletiveVelocityOfTarget(target.Rigidbody);
+        }
+
+        protected Vector3 WorldSpaceReletiveVelocityOfTarget(Rigidbody target)
+        {
+            var targetsVelocity = target == null ? Vector3.zero : target.velocity;
             var ownVelocity = _pilotObject.velocity;
             return targetsVelocity - ownVelocity;
         }
 
-        protected void SetEngineActivationState(bool fire)
+        protected void SetFlightVectorOnEngines(Vector3? flightVector)
         {
-            if (fire && HasFuel())
+            foreach (var engine in _engines)
             {
-                foreach (var engine in _engines)
-                {
-                    engine.SendMessage("TurnOn");
-                    //every engine uses 1 fuel
-                    RemainingFuel--;
-                }
+                engine.FlightVector = flightVector;
             }
-            else
+        }
+
+        protected void SetTurningVectorOnEngines(Vector3? torqueVector)
+        {
+            foreach (var engine in _engines)
             {
-                foreach (var engine in _engines)
-                {
-                    engine.SendMessage("TurnOff");
-                }
+                engine.OrientationVector = torqueVector;
+            }
+        }
+
+        protected void SetPrimaryTranslationVectorOnEngines(Vector3? primaryTranslateVector)
+        {
+            foreach (var engine in _engines)
+            {
+                engine.PrimaryTranslateVector = primaryTranslateVector;
+            }
+        }
+
+        protected void SetSecondaryTranslateVectorOnEngines(Vector3? secondaryTranslateVector)
+        {
+            foreach (var engine in _engines)
+            {
+                engine.SecondaryTranslateVector = secondaryTranslateVector;
             }
         }
 
         protected void RemoveNullEngines()
         {
-            _engines = _engines.Where(t => t.IsValid()).Distinct().ToList();
-        }
-
-        protected bool IsAimedAtWorldVector(Vector3 worldSpaceVector)
-        {
-            if (_pilotObject != null)
-            {
-                var angle = Vector3.Angle(_pilotObject.transform.forward, worldSpaceVector);
-                return angle < AngleTollerance;
-            }
-
-            //Debug.Log("No Engines (IsAimedAtWorldVector)");
-            return false;
+            _engines = _engines.Where(t => t != null).Distinct().ToList();
         }
         
-        public void AddEngine(Transform engine)
+        public void AddEngine(EngineControler engine)
         {
             _engines.Add(engine);
         }
 
-        public abstract void Fly(PotentialTarget target);
+        public abstract void Fly(Target target);
     }
 }

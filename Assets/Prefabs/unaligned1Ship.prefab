@@ -56,6 +56,7 @@ GameObject:
   - component: {fileID: 114270581982482088}
   - component: {fileID: 114593427976674280}
   - component: {fileID: 114304355064623444}
+  - component: {fileID: 114383310399634466}
   m_Layer: 0
   m_Name: unaligned1Ship
   m_TagString: Untagged
@@ -501,6 +502,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   ExplosionDamage2: 100
   FramesOfInvulnerability: 0
+  OriginalHealth: 0
 --- !u!114 &114270581982482088
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -524,6 +526,7 @@ MonoBehaviour:
   ShrapnelSpeed2: 200
   ExplosionDamage2: 1000
   FramesOfInvulnerability: 0
+  OriginalHealth: 0
 --- !u!114 &114297395834321174
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -536,9 +539,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EngineForce: {x: 0, y: 0, z: 10000}
+  EngineForce2: 0
+  Pilot: {fileID: 0}
+  FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54780414874591840}
-  IsOn: 0
   Plume: {fileID: 198546498204509298}
+  TranslateFireAngle: 45
+  TorqueFireAngle: 90
+  UseAsTorquer: 1
+  UseAsTranslator: 1
+  FullThrottleFuelConsumption: 1
+  TorquerFullThrottleAngle: 10
+  _fullTrhrottlePlumeRate: 0
 --- !u!114 &114304355064623444
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -551,6 +563,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   InactiveTag: 
+--- !u!114 &114383310399634466
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1624302835856798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114593427976674280
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -587,16 +610,19 @@ MonoBehaviour:
   MaxTangentialVelocity: 200
   MinTangentialVelocity: 20
   TangentialSpeedWeighting: 2
-  Engine: {fileID: 4951516718670036}
+  Engine: {fileID: 0}
   Torquer: {fileID: 54382497699916626}
   AngularDragForTorquers: 10
   VectorArrow: {fileID: 4385743314986304}
+  PickerDistanceMultiplier: 1
+  MinimumMass: 80
+  PickerMasMultiplier: 1
+  PickerOverMinMassBonus: 10000
   EnemyTags:
   - Team2
   - Team3
   - Team4
   - Team5
-  MinimumMass: 80
 --- !u!136 &136529334301060858
 CapsuleCollider:
   m_ObjectHideFlags: 1

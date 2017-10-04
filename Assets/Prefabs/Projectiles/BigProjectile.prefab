@@ -19,15 +19,17 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4221530532252992}
+  - component: {fileID: 54662518417675552}
   - component: {fileID: 33753378845347142}
   - component: {fileID: 135496945170436356}
   - component: {fileID: 23834554680752894}
-  - component: {fileID: 54662518417675552}
   - component: {fileID: 96405224812634666}
   - component: {fileID: 198406713867812718}
   - component: {fileID: 199415608578746542}
   - component: {fileID: 114050329038561162}
   - component: {fileID: 114031993041432958}
+  - component: {fileID: 114985888697979568}
+  - component: {fileID: 114562387840620348}
   m_Layer: 0
   m_Name: BigProjectile
   m_TagString: Untagged
@@ -42,7 +44,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1896722452323280}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 29.08004, y: 1.6930113, z: -6.629236}
+  m_LocalPosition: {x: 219.40625, y: -13.139077, z: 5.07159}
   m_LocalScale: {x: 0.6, y: 0.6, z: 0.6}
   m_Children: []
   m_Father: {fileID: 0}
@@ -210,7 +212,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6312b7bfe9030e40b858f67cf019e96, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Lifetime: 600
+  Lifetime: 1000
   RandomLifetime: 20
 --- !u!114 &114050329038561162
 MonoBehaviour:
@@ -228,13 +230,38 @@ MonoBehaviour:
   Health: 1
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 20
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 10
   ShrapnelSpeed2: 60
-  ExplosionDamage2: 200
   FramesOfInvulnerability: 3
+  OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  TeamTagForceFieldSuffix: FoceField
+--- !u!114 &114562387840620348
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1896722452323280}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35b52ee304ad6454d8b5f67bcd1d706a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &114985888697979568
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1896722452323280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ad7694a60ae99147840ec29ed46a196, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GroupName: Projectiles
 --- !u!135 &135496945170436356
 SphereCollider:
   m_ObjectHideFlags: 1
@@ -306,7 +333,7 @@ ParticleSystem:
   moveWithTransform: 1
   moveWithCustomTransform: {fileID: 0}
   scalingMode: 1
-  randomSeed: -683275003
+  randomSeed: -1782414876
   InitialModule:
     serializedVersion: 3
     enabled: 1
@@ -2742,7 +2769,7 @@ ParticleSystem:
   LightsModule:
     enabled: 1
     ratio: 0.1
-    light: {fileID: 108030273114456356, guid: 35dfec220b15b814d9cc2bd28d309187, type: 2}
+    light: {fileID: 0}
     randomDistribution: 1
     color: 1
     range: 1

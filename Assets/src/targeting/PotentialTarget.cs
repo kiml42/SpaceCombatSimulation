@@ -7,29 +7,29 @@ using UnityEngine;
 namespace Assets.Src.Targeting
 {
     /// <summary>
-    /// Class for keeping a score for a potential target rigidbody
+    /// Class for keeping a score for a potential target
     /// </summary>
-    public class PotentialTarget
+    public class PotentialTarget : Target
     {
         public float Score { get; set; }
-        public Transform TargetTransform { get; set; }
-        public Rigidbody TargetRigidbody { get; set; }
+        public bool IsValidForCurrentPicker { get; set; }
 
         public PotentialTarget()
         {
 
         }
         
-        public PotentialTarget(Rigidbody target)
+        public PotentialTarget(Rigidbody target) : base (target)
         {
-            TargetRigidbody = target;
-            TargetTransform = target.transform;
         }
 
-        public PotentialTarget(Transform target)
+        public PotentialTarget(Transform target) : base(target)
         {
-            TargetTransform = target;
-            TargetRigidbody = target.GetComponent("Rigidbody") as Rigidbody;
+        }
+
+        public PotentialTarget(Target target) : base(target)
+        {
+
         }
     }
 }

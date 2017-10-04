@@ -57,9 +57,11 @@ GameObject:
   - component: {fileID: 138877429727170674}
   - component: {fileID: 114145266793683410}
   - component: {fileID: 136704149641470258}
+  - component: {fileID: 114223987788757666}
+  - component: {fileID: 114781741124783610}
   m_Layer: 0
   m_Name: TorpedoTube
-  m_TagString: Team2
+  m_TagString: Team1
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -70,15 +72,15 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1973778278608190}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -773, y: 0, z: 0}
+  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: -4000, y: 0, z: 1002}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4447427867770762}
   - {fileID: 4552303269406678}
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!4 &4447427867770762
 Transform:
   m_ObjectHideFlags: 1
@@ -172,17 +174,34 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 20
   Armour: 0
-  Health: 200
-  DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
+  Health: 400
+  DeathExplosion: {fileID: 54668735992167884, guid: b20315eb9dac9e942a8aeabfcded0980,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 100
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
+  TeamTagForceFieldSuffix: FoceField
+--- !u!114 &114223987788757666
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1973778278608190}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114698199192881328
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -201,12 +220,29 @@ MonoBehaviour:
   OnlyWithTargets: 1
   RandomStartTime: 500
   MinStartTime: 30
+  BurstCount: 1
+  BurstInterval: 1
   EnemyTags:
   - Enemy
-  - Team1
+  - Team2
   Velocity: {x: 0, y: 0, z: 60}
   RandomSpeed: 1
-  LoadTime: 1000
+  LoadTime: 1500
+--- !u!114 &114781741124783610
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1973778278608190}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e927d7ab301976247bdc08793117b61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeactivateParent: 0
+  DeactivateOnBreak: 1
+  DisconectFromParent: 1
+  BreakExplosion: {fileID: 0}
 --- !u!136 &136304497176015924
 CapsuleCollider:
   m_ObjectHideFlags: 1
@@ -240,8 +276,8 @@ FixedJoint:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1973778278608190}
   m_ConnectedBody: {fileID: 0}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
+  m_BreakForce: 100000
+  m_BreakTorque: 100000
   m_EnableCollision: 0
   m_EnablePreprocessing: 1
   m_MassScale: 1

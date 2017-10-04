@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Linq;
 using System;
-using Assets.src.interfaces;
 using Assets.Src.Interfaces;
 using Assets.Src.Targeting;
 using Assets.Src.Targeting.TargetPickers;
@@ -15,8 +14,10 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     /// <summary>
     /// tag of a child object of a fhing to watch or follow.
     /// </summary>
-    public List<string> SpaceShipTags = new List<string>{ "SpaceShip", "Projectile" };
-    
+    public List<string> MainTags = new List<string>{ "SpaceShip"};
+    public List<string> SecondaryTags = new List<string>{ "Projectile" };
+    private List<string> _tags = new List<string> { "SpaceShip", "Projectile" };
+
     /// <summary>
     /// Rotation speed multiplier
     /// </summary>
@@ -73,8 +74,8 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     private Rigidbody _rigidbody;
     private ITargetDetector _detector;
 
-    private PotentialTarget _followedTarget;
-    private PotentialTarget _targetToWatch;
+    public Rigidbody FollowedTarget;
+    public Rigidbody TargetToWatch;
 
     private ITargetPicker _watchPicker;
     private ITargetPicker _followPicker;
@@ -88,16 +89,18 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     public Texture HealthFGTexture;
     public Texture HealthBGTexture;
 
-    public PotentialTarget CurrentTarget
+    public ReticleState ShowReticles = ReticleState.ALL;
+
+    public Target CurrentTarget
     {
         get
         {
-            return _followedTarget;
+            return new Target(FollowedTarget);
         }
 
         set
         {
-            _followedTarget = value;
+            FollowedTarget = value.Rigidbody;
         }
     }
 
@@ -106,7 +109,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         _rigidbody = GetComponent("Rigidbody") as Rigidbody;
         _detector = new ChildTagTargetDetector
         {
-            Tags = SpaceShipTags
+            Tags = _tags
         };
 
         _tagPicker = new HasTagTargetPicker(null);
@@ -120,17 +123,24 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
             _tagPicker,
             _currentlyFollowingPicker,
             new ProximityTargetPicker(transform)
+            {
+                KullInvalidTargets = false
+            }
         };
 
         if(_rigidbody != null)
         {
-            watchPickers.Add(new LookingAtTargetPicker(_rigidbody));
+            watchPickers.Add(new LookingAtTargetPicker(_rigidbody)
+            {
+                KullInvalidTargets = false
+            });
         }
 
         if (MinimumMass > 0)
         {
             watchPickers.Add(new MassTargetPicker{
-                MinMass = MinimumMass
+                MinMass = MinimumMass,
+                KullInvalidTargets = false
             });
         }
 
@@ -139,6 +149,9 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         var followPickers = new List<ITargetPicker>
         {
             new ProximityTargetPicker(transform)
+            {
+                KullInvalidTargets = false
+            }
         };
 
         if (_rigidbody != null)
@@ -150,7 +163,8 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         {
             followPickers.Add(new MassTargetPicker
             {
-                MinMass = MinimumMass
+                MinMass = MinimumMass,
+                KullInvalidTargets = false
             });
         }
         _followPicker = new CombinedTargetPicker(followPickers);
@@ -159,41 +173,45 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 	// Update is called once per frame
 	void Update () {
 
+        if (Input.GetKeyUp(KeyCode.R))
+        {
+            CycleReticleState();
+        }
         if (Input.GetKeyUp(KeyCode.Z))
         {
             PickRandomToFollow();
         }
-        else if(_followedTarget == null || _followedTarget.TargetTransform.IsInvalid())
+        else if(FollowedTarget == null)
         {
             PickBestTargetToFollow();
         }
 
-        if (_followedTarget != null)
+        if (FollowedTarget != null)
         {
-            //Debug.Log("following " + _followedTarget.TargetTransform);
+            //Debug.Log("following " + _followedTarget.Transform);
             var totalTranslateSpeed = TranslateSpeed;
-            if (_followedTarget.TargetRigidbody != null && FollowedObjectTranslateSpeedMultiplier != 0)
+            if (FollowedTarget != null && FollowedObjectTranslateSpeedMultiplier != 0)
             {
-                totalTranslateSpeed += FollowedObjectTranslateSpeedMultiplier * _followedTarget.TargetRigidbody.velocity.magnitude;
+                totalTranslateSpeed += FollowedObjectTranslateSpeedMultiplier * FollowedTarget.velocity.magnitude;
             }
-            transform.position = Vector3.Slerp(transform.position, _followedTarget.TargetTransform.position, Time.deltaTime * totalTranslateSpeed);
+            transform.position = Vector3.Slerp(transform.position, FollowedTarget.position, Time.deltaTime * totalTranslateSpeed);
 
             PickTargetToWatch();
-            if (_targetToWatch != null && _followedTarget.TargetTransform != _targetToWatch.TargetTransform && _targetToWatch.TargetTransform.IsValid())
+            if (TargetToWatch != null && FollowedTarget != TargetToWatch)
             {
-                //Debug.Log("Following " + _followedTarget.TargetTransform.name + ", Watching " + _targetToWatch.TargetTransform.name);
+                //Debug.Log("Following " + _followedTarget.Transform.name + ", Watching " + _targetToWatch.Transform.name);
                 //rotate enpty parent
-                var direction = (_targetToWatch.TargetTransform.position - transform.position).normalized;
+                var direction = (TargetToWatch.position - transform.position).normalized;
                 var lookRotation = Quaternion.LookRotation(direction);
                 transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * RotationSpeed);
 
                 //move the focus
-                _focusDistance = Mathf.Lerp(_focusDistance, Vector3.Distance(transform.position, _targetToWatch.TargetTransform.position), Time.deltaTime * FocusMoveSpeed);
+                _focusDistance = Mathf.Lerp(_focusDistance, Vector3.Distance(transform.position, TargetToWatch.position), Time.deltaTime * FocusMoveSpeed);
 
                 if (Quaternion.Angle(lookRotation, transform.rotation) < NearlyAimedAngle)
                 {
                     //rotate the camera itself - only if the parent is looking in vaguely the right direction.
-                    direction = (_targetToWatch.TargetTransform.position - Camera.transform.position).normalized;
+                    direction = (TargetToWatch.position - Camera.transform.position).normalized;
                     lookRotation = Quaternion.LookRotation(direction);
                     Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, lookRotation, Time.deltaTime * RotationSpeed * 0.3f);
                 }
@@ -225,27 +243,30 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 
     private void DrawHealthBars()
     {
-        var targets = _detector.DetectTargets();
-
-        foreach (var target in targets)
+        if(ShowReticles != ReticleState.NONE)
         {
-            DrawSingleLable(target);
+            var targets = _detector.DetectTargets();
+
+            foreach (var target in targets)
+            {
+                DrawSingleLable(target);
+            }
         }
     }
 
     private void DrawSingleLable(PotentialTarget target)
     {
         // Find the 2D position of the object using the main camera
-        Vector3 boxPosition = Camera.main.WorldToScreenPoint(target.TargetTransform.position);
+        Vector3 boxPosition = Camera.main.WorldToScreenPoint(target.Transform.position);
         if (boxPosition.z > 0)
         {
-            var distance = Vector3.Distance(transform.position, target.TargetTransform.position);
+            var distance = Vector3.Distance(transform.position, target.Transform.position);
 
             // "Flip" it into screen coordinates
             boxPosition.y = Screen.height - boxPosition.y;
 
-            //Draw the distance from the followed object to this object
-            if (distance > MinShowDistanceDistance)
+            //Draw the distance from the followed object to this object - only if it's suitably distant, and has no parent.
+            if (distance > MinShowDistanceDistance && target.Transform.parent == null)
             {
                 GUI.Box(new Rect(boxPosition.x - 20, boxPosition.y + 25, 40, 40), Math.Round(distance).ToString());
             }
@@ -254,7 +275,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
             if (ReticleTexture != null)
                 GUI.DrawTexture(rect, ReticleTexture);
 
-            var healthControler = target.TargetTransform.GetComponent("HealthControler") as HealthControler;
+            var healthControler = target.Transform.GetComponent("HealthControler") as HealthControler;
             if (healthControler != null && healthControler.IsDamaged)
             {
                 if (HealthBGTexture != null)
@@ -279,58 +300,101 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     private void PickTargetToWatch()
     {
         //Debug.Log("to watch");
-        var knower = _followedTarget.TargetTransform.GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
+        var knower = FollowedTarget.GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
         if (knower != null && knower.CurrentTarget != null)
         {
-            _targetToWatch = knower.CurrentTarget;
-            //Debug.Log("Watching followed object's target: " + _targetToWatch.TargetTransform.name);
+            TargetToWatch = knower.CurrentTarget.Rigidbody;
+            //Debug.Log("Watching followed object's target: " + _targetToWatch.Transform.name);
         } else
         {
-            var targets = _detector.DetectTargets();
+            var targets = _detector.DetectTargets()
+                .Where(t => t.Transform.parent == null);  //Don't watch anything that still has a parent.
             targets = _watchPicker.FilterTargets(targets)
                 .OrderByDescending(s => s.Score);
             //foreach (var item in targets)
             //{
-            //    Debug.Log(item.TargetTransform.name + ": " + item.Score);
+            //    Debug.Log(item.Transform.name + ": " + item.Score);
             //}
-        
-            _targetToWatch = targets
-                .FirstOrDefault();
-            //Debug.Log("Watching picked target: " + _targetToWatch.TargetTransform.name);
+
+            TargetToWatch = targets.Any()
+                ? targets
+                .FirstOrDefault()
+                .Rigidbody
+                : null;
+            //Debug.Log("Watching picked target: " + _targetToWatch.Transform.name);
         }
     }
 
     private void PickBestTargetToFollow()
     {
         //Debug.Log("To Follow");
-        var targets = _detector.DetectTargets();
+        var targets = _detector.DetectTargets()
+            .Where(t => t.Transform.parent == null);  //Don't follow anything that still has a parent.
         targets = _followPicker.FilterTargets(targets)
             .OrderByDescending(s => s.Score);
         //foreach (var item in targets)
         //{
-        //    Debug.Log(item.TargetTransform.name + ": " + item.Score);
+        //    Debug.Log(item.Transform.name + ": " + item.Score);
         //}
 
-        _followedTarget = targets
-            .FirstOrDefault();
+        FollowedTarget = targets.Any()
+            ? targets
+            .FirstOrDefault()
+            .Rigidbody
+            : null;
 
-        if(_followedTarget != null)
+        if (FollowedTarget != null)
         {
-            _tagPicker.Tag = _followedTarget.TargetTransform.tag;
+            _tagPicker.Tag = FollowedTarget.tag;
         }
     }
 
     private void PickRandomToFollow()
     {
-        _followedTarget = _detector
+        var tagrgetToFollow = _detector
             .DetectTargets()
-            .Where(s => s.TargetTransform != _followedTarget.TargetTransform)
+            .Where(s => s.Transform.parent == null && s.Rigidbody != FollowedTarget)
             .OrderBy(s => UnityEngine.Random.value)
             .FirstOrDefault();
+        FollowedTarget = tagrgetToFollow != null ? tagrgetToFollow.Rigidbody : null;
     }
 
     public static float Clamp(float value, float min, float max)
     {
         return (value < min) ? min : (value > max) ? max : value;
+    }
+    
+    private void CycleReticleState()
+    {
+        switch (ShowReticles)
+        {
+            case ReticleState.NONE:
+                ShowReticles = ReticleState.ALL;
+                _tags = new List<string>();
+                _tags.AddRange(MainTags);
+                _tags.AddRange(SecondaryTags);
+                _detector = new ChildTagTargetDetector
+                {
+                    Tags = _tags
+                };
+                break;
+            case ReticleState.ALL:
+                ShowReticles = ReticleState.MAIN;
+                _tags = MainTags;
+                _detector = new ChildTagTargetDetector
+                {
+                    Tags = _tags
+                };
+                break;
+            case ReticleState.MAIN:
+                ShowReticles = ReticleState.NONE;
+                break;
+        }
+        Debug.Log(ShowReticles);
+    }
+
+    public enum ReticleState
+    {
+        NONE,MAIN,ALL
     }
 }

@@ -8,7 +8,7 @@ namespace Assets.Src.Interfaces
 {
     public interface ITurretTurner
     {
-        void TurnToTarget(PotentialTarget target);
+        void TurnToTarget(Target target);
         void ReturnToRest();
     }
 }

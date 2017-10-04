@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Assets.src.Evolution
 {
-    public class ShipBuilder : IKnowsEnemyTagAndtag
+    public class ShipBuilder : IKnowsEnemyTags
     {
 
         #region EnemyTags
@@ -17,11 +17,6 @@ namespace Assets.src.Evolution
             var tags = EnemyTags.ToList();
             tags.Add(newTag);
             EnemyTags = tags.Distinct().ToList();
-        }
-
-        public string GetFirstEnemyTag()
-        {
-            return EnemyTags.FirstOrDefault();
         }
 
         public void SetEnemyTags(List<string> allEnemyTags)
@@ -49,6 +44,8 @@ namespace Assets.src.Evolution
         public int MaxLocationTollerance = 1000;
         public int MaxVelociyTollerance = 200;
         public int MaxAngularDragForTorquers = 1;
+
+        public Vector3 InitialVelocity = Vector3.zero;
 
 
         private string _genome;
@@ -113,6 +110,7 @@ namespace Assets.src.Evolution
                             SpawnModules(addedModule.transform);    //spawn modules on this module
 
                             addedModule.transform.SetColor(_r, _g, _b);
+                            addedModule.velocity = InitialVelocity;
                         }
                     }
                     //else

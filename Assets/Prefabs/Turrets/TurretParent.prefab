@@ -74,6 +74,7 @@ GameObject:
   - component: {fileID: 54079204794469090}
   - component: {fileID: 59009853617885348}
   - component: {fileID: 114201230822804862}
+  - component: {fileID: 114575880276079734}
   m_Layer: 8
   m_Name: TurnTable
   m_TagString: Untagged
@@ -95,6 +96,7 @@ GameObject:
   - component: {fileID: 54683890212850012}
   - component: {fileID: 59226683438140610}
   - component: {fileID: 114735797348154080}
+  - component: {fileID: 114380905531141384}
   m_Layer: 8
   m_Name: ElevationHub
   m_TagString: Untagged
@@ -162,10 +164,15 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4087408875352314}
+  - component: {fileID: 114078742538678138}
+  - component: {fileID: 114699345676702336}
+  - component: {fileID: 114545557843358604}
   - component: {fileID: 114422725068886292}
   - component: {fileID: 54298971192452022}
   - component: {fileID: 138934033157855350}
   - component: {fileID: 114375893224788504}
+  - component: {fileID: 114602804500640632}
+  - component: {fileID: 114505701970822600}
   m_Layer: 8
   m_Name: TurretParent
   m_TagString: Team1
@@ -228,8 +235,8 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1721119589249582}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -15.32}
+  m_LocalRotation: {x: 0, y: 0, z: 1, w: 0}
+  m_LocalPosition: {x: -3.1, y: 31.1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4489758503198134}
@@ -247,7 +254,7 @@ Transform:
   m_GameObject: {fileID: 1547687066501114}
   m_LocalRotation: {x: -0.000005099922, y: 0.0000046503055, z: 0.000000029425728,
     w: 1}
-  m_LocalPosition: {x: 0.0000000057734155, y: 0.5000071, z: -0.0000038146973}
+  m_LocalPosition: {x: 0, y: 0.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4735048584263052}
@@ -286,8 +293,8 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1554187838490230}
-  m_LocalRotation: {x: 0.12939848, y: -0.12939204, z: 0.6951663, w: 0.69516736}
-  m_LocalPosition: {x: -0.00000017419461, y: 3.0000052, z: -0.000024795532}
+  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4762531310836884}
@@ -688,7 +695,7 @@ HingeJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0.0000000057734155, y: 0.5000071, z: -0.0000038146973}
+  m_ConnectedAnchor: {x: 0, y: 0.5000076, z: -0.0000038146973}
   m_UseSpring: 0
   m_Spring:
     spring: 0
@@ -706,8 +713,8 @@ HingeJoint:
     bounciness: 0
     bounceMinVelocity: 0.2
     contactDistance: 0
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
+  m_BreakForce: 300000
+  m_BreakTorque: 300000
   m_EnableCollision: 0
   m_EnablePreprocessing: 1
   m_MassScale: 1
@@ -722,7 +729,7 @@ HingeJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: -0.000000032762955, y: 2.499998, z: 0.0000045187535}
+  m_ConnectedAnchor: {x: 0.00000014120074, y: 2.4999928, z: 0.000029314235}
   m_UseSpring: 0
   m_Spring:
     spring: 0
@@ -740,8 +747,8 @@ HingeJoint:
     bounciness: 0
     bounceMinVelocity: 0.2
     contactDistance: 0
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
+  m_BreakForce: 100000
+  m_BreakTorque: 100000
   m_EnableCollision: 1
   m_EnablePreprocessing: 1
   m_MassScale: 1
@@ -808,6 +815,35 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1168437702678772}
   m_Enabled: 1
+--- !u!114 &114078742538678138
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1721119589249582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ContinuallyCheckForTargets: 1
+  NeverRetarget: 0
+  DropInvalidTargetsWhenTereAreValidTargets: 1
+  PollInterval: 200
+  PickerDistanceMultiplier: 1
+  PickerRange: 500
+  PickerInRangeBonus: 200
+  PickerMassMultiplier: 50
+  MinimumMass: 80
+  PickerOverMinMassBonus: 5000
+  PickerAimedAtMultiplier: 80
+  PickerApproachWeighting: 5
+  LineOfSightBonus: 1000
+  MinLineOfSightDetectionDistance: 2
+  HemisphereFilterObject: {fileID: 4087408875352314}
+  InCorrectHemisphereBonus: 1000
+  EnemyTags:
+  - Enemy
 --- !u!114 &114201230822804862
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -824,14 +860,20 @@ MonoBehaviour:
   Health: 299.84113
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 100
   FramesOfInvulnerability: 0
   OriginalHealth: 300
+  DamageDelegate: {fileID: 114375893224788504}
+  IgnoredTags:
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!114 &114375893224788504
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -845,17 +887,38 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 10
   Armour: 0
-  Health: 300
-  DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
+  Health: 400
+  DeathExplosion: {fileID: 54668735992167884, guid: b20315eb9dac9e942a8aeabfcded0980,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 100
   FramesOfInvulnerability: 0
   OriginalHealth: 300
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
+  TeamTagForceFieldSuffix: FoceField
+--- !u!114 &114380905531141384
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1554187838490230}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e927d7ab301976247bdc08793117b61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeactivateParent: 1
+  DeactivateOnBreak: 1
+  DisconectFromParent: 1
+  BreakExplosion: {fileID: 0}
 --- !u!114 &114422725068886292
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -867,30 +930,91 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 90fe067e2d1dba34980b24b8f5d74be5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  RestTarget: {fileID: 4616440911490974}
   Projectile: {fileID: 54662518417675552, guid: 312ddd340d56b9a4bab4336158c6b546,
     type: 2}
   LoadTime: 80
   ProjectileSpeed: 800
-  ShootAngle: 10
-  RandomSpeed: 10
-  TurnTable: {fileID: 54079204794469090}
+  RandomSpeed: 0.2
   ElevationHub: {fileID: 54683890212850012}
   EmitterParent: {fileID: 4762531310836884}
   TagChildren: 0
-  EnemyTags:
-  - Enemy
-  - Team2
   SetChildrensEnemy: 0
   RecoilForce: 400
-  PickerDistanceMultiplier: 1
-  PickerInRangeBonus: 200
-  PickerRange: 300
-  PickerAimedAtMultiplier: 100
-  PickerMinimumMass: 80
-  PickerMasMultiplier: 50
-  PickerOverMinMassBonus: 2000
-  PickerApproachWeighting: 10
+--- !u!114 &114505701970822600
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1721119589249582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e927d7ab301976247bdc08793117b61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeactivateParent: 0
+  DeactivateOnBreak: 1
+  DisconectFromParent: 1
+  BreakExplosion: {fileID: 0}
+--- !u!114 &114545557843358604
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1721119589249582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e74601cf9d2f67a4daff32dea07fee84, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  AimingObject: {fileID: 54683890212850012}
+  ShootAngle: 0.2
+  AvoidFriendlyFire: 1
+  FriendlyDetectionDistance: 80
+  MinFriendlyDetectionDistance: 1.5
+--- !u!114 &114575880276079734
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1547687066501114}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e927d7ab301976247bdc08793117b61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeactivateParent: 1
+  DeactivateOnBreak: 1
+  DisconectFromParent: 1
+  BreakExplosion: {fileID: 0}
+--- !u!114 &114602804500640632
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1721119589249582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &114699345676702336
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1721119589249582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ec4508e0c0d409448a9d406412cb2b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  RestTarget: {fileID: 4616440911490974}
+  TurnTable: {fileID: 54079204794469090}
+  ElevationHub: {fileID: 54683890212850012}
+  TurnTableMotorFoce: 30
+  TurnTableMotorSpeedMultiplier: 500
+  ElevationHubMotorFoce: 30
+  ElevationHubMotorSpeedMultiplier: 500
 --- !u!114 &114735797348154080
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -907,14 +1031,20 @@ MonoBehaviour:
   Health: 299.84113
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 100
   FramesOfInvulnerability: 0
   OriginalHealth: 300
+  DamageDelegate: {fileID: 114375893224788504}
+  IgnoredTags:
+  - ForceField
+  - Team1ForceField
+  - Team2ForceField
+  - Team3ForceField
+  - Team4ForceField
+  - Team5ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!124 &124123618135675836
 Behaviour:
   m_ObjectHideFlags: 1
@@ -968,9 +1098,9 @@ FixedJoint:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1721119589249582}
   m_ConnectedBody: {fileID: 0}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
-  m_EnableCollision: 1
+  m_BreakForce: 300000
+  m_BreakTorque: 300000
+  m_EnableCollision: 0
   m_EnablePreprocessing: 1
   m_MassScale: 1
   m_ConnectedMassScale: 1

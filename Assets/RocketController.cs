@@ -2,36 +2,33 @@
 using Assets.Src.Rocket;
 using Assets.Src.Targeting;
 using Assets.Src.Targeting.TargetPickers;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System;
-using Assets.src.targeting;
 using System.Linq;
-using Assets.src.Pilots;
-using Assets.src.interfaces;
+using Assets.Src.Pilots;
+using Assets.Src.ObjectManagement;
+using System;
 
-public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurrentTarget
+public class RocketController : MonoBehaviour
 {
+    public TargetChoosingMechanism TargetChoosingMechanism;
     public float ShootAngle = 10;
     public float TorqueMultiplier = 1f;
     public float LocationAimWeighting = 3f;
-    public float Fuel = 200f;
+
+    [Tooltip("Delay until engines (including RCS) will start and warhead will arm")]
     public int StartDelay = 10;
+
+    [Tooltip("Delay until non-engine torquers will start")]
     public int TurningStartDelay = 2;
 
     public float TimeToTargetForDetonation = 0.5f;
     public Rigidbody Shrapnel;
     public Rigidbody ExplosionEffect;
     public int ShrapnelCount = 10;
-    public float ExplosionForce = 1;
+    
     public float ShrapnelSpeed = 100;
-    public float ExplosionDamage = 10000;
-    public float ExplosionRadius = 20;
-    //public bool ExplodeOnAnyCollision = true;
-
-    private ITargetDetector _detector;
-    private ITargetPicker _targetPicker;
+    
     private IPilot _pilot;
 
     private Rigidbody _rigidbody;
@@ -42,116 +39,69 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
     public bool SetEnemyTagOnShrapnel = false;
     public Transform VectorArrow;
     
-    #region TargetPickerVariables
-    public float PickerDistanceMultiplier = 1;
-    public float PickerInRangeBonus = 0;
-    public float PickerRange = 500;
-    public float PickerAimedAtMultiplier = 100;
-    public float MinimumMass = 0;
-    public float PickerMasMultiplier = 1;
-    public float PickerOverMinMassBonus = 10000;
-    public float PickerApproachWeighting = 20;
-    #endregion
+    public List<EngineControler> Engines;
 
-    #region EnemyTags
-    public void AddEnemyTag(string newTag)
-    {
-        var tags = EnemyTags.ToList();
-        tags.Add(newTag);
-        EnemyTags = tags.Distinct().ToList();
-    }
+    [Tooltip("Check for best targets every frame if true, otherwise only on target loss")]
+    public bool ContinuallyCheckForTargets = false;
 
-    public string GetFirstEnemyTag()
-    {
-        return EnemyTags.FirstOrDefault();
-    }
-
-    public void SetEnemyTags(List<string> allEnemyTags)
-    {
-        EnemyTags = allEnemyTags;
-    }
-
-    public List<string> GetEnemyTags()
-    {
-        return EnemyTags;
-    }
-
-    public List<string> EnemyTags;
-
+    [Tooltip("If set to true a target will be aquired once only, once lost the rocket will deactivate." +
+        " Emulates rockets being told their target by their launcher at launch.")]
+    public bool NeverRetarget = false;
+    
     /// <summary>
     /// Rocket with detonate after this time.
     /// </summary>
     public float TimeToLive = Mathf.Infinity;
-    #endregion
-    
-    #region knowsCurrentTarget
-    public PotentialTarget CurrentTarget { get; set; }
-    #endregion
+
+    [Tooltip("Time to friendly collision to activate maximum evasion")]
+    public float TimeThresholdForMaximumEvasion = 2;
+
+    [Tooltip("Time to friendly collision to activate medium evasion")]
+    public float TimeThresholdForMediumEvasion = 4;
+
+    [Tooltip("Time to friendly collision to activate minimal evasion")]
+    public float TimeThresholdForMinimalEvasion = 6;
+
+    [Tooltip("Frames to stay in evasion mode after no longer being on a collision course with a friendly.")]
+    public int EvasionModeTime = 30;
+
+    [Tooltip("Distance in front of the rocket to start looking for friendlies on a collision cource - useful to avoid detecting itself.")]
+    public float MinimumFriendlyDetectionDistance = 4;
 
     // Use this for initialization
     void Start()
     {
         _rigidbody = GetComponent<Rigidbody>();
-
-        _detector = new MultiTagTargetDetector()
-        {
-            EnemyTags = EnemyTags
-        };
-
-        var pickers = new List<ITargetPicker>
-        {
-            new ProximityTargetPicker(_rigidbody){
-                DistanceMultiplier = PickerDistanceMultiplier,
-                InRangeBonus = PickerInRangeBonus,
-                Range = PickerRange
-            },
-            new LookingAtTargetPicker(_rigidbody)
-            {
-                Multiplier = PickerAimedAtMultiplier
-            },
-            new ApproachingTargetPicker(_rigidbody, PickerApproachWeighting)
-        };
-
-        if (MinimumMass > 0 || PickerMasMultiplier != 0)
-        {
-            pickers.Add(new MassTargetPicker
-            {
-                MinMass = MinimumMass,
-                MassMultiplier = PickerMasMultiplier,
-                OverMinMassBonus = PickerOverMinMassBonus
-            });
-        }
-
-        _targetPicker = new CombinedTargetPicker(pickers);
-
+        
         var initialAngularDrag = _rigidbody.angularDrag;
         var torqueApplier = new MultiTorquerTorqueAplier(_rigidbody, TorqueMultiplier, initialAngularDrag);
-        _pilot = new RocketPilot(torqueApplier, _rigidbody, ShootAngle, Fuel, StartDelay)
+
+        _pilot = new RocketPilot(torqueApplier, _rigidbody, Engines, StartDelay)
         {
             LocationAimWeighting = LocationAimWeighting,
             TurningStartDelay = TurningStartDelay,
-            VectorArrow = VectorArrow
+            VectorArrow = VectorArrow,
+            TimeThresholdForMaximumEvasion = TimeThresholdForMaximumEvasion,
+            TimeThresholdForMediumEvasion = TimeThresholdForMediumEvasion,
+            TimeThresholdForMinimalEvasion = TimeThresholdForMinimalEvasion,
+            EvasionModeTime = EvasionModeTime,
+            MinimumFriendlyDetectionDistance = MinimumFriendlyDetectionDistance
         };
 
-        var exploder = new ShrapnelAndDamageExploder(_rigidbody, Shrapnel, ExplosionEffect, ShrapnelCount)
+        var exploder = new ShrapnelExploder(_rigidbody, Shrapnel, ExplosionEffect, ShrapnelCount)
         {
-            ExplosionForce = ExplosionForce,
-            EnemyTags = EnemyTags,
+            EnemyTags = TargetChoosingMechanism.EnemyTags,
             TagShrapnel = TagShrapnel,
             SetEnemyTagOnShrapnel = SetEnemyTagOnShrapnel,
-            ExplosionBaseDamage = ExplosionDamage,
-            ShrapnelSpeed = ShrapnelSpeed,
-            ExplosionRadius = ExplosionRadius
+            ShrapnelSpeed = ShrapnelSpeed
         };
 
         _detonator = new ProximityApproachDetonator(exploder, _rigidbody, TimeToTargetForDetonation, ShrapnelSpeed);
 
-        _runner = new RocketRunner(_detector, _targetPicker, _pilot, _detonator, this)
+        _runner = new RocketRunner(TargetChoosingMechanism, _pilot, _detonator)
         {
             name = transform.name
         };
-        
-        //Debug.Log("starting");
     }
 
     // Update is called once per frame
@@ -171,13 +121,4 @@ public class RocketController : MonoBehaviour, IKnowsEnemyTagAndtag, IKnowsCurre
         }
         TimeToLive--;
     }
-
-    //void OnCollisionEnter(Collision colision)
-    //{
-    //    if (ExplodeOnAnyCollision)
-    //    {
-    //        colision.rigidbody.AddExplosionForce(ExplosionForce, transform.position, 100);
-    //        _detonator.DetonateNow();
-    //    }
-    //}
 }

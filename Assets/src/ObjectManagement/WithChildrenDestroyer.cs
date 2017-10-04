@@ -1,5 +1,4 @@
-﻿using Assets.src.interfaces;
-using Assets.Src.Interfaces;
+﻿using Assets.Src.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -80,6 +79,8 @@ namespace Assets.Src.ObjectManagement
                 Exploder.SetExplodingObject(rigidBodyToExplode);
                 Exploder.ExplodeNow();
             }
+
+            toDestroy.transform.SendMessage("DieNow", SendMessageOptions.DontRequireReceiver);
 
             GameObject.Destroy(toDestroy);
         }
