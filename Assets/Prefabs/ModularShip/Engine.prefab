@@ -268,7 +268,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: -2000, z: 0}
   EngineForce2: 4000
   Pilot: {fileID: 0}
   FuelTank: {fileID: 0}
@@ -328,6 +327,10 @@ MonoBehaviour:
   ShrapnelSpeed2: 20
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!138 &138388483758250644
 FixedJoint:
   m_ObjectHideFlags: 1
@@ -335,8 +338,8 @@ FixedJoint:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1998849172333536}
   m_ConnectedBody: {fileID: 0}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
+  m_BreakForce: 200000
+  m_BreakTorque: 200000
   m_EnableCollision: 0
   m_EnablePreprocessing: 1
   m_MassScale: 1

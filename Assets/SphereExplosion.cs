@@ -1,4 +1,5 @@
-﻿using Assets.Src.ObjectManagement;
+﻿using Assets.Src.Health;
+using Assets.Src.ObjectManagement;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -71,8 +72,9 @@ public class SphereExplosion : MonoBehaviour {
                     {
                         var distance = Vector3.Distance(rb.position, transform.position);
                         var damage = distance > 1 ? ExplosionBaseDamage / (distance * distance) : ExplosionBaseDamage;
-                   
-                        hc.ApplyDamage(damage);
+
+                        var packet = new DamagePacket(damage, true);
+                        hc.ApplyDamage(packet);
                     }
                 }
             }

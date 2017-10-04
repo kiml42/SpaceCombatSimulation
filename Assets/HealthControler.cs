@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using Assets.Src.Health;
 
 public class HealthControler : MonoBehaviour
 {
@@ -122,6 +123,21 @@ public class HealthControler : MonoBehaviour
             //Debug.Log(damage + "left for " + name);
         }
         Health -= damage;
+    }
+
+    /// <summary>
+    /// Applys damage, ignores resistance and armour
+    /// </summary>
+    /// <param name="damage"></param>
+    public void ApplyDamage(DamagePacket damage)
+    {
+        if(damage.IsAOE && DamageDelegate != null)
+        {
+            Debug.Log(transform.name + " Ignoring AOE damage because it has a delegate");
+        } else
+        {
+            ApplyDamage(damage.Damage);
+        }
     }
 
     public bool IsDamaged

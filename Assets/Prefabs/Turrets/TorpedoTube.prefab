@@ -218,7 +218,7 @@ MonoBehaviour:
     type: 2}
   Emitter: {fileID: 4447427867770762}
   OnlyWithTargets: 1
-  RandomStartTime: 20
+  RandomStartTime: 500
   MinStartTime: 30
   BurstCount: 1
   BurstInterval: 1
@@ -227,7 +227,7 @@ MonoBehaviour:
   - Team2
   Velocity: {x: 0, y: 0, z: 60}
   RandomSpeed: 1
-  LoadTime: 1000
+  LoadTime: 1500
 --- !u!114 &114781741124783610
 MonoBehaviour:
   m_ObjectHideFlags: 1

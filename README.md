@@ -38,6 +38,7 @@ TODO:
             Create a muzzle flash prefab that is spawned with no additional velocity, or even parented to emitter
         Prevent fluttery torpedoes.
         Make turrets account for the thing they're on's rotation.
+        Prevent ships that break up immediately.
 
 
     Store full config of evolution in current generation file.
