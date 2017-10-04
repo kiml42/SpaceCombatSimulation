@@ -25,6 +25,10 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
         " Targets will not be kulled if there are no valid targets (so invalid targets will be tracked in case they become valid later)")]
     public bool DropInvalidTargetsWhenTereAreValidTargets = false;
 
+    [Tooltip("fraims to wait between polling for better targets.")]
+    public int PollInterval = 0;
+    private int _waitForPoll = 0;
+
     #region TargetPickerVariables
     public float PickerDistanceMultiplier = 1;
     public float PickerRange = 500;
@@ -147,13 +151,14 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
     }
 	
 	// Update is called once per frame
-	void Update () {
+	void FixedUpdate () {
         if (!NeverRetarget || !_hasHadTarget)
         {
             var targetIsInvalid = CurrentTarget == null || CurrentTarget.Transform.IsInvalid();
 
-            if (ContinuallyCheckForTargets || targetIsInvalid)
+            if (targetIsInvalid || (ContinuallyCheckForTargets && _waitForPoll <= 0))
             {
+                //either the target is invalid, or the poll interval has elapsed and the ContinuallyCheckForTargets boolean is true, so a new poll should be made.
                 //Debug.Log(name + " aquiring new target");
                 var allTargets = _detector.DetectTargets();
                 var bestTarget = _targetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).FirstOrDefault();
@@ -162,6 +167,11 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
                 {
                     _hasHadTarget = true;
                 }
+                _waitForPoll = PollInterval;
+            } else
+            {
+                //there was no poll this frame, so decrement the countdown.
+                _waitForPoll--;
             }
         }
     }

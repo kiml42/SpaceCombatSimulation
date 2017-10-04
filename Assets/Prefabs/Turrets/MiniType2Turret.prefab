@@ -1423,6 +1423,7 @@ MonoBehaviour:
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
+  PollInterval: 100
   PickerDistanceMultiplier: 3
   PickerRange: 1000
   PickerInRangeBonus: 10000
@@ -1432,6 +1433,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 80
   PickerApproachWeighting: 20
   LineOfSightBonus: 1000
+  MinLineOfSightDetectionDistance: 2
   HemisphereFilterObject: {fileID: 4541375484301278}
   InCorrectHemisphereBonus: 1000
   EnemyTags:
@@ -1451,6 +1453,7 @@ MonoBehaviour:
   ShootAngle: 10
   AvoidFriendlyFire: 1
   FriendlyDetectionDistance: 80
+  MinFriendlyDetectionDistance: 0.5
 --- !u!114 &114933443936390894
 MonoBehaviour:
   m_ObjectHideFlags: 1

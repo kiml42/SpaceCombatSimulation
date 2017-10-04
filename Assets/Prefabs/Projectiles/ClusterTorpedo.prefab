@@ -4311,6 +4311,7 @@ MonoBehaviour:
   ContinuallyCheckForTargets: 0
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
+  PollInterval: 100
   PickerDistanceMultiplier: 0.2
   PickerRange: 0
   PickerInRangeBonus: 0

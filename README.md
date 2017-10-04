@@ -10,8 +10,6 @@ R - cycle reticle state
 
 Bugs:
     Priority:
-        Explosion spheres damage turrets 3 times(once for each of their rigidbodies)
-            Can fix by having it know it's splash damage, and have splash damage be ignored if it would otherwise be passed up.
         "Can't remove Rigidbody because HingeJoint depends on it"
         rocket engines carry on regardless if the rocket has no target.
     Graphical - Beams don't turn off when the turret dies.
