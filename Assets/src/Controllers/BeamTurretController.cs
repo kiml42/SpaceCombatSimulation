@@ -11,7 +11,6 @@ using UnityEngine;
 
 public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivatable, IKnowsProjectileSpeed
 {
-    private IKnowsCurrentTarget _targetChoosingMechanism;
     public int LoadTime = 50;
     public int ShootTime = 200;
     public int StartOffset = 10;
@@ -50,7 +49,6 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     // Use this for initialization
     void Start()
     {
-        _targetChoosingMechanism = GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
         var emitterCount = BeamsParent.childCount;
 
         _beams = new List<Beam>();

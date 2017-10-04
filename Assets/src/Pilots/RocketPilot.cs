@@ -130,7 +130,7 @@ namespace Assets.Src.Pilots
 
             //Debug.Log("casting ray from " + _pilotObject.position + " on vector " + _pilotObject.velocity);
             var positionOffset = _pilotObject.velocity.normalized * MinimumFriendlyDetectionDistance;
-            var ray = new Ray(_pilotObject.position, _pilotObject.velocity);
+            var ray = new Ray(_pilotObject.position + positionOffset, _pilotObject.velocity);
 
             RaycastHit hit;
 
