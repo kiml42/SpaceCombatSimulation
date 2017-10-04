@@ -53,11 +53,12 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
     public int LoadTime = 200;
 
     private string InactiveTag = "Untagged";
-    private Renderer _renderer;
+    private ColourSetter _colerer;
 
     // Use this for initialization
     void Start()
     {
+        _colerer = GetComponent("ColourSetter") as ColourSetter;
         _reload = (int)(UnityEngine.Random.value * RandomStartTime) + MinStartTime;
         Emitter = Emitter ?? transform;
 
@@ -68,9 +69,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
                 EnemyTags = EnemyTags
             };
         }
-
-        _renderer = transform.GetComponent("Renderer") as Renderer;
-
+        
         _spawner = GetComponent("Rigidbody") as Rigidbody;
     }
 
@@ -99,10 +98,10 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
                 projectile.SendMessage("SetEnemyTags", EnemyTags, SendMessageOptions.DontRequireReceiver);
                 if (TagChildren) { projectile.tag = tag; }
 
-                if (_renderer != null)
+                if (_colerer != null)
                 {
                     //Debug.Log("has renderer");
-                    projectile.transform.SetColor(_renderer.material.color);
+                    projectile.transform.SetColor(_colerer.Colour);
                 }
 
                 _projectilesThisBurst++;

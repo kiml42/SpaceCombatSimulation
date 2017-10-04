@@ -36,7 +36,7 @@ namespace Assets.Src.ObjectManagement
                 return;
             }
             //Debug.Log(colour);
-            //Debug.Log(transform);
+            //Debug.Log(transform + " is having its colour set by the extension");
             var renderer = transform.GetComponent("Renderer") as Renderer;
             if (renderer != null)
             {

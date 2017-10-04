@@ -485,6 +485,7 @@ GameObject:
   - component: {fileID: 114140716898617586}
   - component: {fileID: 114310215052602218}
   - component: {fileID: 114634532448284018}
+  - component: {fileID: 114313578686613024}
   m_Layer: 8
   m_Name: MiniBeamTurret
   m_TagString: Team1
@@ -2038,6 +2039,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &114313578686613024
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1964144153646322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Colour: {r: 0.42647058, g: 0.42647058, b: 0.458, a: 0}
+  Depth: 3
 --- !u!114 &114395788500693144
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -7,11 +7,13 @@ public class ColourSetter : MonoBehaviour
 {
     public Color Colour;
     public int Depth = 1;
+    public bool SetInStart = false;
 
     // Use this for initialization
     void Start()
     {
-        SetColor(transform, Colour, Depth);
+        if(SetInStart)
+            SetColor(transform, Colour, Depth);
     }
 
     public void SetColour(Transform transform, float r, float g, float b, float a, int depth = 0)
@@ -22,6 +24,8 @@ public class ColourSetter : MonoBehaviour
 
     public void SetColor(Transform transform, Color colour, int depth = 0)
     {
+        //Debug.Log(transform + " Is having its color set");
+        Colour = colour;
         var renderer = transform.GetComponent("Renderer") as Renderer;
         if (renderer != null)
         {

@@ -59,6 +59,7 @@ GameObject:
   - component: {fileID: 136704149641470258}
   - component: {fileID: 114223987788757666}
   - component: {fileID: 114781741124783610}
+  - component: {fileID: 114890795770256878}
   m_Layer: 0
   m_Name: TorpedoTube
   m_TagString: Team1
@@ -243,6 +244,19 @@ MonoBehaviour:
   DeactivateOnBreak: 1
   DisconectFromParent: 1
   BreakExplosion: {fileID: 0}
+--- !u!114 &114890795770256878
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1973778278608190}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Colour: {r: 0.42647058, g: 0.42647058, b: 0.458, a: 0}
+  Depth: 3
 --- !u!136 &136304497176015924
 CapsuleCollider:
   m_ObjectHideFlags: 1

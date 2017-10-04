@@ -33,6 +33,8 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
 
     public bool SetChildrensEnemy = false;
     public float RecoilForce = 0;
+
+    private ColourSetter _colerer;
     
     float? IKnowsProjectileSpeed.ProjectileSpeed
     {
@@ -45,6 +47,7 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
     // Use this for initialization
     void Start()
     {
+        _colerer = GetComponent("ColourSetter") as ColourSetter;
         _targetChoosingMechanism = GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
         _tagKnower = GetComponent("IKnowsEnemyTags") as IKnowsEnemyTags;
         var emitterCount = EmitterParent.childCount;
@@ -88,6 +91,11 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
 
                 if (SetChildrensEnemy && _tagKnower != null) {
                     projectile.SendMessage("SetEnemyTags", _tagKnower.GetEnemyTags());
+                }
+                if (_colerer != null)
+                {
+                    //Debug.Log("has renderer");
+                    projectile.transform.SetColor(_colerer.Colour);
                 }
                 if (TagChildren) { projectile.tag = tag; }
             }
