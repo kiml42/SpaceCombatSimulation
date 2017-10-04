@@ -1,23 +1,27 @@
-﻿using System.Collections;
+﻿using Assets.Src.ObjectManagement;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SetColour : MonoBehaviour
+public class ColourSetter : MonoBehaviour
 {
-    public float R = 0.5f;
-    public float G = 0.5f;
-    public float B = 0.5f;
-    public float A = 1;
+    public Color Colour;
+    public int Depth = 1;
 
     // Use this for initialization
     void Start()
     {
-        SetColor(transform, 1);
+        SetColor(transform, Colour, Depth);
     }
 
-    private void SetColor(Transform transform, int depth = 0)
+    public void SetColour(Transform transform, float r, float g, float b, float a, int depth = 0)
     {
-        var colour = new Color(R, G, B, A);
+        var colour = new Color(r, g, b, a);
+        SetColor(transform, colour, depth);
+    }
+
+    public void SetColor(Transform transform, Color colour, int depth = 0)
+    {
         var renderer = transform.GetComponent("Renderer") as Renderer;
         if (renderer != null)
         {
@@ -35,7 +39,7 @@ public class SetColour : MonoBehaviour
                     var child = base.transform.GetChild(i);
                     if (child != null)
                     {
-                        SetColor(child, --depth);
+                        child.SetColor(Colour, --depth);
                     }
                 }
             }

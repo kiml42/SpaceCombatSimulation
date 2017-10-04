@@ -16,12 +16,11 @@ Bugs:
 
 TODO:
     Priority:
+        Colour projectiles the same as the ship.
         Handle very high speed collisions -sort of done.
             new idea Projectiles cast a ray from previous position to current position jump to location of a hit, forcing a physics collision.
                 This works but is damn heavy
             Plan C - have a trigger going behind the projectile and only cast the ray if that collides. (or use the collision point, if that's a thing.)
-        Target choosing mechanism has an option to set how many frames between polling (always polls when target is null.)
-        Colour projectiles the same as the ship.
         Railgun turret
             Single beam beam turret with very short on, long reload and huge damage ignoring range.
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).

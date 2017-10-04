@@ -28,6 +28,13 @@ namespace Assets.Src.ObjectManagement
 
         public static void SetColor(this Transform transform, Color colour, int depth = 20)
         {
+            var colourer = transform.GetComponent("ColourSetter") as ColourSetter;
+            if(colourer != null)
+            {
+                //use the ColourSetter if it has one.
+                colourer.SetColor(transform, colour, depth);
+                return;
+            }
             //Debug.Log(colour);
             //Debug.Log(transform);
             var renderer = transform.GetComponent("Renderer") as Renderer;

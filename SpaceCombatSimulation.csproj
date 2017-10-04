@@ -93,7 +93,7 @@
     <Compile Include="Assets\RayTrigger.cs" />
     <Compile Include="Assets\RegisterAsTarget.cs" />
     <Compile Include="Assets\RocketController.cs" />
-    <Compile Include="Assets\SetColour.cs" />
+    <Compile Include="Assets\ColourSetter.cs" />
     <Compile Include="Assets\ShipCam.cs" />
     <Compile Include="Assets\ShipTester.cs" />
     <Compile Include="Assets\SpaceShipControler.cs" />
