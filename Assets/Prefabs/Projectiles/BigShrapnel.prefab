@@ -24,9 +24,9 @@ GameObject:
   - component: {fileID: 23216143442442848}
   - component: {fileID: 54002987854370330}
   - component: {fileID: 96428866563619834}
-  - component: {fileID: 114297175802323860}
   - component: {fileID: 114691733823558158}
   - component: {fileID: 114428487155655278}
+  - component: {fileID: 114655787518478694}
   m_Layer: 0
   m_Name: BigShrapnel
   m_TagString: Untagged
@@ -198,35 +198,6 @@ TrailRenderer:
     generateLightingData: 0
   m_MinVertexDistance: 0.1
   m_Autodestruct: 0
---- !u!114 &114297175802323860
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1349918016959724}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4a2aeaa676ae4da40b02b9861e0dc174, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Resilience: 1
-  Armour: 0
-  Health: 1
-  DeathExplosion: {fileID: 0}
-  Shrapnel: {fileID: 0}
-  ShrapnelCount2: 30
-  ShrapnelSpeed2: 20
-  FramesOfInvulnerability: 3
-  OriginalHealth: 0
-  DamageDelegate: {fileID: 0}
-  IgnoredTags:
-  - ForceField
-  - Team1ForceField
-  - Team2ForceField
-  - Team3ForceField
-  - Team4ForceField
-  - Team5ForceField
-  TeamTagForceFieldSuffix: FoceField
 --- !u!114 &114428487155655278
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -239,6 +210,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GroupName: Projectiles
+--- !u!114 &114655787518478694
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1349918016959724}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eff07e5891a21244483f5839c46600e5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeathExplosion: {fileID: 0}
+  Shrapnel: {fileID: 0}
+  ShrapnelCount2: 30
+  ShrapnelSpeed2: 20
+  FramesOfInvulnerability: 3
 --- !u!114 &114691733823558158
 MonoBehaviour:
   m_ObjectHideFlags: 1

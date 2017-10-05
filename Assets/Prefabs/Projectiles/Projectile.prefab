@@ -26,10 +26,10 @@ GameObject:
   - component: {fileID: 96784482137711272}
   - component: {fileID: 198322044851085770}
   - component: {fileID: 199196440053259074}
-  - component: {fileID: 114700651417826980}
   - component: {fileID: 114731812363550124}
   - component: {fileID: 114490638514146656}
   - component: {fileID: 114451202902444972}
+  - component: {fileID: 114687717949892332}
   m_Layer: 0
   m_Name: Projectile
   m_TagString: Untagged
@@ -224,7 +224,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GroupName: Projectiles
---- !u!114 &114700651417826980
+--- !u!114 &114687717949892332
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
@@ -232,23 +232,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 1570081493313536}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4a2aeaa676ae4da40b02b9861e0dc174, type: 3}
+  m_Script: {fileID: 11500000, guid: eff07e5891a21244483f5839c46600e5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Resilience: 1
-  Armour: 0
-  Health: 1
   DeathExplosion: {fileID: 54368247732877992, guid: e6ef866ccc6cd2c4fb5f402be7b7a1d0,
     type: 2}
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 0
   ShrapnelSpeed2: 0
   FramesOfInvulnerability: 3
-  OriginalHealth: 0
-  DamageDelegate: {fileID: 0}
-  IgnoredTags:
-  - ForceField
-  TeamTagForceFieldSuffix: FoceField
 --- !u!114 &114731812363550124
 MonoBehaviour:
   m_ObjectHideFlags: 1

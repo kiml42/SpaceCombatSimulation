@@ -2307,7 +2307,7 @@ MonoBehaviour:
   ElevationHub: {fileID: 54685917326791822}
   BeamsParent: {fileID: 4240506007227012}
   InitialRadius: 0.3
-  Divergence: 0.002
+  Divergence: 0.003
   BeamColour: {r: 0.065999985, g: 1, b: 0.63013583, a: 0.772}
   KeepShootingFrames: 25
 --- !u!114 &114921045998262274

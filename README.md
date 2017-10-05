@@ -29,7 +29,6 @@ TODO:
         Fighters - using engines as weapons/using guns/both.
         Destructin only leaves objects with a rigibdbody and a health controller
         TargetPickers have option to kull all but the best x.
-        Shrapnel and bullets die on any hit (no health controller)
         improve muzzle flashes.
             Create a muzzle flash prefab that is spawned with no additional velocity, or even parented to emitter
         Prevent fluttery torpedoes.

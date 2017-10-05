@@ -4152,8 +4152,8 @@ MonoBehaviour:
   TargetChoosingMechanism: {fileID: 114344996389248322}
   ShootAngle: 5
   TorqueMultiplier: 0
-  LocationAimWeighting: 8
-  StartDelay: 50
+  LocationAimWeighting: 50
+  StartDelay: 40
   TurningStartDelay: 10
   TimeToTargetForDetonation: 2.5
   Shrapnel: {fileID: 54172732429601216, guid: 64a8db6279a423644be913ab3dd17046, type: 2}
