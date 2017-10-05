@@ -30,6 +30,7 @@ GameObject:
   - component: {fileID: 114490638514146656}
   - component: {fileID: 114451202902444972}
   - component: {fileID: 114687717949892332}
+  - component: {fileID: 114647650492563682}
   m_Layer: 0
   m_Name: Projectile
   m_TagString: Untagged
@@ -224,6 +225,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GroupName: Projectiles
+--- !u!114 &114647650492563682
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1570081493313536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c55bcee375774e43b0e150b11ca6c29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Type: 0
 --- !u!114 &114687717949892332
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -240,7 +253,6 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 0
   ShrapnelSpeed2: 0
-  FramesOfInvulnerability: 0
 --- !u!114 &114731812363550124
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -252,7 +264,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6312b7bfe9030e40b858f67cf019e96, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Lifetime: 600
+  Lifetime: 800
   RandomLifetime: 20
 --- !u!135 &135345287157678370
 SphereCollider:

@@ -104,6 +104,7 @@ GameObject:
   - component: {fileID: 23479971686594172}
   - component: {fileID: 54209345066019514}
   - component: {fileID: 114552265659077522}
+  - component: {fileID: 114343165378199658}
   m_Layer: 0
   m_Name: TurretHub
   m_TagString: Untagged
@@ -335,6 +336,18 @@ MonoBehaviour:
   EnemyTags: []
   TurretParent: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
     type: 2}
+--- !u!114 &114343165378199658
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1893552128835256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c55bcee375774e43b0e150b11ca6c29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Type: 4
 --- !u!114 &114484831651811278
 MonoBehaviour:
   m_ObjectHideFlags: 1

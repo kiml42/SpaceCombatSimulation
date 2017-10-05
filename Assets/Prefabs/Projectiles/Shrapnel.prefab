@@ -27,6 +27,7 @@ GameObject:
   - component: {fileID: 114262324465099578}
   - component: {fileID: 114503618149466068}
   - component: {fileID: 114931344521730580}
+  - component: {fileID: 114832349864613138}
   m_Layer: 0
   m_Name: Shrapnel
   m_TagString: Untagged
@@ -223,6 +224,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GroupName: Projectiles
+--- !u!114 &114832349864613138
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1776022614564172}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c55bcee375774e43b0e150b11ca6c29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Type: 0
 --- !u!114 &114931344521730580
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -238,7 +251,6 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  FramesOfInvulnerability: 0
 --- !u!135 &135815212136094150
 SphereCollider:
   m_ObjectHideFlags: 1

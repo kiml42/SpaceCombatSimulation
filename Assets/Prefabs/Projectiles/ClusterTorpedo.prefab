@@ -1271,6 +1271,7 @@ GameObject:
   - component: {fileID: 114766246677591618}
   - component: {fileID: 114126897734597358}
   - component: {fileID: 114317394816442712}
+  - component: {fileID: 114048012371370762}
   m_Layer: 0
   m_Name: ClusterTorpedo
   m_TagString: Team2
@@ -4085,6 +4086,18 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1.0000001, y: 2, z: 1.0000002}
   m_Center: {x: 0.000000059604645, y: 0, z: -0.00000008940697}
+--- !u!114 &114048012371370762
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1977664886136184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c55bcee375774e43b0e150b11ca6c29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Type: 2
 --- !u!114 &114070394222970280
 MonoBehaviour:
   m_ObjectHideFlags: 1

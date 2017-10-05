@@ -104,6 +104,7 @@ GameObject:
   - component: {fileID: 114317863401166388}
   - component: {fileID: 114588122642984816}
   - component: {fileID: 114288527176595656}
+  - component: {fileID: 114389676085485550}
   m_Layer: 0
   m_Name: Team2Ship
   m_TagString: Team2
@@ -1445,9 +1446,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  R: 0.6
-  G: 0.3
-  B: 0.3
+  Colour: {r: 0, g: 0, b: 0, a: 0}
+  Depth: 1
+  SetInStart: 0
 --- !u!114 &114318195814398120
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1505,6 +1506,18 @@ MonoBehaviour:
   - Team5
   TurretParent: {fileID: 4121223800764556, guid: 6ab6feab40aaa5d4d8d3e711a86dd712,
     type: 2}
+--- !u!114 &114389676085485550
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1249936944491648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c55bcee375774e43b0e150b11ca6c29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Type: 5
 --- !u!114 &114399145190215854
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1540,14 +1553,15 @@ MonoBehaviour:
   Health: 10000
   DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 500
   ShrapnelSpeed2: 200
-  ExplosionDamage2: 1000
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!114 &114431514535820162
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1609,7 +1623,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce: {x: 0, y: 0, z: 10000}
   EngineForce2: 0
   Pilot: {fileID: 0}
   FuelTank: {fileID: 0}
@@ -1787,14 +1800,15 @@ MonoBehaviour:
   Health: 300
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 100
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!114 &114968263175229238
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -30,6 +30,7 @@ GameObject:
   - component: {fileID: 114985888697979568}
   - component: {fileID: 114562387840620348}
   - component: {fileID: 114643190023993202}
+  - component: {fileID: 114020372064151342}
   m_Layer: 0
   m_Name: BigProjectile
   m_TagString: Untagged
@@ -201,6 +202,18 @@ TrailRenderer:
     generateLightingData: 0
   m_MinVertexDistance: 0.1
   m_Autodestruct: 0
+--- !u!114 &114020372064151342
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1896722452323280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c55bcee375774e43b0e150b11ca6c29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Type: 1
 --- !u!114 &114031993041432958
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -212,7 +225,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6312b7bfe9030e40b858f67cf019e96, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Lifetime: 1000
+  Lifetime: 1200
   RandomLifetime: 20
 --- !u!114 &114562387840620348
 MonoBehaviour:
@@ -241,7 +254,6 @@ MonoBehaviour:
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 10
   ShrapnelSpeed2: 60
-  FramesOfInvulnerability: 0
 --- !u!114 &114985888697979568
 MonoBehaviour:
   m_ObjectHideFlags: 1

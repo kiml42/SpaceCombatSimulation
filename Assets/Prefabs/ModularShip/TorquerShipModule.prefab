@@ -200,6 +200,7 @@ GameObject:
   - component: {fileID: 114872883001157344}
   - component: {fileID: 114762671816188834}
   - component: {fileID: 114945899156041316}
+  - component: {fileID: 114874930545977344}
   m_Layer: 0
   m_Name: TorquerShipModule
   m_TagString: Untagged
@@ -571,6 +572,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   InactiveTag: 
+--- !u!114 &114874930545977344
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1888937440451516}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c55bcee375774e43b0e150b11ca6c29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Type: 6
 --- !u!114 &114945899156041316
 MonoBehaviour:
   m_ObjectHideFlags: 1

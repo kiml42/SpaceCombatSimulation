@@ -141,6 +141,7 @@
     <Compile Include="Assets\Src\Targeting\ProximityApproachDetonator.cs" />
     <Compile Include="Assets\Src\Targeting\ProximityDetonator.cs" />
     <Compile Include="Assets\Src\Targeting\RepositoryTargetDetector.cs" />
+    <Compile Include="Assets\Src\Targeting\ShipType.cs" />
     <Compile Include="Assets\Src\Targeting\Target.cs" />
     <Compile Include="Assets\Src\Targeting\TargetingExtensions.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\ApproachingTargetPicker.cs" />
@@ -158,6 +159,7 @@
     <Compile Include="Assets\TargetChoosingMechanism.cs" />
     <Compile Include="Assets\TorquerController.cs" />
     <Compile Include="Assets\TurrertTurningMechanism.cs" />
+    <Compile Include="Assets\TypeKnower.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />

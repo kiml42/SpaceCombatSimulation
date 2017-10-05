@@ -243,6 +243,7 @@ GameObject:
   - component: {fileID: 114504512197277578}
   - component: {fileID: 114495674111247940}
   - component: {fileID: 114062780359788020}
+  - component: {fileID: 114045186079879338}
   m_Layer: 0
   m_Name: SpaceShip
   m_TagString: Team1
@@ -750,6 +751,18 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1210417539930836}
   m_Enabled: 1
+--- !u!114 &114045186079879338
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1684298247115438}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c55bcee375774e43b0e150b11ca6c29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Type: 5
 --- !u!114 &114062780359788020
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -822,14 +835,15 @@ MonoBehaviour:
   Health: 4000
   DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
-  ExplosionForce2: 200
-  ExplosionRadius2: 30
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  ExplosionDamage2: 100
   FramesOfInvulnerability: 1
   OriginalHealth: 0
+  DamageDelegate: {fileID: 0}
+  IgnoredTags:
+  - ForceField
+  TeamTagForceFieldSuffix: FoceField
 --- !u!114 &114504512197277578
 MonoBehaviour:
   m_ObjectHideFlags: 1

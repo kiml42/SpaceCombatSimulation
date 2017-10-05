@@ -26,6 +26,7 @@ GameObject:
   - component: {fileID: 114032262329232008}
   - component: {fileID: 114568050524591240}
   - component: {fileID: 114575573135212276}
+  - component: {fileID: 114267718403293904}
   m_Layer: 0
   m_Name: BurstRocketDispenser
   m_TagString: Team1
@@ -267,6 +268,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &114267718403293904
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1088526681955390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c55bcee375774e43b0e150b11ca6c29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Type: 5
 --- !u!114 &114568050524591240
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -295,6 +308,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Colour: {r: 0.42647058, g: 0.42647058, b: 0.458, a: 0}
   Depth: 3
+  SetInStart: 0
 --- !u!114 &114844752098337668
 MonoBehaviour:
   m_ObjectHideFlags: 1

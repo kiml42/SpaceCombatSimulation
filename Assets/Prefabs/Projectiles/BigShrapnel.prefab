@@ -27,6 +27,7 @@ GameObject:
   - component: {fileID: 114691733823558158}
   - component: {fileID: 114428487155655278}
   - component: {fileID: 114655787518478694}
+  - component: {fileID: 114810165153796048}
   m_Layer: 0
   m_Name: BigShrapnel
   m_TagString: Untagged
@@ -225,7 +226,6 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  FramesOfInvulnerability: 0
 --- !u!114 &114691733823558158
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -239,6 +239,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Lifetime: 50
   RandomLifetime: 40
+--- !u!114 &114810165153796048
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1349918016959724}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c55bcee375774e43b0e150b11ca6c29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Type: 0
 --- !u!135 &135427485472981844
 SphereCollider:
   m_ObjectHideFlags: 1

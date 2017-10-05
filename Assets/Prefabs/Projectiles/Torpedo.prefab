@@ -278,6 +278,7 @@ GameObject:
   - component: {fileID: 114488115583942366}
   - component: {fileID: 114804116594877402}
   - component: {fileID: 114939486053213880}
+  - component: {fileID: 114163877250555504}
   m_Layer: 0
   m_Name: Torpedo
   m_TagString: Team1
@@ -2555,6 +2556,18 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1648600610414362}
   m_Enabled: 1
+--- !u!114 &114163877250555504
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1301380948880376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c55bcee375774e43b0e150b11ca6c29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Type: 2
 --- !u!114 &114187712391752756
 MonoBehaviour:
   m_ObjectHideFlags: 1

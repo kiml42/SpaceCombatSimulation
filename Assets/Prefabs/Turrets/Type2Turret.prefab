@@ -190,6 +190,7 @@ GameObject:
   - component: {fileID: 114941792179239686}
   - component: {fileID: 114078591662564136}
   - component: {fileID: 114043299542033894}
+  - component: {fileID: 114328088543714880}
   m_Layer: 8
   m_Name: Type2Turret
   m_TagString: Untagged
@@ -827,6 +828,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Colour: {r: 0.42647058, g: 0.42647058, b: 0.458, a: 0}
   Depth: 3
+  SetInStart: 0
 --- !u!114 &114078591662564136
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -918,6 +920,18 @@ MonoBehaviour:
   - Team4ForceField
   - Team5ForceField
   TeamTagForceFieldSuffix: FoceField
+--- !u!114 &114328088543714880
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1866709225031140}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c55bcee375774e43b0e150b11ca6c29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Type: 5
 --- !u!114 &114430997742076028
 MonoBehaviour:
   m_ObjectHideFlags: 1

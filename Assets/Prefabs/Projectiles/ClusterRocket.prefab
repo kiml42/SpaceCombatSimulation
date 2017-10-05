@@ -147,6 +147,7 @@ GameObject:
   - component: {fileID: 96532142036103692}
   - component: {fileID: 114087177041280492}
   - component: {fileID: 114161706696368820}
+  - component: {fileID: 114249161889169034}
   m_Layer: 0
   m_Name: ClusterRocket
   m_TagString: Untagged
@@ -745,6 +746,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GroupName: Projectiles
+--- !u!114 &114249161889169034
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1923394915539256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c55bcee375774e43b0e150b11ca6c29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Type: 1
 --- !u!114 &114315273727274886
 MonoBehaviour:
   m_ObjectHideFlags: 1
