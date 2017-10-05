@@ -16,7 +16,6 @@ Bugs:
 
 TODO:
     Priority:
-        Objects know their types - target picker with allowed types and preferred types.
         Handle very high speed collisions -sort of done.
             new idea Projectiles cast a ray from previous position to current position jump to location of a hit, forcing a physics collision.
                 This works but is damn heavy

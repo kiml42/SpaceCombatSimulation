@@ -4325,23 +4325,23 @@ MonoBehaviour:
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
   PollInterval: 100
-  PickerDistanceMultiplier: 0.2
-  PickerRange: 0
-  PickerInRangeBonus: 0
+  EnemyTags:
+  - Enemy
+  DisalowedTypes: 0000000001000000
+  PreferdTypes: 0700000006000000050000000400000003000000
+  PreferedTypeBonus: 10000
+  HemisphereFilterObject: {fileID: 0}
+  InCorrectHemisphereBonus: 1000
   PickerMassMultiplier: 100
   MinimumMass: 50
   PickerOverMinMassBonus: 10000
-  PickerAimedAtMultiplier: 10
-  PickerApproachWeighting: 60
+  PickerDistanceMultiplier: 0.2
+  PickerRange: 0
+  PickerInRangeBonus: 0
   LineOfSightBonus: 1000
   MinLineOfSightDetectionDistance: 2
-  HemisphereFilterObject: {fileID: 0}
-  InCorrectHemisphereBonus: 1000
-  DisalowedTypes: 0000000001000000
-  PreferdTypes: 0700000006000000050000000400000003000000
-  PreferedTypeBonus: 100
-  EnemyTags:
-  - Enemy
+  PickerAimedAtMultiplier: 10
+  PickerApproachWeighting: 60
 --- !u!114 &114401707968426666
 MonoBehaviour:
   m_ObjectHideFlags: 1
