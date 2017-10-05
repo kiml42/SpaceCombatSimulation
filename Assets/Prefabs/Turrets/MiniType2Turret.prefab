@@ -1168,7 +1168,7 @@ HingeJoint:
     targetVelocity: -451.02094
     force: 30
     freeSpin: 0
-  m_UseLimits: 0
+  m_UseLimits: 1
   m_Limits:
     min: -100
     max: 100

@@ -764,7 +764,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 8
   ShrapnelSpeed2: 16
-  FramesOfInvulnerability: 3
+  FramesOfInvulnerability: 4
   OriginalHealth: 0
   DamageDelegate: {fileID: 0}
   IgnoredTags:
@@ -825,6 +825,7 @@ MonoBehaviour:
   ContinuallyCheckForTargets: 0
   NeverRetarget: 1
   DropInvalidTargetsWhenTereAreValidTargets: 1
+  PollInterval: 0
   PickerDistanceMultiplier: 2
   PickerRange: 200
   PickerInRangeBonus: 10000

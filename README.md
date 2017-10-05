@@ -16,6 +16,7 @@ Bugs:
 
 TODO:
     Priority:
+        Objects know their types - target picker with allowed types and preferred types.
         Handle very high speed collisions -sort of done.
             new idea Projectiles cast a ray from previous position to current position jump to location of a hit, forcing a physics collision.
                 This works but is damn heavy
@@ -36,6 +37,7 @@ TODO:
         Prevent ships that break up immediately.
 
 
+    Turrets should know the ways they cannot turn.
     Store full config of evolution in current generation file.
     Draws should be penalised less if the ships killed each other simultaneously. probably give them the win score - some constant.
     Target shooting evolution
