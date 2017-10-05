@@ -268,7 +268,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 4000
+  EngineForce2: 5000
   Pilot: {fileID: 0}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54223752741852356}
@@ -1589,7 +1589,7 @@ ParticleSystem:
     m_Curve:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0
+      scalar: 1
       minScalar: 0
       maxCurve:
         serializedVersion: 2

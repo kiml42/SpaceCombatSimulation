@@ -163,7 +163,7 @@ MonoBehaviour:
   Light: {fileID: 108317884293641784}
   ExplosionForce: 600
   ExplosionRadius: 20
-  ExplosionBaseDamage: 200
+  ExplosionBaseDamage: 300
 --- !u!114 &114236479665353144
 MonoBehaviour:
   m_ObjectHideFlags: 1

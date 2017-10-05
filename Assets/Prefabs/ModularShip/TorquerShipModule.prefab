@@ -585,7 +585,7 @@ MonoBehaviour:
   DeactivateParent: 0
   DeactivateOnBreak: 1
   DisconectFromParent: 1
-  BreakExplosion: {fileID: 54668735992167884, guid: b20315eb9dac9e942a8aeabfcded0980,
+  BreakExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
 --- !u!136 &136212592145329114
 CapsuleCollider:
