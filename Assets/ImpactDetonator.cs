@@ -14,8 +14,6 @@ public class ImpactDetonator : MonoBehaviour {
     public int ShrapnelCount2 = 30;
     public float ShrapnelSpeed2 = 20;
 
-    public int FramesOfInvulnerability = 1;
-
     private Rigidbody _rigidbody;
 
     // Use this for initialization
@@ -35,12 +33,6 @@ public class ImpactDetonator : MonoBehaviour {
         };
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        FramesOfInvulnerability--;
-    }
-
     void OnCollisionEnter(Collision collision)
     {
         //use apply damage to destroy it.
@@ -54,8 +46,7 @@ public class ImpactDetonator : MonoBehaviour {
     public void ApplyDamage(float damage = 0)
     {
         //anything trying to apply damage should destroy this.
-        if (FramesOfInvulnerability <= 0)
-            _destroyer.Destroy(gameObject, true);
+        _destroyer.Destroy(gameObject, true);
     }
 
     /// <summary>

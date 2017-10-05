@@ -240,7 +240,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 0
   ShrapnelSpeed2: 0
-  FramesOfInvulnerability: 3
+  FramesOfInvulnerability: 0
 --- !u!114 &114731812363550124
 MonoBehaviour:
   m_ObjectHideFlags: 1

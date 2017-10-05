@@ -241,7 +241,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 10
   ShrapnelSpeed2: 60
-  FramesOfInvulnerability: 3
+  FramesOfInvulnerability: 0
 --- !u!114 &114985888697979568
 MonoBehaviour:
   m_ObjectHideFlags: 1
