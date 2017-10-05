@@ -29,41 +29,6 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
     public int PollInterval = 0;
     private int _waitForPoll = 0;
 
-    #region TargetPickerVariables
-    public float PickerDistanceMultiplier = 1;
-    public float PickerRange = 500;
-    public float PickerInRangeBonus = 0;
-    
-    public float PickerMassMultiplier = 1;
-    public float MinimumMass = 0;
-    public float PickerOverMinMassBonus = 10000;
-
-    public float PickerAimedAtMultiplier = 100;
-
-    public float PickerApproachWeighting = 20;
-
-    public float LineOfSightBonus = 1000;
-    public float MinLineOfSightDetectionDistance = 2;
-
-    [Tooltip("Targets in the +y hemisphere of this object get the InCorrectHemisphereBonus")]
-    public Transform HemisphereFilterObject;
-    public float InCorrectHemisphereBonus = 1000;
-
-    [Tooltip("Will discard targets with a smaller type than this")]
-    public ShipType AbsoluteMinimum = ShipType.SmallMunitions;
-    [Tooltip("Will grant bonus score for targets in the prefered range")]
-    public ShipType PreferedMinimum = ShipType.LargeMunitions;
-    [Tooltip("Will grant bonus score for targets in the prefered range")]
-    public ShipType PreferedMaximum = ShipType.SuperCapital;
-    [Tooltip("Will discard targets with a larger type than this")]
-    public ShipType AbsoluteMaximum = ShipType.SuperCapital;
-    public float PreferedTypeBonus = 100;
-    #endregion
-
-    #region knowsCurrentTarget
-    public Target CurrentTarget { get; set; }
-    #endregion
-    
     #region EnemyTags
 
     public void AddEnemyTag(string newTag)
@@ -82,9 +47,60 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
     {
         return EnemyTags;
     }
-
+    
     public List<string> EnemyTags = new List<string> { "Enemy" };
     #endregion
+
+    [Header("TargetPickerVariables")]
+    #region TargetPickerVariables
+    [Header("TargetTypes")]
+    [Tooltip("Ship Types to always ignore")]
+    public List<ShipType> DisalowedTypes = new List<ShipType>
+        {
+            ShipType.TinyMunitions
+        };
+    [Tooltip("ShipTypes to grant a score bonus to")]
+    public List<ShipType> PreferdTypes = new List<ShipType>
+        {
+            ShipType.LargeMunitions,
+            ShipType.Fighter,
+            ShipType.Corvette,
+            ShipType.Turret,
+            ShipType.Capital,
+            ShipType.SuperCapital
+        };
+    public float PreferedTypeBonus = 100;
+
+    [Header("CorrectHemisphere")]
+    [Tooltip("Targets in the +y hemisphere of this object get the InCorrectHemisphereBonus")]
+    public Transform HemisphereFilterObject;
+    public float InCorrectHemisphereBonus = 1000;
+
+    [Header("Mass")]
+    public float PickerMassMultiplier = 1;
+    public float MinimumMass = 0;
+    public float PickerOverMinMassBonus = 10000;
+
+    [Header("Distance")]
+    public float PickerDistanceMultiplier = 1;
+    public float PickerRange = 500;
+    public float PickerInRangeBonus = 0;
+
+    [Header("LineOfSight")]
+    public float LineOfSightBonus = 1000;
+    public float MinLineOfSightDetectionDistance = 2;
+
+    [Header("AimedAt")]
+    public float PickerAimedAtMultiplier = 100;
+
+    [Header("Approaching")]
+    public float PickerApproachWeighting = 20;
+    #endregion
+
+    #region knowsCurrentTarget
+    public Target CurrentTarget { get; set; }
+    #endregion
+
 
     private bool _hasHadTarget = false;
 
@@ -104,10 +120,8 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
         {
             new ShipTypeTagetPicker
             {
-                AbsoluteMinimum = AbsoluteMinimum,
-                PreferedMinimum = PreferedMinimum,
-                PreferedMaximum = PreferedMaximum,
-                AbsoluteMaximum = AbsoluteMaximum,
+                DisalowedTypes = DisalowedTypes,
+                PreferdTypes = PreferdTypes,
                 PreferedTypeBonus = PreferedTypeBonus
             }
         };

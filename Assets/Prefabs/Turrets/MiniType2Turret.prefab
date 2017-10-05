@@ -1464,6 +1464,9 @@ MonoBehaviour:
   MinLineOfSightDetectionDistance: 2
   HemisphereFilterObject: {fileID: 4541375484301278}
   InCorrectHemisphereBonus: 1000
+  DisalowedTypes: 
+  PreferdTypes: 02000000030000000400000005000000
+  PreferedTypeBonus: 100
   EnemyTags:
   - Enemy
 --- !u!114 &114816807921568772

@@ -17,24 +17,25 @@ namespace Assets.Src.Targeting.TargetPickers
     class ShipTypeTagetPicker : ITargetPicker
     {
         /// <summary>
-        /// Will discard targets with a smaller type than this
+        /// Ship Types to always ignore
         /// </summary>
-        public ShipType AbsoluteMinimum = ShipType.SmallMunitions;
+        public List<ShipType> DisalowedTypes = new List<ShipType>
+        {
+            ShipType.TinyMunitions
+        };
 
         /// <summary>
-        /// Will grant bonus score for targets in the prefered range
+        /// ShipTypes to grant a score bonus to
         /// </summary>
-        public ShipType PreferedMinimum = ShipType.LargeMunitions;
-
-        /// <summary>
-        /// Will grant bonus score for targets in the prefered range
-        /// </summary>
-        public ShipType PreferedMaximum = ShipType.SuperCapital;
-
-        /// <summary>
-        /// Will discard targets with a larger type than this
-        /// </summary>
-        public ShipType AbsoluteMaximum = ShipType.SuperCapital;
+        public List<ShipType> PreferdTypes = new List<ShipType>
+        {
+            ShipType.LargeMunitions,
+            ShipType.Fighter,
+            ShipType.Corvette,
+            ShipType.Turret,
+            ShipType.Capital,
+            ShipType.SuperCapital
+        };
 
         public float PreferedTypeBonus = 100;
 
@@ -46,8 +47,8 @@ namespace Assets.Src.Targeting.TargetPickers
         public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             potentialTargets = potentialTargets
-                .Where(t => IsInAbsoluteRange(t))                
-                .Select(t => AddScoreForDifference(t));
+                .Where(t => IsAllowed(t))                
+                .Select(t => AddScoreForPrefered(t));
 
             if (KullInvalidTargets && potentialTargets.Any(t => t.IsValidForCurrentPicker))
             {
@@ -57,17 +58,14 @@ namespace Assets.Src.Targeting.TargetPickers
             return potentialTargets;
         }
 
-        private bool IsInAbsoluteRange(PotentialTarget t)
+        private bool IsAllowed(PotentialTarget t)
         {
-            var type = t.Type;
-            return type >= AbsoluteMinimum && type <= AbsoluteMaximum;
+            return !DisalowedTypes.Contains(t.Type);
         }
 
-        private PotentialTarget AddScoreForDifference(PotentialTarget target)
+        private PotentialTarget AddScoreForPrefered(PotentialTarget target)
         {
-            var type = target.Type;
-
-            target.IsValidForCurrentPicker = type >= PreferedMinimum && type <= PreferedMaximum;
+            target.IsValidForCurrentPicker = PreferdTypes.Contains(target.Type);
             if(target.IsValidForCurrentPicker)
             {
                 target.Score += PreferedTypeBonus;
