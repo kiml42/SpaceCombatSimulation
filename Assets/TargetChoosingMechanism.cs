@@ -48,6 +48,16 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
     [Tooltip("Targets in the +y hemisphere of this object get the InCorrectHemisphereBonus")]
     public Transform HemisphereFilterObject;
     public float InCorrectHemisphereBonus = 1000;
+
+    [Tooltip("Will discard targets with a smaller type than this")]
+    public ShipType AbsoluteMinimum = ShipType.SmallMunitions;
+    [Tooltip("Will grant bonus score for targets in the prefered range")]
+    public ShipType PreferedMinimum = ShipType.LargeMunitions;
+    [Tooltip("Will grant bonus score for targets in the prefered range")]
+    public ShipType PreferedMaximum = ShipType.SuperCapital;
+    [Tooltip("Will discard targets with a larger type than this")]
+    public ShipType AbsoluteMaximum = ShipType.SuperCapital;
+    public float PreferedTypeBonus = 100;
     #endregion
 
     #region knowsCurrentTarget
@@ -90,7 +100,18 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
             EnemyTags = EnemyTags
         };
 
-        var pickers = new List<ITargetPicker>();
+        var pickers = new List<ITargetPicker>
+        {
+            new ShipTypeTagetPicker
+            {
+                AbsoluteMinimum = AbsoluteMinimum,
+                PreferedMinimum = PreferedMinimum,
+                PreferedMaximum = PreferedMaximum,
+                AbsoluteMaximum = AbsoluteMaximum,
+                PreferedTypeBonus = PreferedTypeBonus
+            }
+        };
+        
 
         if(HemisphereFilterObject != null && InCorrectHemisphereBonus != 0)
         {

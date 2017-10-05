@@ -13,10 +13,25 @@ namespace Assets.Src.Targeting
     {
         public Transform Transform { get; private set; }
         public Rigidbody Rigidbody { get; private set; }
-
-        public Target()
+        private ShipType? _type;
+        public ShipType Type
         {
-
+            get
+            {
+                if (!_type.HasValue)
+                {
+                    var typeKnower = Transform.GetComponent("TypeKnower") as TypeKnower;
+                    if(typeKnower == null)
+                    {
+                        Debug.LogWarning(Transform + " has no TypeKnower");
+                        _type = ShipType.Fighter;
+                    } else
+                    {
+                        _type = typeKnower.Type;
+                    }
+                }
+                return _type.Value;
+            }
         }
         
         public Target(Rigidbody target)

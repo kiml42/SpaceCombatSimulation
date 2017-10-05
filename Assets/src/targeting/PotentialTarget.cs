@@ -13,12 +13,7 @@ namespace Assets.Src.Targeting
     {
         public float Score { get; set; }
         public bool IsValidForCurrentPicker { get; set; }
-
-        public PotentialTarget()
-        {
-
-        }
-        
+                
         public PotentialTarget(Rigidbody target) : base (target)
         {
         }
