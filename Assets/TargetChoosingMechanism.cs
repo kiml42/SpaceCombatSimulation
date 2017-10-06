@@ -92,6 +92,8 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
 
     [Header("AimedAt")]
     public float PickerAimedAtMultiplier = 100;
+    [Tooltip("defaults to this object")]
+    public Rigidbody PickerAimingObject;
 
     [Header("Approaching")]
     public float PickerApproachWeighting = 20;
@@ -110,6 +112,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
         var speedKnower = GetComponent("IKnowsProjectileSpeed") as IKnowsProjectileSpeed;
         var projectileSpeed = speedKnower != null ? speedKnower.ProjectileSpeed : null;
         _rigidbody = GetComponent<Rigidbody>();
+        PickerAimingObject = PickerAimingObject ?? _rigidbody;
 
         _detector = new RepositoryTargetDetector()
         {
@@ -170,7 +173,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
         
         if(PickerAimedAtMultiplier != 0)
         {
-            pickers.Add(new LookingAtTargetPicker(_rigidbody)
+            pickers.Add(new LookingAtTargetPicker(PickerAimingObject)
             {
                 Multiplier = PickerAimedAtMultiplier,
                 ProjectileSpeed = projectileSpeed

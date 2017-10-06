@@ -875,6 +875,7 @@ MonoBehaviour:
   LineOfSightBonus: 1000
   MinLineOfSightDetectionDistance: 2
   PickerAimedAtMultiplier: 80
+  PickerAimingObject: {fileID: 54136877300926014}
   PickerApproachWeighting: 5
 --- !u!114 &114269210039907450
 MonoBehaviour:

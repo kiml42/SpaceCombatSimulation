@@ -9,12 +9,11 @@ using UnityEngine;
 
 public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
 {
+    private IKnowsCurrentTarget _targetChoosingMechanism;
     public bool TagChildren = false;
     public Rigidbody Projectile;
     public Transform Emitter;
     private Rigidbody _spawner;
-    public bool OnlyWithTargets = false;
-    private ITargetDetector _detector;
     
     public float RandomStartTime = 30;
     public int MinStartTime = 30;
@@ -61,15 +60,8 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
         _colerer = GetComponent("ColourSetter") as ColourSetter;
         _reload = (int)(UnityEngine.Random.value * RandomStartTime) + MinStartTime;
         Emitter = Emitter ?? transform;
-
-        if (OnlyWithTargets)
-        {
-            _detector = new RepositoryTargetDetector()
-            {
-                EnemyTags = EnemyTags
-            };
-        }
-        
+        _targetChoosingMechanism = GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
+                
         _spawner = GetComponent("Rigidbody") as Rigidbody;
     }
 
@@ -118,10 +110,9 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
 
     private bool ShouldShoot()
     {
-        if (OnlyWithTargets)
+        if (_targetChoosingMechanism != null)
         {
-            var targets = _detector.DetectTargets();
-            return targets.Any();
+            return _targetChoosingMechanism.CurrentTarget != null;
         }
         return true;
     }

@@ -16,6 +16,9 @@ Bugs:
 
 TODO:
     Priority:
+        spawn a cube on a spawn point to check if there is anything in the way, skip that point if there is, then destroy the cube.
+            Make the cube quite small so that small turrets on the edge that wouldn't intersect are allowed.
+        Turret friction without using angular drag.
         Handle very high speed collisions -sort of done.
             new idea Projectiles cast a ray from previous position to current position jump to location of a hit, forcing a physics collision.
                 This works but is damn heavy

@@ -34,6 +34,7 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4251610165924678}
+  - component: {fileID: 114683292399031888}
   - component: {fileID: 114223081111915522}
   - component: {fileID: 54431323037331960}
   - component: {fileID: 138880674774939810}
@@ -295,7 +296,6 @@ MonoBehaviour:
   Projectile: {fileID: 54991379400455944, guid: 8bf03007d4e417c4087307829906f7d6,
     type: 2}
   Emitter: {fileID: 4429018364606006}
-  OnlyWithTargets: 1
   RandomStartTime: 100
   MinStartTime: 5
   BurstCount: 1
@@ -350,6 +350,39 @@ MonoBehaviour:
   Colour: {r: 0.42647058, g: 0.42647058, b: 0.458, a: 0}
   Depth: 3
   SetInStart: 0
+--- !u!114 &114683292399031888
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1489824746261682}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ContinuallyCheckForTargets: 1
+  NeverRetarget: 0
+  DropInvalidTargetsWhenTereAreValidTargets: 1
+  PollInterval: 300
+  EnemyTags:
+  - Enemy
+  DisalowedTypes: 00000000
+  PreferdTypes: 02000000030000000400000005000000
+  PreferedTypeBonus: 5000
+  HemisphereFilterObject: {fileID: 0}
+  InCorrectHemisphereBonus: 0
+  PickerMassMultiplier: 0
+  MinimumMass: 0
+  PickerOverMinMassBonus: 0
+  PickerDistanceMultiplier: 0
+  PickerRange: 0
+  PickerInRangeBonus: 0
+  LineOfSightBonus: 0
+  MinLineOfSightDetectionDistance: 0
+  PickerAimedAtMultiplier: 0
+  PickerAimingObject: {fileID: 0}
+  PickerApproachWeighting: 0
 --- !u!114 &114976923276652010
 MonoBehaviour:
   m_ObjectHideFlags: 1
