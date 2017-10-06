@@ -58,12 +58,14 @@ namespace Assets.src.Evolution
         private float _g;
         private float _b;
         private Transform _shipToBuildOn;
+        private Rigidbody _testCubePrefab;
 
-        public ShipBuilder(string genome, Transform shipToBuildOn, List<Rigidbody> modules)
+        public ShipBuilder(string genome, Transform shipToBuildOn, List<Rigidbody> modules, Rigidbody testCubePrefab = null)
         {
             _shipToBuildOn = shipToBuildOn;
             Modules = modules;
             _genome = genome;
+            _testCubePrefab = testCubePrefab;
         }
 
         public void BuildShip()
@@ -93,15 +95,15 @@ namespace Assets.src.Evolution
                 //this is a hub - add more modules to it
                 foreach (var spawnPoint in spawnPoints)
                 {
-                    if (_genomePosition < _genome.Length && _turretsAdded < MaxTurrets && _modulesAdded < MaxModules)
+                    if (CanSpawnHere(spawnPoint))
                     {
                         var moduleToAdd = SelectModule();
 
                         if (moduleToAdd != null)
                         {
-                            var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, spawnPoint);
+                            var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, currentHub);
 
-                            addedModule.transform.parent = currentHub;
+                            //addedModule.transform.parent = currentHub;
                             addedModule.GetComponent<FixedJoint>().connectedBody = currentHub.GetComponent<Rigidbody>();
                             addedModule.SendMessage("SetEnemyTags", EnemyTags, SendMessageOptions.DontRequireReceiver);
 
@@ -126,6 +128,17 @@ namespace Assets.src.Evolution
                 _turretsAdded++;
             }
             _modulesAdded++;
+        }
+
+        private bool CanSpawnHere(Transform spawnPoint)
+        {
+            if(_testCubePrefab != null)
+            {
+                var testCube = GameObject.Instantiate(_testCubePrefab, spawnPoint.position, spawnPoint.rotation);
+                var collider = testCube.GetComponent<BoxCollider>();
+                //collider.
+            }
+            return _genomePosition < _genome.Length && _turretsAdded < MaxTurrets && _modulesAdded < MaxModules;
         }
 
         private List<Transform> GetSpawnPoints(Transform currentHub)

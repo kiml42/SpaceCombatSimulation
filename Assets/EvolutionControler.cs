@@ -11,6 +11,7 @@ using Assets.Src.ObjectManagement;
 public class EvolutionControler : MonoBehaviour
 {
     public Rigidbody ShipToEvolve;
+    public Rigidbody TestCube;
     public Transform Location1;
     public Transform Location2;
     public bool RandomiseRotation = true;
