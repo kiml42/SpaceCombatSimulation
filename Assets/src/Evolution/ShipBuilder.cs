@@ -58,9 +58,9 @@ namespace Assets.src.Evolution
         private float _g;
         private float _b;
         private Transform _shipToBuildOn;
-        private Rigidbody _testCubePrefab;
+        private TestCubeChecker _testCubePrefab;
 
-        public ShipBuilder(string genome, Transform shipToBuildOn, List<Rigidbody> modules, Rigidbody testCubePrefab = null)
+        public ShipBuilder(string genome, Transform shipToBuildOn, List<Rigidbody> modules, TestCubeChecker testCubePrefab = null)
         {
             _shipToBuildOn = shipToBuildOn;
             Modules = modules;
@@ -130,20 +130,51 @@ namespace Assets.src.Evolution
             _modulesAdded++;
         }
 
+        private List<Vector3> _usedLocations = new List<Vector3>();
         private bool CanSpawnHere(Transform spawnPoint, Transform parent = null)
         {
             if (_testCubePrefab != null)
             {
-                Debug.Log("Creating Test Cube");
+                //Debug.Log("Creating Test Cube");
                 var testCube = GameObject.Instantiate(_testCubePrefab, spawnPoint.position, spawnPoint.rotation);
                 if(parent != null)
                 {
                     testCube.transform.parent = parent;
-                    testCube.GetComponent<FixedJoint>().connectedBody = parent.GetComponent<Rigidbody>();
                 }
-                var collider = testCube.GetComponent<TestCubeChecker>();
+                var collider = testCube.GetComponent<BoxCollider>();
+                var center = collider.center;
+                center = testCube.transform.TransformPoint(center); //turn it into world coords.
+                //collider.bounds.Intersects();//could be useful if the center isn't enough.
+                
+                if (IsUsedLocation(center))
+                {
+                    Debug.Log("Can't spawn at " + center + " because there is already something here");
+                    return false;
+                } else
+                {
+                    _usedLocations.Add(center);
+                    _usedLocations = _usedLocations.OrderBy(v => v.x).ThenBy(v => v.y).ThenBy(v => v.z).ToList();
+                    //Debug.Log("Adding valid location to list " + center);
+                    //foreach (var loc in _usedLocations)
+                    //{
+                    //    Debug.Log(loc);
+                    //}
+                }
             }
             return _genomePosition < _genome.Length && _turretsAdded < MaxTurrets && _modulesAdded < MaxModules;
+        }
+
+        private bool IsUsedLocation(Vector3 worldLocation)
+        {
+            foreach (var loc in _usedLocations)
+            {
+                var dist = Vector3.Distance(loc, worldLocation);
+                if(dist < 1)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private List<Transform> GetSpawnPoints(Transform currentHub)

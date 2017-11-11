@@ -11,7 +11,7 @@ using Assets.Src.ObjectManagement;
 public class EvolutionControler : MonoBehaviour
 {
     public Rigidbody ShipToEvolve;
-    public Rigidbody TestCube;
+    public TestCubeChecker TestCube;
     public Transform Location1;
     public Transform Location2;
     public bool RandomiseRotation = true;
@@ -200,6 +200,7 @@ public class EvolutionControler : MonoBehaviour
         var enemyTags = new List<string> { enemyTag };
 
         var velocity = location.forward * InitialSpeed + UnityEngine.Random.insideUnitSphere * RandomInitialSpeed;
+        
         new ShipBuilder(genome, ship.transform, Modules, TestCube)
         {
             MaxShootAngle = MaxShootAngle,
