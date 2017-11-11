@@ -95,7 +95,7 @@ namespace Assets.src.Evolution
                 //this is a hub - add more modules to it
                 foreach (var spawnPoint in spawnPoints)
                 {
-                    if (CanSpawnHere(spawnPoint))
+                    if (CanSpawnHere(spawnPoint, currentHub))
                     {
                         var moduleToAdd = SelectModule();
 
@@ -130,13 +130,18 @@ namespace Assets.src.Evolution
             _modulesAdded++;
         }
 
-        private bool CanSpawnHere(Transform spawnPoint)
+        private bool CanSpawnHere(Transform spawnPoint, Transform parent = null)
         {
-            if(_testCubePrefab != null)
+            if (_testCubePrefab != null)
             {
+                Debug.Log("Creating Test Cube");
                 var testCube = GameObject.Instantiate(_testCubePrefab, spawnPoint.position, spawnPoint.rotation);
-                var collider = testCube.GetComponent<BoxCollider>();
-                //collider.
+                if(parent != null)
+                {
+                    testCube.transform.parent = parent;
+                    testCube.GetComponent<FixedJoint>().connectedBody = parent.GetComponent<Rigidbody>();
+                }
+                var collider = testCube.GetComponent<TestCubeChecker>();
             }
             return _genomePosition < _genome.Length && _turretsAdded < MaxTurrets && _modulesAdded < MaxModules;
         }

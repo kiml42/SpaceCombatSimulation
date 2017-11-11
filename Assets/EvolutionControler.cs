@@ -200,7 +200,7 @@ public class EvolutionControler : MonoBehaviour
         var enemyTags = new List<string> { enemyTag };
 
         var velocity = location.forward * InitialSpeed + UnityEngine.Random.insideUnitSphere * RandomInitialSpeed;
-        new ShipBuilder(genome, ship.transform, Modules)
+        new ShipBuilder(genome, ship.transform, Modules, TestCube)
         {
             MaxShootAngle = MaxShootAngle,
             MaxTorqueMultiplier = MaxTorqueMultiplier,

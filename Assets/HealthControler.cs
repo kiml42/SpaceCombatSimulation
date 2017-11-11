@@ -133,7 +133,7 @@ public class HealthControler : MonoBehaviour
     {
         if(damage.IsAOE && DamageDelegate != null)
         {
-            Debug.Log(transform.name + " Ignoring AOE damage because it has a delegate");
+            //Debug.Log(transform.name + " Ignoring AOE damage because it has a delegate");
         } else
         {
             ApplyDamage(damage.Damage);
