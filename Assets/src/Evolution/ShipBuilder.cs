@@ -95,7 +95,7 @@ namespace Assets.src.Evolution
                 //this is a hub - add more modules to it
                 foreach (var spawnPoint in spawnPoints)
                 {
-                    if (CanSpawnHere(spawnPoint, currentHub))
+                    if (CanSpawnHere(spawnPoint))
                     {
                         var moduleToAdd = SelectModule();
 
@@ -137,24 +137,20 @@ namespace Assets.src.Evolution
         /// </summary>
         private const float THRESHOLD_DISTANCE = 1;
 
-        private bool CanSpawnHere(Transform spawnPoint, Transform parent = null)
+        private bool CanSpawnHere(Transform spawnPoint)
         {
             if (_testCubePrefab != null)
             {
                 //Debug.Log("Creating Test Cube");
                 var testCube = GameObject.Instantiate(_testCubePrefab, spawnPoint.position, spawnPoint.rotation);
-                if(parent != null)
-                {
-                    testCube.transform.parent = parent;
-                }
                 var collider = testCube.GetComponent<BoxCollider>();
                 var center = collider.center;
                 center = testCube.transform.TransformPoint(center); //turn it into world coords.
                 //collider.bounds.Intersects();//could be useful if the center isn't enough.
-                
+                GameObject.Destroy(testCube.gameObject);
                 if (IsUsedLocation(center))
                 {
-                    Debug.Log("Can't spawn at " + center + " because there is already something here");
+                    //Debug.Log("Can't spawn at " + center + " because there is already something here");
                     return false;
                 } else
                 {
