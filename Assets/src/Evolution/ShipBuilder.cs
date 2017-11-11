@@ -131,6 +131,12 @@ namespace Assets.src.Evolution
         }
 
         private List<Vector3> _usedLocations = new List<Vector3>();
+
+        /// <summary>
+        /// The distance below which two test cubes colliders are considered too close to spawn.
+        /// </summary>
+        private const float THRESHOLD_DISTANCE = 1;
+
         private bool CanSpawnHere(Transform spawnPoint, Transform parent = null)
         {
             if (_testCubePrefab != null)
@@ -153,12 +159,6 @@ namespace Assets.src.Evolution
                 } else
                 {
                     _usedLocations.Add(center);
-                    _usedLocations = _usedLocations.OrderBy(v => v.x).ThenBy(v => v.y).ThenBy(v => v.z).ToList();
-                    //Debug.Log("Adding valid location to list " + center);
-                    //foreach (var loc in _usedLocations)
-                    //{
-                    //    Debug.Log(loc);
-                    //}
                 }
             }
             return _genomePosition < _genome.Length && _turretsAdded < MaxTurrets && _modulesAdded < MaxModules;
@@ -166,15 +166,8 @@ namespace Assets.src.Evolution
 
         private bool IsUsedLocation(Vector3 worldLocation)
         {
-            foreach (var loc in _usedLocations)
-            {
-                var dist = Vector3.Distance(loc, worldLocation);
-                if(dist < 1)
-                {
-                    return true;
-                }
-            }
-            return false;
+            var distances = _usedLocations.Select(l => Vector3.Distance(l, worldLocation));
+            return distances.Any(d => d < THRESHOLD_DISTANCE);
         }
 
         private List<Transform> GetSpawnPoints(Transform currentHub)
