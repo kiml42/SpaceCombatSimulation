@@ -12,14 +12,12 @@ Bugs:
     Priority:
         "Can't remove Rigidbody because HingeJoint depends on it"
         rocket engines carry on regardless if the rocket has no target.
-    Graphical - Beams don't turn off when the turret dies.
+    Graphical - Beams don't turn off when the turret dies. - haven't seen this one in a while.
     Rocket engine plumes start on
     
 
 TODO:
     Priority:
-        spawn a cube on a spawn point to check if there is anything in the way, skip that point if there is, then destroy the cube.
-            Make the cube quite small so that small turrets on the edge that wouldn't intersect are allowed.
         Some way for turrets to account for their own turn rates.
         Turret friction without using angular drag.
         Handle very high speed collisions -sort of done.
@@ -31,17 +29,18 @@ TODO:
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
         Refactor rocket controller's start delay feature.
         Some way to set the roll of ships to have a direction that should be pointed at the enemy where possible.
-        Sperical trigger around missiles that puts them into max evasion mode regardless of velocity
+        Spherical trigger around missiles that puts them into max evasion mode regardless of velocity
         Fighters - using engines as weapons/using guns/both.
-        Destructin only leaves objects with a rigibdbody and a health controller
+        Destruction only leaves objects with a rigibdbody and a health controller
         TargetPickers have option to kull all but the best x.
         improve muzzle flashes.
             Create a muzzle flash prefab that is spawned with no additional velocity, or even parented to emitter
         Prevent fluttery torpedoes.
         Make turrets account for the thing they're on's rotation.
-        Prevent ships that break up immediately.
+        Eyeball turret
 
 
+    allow components in the same cubic volume if they wouldn't intersect.
     Turrets should know the ways they cannot turn.
     Store full config of evolution in current generation file.
     Draws should be penalised less if the ships killed each other simultaneously. probably give them the win score - some constant.
