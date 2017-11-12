@@ -23,6 +23,7 @@ GameObject:
   - component: {fileID: 59637156536051532}
   - component: {fileID: 114306497983771438}
   - component: {fileID: 114904709351601692}
+  - component: {fileID: 114569116938896616}
   m_Layer: 8
   m_Name: TurnTable
   m_TagString: Untagged
@@ -165,6 +166,7 @@ GameObject:
   - component: {fileID: 59932577043065196}
   - component: {fileID: 114904066030491806}
   - component: {fileID: 114902381399359470}
+  - component: {fileID: 114884857142944774}
   m_Layer: 8
   m_Name: ElevationHub
   m_TagString: Untagged
@@ -963,6 +965,18 @@ MonoBehaviour:
   AvoidFriendlyFire: 1
   FriendlyDetectionDistance: 80
   MinFriendlyDetectionDistance: 1.5
+--- !u!114 &114569116938896616
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1053151280372486}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbab2d8ba61987347953f7c003bfc3b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Friction: 0.4
 --- !u!114 &114714754333530302
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1014,6 +1028,18 @@ MonoBehaviour:
   - Team4ForceField
   - Team5ForceField
   TeamTagForceFieldSuffix: FoceField
+--- !u!114 &114884857142944774
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1851867619676866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbab2d8ba61987347953f7c003bfc3b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Friction: 0.4
 --- !u!114 &114902381399359470
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -75,6 +75,7 @@ GameObject:
   - component: {fileID: 59009853617885348}
   - component: {fileID: 114201230822804862}
   - component: {fileID: 114575880276079734}
+  - component: {fileID: 114067974381764894}
   m_Layer: 8
   m_Name: TurnTable
   m_TagString: Untagged
@@ -97,6 +98,7 @@ GameObject:
   - component: {fileID: 59226683438140610}
   - component: {fileID: 114735797348154080}
   - component: {fileID: 114380905531141384}
+  - component: {fileID: 114057691376441784}
   m_Layer: 8
   m_Name: ElevationHub
   m_TagString: Untagged
@@ -840,6 +842,30 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Type: 5
+--- !u!114 &114057691376441784
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1554187838490230}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbab2d8ba61987347953f7c003bfc3b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Friction: 0.4
+--- !u!114 &114067974381764894
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1547687066501114}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbab2d8ba61987347953f7c003bfc3b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Friction: 0.4
 --- !u!114 &114078742538678138
 MonoBehaviour:
   m_ObjectHideFlags: 1

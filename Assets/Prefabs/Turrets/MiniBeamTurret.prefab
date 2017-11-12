@@ -41,6 +41,7 @@ GameObject:
   - component: {fileID: 59977673465149604}
   - component: {fileID: 114447421175719934}
   - component: {fileID: 114395788500693144}
+  - component: {fileID: 114735945283404792}
   m_Layer: 8
   m_Name: TurnTableMiniBeam
   m_TagString: Untagged
@@ -303,6 +304,7 @@ GameObject:
   - component: {fileID: 59126025736455676}
   - component: {fileID: 114844622593280128}
   - component: {fileID: 114233701405603516}
+  - component: {fileID: 114374078530005190}
   m_Layer: 8
   m_Name: ElevationHub
   m_TagString: Untagged
@@ -2109,6 +2111,18 @@ MonoBehaviour:
   Colour: {r: 0.42647058, g: 0.42647058, b: 0.458, a: 0}
   Depth: 3
   SetInStart: 0
+--- !u!114 &114374078530005190
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1649118934938034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbab2d8ba61987347953f7c003bfc3b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Friction: 0.4
 --- !u!114 &114395788500693144
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2240,6 +2254,18 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 80
   PickerAimingObject: {fileID: 54867097553581106}
   PickerApproachWeighting: 20
+--- !u!114 &114735945283404792
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1060150790031920}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbab2d8ba61987347953f7c003bfc3b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Friction: 0.4
 --- !u!114 &114844622593280128
 MonoBehaviour:
   m_ObjectHideFlags: 1

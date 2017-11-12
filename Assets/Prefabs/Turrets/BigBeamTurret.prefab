@@ -199,6 +199,7 @@ GameObject:
   - component: {fileID: 59496889387903070}
   - component: {fileID: 114372935907962804}
   - component: {fileID: 114184997240908936}
+  - component: {fileID: 114656583338367978}
   m_Layer: 8
   m_Name: ElevationHubBigBeam
   m_TagString: Untagged
@@ -450,6 +451,7 @@ GameObject:
   - component: {fileID: 59733476993101366}
   - component: {fileID: 114570703834796536}
   - component: {fileID: 114760828794790922}
+  - component: {fileID: 114306299788334896}
   m_Layer: 8
   m_Name: TurnTable
   m_TagString: Untagged
@@ -787,7 +789,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1617297998928176}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 14, y: 0, z: 0}
+  m_LocalPosition: {x: 14, y: 1.5529453, z: 3.7950168}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4936335685901844}
@@ -796,7 +798,7 @@ Transform:
   - {fileID: 4043667405512564}
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 180}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4601253707260600
 Transform:
   m_ObjectHideFlags: 1
@@ -2040,7 +2042,7 @@ HingeJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0, y: 2.5, z: 0}
+  m_ConnectedAnchor: {x: 0, y: 2.5000012, z: 0}
   m_UseSpring: 0
   m_Spring:
     spring: 0
@@ -2074,7 +2076,7 @@ HingeJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0, y: 0.5, z: 0}
+  m_ConnectedAnchor: {x: 0, y: 0.50000024, z: 0.000000059604645}
   m_UseSpring: 0
   m_Spring:
     spring: 0
@@ -2201,6 +2203,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &114306299788334896
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1752287746396600}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbab2d8ba61987347953f7c003bfc3b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Friction: 0.5
 --- !u!114 &114372935907962804
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2276,6 +2290,18 @@ MonoBehaviour:
   DeactivateOnBreak: 1
   DisconectFromParent: 1
   BreakExplosion: {fileID: 0}
+--- !u!114 &114656583338367978
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1384344338879448}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbab2d8ba61987347953f7c003bfc3b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Friction: 0.4
 --- !u!114 &114700062322557724
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2418,7 +2444,7 @@ MonoBehaviour:
   TurnTable: {fileID: 54504467688077488}
   ElevationHub: {fileID: 54685917326791822}
   TurnTableMotorFoce: 30
-  TurnTableMotorSpeedMultiplier: 500
+  TurnTableMotorSpeedMultiplier: 200
   ElevationHubMotorFoce: 30
   ElevationHubMotorSpeedMultiplier: 500
 --- !u!124 &124147918906010302

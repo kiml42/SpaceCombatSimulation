@@ -18,8 +18,9 @@ Bugs:
 
 TODO:
     Priority:
-        Some way for turrets to account for their own turn rates.
         Turret friction without using angular drag.
+            Mostly implemented, need to check the velocity multipliers on the little turrets to improve their responsiveness.
+        Some way for turrets to account for their own turn rates.
         Handle very high speed collisions -sort of done.
             new idea Projectiles cast a ray from previous position to current position jump to location of a hit, forcing a physics collision.
                 This works but is damn heavy
