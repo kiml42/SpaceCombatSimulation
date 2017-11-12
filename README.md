@@ -13,6 +13,8 @@ Bugs:
         "Can't remove Rigidbody because HingeJoint depends on it"
         rocket engines carry on regardless if the rocket has no target.
     Graphical - Beams don't turn off when the turret dies.
+    Rocket engine plumes start on
+    
 
 TODO:
     Priority:
