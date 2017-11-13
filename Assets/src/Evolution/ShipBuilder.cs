@@ -77,6 +77,8 @@ namespace Assets.src.Evolution
             _shipToBuildOn.SetColor(_r, _g, _b);
             _shipToBuildOn.name = _genome;
             //Debug.Log("Spawning modules");
+
+            _usedLocations.Add(_shipToBuildOn.position);
             SpawnModules(_shipToBuildOn);
 
             ConfigureShip();
@@ -152,7 +154,8 @@ namespace Assets.src.Evolution
                 {
                     //Debug.Log("Can't spawn at " + center + " because there is already something here");
                     return false;
-                } else
+                }
+                else
                 {
                     _usedLocations.Add(center);
                 }
