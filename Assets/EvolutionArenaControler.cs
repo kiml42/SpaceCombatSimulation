@@ -11,6 +11,7 @@ using Assets.Src.ObjectManagement;
 public class EvolutionArenaControler : MonoBehaviour
 {
     public Rigidbody ShipToEvolve;
+    public TestCubeChecker TestCube;
     public float SpawnSphereRadius = 1000;
     public List<string> Tags;
     public string FilePath = "./tmp/evolvingShipsArena/evolvingShipsArena.csv";
@@ -155,7 +156,7 @@ public class EvolutionArenaControler : MonoBehaviour
 
         var enemyTags = Tags.Where(t => t != ownTag).ToList();
 
-        new ShipBuilder(genome, ship.transform, Modules)
+        new ShipBuilder(genome, ship.transform, Modules, TestCube)
         {
             MaxShootAngle = MaxShootAngle,
             MaxTorqueMultiplier = MaxTorqueMultiplier,
