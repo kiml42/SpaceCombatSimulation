@@ -10,49 +10,59 @@ using Assets.Src.ObjectManagement;
 
 public class EvolutionTargetShootingControler : MonoBehaviour
 {
+    #region Ship Config
+    [Header("Ship Config")]
     public Rigidbody ShipToEvolve;
+    public string Tag1 = "Team1";
     public TestCubeChecker TestCube;
     public Transform StartLocation;
-    public Transform TargetLocation;
+    [Tooltip("Randomise the rotation of all spawned ships")]
     public bool RandomiseRotation = true;
+    public float InitialSpeed = 0;
+    public float RandomInitialSpeed = 0;
+    public string SpaceShipTag = "SpaceShip";
+    public int CurrentScore = 0;
+    #endregion
+
+    #region "Drones
+    [Header("Drones")]
+    public int DroneCount = 10;
+    public List<string> DroneGenomes = new List<string>();
+    public Transform TargetLocation;
     public float StartLocationRandomisationRadius = 0;
     public float TargetLocationRandomisationRadius = 100;
-    public string Tag1 = "Team1";
     public string EnemyTag = "Team2";
+    #endregion
+
+    #region Files etc.
+    [Header("files etc.")]
     public string GeneralFolder = "./tmp/evolvingShipsTargetShooting";
     public string ThisRunFolder = "1";
     private string _currentGenerationFilePath;
     private string _generationFilePathBase;
-    public float InitialSpeed = 0;
-    public float RandomInitialSpeed = 0;
+    #endregion
 
-    public string SpaceShipTag = "SpaceShip";
-    private Dictionary<string, string> _currentGenomes;
-
+    #region Generation Setup
+    [Header("Generation setup")]
     public int GenerationSize = 20;
 
-    /// <summary>
-    /// The generation is over when every individual has had at least this many matches.
-    /// </summary>
+    [Tooltip("The generation is over when every individual has had at least this many matches.")]
     public int MinMatchesPerIndividual = 1;
 
-    /// <summary>
-    /// The number of individuals to keep for the next generation
-    /// </summary>
+    [Tooltip("The number of individuals to keep for the next generation")]
     public int WinnersFromEachGeneration = 5;
 
     public int MatchTimeout = 10000;
     public int MatchRunTime = 0;
 
     public int Mutations = 3;
-    
     public int MaxTurrets = 10;
     public int MaxModules = 15;
 
     public string AllowedCharacters = " 0123456789  ";
     
     public int MaxMutationLength = 5;
-    
+
     public int MaxShootAngle = 180;
     public int MaxTorqueMultiplier = 2000;
     public int MaxLocationAimWeighting = 10;
@@ -67,19 +77,12 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     private StringMutator _mutator;
     public string DefaultGenome = "";
 
-    [Header("Drones")]
-    public int DroneCount = 10;
-    public List<string> DroneGenomes = new List<string>();
-
-
     private int GenerationNumber;
     private GenerationTargetShooting _currentGeneration;
-
     public int WinnerPollPeriod = 100;
-    private int _winnerPollCountdown = 0;
-
-    public int CurrentScore = 0;
-
+    private int _scoreUpdatePollCountdown = 0;
+    #endregion
+    
     // Use this for initialization
     void Start()
     {
@@ -96,35 +99,33 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         };
         ReadCurrentGeneration();
         SpawnShips();
+        _previousDroneCount = DroneCount;
     }
 
     // Update is called once per frame
     void Update()
     {
-        var winningGenome = AddToScore();
-        if (MatchTimeout > MatchRunTime)
-        {
-            MatchRunTime++;
-            return;
-        }
-        else
+        var matchOver = IsMatchOver();
+        if (matchOver || MatchTimeout <= MatchRunTime)
         {
             Debug.Log("Match over!");
-        }
 
-        if (winningGenome != null)
-        {
-            Debug.Log("\"" + winningGenome + "\" Wins!");
-            var a = _currentGenomes.Values.First();
-            var b = _currentGenomes.Values.Skip(1).First();
-            
-            _currentGeneration.RecordMatch(_genome, CurrentScore, false, false);
+            var survivalBonus = _stillAlive
+                ? RemainingFrames()
+                : -RemainingFrames();
+
+            _currentGeneration.RecordMatch(_genome, CurrentScore, _stillAlive, !_dronesRemain);
         
             SaveGeneration();
 
             PrepareForNextMatch();
 
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
+        else
+        {
+            MatchRunTime++;
+            return;
         }
     }
 
@@ -210,44 +211,57 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         ship.SendMessage("SetEnemyTags", enemyTags);
     }
 
-    public string _previousWinner;
+    private bool _stillAlive;
+    private bool _dronesRemain;
+
+    private int _previousDroneCount;
+
+    [Header("score for each kill = (framesRemaining * KillScoreMultiplier) + FlatKillBonus")]
+    public int KillScoreMultiplier = 1;
+
+    [Header("score for each kill = (framesRemaining * KillScoreMultiplier) + FlatKillBonus")]
+    public int FlatKillBonus = 100;
 
     /// <summary>
-    /// Returns the genome of the victor.
-    /// Or null if there's no victor yet.
-    /// Or empty string if everyone's dead.
+    /// Updates the score based on the remaining ships.
+    /// Returns a true if the match is over because one team is wiped out.
     /// </summary>
-    /// <returns></returns>
-    private string AddToScore()
+    /// <returns>Match is over boolean</returns>
+    private bool IsMatchOver()
     {
-        if(_winnerPollCountdown-- <= 0)
+        if(_scoreUpdatePollCountdown-- <= 0)
         {
-            string currentWinner = null;
-            _winnerPollCountdown = WinnerPollPeriod;
+            _scoreUpdatePollCountdown = WinnerPollPeriod;
             var tags = ListShips()
-                .Select(s => s.tag)
-                .Distinct();
-            //Debug.Log(ships.Count() + " ships exist");
+                .Select(s => s.tag);
 
-            if (tags.Count() == 1)
+            var shipCount = tags.Count(t => t == Tag1);
+            var droneCount = tags.Count(t => t == EnemyTag);
+
+            Debug.Log(shipCount + " ship modules, " + droneCount + " drones still alive.");
+
+            _dronesRemain = droneCount > 0;
+            _stillAlive = shipCount > 0;
+
+            var killedDrones = _previousDroneCount - droneCount;
+
+            if(killedDrones > 0)
             {
-                var winningTag = tags.First();
-
-                //Debug.Log(StringifyGenomes() + " winning tag: " + winningTag);
-                currentWinner = _currentGenomes[winningTag];
-            }
-            if (tags.Count() == 0)
-            {
-                Debug.Log("Everyone's dead!");
-                currentWinner = string.Empty;
+                Debug.Log(killedDrones + " drones killed this interval");
+                CurrentScore += killedDrones * ((RemainingFrames() * KillScoreMultiplier) + FlatKillBonus);
             }
 
-            var actualWinner = currentWinner == _previousWinner ? currentWinner : null;
-            _previousWinner = currentWinner;
-            //if there's ben the same winner for two consectutive periods return that, otherise null.
-            return actualWinner;
+            _previousDroneCount = droneCount;
+
+            //return true if one team is wipred out.
+            return !_stillAlive || !_dronesRemain;
         }
-        return null;
+        return false;
+    }
+
+    private int RemainingFrames()
+    {
+        return MatchTimeout - MatchRunTime;
     }
 
     private IEnumerable<Transform> ListShips()
