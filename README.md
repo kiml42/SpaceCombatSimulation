@@ -26,13 +26,12 @@ TODO:
         Fighters - using engines as weapons/using guns/both.
         Destruction only leaves objects with a rigibdbody and a health controller
         TargetPickers have option to kull all but the best x.
-        improve muzzle flashes.
-            Create a muzzle flash prefab that is spawned with no additional velocity, or even parented to emitter
         Prevent fluttery torpedoes.
         Make turrets account for the thing they're on's rotation.
         Eyeball turret
 
-    option for spaceships that don't break up
+    option for spaceships that don't break up   
+        Turrets can be destroyed, but otherwise the whole thing has one lot of health - probably using pass damage up.
     allow components in the same cubic volume if they wouldn't intersect.
     Turrets should know the ways they cannot turn.
     Store full config of evolution in current generation file.
