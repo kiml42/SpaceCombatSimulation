@@ -7,18 +7,21 @@ using UnityEngine;
 
 namespace Assets.src.Evolution
 {
-    public class Generation
+    /// <summary>
+    /// Class for storing a generation where each ship fights one other.
+    /// </summary>
+    public class GenerationTargetShooting
     {
         private System.Random _rng = new System.Random();
         private List<IndividualInGeneration> Individuals;
 
-        public Generation()
+        public GenerationTargetShooting()
         {
             //Debug.Log("Default Constructor");
             Individuals = new List<IndividualInGeneration>();
         }
 
-        public Generation(string[] lines)
+        public GenerationTargetShooting(string[] lines)
         {
             Individuals = lines.Select(l => new IndividualInGeneration(l)).ToList();
         }
@@ -38,12 +41,11 @@ namespace Assets.src.Evolution
             return true;
         }
 
-        public void RecordMatch(string a, string b, string victor, int winScore, int losScore, int drawScore)
+        public void RecordMatch(string contestant, int finalScore, bool survived, bool killedEverything)
         {
             //Debug.Log("Recording Match: " + a + " vs " + b + " victor: " + victor);
 
-            Individuals.First(i => i.Genome == a).RecordMatch(b, victor,  winScore,  losScore,  drawScore);
-            Individuals.First(i => i.Genome == b).RecordMatch(a, victor,  winScore,  losScore,  drawScore);
+            Individuals.First(i => i.Genome == contestant).RecordMatch(b, victor,  winScore,  losScore,  drawScore);
 
             Individuals = Individuals.OrderByDescending(i => i.AverageScore).ToList();
         }
@@ -154,10 +156,8 @@ namespace Assets.src.Evolution
                 }
             }
 
-            public void RecordMatch(string otherCompetitor, string victor, int winScore, int losScore, int drawScore)
+            public void RecordMatch(int finalScore, bool survived, bool killedEverything)
             {
-                PreviousCombatants.Add(otherCompetitor);
-
                 if (string.IsNullOrEmpty(victor))
                 {
                     Draws++;

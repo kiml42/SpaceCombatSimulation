@@ -8,17 +8,18 @@ using System;
 using System.IO;
 using Assets.Src.ObjectManagement;
 
-public class EvolutionControler : MonoBehaviour
+public class EvolutionTargetShootingControler : MonoBehaviour
 {
     public Rigidbody ShipToEvolve;
     public TestCubeChecker TestCube;
-    public Transform Location1;
-    public Transform Location2;
+    public Transform StartLocation;
+    public Transform TargetLocation;
     public bool RandomiseRotation = true;
-    public float LocationRandomisationRadius = 0;
+    public float StartLocationRandomisationRadius = 0;
+    public float TargetLocationRandomisationRadius = 0;
     public string Tag1 = "Team1";
-    public string Tag2 = "Team2";
-    public string GeneralFolder = "./tmp/evolvingShips";
+    public string EnemyTag = "Team2";
+    public string GeneralFolder = "./tmp/evolvingShipsTargetShooting";
     public string ThisRunFolder = "1";
     private string _currentGenerationFilePath;
     private string _generationFilePathBase;
@@ -28,19 +29,20 @@ public class EvolutionControler : MonoBehaviour
     public string SpaceShipTag = "SpaceShip";
     private Dictionary<string, string> _currentGenomes;
 
-    public int GenerationSize = 10;
+    public int GenerationSize = 20;
 
     /// <summary>
     /// The generation is over when every individual has had at least this many matches.
     /// </summary>
-    public int MinMatchesPerIndividual = 3;
+    public int MinMatchesPerIndividual = 1;
 
     /// <summary>
     /// The number of individuals to keep for the next generation
     /// </summary>
-    public int WinnersFromEachGeneration = 3;
+    public int WinnersFromEachGeneration = 5;
 
     public int MatchTimeout = 10000;
+    public int MatchRunTime = 0;
 
     public int Mutations = 3;
     
@@ -65,17 +67,12 @@ public class EvolutionControler : MonoBehaviour
     private StringMutator _mutator;
     public string DefaultGenome = "";
     private int GenerationNumber;
-    private Generation1V1 _currentGeneration;
-
-    public float SuddenDeathDamage = 10;
-    /// <summary>
-    /// Time for repeating the sudden death damage.
-    /// Also used as the minimum score for winning a match.
-    /// </summary>
-    public int SuddenDeathReloadTime = 200;
+    private GenerationTargetShooting _currentGeneration;
 
     public int WinnerPollPeriod = 100;
     private int _winnerPollCountdown = 0;
+
+    public float currentScore = 0;
 
     // Use this for initialization
     void Start()
@@ -98,16 +95,15 @@ public class EvolutionControler : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        var winningGenome = DetectVictorsGenome();
-        if (winningGenome == null && MatchTimeout > 0)
+        var winningGenome = AddToScore();
+        if (MatchTimeout > MatchRunTime)
         {
-            MatchTimeout--;
+            MatchRunTime++;
             return;
         }
-        else if (MatchTimeout <= 0/* && _previousWinner == null*/)
+        else
         {
-            //Debug.Log("Match Timeout!");
-            ActivateSuddenDeath();
+            Debug.Log("Match over!");
         }
 
         if (winningGenome != null)
@@ -115,12 +111,7 @@ public class EvolutionControler : MonoBehaviour
             Debug.Log("\"" + winningGenome + "\" Wins!");
             var a = _currentGenomes.Values.First();
             var b = _currentGenomes.Values.Skip(1).First();
-
-            var winScore = Math.Max(MatchTimeout, SuddenDeathReloadTime);
-
-            int losScore = -SuddenDeathReloadTime;
-            int drawScore = -SuddenDeathReloadTime/2;
-
+            
             _currentGeneration.RecordMatch(a, b, winningGenome, winScore, losScore, drawScore);
         
             SaveGeneration();
@@ -129,17 +120,6 @@ public class EvolutionControler : MonoBehaviour
 
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
-    }
-
-    private void ActivateSuddenDeath()
-    {
-        //Debug.Log("Sudden Death!");
-        var ships = ListShips();
-        foreach (var ship in ships)
-        {
-            ship.transform.SendMessage("ApplyDamage", SuddenDeathDamage, SendMessageOptions.DontRequireReceiver);
-        }
-        MatchTimeout = SuddenDeathReloadTime;
     }
 
     private void PrepareForNextMatch()
@@ -174,27 +154,25 @@ public class EvolutionControler : MonoBehaviour
 
     private void SpawnShips()
     {
-        var genomes = PickTwoGenomesFromHistory();
+        var genome = PickContestant();
 
-        Debug.Log("\"" + string.Join("\" vs \"", genomes.ToArray()) + "\"");
+        Debug.Log(genome + " enters the arena!");
+        
 
-        var g1 = genomes[0];
-        var g2 = genomes[1];
+        SpawnShip(genome, Tag1, EnemyTag, StartLocation, StartLocationRandomisationRadius);
 
-        SpawnShip(g1, Tag1, Tag2, Location1);
-        SpawnShip(g2, Tag2, Tag1, Location2);
-
-        _currentGenomes = new Dictionary<string, string>
-        {
-            {Tag1,g1 },
-            {Tag2,g2 }
-        };
+        SpawnDrones();
     }
 
-    private void SpawnShip(string genome, string ownTag, string enemyTag, Transform location)
+    private void SpawnDrones()
+    {
+        throw new NotImplementedException();
+    }
+
+    private void SpawnShip(string genome, string ownTag, string enemyTag, Transform location, float locationRandomisationRadius)
     {
         var orientation = RandomiseRotation ? UnityEngine.Random.rotation : location.rotation;
-        var randomPlacement = (LocationRandomisationRadius * UnityEngine.Random.insideUnitSphere) + location.position;
+        var randomPlacement = (locationRandomisationRadius * UnityEngine.Random.insideUnitSphere) + location.position;
         var ship = Instantiate(ShipToEvolve, randomPlacement, orientation);
         ship.tag = ownTag;
         var enemyTags = new List<string> { enemyTag };
@@ -228,7 +206,7 @@ public class EvolutionControler : MonoBehaviour
     /// Or empty string if everyone's dead.
     /// </summary>
     /// <returns></returns>
-    private string DetectVictorsGenome()
+    private string AddToScore()
     {
         if(_winnerPollCountdown-- <= 0)
         {
@@ -269,11 +247,10 @@ public class EvolutionControler : MonoBehaviour
                 ).Select(s => s.transform.parent);
     }
         
-    private string[] PickTwoGenomesFromHistory()
+    private string PickContestant()
     {
         var g1 = _currentGeneration.PickCompetitor();
-        var g2 = _currentGeneration.PickCompetitor(g1);
-        return new string[] { g1, g2 };
+        return g1;
     }
 
     private void ReadCurrentGeneration()
@@ -290,7 +267,7 @@ public class EvolutionControler : MonoBehaviour
             //Debug.Log("looking for genreation at " + path);
 
             var lines = File.ReadAllLines(path);
-            _currentGeneration = new Generation1V1(lines);
+            _currentGeneration = new GenerationTargetShooting(lines);
         } else
         {
             Debug.Log("Current generation File not found mutating default for new generation");
@@ -303,10 +280,10 @@ public class EvolutionControler : MonoBehaviour
         //Debug.Log("_currentGeneration: " + _currentGeneration);
     }
 
-    private Generation1V1 CreateGenerationOfMutants(List<string> baseGenomes)
+    private GenerationTargetShooting CreateGenerationOfMutants(List<string> baseGenomes)
     {
         //Debug.Log("Generating generation from [" + string.Join(",", baseGenomes.ToArray()) + "]");
-        var genration = new Generation1V1();
+        var genration = new GenerationTargetShooting();
         int i = 0;
         //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
         while (genration.CountIndividuals() < GenerationSize)
