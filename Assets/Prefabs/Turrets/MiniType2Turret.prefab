@@ -1389,6 +1389,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Projectile: {fileID: 54055825812382558, guid: 9332290abb101c54e870bf45e5c06ec1,
     type: 2}
+  MuzzleFlash: {fileID: 54135229686313498, guid: 6b1aec0fbdeab0f4d9e77b64863b4a23,
+    type: 2}
   LoadTime: 6
   ProjectileSpeed: 1200
   RandomSpeed: 2

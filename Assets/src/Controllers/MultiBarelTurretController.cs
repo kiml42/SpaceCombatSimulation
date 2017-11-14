@@ -13,6 +13,7 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
     private IKnowsCurrentTarget _targetChoosingMechanism;
     private IKnowsEnemyTags _tagKnower;
     public Rigidbody Projectile;
+    public Rigidbody MuzzleFlash;
     public int LoadTime = 200;
     public float ProjectileSpeed = 10f;
     public float RandomSpeed = 0.1f;
@@ -83,8 +84,14 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
                 _nextEmitterToShoot = _nextEmitterToShoot % (_emitters.Count);
                 var projectile = Instantiate(Projectile, emitter.transform.position, emitter.transform.rotation);
                 projectile.velocity = (projectile.transform.forward * ProjectileSpeed) +
-                    ElevationHub.GetComponent<Rigidbody>().velocity +
+                    ElevationHub.velocity +
                     (RandomSpeed * UnityEngine.Random.insideUnitSphere);
+
+                if(MuzzleFlash != null)
+                {
+                    var flash /*a-ah*/ = Instantiate(MuzzleFlash, emitter.transform.position, emitter.transform.rotation);
+                    flash.velocity = ElevationHub.velocity;
+                }
 
                 _reload = LoadTime;
                 ElevationHub.AddForceAtPosition(RecoilForce * (-emitter.forward), emitter.position, ForceMode.Impulse);
