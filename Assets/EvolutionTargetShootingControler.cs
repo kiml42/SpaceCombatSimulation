@@ -16,7 +16,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     public Transform TargetLocation;
     public bool RandomiseRotation = true;
     public float StartLocationRandomisationRadius = 0;
-    public float TargetLocationRandomisationRadius = 0;
+    public float TargetLocationRandomisationRadius = 100;
     public string Tag1 = "Team1";
     public string EnemyTag = "Team2";
     public string GeneralFolder = "./tmp/evolvingShipsTargetShooting";
@@ -66,6 +66,12 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     public List<Rigidbody> Modules;
     private StringMutator _mutator;
     public string DefaultGenome = "";
+
+    [Header("Drones")]
+    public int DroneCount = 10;
+    public List<string> DroneGenomes = new List<string>();
+
+
     private int GenerationNumber;
     private GenerationTargetShooting _currentGeneration;
 
@@ -168,7 +174,11 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     private void SpawnDrones()
     {
-        throw new NotImplementedException();
+        for(int i = 0; i<DroneCount; i++)
+        {
+            var genome = DroneGenomes[i % DroneGenomes.Count];
+            SpawnShip(genome, EnemyTag, Tag1, TargetLocation, TargetLocationRandomisationRadius);
+        }
     }
 
     private void SpawnShip(string genome, string ownTag, string enemyTag, Transform location, float locationRandomisationRadius)

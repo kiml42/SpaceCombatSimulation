@@ -836,7 +836,7 @@ MonoBehaviour:
   TargetLocation: {fileID: 4729534257291354}
   RandomiseRotation: 1
   StartLocationRandomisationRadius: 0
-  TargetLocationRandomisationRadius: 0
+  TargetLocationRandomisationRadius: 100
   Tag1: Team1
   EnemyTag: Team2
   GeneralFolder: ./tmp/evolvingShips
@@ -874,6 +874,12 @@ MonoBehaviour:
   - {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
   - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
   DefaultGenome: 
+  DroneCount: 10
+  DroneGenomes:
+  - 2 4
+  - 2 6
+  - 2 7
+  - 666666
   WinnerPollPeriod: 100
   CurrentScore: 0
   _previousWinner: 
