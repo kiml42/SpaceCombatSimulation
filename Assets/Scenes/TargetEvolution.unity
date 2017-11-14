@@ -112,6 +112,48 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1001 &302468399
+Prefab:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 4300714835004162, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4300714835004162, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4300714835004162, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4300714835004162, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4300714835004162, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4300714835004162, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4300714835004162, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4300714835004162, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
+      propertyPath: m_RootOrder
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+  m_ParentPrefab: {fileID: 100100000, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
+  m_IsPrefabParent: 0
 --- !u!1001 &798340242
 Prefab:
   m_ObjectHideFlags: 0
@@ -156,139 +198,9 @@ Prefab:
   m_IsPrefabParent: 0
 --- !u!108 &953302730 stripped
 Light:
-  m_PrefabParentObject: {fileID: 108735939666816164, guid: 590da46f61a57f34ba77094de519068c,
+  m_PrefabParentObject: {fileID: 108611981714646190, guid: 2b543762511759b41a3d5fc84820ca59,
     type: 2}
-  m_PrefabInternal: {fileID: 1240202016}
---- !u!1001 &1240202016
-Prefab:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 4589377682424178, guid: 590da46f61a57f34ba77094de519068c, type: 2}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4589377682424178, guid: 590da46f61a57f34ba77094de519068c, type: 2}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4589377682424178, guid: 590da46f61a57f34ba77094de519068c, type: 2}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4589377682424178, guid: 590da46f61a57f34ba77094de519068c, type: 2}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4589377682424178, guid: 590da46f61a57f34ba77094de519068c, type: 2}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4589377682424178, guid: 590da46f61a57f34ba77094de519068c, type: 2}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4589377682424178, guid: 590da46f61a57f34ba77094de519068c, type: 2}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4589377682424178, guid: 590da46f61a57f34ba77094de519068c, type: 2}
-      propertyPath: m_RootOrder
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
-        type: 2}
-      propertyPath: ThisRunFolder
-      value: FlyingStart
-      objectReference: {fileID: 0}
-    - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
-        type: 2}
-      propertyPath: DefaultGenome
-      value: 222222
-      objectReference: {fileID: 0}
-    - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
-        type: 2}
-      propertyPath: RandomInitialSpeed
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
-        type: 2}
-      propertyPath: InitialSpeed
-      value: 40
-      objectReference: {fileID: 0}
-    - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
-        type: 2}
-      propertyPath: RandomiseRotation
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-  m_ParentPrefab: {fileID: 100100000, guid: 590da46f61a57f34ba77094de519068c, type: 2}
-  m_IsPrefabParent: 0
---- !u!1 &1240202017 stripped
-GameObject:
-  m_PrefabParentObject: {fileID: 1406041262789598, guid: 590da46f61a57f34ba77094de519068c,
-    type: 2}
-  m_PrefabInternal: {fileID: 1240202016}
---- !u!4 &1240202018 stripped
-Transform:
-  m_PrefabParentObject: {fileID: 4754386304018410, guid: 590da46f61a57f34ba77094de519068c,
-    type: 2}
-  m_PrefabInternal: {fileID: 1240202016}
---- !u!4 &1240202019 stripped
-Transform:
-  m_PrefabParentObject: {fileID: 4530287190188008, guid: 590da46f61a57f34ba77094de519068c,
-    type: 2}
-  m_PrefabInternal: {fileID: 1240202016}
---- !u!114 &1240202020
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1240202017}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6ec239746f603b64dbbbce3d88199ef4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShipToEvolve: {fileID: 54288706851983332, guid: f3b4cb1aa8e6d4d4d9102e7e65998466,
-    type: 2}
-  TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
-  Location1: {fileID: 1240202019}
-  Location2: {fileID: 1240202018}
-  RandomiseRotation: 1
-  LocationRandomisationRadius: 0
-  Tag1: Team1
-  Tag2: Team2
-  GeneralFolder: ./tmp/evolvingShips
-  ThisRunFolder: 1
-  InitialSpeed: 0
-  RandomInitialSpeed: 0
-  SpaceShipTag: SpaceShip
-  GenerationSize: 10
-  MinMatchesPerIndividual: 3
-  WinnersFromEachGeneration: 3
-  MatchTimeout: 10000
-  Mutations: 3
-  MaxTurrets: 10
-  MaxModules: 15
-  AllowedCharacters: ' 0123456789  '
-  MaxMutationLength: 5
-  MaxShootAngle: 180
-  MaxTorqueMultiplier: 2000
-  MaxLocationAimWeighting: 10
-  MaxSlowdownWeighting: 60
-  MaxLocationTollerance: 1000
-  MaxVelociyTollerance: 200
-  MaxAngularDragForTorquers: 1
-  GenomeLength: 50
-  Modules: []
-  DefaultGenome: 
-  SuddenDeathDamage: 10
-  SuddenDeathReloadTime: 200
-  WinnerPollPeriod: 100
-  _previousWinner: 
+  m_PrefabInternal: {fileID: 302468399}
 --- !u!1001 &1944419107
 Prefab:
   m_ObjectHideFlags: 0
