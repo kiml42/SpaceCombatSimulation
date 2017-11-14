@@ -1345,7 +1345,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fbab2d8ba61987347953f7c003bfc3b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Friction: 0.4
+  Friction: 0.01
 --- !u!114 &114320484002594652
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1411,10 +1411,10 @@ MonoBehaviour:
   RestTarget: {fileID: 4689014570261280}
   TurnTable: {fileID: 54663574418112234}
   ElevationHub: {fileID: 54647014223265010}
-  TurnTableMotorFoce: 30
-  TurnTableMotorSpeedMultiplier: 500
-  ElevationHubMotorFoce: 30
-  ElevationHubMotorSpeedMultiplier: 500
+  TurnTableMotorFoce: 200
+  TurnTableMotorSpeedMultiplier: 200
+  ElevationHubMotorFoce: 200
+  ElevationHubMotorSpeedMultiplier: 200
 --- !u!114 &114583833557891480
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1452,7 +1452,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fbab2d8ba61987347953f7c003bfc3b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Friction: 0.4
+  Friction: 0.01
 --- !u!114 &114711843122604854
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -5,6 +5,9 @@ public class JointFriction : MonoBehaviour {
     [Tooltip("mulitiplier for the angular velocity for the torque to apply.")]
     public float Friction = 0.4f;
 
+    //[Tooltip("For debugging and testing")]
+    //public Vector3 InitialKick;
+
     private HingeJoint _hinge;
     private Rigidbody _thisBody;
     private Rigidbody _connectedBody;
@@ -17,6 +20,11 @@ public class JointFriction : MonoBehaviour {
         _axis = _hinge.axis;
 
         _thisBody = GetComponent<Rigidbody>();
+
+        //if(InitialKick.magnitude > 0 )
+        //{
+        //    _thisBody.AddRelativeTorque(InitialKick, ForceMode.VelocityChange);
+        //}
     }
 	
 	// Update is called once per frame

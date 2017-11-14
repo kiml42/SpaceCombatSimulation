@@ -647,7 +647,7 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1964144153646322}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 20.32, y: 0.02, z: 74.6}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
@@ -657,7 +657,7 @@ Transform:
   - {fileID: 4072771494199288}
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!4 &4318657118342554
 Transform:
   m_ObjectHideFlags: 1
@@ -1897,7 +1897,7 @@ HingeJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0, y: -0.00000011920929, z: 1.3000003}
+  m_ConnectedAnchor: {x: -0.00000015497207, y: -0.00000011920929, z: 1.3000001}
   m_UseSpring: 0
   m_Spring:
     spring: 0
@@ -1931,7 +1931,7 @@ HingeJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0, y: 1.9999998, z: 0}
+  m_ConnectedAnchor: {x: 0, y: 2, z: 0}
   m_UseSpring: 0
   m_Spring:
     spring: 0
@@ -2122,7 +2122,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fbab2d8ba61987347953f7c003bfc3b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Friction: 0.4
+  Friction: 0.01
 --- !u!114 &114395788500693144
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2265,7 +2265,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fbab2d8ba61987347953f7c003bfc3b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Friction: 0.4
+  Friction: 0.01
 --- !u!114 &114844622593280128
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2310,10 +2310,10 @@ MonoBehaviour:
   RestTarget: {fileID: 4550382481658926}
   TurnTable: {fileID: 54882056251725972}
   ElevationHub: {fileID: 54867097553581106}
-  TurnTableMotorFoce: 30
-  TurnTableMotorSpeedMultiplier: 500
-  ElevationHubMotorFoce: 30
-  ElevationHubMotorSpeedMultiplier: 500
+  TurnTableMotorFoce: 200
+  TurnTableMotorSpeedMultiplier: 200
+  ElevationHubMotorFoce: 200
+  ElevationHubMotorSpeedMultiplier: 200
 --- !u!124 &124357949528397776
 Behaviour:
   m_ObjectHideFlags: 1

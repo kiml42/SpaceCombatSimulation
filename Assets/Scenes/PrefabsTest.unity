@@ -1049,7 +1049,37 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 1714305623586720, guid: fb971bf036914224882cb762d5469d0a, type: 2}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 114403257017664172, guid: fb971bf036914224882cb762d5469d0a,
+        type: 2}
+      propertyPath: TurnTableMotorSpeedMultiplier
+      value: 200
+      objectReference: {fileID: 0}
+    - target: {fileID: 114403257017664172, guid: fb971bf036914224882cb762d5469d0a,
+        type: 2}
+      propertyPath: ElevationHubMotorSpeedMultiplier
+      value: 200
+      objectReference: {fileID: 0}
+    - target: {fileID: 114697350393277722, guid: fb971bf036914224882cb762d5469d0a,
+        type: 2}
+      propertyPath: Friction
+      value: 0.01
+      objectReference: {fileID: 0}
+    - target: {fileID: 114197791274916530, guid: fb971bf036914224882cb762d5469d0a,
+        type: 2}
+      propertyPath: Friction
+      value: 0.01
+      objectReference: {fileID: 0}
+    - target: {fileID: 114403257017664172, guid: fb971bf036914224882cb762d5469d0a,
+        type: 2}
+      propertyPath: TurnTableMotorFoce
+      value: 200
+      objectReference: {fileID: 0}
+    - target: {fileID: 114403257017664172, guid: fb971bf036914224882cb762d5469d0a,
+        type: 2}
+      propertyPath: ElevationHubMotorFoce
+      value: 200
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: fb971bf036914224882cb762d5469d0a, type: 2}
@@ -1461,6 +1491,10 @@ Prefab:
         type: 2}
       propertyPath: m_ConnectedAnchor.y
       value: 2.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1617297998928176, guid: ecb13bd8e1b25e74c820d8d87b56d573, type: 2}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: ecb13bd8e1b25e74c820d8d87b56d573, type: 2}
@@ -2280,7 +2314,37 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 1964144153646322, guid: a5aecdf99e8c0d540a795c7a769bf0f7, type: 2}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 114735945283404792, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
+        type: 2}
+      propertyPath: Friction
+      value: 0.01
+      objectReference: {fileID: 0}
+    - target: {fileID: 114374078530005190, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
+        type: 2}
+      propertyPath: Friction
+      value: 0.01
+      objectReference: {fileID: 0}
+    - target: {fileID: 114919527460496792, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
+        type: 2}
+      propertyPath: TurnTableMotorFoce
+      value: 200
+      objectReference: {fileID: 0}
+    - target: {fileID: 114919527460496792, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
+        type: 2}
+      propertyPath: TurnTableMotorSpeedMultiplier
+      value: 200
+      objectReference: {fileID: 0}
+    - target: {fileID: 114919527460496792, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
+        type: 2}
+      propertyPath: ElevationHubMotorFoce
+      value: 200
+      objectReference: {fileID: 0}
+    - target: {fileID: 114919527460496792, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
+        type: 2}
+      propertyPath: ElevationHubMotorSpeedMultiplier
+      value: 200
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: a5aecdf99e8c0d540a795c7a769bf0f7, type: 2}
