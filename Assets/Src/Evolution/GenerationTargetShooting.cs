@@ -93,12 +93,12 @@ namespace Assets.src.Evolution
 
             public int Score;
             private const int SCORE_INDEX = 1;
-            public int MatchesSurvived;
-            private const int SURVIVED_INDEX = 2;
-            public int CompleteKills;
-            private const int COMPLETE_KILLS_INDEX = 3;
             public int MatchesPlayed;
-            private const int MATCHES_PLAYED_INDEX = 4;
+            private const int MATCHES_PLAYED_INDEX = 2;
+            public int MatchesSurvived;
+            private const int SURVIVED_INDEX = 3;
+            public int CompleteKills;
+            private const int COMPLETE_KILLS_INDEX = 4;
 
             
             public List<int> MatchScores = new List<int>();

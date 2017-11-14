@@ -195,7 +195,6 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4300714835004162}
-  - component: {fileID: 114833437574514126}
   - component: {fileID: 114257166760928450}
   - component: {fileID: 114768268343182516}
   - component: {fileID: 135941088491090616}
@@ -831,22 +830,32 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShipToEvolve: {fileID: 54288706851983332, guid: f3b4cb1aa8e6d4d4d9102e7e65998466,
     type: 2}
+  Tag1: Team1
   TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
   StartLocation: {fileID: 4365458763982880}
-  TargetLocation: {fileID: 4729534257291354}
+  StartLocationRandomisationRadius: 50
   RandomiseRotation: 1
-  StartLocationRandomisationRadius: 0
-  TargetLocationRandomisationRadius: 100
-  Tag1: Team1
-  EnemyTag: Team2
-  GeneralFolder: ./tmp/evolvingShips
-  ThisRunFolder: 1
   InitialSpeed: 0
   RandomInitialSpeed: 0
   SpaceShipTag: SpaceShip
+  CurrentScore: 0
+  DroneCount: 10
+  DroneGenomes:
+  - 
+  - 0 1 0 1 0
+  - 25 5
+  - 2 4
+  - 2
+  - 2 6
+  - ' 8 8'
+  TargetLocation: {fileID: 4729534257291354}
+  TargetLocationRandomisationRadius: 100
+  EnemyTag: Team2
+  GeneralFolder: ./tmp/evolvingShipsDrones
+  ThisRunFolder: 1
   GenerationSize: 10
-  MinMatchesPerIndividual: 3
-  WinnersFromEachGeneration: 3
+  MinMatchesPerIndividual: 2
+  WinnersFromEachGeneration: 4
   MatchTimeout: 10000
   MatchRunTime: 0
   Mutations: 3
@@ -874,15 +883,11 @@ MonoBehaviour:
   - {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
   - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
   DefaultGenome: 
-  DroneCount: 10
-  DroneGenomes:
-  - 2 4
-  - 2 6
-  - 2 7
-  - 666666
   WinnerPollPeriod: 100
-  CurrentScore: 0
-  _previousWinner: 
+  KillScoreMultiplier: 1
+  FlatKillBonus: 100
+  CompletionBonus: 10
+  DeathPenalty: 10
 --- !u!114 &114551084138593738
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -935,64 +940,6 @@ MonoBehaviour:
   Colour: {r: 0, g: 0, b: 0, a: 0}
   Depth: 1
   SetInStart: 0
---- !u!114 &114833437574514126
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1951160143417706}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3dff911269bfe564ba0a3d2fd1db1d11, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShipToEvolve: {fileID: 54288706851983332, guid: f3b4cb1aa8e6d4d4d9102e7e65998466,
-    type: 2}
-  TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
-  Location1: {fileID: 4365458763982880}
-  Location2: {fileID: 4729534257291354}
-  RandomiseRotation: 0
-  LocationRandomisationRadius: 0
-  Tag1: Team1
-  Tag2: Team2
-  GeneralFolder: ./tmp/evolvingShips
-  ThisRunFolder: FlyingStart
-  InitialSpeed: 40
-  RandomInitialSpeed: 2
-  SpaceShipTag: SpaceShip
-  GenerationSize: 17
-  MinMatchesPerIndividual: 3
-  WinnersFromEachGeneration: 5
-  MatchTimeout: 15000
-  Mutations: 3
-  MaxTurrets: 10
-  MaxModules: 15
-  AllowedCharacters: ' 01223456789  '
-  MaxMutationLength: 5
-  MaxShootAngle: 180
-  MaxTorqueMultiplier: 60000
-  MaxLocationAimWeighting: 10
-  MaxSlowdownWeighting: 150
-  MaxLocationTollerance: 2000
-  MaxVelociyTollerance: 100
-  MaxAngularDragForTorquers: 14
-  GenomeLength: 100
-  Modules:
-  - {fileID: 54570345499317062, guid: b6e297582f25e22439032bba93cfe02a, type: 2}
-  - {fileID: 54566524727042172, guid: 8629b68d84c101a458451c49aaba15dc, type: 2}
-  - {fileID: 54223752741852356, guid: 08efacbbb059a534586d7c97183f30e6, type: 2}
-  - {fileID: 54540809518397602, guid: ecb13bd8e1b25e74c820d8d87b56d573, type: 2}
-  - {fileID: 54016053239248472, guid: a5aecdf99e8c0d540a795c7a769bf0f7, type: 2}
-  - {fileID: 54298971192452022, guid: c19e2a0e8fe94a2458f1f5141511d791, type: 2}
-  - {fileID: 54085703227121582, guid: fb971bf036914224882cb762d5469d0a, type: 2}
-  - {fileID: 54431323037331960, guid: 7a6fbabb0bc555d40912d26e6bc4beb5, type: 2}
-  - {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
-  - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
-  DefaultGenome: 222222
-  SuddenDeathDamage: 60
-  SuddenDeathReloadTime: 200
-  WinnerPollPeriod: 300
-  _previousWinner: 
 --- !u!124 &124422424614570090
 Behaviour:
   m_ObjectHideFlags: 1

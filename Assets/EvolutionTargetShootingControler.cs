@@ -16,6 +16,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     public string Tag1 = "Team1";
     public TestCubeChecker TestCube;
     public Transform StartLocation;
+    public float StartLocationRandomisationRadius = 0;
     [Tooltip("Randomise the rotation of all spawned ships")]
     public bool RandomiseRotation = true;
     public float InitialSpeed = 0;
@@ -29,7 +30,6 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     public int DroneCount = 10;
     public List<string> DroneGenomes = new List<string>();
     public Transform TargetLocation;
-    public float StartLocationRandomisationRadius = 0;
     public float TargetLocationRandomisationRadius = 100;
     public string EnemyTag = "Team2";
     #endregion
@@ -82,7 +82,29 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     public int WinnerPollPeriod = 100;
     private int _scoreUpdatePollCountdown = 0;
     #endregion
-    
+
+    private string _genome;
+
+    private bool _stillAlive;
+    private bool _dronesRemain;
+
+    private int _previousDroneCount;
+
+    #region score
+    [Header("Score")]
+    [Tooltip("score for each kill = (framesRemaining * KillScoreMultiplier) + FlatKillBonus")]
+    public int KillScoreMultiplier = 1;
+
+    [Tooltip("score for each kill = (framesRemaining * KillScoreMultiplier) + FlatKillBonus")]
+    public int FlatKillBonus = 100;
+
+    [Tooltip("Bonus Score for killing everything, timesd by remaining frames")]
+    public int CompletionBonus = 1;
+
+    [Tooltip("penalty for dieing, multiplied by remining frames")]
+    public int DeathPenalty = 1;
+    #endregion
+
     // Use this for initialization
     void Start()
     {
@@ -108,11 +130,13 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         var matchOver = IsMatchOver();
         if (matchOver || MatchTimeout <= MatchRunTime)
         {
-            Debug.Log("Match over!");
+            var survivalBonus =  RemainingFrames() * (_stillAlive
+                ? CompletionBonus
+                : -DeathPenalty);
 
-            var survivalBonus = _stillAlive
-                ? RemainingFrames()
-                : -RemainingFrames();
+            Debug.Log("Match over! Survival Bonus: " + survivalBonus);
+
+            CurrentScore += survivalBonus;
 
             _currentGeneration.RecordMatch(_genome, CurrentScore, _stillAlive, !_dronesRemain);
         
@@ -158,9 +182,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         var generationFilePath = _generationFilePathBase + (GenerationNumber.ToString().PadLeft(6, '0'));
         return generationFilePath;
     }
-
-    private string _genome;
-
+    
     private void SpawnShips()
     {
         _genome = PickContestant();
@@ -210,18 +232,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
         ship.SendMessage("SetEnemyTags", enemyTags);
     }
-
-    private bool _stillAlive;
-    private bool _dronesRemain;
-
-    private int _previousDroneCount;
-
-    [Header("score for each kill = (framesRemaining * KillScoreMultiplier) + FlatKillBonus")]
-    public int KillScoreMultiplier = 1;
-
-    [Header("score for each kill = (framesRemaining * KillScoreMultiplier) + FlatKillBonus")]
-    public int FlatKillBonus = 100;
-
+    
     /// <summary>
     /// Updates the score based on the remaining ships.
     /// Returns a true if the match is over because one team is wiped out.
@@ -238,7 +249,6 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             var shipCount = tags.Count(t => t == Tag1);
             var droneCount = tags.Count(t => t == EnemyTag);
 
-            Debug.Log(shipCount + " ship modules, " + droneCount + " drones still alive.");
 
             _dronesRemain = droneCount > 0;
             _stillAlive = shipCount > 0;
@@ -248,6 +258,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             if(killedDrones > 0)
             {
                 Debug.Log(killedDrones + " drones killed this interval");
+                Debug.Log(shipCount + " ship modules, " + droneCount + " drones still alive.");
                 CurrentScore += killedDrones * ((RemainingFrames() * KillScoreMultiplier) + FlatKillBonus);
             }
 

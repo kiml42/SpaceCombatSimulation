@@ -29,12 +29,16 @@ public class JointFriction : MonoBehaviour {
 	
 	// Update is called once per frame
 	void FixedUpdate () {
-        var angularV = _hinge.velocity;
-        //Debug.Log("angularV " + angularV);
-        var worldAxis = transform.TransformVector(_axis);
-        var worldTorque = Friction * angularV * worldAxis;
+        if(_hinge != null)
+        {
+            var angularV = _hinge.velocity;
+            //Debug.Log("angularV " + angularV);
+            var worldAxis = transform.TransformVector(_axis);
+            var worldTorque = Friction * angularV * worldAxis;
 
-        _thisBody.AddTorque(-worldTorque);
-        _connectedBody.AddTorque(worldTorque);
+            _thisBody.AddTorque(-worldTorque);
+            if(_connectedBody != null)
+                _connectedBody.AddTorque(worldTorque);
+        }
     }
 }
