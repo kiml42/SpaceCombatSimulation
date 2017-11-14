@@ -1390,7 +1390,7 @@ MonoBehaviour:
   Projectile: {fileID: 54055825812382558, guid: 9332290abb101c54e870bf45e5c06ec1,
     type: 2}
   LoadTime: 6
-  ProjectileSpeed: 800
+  ProjectileSpeed: 1200
   RandomSpeed: 2
   ElevationHub: {fileID: 54647014223265010}
   EmitterParent: {fileID: 4095713925445172}
