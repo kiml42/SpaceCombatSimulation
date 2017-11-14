@@ -19,8 +19,6 @@ Bugs:
 TODO:
     Priority:
         Some way for turrets to account for their own turn rates.
-        Railgun turret
-            Single beam beam turret with very short on, long reload and huge damage ignoring range.
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
         Refactor rocket controller's start delay feature.
         Some way to set the roll of ships to have a direction that should be pointed at the enemy where possible.
