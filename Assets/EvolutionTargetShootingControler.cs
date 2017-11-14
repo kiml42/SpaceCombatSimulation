@@ -72,7 +72,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     public int WinnerPollPeriod = 100;
     private int _winnerPollCountdown = 0;
 
-    public float currentScore = 0;
+    public int CurrentScore = 0;
 
     // Use this for initialization
     void Start()
@@ -112,7 +112,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             var a = _currentGenomes.Values.First();
             var b = _currentGenomes.Values.Skip(1).First();
             
-            _currentGeneration.RecordMatch(a, b, winningGenome, winScore, losScore, drawScore);
+            _currentGeneration.RecordMatch(_genome, CurrentScore, false, false);
         
             SaveGeneration();
 
@@ -152,14 +152,16 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         return generationFilePath;
     }
 
+    private string _genome;
+
     private void SpawnShips()
     {
-        var genome = PickContestant();
+        _genome = PickContestant();
 
-        Debug.Log(genome + " enters the arena!");
+        Debug.Log(_genome + " enters the arena!");
         
 
-        SpawnShip(genome, Tag1, EnemyTag, StartLocation, StartLocationRandomisationRadius);
+        SpawnShip(_genome, Tag1, EnemyTag, StartLocation, StartLocationRandomisationRadius);
 
         SpawnDrones();
     }

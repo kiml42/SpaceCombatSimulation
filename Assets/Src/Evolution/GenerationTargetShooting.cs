@@ -45,7 +45,7 @@ namespace Assets.src.Evolution
         {
             //Debug.Log("Recording Match: " + a + " vs " + b + " victor: " + victor);
 
-            Individuals.First(i => i.Genome == contestant).RecordMatch(b, victor,  winScore,  losScore,  drawScore);
+            Individuals.First(i => i.Genome == contestant).RecordMatch(finalScore, survived, killedEverything);
 
             Individuals = Individuals.OrderByDescending(i => i.AverageScore).ToList();
         }
@@ -61,29 +61,17 @@ namespace Assets.src.Evolution
         }
 
         /// <summary>
-        /// Returns a genome from the individuals in this generation with the lowest number of completed matches.
-        /// If a non-empty genome is provded, the genome provided will not be that one, or be one that has already competed with that one.
+        /// Returns a genome from the individual in this generation with the lowest number of completed matches.
         /// </summary>
-        /// <param name="genomeToCompeteWith"></param>
         /// <returns>genome of a competetor from this generation</returns>
-        public string PickCompetitor(string genomeToCompeteWith = null)
+        public string PickCompetitor()
         {
             List<IndividualInGeneration> validCompetitors;
-
-            if (!string.IsNullOrEmpty(genomeToCompeteWith))
-            {
-                validCompetitors = Individuals
-                    .Where(i => i.Genome != genomeToCompeteWith && !i.PreviousCombatants.Contains(genomeToCompeteWith))
-                    .OrderBy(i => i.MatchesPlayed)
-                    .ThenBy(i => _rng.NextDouble())
-                    .ToList();
-            } else
-            {
-                validCompetitors = Individuals
-                    .OrderBy(i => i.MatchesPlayed)
-                    .ThenBy(i => _rng.NextDouble())
-                    .ToList();
-            }
+            
+            validCompetitors = Individuals
+                .OrderBy(i => i.MatchesPlayed)
+                .ThenBy(i => _rng.NextDouble())
+                .ToList();
 
             var best = validCompetitors.FirstOrDefault();
             //Debug.Log("Picked Individual has played " + best.MatchesPlayed);
@@ -105,16 +93,15 @@ namespace Assets.src.Evolution
 
             public int Score;
             private const int SCORE_INDEX = 1;
-            public int Wins;
-            private const int WINS_INDEX = 2;
-            public int Draws;
-            private const int DRAWS_INDEX = 3;
-            public int Loses;
-            private const int LOSES_INDEX = 4;
+            public int MatchesSurvived;
+            private const int SURVIVED_INDEX = 2;
+            public int CompleteKills;
+            private const int COMPLETE_KILLS_INDEX = 3;
+            public int MatchesPlayed;
+            private const int MATCHES_PLAYED_INDEX = 4;
 
-            public int MatchesPlayed { get { return Wins + Draws + Loses; } }
-
-            public List<string> PreviousCombatants = new List<string>();
+            
+            public List<int> MatchScores = new List<int>();
             private const int PC_INDEX = 5;
 
             private const int WIN_SCORE = 10;
@@ -144,44 +131,31 @@ namespace Assets.src.Evolution
                 //Debug.Log(parts.Length);
                 Genome = parts[0];
                 Score = ParsePart(parts, SCORE_INDEX);
-                Wins = ParsePart(parts, WINS_INDEX);
-                Draws = ParsePart(parts, DRAWS_INDEX);
-                Loses = ParsePart(parts, LOSES_INDEX);
+                MatchesSurvived = ParsePart(parts, SURVIVED_INDEX);
+                CompleteKills = ParsePart(parts, COMPLETE_KILLS_INDEX);
+                MatchesPlayed = ParsePart(parts, MATCHES_PLAYED_INDEX);
 
                 if (parts.Length > PC_INDEX)
                 {
                     //Debug.Log(parts[PC_INDEX]);
-                    var competitorsString = parts[PC_INDEX];
-                    PreviousCombatants = competitorsString.Split(',').ToList();
+                    var matchScoresString = parts[PC_INDEX];
+                    MatchScores = matchScoresString.Split(',').Where(s => !string.IsNullOrEmpty(s)).Select(s => int.Parse(s)).ToList();
                 }
             }
 
             public void RecordMatch(int finalScore, bool survived, bool killedEverything)
             {
-                if (string.IsNullOrEmpty(victor))
+                Score += finalScore;
+                MatchesPlayed++;
+                if (survived)
                 {
-                    Draws++;
-                    Score += drawScore;
+                    MatchesSurvived++;
                 }
-                else
+                if (killedEverything)
                 {
-                    if (Genome == victor)
-                    {
-                        Wins++;
-                        Score += winScore;
-                    }
-                    else if (victor == otherCompetitor)
-                    {
-                        Loses++;
-                        Score += losScore;
-                    }
-                    else
-                    {
-                        Debug.LogWarning("Victor '" + victor + "' was not '" + Genome + "' or '" + otherCompetitor + "'");
-                        Draws++;
-                        Score += drawScore;
-                    }
+                    CompleteKills++;
                 }
+                MatchScores.Add(finalScore);
             }
 
             private static int ParsePart(string[] parts, int index)
@@ -197,7 +171,7 @@ namespace Assets.src.Evolution
 
             public override string ToString()
             {
-                var competitorsString = string.Join(",", PreviousCombatants.Where(s => !string.IsNullOrEmpty(s)).ToArray());
+                var competitorsString = string.Join(",", MatchScores.Select(s => s.ToString()).ToArray());
                 var strings = new List<string>
                 {
                     Genome,
@@ -209,9 +183,9 @@ namespace Assets.src.Evolution
                 };
                 
                 strings[SCORE_INDEX] = Score.ToString();
-                strings[WINS_INDEX] = Wins.ToString();
-                strings[DRAWS_INDEX] = Draws.ToString();
-                strings[LOSES_INDEX] = Loses.ToString();
+                strings[SURVIVED_INDEX] = MatchesSurvived.ToString();
+                strings[COMPLETE_KILLS_INDEX] = CompleteKills.ToString();
+                strings[MATCHES_PLAYED_INDEX] = MatchesPlayed.ToString();
                 strings[PC_INDEX] = competitorsString.ToString();
 
                 return string.Join(";", strings.ToArray());
