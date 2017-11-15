@@ -839,9 +839,8 @@ MonoBehaviour:
   RandomInitialSpeed: 0
   SpaceShipTag: SpaceShip
   CurrentScore: 0
-  DroneCount: 10
   DroneGenomes:
-  - 2
+  - 2     0102041001500206909999
   - 0 1 0 1 0
   - 
   - 
@@ -852,6 +851,8 @@ MonoBehaviour:
   TargetLocation: {fileID: 4729534257291354}
   TargetLocationRandomisationRadius: 150
   EnemyTag: Team2
+  MinDronesToSpawn: 3
+  ExtraDroneEveryXGenerations: 5
   GeneralFolder: ./tmp/evolvingShipsDrones
   ThisRunFolder: 1
   GenerationSize: 17
