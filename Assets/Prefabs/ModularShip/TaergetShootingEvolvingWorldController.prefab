@@ -841,19 +841,19 @@ MonoBehaviour:
   CurrentScore: 0
   DroneCount: 10
   DroneGenomes:
-  - 
-  - 0 1 0 1 0
-  - 25 5
-  - 2 4
   - 2
-  - 2 6
-  - ' 6 6'
+  - 0 1 0 1 0
+  - '  5'
+  - '  4'
+  - 
+  - 
+  - '  6'
   - '  8'
   TargetLocation: {fileID: 4729534257291354}
   TargetLocationRandomisationRadius: 150
   EnemyTag: Team2
   GeneralFolder: ./tmp/evolvingShipsDrones
-  ThisRunFolder: 2
+  ThisRunFolder: 1
   GenerationSize: 10
   MinMatchesPerIndividual: 2
   WinnersFromEachGeneration: 4

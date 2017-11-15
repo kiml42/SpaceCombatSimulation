@@ -41,11 +41,11 @@ namespace Assets.src.Evolution
             return true;
         }
 
-        public void RecordMatch(string contestant, int finalScore, bool survived, bool killedEverything)
+        public void RecordMatch(string contestant, int finalScore, bool survived, bool killedEverything, int killsThisMatch)
         {
             //Debug.Log("Recording Match: " + a + " vs " + b + " victor: " + victor);
 
-            Individuals.First(i => i.Genome == contestant).RecordMatch(finalScore, survived, killedEverything);
+            Individuals.First(i => i.Genome == contestant).RecordMatch(finalScore, survived, killedEverything, killsThisMatch);
 
             Individuals = Individuals.OrderByDescending(i => i.AverageScore).ToList();
         }
@@ -99,14 +99,12 @@ namespace Assets.src.Evolution
             private const int SURVIVED_INDEX = 3;
             public int CompleteKills;
             private const int COMPLETE_KILLS_INDEX = 4;
+            public int TotalKills;
+            private const int TOTAL_KILLS_INDEX = 5;
 
             
             public List<int> MatchScores = new List<int>();
-            private const int PC_INDEX = 5;
-
-            private const int WIN_SCORE = 10;
-            private const int DRAW_SCORE = -2;
-            private const int LOOSE_SCORE = -10;
+            private const int Scores_INDEX = 6;
 
             public float AverageScore { get
                 {
@@ -135,17 +133,18 @@ namespace Assets.src.Evolution
                 CompleteKills = ParsePart(parts, COMPLETE_KILLS_INDEX);
                 MatchesPlayed = ParsePart(parts, MATCHES_PLAYED_INDEX);
 
-                if (parts.Length > PC_INDEX)
+                if (parts.Length > Scores_INDEX)
                 {
                     //Debug.Log(parts[PC_INDEX]);
-                    var matchScoresString = parts[PC_INDEX];
+                    var matchScoresString = parts[Scores_INDEX];
                     MatchScores = matchScoresString.Split(',').Where(s => !string.IsNullOrEmpty(s)).Select(s => int.Parse(s)).ToList();
                 }
             }
 
-            public void RecordMatch(int finalScore, bool survived, bool killedEverything)
+            public void RecordMatch(int finalScore, bool survived, bool killedEverything, int killsThisMatch)
             {
                 Score += finalScore;
+                TotalKills += killsThisMatch;
                 MatchesPlayed++;
                 if (survived)
                 {
@@ -179,14 +178,16 @@ namespace Assets.src.Evolution
                     "",
                     "",
                     "",
+                    "",
                     ""
                 };
                 
                 strings[SCORE_INDEX] = Score.ToString();
+                strings[MATCHES_PLAYED_INDEX] = MatchesPlayed.ToString();
                 strings[SURVIVED_INDEX] = MatchesSurvived.ToString();
                 strings[COMPLETE_KILLS_INDEX] = CompleteKills.ToString();
-                strings[MATCHES_PLAYED_INDEX] = MatchesPlayed.ToString();
-                strings[PC_INDEX] = competitorsString.ToString();
+                strings[TOTAL_KILLS_INDEX] = TotalKills.ToString();
+                strings[Scores_INDEX] = competitorsString.ToString();
 
                 return string.Join(";", strings.ToArray());
             }

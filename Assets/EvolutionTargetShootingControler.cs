@@ -103,6 +103,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     [Tooltip("penalty for dieing, multiplied by remining frames")]
     public int DeathPenalty = 1;
+
+    private int _killsThisMatch = 0;
     #endregion
 
     // Use this for initialization
@@ -138,7 +140,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
             CurrentScore += survivalBonus;
 
-            _currentGeneration.RecordMatch(_genome, CurrentScore, _stillAlive, !_dronesRemain);
+            _currentGeneration.RecordMatch(_genome, CurrentScore, _stillAlive, !_dronesRemain, _killsThisMatch);
         
             SaveGeneration();
 
@@ -260,6 +262,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             if(killedDrones > 0)
             {
                 Debug.Log(killedDrones + " drones killed this interval. " + _genome);
+                _killsThisMatch += killedDrones;
                 CurrentScore += killedDrones * ((RemainingFrames() * KillScoreMultiplier) + FlatKillBonus);
             }
             _previousDroneCount = droneCount;

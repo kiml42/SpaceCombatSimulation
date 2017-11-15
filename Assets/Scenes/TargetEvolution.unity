@@ -119,11 +119,6 @@ Prefab:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 114257166760928450, guid: 2b543762511759b41a3d5fc84820ca59,
-        type: 2}
-      propertyPath: DroneGenomes.Array.size
-      value: 8
-      objectReference: {fileID: 0}
     - target: {fileID: 4300714835004162, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -155,11 +150,6 @@ Prefab:
     - target: {fileID: 4300714835004162, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
       propertyPath: m_RootOrder
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 114257166760928450, guid: 2b543762511759b41a3d5fc84820ca59,
-        type: 2}
-      propertyPath: DroneGenomes.Array.data[7]
-      value: '  8'
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
