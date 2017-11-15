@@ -27,11 +27,15 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     #region "Drones
     [Header("Drones")]
-    public int DroneCount = 10;
     public List<string> DroneGenomes = new List<string>();
     public Transform TargetLocation;
     public float TargetLocationRandomisationRadius = 100;
     public string EnemyTag = "Team2";
+
+    [Tooltip("number of drones spawned = MinDronesToSpawn + CurrentGeneration/ExtraDroneEveryXGenerations")]
+    public int MinDronesToSpawn = 3;
+    [Tooltip("number of drones spawned = MinDronesToSpawn + CurrentGeneration/ExtraDroneEveryXGenerations")]
+    public int ExtraDroneEveryXGenerations = 5;
     #endregion
 
     #region Files etc.
@@ -198,7 +202,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     private void SpawnDrones()
     {
-        for(int i = 0; i<DroneCount; i++)
+        var DroneCount = MinDronesToSpawn + Math.Floor((double) GenerationNumber / ExtraDroneEveryXGenerations);
+        for (int i = 0; i<DroneCount; i++)
         {
             var genome = DroneGenomes[i % DroneGenomes.Count];
             Debug.Log("spawning drone " + genome);

@@ -36,7 +36,7 @@ TODO:
     Turrets should know the ways they cannot turn.
     Store full config of evolution in current generation file.
     Draws should be penalised less if the ships killed each other simultaneously. probably give them the win score - some constant.
-    Target shooting evolution
+    Sexual reproduction
     projectiles apply force to cancel lateral V. Target set on projectile when fired.
     Spherical modules with two angles given for where to spawn the sub modules and something to specify termination of that module's spawning (going back up to the previous)
     FuelTank option to balance fuel with parent.
@@ -44,7 +44,7 @@ TODO:
     Use fixed update for time critical scripts, update for others
 
 
-    Repulsive shield- repells objects in trigger
+    Repulsive shield- repels objects in trigger
 
     shipCam:
         Make shipcam move faster if the followed object is faster or add a set chunk to the location based on the followed object's speed. - done
