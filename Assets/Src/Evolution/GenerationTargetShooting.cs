@@ -129,9 +129,10 @@ namespace Assets.src.Evolution
                 //Debug.Log(parts.Length);
                 Genome = parts[0];
                 Score = ParsePart(parts, SCORE_INDEX);
+                MatchesPlayed = ParsePart(parts, MATCHES_PLAYED_INDEX);
                 MatchesSurvived = ParsePart(parts, SURVIVED_INDEX);
                 CompleteKills = ParsePart(parts, COMPLETE_KILLS_INDEX);
-                MatchesPlayed = ParsePart(parts, MATCHES_PLAYED_INDEX);
+                TotalKills = ParsePart(parts, TOTAL_KILLS_INDEX);
 
                 if (parts.Length > Scores_INDEX)
                 {
