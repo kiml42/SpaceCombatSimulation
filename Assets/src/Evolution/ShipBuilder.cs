@@ -103,9 +103,9 @@ namespace Assets.src.Evolution
 
                         if (moduleToAdd != null)
                         {
+                            //Debug.Log("adding " + moduleToAdd);
                             var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, currentHub);
-
-                            //addedModule.transform.parent = currentHub;
+                            
                             addedModule.GetComponent<FixedJoint>().connectedBody = currentHub.GetComponent<Rigidbody>();
                             addedModule.SendMessage("SetEnemyTags", EnemyTags, SendMessageOptions.DontRequireReceiver);
 
@@ -116,10 +116,14 @@ namespace Assets.src.Evolution
                             addedModule.transform.SetColor(_r, _g, _b);
                             addedModule.velocity = InitialVelocity;
                         }
+                        //else
+                        //{
+                        //    Debug.Log("skipping null module");
+                        //}
                     }
                     //else
                     //{
-                    //    Debug.Log("Can Spawn No More modules. _genomePosition: " + _genomePosition + ", _turretsAdded: " + _turretsAdded + ", _modulesAdded: " + _modulesAdded);
+                    //    Debug.Log("Can not spawn module here. _genomePosition: " + _genomePosition + ", _turretsAdded: " + _turretsAdded + ", _modulesAdded: " + _modulesAdded);
                     //}
                 }
             }
@@ -152,7 +156,7 @@ namespace Assets.src.Evolution
                 GameObject.Destroy(testCube.gameObject);
                 if (IsUsedLocation(center))
                 {
-                    //Debug.Log("Can't spawn at " + center + " because there is already something here");
+                    Debug.Log("Can't spawn at " + center + " because there is already something here");
                     return false;
                 }
                 else
@@ -160,7 +164,9 @@ namespace Assets.src.Evolution
                     _usedLocations.Add(center);
                 }
             }
-            return _genomePosition < _genome.Length && _turretsAdded < MaxTurrets && _modulesAdded < MaxModules;
+            var canSpawn = _genomePosition < _genome.Length && _turretsAdded < MaxTurrets && _modulesAdded < MaxModules;
+            //Debug.Log("can Spawn: " + canSpawn);
+            return canSpawn;
         }
 
         private bool IsUsedLocation(Vector3 worldLocation)
@@ -186,7 +192,7 @@ namespace Assets.src.Evolution
 
         private Rigidbody SelectModule()
         {
-            if (_genomePosition + GeneLength < _genome.Length)
+            if (_genomePosition + GeneLength <= _genome.Length)
             {
                 var substring = _genome.Substring(_genomePosition, GeneLength);
                 //Debug.Log("Gene to spawn: " + substring);
@@ -215,7 +221,7 @@ namespace Assets.src.Evolution
             }
             //else
             //{
-            //    Debug.Log("Cannot read gene of length" + GeneLength + " at position " + _genomePosition + " in " + _genome);
+            //    Debug.Log("Cannot read gene of length " + GeneLength + " at position " + _genomePosition + " in '" + _genome + "'");
             //}
             return null;
         }

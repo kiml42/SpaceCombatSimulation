@@ -121,7 +121,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         };
         ReadCurrentGeneration();
         SpawnShips();
-        _previousDroneCount = DroneCount;
+        IsMatchOver();
     }
 
     // Update is called once per frame
@@ -189,7 +189,6 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
         Debug.Log(_genome + " enters the arena!");
         
-
         SpawnShip(_genome, Tag1, EnemyTag, StartLocation, StartLocationRandomisationRadius);
 
         SpawnDrones();
@@ -200,6 +199,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         for(int i = 0; i<DroneCount; i++)
         {
             var genome = DroneGenomes[i % DroneGenomes.Count];
+            Debug.Log("spawning drone " + genome);
             SpawnShip(genome, EnemyTag, Tag1, TargetLocation, TargetLocationRandomisationRadius);
         }
     }
@@ -242,6 +242,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     {
         if(_scoreUpdatePollCountdown-- <= 0)
         {
+
             _scoreUpdatePollCountdown = WinnerPollPeriod;
             var tags = ListShips()
                 .Select(s => s.tag);
@@ -255,14 +256,14 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
             var killedDrones = _previousDroneCount - droneCount;
 
+            Debug.Log(shipCount + " ship modules, " + droneCount + " drones still alive. (" + _previousDroneCount + " prev) " + _genome);
             if(killedDrones > 0)
             {
-                Debug.Log(killedDrones + " drones killed this interval");
-                Debug.Log(shipCount + " ship modules, " + droneCount + " drones still alive.");
+                Debug.Log(killedDrones + " drones killed this interval. " + _genome);
                 CurrentScore += killedDrones * ((RemainingFrames() * KillScoreMultiplier) + FlatKillBonus);
             }
-
             _previousDroneCount = droneCount;
+
 
             //return true if one team is wipred out.
             return !_stillAlive || !_dronesRemain;

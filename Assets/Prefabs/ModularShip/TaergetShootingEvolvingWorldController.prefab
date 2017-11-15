@@ -847,12 +847,13 @@ MonoBehaviour:
   - 2 4
   - 2
   - 2 6
-  - ' 8 8'
+  - ' 6 6'
+  - '  8'
   TargetLocation: {fileID: 4729534257291354}
-  TargetLocationRandomisationRadius: 100
+  TargetLocationRandomisationRadius: 150
   EnemyTag: Team2
   GeneralFolder: ./tmp/evolvingShipsDrones
-  ThisRunFolder: 1
+  ThisRunFolder: 2
   GenerationSize: 10
   MinMatchesPerIndividual: 2
   WinnersFromEachGeneration: 4
@@ -870,7 +871,7 @@ MonoBehaviour:
   MaxLocationTollerance: 1000
   MaxVelociyTollerance: 200
   MaxAngularDragForTorquers: 1
-  GenomeLength: 50
+  GenomeLength: 100
   Modules:
   - {fileID: 54570345499317062, guid: b6e297582f25e22439032bba93cfe02a, type: 2}
   - {fileID: 54566524727042172, guid: 8629b68d84c101a458451c49aaba15dc, type: 2}
@@ -884,10 +885,10 @@ MonoBehaviour:
   - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
   DefaultGenome: 
   WinnerPollPeriod: 100
-  KillScoreMultiplier: 1
+  KillScoreMultiplier: 5
   FlatKillBonus: 100
-  CompletionBonus: 10
-  DeathPenalty: 10
+  CompletionBonus: 20
+  DeathPenalty: 1
 --- !u!114 &114551084138593738
 MonoBehaviour:
   m_ObjectHideFlags: 1
