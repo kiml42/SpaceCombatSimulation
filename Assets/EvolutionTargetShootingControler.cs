@@ -66,15 +66,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     public string AllowedCharacters = " 0123456789  ";
     
     public int MaxMutationLength = 5;
-
-    public int MaxShootAngle = 180;
-    public int MaxTorqueMultiplier = 2000;
-    public int MaxLocationAimWeighting = 10;
-    public int MaxSlowdownWeighting = 60;
-    public int MaxLocationTollerance = 1000;
-    public int MaxVelociyTollerance = 200;
-    public int MaxAngularDragForTorquers = 1;
-
+    
     public int GenomeLength = 50;
     
     public List<Rigidbody> Modules;
@@ -223,13 +215,6 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         
         new ShipBuilder(genome, ship.transform, Modules, TestCube)
         {
-            MaxShootAngle = MaxShootAngle,
-            MaxTorqueMultiplier = MaxTorqueMultiplier,
-            MaxLocationAimWeighting = MaxLocationAimWeighting,
-            MaxSlowdownWeighting = MaxSlowdownWeighting,
-            MaxLocationTollerance = MaxLocationTollerance,
-            MaxVelociyTollerance = MaxVelociyTollerance,
-            MaxAngularDragForTorquers = MaxAngularDragForTorquers,
             EnemyTags = enemyTags,
             MaxTurrets = MaxTurrets,
             MaxModules = MaxModules,

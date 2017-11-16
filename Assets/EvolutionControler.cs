@@ -204,10 +204,9 @@ public class EvolutionControler : MonoBehaviour
         new ShipBuilder(genome, ship.transform, Modules, TestCube)
         {
             MaxShootAngle = MaxShootAngle,
-            MaxTorqueMultiplier = MaxTorqueMultiplier,
             MaxLocationAimWeighting = MaxLocationAimWeighting,
             MaxSlowdownWeighting = MaxSlowdownWeighting,
-            MaxLocationTollerance = MaxLocationTollerance,
+            MaxMaxAndMinRange = MaxLocationTollerance,
             MaxVelociyTollerance = MaxVelociyTollerance,
             MaxAngularDragForTorquers = MaxAngularDragForTorquers,
             EnemyTags = enemyTags,

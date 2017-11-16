@@ -153,7 +153,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 114257166760928450, guid: 2b543762511759b41a3d5fc84820ca59,
         type: 2}
-      propertyPath: DroneGenomes.Array.data[4]
+      propertyPath: DefaultGenome
       value: 
       objectReference: {fileID: 0}
     m_RemovedComponents: []

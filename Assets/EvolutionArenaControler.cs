@@ -28,14 +28,6 @@ public class EvolutionArenaControler : MonoBehaviour
     
     public int MaxMutationLength = 5;
     
-    public int MaxShootAngle = 180;
-    public int MaxTorqueMultiplier = 60000;
-    public int MaxLocationAimWeighting = 10;
-    public int MaxSlowdownWeighting = 60;
-    public int MaxLocationTollerance = 2000;
-    public int MaxVelociyTollerance = 100;
-    public int MaxAngularDragForTorquers = 5;
-
     public int GenomeLength = 50;
     
     public List<Rigidbody> Modules;
@@ -158,13 +150,6 @@ public class EvolutionArenaControler : MonoBehaviour
 
         new ShipBuilder(genome, ship.transform, Modules, TestCube)
         {
-            MaxShootAngle = MaxShootAngle,
-            MaxTorqueMultiplier = MaxTorqueMultiplier,
-            MaxLocationAimWeighting = MaxLocationAimWeighting,
-            MaxSlowdownWeighting = MaxSlowdownWeighting,
-            MaxLocationTollerance = MaxLocationTollerance,
-            MaxVelociyTollerance = MaxVelociyTollerance,
-            MaxAngularDragForTorquers = MaxAngularDragForTorquers,
             EnemyTags = enemyTags,
             MaxTurrets = MaxTurrets,
             MaxModules = MaxModules

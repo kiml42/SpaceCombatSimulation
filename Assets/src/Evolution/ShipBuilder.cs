@@ -37,13 +37,20 @@ namespace Assets.src.Evolution
         private int _turretsAdded = 0;
         private int _modulesAdded = 0;
 
-        public int MaxShootAngle = 1;
-        public int MaxTorqueMultiplier = 2000;
-        public int MaxLocationAimWeighting = 10;
-        public int MaxSlowdownWeighting = 60;
-        public int MaxLocationTollerance = 1000;
-        public int MaxVelociyTollerance = 200;
-        public int MaxAngularDragForTorquers = 1;
+        public float MaxShootAngle = 180;
+        public float DefaultShootAngleProportion = 0.5f;
+        public float MaxLocationAimWeighting = 2;
+        public float DefaultLocationAimWeightingProportion = 0.5f;
+        public float MaxSlowdownWeighting = 70;
+        public float DefaultSlowdownWeightingProportion = 0.5f;
+        public float MaxTangentialVelosityWeighting = 70;
+        public float DefaultTangentialVelosityWeightingProportion = 0.5f;
+        public float MaxMaxAndMinRange = 1000;
+        public float DefaultMaxAndMinRangeProportion = 0.1f;
+        public float MaxVelociyTollerance = 100;
+        public float DefaultVelociyTolleranceProportion = 0.1f;
+        public float MaxAngularDragForTorquers = 1;
+        public float DefaultAngularDragForTorquersProportion = 0.2f;
 
         public Vector3 InitialVelocity = Vector3.zero;
 
@@ -232,20 +239,29 @@ namespace Assets.src.Evolution
 
             //Debug.Log("ConfiguringShip");
 
-            controller.ShootAngle = GetNumberFromGenome(0) * MaxShootAngle;
-            controller.TorqueMultiplier = GetNumberFromGenome(2) * MaxTorqueMultiplier;
-            controller.LocationAimWeighting = GetNumberFromGenome(4) * MaxLocationAimWeighting;
-            controller.SlowdownWeighting = GetNumberFromGenome(6) * MaxSlowdownWeighting;
-            controller.MaxRange = GetNumberFromGenome(8) * MaxLocationTollerance;
-            controller.MinRange = GetNumberFromGenome(10) * MaxLocationTollerance;
-            controller.MaxTangentialVelocity = GetNumberFromGenome(12) * MaxVelociyTollerance;
-            controller.MinTangentialVelocity = GetNumberFromGenome(14) * MaxVelociyTollerance;
-            controller.TangentialSpeedWeighting = GetNumberFromGenome(16) * MaxSlowdownWeighting;
-            controller.AngularDragForTorquers = GetNumberFromGenome(18) * MaxAngularDragForTorquers;
-            controller.RadialSpeedThreshold = GetNumberFromGenome(20) * MaxVelociyTollerance;
+            controller.ShootAngle =
+                GetNumberFromGenome(0, DefaultShootAngleProportion) * MaxShootAngle;
+            controller.LocationAimWeighting =
+                GetNumberFromGenome(2, DefaultLocationAimWeightingProportion) * MaxLocationAimWeighting;
+            controller.SlowdownWeighting =
+                GetNumberFromGenome(4, DefaultSlowdownWeightingProportion) * MaxSlowdownWeighting;
+            controller.MaxRange =
+                GetNumberFromGenome(6, DefaultMaxAndMinRangeProportion) * MaxMaxAndMinRange;
+            controller.MinRange =
+                GetNumberFromGenome(8, DefaultMaxAndMinRangeProportion) * MaxMaxAndMinRange;
+            controller.MaxTangentialVelocity =
+                GetNumberFromGenome(10, DefaultVelociyTolleranceProportion) * MaxVelociyTollerance;
+            controller.MinTangentialVelocity =
+                GetNumberFromGenome(12, DefaultVelociyTolleranceProportion) * MaxVelociyTollerance;
+            controller.TangentialSpeedWeighting =
+                GetNumberFromGenome(14, DefaultTangentialVelosityWeightingProportion) * MaxTangentialVelosityWeighting;
+            controller.AngularDragForTorquers =
+                GetNumberFromGenome(16, DefaultAngularDragForTorquersProportion) * MaxAngularDragForTorquers;
+            controller.RadialSpeedThreshold =
+                GetNumberFromGenome(18, DefaultVelociyTolleranceProportion) * MaxVelociyTollerance;
         }
 
-        private float GetNumberFromGenome(int fromEnd, int length = 2)
+        private float GetNumberFromGenome(int fromEnd, float defaultProporion = 0.5f, int length = 2)
         {
             var reversed = Reverse(_genome);
             if (fromEnd + length < reversed.Length)
@@ -261,7 +277,7 @@ namespace Assets.src.Evolution
                 }
             }
             //Debug.Log("Defaulted to 0.5");
-            return .5f;
+            return defaultProporion;
         }
 
         public static string Reverse(string s)

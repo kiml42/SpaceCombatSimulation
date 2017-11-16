@@ -12,7 +12,6 @@ public class ShipTester : MonoBehaviour {
     public int MaxTurrets = 10;
 
     public int MaxShootAngle = 180;
-    public int MaxTorqueMultiplier = 2000;
     public int MaxLocationAimWeighting = 10;
     public int MaxSlowdownWeighting = 60;
     public int MaxLocationTollerance = 1000;
@@ -59,10 +58,9 @@ public class ShipTester : MonoBehaviour {
         new ShipBuilder(Genome, Ship.transform, Modules)
         {
             MaxShootAngle = MaxShootAngle,
-            MaxTorqueMultiplier = MaxTorqueMultiplier,
             MaxLocationAimWeighting = MaxLocationAimWeighting,
             MaxSlowdownWeighting = MaxSlowdownWeighting,
-            MaxLocationTollerance = MaxLocationTollerance,
+            MaxMaxAndMinRange = MaxLocationTollerance,
             MaxVelociyTollerance = MaxVelociyTollerance,
             MaxAngularDragForTorquers = MaxAngularDragForTorquers,
             MaxTurrets = MaxTurrets

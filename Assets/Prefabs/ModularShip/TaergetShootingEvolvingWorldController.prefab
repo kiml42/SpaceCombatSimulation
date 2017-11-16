@@ -840,18 +840,16 @@ MonoBehaviour:
   SpaceShipTag: SpaceShip
   CurrentScore: 0
   DroneGenomes:
-  - 2     0102041001500206909999
-  - 0 1 0 1 0
+  - 2
   - '  4'
-  - 
-  - 
   - '  6'
-  - '  5'
+  - ' 5 5'
+  - ' 666'
   - ' 484'
   TargetLocation: {fileID: 4729534257291354}
   TargetLocationRandomisationRadius: 150
   EnemyTag: Team2
-  MinDronesToSpawn: 3
+  MinDronesToSpawn: 2
   ExtraDroneEveryXGenerations: 5
   GeneralFolder: ./tmp/evolvingShipsDrones
   ThisRunFolder: FlyingStart
@@ -865,13 +863,6 @@ MonoBehaviour:
   MaxModules: 15
   AllowedCharacters: ' 0123456789  '
   MaxMutationLength: 5
-  MaxShootAngle: 180
-  MaxTorqueMultiplier: 2000
-  MaxLocationAimWeighting: 10
-  MaxSlowdownWeighting: 60
-  MaxLocationTollerance: 1000
-  MaxVelociyTollerance: 200
-  MaxAngularDragForTorquers: 1
   GenomeLength: 100
   Modules:
   - {fileID: 54570345499317062, guid: b6e297582f25e22439032bba93cfe02a, type: 2}
