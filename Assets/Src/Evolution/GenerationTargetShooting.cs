@@ -62,7 +62,7 @@ namespace Assets.src.Evolution
 
         private IEnumerable<IndividualInGeneration> SortGeneration()
         {
-            Individuals = Individuals.OrderByDescending(i => i.AverageScore).OrderByDescending(i => i.MatchesPlayed).ThenBy(i => _rng.NextDouble()).ToList();
+            Individuals = Individuals.OrderByDescending(i => i.AverageScore).ThenByDescending(i => i.MatchesPlayed).ThenBy(i => _rng.NextDouble()).ToList();
             return Individuals;
         }
 
