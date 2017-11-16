@@ -355,7 +355,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     
     private bool IsValidGenome(string baseGenome)
     {
-        var start = baseGenome.Substring(0, 6).Trim();
+        //replace 2 so engines don't make a valid ship.
+        var start = baseGenome.Replace("2", " ").Substring(0, 6).Trim();
         //Debug.Log("'" + start + "'");
         var valid = !string.IsNullOrEmpty(start);
         //Debug.Log("'" + baseGenome + "' valid? " + valid);
