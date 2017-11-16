@@ -18,12 +18,12 @@ Bugs:
 
 TODO:
     Priority:
+        Fighters - using engines as weapons/using guns/both.
         Some way for turrets to account for their own turn rates.
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
         Refactor rocket controller's start delay feature.
         Some way to set the roll of ships to have a direction that should be pointed at the enemy where possible.
         Spherical trigger around missiles that puts them into max evasion mode regardless of velocity
-        Fighters - using engines as weapons/using guns/both.
         Destruction only leaves objects with a rigibdbody and a health controller
         TargetPickers have option to kull all but the best x.
         Prevent fluttery torpedoes.

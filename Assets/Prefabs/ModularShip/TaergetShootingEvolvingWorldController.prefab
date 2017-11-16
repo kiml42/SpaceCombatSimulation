@@ -842,19 +842,19 @@ MonoBehaviour:
   DroneGenomes:
   - 2     0102041001500206909999
   - 0 1 0 1 0
-  - 
-  - 
-  - '  5'
   - '  4'
+  - 
+  - 
   - '  6'
-  - '  8'
+  - '  5'
+  - ' 484'
   TargetLocation: {fileID: 4729534257291354}
   TargetLocationRandomisationRadius: 150
   EnemyTag: Team2
   MinDronesToSpawn: 3
   ExtraDroneEveryXGenerations: 5
   GeneralFolder: ./tmp/evolvingShipsDrones
-  ThisRunFolder: 1
+  ThisRunFolder: FlyingStart
   GenerationSize: 17
   MinMatchesPerIndividual: 1
   WinnersFromEachGeneration: 5
@@ -884,7 +884,7 @@ MonoBehaviour:
   - {fileID: 54431323037331960, guid: 7a6fbabb0bc555d40912d26e6bc4beb5, type: 2}
   - {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
   - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
-  DefaultGenome: 
+  DefaultGenome: 2
   WinnerPollPeriod: 100
   KillScoreMultiplier: 5
   FlatKillBonus: 100

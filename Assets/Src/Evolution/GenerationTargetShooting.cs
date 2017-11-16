@@ -47,7 +47,7 @@ namespace Assets.src.Evolution
 
             Individuals.First(i => i.Genome == contestant).RecordMatch(finalScore, survived, killedEverything, killsThisMatch);
 
-            Individuals = Individuals.OrderByDescending(i => i.AverageScore).ToList();
+            SortGeneration();
         }
 
         public int MinimumMatchesPlayed()
@@ -57,7 +57,13 @@ namespace Assets.src.Evolution
 
         public IEnumerable<string> PickWinners(int WinnersCount)
         {
-            return Individuals.OrderByDescending(i => i.AverageScore).ThenBy(i => _rng.NextDouble()).Take(WinnersCount).Select(i => i.Genome);
+            return SortGeneration().Take(WinnersCount).Select(i => i.Genome);
+        }
+
+        private IEnumerable<IndividualInGeneration> SortGeneration()
+        {
+            Individuals = Individuals.OrderByDescending(i => i.AverageScore).OrderByDescending(i => i.MatchesPlayed).ThenBy(i => _rng.NextDouble()).ToList();
+            return Individuals;
         }
 
         /// <summary>
