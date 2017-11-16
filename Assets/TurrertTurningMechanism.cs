@@ -20,8 +20,11 @@ public class TurrertTurningMechanism : MonoBehaviour {
 
     public float TurnTableMotorFoce = 30;
     public float TurnTableMotorSpeedMultiplier = 500;
+    public float TurnTableParentCancelationFactor = 10;
+
     public float ElevationHubMotorFoce = 30;
     public float ElevationHubMotorSpeedMultiplier = 500;
+    public float EHParentCancelationFactor = 10;
 
     // Use this for initialization
     void Start()
@@ -35,8 +38,10 @@ public class TurrertTurningMechanism : MonoBehaviour {
         {
             TurnTableMotorForce = TurnTableMotorFoce,
             TurnTableMotorSpeedMultiplier = TurnTableMotorSpeedMultiplier,
+            TurnTableParentCancelationFactor = TurnTableParentCancelationFactor,
             ElevationHubMotorForce = ElevationHubMotorFoce,
-            ElevationHubMotorSpeedMultiplier = ElevationHubMotorSpeedMultiplier
+            ElevationHubMotorSpeedMultiplier = ElevationHubMotorSpeedMultiplier,
+            EHParentCancelationFactor = EHParentCancelationFactor
         };
 
         _runner = new TurretRunner(_targetChoosingMechanism, _turner);

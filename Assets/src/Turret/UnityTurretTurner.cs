@@ -38,6 +38,9 @@ namespace Assets.Src.Targeting
             _projectileSpeed = projectileSpeed;
         }
 
+        public float TurnTableParentCancelationFactor = 10;
+        public float EHParentCancelationFactor = 10;
+
         public void ReturnToRest()
         {
             if(_restTarget != null)
@@ -53,26 +56,33 @@ namespace Assets.Src.Targeting
                 //Debug.Log(_thisTurret.name + " Turning to target with named " + target.Target.name + " with score " + target.Score);
 
                 //Debug.Log("getting location in turn table space");
-                    
+                var parentAngularV = _thisTurret.angularVelocity;
+
+                var parentAngularVInTurntableSpace = _turnTable.transform.InverseTransformVector(parentAngularV);
+                Debug.Log("parentAngularV: " + parentAngularV + ", parentAngularVInTurntableSpace: " + parentAngularVInTurntableSpace + ", y: " + parentAngularVInTurntableSpace.y);
+
                 var LocationInTurnTableSpace = target.LocationInOthersSpace(_turnTable, _projectileSpeed);
 
-                TurnToTarget(_turnTableHinge, LocationInTurnTableSpace, TurnTableMotorForce, TurnTableMotorSpeedMultiplier);
+                TurnToTarget(_turnTableHinge, LocationInTurnTableSpace, TurnTableMotorForce, TurnTableMotorSpeedMultiplier, TurnTableParentCancelationFactor * parentAngularVInTurntableSpace.y);
                     
                 //var locationInElevationHubSpace = target.LocationInElevationHubSpace(_thisTurret);
                 var locationInElevationHubSpace = target.LocationInElevationHubSpaceAfterTurnTableTurn(_thisTurret, _turnTable.transform, _elevationHub, _projectileSpeed);
+                
+                var parentAngularVInEHSpace = _elevationHub.transform.InverseTransformVector(parentAngularV);
 
-                TurnToTarget(_elevationHubHinge, locationInElevationHubSpace, ElevationHubMotorForce, ElevationHubMotorSpeedMultiplier);
+                TurnToTarget(_elevationHubHinge, locationInElevationHubSpace, ElevationHubMotorForce, ElevationHubMotorSpeedMultiplier, EHParentCancelationFactor * parentAngularVInEHSpace.y);
             }
         }
 
-        private void TurnToTarget(HingeJoint hingeToTurn, Vector3 relativeLocation, float MotorForce, float MotorSpeedMultiplier)
+        private void TurnToTarget(HingeJoint hingeToTurn, Vector3 relativeLocation, float MotorForce, float MotorSpeedMultiplier, float parentCancelationSpeed = 0)
         {
             if (hingeToTurn != null)
             {
                 JointMotor motor = hingeToTurn.motor;
                 motor.force = MotorForce;
                 relativeLocation.y = 0;
-                motor.targetVelocity = relativeLocation.normalized.x * MotorSpeedMultiplier;
+                Debug.Log("parentCancelationSpeed: " + parentCancelationSpeed + " + " + (relativeLocation.normalized.x * MotorSpeedMultiplier));
+                motor.targetVelocity = parentCancelationSpeed + (relativeLocation.normalized.x * MotorSpeedMultiplier);
                 //motor.freeSpin = false;
                 hingeToTurn.motor = motor;
                 //hinge.useMotor = true;
