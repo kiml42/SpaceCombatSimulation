@@ -51,6 +51,8 @@ public class RocketController : MonoBehaviour
     /// <summary>
     /// Rocket with detonate after this time.
     /// </summary>
+    /// 
+    [Tooltip("Time for the rocket to live in seconds.")]
     public float TimeToLive = Mathf.Infinity;
 
     [Tooltip("Time to friendly collision to activate maximum evasion")]
@@ -105,7 +107,7 @@ public class RocketController : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if(_runner != null)
         {
@@ -119,6 +121,6 @@ public class RocketController : MonoBehaviour
         {
             _detonator.DetonateNow();
         }
-        TimeToLive--;
+        TimeToLive -= Time.deltaTime;
     }
 }
