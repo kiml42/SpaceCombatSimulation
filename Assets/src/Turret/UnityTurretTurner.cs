@@ -38,9 +38,6 @@ namespace Assets.Src.Targeting
             _projectileSpeed = projectileSpeed;
         }
 
-        public float TurnTableParentCancelationFactor = 10;
-        public float EHParentCancelationFactor = 10;
-
         public void ReturnToRest()
         {
             if(_restTarget != null)
@@ -59,18 +56,21 @@ namespace Assets.Src.Targeting
                 var parentAngularV = _thisTurret.angularVelocity;
 
                 var parentAngularVInTurntableSpace = _turnTable.transform.InverseTransformVector(parentAngularV);
-                Debug.Log("parentAngularV: " + parentAngularV + ", parentAngularVInTurntableSpace: " + parentAngularVInTurntableSpace + ", y: " + parentAngularVInTurntableSpace.y);
 
                 var LocationInTurnTableSpace = target.LocationInOthersSpace(_turnTable, _projectileSpeed);
 
-                TurnToTarget(_turnTableHinge, LocationInTurnTableSpace, TurnTableMotorForce, TurnTableMotorSpeedMultiplier, TurnTableParentCancelationFactor * parentAngularVInTurntableSpace.y);
+                var TTCancelationSpeed = -parentAngularVInTurntableSpace.y * 180 / Mathf.PI;    //convert from radians per second to degrees per second
+
+                TurnToTarget(_turnTableHinge, LocationInTurnTableSpace, TurnTableMotorForce, TurnTableMotorSpeedMultiplier, TTCancelationSpeed);
                     
                 //var locationInElevationHubSpace = target.LocationInElevationHubSpace(_thisTurret);
                 var locationInElevationHubSpace = target.LocationInElevationHubSpaceAfterTurnTableTurn(_thisTurret, _turnTable.transform, _elevationHub, _projectileSpeed);
                 
                 var parentAngularVInEHSpace = _elevationHub.transform.InverseTransformVector(parentAngularV);
 
-                TurnToTarget(_elevationHubHinge, locationInElevationHubSpace, ElevationHubMotorForce, ElevationHubMotorSpeedMultiplier, EHParentCancelationFactor * parentAngularVInEHSpace.y);
+                var EHCancelationSpeed = -parentAngularVInEHSpace.y * 180 / Mathf.PI;    //convert from radians per second to degrees per second
+
+                TurnToTarget(_elevationHubHinge, locationInElevationHubSpace, ElevationHubMotorForce, ElevationHubMotorSpeedMultiplier, EHCancelationSpeed);
             }
         }
 
@@ -81,7 +81,6 @@ namespace Assets.Src.Targeting
                 JointMotor motor = hingeToTurn.motor;
                 motor.force = MotorForce;
                 relativeLocation.y = 0;
-                Debug.Log("parentCancelationSpeed: " + parentCancelationSpeed + " + " + (relativeLocation.normalized.x * MotorSpeedMultiplier));
                 motor.targetVelocity = parentCancelationSpeed + (relativeLocation.normalized.x * MotorSpeedMultiplier);
                 //motor.freeSpin = false;
                 hingeToTurn.motor = motor;
