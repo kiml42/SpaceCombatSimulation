@@ -28,6 +28,7 @@ TODO:
         TargetPickers have option to kull all but the best x.
         Prevent fluttery torpedoes.
         Eyeball turret
+        Completely randomised starting genomes option.
 
     option for spaceships that don't break up   
         Turrets can be destroyed, but otherwise the whole thing has one lot of health - probably using pass damage up.
