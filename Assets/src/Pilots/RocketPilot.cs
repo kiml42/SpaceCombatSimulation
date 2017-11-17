@@ -28,7 +28,7 @@ namespace Assets.Src.Pilots
         private FriendlyAvoidencelevel _evasionLevel;
         private Vector3 _friendlyAvoidenceVector;
         private Vector3 _vectorAwayFromFriendly;
-        public int EvasionModeTime = 30;
+        public float EvasionModeTime = 30;
         public float MinimumFriendlyDetectionDistance = 4;
 
         public RocketPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<EngineControler> engines, int startDelay)

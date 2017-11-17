@@ -26,7 +26,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!1 &1977088447628078
 GameObject:
   m_ObjectHideFlags: 0
@@ -55,7 +55,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1031940375560188}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 2.65}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4760122890926994}
@@ -68,7 +68,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1977088447628078}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 257.06512, y: 149.16875, z: 294.48984}
+  m_LocalPosition: {x: 0, y: 0.05, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4164882575376626}
@@ -144,7 +144,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6312b7bfe9030e40b858f67cf019e96, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Lifetime: 4
+  Lifetime: 0.2
   RandomLifetime: 0
 --- !u!114 &114470473434867160
 MonoBehaviour:
@@ -218,7 +218,7 @@ ParticleSystem:
   moveWithTransform: 1
   moveWithCustomTransform: {fileID: 0}
   scalingMode: 1
-  randomSeed: -771491046
+  randomSeed: -1808574672
   InitialModule:
     serializedVersion: 3
     enabled: 1
@@ -2696,9 +2696,9 @@ ParticleSystem:
       type: 0
       properties: 0
   LightsModule:
-    enabled: 0
-    ratio: 0.2
-    light: {fileID: 0}
+    enabled: 1
+    ratio: 0.1
+    light: {fileID: 108339354541212390}
     randomDistribution: 1
     color: 1
     range: 1
@@ -2785,7 +2785,7 @@ ParticleSystem:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
-    maxLights: 20
+    maxLights: 1
   TrailModule:
     enabled: 0
     ratio: 1

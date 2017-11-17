@@ -5,10 +5,10 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class SphereExplosion : MonoBehaviour {
-    [Tooltip("Amount the collider's radius is increased each fixedUpdate")]
+    [Tooltip("Amount the collider's radius is increased each second")]
     public float ExpandRate;
 
-    [Tooltip("Frames for which the collision trigger will cause damage to collited objects.")]
+    [Tooltip("Seconds for which the collision trigger will cause damage to collited objects.")]
     public float Lifetime = 100;
 
     [Tooltip("optional light for the flash of the explosion")]
@@ -39,7 +39,7 @@ public class SphereExplosion : MonoBehaviour {
 	void Update () {
         if (_collider != null)
         {
-            _collider.radius += ExpandRate;
+            _collider.radius += ExpandRate * Time.deltaTime;
             if (Light != null)
                 Light.intensity -= _intensityScaler;
             if (Lifetime <= 0)
@@ -47,7 +47,7 @@ public class SphereExplosion : MonoBehaviour {
                 Destroy(_collider);
             }
         }
-        if(Lifetime < -100)
+        if(Lifetime < -1)
         {
             Destroy(gameObject);
         }

@@ -742,11 +742,11 @@ MonoBehaviour:
   - {fileID: 114647872415290320}
   ContinuallyCheckForTargets: 0
   NeverRetarget: 0
-  TimeToLive: 3000
+  TimeToLive: 50
   TimeThresholdForMaximumEvasion: 8
   TimeThresholdForMediumEvasion: 30
   TimeThresholdForMinimalEvasion: 200
-  EvasionModeTime: 30
+  EvasionModeTime: 0.5
   MinimumFriendlyDetectionDistance: 1.5
 --- !u!114 &114210379376876750
 MonoBehaviour:
@@ -767,7 +767,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 8
   ShrapnelSpeed2: 20
-  FramesOfInvulnerability: 3
+  SecondsOfInvulnerability: 1
   OriginalHealth: 0
   DamageDelegate: {fileID: 0}
   IgnoredTags:
@@ -864,7 +864,7 @@ MonoBehaviour:
   ContinuallyCheckForTargets: 0
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
-  PollInterval: 50
+  PollInterval: 1
   EnemyTags:
   - Enemy
   DisalowedTypes: 
