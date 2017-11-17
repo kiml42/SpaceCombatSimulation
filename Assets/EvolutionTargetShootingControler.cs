@@ -56,8 +56,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     [Tooltip("The number of individuals to keep for the next generation")]
     public int WinnersFromEachGeneration = 5;
 
-    public int MatchTimeout = 10000;
-    public int MatchRunTime = 0;
+    public float MatchTimeout = 10000;
+    public float MatchRunTime = 0;
 
     public int Mutations = 3;
     public int MaxTurrets = 10;
@@ -75,8 +75,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     private int GenerationNumber;
     private GenerationTargetShooting _currentGeneration;
-    public int WinnerPollPeriod = 100;
-    private int _scoreUpdatePollCountdown = 0;
+    public float WinnerPollPeriod = 100;
+    private float _scoreUpdatePollCountdown = 0;
     #endregion
 
     private string _genome;
@@ -123,7 +123,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     }
 
     // Update is called once per frame
-    void FixedUpdate()
+    void Update()
     {
         var matchOver = IsMatchOver();
         if (matchOver || MatchTimeout <= MatchRunTime)
@@ -134,7 +134,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
             Debug.Log("Match over! Survival Bonus: " + survivalBonus);
 
-            CurrentScore += survivalBonus;
+            CurrentScore += (int)survivalBonus;
 
             _currentGeneration.RecordMatch(_genome, CurrentScore, _stillAlive, !_dronesRemain, _killsThisMatch);
         
@@ -146,7 +146,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         }
         else
         {
-            MatchRunTime++;
+            MatchRunTime+=Time.deltaTime;
             return;
         }
     }
@@ -232,7 +232,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     /// <returns>Match is over boolean</returns>
     private bool IsMatchOver()
     {
-        if(_scoreUpdatePollCountdown-- <= 0)
+        _scoreUpdatePollCountdown -= Time.deltaTime;
+        if (_scoreUpdatePollCountdown <= 0)
         {
 
             _scoreUpdatePollCountdown = WinnerPollPeriod;
@@ -253,7 +254,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             {
                 Debug.Log(killedDrones + " drones killed this interval. " + _genome);
                 _killsThisMatch += killedDrones;
-                CurrentScore += killedDrones * ((RemainingFrames() * KillScoreMultiplier) + FlatKillBonus);
+                CurrentScore += (int)(killedDrones * ((RemainingFrames() * KillScoreMultiplier) + FlatKillBonus));
             }
             _previousDroneCount = droneCount;
 
@@ -264,7 +265,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         return false;
     }
 
-    private int RemainingFrames()
+    private float RemainingFrames()
     {
         return MatchTimeout - MatchRunTime;
     }

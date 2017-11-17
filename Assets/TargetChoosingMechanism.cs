@@ -27,7 +27,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
 
     [Tooltip("fraims to wait between polling for better targets.")]
     public int PollInterval = 0;
-    private int _waitForPoll = 0;
+    private float _waitForPoll = 0;
 
     #region EnemyTags
 
@@ -189,7 +189,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
     }
 	
 	// Update is called once per frame
-	void FixedUpdate () {
+	void Update () {
         if (!NeverRetarget || !_hasHadTarget)
         {
             var targetIsInvalid = CurrentTarget == null || CurrentTarget.Transform.IsInvalid();
@@ -209,7 +209,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
             } else
             {
                 //there was no poll this frame, so decrement the countdown.
-                _waitForPoll--;
+                _waitForPoll -= Time.deltaTime;
             }
         }
     }

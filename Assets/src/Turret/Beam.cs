@@ -11,14 +11,22 @@ namespace Assets.Src.Turret
     {
         public Transform Transform { get; internal set; }
         public Transform RayCaster { get; internal set; }
-        public int OnTime;
-        public int OffTime;
+
+        /// <summary>
+        /// In Seconds
+        /// </summary>
+        public float OnTime;
+
+        /// <summary>
+        /// In Seconds
+        /// </summary>
+        public float OffTime;
         public float BeamForce = 0;
         public Transform HitEffect;
         public string FriendlyTag = null;
 
-        public int RemainingOnTime =0;
-        public int RemainingOffTime =0;
+        public float RemainingOnTime =0;
+        public float RemainingOffTime =0;
         public float BeamDamage = 10;
         public float MaxDistance = 10000;
         public float InitialRadius = 1;
@@ -45,7 +53,7 @@ namespace Assets.Src.Turret
                     //Debug.Log("shooting");
                     //is running
                     length = FireNow();
-                    RemainingOnTime--;
+                    RemainingOnTime -= Time.deltaTime;
                 } else
                 {
                     //Debug.Log("Needs Reloading");
@@ -56,7 +64,7 @@ namespace Assets.Src.Turret
             {
                 //is reloading
                 //Debug.Log("reloading");
-                RemainingOffTime--;
+                RemainingOffTime -= Time.deltaTime;
                 RemainingOnTime = OnTime;
             }
             Transform.localScale = new Vector3(1, 1, length);
@@ -100,7 +108,7 @@ namespace Assets.Src.Turret
 
         public void TurnOff()
         {
-            RemainingOffTime--;
+            RemainingOffTime -= Time.deltaTime;
             if(Transform.IsValid())
                 Transform.localScale = Vector3.zero;
         }
@@ -109,7 +117,7 @@ namespace Assets.Src.Turret
         /// Forces a reload with the given time required to reload
         /// </summary>
         /// <param name="timeToReload">use null (default) for the normal reload time.</param>
-        public void ForceReload(int? timeToReload = null)
+        public void ForceReload(float? timeToReload = null)
         {
             timeToReload = timeToReload ?? OffTime;
             RemainingOffTime = timeToReload.Value;

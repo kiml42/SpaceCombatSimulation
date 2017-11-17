@@ -48,7 +48,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
     public Vector3 Velocity = new Vector3(0, 0, 10);
     public float RandomSpeed = 1;
 
-    private int _reload = 0;
+    private float _reload = 0;
     public int LoadTime = 200;
 
     private string InactiveTag = "Untagged";
@@ -104,7 +104,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
             }
             else
             {
-                _reload--;
+                _reload-=Time.deltaTime;
             }
     }
 

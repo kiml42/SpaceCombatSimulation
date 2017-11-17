@@ -40,7 +40,7 @@ public class EvolutionControler : MonoBehaviour
     /// </summary>
     public int WinnersFromEachGeneration = 3;
 
-    public int MatchTimeout = 10000;
+    public float MatchTimeout = 10000;
 
     public int Mutations = 3;
     
@@ -72,10 +72,10 @@ public class EvolutionControler : MonoBehaviour
     /// Time for repeating the sudden death damage.
     /// Also used as the minimum score for winning a match.
     /// </summary>
-    public int SuddenDeathReloadTime = 200;
+    public float SuddenDeathReloadTime = 200;
 
-    public int WinnerPollPeriod = 100;
-    private int _winnerPollCountdown = 0;
+    public float WinnerPollPeriod = 100;
+    private float _winnerPollCountdown = 0;
 
     // Use this for initialization
     void Start()
@@ -96,12 +96,12 @@ public class EvolutionControler : MonoBehaviour
     }
 
     // Update is called once per frame
-    void FixedUpdate()
+    void Update()
     {
         var winningGenome = DetectVictorsGenome();
         if (winningGenome == null && MatchTimeout > 0)
         {
-            MatchTimeout--;
+            MatchTimeout -= Time.deltaTime;
             return;
         }
         else if (MatchTimeout <= 0/* && _previousWinner == null*/)
@@ -116,10 +116,10 @@ public class EvolutionControler : MonoBehaviour
             var a = _currentGenomes.Values.First();
             var b = _currentGenomes.Values.Skip(1).First();
 
-            var winScore = Math.Max(MatchTimeout, SuddenDeathReloadTime);
+            var winScore = (int)Math.Max(MatchTimeout, SuddenDeathReloadTime);
 
-            int losScore = -SuddenDeathReloadTime;
-            int drawScore = -SuddenDeathReloadTime/2;
+            int losScore = (int)-SuddenDeathReloadTime;
+            int drawScore = (int)-SuddenDeathReloadTime/2;
 
             _currentGeneration.RecordMatch(a, b, winningGenome, winScore, losScore, drawScore);
         
@@ -229,7 +229,8 @@ public class EvolutionControler : MonoBehaviour
     /// <returns></returns>
     private string DetectVictorsGenome()
     {
-        if(_winnerPollCountdown-- <= 0)
+        _winnerPollCountdown -= Time.deltaTime;
+        if (_winnerPollCountdown <= 0)
         {
             string currentWinner = null;
             _winnerPollCountdown = WinnerPollPeriod;
@@ -253,7 +254,7 @@ public class EvolutionControler : MonoBehaviour
 
             var actualWinner = currentWinner == _previousWinner ? currentWinner : null;
             _previousWinner = currentWinner;
-            //if there's ben the same winner for two consectutive periods return that, otherise null.
+            //if there's been the same winner for two consectutive periods return that, otherise null.
             return actualWinner;
         }
         return null;

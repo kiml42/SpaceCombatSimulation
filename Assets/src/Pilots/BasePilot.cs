@@ -16,7 +16,7 @@ namespace Assets.Src.Pilots
         public float LocationAimWeighting { get; set; }
         public Transform VectorArrow;
 
-        public int StartDelay
+        public float StartDelay
         {
             get
             {
@@ -28,7 +28,7 @@ namespace Assets.Src.Pilots
             }
         }
 
-        public int TurningStartDelay
+        public float TurningStartDelay
         {
             get
             {
@@ -39,15 +39,15 @@ namespace Assets.Src.Pilots
                 _turningStartDelay = value;
             }
         }
-        private int _startDelay = 0;
-        private int _turningStartDelay;
+        private float _startDelay = 0;
+        private float _turningStartDelay;
 
         protected List<EngineControler> _engines = new List<EngineControler>();
 
         protected bool ShouldTurn()
         {
-            TurningStartDelay--;
-            StartDelay--;
+            TurningStartDelay -= Time.deltaTime;
+            StartDelay -= Time.deltaTime;
             return TurningStartDelay <= 0;
         }
 

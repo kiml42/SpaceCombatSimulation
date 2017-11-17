@@ -32,7 +32,7 @@ public class EvolutionArenaControler : MonoBehaviour
     
     public List<Rigidbody> Modules;
 
-    public int MatchCountdown;
+    public float MatchCountdown;
     public bool SetVelocity;
     public string DefaultGenome = "";
 
@@ -41,7 +41,7 @@ public class EvolutionArenaControler : MonoBehaviour
 
     private List<ArenaRecord> records = new List<ArenaRecord>();
 
-    private int _originalCountdown;
+    private float _originalCountdown;
     private Dictionary<string, string> _extantGenomes;
     private StringMutator _mutator;
 
@@ -56,7 +56,7 @@ public class EvolutionArenaControler : MonoBehaviour
     }
 
     // Update is called once per frame
-    void FixedUpdate()
+    void Update()
     {
         DetectSurvivingAndDeadTeams();
 
@@ -73,7 +73,7 @@ public class EvolutionArenaControler : MonoBehaviour
             SpawnShip(genome);
         } else
         {
-            MatchCountdown--;
+            MatchCountdown -= Time.deltaTime;
         }
 
         if(MatchCountdown <= 0 && SuddenDeathObject != null)

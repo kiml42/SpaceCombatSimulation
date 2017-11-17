@@ -36,7 +36,7 @@ public class SphereExplosion : MonoBehaviour {
         _intensityScaler = Light.intensity/Lifetime;
     }
 	
-	void FixedUpdate () {
+	void Update () {
         if (_collider != null)
         {
             _collider.radius += ExpandRate;
@@ -51,7 +51,7 @@ public class SphereExplosion : MonoBehaviour {
         {
             Destroy(gameObject);
         }
-        Lifetime--;
+        Lifetime -= Time.deltaTime;
     }
 
     private void OnTriggerEnter(Collider collider)

@@ -24,7 +24,7 @@ namespace Assets.Src.Pilots
         /// </summary>
         public float TimeThresholdForMinimalEvasion = 6;
 
-        private int _evasionModeTimeout = 0;
+        private float _evasionModeTimeout = 0;
         private FriendlyAvoidencelevel _evasionLevel;
         private Vector3 _friendlyAvoidenceVector;
         private Vector3 _vectorAwayFromFriendly;
@@ -183,7 +183,7 @@ namespace Assets.Src.Pilots
                 }
             }
 
-            _evasionModeTimeout--;
+            _evasionModeTimeout -= Time.deltaTime;
             return _evasionLevel;
         }
 

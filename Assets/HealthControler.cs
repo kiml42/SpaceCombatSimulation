@@ -29,7 +29,7 @@ public class HealthControler : MonoBehaviour
     public int ShrapnelCount2 = 30;
     public float ShrapnelSpeed2 = 20;
     
-    public int FramesOfInvulnerability = 1;
+    public float SecondsOfInvulnerability = 1;
 
     private Rigidbody _rigidbody;
     public float OriginalHealth;
@@ -72,9 +72,9 @@ public class HealthControler : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if(FramesOfInvulnerability > 0)
+        if(SecondsOfInvulnerability > 0)
         {
-            FramesOfInvulnerability--;
+            SecondsOfInvulnerability -= Time.deltaTime;
             return;
         }
         if (Health <= 0)
@@ -91,7 +91,7 @@ public class HealthControler : MonoBehaviour
             //Debug.Log(name + " hit ignored tag: " + collision.transform.tag);
             return;
         }
-        if(FramesOfInvulnerability > 0)
+        if(SecondsOfInvulnerability > 0)
         {
             return;
         }
@@ -109,7 +109,7 @@ public class HealthControler : MonoBehaviour
     /// <param name="damage"></param>
     public void ApplyDamage(float damage)
     {
-        if (FramesOfInvulnerability > 0)
+        if (SecondsOfInvulnerability > 0)
         {
             return;
         }

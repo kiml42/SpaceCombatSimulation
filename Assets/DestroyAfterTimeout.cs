@@ -6,7 +6,7 @@ public class DestroyAfterTimeout : MonoBehaviour {
     public float Lifetime = 4;
     public float RandomLifetime = 0;
 
-    private int _age = 0;
+    private float _age = 0;
 
     // Use this for initialization
     void Start () {
@@ -19,6 +19,6 @@ public class DestroyAfterTimeout : MonoBehaviour {
         {
             Destroy(gameObject);
         }
-        _age++;
+        _age+=Time.deltaTime;
     }
 }
