@@ -200,6 +200,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
                 //Debug.Log(name + " aquiring new target");
                 var allTargets = _detector.DetectTargets();
                 var bestTarget = _targetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).FirstOrDefault();
+                //Debug.Log(transform.name + " is targeting " + bestTarget.Transform);
                 CurrentTarget = bestTarget;
                 if (bestTarget != null)
                 {

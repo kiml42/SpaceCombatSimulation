@@ -6,7 +6,7 @@ using UnityEngine;
 
 public class RayTrigger : MonoBehaviour, IFireControl
 {
-    private TargetChoosingMechanism _targetChoosingMechanism;
+    public TargetChoosingMechanism TargetChoosingMechanism;
     public Transform AimingObject;
     private IFireControl _fireControl;
     public float MaxDistance = 100000;
@@ -19,7 +19,7 @@ public class RayTrigger : MonoBehaviour, IFireControl
     // Use this for initialization
     void Start()
     {
-        _targetChoosingMechanism = GetComponent("TargetChoosingMechanism") as TargetChoosingMechanism;
+        TargetChoosingMechanism = TargetChoosingMechanism ?? GetComponent("TargetChoosingMechanism") as TargetChoosingMechanism;
     }
 
     public bool ShouldShoot(Target target)
@@ -31,7 +31,7 @@ public class RayTrigger : MonoBehaviour, IFireControl
             //is a hit
             if (ShootAnyEnemy)
             {
-                var tags = _targetChoosingMechanism.GetEnemyTags();
+                var tags = TargetChoosingMechanism.GetEnemyTags();
                 return tags.Contains(hit.transform.tag);
             }
 
@@ -42,6 +42,10 @@ public class RayTrigger : MonoBehaviour, IFireControl
 
     public bool ShouldShoot()
     {
-        return ShouldShoot(_targetChoosingMechanism.CurrentTarget);
+        if(TargetChoosingMechanism == null)
+        {
+            Debug.LogWarning(transform + " has null target chosing mechanism");
+        }
+        return ShouldShoot(TargetChoosingMechanism.CurrentTarget);
     }
 }

@@ -859,7 +859,7 @@ MonoBehaviour:
   GenerationSize: 17
   MinMatchesPerIndividual: 3
   WinnersFromEachGeneration: 5
-  MatchTimeout: 15000
+  MatchTimeout: 250
   Mutations: 3
   MaxTurrets: 10
   MaxModules: 15

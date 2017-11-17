@@ -264,7 +264,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1844183048995594}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6.85, y: 8.59, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4309450258221040}
@@ -727,8 +727,8 @@ MonoBehaviour:
   ShootAngle: 10
   TorqueMultiplier: 90
   LocationAimWeighting: 8
-  StartDelay: 20
-  TurningStartDelay: 10
+  StartDelay: 0.3
+  TurningStartDelay: 0.15
   TimeToTargetForDetonation: 0.2
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ExplosionEffect: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
@@ -827,7 +827,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 250
+  EngineForce2: 45
   Pilot: {fileID: 4469671951430032}
   FuelTank: {fileID: 114274753216163754}
   ForceApplier: {fileID: 54991379400455944}
@@ -836,7 +836,7 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 0
   UseAsTranslator: 1
-  FullThrottleFuelConsumption: 1
+  FullThrottleFuelConsumption: 60
   TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
 --- !u!114 &114916808352173484

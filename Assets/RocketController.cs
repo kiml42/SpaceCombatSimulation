@@ -17,10 +17,10 @@ public class RocketController : MonoBehaviour
     public float LocationAimWeighting = 3f;
 
     [Tooltip("Delay until engines (including RCS) will start and warhead will arm")]
-    public int StartDelay = 10;
+    public float StartDelay = 0.2f;
 
     [Tooltip("Delay until non-engine torquers will start")]
-    public int TurningStartDelay = 2;
+    public float TurningStartDelay = 0.1f;
 
     public float TimeToTargetForDetonation = 0.5f;
     public Rigidbody Shrapnel;

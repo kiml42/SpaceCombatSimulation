@@ -2172,6 +2172,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7de348467e8d61f48a82215da1c07a1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  TargetChoosingMechanism: {fileID: 114642220478021410}
   AimingObject: {fileID: 4349780392635840}
   MaxDistance: 100000
   MinDistance: 0

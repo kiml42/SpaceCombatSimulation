@@ -46,6 +46,7 @@ namespace Assets.Src.Pilots
 
         protected bool ShouldTurn()
         {
+            //Debug.Log("TurningStartDelay:" + TurningStartDelay);
             TurningStartDelay -= Time.deltaTime;
             StartDelay -= Time.deltaTime;
             return TurningStartDelay <= 0;
@@ -57,17 +58,20 @@ namespace Assets.Src.Pilots
 
         protected bool HasStarted()
         {
-            //Debug.Log("RemainignFule:" + RemainingFuel);
-            var hasFuel = StartDelay <= 0;
-            if (!hasFuel)
+            //Debug.Log("StartDelay: " + StartDelay);
+            var hasStarted = StartDelay <= 0;
+            if (!hasStarted)
             {
+                //Debug.Log("hasn't started");
                 _torqueApplier.Deactivate();
             }
             else
             {
+                //Debug.Log("has started");
                 _torqueApplier.Activate();
             }
-            return hasFuel;
+            //Debug.Log("hasStarted: " + hasStarted);
+            return hasStarted;
         }
 
         protected Vector3 ReletiveLocationInWorldSpace(Target target)
