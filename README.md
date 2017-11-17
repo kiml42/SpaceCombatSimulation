@@ -18,8 +18,8 @@ Bugs:
 
 TODO:
     Priority:
-        Some way for turrets to account for their own turn rates.
         Fighters - using engines as weapons/using guns/both.
+        Some way for turrets to account for their own turn rates.
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
         Refactor rocket controller's start delay feature.
         Some way to set the roll of ships to have a direction that should be pointed at the enemy where possible.
@@ -27,7 +27,6 @@ TODO:
         Destruction only leaves objects with a rigibdbody and a health controller
         TargetPickers have option to kull all but the best x.
         Prevent fluttery torpedoes.
-        Make turrets account for the thing they're on's rotation.
         Eyeball turret
 
     option for spaceships that don't break up   
