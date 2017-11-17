@@ -722,7 +722,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00495207fc630df479e0d4f227bb1949, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Fuel: 400
+  Fuel: 200
   UseFuelMass: 1
   FuelDensity: 0.001
 --- !u!114 &114095532759699856
@@ -736,7 +736,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 45
+  EngineForce2: 500
   Pilot: {fileID: 4832477793392458}
   FuelTank: {fileID: 114087177041280492}
   ForceApplier: {fileID: 54172732429601216}
@@ -745,7 +745,7 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 0
   UseAsTranslator: 1
-  FullThrottleFuelConsumption: 60
+  FullThrottleFuelConsumption: 12
   TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
 --- !u!114 &114161706696368820

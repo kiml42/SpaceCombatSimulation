@@ -18,8 +18,6 @@ Bugs:
 
 TODO:
     Priority:
-        Adjust balance for using FixedUpdate on time dependant scripts.
-            Fix rockets.
         Fighters - using engines as weapons/using guns/both.
         Some way for turrets to account for their own turn rates.
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
@@ -31,6 +29,8 @@ TODO:
         Prevent fluttery torpedoes.
         Eyeball turret
 
+    Avoid GetComponent and sendMessage in update methods.
+    Velocity override option for exploder - to prevent the flyaway explosions in very high speed collisions.
     option for spaceships that don't break up   
         Turrets can be destroyed, but otherwise the whole thing has one lot of health - probably using pass damage up.
     allow components in the same cubic volume if they wouldn't intersect.

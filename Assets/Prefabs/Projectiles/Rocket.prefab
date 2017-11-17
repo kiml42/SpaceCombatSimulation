@@ -55,7 +55,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4346285404244058}
   m_Layer: 0
-  m_Name: VectorArrow (1)
+  m_Name: VectorArrow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -827,7 +827,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 45
+  EngineForce2: 600
   Pilot: {fileID: 4469671951430032}
   FuelTank: {fileID: 114274753216163754}
   ForceApplier: {fileID: 54991379400455944}
@@ -836,7 +836,7 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 0
   UseAsTranslator: 1
-  FullThrottleFuelConsumption: 60
+  FullThrottleFuelConsumption: 15
   TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
 --- !u!114 &114916808352173484

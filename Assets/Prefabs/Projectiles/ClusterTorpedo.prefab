@@ -242,7 +242,7 @@ GameObject:
   m_IsActive: 1
 --- !u!1 &1234357995877348
 GameObject:
-  m_ObjectHideFlags: 1
+  m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   serializedVersion: 5
@@ -273,7 +273,7 @@ GameObject:
   m_IsActive: 1
 --- !u!1 &1248564214312462
 GameObject:
-  m_ObjectHideFlags: 1
+  m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   serializedVersion: 5
@@ -339,7 +339,7 @@ GameObject:
   m_IsActive: 1
 --- !u!1 &1282067302038078
 GameObject:
-  m_ObjectHideFlags: 1
+  m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   serializedVersion: 5
@@ -575,7 +575,7 @@ GameObject:
   m_IsActive: 1
 --- !u!1 &1467748698332638
 GameObject:
-  m_ObjectHideFlags: 1
+  m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   serializedVersion: 5
@@ -741,7 +741,7 @@ GameObject:
   m_IsActive: 1
 --- !u!1 &1573532878143942
 GameObject:
-  m_ObjectHideFlags: 1
+  m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   serializedVersion: 5
@@ -789,7 +789,7 @@ GameObject:
   m_IsActive: 1
 --- !u!1 &1601851113026190
 GameObject:
-  m_ObjectHideFlags: 1
+  m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   serializedVersion: 5
@@ -888,21 +888,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!1 &1667387425855102
-GameObject:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  serializedVersion: 5
-  m_Component:
-  - component: {fileID: 4327872658031036}
-  m_Layer: 0
-  m_Name: RCSEngines
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
 --- !u!1 &1675733543729972
 GameObject:
   m_ObjectHideFlags: 1
@@ -954,7 +939,7 @@ GameObject:
   m_IsActive: 1
 --- !u!1 &1715652520182774
 GameObject:
-  m_ObjectHideFlags: 1
+  m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   serializedVersion: 5
@@ -970,7 +955,7 @@ GameObject:
   m_IsActive: 1
 --- !u!1 &1740323336806174
 GameObject:
-  m_ObjectHideFlags: 1
+  m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   serializedVersion: 5
@@ -1155,7 +1140,7 @@ GameObject:
   m_IsActive: 1
 --- !u!1 &1926768408163196
 GameObject:
-  m_ObjectHideFlags: 1
+  m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   serializedVersion: 5
@@ -1316,13 +1301,13 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1467748698332638}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: 0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4741314605177566}
-  m_Father: {fileID: 4327872658031036}
-  m_RootOrder: 0
+  m_Father: {fileID: 4797086269142920}
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4033787799496252
 Transform:
@@ -1397,13 +1382,13 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1601851113026190}
-  m_LocalRotation: {x: -0, y: -0, z: -0.7071068, w: 0.7071068}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4613480779921094}
-  m_Father: {fileID: 4327872658031036}
-  m_RootOrder: 3
+  m_Father: {fileID: 4797086269142920}
+  m_RootOrder: 6
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90}
 --- !u!4 &4140956000342060
 Transform:
@@ -1489,7 +1474,7 @@ Transform:
   - {fileID: 4076816736682388}
   - {fileID: 4311096919888312}
   m_Father: {fileID: 4797086269142920}
-  m_RootOrder: 3
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4175057121454258
 Transform:
@@ -1630,41 +1615,19 @@ Transform:
   m_Father: {fileID: 4168534676096054}
   m_RootOrder: 6
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90.00001}
---- !u!4 &4327872658031036
-Transform:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1667387425855102}
-  m_LocalRotation: {x: -0, y: -0, z: 0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children:
-  - {fileID: 4016634380929760}
-  - {fileID: 4629341221480950}
-  - {fileID: 4780294776703482}
-  - {fileID: 4123530995038114}
-  - {fileID: 4367194063002922}
-  - {fileID: 4981695559033890}
-  - {fileID: 4926214805557054}
-  - {fileID: 4909971658279928}
-  - {fileID: 4527964470998976}
-  m_Father: {fileID: 4797086269142920}
-  m_RootOrder: 2
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4367194063002922
 Transform:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1715652520182774}
-  m_LocalRotation: {x: 0, y: 0, z: 1, w: 0}
+  m_LocalRotation: {x: -0, y: -0, z: 0.7071068, w: -0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: -4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4710176678272970}
-  m_Father: {fileID: 4327872658031036}
-  m_RootOrder: 4
+  m_Father: {fileID: 4797086269142920}
+  m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 180}
 --- !u!4 &4380936534810120
 Transform:
@@ -1751,14 +1714,14 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1573532878143942}
-  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalRotation: {x: -0.5, y: -0.5, z: 0.5, w: 0.5}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4296971616505184}
   - {fileID: 4648388894346236}
-  m_Father: {fileID: 4327872658031036}
-  m_RootOrder: 8
+  m_Father: {fileID: 4797086269142920}
+  m_RootOrder: 11
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!4 &4535390087762984
 Transform:
@@ -1876,13 +1839,13 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1248564214312462}
-  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
+  m_LocalRotation: {x: -0, y: -0, z: 1, w: 0}
   m_LocalPosition: {x: 0, y: 0, z: 4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4815789543777690}
-  m_Father: {fileID: 4327872658031036}
-  m_RootOrder: 1
+  m_Father: {fileID: 4797086269142920}
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
 --- !u!4 &4634173217067122
 Transform:
@@ -2067,13 +2030,13 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1282067302038078}
-  m_LocalRotation: {x: 0, y: 0, z: 1, w: 0}
+  m_LocalRotation: {x: -0, y: -0, z: 0.7071068, w: -0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4707952119729918}
-  m_Father: {fileID: 4327872658031036}
-  m_RootOrder: 2
+  m_Father: {fileID: 4797086269142920}
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 180}
 --- !u!4 &4790434081022388
 Transform:
@@ -2095,13 +2058,21 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1977664886136184}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -556, y: 12.516008, z: -9.167896}
+  m_LocalPosition: {x: 15.327575, y: 40.4162, z: -41.91943}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4175057121454258}
   - {fileID: 4380936534810120}
-  - {fileID: 4327872658031036}
   - {fileID: 4168534676096054}
+  - {fileID: 4016634380929760}
+  - {fileID: 4629341221480950}
+  - {fileID: 4780294776703482}
+  - {fileID: 4123530995038114}
+  - {fileID: 4367194063002922}
+  - {fileID: 4981695559033890}
+  - {fileID: 4926214805557054}
+  - {fileID: 4909971658279928}
+  - {fileID: 4527964470998976}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -2284,13 +2255,13 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1234357995877348}
-  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
+  m_LocalRotation: {x: -0, y: -0, z: 1, w: 0}
   m_LocalPosition: {x: 0, y: 0, z: -4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4206628491466794}
-  m_Father: {fileID: 4327872658031036}
-  m_RootOrder: 7
+  m_Father: {fileID: 4797086269142920}
+  m_RootOrder: 10
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
 --- !u!4 &4926214805557054
 Transform:
@@ -2298,13 +2269,13 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1740323336806174}
-  m_LocalRotation: {x: 0, y: 0, z: -0.7071068, w: 0.7071068}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4703014421655546}
-  m_Father: {fileID: 4327872658031036}
-  m_RootOrder: 6
+  m_Father: {fileID: 4797086269142920}
+  m_RootOrder: 9
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90}
 --- !u!4 &4939207611642902
 Transform:
@@ -2365,13 +2336,13 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1926768408163196}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: 0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: -4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4622305045712118}
-  m_Father: {fileID: 4327872658031036}
-  m_RootOrder: 5
+  m_Father: {fileID: 4797086269142920}
+  m_RootOrder: 8
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &23069782828214804
 MeshRenderer:
@@ -3938,9 +3909,9 @@ Rigidbody:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1977664886136184}
   serializedVersion: 2
-  m_Mass: 40
+  m_Mass: 44
   m_Drag: 0
-  m_AngularDrag: 4
+  m_AngularDrag: 0.8
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -4185,7 +4156,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 17
+  EngineForce2: 700
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
@@ -4194,7 +4165,7 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
-  FullThrottleFuelConsumption: 48
+  FullThrottleFuelConsumption: 15
   TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
 --- !u!114 &114101606245805576
@@ -4244,7 +4215,7 @@ MonoBehaviour:
   LocationAimWeighting: 50
   StartDelay: 0.6
   TurningStartDelay: 0.15
-  TimeToTargetForDetonation: 2.5
+  TimeToTargetForDetonation: 4
   Shrapnel: {fileID: 54172732429601216, guid: 64a8db6279a423644be913ab3dd17046, type: 2}
   ExplosionEffect: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
@@ -4282,7 +4253,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 17
+  EngineForce2: 700
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
@@ -4291,7 +4262,7 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
-  FullThrottleFuelConsumption: 48
+  FullThrottleFuelConsumption: 15
   TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
 --- !u!114 &114126897734597358
@@ -4317,7 +4288,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 17
+  EngineForce2: 700
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
@@ -4326,7 +4297,7 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
-  FullThrottleFuelConsumption: 48
+  FullThrottleFuelConsumption: 15
   TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
 --- !u!114 &114170774721990032
@@ -4340,7 +4311,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 17
+  EngineForce2: 700
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
@@ -4349,7 +4320,7 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
-  FullThrottleFuelConsumption: 48
+  FullThrottleFuelConsumption: 15
   TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
 --- !u!114 &114227681578196334
@@ -4363,7 +4334,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 17
+  EngineForce2: 700
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
@@ -4372,7 +4343,7 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
-  FullThrottleFuelConsumption: 48
+  FullThrottleFuelConsumption: 15
   TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
 --- !u!114 &114317394816442712
@@ -4430,7 +4401,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 17
+  EngineForce2: 700
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
@@ -4439,7 +4410,7 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
-  FullThrottleFuelConsumption: 48
+  FullThrottleFuelConsumption: 15
   TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
 --- !u!114 &114419003778581402
@@ -4453,7 +4424,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 17
+  EngineForce2: 700
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
@@ -4462,7 +4433,7 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
-  FullThrottleFuelConsumption: 48
+  FullThrottleFuelConsumption: 15
   TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
 --- !u!114 &114698388319875676
@@ -4476,16 +4447,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 22
+  EngineForce2: 10000
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198998497963058642}
-  TranslateFireAngle: 2
+  TranslateFireAngle: 10
   TorqueFireAngle: 90
   UseAsTorquer: 0
   UseAsTranslator: 1
-  FullThrottleFuelConsumption: 78
+  FullThrottleFuelConsumption: 50
   TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
 --- !u!114 &114766246677591618
@@ -4513,7 +4484,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 17
+  EngineForce2: 700
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
@@ -4522,7 +4493,7 @@ MonoBehaviour:
   TorqueFireAngle: 90
   UseAsTorquer: 1
   UseAsTranslator: 1
-  FullThrottleFuelConsumption: 48
+  FullThrottleFuelConsumption: 15
   TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
 --- !u!136 &136759748819616910

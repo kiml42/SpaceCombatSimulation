@@ -31,7 +31,7 @@ namespace Assets.Src.ObjectManagement
             //Debug.Log(_exploder + " is exploding");
             if (_explosionEffect != null)
             {
-                var explosion = UnityEngine.Object.Instantiate(_explosionEffect, _exploder.position, UnityEngine.Random.rotation);
+                var explosion = UnityEngine.Object.Instantiate(_explosionEffect, _exploder.position, _exploder.rotation);
                 explosion.velocity = _exploder.velocity;
             }
 

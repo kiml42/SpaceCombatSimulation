@@ -141,7 +141,7 @@ public class EngineControler : MonoBehaviour {
             {
                 throttle = AdjustThrottleForFuel(throttle);
 
-                ForceApplier.AddForceAtPosition(-transform.up * EngineForce2 * throttle, transform.position);
+                ForceApplier.AddForceAtPosition(-transform.up * EngineForce2 * throttle * Time.deltaTime, transform.position, ForceMode.Force);
                 //ForceApplier.AddRelativeForce(EngineForce * throttle);
                 SetPlumeState(throttle);
                 return;
@@ -161,12 +161,18 @@ public class EngineControler : MonoBehaviour {
 
     private float AdjustThrottleForFuel(float throttle)
     {
-        if(FuelTank != null)
+        float actualThrottle;
+        if (FuelTank != null)
         {
-            var fuel = FuelTank.DrainFuel(throttle * FullThrottleFuelConsumption * Time.deltaTime);
-            throttle = fuel * FullThrottleFuelConsumption;
+            var singleFrameConsumption = FullThrottleFuelConsumption * Time.deltaTime;
+            var desiredFuel = throttle * singleFrameConsumption;
+            var fuel = FuelTank.DrainFuel(desiredFuel);
+            actualThrottle = fuel / singleFrameConsumption;
+            //Debug.Log("Desired Throttle = " + throttle + ", actualThrottle: " + actualThrottle + ", DesiredFuel: " + desiredFuel + ", actual fuel: " + fuel);
+        } else {
+            actualThrottle = throttle;
         }
-        return throttle;
+        return actualThrottle;
     }
 
     private void SetPlumeState(float throttle)
