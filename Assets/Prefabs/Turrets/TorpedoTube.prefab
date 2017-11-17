@@ -119,6 +119,7 @@ MeshRenderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
@@ -134,6 +135,7 @@ MeshRenderer:
   m_PreserveUVs: 1
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
+  m_StitchLightmapSeams: 0
   m_SelectedEditorRenderState: 3
   m_MinimumChartSize: 4
   m_AutoUVMaxDistance: 0.5
@@ -183,7 +185,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  FramesOfInvulnerability: 1
+  SecondsOfInvulnerability: 1
   OriginalHealth: 0
   DamageDelegate: {fileID: 0}
   IgnoredTags:
@@ -265,8 +267,8 @@ MonoBehaviour:
   Projectile: {fileID: 54678280250609056, guid: e1363427697fac546a554aa229b862b5,
     type: 2}
   Emitter: {fileID: 4447427867770762}
-  RandomStartTime: 500
-  MinStartTime: 30
+  RandomStartTime: 10
+  MinStartTime: 0.5
   BurstCount: 1
   BurstInterval: 1
   EnemyTags:
@@ -274,7 +276,7 @@ MonoBehaviour:
   - Team2
   Velocity: {x: 0, y: 0, z: 60}
   RandomSpeed: 1
-  LoadTime: 1500
+  LoadTime: 25
 --- !u!114 &114781741124783610
 MonoBehaviour:
   m_ObjectHideFlags: 1

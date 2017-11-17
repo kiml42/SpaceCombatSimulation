@@ -2048,7 +2048,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  FramesOfInvulnerability: 1
+  SecondsOfInvulnerability: 1
   OriginalHealth: 0
   DamageDelegate: {fileID: 0}
   IgnoredTags:
@@ -2149,18 +2149,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 68e58c7298f333b43baf85609c9e6403, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  LoadTime: 50
-  ShootTime: 100
-  StartOffset: 10
+  LoadTime: 0.8
+  ShootTime: 1.6
+  StartOffset: 0.2
   BeamForce: 2
-  BeamDamage: 0.03
+  BeamDamage: 0.006
   HitEffect: {fileID: 4113682021108320, guid: e6ef866ccc6cd2c4fb5f402be7b7a1d0, type: 2}
   ElevationHub: {fileID: 54867097553581106}
   BeamsParent: {fileID: 4174025852522500}
   InitialRadius: 0.15
   Divergence: 0.0015
   BeamColour: {r: 1, g: 0.06300002, b: 0.06300002, a: 0.678}
-  KeepShootingFrames: 25
+  KeepShootingSeconds: 0.1
 --- !u!114 &114425251777866240
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2195,7 +2195,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  FramesOfInvulnerability: 1
+  SecondsOfInvulnerability: 1
   OriginalHealth: 0
   DamageDelegate: {fileID: 114140716898617586}
   IgnoredTags:
@@ -2285,7 +2285,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  FramesOfInvulnerability: 1
+  SecondsOfInvulnerability: 1
   OriginalHealth: 0
   DamageDelegate: {fileID: 114140716898617586}
   IgnoredTags:

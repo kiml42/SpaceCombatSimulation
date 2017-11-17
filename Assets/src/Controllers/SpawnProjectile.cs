@@ -16,12 +16,12 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
     private Rigidbody _spawner;
     
     public float RandomStartTime = 30;
-    public int MinStartTime = 30;
+    public float MinStartTime = 30;
     private bool _active = true;
 
     public int BurstCount = 1;
     private int _projectilesThisBurst = 0;
-    public int BurstInterval = 1;
+    public float BurstInterval = 1;
 
 
     #region EnemyTags
@@ -49,7 +49,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
     public float RandomSpeed = 1;
 
     private float _reload = 0;
-    public int LoadTime = 200;
+    public float LoadTime = 200;
 
     private string InactiveTag = "Untagged";
     private ColourSetter _colerer;
@@ -58,7 +58,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
     void Start()
     {
         _colerer = GetComponent("ColourSetter") as ColourSetter;
-        _reload = (int)(UnityEngine.Random.value * RandomStartTime) + MinStartTime;
+        _reload = UnityEngine.Random.value * RandomStartTime + MinStartTime;
         Emitter = Emitter ?? transform;
         _targetChoosingMechanism = GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
                 

@@ -14,7 +14,7 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
     private IKnowsEnemyTags _tagKnower;
     public Rigidbody Projectile;
     public Rigidbody MuzzleFlash;
-    public int LoadTime = 200;
+    public float LoadTime = 200;
     public float ProjectileSpeed = 10f;
     public float RandomSpeed = 0.1f;
     

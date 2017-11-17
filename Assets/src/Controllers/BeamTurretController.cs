@@ -11,9 +11,9 @@ using UnityEngine;
 
 public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivatable, IKnowsProjectileSpeed
 {
-    public int LoadTime = 50;
-    public int ShootTime = 200;
-    public int StartOffset = 10;
+    public float LoadTime = 50;
+    public float ShootTime = 200;
+    public float StartOffset = 10;
     public float BeamForce = 0;
     public float BeamDamage = 10;
     public Transform HitEffect;

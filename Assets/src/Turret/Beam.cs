@@ -32,7 +32,7 @@ namespace Assets.Src.Turret
         public float InitialRadius = 1;
         public float Divergence = 0.0005f;
 
-        public Beam(Transform beam, int runTime, int offTime)
+        public Beam(Transform beam, float runTime, float offTime)
         {
             Transform = beam;
             OnTime = runTime;
@@ -102,7 +102,7 @@ namespace Assets.Src.Turret
         private float ReduceForDistance(float baseDamage, float distance)
         {
             var radius = InitialRadius + (Divergence * distance);
-            var reduced = baseDamage / (radius * radius);
+            var reduced = baseDamage * Time.deltaTime / (radius * radius);
             return reduced;
         }
 

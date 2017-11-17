@@ -150,6 +150,7 @@ MeshRenderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
@@ -165,6 +166,7 @@ MeshRenderer:
   m_PreserveUVs: 1
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
+  m_StitchLightmapSeams: 0
   m_SelectedEditorRenderState: 3
   m_MinimumChartSize: 4
   m_AutoUVMaxDistance: 0.5
@@ -182,6 +184,7 @@ MeshRenderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
@@ -197,6 +200,7 @@ MeshRenderer:
   m_PreserveUVs: 1
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
+  m_StitchLightmapSeams: 0
   m_SelectedEditorRenderState: 3
   m_MinimumChartSize: 4
   m_AutoUVMaxDistance: 0.5
@@ -362,7 +366,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  FramesOfInvulnerability: 1
+  SecondsOfInvulnerability: 1
   OriginalHealth: 0
   DamageDelegate: {fileID: 0}
   IgnoredTags:
@@ -383,16 +387,16 @@ MonoBehaviour:
   Projectile: {fileID: 54991379400455944, guid: 8bf03007d4e417c4087307829906f7d6,
     type: 2}
   Emitter: {fileID: 4062052453972264}
-  RandomStartTime: 100
-  MinStartTime: 5
+  RandomStartTime: 1.6
+  MinStartTime: 0.1
   BurstCount: 5
-  BurstInterval: 16
+  BurstInterval: 0.2
   EnemyTags:
   - Enemy
   - Team2
   Velocity: {x: 0, y: 15, z: 0}
   RandomSpeed: 2
-  LoadTime: 650
+  LoadTime: 10
 --- !u!138 &138875538257973814
 FixedJoint:
   m_ObjectHideFlags: 1
