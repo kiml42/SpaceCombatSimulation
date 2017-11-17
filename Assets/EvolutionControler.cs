@@ -96,7 +96,7 @@ public class EvolutionControler : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         var winningGenome = DetectVictorsGenome();
         if (winningGenome == null && MatchTimeout > 0)

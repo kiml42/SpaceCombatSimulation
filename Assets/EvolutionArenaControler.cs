@@ -56,7 +56,7 @@ public class EvolutionArenaControler : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         DetectSurvivingAndDeadTeams();
 

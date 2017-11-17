@@ -123,7 +123,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         var matchOver = IsMatchOver();
         if (matchOver || MatchTimeout <= MatchRunTime)
