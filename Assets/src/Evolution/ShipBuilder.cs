@@ -78,9 +78,9 @@ namespace Assets.src.Evolution
         public void BuildShip()
         {
             //Debug.Log("Building " + _genome);
-            _r = GetNumberFromGenome(0, 8);
-            _g = GetNumberFromGenome(10, 8);
-            _b = GetNumberFromGenome(20, 8);
+            _r = GetNumberFromGenome(0, 0.5f, 8);
+            _g = GetNumberFromGenome(10, 0.5f, 8);
+            _b = GetNumberFromGenome(20, 0.5f, 8);
             _shipToBuildOn.SetColor(_r, _g, _b);
             _shipToBuildOn.name = _genome;
             //Debug.Log("Spawning modules");
@@ -163,7 +163,7 @@ namespace Assets.src.Evolution
                 GameObject.Destroy(testCube.gameObject);
                 if (IsUsedLocation(center))
                 {
-                    Debug.Log("Can't spawn at " + center + " because there is already something here");
+                    //Debug.Log("Can't spawn at " + center + " because there is already something here");
                     return false;
                 }
                 else

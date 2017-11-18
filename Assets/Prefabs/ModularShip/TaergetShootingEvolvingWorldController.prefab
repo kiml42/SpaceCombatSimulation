@@ -852,7 +852,7 @@ MonoBehaviour:
   MinDronesToSpawn: 2
   ExtraDroneEveryXGenerations: 5
   GeneralFolder: ./tmp/evolvingShipsDrones
-  ThisRunFolder: FixedUpdateBranch
+  ThisRunFolder: RandomStart
   GenerationSize: 17
   MinMatchesPerIndividual: 1
   WinnersFromEachGeneration: 5
@@ -875,6 +875,7 @@ MonoBehaviour:
   - {fileID: 54431323037331960, guid: 7a6fbabb0bc555d40912d26e6bc4beb5, type: 2}
   - {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
   - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
+  UseCompletelyRandomDefaultGenome: 0
   DefaultGenome: 2
   WinnerPollPeriod: 1
   KillScoreMultiplier: 50

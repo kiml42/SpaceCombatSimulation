@@ -71,6 +71,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     
     public List<Rigidbody> Modules;
     private StringMutator _mutator;
+
+    public bool UseCompletelyRandomDefaultGenome = false;
     public string DefaultGenome = "";
 
     private int GenerationNumber;
@@ -158,7 +160,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             //should move to next generation
             var winners = _currentGeneration.PickWinners(WinnersFromEachGeneration);
             GenerationNumber = GenerationNumber+1;
-            _currentGeneration = CreateGenerationOfMutants(winners.ToList());
+            _currentGeneration = new GenerationTargetShooting(_mutator.CreateGenerationOfMutants(winners.ToList(), GenerationSize));
             SaveGeneration();
         }
     }
@@ -249,12 +251,13 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
             var killedDrones = _previousDroneCount - droneCount;
 
-            Debug.Log(shipCount + " ship modules, " + droneCount + " drones still alive. (" + _previousDroneCount + " prev) " + _genome);
+            //Debug.Log(shipCount + " ship modules, " + droneCount + " drones still alive. (" + _previousDroneCount + " prev) " + _genome);
             if(killedDrones > 0)
             {
-                Debug.Log(killedDrones + " drones killed this interval. " + _genome);
                 _killsThisMatch += killedDrones;
-                CurrentScore += killedDrones * ((RemainingTime() * KillScoreMultiplier) + FlatKillBonus);
+                var scorePerKill = (RemainingTime() * KillScoreMultiplier) + FlatKillBonus;
+                Debug.Log(killedDrones + " drones killed this interval for " + scorePerKill + " each.");
+                CurrentScore += killedDrones * scorePerKill;
             }
             _previousDroneCount = droneCount;
 
@@ -307,45 +310,9 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         if(_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
         {
             //Debug.Log("Generating generation from default genomes");
-            _currentGeneration = CreateGenerationOfMutants(new List<string> { DefaultGenome });
+            var defaultGenomes = UseCompletelyRandomDefaultGenome ? null : new List<string> { DefaultGenome };
+            _currentGeneration = new GenerationTargetShooting(_mutator.CreateGenerationOfMutants(defaultGenomes, GenerationSize));
         }
         //Debug.Log("_currentGeneration: " + _currentGeneration);
-    }
-
-    private GenerationTargetShooting CreateGenerationOfMutants(List<string> baseGenomes)
-    {
-        //Debug.Log("Generating generation from [" + string.Join(",", baseGenomes.ToArray()) + "]");
-        var genration = new GenerationTargetShooting();
-        int i = 0;
-        //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
-        while (genration.CountIndividuals() < GenerationSize)
-        {
-
-            var baseGenome = baseGenomes[i];
-            var mutant = _mutator.Mutate(baseGenome);
-            if (IsValidGenome(mutant))
-            {
-                Debug.Log(mutant + " spawn of " + baseGenome + " is born");
-                genration.AddGenome(mutant);
-                //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
-            } else
-            {
-                Debug.Log(mutant + " spawn of " + baseGenome + " is too rubbish to be born");
-            }
-            i++;
-            i = i % baseGenomes.Count;
-        }
-        //Debug.Log("mutant Generation: " + genration);
-        return genration;
-    }
-    
-    private bool IsValidGenome(string baseGenome)
-    {
-        //replace 2 so engines don't make a valid ship.
-        var start = baseGenome.Replace("2", " ").Substring(0, 6).Trim();
-        //Debug.Log("'" + start + "'");
-        var valid = !string.IsNullOrEmpty(start);
-        //Debug.Log("'" + baseGenome + "' valid? " + valid);
-        return valid;
     }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 namespace Assets.src.Evolution
 {
@@ -12,7 +13,49 @@ namespace Assets.src.Evolution
         public int MaxMutationLength = 3;
         public string AllowedCharacters = " 0123456789  ";
 
-        #region Mutation
+        /// <summary>
+        /// Creates a whole generation of mutated genomes.
+        /// </summary>
+        /// <param name="baseGenomes">genomes to mutate. Use null to generate random</param>
+        /// <param name="generationSize">number of genomes to return</param>
+        /// <returns></returns>
+        public List<string> CreateGenerationOfMutants(List<string> baseGenomes, int generationSize)
+        {
+            //Debug.Log("Generating generation from [" + string.Join(",", baseGenomes.ToArray()) + "]");
+            var genration = new List<string>();
+            int i = 0;
+            //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
+            while (genration.Count() < generationSize)
+            {
+                string baseGenome;
+                string mutant;
+                if (baseGenomes != null && baseGenomes.Any())
+                {
+                    baseGenome = baseGenomes[i];
+                    mutant = Mutate(baseGenome);
+                    i++;
+                    i = i % baseGenomes.Count;
+                }
+                else
+                {
+                    baseGenome = "Primordial Ooze";
+                    mutant = GenerateCompletelyRandomGenome();
+                }
+                if (IsValidGenome(mutant))
+                {
+                    Debug.Log(mutant + " spawn of " + baseGenome + " is born");
+                    genration.Add(mutant);
+                    //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
+                }
+                else
+                {
+                    Debug.Log(mutant + " spawn of " + baseGenome + " is too rubbish to be born");
+                }
+            }
+            //Debug.Log("mutant Generation: " + genration);
+            return genration;
+        }
+
         public string Mutate(string baseGenome)
         {
             baseGenome = baseGenome.PadRight(GenomeLength, ' ');
@@ -52,6 +95,16 @@ namespace Assets.src.Evolution
             return baseGenome;
         }
 
+        public string GenerateCompletelyRandomGenome()
+        {
+            string genome = "";
+            while(genome.Length < GenomeLength)
+            {
+                genome = InsertionMutation(genome);
+            }
+            return genome.Substring(0, GenomeLength);
+        }
+
         private string InsertionMutation(string genome)
         {
             int n = (int)(UnityEngine.Random.value * AllowedCharacters.Length);
@@ -87,6 +140,16 @@ namespace Assets.src.Evolution
             genome = genome.Remove(n, count);
             return genome.Insert(n, sectionToReverse);
         }
+        
+        private bool IsValidGenome(string baseGenome)
+        {
+            //replace 2 so engines don't make a valid ship.
+            var start = baseGenome.Replace("2", " ").Substring(0, 6).Trim();
+            //Debug.Log("'" + start + "'");
+            var valid = !string.IsNullOrEmpty(start);
+            //Debug.Log("'" + baseGenome + "' valid? " + valid);
+            return valid;
+        }
 
         public static string Reverse(string s)
         {
@@ -106,6 +169,5 @@ namespace Assets.src.Evolution
             var result = (int)UnityEngine.Random.value * limit;
             return Math.Max(result, 1);
         }
-        #endregion
     }
 }

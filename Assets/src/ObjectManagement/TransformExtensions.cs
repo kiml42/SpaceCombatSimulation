@@ -21,7 +21,7 @@ namespace Assets.Src.ObjectManagement
         public static void SetColor(this Transform transform, float R, float G, float B, float A = 1, int depth = 20)
         {
             var colour = new Color(R, G, B, A);
-            //Debug.Log(colour);
+            //Debug.Log("setting " + transform.name + "'s colour to " + colour);
             //Debug.Log(transform);
             transform.SetColor(colour, depth);
         }

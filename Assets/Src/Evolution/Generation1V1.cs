@@ -26,6 +26,11 @@ namespace Assets.src.Evolution
             Individuals = lines.Select(l => new IndividualInGeneration(l)).ToList();
         }
 
+        public Generation1V1(List<string> lines)
+        {
+            Individuals = lines.Select(l => new IndividualInGeneration(l)).ToList();
+        }
+
         public int CountIndividuals()
         {
             return Individuals.Count;

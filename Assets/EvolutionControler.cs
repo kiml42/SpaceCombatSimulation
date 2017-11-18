@@ -63,7 +63,10 @@ public class EvolutionControler : MonoBehaviour
     
     public List<Rigidbody> Modules;
     private StringMutator _mutator;
+
+    public bool UseCompletelyRandomDefaultGenome = false;
     public string DefaultGenome = "";
+
     private int GenerationNumber;
     private Generation1V1 _currentGeneration;
 
@@ -149,7 +152,7 @@ public class EvolutionControler : MonoBehaviour
             //should move to next generation
             var winners = _currentGeneration.PickWinners(WinnersFromEachGeneration);
             GenerationNumber = GenerationNumber+1;
-            _currentGeneration = CreateGenerationOfMutants(winners.ToList());
+            _currentGeneration = new Generation1V1(_mutator.CreateGenerationOfMutants(winners.ToList(), GenerationSize));
             SaveGeneration();
         }
     }
@@ -298,44 +301,10 @@ public class EvolutionControler : MonoBehaviour
         if(_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
         {
             //Debug.Log("Generating generation from default genomes");
-            _currentGeneration = CreateGenerationOfMutants(new List<string> { DefaultGenome });
+            var defaultGenomes = UseCompletelyRandomDefaultGenome ? null : new List<string> { DefaultGenome };
+            var mutants = _mutator.CreateGenerationOfMutants(defaultGenomes, GenerationSize);
+            _currentGeneration = new Generation1V1(mutants);
         }
         //Debug.Log("_currentGeneration: " + _currentGeneration);
-    }
-
-    private Generation1V1 CreateGenerationOfMutants(List<string> baseGenomes)
-    {
-        //Debug.Log("Generating generation from [" + string.Join(",", baseGenomes.ToArray()) + "]");
-        var genration = new Generation1V1();
-        int i = 0;
-        //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
-        while (genration.CountIndividuals() < GenerationSize)
-        {
-
-            var baseGenome = baseGenomes[i];
-            var mutant = _mutator.Mutate(baseGenome);
-            if (IsValidGenome(mutant))
-            {
-                Debug.Log(mutant + " spawn of " + baseGenome + " is born");
-                genration.AddGenome(mutant);
-                //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
-            } else
-            {
-                Debug.Log(mutant + " spawn of " + baseGenome + " is too rubbish to be born");
-            }
-            i++;
-            i = i % baseGenomes.Count;
-        }
-        //Debug.Log("mutant Generation: " + genration);
-        return genration;
-    }
-    
-    private bool IsValidGenome(string baseGenome)
-    {
-        var start = baseGenome.Substring(0, 6).Trim();
-        //Debug.Log("'" + start + "'");
-        var valid = !string.IsNullOrEmpty(start);
-        //Debug.Log("'" + baseGenome + "' valid? " + valid);
-        return valid;
     }
 }

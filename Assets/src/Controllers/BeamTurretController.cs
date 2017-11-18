@@ -56,6 +56,7 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
         {
             var beam = BeamsParent.GetChild(i);
             beam.localScale = Vector3.zero;
+            //Debug.Log("beam colour: " + BeamColour);
             beam.SetColor(BeamColour);
             _beams.Add(new Beam(beam, ShootTime, LoadTime)
             {
