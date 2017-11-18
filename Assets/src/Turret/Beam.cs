@@ -40,13 +40,13 @@ namespace Assets.Src.Turret
             Transform = beam;
             OnTime = runTime;
             OffTime = offTime;
-            RayCaster = Transform.parent ?? Transform;
+            RayCaster = Transform;
             RemainingOnTime = OnTime;
             
             if (hitEffectPrefab != null)
             {
                 _hitEffect = GameObject.Instantiate(hitEffectPrefab, RayCaster.position, RayCaster.rotation);
-                _hitEffect.transform.parent = RayCaster;
+                _hitEffect.transform.parent = RayCaster.parent;
             }
         }
 
