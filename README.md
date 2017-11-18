@@ -18,7 +18,6 @@ Bugs:
 
 TODO:
     Priority:
-        Instasiate hit effect once per beam and move it to hit location and turn it on and off as needed.
         Modularise evolution controllers
             Module list script - can be storred as a prefab they all reference instead of on the controller itself.
             Ship config script
