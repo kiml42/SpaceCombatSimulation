@@ -18,6 +18,7 @@ Bugs:
 
 TODO:
     Priority:
+        Instasiate hit effect once per beam and move it to hit location and turn it on and off as needed.
         Fighters - using engines as weapons/using guns/both.
         Some way for turrets to account for their own turn rates.
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).

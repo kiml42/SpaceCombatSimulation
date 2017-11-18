@@ -14,12 +14,11 @@ namespace Assets.src.Evolution
     public class Generation1V1 : IGeneration
     {
         private System.Random _rng = new System.Random();
-        private List<IndividualInGeneration> Individuals;
+        private List<IndividualInGeneration> Individuals = new List<IndividualInGeneration>();
 
         public Generation1V1()
         {
             //Debug.Log("Default Constructor");
-            Individuals = new List<IndividualInGeneration>();
         }
 
         public Generation1V1(string[] lines)

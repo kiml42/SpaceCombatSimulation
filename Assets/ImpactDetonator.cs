@@ -16,9 +16,12 @@ public class ImpactDetonator : MonoBehaviour {
 
     private Rigidbody _rigidbody;
 
+    private bool StartCalled = false;
+
     // Use this for initialization
     void Start()
     {
+        StartCalled = true;
         _rigidbody = GetComponent<Rigidbody>();
 
         var exploder = new ShrapnelExploder(_rigidbody, Shrapnel, DeathExplosion, ShrapnelCount2)
@@ -52,12 +55,16 @@ public class ImpactDetonator : MonoBehaviour {
     public void ApplyDamage(float damage = 0)
     {
         //anything trying to apply damage should destroy this.
-        if (_destroyer == null)
+        //don't destroy it if it hasn't started yet.
+        if (StartCalled)
         {
-            Debug.LogWarning(gameObject + " has null destroyer");
-            Start();
+            if (_destroyer == null)
+            {
+                Debug.LogWarning(gameObject + " has null destroyer, Start called: " + StartCalled);
+                Start();
+            }
+            _destroyer.Destroy(gameObject, true);
         }
-        _destroyer.Destroy(gameObject, true);
     }
 
     /// <summary>

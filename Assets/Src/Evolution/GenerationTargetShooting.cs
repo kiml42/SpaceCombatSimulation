@@ -14,12 +14,11 @@ namespace Assets.src.Evolution
     public class GenerationTargetShooting : IGeneration
     {
         private System.Random _rng = new System.Random();
-        private List<IndividualInGeneration> Individuals;
+        private List<IndividualInGeneration> Individuals = new List<IndividualInGeneration>();
 
         public GenerationTargetShooting()
         {
             //Debug.Log("Default Constructor");
-            Individuals = new List<IndividualInGeneration>();
         }
 
         public GenerationTargetShooting(string[] lines)

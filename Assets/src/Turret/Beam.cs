@@ -31,6 +31,9 @@ namespace Assets.Src.Turret
         public float MaxDistance = 10000;
         public float InitialRadius = 1;
         public float Divergence = 0.0005f;
+        
+        private float _effectCooldown = 0;
+        public float EffectRepeatTime = 0.1f;
 
         public Beam(Transform beam, float runTime, float offTime)
         {
@@ -89,8 +92,15 @@ namespace Assets.Src.Turret
                 }
                 if (HitEffect != null)
                 {
-                    //var orientation = hit.normal; //use this to properly orient the effect
-                    GameObject.Instantiate(HitEffect, hit.point, RayCaster.rotation);
+                    if(_effectCooldown <= 0)
+                    {
+                        //var orientation = hit.normal; //use this to properly orient the effect
+                        GameObject.Instantiate(HitEffect, hit.point, RayCaster.rotation);
+                        _effectCooldown = EffectRepeatTime;
+                    } else
+                    {
+                        _effectCooldown -= Time.deltaTime;
+                    }
                 }
                 hit.transform.SendMessage("ApplyDamage", ReduceForDistance(BeamDamage, hit.distance), SendMessageOptions.DontRequireReceiver);
                 return hit.distance;

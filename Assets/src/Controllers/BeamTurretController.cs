@@ -17,7 +17,8 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     public float BeamForce = 0;
     public float BeamDamage = 10;
     public Transform HitEffect;
-    
+    private float EffectRepeatTime = 0.1f;
+
     public Rigidbody ElevationHub;
     public Transform BeamsParent;
     private List<Beam> _beams;
@@ -62,6 +63,7 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
             {
                 BeamForce = BeamForce,
                 HitEffect = HitEffect,
+                EffectRepeatTime = EffectRepeatTime,
                 BeamDamage = BeamDamage,
                 FriendlyTag = tag,
                 InitialRadius = InitialRadius,
