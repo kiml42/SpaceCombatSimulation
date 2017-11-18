@@ -2390,7 +2390,8 @@ MonoBehaviour:
   StartOffset: 0.5
   BeamForce: 4
   BeamDamage: 360
-  HitEffect: {fileID: 4113682021108320, guid: e6ef866ccc6cd2c4fb5f402be7b7a1d0, type: 2}
+  HitEffectPrefab: {fileID: 114216939416956544, guid: e6ef866ccc6cd2c4fb5f402be7b7a1d0,
+    type: 2}
   ElevationHub: {fileID: 54685917326791822}
   BeamsParent: {fileID: 4240506007227012}
   InitialRadius: 0.3

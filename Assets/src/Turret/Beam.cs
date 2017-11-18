@@ -22,7 +22,6 @@ namespace Assets.Src.Turret
         /// </summary>
         public float OffTime;
         public float BeamForce = 0;
-        public Transform HitEffect;
         public string FriendlyTag = null;
 
         public float RemainingOnTime =0;
@@ -34,14 +33,21 @@ namespace Assets.Src.Turret
         
         private float _effectCooldown = 0;
         public float EffectRepeatTime = 0.1f;
+        private LampAndParticlesEffectController _hitEffect;
 
-        public Beam(Transform beam, float runTime, float offTime)
+        public Beam(Transform beam, float runTime, float offTime, LampAndParticlesEffectController hitEffectPrefab = null)
         {
             Transform = beam;
             OnTime = runTime;
             OffTime = offTime;
             RayCaster = Transform.parent ?? Transform;
             RemainingOnTime = OnTime;
+            
+            if (hitEffectPrefab != null)
+            {
+                _hitEffect = GameObject.Instantiate(hitEffectPrefab, RayCaster.position, RayCaster.rotation);
+                _hitEffect.transform.parent = RayCaster;
+            }
         }
 
         public void TurnOn()
@@ -90,22 +96,20 @@ namespace Assets.Src.Turret
                 {
                     hit.rigidbody.AddExplosionForce(ReduceForDistance(BeamForce, hit.distance), hit.point, 10);
                 }
-                if (HitEffect != null)
+                if (_hitEffect != null)
                 {
-                    if(_effectCooldown <= 0)
-                    {
-                        //var orientation = hit.normal; //use this to properly orient the effect
-                        GameObject.Instantiate(HitEffect, hit.point, RayCaster.rotation);
-                        _effectCooldown = EffectRepeatTime;
-                    } else
-                    {
-                        _effectCooldown -= Time.deltaTime;
-                    }
+                    //_hitEffect.transform.rotation = hit.normal; //use this to properly orient the effect
+                    _hitEffect.transform.position = hit.point;
+                    _hitEffect.TurnOn();
                 }
                 hit.transform.SendMessage("ApplyDamage", ReduceForDistance(BeamDamage, hit.distance), SendMessageOptions.DontRequireReceiver);
                 return hit.distance;
             }
             //is a miss
+            if (_hitEffect != null)
+            {
+                _hitEffect.TurnOff();
+            }
             return MaxDistance;
         }
 
@@ -121,6 +125,10 @@ namespace Assets.Src.Turret
             RemainingOffTime -= Time.deltaTime;
             if(Transform.IsValid())
                 Transform.localScale = Vector3.zero;
+            if (_hitEffect != null)
+            {
+                _hitEffect.TurnOff();
+            }
         }
 
         /// <summary>

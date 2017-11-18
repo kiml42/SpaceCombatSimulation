@@ -23,8 +23,8 @@ GameObject:
   - component: {fileID: 54368247732877992}
   - component: {fileID: 198575638471518982}
   - component: {fileID: 199790660456684666}
-  - component: {fileID: 114777130459260602}
   - component: {fileID: 114810051653132316}
+  - component: {fileID: 114216939416956544}
   m_Layer: 0
   m_Name: LaserHitEffect
   m_TagString: Untagged
@@ -133,7 +133,7 @@ Light:
   m_UseColorTemperature: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
---- !u!114 &114777130459260602
+--- !u!114 &114216939416956544
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
@@ -141,11 +141,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1103777410261294}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b6312b7bfe9030e40b858f67cf019e96, type: 3}
+  m_Script: {fileID: 11500000, guid: 0c9b6ccc87d289840989b47240e72e8b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Lifetime: 0.2
-  RandomLifetime: 0
+  Plume: {fileID: 198575638471518982}
+  Lamp: {fileID: 108999739368507864}
 --- !u!114 &114810051653132316
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -168,7 +168,7 @@ ParticleSystem:
   lengthInSec: 0.1
   simulationSpeed: 1
   stopAction: 0
-  looping: 0
+  looping: 1
   prewarm: 0
   playOnAwake: 1
   useUnscaledTime: 0

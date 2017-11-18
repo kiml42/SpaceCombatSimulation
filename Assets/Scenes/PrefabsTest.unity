@@ -218,6 +218,10 @@ Prefab:
       propertyPath: m_Name
       value: Torpedo (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 1301380948880376, guid: e1363427697fac546a554aa229b862b5, type: 2}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: e1363427697fac546a554aa229b862b5, type: 2}
   m_IsPrefabParent: 0
@@ -434,6 +438,10 @@ Prefab:
     - target: {fileID: 114698199192881328, guid: 2cf111255dce5d94ca7b02db1dcffd57,
         type: 2}
       propertyPath: MinStartTime
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1973778278608190, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
+      propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -849,6 +857,10 @@ Prefab:
     - target: {fileID: 1290215007669200, guid: a946c3d6ae687104b9a266844d66ac72, type: 2}
       propertyPath: m_Name
       value: RailTurret (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 1290215007669200, guid: a946c3d6ae687104b9a266844d66ac72, type: 2}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: a946c3d6ae687104b9a266844d66ac72, type: 2}
@@ -1627,7 +1639,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 1617297998928176, guid: ecb13bd8e1b25e74c820d8d87b56d573, type: 2}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: ecb13bd8e1b25e74c820d8d87b56d573, type: 2}
@@ -1795,6 +1807,10 @@ Prefab:
     - target: {fileID: 1977664886136184, guid: f799f57ace58a9d4eb0f518258a0971c, type: 2}
       propertyPath: m_Name
       value: ClusterTorpedo (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 1977664886136184, guid: f799f57ace58a9d4eb0f518258a0971c, type: 2}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: f799f57ace58a9d4eb0f518258a0971c, type: 2}
@@ -2731,7 +2747,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 1088526681955390, guid: 60a29330d6f81dd44831e849ab27dd87, type: 2}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4032442292318084, guid: 60a29330d6f81dd44831e849ab27dd87, type: 2}
       propertyPath: m_LocalEulerAnglesHint.x

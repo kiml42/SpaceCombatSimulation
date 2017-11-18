@@ -6,9 +6,9 @@ public class LampAndParticlesEffectController : MonoBehaviour {
     public ParticleSystem Plume;
     public Light Lamp;
 
-    private bool _active = true;
+    public bool StartActive = false;
 
-    public float _fullPlumeRate;
+    private float _fullPlumeRate;
     private float _intensityScaler;
 
     // Use this for initialization
@@ -22,17 +22,21 @@ public class LampAndParticlesEffectController : MonoBehaviour {
         {
             _intensityScaler = Lamp.intensity;
         }
+        if (!StartActive)
+        {
+            TurnOff();
+        }
     }
     
     public void TurnOn(float proportion = 1)
     {
-        _active = true;
+        StartActive = true;
         SetPlumeState(1);
     }
 
     public void TurnOff()
     {
-        _active = false;
+        StartActive = false;
         SetPlumeState(0);
     }
 
