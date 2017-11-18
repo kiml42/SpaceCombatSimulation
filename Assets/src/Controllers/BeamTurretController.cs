@@ -16,7 +16,7 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     public float StartOffset = 10;
     public float BeamForce = 0;
     public float BeamDamage = 10;
-    public Transform HitEffect;
+    public LampAndParticlesEffectController HitEffectPrefab;
     private float EffectRepeatTime = 0.1f;
 
     public Rigidbody ElevationHub;
@@ -59,10 +59,9 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
             beam.localScale = Vector3.zero;
             //Debug.Log("beam colour: " + BeamColour);
             beam.SetColor(BeamColour);
-            _beams.Add(new Beam(beam, ShootTime, LoadTime)
+            _beams.Add(new Beam(beam, ShootTime, LoadTime, HitEffectPrefab)
             {
                 BeamForce = BeamForce,
-                HitEffect = HitEffect,
                 EffectRepeatTime = EffectRepeatTime,
                 BeamDamage = BeamDamage,
                 FriendlyTag = tag,
