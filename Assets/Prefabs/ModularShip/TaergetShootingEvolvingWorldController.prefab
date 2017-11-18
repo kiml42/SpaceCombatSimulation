@@ -852,15 +852,15 @@ MonoBehaviour:
   MinDronesToSpawn: 2
   ExtraDroneEveryXGenerations: 5
   GeneralFolder: ./tmp/evolvingShipsDrones
-  ThisRunFolder: RandomStart
+  ThisRunFolder: blankStart
   GenerationSize: 17
   MinMatchesPerIndividual: 1
   WinnersFromEachGeneration: 5
   MatchTimeout: 120
   MatchRunTime: 0
   Mutations: 3
-  MaxTurrets: 10
-  MaxModules: 15
+  MaxTurrets: 15
+  MaxModules: 30
   AllowedCharacters: ' 0123456789  '
   MaxMutationLength: 5
   GenomeLength: 100
@@ -876,7 +876,7 @@ MonoBehaviour:
   - {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
   - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
   UseCompletelyRandomDefaultGenome: 0
-  DefaultGenome: 2
+  DefaultGenome: 
   WinnerPollPeriod: 1
   KillScoreMultiplier: 50
   FlatKillBonus: 100

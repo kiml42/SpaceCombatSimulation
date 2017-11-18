@@ -28,9 +28,9 @@ TODO:
         TargetPickers have option to kull all but the best x.
         Prevent fluttery torpedoes.
         Eyeball turret
-        Completely randomised starting genomes option.
 
     Avoid GetComponent and sendMessage in update methods.
+    Limit throttle change speeds.
     Velocity override option for exploder - to prevent the flyaway explosions in very high speed collisions.
     option for spaceships that don't break up   
         Turrets can be destroyed, but otherwise the whole thing has one lot of health - probably using pass damage up.

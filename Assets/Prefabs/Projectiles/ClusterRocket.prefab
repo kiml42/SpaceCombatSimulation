@@ -736,7 +736,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 500
+  EngineForce2: 1000
   Pilot: {fileID: 4832477793392458}
   FuelTank: {fileID: 114087177041280492}
   ForceApplier: {fileID: 54172732429601216}

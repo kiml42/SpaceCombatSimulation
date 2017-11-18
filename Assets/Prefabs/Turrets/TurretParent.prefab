@@ -1010,7 +1010,7 @@ MonoBehaviour:
   EmitterParent: {fileID: 4762531310836884}
   TagChildren: 0
   SetChildrensEnemy: 0
-  RecoilForce: 400
+  RecoilForce: 200
 --- !u!114 &114505701970822600
 MonoBehaviour:
   m_ObjectHideFlags: 1
