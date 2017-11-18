@@ -17,10 +17,10 @@ public class RocketController : MonoBehaviour
     public float LocationAimWeighting = 3f;
 
     [Tooltip("Delay until engines (including RCS) will start and warhead will arm")]
-    public int StartDelay = 10;
+    public float StartDelay = 0.2f;
 
     [Tooltip("Delay until non-engine torquers will start")]
-    public int TurningStartDelay = 2;
+    public float TurningStartDelay = 0.1f;
 
     public float TimeToTargetForDetonation = 0.5f;
     public Rigidbody Shrapnel;
@@ -51,6 +51,8 @@ public class RocketController : MonoBehaviour
     /// <summary>
     /// Rocket with detonate after this time.
     /// </summary>
+    /// 
+    [Tooltip("Time for the rocket to live in seconds.")]
     public float TimeToLive = Mathf.Infinity;
 
     [Tooltip("Time to friendly collision to activate maximum evasion")]
@@ -63,7 +65,7 @@ public class RocketController : MonoBehaviour
     public float TimeThresholdForMinimalEvasion = 6;
 
     [Tooltip("Frames to stay in evasion mode after no longer being on a collision course with a friendly.")]
-    public int EvasionModeTime = 30;
+    public float EvasionModeTime = 30;
 
     [Tooltip("Distance in front of the rocket to start looking for friendlies on a collision cource - useful to avoid detecting itself.")]
     public float MinimumFriendlyDetectionDistance = 4;
@@ -105,7 +107,7 @@ public class RocketController : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if(_runner != null)
         {
@@ -119,6 +121,6 @@ public class RocketController : MonoBehaviour
         {
             _detonator.DetonateNow();
         }
-        TimeToLive--;
+        TimeToLive -= Time.deltaTime;
     }
 }

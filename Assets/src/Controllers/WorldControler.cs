@@ -41,7 +41,7 @@ namespace Assets.Src.Controllers
         public Rigidbody Drone;
         public float Radius = 100;
 
-        private int _reload = 0;
+        private float _reload = 0;
         public int LoadTime = 200;
         public float SpeedScaler = 0.1f;
         private IDestroyer _destroyer;
@@ -233,7 +233,7 @@ namespace Assets.Src.Controllers
                 }
                 else
                 {
-                    _reload--;
+                    _reload-=Time.deltaTime;
                 }
             }
         }

@@ -10,7 +10,7 @@ namespace Assets.Src.ObjectManagement
     public class ShrapnelExploder : IExploder
     {
         private Rigidbody _exploder;
-        private int _shrapnelCOunt;
+        private int _shrapnelCount;
         private Rigidbody _shrapnel;
         public float ShrapnelSpeed = 100;
         public IEnumerable<string> EnemyTags;
@@ -22,7 +22,7 @@ namespace Assets.Src.ObjectManagement
         {
             _exploder = explodingRigidbody;
             _shrapnel = shrapnel;
-            _shrapnelCOunt = shrapnelCount;
+            _shrapnelCount = shrapnelCount;
             _explosionEffect = explosionEffect;
         }
 
@@ -31,14 +31,14 @@ namespace Assets.Src.ObjectManagement
             //Debug.Log(_exploder + " is exploding");
             if (_explosionEffect != null)
             {
-                var explosion = UnityEngine.Object.Instantiate(_explosionEffect, _exploder.position, UnityEngine.Random.rotation);
+                var explosion = UnityEngine.Object.Instantiate(_explosionEffect, _exploder.position, _exploder.rotation);
                 explosion.velocity = _exploder.velocity;
             }
 
             //add shrapnel to be exploded
-            if (_shrapnelCOunt > 0 && _shrapnel != null)
+            if (_shrapnelCount > 0 && _shrapnel != null)
             {
-                for (int i = 0; i < _shrapnelCOunt; i++)
+                for (int i = 0; i < _shrapnelCount; i++)
                 {
                     var location = UnityEngine.Random.insideUnitSphere;
                     var fragment = UnityEngine.Object.Instantiate(_shrapnel, _exploder.position + location, _exploder.transform.rotation);

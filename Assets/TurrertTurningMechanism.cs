@@ -44,7 +44,7 @@ public class TurrertTurningMechanism : MonoBehaviour {
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if (_active)
             _runner.RunTurret();

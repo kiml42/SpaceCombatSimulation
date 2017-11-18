@@ -11,12 +11,12 @@ namespace Assets.Src.Interfaces
         /// <summary>
         /// Remaining delay before the engine starts.
         /// </summary>
-        int StartDelay { get; set; }
+        float StartDelay { get; set; }
 
         /// <summary>
         /// Remaining delay until the rocket starts turning
         /// </summary>
-        int TurningStartDelay { get; set; }
+        float TurningStartDelay { get; set; }
         
         void Fly(Target target);
     }

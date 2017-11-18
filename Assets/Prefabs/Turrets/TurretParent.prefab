@@ -932,7 +932,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  FramesOfInvulnerability: 0
+  SecondsOfInvulnerability: 1
   OriginalHealth: 300
   DamageDelegate: {fileID: 114375893224788504}
   IgnoredTags:
@@ -962,7 +962,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  FramesOfInvulnerability: 0
+  SecondsOfInvulnerability: 1
   OriginalHealth: 300
   DamageDelegate: {fileID: 0}
   IgnoredTags:
@@ -1003,7 +1003,7 @@ MonoBehaviour:
     type: 2}
   MuzzleFlash: {fileID: 54885894584597264, guid: 66b6e30c7adaffe4f8c11bee6df7082a,
     type: 2}
-  LoadTime: 80
+  LoadTime: 1.4
   ProjectileSpeed: 1500
   RandomSpeed: 0.2
   ElevationHub: {fileID: 54683890212850012}
@@ -1084,10 +1084,8 @@ MonoBehaviour:
   ElevationHub: {fileID: 54683890212850012}
   TurnTableMotorFoce: 30
   TurnTableMotorSpeedMultiplier: 500
-  TurnTableParentCancelationFactor: -60
   ElevationHubMotorFoce: 30
   ElevationHubMotorSpeedMultiplier: 500
-  EHParentCancelationFactor: -60
 --- !u!114 &114735797348154080
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1107,7 +1105,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  FramesOfInvulnerability: 0
+  SecondsOfInvulnerability: 1
   OriginalHealth: 300
   DamageDelegate: {fileID: 114375893224788504}
   IgnoredTags:

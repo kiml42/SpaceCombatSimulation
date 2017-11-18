@@ -31,6 +31,12 @@ public class ImpactDetonator : MonoBehaviour {
             Exploder = exploder,
             UntagChildren = false
         };
+
+        //if (_destroyer == null)
+        //{
+        //    Debug.LogWarning(gameObject + " has null destroyer");
+        //    Start();
+        //}
     }
 
     void OnCollisionEnter(Collision collision)
@@ -46,6 +52,11 @@ public class ImpactDetonator : MonoBehaviour {
     public void ApplyDamage(float damage = 0)
     {
         //anything trying to apply damage should destroy this.
+        if (_destroyer == null)
+        {
+            Debug.LogWarning(gameObject + " has null destroyer");
+            Start();
+        }
         _destroyer.Destroy(gameObject, true);
     }
 

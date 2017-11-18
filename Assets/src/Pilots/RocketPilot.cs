@@ -24,14 +24,14 @@ namespace Assets.Src.Pilots
         /// </summary>
         public float TimeThresholdForMinimalEvasion = 6;
 
-        private int _evasionModeTimeout = 0;
+        private float _evasionModeTimeout = 0;
         private FriendlyAvoidencelevel _evasionLevel;
         private Vector3 _friendlyAvoidenceVector;
         private Vector3 _vectorAwayFromFriendly;
-        public int EvasionModeTime = 30;
+        public float EvasionModeTime = 30;
         public float MinimumFriendlyDetectionDistance = 4;
 
-        public RocketPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<EngineControler> engines, int startDelay)
+        public RocketPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<EngineControler> engines, float startDelay)
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
@@ -49,6 +49,7 @@ namespace Assets.Src.Pilots
             RemoveNullEngines();
             if (ShouldTurn() && HasStarted())
             {
+                //Debug.Log("flying");
                 UpdateFriendlyAvoidenceLevel();
                 
                 if(_evasionLevel == FriendlyAvoidencelevel.MAX)
@@ -91,7 +92,7 @@ namespace Assets.Src.Pilots
         {
             if (turningVector.HasValue)
             {
-                //Debug.Log("Pilot angle: " + Vector3.Angle(turningVector, _pilotObject.transform.forward));
+                //Debug.Log("Pilot angle: " + Vector3.Angle(turningVector.Value, _pilotObject.transform.forward) + " > " + CloseEnoughAngle + "?");
                 if (Vector3.Angle(turningVector.Value, _pilotObject.transform.forward) > CloseEnoughAngle)
                 {
                     _torqueApplier.TurnToVectorInWorldSpace(turningVector.Value);
@@ -183,7 +184,7 @@ namespace Assets.Src.Pilots
                 }
             }
 
-            _evasionModeTimeout--;
+            _evasionModeTimeout -= Time.deltaTime;
             return _evasionLevel;
         }
 

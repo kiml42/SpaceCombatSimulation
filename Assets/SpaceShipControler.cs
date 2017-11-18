@@ -148,7 +148,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if (_active && _runner != null)
             _runner.RunSpaceship();

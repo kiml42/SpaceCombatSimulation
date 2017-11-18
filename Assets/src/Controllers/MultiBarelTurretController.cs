@@ -14,7 +14,7 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
     private IKnowsEnemyTags _tagKnower;
     public Rigidbody Projectile;
     public Rigidbody MuzzleFlash;
-    public int LoadTime = 200;
+    public float LoadTime = 200;
     public float ProjectileSpeed = 10f;
     public float RandomSpeed = 0.1f;
     
@@ -30,7 +30,7 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
 
     private string InactiveTag = "Untagged";
     
-    private int _reload = 0;
+    private float _reload = 0;
 
     public bool SetChildrensEnemy = false;
     public float RecoilForce = 0;
@@ -108,7 +108,7 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
             }
             else
             {
-                _reload--;
+                _reload-=Time.deltaTime;
             }
     }
 

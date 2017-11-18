@@ -11,9 +11,9 @@ using UnityEngine;
 
 public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivatable, IKnowsProjectileSpeed
 {
-    public int LoadTime = 50;
-    public int ShootTime = 200;
-    public int StartOffset = 10;
+    public float LoadTime = 50;
+    public float ShootTime = 200;
+    public float StartOffset = 10;
     public float BeamForce = 0;
     public float BeamDamage = 10;
     public Transform HitEffect;
@@ -34,9 +34,9 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     
     public Color BeamColour;
 
-    [Tooltip("extra frames to keep shooting after trigger says to stop - emulates slower control mechanism")]
-    public int KeepShootingFrames = 1;
-    private int _shootingTime = 1;
+    [Tooltip("extra seconds to keep shooting after trigger says to stop - emulates slower control mechanism")]
+    public float KeepShootingSeconds = 2;
+    private float _shootingTime = 0;
 
     public float? ProjectileSpeed
     {
@@ -72,11 +72,11 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if (_active && _fireControl != null && _beams != null)
         {
-            _shootingTime = _fireControl.ShouldShoot() ? KeepShootingFrames : --_shootingTime;
+            _shootingTime = _fireControl.ShouldShoot() ? KeepShootingSeconds : _shootingTime -= Time.deltaTime;
             Shoot(_shootingTime >= 0);
         }
         else

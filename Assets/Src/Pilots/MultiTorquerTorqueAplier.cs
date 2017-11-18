@@ -48,6 +48,12 @@ namespace Assets.Src.Pilots
             var vectorInPilotSpace =  _pilot.transform.InverseTransformVector(vector);
             //Debug.Log(_pilot + " vectorInPilotSpace " + vectorInPilotSpace);
             var rotationVector = new Vector3(-vectorInPilotSpace.y, vectorInPilotSpace.x, 0);   //set z to 0 to not add spin
+            if(rotationVector.magnitude < 0.1 && vectorInPilotSpace.z < 0)
+            {
+                //The target is exactly behind, turning in any direction will do.
+                Debug.Log("Target is exactly behind");
+                rotationVector = new Vector3(1, 0, 0);
+            }
             //Debug.Log("rotationVector" + rotationVector);
 
             var worldTorque = _pilot.transform.TransformVector(rotationVector).normalized;

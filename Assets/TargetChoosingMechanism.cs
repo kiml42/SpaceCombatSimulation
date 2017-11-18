@@ -25,9 +25,9 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
         " Targets will not be kulled if there are no valid targets (so invalid targets will be tracked in case they become valid later)")]
     public bool DropInvalidTargetsWhenTereAreValidTargets = false;
 
-    [Tooltip("fraims to wait between polling for better targets.")]
-    public int PollInterval = 0;
-    private int _waitForPoll = 0;
+    [Tooltip("time to wait between polling for better targets.")]
+    public float PollInterval = 0;
+    private float _waitForPoll = 0;
 
     #region EnemyTags
 
@@ -189,7 +189,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
     }
 	
 	// Update is called once per frame
-	void FixedUpdate () {
+	void Update () {
         if (!NeverRetarget || !_hasHadTarget)
         {
             var targetIsInvalid = CurrentTarget == null || CurrentTarget.Transform.IsInvalid();
@@ -200,6 +200,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
                 //Debug.Log(name + " aquiring new target");
                 var allTargets = _detector.DetectTargets();
                 var bestTarget = _targetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).FirstOrDefault();
+                //Debug.Log(transform.name + " is targeting " + bestTarget.Transform);
                 CurrentTarget = bestTarget;
                 if (bestTarget != null)
                 {
@@ -209,7 +210,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
             } else
             {
                 //there was no poll this frame, so decrement the countdown.
-                _waitForPoll--;
+                _waitForPoll -= Time.deltaTime;
             }
         }
     }

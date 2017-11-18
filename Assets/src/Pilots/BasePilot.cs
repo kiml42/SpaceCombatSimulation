@@ -16,7 +16,7 @@ namespace Assets.Src.Pilots
         public float LocationAimWeighting { get; set; }
         public Transform VectorArrow;
 
-        public int StartDelay
+        public float StartDelay
         {
             get
             {
@@ -28,7 +28,7 @@ namespace Assets.Src.Pilots
             }
         }
 
-        public int TurningStartDelay
+        public float TurningStartDelay
         {
             get
             {
@@ -39,15 +39,16 @@ namespace Assets.Src.Pilots
                 _turningStartDelay = value;
             }
         }
-        private int _startDelay = 0;
-        private int _turningStartDelay;
+        private float _startDelay = 0;
+        private float _turningStartDelay;
 
         protected List<EngineControler> _engines = new List<EngineControler>();
 
         protected bool ShouldTurn()
         {
-            TurningStartDelay--;
-            StartDelay--;
+            //Debug.Log("TurningStartDelay:" + TurningStartDelay);
+            TurningStartDelay -= Time.deltaTime;
+            StartDelay -= Time.deltaTime;
             return TurningStartDelay <= 0;
         }
 
@@ -57,17 +58,20 @@ namespace Assets.Src.Pilots
 
         protected bool HasStarted()
         {
-            //Debug.Log("RemainignFule:" + RemainingFuel);
-            var hasFuel = StartDelay <= 0;
-            if (!hasFuel)
+            //Debug.Log("StartDelay: " + StartDelay);
+            var hasStarted = StartDelay <= 0;
+            if (!hasStarted)
             {
+                //Debug.Log("hasn't started");
                 _torqueApplier.Deactivate();
             }
             else
             {
+                //Debug.Log("has started");
                 _torqueApplier.Activate();
             }
-            return hasFuel;
+            //Debug.Log("hasStarted: " + hasStarted);
+            return hasStarted;
         }
 
         protected Vector3 ReletiveLocationInWorldSpace(Target target)
