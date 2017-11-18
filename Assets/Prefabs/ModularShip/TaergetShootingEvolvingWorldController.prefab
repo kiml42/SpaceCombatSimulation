@@ -876,7 +876,7 @@ MonoBehaviour:
   - {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
   - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
   DefaultGenome: 2
-  WinnerPollPeriod: 100
+  WinnerPollPeriod: 1
   KillScoreMultiplier: 50
   FlatKillBonus: 100
   CompletionBonus: 100

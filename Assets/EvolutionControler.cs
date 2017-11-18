@@ -116,10 +116,10 @@ public class EvolutionControler : MonoBehaviour
             var a = _currentGenomes.Values.First();
             var b = _currentGenomes.Values.Skip(1).First();
 
-            var winScore = (int)Math.Max(MatchTimeout, SuddenDeathReloadTime);
+            var winScore = Math.Max(MatchTimeout, SuddenDeathReloadTime);
 
-            int losScore = (int)-SuddenDeathReloadTime;
-            int drawScore = (int)-SuddenDeathReloadTime/2;
+            var losScore = -SuddenDeathReloadTime;
+            var drawScore = -SuddenDeathReloadTime/2;
 
             _currentGeneration.RecordMatch(a, b, winningGenome, winScore, losScore, drawScore);
         

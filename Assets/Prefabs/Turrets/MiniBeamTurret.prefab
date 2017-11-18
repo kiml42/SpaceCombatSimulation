@@ -2153,7 +2153,7 @@ MonoBehaviour:
   ShootTime: 1.6
   StartOffset: 0.2
   BeamForce: 2
-  BeamDamage: 0.006
+  BeamDamage: 1.8
   HitEffect: {fileID: 4113682021108320, guid: e6ef866ccc6cd2c4fb5f402be7b7a1d0, type: 2}
   ElevationHub: {fileID: 54867097553581106}
   BeamsParent: {fileID: 4174025852522500}

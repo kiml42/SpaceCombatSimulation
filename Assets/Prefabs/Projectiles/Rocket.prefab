@@ -789,7 +789,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00495207fc630df479e0d4f227bb1949, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Fuel: 500
+  Fuel: 300
   UseFuelMass: 1
   FuelDensity: 0.001
 --- !u!114 &114310481633652866

@@ -75,7 +75,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     private int GenerationNumber;
     private GenerationTargetShooting _currentGeneration;
-    public float WinnerPollPeriod = 100;
+    public float WinnerPollPeriod = 1;
     private float _scoreUpdatePollCountdown = 0;
     #endregion
 
