@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Assets.Src.Evolution;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,7 +11,7 @@ namespace Assets.src.Evolution
     /// <summary>
     /// Class for storing a generation where each ship fights one other.
     /// </summary>
-    public class GenerationTargetShooting
+    public class GenerationTargetShooting : IGeneration
     {
         private System.Random _rng = new System.Random();
         private List<IndividualInGeneration> Individuals;
@@ -23,12 +24,12 @@ namespace Assets.src.Evolution
 
         public GenerationTargetShooting(string[] lines)
         {
-            Individuals = lines.Select(l => new IndividualInGeneration(l)).ToList();
+            AddGenomes(lines.ToList());
         }
 
         public GenerationTargetShooting(List<string> lines)
         {
-            Individuals = lines.Select(l => new IndividualInGeneration(l)).ToList();
+            AddGenomes(lines);
         }
 
         public int CountIndividuals()
@@ -98,6 +99,15 @@ namespace Assets.src.Evolution
             return string.Join(Environment.NewLine, Individuals.Select(i => i.ToString()).ToArray());
         }
 
+        public int AddGenomes(List<string> Genomes)
+        {
+            foreach (var g in Genomes)
+            {
+                AddGenome(g);
+            }
+            return CountIndividuals();
+        }
+
         internal class IndividualInGeneration
         {
             public string Genome;
@@ -140,10 +150,10 @@ namespace Assets.src.Evolution
                 //Debug.Log(parts.Length);
                 Genome = parts[0];
                 Score = ParsePart(parts, SCORE_INDEX);
-                MatchesPlayed = ParsePart(parts, MATCHES_PLAYED_INDEX);
-                MatchesSurvived = ParsePart(parts, SURVIVED_INDEX);
-                CompleteKills = ParsePart(parts, COMPLETE_KILLS_INDEX);
-                TotalKills = ParsePart(parts, TOTAL_KILLS_INDEX);
+                MatchesPlayed = (int)ParsePart(parts, MATCHES_PLAYED_INDEX);
+                MatchesSurvived = (int)ParsePart(parts, SURVIVED_INDEX);
+                CompleteKills = (int)ParsePart(parts, COMPLETE_KILLS_INDEX);
+                TotalKills = (int)ParsePart(parts, TOTAL_KILLS_INDEX);
 
                 if (parts.Length > Scores_INDEX)
                 {
@@ -169,13 +179,13 @@ namespace Assets.src.Evolution
                 MatchScores.Add(finalScore);
             }
 
-            private static int ParsePart(string[] parts, int index)
+            private static float ParsePart(string[] parts, int index)
             {
-                int retVal = 0;
+                float retVal = 0;
                 if (parts.Length > index)
                 {
                     var intString = parts[index];
-                    int.TryParse(intString, out retVal);
+                    float.TryParse(intString, out retVal);
                 }
                 return retVal;
             }

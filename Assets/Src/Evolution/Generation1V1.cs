@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Assets.Src.Evolution;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,7 +11,7 @@ namespace Assets.src.Evolution
     /// <summary>
     /// Class for storing a generation where each ship fights one other.
     /// </summary>
-    public class Generation1V1
+    public class Generation1V1 : IGeneration
     {
         private System.Random _rng = new System.Random();
         private List<IndividualInGeneration> Individuals;
@@ -23,12 +24,12 @@ namespace Assets.src.Evolution
 
         public Generation1V1(string[] lines)
         {
-            Individuals = lines.Select(l => new IndividualInGeneration(l)).ToList();
+            AddGenomes(lines.ToList());
         }
 
         public Generation1V1(List<string> lines)
         {
-            Individuals = lines.Select(l => new IndividualInGeneration(l)).ToList();
+            AddGenomes(lines);
         }
 
         public int CountIndividuals()
@@ -103,6 +104,15 @@ namespace Assets.src.Evolution
         public override string ToString()
         {
             return string.Join(Environment.NewLine, Individuals.Select(i => i.ToString()).ToArray());
+        }
+
+        public int AddGenomes(List<string> Genomes)
+        {
+            foreach (var g in Genomes)
+            {
+                AddGenome(g);
+            }
+            return CountIndividuals();
         }
 
         internal class IndividualInGeneration

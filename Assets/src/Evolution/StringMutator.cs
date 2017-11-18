@@ -22,10 +22,10 @@ namespace Assets.src.Evolution
         public List<string> CreateGenerationOfMutants(List<string> baseGenomes, int generationSize)
         {
             //Debug.Log("Generating generation from [" + string.Join(",", baseGenomes.ToArray()) + "]");
-            var genration = new List<string>();
+            var generation = new List<string>();
             int i = 0;
             //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
-            while (genration.Count() < generationSize)
+            while (generation.Count() < generationSize)
             {
                 string baseGenome;
                 string mutant;
@@ -44,7 +44,8 @@ namespace Assets.src.Evolution
                 if (IsValidGenome(mutant))
                 {
                     Debug.Log(mutant + " spawn of " + baseGenome + " is born");
-                    genration.Add(mutant);
+                    generation.Add(mutant);
+                    generation = generation.Distinct().ToList();
                     //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
                 }
                 else
@@ -53,7 +54,7 @@ namespace Assets.src.Evolution
                 }
             }
             //Debug.Log("mutant Generation: " + genration);
-            return genration;
+            return generation;
         }
 
         public string Mutate(string baseGenome)
