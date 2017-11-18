@@ -41,7 +41,7 @@ namespace Assets.src.Evolution
             return true;
         }
 
-        public void RecordMatch(string contestant, int finalScore, bool survived, bool killedEverything, int killsThisMatch)
+        public void RecordMatch(string contestant, float finalScore, bool survived, bool killedEverything, int killsThisMatch)
         {
             //Debug.Log("Recording Match: " + a + " vs " + b + " victor: " + victor);
 
@@ -97,7 +97,7 @@ namespace Assets.src.Evolution
         {
             public string Genome;
 
-            public int Score;
+            public float Score;
             private const int SCORE_INDEX = 1;
             public int MatchesPlayed;
             private const int MATCHES_PLAYED_INDEX = 2;
@@ -109,7 +109,7 @@ namespace Assets.src.Evolution
             private const int TOTAL_KILLS_INDEX = 5;
 
             
-            public List<int> MatchScores = new List<int>();
+            public List<float> MatchScores = new List<float>();
             private const int Scores_INDEX = 6;
 
             public float AverageScore { get
@@ -144,11 +144,11 @@ namespace Assets.src.Evolution
                 {
                     //Debug.Log(parts[PC_INDEX]);
                     var matchScoresString = parts[Scores_INDEX];
-                    MatchScores = matchScoresString.Split(',').Where(s => !string.IsNullOrEmpty(s)).Select(s => int.Parse(s)).ToList();
+                    MatchScores = matchScoresString.Split(',').Where(s => !string.IsNullOrEmpty(s)).Select(s => float.Parse(s)).ToList();
                 }
             }
 
-            public void RecordMatch(int finalScore, bool survived, bool killedEverything, int killsThisMatch)
+            public void RecordMatch(float finalScore, bool survived, bool killedEverything, int killsThisMatch)
             {
                 Score += finalScore;
                 TotalKills += killsThisMatch;

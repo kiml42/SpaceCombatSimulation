@@ -2540,7 +2540,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 700
+  EngineForce2: 1500
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
   ForceApplier: {fileID: 54678280250609056}
@@ -2563,7 +2563,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 700
+  EngineForce2: 1500
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
   ForceApplier: {fileID: 54678280250609056}
@@ -2616,7 +2616,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 10000
+  EngineForce2: 15000
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
   ForceApplier: {fileID: 54678280250609056}
@@ -2639,7 +2639,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 700
+  EngineForce2: 1500
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
   ForceApplier: {fileID: 54678280250609056}
@@ -2676,7 +2676,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 700
+  EngineForce2: 1500
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
   ForceApplier: {fileID: 54678280250609056}
@@ -2699,7 +2699,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 700
+  EngineForce2: 1500
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
   ForceApplier: {fileID: 54678280250609056}
@@ -2755,7 +2755,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 700
+  EngineForce2: 1500
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
   ForceApplier: {fileID: 54678280250609056}
@@ -2790,7 +2790,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 700
+  EngineForce2: 1500
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
   ForceApplier: {fileID: 54678280250609056}
@@ -2813,7 +2813,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 700
+  EngineForce2: 1500
   Pilot: {fileID: 4671683596493828}
   FuelTank: {fileID: 114488115583942366}
   ForceApplier: {fileID: 54678280250609056}

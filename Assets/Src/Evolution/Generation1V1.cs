@@ -41,7 +41,7 @@ namespace Assets.src.Evolution
             return true;
         }
 
-        public void RecordMatch(string a, string b, string victor, int winScore, int losScore, int drawScore)
+        public void RecordMatch(string a, string b, string victor, float winScore, float losScore, float drawScore)
         {
             //Debug.Log("Recording Match: " + a + " vs " + b + " victor: " + victor);
 
@@ -104,7 +104,7 @@ namespace Assets.src.Evolution
         {
             public string Genome;
 
-            public int Score;
+            public float Score;
             private const int SCORE_INDEX = 1;
             public int Wins;
             private const int WINS_INDEX = 2;
@@ -145,9 +145,9 @@ namespace Assets.src.Evolution
                 //Debug.Log(parts.Length);
                 Genome = parts[0];
                 Score = ParsePart(parts, SCORE_INDEX);
-                Wins = ParsePart(parts, WINS_INDEX);
-                Draws = ParsePart(parts, DRAWS_INDEX);
-                Loses = ParsePart(parts, LOSES_INDEX);
+                Wins = (int)ParsePart(parts, WINS_INDEX);
+                Draws = (int)ParsePart(parts, DRAWS_INDEX);
+                Loses = (int)ParsePart(parts, LOSES_INDEX);
 
                 if (parts.Length > PC_INDEX)
                 {
@@ -157,7 +157,7 @@ namespace Assets.src.Evolution
                 }
             }
 
-            public void RecordMatch(string otherCompetitor, string victor, int winScore, int losScore, int drawScore)
+            public void RecordMatch(string otherCompetitor, string victor, float winScore, float losScore, float drawScore)
             {
                 PreviousCombatants.Add(otherCompetitor);
 
@@ -187,13 +187,13 @@ namespace Assets.src.Evolution
                 }
             }
 
-            private static int ParsePart(string[] parts, int index)
+            private static float ParsePart(string[] parts, int index)
             {
-                int retVal = 0;
+                float retVal = 0;
                 if (parts.Length > index)
                 {
                     var intString = parts[index];
-                    int.TryParse(intString, out retVal);
+                    float.TryParse(intString, out retVal);
                 }
                 return retVal;
             }

@@ -35,8 +35,8 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     public Color BeamColour;
 
     [Tooltip("extra seconds to keep shooting after trigger says to stop - emulates slower control mechanism")]
-    public float KeepShootingSeconds = 1;
-    private float _shootingTime = 1;
+    public float KeepShootingSeconds = 2;
+    private float _shootingTime = 0;
 
     public float? ProjectileSpeed
     {

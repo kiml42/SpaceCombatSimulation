@@ -1393,7 +1393,7 @@ MonoBehaviour:
     type: 2}
   LoadTime: 0.1
   ProjectileSpeed: 1200
-  RandomSpeed: 2
+  RandomSpeed: 4
   ElevationHub: {fileID: 54647014223265010}
   EmitterParent: {fileID: 4095713925445172}
   TagChildren: 0

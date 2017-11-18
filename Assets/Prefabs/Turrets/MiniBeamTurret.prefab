@@ -2160,7 +2160,7 @@ MonoBehaviour:
   InitialRadius: 0.15
   Divergence: 0.0015
   BeamColour: {r: 1, g: 0.06300002, b: 0.06300002, a: 0.678}
-  KeepShootingSeconds: 0.1
+  KeepShootingSeconds: 3
 --- !u!114 &114425251777866240
 MonoBehaviour:
   m_ObjectHideFlags: 1

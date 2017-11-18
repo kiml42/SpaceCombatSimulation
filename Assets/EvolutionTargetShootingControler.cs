@@ -22,7 +22,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     public float InitialSpeed = 0;
     public float RandomInitialSpeed = 0;
     public string SpaceShipTag = "SpaceShip";
-    public int CurrentScore = 0;
+    public float CurrentScore = 0;
     #endregion
 
     #region "Drones
@@ -89,16 +89,16 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     #region score
     [Header("Score")]
     [Tooltip("score for each kill = (framesRemaining * KillScoreMultiplier) + FlatKillBonus")]
-    public int KillScoreMultiplier = 1;
+    public int KillScoreMultiplier = 300;
 
     [Tooltip("score for each kill = (framesRemaining * KillScoreMultiplier) + FlatKillBonus")]
     public int FlatKillBonus = 100;
 
     [Tooltip("Bonus Score for killing everything, timesd by remaining frames")]
-    public int CompletionBonus = 1;
+    public int CompletionBonus = 100;
 
     [Tooltip("penalty for dieing, multiplied by remining frames")]
-    public int DeathPenalty = 1;
+    public int DeathPenalty = 70;
 
     private int _killsThisMatch = 0;
     #endregion
@@ -128,13 +128,13 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         var matchOver = IsMatchOver();
         if (matchOver || MatchTimeout <= MatchRunTime)
         {
-            var survivalBonus =  RemainingFrames() * (_stillAlive
+            var survivalBonus =  RemainingTime() * (_stillAlive
                 ? CompletionBonus
                 : -DeathPenalty);
 
-            Debug.Log("Match over! Survival Bonus: " + survivalBonus);
+            Debug.Log("Match over! Score for kills: " + CurrentScore + ", Survival Bonus: " + survivalBonus);
 
-            CurrentScore += (int)survivalBonus;
+            CurrentScore += survivalBonus;
 
             _currentGeneration.RecordMatch(_genome, CurrentScore, _stillAlive, !_dronesRemain, _killsThisMatch);
         
@@ -166,7 +166,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     private void SaveGeneration()
     {
         string path = PathForThisGeneration();
-        Debug.Log("Saving to " + Path.GetFullPath(path));
+        //Debug.Log("Saving to " + Path.GetFullPath(path));
         if (!File.Exists(path))
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path));
@@ -198,7 +198,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         for (int i = 0; i<DroneCount; i++)
         {
             var genome = DroneGenomes[i % DroneGenomes.Count];
-            Debug.Log("spawning drone " + genome);
+            //Debug.Log("spawning drone " + genome);
             SpawnShip(genome, EnemyTag, Tag1, TargetLocation, TargetLocationRandomisationRadius);
         }
     }
@@ -254,7 +254,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             {
                 Debug.Log(killedDrones + " drones killed this interval. " + _genome);
                 _killsThisMatch += killedDrones;
-                CurrentScore += (int)(killedDrones * ((RemainingFrames() * KillScoreMultiplier) + FlatKillBonus));
+                CurrentScore += killedDrones * ((RemainingTime() * KillScoreMultiplier) + FlatKillBonus);
             }
             _previousDroneCount = droneCount;
 
@@ -265,9 +265,9 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         return false;
     }
 
-    private float RemainingFrames()
+    private float RemainingTime()
     {
-        return MatchTimeout - MatchRunTime;
+        return Math.Max(MatchTimeout - MatchRunTime, 0);
     }
 
     private IEnumerable<Transform> ListShips()
