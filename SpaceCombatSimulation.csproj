@@ -233,6 +233,7 @@
     <Compile Include="Assets\ImpactDetonator.cs" />
     <Compile Include="Assets\JointBreakHandler.cs" />
     <Compile Include="Assets\JointFriction.cs" />
+    <Compile Include="Assets\LampAndParticlesEffectController.cs" />
     <Compile Include="Assets\RayTrigger.cs" />
     <Compile Include="Assets\RegisterAsTarget.cs" />
     <Compile Include="Assets\RocketController.cs" />
