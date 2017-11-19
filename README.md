@@ -25,7 +25,8 @@ TODO:
             Mutation config script
             Generation config script
         Fighters - using engines as weapons/using guns/both.
-        Some way for turrets to account for their own turn rates.
+        Ships that know their own genomes and build themselves - to use as drones.
+        Some way for turrets to account for their own turn rates. - to keep up with tracking moving targets.
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
         Refactor rocket controller's start delay feature.
         Some way to set the roll of ships to have a direction that should be pointed at the enemy where possible.
