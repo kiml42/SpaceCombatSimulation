@@ -196,6 +196,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4300714835004162}
   - component: {fileID: 114276023159756518}
+  - component: {fileID: 114967028892328500}
   - component: {fileID: 114257166760928450}
   - component: {fileID: 114768268343182516}
   - component: {fileID: 135941088491090616}
@@ -835,6 +836,7 @@ MonoBehaviour:
   - 
   MinDronesToSpawn: 2
   ExtraDroneEveryXGenerations: 5
+  FileManager: {fileID: 114967028892328500}
   GeneralFolder: ./tmp/evolvingShipsDrones
   ThisRunFolder: pasiveTargets
   GenerationSize: 17
@@ -869,18 +871,12 @@ MonoBehaviour:
   Tags:
   - Team1
   - Team2
-  Tag1: Team1
-  Tag2: Team2
   Locations:
   - {fileID: 4365458763982880}
   - {fileID: 4729534257291354}
-  Location1: {fileID: 4365458763982880}
-  Location2: {fileID: 4729534257291354}
   LocationRandomisationRadiai:
   - 50
   - 150
-  Location1RandomisationRadius: 50
-  Location2RandomisationRadius: 150
   TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
   RandomiseRotation: 1
   InitialSpeed: 0
@@ -942,6 +938,19 @@ MonoBehaviour:
   Colour: {r: 0, g: 0, b: 0, a: 0}
   Depth: 1
   SetInStart: 0
+--- !u!114 &114967028892328500
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1951160143417706}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 150d65cc29fc6db4a9b6668d91757869, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GeneralFolder: ./tmp/evolvingShipsDrones
+  ThisRunFolder: pasiveTargets
 --- !u!124 &124422424614570090
 Behaviour:
   m_ObjectHideFlags: 1

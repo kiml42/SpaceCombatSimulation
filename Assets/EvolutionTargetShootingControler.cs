@@ -10,10 +10,8 @@ using Assets.Src.ObjectManagement;
 
 public class EvolutionTargetShootingControler : MonoBehaviour
 {
-    #region Ship Config
     public EvolutionShipConfig ShipConfig;
     public float CurrentScore = 0;
-    #endregion
 
     #region "Drones
     [Header("Drones")]
@@ -27,10 +25,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     #region Files etc.
     [Header("files etc.")]
-    public string GeneralFolder = "./tmp/evolvingShipsTargetShooting";
-    public string ThisRunFolder = "1";
-    private string _currentGenerationFilePath;
-    private string _generationFilePathBase;
+    public EvolutionFileManager FileManager;
     #endregion
 
     #region Generation Setup
@@ -94,10 +89,6 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     // Use this for initialization
     void Start()
     {
-        var basePath = Path.Combine(GeneralFolder, ThisRunFolder);
-        _currentGenerationFilePath = Path.Combine(basePath, "CurrentGeneration.txt");
-        _generationFilePathBase = Path.Combine(basePath, "Generations/G-");
-
         _mutator = new StringMutator
         {
             AllowedCharacters = AllowedCharacters,
@@ -126,7 +117,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
             _currentGeneration.RecordMatch(_genome, CurrentScore, _stillAlive, !_dronesRemain, _killsThisMatch);
         
-            SaveGeneration();
+            FileManager.SaveGeneration(_currentGeneration, GenerationNumber);
 
             PrepareForNextMatch();
 
@@ -147,26 +138,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             var winners = _currentGeneration.PickWinners(WinnersFromEachGeneration);
             GenerationNumber = GenerationNumber+1;
             _currentGeneration = new GenerationTargetShooting(_mutator.CreateGenerationOfMutants(winners.ToList(), GenerationSize));
-            SaveGeneration();
+            FileManager.SaveGeneration(_currentGeneration, GenerationNumber);
         }
-    }
-
-    private void SaveGeneration()
-    {
-        string path = PathForThisGeneration();
-        //Debug.Log("Saving to " + Path.GetFullPath(path));
-        if (!File.Exists(path))
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-        }
-        File.WriteAllText(path, _currentGeneration.ToString());
-        File.WriteAllText(_currentGenerationFilePath, GenerationNumber.ToString());
-    }
-
-    private string PathForThisGeneration()
-    {
-        var generationFilePath = _generationFilePathBase + (GenerationNumber.ToString().PadLeft(6, '0'));
-        return generationFilePath;
     }
     
     private void SpawnShips()
@@ -256,14 +229,14 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     private void ReadCurrentGeneration()
     {
-        if (File.Exists(_currentGenerationFilePath))
+        if (File.Exists(FileManager.CurrentGenerationFilePath))
         {
-            var GenerationNumberText = File.ReadAllText(_currentGenerationFilePath);
+            var GenerationNumberText = File.ReadAllText(FileManager.CurrentGenerationFilePath);
             if(!int.TryParse(GenerationNumberText, out GenerationNumber))
             {
                 GenerationNumber = 0;
             }
-            string path = PathForThisGeneration();
+            string path = FileManager.PathForThisGeneration(GenerationNumber);
 
             //Debug.Log("looking for genreation at " + path);
 
