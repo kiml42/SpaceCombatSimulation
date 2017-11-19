@@ -34,7 +34,9 @@ public class EvolutionMatchController : MonoBehaviour {
     public bool ShouldPollForWinners()
     {
         var shouldPoll = _scoreUpdatePollCountdown <= 0;
-        _scoreUpdatePollCountdown = WinnerPollPeriod;
-        return shouldPoll;
+        if(shouldPoll)
+            _scoreUpdatePollCountdown = WinnerPollPeriod;
+
+        return shouldPoll || IsOutOfTime();
     }
 }
