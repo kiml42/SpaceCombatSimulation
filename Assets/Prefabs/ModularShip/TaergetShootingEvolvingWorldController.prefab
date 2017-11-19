@@ -198,6 +198,7 @@ GameObject:
   - component: {fileID: 114276023159756518}
   - component: {fileID: 114967028892328500}
   - component: {fileID: 114156426761853234}
+  - component: {fileID: 114664077113307600}
   - component: {fileID: 114257166760928450}
   - component: {fileID: 114768268343182516}
   - component: {fileID: 135941088491090616}
@@ -852,20 +853,18 @@ MonoBehaviour:
   ShipConfig: {fileID: 114276023159756518}
   FileManager: {fileID: 114967028892328500}
   MutationControl: {fileID: 114156426761853234}
+  MatchControl: {fileID: 114664077113307600}
   CurrentScore: 0
   DroneGenomes:
   - 
   MinDronesToSpawn: 2
   ExtraDroneEveryXGenerations: 5
-  GenerationSize: 17
   MinMatchesPerIndividual: 1
   WinnersFromEachGeneration: 5
-  MatchTimeout: 300
-  MatchRunTime: 0
   WinnerPollPeriod: 1
   KillScoreMultiplier: 50
   FlatKillBonus: 100
-  CompletionBonus: 100
+  CompletionBonus: 388
   DeathPenalty: 70
 --- !u!114 &114276023159756518
 MonoBehaviour:
@@ -912,6 +911,19 @@ MonoBehaviour:
   Colour: {r: 0, g: 0, b: 0, a: 0}
   Depth: 1
   SetInStart: 0
+--- !u!114 &114664077113307600
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1951160143417706}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4dc9d0aa67b1b6409f58438da166ecf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  MatchTimeout: 300
+  MatchRunTime: 0
 --- !u!114 &114768268343182516
 MonoBehaviour:
   m_ObjectHideFlags: 1

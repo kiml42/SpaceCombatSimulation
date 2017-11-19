@@ -112,18 +112,13 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1001 &604884612
+--- !u!1001 &737728328
 Prefab:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 114276023159756518, guid: 2b543762511759b41a3d5fc84820ca59,
-        type: 2}
-      propertyPath: Tags.Array.size
-      value: 2
-      objectReference: {fileID: 0}
     - target: {fileID: 4300714835004162, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -155,16 +150,6 @@ Prefab:
     - target: {fileID: 4300714835004162, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
       propertyPath: m_RootOrder
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 114276023159756518, guid: 2b543762511759b41a3d5fc84820ca59,
-        type: 2}
-      propertyPath: Tags.Array.data[0]
-      value: Team1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114276023159756518, guid: 2b543762511759b41a3d5fc84820ca59,
-        type: 2}
-      propertyPath: Tags.Array.data[1]
-      value: Team2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
@@ -219,4 +204,4 @@ Prefab:
 Light:
   m_PrefabParentObject: {fileID: 108611981714646190, guid: 2b543762511759b41a3d5fc84820ca59,
     type: 2}
-  m_PrefabInternal: {fileID: 604884612}
+  m_PrefabInternal: {fileID: 737728328}

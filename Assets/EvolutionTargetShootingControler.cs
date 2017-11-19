@@ -13,6 +13,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     public EvolutionShipConfig ShipConfig;
     public EvolutionFileManager FileManager;
     public EvolutionMutationController MutationControl;
+    public EvolutionMatchController MatchControl;
     public float CurrentScore = 0;
 
     #region "Drones
@@ -33,18 +34,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     [Tooltip("The number of individuals to keep for the next generation")]
     public int WinnersFromEachGeneration = 5;
     #endregion
-
-    #region Match Setup
-    [Header("Match setup")]
-    public float MatchTimeout = 10000;
-    public float MatchRunTime = 0;
     
-    private int GenerationNumber;
-    private GenerationTargetShooting _currentGeneration;
-    public float WinnerPollPeriod = 1;
-    private float _scoreUpdatePollCountdown = 0;
-    #endregion
-
     #region score
     [Header("Score")]
     [Tooltip("score for each kill = (framesRemaining * KillScoreMultiplier) + FlatKillBonus")]
@@ -58,11 +48,13 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     [Tooltip("penalty for dieing, multiplied by remining frames")]
     public int DeathPenalty = 70;
+    #endregion
 
+    private int GenerationNumber;
+    private GenerationTargetShooting _currentGeneration;
     private int _killsThisMatch = 0;
     private const int SHIP_INDEX = 0;
     private const int DRONES_INDEX = 1;
-    #endregion
 
     private string _genome;
 
@@ -83,9 +75,9 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     void Update()
     {
         var matchOver = IsMatchOver();
-        if (matchOver || MatchTimeout <= MatchRunTime)
+        if (matchOver || MatchControl.IsOutOfTime())
         {
-            var survivalBonus =  RemainingTime() * (_stillAlive
+            var survivalBonus = MatchControl.RemainingTime() * (_stillAlive
                 ? CompletionBonus
                 : -DeathPenalty);
 
@@ -100,11 +92,6 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             PrepareForNextMatch();
 
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-        }
-        else
-        {
-            MatchRunTime+=Time.deltaTime;
-            return;
         }
     }
 
@@ -151,11 +138,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     /// <returns>Match is over boolean</returns>
     private bool IsMatchOver()
     {
-        _scoreUpdatePollCountdown -= Time.deltaTime;
-        if (_scoreUpdatePollCountdown <= 0)
+        if (MatchControl.ShouldPollForWinners())
         {
-
-            _scoreUpdatePollCountdown = WinnerPollPeriod;
             var tags = ListShips()
                 .Select(s => s.tag);
 
@@ -172,7 +156,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             if(killedDrones > 0)
             {
                 _killsThisMatch += killedDrones;
-                var scorePerKill = (RemainingTime() * KillScoreMultiplier) + FlatKillBonus;
+                var scorePerKill = (MatchControl.RemainingTime() * KillScoreMultiplier) + FlatKillBonus;
                 Debug.Log(killedDrones + " drones killed this interval for " + scorePerKill + " each.");
                 CurrentScore += killedDrones * scorePerKill;
             }
@@ -183,11 +167,6 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             return !_stillAlive || !_dronesRemain;
         }
         return false;
-    }
-
-    private float RemainingTime()
-    {
-        return Math.Max(MatchTimeout - MatchRunTime, 0);
     }
 
     private IEnumerable<Transform> ListShips()
