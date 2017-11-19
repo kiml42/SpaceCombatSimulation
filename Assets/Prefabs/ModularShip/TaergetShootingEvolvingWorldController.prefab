@@ -195,6 +195,7 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4300714835004162}
+  - component: {fileID: 114276023159756518}
   - component: {fileID: 114257166760928450}
   - component: {fileID: 114768268343182516}
   - component: {fileID: 135941088491090616}
@@ -828,22 +829,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ec239746f603b64dbbbce3d88199ef4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ShipToEvolve: {fileID: 54288706851983332, guid: f3b4cb1aa8e6d4d4d9102e7e65998466,
-    type: 2}
-  Tag1: Team1
-  TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
-  StartLocation: {fileID: 4365458763982880}
-  StartLocationRandomisationRadius: 50
-  RandomiseRotation: 1
-  InitialSpeed: 0
-  RandomInitialSpeed: 0
-  SpaceShipTag: SpaceShip
+  ShipConfig: {fileID: 114276023159756518}
   CurrentScore: 0
   DroneGenomes:
   - 
-  TargetLocation: {fileID: 4729534257291354}
-  TargetLocationRandomisationRadius: 150
-  EnemyTag: Team2
   MinDronesToSpawn: 2
   ExtraDroneEveryXGenerations: 5
   GeneralFolder: ./tmp/evolvingShipsDrones
@@ -868,6 +857,30 @@ MonoBehaviour:
   FlatKillBonus: 100
   CompletionBonus: 100
   DeathPenalty: 70
+--- !u!114 &114276023159756518
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1951160143417706}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ea828848f7240543aecf81d98f88a46, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShipToEvolve: {fileID: 54288706851983332, guid: f3b4cb1aa8e6d4d4d9102e7e65998466,
+    type: 2}
+  Tag1: Team1
+  Tag2: Team2
+  TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
+  Location1: {fileID: 4365458763982880}
+  Location2: {fileID: 4729534257291354}
+  Location1RandomisationRadius: 50
+  Location2RandomisationRadius: 150
+  RandomiseRotation: 1
+  InitialSpeed: 0
+  RandomInitialSpeed: 0
+  SpaceShipTag: SpaceShip
 --- !u!114 &114551084138593738
 MonoBehaviour:
   m_ObjectHideFlags: 1

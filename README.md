@@ -19,7 +19,6 @@ Bugs:
 TODO:
     Priority:
         Modularise evolution controllers
-            Ship config script
             File config script
             Mutation config script
             Generation config script

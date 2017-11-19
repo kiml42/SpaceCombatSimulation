@@ -225,6 +225,7 @@
     <Compile Include="Assets\EngineControler.cs" />
     <Compile Include="Assets\EvolutionArenaControler.cs" />
     <Compile Include="Assets\EvolutionControler.cs" />
+    <Compile Include="Assets\EvolutionShipConfig.cs" />
     <Compile Include="Assets\EvolutionTargetShootingControler.cs" />
     <Compile Include="Assets\FuelTank.cs" />
     <Compile Include="Assets\GroupUnder.cs" />

@@ -11,26 +11,13 @@ using Assets.Src.ObjectManagement;
 public class EvolutionTargetShootingControler : MonoBehaviour
 {
     #region Ship Config
-    [Header("Ship Config")]
-    public Rigidbody ShipToEvolve;
-    public string Tag1 = "Team1";
-    public TestCubeChecker TestCube;
-    public Transform StartLocation;
-    public float StartLocationRandomisationRadius = 0;
-    [Tooltip("Randomise the rotation of all spawned ships")]
-    public bool RandomiseRotation = true;
-    public float InitialSpeed = 0;
-    public float RandomInitialSpeed = 0;
-    public string SpaceShipTag = "SpaceShip";
+    public EvolutionShipConfig ShipConfig;
     public float CurrentScore = 0;
     #endregion
 
     #region "Drones
     [Header("Drones")]
     public List<string> DroneGenomes = new List<string>();
-    public Transform TargetLocation;
-    public float TargetLocationRandomisationRadius = 100;
-    public string EnemyTag = "Team2";
 
     [Tooltip("number of drones spawned = MinDronesToSpawn + CurrentGeneration/ExtraDroneEveryXGenerations")]
     public int MinDronesToSpawn = 3;
@@ -189,7 +176,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
         Debug.Log(_genome + " enters the arena!");
         
-        SpawnShip(_genome, Tag1, EnemyTag, StartLocation, StartLocationRandomisationRadius);
+        SpawnShip(_genome, ShipConfig.Tag1, ShipConfig.Tag2, ShipConfig.Location1, ShipConfig.Location1RandomisationRadius);
 
         SpawnDrones();
     }
@@ -201,21 +188,21 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         {
             var genome = DroneGenomes[i % DroneGenomes.Count];
             //Debug.Log("spawning drone " + genome);
-            SpawnShip(genome, EnemyTag, Tag1, TargetLocation, TargetLocationRandomisationRadius);
+            SpawnShip(genome, ShipConfig.Tag2, ShipConfig.Tag1, ShipConfig.Location2, ShipConfig.Location2RandomisationRadius);
         }
     }
 
     private void SpawnShip(string genome, string ownTag, string enemyTag, Transform location, float locationRandomisationRadius)
     {
-        var orientation = RandomiseRotation ? UnityEngine.Random.rotation : location.rotation;
+        var orientation = ShipConfig.RandomiseRotation ? UnityEngine.Random.rotation : location.rotation;
         var randomPlacement = (locationRandomisationRadius * UnityEngine.Random.insideUnitSphere) + location.position;
-        var ship = Instantiate(ShipToEvolve, randomPlacement, orientation);
+        var ship = Instantiate(ShipConfig.ShipToEvolve, randomPlacement, orientation);
         ship.tag = ownTag;
         var enemyTags = new List<string> { enemyTag };
 
-        var velocity = location.forward * InitialSpeed + UnityEngine.Random.insideUnitSphere * RandomInitialSpeed;
+        var velocity = location.forward * ShipConfig.InitialSpeed + UnityEngine.Random.insideUnitSphere * ShipConfig.RandomInitialSpeed;
         
-        new ShipBuilder(genome, ship.transform, ModuleList, TestCube)
+        new ShipBuilder(genome, ship.transform, ModuleList, ShipConfig.TestCube)
         {
             EnemyTags = enemyTags,
             MaxTurrets = MaxTurrets,
@@ -242,8 +229,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             var tags = ListShips()
                 .Select(s => s.tag);
 
-            var shipCount = tags.Count(t => t == Tag1);
-            var droneCount = tags.Count(t => t == EnemyTag);
+            var shipCount = tags.Count(t => t == ShipConfig.Tag1);
+            var droneCount = tags.Count(t => t == ShipConfig.Tag2);
 
 
             _dronesRemain = droneCount > 0;
@@ -275,7 +262,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     private IEnumerable<Transform> ListShips()
     {
-        return GameObject.FindGameObjectsWithTag(SpaceShipTag)
+        return GameObject.FindGameObjectsWithTag(ShipConfig.SpaceShipTag)
                 .Where(s =>
                     s.transform.parent != null &&
                     s.transform.parent.GetComponent("Rigidbody") != null
