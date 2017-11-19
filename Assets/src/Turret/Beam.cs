@@ -31,7 +31,6 @@ namespace Assets.Src.Turret
         public float InitialRadius = 1;
         public float Divergence = 0.0005f;
         
-        private float _effectCooldown = 0;
         public float EffectRepeatTime = 0.1f;
         private LampAndParticlesEffectController _hitEffect;
 

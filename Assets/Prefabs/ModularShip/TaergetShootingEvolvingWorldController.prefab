@@ -843,11 +843,7 @@ MonoBehaviour:
   MatchTimeout: 300
   MatchRunTime: 0
   Mutations: 3
-  MaxTurrets: 15
-  MaxModules: 30
   AllowedCharacters: ' 0123456789  '
-  ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
-    type: 2}
   MaxMutationLength: 5
   GenomeLength: 100
   UseCompletelyRandomDefaultGenome: 0
@@ -870,17 +866,30 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShipToEvolve: {fileID: 54288706851983332, guid: f3b4cb1aa8e6d4d4d9102e7e65998466,
     type: 2}
+  Tags:
+  - Team1
+  - Team2
   Tag1: Team1
   Tag2: Team2
-  TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
+  Locations:
+  - {fileID: 4365458763982880}
+  - {fileID: 4729534257291354}
   Location1: {fileID: 4365458763982880}
   Location2: {fileID: 4729534257291354}
+  LocationRandomisationRadiai:
+  - 50
+  - 150
   Location1RandomisationRadius: 50
   Location2RandomisationRadius: 150
+  TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
   RandomiseRotation: 1
   InitialSpeed: 0
   RandomInitialSpeed: 0
   SpaceShipTag: SpaceShip
+  ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
+    type: 2}
+  MaxTurrets: 15
+  MaxModules: 30
 --- !u!114 &114551084138593738
 MonoBehaviour:
   m_ObjectHideFlags: 1

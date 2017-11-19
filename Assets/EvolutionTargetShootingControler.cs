@@ -47,11 +47,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     public float MatchRunTime = 0;
 
     public int Mutations = 3;
-    public int MaxTurrets = 10;
-    public int MaxModules = 15;
 
     public string AllowedCharacters = " 0123456789  ";
-    public ModuleList ModuleList;
     
     public int MaxMutationLength = 5;
     
@@ -90,6 +87,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     public int DeathPenalty = 70;
 
     private int _killsThisMatch = 0;
+    private const int SHIP_INDEX = 0;
+    private const int DRONES_INDEX = 1;
     #endregion
 
     // Use this for initialization
@@ -175,8 +174,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         _genome = PickContestant();
 
         Debug.Log(_genome + " enters the arena!");
-        
-        SpawnShip(_genome, ShipConfig.Tag1, ShipConfig.Tag2, ShipConfig.Location1, ShipConfig.Location1RandomisationRadius);
+
+        ShipConfig.SpawnShip(_genome, SHIP_INDEX);
 
         SpawnDrones();
     }
@@ -188,31 +187,11 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         {
             var genome = DroneGenomes[i % DroneGenomes.Count];
             //Debug.Log("spawning drone " + genome);
-            SpawnShip(genome, ShipConfig.Tag2, ShipConfig.Tag1, ShipConfig.Location2, ShipConfig.Location2RandomisationRadius);
+
+            ShipConfig.SpawnShip(genome, DRONES_INDEX);
         }
     }
 
-    private void SpawnShip(string genome, string ownTag, string enemyTag, Transform location, float locationRandomisationRadius)
-    {
-        var orientation = ShipConfig.RandomiseRotation ? UnityEngine.Random.rotation : location.rotation;
-        var randomPlacement = (locationRandomisationRadius * UnityEngine.Random.insideUnitSphere) + location.position;
-        var ship = Instantiate(ShipConfig.ShipToEvolve, randomPlacement, orientation);
-        ship.tag = ownTag;
-        var enemyTags = new List<string> { enemyTag };
-
-        var velocity = location.forward * ShipConfig.InitialSpeed + UnityEngine.Random.insideUnitSphere * ShipConfig.RandomInitialSpeed;
-        
-        new ShipBuilder(genome, ship.transform, ModuleList, ShipConfig.TestCube)
-        {
-            EnemyTags = enemyTags,
-            MaxTurrets = MaxTurrets,
-            MaxModules = MaxModules,
-            InitialVelocity = velocity
-        }.BuildShip();
-        ship.velocity = velocity;
-
-        ship.SendMessage("SetEnemyTags", enemyTags);
-    }
     
     /// <summary>
     /// Updates the score based on the remaining ships.
@@ -229,8 +208,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             var tags = ListShips()
                 .Select(s => s.tag);
 
-            var shipCount = tags.Count(t => t == ShipConfig.Tag1);
-            var droneCount = tags.Count(t => t == ShipConfig.Tag2);
+            var shipCount = tags.Count(t => t == ShipConfig.Tags[SHIP_INDEX]);
+            var droneCount = tags.Count(t => t == ShipConfig.Tags[DRONES_INDEX]);
 
 
             _dronesRemain = droneCount > 0;
