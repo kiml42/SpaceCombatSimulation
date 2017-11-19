@@ -20,7 +20,7 @@ public class ShipTester : MonoBehaviour {
 
     public int GenomeLength = 50;
 
-    public List<Rigidbody> Modules;
+    public ModuleList ModuleList;
     private Rigidbody Ship;
     private string _previousGenome;
 
@@ -55,7 +55,7 @@ public class ShipTester : MonoBehaviour {
         var randomPlacement = transform.position;
         Ship = Instantiate(ShipToEvolve, randomPlacement, orientation);
 
-        new ShipBuilder(Genome, Ship.transform, Modules)
+        new ShipBuilder(Genome, Ship.transform, ModuleList)
         {
             MaxShootAngle = MaxShootAngle,
             MaxLocationAimWeighting = MaxLocationAimWeighting,

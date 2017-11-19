@@ -258,7 +258,7 @@ Transform:
   m_GameObject: {fileID: 1951160143417706}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.5, y: 1.5, z: 1.5}
   m_Children:
   - {fileID: 4811040021432162}
   - {fileID: 4889884617730034}
@@ -840,19 +840,14 @@ MonoBehaviour:
   SpaceShipTag: SpaceShip
   CurrentScore: 0
   DroneGenomes:
-  - 2
-  - '  4'
-  - '  6'
-  - ' 5 5'
-  - ' 666'
-  - ' 484'
+  - 
   TargetLocation: {fileID: 4729534257291354}
   TargetLocationRandomisationRadius: 150
   EnemyTag: Team2
   MinDronesToSpawn: 2
   ExtraDroneEveryXGenerations: 5
   GeneralFolder: ./tmp/evolvingShipsDrones
-  ThisRunFolder: blankStart
+  ThisRunFolder: pasiveTargets
   GenerationSize: 17
   MinMatchesPerIndividual: 1
   WinnersFromEachGeneration: 5
@@ -862,19 +857,10 @@ MonoBehaviour:
   MaxTurrets: 15
   MaxModules: 30
   AllowedCharacters: ' 0123456789  '
+  ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
+    type: 2}
   MaxMutationLength: 5
   GenomeLength: 100
-  Modules:
-  - {fileID: 54570345499317062, guid: b6e297582f25e22439032bba93cfe02a, type: 2}
-  - {fileID: 54566524727042172, guid: 8629b68d84c101a458451c49aaba15dc, type: 2}
-  - {fileID: 54223752741852356, guid: 08efacbbb059a534586d7c97183f30e6, type: 2}
-  - {fileID: 54540809518397602, guid: ecb13bd8e1b25e74c820d8d87b56d573, type: 2}
-  - {fileID: 54016053239248472, guid: a5aecdf99e8c0d540a795c7a769bf0f7, type: 2}
-  - {fileID: 54298971192452022, guid: c19e2a0e8fe94a2458f1f5141511d791, type: 2}
-  - {fileID: 54085703227121582, guid: fb971bf036914224882cb762d5469d0a, type: 2}
-  - {fileID: 54431323037331960, guid: 7a6fbabb0bc555d40912d26e6bc4beb5, type: 2}
-  - {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
-  - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
   UseCompletelyRandomDefaultGenome: 0
   DefaultGenome: 
   WinnerPollPeriod: 1

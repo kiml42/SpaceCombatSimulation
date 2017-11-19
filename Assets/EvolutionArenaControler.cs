@@ -29,8 +29,8 @@ public class EvolutionArenaControler : MonoBehaviour
     public int MaxMutationLength = 5;
     
     public int GenomeLength = 50;
-    
-    public List<Rigidbody> Modules;
+
+    ModuleList ModuleList;
 
     public float MatchCountdown;
     public bool SetVelocity;
@@ -148,7 +148,7 @@ public class EvolutionArenaControler : MonoBehaviour
 
         var enemyTags = Tags.Where(t => t != ownTag).ToList();
 
-        new ShipBuilder(genome, ship.transform, Modules, TestCube)
+        new ShipBuilder(genome, ship.transform, ModuleList, TestCube)
         {
             EnemyTags = enemyTags,
             MaxTurrets = MaxTurrets,

@@ -19,7 +19,6 @@ Bugs:
 TODO:
     Priority:
         Modularise evolution controllers
-            Module list script - can be storred as a prefab they all reference instead of on the controller itself.
             Ship config script
             File config script
             Mutation config script

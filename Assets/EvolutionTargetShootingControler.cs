@@ -64,12 +64,12 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     public int MaxModules = 15;
 
     public string AllowedCharacters = " 0123456789  ";
+    public ModuleList ModuleList;
     
     public int MaxMutationLength = 5;
     
     public int GenomeLength = 50;
     
-    public List<Rigidbody> Modules;
     private StringMutator _mutator;
 
     public bool UseCompletelyRandomDefaultGenome = false;
@@ -215,7 +215,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
         var velocity = location.forward * InitialSpeed + UnityEngine.Random.insideUnitSphere * RandomInitialSpeed;
         
-        new ShipBuilder(genome, ship.transform, Modules, TestCube)
+        new ShipBuilder(genome, ship.transform, ModuleList, TestCube)
         {
             EnemyTags = enemyTags,
             MaxTurrets = MaxTurrets,

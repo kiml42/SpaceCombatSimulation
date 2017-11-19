@@ -58,7 +58,7 @@ namespace Assets.src.Evolution
         private string _genome;
         public int GeneLength = 1;
 
-        public List<Rigidbody> Modules;
+        private ModuleList _moduleList;
 
         private int _genomePosition = 0;
         private float _r;
@@ -67,10 +67,18 @@ namespace Assets.src.Evolution
         private Transform _shipToBuildOn;
         private TestCubeChecker _testCubePrefab;
 
-        public ShipBuilder(string genome, Transform shipToBuildOn, List<Rigidbody> modules, TestCubeChecker testCubePrefab = null)
+        public ShipBuilder(string genome, Transform shipToBuildOn, ModuleList moduleList, TestCubeChecker testCubePrefab = null)
         {
             _shipToBuildOn = shipToBuildOn;
-            Modules = modules;
+            if (_shipToBuildOn == null)
+            {
+                throw new ArgumentNullException("shipToBuildOn", "shipToBuildOn must be a valid Transform.");
+            }
+            _moduleList = moduleList;
+            if(_moduleList == null)
+            {
+                throw new ArgumentNullException("moduleList", "moduleList must be a valid ModuleList objet.");
+            }
             _genome = genome;
             _testCubePrefab = testCubePrefab;
         }
@@ -211,10 +219,10 @@ namespace Assets.src.Evolution
                 if (int.TryParse(simplified, out number))
                 {
                     //Debug.Log("Gene as number: " + number);
-                    if (number < Modules.Count())
+                    if (number < _moduleList.Modules.Count())
                     {
                         //Debug.Log("Adding Module " + number + ": " + Modules[number] );
-                        return Modules[number];
+                        return _moduleList.Modules[number];
                     }
                     //else
                     //{
