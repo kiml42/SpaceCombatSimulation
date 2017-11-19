@@ -11,6 +11,8 @@ using Assets.Src.ObjectManagement;
 public class EvolutionTargetShootingControler : MonoBehaviour
 {
     public EvolutionShipConfig ShipConfig;
+    public EvolutionFileManager FileManager;
+    public EvolutionMutationController MutationControl;
     public float CurrentScore = 0;
 
     #region "Drones
@@ -23,11 +25,6 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     public int ExtraDroneEveryXGenerations = 5;
     #endregion
 
-    #region Files etc.
-    [Header("files etc.")]
-    public EvolutionFileManager FileManager;
-    #endregion
-
     #region Generation Setup
     [Header("Generation setup")]
     public int GenerationSize = 20;
@@ -37,35 +34,18 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     [Tooltip("The number of individuals to keep for the next generation")]
     public int WinnersFromEachGeneration = 5;
+    #endregion
 
+    #region Match Setup
+    [Header("Match setup")]
     public float MatchTimeout = 10000;
     public float MatchRunTime = 0;
-
-    public int Mutations = 3;
-
-    public string AllowedCharacters = " 0123456789  ";
     
-    public int MaxMutationLength = 5;
-    
-    public int GenomeLength = 50;
-    
-    private StringMutator _mutator;
-
-    public bool UseCompletelyRandomDefaultGenome = false;
-    public string DefaultGenome = "";
-
     private int GenerationNumber;
     private GenerationTargetShooting _currentGeneration;
     public float WinnerPollPeriod = 1;
     private float _scoreUpdatePollCountdown = 0;
     #endregion
-
-    private string _genome;
-
-    private bool _stillAlive;
-    private bool _dronesRemain;
-
-    private int _previousDroneCount;
 
     #region score
     [Header("Score")]
@@ -86,16 +66,16 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     private const int DRONES_INDEX = 1;
     #endregion
 
+    private string _genome;
+
+    private bool _stillAlive;
+    private bool _dronesRemain;
+
+    private int _previousDroneCount;
+
     // Use this for initialization
     void Start()
     {
-        _mutator = new StringMutator
-        {
-            AllowedCharacters = AllowedCharacters,
-            GenomeLength = GenomeLength,
-            MaxMutationLength = MaxMutationLength,
-            Mutations = Mutations
-        };
         ReadCurrentGeneration();
         SpawnShips();
         IsMatchOver();
@@ -137,7 +117,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             //should move to next generation
             var winners = _currentGeneration.PickWinners(WinnersFromEachGeneration);
             GenerationNumber = GenerationNumber+1;
-            _currentGeneration = new GenerationTargetShooting(_mutator.CreateGenerationOfMutants(winners.ToList(), GenerationSize));
+            _currentGeneration = new GenerationTargetShooting(MutationControl.CreateGenerationOfMutants(winners.ToList(), GenerationSize));
             FileManager.SaveGeneration(_currentGeneration, GenerationNumber);
         }
     }
@@ -249,8 +229,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         if(_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
         {
             //Debug.Log("Generating generation from default genomes");
-            var defaultGenomes = UseCompletelyRandomDefaultGenome ? null : new List<string> { DefaultGenome };
-            _currentGeneration = new GenerationTargetShooting(_mutator.CreateGenerationOfMutants(defaultGenomes, GenerationSize));
+            _currentGeneration = new GenerationTargetShooting(MutationControl.CreateDefaultGeneration(GenerationSize));
         }
         //Debug.Log("_currentGeneration: " + _currentGeneration);
     }

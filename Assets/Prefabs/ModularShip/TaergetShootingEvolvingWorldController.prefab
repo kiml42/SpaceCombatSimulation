@@ -197,6 +197,7 @@ GameObject:
   - component: {fileID: 4300714835004162}
   - component: {fileID: 114276023159756518}
   - component: {fileID: 114967028892328500}
+  - component: {fileID: 114156426761853234}
   - component: {fileID: 114257166760928450}
   - component: {fileID: 114768268343182516}
   - component: {fileID: 135941088491090616}
@@ -819,6 +820,23 @@ Light:
   m_UseColorTemperature: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
+--- !u!114 &114156426761853234
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1951160143417706}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 52535fb2e0130e048a445d85211d83ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Mutations: 3
+  AllowedCharacters: ' 0123456789  '
+  MaxMutationLength: 5
+  GenomeLength: 100
+  UseCompletelyRandomDefaultGenome: 0
+  DefaultGenome: 
 --- !u!114 &114257166760928450
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -837,17 +855,12 @@ MonoBehaviour:
   MinDronesToSpawn: 2
   ExtraDroneEveryXGenerations: 5
   FileManager: {fileID: 114967028892328500}
-  GeneralFolder: ./tmp/evolvingShipsDrones
-  ThisRunFolder: pasiveTargets
   GenerationSize: 17
   MinMatchesPerIndividual: 1
   WinnersFromEachGeneration: 5
   MatchTimeout: 300
   MatchRunTime: 0
-  Mutations: 3
-  AllowedCharacters: ' 0123456789  '
-  MaxMutationLength: 5
-  GenomeLength: 100
+  MutationControl: {fileID: 114156426761853234}
   UseCompletelyRandomDefaultGenome: 0
   DefaultGenome: 
   WinnerPollPeriod: 1

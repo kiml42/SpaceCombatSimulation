@@ -19,9 +19,8 @@ Bugs:
 TODO:
     Priority:
         Modularise evolution controllers
-            File config script
-            Mutation config script
             Generation config script
+            Match config script
         Fighters - using engines as weapons/using guns/both.
         Ships that know their own genomes and build themselves - to use as drones.
         Some way for turrets to account for their own turn rates. - to keep up with tracking moving targets.
