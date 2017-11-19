@@ -158,8 +158,8 @@ Prefab:
 Light:
   m_PrefabParentObject: {fileID: 108735939666816164, guid: 590da46f61a57f34ba77094de519068c,
     type: 2}
-  m_PrefabInternal: {fileID: 1240202016}
---- !u!1001 &1240202016
+  m_PrefabInternal: {fileID: 1282786059}
+--- !u!1001 &1282786059
 Prefab:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -196,31 +196,6 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 4589377682424178, guid: 590da46f61a57f34ba77094de519068c, type: 2}
       propertyPath: m_RootOrder
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
-        type: 2}
-      propertyPath: ThisRunFolder
-      value: FlyingStart
-      objectReference: {fileID: 0}
-    - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
-        type: 2}
-      propertyPath: DefaultGenome
-      value: 222222
-      objectReference: {fileID: 0}
-    - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
-        type: 2}
-      propertyPath: RandomInitialSpeed
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
-        type: 2}
-      propertyPath: InitialSpeed
-      value: 40
-      objectReference: {fileID: 0}
-    - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
-        type: 2}
-      propertyPath: RandomiseRotation
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []

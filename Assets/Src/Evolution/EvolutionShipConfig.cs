@@ -37,7 +37,40 @@ public class EvolutionShipConfig : MonoBehaviour {
 
         SpawnShip(genome, Tags[tagIndex], Locations[locIndex], LocationRandomisationRadiai[LocRandIndex]);
     }
-    
+
+    public string GetTag(int index)
+    {
+        if (!Tags.Any())
+        {
+            throw new System.Exception("The Tags list is empty");
+        }
+        var tagIndex = Mathf.Min(Tags.Count - 1, index);
+
+        return Tags[tagIndex];
+    }
+
+    public Transform GetLocation(int index)
+    {
+        if (!Locations.Any())
+        {
+            throw new System.Exception("The locations list is empty");
+        }
+        var locIndex = Mathf.Min(Locations.Count - 1, index);
+
+        return Locations[locIndex];
+    }
+
+    public float GetLocationRandomisationRadius(int index)
+    {
+        if (!LocationRandomisationRadiai.Any())
+        {
+            throw new System.Exception("The LocationRandomisationRadiai list is empty.");
+        }
+        var LocRandIndex = Mathf.Min(LocationRandomisationRadiai.Count - 1, index);
+
+        return LocationRandomisationRadiai[LocRandIndex];
+    }
+
     private void SpawnShip(string genome, string ownTag, Transform location, float locationRandomisationRadius)
     {
         var orientation = RandomiseRotation ? UnityEngine.Random.rotation : location.rotation;

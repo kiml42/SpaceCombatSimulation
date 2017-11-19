@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.048697866, g: 0.048697866, b: 0.048697866, a: 1}
+  m_IndirectSpecularColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
@@ -334,7 +334,7 @@ Prefab:
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 4b859b23543de9c4fa4e8d2403b1dcd6, type: 2}
   m_IsPrefabParent: 0
---- !u!1001 &1348207804
+--- !u!1001 &709816874
 Prefab:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -372,16 +372,6 @@ Prefab:
     - target: {fileID: 4272521421858950, guid: aa758057f785e2046ab47aecd17a792b, type: 2}
       propertyPath: m_RootOrder
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 114794766112093422, guid: aa758057f785e2046ab47aecd17a792b,
-        type: 2}
-      propertyPath: FilePath
-      value: ./tmp/evolvingShipsArena/evolvingShipsArena2.csv
-      objectReference: {fileID: 0}
-    - target: {fileID: 114794766112093422, guid: aa758057f785e2046ab47aecd17a792b,
-        type: 2}
-      propertyPath: DefaultGenome
-      value: 2 6
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: aa758057f785e2046ab47aecd17a792b, type: 2}

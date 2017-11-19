@@ -41,4 +41,9 @@ public class EvolutionMutationController : MonoBehaviour {
         var defaultGenomes = UseCompletelyRandomDefaultGenome ? null : new List<string> { DefaultGenome };
         return CreateGenerationOfMutants(defaultGenomes);
     }
+
+    public string CreateSingleMutant(string original)
+    {
+        return _mutator.Mutate(original);
+    }
 }

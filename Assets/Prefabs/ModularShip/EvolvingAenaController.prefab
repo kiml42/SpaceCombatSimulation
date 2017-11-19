@@ -175,6 +175,8 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4272521421858950}
+  - component: {fileID: 114078506722153050}
+  - component: {fileID: 114472219650788804}
   - component: {fileID: 114794766112093422}
   - component: {fileID: 114112479859384182}
   - component: {fileID: 135302773511490192}
@@ -831,6 +833,24 @@ MonoBehaviour:
   Colour: {r: 0, g: 0, b: 0, a: 0}
   Depth: 1
   SetInStart: 0
+--- !u!114 &114078506722153050
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1892942396869408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 52535fb2e0130e048a445d85211d83ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Mutations: 3
+  AllowedCharacters: ' 0123456789  '
+  MaxMutationLength: 5
+  GenomeLength: 100
+  GenerationSize: 5
+  UseCompletelyRandomDefaultGenome: 0
+  DefaultGenome: 2 6
 --- !u!114 &114112479859384182
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -869,6 +889,38 @@ MonoBehaviour:
   Colour: {r: 0, g: 0, b: 0, a: 0}
   Depth: 1
   SetInStart: 0
+--- !u!114 &114472219650788804
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1892942396869408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ea828848f7240543aecf81d98f88a46, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShipToEvolve: {fileID: 54288706851983332, guid: f3b4cb1aa8e6d4d4d9102e7e65998466,
+    type: 2}
+  Tags:
+  - Team1
+  - Team2
+  - Team3
+  - Team4
+  - Team5
+  Locations:
+  - {fileID: 4155678758561228}
+  LocationRandomisationRadiai:
+  - 2000
+  TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
+  RandomiseRotation: 1
+  InitialSpeed: 0
+  RandomInitialSpeed: 20
+  SpaceShipTag: SpaceShip
+  ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
+    type: 2}
+  MaxTurrets: 10
+  MaxModules: 15
 --- !u!114 &114794766112093422
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -880,39 +932,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2858fd7f94d5be446a26c1353d1b208a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ShipToEvolve: {fileID: 54288706851983332, guid: f3b4cb1aa8e6d4d4d9102e7e65998466,
-    type: 2}
-  TestCube: {fileID: 0}
-  SpawnSphereRadius: 2000
-  Tags:
-  - Team1
-  - Team2
-  - Team3
-  - Team4
-  - Team5
-  FilePath: ./tmp/evolvingShipsArena/evolvingShipsArena.csv
-  SpaceShipTag: SpaceShip
+  ShipConfig: {fileID: 114472219650788804}
+  MutationControl: {fileID: 114078506722153050}
+  FilePath: ./tmp/evolvingShipsArena/evolvingShipsArena2.csv
   ConcurrentShips: 5
-  Mutations: 3
-  MaxTurrets: 8
-  MaxModules: 12
-  AllowedCharacters: ' 0123456789  '
-  MaxMutationLength: 5
-  GenomeLength: 50
-  Modules:
-  - {fileID: 54570345499317062, guid: b6e297582f25e22439032bba93cfe02a, type: 2}
-  - {fileID: 54566524727042172, guid: 8629b68d84c101a458451c49aaba15dc, type: 2}
-  - {fileID: 54223752741852356, guid: 08efacbbb059a534586d7c97183f30e6, type: 2}
-  - {fileID: 54540809518397602, guid: ecb13bd8e1b25e74c820d8d87b56d573, type: 2}
-  - {fileID: 54016053239248472, guid: a5aecdf99e8c0d540a795c7a769bf0f7, type: 2}
-  - {fileID: 54298971192452022, guid: c19e2a0e8fe94a2458f1f5141511d791, type: 2}
-  - {fileID: 54085703227121582, guid: fb971bf036914224882cb762d5469d0a, type: 2}
-  - {fileID: 54431323037331960, guid: 7a6fbabb0bc555d40912d26e6bc4beb5, type: 2}
-  - {fileID: 54727728952686116, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
-  - {fileID: 54595343910532830, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
   MatchCountdown: 85
   SetVelocity: 0
-  DefaultGenome: 24 6
+  DefaultGenome: 2 6
   SuddenDeathObject: {fileID: 54991379400455944, guid: 8bf03007d4e417c4087307829906f7d6,
     type: 2}
   SuddenDeathObjectReloadTime: 6

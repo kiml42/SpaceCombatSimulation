@@ -10,27 +10,12 @@ using Assets.Src.ObjectManagement;
 
 public class EvolutionArenaControler : MonoBehaviour
 {
-    public Rigidbody ShipToEvolve;
-    public TestCubeChecker TestCube;
-    public float SpawnSphereRadius = 1000;
-    public List<string> Tags;
+    public EvolutionShipConfig ShipConfig;
+    public EvolutionMutationController MutationControl;
+    
     public string FilePath = "./tmp/evolvingShipsArena/evolvingShipsArena.csv";
 
-    public string SpaceShipTag = "SpaceShip";
-
     public int ConcurrentShips = 5;
-
-    public int Mutations = 3;
-    
-    public int MaxTurrets = 10;
-    public int MaxModules = 15;
-    public string AllowedCharacters = " 0123456789  ";
-    
-    public int MaxMutationLength = 5;
-    
-    public int GenomeLength = 50;
-
-    ModuleList ModuleList;
 
     public float MatchCountdown;
     public bool SetVelocity;
@@ -43,13 +28,11 @@ public class EvolutionArenaControler : MonoBehaviour
 
     private float _originalCountdown;
     private Dictionary<string, string> _extantGenomes;
-    private StringMutator _mutator;
 
 
     // Use this for initialization
     void Start()
     {
-        _mutator = new StringMutator();
         _originalCountdown = MatchCountdown;
         ReadPreviousMatches();
         SpawnInitialShips();
@@ -68,7 +51,7 @@ public class EvolutionArenaControler : MonoBehaviour
             MatchCountdown = _originalCountdown;
 
             string genome = PickRandomSurvivorGenome();
-            genome = _mutator.Mutate(genome);
+            genome = MutationControl.CreateSingleMutant(genome);
 
             SpawnShip(genome);
         } else
@@ -86,19 +69,19 @@ public class EvolutionArenaControler : MonoBehaviour
     {
         Debug.Log("Sudden Death!");
         var orientation = UnityEngine.Random.rotation;
-        var randomPlacement = (SpawnSphereRadius * UnityEngine.Random.insideUnitSphere) + transform.position;
+        var randomPlacement = (ShipConfig.GetLocationRandomisationRadius(0) * UnityEngine.Random.insideUnitSphere) + transform.position;
         var death = Instantiate(SuddenDeathObject, randomPlacement, orientation);
-        death.SendMessage("SetEnemyTags", Tags);
+        death.SendMessage("SetEnemyTags", ShipConfig.Tags);
         MatchCountdown = SuddenDeathObjectReloadTime;
     }
 
     private string GetUnusedTag()
     {
-        if(Tags == null || !Tags.Any())
+        if(ShipConfig.Tags == null || !ShipConfig.Tags.Any())
         {
             return null;
         }
-        return Tags.FirstOrDefault(t => _extantGenomes == null || !_extantGenomes.Any(g => g.Key == t));
+        return ShipConfig.Tags.FirstOrDefault(t => _extantGenomes == null || !_extantGenomes.Any(g => g.Key == t));
     }
 
     private string PickRandomSurvivorGenome()
@@ -136,27 +119,11 @@ public class EvolutionArenaControler : MonoBehaviour
     {
         Debug.Log("Spawning \"" + genome + "\"");
         var ownTag = GetUnusedTag();
-        var orientation = UnityEngine.Random.rotation;
-        var randomPlacement = (SpawnSphereRadius * UnityEngine.Random.insideUnitSphere) + transform.position;
-        var ship = Instantiate(ShipToEvolve, randomPlacement, orientation);
-        ship.tag = ownTag;
 
-        if (SetVelocity)
-        {
-            ship.velocity = GetComponent<Rigidbody>().velocity;
-        }
-
-        var enemyTags = Tags.Where(t => t != ownTag).ToList();
-
-        new ShipBuilder(genome, ship.transform, ModuleList, TestCube)
-        {
-            EnemyTags = enemyTags,
-            MaxTurrets = MaxTurrets,
-            MaxModules = MaxModules
-        }.BuildShip();
-
-        ship.SendMessage("SetEnemyTags", enemyTags);
-
+        var index = ShipConfig.Tags.IndexOf(ownTag);
+        
+        ShipConfig.SpawnShip(genome, index);
+        
         RememberNewExtantGenome(ownTag, genome);
     }
 
@@ -172,7 +139,7 @@ public class EvolutionArenaControler : MonoBehaviour
 
     private void DetectSurvivingAndDeadTeams()
     {
-        var livingShips = GameObject.FindGameObjectsWithTag(SpaceShipTag)
+        var livingShips = GameObject.FindGameObjectsWithTag(ShipConfig.SpaceShipTag)
             .Where(s =>
                 s.transform.parent != null &&
                 s.transform.parent.GetComponent("Rigidbody") != null
