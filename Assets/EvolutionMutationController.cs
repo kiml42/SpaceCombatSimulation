@@ -13,10 +13,12 @@ public class EvolutionMutationController : MonoBehaviour {
 
     public int GenomeLength = 50;
 
-    private StringMutator _mutator;
-
+    public int GenerationSize = 20;
+    
     public bool UseCompletelyRandomDefaultGenome = false;
     public string DefaultGenome = "";
+
+    private StringMutator _mutator;
 
     void Start()
     {
@@ -29,14 +31,14 @@ public class EvolutionMutationController : MonoBehaviour {
         };
     }
 
-    public List<string> CreateGenerationOfMutants(List<string> baseGenomes, int generationSize)
+    public List<string> CreateGenerationOfMutants(List<string> baseGenomes)
     {
-        return _mutator.CreateGenerationOfMutants(baseGenomes, generationSize);
+        return _mutator.CreateGenerationOfMutants(baseGenomes, GenerationSize);
     }
 
-    public List<string> CreateDefaultGeneration(int generationSize)
+    public List<string> CreateDefaultGeneration()
     {
         var defaultGenomes = UseCompletelyRandomDefaultGenome ? null : new List<string> { DefaultGenome };
-        return CreateGenerationOfMutants(defaultGenomes, generationSize);
+        return CreateGenerationOfMutants(defaultGenomes);
     }
 }

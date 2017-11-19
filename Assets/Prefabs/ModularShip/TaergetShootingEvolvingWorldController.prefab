@@ -835,6 +835,7 @@ MonoBehaviour:
   AllowedCharacters: ' 0123456789  '
   MaxMutationLength: 5
   GenomeLength: 100
+  GenerationSize: 17
   UseCompletelyRandomDefaultGenome: 0
   DefaultGenome: 
 --- !u!114 &114257166760928450
@@ -849,20 +850,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShipConfig: {fileID: 114276023159756518}
+  FileManager: {fileID: 114967028892328500}
+  MutationControl: {fileID: 114156426761853234}
   CurrentScore: 0
   DroneGenomes:
   - 
   MinDronesToSpawn: 2
   ExtraDroneEveryXGenerations: 5
-  FileManager: {fileID: 114967028892328500}
   GenerationSize: 17
   MinMatchesPerIndividual: 1
   WinnersFromEachGeneration: 5
   MatchTimeout: 300
   MatchRunTime: 0
-  MutationControl: {fileID: 114156426761853234}
-  UseCompletelyRandomDefaultGenome: 0
-  DefaultGenome: 
   WinnerPollPeriod: 1
   KillScoreMultiplier: 50
   FlatKillBonus: 100

@@ -27,8 +27,6 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     #region Generation Setup
     [Header("Generation setup")]
-    public int GenerationSize = 20;
-
     [Tooltip("The generation is over when every individual has had at least this many matches.")]
     public int MinMatchesPerIndividual = 1;
 
@@ -117,7 +115,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             //should move to next generation
             var winners = _currentGeneration.PickWinners(WinnersFromEachGeneration);
             GenerationNumber = GenerationNumber+1;
-            _currentGeneration = new GenerationTargetShooting(MutationControl.CreateGenerationOfMutants(winners.ToList(), GenerationSize));
+            _currentGeneration = new GenerationTargetShooting(MutationControl.CreateGenerationOfMutants(winners.ToList()));
             FileManager.SaveGeneration(_currentGeneration, GenerationNumber);
         }
     }
@@ -229,7 +227,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         if(_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
         {
             //Debug.Log("Generating generation from default genomes");
-            _currentGeneration = new GenerationTargetShooting(MutationControl.CreateDefaultGeneration(GenerationSize));
+            _currentGeneration = new GenerationTargetShooting(MutationControl.CreateDefaultGeneration());
         }
         //Debug.Log("_currentGeneration: " + _currentGeneration);
     }
