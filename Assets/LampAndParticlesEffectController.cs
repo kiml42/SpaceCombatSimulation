@@ -9,7 +9,7 @@ public class LampAndParticlesEffectController : MonoBehaviour {
     public bool StartActive = false;
 
     private float _fullPlumeRate;
-    private float _intensityScaler;
+    public float FullLampIntensity = 0.5f;
 
     // Use this for initialization
     void Start()
@@ -17,10 +17,6 @@ public class LampAndParticlesEffectController : MonoBehaviour {
         if (Plume != null)
         {
             _fullPlumeRate = Plume.emission.rateOverTime.constant;
-        }
-        if(Lamp != null)
-        {
-            _intensityScaler = Lamp.intensity;
         }
         if (!StartActive)
         {
@@ -30,12 +26,14 @@ public class LampAndParticlesEffectController : MonoBehaviour {
     
     public void TurnOn(float proportion = 1)
     {
+        Debug.Log("on, " + proportion);
         StartActive = true;
         SetPlumeState(1);
     }
 
     public void TurnOff()
     {
+        Debug.Log("off");
         StartActive = false;
         SetPlumeState(0);
     }
@@ -63,7 +61,7 @@ public class LampAndParticlesEffectController : MonoBehaviour {
         }
         if(Lamp != null)
         {
-            Lamp.intensity -= _intensityScaler * proportion;
+            Lamp.intensity -= FullLampIntensity * proportion;
         }
     }
 

@@ -814,7 +814,7 @@ Rigidbody:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1864121942924130}
   serializedVersion: 2
-  m_Mass: 800
+  m_Mass: 400
   m_Drag: 0
   m_AngularDrag: 6.987
   m_UseGravity: 0
@@ -931,20 +931,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6cc8ba250bdfeb74ca72df3ebf9e4267, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ShootAngle: 30
-  TorqueMultiplier: 2000
+  ShootAngle: 90
+  TorqueMultiplier: 3000
   StartDelay: 0
   SlowdownWeighting: 50
-  RadialSpeedThreshold: 10
-  MaxRange: 100
-  MinRange: 20
+  RadialSpeedThreshold: 8
+  MaxRange: 50
+  MinRange: 12
   LocationAimWeighting: 1
   MaxTangentialVelocity: 50
   MinTangentialVelocity: 0
-  TangentialSpeedWeighting: 10
+  TangentialSpeedWeighting: 35
   Engine: {fileID: 0}
   Torquer: {fileID: 54718662206741180}
-  AngularDragForTorquers: 1
+  AngularDragForTorquers: 2
   VectorArrow: {fileID: 4529293601510746}
   PickerDistanceMultiplier: 1
   MinimumMass: 80

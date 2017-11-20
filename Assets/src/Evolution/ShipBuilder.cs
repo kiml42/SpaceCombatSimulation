@@ -53,8 +53,7 @@ namespace Assets.src.Evolution
         public float DefaultAngularDragForTorquersProportion = 0.2f;
 
         public Vector3 InitialVelocity = Vector3.zero;
-
-
+        
         private string _genome;
         public int GeneLength = 1;
 
