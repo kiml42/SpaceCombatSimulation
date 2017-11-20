@@ -871,7 +871,7 @@ MonoBehaviour:
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
-  PollInterval: 200
+  PollInterval: 2
   EnemyTags:
   - Enemy
   DisalowedTypes: 00000000
@@ -906,8 +906,10 @@ MonoBehaviour:
   ElevationHub: {fileID: 54136877300926014}
   TurnTableMotorFoce: 30
   TurnTableMotorSpeedMultiplier: 500
+  TurnTableMotorSpeedCap: 100
   ElevationHubMotorFoce: 30
   ElevationHubMotorSpeedMultiplier: 500
+  ElevationHubMotorSpeedCap: 100
 --- !u!114 &114306497983771438
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -926,7 +928,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  FramesOfInvulnerability: 1
+  SecondsOfInvulnerability: 1
   OriginalHealth: 0
   DamageDelegate: {fileID: 114792225503145664}
   IgnoredTags:
@@ -1019,7 +1021,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  FramesOfInvulnerability: 1
+  SecondsOfInvulnerability: 1
   OriginalHealth: 0
   DamageDelegate: {fileID: 0}
   IgnoredTags:
@@ -1075,7 +1077,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  FramesOfInvulnerability: 1
+  SecondsOfInvulnerability: 1
   OriginalHealth: 0
   DamageDelegate: {fileID: 114792225503145664}
   IgnoredTags:

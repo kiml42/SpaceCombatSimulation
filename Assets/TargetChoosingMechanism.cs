@@ -25,7 +25,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
         " Targets will not be kulled if there are no valid targets (so invalid targets will be tracked in case they become valid later)")]
     public bool DropInvalidTargetsWhenTereAreValidTargets = false;
 
-    [Tooltip("time to wait between polling for better targets.")]
+    [Tooltip("time to wait between polling for better targets (seconds).")]
     public float PollInterval = 0;
     private float _waitForPoll = 0;
 

@@ -233,7 +233,7 @@ MonoBehaviour:
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
-  PollInterval: 300
+  PollInterval: 3
   EnemyTags:
   - Enemy
   DisalowedTypes: 0000000001000000

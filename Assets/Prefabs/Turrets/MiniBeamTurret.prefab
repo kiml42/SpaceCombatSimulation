@@ -2237,7 +2237,7 @@ MonoBehaviour:
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
-  PollInterval: 100
+  PollInterval: 1
   EnemyTags:
   - Enemy
   DisalowedTypes: 
@@ -2314,8 +2314,10 @@ MonoBehaviour:
   ElevationHub: {fileID: 54867097553581106}
   TurnTableMotorFoce: 200
   TurnTableMotorSpeedMultiplier: 200
+  TurnTableMotorSpeedCap: 100
   ElevationHubMotorFoce: 200
   ElevationHubMotorSpeedMultiplier: 200
+  ElevationHubMotorSpeedCap: 100
 --- !u!124 &124357949528397776
 Behaviour:
   m_ObjectHideFlags: 1

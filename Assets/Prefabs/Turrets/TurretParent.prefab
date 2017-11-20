@@ -880,7 +880,7 @@ MonoBehaviour:
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
-  PollInterval: 200
+  PollInterval: 2
   EnemyTags:
   - Enemy
   DisalowedTypes: 00000000

@@ -1031,8 +1031,10 @@ MonoBehaviour:
   ElevationHub: {fileID: 54151716499456922}
   TurnTableMotorFoce: 30
   TurnTableMotorSpeedMultiplier: 500
+  TurnTableMotorSpeedCap: 100
   ElevationHubMotorFoce: 30
   ElevationHubMotorSpeedMultiplier: 500
+  ElevationHubMotorSpeedCap: 100
 --- !u!114 &114898967683699902
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1097,7 +1099,7 @@ MonoBehaviour:
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
-  PollInterval: 200
+  PollInterval: 2
   EnemyTags:
   - Enemy
   DisalowedTypes: 00000000

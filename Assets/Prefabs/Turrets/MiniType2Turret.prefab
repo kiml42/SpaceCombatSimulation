@@ -1415,8 +1415,10 @@ MonoBehaviour:
   ElevationHub: {fileID: 54647014223265010}
   TurnTableMotorFoce: 200
   TurnTableMotorSpeedMultiplier: 200
+  TurnTableMotorSpeedCap: 100
   ElevationHubMotorFoce: 200
   ElevationHubMotorSpeedMultiplier: 200
+  ElevationHubMotorSpeedCap: 100
 --- !u!114 &114583833557891480
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1498,7 +1500,7 @@ MonoBehaviour:
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
-  PollInterval: 100
+  PollInterval: 1
   EnemyTags:
   - Enemy
   DisalowedTypes: 
@@ -1509,7 +1511,7 @@ MonoBehaviour:
   PickerMassMultiplier: 15
   MinimumMass: 10
   PickerOverMinMassBonus: 5000
-  PickerDistanceMultiplier: 3
+  PickerDistanceMultiplier: 5
   PickerRange: 1000
   PickerInRangeBonus: 10000
   LineOfSightBonus: 1000

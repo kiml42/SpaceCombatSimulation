@@ -856,7 +856,7 @@ MonoBehaviour:
   MatchControl: {fileID: 114664077113307600}
   CurrentScore: 0
   Drones:
-  - {fileID: 54333284254749140, guid: 673f730f11e01f942a1943124006aa6f, type: 2}
+  - {fileID: 54175251741429924, guid: 1d1e7608339a5a94981ee9e3f3de752a, type: 2}
   - {fileID: 54718662206741180, guid: 9be061ec4cd634b418c85450221c9e7f, type: 2}
   - {fileID: 54333284254749140, guid: 673f730f11e01f942a1943124006aa6f, type: 2}
   - {fileID: 54937077967875234, guid: e0735aa5864e5664ba68082c1f9b8b37, type: 2}
