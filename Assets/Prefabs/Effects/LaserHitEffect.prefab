@@ -125,7 +125,7 @@ Light:
   serializedVersion: 8
   m_Type: 2
   m_Color: {r: 0.97794116, g: 0.89042825, b: 0.7909818, a: 1}
-  m_Intensity: 0.5
+  m_Intensity: 0
   m_Range: 53.7
   m_SpotAngle: 30
   m_CookieSize: 10
@@ -165,6 +165,7 @@ MonoBehaviour:
   Plume: {fileID: 198575638471518982}
   Lamp: {fileID: 108999739368507864}
   StartActive: 0
+  FullLampIntensity: 0.5
 --- !u!198 &198575638471518982
 ParticleSystem:
   m_ObjectHideFlags: 1

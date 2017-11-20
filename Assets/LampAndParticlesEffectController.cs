@@ -26,14 +26,14 @@ public class LampAndParticlesEffectController : MonoBehaviour {
     
     public void TurnOn(float proportion = 1)
     {
-        Debug.Log("on, " + proportion);
+        //Debug.Log("on, " + proportion);
         StartActive = true;
         SetPlumeState(1);
     }
 
     public void TurnOff()
     {
-        Debug.Log("off");
+        //Debug.Log("off");
         StartActive = false;
         SetPlumeState(0);
     }
@@ -61,7 +61,8 @@ public class LampAndParticlesEffectController : MonoBehaviour {
         }
         if(Lamp != null)
         {
-            Lamp.intensity -= FullLampIntensity * proportion;
+            //Debug.Log("Setting lamp intensity to " + FullLampIntensity * proportion);
+            Lamp.intensity = FullLampIntensity * proportion;
         }
     }
 
