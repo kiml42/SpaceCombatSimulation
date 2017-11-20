@@ -23,6 +23,7 @@ public class SelfBuildingShip : MonoBehaviour {
 
         new ShipBuilder(Genome, transform, ModuleList, TestCube)
         {
+            OverrideColour = true,
             ColourOverride = ColourOverride,
             EnemyTags = shipController.EnemyTags,
             MaxTurrets = MaxTurrets,

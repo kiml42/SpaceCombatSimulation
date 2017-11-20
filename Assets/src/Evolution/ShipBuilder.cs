@@ -64,6 +64,7 @@ namespace Assets.src.Evolution
         private Transform _shipToBuildOn;
         private TestCubeChecker _testCubePrefab;
 
+        public bool OverrideColour;
         public Color ColourOverride;
         private Color _colour;
 
@@ -88,7 +89,7 @@ namespace Assets.src.Evolution
             //Debug.Log("Building " + _genome);
             if (setColour)
             {
-                if(ColourOverride != null)
+                if(OverrideColour)
                 {
                     _colour = ColourOverride;
                 } else

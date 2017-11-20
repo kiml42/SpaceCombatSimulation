@@ -18,12 +18,13 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     #region "Drones
     [Header("Drones")]
-    public List<string> DroneGenomes = new List<string>();
+    public List<Rigidbody> Drones = new List<Rigidbody>();
 
     [Tooltip("number of drones spawned = MinDronesToSpawn + CurrentGeneration/ExtraDroneEveryXGenerations")]
     public int MinDronesToSpawn = 3;
     [Tooltip("number of drones spawned = MinDronesToSpawn + CurrentGeneration/ExtraDroneEveryXGenerations")]
     public int ExtraDroneEveryXGenerations = 5;
+    public int MaxDronesToSpawn = 100;
     #endregion
 
     #region Generation Setup
@@ -122,12 +123,25 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     {
         var DroneCount = MinDronesToSpawn + Math.Floor((double) GenerationNumber / ExtraDroneEveryXGenerations);
         Debug.Log(DroneCount + " drones this match");
+
+        var locationTransform = ShipConfig.GetLocation(DRONES_INDEX);
+        var randRadius = ShipConfig.GetLocationRandomisationRadius(DRONES_INDEX);
+        var droneTag = ShipConfig.GetTag(DRONES_INDEX);
+        var enemyTags = ShipConfig.Tags.Where(t => t != droneTag).ToList();
+
         for (int i = 0; i<DroneCount; i++)
         {
-            var genome = DroneGenomes[i % DroneGenomes.Count];
+            var dronePrefab = Drones[i % Drones.Count];
             //Debug.Log("spawning drone " + genome);
+            
+            var orientation = ShipConfig.RandomiseRotation ? UnityEngine.Random.rotation : locationTransform.rotation;
+            var randomPlacement = (randRadius * UnityEngine.Random.insideUnitSphere) + locationTransform.position;
+            var ship = Instantiate(dronePrefab, randomPlacement, orientation);
+            ship.tag = droneTag;
+            
+            ship.velocity = locationTransform.forward * ShipConfig.InitialSpeed + UnityEngine.Random.insideUnitSphere * ShipConfig.RandomInitialSpeed;
 
-            ShipConfig.SpawnShip(genome, DRONES_INDEX);
+            ship.SendMessage("SetEnemyTags", enemyTags);
         }
     }
 
