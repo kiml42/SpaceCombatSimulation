@@ -910,6 +910,7 @@ MonoBehaviour:
   MaxTurrets: 10
   MaxModules: 15
   EnemyTags: []
+  ColourOverride: {r: 0.42745098, g: 0.105882354, b: 0.5372549, a: 1}
 --- !u!114 &114686219090931682
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -11,6 +11,7 @@ public class SelfBuildingShip : MonoBehaviour {
     public int MaxTurrets = 10;
     public int MaxModules = 15;
     public List<string> EnemyTags;
+    public Color ColourOverride;
 
     private Rigidbody _shipToEvolve;
     
@@ -22,6 +23,7 @@ public class SelfBuildingShip : MonoBehaviour {
 
         new ShipBuilder(Genome, transform, ModuleList, TestCube)
         {
+            ColourOverride = ColourOverride,
             EnemyTags = shipController.EnemyTags,
             MaxTurrets = MaxTurrets,
             MaxModules = MaxModules,

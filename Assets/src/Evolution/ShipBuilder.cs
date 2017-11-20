@@ -61,11 +61,11 @@ namespace Assets.src.Evolution
         private ModuleList _moduleList;
 
         private int _genomePosition = 0;
-        private float _r;
-        private float _g;
-        private float _b;
         private Transform _shipToBuildOn;
         private TestCubeChecker _testCubePrefab;
+
+        public Color ColourOverride;
+        private Color _colour;
 
         public ShipBuilder(string genome, Transform shipToBuildOn, ModuleList moduleList, TestCubeChecker testCubePrefab = null)
         {
@@ -88,10 +88,18 @@ namespace Assets.src.Evolution
             //Debug.Log("Building " + _genome);
             if (setColour)
             {
-                _r = GetNumberFromGenome(0, 0.5f, 8);
-                _g = GetNumberFromGenome(10, 0.5f, 8);
-                _b = GetNumberFromGenome(20, 0.5f, 8);
-                _shipToBuildOn.SetColor(_r, _g, _b);
+                if(ColourOverride != null)
+                {
+                    _colour = ColourOverride;
+                } else
+                {
+                    var r = GetNumberFromGenome(0, 0.5f, 8);
+                    var g = GetNumberFromGenome(10, 0.5f, 8);
+                    var b = GetNumberFromGenome(20, 0.5f, 8);
+
+                    _colour = new Color(r, g, b);
+                }
+                _shipToBuildOn.SetColor(_colour);
             }
 
             if(setName)
@@ -134,7 +142,7 @@ namespace Assets.src.Evolution
 
                             SpawnModules(addedModule.transform);    //spawn modules on this module
 
-                            addedModule.transform.SetColor(_r, _g, _b);
+                            addedModule.transform.SetColor(_colour);
                             addedModule.velocity = InitialVelocity;
                         }
                         //else
