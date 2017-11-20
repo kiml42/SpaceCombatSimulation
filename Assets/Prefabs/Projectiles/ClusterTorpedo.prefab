@@ -4382,9 +4382,9 @@ MonoBehaviour:
   PickerMassMultiplier: 100
   MinimumMass: 50
   PickerOverMinMassBonus: 10000
-  PickerDistanceMultiplier: 0.2
-  PickerRange: 0
-  PickerInRangeBonus: 0
+  PickerDistanceMultiplier: 1
+  PickerRange: 3000
+  PickerInRangeBonus: 500
   LineOfSightBonus: 1000
   MinLineOfSightDetectionDistance: 2
   PickerAimedAtMultiplier: 10
