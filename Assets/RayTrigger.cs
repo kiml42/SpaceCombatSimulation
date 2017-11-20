@@ -1,4 +1,5 @@
 ﻿using Assets.Src.Interfaces;
+using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
 using System.Collections;
 using System.Collections.Generic;
@@ -24,18 +25,24 @@ public class RayTrigger : MonoBehaviour, IFireControl
 
     public bool ShouldShoot(Target target)
     {
-        RaycastHit hit;
-        var ray = new Ray(AimingObject.position + (AimingObject.forward * MinDistance), AimingObject.forward);
-        if (Physics.Raycast(ray, out hit, MaxDistance, -1, QueryTriggerInteraction.Ignore))
+        if (AimingObject.IsValid())
         {
-            //is a hit
-            if (ShootAnyEnemy)
+            RaycastHit hit;
+            var ray = new Ray(AimingObject.position + (AimingObject.forward * MinDistance), AimingObject.forward);
+            if (Physics.Raycast(ray, out hit, MaxDistance, -1, QueryTriggerInteraction.Ignore))
             {
-                var tags = TargetChoosingMechanism.GetEnemyTags();
-                return tags.Contains(hit.transform.tag);
-            }
+                //is a hit
+                if (ShootAnyEnemy)
+                {
+                    var tags = TargetChoosingMechanism.GetEnemyTags();
+                    return tags.Contains(hit.transform.tag);
+                }
 
-            return hit.transform == target.Transform;
+                return hit.transform == target.Transform;
+            }
+        } else
+        {
+            Debug.LogWarning("Aiming object is null");
         }
         return false;
     }

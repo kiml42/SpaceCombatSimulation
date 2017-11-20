@@ -10,6 +10,7 @@ R - cycle reticle state
 
 Bugs:
     Priority:
+        ElevationHubs on some drones are disappearing.
         "Can't remove Rigidbody because HingeJoint depends on it"
         rocket engines carry on regardless if the rocket has no target.
     Graphical - Beams don't turn off when the turret dies. - haven't seen this one in a while.
