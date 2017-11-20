@@ -29,6 +29,13 @@ TODO:
         TargetPickers have option to kull all but the best x.
         Prevent fluttery torpedoes.
         Eyeball turret
+        limited ammo
+            Turrets can store some
+            hubs contain generic ammo, turrets can ask for a mass of it.
+        limited power
+            Hubs have batteries to store energy
+            Hubs have generators to recharge batteries.
+
 
     Avoid GetComponent and sendMessage in update methods.
     Limit throttle change speeds.

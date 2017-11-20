@@ -123,9 +123,9 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4589377682424178}
+  - component: {fileID: 114148157695398686}
   - component: {fileID: 114864566529471434}
   - component: {fileID: 114224943800956022}
-  - component: {fileID: 114148157695398686}
   - component: {fileID: 114162882494618574}
   - component: {fileID: 114150487081735056}
   - component: {fileID: 114478410833897430}
@@ -301,7 +301,7 @@ Transform:
   m_GameObject: {fileID: 1406041262789598}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_Children:
   - {fileID: 4610007040225606}
   - {fileID: 4957694518540322}
@@ -852,7 +852,7 @@ MonoBehaviour:
   GenomeLength: 100
   GenerationSize: 17
   UseCompletelyRandomDefaultGenome: 0
-  DefaultGenome: 222222
+  DefaultGenome: 
 --- !u!114 &114150487081735056
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -903,8 +903,8 @@ MonoBehaviour:
   - 0
   TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
   RandomiseRotation: 0
-  InitialSpeed: 40
-  RandomInitialSpeed: 2
+  InitialSpeed: 0
+  RandomInitialSpeed: 0
   SpaceShipTag: SpaceShip
   ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
     type: 2}
@@ -974,7 +974,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GeneralFolder: ./tmp/evolvingShips
-  ThisRunFolder: FlyingStart
+  ThisRunFolder: BlankStart2
 --- !u!124 &124861379170882136
 Behaviour:
   m_ObjectHideFlags: 1

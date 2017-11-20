@@ -121,6 +121,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     private void SpawnDrones()
     {
         var DroneCount = MinDronesToSpawn + Math.Floor((double) GenerationNumber / ExtraDroneEveryXGenerations);
+        Debug.Log(DroneCount + " drones this match");
         for (int i = 0; i<DroneCount; i++)
         {
             var genome = DroneGenomes[i % DroneGenomes.Count];
@@ -145,8 +146,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
             var shipCount = tags.Count(t => t == ShipConfig.Tags[SHIP_INDEX]);
             var droneCount = tags.Count(t => t == ShipConfig.Tags[DRONES_INDEX]);
-
-
+            
             _dronesRemain = droneCount > 0;
             _stillAlive = shipCount > 0;
 
@@ -161,8 +161,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
                 CurrentScore += killedDrones * scorePerKill;
             }
             _previousDroneCount = droneCount;
-
-
+            
             //return true if one team is wipred out.
             return !_stillAlive || !_dronesRemain;
         }
