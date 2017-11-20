@@ -11,10 +11,13 @@ namespace Assets.Src.Targeting
 {
     public class UnityTurretTurner : ITurretTurner
     {
-        public float TurnTableMotorForce = 30;
-        public float TurnTableMotorSpeedMultiplier = 500;
-        public float ElevationHubMotorForce = 30;
-        public float ElevationHubMotorSpeedMultiplier = 500;
+        public float TurnTableTorque = 30;
+        public float TurnTableSpeedMultiplier = 500;
+        public float TurnTableSpeedCap = 100;
+
+        public float EHTorque = 30;
+        public float EHSpeedMultiplier = 500;
+        public float EHSpeedCap = 100;
 
         private readonly Rigidbody _thisTurret;
         private readonly PotentialTarget _restTarget;
@@ -61,7 +64,7 @@ namespace Assets.Src.Targeting
 
                 var TTCancelationSpeed = -parentAngularVInTurntableSpace.y * 180 / Mathf.PI;    //convert from radians per second to degrees per second
 
-                TurnToTarget(_turnTableHinge, LocationInTurnTableSpace, TurnTableMotorForce, TurnTableMotorSpeedMultiplier, TTCancelationSpeed);
+                TurnToTarget(_turnTableHinge, LocationInTurnTableSpace, TurnTableTorque, TurnTableSpeedMultiplier, TurnTableSpeedCap, TTCancelationSpeed);
                     
                 //var locationInElevationHubSpace = target.LocationInElevationHubSpace(_thisTurret);
                 var locationInElevationHubSpace = target.LocationInElevationHubSpaceAfterTurnTableTurn(_thisTurret, _turnTable.transform, _elevationHub, _projectileSpeed);
@@ -70,18 +73,18 @@ namespace Assets.Src.Targeting
 
                 var EHCancelationSpeed = -parentAngularVInEHSpace.y * 180 / Mathf.PI;    //convert from radians per second to degrees per second
 
-                TurnToTarget(_elevationHubHinge, locationInElevationHubSpace, ElevationHubMotorForce, ElevationHubMotorSpeedMultiplier, EHCancelationSpeed);
+                TurnToTarget(_elevationHubHinge, locationInElevationHubSpace, EHTorque, EHSpeedMultiplier, EHSpeedCap, EHCancelationSpeed);
             }
         }
 
-        private void TurnToTarget(HingeJoint hingeToTurn, Vector3 relativeLocation, float MotorForce, float MotorSpeedMultiplier, float parentCancelationSpeed = 0)
+        private void TurnToTarget(HingeJoint hingeToTurn, Vector3 relativeLocation, float MotorForce, float MotorSpeedMultiplier, float speedCap, float parentCancelationSpeed)
         {
             if (hingeToTurn != null)
             {
                 JointMotor motor = hingeToTurn.motor;
                 motor.force = MotorForce;
                 relativeLocation.y = 0;
-                motor.targetVelocity = parentCancelationSpeed + (relativeLocation.normalized.x * MotorSpeedMultiplier);
+                motor.targetVelocity = Math.Min(speedCap, parentCancelationSpeed + (relativeLocation.normalized.x * MotorSpeedMultiplier));
                 //motor.freeSpin = false;
                 hingeToTurn.motor = motor;
                 //hinge.useMotor = true;

@@ -20,9 +20,11 @@ public class TurrertTurningMechanism : MonoBehaviour {
 
     public float TurnTableMotorFoce = 30;
     public float TurnTableMotorSpeedMultiplier = 500;
+    public float TurnTableMotorSpeedCap = 100;
 
     public float ElevationHubMotorFoce = 30;
     public float ElevationHubMotorSpeedMultiplier = 500;
+    public float ElevationHubMotorSpeedCap = 100;
 
     // Use this for initialization
     void Start()
@@ -34,10 +36,12 @@ public class TurrertTurningMechanism : MonoBehaviour {
 
         _turner = new UnityTurretTurner(rigidbody, TurnTable, ElevationHub, RestTarget, projectileSpeed)
         {
-            TurnTableMotorForce = TurnTableMotorFoce,
-            TurnTableMotorSpeedMultiplier = TurnTableMotorSpeedMultiplier,
-            ElevationHubMotorForce = ElevationHubMotorFoce,
-            ElevationHubMotorSpeedMultiplier = ElevationHubMotorSpeedMultiplier
+            TurnTableTorque = TurnTableMotorFoce,
+            TurnTableSpeedMultiplier = TurnTableMotorSpeedMultiplier,
+            TurnTableSpeedCap = TurnTableMotorSpeedCap,
+            EHTorque = ElevationHubMotorFoce,
+            EHSpeedMultiplier = ElevationHubMotorSpeedMultiplier,
+            EHSpeedCap = ElevationHubMotorSpeedCap
         };
 
         _runner = new TurretRunner(_targetChoosingMechanism, _turner);

@@ -662,7 +662,7 @@ Rigidbody:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1547687066501114}
   serializedVersion: 2
-  m_Mass: 1
+  m_Mass: 50
   m_Drag: 0
   m_AngularDrag: 0
   m_UseGravity: 0
@@ -692,7 +692,7 @@ Rigidbody:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1554187838490230}
   serializedVersion: 2
-  m_Mass: 1
+  m_Mass: 30
   m_Drag: 0
   m_AngularDrag: 0
   m_UseGravity: 0
@@ -719,7 +719,7 @@ HingeJoint:
   m_UseMotor: 1
   m_Motor:
     targetVelocity: 0
-    force: 30
+    force: 0
     freeSpin: 0
   m_UseLimits: 0
   m_Limits:
@@ -865,7 +865,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fbab2d8ba61987347953f7c003bfc3b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Friction: 0.4
+  Friction: 0.6
 --- !u!114 &114078742538678138
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -926,7 +926,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 10
   Armour: 0
-  Health: 299.84113
+  Health: 300
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
   Shrapnel: {fileID: 0}
@@ -1082,10 +1082,12 @@ MonoBehaviour:
   RestTarget: {fileID: 4616440911490974}
   TurnTable: {fileID: 54079204794469090}
   ElevationHub: {fileID: 54683890212850012}
-  TurnTableMotorFoce: 30
-  TurnTableMotorSpeedMultiplier: 500
-  ElevationHubMotorFoce: 30
-  ElevationHubMotorSpeedMultiplier: 500
+  TurnTableMotorFoce: 300
+  TurnTableMotorSpeedMultiplier: 150
+  TurnTableMotorSpeedCap: 50
+  ElevationHubMotorFoce: 300
+  ElevationHubMotorSpeedMultiplier: 150
+  ElevationHubMotorSpeedCap: 50
 --- !u!114 &114735797348154080
 MonoBehaviour:
   m_ObjectHideFlags: 1
