@@ -65,7 +65,7 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if (_active && _fireControl != null)
         {

@@ -2241,7 +2241,7 @@ MonoBehaviour:
   EnemyTags:
   - Enemy
   DisalowedTypes: 
-  PreferdTypes: 02000000030000000400000005000000
+  PreferdTypes: 0200000003000000
   PreferedTypeBonus: 5000
   HemisphereFilterObject: {fileID: 4302048105835624}
   InCorrectHemisphereBonus: 1000

@@ -66,7 +66,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if (_active)
             if (_reload <= 0 && ShouldShoot())
