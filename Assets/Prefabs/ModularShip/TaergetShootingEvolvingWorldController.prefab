@@ -858,12 +858,16 @@ MonoBehaviour:
   Drones:
   - {fileID: 54333284254749140, guid: 673f730f11e01f942a1943124006aa6f, type: 2}
   - {fileID: 54718662206741180, guid: 9be061ec4cd634b418c85450221c9e7f, type: 2}
+  - {fileID: 54333284254749140, guid: 673f730f11e01f942a1943124006aa6f, type: 2}
   - {fileID: 54937077967875234, guid: e0735aa5864e5664ba68082c1f9b8b37, type: 2}
   - {fileID: 54341790251113956, guid: 38f75e56c885bf94ea1b7a36bda3bdaf, type: 2}
   - {fileID: 54861845782397696, guid: a3692a1e7a8a25a40a1c840c4f784611, type: 2}
+  - {fileID: 54937077967875234, guid: e0735aa5864e5664ba68082c1f9b8b37, type: 2}
+  - {fileID: 54341790251113956, guid: 38f75e56c885bf94ea1b7a36bda3bdaf, type: 2}
+  - {fileID: 54110498039816676, guid: 15ceeb42af967814e8349cb3b0c9a2bf, type: 2}
   - {fileID: 54555125603097668, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
-  MinDronesToSpawn: 2
-  ExtraDroneEveryXGenerations: 5
+  MinDronesToSpawn: 3
+  ExtraDroneEveryXGenerations: 8
   MaxDronesToSpawn: 100
   MinMatchesPerIndividual: 1
   WinnersFromEachGeneration: 5
@@ -980,7 +984,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GeneralFolder: ./tmp/evolvingShipsDrones
-  ThisRunFolder: pasiveTargets
+  ThisRunFolder: mixedTargets
 --- !u!124 &124422424614570090
 Behaviour:
   m_ObjectHideFlags: 1
