@@ -238,6 +238,7 @@
     <Compile Include="Assets\RayTrigger.cs" />
     <Compile Include="Assets\RegisterAsTarget.cs" />
     <Compile Include="Assets\RocketController.cs" />
+    <Compile Include="Assets\SelfBuildingShip.cs" />
     <Compile Include="Assets\ShipCam.cs" />
     <Compile Include="Assets\ShipTester.cs" />
     <Compile Include="Assets\SpaceShipControler.cs" />

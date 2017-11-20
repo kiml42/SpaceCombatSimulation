@@ -158,8 +158,8 @@ Prefab:
 Light:
   m_PrefabParentObject: {fileID: 108735939666816164, guid: 590da46f61a57f34ba77094de519068c,
     type: 2}
-  m_PrefabInternal: {fileID: 1282786059}
---- !u!1001 &1282786059
+  m_PrefabInternal: {fileID: 1615456727}
+--- !u!1001 &1615456727
 Prefab:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -197,6 +197,10 @@ Prefab:
     - target: {fileID: 4589377682424178, guid: 590da46f61a57f34ba77094de519068c, type: 2}
       propertyPath: m_RootOrder
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1406041262789598, guid: 590da46f61a57f34ba77094de519068c, type: 2}
+      propertyPath: m_Name
+      value: EvolvingWorldController1V1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 590da46f61a57f34ba77094de519068c, type: 2}

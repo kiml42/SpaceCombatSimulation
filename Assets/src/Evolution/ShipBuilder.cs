@@ -83,20 +83,26 @@ namespace Assets.src.Evolution
             _testCubePrefab = testCubePrefab;
         }
 
-        public void BuildShip()
+        public void BuildShip(bool ConfigureConstants = true, bool setName = true, bool setColour = true)
         {
             //Debug.Log("Building " + _genome);
-            _r = GetNumberFromGenome(0, 0.5f, 8);
-            _g = GetNumberFromGenome(10, 0.5f, 8);
-            _b = GetNumberFromGenome(20, 0.5f, 8);
-            _shipToBuildOn.SetColor(_r, _g, _b);
-            _shipToBuildOn.name = _genome;
+            if (setColour)
+            {
+                _r = GetNumberFromGenome(0, 0.5f, 8);
+                _g = GetNumberFromGenome(10, 0.5f, 8);
+                _b = GetNumberFromGenome(20, 0.5f, 8);
+                _shipToBuildOn.SetColor(_r, _g, _b);
+            }
+
+            if(setName)
+                _shipToBuildOn.name = _genome;
             //Debug.Log("Spawning modules");
 
             _usedLocations.Add(_shipToBuildOn.position);
             SpawnModules(_shipToBuildOn);
 
-            ConfigureShip();
+            if(ConfigureConstants)
+                ConfigureShip();
         }
 
         public void SetGenome(string genome)
