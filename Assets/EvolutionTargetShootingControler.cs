@@ -141,7 +141,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             
             ship.velocity = locationTransform.forward * ShipConfig.InitialSpeed + UnityEngine.Random.insideUnitSphere * ShipConfig.RandomInitialSpeed;
 
-            ship.SendMessage("SetEnemyTags", enemyTags);
+            ship.SendMessage("SetEnemyTags", enemyTags, SendMessageOptions.DontRequireReceiver);
         }
     }
 
