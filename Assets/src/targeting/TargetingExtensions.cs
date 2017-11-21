@@ -177,7 +177,7 @@ namespace Assets.Src.Targeting
         #region TransformVersions
         public static Vector3 LocationInOthersSpace(this Transform target, Rigidbody origin)
         {
-            if (origin == null)
+            if (origin == null || target.IsInvalid())
             {
                 return Vector3.zero;
             }
