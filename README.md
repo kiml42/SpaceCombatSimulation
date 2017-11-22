@@ -36,6 +36,7 @@ TODO:
         limited power
             Hubs have batteries to store energy
             Hubs have generators to recharge batteries.
+        Only escalate total targets for each generation if all targets were killed by X per generation for Y generations, or some proportion of total individuals for the last Z generations.
 
 
     Avoid GetComponent and sendMessage in update methods.
