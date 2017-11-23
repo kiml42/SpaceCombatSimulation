@@ -103,11 +103,6 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
             MinTangentialSpeed = MinTangentialVelocity,
             RadialSpeedThreshold = RadialSpeedThreshold
         };
-        
-        foreach (var engine in _engines)
-        {
-            engine.tag = tag;
-        }
     }
 
     // Update is called once per frame
