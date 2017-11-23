@@ -11,14 +11,13 @@ using System;
 using System.Linq;
 using Assets.Src.Pilots;
 
-public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
+public class SpaceShipControler : MonoBehaviour, IDeactivatable
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
 
     public float ShootAngle = 30;
     public float TorqueMultiplier = 9;
     public int StartDelay = 2;
-    //public Rigidbody TargetMarker;
 
     public float SlowdownWeighting = 10;
     public float RadialSpeedThreshold = 10;
@@ -44,27 +43,6 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
 
     private string InactiveTag = "Untagged";
     public Transform VectorArrow;
-    
-    #region EnemyTags
-    public void AddEnemyTag(string newTag)
-    {
-        var tags = EnemyTags.ToList();
-        tags.Add(newTag);
-        EnemyTags = tags.Distinct().ToList();
-    }
-
-    public void SetEnemyTags(List<string> allEnemyTags)
-    {
-        EnemyTags = allEnemyTags;
-    }
-
-    public List<string> GetEnemyTags()
-    {
-        return EnemyTags;
-    }
-
-    public List<string> EnemyTags;
-    #endregion
 
     // Use this for initialization
     void Start()

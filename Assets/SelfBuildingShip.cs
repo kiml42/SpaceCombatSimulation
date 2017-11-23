@@ -1,4 +1,5 @@
 ﻿using Assets.src.Evolution;
+using Assets.Src.Interfaces;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,20 +13,20 @@ public class SelfBuildingShip : MonoBehaviour {
     public int MaxModules = 15;
     public List<string> EnemyTags;
     public Color ColourOverride;
-
-    private Rigidbody _shipToEvolve;
     
     public void Start()
     {
-        _shipToEvolve = GetComponent<Rigidbody>();
+        var shipToEvolve = GetComponent<Rigidbody>();
         var shipController = GetComponent<SpaceShipControler>();
-        var velocity = _shipToEvolve.velocity;
+        var targetChoosingMechanism = GetComponent<IKnowsEnemyTags>();
+
+        var velocity = shipToEvolve.velocity;
 
         new ShipBuilder(Genome, transform, ModuleList, TestCube)
         {
             OverrideColour = true,
             ColourOverride = ColourOverride,
-            EnemyTags = shipController.EnemyTags,
+            EnemyTags = targetChoosingMechanism.GetEnemyTags(),
             MaxTurrets = MaxTurrets,
             MaxModules = MaxModules,
             InitialVelocity = velocity

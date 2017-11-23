@@ -19,6 +19,7 @@ Bugs:
 
 TODO:
     Priority:
+        Rockets stop trying to pilot when out of fuel.
         Fighters - using engines as weapons/using guns/both.
         Some way for turrets to account for their own turn rates. - to keep up with tracking moving targets.
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
