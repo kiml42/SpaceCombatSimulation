@@ -17,7 +17,6 @@ public class SelfBuildingShip : MonoBehaviour {
     public void Start()
     {
         var shipToEvolve = GetComponent<Rigidbody>();
-        var shipController = GetComponent<SpaceShipControler>();
         var targetChoosingMechanism = GetComponent<IKnowsEnemyTags>();
 
         var velocity = shipToEvolve.velocity;

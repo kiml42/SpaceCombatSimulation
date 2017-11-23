@@ -11,21 +11,27 @@ namespace Assets.Src.Rocket
     class RocketRunner : IRocketRunner
     {
         private IPilot _pilot;
-        private readonly RocketController _rocketController;
-        private string _previousTarget;
         private IDetonator _detonator;
         private readonly IKnowsCurrentTarget _targetKnower;
+
+        /// <summary>
+        /// Fuel tank for checking if it's still worth trying to fly.
+        /// If null - always trys to fly like it has fuel
+        /// When present and empty, doesn't bother trying to fly.
+        /// </summary>
+        private readonly FuelTank _tank;
 
         /// <summary>
         /// For debugging;
         /// </summary>
         public string name;
 
-        public RocketRunner(IKnowsCurrentTarget knower, IPilot engineControl, IDetonator detonator)
+        public RocketRunner(IKnowsCurrentTarget knower, IPilot engineControl, IDetonator detonator, FuelTank tank)
         {
             _pilot = engineControl;
             _detonator = detonator;
             _targetKnower = knower;
+            _tank = tank;
         }
 
         public void RunRocket()
@@ -33,8 +39,11 @@ namespace Assets.Src.Rocket
             var targetIsValid = _targetKnower.CurrentTarget != null && _targetKnower.CurrentTarget.Transform.IsValid();
             if (targetIsValid)
             {
-                //Debug.Log(name + " is flying at " + _targetKnower.CurrentTarget.Transform);
-                _pilot.Fly(_targetKnower.CurrentTarget);
+                if (_tank == null || _tank.HasFuel())
+                {
+                    //Debug.Log(name + " is flying at " + _targetKnower.CurrentTarget.Transform);
+                    _pilot.Fly(_targetKnower.CurrentTarget);
+                }
 
                 if (_pilot.StartDelay <= 0)
                 {

@@ -29,17 +29,22 @@ public class FuelTank : MonoBehaviour {
 
     public float DrainFuel(float requestedFuel)
     {
-        if(Fuel <= 0)
+        if(HasFuel())
         {
-            return 0;
+            var fuelToReturn = Math.Min(requestedFuel, Fuel);
+            Fuel -= fuelToReturn;
+            if (UseFuelMass)
+            {
+                SetMassIncludingFuel();
+            }
+            return fuelToReturn;
         }
-        var fuelToReturn = Math.Min(requestedFuel, Fuel);
-        Fuel -= fuelToReturn;
-        if (UseFuelMass)
-        {
-            SetMassIncludingFuel();
-        }
-        return fuelToReturn;
+        return 0;
+    }
+
+    public bool HasFuel()
+    {
+        return Fuel > 0;
     }
 
     private void SetMassIncludingFuel()

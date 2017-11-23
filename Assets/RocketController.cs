@@ -70,6 +70,8 @@ public class RocketController : MonoBehaviour
     [Tooltip("Distance in front of the rocket to start looking for friendlies on a collision cource - useful to avoid detecting itself.")]
     public float MinimumFriendlyDetectionDistance = 4;
 
+    public FuelTank Tank;
+
     // Use this for initialization
     void Start()
     {
@@ -100,7 +102,7 @@ public class RocketController : MonoBehaviour
 
         _detonator = new ProximityApproachDetonator(exploder, _rigidbody, TimeToTargetForDetonation, ShrapnelSpeed);
 
-        _runner = new RocketRunner(TargetChoosingMechanism, _pilot, _detonator)
+        _runner = new RocketRunner(TargetChoosingMechanism, _pilot, _detonator, Tank)
         {
             name = transform.name
         };
