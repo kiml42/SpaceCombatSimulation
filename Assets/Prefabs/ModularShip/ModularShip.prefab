@@ -927,10 +927,6 @@ MonoBehaviour:
   Torquer: {fileID: 54288706851983332}
   AngularDragForTorquers: 1
   VectorArrow: {fileID: 4644144218678962}
-  PickerDistanceMultiplier: 1
-  MinimumMass: 80
-  PickerMasMultiplier: 1
-  PickerOverMinMassBonus: 10000
   EnemyTags: []
 --- !u!114 &114604232145694266
 MonoBehaviour:
@@ -949,8 +945,8 @@ MonoBehaviour:
   PollInterval: 1
   EnemyTags:
   - Enemy
-  DisalowedTypes: 00000000
-  PreferdTypes: 020000000300000004000000050000000700000008000000
+  DisalowedTypes: 000000000100000002000000
+  PreferdTypes: 03000000040000000700000008000000
   PreferedTypeBonus: 100
   HemisphereFilterObject: {fileID: 0}
   InCorrectHemisphereBonus: 0

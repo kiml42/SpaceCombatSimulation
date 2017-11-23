@@ -70,6 +70,7 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4142644113627782}
+  - component: {fileID: 114373522710992530}
   - component: {fileID: 114892433267228952}
   - component: {fileID: 114144481770305592}
   - component: {fileID: 114598197760867616}
@@ -867,6 +868,39 @@ MonoBehaviour:
   MaxModules: 15
   EnemyTags: []
   ColourOverride: {r: 0.42745098, g: 0.105882354, b: 0.5372549, a: 1}
+--- !u!114 &114373522710992530
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1256993191570950}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ContinuallyCheckForTargets: 1
+  NeverRetarget: 0
+  DropInvalidTargetsWhenTereAreValidTargets: 1
+  PollInterval: 1
+  EnemyTags:
+  - Enemy
+  DisalowedTypes: 000000000100000002000000
+  PreferdTypes: 03000000040000000700000008000000
+  PreferedTypeBonus: 100
+  HemisphereFilterObject: {fileID: 0}
+  InCorrectHemisphereBonus: 0
+  PickerMassMultiplier: 1
+  MinimumMass: 80
+  PickerOverMinMassBonus: 10000
+  PickerDistanceMultiplier: 1
+  PickerRange: 500
+  PickerInRangeBonus: 0
+  LineOfSightBonus: 1000
+  MinLineOfSightDetectionDistance: 2
+  PickerAimedAtMultiplier: 0
+  PickerAimingObject: {fileID: 0}
+  PickerApproachWeighting: 50
 --- !u!114 &114495384469222602
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -934,10 +968,6 @@ MonoBehaviour:
   Torquer: {fileID: 54937077967875234}
   AngularDragForTorquers: 1
   VectorArrow: {fileID: 4408631218593940}
-  PickerDistanceMultiplier: 1
-  MinimumMass: 80
-  PickerMasMultiplier: 1
-  PickerOverMinMassBonus: 10000
   EnemyTags:
   - Team1
 --- !u!114 &114941638070839662
