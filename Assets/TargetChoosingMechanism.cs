@@ -6,8 +6,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using System;
 
-public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCurrentTarget
+public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IDeactivateableTargetPicker
 {
 
     private ITargetDetector _detector;
@@ -27,7 +28,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
 
     [Tooltip("time to wait between polling for better targets (seconds).")]
     public float PollInterval = 0;
-    private float _waitForPoll = 0;
+    private float _pollCountdonwn = 0;
 
     #region EnemyTags
 
@@ -102,9 +103,8 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
     #region knowsCurrentTarget
     public Target CurrentTarget { get; set; }
     #endregion
-
-
-    private bool _hasHadTarget = false;
+    
+    private bool _active = true;
 
     // Use this for initialization
     void Start ()
@@ -190,11 +190,11 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
 	
 	// Update is called once per frame
 	void Update () {
-        if (!NeverRetarget || !_hasHadTarget)
+        if (_active)
         {
             var targetIsInvalid = CurrentTarget == null || CurrentTarget.Transform.IsInvalid();
 
-            if (targetIsInvalid || (ContinuallyCheckForTargets && _waitForPoll <= 0))
+            if (targetIsInvalid || (ContinuallyCheckForTargets && _pollCountdonwn <= 0))
             {
                 //either the target is invalid, or the poll interval has elapsed and the ContinuallyCheckForTargets boolean is true, so a new poll should be made.
                 //Debug.Log(name + " aquiring new target");
@@ -202,16 +202,21 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IKnowsCur
                 var bestTarget = _targetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).FirstOrDefault();
                 //Debug.Log(transform.name + " is targeting " + bestTarget.Transform);
                 CurrentTarget = bestTarget;
-                if (bestTarget != null)
+                if (bestTarget != null && NeverRetarget)
                 {
-                    _hasHadTarget = true;
+                    Deactivate();   //never try to find a new target, so deactivate
                 }
-                _waitForPoll = PollInterval;
+                _pollCountdonwn = PollInterval;
             } else
             {
                 //there was no poll this frame, so decrement the countdown.
-                _waitForPoll -= Time.deltaTime;
+                _pollCountdonwn -= Time.deltaTime;
             }
         }
+    }
+
+    public void Deactivate()
+    {
+        _active = false;
     }
 }

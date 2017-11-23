@@ -12,7 +12,7 @@ namespace Assets.Src.Rocket
     {
         private IPilot _pilot;
         private IDetonator _detonator;
-        private readonly IKnowsCurrentTarget _targetKnower;
+        private readonly IDeactivateableTargetPicker _targetKnower;
 
         /// <summary>
         /// Fuel tank for checking if it's still worth trying to fly.
@@ -26,7 +26,7 @@ namespace Assets.Src.Rocket
         /// </summary>
         public string name;
 
-        public RocketRunner(IKnowsCurrentTarget knower, IPilot engineControl, IDetonator detonator, FuelTank tank)
+        public RocketRunner(IDeactivateableTargetPicker knower, IPilot engineControl, IDetonator detonator, FuelTank tank)
         {
             _pilot = engineControl;
             _detonator = detonator;
@@ -54,6 +54,10 @@ namespace Assets.Src.Rocket
             //{
             //    Debug.Log(name + " has no target");
             //}
+            if(_tank != null && !_tank.HasFuel())
+            {
+                _targetKnower.Deactivate();
+            }
         }
     }
 }

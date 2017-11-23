@@ -19,8 +19,6 @@ Bugs:
 
 TODO:
     Priority:
-        Rockets stop trying to pilot when out of fuel.
-            Also turn off their targeters when out of fuel.
         Randomise target choosing mechanism periods so they don't come up at the same time.
         Fighters - using engines as weapons/using guns/both.
         Some way for turrets to account for their own turn rates. - to keep up with tracking moving targets.
