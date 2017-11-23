@@ -20,7 +20,6 @@ Bugs:
 TODO:
     Priority:
         Fighters - using engines as weapons/using guns/both.
-        Use target choosing mech for ships.
         Some way for turrets to account for their own turn rates. - to keep up with tracking moving targets.
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
         Refactor rocket controller's start delay feature.

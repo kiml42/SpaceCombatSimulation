@@ -11,8 +11,10 @@ using System;
 using System.Linq;
 using Assets.Src.Pilots;
 
-public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTags, IDeactivatable, IKnowsCurrentTarget
+public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
 {
+    private IKnowsCurrentTarget _targetChoosingMechanism;
+
     public float ShootAngle = 30;
     public float TorqueMultiplier = 9;
     public int StartDelay = 2;
@@ -35,7 +37,6 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
     public float AngularDragForTorquers = 20;
 
     private const float Fuel = Mathf.Infinity;
-    private SpaceshipRunner _runner;
     private Rigidbody _thisSpaceship;
     private bool _active = true;
 
@@ -43,14 +44,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
 
     private string InactiveTag = "Untagged";
     public Transform VectorArrow;
-
-    #region TargetPickerVariables
-    public float PickerDistanceMultiplier = 1;
-    public float MinimumMass = 80;
-    public float PickerMasMultiplier = 1;
-    public float PickerOverMinMassBonus = 10000;
-    #endregion
-
+    
     #region EnemyTags
     public void AddEnemyTag(string newTag)
     {
@@ -72,14 +66,13 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
     public List<string> EnemyTags;
     #endregion
 
-    #region knowsCurrentTarget
-    public Target CurrentTarget {get;set;}
-    #endregion
-
     // Use this for initialization
     void Start()
     {
-        if(Engine != null)
+        _thisSpaceship = GetComponent<Rigidbody>();
+        _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
+
+        if (Engine != null)
         {
             _engines.Add(Engine);
         }
@@ -92,12 +85,6 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
 
     private void Initialise()
     {
-        _thisSpaceship = GetComponent<Rigidbody>();
-        var _detector = new RepositoryTargetDetector()
-        {
-            EnemyTags = EnemyTags
-        };
-
         var torqueApplier = new MultiTorquerTorqueAplier(_thisSpaceship, _torquers, TorqueMultiplier, AngularDragForTorquers);
 
         //ensure this starts active.
@@ -116,31 +103,7 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
             MinTangentialSpeed = MinTangentialVelocity,
             RadialSpeedThreshold = RadialSpeedThreshold
         };
-
-        var pickers = new List<ITargetPicker>
-        {
-            new ProximityTargetPicker(_thisSpaceship){
-                DistanceMultiplier = PickerDistanceMultiplier,
-                Range = Mathf.Infinity,
-                KullInvalidTargets = false
-            }
-        };
-
-        if (MinimumMass > 0 || PickerMasMultiplier != 0)
-        {
-            pickers.Add(new MassTargetPicker
-            {
-                MinMass = MinimumMass,
-                MassMultiplier = PickerMasMultiplier,
-                OverMinMassBonus = PickerOverMinMassBonus,
-                KullInvalidTargets = false
-            });
-        }
-
-        var picker = new CombinedTargetPicker(pickers);
         
-        _runner = new SpaceshipRunner(_detector, picker, _pilot, this);
-
         foreach (var engine in _engines)
         {
             engine.tag = tag;
@@ -150,8 +113,8 @@ public class SpaceShipControler : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
     // Update is called once per frame
     void FixedUpdate()
     {
-        if (_active && _runner != null)
-            _runner.RunSpaceship();
+        if (_active && _pilot != null)
+            _pilot.Fly(_targetChoosingMechanism.CurrentTarget);
     }
     
     public void Deactivate()

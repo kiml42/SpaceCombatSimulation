@@ -833,7 +833,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Mutations: 3
-  AllowedCharacters: ' 0123456789  '
+  AllowedCharacters: ' 0123456789012  '
   MaxMutationLength: 5
   GenomeLength: 100
   GenerationSize: 17
