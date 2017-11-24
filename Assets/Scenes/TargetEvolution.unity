@@ -119,6 +119,11 @@ Prefab:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 114257166760928450, guid: 2b543762511759b41a3d5fc84820ca59,
+        type: 2}
+      propertyPath: Drones.Array.size
+      value: 15
+      objectReference: {fileID: 0}
     - target: {fileID: 4300714835004162, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -151,6 +156,77 @@ Prefab:
       propertyPath: m_RootOrder
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 114967028892328500, guid: 2b543762511759b41a3d5fc84820ca59,
+        type: 2}
+      propertyPath: ThisRunFolder
+      value: mixedTargets-morePassive
+      objectReference: {fileID: 0}
+    - target: {fileID: 114257166760928450, guid: 2b543762511759b41a3d5fc84820ca59,
+        type: 2}
+      propertyPath: Drones.Array.data[4]
+      value: 
+      objectReference: {fileID: 54333284254749140, guid: 673f730f11e01f942a1943124006aa6f,
+        type: 2}
+    - target: {fileID: 114257166760928450, guid: 2b543762511759b41a3d5fc84820ca59,
+        type: 2}
+      propertyPath: Drones.Array.data[5]
+      value: 
+      objectReference: {fileID: 54333284254749140, guid: 673f730f11e01f942a1943124006aa6f,
+        type: 2}
+    - target: {fileID: 114257166760928450, guid: 2b543762511759b41a3d5fc84820ca59,
+        type: 2}
+      propertyPath: Drones.Array.data[6]
+      value: 
+      objectReference: {fileID: 54937077967875234, guid: e0735aa5864e5664ba68082c1f9b8b37,
+        type: 2}
+    - target: {fileID: 114257166760928450, guid: 2b543762511759b41a3d5fc84820ca59,
+        type: 2}
+      propertyPath: Drones.Array.data[7]
+      value: 
+      objectReference: {fileID: 54333284254749140, guid: 673f730f11e01f942a1943124006aa6f,
+        type: 2}
+    - target: {fileID: 114257166760928450, guid: 2b543762511759b41a3d5fc84820ca59,
+        type: 2}
+      propertyPath: Drones.Array.data[8]
+      value: 
+      objectReference: {fileID: 54861845782397696, guid: a3692a1e7a8a25a40a1c840c4f784611,
+        type: 2}
+    - target: {fileID: 114257166760928450, guid: 2b543762511759b41a3d5fc84820ca59,
+        type: 2}
+      propertyPath: Drones.Array.data[9]
+      value: 
+      objectReference: {fileID: 54333284254749140, guid: 673f730f11e01f942a1943124006aa6f,
+        type: 2}
+    - target: {fileID: 114257166760928450, guid: 2b543762511759b41a3d5fc84820ca59,
+        type: 2}
+      propertyPath: Drones.Array.data[10]
+      value: 
+      objectReference: {fileID: 54333284254749140, guid: 673f730f11e01f942a1943124006aa6f,
+        type: 2}
+    - target: {fileID: 114257166760928450, guid: 2b543762511759b41a3d5fc84820ca59,
+        type: 2}
+      propertyPath: Drones.Array.data[11]
+      value: 
+      objectReference: {fileID: 54333284254749140, guid: 673f730f11e01f942a1943124006aa6f,
+        type: 2}
+    - target: {fileID: 114257166760928450, guid: 2b543762511759b41a3d5fc84820ca59,
+        type: 2}
+      propertyPath: Drones.Array.data[12]
+      value: 
+      objectReference: {fileID: 54555125603097668, guid: b0b7fa152bf562f4eb02cc527dd51b36,
+        type: 2}
+    - target: {fileID: 114257166760928450, guid: 2b543762511759b41a3d5fc84820ca59,
+        type: 2}
+      propertyPath: Drones.Array.data[13]
+      value: 
+      objectReference: {fileID: 54333284254749140, guid: 673f730f11e01f942a1943124006aa6f,
+        type: 2}
+    - target: {fileID: 114257166760928450, guid: 2b543762511759b41a3d5fc84820ca59,
+        type: 2}
+      propertyPath: Drones.Array.data[14]
+      value: 
+      objectReference: {fileID: 54333284254749140, guid: 673f730f11e01f942a1943124006aa6f,
+        type: 2}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
   m_IsPrefabParent: 0

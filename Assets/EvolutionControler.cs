@@ -186,9 +186,9 @@ public class EvolutionControler : MonoBehaviour
 
     private void ReadCurrentGeneration()
     {
-        if (File.Exists(FileManager.CurrentGenerationFilePath))
+        if (File.Exists(FileManager.ConfigFilePath))
         {
-            var GenerationNumberText = File.ReadAllText(FileManager.CurrentGenerationFilePath);
+            var GenerationNumberText = File.ReadAllText(FileManager.ConfigFilePath);
             if(!int.TryParse(GenerationNumberText, out GenerationNumber))
             {
                 GenerationNumber = 0;
