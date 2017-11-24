@@ -20,6 +20,13 @@ Bugs:
 TODO:
     Priority:
         Randomise target choosing mechanism periods so they don't come up at the same time.
+        Store full config of evolution in current generation file.
+        Menus
+            Top menu - leads to general settings and various modes
+            Menu per mode, for setup - saves setup in the generation file.
+        Cardboard support
+        Test on phone
+        Add to Play store?
         Fighters - using engines as weapons/using guns/both.
         Some way for turrets to account for their own turn rates. - to keep up with tracking moving targets.
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
@@ -46,7 +53,6 @@ TODO:
         Turrets can be destroyed, but otherwise the whole thing has one lot of health - probably using pass damage up.
     allow components in the same cubic volume if they wouldn't intersect.
     Turrets should know the ways they cannot turn.
-    Store full config of evolution in current generation file.
     Draws should be penalised less if the ships killed each other simultaneously. probably give them the win score - some constant.
     Sexual reproduction
     projectiles apply force to cancel lateral V. Target set on projectile when fired.
