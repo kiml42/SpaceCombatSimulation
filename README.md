@@ -21,6 +21,7 @@ TODO:
     Priority:
         Randomise target choosing mechanism periods so they don't come up at the same time.
         Store full config of evolution in current generation file.
+            Done for Drone shooting, but not for 1v1 evolution.
         Menus
             Top menu - leads to general settings and various modes
             Menu per mode, for setup - saves setup in the generation file.
