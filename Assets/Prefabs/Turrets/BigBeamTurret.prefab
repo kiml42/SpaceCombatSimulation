@@ -2389,13 +2389,13 @@ MonoBehaviour:
   ShootTime: 1.4
   StartOffset: 0.5
   BeamForce: 4
-  BeamDamage: 360
+  BeamDamage: 180
   HitEffectPrefab: {fileID: 114216939416956544, guid: e6ef866ccc6cd2c4fb5f402be7b7a1d0,
     type: 2}
   ElevationHub: {fileID: 54685917326791822}
   BeamsParent: {fileID: 4240506007227012}
   InitialRadius: 0.3
-  Divergence: 0.0017
+  Divergence: 0.0009
   BeamColour: {r: 0.065999985, g: 1, b: 0.63013583, a: 0.772}
   KeepShootingSeconds: 2
 --- !u!114 &114921045998262274
