@@ -15,6 +15,7 @@ Bugs:
         rocket engines carry on regardless if the rocket has no target.
     Graphical - Beams don't turn off when the turret dies. - haven't seen this one in a while.
     Rocket engine plumes start on
+    Accounting for speed fails for spinning targets.
     
 
 TODO:
