@@ -21,6 +21,7 @@ Bugs:
 TODO:
     Priority:
         Randomise target choosing mechanism periods so they don't come up at the same time.
+        Switch to saving data in a database instead fof files
         Store full config of evolution in current generation file.
             Done for Drone shooting, but not for 1v1 evolution.
         Menus

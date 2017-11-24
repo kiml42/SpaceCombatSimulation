@@ -303,7 +303,7 @@ MonoBehaviour:
   RandomStartTime: 1.6
   MinStartTime: 0.1
   BurstCount: 1
-  BurstInterval: 1
+  BurstInterval: 2
   EnemyTags:
   - Enemy
   - Team2
