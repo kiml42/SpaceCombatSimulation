@@ -219,10 +219,17 @@
     <Reference Include="UnityEngine.Purchasing">
       <HintPath>Library\UnityAssemblies\UnityEngine.Purchasing.dll</HintPath>
     </Reference>
+    <Reference Include="Mono.Data.Sqlite">
+      <HintPath>Assets\Plugins\Mono.Data.Sqlite.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Data">
+      <HintPath>Assets\Plugins\System.Data.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\AngleTrigger.cs" />
     <Compile Include="Assets\ColourSetter.cs" />
+    <Compile Include="Assets\DatabaseConnection.cs" />
     <Compile Include="Assets\DestroyAfterTimeout.cs" />
     <Compile Include="Assets\EngineControler.cs" />
     <Compile Include="Assets\EvolutionArenaControler.cs" />
@@ -250,6 +257,7 @@
     <Compile Include="Assets\Src\Controllers\SpawnProjectile.cs" />
     <Compile Include="Assets\Src\Controllers\SpawnTurret.cs" />
     <Compile Include="Assets\Src\Controllers\WorldControler.cs" />
+    <Compile Include="Assets\Src\Database\EvolutionTargetShootingDatabaseHandler.cs" />
     <Compile Include="Assets\Src\Evolution\ArenaRecord.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionFileManager.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionMatchController.cs" />
@@ -316,9 +324,6 @@
     <Compile Include="Assets\TorquerController.cs" />
     <Compile Include="Assets\TurrertTurningMechanism.cs" />
     <Compile Include="Assets\TypeKnower.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />
