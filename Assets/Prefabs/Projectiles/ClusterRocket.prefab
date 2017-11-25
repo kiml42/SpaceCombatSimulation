@@ -722,7 +722,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00495207fc630df479e0d4f227bb1949, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Fuel: 100
+  Fuel: 80
   UseFuelMass: 1
   FuelDensity: 0.001
 --- !u!114 &114095532759699856
@@ -838,6 +838,7 @@ MonoBehaviour:
   TimeThresholdForMinimalEvasion: 4
   EvasionModeTime: 0.3
   MinimumFriendlyDetectionDistance: 1.5
+  Tank: {fileID: 0}
 --- !u!114 &114958396777747442
 MonoBehaviour:
   m_ObjectHideFlags: 1
