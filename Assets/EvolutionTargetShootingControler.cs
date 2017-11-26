@@ -12,6 +12,9 @@ using Assets.Src.Database;
 
 public class EvolutionTargetShootingControler : MonoBehaviour
 {
+    public int? Id;
+    public string Name;
+
     public EvolutionShipConfig ShipConfig;
     public EvolutionFileManager FileManager;
     public EvolutionMutationController MutationControl;
@@ -53,7 +56,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     public int DeathPenalty = 70;
     #endregion
 
-    private int GenerationNumber;
+    public int GenerationNumber;
     private GenerationTargetShooting _currentGeneration;
     private int _killsThisMatch = 0;
     private const int SHIP_INDEX = 0;
@@ -96,12 +99,24 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     private const int KILL_SCORE_INDEX = 17;
     private const int COMPLETION_BONUS_INDEX = 18;
     private const int DEATH_PENALTY_INDEX = 19;
+
+    public string DronesString { get
+        {
+            return string.Join(";", Drones.Select(d => AssetDatabase.GetAssetPath(d)).ToArray());
+        }
+    }
     #endregion
+
+    EvolutionTargetShootingDatabaseHandler _dbHandler;
 
     // Use this for initialization
     void Start()
     {
-        new EvolutionTargetShootingDatabaseHandler(this).ReadDroneConfig(0);
+        _dbHandler = new EvolutionTargetShootingDatabaseHandler(this);
+
+        if(Id.HasValue)
+            _dbHandler.ReadDroneConfig(Id.Value);
+
         ReadConfigAndCurrentGeneration();
         SpawnShips();
         IsMatchOver();
@@ -134,15 +149,16 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     private void SaveGeneration()
     {
         //Debug.Log("Saving Generation");
+        _dbHandler.SaveConfig();
+
         string[] configText = new string[20];
 
         configText[CURRENT_GEN_INDEX] = GenerationNumber.ToString();
         configText[MIN_MATCHES_INDEX] = MinMatchesPerIndividual.ToString();
         configText[WINNERS_COUNT_INDEX] = WinnersFromEachGeneration.ToString();
 
-        var dronesString = string.Join(";", Drones.Select(d => AssetDatabase.GetAssetPath(d)).ToArray());
-        //Debug.Log("dronesString: '" + dronesString  + "'.");
-        configText[DRONES_LIST_INDEX] = dronesString;
+        //Debug.Log("dronesString: '" + DronesString  + "'.");
+        configText[DRONES_LIST_INDEX] = DronesString;
         configText[MIN_DRONES_INDEX] = MinDronesToSpawn.ToString();
         configText[DRONE_ESCALATION_INDEX] = ExtraDroneEveryXGenerations.ToString();
         configText[MAX_DRONES_INDEX] = MaxDronesToSpawn.ToString();

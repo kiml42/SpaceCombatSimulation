@@ -9,6 +9,7 @@ public class EvolutionMatchController : MonoBehaviour {
     
     public float WinnerPollPeriod = 1;
     private float _scoreUpdatePollCountdown = 0;
+    public int? Id;
 
     // Use this for initialization
     void Start () {

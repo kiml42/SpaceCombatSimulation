@@ -19,6 +19,7 @@ public class EvolutionMutationController : MonoBehaviour {
     public string DefaultGenome = "";
 
     private StringMutator _mutator;
+    public int? Id;
 
     void Start()
     {

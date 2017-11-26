@@ -11,6 +11,7 @@ namespace Assets.Src.Database
     public class EvolutionTargetShootingDatabaseHandler
     {
         private EvolutionTargetShootingControler _toConfigure;
+        private string _connectionString = "URI=file:" + Application.dataPath + "/SpaceCombatSimulationDB.s3db"; //Path to database.
 
         public EvolutionTargetShootingDatabaseHandler(EvolutionTargetShootingControler toConfigure)
         {
@@ -20,37 +21,61 @@ namespace Assets.Src.Database
 
         public void ReadDroneConfig(int id)
         {
-            string conn = "URI=file:" + Application.dataPath + "/SpaceCombatSimulationDB.s3db"; //Path to database.
-            IDbConnection dbconn;
-            dbconn = (IDbConnection)new SqliteConnection(conn);
-            dbconn.Open(); //Open connection to the database.
-            IDbCommand dbcmd = dbconn.CreateCommand();
-            string sqlQuery = "SELECT DroneEvolutionConfig.id,name,currentGeneration,minMatchesPerIndividual,winnersCount,minDrones,droneEscalation,maxDrones," +
-                "killScoreMultiplier,flatKillBonus,completionBonus,deathPenalty,droneList," +
-                "MatchConfig.id,matchTimeout,winnerPollPeriod" +
-                " FROM DroneEvolutionConfig" +
-                " INNER JOIN MatchConfig on MatchConfig.id = DroneEvolutionConfig.matchConfigId;" +
-                " WHERE DroneEvolutionConfig.id =" + id;
-            dbcmd.CommandText = sqlQuery;
-            IDataReader reader = dbcmd.ExecuteReader();
-            while (reader.Read())
+            IDbConnection dbconn = null;
+            IDbCommand dbcmd = null;
+            IDataReader reader = null;
+            try
             {
-                var readId = reader.GetInt32(0);
-                var name = reader.GetString(1);
-                var currentGeneration = reader.GetInt32(2);
-                var minMatchesPerIndividual = reader.GetInt32(3);
-                var winnersCount = reader.GetInt32(4);
-                var minDrones = reader.GetInt32(5);
-                var droneEscalation = reader.GetFloat(6);
-                var maxDrones = reader.GetInt32(7);
-                var killScoreMultiplier = reader.GetFloat(8);
-                var flatKillBonus = reader.GetFloat(9);
-                var completionBonus = reader.GetFloat(10);
-                var deathPenalty = reader.GetFloat(11);
-                var droneList = reader.GetString(12);
+                dbconn = (IDbConnection)new SqliteConnection(_connectionString);
+                dbconn.Open(); //Open connection to the database.
+                dbcmd = dbconn.CreateCommand();
+                //string sqlQuery = "SELECT DroneEvolutionConfig.id,name,currentGeneration,minMatchesPerIndividual,winnersCount,minDrones,droneEscalation,maxDrones," +
+                //    "killScoreMultiplier,flatKillBonus,completionBonus,deathPenalty,droneList," +
+                //    "MatchConfig.id,matchTimeout,winnerPollPeriod," +
+                //    "MutationConfig.id,mutations,allowedCharacters,maxMuatationLength,genomeLength,generationSize,randomDefault,defaultGenome" +
+                //    " FROM DroneEvolutionConfig" +
+                //    " LEFT JOIN MatchConfig on MatchConfig.id = DroneEvolutionConfig.matchConfigId;" +
+                //    " LEFT JOIN MutationConfig on MutationConfig.id = DroneEvolutionConfig.mutationConfigId;" +
+                //    " WHERE DroneEvolutionConfig.id =" + id;
+                string sqlQuery = "SELECT *" +
+                    " FROM DroneEvolutionConfig" +
+                    " LEFT JOIN MatchConfig on MatchConfig.id = DroneEvolutionConfig.matchConfigId" +
+                    " LEFT JOIN MutationConfig on MutationConfig.id = DroneEvolutionConfig.mutationConfigId;" +
+                    " WHERE DroneEvolutionConfig.id =" + id;
+                dbcmd.CommandText = sqlQuery;
+                reader = dbcmd.ExecuteReader();
+                reader.Read();
 
-                var matchTimeout = reader.GetFloat(13);
-                var winnerPollPeriod = reader.GetFloat(14);
+                //Debug.Log("DroneEvolutionConfig.id ordinal: " + reader.GetOrdinal("id"));
+                var readId = reader.GetInt32(0);
+                var name = reader.GetString(reader.GetOrdinal("name")); //1
+                var currentGeneration = reader.GetInt32(reader.GetOrdinal("currentGeneration"));
+                var minMatchesPerIndividual = reader.GetInt32(reader.GetOrdinal("minMatchesPerIndividual"));
+                var winnersCount = reader.GetInt32(reader.GetOrdinal("winnersCount"));
+                var minDrones = reader.GetInt32(reader.GetOrdinal("minDrones"));
+                var droneEscalation = reader.GetFloat(reader.GetOrdinal("droneEscalation"));
+                var maxDrones = reader.GetInt32(reader.GetOrdinal("maxDrones"));
+                var killScoreMultiplier = reader.GetFloat(reader.GetOrdinal("killScoreMultiplier"));
+                var flatKillBonus = reader.GetFloat(reader.GetOrdinal("flatKillBonus"));
+                var completionBonus = reader.GetFloat(reader.GetOrdinal("completionBonus"));
+                var deathPenalty = reader.GetFloat(reader.GetOrdinal("deathPenalty"));  //11
+                var droneList = reader.GetString(reader.GetOrdinal("droneList"));   //14
+
+
+                //Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("MatchConfig.Id"));  //-1
+                var matchConfigId = reader.GetInt32(12);
+                var matchTimeout = reader.GetFloat(reader.GetOrdinal("matchTimeout")); //16
+                var winnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")); //17
+
+                var mutationConfigId = reader.GetInt32(13);
+                var mutations = reader.GetInt32(reader.GetOrdinal("mutations"));    //19
+                var allowedCharacters = reader.GetString(reader.GetOrdinal("allowedCharacters"));   //20
+                var maxMuatationLength = reader.GetInt32(reader.GetOrdinal("maxMuatationLength"));   //21
+                var genomeLength = reader.GetInt32(reader.GetOrdinal("genomeLength")); //22
+                var generationSize = reader.GetInt32(reader.GetOrdinal("generationSize"));   //23
+                var randomDefault = reader.GetBoolean(reader.GetOrdinal("randomDefault"));  //24
+                var defaultGenome = reader.GetString(reader.GetOrdinal("defaultGenome"));   //25
+
 
                 Debug.Log(
                     "id= " + readId +
@@ -66,21 +91,148 @@ namespace Assets.Src.Database
                     ", completionBonus " + completionBonus +
                     ", deathPenalty " + deathPenalty +
                     ", droneList " + droneList +
+
+                    ", mutationConfigId " + mutationConfigId +
                     ", matchTimeout " + matchTimeout +
-                    ", winnerPollPeriod " + winnerPollPeriod
+                    ", winnerPollPeriod " + winnerPollPeriod +
+
+                    ", mutationConfigId " + mutationConfigId +
+                    ", mutations " + mutations +
+                    ", maxMuatationLength " + maxMuatationLength +
+                    ", genomeLength " + genomeLength +
+                    ", generationSize " + generationSize +
+                    ", randomDefault " + randomDefault +
+                    ", defaultGenome " + defaultGenome
                     );
             }
-            reader.Close();
-            reader = null;
-            dbcmd.Dispose();
-            dbcmd = null;
-            dbconn.Close();
-            dbconn = null;
+            finally
+            {
+                Debug.Log("Disconnecting");
+                if (reader != null)
+                    reader.Close();
+                reader = null;
+                if (dbcmd != null)
+                    dbcmd.Dispose();
+                dbcmd = null;
+                if (dbconn != null)
+                    dbconn.Close();
+                dbconn = null;
+            }
         }
 
-        private void Disconect()
+        public void SaveConfig()
         {
+            SaveMatchConfig(_toConfigure.MatchControl);
+            SaveMutationConfig(_toConfigure.MutationControl);
 
+            SaveEvolutionControlerConfig();
+        }
+
+        private void SaveMatchConfig(EvolutionMatchController matchConfig)
+        {
+            if (matchConfig.Id.HasValue)
+            {
+                Debug.LogError("Updating existing not implemented");
+            }
+            else
+            {
+                SqliteConnection sql_con = null;
+                try
+                {
+                    sql_con = new SqliteConnection(_connectionString);
+                    sql_con.Open();
+                    SqliteCommand insertSQL = new SqliteCommand("INSERT INTO MatchConfig (matchTimeout, winnerPollPeriod) VALUES (12,2)", sql_con);
+
+                    //TODO remove cast to int when the database is fixed.
+                    //insertSQL.Parameters.Add((int)matchConfig.MatchTimeout);
+                    //insertSQL.Parameters.Add(matchConfig.WinnerPollPeriod);
+
+                    insertSQL.ExecuteNonQuery();
+                }
+                finally
+                {
+                    if (sql_con != null)
+                        sql_con.Close();
+                    sql_con = null;
+                }
+
+            }
+        }
+
+        private void SaveMutationConfig(EvolutionMutationController mutationConfig)
+        {
+            if (mutationConfig.Id.HasValue)
+            {
+                Debug.LogError("Updating existing not implemented");
+            }
+            else
+            {
+                SqliteConnection sql_con = null;
+                try
+                {
+                    sql_con = new SqliteConnection(_connectionString);
+                    SqliteCommand insertSQL = new SqliteCommand("INSERT INTO MutationConfig (mutations, maxMuatationLength" +
+                        ", genomeLength, generationSize, randomDefault, defaultGenome) VALUES (?,?,?,?,?,?)", sql_con);
+
+                    insertSQL.Parameters.Add(mutationConfig.Mutations);
+                    insertSQL.Parameters.Add(mutationConfig.MaxMutationLength);
+                    insertSQL.Parameters.Add(mutationConfig.GenomeLength);
+                    insertSQL.Parameters.Add(mutationConfig.GenerationSize);
+                    insertSQL.Parameters.Add(mutationConfig.UseCompletelyRandomDefaultGenome);
+                    insertSQL.Parameters.Add(mutationConfig.DefaultGenome);
+
+                    insertSQL.ExecuteNonQuery();
+                }
+                finally
+                {
+                    if (sql_con != null)
+                        sql_con.Close();
+                    sql_con = null;
+                }
+            }
+        }
+
+        private void SaveEvolutionControlerConfig()
+        {
+            if (_toConfigure.Id.HasValue)
+            {
+                Debug.LogError("Updating existing not implemented");
+            }
+            else
+            {
+                SqliteConnection sql_con = null;
+                try
+                {
+                    sql_con = new SqliteConnection(_connectionString);
+                    SqliteCommand insertSQL = new SqliteCommand("INSERT INTO DroneEvolutionConfig (name , currentGeneration , minMatchesPerIndividual" +
+                        ", winnersCount , minDrones , droneEscalation , maxDrones , killScoreMultiplier, flatKillBonus, completionBonus " +
+                        ", deathPenalty, droneList, matchConfigId, mutationConfigId) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", sql_con);
+
+                    insertSQL.Parameters.Add(_toConfigure.Name);
+                    insertSQL.Parameters.Add(_toConfigure.GenerationNumber);
+                    insertSQL.Parameters.Add(_toConfigure.MinMatchesPerIndividual);
+                    insertSQL.Parameters.Add(_toConfigure.WinnersFromEachGeneration);
+                    insertSQL.Parameters.Add(_toConfigure.MinDronesToSpawn);
+                    insertSQL.Parameters.Add(_toConfigure.ExtraDroneEveryXGenerations);
+                    insertSQL.Parameters.Add(_toConfigure.MaxDronesToSpawn);
+                    insertSQL.Parameters.Add(_toConfigure.KillScoreMultiplier);
+                    insertSQL.Parameters.Add(_toConfigure.FlatKillBonus);
+                    insertSQL.Parameters.Add(_toConfigure.CompletionBonus);
+                    insertSQL.Parameters.Add(_toConfigure.DeathPenalty);
+                    insertSQL.Parameters.Add(_toConfigure.DronesString);
+
+                    insertSQL.Parameters.Add(_toConfigure.MatchControl.Id);
+                    insertSQL.Parameters.Add(_toConfigure.MutationControl.Id);
+
+                    insertSQL.ExecuteNonQuery();
+                }
+                finally
+                {
+                    if (sql_con != null)
+                        sql_con.Close();
+                    sql_con = null;
+                }
+            }
         }
     }
 }
