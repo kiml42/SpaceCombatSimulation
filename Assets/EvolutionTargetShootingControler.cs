@@ -8,6 +8,7 @@ using System;
 using System.IO;
 using Assets.Src.ObjectManagement;
 using UnityEditor;
+using Assets.Src.Database;
 
 public class EvolutionTargetShootingControler : MonoBehaviour
 {
@@ -100,6 +101,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     // Use this for initialization
     void Start()
     {
+        new EvolutionTargetShootingDatabaseHandler(this).ReadDroneConfig(0);
         ReadConfigAndCurrentGeneration();
         SpawnShips();
         IsMatchOver();
