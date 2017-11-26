@@ -122,7 +122,7 @@ namespace Assets.Src.Database
 
         public void SaveConfig()
         {
-            SaveMatchConfig(_toConfigure.MatchControl);
+            //SaveMatchConfig(_toConfigure.MatchControl);
             SaveMutationConfig(_toConfigure.MutationControl);
 
             SaveEvolutionControlerConfig();
@@ -143,9 +143,8 @@ namespace Assets.Src.Database
                     sql_con.Open();
                     SqliteCommand insertSQL = new SqliteCommand("INSERT INTO MatchConfig (matchTimeout, winnerPollPeriod) VALUES (12,2)", sql_con);
 
-                    //TODO remove cast to int when the database is fixed.
-                    //insertSQL.Parameters.Add((int)matchConfig.MatchTimeout);
-                    //insertSQL.Parameters.Add(matchConfig.WinnerPollPeriod);
+                    insertSQL.Parameters.Add(matchConfig.MatchTimeout);
+                    insertSQL.Parameters.Add(matchConfig.WinnerPollPeriod);
 
                     insertSQL.ExecuteNonQuery();
                 }
@@ -171,10 +170,13 @@ namespace Assets.Src.Database
                 try
                 {
                     sql_con = new SqliteConnection(_connectionString);
-                    SqliteCommand insertSQL = new SqliteCommand("INSERT INTO MutationConfig (mutations, maxMuatationLength" +
-                        ", genomeLength, generationSize, randomDefault, defaultGenome) VALUES (?,?,?,?,?,?)", sql_con);
+                    SqliteCommand insertSQL = new SqliteCommand("INSERT INTO MutationConfig (" +
+                        "mutations, " +
+                        "allowedCharacters, maxMuatationLength" +
+                        ", genomeLength, generationSize, randomDefault, defaultGenome) VALUES (?,?,?,?,?,?,?)", sql_con);
 
                     insertSQL.Parameters.Add(mutationConfig.Mutations);
+                    insertSQL.Parameters.Add(mutationConfig.AllowedCharacters);
                     insertSQL.Parameters.Add(mutationConfig.MaxMutationLength);
                     insertSQL.Parameters.Add(mutationConfig.GenomeLength);
                     insertSQL.Parameters.Add(mutationConfig.GenerationSize);

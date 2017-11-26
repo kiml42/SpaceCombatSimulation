@@ -159,7 +159,7 @@ Prefab:
     - target: {fileID: 114967028892328500, guid: 2b543762511759b41a3d5fc84820ca59,
         type: 2}
       propertyPath: ThisRunFolder
-      value: mixedTargets-morePassive
+      value: mixedTargets-morePassive-test
       objectReference: {fileID: 0}
     - target: {fileID: 114257166760928450, guid: 2b543762511759b41a3d5fc84820ca59,
         type: 2}
@@ -227,6 +227,11 @@ Prefab:
       value: 
       objectReference: {fileID: 54333284254749140, guid: 673f730f11e01f942a1943124006aa6f,
         type: 2}
+    - target: {fileID: 114664077113307600, guid: 2b543762511759b41a3d5fc84820ca59,
+        type: 2}
+      propertyPath: MatchTimeout
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 2b543762511759b41a3d5fc84820ca59, type: 2}
   m_IsPrefabParent: 0
