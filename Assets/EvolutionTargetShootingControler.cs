@@ -28,8 +28,21 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     [Tooltip("number of drones spawned = MinDronesToSpawn + CurrentGeneration/ExtraDroneEveryXGenerations")]
     public int MinDronesToSpawn = 3;
     [Tooltip("number of drones spawned = MinDronesToSpawn + CurrentGeneration/ExtraDroneEveryXGenerations")]
-    public int ExtraDroneEveryXGenerations = 5;
+    public float ExtraDroneEveryXGenerations = 5;
     public int MaxDronesToSpawn = 100;
+    
+    public string DronesString
+    {
+        get
+        {
+            return string.Join(";", Drones.Select(d => AssetDatabase.GetAssetPath(d)).ToArray());
+        }
+        set
+        {
+            var splitDronesString = value.Split(';');
+            Drones = splitDronesString.Select(d => AssetDatabase.LoadAssetAtPath<Rigidbody>(d)).ToList();
+        }
+    }
     #endregion
 
     #region Generation Setup
@@ -44,16 +57,16 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     #region score
     [Header("Score")]
     [Tooltip("score for each kill = (framesRemaining * KillScoreMultiplier) + FlatKillBonus")]
-    public int KillScoreMultiplier = 300;
+    public float KillScoreMultiplier = 300;
 
     [Tooltip("score for each kill = (framesRemaining * KillScoreMultiplier) + FlatKillBonus")]
-    public int FlatKillBonus = 100;
+    public float FlatKillBonus = 100;
 
     [Tooltip("Bonus Score for killing everything, timesd by remaining frames")]
-    public int CompletionBonus = 100;
+    public float CompletionBonus = 100;
 
     [Tooltip("penalty for dieing, multiplied by remining frames")]
-    public int DeathPenalty = 70;
+    public float DeathPenalty = 70;
     #endregion
 
     public int GenerationNumber;
@@ -100,11 +113,6 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     private const int COMPLETION_BONUS_INDEX = 18;
     private const int DEATH_PENALTY_INDEX = 19;
 
-    public string DronesString { get
-        {
-            return string.Join(";", Drones.Select(d => AssetDatabase.GetAssetPath(d)).ToArray());
-        }
-    }
     #endregion
 
     EvolutionTargetShootingDatabaseHandler _dbHandler;
