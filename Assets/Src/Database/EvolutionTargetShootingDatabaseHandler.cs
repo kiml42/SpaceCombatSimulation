@@ -20,6 +20,7 @@ namespace Assets.Src.Database
 
         public void ReadDroneConfig(int id)
         {
+            Debug.Log("Reading mconfig from DB. Id: " + id);
             using (var sql_con = new SqliteConnection(_connectionString))
             {
                 IDbCommand dbcmd = null;
@@ -38,7 +39,7 @@ namespace Assets.Src.Database
                     reader.Read();
 
                     //Debug.Log("DroneEvolutionConfig.id ordinal: " + reader.GetOrdinal("id"));
-                    _toConfigure.Id = reader.GetInt32(0);
+                    _toConfigure.DatabaseId = reader.GetInt32(0);
                     _toConfigure.name = reader.GetString(reader.GetOrdinal("name")); //1
                     _toConfigure.GenerationNumber = reader.GetInt32(reader.GetOrdinal("currentGeneration"));
                     _toConfigure.MinMatchesPerIndividual = reader.GetInt32(reader.GetOrdinal("minMatchesPerIndividual"));
@@ -51,24 +52,24 @@ namespace Assets.Src.Database
                     _toConfigure.CompletionBonus = reader.GetFloat(reader.GetOrdinal("completionBonus"));
                     _toConfigure.DeathPenalty = reader.GetFloat(reader.GetOrdinal("deathPenalty"));  //11
                     _toConfigure.DronesString = reader.GetString(reader.GetOrdinal("droneList"));   //14
-                    
-                    //Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("MatchConfig.Id"));  //-1
-                    var matchConfigId = reader.GetInt32(12);
-                    var matchTimeout = reader.GetFloat(reader.GetOrdinal("matchTimeout")); //16
-                    var winnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")); //17
 
-                    var mutationConfigId = reader.GetInt32(13);
-                    var mutations = reader.GetInt32(reader.GetOrdinal("mutations"));    //19
-                    var allowedCharacters = reader.GetString(reader.GetOrdinal("allowedCharacters"));   //20
-                    var maxMuatationLength = reader.GetInt32(reader.GetOrdinal("maxMuatationLength"));   //21
-                    var genomeLength = reader.GetInt32(reader.GetOrdinal("genomeLength")); //22
-                    var generationSize = reader.GetInt32(reader.GetOrdinal("generationSize"));   //23
-                    var randomDefault = reader.GetBoolean(reader.GetOrdinal("randomDefault"));  //24
-                    var defaultGenome = reader.GetString(reader.GetOrdinal("defaultGenome"));   //25
+                    //Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("MatchConfig.Id"));  //-1
+                    _toConfigure.MatchControl.Id = reader.GetInt32(12);
+                    _toConfigure.MatchControl.MatchTimeout = reader.GetFloat(reader.GetOrdinal("matchTimeout")); //16
+                    _toConfigure.MatchControl.WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")); //17
+
+                    _toConfigure.MutationControl.Id = reader.GetInt32(13);
+                    _toConfigure.MutationControl.Mutations = reader.GetInt32(reader.GetOrdinal("mutations"));    //19
+                    _toConfigure.MutationControl.AllowedCharacters = reader.GetString(reader.GetOrdinal("allowedCharacters"));   //20
+                    //_toConfigure.MutationControl.MaxMutationLength = reader.GetInt32(reader.GetOrdinal("maxMuatationLength"));   //21
+                    _toConfigure.MutationControl.GenomeLength = reader.GetInt32(reader.GetOrdinal("genomeLength")); //22
+                    _toConfigure.MutationControl.GenerationSize = reader.GetInt32(reader.GetOrdinal("generationSize"));   //23
+                    _toConfigure.MutationControl.UseCompletelyRandomDefaultGenome = reader.GetBoolean(reader.GetOrdinal("randomDefault"));  //24
+                    _toConfigure.MutationControl.DefaultGenome = reader.GetString(reader.GetOrdinal("defaultGenome"));   //25
 
 
                     Debug.Log(
-                        "id= " + _toConfigure.Id +
+                        "id= " + _toConfigure.DatabaseId +
                         ", name= " + _toConfigure.name +
                         ", currentGeneration= " + _toConfigure.GenerationNumber +
                         ", minMatchesPerIndividual= " + _toConfigure.MinMatchesPerIndividual +
@@ -82,17 +83,18 @@ namespace Assets.Src.Database
                         ", deathPenalty " + _toConfigure.DeathPenalty +
                         ", droneList " + _toConfigure.DronesString +
 
-                        ", mutationConfigId " + mutationConfigId +
-                        ", matchTimeout " + matchTimeout +
-                        ", winnerPollPeriod " + winnerPollPeriod +
+                        ", mutationConfigId " + _toConfigure.MatchControl.Id +
+                        ", matchTimeout " + _toConfigure.MatchControl.MatchTimeout +
+                        ", winnerPollPeriod " + _toConfigure.MatchControl.WinnerPollPeriod +
 
-                        ", mutationConfigId " + mutationConfigId +
-                        ", mutations " + mutations +
-                        ", maxMuatationLength " + maxMuatationLength +
-                        ", genomeLength " + genomeLength +
-                        ", generationSize " + generationSize +
-                        ", randomDefault " + randomDefault +
-                        ", defaultGenome " + defaultGenome
+                        ", mutationConfigId " + _toConfigure.MutationControl.Id +
+                        ", mutations " + _toConfigure.MutationControl.Mutations +
+                        ", allowedCharacters " + _toConfigure.MutationControl.AllowedCharacters +
+                        ", maxMuatationLength " + _toConfigure.MutationControl.MaxMutationLength +
+                        ", genomeLength " + _toConfigure.MutationControl.GenomeLength +
+                        ", generationSize " + _toConfigure.MutationControl.GenerationSize +
+                        ", randomDefault " + _toConfigure.MutationControl.UseCompletelyRandomDefaultGenome +
+                        ", defaultGenome " + _toConfigure.MutationControl.DefaultGenome
                         );
                 }
                 finally
@@ -134,7 +136,7 @@ namespace Assets.Src.Database
         {
             if (matchConfig.Id.HasValue)
             {
-                Debug.LogError("Updating existing MatchConfig not implemented, Id: " + matchConfig.Id.Value);
+                Debug.LogWarning("Updating existing MatchConfig not implemented, Id: " + matchConfig.Id.Value);
             }
             else
             {
@@ -170,7 +172,7 @@ namespace Assets.Src.Database
         {
             if (mutationConfig.Id.HasValue)
             {
-                Debug.LogError("Updating existing MutationConfig not implemented, Id: " + mutationConfig.Id.Value);
+                Debug.LogWarning("Updating existing MutationConfig not implemented, Id: " + mutationConfig.Id.Value);
             }
             else
             {
@@ -214,9 +216,10 @@ namespace Assets.Src.Database
 
         private void SaveEvolutionControlerConfig(SqliteConnection sql_con)
         {
-            if (_toConfigure.Id.HasValue)
+            if (_toConfigure.ReadFromDatabase)
             {
-                Debug.LogError("Updating existing DroneEvolutionConfig not implemented, Id: " + _toConfigure.Id.Value);
+                //If it's set to be read from the database, it must already exist in the database, so update the existing one.
+                Debug.LogWarning("Updating existing DroneEvolutionConfig not implemented, Id: " + _toConfigure.DatabaseId);
             }
             else
             {

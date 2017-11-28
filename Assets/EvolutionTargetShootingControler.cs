@@ -12,7 +12,9 @@ using Assets.Src.Database;
 
 public class EvolutionTargetShootingControler : MonoBehaviour
 {
-    public int? Id;
+    public bool ReadFromDatabase;
+    public int DatabaseId;
+
     public string Name;
 
     public EvolutionShipConfig ShipConfig;
@@ -122,10 +124,16 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     {
         _dbHandler = new EvolutionTargetShootingDatabaseHandler(this);
 
-        if(Id.HasValue)
-            _dbHandler.ReadDroneConfig(Id.Value);
+        if (ReadFromDatabase)
+        {
+            _dbHandler.ReadDroneConfig(DatabaseId);
+        } else
+        {
+            ReadConfigFromFiles();
+        }
 
-        ReadConfigAndCurrentGeneration();
+        ReadGenerationFromFiles();
+
         SpawnShips();
         IsMatchOver();
     }
@@ -156,7 +164,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     private void SaveGeneration()
     {
-        //Debug.Log("Saving Generation");
+        Debug.Log("Saving Generation and config to file");
         _dbHandler.SaveConfig();
 
         string[] configText = new string[20];
@@ -246,6 +254,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     /// <returns>Match is over boolean</returns>
     private bool IsMatchOver()
     {
+        Debug.Log("IsMatchOver");
         if (MatchControl.ShouldPollForWinners())
         {
             var tags = ListShips()
@@ -290,7 +299,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         return g1;
     }
 
-    private void ReadConfigAndCurrentGeneration()
+    private void ReadConfigFromFiles()
     {
         var configText = FileManager.ReadConfigFile();
         if(configText != null && configText.Any())
@@ -331,7 +340,10 @@ public class EvolutionTargetShootingControler : MonoBehaviour
                 Debug.LogWarning(FileManager.ConfigFilePath + " is an old style generation file. Some config may be incorrectly defaulted.");
             }
         }
-            
+    }
+
+    private void ReadGenerationFromFiles()
+    {
         string path = FileManager.PathForThisGeneration(GenerationNumber);
 
         //Debug.Log("looking for genreation at " + path);
@@ -340,8 +352,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             var lines = File.ReadAllLines(path);
             _currentGeneration = new GenerationTargetShooting(lines);
         }
-        
-        if(_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
+
+        if (_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
         {
             //Debug.Log("Generating generation from default genomes");
             _currentGeneration = new GenerationTargetShooting(MutationControl.CreateDefaultGeneration());
