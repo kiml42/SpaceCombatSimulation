@@ -309,13 +309,19 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         string path = FileManager.PathForThisGeneration(GenerationNumber);
 
         //Debug.Log("looking for genreation at " + path);
-
-        var lines = File.ReadAllLines(path);
-        _currentGeneration = new GenerationTargetShooting(lines);
+        if (File.Exists(path))
+        {
+            var lines = File.ReadAllLines(path);
+            _currentGeneration = new GenerationTargetShooting(lines);
+        }
+        else
+        {
+            Debug.LogWarning("Unable to find generation file: " + path);
+        }
         
         if(_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
         {
-            //Debug.Log("Generating generation from default genomes");
+            Debug.Log("Generating generation from default genomes");
             _currentGeneration = new GenerationTargetShooting(MutationControl.CreateDefaultGeneration());
         }
         //Debug.Log("_currentGeneration: " + _currentGeneration);
