@@ -11,7 +11,14 @@ namespace Assets.Src.Database
     public class EvolutionTargetShootingDatabaseHandler
     {
         private EvolutionTargetShootingControler _toConfigure;
-        private string _connectionString = "URI=file:" + Application.dataPath + "/SpaceCombatSimulationDB.s3db"; //Path to database.
+        private string _connectionString {
+            get {
+                var connection = "URI=file:" + Application.dataPath + DatabasePath;
+                Debug.Log("connection string: " + connection);
+                return connection;
+            }
+        }
+        public string DatabasePath = "/SpaceCombatSimulationDB.s3db"; //Path to database.
 
         public EvolutionTargetShootingDatabaseHandler(EvolutionTargetShootingControler toConfigure)
         {
@@ -40,6 +47,8 @@ namespace Assets.Src.Database
 
                     //Debug.Log("DroneEvolutionConfig.id ordinal: " + reader.GetOrdinal("id"));
                     _toConfigure.DatabaseId = reader.GetInt32(0);
+
+                    Debug.Log("name ordinal: " + reader.GetOrdinal("name"));
                     _toConfigure.name = reader.GetString(reader.GetOrdinal("name")); //1
                     _toConfigure.GenerationNumber = reader.GetInt32(reader.GetOrdinal("currentGeneration"));
                     _toConfigure.MinMatchesPerIndividual = reader.GetInt32(reader.GetOrdinal("minMatchesPerIndividual"));
@@ -96,6 +105,11 @@ namespace Assets.Src.Database
                         ", randomDefault " + _toConfigure.MutationControl.UseCompletelyRandomDefaultGenome +
                         ", defaultGenome " + _toConfigure.MutationControl.DefaultGenome
                         );
+                }
+                catch (Exception e)
+                {
+                    Debug.Log("Caught exception: " + e + ", message: " + e.Message);
+                    throw e;
                 }
                 finally
                 {
