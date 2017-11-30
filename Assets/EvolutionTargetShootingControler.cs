@@ -12,7 +12,6 @@ using Assets.Src.Database;
 
 public class EvolutionTargetShootingControler : MonoBehaviour
 {
-    public bool ReadFromDatabase;
     public int DatabaseId;
 
     public string RunName;
@@ -90,11 +89,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     void Start()
     {
         _dbHandler = new EvolutionTargetShootingDatabaseHandler(this);
-
-        if (ReadFromDatabase)
-        {
-            _dbHandler.ReadDroneConfig(DatabaseId);
-        }
+        
+        _dbHandler.ReadDroneConfig(DatabaseId);
 
         ReadGenerationFromFiles();
 
