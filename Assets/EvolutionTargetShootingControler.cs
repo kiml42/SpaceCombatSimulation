@@ -15,7 +15,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     public bool ReadFromDatabase;
     public int DatabaseId;
 
-    public string Name;
+    public string RunName;
 
     public EvolutionShipConfig ShipConfig;
     public EvolutionFileManager FileManager;

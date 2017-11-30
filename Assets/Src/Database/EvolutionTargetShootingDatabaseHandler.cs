@@ -49,7 +49,7 @@ namespace Assets.Src.Database
                     _toConfigure.DatabaseId = reader.GetInt32(0);
 
                     Debug.Log("name ordinal: " + reader.GetOrdinal("name"));
-                    _toConfigure.name = reader.GetString(reader.GetOrdinal("name")); //1
+                    _toConfigure.RunName = reader.GetString(reader.GetOrdinal("name")); //1
                     _toConfigure.GenerationNumber = reader.GetInt32(reader.GetOrdinal("currentGeneration"));
                     _toConfigure.MinMatchesPerIndividual = reader.GetInt32(reader.GetOrdinal("minMatchesPerIndividual"));
                     _toConfigure.WinnersFromEachGeneration = reader.GetInt32(reader.GetOrdinal("winnersCount"));
@@ -70,7 +70,7 @@ namespace Assets.Src.Database
                     _toConfigure.MutationControl.Id = reader.GetInt32(13);
                     _toConfigure.MutationControl.Mutations = reader.GetInt32(reader.GetOrdinal("mutations"));    //19
                     _toConfigure.MutationControl.AllowedCharacters = reader.GetString(reader.GetOrdinal("allowedCharacters"));   //20
-                    //_toConfigure.MutationControl.MaxMutationLength = reader.GetInt32(reader.GetOrdinal("maxMuatationLength"));   //21
+                    _toConfigure.MutationControl.MaxMutationLength = reader.GetInt32(reader.GetOrdinal("maxMutationLength"));   //21
                     _toConfigure.MutationControl.GenomeLength = reader.GetInt32(reader.GetOrdinal("genomeLength")); //22
                     _toConfigure.MutationControl.GenerationSize = reader.GetInt32(reader.GetOrdinal("generationSize"));   //23
                     _toConfigure.MutationControl.UseCompletelyRandomDefaultGenome = reader.GetBoolean(reader.GetOrdinal("randomDefault"));  //24
@@ -79,7 +79,7 @@ namespace Assets.Src.Database
 
                     Debug.Log(
                         "id= " + _toConfigure.DatabaseId +
-                        ", name= " + _toConfigure.name +
+                        ", name= " + _toConfigure.RunName +
                         ", currentGeneration= " + _toConfigure.GenerationNumber +
                         ", minMatchesPerIndividual= " + _toConfigure.MinMatchesPerIndividual +
                         ", winnersCount= " + _toConfigure.WinnersFromEachGeneration +
@@ -242,7 +242,7 @@ namespace Assets.Src.Database
                     ", deathPenalty, droneList, matchConfigId, mutationConfigId) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", sql_con);
 
                 //insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.Id.Value));
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)_toConfigure.Name));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)_toConfigure.RunName));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.GenerationNumber));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.MinMatchesPerIndividual));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.WinnersFromEachGeneration));
