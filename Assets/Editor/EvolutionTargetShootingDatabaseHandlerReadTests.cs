@@ -13,7 +13,7 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
     EvolutionTargetShootingDatabaseHandler _handler;
 
     public EvolutionTargetShootingDatabaseHandlerReadTests()
-    {   
+    {
         var go = new GameObject();
 
         _toConfigure = go.AddComponent<EvolutionTargetShootingControler>();
@@ -22,7 +22,7 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
         _toConfigure.FileManager = go.AddComponent<EvolutionFileManager>();
         _toConfigure.MutationControl = go.AddComponent<EvolutionMutationController>();
         _toConfigure.MatchControl = go.AddComponent<EvolutionMatchController>();
-        
+
         _handler = new EvolutionTargetShootingDatabaseHandler(_toConfigure)
         {
             DatabasePath = _dbPath
@@ -87,10 +87,10 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
     }
 
     [Test]
-    public void ReadDroneConfig_ExtraDroneEveryXGenerations()
+    public void ReadDroneConfig_ExtraDromnesPerGeneration()
     {
         _handler.ReadDroneConfig(0);
-        Assert.AreEqual(3, _toConfigure.ExtraDroneEveryXGenerations);
+        Assert.AreEqual(3, _toConfigure.ExtraDromnesPerGeneration);
     }
 
     [Test]

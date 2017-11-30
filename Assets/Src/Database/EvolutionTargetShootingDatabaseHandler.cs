@@ -11,8 +11,10 @@ namespace Assets.Src.Database
     public class EvolutionTargetShootingDatabaseHandler
     {
         private EvolutionTargetShootingControler _toConfigure;
-        private string _connectionString {
-            get {
+        private string _connectionString
+        {
+            get
+            {
                 var connection = "URI=file:" + Application.dataPath + DatabasePath;
                 Debug.Log("connection string: " + connection);
                 return connection;
@@ -22,6 +24,7 @@ namespace Assets.Src.Database
 
         public EvolutionTargetShootingDatabaseHandler(EvolutionTargetShootingControler toConfigure)
         {
+            Debug.Log("EvolutionTargetShootingDatabaseHandler constructor");
             _toConfigure = toConfigure;
         }
 
@@ -45,18 +48,21 @@ namespace Assets.Src.Database
                     dbcmd.CommandText = sqlQuery;
                     reader = dbcmd.ExecuteReader();
                     reader.Read();
-
-                    //Debug.Log(reader.);
+                    
                     Debug.Log("DroneEvolutionConfig.id ordinal: " + reader.GetOrdinal("id"));
                     _toConfigure.DatabaseId = reader.GetInt32(reader.GetOrdinal("id"));
 
-                    Debug.Log("name ordinal: " + reader.GetOrdinal("name"));
+                    //Debug.Log("name ordinal: " + reader.GetOrdinal("name"));
                     _toConfigure.RunName = reader.GetString(reader.GetOrdinal("name")); //1
                     _toConfigure.GenerationNumber = reader.GetInt32(reader.GetOrdinal("currentGeneration"));
                     _toConfigure.MinMatchesPerIndividual = reader.GetInt32(reader.GetOrdinal("minMatchesPerIndividual"));
                     _toConfigure.WinnersFromEachGeneration = reader.GetInt32(reader.GetOrdinal("winnersCount"));
                     _toConfigure.MinDronesToSpawn = reader.GetInt32(reader.GetOrdinal("minDrones"));
-                    _toConfigure.ExtraDroneEveryXGenerations = reader.GetFloat(reader.GetOrdinal("droneEscalation"));
+
+                    Debug.Log("droneEscalation ordinal: " + reader.GetOrdinal("droneEscalation"));
+                    Debug.Log(reader.GetFloat(6));
+                    _toConfigure.ExtraDromnesPerGeneration = reader.GetFloat(reader.GetOrdinal("droneEscalation"));
+
                     _toConfigure.MaxDronesToSpawn = reader.GetInt32(reader.GetOrdinal("maxDrones"));
                     _toConfigure.KillScoreMultiplier = reader.GetFloat(reader.GetOrdinal("killScoreMultiplier"));
                     _toConfigure.FlatKillBonus = reader.GetFloat(reader.GetOrdinal("flatKillBonus"));

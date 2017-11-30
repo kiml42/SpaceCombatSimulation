@@ -26,10 +26,11 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     [Header("Drones")]
     public List<Rigidbody> Drones = new List<Rigidbody>();
 
-    [Tooltip("number of drones spawned = MinDronesToSpawn + CurrentGeneration/ExtraDroneEveryXGenerations")]
+    [Tooltip("number of drones spawned = MinDronesToSpawn + CurrentGeneration * ExtraDromnesPerGeneration")]
     public int MinDronesToSpawn = 3;
-    [Tooltip("number of drones spawned = MinDronesToSpawn + CurrentGeneration/ExtraDroneEveryXGenerations")]
-    public float ExtraDroneEveryXGenerations = 5;
+
+    [Tooltip("number of drones spawned = MinDronesToSpawn + CurrentGeneration * ExtraDromnesPerGeneration")]
+    public float ExtraDromnesPerGeneration = 5;
     public int MaxDronesToSpawn = 100;
     
     public string DronesString
@@ -88,8 +89,9 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     // Use this for initialization
     void Start()
     {
+        Debug.Log("EvolutionTargetShootingControler starting");
         _dbHandler = new EvolutionTargetShootingDatabaseHandler(this);
-        
+
         _dbHandler.ReadDroneConfig(DatabaseId);
 
         ReadGenerationFromFiles();
@@ -159,7 +161,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     private void SpawnDrones()
     {
-        var DroneCount = MinDronesToSpawn + Math.Floor((double) GenerationNumber / ExtraDroneEveryXGenerations);
+        var DroneCount = MinDronesToSpawn + Math.Floor((double) GenerationNumber * ExtraDromnesPerGeneration);
         Debug.Log(DroneCount + " drones this match");
 
         var locationTransform = ShipConfig.GetLocation(DRONES_INDEX);

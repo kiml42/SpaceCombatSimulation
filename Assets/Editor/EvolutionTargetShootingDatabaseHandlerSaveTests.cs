@@ -13,7 +13,7 @@ public class EvolutionTargetShootingDatabaseHandlerSaveTests
     EvolutionTargetShootingDatabaseHandler _handler;
 
     public EvolutionTargetShootingDatabaseHandlerSaveTests()
-    {   
+    {
         var go = new GameObject();
 
         _toConfigure = go.AddComponent<EvolutionTargetShootingControler>();
@@ -22,7 +22,7 @@ public class EvolutionTargetShootingDatabaseHandlerSaveTests
         _toConfigure.FileManager = go.AddComponent<EvolutionFileManager>();
         _toConfigure.MutationControl = go.AddComponent<EvolutionMutationController>();
         _toConfigure.MatchControl = go.AddComponent<EvolutionMatchController>();
-        
+
         _handler = new EvolutionTargetShootingDatabaseHandler(_toConfigure)
         {
             DatabasePath = _dbPath
