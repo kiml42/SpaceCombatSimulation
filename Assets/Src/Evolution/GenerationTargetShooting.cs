@@ -14,7 +14,7 @@ namespace Assets.src.Evolution
     public class GenerationTargetShooting : IGeneration
     {
         private System.Random _rng = new System.Random();
-        private List<IndividualInGeneration> Individuals = new List<IndividualInGeneration>();
+        private List<IndividualTargetShooting> Individuals = new List<IndividualTargetShooting>();
 
         public GenerationTargetShooting()
         {
@@ -42,7 +42,7 @@ namespace Assets.src.Evolution
             {
                 return false;
             }
-            Individuals.Add(new IndividualInGeneration(genome));
+            Individuals.Add(new IndividualTargetShooting(genome));
             return true;
         }
 
@@ -65,7 +65,7 @@ namespace Assets.src.Evolution
             return SortGeneration().Take(WinnersCount).Select(i => i.Genome);
         }
 
-        private IEnumerable<IndividualInGeneration> SortGeneration()
+        private IEnumerable<IndividualTargetShooting> SortGeneration()
         {
             Individuals = Individuals.OrderByDescending(i => i.AverageScore).ThenByDescending(i => i.MatchesPlayed).ThenBy(i => _rng.NextDouble()).ToList();
             return Individuals;
@@ -77,7 +77,7 @@ namespace Assets.src.Evolution
         /// <returns>genome of a competetor from this generation</returns>
         public string PickCompetitor()
         {
-            List<IndividualInGeneration> validCompetitors;
+            List<IndividualTargetShooting> validCompetitors;
             
             validCompetitors = Individuals
                 .OrderBy(i => i.MatchesPlayed)
@@ -107,111 +107,5 @@ namespace Assets.src.Evolution
             return CountIndividuals();
         }
 
-        internal class IndividualInGeneration
-        {
-            public string Genome;
-
-            public float Score;
-            private const int SCORE_INDEX = 1;
-            public int MatchesPlayed;
-            private const int MATCHES_PLAYED_INDEX = 2;
-            public int MatchesSurvived;
-            private const int SURVIVED_INDEX = 3;
-            public int CompleteKills;
-            private const int COMPLETE_KILLS_INDEX = 4;
-            public int TotalKills;
-            private const int TOTAL_KILLS_INDEX = 5;
-
-            
-            public List<float> MatchScores = new List<float>();
-            private const int Scores_INDEX = 6;
-
-            public float AverageScore { get
-                {
-                    if(MatchesPlayed > 0)
-                    {
-                        return Score / MatchesPlayed;
-                    } else
-                    {
-                        return 0;
-                    }
-                }
-            }
-
-            /// <summary>
-            /// Construct from a generation line.
-            /// If one section (i.e. no semicolons) is given, it will be interpereted as a new genome with no matches completed.
-            /// </summary>
-            /// <param name="line"></param>
-            public IndividualInGeneration(string line)
-            {
-                var parts = line.Split(';');
-                //Debug.Log(parts.Length);
-                Genome = parts[0];
-                Score = ParsePart(parts, SCORE_INDEX);
-                MatchesPlayed = (int)ParsePart(parts, MATCHES_PLAYED_INDEX);
-                MatchesSurvived = (int)ParsePart(parts, SURVIVED_INDEX);
-                CompleteKills = (int)ParsePart(parts, COMPLETE_KILLS_INDEX);
-                TotalKills = (int)ParsePart(parts, TOTAL_KILLS_INDEX);
-
-                if (parts.Length > Scores_INDEX)
-                {
-                    //Debug.Log(parts[PC_INDEX]);
-                    var matchScoresString = parts[Scores_INDEX];
-                    MatchScores = matchScoresString.Split(',').Where(s => !string.IsNullOrEmpty(s)).Select(s => float.Parse(s)).ToList();
-                }
-            }
-
-            public void RecordMatch(float finalScore, bool survived, bool killedEverything, int killsThisMatch)
-            {
-                Score += finalScore;
-                TotalKills += killsThisMatch;
-                MatchesPlayed++;
-                if (survived)
-                {
-                    MatchesSurvived++;
-                }
-                if (killedEverything)
-                {
-                    CompleteKills++;
-                }
-                MatchScores.Add(finalScore);
-            }
-
-            private static float ParsePart(string[] parts, int index)
-            {
-                float retVal = 0;
-                if (parts.Length > index)
-                {
-                    var intString = parts[index];
-                    float.TryParse(intString, out retVal);
-                }
-                return retVal;
-            }
-
-            public override string ToString()
-            {
-                var competitorsString = string.Join(",", MatchScores.Select(s => s.ToString()).ToArray());
-                var strings = new List<string>
-                {
-                    Genome,
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    ""
-                };
-                
-                strings[SCORE_INDEX] = Score.ToString();
-                strings[MATCHES_PLAYED_INDEX] = MatchesPlayed.ToString();
-                strings[SURVIVED_INDEX] = MatchesSurvived.ToString();
-                strings[COMPLETE_KILLS_INDEX] = CompleteKills.ToString();
-                strings[TOTAL_KILLS_INDEX] = TotalKills.ToString();
-                strings[Scores_INDEX] = competitorsString.ToString();
-
-                return string.Join(";", strings.ToArray());
-            }
-        }
     }
 }

@@ -5,6 +5,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using UnityEngine;
+using Assets.src.Evolution;
 
 namespace Assets.Src.Database
 {
@@ -131,6 +132,20 @@ namespace Assets.Src.Database
             }
         }
 
+        public object SaveNewGeneration(GenerationTargetShooting gen, int v)
+        {
+            throw new NotImplementedException();
+        }
+
+        public object SaveCurrentGeneration(GenerationTargetShooting gen)
+        {
+            throw new NotImplementedException();
+        }
+
+        public GenerationTargetShooting ReadCurrentGeneration()
+        {
+            throw new NotImplementedException();
+        }
 
         public void SetCurrentGeneration(int generationNumber)
         {
