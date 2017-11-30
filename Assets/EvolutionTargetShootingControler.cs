@@ -84,39 +84,6 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     private int _previousDroneCount;
     
-    #region config inicies
-    //Generations
-    private const int CURRENT_GEN_INDEX = 0;
-    private const int MIN_MATCHES_INDEX = 1;
-    private const int WINNERS_COUNT_INDEX = 2;
-
-    //Drones
-    private const int DRONES_LIST_INDEX = 3;
-    private const int MIN_DRONES_INDEX = 4;
-    private const int DRONE_ESCALATION_INDEX = 5;
-    private const int MAX_DRONES_INDEX = 6;
-
-    //Mutations
-    private const int MUTATIONS_COUNT_INDEX = 7;
-    private const int ALLOWED_CHARS_INDEX = 8;
-    private const int MAX_MUTATION_LENGTH_INDEX = 9;
-    private const int GENOME_LENGTH_INDEX = 10;
-    private const int GENERATION_SIZE_INDEX = 11;
-    private const int RANDOM_DEFAULT_INDEX = 12;
-    private const int DEFAULT_GENOME_INDEX = 13;
-
-    //Match
-    private const int MATCH_TIMEOUT_INDEX = 14;
-    private const int WINNER_POLL_PERIOD_INDEX = 15;
-
-    //score
-    private const int KILL_MULTIPLIER_INDEX = 16;
-    private const int KILL_SCORE_INDEX = 17;
-    private const int COMPLETION_BONUS_INDEX = 18;
-    private const int DEATH_PENALTY_INDEX = 19;
-
-    #endregion
-
     EvolutionTargetShootingDatabaseHandler _dbHandler;
 
     // Use this for initialization
@@ -127,9 +94,6 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         if (ReadFromDatabase)
         {
             _dbHandler.ReadDroneConfig(DatabaseId);
-        } else
-        {
-            ReadConfigFromFiles();
         }
 
         ReadGenerationFromFiles();
@@ -154,6 +118,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
             _currentGeneration.RecordMatch(_genome, CurrentScore, _stillAlive, !_dronesRemain, _killsThisMatch);
         
+            //save the current generation
             SaveGeneration();
 
             PrepareForNextMatch();
@@ -164,38 +129,9 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     private void SaveGeneration()
     {
-        Debug.Log("Saving Generation and config to file");
-        _dbHandler.SaveConfig();
+        Debug.Log("Saving Generation to file");
 
-        string[] configText = new string[20];
-
-        configText[CURRENT_GEN_INDEX] = GenerationNumber.ToString();
-        configText[MIN_MATCHES_INDEX] = MinMatchesPerIndividual.ToString();
-        configText[WINNERS_COUNT_INDEX] = WinnersFromEachGeneration.ToString();
-
-        //Debug.Log("dronesString: '" + DronesString  + "'.");
-        configText[DRONES_LIST_INDEX] = DronesString;
-        configText[MIN_DRONES_INDEX] = MinDronesToSpawn.ToString();
-        configText[DRONE_ESCALATION_INDEX] = ExtraDroneEveryXGenerations.ToString();
-        configText[MAX_DRONES_INDEX] = MaxDronesToSpawn.ToString();
-
-        configText[MUTATIONS_COUNT_INDEX] = MutationControl.Mutations.ToString();
-        configText[ALLOWED_CHARS_INDEX] = MutationControl.AllowedCharacters;
-        configText[MAX_MUTATION_LENGTH_INDEX] = MutationControl.MaxMutationLength.ToString();
-        configText[GENOME_LENGTH_INDEX] = MutationControl.GenomeLength.ToString();
-        configText[GENERATION_SIZE_INDEX] = MutationControl.GenerationSize.ToString();
-        configText[RANDOM_DEFAULT_INDEX] = MutationControl.UseCompletelyRandomDefaultGenome.ToString();
-        configText[DEFAULT_GENOME_INDEX] = MutationControl.DefaultGenome;
-
-        configText[MATCH_TIMEOUT_INDEX] = MatchControl.MatchTimeout.ToString();
-        configText[WINNER_POLL_PERIOD_INDEX] = MatchControl.WinnerPollPeriod.ToString();
-
-        configText[KILL_MULTIPLIER_INDEX] = KillScoreMultiplier.ToString();
-        configText[KILL_SCORE_INDEX] = FlatKillBonus.ToString();
-        configText[COMPLETION_BONUS_INDEX] = CompletionBonus.ToString();
-        configText[DEATH_PENALTY_INDEX] = DeathPenalty.ToString();
-
-        FileManager.SaveGeneration(_currentGeneration, GenerationNumber, configText);
+        FileManager.SaveGeneration(_currentGeneration, GenerationNumber);
     }
 
     private void PrepareForNextMatch()
@@ -206,7 +142,11 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             var winners = _currentGeneration.PickWinners(WinnersFromEachGeneration);
             GenerationNumber++;
             _currentGeneration = new GenerationTargetShooting(MutationControl.CreateGenerationOfMutants(winners.ToList()));
+            
+            //save the new generation.
             SaveGeneration();
+
+            _dbHandler.SetCurrentGeneration(GenerationNumber);
         }
     }
     
@@ -298,50 +238,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         var g1 = _currentGeneration.PickCompetitor();
         return g1;
     }
-
-    private void ReadConfigFromFiles()
-    {
-        var configText = FileManager.ReadConfigFile();
-        if(configText != null && configText.Any())
-        {
-            //Debug.Log("ParsingConfigFile");
-            GenerationNumber = int.Parse(configText[CURRENT_GEN_INDEX]);
-            if(configText.Length >= 19)
-            {
-                MinMatchesPerIndividual =  int.Parse(configText[MIN_MATCHES_INDEX]);
-                WinnersFromEachGeneration = int.Parse(configText[WINNERS_COUNT_INDEX]);
-
-                var dronesString = configText[DRONES_LIST_INDEX];
-                //Debug.Log("Reading: dronesString: '" + dronesString + "'.");
-                var splitDronesString = dronesString.Split(';');
-                Drones = splitDronesString.Select(d => AssetDatabase.LoadAssetAtPath<Rigidbody>(d)).ToList();
-                MinDronesToSpawn = int.Parse(configText[MIN_DRONES_INDEX] );
-                ExtraDroneEveryXGenerations = int.Parse(configText[DRONE_ESCALATION_INDEX] );
-                MaxDronesToSpawn = int.Parse(configText[MAX_DRONES_INDEX] );
-
-                MutationControl.Mutations = int.Parse(configText[MUTATIONS_COUNT_INDEX]);
-                MutationControl.AllowedCharacters = configText[ALLOWED_CHARS_INDEX] ;
-                MutationControl.MaxMutationLength = int.Parse(configText[MAX_MUTATION_LENGTH_INDEX] );
-                MutationControl.GenomeLength = int.Parse(configText[GENOME_LENGTH_INDEX] );
-                MutationControl.GenerationSize = int.Parse(configText[GENERATION_SIZE_INDEX] );
-                MutationControl.UseCompletelyRandomDefaultGenome = bool.Parse(configText[RANDOM_DEFAULT_INDEX] );
-                MutationControl.DefaultGenome = configText[DEFAULT_GENOME_INDEX];
-
-                MatchControl.MatchTimeout = float.Parse(configText[MATCH_TIMEOUT_INDEX]);
-                MatchControl.WinnerPollPeriod = float.Parse(configText[WINNER_POLL_PERIOD_INDEX]);
-
-                KillScoreMultiplier = int.Parse(configText[KILL_MULTIPLIER_INDEX] );
-                FlatKillBonus = int.Parse(configText[KILL_SCORE_INDEX] );
-                CompletionBonus = int.Parse(configText[COMPLETION_BONUS_INDEX] );
-                DeathPenalty = int.Parse(configText[DEATH_PENALTY_INDEX] );
-            }
-            else
-            {
-                Debug.LogWarning(FileManager.ConfigFilePath + " is an old style generation file. Some config may be incorrectly defaulted.");
-            }
-        }
-    }
-
+    
     private void ReadGenerationFromFiles()
     {
         string path = FileManager.PathForThisGeneration(GenerationNumber);

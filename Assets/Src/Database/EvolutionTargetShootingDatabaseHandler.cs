@@ -39,14 +39,16 @@ namespace Assets.Src.Database
                     string sqlQuery = "SELECT *" +
                         " FROM DroneEvolutionConfig" +
                         " LEFT JOIN MatchConfig on MatchConfig.id = DroneEvolutionConfig.matchConfigId" +
-                        " LEFT JOIN MutationConfig on MutationConfig.id = DroneEvolutionConfig.mutationConfigId;" +
-                        " WHERE DroneEvolutionConfig.id =" + id;
+                        " LEFT JOIN MutationConfig on MutationConfig.id = DroneEvolutionConfig.mutationConfigId" +
+                        " WHERE DroneEvolutionConfig.id = " + id + ";";
+                    Debug.Log(sqlQuery);
                     dbcmd.CommandText = sqlQuery;
                     reader = dbcmd.ExecuteReader();
                     reader.Read();
 
-                    //Debug.Log("DroneEvolutionConfig.id ordinal: " + reader.GetOrdinal("id"));
-                    _toConfigure.DatabaseId = reader.GetInt32(0);
+                    //Debug.Log(reader.);
+                    Debug.Log("DroneEvolutionConfig.id ordinal: " + reader.GetOrdinal("id"));
+                    _toConfigure.DatabaseId = reader.GetInt32(reader.GetOrdinal("id"));
 
                     Debug.Log("name ordinal: " + reader.GetOrdinal("name"));
                     _toConfigure.RunName = reader.GetString(reader.GetOrdinal("name")); //1
@@ -120,6 +122,32 @@ namespace Assets.Src.Database
                     if (dbcmd != null)
                         dbcmd.Dispose();
                     dbcmd = null;
+                    if (sql_con != null)
+                        sql_con.Close();
+                }
+            }
+        }
+
+
+        public void SetCurrentGeneration(int generationNumber)
+        {
+            _toConfigure.GenerationNumber = generationNumber;
+
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                sql_con.Open();
+                try
+                {
+                    Debug.Log("Updating generation to " + _toConfigure.GenerationNumber);
+                    SqliteCommand insertSQL = new SqliteCommand("UPDATE DroneEvolutionConfig SET currentGeneration = ? WHERE id = ?;", sql_con);
+
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.GenerationNumber));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.DatabaseId));
+
+                    insertSQL.ExecuteNonQuery();
+                }
+                finally
+                {
                     if (sql_con != null)
                         sql_con.Close();
                 }

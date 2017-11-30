@@ -284,6 +284,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\Editor\EvolutionTargetShootingDatabaseHandlerSaveTests.cs" />
     <Compile Include="Assets\Editor\EvolutionTargetShootingDatabaseHandlerReadTests.cs" />
     <Compile Include="Assets\Editor\GenerationTests.cs" />
   </ItemGroup>

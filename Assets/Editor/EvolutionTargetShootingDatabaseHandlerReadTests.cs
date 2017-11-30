@@ -38,10 +38,24 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
     }
 
     [Test]
+    public void ReadDroneConfig_ReadsDifferentID()
+    {
+        _handler.ReadDroneConfig(1);
+        Assert.AreEqual(1, _toConfigure.DatabaseId);
+    }
+
+    [Test]
     public void ReadDroneConfig_ReadsName()
     {
         _handler.ReadDroneConfig(0);
         Assert.AreEqual("Run0", _toConfigure.RunName);
+    }
+
+    [Test]
+    public void ReadDroneConfig_ReadsDifferentName()
+    {
+        _handler.ReadDroneConfig(1);
+        Assert.AreEqual("Run1", _toConfigure.RunName);
     }
 
     [Test]
