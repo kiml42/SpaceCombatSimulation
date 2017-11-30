@@ -16,7 +16,7 @@ namespace Assets.Src.Database
             get
             {
                 var connection = "URI=file:" + Application.dataPath + DatabasePath;
-                Debug.Log("connection string: " + connection);
+                //Debug.Log("connection string: " + connection);
                 return connection;
             }
         }
@@ -30,7 +30,7 @@ namespace Assets.Src.Database
 
         public void ReadDroneConfig(int id)
         {
-            Debug.Log("Reading mconfig from DB. Id: " + id);
+            Debug.Log("Reading config from DB. Id: " + id);
             using (var sql_con = new SqliteConnection(_connectionString))
             {
                 IDbCommand dbcmd = null;
@@ -44,12 +44,12 @@ namespace Assets.Src.Database
                         " LEFT JOIN MatchConfig on MatchConfig.id = DroneEvolutionConfig.matchConfigId" +
                         " LEFT JOIN MutationConfig on MutationConfig.id = DroneEvolutionConfig.mutationConfigId" +
                         " WHERE DroneEvolutionConfig.id = " + id + ";";
-                    Debug.Log(sqlQuery);
+                    //Debug.Log(sqlQuery);
                     dbcmd.CommandText = sqlQuery;
                     reader = dbcmd.ExecuteReader();
                     reader.Read();
                     
-                    Debug.Log("DroneEvolutionConfig.id ordinal: " + reader.GetOrdinal("id"));
+                    //Debug.Log("DroneEvolutionConfig.id ordinal: " + reader.GetOrdinal("id"));
                     _toConfigure.DatabaseId = reader.GetInt32(reader.GetOrdinal("id"));
 
                     //Debug.Log("name ordinal: " + reader.GetOrdinal("name"));
@@ -58,11 +58,8 @@ namespace Assets.Src.Database
                     _toConfigure.MinMatchesPerIndividual = reader.GetInt32(reader.GetOrdinal("minMatchesPerIndividual"));
                     _toConfigure.WinnersFromEachGeneration = reader.GetInt32(reader.GetOrdinal("winnersCount"));
                     _toConfigure.MinDronesToSpawn = reader.GetInt32(reader.GetOrdinal("minDrones"));
-
-                    Debug.Log("droneEscalation ordinal: " + reader.GetOrdinal("droneEscalation"));
-                    Debug.Log(reader.GetFloat(6));
+                    //Debug.Log("droneEscalation ordinal: " + reader.GetOrdinal("droneEscalation"));
                     _toConfigure.ExtraDromnesPerGeneration = reader.GetFloat(reader.GetOrdinal("droneEscalation"));
-
                     _toConfigure.MaxDronesToSpawn = reader.GetInt32(reader.GetOrdinal("maxDrones"));
                     _toConfigure.KillScoreMultiplier = reader.GetFloat(reader.GetOrdinal("killScoreMultiplier"));
                     _toConfigure.FlatKillBonus = reader.GetFloat(reader.GetOrdinal("flatKillBonus"));
@@ -116,7 +113,7 @@ namespace Assets.Src.Database
                 }
                 catch (Exception e)
                 {
-                    Debug.Log("Caught exception: " + e + ", message: " + e.Message);
+                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
                     throw e;
                 }
                 finally
@@ -146,7 +143,7 @@ namespace Assets.Src.Database
 
                 try
                 {
-                    Debug.Log("Updating generation to " + _toConfigure.GenerationNumber);
+                    //Debug.Log("Updating generation to " + _toConfigure.GenerationNumber);
                     command = new SqliteCommand("UPDATE DroneEvolutionConfig SET currentGeneration = ? WHERE id = ?;", sql_con);
 
                     command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.GenerationNumber));
