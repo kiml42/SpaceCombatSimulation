@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using Assets.src.Evolution;
+using Assets.Src.Evolution;
 
 namespace Assets.Src.Database
 {
@@ -49,7 +50,7 @@ namespace Assets.Src.Database
                     dbcmd.CommandText = sqlQuery;
                     reader = dbcmd.ExecuteReader();
                     reader.Read();
-                    
+
                     //Debug.Log("DroneEvolutionConfig.id ordinal: " + reader.GetOrdinal("id"));
                     _toConfigure.DatabaseId = reader.GetInt32(reader.GetOrdinal("id"));
 
@@ -132,19 +133,87 @@ namespace Assets.Src.Database
             }
         }
 
-        public object SaveNewGeneration(GenerationTargetShooting gen, int v)
+        public GenerationTargetShooting ReadGeneration(int runId, int generationNumber)
         {
-            throw new NotImplementedException();
+            Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);
+            var generation = new GenerationTargetShooting();
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                IDbCommand dbcmd = null;
+                IDataReader reader = null;
+                try
+                {
+                    sql_con.Open(); //Open connection to the database.
+                    dbcmd = sql_con.CreateCommand();
+                    string sqlQuery = "SELECT *" +
+                        " FROM DroneEvolutionIndividual" +
+                        " WHERE runConfigId = " + runId + " && generation = " + generationNumber +
+                        ";";
+                    //Debug.Log(sqlQuery);
+                    dbcmd.CommandText = sqlQuery;
+                    reader = dbcmd.ExecuteReader();
+
+
+                    while (reader.Read())
+                    {
+                        var genome = reader.GetString(reader.GetOrdinal("genome"));
+                        var individual = new IndividualTargetShooting(genome)
+                        {
+                            Score = reader.GetInt32(reader.GetOrdinal("score")),
+                            MatchesPlayed = reader.GetInt32(reader.GetOrdinal("matchesPlayed")),
+                            MatchesSurvived = reader.GetInt32(reader.GetOrdinal("matchesSurvived")),
+                            CompleteKills = reader.GetInt32(reader.GetOrdinal("completeKills")),
+                            TotalKills = reader.GetInt32(reader.GetOrdinal("totalKills")),
+                            MatchScoresString = reader.GetString(reader.GetOrdinal("matchScores"))
+                        };
+
+                        generation.Individuals.Add(individual);
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
+                    throw e;
+                }
+                finally
+                {
+                    //Debug.Log("Disconnecting");
+                    if (reader != null)
+                        reader.Close();
+                    reader = null;
+                    if (dbcmd != null)
+                        dbcmd.Dispose();
+                    dbcmd = null;
+                    if (sql_con != null)
+                        sql_con.Close();
+                }
+            }
+
+            return generation;
         }
 
-        public object SaveCurrentGeneration(GenerationTargetShooting gen)
+        public object SaveNewGeneration(GenerationTargetShooting generation, int generationNumber)
         {
             throw new NotImplementedException();
+            foreach (var individual in generation.Individuals)
+            {
+
+            }
+        }
+
+        public object SaveCurrentGeneration(GenerationTargetShooting generation)
+        {
+            throw new NotImplementedException();
+            foreach (var individual in generation.Individuals)
+            {
+
+            }
         }
 
         public GenerationTargetShooting ReadCurrentGeneration()
         {
-            throw new NotImplementedException();
+            return ReadGeneration(_toConfigure.DatabaseId, _toConfigure.GenerationNumber);
         }
 
         public void SetCurrentGeneration(int generationNumber)

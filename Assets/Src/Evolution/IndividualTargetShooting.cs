@@ -31,6 +31,18 @@ namespace Assets.Src.Evolution
             }
         }
 
+        public string MatchScoresString {
+            get
+            {
+                return string.Join(",", MatchScores.Select(s => s.ToString()).ToArray());
+            }
+            set
+            {
+                var parts = value.Split(',');
+                MatchScores = parts.Select(s => float.Parse(s)).ToList();
+            }
+        }
+
         /// <summary>
         /// Construct an indifvidual from a genome, all other firelds will be empty or 0
         /// </summary>

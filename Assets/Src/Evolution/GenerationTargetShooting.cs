@@ -14,7 +14,7 @@ namespace Assets.src.Evolution
     public class GenerationTargetShooting : IGeneration
     {
         private System.Random _rng = new System.Random();
-        private List<IndividualTargetShooting> Individuals = new List<IndividualTargetShooting>();
+        public List<IndividualTargetShooting> Individuals = new List<IndividualTargetShooting>();
 
         public GenerationTargetShooting()
         {
