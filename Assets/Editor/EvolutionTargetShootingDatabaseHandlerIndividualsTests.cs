@@ -5,6 +5,7 @@ using NUnit.Framework;
 using System.Collections;
 using Assets.src.Evolution;
 using Assets.Src.Database;
+using System.Linq;
 
 public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
 {
@@ -33,7 +34,23 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
     [Test]
     public void SetCurrentGeneration_ReadsCurrentGeneration()
     {
-        GenerationTargetShooting generation = _handler.ReadCurrentGeneration();
+        GenerationTargetShooting generation = _handler.ReadGeneration(0,0);
+
+        Assert.NotNull(generation);
+        Assert.AreEqual(2, generation.Individuals.Count);
+
+        var i1 = generation.Individuals.First();
+
+        Assert.AreEqual("123", i1.Genome);
+        Assert.AreEqual(42, i1.Score);
+        Assert.AreEqual(3, i1.MatchesPlayed);
+        Assert.AreEqual(1, i1.MatchesSurvived);
+        Assert.AreEqual(0, i1.CompleteKills);
+        Assert.AreEqual(5, i1.TotalKills);
+        Assert.AreEqual("123,321", i1.MatchScoresString);
+        Assert.AreEqual(2, i1.MatchScores.Count);
+        Assert.AreEqual(123, i1.MatchScores.First());
+        Assert.AreEqual(321, i1.MatchScores[1]);
     }
 
     [Test]

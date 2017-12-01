@@ -146,20 +146,20 @@ namespace Assets.Src.Database
                     sql_con.Open(); //Open connection to the database.
                     dbcmd = sql_con.CreateCommand();
                     string sqlQuery = "SELECT *" +
-                        " FROM DroneEvolutionIndividual" +
-                        " WHERE runConfigId = " + runId + " && generation = " + generationNumber +
+                        " FROM DroneShootingIndividual" +
+                        " WHERE runConfigId = " + runId + " AND generation = " + generationNumber +
                         ";";
-                    //Debug.Log(sqlQuery);
+                    Debug.Log(sqlQuery);
                     dbcmd.CommandText = sqlQuery;
                     reader = dbcmd.ExecuteReader();
-
-
+                    
                     while (reader.Read())
                     {
+                        //Debug.Log("genome ordinal: " + reader.GetOrdinal("genome"));  //-1
                         var genome = reader.GetString(reader.GetOrdinal("genome"));
                         var individual = new IndividualTargetShooting(genome)
                         {
-                            Score = reader.GetInt32(reader.GetOrdinal("score")),
+                            Score = reader.GetFloat(reader.GetOrdinal("score")),
                             MatchesPlayed = reader.GetInt32(reader.GetOrdinal("matchesPlayed")),
                             MatchesSurvived = reader.GetInt32(reader.GetOrdinal("matchesSurvived")),
                             CompleteKills = reader.GetInt32(reader.GetOrdinal("completeKills")),
