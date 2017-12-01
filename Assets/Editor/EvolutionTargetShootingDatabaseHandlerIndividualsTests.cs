@@ -58,8 +58,71 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
     [Test]
     public void SetCurrentGeneration_SavesCurrentGeneration()
     {
+        //TODO make sure the rows don't exist before running this test
         GenerationTargetShooting gen = new GenerationTargetShooting();
-        var generation = _handler.SaveCurrentGeneration(gen);
+        gen.Individuals.Add(new IndividualTargetShooting("abc"));
+        gen.Individuals.Add(new IndividualTargetShooting("def"));
+
+        _handler.SaveNewGeneration(gen, 3, 4);
+
+        GenerationTargetShooting RetrievedGen1 = _handler.ReadGeneration(4, 5);
+
+        Assert.NotNull(RetrievedGen1);
+        Assert.AreEqual(2, RetrievedGen1.Individuals.Count);
+
+        var i1 = RetrievedGen1.Individuals.First();
+
+        Assert.AreEqual("abc", i1.Genome);
+        Assert.AreEqual(0, i1.Score);
+        Assert.AreEqual(0, i1.MatchesPlayed);
+        Assert.AreEqual(0, i1.MatchesSurvived);
+        Assert.AreEqual(0, i1.CompleteKills);
+        Assert.AreEqual(0, i1.TotalKills);
+        Assert.AreEqual("", i1.MatchScoresString);
+        Assert.AreEqual(0, i1.MatchScores.Count);
+
+        var i2 = RetrievedGen1.Individuals[1];
+
+        Assert.AreEqual("def", i2.Genome);
+        Assert.AreEqual(0, i2.Score);
+        Assert.AreEqual(0, i2.MatchesPlayed);
+        Assert.AreEqual(0, i2.MatchesSurvived);
+        Assert.AreEqual(0, i2.CompleteKills);
+        Assert.AreEqual(0, i2.TotalKills);
+        Assert.AreEqual("", i2.MatchScoresString);
+        Assert.AreEqual(0, i2.MatchScores.Count);
+
+        gen.RecordMatch("abc", 42, true, true, 15);
+
+        _handler.UpdateGeneration(gen, 4,5);
+
+        GenerationTargetShooting RetrievedGen2 = _handler.ReadGeneration(4, 5);
+
+        Assert.NotNull(RetrievedGen2);
+        Assert.AreEqual(2, RetrievedGen2.Individuals.Count);
+
+        var i1b = RetrievedGen2.Individuals.First();
+
+        Assert.AreEqual("abc", i1b.Genome);
+        Assert.AreEqual(42, i1b.Score);
+        Assert.AreEqual(1, i1b.MatchesPlayed);
+        Assert.AreEqual(1, i1b.MatchesSurvived);
+        Assert.AreEqual(1, i1b.CompleteKills);
+        Assert.AreEqual(15, i1b.TotalKills);
+        Assert.AreEqual("42", i1b.MatchScoresString);
+        Assert.AreEqual(1, i1b.MatchScores.Count);
+        Assert.AreEqual(42, i1b.MatchScores.First());
+
+        var i2b = RetrievedGen1.Individuals[1];
+
+        Assert.AreEqual("def", i2b.Genome);
+        Assert.AreEqual(0, i2b.Score);
+        Assert.AreEqual(0, i2b.MatchesPlayed);
+        Assert.AreEqual(0, i2b.MatchesSurvived);
+        Assert.AreEqual(0, i2b.CompleteKills);
+        Assert.AreEqual(0, i2b.TotalKills);
+        Assert.AreEqual("", i2b.MatchScoresString);
+        Assert.AreEqual(0, i2b.MatchScores.Count);
     }
 
     [Test]

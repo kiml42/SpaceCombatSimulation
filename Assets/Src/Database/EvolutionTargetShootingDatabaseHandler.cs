@@ -248,7 +248,7 @@ namespace Assets.Src.Database
             }
         }
 
-        public object SaveCurrentGeneration(GenerationTargetShooting generation)
+        public object UpdateGeneration(GenerationTargetShooting generation, int runId, int generationNumber)
         {
             throw new NotImplementedException();
             foreach (var individual in generation.Individuals)
