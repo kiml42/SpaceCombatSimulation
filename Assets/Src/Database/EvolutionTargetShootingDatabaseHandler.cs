@@ -209,7 +209,7 @@ namespace Assets.Src.Database
                     {
                         SqliteCommand insertSQL = new SqliteCommand("INSERT INTO DroneShootingIndividual " +
                             "(runConfigId, generation, genome, score, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores)" +
-                            " VALUES (?,?,?,?,?,?,?,?,?)", sql_con);
+                            " VALUES (?,?,?,?,?,?,?,?,?)", sql_con, transaction);
 
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
@@ -221,6 +221,7 @@ namespace Assets.Src.Database
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.TotalKills));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.MatchScoresString));
 
+                        //todo check if this is nessersary/how to use transactions correctly.
                         insertSQL.Transaction = transaction;
 
                         insertSQL.ExecuteNonQuery();
@@ -248,13 +249,95 @@ namespace Assets.Src.Database
             }
         }
 
-        public object UpdateGeneration(GenerationTargetShooting generation, int runId, int generationNumber)
+        public void UpdateGeneration(GenerationTargetShooting generation, int runId, int generationNumber)
         {
-            throw new NotImplementedException();
-            foreach (var individual in generation.Individuals)
+            using (var sql_con = new SqliteConnection(_connectionString))
             {
+                IDbCommand dbcmd = null;
+                SqliteTransaction transaction = null;
+                try
+                {
+                    sql_con.Open(); //Open connection to the database.
 
+                    transaction = sql_con.BeginTransaction();
+
+                    foreach (var individual in generation.Individuals)
+                    {
+                        UpdateIndividual(individual, runId, generationNumber, sql_con, transaction);
+                    }
+
+                    transaction.Commit();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
+                    throw e;
+                }
+                finally
+                {
+                    //Debug.Log("Disconnecting");
+                    if (transaction != null)
+                        transaction.Dispose();
+                    transaction = null;
+                    if (dbcmd != null)
+                        dbcmd.Dispose();
+                    dbcmd = null;
+                    if (sql_con != null)
+                        sql_con.Close();
+                }
             }
+        }
+
+        //YAGNI: might be useful in future
+        //public void UpdateIndividual(IndividualTargetShooting individual, int runId, int generationNumber)
+        //{
+        //    using (var sql_con = new SqliteConnection(_connectionString))
+        //    {
+        //        IDbCommand dbcmd = null;
+        //        try
+        //        {
+        //            sql_con.Open(); //Open connection to the database.
+                                        
+        //            UpdateIndividual(individual, runId, generationNumber, sql_con, null);
+        //        }
+        //        catch (Exception e)
+        //        {
+        //            Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
+        //            throw e;
+        //        }
+        //        finally
+        //        {
+        //            //Debug.Log("Disconnecting");
+        //            if (dbcmd != null)
+        //                dbcmd.Dispose();
+        //            dbcmd = null;
+        //            if (sql_con != null)
+        //                sql_con.Close();
+        //        }
+        //    }
+        //}
+
+        private void UpdateIndividual(IndividualTargetShooting individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
+        {
+            SqliteCommand insertSQL = new SqliteCommand("UPDATE  DroneShootingIndividual " +
+                            "SET score = ?, matchesPlayed = ?, matchesSurvived = ?, completeKills = ?, totalKills = ?, matchScores = ?" +
+                            " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction);
+
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Score));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesPlayed));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesSurvived));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.CompleteKills));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.TotalKills));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.MatchScoresString));
+
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
+
+            //todo check if this is nessersary/how to use transactions correctly.
+            insertSQL.Transaction = transaction;
+
+            insertSQL.ExecuteNonQuery();
         }
 
         public GenerationTargetShooting ReadCurrentGeneration()
