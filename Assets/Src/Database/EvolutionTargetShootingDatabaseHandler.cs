@@ -203,7 +203,7 @@ namespace Assets.Src.Database
                 {
                     sql_con.Open(); //Open connection to the database.
 
-                    //transaction = sql_con.BeginTransaction();
+                    transaction = sql_con.BeginTransaction();
                     
                     foreach (var individual in generation.Individuals)
                     {
@@ -221,10 +221,12 @@ namespace Assets.Src.Database
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.TotalKills));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.MatchScoresString));
 
+                        insertSQL.Transaction = transaction;
+
                         insertSQL.ExecuteNonQuery();
                     }
 
-                    //transaction.Commit();
+                    transaction.Commit();
                 }
                 catch (Exception e)
                 {

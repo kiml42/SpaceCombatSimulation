@@ -65,6 +65,7 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
     [Test]
     public void SetCurrentGeneration_SavesNewGeneration()
     {
+        //TODO make sure the rows don't exist before running this test
         GenerationTargetShooting gen = new GenerationTargetShooting();
         gen.Individuals.Add(new IndividualTargetShooting("abc")
         {
