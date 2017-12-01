@@ -65,7 +65,7 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
 
         _handler.SaveNewGeneration(gen, 3, 4);
 
-        GenerationTargetShooting RetrievedGen1 = _handler.ReadGeneration(4, 5);
+        GenerationTargetShooting RetrievedGen1 = _handler.ReadGeneration(3, 4);
 
         Assert.NotNull(RetrievedGen1);
         Assert.AreEqual(2, RetrievedGen1.Individuals.Count);
@@ -94,9 +94,9 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
 
         gen.RecordMatch("abc", 42, true, true, 15);
 
-        _handler.UpdateGeneration(gen, 4,5);
+        _handler.UpdateGeneration(gen, 3, 4);
 
-        GenerationTargetShooting RetrievedGen2 = _handler.ReadGeneration(4, 5);
+        GenerationTargetShooting RetrievedGen2 = _handler.ReadGeneration(3, 4);
 
         Assert.NotNull(RetrievedGen2);
         Assert.AreEqual(2, RetrievedGen2.Individuals.Count);
