@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 namespace Assets.Src.Evolution
 {
@@ -38,8 +39,12 @@ namespace Assets.Src.Evolution
             }
             set
             {
-                var parts = value.Split(',');
-                MatchScores = parts.Select(s => float.Parse(s)).ToList();
+                //Debug.Log("Parsing '" + value + "' into match scores list.");
+                if (!string.IsNullOrEmpty(value))
+                {
+                    var parts = value.Split(',');
+                    MatchScores = parts.Select(s => float.Parse(s)).ToList();
+                }
             }
         }
 

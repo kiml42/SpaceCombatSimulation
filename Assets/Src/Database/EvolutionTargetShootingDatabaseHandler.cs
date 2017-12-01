@@ -193,12 +193,56 @@ namespace Assets.Src.Database
             return generation;
         }
 
-        public object SaveNewGeneration(GenerationTargetShooting generation, int generationNumber)
+        public void SaveNewGeneration(GenerationTargetShooting generation, int runId, int generationNumber)
         {
-            throw new NotImplementedException();
-            foreach (var individual in generation.Individuals)
+            using (var sql_con = new SqliteConnection(_connectionString))
             {
+                IDbCommand dbcmd = null;
+                SqliteTransaction transaction = null;
+                try
+                {
+                    sql_con.Open(); //Open connection to the database.
 
+                    //transaction = sql_con.BeginTransaction();
+                    
+                    foreach (var individual in generation.Individuals)
+                    {
+                        SqliteCommand insertSQL = new SqliteCommand("INSERT INTO DroneShootingIndividual " +
+                            "(runConfigId, generation, genome, score, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores)" +
+                            " VALUES (?,?,?,?,?,?,?,?,?)", sql_con);
+
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Score));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesPlayed));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesSurvived));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.CompleteKills));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.TotalKills));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.MatchScoresString));
+
+                        insertSQL.ExecuteNonQuery();
+                    }
+
+                    //transaction.Commit();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
+                    throw e;
+                }
+                finally
+                {
+                    //Debug.Log("Disconnecting");
+                    if (transaction != null)
+                        transaction.Dispose();
+                    transaction = null;
+                    if (dbcmd != null)
+                        dbcmd.Dispose();
+                    dbcmd = null;
+                    if (sql_con != null)
+                        sql_con.Close();
+                }
             }
         }
 

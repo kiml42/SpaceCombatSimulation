@@ -6,6 +6,8 @@ using System.Collections;
 using Assets.src.Evolution;
 using Assets.Src.Database;
 using System.Linq;
+using Assets.Src.Evolution;
+using System.Collections.Generic;
 
 public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
 {
@@ -64,7 +66,39 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
     public void SetCurrentGeneration_SavesNewGeneration()
     {
         GenerationTargetShooting gen = new GenerationTargetShooting();
-        var generation = _handler.SaveNewGeneration(gen, 4);
+        gen.Individuals.Add(new IndividualTargetShooting("abc")
+        {
+            CompleteKills = 2,
+            MatchesPlayed = 4,
+            MatchesSurvived = 1,
+            MatchScores = new List<float>
+            {
+                6,10
+            },
+            Score = 35,
+            TotalKills = 7
+        });
+        gen.Individuals.Add(new IndividualTargetShooting("def"));
+
+        _handler.SaveNewGeneration(gen, 3, 4);
+
+        GenerationTargetShooting generation = _handler.ReadGeneration(3, 4);
+
+        Assert.NotNull(generation);
+        Assert.AreEqual(2, generation.Individuals.Count);
+
+        var i1 = generation.Individuals.First();
+
+        Assert.AreEqual("abc", i1.Genome);
+        Assert.AreEqual(35, i1.Score);
+        Assert.AreEqual(4, i1.MatchesPlayed);
+        Assert.AreEqual(1, i1.MatchesSurvived);
+        Assert.AreEqual(2, i1.CompleteKills);
+        Assert.AreEqual(7, i1.TotalKills);
+        Assert.AreEqual("6,10", i1.MatchScoresString);
+        Assert.AreEqual(2, i1.MatchScores.Count);
+        Assert.AreEqual(6, i1.MatchScores.First());
+        Assert.AreEqual(10, i1.MatchScores[1]);
     }
 
     #endregion
