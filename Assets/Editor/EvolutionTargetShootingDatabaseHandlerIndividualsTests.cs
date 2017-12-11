@@ -8,15 +8,31 @@ using Assets.Src.Database;
 using System.Linq;
 using Assets.Src.Evolution;
 using System.Collections.Generic;
+using System;
 
 public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
 {
-    private string _dbPath = "/../Test/TestDB/SpaceCombatSimulationDB.s3db";
+    private string _dbPath = "/../Test/TestDB/SpaceCombatSimulationDB1.s3db";
+    private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
     EvolutionTargetShootingControler _toConfigure;
     EvolutionTargetShootingDatabaseHandler _handler;
 
     public EvolutionTargetShootingDatabaseHandlerIndividualsTests()
     {
+        var initialiser = new DatabaseInitialiser
+        {
+            DatabasePath = _dbPath
+        };
+
+        try
+        {
+            initialiser.ReCreateDatabase(_createCommandPath);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Caught exception: " + e.Message + ". when recreating the database, carrying on regardless, the data may not be correct.");
+        }
+
         var go = new GameObject();
 
         _toConfigure = go.AddComponent<EvolutionTargetShootingControler>();
@@ -36,7 +52,7 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
     [Test]
     public void SetCurrentGeneration_ReadsCurrentGeneration()
     {
-        GenerationTargetShooting generation = _handler.ReadGeneration(0,0);
+        GenerationTargetShooting generation = _handler.ReadGeneration(0, 0);
 
         Assert.NotNull(generation);
         Assert.AreEqual(2, generation.Individuals.Count);

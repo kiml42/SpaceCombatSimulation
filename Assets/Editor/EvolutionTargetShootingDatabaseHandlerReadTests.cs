@@ -5,15 +5,31 @@ using NUnit.Framework;
 using System.Collections;
 using Assets.src.Evolution;
 using Assets.Src.Database;
+using System;
 
 public class EvolutionTargetShootingDatabaseHandlerReadTests
 {
-    private string _dbPath = "/../Test/TestDB/SpaceCombatSimulationDB.s3db";
+    private string _dbPath = "/../Test/TestDB/SpaceCombatSimulationDB2.s3db";
+    private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
     EvolutionTargetShootingControler _toConfigure;
     EvolutionTargetShootingDatabaseHandler _handler;
 
     public EvolutionTargetShootingDatabaseHandlerReadTests()
     {
+        var initialiser = new DatabaseInitialiser
+        {
+            DatabasePath = _dbPath
+        };
+
+        try
+        {
+            initialiser.ReCreateDatabase(_createCommandPath);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Caught exception: " + e.Message + ". when recreating the database, carrying on regardless, the data may not be correct.");
+        }
+
         var go = new GameObject();
 
         _toConfigure = go.AddComponent<EvolutionTargetShootingControler>();

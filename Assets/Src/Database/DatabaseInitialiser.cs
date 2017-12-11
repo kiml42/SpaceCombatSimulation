@@ -1,0 +1,92 @@
+﻿using Mono.Data.Sqlite;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.IO;
+using System.Linq;
+using System.Text;
+using UnityEngine;
+
+namespace Assets.Src.Database
+{
+    public class DatabaseInitialiser
+    {
+        private string _connectionString
+        {
+            get
+            {
+                var connection = "URI=file:" + _databaseFullPath;
+                //Debug.Log("connection string: " + connection);
+                return connection;
+            }
+        }
+        public string DatabasePath = "/SpaceCombatSimulationDB.s3db"; //Path to database.
+        private string _databaseFullPath { get { return Application.dataPath + DatabasePath; } }
+        
+        /// <summary>
+        /// Deletes the database and all data 
+        /// Then recreates the database using the script provided.
+        /// Should only be used for testing.
+        /// </summary>
+        /// <param name="filePath">Path to the sql file for recreating the database</param>
+        public void ReCreateDatabase(string filePath)
+        {
+            DropDatabase();
+            CreateDatabase(filePath);
+        }
+
+        /// <summary>
+        /// Deletes the database and all data - should only be used for testing.
+        /// </summary>
+        private void DropDatabase()
+        {
+            if (File.Exists(_databaseFullPath))
+            {
+                Debug.Log("Dropping database " + _databaseFullPath);
+                File.Delete(_databaseFullPath);
+                Debug.Log("database deleted");
+                return;
+            }
+            Debug.Log("cannot drop database because it does not exist: " + _databaseFullPath);
+        }
+
+        private void CreateDatabase(string filePath)
+        {
+            Debug.Log("Creating database '" + _databaseFullPath + "' using command file '" + filePath + "'");
+            SqliteConnection.CreateFile(_databaseFullPath);
+
+
+            IDbCommand dbcmd = null;
+
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                try
+                {
+                    sql_con.Open();
+
+                    var sql = File.ReadAllText(Application.dataPath + filePath);
+
+                    Debug.Log("create sql: " + sql);
+
+                    dbcmd = new SqliteCommand(sql, sql_con);
+                    dbcmd.ExecuteNonQuery();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
+                    throw e;
+                }
+                finally
+                {
+                    //Debug.Log("Disconnecting");
+                    if (dbcmd != null)
+                        dbcmd.Dispose();
+                    dbcmd = null;
+                    if (sql_con != null)
+                        sql_con.Close();
+                }
+
+            }
+        }
+    }
+}
