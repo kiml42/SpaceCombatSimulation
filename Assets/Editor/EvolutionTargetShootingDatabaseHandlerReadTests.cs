@@ -9,7 +9,7 @@ using System;
 
 public class EvolutionTargetShootingDatabaseHandlerReadTests
 {
-    private string _dbPath = "/../Test/TestDB/SpaceCombatSimulationDB2.s3db";
+    private string _dbPath = "/../tmp/TestDB/SpaceCombatSimulationDB2.s3db";
     private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
     EvolutionTargetShootingControler _toConfigure;
     EvolutionTargetShootingDatabaseHandler _handler;
@@ -39,10 +39,7 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
         _toConfigure.MutationControl = go.AddComponent<EvolutionMutationController>();
         _toConfigure.MatchControl = go.AddComponent<EvolutionMatchController>();
 
-        _handler = new EvolutionTargetShootingDatabaseHandler(_toConfigure)
-        {
-            DatabasePath = _dbPath
-        };
+        _handler = new EvolutionTargetShootingDatabaseHandler(_toConfigure, _dbPath);
     }
 
     #region top level

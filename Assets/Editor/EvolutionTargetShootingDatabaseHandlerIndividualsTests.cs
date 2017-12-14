@@ -37,14 +37,14 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
             DatabasePath = _dbPath
         };
 
-        try
-        {
-            initialiser.ReCreateDatabase(_createCommandPath);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("Caught exception: " + e.Message + ". when recreating the database, carrying on regardless, the data may not be correct.");
-        }
+        //try
+        //{
+        //    initialiser.ReCreateDatabase(_createCommandPath);
+        //}
+        //catch (Exception e)
+        //{
+        //    Debug.LogError("Caught exception: " + e.Message + ". when recreating the database, carrying on regardless, the data may not be correct.");
+        //}
 
         var go = new GameObject();
 
@@ -55,10 +55,7 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
         _toConfigure.MutationControl = go.AddComponent<EvolutionMutationController>();
         _toConfigure.MatchControl = go.AddComponent<EvolutionMatchController>();
 
-        _handler = new EvolutionTargetShootingDatabaseHandler(_toConfigure)
-        {
-            DatabasePath = _dbPath
-        };
+        _handler = new EvolutionTargetShootingDatabaseHandler(_toConfigure, _dbPath, _createCommandPath);
     }
 
     #region top level

@@ -24,15 +24,25 @@ namespace Assets.Src.Database
         private string _databaseFullPath { get { return Application.dataPath + DatabasePath; } }
         
         /// <summary>
+        /// Creates teh database if it doesn't exist, if it does exist, this does nothing.
+        /// </summary>
+        /// <param name="creationCommandFilePath"></param>
+        public void EnsureDatabaseExists(string creationCommandFilePath)
+        {
+            if(!File.Exists(_databaseFullPath))
+                CreateDatabase(creationCommandFilePath);
+        }
+
+        /// <summary>
         /// Deletes the database and all data 
         /// Then recreates the database using the script provided.
         /// Should only be used for testing.
         /// </summary>
         /// <param name="filePath">Path to the sql file for recreating the database</param>
-        public void ReCreateDatabase(string filePath)
+        public void ReCreateDatabase(string creationCommandFilePath)
         {
             DropDatabase();
-            CreateDatabase(filePath);
+            CreateDatabase(creationCommandFilePath);
         }
 
         /// <summary>
@@ -50,9 +60,9 @@ namespace Assets.Src.Database
             Debug.Log("cannot drop database because it does not exist: " + _databaseFullPath);
         }
 
-        private void CreateDatabase(string filePath)
+        private void CreateDatabase(string creationCommandFilePath)
         {
-            Debug.Log("Creating database '" + _databaseFullPath + "' using command file '" + filePath + "'");
+            Debug.Log("Creating database '" + _databaseFullPath + "' using command file '" + creationCommandFilePath + "'");
             SqliteConnection.CreateFile(_databaseFullPath);
 
 
@@ -64,7 +74,7 @@ namespace Assets.Src.Database
                 {
                     sql_con.Open();
 
-                    var sql = File.ReadAllText(Application.dataPath + filePath);
+                    var sql = File.ReadAllText(Application.dataPath + creationCommandFilePath);
 
                     Debug.Log("create sql: " + sql);
 

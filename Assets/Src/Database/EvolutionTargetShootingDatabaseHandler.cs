@@ -12,21 +12,35 @@ namespace Assets.Src.Database
 {
     public class EvolutionTargetShootingDatabaseHandler
     {
+        private const string DEFAULT_COMMAND_PATH = "/Database/CreateBlankDatabase.sql";
+        private const string DEFAULT_DB_PATH = "/SpaceCombatSimulationDB.s3db";
         private EvolutionTargetShootingControler _toConfigure;
         private string _connectionString
         {
             get
             {
-                var connection = "URI=file:" + Application.dataPath + DatabasePath;
+                var connection = "URI=file:" + Application.dataPath + _databasePath;
                 //Debug.Log("connection string: " + connection);
                 return connection;
             }
         }
-        public string DatabasePath = "/SpaceCombatSimulationDB.s3db"; //Path to database.
+        private  string _databasePath; //Path to database.
 
-        public EvolutionTargetShootingDatabaseHandler(EvolutionTargetShootingControler toConfigure)
+        public EvolutionTargetShootingDatabaseHandler(EvolutionTargetShootingControler toConfigure, string databasePath = DEFAULT_DB_PATH, string dbCreationCommandPath = DEFAULT_COMMAND_PATH)
         {
             Debug.Log("EvolutionTargetShootingDatabaseHandler constructor");
+
+            _databasePath = databasePath;
+
+            if (!string.IsNullOrEmpty(dbCreationCommandPath))
+            {
+                var initialiser = new DatabaseInitialiser
+                {
+                    DatabasePath = _databasePath
+                };
+                initialiser.EnsureDatabaseExists(dbCreationCommandPath);
+            }
+
             _toConfigure = toConfigure;
         }
 
