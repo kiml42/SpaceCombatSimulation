@@ -17,7 +17,6 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     public string RunName;
 
     public EvolutionShipConfig ShipConfig;
-    public EvolutionFileManager FileManager;
     public EvolutionMutationController MutationControl;
     public EvolutionMatchController MatchControl;
     public float CurrentScore = 0;
@@ -94,9 +93,10 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
         _dbHandler.ReadDroneConfig(DatabaseId);
 
-        ReadGenerationFromFiles();
+        ReadInGeneration();
 
         SpawnShips();
+
         IsMatchOver();
     }
 
@@ -127,9 +127,8 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     private void SaveGeneration()
     {
-        Debug.Log("Saving Generation to file");
-
-        FileManager.SaveGeneration(_currentGeneration, GenerationNumber);
+        Debug.Log("Updating Generation In DB");
+        _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, GenerationNumber);
     }
 
     private void PrepareForNextMatch()
@@ -139,15 +138,36 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             //should move to next generation
             var winners = _currentGeneration.PickWinners(WinnersFromEachGeneration);
             GenerationNumber++;
-            _currentGeneration = new GenerationTargetShooting(MutationControl.CreateGenerationOfMutants(winners.ToList()));
-            
-            //save the new generation.
-            SaveGeneration();
 
-            _dbHandler.SetCurrentGeneration(GenerationNumber);
+            CreateNewGeneration(winners);
         }
     }
-    
+
+    /// <summary>
+    /// Creates and saves a new generation in the daabese.
+    /// If winners are provided, the new generation will be mutatnts of those.
+    /// If no winners are provided, the generation number will be reset to 0, and a new default generation will be created.
+    /// The current generation is set to the generation that is created.
+    /// </summary>
+    /// <param name="winners"></param>
+    private GenerationTargetShooting CreateNewGeneration(IEnumerable<string> winners)
+    {
+        if (winners != null)
+        {
+            _currentGeneration = new GenerationTargetShooting(MutationControl.CreateGenerationOfMutants(winners.ToList()));
+        } else
+        {
+            Debug.Log("Generating generation from default genomes");
+            _currentGeneration = new GenerationTargetShooting(MutationControl.CreateDefaultGeneration());
+            GenerationNumber = 0;   //it's always generation 0 for a default genteration.
+        }
+
+        _dbHandler.SaveNewGeneration(_currentGeneration, DatabaseId, GenerationNumber);
+        _dbHandler.SetCurrentGeneration(GenerationNumber);
+
+        return _currentGeneration;
+    }
+
     private void SpawnShips()
     {
         _genome = PickContestant();
@@ -192,7 +212,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     /// <returns>Match is over boolean</returns>
     private bool IsMatchOver()
     {
-        Debug.Log("IsMatchOver");
+        //Debug.Log("IsMatchOver");
         if (MatchControl.ShouldPollForWinners())
         {
             var tags = ListShips()
@@ -237,22 +257,13 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         return g1;
     }
     
-    private void ReadGenerationFromFiles()
+    private void ReadInGeneration()
     {
-        string path = FileManager.PathForThisGeneration(GenerationNumber);
-
-        //Debug.Log("looking for genreation at " + path);
-        if (File.Exists(path))
-        {
-            var lines = File.ReadAllLines(path);
-            _currentGeneration = new GenerationTargetShooting(lines);
-        }
+        _currentGeneration = _dbHandler.ReadCurrentGeneration();
 
         if (_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
         {
-            //Debug.Log("Generating generation from default genomes");
-            _currentGeneration = new GenerationTargetShooting(MutationControl.CreateDefaultGeneration());
-            GenerationNumber = 0;   //it's always generation 0 for a default genteration.
+            CreateNewGeneration(null);
         }
         //Debug.Log("_currentGeneration: " + _currentGeneration);
     }

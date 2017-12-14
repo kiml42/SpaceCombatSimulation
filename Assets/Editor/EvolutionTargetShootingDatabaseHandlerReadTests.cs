@@ -35,7 +35,6 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
         _toConfigure = go.AddComponent<EvolutionTargetShootingControler>();
 
         _toConfigure.ShipConfig = go.AddComponent<EvolutionShipConfig>();
-        _toConfigure.FileManager = go.AddComponent<EvolutionFileManager>();
         _toConfigure.MutationControl = go.AddComponent<EvolutionMutationController>();
         _toConfigure.MatchControl = go.AddComponent<EvolutionMatchController>();
 
