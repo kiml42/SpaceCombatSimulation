@@ -123,7 +123,7 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
         Assert.AreEqual(1, i1b.MatchScores.Count);
         Assert.AreEqual(42, i1b.MatchScores.First());
 
-        var i2b = RetrievedGen1.Individuals[1];
+        var i2b = RetrievedGen2.Individuals[1];
 
         Assert.AreEqual("def", i2b.Genome);
         Assert.AreEqual(0, i2b.Score);

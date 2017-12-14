@@ -11,7 +11,7 @@ public class GenerationTests
     [Test]
     public void RecordMatch_SavesCombatants()
     {
-        var gen = new Generation1V1();
+        var gen = new Generation1v1();
         var a = "a";
         var b = "b";
         gen.AddGenome(a);

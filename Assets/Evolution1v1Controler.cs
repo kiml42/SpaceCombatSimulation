@@ -7,11 +7,15 @@ using UnityEngine.SceneManagement;
 using System;
 using System.IO;
 using Assets.Src.ObjectManagement;
+using Assets.Src.Database;
 
-public class EvolutionControler : MonoBehaviour
+public class Evolution1v1Controler : MonoBehaviour
 {
+    public int DatabaseId;
+
+    public string RunName;
+
     public EvolutionShipConfig ShipConfig;
-    public EvolutionFileManager FileManager;
     public EvolutionMutationController MutationControl;
     public EvolutionMatchController MatchControl;
     
@@ -35,8 +39,8 @@ public class EvolutionControler : MonoBehaviour
     public int MaxVelociyTollerance = 200;
     public int MaxAngularDragForTorquers = 1;
 
-    private int GenerationNumber;
-    private Generation1V1 _currentGeneration;
+    public int GenerationNumber;
+    private Generation1v1 _currentGeneration;
 
     public float SuddenDeathDamage = 10;
     /// <summary>
@@ -45,10 +49,12 @@ public class EvolutionControler : MonoBehaviour
     /// </summary>
     public float SuddenDeathReloadTime = 200;
 
+    Evolution1v1DatabaseHandler _dbHandler;
+
     // Use this for initialization
     void Start()
     {
-        ReadCurrentGeneration();
+        ReadInGeneration();
         SpawnShips();
     }
 
@@ -79,8 +85,6 @@ public class EvolutionControler : MonoBehaviour
 
             _currentGeneration.RecordMatch(a, b, winningGenome, winScore, losScore, drawScore);
         
-            FileManager.SaveGeneration(_currentGeneration, GenerationNumber);
-
             PrepareForNextMatch();
 
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
@@ -106,8 +110,7 @@ public class EvolutionControler : MonoBehaviour
             //should move to next generation
             var winners = _currentGeneration.PickWinners(WinnersFromEachGeneration);
             GenerationNumber = GenerationNumber+1;
-            _currentGeneration = new Generation1V1(MutationControl.CreateGenerationOfMutants(winners.ToList()));
-            FileManager.SaveGeneration(_currentGeneration, GenerationNumber);
+            _currentGeneration = new Generation1v1(MutationControl.CreateGenerationOfMutants(winners.ToList()));
         }
     }
 
@@ -183,32 +186,57 @@ public class EvolutionControler : MonoBehaviour
         var g2 = _currentGeneration.PickCompetitor(g1);
         return new string[] { g1, g2 };
     }
-
-    private void ReadCurrentGeneration()
+    
+    private void ReadInGeneration()
     {
-        if (File.Exists(FileManager.ConfigFilePath))
-        {
-            var GenerationNumberText = File.ReadAllText(FileManager.ConfigFilePath);
-            if(!int.TryParse(GenerationNumberText, out GenerationNumber))
-            {
-                GenerationNumber = 0;
-            }
-            string path = FileManager.PathForThisGeneration(GenerationNumber);
+        _currentGeneration = _dbHandler.ReadCurrentGeneration();
 
-            //Debug.Log("looking for genreation at " + path);
-
-            var lines = File.ReadAllLines(path);
-            _currentGeneration = new Generation1V1(lines);
-        } else
+        if (_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
         {
-            Debug.Log("Current generation File not found mutating default for new generation");
+            //The current generation does not exist - create a new random generation.
+            CreateNewGeneration(null);
         }
-        if(_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
+        else if (_currentGeneration.MinimumMatchesPlayed >= MinMatchesPerIndividual)
         {
-            //Debug.Log("Generating generation from default genomes");
-            var mutants = MutationControl.CreateDefaultGeneration();
-            _currentGeneration = new Generation1V1(mutants);
+            //the current generation is finished - create a new generation
+            var winners = _currentGeneration.PickWinners(WinnersFromEachGeneration);
+
+            GenerationNumber++;
+
+            CreateNewGeneration(winners);
         }
         //Debug.Log("_currentGeneration: " + _currentGeneration);
+    }
+
+    /// <summary>
+    /// Creates and saves a new generation in the daabese.
+    /// If winners are provided, the new generation will be mutatnts of those.
+    /// If no winners are provided, the generation number will be reset to 0, and a new default generation will be created.
+    /// The current generation is set to the generation that is created.
+    /// </summary>
+    /// <param name="winners"></param>
+    private Generation1v1 CreateNewGeneration(IEnumerable<string> winners)
+    {
+        if (winners != null && winners.Any())
+        {
+            _currentGeneration = new Generation1v1(MutationControl.CreateGenerationOfMutants(winners.ToList()));
+        }
+        else
+        {
+            Debug.Log("Generating generation from default genomes");
+            _currentGeneration = new Generation1v1(MutationControl.CreateDefaultGeneration());
+            GenerationNumber = 0;   //it's always generation 0 for a default genteration.
+        }
+
+        _dbHandler.SaveNewGeneration(_currentGeneration, DatabaseId, GenerationNumber);
+        _dbHandler.SetCurrentGeneration(GenerationNumber);
+
+        return _currentGeneration;
+    }
+
+    private void SaveGeneration()
+    {
+        //Debug.Log("Updating Generation In DB");
+        _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, GenerationNumber);
     }
 }
