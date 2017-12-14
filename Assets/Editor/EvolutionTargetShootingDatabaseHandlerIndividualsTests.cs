@@ -25,26 +25,11 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
     public void Setup()
     {
         _dbPath = _dbPathStart + Guid.NewGuid().ToString() + _dbPathExtension;
-
-        if (!Directory.Exists(Application.dataPath + _dbPathStart))
-        {
-            Debug.Log("Creating dir: " + Application.dataPath + _dbPathStart);
-            Directory.CreateDirectory(Application.dataPath + _dbPathStart);
-        }
-
+        
         initialiser = new DatabaseInitialiser
         {
             DatabasePath = _dbPath
         };
-
-        //try
-        //{
-        //    initialiser.ReCreateDatabase(_createCommandPath);
-        //}
-        //catch (Exception e)
-        //{
-        //    Debug.LogError("Caught exception: " + e.Message + ". when recreating the database, carrying on regardless, the data may not be correct.");
-        //}
 
         var go = new GameObject();
 

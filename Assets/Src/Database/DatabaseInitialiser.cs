@@ -62,6 +62,13 @@ namespace Assets.Src.Database
 
         private void CreateDatabase(string creationCommandFilePath)
         {
+            var folder = Path.GetDirectoryName(_databaseFullPath);
+            if (!Directory.Exists(folder))
+            {
+                Debug.Log("Creating dir: " + folder);
+                Directory.CreateDirectory(folder);
+            }
+
             Debug.Log("Creating database '" + _databaseFullPath + "' using command file '" + creationCommandFilePath + "'");
             SqliteConnection.CreateFile(_databaseFullPath);
 

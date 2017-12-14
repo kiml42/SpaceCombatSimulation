@@ -329,3 +329,4 @@ __pycache__/
 tmp/**/*
 
 !Assets/Plugins/*.dll
+Assets/tmp/

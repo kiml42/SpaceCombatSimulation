@@ -20,6 +20,7 @@ Bugs:
 
 TODO:
     Priority:
+        Include default data when creating DB
         Randomise target choosing mechanism periods so they don't come up at the same time.
         Switch to saving data in a database instead fof files
         Store full config of evolution in current generation file.

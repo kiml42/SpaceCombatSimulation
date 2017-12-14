@@ -13,7 +13,7 @@ namespace Assets.Src.Database
     public class EvolutionTargetShootingDatabaseHandler
     {
         private const string DEFAULT_COMMAND_PATH = "/Database/CreateBlankDatabase.sql";
-        private const string DEFAULT_DB_PATH = "/SpaceCombatSimulationDB.s3db";
+        private const string DEFAULT_DB_PATH = "/tmp/SpaceCombatSimulationDB.s3db";
         private EvolutionTargetShootingControler _toConfigure;
         private string _connectionString
         {
