@@ -15,8 +15,6 @@ INSERT INTO DroneEvolutionConfig (id, name, currentGeneration, minMatchesPerIndi
 CREATE TABLE DroneShootingIndividual (runConfigId INTEGER NOT NULL REFERENCES DroneEvolutionConfig (id), generation INTEGER NOT NULL, genome VARCHAR (1000) NOT NULL, score FLOAT, matchesPlayed INTEGER, matchesSurvived INTEGER, completeKills INTEGER, totalKills INTEGER, matchScores VARCHAR (500), PRIMARY KEY (runConfigId, generation, genome));
 INSERT INTO DroneShootingIndividual (runConfigId, generation, genome, score, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores) VALUES (0, 0, '123', 42, 3, 1, 0, 5, '123,321');
 INSERT INTO DroneShootingIndividual (runConfigId, generation, genome, score, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores) VALUES (0, 0, '148', 65, 2, 0, 1, 1, '3');
-INSERT INTO DroneShootingIndividual (runConfigId, generation, genome, score, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores) VALUES (3, 4, 'abc', 42, 1, 1, 1, 15, '42');
-INSERT INTO DroneShootingIndividual (runConfigId, generation, genome, score, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores) VALUES (3, 4, 'def', 0, 0, 0, 0, 0, '');
 
 -- Table: MatchConfig
 CREATE TABLE MatchConfig (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, matchTimeout FLOAT DEFAULT '300' NOT NULL, winnerPollPeriod FLOAT DEFAULT '2' NOT NULL);
@@ -31,8 +29,10 @@ INSERT INTO MutationConfig (id, mutations, allowedCharacters, maxMutationLength,
 INSERT INTO MutationConfig (id, mutations, allowedCharacters, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome) VALUES (6, 7, ' xyz ', 4, 91, 27, 1, 'abc');
 
 -- Table: Test
-CREATE TABLE [Test] (
-[F1] INTEGER DEFAULT '0' NULL
+CREATE TABLE [Test] (
+
+[F1] INTEGER DEFAULT '0' NULL
+
 );
 INSERT INTO Test (F1) VALUES (2);
 INSERT INTO Test (F1) VALUES (3);

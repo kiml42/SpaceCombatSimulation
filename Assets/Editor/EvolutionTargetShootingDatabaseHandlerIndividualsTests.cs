@@ -9,17 +9,30 @@ using System.Linq;
 using Assets.Src.Evolution;
 using System.Collections.Generic;
 using System;
+using System.IO;
 
 public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
 {
-    private string _dbPath = "/../Test/TestDB/SpaceCombatSimulationDB1.s3db";
+    private string _dbPathStart = "/../tmp/TestDB/";
+    private string _dbPathExtension = ".s3db";
+    private string _dbPath;
     private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
     EvolutionTargetShootingControler _toConfigure;
     EvolutionTargetShootingDatabaseHandler _handler;
-
-    public EvolutionTargetShootingDatabaseHandlerIndividualsTests()
+    DatabaseInitialiser initialiser;
+    
+    [SetUp]
+    public void Setup()
     {
-        var initialiser = new DatabaseInitialiser
+        _dbPath = _dbPathStart + Guid.NewGuid().ToString() + _dbPathExtension;
+
+        if (!Directory.Exists(Application.dataPath + _dbPathStart))
+        {
+            Debug.Log("Creating dir: " + Application.dataPath + _dbPathStart);
+            Directory.CreateDirectory(Application.dataPath + _dbPathStart);
+        }
+
+        initialiser = new DatabaseInitialiser
         {
             DatabasePath = _dbPath
         };
@@ -182,4 +195,17 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
     }
 
     #endregion
+
+    [TearDown]
+    public void TearDown()
+    {
+        try
+        {
+            initialiser.DropDatabase();
+        } catch (Exception e)
+        {
+            Debug.LogWarning("Failed to tear down database: " + e.Message);
+        }
+    }
+
 }

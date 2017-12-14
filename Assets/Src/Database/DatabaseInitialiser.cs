@@ -38,7 +38,7 @@ namespace Assets.Src.Database
         /// <summary>
         /// Deletes the database and all data - should only be used for testing.
         /// </summary>
-        private void DropDatabase()
+        public void DropDatabase()
         {
             if (File.Exists(_databaseFullPath))
             {
@@ -85,7 +85,6 @@ namespace Assets.Src.Database
                     if (sql_con != null)
                         sql_con.Close();
                 }
-
             }
         }
     }
