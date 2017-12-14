@@ -91,7 +91,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         //Debug.Log("EvolutionTargetShootingControler starting");
         _dbHandler = new EvolutionTargetShootingDatabaseHandler(this);
 
-        _dbHandler.ReadDroneConfig(DatabaseId);
+        _dbHandler.ReadConfig(DatabaseId);
 
         ReadInGeneration();
 

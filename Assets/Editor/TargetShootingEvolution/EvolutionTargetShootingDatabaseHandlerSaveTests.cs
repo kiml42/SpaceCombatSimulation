@@ -45,14 +45,14 @@ public class EvolutionTargetShootingDatabaseHandlerSaveTests
     [Test]
     public void SetCurrentGeneration_UpdatesCurrentGeneration()
     {
-        _handler.ReadDroneConfig(1);
+        _handler.ReadConfig(1);
         Assert.AreEqual(1, _toConfigure.DatabaseId);
 
         _handler.SetCurrentGeneration(5);
         Assert.AreEqual(5, _toConfigure.GenerationNumber);  //has been set
 
         _toConfigure.GenerationNumber = 2;  //set it werong
-        _handler.ReadDroneConfig(1);
+        _handler.ReadConfig(1);
         Assert.AreEqual(5, _toConfigure.GenerationNumber);  //has been read back out
 
         //repeat with a different number, to be sure it wasn't just 5 to begin with.
@@ -60,7 +60,7 @@ public class EvolutionTargetShootingDatabaseHandlerSaveTests
         Assert.AreEqual(7, _toConfigure.GenerationNumber);  //has been set
 
         _toConfigure.GenerationNumber = 3;  //set it werong
-        _handler.ReadDroneConfig(1);
+        _handler.ReadConfig(1);
         Assert.AreEqual(7, _toConfigure.GenerationNumber);  //has been read back out
     }
     #endregion

@@ -44,7 +44,7 @@ namespace Assets.Src.Database
             _toConfigure = toConfigure;
         }
 
-        public void ReadDroneConfig(int id)
+        public void ReadConfig(int id)
         {
             //Debug.Log("Reading config from DB. Id: " + id);
             using (var sql_con = new SqliteConnection(_connectionString))

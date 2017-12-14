@@ -54,7 +54,12 @@ public class Evolution1v1Controler : MonoBehaviour
     // Use this for initialization
     void Start()
     {
+        _dbHandler = new Evolution1v1DatabaseHandler(this);
+
+        _dbHandler.ReadConfig(DatabaseId);
+
         ReadInGeneration();
+
         SpawnShips();
     }
 
@@ -85,8 +90,6 @@ public class Evolution1v1Controler : MonoBehaviour
 
             _currentGeneration.RecordMatch(a, b, winningGenome, winScore, losScore, drawScore);
         
-            PrepareForNextMatch();
-
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
     }
@@ -102,18 +105,7 @@ public class Evolution1v1Controler : MonoBehaviour
         MatchControl.MatchTimeout = SuddenDeathReloadTime;
         MatchControl.MatchRunTime = 0;
     }
-
-    private void PrepareForNextMatch()
-    {
-        if(_currentGeneration.MinimumMatchesPlayed >= MinMatchesPerIndividual)
-        {
-            //should move to next generation
-            var winners = _currentGeneration.PickWinners(WinnersFromEachGeneration);
-            GenerationNumber = GenerationNumber+1;
-            _currentGeneration = new Generation1v1(MutationControl.CreateGenerationOfMutants(winners.ToList()));
-        }
-    }
-
+    
     private void SpawnShips()
     {
         var genomes = PickTwoGenomesFromHistory();
