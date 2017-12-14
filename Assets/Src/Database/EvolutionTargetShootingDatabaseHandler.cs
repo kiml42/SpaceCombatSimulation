@@ -28,7 +28,7 @@ namespace Assets.Src.Database
 
         public EvolutionTargetShootingDatabaseHandler(EvolutionTargetShootingControler toConfigure, string databasePath = DEFAULT_DB_PATH, string dbCreationCommandPath = DEFAULT_COMMAND_PATH)
         {
-            Debug.Log("EvolutionTargetShootingDatabaseHandler constructor");
+            //Debug.Log("EvolutionTargetShootingDatabaseHandler constructor");
 
             _databasePath = databasePath;
 
@@ -46,7 +46,7 @@ namespace Assets.Src.Database
 
         public void ReadDroneConfig(int id)
         {
-            Debug.Log("Reading config from DB. Id: " + id);
+            //Debug.Log("Reading config from DB. Id: " + id);
             using (var sql_con = new SqliteConnection(_connectionString))
             {
                 IDbCommand dbcmd = null;
@@ -149,7 +149,7 @@ namespace Assets.Src.Database
 
         public GenerationTargetShooting ReadGeneration(int runId, int generationNumber)
         {
-            Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);
+            //Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);
             var generation = new GenerationTargetShooting();
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -163,7 +163,7 @@ namespace Assets.Src.Database
                         " FROM DroneShootingIndividual" +
                         " WHERE runConfigId = " + runId + " AND generation = " + generationNumber +
                         ";";
-                    Debug.Log(sqlQuery);
+                    //Debug.Log(sqlQuery);
                     dbcmd.CommandText = sqlQuery;
                     reader = dbcmd.ExecuteReader();
                     

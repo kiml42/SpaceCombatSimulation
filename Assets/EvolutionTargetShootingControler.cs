@@ -88,7 +88,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     // Use this for initialization
     void Start()
     {
-        Debug.Log("EvolutionTargetShootingControler starting");
+        //Debug.Log("EvolutionTargetShootingControler starting");
         _dbHandler = new EvolutionTargetShootingDatabaseHandler(this);
 
         _dbHandler.ReadDroneConfig(DatabaseId);
@@ -127,7 +127,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     private void SaveGeneration()
     {
-        Debug.Log("Updating Generation In DB");
+        //Debug.Log("Updating Generation In DB");
         _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, GenerationNumber);
     }
 
