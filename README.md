@@ -20,9 +20,10 @@ Bugs:
 
 TODO:
     Priority:
+        Read from DB into config object instead of configuring the controller itself.
+        create base evolution controller abstract class to deduplicate code
+        merge database handlers, or create a base class for those too.
         Randomise target choosing mechanism periods so they don't come up at the same time.
-        Store full config of evolution in Database.
-            Done for Drone shooting, but not for 1v1 evolution.
         Menus
             Top menu - leads to general settings and various modes
             Menu per mode, for setup - saves setup in the generation file.
