@@ -21,8 +21,7 @@ Bugs:
 TODO:
     Priority:
         Randomise target choosing mechanism periods so they don't come up at the same time.
-        Switch to saving data in a database instead fof files
-        Store full config of evolution in current generation file.
+        Store full config of evolution in Database.
             Done for Drone shooting, but not for 1v1 evolution.
         Menus
             Top menu - leads to general settings and various modes
@@ -48,7 +47,6 @@ TODO:
             Hubs have batteries to store energy
             Hubs have generators to recharge batteries.
         Only escalate total targets for each generation if all targets were killed by X per generation for Y generations, or some proportion of total individuals for the last Z generations.
-        Use Database for all evolution controllers.
 
 
     Avoid GetComponent and sendMessage in update methods.
