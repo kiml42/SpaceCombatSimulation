@@ -55,9 +55,12 @@ namespace Assets.src.Evolution
             SortGeneration();
         }
 
-        public int MinimumMatchesPlayed()
+        public int MinimumMatchesPlayed
         {
-            return Individuals.Min(i => i.MatchesPlayed);
+            get
+            {
+                return Individuals.Min(i => i.MatchesPlayed);
+            }
         }
 
         public IEnumerable<string> PickWinners(int WinnersCount)

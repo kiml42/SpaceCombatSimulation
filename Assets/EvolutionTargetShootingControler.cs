@@ -119,58 +119,13 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             //save the current generation
             SaveGeneration();
 
-            PrepareForNextMatch();
-
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
     }
 
-    private void SaveGeneration()
-    {
-        //Debug.Log("Updating Generation In DB");
-        _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, GenerationNumber);
-    }
-
-    private void PrepareForNextMatch()
-    {
-        if(_currentGeneration.MinimumMatchesPlayed() >= MinMatchesPerIndividual)
-        {
-            //should move to next generation
-            var winners = _currentGeneration.PickWinners(WinnersFromEachGeneration);
-            GenerationNumber++;
-
-            CreateNewGeneration(winners);
-        }
-    }
-
-    /// <summary>
-    /// Creates and saves a new generation in the daabese.
-    /// If winners are provided, the new generation will be mutatnts of those.
-    /// If no winners are provided, the generation number will be reset to 0, and a new default generation will be created.
-    /// The current generation is set to the generation that is created.
-    /// </summary>
-    /// <param name="winners"></param>
-    private GenerationTargetShooting CreateNewGeneration(IEnumerable<string> winners)
-    {
-        if (winners != null)
-        {
-            _currentGeneration = new GenerationTargetShooting(MutationControl.CreateGenerationOfMutants(winners.ToList()));
-        } else
-        {
-            Debug.Log("Generating generation from default genomes");
-            _currentGeneration = new GenerationTargetShooting(MutationControl.CreateDefaultGeneration());
-            GenerationNumber = 0;   //it's always generation 0 for a default genteration.
-        }
-
-        _dbHandler.SaveNewGeneration(_currentGeneration, DatabaseId, GenerationNumber);
-        _dbHandler.SetCurrentGeneration(GenerationNumber);
-
-        return _currentGeneration;
-    }
-
     private void SpawnShips()
     {
-        _genome = PickContestant();
+        _genome = _currentGeneration.PickCompetitor();
 
         Debug.Log(_genome + " enters the arena!");
 
@@ -250,12 +205,6 @@ public class EvolutionTargetShootingControler : MonoBehaviour
                     s.transform.parent.GetComponent("Rigidbody") != null
                 ).Select(s => s.transform.parent);
     }
-        
-    private string PickContestant()
-    {
-        var g1 = _currentGeneration.PickCompetitor();
-        return g1;
-    }
     
     private void ReadInGeneration()
     {
@@ -263,8 +212,49 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
         if (_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
         {
+            //The current generation does not exist - create a new random generation.
             CreateNewGeneration(null);
+        } else if(_currentGeneration.MinimumMatchesPlayed >= MinMatchesPerIndividual)
+        {
+            //the current generation is finished - create a new generation
+            var winners = _currentGeneration.PickWinners(WinnersFromEachGeneration);
+
+            GenerationNumber++;
+
+            CreateNewGeneration(winners);
         }
         //Debug.Log("_currentGeneration: " + _currentGeneration);
+    }
+    
+    /// <summary>
+    /// Creates and saves a new generation in the daabese.
+    /// If winners are provided, the new generation will be mutatnts of those.
+    /// If no winners are provided, the generation number will be reset to 0, and a new default generation will be created.
+    /// The current generation is set to the generation that is created.
+    /// </summary>
+    /// <param name="winners"></param>
+    private GenerationTargetShooting CreateNewGeneration(IEnumerable<string> winners)
+    {
+        if (winners != null && winners.Any())
+        {
+            _currentGeneration = new GenerationTargetShooting(MutationControl.CreateGenerationOfMutants(winners.ToList()));
+        }
+        else
+        {
+            Debug.Log("Generating generation from default genomes");
+            _currentGeneration = new GenerationTargetShooting(MutationControl.CreateDefaultGeneration());
+            GenerationNumber = 0;   //it's always generation 0 for a default genteration.
+        }
+
+        _dbHandler.SaveNewGeneration(_currentGeneration, DatabaseId, GenerationNumber);
+        _dbHandler.SetCurrentGeneration(GenerationNumber);
+
+        return _currentGeneration;
+    }
+
+    private void SaveGeneration()
+    {
+        //Debug.Log("Updating Generation In DB");
+        _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, GenerationNumber);
     }
 }

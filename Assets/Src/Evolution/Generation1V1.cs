@@ -56,9 +56,12 @@ namespace Assets.src.Evolution
             Individuals = Individuals.OrderByDescending(i => i.AverageScore).ToList();
         }
 
-        public int MinimumMatchesPlayed()
+        public int MinimumMatchesPlayed
         {
-            return Individuals.Min(i => i.MatchesPlayed);
+            get
+            {
+                return Individuals.Min(i => i.MatchesPlayed);
+            }
         }
 
         public IEnumerable<string> PickWinners(int WinnersCount)

@@ -28,7 +28,7 @@ namespace Assets.Src.Evolution
         /// The lowest number of matches played by any individual
         /// </summary>
         /// <returns></returns>
-        int MinimumMatchesPlayed();
+        int MinimumMatchesPlayed { get; }
 
         /// <summary>
         /// Picks the given number of individuals with the best scores.

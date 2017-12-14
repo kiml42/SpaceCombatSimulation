@@ -101,7 +101,7 @@ public class EvolutionControler : MonoBehaviour
 
     private void PrepareForNextMatch()
     {
-        if(_currentGeneration.MinimumMatchesPlayed() >= MinMatchesPerIndividual)
+        if(_currentGeneration.MinimumMatchesPlayed >= MinMatchesPerIndividual)
         {
             //should move to next generation
             var winners = _currentGeneration.PickWinners(WinnersFromEachGeneration);
