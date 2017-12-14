@@ -25,8 +25,8 @@ CREATE TABLE Individual1v1 (runConfigId INTEGER NOT NULL REFERENCES DroneEvoluti
 -- Table: MatchConfig
 CREATE TABLE MatchConfig (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, matchTimeout FLOAT DEFAULT '300' NOT NULL, winnerPollPeriod FLOAT DEFAULT '2' NOT NULL);
 INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod) VALUES (0, 0, 0);
-INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod) VALUES (1, 2, 1);
-INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod) VALUES (2, 2, 1);
+INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod) VALUES (1, 300, 1);
+INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod) VALUES (2, 120, 1);
 
 -- Table: MutationConfig
 CREATE TABLE MutationConfig (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, mutations BIGINT NOT NULL, allowedCharacters VARCHAR (30) DEFAULT '0123456789012' NOT NULL, maxMutationLength INTEGER DEFAULT '5' NOT NULL, genomeLength INTEGER DEFAULT '100' NOT NULL, generationSize INTEGER DEFAULT '20' NOT NULL, randomDefault BOOLEAN DEFAULT 'FALSE' NOT NULL, defaultGenome VARCHAR (1000));
