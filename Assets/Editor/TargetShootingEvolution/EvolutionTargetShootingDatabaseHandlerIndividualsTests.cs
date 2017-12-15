@@ -17,7 +17,6 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
     private string _dbPathExtension = ".s3db";
     private string _dbPath;
     private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
-    EvolutionTargetShootingControler _toConfigure;
     EvolutionTargetShootingDatabaseHandler _handler;
     DatabaseInitialiser initialiser;
     
@@ -30,16 +29,8 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
         {
             DatabasePath = _dbPath
         };
-
-        var go = new GameObject();
-
-        _toConfigure = go.AddComponent<EvolutionTargetShootingControler>();
-
-        _toConfigure.ShipConfig = go.AddComponent<EvolutionShipConfig>();
-        _toConfigure.MutationControl = go.AddComponent<EvolutionMutationController>();
-        _toConfigure.MatchControl = go.AddComponent<EvolutionMatchController>();
-
-        _handler = new EvolutionTargetShootingDatabaseHandler(_toConfigure, _dbPath, _createCommandPath);
+        
+        _handler = new EvolutionTargetShootingDatabaseHandler(_dbPath, _createCommandPath);
     }
 
     #region top level

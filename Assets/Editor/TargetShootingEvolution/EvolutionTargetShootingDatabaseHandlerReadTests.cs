@@ -11,7 +11,6 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
 {
     private string _dbPath = "/../tmp/TestDB/SpaceCombatSimulationDB2.s3db";
     private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
-    EvolutionTargetShootingControler _toConfigure;
     EvolutionTargetShootingDatabaseHandler _handler;
 
     public EvolutionTargetShootingDatabaseHandlerReadTests()
@@ -29,122 +28,115 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
         {
             Debug.LogError("Caught exception: " + e.Message + ". when recreating the database, carrying on regardless, the data may not be correct.");
         }
+        
 
-        var go = new GameObject();
-
-        _toConfigure = go.AddComponent<EvolutionTargetShootingControler>();
-
-        _toConfigure.ShipConfig = go.AddComponent<EvolutionShipConfig>();
-        _toConfigure.MutationControl = go.AddComponent<EvolutionMutationController>();
-        _toConfigure.MatchControl = go.AddComponent<EvolutionMatchController>();
-
-        _handler = new EvolutionTargetShootingDatabaseHandler(_toConfigure, _dbPath);
+        _handler = new EvolutionTargetShootingDatabaseHandler(_dbPath);
     }
 
     #region top level
     [Test]
     public void ReadDroneConfig_ReadsID()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(0, _toConfigure.DatabaseId);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(0, config.DatabaseId);
     }
 
     [Test]
     public void ReadDroneConfig_ReadsDifferentID()
     {
-        _handler.ReadConfig(1);
-        Assert.AreEqual(1, _toConfigure.DatabaseId);
+        var config = _handler.ReadConfig(1);
+        Assert.AreEqual(1, config.DatabaseId);
     }
 
     [Test]
     public void ReadDroneConfig_ReadsName()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual("Run0", _toConfigure.RunName);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual("Run0", config.RunName);
     }
 
     [Test]
     public void ReadDroneConfig_ReadsDifferentName()
     {
-        _handler.ReadConfig(1);
-        Assert.AreEqual("Run1", _toConfigure.RunName);
+        var config = _handler.ReadConfig(1);
+        Assert.AreEqual("Run1", config.RunName);
     }
 
     [Test]
     public void ReadDroneConfig_GenerationNumber()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(1, _toConfigure.GenerationNumber);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(1, config.GenerationNumber);
     }
 
     [Test]
     public void ReadDroneConfig_MinMatchesPerIndividual()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(5, _toConfigure.MinMatchesPerIndividual);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(5, config.MinMatchesPerIndividual);
     }
 
     [Test]
     public void ReadDroneConfig_WinnersFromEachGeneration()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(14, _toConfigure.WinnersFromEachGeneration);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(14, config.WinnersFromEachGeneration);
     }
 
     [Test]
     public void ReadDroneConfig_MinDronesToSpawn()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(10, _toConfigure.MinDronesToSpawn);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(10, config.MinDronesToSpawn);
     }
 
     [Test]
     public void ReadDroneConfig_ExtraDromnesPerGeneration()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(3, _toConfigure.ExtraDromnesPerGeneration);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(3, config.ExtraDromnesPerGeneration);
     }
 
     [Test]
     public void ReadDroneConfig_MaxDronesToSpawn()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(15, _toConfigure.MaxDronesToSpawn);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(15, config.MaxDronesToSpawn);
     }
 
     [Test]
     public void ReadDroneConfig_KillScoreMultiplier()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(-4, _toConfigure.KillScoreMultiplier);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(-4, config.KillScoreMultiplier);
     }
 
     [Test]
     public void ReadDroneConfig_FlatKillBonus()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(-6, _toConfigure.FlatKillBonus);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(-6, config.FlatKillBonus);
     }
 
     [Test]
     public void ReadDroneConfig_CompletionBonus()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(-8, _toConfigure.CompletionBonus);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(-8, config.CompletionBonus);
     }
 
     [Test]
     public void ReadDroneConfig_DeathPenalty()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(-20, _toConfigure.DeathPenalty);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(-20, config.DeathPenalty);
     }
 
     [Test]
     public void ReadDroneConfig_Drones()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual("Assets/Prefabs/ModularShip/Drones/SelfBuildingModularShip.prefab;Assets/Prefabs/ModularShip/Drones/EngineDrone.prefab;Assets/Prefabs/ModularShip/Drones/MiniLaserDrone.prefab;Assets/Prefabs/ModularShip/Drones/SelfBuildingModularShip.prefab;Assets/Prefabs/ModularShip/Drones/MiniLaserDrone.prefab;Assets/Prefabs/ModularShip/Drones/SelfBuildingModularShip.prefab;Assets/Prefabs/ModularShip/Drones/SelfBuildingModularShip.prefab;Assets/Prefabs/ModularShip/Drones/MiniLaserDrone.prefab;Assets/Prefabs/ModularShip/Drones/SelfBuildingModularShip.prefab;Assets/Prefabs/ModularShip/Drones/TorpedoDrone.prefab;Assets/Prefabs/ModularShip/Drones/SelfBuildingModularShip.prefab;Assets/Prefabs/ModularShip/Drones/SelfBuildingModularShip.prefab;Assets/Prefabs/ModularShip/Drones/SelfBuildingModularShip.prefab;Assets/Prefabs/ModularShip/Drones/TwinCannonDrone.prefab", _toConfigure.DronesString);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual("Assets/Prefabs/ModularShip/Drones/SelfBuildingModularShip.prefab;Assets/Prefabs/ModularShip/Drones/EngineDrone.prefab;Assets/Prefabs/ModularShip/Drones/MiniLaserDrone.prefab;Assets/Prefabs/ModularShip/Drones/SelfBuildingModularShip.prefab;Assets/Prefabs/ModularShip/Drones/MiniLaserDrone.prefab;Assets/Prefabs/ModularShip/Drones/SelfBuildingModularShip.prefab;Assets/Prefabs/ModularShip/Drones/SelfBuildingModularShip.prefab;Assets/Prefabs/ModularShip/Drones/MiniLaserDrone.prefab;Assets/Prefabs/ModularShip/Drones/SelfBuildingModularShip.prefab;Assets/Prefabs/ModularShip/Drones/TorpedoDrone.prefab;Assets/Prefabs/ModularShip/Drones/SelfBuildingModularShip.prefab;Assets/Prefabs/ModularShip/Drones/SelfBuildingModularShip.prefab;Assets/Prefabs/ModularShip/Drones/SelfBuildingModularShip.prefab;Assets/Prefabs/ModularShip/Drones/TwinCannonDrone.prefab", config.DronesString);
     }
     #endregion
 
@@ -152,22 +144,22 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
     [Test]
     public void ReadDroneConfig_MatchControl_Id()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(5, _toConfigure.MatchControl.Config.Id);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(5, config.MatchConfig.Id);
     }
 
     [Test]
     public void ReadDroneConfig_MatchControl_MatchTimeout()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(25, _toConfigure.MatchControl.Config.MatchTimeout);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(25, config.MatchConfig.MatchTimeout);
     }
 
     [Test]
     public void ReadDroneConfig_MatchControl_WinnerPollPeriod()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(2, _toConfigure.MatchControl.Config.WinnerPollPeriod);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(2, config.MatchConfig.WinnerPollPeriod);
     }
     #endregion
 
@@ -175,57 +167,57 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
     [Test]
     public void ReadDroneConfig_MutationControl_Id()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(6, _toConfigure.MutationControl.Config.Id);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(6, config.MutationConfig.Id);
     }
 
     [Test]
     public void ReadDroneConfig_MutationControl_Mutations()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(7, _toConfigure.MutationControl.Config.Mutations);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(7, config.MutationConfig.Mutations);
     }
 
     [Test]
     public void ReadDroneConfig_MutationControl_AllowedCharacters()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(" xyz ", _toConfigure.MutationControl.Config.AllowedCharacters);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(" xyz ", config.MutationConfig.AllowedCharacters);
     }
 
     [Test]
     public void ReadDroneConfig_MutationControl_MaxMutationLength()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(4, _toConfigure.MutationControl.Config.MaxMutationLength);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(4, config.MutationConfig.MaxMutationLength);
     }
 
     [Test]
     public void ReadDroneConfig_MutationControl_GenomeLength()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(91, _toConfigure.MutationControl.Config.GenomeLength);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(91, config.MutationConfig.GenomeLength);
     }
 
     [Test]
     public void ReadDroneConfig_MutationControl_GenerationSize()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(27, _toConfigure.MutationControl.Config.GenerationSize);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(27, config.MutationConfig.GenerationSize);
     }
 
     [Test]
     public void ReadDroneConfig_MutationControl_UseCompletelyRandomDefaultGenome()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(true, _toConfigure.MutationControl.Config.UseCompletelyRandomDefaultGenome);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(true, config.MutationConfig.UseCompletelyRandomDefaultGenome);
     }
 
     [Test]
     public void ReadDroneConfig_MutationControl_DefaultGenome()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual("abc", _toConfigure.MutationControl.Config.DefaultGenome);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual("abc", config.MutationConfig.DefaultGenome);
     }
     #endregion
 }

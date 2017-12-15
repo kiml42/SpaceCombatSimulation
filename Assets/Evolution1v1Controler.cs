@@ -53,7 +53,7 @@ public class Evolution1v1Controler : MonoBehaviour
         _mutationControl = gameObject.AddComponent<EvolutionMutationController>();
         _matchControl = gameObject.AddComponent<EvolutionMatchController>();
 
-        _mutationControl.Config = _config.MutationControl;
+        _mutationControl.Config = _config.MutationConfig;
         _matchControl.Config = _config.MatchConfig;
 
         RunName = _config.RunName;

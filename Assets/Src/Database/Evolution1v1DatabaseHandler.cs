@@ -42,8 +42,6 @@ namespace Assets.Src.Database
         public Evolution1v1Config ReadConfig(int id)
         {
             var config = new Evolution1v1Config();
-            var MatchConfig = new MatchConfig();
-            var MutationConfig = new MutationConfig();
 
             //Debug.Log("Reading config from DB. Id: " + id);
             using (var sql_con = new SqliteConnection(_connectionString))
@@ -77,21 +75,19 @@ namespace Assets.Src.Database
                     config.SuddenDeathReloadTime = reader.GetFloat(reader.GetOrdinal("suddenDeathReloadTime"));
 
                     //Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("MatchConfig.Id"));  //-1
-                    MatchConfig.Id = reader.GetInt32(7);  //TODO check this
-                    MatchConfig.MatchTimeout = reader.GetFloat(reader.GetOrdinal("matchTimeout")); //16
-                    MatchConfig.WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")); //17
+                    config.MatchConfig.Id = reader.GetInt32(7);  //TODO check this
+                    config.MatchConfig.MatchTimeout = reader.GetFloat(reader.GetOrdinal("matchTimeout")); //16
+                    config.MatchConfig.WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")); //17
 
-                    MutationConfig.Id = reader.GetInt32(8);   //TODO check this
-                    MutationConfig.Mutations = reader.GetInt32(reader.GetOrdinal("mutations"));    //19
-                    MutationConfig.AllowedCharacters = reader.GetString(reader.GetOrdinal("allowedCharacters"));   //20
-                    MutationConfig.MaxMutationLength = reader.GetInt32(reader.GetOrdinal("maxMutationLength"));   //21
-                    MutationConfig.GenomeLength = reader.GetInt32(reader.GetOrdinal("genomeLength")); //22
-                    MutationConfig.GenerationSize = reader.GetInt32(reader.GetOrdinal("generationSize"));   //23
-                    MutationConfig.UseCompletelyRandomDefaultGenome = reader.GetBoolean(reader.GetOrdinal("randomDefault"));  //24
-                    MutationConfig.DefaultGenome = reader.GetString(reader.GetOrdinal("defaultGenome"));   //25
-
-                    config.MatchConfig = MatchConfig;
-                    config.MutationControl = MutationConfig;
+                    config.MutationConfig.Id = reader.GetInt32(8);   //TODO check this
+                    config.MutationConfig.Mutations = reader.GetInt32(reader.GetOrdinal("mutations"));    //19
+                    config.MutationConfig.AllowedCharacters = reader.GetString(reader.GetOrdinal("allowedCharacters"));   //20
+                    config.MutationConfig.MaxMutationLength = reader.GetInt32(reader.GetOrdinal("maxMutationLength"));   //21
+                    config.MutationConfig.GenomeLength = reader.GetInt32(reader.GetOrdinal("genomeLength")); //22
+                    config.MutationConfig.GenerationSize = reader.GetInt32(reader.GetOrdinal("generationSize"));   //23
+                    config.MutationConfig.UseCompletelyRandomDefaultGenome = reader.GetBoolean(reader.GetOrdinal("randomDefault"));  //24
+                    config.MutationConfig.DefaultGenome = reader.GetString(reader.GetOrdinal("defaultGenome"));   //25
+                    
                 }
                 catch (Exception e)
                 {
@@ -301,7 +297,7 @@ namespace Assets.Src.Database
 
                 try
                 {
-                    //Debug.Log("Updating generation to " + _toConfigure.GenerationNumber);
+                    //Debug.Log("Updating generation to " + config.GenerationNumber);
                     command = new SqliteCommand("UPDATE EvolutionConfig1v1 SET currentGeneration = ? WHERE id = ?;", sql_con);
 
                     command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
@@ -328,8 +324,8 @@ namespace Assets.Src.Database
             //    sql_con.Open();
             //    try
             //    {
-            //        SaveMatchConfig(_toConfigure.MatchControl, sql_con);
-            //        SaveMutationConfig(_toConfigure.MutationControl, sql_con);
+            //        SaveMatchConfig(config.MatchControl, sql_con);
+            //        SaveMutationConfig(config.MutationControl, sql_con);
 
             //        SaveEvolutionControlerConfig(sql_con);
             //    }
@@ -428,10 +424,10 @@ namespace Assets.Src.Database
         private void SaveEvolutionControlerConfig(SqliteConnection sql_con)
         {
             throw new NotImplementedException();
-            //if (_toConfigure.ReadFromDatabase)
+            //if (config.ReadFromDatabase)
             //{
             //    //If it's set to be read from the database, it must already exist in the database, so update the existing one.
-            //    Debug.LogWarning("Updating existing EvolutionConfig1v1 not implemented, Id: " + _toConfigure.DatabaseId);
+            //    Debug.LogWarning("Updating existing EvolutionConfig1v1 not implemented, Id: " + config.DatabaseId);
             //}
             //else
             //{
@@ -439,22 +435,22 @@ namespace Assets.Src.Database
             //        ", winnersCount , minDrones , droneEscalation , maxDrones , killScoreMultiplier, flatKillBonus, completionBonus " +
             //        ", deathPenalty, droneList, matchConfigId, mutationConfigId) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", sql_con);
 
-            //    //insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.Id.Value));
-            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)_toConfigure.RunName));
-            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.GenerationNumber));
-            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.MinMatchesPerIndividual));
-            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.WinnersFromEachGeneration));
-            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.MinDronesToSpawn));
-            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.ExtraDroneEveryXGenerations));
-            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.MaxDronesToSpawn));
-            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)_toConfigure.KillScoreMultiplier));
-            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)_toConfigure.FlatKillBonus));
-            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)_toConfigure.CompletionBonus));
-            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)_toConfigure.DeathPenalty));
-            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)_toConfigure.DronesString));
+            //    //insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Id.Value));
+            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.RunName));
+            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationNumber));
+            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinMatchesPerIndividual));
+            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.WinnersFromEachGeneration));
+            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinDronesToSpawn));
+            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.ExtraDroneEveryXGenerations));
+            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxDronesToSpawn));
+            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.KillScoreMultiplier));
+            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.FlatKillBonus));
+            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.CompletionBonus));
+            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.DeathPenalty));
+            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DronesString));
 
-            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.MatchControl.Id));
-            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.MutationControl.Id));
+            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MatchControl.Id));
+            //    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MutationControl.Id));
 
             //    insertSQL.ExecuteNonQuery();
             //}

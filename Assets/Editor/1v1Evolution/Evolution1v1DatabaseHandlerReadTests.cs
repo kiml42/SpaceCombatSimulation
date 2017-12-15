@@ -125,56 +125,56 @@ public class Evolution1v1DatabaseHandlerReadTests
     public void ReadConfig_MutationControl_Id()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(2, config.MutationControl.Id);
+        Assert.AreEqual(2, config.MutationConfig.Id);
     }
 
     [Test]
     public void ReadConfig_MutationControl_Mutations()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(17, config.MutationControl.Mutations);
+        Assert.AreEqual(17, config.MutationConfig.Mutations);
     }
 
     [Test]
     public void ReadConfig_MutationControl_AllowedCharacters()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(" xyzq ", config.MutationControl.AllowedCharacters);
+        Assert.AreEqual(" xyzq ", config.MutationConfig.AllowedCharacters);
     }
 
     [Test]
     public void ReadConfig_MutationControl_MaxMutationLength()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(14, config.MutationControl.MaxMutationLength);
+        Assert.AreEqual(14, config.MutationConfig.MaxMutationLength);
     }
 
     [Test]
     public void ReadConfig_MutationControl_GenomeLength()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(191, config.MutationControl.GenomeLength);
+        Assert.AreEqual(191, config.MutationConfig.GenomeLength);
     }
 
     [Test]
     public void ReadConfig_MutationControl_GenerationSize()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(127, config.MutationControl.GenerationSize);
+        Assert.AreEqual(127, config.MutationConfig.GenerationSize);
     }
 
     [Test]
     public void ReadConfig_MutationControl_UseCompletelyRandomDefaultGenome()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(true, config.MutationControl.UseCompletelyRandomDefaultGenome);
+        Assert.AreEqual(true, config.MutationConfig.UseCompletelyRandomDefaultGenome);
     }
 
     [Test]
     public void ReadConfig_MutationControl_DefaultGenome()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual("abc1", config.MutationControl.DefaultGenome);
+        Assert.AreEqual("abc1", config.MutationConfig.DefaultGenome);
     }
     #endregion
 }

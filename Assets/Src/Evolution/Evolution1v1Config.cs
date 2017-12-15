@@ -11,7 +11,7 @@ namespace Assets.Src.Evolution
 
         public string RunName;
         
-        public MutationConfig MutationControl = new MutationConfig();
+        public MutationConfig MutationConfig = new MutationConfig();
         public MatchConfig MatchConfig = new MatchConfig();
         
         /// <summary>

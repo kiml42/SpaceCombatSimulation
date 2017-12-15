@@ -12,8 +12,8 @@ namespace Assets.Src.Evolution
         public int DatabaseId;
         public string RunName;
 
-        public EvolutionMutationController MutationControl = new EvolutionMutationController();
-        public EvolutionMatchController MatchControl = new EvolutionMatchController();
+        public MutationConfig MutationConfig = new MutationConfig();
+        public MatchConfig MatchConfig = new MatchConfig();
 
         #region "Drones
         public List<Rigidbody> Drones = new List<Rigidbody>();

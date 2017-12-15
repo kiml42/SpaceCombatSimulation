@@ -9,68 +9,24 @@ using System.IO;
 using Assets.Src.ObjectManagement;
 using UnityEditor;
 using Assets.Src.Database;
+using Assets.Src.Evolution;
 
 public class EvolutionTargetShootingControler : MonoBehaviour
 {
     public int DatabaseId;
 
+    [Tooltip("For display perposes only")]
     public string RunName;
+    [Tooltip("For display perposes only")]
+    public int GenerationNumber;
+
+    EvolutionTargetShootingConfig _config;
 
     public EvolutionShipConfig ShipConfig;
-    public EvolutionMutationController MutationControl;
-    public EvolutionMatchController MatchControl;
+    private EvolutionMutationController _mutationControl;
+    private EvolutionMatchController _matchControl;
     public float CurrentScore = 0;
-
-    #region "Drones
-    [Header("Drones")]
-    public List<Rigidbody> Drones = new List<Rigidbody>();
-
-    [Tooltip("number of drones spawned = MinDronesToSpawn + CurrentGeneration * ExtraDromnesPerGeneration")]
-    public int MinDronesToSpawn = 3;
-
-    [Tooltip("number of drones spawned = MinDronesToSpawn + CurrentGeneration * ExtraDromnesPerGeneration")]
-    public float ExtraDromnesPerGeneration = 5;
-    public int MaxDronesToSpawn = 100;
-    
-    public string DronesString
-    {
-        get
-        {
-            return string.Join(";", Drones.Select(d => AssetDatabase.GetAssetPath(d)).ToArray());
-        }
-        set
-        {
-            var splitDronesString = value.Split(';');
-            Drones = splitDronesString.Select(d => AssetDatabase.LoadAssetAtPath<Rigidbody>(d)).ToList();
-        }
-    }
-    #endregion
-
-    #region Generation Setup
-    [Header("Generation setup")]
-    [Tooltip("The generation is over when every individual has had at least this many matches.")]
-    public int MinMatchesPerIndividual = 1;
-
-    [Tooltip("The number of individuals to keep for the next generation")]
-    public int WinnersFromEachGeneration = 5;
-    #endregion
-    
-    #region score
-    [Header("Score")]
-    [Tooltip("score for each kill = (framesRemaining * KillScoreMultiplier) + FlatKillBonus")]
-    public float KillScoreMultiplier = 300;
-
-    [Tooltip("score for each kill = (framesRemaining * KillScoreMultiplier) + FlatKillBonus")]
-    public float FlatKillBonus = 100;
-
-    [Tooltip("Bonus Score for killing everything, timesd by remaining frames")]
-    public float CompletionBonus = 100;
-
-    [Tooltip("penalty for dieing, multiplied by remining frames")]
-    public float DeathPenalty = 70;
-    #endregion
-
-    public int GenerationNumber;
+      
     private GenerationTargetShooting _currentGeneration;
     private int _killsThisMatch = 0;
     private const int SHIP_INDEX = 0;
@@ -89,10 +45,24 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     void Start()
     {
         //Debug.Log("EvolutionTargetShootingControler starting");
-        _dbHandler = new EvolutionTargetShootingDatabaseHandler(this);
+        _dbHandler = new EvolutionTargetShootingDatabaseHandler();
+        
+        _config = _dbHandler.ReadConfig(DatabaseId);
 
-        _dbHandler.ReadConfig(DatabaseId);
+        if (_config == null || _config.DatabaseId != DatabaseId)
+        {
+            throw new Exception("Did not retrieve expected config from database");
+        }
 
+        _mutationControl = gameObject.AddComponent<EvolutionMutationController>();
+        _matchControl = gameObject.AddComponent<EvolutionMatchController>();
+
+        _mutationControl.Config = _config.MutationConfig;
+        _matchControl.Config = _config.MatchConfig;
+
+        RunName = _config.RunName;
+        GenerationNumber = _config.GenerationNumber;
+        
         ReadInGeneration();
 
         SpawnShips();
@@ -104,11 +74,11 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     void Update()
     {
         var matchOver = IsMatchOver();
-        if (matchOver || MatchControl.IsOutOfTime())
+        if (matchOver || _matchControl.IsOutOfTime())
         {
-            var survivalBonus = MatchControl.RemainingTime() * (_stillAlive
-                ? CompletionBonus
-                : -DeathPenalty);
+            var survivalBonus = _matchControl.RemainingTime() * (_stillAlive
+                ? _config.CompletionBonus
+                : -_config.DeathPenalty);
 
             Debug.Log("Match over! Score for kills: " + CurrentScore + ", Survival Bonus: " + survivalBonus);
 
@@ -136,7 +106,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
     private void SpawnDrones()
     {
-        var DroneCount = MinDronesToSpawn + Math.Floor((double) GenerationNumber * ExtraDromnesPerGeneration);
+        var DroneCount = _config.MinDronesToSpawn + Math.Floor((double)_config.GenerationNumber * _config.ExtraDromnesPerGeneration);
         Debug.Log(DroneCount + " drones this match");
 
         var locationTransform = ShipConfig.GetLocation(DRONES_INDEX);
@@ -146,7 +116,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
 
         for (int i = 0; i<DroneCount; i++)
         {
-            var dronePrefab = Drones[i % Drones.Count];
+            var dronePrefab = _config.Drones[i % _config.Drones.Count];
             //Debug.Log("spawning drone " + genome);
             
             var orientation = ShipConfig.RandomiseRotation ? UnityEngine.Random.rotation : locationTransform.rotation;
@@ -168,7 +138,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     private bool IsMatchOver()
     {
         //Debug.Log("IsMatchOver");
-        if (MatchControl.ShouldPollForWinners())
+        if (_matchControl.ShouldPollForWinners())
         {
             var tags = ListShips()
                 .Select(s => s.tag);
@@ -185,7 +155,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             if(killedDrones > 0)
             {
                 _killsThisMatch += killedDrones;
-                var scorePerKill = (MatchControl.RemainingTime() * KillScoreMultiplier) + FlatKillBonus;
+                var scorePerKill = (_matchControl.RemainingTime() * _config.KillScoreMultiplier) + _config.FlatKillBonus;
                 Debug.Log(killedDrones + " drones killed this interval for " + scorePerKill + " each.");
                 CurrentScore += killedDrones * scorePerKill;
             }
@@ -208,18 +178,18 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     
     private void ReadInGeneration()
     {
-        _currentGeneration = _dbHandler.ReadCurrentGeneration();
+        _currentGeneration = _dbHandler.ReadGeneration(DatabaseId, _config.GenerationNumber);
 
         if (_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
         {
             //The current generation does not exist - create a new random generation.
             CreateNewGeneration(null);
-        } else if(_currentGeneration.MinimumMatchesPlayed >= MinMatchesPerIndividual)
+        } else if(_currentGeneration.MinimumMatchesPlayed >= _config.MinMatchesPerIndividual)
         {
             //the current generation is finished - create a new generation
-            var winners = _currentGeneration.PickWinners(WinnersFromEachGeneration);
+            var winners = _currentGeneration.PickWinners(_config.WinnersFromEachGeneration);
 
-            GenerationNumber++;
+            _config.GenerationNumber++;
 
             CreateNewGeneration(winners);
         }
@@ -237,17 +207,17 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     {
         if (winners != null && winners.Any())
         {
-            _currentGeneration = new GenerationTargetShooting(MutationControl.CreateGenerationOfMutants(winners.ToList()));
+            _currentGeneration = new GenerationTargetShooting(_mutationControl.CreateGenerationOfMutants(winners.ToList()));
         }
         else
         {
             Debug.Log("Generating generation from default genomes");
-            _currentGeneration = new GenerationTargetShooting(MutationControl.CreateDefaultGeneration());
-            GenerationNumber = 0;   //it's always generation 0 for a default genteration.
+            _currentGeneration = new GenerationTargetShooting(_mutationControl.CreateDefaultGeneration());
+            _config.GenerationNumber = 0;   //it's always generation 0 for a default genteration.
         }
 
-        _dbHandler.SaveNewGeneration(_currentGeneration, DatabaseId, GenerationNumber);
-        _dbHandler.SetCurrentGeneration(GenerationNumber);
+        _dbHandler.SaveNewGeneration(_currentGeneration, DatabaseId, _config.GenerationNumber);
+        _dbHandler.SetCurrentGenerationNumber(DatabaseId, _config.GenerationNumber);
 
         return _currentGeneration;
     }
@@ -255,6 +225,6 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     private void SaveGeneration()
     {
         //Debug.Log("Updating Generation In DB");
-        _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, GenerationNumber);
+        _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, _config.GenerationNumber);
     }
 }
