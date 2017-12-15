@@ -11,7 +11,6 @@ public class Evolution1v1DatabaseHandlerSaveTests
 {
     private string _dbPath = "/../tmp/TestDB/SpaceCombatSimulationDB3.s3db";
     private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
-    Evolution1v1Controler _toConfigure;
     Evolution1v1DatabaseHandler _handler;
 
     public Evolution1v1DatabaseHandlerSaveTests()
@@ -30,38 +29,26 @@ public class Evolution1v1DatabaseHandlerSaveTests
             Debug.LogError("Caught exception: " + e.Message + ". when recreating the database, carrying on regardless, the data may not be correct.");
         }
 
-        var go = new GameObject();
-
-        _toConfigure = go.AddComponent<Evolution1v1Controler>();
-
-        _toConfigure.ShipConfig = go.AddComponent<EvolutionShipConfig>();
-        _toConfigure.MutationControl = go.AddComponent<EvolutionMutationController>();
-        _toConfigure.MatchControl = go.AddComponent<EvolutionMatchController>();
-
-        _handler = new Evolution1v1DatabaseHandler(_toConfigure, _dbPath);
+        _handler = new Evolution1v1DatabaseHandler(_dbPath);
     }
 
     #region top level
     [Test]
     public void SetCurrentGeneration_UpdatesCurrentGeneration()
     {
-        _handler.ReadConfig(1);
-        Assert.AreEqual(1, _toConfigure.DatabaseId);
+        var config = _handler.ReadConfig(1);
+        Assert.AreEqual(1, config.DatabaseId);
 
-        _handler.SetCurrentGeneration(5);
-        Assert.AreEqual(5, _toConfigure.GenerationNumber);  //has been set
-
-        _toConfigure.GenerationNumber = 2;  //set it werong
-        _handler.ReadConfig(1);
-        Assert.AreEqual(5, _toConfigure.GenerationNumber);  //has been read back out
+        _handler.SetCurrentGenerationNumber(1, 5);
+        
+        var config2 = _handler.ReadConfig(1);
+        Assert.AreEqual(5, config2.GenerationNumber);  //has been read back out
 
         //repeat with a different number, to be sure it wasn't just 5 to begin with.
-        _handler.SetCurrentGeneration(7);
-        Assert.AreEqual(7, _toConfigure.GenerationNumber);  //has been set
-
-        _toConfigure.GenerationNumber = 3;  //set it werong
-        _handler.ReadConfig(1);
-        Assert.AreEqual(7, _toConfigure.GenerationNumber);  //has been read back out
+        _handler.SetCurrentGenerationNumber(1, 7);
+        
+        var config3 = _handler.ReadConfig(1);
+        Assert.AreEqual(7, config3.GenerationNumber);  //has been read back out
     }
     #endregion
 }

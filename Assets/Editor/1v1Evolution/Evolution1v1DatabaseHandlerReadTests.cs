@@ -11,7 +11,6 @@ public class Evolution1v1DatabaseHandlerReadTests
 {
     private string _dbPath = "/../tmp/TestDB/SpaceCombatSimulationDB2.s3db";
     private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
-    Evolution1v1Controler _toConfigure;
     Evolution1v1DatabaseHandler _handler;
 
     public Evolution1v1DatabaseHandlerReadTests()
@@ -30,79 +29,71 @@ public class Evolution1v1DatabaseHandlerReadTests
             Debug.LogError("Caught exception: " + e.Message + ". when recreating the database, carrying on regardless, the data may not be correct.");
         }
 
-        var go = new GameObject();
-
-        _toConfigure = go.AddComponent<Evolution1v1Controler>();
-
-        _toConfigure.ShipConfig = go.AddComponent<EvolutionShipConfig>();
-        _toConfigure.MutationControl = go.AddComponent<EvolutionMutationController>();
-        _toConfigure.MatchControl = go.AddComponent<EvolutionMatchController>();
-
-        _handler = new Evolution1v1DatabaseHandler(_toConfigure, _dbPath);
+        _handler = new Evolution1v1DatabaseHandler(_dbPath);
     }
 
     #region top level
     [Test]
     public void ReadConfig_ReadsID()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(0, _toConfigure.DatabaseId);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(0, config.DatabaseId);
     }
 
     [Test]
     public void ReadConfig_ReadsDifferentID()
     {
-        _handler.ReadConfig(1);
-        Assert.AreEqual(1, _toConfigure.DatabaseId);
+        var config = _handler.ReadConfig(1);
+        Assert.AreEqual(1, config.DatabaseId);
     }
 
     [Test]
     public void ReadConfig_ReadsName()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual("Default1v1", _toConfigure.RunName);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual("Default1v1", config.RunName);
     }
 
     [Test]
     public void ReadConfig_ReadsDifferentName()
     {
-        _handler.ReadConfig(1);
-        Assert.AreEqual("Default1v1b", _toConfigure.RunName);
+        var config = _handler.ReadConfig(1);
+        Assert.AreEqual("Default1v1b", config.RunName);
     }
 
     [Test]
     public void ReadConfig_GenerationNumber()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(2, _toConfigure.GenerationNumber);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(2, config.GenerationNumber);
     }
 
     [Test]
     public void ReadConfig_MinMatchesPerIndividual()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(3, _toConfigure.MinMatchesPerIndividual);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(3, config.MinMatchesPerIndividual);
     }
 
     [Test]
     public void ReadConfig_WinnersFromEachGeneration()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(5, _toConfigure.WinnersFromEachGeneration);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(5, config.WinnersFromEachGeneration);
     }
 
     [Test]
     public void ReadConfig_SuddenDeathDamage()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(1, _toConfigure.SuddenDeathDamage);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(1, config.SuddenDeathDamage);
     }
 
     [Test]
     public void ReadConfig_SuddenDeathReloadTime()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(5, _toConfigure.SuddenDeathReloadTime);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(5, config.SuddenDeathReloadTime);
     }
     #endregion
 
@@ -110,22 +101,22 @@ public class Evolution1v1DatabaseHandlerReadTests
     [Test]
     public void ReadConfig_MatchControl_Id()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(2, _toConfigure.MatchControl.Id);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(2, config.MatchControl.Id);
     }
 
     [Test]
     public void ReadConfig_MatchControl_MatchTimeout()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(26, _toConfigure.MatchControl.MatchTimeout);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(26, config.MatchControl.MatchTimeout);
     }
 
     [Test]
     public void ReadConfig_MatchControl_WinnerPollPeriod()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(3, _toConfigure.MatchControl.WinnerPollPeriod);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(3, config.MatchControl.WinnerPollPeriod);
     }
     #endregion
 
@@ -133,57 +124,57 @@ public class Evolution1v1DatabaseHandlerReadTests
     [Test]
     public void ReadConfig_MutationControl_Id()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(2, _toConfigure.MutationControl.Id);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(2, config.MutationControl.Id);
     }
 
     [Test]
     public void ReadConfig_MutationControl_Mutations()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(17, _toConfigure.MutationControl.Mutations);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(17, config.MutationControl.Mutations);
     }
 
     [Test]
     public void ReadConfig_MutationControl_AllowedCharacters()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(" xyzq ", _toConfigure.MutationControl.AllowedCharacters);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(" xyzq ", config.MutationControl.AllowedCharacters);
     }
 
     [Test]
     public void ReadConfig_MutationControl_MaxMutationLength()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(14, _toConfigure.MutationControl.MaxMutationLength);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(14, config.MutationControl.MaxMutationLength);
     }
 
     [Test]
     public void ReadConfig_MutationControl_GenomeLength()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(191, _toConfigure.MutationControl.GenomeLength);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(191, config.MutationControl.GenomeLength);
     }
 
     [Test]
     public void ReadConfig_MutationControl_GenerationSize()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(127, _toConfigure.MutationControl.GenerationSize);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(127, config.MutationControl.GenerationSize);
     }
 
     [Test]
     public void ReadConfig_MutationControl_UseCompletelyRandomDefaultGenome()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual(true, _toConfigure.MutationControl.UseCompletelyRandomDefaultGenome);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(true, config.MutationControl.UseCompletelyRandomDefaultGenome);
     }
 
     [Test]
     public void ReadConfig_MutationControl_DefaultGenome()
     {
-        _handler.ReadConfig(0);
-        Assert.AreEqual("abc1", _toConfigure.MutationControl.DefaultGenome);
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual("abc1", config.MutationControl.DefaultGenome);
     }
     #endregion
 }

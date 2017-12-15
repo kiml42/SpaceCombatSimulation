@@ -14,7 +14,6 @@ namespace Assets.Src.Database
     {
         private const string DEFAULT_COMMAND_PATH = "/Database/CreateBlankDatabase.sql";
         private const string DEFAULT_DB_PATH = "/tmp/SpaceCombatSimulationDB.s3db";
-        private Evolution1v1Controler _toConfigure;
         private string _connectionString
         {
             get
@@ -26,7 +25,7 @@ namespace Assets.Src.Database
         }
         private  string _databasePath; //Path to database.
 
-        public Evolution1v1DatabaseHandler(Evolution1v1Controler toConfigure, string databasePath = DEFAULT_DB_PATH, string dbCreationCommandPath = DEFAULT_COMMAND_PATH)
+        public Evolution1v1DatabaseHandler(string databasePath = DEFAULT_DB_PATH, string dbCreationCommandPath = DEFAULT_COMMAND_PATH)
         {
             _databasePath = databasePath;
 
@@ -38,12 +37,14 @@ namespace Assets.Src.Database
                 };
                 initialiser.EnsureDatabaseExists(dbCreationCommandPath);
             }
-
-            _toConfigure = toConfigure;
         }
 
-        public void ReadConfig(int id)
+        public Evolution1v1Config ReadConfig(int id)
         {
+            var config = new Evolution1v1Config();
+            var MatchControl = new EvolutionMatchController();
+            var MutationControl = new EvolutionMutationController();
+
             //Debug.Log("Reading config from DB. Id: " + id);
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -63,30 +64,34 @@ namespace Assets.Src.Database
                     reader = dbcmd.ExecuteReader();
                     reader.Read();
 
+
                     //Debug.Log("EvolutionConfig1v1.id ordinal: " + reader.GetOrdinal("id"));
-                    _toConfigure.DatabaseId = reader.GetInt32(reader.GetOrdinal("id"));
+                    config.DatabaseId = reader.GetInt32(reader.GetOrdinal("id"));
 
                     //Debug.Log("name ordinal: " + reader.GetOrdinal("name"));
-                    _toConfigure.RunName = reader.GetString(reader.GetOrdinal("name")); //1
-                    _toConfigure.GenerationNumber = reader.GetInt32(reader.GetOrdinal("currentGeneration"));
-                    _toConfigure.MinMatchesPerIndividual = reader.GetInt32(reader.GetOrdinal("minMatchesPerIndividual"));
-                    _toConfigure.WinnersFromEachGeneration = reader.GetInt32(reader.GetOrdinal("winnersCount"));
-                    _toConfigure.SuddenDeathDamage = reader.GetFloat(reader.GetOrdinal("suddenDeathDamage"));
-                    _toConfigure.SuddenDeathReloadTime = reader.GetFloat(reader.GetOrdinal("suddenDeathReloadTime"));
+                    config.RunName = reader.GetString(reader.GetOrdinal("name")); //1
+                    config.GenerationNumber = reader.GetInt32(reader.GetOrdinal("currentGeneration"));
+                    config.MinMatchesPerIndividual = reader.GetInt32(reader.GetOrdinal("minMatchesPerIndividual"));
+                    config.WinnersFromEachGeneration = reader.GetInt32(reader.GetOrdinal("winnersCount"));
+                    config.SuddenDeathDamage = reader.GetFloat(reader.GetOrdinal("suddenDeathDamage"));
+                    config.SuddenDeathReloadTime = reader.GetFloat(reader.GetOrdinal("suddenDeathReloadTime"));
 
                     //Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("MatchConfig.Id"));  //-1
-                    _toConfigure.MatchControl.Id = reader.GetInt32(7);  //TODO check this
-                    _toConfigure.MatchControl.MatchTimeout = reader.GetFloat(reader.GetOrdinal("matchTimeout")); //16
-                    _toConfigure.MatchControl.WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")); //17
+                    MatchControl.Id = reader.GetInt32(7);  //TODO check this
+                    MatchControl.MatchTimeout = reader.GetFloat(reader.GetOrdinal("matchTimeout")); //16
+                    MatchControl.WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")); //17
 
-                    _toConfigure.MutationControl.Id = reader.GetInt32(8);   //TODO check this
-                    _toConfigure.MutationControl.Mutations = reader.GetInt32(reader.GetOrdinal("mutations"));    //19
-                    _toConfigure.MutationControl.AllowedCharacters = reader.GetString(reader.GetOrdinal("allowedCharacters"));   //20
-                    _toConfigure.MutationControl.MaxMutationLength = reader.GetInt32(reader.GetOrdinal("maxMutationLength"));   //21
-                    _toConfigure.MutationControl.GenomeLength = reader.GetInt32(reader.GetOrdinal("genomeLength")); //22
-                    _toConfigure.MutationControl.GenerationSize = reader.GetInt32(reader.GetOrdinal("generationSize"));   //23
-                    _toConfigure.MutationControl.UseCompletelyRandomDefaultGenome = reader.GetBoolean(reader.GetOrdinal("randomDefault"));  //24
-                    _toConfigure.MutationControl.DefaultGenome = reader.GetString(reader.GetOrdinal("defaultGenome"));   //25
+                    MutationControl.Id = reader.GetInt32(8);   //TODO check this
+                    MutationControl.Mutations = reader.GetInt32(reader.GetOrdinal("mutations"));    //19
+                    MutationControl.AllowedCharacters = reader.GetString(reader.GetOrdinal("allowedCharacters"));   //20
+                    MutationControl.MaxMutationLength = reader.GetInt32(reader.GetOrdinal("maxMutationLength"));   //21
+                    MutationControl.GenomeLength = reader.GetInt32(reader.GetOrdinal("genomeLength")); //22
+                    MutationControl.GenerationSize = reader.GetInt32(reader.GetOrdinal("generationSize"));   //23
+                    MutationControl.UseCompletelyRandomDefaultGenome = reader.GetBoolean(reader.GetOrdinal("randomDefault"));  //24
+                    MutationControl.DefaultGenome = reader.GetString(reader.GetOrdinal("defaultGenome"));   //25
+
+                    config.MatchControl = MatchControl;
+                    config.MutationControl = MutationControl;
                 }
                 catch (Exception e)
                 {
@@ -105,6 +110,7 @@ namespace Assets.Src.Database
                     if (sql_con != null)
                         sql_con.Close();
                 }
+                return config;
             }
         }
 
@@ -285,16 +291,9 @@ namespace Assets.Src.Database
 
             insertSQL.ExecuteNonQuery();
         }
-
-        public Generation1v1 ReadCurrentGeneration()
+        
+        public void SetCurrentGenerationNumber(int databaseId, int generationNumber)
         {
-            return ReadGeneration(_toConfigure.DatabaseId, _toConfigure.GenerationNumber);
-        }
-
-        public void SetCurrentGeneration(int generationNumber)
-        {
-            _toConfigure.GenerationNumber = generationNumber;
-
             using (var sql_con = new SqliteConnection(_connectionString))
             {
                 sql_con.Open();
@@ -305,8 +304,8 @@ namespace Assets.Src.Database
                     //Debug.Log("Updating generation to " + _toConfigure.GenerationNumber);
                     command = new SqliteCommand("UPDATE EvolutionConfig1v1 SET currentGeneration = ? WHERE id = ?;", sql_con);
 
-                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.GenerationNumber));
-                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)_toConfigure.DatabaseId));
+                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
 
                     command.ExecuteNonQuery();
                 }

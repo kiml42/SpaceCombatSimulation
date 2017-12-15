@@ -17,7 +17,6 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
     private string _dbPathExtension = ".s3db";
     private string _dbPath;
     private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
-    Evolution1v1Controler _toConfigure;
     Evolution1v1DatabaseHandler _handler;
     DatabaseInitialiser initialiser;
     
@@ -30,16 +29,8 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
         {
             DatabasePath = _dbPath
         };
-
-        var go = new GameObject();
-
-        _toConfigure = go.AddComponent<Evolution1v1Controler>();
-
-        _toConfigure.ShipConfig = go.AddComponent<EvolutionShipConfig>();
-        _toConfigure.MutationControl = go.AddComponent<EvolutionMutationController>();
-        _toConfigure.MatchControl = go.AddComponent<EvolutionMatchController>();
-
-        _handler = new Evolution1v1DatabaseHandler(_toConfigure, _dbPath, _createCommandPath);
+        
+        _handler = new Evolution1v1DatabaseHandler(_dbPath, _createCommandPath);
     }
 
     #region top level

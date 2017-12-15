@@ -8,29 +8,24 @@ using System;
 using System.IO;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Database;
+using Assets.Src.Evolution;
 
 public class Evolution1v1Controler : MonoBehaviour
 {
     public int DatabaseId;
-
+    [Tooltip("For display perposes only")]
     public string RunName;
+    [Tooltip("For display perposes only")]
+    public int GenerationNumber;
+
+    Evolution1v1Config _config;
 
     public EvolutionShipConfig ShipConfig;
     public EvolutionMutationController MutationControl;
     public EvolutionMatchController MatchControl;
     
     private Dictionary<string, string> _currentGenomes;
-
-    /// <summary>
-    /// The generation is over when every individual has had at least this many matches.
-    /// </summary>
-    public int MinMatchesPerIndividual = 3;
-
-    /// <summary>
-    /// The number of individuals to keep for the next generation
-    /// </summary>
-    public int WinnersFromEachGeneration = 3;
-    
+        
     public int MaxShootAngle = 180;
     public int MaxTorqueMultiplier = 2000;
     public int MaxLocationAimWeighting = 10;
@@ -38,25 +33,28 @@ public class Evolution1v1Controler : MonoBehaviour
     public int MaxLocationTollerance = 1000;
     public int MaxVelociyTollerance = 200;
     public int MaxAngularDragForTorquers = 1;
-
-    public int GenerationNumber;
+    
     private Generation1v1 _currentGeneration;
-
-    public float SuddenDeathDamage = 10;
-    /// <summary>
-    /// Time for repeating the sudden death damage.
-    /// Also used as the minimum score for winning a match.
-    /// </summary>
-    public float SuddenDeathReloadTime = 200;
 
     Evolution1v1DatabaseHandler _dbHandler;
 
     // Use this for initialization
     void Start()
     {
-        _dbHandler = new Evolution1v1DatabaseHandler(this);
+        _dbHandler = new Evolution1v1DatabaseHandler();
 
-        _dbHandler.ReadConfig(DatabaseId);
+        _config = _dbHandler.ReadConfig(DatabaseId);
+
+        if(_config == null || _config.DatabaseId != DatabaseId)
+        {
+            throw new Exception("Did not retrieve expected config from database");
+        }
+
+        MutationControl = _config.MutationControl;
+        MatchControl = _config.MatchControl;
+
+        RunName = _config.RunName;
+        GenerationNumber = _config.GenerationNumber;
 
         ReadInGeneration();
 
@@ -83,14 +81,14 @@ public class Evolution1v1Controler : MonoBehaviour
             var a = _currentGenomes.Values.First();
             var b = _currentGenomes.Values.Skip(1).First();
 
-            var winScore = Math.Max(MatchControl.RemainingTime(), SuddenDeathReloadTime);
+            var winScore = Math.Max(MatchControl.RemainingTime(), _config.SuddenDeathReloadTime);
 
-            var losScore = -SuddenDeathReloadTime;
-            var drawScore = -SuddenDeathReloadTime/2;
+            var losScore = -_config.SuddenDeathReloadTime;
+            var drawScore = -_config.SuddenDeathReloadTime /2;
 
             _currentGeneration.RecordMatch(a, b, winningGenome, winScore, losScore, drawScore);
 
-            _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, GenerationNumber);
+            _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, _config.GenerationNumber);
 
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
@@ -102,9 +100,9 @@ public class Evolution1v1Controler : MonoBehaviour
         var ships = ListShips();
         foreach (var ship in ships)
         {
-            ship.transform.SendMessage("ApplyDamage", SuddenDeathDamage, SendMessageOptions.DontRequireReceiver);
+            ship.transform.SendMessage("ApplyDamage", _config.SuddenDeathDamage, SendMessageOptions.DontRequireReceiver);
         }
-        MatchControl.MatchTimeout = SuddenDeathReloadTime;
+        MatchControl.MatchTimeout = _config.SuddenDeathReloadTime;
         MatchControl.MatchRunTime = 0;
     }
     
@@ -183,19 +181,19 @@ public class Evolution1v1Controler : MonoBehaviour
     
     private void ReadInGeneration()
     {
-        _currentGeneration = _dbHandler.ReadCurrentGeneration();
+        _currentGeneration = _dbHandler.ReadGeneration(DatabaseId, _config.GenerationNumber);
 
         if (_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
         {
             //The current generation does not exist - create a new random generation.
             CreateNewGeneration(null);
         }
-        else if (_currentGeneration.MinimumMatchesPlayed >= MinMatchesPerIndividual)
+        else if (_currentGeneration.MinimumMatchesPlayed >= _config.MinMatchesPerIndividual)
         {
             //the current generation is finished - create a new generation
-            var winners = _currentGeneration.PickWinners(WinnersFromEachGeneration);
+            var winners = _currentGeneration.PickWinners(_config.WinnersFromEachGeneration);
 
-            GenerationNumber++;
+            _config.GenerationNumber++;
 
             CreateNewGeneration(winners);
         }
@@ -219,11 +217,11 @@ public class Evolution1v1Controler : MonoBehaviour
         {
             Debug.Log("Generating generation from default genomes");
             _currentGeneration = new Generation1v1(MutationControl.CreateDefaultGeneration());
-            GenerationNumber = 0;   //it's always generation 0 for a default genteration.
+            _config.GenerationNumber = 0;   //it's always generation 0 for a default genteration.
         }
 
-        _dbHandler.SaveNewGeneration(_currentGeneration, DatabaseId, GenerationNumber);
-        _dbHandler.SetCurrentGeneration(GenerationNumber);
+        _dbHandler.SaveNewGeneration(_currentGeneration, DatabaseId, _config.GenerationNumber);
+        _dbHandler.SetCurrentGenerationNumber(DatabaseId, _config.GenerationNumber);
 
         return _currentGeneration;
     }

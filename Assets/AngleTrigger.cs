@@ -13,7 +13,6 @@ public class AngleTrigger : MonoBehaviour, IFireControl
     public float MinFriendlyDetectionDistance = 0.5f;
 
     private IKnowsCurrentTarget _targetChoosingMechanism;
-    private IFireControl _fireControl;
     private float? _projectileSpeed;
 
     // Use this for initialization
