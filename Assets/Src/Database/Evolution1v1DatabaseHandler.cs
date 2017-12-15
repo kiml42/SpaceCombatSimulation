@@ -133,7 +133,7 @@ namespace Assets.Src.Database
                         //Debug.Log("genome ordinal: " + reader.GetOrdinal("genome"));  //-1
                         var genome = reader.GetString(reader.GetOrdinal("genome"));
 
-                        Debug.Log("wins ordinal: " + reader.GetOrdinal("wins"));  //-1
+                        //Debug.Log("wins ordinal: " + reader.GetOrdinal("wins"));  //-1
 
                         var individual = new Individual1v1(genome)
                         {
