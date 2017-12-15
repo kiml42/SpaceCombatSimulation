@@ -89,7 +89,9 @@ public class Evolution1v1Controler : MonoBehaviour
             var drawScore = -SuddenDeathReloadTime/2;
 
             _currentGeneration.RecordMatch(a, b, winningGenome, winScore, losScore, drawScore);
-        
+
+            _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, GenerationNumber);
+
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
     }
@@ -224,11 +226,5 @@ public class Evolution1v1Controler : MonoBehaviour
         _dbHandler.SetCurrentGeneration(GenerationNumber);
 
         return _currentGeneration;
-    }
-
-    private void SaveGeneration()
-    {
-        //Debug.Log("Updating Generation In DB");
-        _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, GenerationNumber);
     }
 }

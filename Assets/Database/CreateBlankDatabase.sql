@@ -16,7 +16,7 @@ CREATE TABLE DroneShootingIndividual (runConfigId INTEGER NOT NULL REFERENCES Dr
 
 -- Table: EvolutionConfig1v1
 CREATE TABLE EvolutionConfig1v1 (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name VARCHAR (50) NOT NULL ON CONFLICT REPLACE DEFAULT Unnamed, currentGeneration INTEGER DEFAULT '''0''' NOT NULL, minMatchesPerIndividual INTEGER DEFAULT '''1''' NOT NULL, winnersCount INTEGER DEFAULT '''5''' NOT NULL, suddenDeathDamage FLOAT DEFAULT '''1''' NOT NULL, suddenDeathReloadTime FLOAT DEFAULT '''100''' NOT NULL, matchConfigId INTEGER REFERENCES MatchConfig (id) NOT NULL ON CONFLICT ROLLBACK, mutationConfigId INTEGER REFERENCES MutationConfig (id) NOT NULL);
-INSERT INTO EvolutionConfig1v1 (id, name, currentGeneration, minMatchesPerIndividual, winnersCount, suddenDeathDamage, suddenDeathReloadTime, matchConfigId, mutationConfigId) VALUES (0, 'Default1v1', 0, 3, 5, 1, 5, 2, 2);
+INSERT INTO EvolutionConfig1v1 (id, name, currentGeneration, minMatchesPerIndividual, winnersCount, suddenDeathDamage, suddenDeathReloadTime, matchConfigId, mutationConfigId) VALUES (0, 'Default1v1', 0, 3, 5, 1, 0.5, 2, 2);
 
 -- Table: Individual1v1
 CREATE TABLE Individual1v1 (runConfigId INTEGER NOT NULL REFERENCES DroneEvolutionConfig (id), generation INTEGER NOT NULL, genome VARCHAR (1000) NOT NULL, score FLOAT, wins INTEGER, draws INTEGER, loses INTEGER, previousCombatants VARCHAR (500), PRIMARY KEY (runConfigId, generation, genome));
