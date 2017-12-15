@@ -21,8 +21,8 @@ public class Evolution1v1Controler : MonoBehaviour
     Evolution1v1Config _config;
 
     public EvolutionShipConfig ShipConfig;
-    public EvolutionMutationController MutationControl;
-    public EvolutionMatchController MatchControl;
+    private EvolutionMutationController MutationControl;
+    private EvolutionMatchController MatchControl;
     
     private Dictionary<string, string> _currentGenomes;
         
@@ -50,8 +50,8 @@ public class Evolution1v1Controler : MonoBehaviour
             throw new Exception("Did not retrieve expected config from database");
         }
 
-        MutationControl = _config.MutationControl;
-        MatchControl = _config.MatchControl;
+        MutationControl.Config = _config.MutationControl;
+        MatchControl.Config = _config.MatchConfig;
 
         RunName = _config.RunName;
         GenerationNumber = _config.GenerationNumber;

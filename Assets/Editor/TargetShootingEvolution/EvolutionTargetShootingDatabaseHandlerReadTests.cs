@@ -153,21 +153,21 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
     public void ReadDroneConfig_MatchControl_Id()
     {
         _handler.ReadConfig(0);
-        Assert.AreEqual(5, _toConfigure.MatchControl.Id);
+        Assert.AreEqual(5, _toConfigure.MatchControl.Config.Id);
     }
 
     [Test]
     public void ReadDroneConfig_MatchControl_MatchTimeout()
     {
         _handler.ReadConfig(0);
-        Assert.AreEqual(25, _toConfigure.MatchControl.MatchTimeout);
+        Assert.AreEqual(25, _toConfigure.MatchControl.Config.MatchTimeout);
     }
 
     [Test]
     public void ReadDroneConfig_MatchControl_WinnerPollPeriod()
     {
         _handler.ReadConfig(0);
-        Assert.AreEqual(2, _toConfigure.MatchControl.WinnerPollPeriod);
+        Assert.AreEqual(2, _toConfigure.MatchControl.Config.WinnerPollPeriod);
     }
     #endregion
 
@@ -176,56 +176,56 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
     public void ReadDroneConfig_MutationControl_Id()
     {
         _handler.ReadConfig(0);
-        Assert.AreEqual(6, _toConfigure.MutationControl.Id);
+        Assert.AreEqual(6, _toConfigure.MutationControl.Config.Id);
     }
 
     [Test]
     public void ReadDroneConfig_MutationControl_Mutations()
     {
         _handler.ReadConfig(0);
-        Assert.AreEqual(7, _toConfigure.MutationControl.Mutations);
+        Assert.AreEqual(7, _toConfigure.MutationControl.Config.Mutations);
     }
 
     [Test]
     public void ReadDroneConfig_MutationControl_AllowedCharacters()
     {
         _handler.ReadConfig(0);
-        Assert.AreEqual(" xyz ", _toConfigure.MutationControl.AllowedCharacters);
+        Assert.AreEqual(" xyz ", _toConfigure.MutationControl.Config.AllowedCharacters);
     }
 
     [Test]
     public void ReadDroneConfig_MutationControl_MaxMutationLength()
     {
         _handler.ReadConfig(0);
-        Assert.AreEqual(4, _toConfigure.MutationControl.MaxMutationLength);
+        Assert.AreEqual(4, _toConfigure.MutationControl.Config.MaxMutationLength);
     }
 
     [Test]
     public void ReadDroneConfig_MutationControl_GenomeLength()
     {
         _handler.ReadConfig(0);
-        Assert.AreEqual(91, _toConfigure.MutationControl.GenomeLength);
+        Assert.AreEqual(91, _toConfigure.MutationControl.Config.GenomeLength);
     }
 
     [Test]
     public void ReadDroneConfig_MutationControl_GenerationSize()
     {
         _handler.ReadConfig(0);
-        Assert.AreEqual(27, _toConfigure.MutationControl.GenerationSize);
+        Assert.AreEqual(27, _toConfigure.MutationControl.Config.GenerationSize);
     }
 
     [Test]
     public void ReadDroneConfig_MutationControl_UseCompletelyRandomDefaultGenome()
     {
         _handler.ReadConfig(0);
-        Assert.AreEqual(true, _toConfigure.MutationControl.UseCompletelyRandomDefaultGenome);
+        Assert.AreEqual(true, _toConfigure.MutationControl.Config.UseCompletelyRandomDefaultGenome);
     }
 
     [Test]
     public void ReadDroneConfig_MutationControl_DefaultGenome()
     {
         _handler.ReadConfig(0);
-        Assert.AreEqual("abc", _toConfigure.MutationControl.DefaultGenome);
+        Assert.AreEqual("abc", _toConfigure.MutationControl.Config.DefaultGenome);
     }
     #endregion
 }

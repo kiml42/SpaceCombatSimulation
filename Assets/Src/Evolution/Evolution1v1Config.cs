@@ -11,8 +11,8 @@ namespace Assets.Src.Evolution
 
         public string RunName;
         
-        public EvolutionMutationController MutationControl = new EvolutionMutationController();
-        public EvolutionMatchController MatchControl = new EvolutionMatchController();
+        public MutationConfig MutationControl = new MutationConfig();
+        public MatchConfig MatchConfig = new MatchConfig();
         
         /// <summary>
         /// The generation is over when every individual has had at least this many matches.

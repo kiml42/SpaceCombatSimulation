@@ -102,21 +102,21 @@ public class Evolution1v1DatabaseHandlerReadTests
     public void ReadConfig_MatchControl_Id()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(2, config.MatchControl.Id);
+        Assert.AreEqual(2, config.MatchConfig.Id);
     }
 
     [Test]
     public void ReadConfig_MatchControl_MatchTimeout()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(26, config.MatchControl.MatchTimeout);
+        Assert.AreEqual(26, config.MatchConfig.MatchTimeout);
     }
 
     [Test]
     public void ReadConfig_MatchControl_WinnerPollPeriod()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(3, config.MatchControl.WinnerPollPeriod);
+        Assert.AreEqual(3, config.MatchConfig.WinnerPollPeriod);
     }
     #endregion
 

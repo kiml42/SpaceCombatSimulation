@@ -42,8 +42,8 @@ namespace Assets.Src.Database
         public Evolution1v1Config ReadConfig(int id)
         {
             var config = new Evolution1v1Config();
-            var MatchControl = new EvolutionMatchController();
-            var MutationControl = new EvolutionMutationController();
+            var MatchConfig = new MatchConfig();
+            var MutationConfig = new MutationConfig();
 
             //Debug.Log("Reading config from DB. Id: " + id);
             using (var sql_con = new SqliteConnection(_connectionString))
@@ -77,21 +77,21 @@ namespace Assets.Src.Database
                     config.SuddenDeathReloadTime = reader.GetFloat(reader.GetOrdinal("suddenDeathReloadTime"));
 
                     //Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("MatchConfig.Id"));  //-1
-                    MatchControl.Id = reader.GetInt32(7);  //TODO check this
-                    MatchControl.MatchTimeout = reader.GetFloat(reader.GetOrdinal("matchTimeout")); //16
-                    MatchControl.WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")); //17
+                    MatchConfig.Id = reader.GetInt32(7);  //TODO check this
+                    MatchConfig.MatchTimeout = reader.GetFloat(reader.GetOrdinal("matchTimeout")); //16
+                    MatchConfig.WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")); //17
 
-                    MutationControl.Id = reader.GetInt32(8);   //TODO check this
-                    MutationControl.Mutations = reader.GetInt32(reader.GetOrdinal("mutations"));    //19
-                    MutationControl.AllowedCharacters = reader.GetString(reader.GetOrdinal("allowedCharacters"));   //20
-                    MutationControl.MaxMutationLength = reader.GetInt32(reader.GetOrdinal("maxMutationLength"));   //21
-                    MutationControl.GenomeLength = reader.GetInt32(reader.GetOrdinal("genomeLength")); //22
-                    MutationControl.GenerationSize = reader.GetInt32(reader.GetOrdinal("generationSize"));   //23
-                    MutationControl.UseCompletelyRandomDefaultGenome = reader.GetBoolean(reader.GetOrdinal("randomDefault"));  //24
-                    MutationControl.DefaultGenome = reader.GetString(reader.GetOrdinal("defaultGenome"));   //25
+                    MutationConfig.Id = reader.GetInt32(8);   //TODO check this
+                    MutationConfig.Mutations = reader.GetInt32(reader.GetOrdinal("mutations"));    //19
+                    MutationConfig.AllowedCharacters = reader.GetString(reader.GetOrdinal("allowedCharacters"));   //20
+                    MutationConfig.MaxMutationLength = reader.GetInt32(reader.GetOrdinal("maxMutationLength"));   //21
+                    MutationConfig.GenomeLength = reader.GetInt32(reader.GetOrdinal("genomeLength")); //22
+                    MutationConfig.GenerationSize = reader.GetInt32(reader.GetOrdinal("generationSize"));   //23
+                    MutationConfig.UseCompletelyRandomDefaultGenome = reader.GetBoolean(reader.GetOrdinal("randomDefault"));  //24
+                    MutationConfig.DefaultGenome = reader.GetString(reader.GetOrdinal("defaultGenome"));   //25
 
-                    config.MatchControl = MatchControl;
-                    config.MutationControl = MutationControl;
+                    config.MatchConfig = MatchConfig;
+                    config.MutationControl = MutationConfig;
                 }
                 catch (Exception e)
                 {

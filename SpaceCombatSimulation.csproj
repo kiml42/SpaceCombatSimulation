@@ -271,7 +271,9 @@
     <Compile Include="Assets\Src\Evolution\GenerationTargetShooting.cs" />
     <Compile Include="Assets\Src\Evolution\Individual1v1.cs" />
     <Compile Include="Assets\Src\Evolution\IndividualTargetShooting.cs" />
+    <Compile Include="Assets\Src\Evolution\MatchConfig.cs" />
     <Compile Include="Assets\Src\Evolution\MatchRecord.cs" />
+    <Compile Include="Assets\Src\Evolution\MutationConfig.cs" />
     <Compile Include="Assets\Src\Evolution\ShipBuilder.cs" />
     <Compile Include="Assets\Src\Evolution\StringMutator.cs" />
     <Compile Include="Assets\Src\Health\DamagePacket.cs" />

@@ -1,45 +1,33 @@
 ﻿using Assets.src.Evolution;
+using Assets.Src.Evolution;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class EvolutionMutationController : MonoBehaviour {
-
-    public int Mutations = 3;
-
-    public string AllowedCharacters = " 0123456789  ";
-
-    public int MaxMutationLength = 5;
-
-    public int GenomeLength = 50;
-
-    public int GenerationSize = 20;
-    
-    public bool UseCompletelyRandomDefaultGenome = false;
-    public string DefaultGenome = "";
+    public MutationConfig Config = new MutationConfig();    
 
     private StringMutator _mutator;
-    public int? Id;
 
     void Start()
     {
         _mutator = new StringMutator
         {
-            AllowedCharacters = AllowedCharacters,
-            GenomeLength = GenomeLength,
-            MaxMutationLength = MaxMutationLength,
-            Mutations = Mutations
+            AllowedCharacters = Config.AllowedCharacters,
+            GenomeLength = Config.GenomeLength,
+            MaxMutationLength = Config.MaxMutationLength,
+            Mutations = Config.Mutations
         };
     }
 
     public List<string> CreateGenerationOfMutants(List<string> baseGenomes)
     {
-        return _mutator.CreateGenerationOfMutants(baseGenomes, GenerationSize);
+        return _mutator.CreateGenerationOfMutants(baseGenomes, Config.GenerationSize);
     }
 
     public List<string> CreateDefaultGeneration()
     {
-        var defaultGenomes = UseCompletelyRandomDefaultGenome ? null : new List<string> { DefaultGenome };
+        var defaultGenomes = Config.UseCompletelyRandomDefaultGenome ? null : new List<string> { Config.DefaultGenome };
         return CreateGenerationOfMutants(defaultGenomes);
     }
 

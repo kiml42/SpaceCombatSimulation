@@ -1,19 +1,22 @@
-﻿using System;
+﻿using Assets.Src.Evolution;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class EvolutionMatchController : MonoBehaviour {
-    public float MatchTimeout = 10000;
+    public MatchConfig Config = new MatchConfig();
+
+    [Tooltip("for display only")]
+    public float MatchTimeout;
     public float MatchRunTime = 0;
     
-    public float WinnerPollPeriod = 1;
     private float _scoreUpdatePollCountdown = 0;
-    public int? Id;
 
     // Use this for initialization
     void Start () {
         MatchRunTime = 0;
+        MatchTimeout = Config.MatchTimeout;
     }
 	
 	// Update is called once per frame
@@ -24,19 +27,19 @@ public class EvolutionMatchController : MonoBehaviour {
 
     public bool IsOutOfTime()
     {
-        return MatchTimeout <= MatchRunTime;
+        return Config.MatchTimeout <= MatchRunTime;
     }
 
     public float RemainingTime()
     {
-        return Math.Max(MatchTimeout - MatchRunTime, 0);
+        return Math.Max(Config.MatchTimeout - MatchRunTime, 0);
     }
 
     public bool ShouldPollForWinners()
     {
         var shouldPoll = _scoreUpdatePollCountdown <= 0;
         if(shouldPoll)
-            _scoreUpdatePollCountdown = WinnerPollPeriod;
+            _scoreUpdatePollCountdown = Config.WinnerPollPeriod;
 
         return shouldPoll || IsOutOfTime();
     }

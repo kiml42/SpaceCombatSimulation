@@ -84,18 +84,18 @@ namespace Assets.Src.Database
                     _toConfigure.DronesString = reader.GetString(reader.GetOrdinal("droneList"));   //14
 
                     //Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("MatchConfig.Id"));  //-1
-                    _toConfigure.MatchControl.Id = reader.GetInt32(12);
-                    _toConfigure.MatchControl.MatchTimeout = reader.GetFloat(reader.GetOrdinal("matchTimeout")); //16
-                    _toConfigure.MatchControl.WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")); //17
+                    _toConfigure.MatchControl.Config.Id = reader.GetInt32(12);
+                    _toConfigure.MatchControl.Config.MatchTimeout = reader.GetFloat(reader.GetOrdinal("matchTimeout")); //16
+                    _toConfigure.MatchControl.Config.WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")); //17
 
-                    _toConfigure.MutationControl.Id = reader.GetInt32(13);
-                    _toConfigure.MutationControl.Mutations = reader.GetInt32(reader.GetOrdinal("mutations"));    //19
-                    _toConfigure.MutationControl.AllowedCharacters = reader.GetString(reader.GetOrdinal("allowedCharacters"));   //20
-                    _toConfigure.MutationControl.MaxMutationLength = reader.GetInt32(reader.GetOrdinal("maxMutationLength"));   //21
-                    _toConfigure.MutationControl.GenomeLength = reader.GetInt32(reader.GetOrdinal("genomeLength")); //22
-                    _toConfigure.MutationControl.GenerationSize = reader.GetInt32(reader.GetOrdinal("generationSize"));   //23
-                    _toConfigure.MutationControl.UseCompletelyRandomDefaultGenome = reader.GetBoolean(reader.GetOrdinal("randomDefault"));  //24
-                    _toConfigure.MutationControl.DefaultGenome = reader.GetString(reader.GetOrdinal("defaultGenome"));   //25
+                    _toConfigure.MutationControl.Config.Id = reader.GetInt32(13);
+                    _toConfigure.MutationControl.Config.Mutations = reader.GetInt32(reader.GetOrdinal("mutations"));    //19
+                    _toConfigure.MutationControl.Config.AllowedCharacters = reader.GetString(reader.GetOrdinal("allowedCharacters"));   //20
+                    _toConfigure.MutationControl.Config.MaxMutationLength = reader.GetInt32(reader.GetOrdinal("maxMutationLength"));   //21
+                    _toConfigure.MutationControl.Config.GenomeLength = reader.GetInt32(reader.GetOrdinal("genomeLength")); //22
+                    _toConfigure.MutationControl.Config.GenerationSize = reader.GetInt32(reader.GetOrdinal("generationSize"));   //23
+                    _toConfigure.MutationControl.Config.UseCompletelyRandomDefaultGenome = reader.GetBoolean(reader.GetOrdinal("randomDefault"));  //24
+                    _toConfigure.MutationControl.Config.DefaultGenome = reader.GetString(reader.GetOrdinal("defaultGenome"));   //25
 
 
                     //Debug.Log(
