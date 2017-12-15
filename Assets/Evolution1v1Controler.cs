@@ -21,8 +21,8 @@ public class Evolution1v1Controler : MonoBehaviour
     Evolution1v1Config _config;
 
     public EvolutionShipConfig ShipConfig;
-    private EvolutionMutationController MutationControl;
-    private EvolutionMatchController MatchControl;
+    private EvolutionMutationController _mutationControl;
+    private EvolutionMatchController _matchControl;
     
     private Dictionary<string, string> _currentGenomes;
         
@@ -50,8 +50,11 @@ public class Evolution1v1Controler : MonoBehaviour
             throw new Exception("Did not retrieve expected config from database");
         }
 
-        MutationControl.Config = _config.MutationControl;
-        MatchControl.Config = _config.MatchConfig;
+        _mutationControl = gameObject.AddComponent<EvolutionMutationController>();
+        _matchControl = gameObject.AddComponent<EvolutionMatchController>();
+
+        _mutationControl.Config = _config.MutationControl;
+        _matchControl.Config = _config.MatchConfig;
 
         RunName = _config.RunName;
         GenerationNumber = _config.GenerationNumber;
@@ -65,11 +68,11 @@ public class Evolution1v1Controler : MonoBehaviour
     void Update()
     {
         var winningGenome = DetectVictorsGenome();
-        if (winningGenome == null && !MatchControl.IsOutOfTime())
+        if (winningGenome == null && !_matchControl.IsOutOfTime())
         {
             return;
         }
-        else if (MatchControl.IsOutOfTime()/* && _previousWinner == null*/)
+        else if (_matchControl.IsOutOfTime()/* && _previousWinner == null*/)
         {
             //Debug.Log("Match Timeout!");
             ActivateSuddenDeath();
@@ -81,7 +84,7 @@ public class Evolution1v1Controler : MonoBehaviour
             var a = _currentGenomes.Values.First();
             var b = _currentGenomes.Values.Skip(1).First();
 
-            var winScore = Math.Max(MatchControl.RemainingTime(), _config.SuddenDeathReloadTime);
+            var winScore = Math.Max(_matchControl.RemainingTime(), _config.SuddenDeathReloadTime);
 
             var losScore = -_config.SuddenDeathReloadTime;
             var drawScore = -_config.SuddenDeathReloadTime /2;
@@ -102,8 +105,8 @@ public class Evolution1v1Controler : MonoBehaviour
         {
             ship.transform.SendMessage("ApplyDamage", _config.SuddenDeathDamage, SendMessageOptions.DontRequireReceiver);
         }
-        MatchControl.MatchTimeout = _config.SuddenDeathReloadTime;
-        MatchControl.MatchRunTime = 0;
+        _matchControl.MatchTimeout = _config.SuddenDeathReloadTime;
+        _matchControl.MatchRunTime = 0;
     }
     
     private void SpawnShips()
@@ -133,7 +136,7 @@ public class Evolution1v1Controler : MonoBehaviour
     /// <returns></returns>
     private string DetectVictorsGenome()
     {
-        if (MatchControl.ShouldPollForWinners())
+        if (_matchControl.ShouldPollForWinners())
         {
             string currentWinner = null;
 
@@ -211,12 +214,12 @@ public class Evolution1v1Controler : MonoBehaviour
     {
         if (winners != null && winners.Any())
         {
-            _currentGeneration = new Generation1v1(MutationControl.CreateGenerationOfMutants(winners.ToList()));
+            _currentGeneration = new Generation1v1(_mutationControl.CreateGenerationOfMutants(winners.ToList()));
         }
         else
         {
             Debug.Log("Generating generation from default genomes");
-            _currentGeneration = new Generation1v1(MutationControl.CreateDefaultGeneration());
+            _currentGeneration = new Generation1v1(_mutationControl.CreateDefaultGeneration());
             _config.GenerationNumber = 0;   //it's always generation 0 for a default genteration.
         }
 

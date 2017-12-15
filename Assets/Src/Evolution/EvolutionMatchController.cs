@@ -16,11 +16,11 @@ public class EvolutionMatchController : MonoBehaviour {
     // Use this for initialization
     void Start () {
         MatchRunTime = 0;
-        MatchTimeout = Config.MatchTimeout;
     }
 	
 	// Update is called once per frame
 	void Update () {
+        MatchTimeout = Config.MatchTimeout;
         MatchRunTime += Time.deltaTime;
         _scoreUpdatePollCountdown -= Time.deltaTime;
     }
