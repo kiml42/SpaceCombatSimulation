@@ -20,9 +20,7 @@ Bugs:
 
 TODO:
     Priority:
-        Read from DB into config object instead of configuring the controller itself.
         create base evolution controller abstract class to deduplicate code
-        merge database handlers, or create a base class for those too.
         Randomise target choosing mechanism periods so they don't come up at the same time.
         Menus
             Top menu - leads to general settings and various modes
