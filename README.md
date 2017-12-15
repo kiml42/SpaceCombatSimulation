@@ -32,6 +32,7 @@ TODO:
         Some way for turrets to account for their own turn rates. - to keep up with tracking moving targets.
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
         Refactor rocket controller's start delay feature.
+        Rockets stop running anything but their trigger when they run out of fuel.
         Some way to set the roll of ships to have a direction that should be pointed at the enemy where possible.
         Spherical trigger around missiles that puts them into max evasion mode regardless of velocity
         Destruction only leaves objects with a rigibdbody and a health controller
@@ -45,6 +46,7 @@ TODO:
             Hubs have batteries to store energy
             Hubs have generators to recharge batteries.
         Only escalate total targets for each generation if all targets were killed by X per generation for Y generations, or some proportion of total individuals for the last Z generations.
+            Alternatively just have the drone escalation value be multiplied by the count of complete kills across all previous generations.
 
 
     Avoid GetComponent and sendMessage in update methods.
