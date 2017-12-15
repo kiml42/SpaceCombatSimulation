@@ -20,7 +20,6 @@ Bugs:
 
 TODO:
     Priority:
-        create base evolution controller abstract class to deduplicate code
         Randomise target choosing mechanism periods so they don't come up at the same time.
         Menus
             Top menu - leads to general settings and various modes

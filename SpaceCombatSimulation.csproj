@@ -261,6 +261,7 @@
     <Compile Include="Assets\Src\Database\EvolutionTargetShootingDatabaseHandler.cs" />
     <Compile Include="Assets\Src\Database\GeneralDatabaseHandler.cs" />
     <Compile Include="Assets\Src\Evolution\ArenaRecord.cs" />
+    <Compile Include="Assets\Src\Evolution\BaseEvolutionController.cs" />
     <Compile Include="Assets\Src\Evolution\Evolution1v1Config.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionFileManager.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionMatchController.cs" />

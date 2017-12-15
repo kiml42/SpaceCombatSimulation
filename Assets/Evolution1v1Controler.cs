@@ -10,15 +10,9 @@ using Assets.Src.ObjectManagement;
 using Assets.Src.Database;
 using Assets.Src.Evolution;
 
-public class Evolution1v1Controler : MonoBehaviour
+public class Evolution1v1Controler : BaseEvolutionController
 {
-    public int DatabaseId;
-
     Evolution1v1Config _config;
-
-    public EvolutionShipConfig ShipConfig;
-    private EvolutionMutationWrapper _mutationControl = new EvolutionMutationWrapper();
-    private EvolutionMatchController _matchControl;
     
     private Dictionary<string, string> _currentGenomes;
         
@@ -158,14 +152,6 @@ public class Evolution1v1Controler : MonoBehaviour
         return null;
     }
 
-    private IEnumerable<Transform> ListShips()
-    {
-        return GameObject.FindGameObjectsWithTag(ShipConfig.SpaceShipTag)
-                .Where(s =>
-                    s.transform.parent != null &&
-                    s.transform.parent.GetComponent("Rigidbody") != null
-                ).Select(s => s.transform.parent);
-    }
         
     private string[] PickTwoGenomesFromHistory()
     {
@@ -196,7 +182,7 @@ public class Evolution1v1Controler : MonoBehaviour
     }
 
     /// <summary>
-    /// Creates and saves a new generation in the daabese.
+    /// Creates and saves a new generation in the database.
     /// If winners are provided, the new generation will be mutatnts of those.
     /// If no winners are provided, the generation number will be reset to 0, and a new default generation will be created.
     /// The current generation is set to the generation that is created.

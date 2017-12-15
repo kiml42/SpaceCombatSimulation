@@ -11,15 +11,10 @@ using UnityEditor;
 using Assets.Src.Database;
 using Assets.Src.Evolution;
 
-public class EvolutionTargetShootingControler : MonoBehaviour
+public class EvolutionTargetShootingControler : BaseEvolutionController
 {
-    public int DatabaseId;
-
     EvolutionTargetShootingConfig _config;
-
-    public EvolutionShipConfig ShipConfig;
-    private EvolutionMutationWrapper _mutationControl = new EvolutionMutationWrapper();
-    private EvolutionMatchController _matchControl;
+    
     public float CurrentScore = 0;
       
     private GenerationTargetShooting _currentGeneration;
@@ -78,7 +73,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
             _currentGeneration.RecordMatch(_genome, CurrentScore, _stillAlive, !_dronesRemain, _killsThisMatch);
         
             //save the current generation
-            SaveGeneration();
+            _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, _config.GenerationNumber);
 
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
@@ -157,15 +152,6 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         }
         return false;
     }
-
-    private IEnumerable<Transform> ListShips()
-    {
-        return GameObject.FindGameObjectsWithTag(ShipConfig.SpaceShipTag)
-                .Where(s =>
-                    s.transform.parent != null &&
-                    s.transform.parent.GetComponent("Rigidbody") != null
-                ).Select(s => s.transform.parent);
-    }
     
     private void ReadInGeneration()
     {
@@ -188,7 +174,7 @@ public class EvolutionTargetShootingControler : MonoBehaviour
     }
     
     /// <summary>
-    /// Creates and saves a new generation in the daabese.
+    /// Creates and saves a new generation in the database.
     /// If winners are provided, the new generation will be mutatnts of those.
     /// If no winners are provided, the generation number will be reset to 0, and a new default generation will be created.
     /// The current generation is set to the generation that is created.
@@ -211,11 +197,5 @@ public class EvolutionTargetShootingControler : MonoBehaviour
         _dbHandler.SetCurrentGenerationNumber(DatabaseId, _config.GenerationNumber);
 
         return _currentGeneration;
-    }
-
-    private void SaveGeneration()
-    {
-        //Debug.Log("Updating Generation In DB");
-        _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, _config.GenerationNumber);
     }
 }
