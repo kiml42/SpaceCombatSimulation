@@ -11,7 +11,7 @@ using Assets.Src.ObjectManagement;
 public class EvolutionArenaControler : MonoBehaviour
 {
     public EvolutionShipConfig ShipConfig;
-    public EvolutionMutationController MutationControl;
+    public EvolutionMutationWrapper MutationControl;
     
     public string FilePath = "./tmp/evolvingShipsArena/evolvingShipsArena.csv";
 

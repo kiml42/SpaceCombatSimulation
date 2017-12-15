@@ -13,15 +13,11 @@ using Assets.Src.Evolution;
 public class Evolution1v1Controler : MonoBehaviour
 {
     public int DatabaseId;
-    [Tooltip("For display perposes only")]
-    public string RunName;
-    [Tooltip("For display perposes only")]
-    public int GenerationNumber;
 
     Evolution1v1Config _config;
 
     public EvolutionShipConfig ShipConfig;
-    private EvolutionMutationController _mutationControl;
+    private EvolutionMutationWrapper _mutationControl = new EvolutionMutationWrapper();
     private EvolutionMatchController _matchControl;
     
     private Dictionary<string, string> _currentGenomes;
@@ -49,15 +45,11 @@ public class Evolution1v1Controler : MonoBehaviour
         {
             throw new Exception("Did not retrieve expected config from database");
         }
-
-        _mutationControl = gameObject.AddComponent<EvolutionMutationController>();
+        
         _matchControl = gameObject.AddComponent<EvolutionMatchController>();
 
         _mutationControl.Config = _config.MutationConfig;
         _matchControl.Config = _config.MatchConfig;
-
-        RunName = _config.RunName;
-        GenerationNumber = _config.GenerationNumber;
 
         ReadInGeneration();
 

@@ -264,7 +264,7 @@
     <Compile Include="Assets\Src\Evolution\Evolution1v1Config.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionFileManager.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionMatchController.cs" />
-    <Compile Include="Assets\Src\Evolution\EvolutionMutationController.cs" />
+    <Compile Include="Assets\Src\Evolution\EvolutionMutationWrapper.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionShipConfig.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionTargetShootingConfig.cs" />
     <Compile Include="Assets\Src\Evolution\Generation.cs" />

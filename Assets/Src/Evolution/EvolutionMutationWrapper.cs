@@ -4,21 +4,26 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EvolutionMutationController : MonoBehaviour {
-    public MutationConfig Config = new MutationConfig();    
-
+public class EvolutionMutationWrapper {
+    private MutationConfig _config = new MutationConfig();    
     private StringMutator _mutator;
-
-    void Start()
-    {
-        _mutator = new StringMutator
+    
+    public MutationConfig Config { get
         {
-            AllowedCharacters = Config.AllowedCharacters,
-            GenomeLength = Config.GenomeLength,
-            MaxMutationLength = Config.MaxMutationLength,
-            Mutations = Config.Mutations
-        };
+            return _config;
+        }
+        set
+        {
+            _config = value;
+            _mutator.Config = value;
+        }
     }
+
+    public EvolutionMutationWrapper()
+    {
+        _mutator = new StringMutator(Config);
+    }
+
 
     public List<string> CreateGenerationOfMutants(List<string> baseGenomes)
     {

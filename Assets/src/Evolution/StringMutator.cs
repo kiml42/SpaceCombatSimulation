@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Assets.Src.Evolution;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,6 +13,26 @@ namespace Assets.src.Evolution
         public int Mutations = 3;
         public int MaxMutationLength = 3;
         public string AllowedCharacters = " 0123456789  ";
+
+        public MutationConfig Config {
+            set
+            {
+                GenomeLength = value.GenomeLength;
+                Mutations = value.Mutations;
+                MaxMutationLength = value.MaxMutationLength;
+                AllowedCharacters = value.AllowedCharacters;
+            }
+        }
+
+        public StringMutator()
+        {
+
+        }
+
+        public StringMutator(MutationConfig config)
+        {
+            Config = config;
+        }
 
         /// <summary>
         /// Creates a whole generation of mutated genomes.
