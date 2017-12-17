@@ -91,8 +91,8 @@ public class Evolution1v1Controler : BaseEvolutionController
         {
             ship.transform.SendMessage("ApplyDamage", _config.SuddenDeathDamage, SendMessageOptions.DontRequireReceiver);
         }
-        _matchControl.MatchTimeout = _config.SuddenDeathReloadTime;
-        _matchControl.MatchRunTime = 0;
+        
+        _matchControl.MatchRunTime = _matchControl.Config.MatchTimeout - _config.SuddenDeathReloadTime;
     }
     
     private void SpawnShips()
@@ -151,8 +151,7 @@ public class Evolution1v1Controler : BaseEvolutionController
         }
         return null;
     }
-
-        
+    
     private string[] PickTwoGenomesFromHistory()
     {
         var g1 = _currentGeneration.PickCompetitor();

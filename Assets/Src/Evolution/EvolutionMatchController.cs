@@ -4,23 +4,23 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EvolutionMatchController : MonoBehaviour {
+public class EvolutionMatchController : MonoBehaviour
+{
     public MatchConfig Config = new MatchConfig();
-
-    [Tooltip("for display only")]
-    public float MatchTimeout;
-    public float MatchRunTime = 0;
     
+    public float MatchRunTime = 0;
+
     private float _scoreUpdatePollCountdown = 0;
 
     // Use this for initialization
-    void Start () {
+    void Start()
+    {
         MatchRunTime = 0;
     }
-	
-	// Update is called once per frame
-	void Update () {
-        MatchTimeout = Config.MatchTimeout;
+
+    // Update is called once per frame
+    void Update()
+    {
         MatchRunTime += Time.deltaTime;
         _scoreUpdatePollCountdown -= Time.deltaTime;
     }
@@ -38,7 +38,7 @@ public class EvolutionMatchController : MonoBehaviour {
     public bool ShouldPollForWinners()
     {
         var shouldPoll = _scoreUpdatePollCountdown <= 0;
-        if(shouldPoll)
+        if (shouldPoll)
             _scoreUpdatePollCountdown = Config.WinnerPollPeriod;
 
         return shouldPoll || IsOutOfTime();

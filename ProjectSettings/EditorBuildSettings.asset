@@ -5,7 +5,7 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/1v1Ships.unity
     guid: 56d8e6f0e2de7d04a94542bc4cce9dc3
   - enabled: 0
@@ -20,6 +20,12 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/TeamTest.unity
     guid: 0f683d2d14133fd428d9cf8e2a198c24
+  - enabled: 0
+    path: 
+    guid: 00000000000000000000000000000000
   - enabled: 1
-    path: Assets/Scenes/SelfBuldingShip.unity
-    guid: 77de0301d76e60e4eb791b66693e3705
+    path: Assets/Scenes/TargetEvolution.unity
+    guid: a237c0fa149c1b345912014a3bc5f7d8
+  - enabled: 0
+    path: Assets/Scenes/1v1Evolution.unity
+    guid: 93b576c4e2c9bf54aad80a66f71b47af
