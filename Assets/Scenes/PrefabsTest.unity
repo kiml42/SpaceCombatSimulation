@@ -2390,11 +2390,6 @@ Prefab:
       propertyPath: m_RootOrder
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 114624215409950562, guid: 015b1a629cbd8694dba6c19882ede348,
-        type: 2}
-      propertyPath: TorqueMultiplier
-      value: 50000
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 015b1a629cbd8694dba6c19882ede348, type: 2}
   m_IsPrefabParent: 0

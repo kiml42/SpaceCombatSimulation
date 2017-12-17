@@ -20,6 +20,7 @@ Bugs:
 
 TODO:
     Priority:
+        Create ship list prefab. specify drones for drone evolution as indicies in list.
         Randomise target choosing mechanism periods so they don't come up at the same time.
         Menus
             Top menu - leads to general settings and various modes
