@@ -9,7 +9,7 @@ Z - make the ship cam follow a different object.
 R - cycle reticle state
 
 Filter and sort individuals in DB:
-    runConfigId = 2 ORDER BY generation, score DESC;
+    runConfigId = 2 ORDER BY generation DESC, score DESC;
 
 Bugs:
     Priority:
@@ -23,7 +23,6 @@ Bugs:
 
 TODO:
     Priority:
-        Create ship list prefab. specify drones for drone evolution as indicies in list.
         Randomise target choosing mechanism periods so they don't come up at the same time.
         Menus
             Top menu - leads to general settings and various modes
