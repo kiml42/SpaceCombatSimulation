@@ -8,6 +8,9 @@ Controls (such as they are):
 Z - make the ship cam follow a different object.
 R - cycle reticle state
 
+Filter and sort individuals in DB:
+    runConfigId = 2 ORDER BY generation, score DESC;
+
 Bugs:
     Priority:
         ElevationHubs on some drones are disappearing.
