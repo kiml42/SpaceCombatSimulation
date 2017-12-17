@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &100100000
+Prefab:
+  m_ObjectHideFlags: 1
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications: []
+    m_RemovedComponents: []
+  m_ParentPrefab: {fileID: 0}
+  m_RootGameObject: {fileID: 1362544152196114}
+  m_IsPrefabParent: 1
+--- !u!1 &1362544152196114
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 4201237021589446}
+  - component: {fileID: 114722036526711760}
+  m_Layer: 0
+  m_Name: DroneList
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4201237021589446
+Transform:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1362544152196114}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -40.004883, y: 28.210726, z: 2075.669}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &114722036526711760
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1362544152196114}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4c1f3eb821c9e246a0738bee0028107, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Modules:
+  - {fileID: 54175251741429924, guid: 1d1e7608339a5a94981ee9e3f3de752a, type: 2}
+  - {fileID: 54333284254749140, guid: 673f730f11e01f942a1943124006aa6f, type: 2}
+  - {fileID: 54718662206741180, guid: 9be061ec4cd634b418c85450221c9e7f, type: 2}
+  - {fileID: 54937077967875234, guid: e0735aa5864e5664ba68082c1f9b8b37, type: 2}
+  - {fileID: 54341790251113956, guid: 38f75e56c885bf94ea1b7a36bda3bdaf, type: 2}
+  - {fileID: 54861845782397696, guid: a3692a1e7a8a25a40a1c840c4f784611, type: 2}
+  - {fileID: 54555125603097668, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
+  - {fileID: 54110498039816676, guid: 15ceeb42af967814e8349cb3b0c9a2bf, type: 2}

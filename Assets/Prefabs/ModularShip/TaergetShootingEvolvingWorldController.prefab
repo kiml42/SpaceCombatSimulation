@@ -196,9 +196,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4300714835004162}
   - component: {fileID: 114276023159756518}
-  - component: {fileID: 114967028892328500}
-  - component: {fileID: 114156426761853234}
-  - component: {fileID: 114664077113307600}
   - component: {fileID: 114257166760928450}
   - component: {fileID: 114768268343182516}
   - component: {fileID: 135941088491090616}
@@ -821,24 +818,6 @@ Light:
   m_UseColorTemperature: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
---- !u!114 &114156426761853234
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1951160143417706}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 52535fb2e0130e048a445d85211d83ee, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Mutations: 3
-  AllowedCharacters: ' 0123456789012  '
-  MaxMutationLength: 5
-  GenomeLength: 100
-  GenerationSize: 17
-  UseCompletelyRandomDefaultGenome: 0
-  DefaultGenome: 
 --- !u!114 &114257166760928450
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -850,31 +829,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ec239746f603b64dbbbce3d88199ef4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  DatabaseId: 1
   ShipConfig: {fileID: 114276023159756518}
-  FileManager: {fileID: 114967028892328500}
-  MutationControl: {fileID: 114156426761853234}
-  MatchControl: {fileID: 114664077113307600}
   CurrentScore: 0
-  Drones:
-  - {fileID: 54175251741429924, guid: 1d1e7608339a5a94981ee9e3f3de752a, type: 2}
-  - {fileID: 54718662206741180, guid: 9be061ec4cd634b418c85450221c9e7f, type: 2}
-  - {fileID: 54333284254749140, guid: 673f730f11e01f942a1943124006aa6f, type: 2}
-  - {fileID: 54937077967875234, guid: e0735aa5864e5664ba68082c1f9b8b37, type: 2}
-  - {fileID: 54341790251113956, guid: 38f75e56c885bf94ea1b7a36bda3bdaf, type: 2}
-  - {fileID: 54861845782397696, guid: a3692a1e7a8a25a40a1c840c4f784611, type: 2}
-  - {fileID: 54937077967875234, guid: e0735aa5864e5664ba68082c1f9b8b37, type: 2}
-  - {fileID: 54341790251113956, guid: 38f75e56c885bf94ea1b7a36bda3bdaf, type: 2}
-  - {fileID: 54110498039816676, guid: 15ceeb42af967814e8349cb3b0c9a2bf, type: 2}
-  - {fileID: 54555125603097668, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
-  MinDronesToSpawn: 3
-  ExtraDroneEveryXGenerations: 8
-  MaxDronesToSpawn: 100
-  MinMatchesPerIndividual: 1
-  WinnersFromEachGeneration: 5
-  KillScoreMultiplier: 50
-  FlatKillBonus: 100
-  CompletionBonus: 388
-  DeathPenalty: 70
+  DroneList: {fileID: 114722036526711760, guid: e2dbee6a48a444f4aab01257450a7363,
+    type: 2}
 --- !u!114 &114276023159756518
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -920,20 +879,6 @@ MonoBehaviour:
   Colour: {r: 0, g: 0, b: 0, a: 0}
   Depth: 1
   SetInStart: 0
---- !u!114 &114664077113307600
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1951160143417706}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a4dc9d0aa67b1b6409f58438da166ecf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  MatchTimeout: 300
-  MatchRunTime: 0
-  WinnerPollPeriod: 1
 --- !u!114 &114768268343182516
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -972,19 +917,6 @@ MonoBehaviour:
   Colour: {r: 0, g: 0, b: 0, a: 0}
   Depth: 1
   SetInStart: 0
---- !u!114 &114967028892328500
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1951160143417706}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 150d65cc29fc6db4a9b6668d91757869, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  GeneralFolder: ./tmp/evolvingShipsDrones
-  ThisRunFolder: mixedTargets
 --- !u!124 &124422424614570090
 Behaviour:
   m_ObjectHideFlags: 1
