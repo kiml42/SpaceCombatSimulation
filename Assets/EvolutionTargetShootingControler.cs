@@ -31,6 +31,8 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
     
     EvolutionTargetShootingDatabaseHandler _dbHandler;
 
+    public ModuleList DroneList;
+
     // Use this for initialization
     void Start()
     {
@@ -102,7 +104,8 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
 
         for (int i = 0; i<DroneCount; i++)
         {
-            var dronePrefab = _config.Drones[i % _config.Drones.Count];
+            var droneIndex = _config.Drones[i % _config.Drones.Count];
+            var dronePrefab = DroneList.Modules[droneIndex];
             //Debug.Log("spawning drone " + genome);
             
             var orientation = ShipConfig.RandomiseRotation ? UnityEngine.Random.rotation : locationTransform.rotation;

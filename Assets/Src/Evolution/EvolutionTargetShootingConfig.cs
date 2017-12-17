@@ -16,7 +16,7 @@ namespace Assets.Src.Evolution
         public MatchConfig MatchConfig = new MatchConfig();
 
         #region "Drones
-        public List<Rigidbody> Drones = new List<Rigidbody>();
+        public List<int> Drones = new List<int>();
 
         [Tooltip("number of drones spawned = MinDronesToSpawn + CurrentGeneration * ExtraDromnesPerGeneration")]
         public int MinDronesToSpawn = 3;
@@ -29,12 +29,12 @@ namespace Assets.Src.Evolution
         {
             get
             {
-                return string.Join(";", Drones.Select(d => AssetDatabase.GetAssetPath(d)).ToArray());
+                return string.Join(";", Drones.Select(d => d.ToString()).ToArray());
             }
             set
             {
                 var splitDronesString = value.Split(';');
-                Drones = splitDronesString.Select(d => AssetDatabase.LoadAssetAtPath<Rigidbody>(d)).ToList();
+                Drones = splitDronesString.Select(d => int.Parse(d)).ToList();
             }
         }
         #endregion
