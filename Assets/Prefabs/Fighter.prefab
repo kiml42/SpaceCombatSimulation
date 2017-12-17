@@ -464,7 +464,7 @@ GameObject:
   - component: {fileID: 114296012984201318}
   m_Layer: 0
   m_Name: Fighter
-  m_TagString: Team1
+  m_TagString: Team2
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1020,7 +1020,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1521345186534670}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 20}
+  m_LocalPosition: {x: 0, y: 0, z: 10}
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_Children: []
   m_Father: {fileID: 4886219950708550}
@@ -1268,8 +1268,8 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1497777704573134}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 10}
-  m_LocalScale: {x: 0.1, y: 0.1, z: 20}
+  m_LocalPosition: {x: 0, y: 0, z: 5}
+  m_LocalScale: {x: 0.1, y: 0.1, z: 10}
   m_Children: []
   m_Father: {fileID: 4886219950708550}
   m_RootOrder: 0
@@ -2010,7 +2010,7 @@ Rigidbody:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1628608979875536}
   serializedVersion: 2
-  m_Mass: 500
+  m_Mass: 300
   m_Drag: 0
   m_AngularDrag: 0
   m_UseGravity: 0
@@ -2128,7 +2128,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 18000
+  EngineForce2: 30000
   Pilot: {fileID: 4539077905971362}
   FuelTank: {fileID: 114296012984201318}
   ForceApplier: {fileID: 54944350471564218}
@@ -2188,7 +2188,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 18000
+  EngineForce2: 30000
   Pilot: {fileID: 4539077905971362}
   FuelTank: {fileID: 114296012984201318}
   ForceApplier: {fileID: 54316674689050248}
@@ -2290,7 +2290,7 @@ MonoBehaviour:
   PollInterval: 1
   EnemyTags:
   - Enemy
-  - Team2
+  - Team1
   DisalowedTypes: 
   PreferdTypes: 0200000003000000
   PreferedTypeBonus: 5000
@@ -2430,7 +2430,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Fuel: 5000
   UseFuelMass: 1
-  FuelDensity: 0.001
+  FuelDensity: 0.01
 --- !u!114 &114305809948501556
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2444,10 +2444,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   TagChildren: 1
   EnemyTags:
-  - Team2
-  - Team3
-  - Team4
-  - Team5
+  - Enemy
+  - Team1
   TurretPrefab: {fileID: 4541375484301278, guid: fb971bf036914224882cb762d5469d0a,
     type: 2}
 --- !u!114 &114412827037418568
@@ -2632,21 +2630,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6cc8ba250bdfeb74ca72df3ebf9e4267, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ShootAngle: 30
-  TorqueMultiplier: 10000
+  ShootAngle: 90
+  TorqueMultiplier: 3000
   StartDelay: 0
-  SlowdownWeighting: 50
-  RadialSpeedThreshold: 10
-  MaxRange: 50
-  MinRange: 20
+  SlowdownWeighting: 45
+  RadialSpeedThreshold: 50
+  MaxRange: 500
+  MinRange: 12
   LocationAimWeighting: 1
-  MaxTangentialVelocity: 10
-  MinTangentialVelocity: 0
-  TangentialSpeedWeighting: 50
-  Engine: {fileID: 0}
+  MaxTangentialVelocity: 100
+  MinTangentialVelocity: 20
+  TangentialSpeedWeighting: 35
+  Engine: {fileID: 114000468984587082}
   Torquer: {fileID: 54369651166477098}
-  AngularDragForTorquers: 10
-  VectorArrow: {fileID: 4886219950708550}
+  AngularDragForTorquers: 8
+  VectorArrow: {fileID: 4529293601510746, guid: 9be061ec4cd634b418c85450221c9e7f,
+    type: 2}
 --- !u!114 &114643838280933104
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2685,10 +2684,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   TagChildren: 1
   EnemyTags:
-  - Team2
-  - Team3
-  - Team4
-  - Team5
+  - Enemy
+  - Team1
   TurretPrefab: {fileID: 4541375484301278, guid: fb971bf036914224882cb762d5469d0a,
     type: 2}
 --- !u!114 &114807267998711270
