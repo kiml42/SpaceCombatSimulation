@@ -32,6 +32,7 @@ TODO:
         Test on phone
         Add to Play store?
         Fighters - using engines as weapons/using guns/both.
+            Fix fighter type 1 turret
         Evasive manuevers
         Some way for turrets to account for their own turn rates. - to keep up with tracking moving targets.
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
