@@ -161,6 +161,13 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
         var config = _handler.ReadConfig(0);
         Assert.AreEqual(2, config.MatchConfig.WinnerPollPeriod);
     }
+
+    [Test]
+    public void ReadConfig_MatchControl_InitialRange()
+    {
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(6005, config.MatchConfig.InitialRange);
+    }
     #endregion
 
     #region MutationControl

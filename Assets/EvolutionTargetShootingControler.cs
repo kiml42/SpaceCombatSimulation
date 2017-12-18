@@ -87,7 +87,7 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
 
         Debug.Log(_genome + " enters the arena!");
 
-        ShipConfig.SpawnShip(_genome, SHIP_INDEX);
+        ShipConfig.SpawnShip(_genome, SHIP_INDEX, _matchControl.PositionForCompetitor(SHIP_INDEX));
 
         SpawnDrones();
     }
@@ -96,11 +96,15 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
     {
         var DroneCount = _config.MinDronesToSpawn + Math.Floor((double)_config.GenerationNumber * _config.ExtraDromnesPerGeneration);
         Debug.Log(DroneCount + " drones this match");
-
-        var locationTransform = ShipConfig.GetLocation(DRONES_INDEX);
+        
         var randRadius = ShipConfig.GetLocationRandomisationRadius(DRONES_INDEX);
         var droneTag = ShipConfig.GetTag(DRONES_INDEX);
         var enemyTags = ShipConfig.Tags.Where(t => t != droneTag).ToList();
+
+        var location = _matchControl.PositionForCompetitor(DRONES_INDEX);
+        var vectorTowardsCentre = -location.normalized;
+
+        var defaultOrientation = Quaternion.LookRotation(vectorTowardsCentre);
 
         for (int i = 0; i<DroneCount; i++)
         {
@@ -108,12 +112,12 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
             var dronePrefab = DroneList.Modules[droneIndex];
             //Debug.Log("spawning drone " + genome);
             
-            var orientation = ShipConfig.RandomiseRotation ? UnityEngine.Random.rotation : locationTransform.rotation;
-            var randomPlacement = (randRadius * UnityEngine.Random.insideUnitSphere) + locationTransform.position;
+            var orientation = ShipConfig.RandomiseRotation ? UnityEngine.Random.rotation : defaultOrientation;
+            var randomPlacement = (randRadius * UnityEngine.Random.insideUnitSphere) + location;
             var ship = Instantiate(dronePrefab, randomPlacement, orientation);
             ship.tag = droneTag;
             
-            ship.velocity = locationTransform.forward * ShipConfig.InitialSpeed + UnityEngine.Random.insideUnitSphere * ShipConfig.RandomInitialSpeed;
+            ship.velocity = vectorTowardsCentre * ShipConfig.InitialSpeed + UnityEngine.Random.insideUnitSphere * ShipConfig.RandomInitialSpeed;
 
             ship.SendMessage("SetEnemyTags", enemyTags, SendMessageOptions.DontRequireReceiver);
         }

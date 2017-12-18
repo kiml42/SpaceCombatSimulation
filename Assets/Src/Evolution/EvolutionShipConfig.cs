@@ -9,8 +9,6 @@ public class EvolutionShipConfig : MonoBehaviour {
 
     public List<string> Tags = new List<string>{"Team1", "Team2" };
 
-    public List<Transform> Locations;
-
     public List<float> LocationRandomisationRadiai = new List<float> { 0, 0 };
 
     public TestCubeChecker TestCube;
@@ -25,17 +23,16 @@ public class EvolutionShipConfig : MonoBehaviour {
     public int MaxTurrets = 10;
     public int MaxModules = 15;
     
-    public void SpawnShip(string genome, int index)
+    public void SpawnShip(string genome, int index, Vector3 location)
     {
-        if(!Tags.Any() || !Locations.Any() || !LocationRandomisationRadiai.Any())
+        if(!Tags.Any() || !LocationRandomisationRadiai.Any())
         {
             throw new System.Exception("One or more of the ship config lists is empty - they must all have at least one element.");
         }
         var tagIndex = Mathf.Min(Tags.Count - 1, index);
-        var locIndex = Mathf.Min(Locations.Count - 1, index);
         var LocRandIndex = Mathf.Min(LocationRandomisationRadiai.Count - 1, index);
 
-        SpawnShip(genome, Tags[tagIndex], Locations[locIndex], LocationRandomisationRadiai[LocRandIndex]);
+        SpawnShip(genome, Tags[tagIndex], location, LocationRandomisationRadiai[LocRandIndex]);
     }
 
     public string GetTag(int index)
@@ -49,17 +46,6 @@ public class EvolutionShipConfig : MonoBehaviour {
         return Tags[tagIndex];
     }
 
-    public Transform GetLocation(int index)
-    {
-        if (!Locations.Any())
-        {
-            throw new System.Exception("The locations list is empty");
-        }
-        var locIndex = Mathf.Min(Locations.Count - 1, index);
-
-        return Locations[locIndex];
-    }
-
     public float GetLocationRandomisationRadius(int index)
     {
         if (!LocationRandomisationRadiai.Any())
@@ -71,15 +57,20 @@ public class EvolutionShipConfig : MonoBehaviour {
         return LocationRandomisationRadiai[LocRandIndex];
     }
 
-    private void SpawnShip(string genome, string ownTag, Transform location, float locationRandomisationRadius)
+    private void SpawnShip(string genome, string ownTag, Vector3 location, float locationRandomisationRadius)
     {
-        var orientation = RandomiseRotation ? UnityEngine.Random.rotation : location.rotation;
-        var randomPlacement = (locationRandomisationRadius * UnityEngine.Random.insideUnitSphere) + location.position;
+        var vectorTowardsCentre = -location.normalized;
+        
+        var orientation = RandomiseRotation ? Random.rotation : Quaternion.LookRotation(vectorTowardsCentre);
+
+        var randomPlacement = (locationRandomisationRadius * Random.insideUnitSphere) + location;
+
         var ship = Instantiate(ShipToEvolve, randomPlacement, orientation);
         ship.tag = ownTag;
         var enemyTags = Tags.Where(t => t != ownTag).ToList();
 
-        var velocity = location.forward * InitialSpeed + UnityEngine.Random.insideUnitSphere * RandomInitialSpeed;
+        //velocity always points towards the centre
+        var velocity = vectorTowardsCentre * InitialSpeed + Random.insideUnitSphere * RandomInitialSpeed;
 
         new ShipBuilder(genome, ship.transform, ModuleList, TestCube)
         {

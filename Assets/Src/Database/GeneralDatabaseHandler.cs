@@ -76,7 +76,8 @@ namespace Assets.Src.Database
             {
                 Id = reader.GetInt32(idIndex),  //TODO check this
                 MatchTimeout = reader.GetFloat(reader.GetOrdinal("matchTimeout")), //16
-                WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")) //17
+                WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")), //17
+                InitialRange = reader.GetFloat(reader.GetOrdinal("initialRange")) //18
             };
             return config;
         }

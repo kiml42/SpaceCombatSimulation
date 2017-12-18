@@ -105,7 +105,7 @@ public class Evolution1v1Controler : BaseEvolutionController
         var i = 0;
         foreach (var g in genomes)
         {
-            ShipConfig.SpawnShip(g, i);
+            ShipConfig.SpawnShip(g, i, _matchControl.PositionForCompetitor(i));
             _currentGenomes[ShipConfig.GetTag(i)] = g;
 
             i++;

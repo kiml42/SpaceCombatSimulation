@@ -122,7 +122,7 @@ public class EvolutionArenaControler : MonoBehaviour
 
         var index = ShipConfig.Tags.IndexOf(ownTag);
         
-        ShipConfig.SpawnShip(genome, index);
+        ShipConfig.SpawnShip(genome, index, transform.position);
         
         RememberNewExtantGenome(ownTag, genome);
     }
