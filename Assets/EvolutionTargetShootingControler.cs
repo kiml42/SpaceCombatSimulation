@@ -50,6 +50,7 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
 
         _mutationControl.Config = _config.MutationConfig;
         _matchControl.Config = _config.MatchConfig;
+        ShipConfig.Config = _config.MatchConfig;
         
         ReadInGeneration();
 
@@ -96,24 +97,22 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
     {
         var DroneCount = _config.MinDronesToSpawn + Math.Floor((double)_config.GenerationNumber * _config.ExtraDromnesPerGeneration);
         Debug.Log(DroneCount + " drones this match");
-
-        var locationTransform = ShipConfig.GetLocation(DRONES_INDEX);
-        var randRadius = ShipConfig.GetLocationRandomisationRadius(DRONES_INDEX);
+        
         var droneTag = ShipConfig.GetTag(DRONES_INDEX);
         var enemyTags = ShipConfig.Tags.Where(t => t != droneTag).ToList();
-
+        
         for (int i = 0; i<DroneCount; i++)
         {
             var droneIndex = _config.Drones[i % _config.Drones.Count];
             var dronePrefab = DroneList.Modules[droneIndex];
             //Debug.Log("spawning drone " + genome);
             
-            var orientation = ShipConfig.RandomiseRotation ? UnityEngine.Random.rotation : locationTransform.rotation;
-            var randomPlacement = (randRadius * UnityEngine.Random.insideUnitSphere) + locationTransform.position;
+            var randomPlacement = _config.MatchConfig.PositionForCompetitor(DRONES_INDEX);
+            var orientation = _config.MatchConfig.OrientationForStartLocation(randomPlacement);
             var ship = Instantiate(dronePrefab, randomPlacement, orientation);
             ship.tag = droneTag;
             
-            ship.velocity = locationTransform.forward * ShipConfig.InitialSpeed + UnityEngine.Random.insideUnitSphere * ShipConfig.RandomInitialSpeed;
+            ship.velocity = _config.MatchConfig.VelocityForStartLocation(randomPlacement);
 
             ship.SendMessage("SetEnemyTags", enemyTags, SendMessageOptions.DontRequireReceiver);
         }

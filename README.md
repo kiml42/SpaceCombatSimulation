@@ -23,6 +23,7 @@ Bugs:
 
 TODO:
     Priority:
+        Store initial speed and random initial speed in the match config table
         Randomise target choosing mechanism periods so they don't come up at the same time.
         Menus
             Top menu - leads to general settings and various modes

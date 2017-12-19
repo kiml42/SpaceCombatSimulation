@@ -44,6 +44,7 @@ public class Evolution1v1Controler : BaseEvolutionController
 
         _mutationControl.Config = _config.MutationConfig;
         _matchControl.Config = _config.MatchConfig;
+        ShipConfig.Config = _config.MatchConfig;
 
         ReadInGeneration();
 
@@ -105,7 +106,8 @@ public class Evolution1v1Controler : BaseEvolutionController
         var i = 0;
         foreach (var g in genomes)
         {
-            ShipConfig.SpawnShip(g, i);
+            for(var j=0; j < _matchControl.Config.CompetitorsPerTeam; j++)
+                ShipConfig.SpawnShip(g, i, j);
             _currentGenomes[ShipConfig.GetTag(i)] = g;
 
             i++;
