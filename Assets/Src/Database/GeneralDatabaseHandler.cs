@@ -70,14 +70,21 @@ namespace Assets.Src.Database
 
         protected MatchConfig ReadMatchConfig(IDataReader reader, int idIndex)
         {
-            //Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("MatchConfig.Id"));  //-1
+            Debug.Log("randomiseRotation ordinal: " + reader.GetOrdinal("randomiseRotation"));  //-1
+            Debug.Log("randomiseRotation value: " + reader.GetBoolean(reader.GetOrdinal("randomiseRotation")));  //-1
 
             var config = new MatchConfig()
             {
                 Id = reader.GetInt32(idIndex),  //TODO check this
                 MatchTimeout = reader.GetFloat(reader.GetOrdinal("matchTimeout")), //16
                 WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")), //17
-                InitialRange = reader.GetFloat(reader.GetOrdinal("initialRange")) //18
+                InitialRange = reader.GetFloat(reader.GetOrdinal("initialRange")),
+                InitialSpeed = reader.GetFloat(reader.GetOrdinal("initialSpeed")),
+                RandomInitialSpeed = reader.GetFloat(reader.GetOrdinal("randomInitialSpeed")),
+                CompetitorsPerTeam = reader.GetInt32(reader.GetOrdinal("competitorsPerTeam")),
+                StepForwardProportion = reader.GetFloat(reader.GetOrdinal("stepForwardProportion")),
+                LocationRandomisationRadiaiString = reader.GetString(reader.GetOrdinal("locationRandomisationRadiai")),
+                RandomiseRotation = reader.GetBoolean(reader.GetOrdinal("randomiseRotation"))
             };
             return config;
         }

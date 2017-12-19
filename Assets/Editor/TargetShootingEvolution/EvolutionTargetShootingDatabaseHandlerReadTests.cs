@@ -168,6 +168,50 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
         var config = _handler.ReadConfig(0);
         Assert.AreEqual(6005, config.MatchConfig.InitialRange);
     }
+
+    [Test]
+    public void ReadConfig_MatchControl_InitialSpeed()
+    {
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(5, config.MatchConfig.InitialSpeed);
+    }
+
+    [Test]
+    public void ReadConfig_MatchControl_RandomInitialSpeed()
+    {
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(5, config.MatchConfig.RandomInitialSpeed);
+    }
+
+    [Test]
+    public void ReadConfig_MatchControl_CompetitorsPerTeam()
+    {
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(6, config.MatchConfig.CompetitorsPerTeam);
+    }
+
+    [Test]
+    public void ReadConfig_MatchControl_StepForwardProportion()
+    {
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(0.5f, config.MatchConfig.StepForwardProportion);
+    }
+
+    [Test]
+    public void ReadConfig_MatchControl_LocationRandomisationRadiai()
+    {
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual("3;6", config.MatchConfig.LocationRandomisationRadiaiString);
+        Assert.AreEqual(3, config.MatchConfig.LocationRandomisationRadiai[0]);
+        Assert.AreEqual(6, config.MatchConfig.LocationRandomisationRadiai[1]);
+    }
+
+    [Test]
+    public void ReadConfig_MatchControl_RandomiseRotation()
+    {
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(true, config.MatchConfig.RandomiseRotation);
+    }
     #endregion
 
     #region MutationControl

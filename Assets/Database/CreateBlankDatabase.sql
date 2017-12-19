@@ -23,10 +23,13 @@ CREATE TABLE Individual1v1 (runConfigId INTEGER NOT NULL REFERENCES DroneEvoluti
 
 
 -- Table: MatchConfig
-CREATE TABLE MatchConfig (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, matchTimeout FLOAT DEFAULT '300' NOT NULL, winnerPollPeriod FLOAT DEFAULT '2' NOT NULL, initialRange FLOAT DEFAULT '''6000''' NOT NULL);
-INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod, initialRange) VALUES (0, 300, 2, 6000);
-INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod, initialRange) VALUES (1, 300, 1, 6000);
-INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod, initialRange) VALUES (2, 120, 1, 6000);
+CREATE TABLE MatchConfig (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, matchTimeout FLOAT DEFAULT '300' NOT NULL, winnerPollPeriod FLOAT DEFAULT '2' NOT NULL, initialRange FLOAT DEFAULT '''6000''' NOT NULL, initialSpeed FLOAT DEFAULT '''0''' NOT NULL, randomInitialSpeed FLOAT DEFAULT '''0''' NOT NULL, competitorsPerTeam INTEGER DEFAULT '''1''' NOT NULL, stepForwardProportion FLOAT DEFAULT '''0.5''' NOT NULL, locationRandomisationRadiai STRING DEFAULT '''0''' NOT NULL, randomiseRotation BOOLEAN DEFAULT 'TRUE' NOT NULL);
+INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation)
+VALUES (0, 300, 2, 6000, 10, 1, 1, .8, '30;30', 0);
+INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation)
+VALUES (1, 300, 1, 6000, 10, 1, 1, .8, '30;30', 0);
+INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation)
+VALUES (2, 120, 1, 6000, 10, 1, 1, .8, '30;30', 0);
 
 -- Table: MutationConfig
 CREATE TABLE MutationConfig (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, mutations BIGINT NOT NULL, allowedCharacters VARCHAR (30) DEFAULT '0123456789012' NOT NULL, maxMutationLength INTEGER DEFAULT '5' NOT NULL, genomeLength INTEGER DEFAULT '100' NOT NULL, generationSize INTEGER DEFAULT '20' NOT NULL, randomDefault BOOLEAN DEFAULT 'FALSE' NOT NULL, defaultGenome VARCHAR (1000));

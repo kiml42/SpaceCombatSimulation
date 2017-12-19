@@ -43,9 +43,4 @@ public class EvolutionMatchController : MonoBehaviour
 
         return shouldPoll || IsOutOfTime();
     }
-
-    public Vector3 PositionForCompetitor(int i)
-    {
-        return Config.PositionForCompetitor(i);
-    }
 }
