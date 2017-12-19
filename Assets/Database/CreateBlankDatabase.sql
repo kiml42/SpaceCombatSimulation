@@ -32,10 +32,10 @@ INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod, initialRange, initi
 VALUES (2, 120, 1, 6000, 10, 1, 1, .8, '30;30', 0);
 
 -- Table: MutationConfig
-CREATE TABLE MutationConfig (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, mutations BIGINT NOT NULL, allowedCharacters VARCHAR (30) DEFAULT '0123456789012' NOT NULL, maxMutationLength INTEGER DEFAULT '5' NOT NULL, genomeLength INTEGER DEFAULT '100' NOT NULL, generationSize INTEGER DEFAULT '20' NOT NULL, randomDefault BOOLEAN DEFAULT 'FALSE' NOT NULL, defaultGenome VARCHAR (1000));
+CREATE TABLE MutationConfig (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, mutations BIGINT NOT NULL, allowedCharacters VARCHAR (30) DEFAULT '0123456789012' NOT NULL, maxMutationLength INTEGER DEFAULT '5' NOT NULL, genomeLength INTEGER DEFAULT '300' NOT NULL, generationSize INTEGER DEFAULT '20' NOT NULL, randomDefault BOOLEAN DEFAULT 'FALSE' NOT NULL, defaultGenome VARCHAR (1000));
 INSERT INTO MutationConfig (id, mutations, allowedCharacters, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome) VALUES (0, 4, 'abc', 6, 2, 5, 0, '123');
-INSERT INTO MutationConfig (id, mutations, allowedCharacters, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome) VALUES (1, 3, ' 0123456789012  ', 5, 100, 17, 0, '');
-INSERT INTO MutationConfig (id, mutations, allowedCharacters, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome) VALUES (2, 3, ' 0123456789012  ', 5, 100, 17, 0, '');
+INSERT INTO MutationConfig (id, mutations, allowedCharacters, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome) VALUES (1, 3, ' 0123456789012  ', 5, 300, 17, 0, '');
+INSERT INTO MutationConfig (id, mutations, allowedCharacters, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome) VALUES (2, 3, ' 0123456789012  ', 5, 300, 17, 0, '');
 
 COMMIT TRANSACTION;
 PRAGMA foreign_keys = on;

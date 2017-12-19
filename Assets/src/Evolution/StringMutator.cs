@@ -80,7 +80,11 @@ namespace Assets.src.Evolution
 
         public string Mutate(string baseGenome)
         {
-            baseGenome = baseGenome.PadRight(GenomeLength, ' ');
+            if(baseGenome.Length < GenomeLength)
+            {
+                Debug.Log("Padding genome from length " + baseGenome.Length + " to " + GenomeLength + ". genome: " + baseGenome);
+                baseGenome = baseGenome.PadRight(GenomeLength, ' ');
+            }
             for (int i = 0; i < Mutations; i++)
             {
                 var n = UnityEngine.Random.value;
