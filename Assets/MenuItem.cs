@@ -2,29 +2,77 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
+using UnityEngine.SceneManagement;
 
 public class MenuItem : MonoBehaviour {
     public Color NormalColour = Color.white;
     public Color HighlightColour = Color.yellow;
+    public MainMenuController MainMenu;
 
+    #region Load Scene
+    public string SceneToLoad;
+    #endregion
 
-	// Use this for initialization
-	void Start () {
+    #region MoveCamera
+    public Transform CameraLocation;
+    #endregion
+
+    #region quit
+    public bool Quit = false;
+    #endregion
+
+    // Use this for initialization
+    void Start () {
         transform.SetColor(NormalColour);
 	}
 
     public void OnMouseEnter()
     {
-        transform.SetColor(HighlightColour);
+        Highlight();
     }
 
     public void OnMouseExit()
     {
-        transform.SetColor(NormalColour);
+        DeHighlight();
     }
 
     public void OnMouseUp()
     {
-        Debug.Log("MouseUp " + name);
+        Activate();
+    }
+
+    private void Activate()
+    {
+        Debug.Log(name + " activated");
+        if (Quit)
+        {
+            #if UNITY_EDITOR
+                // Application.Quit() does not work in the editor so
+                // UnityEditor.EditorApplication.isPlaying need to be set to false to end the game
+                UnityEditor.EditorApplication.isPlaying = false;
+            #else
+                Application.Quit();
+            #endif
+            return;
+        }
+        if(!string.IsNullOrEmpty(SceneToLoad))
+        {
+            SceneManager.LoadScene(SceneToLoad);
+        }
+        if(CameraLocation != null)
+        {
+            MainMenu.CameraTarget = CameraLocation;
+        }
+    }
+
+    public void Highlight()
+    {
+        transform.SetColor(HighlightColour);
+    }
+
+    public void DeHighlight()
+    {
+        transform.SetColor(NormalColour);
     }
 }

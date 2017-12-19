@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Assets.Src.Controllers
 {
@@ -53,6 +54,8 @@ namespace Assets.Src.Controllers
         private Camera _activeCamera;
         public float TranslateSpeed = 2;
 
+        public string MainMenu = "MainMenu";
+
 
         // Use this for initialization
         void Start()
@@ -98,6 +101,11 @@ namespace Assets.Src.Controllers
 
             if(FollowShips)
                 MoveToAverageLoc();
+
+            if (Input.GetKeyUp(KeyCode.Escape))
+            {
+                SceneManager.LoadScene(MainMenu);
+            }
         }
 
         private void MoveToAverageLoc()
