@@ -27,6 +27,11 @@ namespace Assets.Src.Database
         {
         }
 
+        public override Dictionary<int, string> ListConfigs()
+        {
+            return ListConfigs(CONFIG_TABLE);
+        }
+
         public EvolutionTargetShootingConfig ReadConfig(int id)
         {
             var config = new EvolutionTargetShootingConfig();
@@ -38,7 +43,7 @@ namespace Assets.Src.Database
                 IDataReader reader = null;
                 try
                 {
-                    reader = OpenReaderWithCommant(sql_con, CreateReadConfigQuery(CONFIG_TABLE, id), out dbcmd);
+                    reader = OpenReaderWithCommand(sql_con, CreateReadConfigQuery(CONFIG_TABLE, id), out dbcmd);
 
                     reader.Read();
 
@@ -87,7 +92,7 @@ namespace Assets.Src.Database
                 IDataReader reader = null;
                 try
                 {
-                    reader = OpenReaderWithCommant(sql_con, CreateReadIndividualsQuery(INDIVIDUAL_TABLE, runId, generationNumber), out dbcmd);
+                    reader = OpenReaderWithCommand(sql_con, CreateReadIndividualsQuery(INDIVIDUAL_TABLE, runId, generationNumber), out dbcmd);
 
                     while (reader.Read())
                     {

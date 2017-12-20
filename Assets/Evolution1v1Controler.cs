@@ -9,6 +9,7 @@ using System.IO;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Database;
 using Assets.Src.Evolution;
+using Assets.Src.Menus;
 
 public class Evolution1v1Controler : BaseEvolutionController
 {
@@ -31,6 +32,8 @@ public class Evolution1v1Controler : BaseEvolutionController
     // Use this for initialization
     void Start()
     {
+        DatabaseId = ArgumentStore.IdToLoad ?? DatabaseId;
+
         _dbHandler = new Evolution1v1DatabaseHandler();
 
         _config = _dbHandler.ReadConfig(DatabaseId);

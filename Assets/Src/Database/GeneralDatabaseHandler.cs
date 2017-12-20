@@ -39,6 +39,45 @@ namespace Assets.Src.Database
             }
         }
 
+        public abstract Dictionary<int, string> ListConfigs();
+
+        protected Dictionary<int, string> ListConfigs(string table)
+        {
+            var configs = new Dictionary<int, string>();
+
+            string sqlQuery = "SELECT id, name" + " FROM " + table + ";";
+
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                IDbCommand dbcmd = null;
+                IDataReader reader = null;
+                try
+                {
+                    sql_con.Open(); //Open connection to the database.
+                    dbcmd = sql_con.CreateCommand();
+                    dbcmd.CommandText = sqlQuery;
+                    reader = dbcmd.ExecuteReader();
+
+                    while (reader.Read())
+                    {
+                        var id = reader.GetInt32(reader.GetOrdinal("id"));
+                        var name = reader.GetString(reader.GetOrdinal("name"));
+                        configs.Add(id, name);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
+                    throw e;
+                }
+                finally
+                {
+                    Disconnect(reader, null, dbcmd, sql_con);
+                }
+            }
+            return configs;
+        }
+
         protected string CreateReadConfigQuery(string table, int id)
         {
             string sqlQuery = "SELECT *" +
@@ -58,7 +97,7 @@ namespace Assets.Src.Database
             return sqlQuery;
         }
 
-        protected IDataReader OpenReaderWithCommant(SqliteConnection connection, string command, out IDbCommand dbcmd)
+        protected IDataReader OpenReaderWithCommand(SqliteConnection connection, string command, out IDbCommand dbcmd)
         {
             connection.Open(); //Open connection to the database.
             dbcmd = connection.CreateCommand();

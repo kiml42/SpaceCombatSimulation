@@ -4,11 +4,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using UnityEngine.SceneManagement;
+using Assets.Src.Menus;
 
 public class MenuItem : MonoBehaviour {
     public Color NormalColour = Color.white;
     public Color HighlightColour = Color.yellow;
     public MainMenuController MainMenu;
+
+    public bool SetIdToLoad = false;
+    public int IdToLoad;
 
     #region Load Scene
     public string SceneToLoad;
@@ -56,10 +60,17 @@ public class MenuItem : MonoBehaviour {
             #endif
             return;
         }
+
+        if (SetIdToLoad)
+        {
+            ArgumentStore.IdToLoad = IdToLoad;
+        }
+
         if(!string.IsNullOrEmpty(SceneToLoad))
         {
             SceneManager.LoadScene(SceneToLoad);
         }
+
         if(CameraLocation != null)
         {
             MainMenu.CameraTarget = CameraLocation;

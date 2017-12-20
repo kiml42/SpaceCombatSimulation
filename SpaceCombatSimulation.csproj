@@ -241,7 +241,6 @@
     <Compile Include="Assets\JointFriction.cs" />
     <Compile Include="Assets\LampAndParticlesEffectController.cs" />
     <Compile Include="Assets\MainMenuController.cs" />
-    <Compile Include="Assets\MenuItem.cs" />
     <Compile Include="Assets\ModuleList.cs" />
     <Compile Include="Assets\RayTrigger.cs" />
     <Compile Include="Assets\RegisterAsTarget.cs" />
@@ -297,6 +296,11 @@
     <Compile Include="Assets\Src\Interfaces\ITurretController.cs" />
     <Compile Include="Assets\Src\Interfaces\ITurretRunner.cs" />
     <Compile Include="Assets\Src\Interfaces\ITurretTurner.cs" />
+    <Compile Include="Assets\Src\Menus\ArgumentStore.cs" />
+    <Compile Include="Assets\Src\Menus\Evolution1v1LoadList.cs" />
+    <Compile Include="Assets\Src\Menus\EvolutionDronesLoadList.cs" />
+    <Compile Include="Assets\Src\Menus\GenericEvolutionLoadList.cs" />
+    <Compile Include="Assets\Src\Menus\MenuItem.cs" />
     <Compile Include="Assets\Src\ObjectManagement\ShrapnelExploder.cs" />
     <Compile Include="Assets\Src\ObjectManagement\TargetRepository.cs" />
     <Compile Include="Assets\Src\ObjectManagement\TransformExtensions.cs" />
