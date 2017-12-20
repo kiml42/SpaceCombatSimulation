@@ -31,7 +31,8 @@ TODO:
         Randomise target choosing mechanism periods so they don't come up at the same time.
         Menus
             Top menu - leads to general settings and various modes
-            Menu per mode, for setup - saves setup in the generation file.
+            Edit config menu for each evolution type as a separate scene
+            keyboard navigation
         Cardboard support
         Test on phone
         Add to Play store?

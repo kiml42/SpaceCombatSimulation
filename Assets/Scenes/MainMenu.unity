@@ -504,6 +504,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Camera: {fileID: 265888507}
+  MainMenuCameraTarget: {fileID: 1516181524}
   CameraTarget: {fileID: 1516181524}
   CameraMoveSpeed: 20
   CameraRotateSpeed: 30
