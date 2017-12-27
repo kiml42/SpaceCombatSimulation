@@ -44,22 +44,26 @@ namespace Assets.Src.Database
                 try
                 {
                     reader = OpenReaderWithCommand(sql_con, CreateReadConfigQuery(CONFIG_TABLE, id), out dbcmd);
-                    
-                    reader.Read();
-                    
-                    //Debug.Log("EvolutionConfig1v1.id ordinal: " + reader.GetOrdinal("id"));
-                    config.DatabaseId = reader.GetInt32(reader.GetOrdinal("id"));
 
-                    //Debug.Log("name ordinal: " + reader.GetOrdinal("name"));
-                    config.RunName = reader.GetString(reader.GetOrdinal("name")); //1
-                    config.GenerationNumber = reader.GetInt32(reader.GetOrdinal("currentGeneration"));
-                    config.MinMatchesPerIndividual = reader.GetInt32(reader.GetOrdinal("minMatchesPerIndividual"));
-                    config.WinnersFromEachGeneration = reader.GetInt32(reader.GetOrdinal("winnersCount"));
-                    config.SuddenDeathDamage = reader.GetFloat(reader.GetOrdinal("suddenDeathDamage"));
-                    config.SuddenDeathReloadTime = reader.GetFloat(reader.GetOrdinal("suddenDeathReloadTime"));
+                    if (reader.Read())
+                    {
+                        //Debug.Log("EvolutionConfig1v1.id ordinal: " + reader.GetOrdinal("id"));
+                        config.DatabaseId = reader.GetInt32(reader.GetOrdinal("id"));
 
-                    config.MatchConfig = ReadMatchConfig(reader, 7);//TODO check index
-                    config.MutationConfig = ReadMutationConfig(reader, 8);//TODO check index
+                        //Debug.Log("name ordinal: " + reader.GetOrdinal("name"));
+                        config.RunName = reader.GetString(reader.GetOrdinal("name")); //1
+                        config.GenerationNumber = reader.GetInt32(reader.GetOrdinal("currentGeneration"));
+                        config.MinMatchesPerIndividual = reader.GetInt32(reader.GetOrdinal("minMatchesPerIndividual"));
+                        config.WinnersFromEachGeneration = reader.GetInt32(reader.GetOrdinal("winnersCount"));
+                        config.SuddenDeathDamage = reader.GetFloat(reader.GetOrdinal("suddenDeathDamage"));
+                        config.SuddenDeathReloadTime = reader.GetFloat(reader.GetOrdinal("suddenDeathReloadTime"));
+
+                        config.MatchConfig = ReadMatchConfig(reader, 7);//TODO check index
+                        config.MutationConfig = ReadMutationConfig(reader, 8);//TODO check index
+                    } else
+                    {
+                        throw new Exception("Config not founr for ID " + id);
+                    }
                 }
                 catch (Exception e)
                 {
