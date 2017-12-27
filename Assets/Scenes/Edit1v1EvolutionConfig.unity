@@ -518,14 +518,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7861a1319d58a1b43960a19bd37ab7cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  IdToLoad: 0
   MutationConfig: {fileID: 1626788319}
   MatchConfig: {fileID: 1135211525}
-  RunName: {fileID: 0}
-  MinMatchesPerIndividual: {fileID: 0}
-  WinnersFromEachGeneration: {fileID: 0}
-  GenerationNumber: {fileID: 0}
-  SuddenDeathDamage: {fileID: 0}
-  SuddenDeathReloadTime: {fileID: 0}
+  RunName: {fileID: 1302024387}
+  MinMatchesPerIndividual: {fileID: 1868893387}
+  WinnersFromEachGeneration: {fileID: 1007349088}
+  GenerationNumber: {fileID: 1995060696}
+  SuddenDeathDamage: {fileID: 386536076}
+  SuddenDeathReloadTime: {fileID: 1368661750}
 --- !u!1 &127326279
 GameObject:
   m_ObjectHideFlags: 0

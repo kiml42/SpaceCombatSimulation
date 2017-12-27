@@ -23,4 +23,14 @@ public class EditMatchConfig : MonoBehaviour {
 	void Update () {
 		
 	}
+    
+    public void LoadConfig(MatchConfig config)
+    {
+        MatchTimeout.text = config.MatchTimeout.ToString();
+        WinnerPollPeriod.text = config.WinnerPollPeriod.ToString();
+        InitialRange.text = config.InitialRange.ToString();
+        InitialSpeed.text = config.InitialSpeed.ToString();
+        RandomInitialSpeed.text = config.RandomInitialSpeed.ToString();
+        CompetitorsPerTeam.text = config.CompetitorsPerTeam.ToString();
+    }
 }
