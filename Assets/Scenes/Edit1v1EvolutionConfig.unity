@@ -3989,12 +3989,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ccf82858a00a6444db097e0cb8e44b89, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  MatchTimeout: {fileID: 0}
-  WinnerPollPeriod: {fileID: 0}
-  InitialRange: {fileID: 0}
-  InitialSpeed: {fileID: 0}
-  RandomInitialSpeed: {fileID: 0}
-  CompetitorsPerTeam: {fileID: 0}
+  MatchTimeout: {fileID: 127326281}
+  WinnerPollPeriod: {fileID: 1932071504}
+  InitialRange: {fileID: 944036048}
+  InitialSpeed: {fileID: 1831339108}
+  RandomInitialSpeed: {fileID: 2016100014}
+  CompetitorsPerTeam: {fileID: 1233636366}
 --- !u!1 &1150365761
 GameObject:
   m_ObjectHideFlags: 0
@@ -6006,13 +6006,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6c6becdd2f9daa45829022f590555ce, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Mutations: {fileID: 0}
-  AllowedCharacters: {fileID: 0}
-  MaxMutationLength: {fileID: 0}
-  GenomeLength: {fileID: 0}
-  GenerationSize: {fileID: 0}
-  UseCompletelyRandomDefaultGenome: {fileID: 0}
-  DefaultGenome: {fileID: 0}
+  Mutations: {fileID: 1767273787}
+  AllowedCharacters: {fileID: 444851180}
+  MaxMutationLength: {fileID: 939595567}
+  GenomeLength: {fileID: 176069065}
+  GenerationSize: {fileID: 313112843}
+  UseCompletelyRandomDefaultGenome: {fileID: 1238462107}
+  DefaultGenome: {fileID: 1465951395}
 --- !u!224 &1626788320
 RectTransform:
   m_ObjectHideFlags: 0

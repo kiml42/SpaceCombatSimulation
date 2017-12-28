@@ -28,9 +28,9 @@ public class Edit1v1Config : MonoBehaviour {
 	}
 	
 	// Update is called once per frame
-	void Update () {
-        Debug.Log(RunName.text);
-	}
+	//void Update () {
+ //       Debug.Log(RunName.text);
+	//}
 
     private void LoadConfig()
     {
