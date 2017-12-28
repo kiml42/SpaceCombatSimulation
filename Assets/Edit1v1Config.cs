@@ -4,6 +4,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using Assets.Src.Evolution;
 using Assets.Src.Database;
+using System;
+using UnityEngine.SceneManagement;
 
 public class Edit1v1Config : MonoBehaviour {
     public int IdToLoad;
@@ -18,6 +20,12 @@ public class Edit1v1Config : MonoBehaviour {
     public InputField SuddenDeathDamage;
     public InputField SuddenDeathReloadTime;
 
+    Button RunButton;
+    Button CancelButton;
+    
+    public string EvolutionSceneToLoad = "MainMenu";
+    public string MainMenuSceneToLoad = "1v1Evolution";
+
     private Evolution1v1DatabaseHandler _handler;
 
     // Use this for initialization
@@ -25,12 +33,43 @@ public class Edit1v1Config : MonoBehaviour {
         _handler = new Evolution1v1DatabaseHandler();
 
         LoadConfig();
-	}
-	
-	// Update is called once per frame
-	//void Update () {
- //       Debug.Log(RunName.text);
-	//}
+        
+        RunButton.onClick.AddListener(delegate () { SaveAndRun(); });
+        RunButton.onClick.AddListener(delegate () { ReturnToMainMenu(); });
+    }
+
+    private void ReturnToMainMenu()
+    {
+        if (!string.IsNullOrEmpty(MainMenuSceneToLoad))
+        {
+            SceneManager.LoadScene(MainMenuSceneToLoad);
+        }
+    }
+
+    private void SaveAndRun()
+    {
+        var config = new Evolution1v1Config();
+
+        config.MatchConfig = MatchConfig.ReadFromControls();
+        config.MutationConfig = MutationConfig.ReadFromControls();
+
+        config.RunName = RunName.text;
+        config.MinMatchesPerIndividual = int.Parse(MinMatchesPerIndividual.text);
+        config.WinnersFromEachGeneration = int.Parse(WinnersFromEachGeneration.text);
+        config.GenerationNumber = int.Parse(GenerationNumber.text);
+        config.SuddenDeathDamage = float.Parse(SuddenDeathDamage.text);
+        config.SuddenDeathReloadTime = float.Parse(SuddenDeathReloadTime.text);
+
+        //if (!string.IsNullOrEmpty(EvolutionSceneToLoad))
+        //{
+        //    SceneManager.LoadScene(EvolutionSceneToLoad);
+        //}
+    }
+
+    // Update is called once per frame
+    //void Update () {
+    //       Debug.Log(RunName.text);
+    //}
 
     private void LoadConfig()
     {

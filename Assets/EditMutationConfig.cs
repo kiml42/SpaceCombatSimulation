@@ -5,7 +5,6 @@ using UnityEngine.UI;
 using Assets.Src.Evolution;
 
 public class EditMutationConfig : MonoBehaviour {
-    public MutationConfig Config = new MutationConfig();
 
     public InputField Mutations;
 
@@ -21,16 +20,6 @@ public class EditMutationConfig : MonoBehaviour {
 
     public InputField DefaultGenome;
 
-    // Use this for initialization
-    void Start () {
-		
-	}
-	
-	// Update is called once per frame
-	void Update () {
-		
-	}
-
     public void LoadConfig(MutationConfig config)
     {
         Mutations.text = config.Mutations.ToString();
@@ -40,5 +29,19 @@ public class EditMutationConfig : MonoBehaviour {
         GenerationSize.text = config.GenerationSize.ToString();
         UseCompletelyRandomDefaultGenome.text = config.UseCompletelyRandomDefaultGenome.ToString();
         DefaultGenome.text = config.DefaultGenome.ToString();
+    }
+
+    public MutationConfig ReadFromControls()
+    {
+        var config = new MutationConfig();
+        config.Mutations = Mutations.text;
+        config.AllowedCharacters = AllowedCharacters.text;
+        config.MaxMutationLength = MaxMutationLength.text;
+        config.GenomeLength = GenomeLength.text;
+        config.GenerationSize = GenerationSize.text;
+        config.UseCompletelyRandomDefaultGenome = UseCompletelyRandomDefaultGenome.text;
+        config.DefaultGenome = DefaultGenome.text;
+
+        return config;
     }
 }

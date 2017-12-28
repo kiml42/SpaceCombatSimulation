@@ -5,7 +5,6 @@ using UnityEngine.UI;
 using Assets.Src.Evolution;
 
 public class EditMatchConfig : MonoBehaviour {
-    public MatchConfig Config = new MatchConfig();
     
     public InputField MatchTimeout;
     public InputField WinnerPollPeriod;
@@ -13,17 +12,7 @@ public class EditMatchConfig : MonoBehaviour {
     public InputField InitialSpeed;
     public InputField RandomInitialSpeed;
     public InputField CompetitorsPerTeam;
-
-    // Use this for initialization
-    void Start () {
-		
-	}
-	
-	// Update is called once per frame
-	void Update () {
-		
-	}
-    
+  
     public void LoadConfig(MatchConfig config)
     {
         MatchTimeout.text = config.MatchTimeout.ToString();
@@ -32,5 +21,19 @@ public class EditMatchConfig : MonoBehaviour {
         InitialSpeed.text = config.InitialSpeed.ToString();
         RandomInitialSpeed.text = config.RandomInitialSpeed.ToString();
         CompetitorsPerTeam.text = config.CompetitorsPerTeam.ToString();
+    }
+
+    public MutationConfig ReadFromControls()
+    {
+        var config = new MatchConfig();
+
+        config.MatchTimeout = MatchTimeout.text;
+        config.WinnerPollPeriod = WinnerPollPeriod.text;
+        config.InitialRange = InitialRange.text;
+        config.InitialSpeed = InitialSpeed.text;
+        config.RandomInitialSpeed = RandomInitialSpeed.text;
+        config.CompetitorsPerTeam = CompetitorsPerTeam.text;
+
+        return config;
     }
 }
