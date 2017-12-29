@@ -50,11 +50,11 @@ namespace Assets.Src.Database
                         //Debug.Log("EvolutionConfig1v1.id ordinal: " + reader.GetOrdinal("id"));
                         config.DatabaseId = reader.GetInt32(reader.GetOrdinal("id"));
 
-                        Debug.Log("suddenDeathReloadTime ordinal: " + reader.GetOrdinal("suddenDeathReloadTime"));
-                        Debug.Log("suddenDeathReloadTime value: " + reader.GetDecimal(reader.GetOrdinal("suddenDeathReloadTime")));
+                        //Debug.Log("suddenDeathReloadTime ordinal: " + reader.GetOrdinal("suddenDeathReloadTime"));
+                        //Debug.Log("suddenDeathReloadTime value: " + reader.GetDecimal(reader.GetOrdinal("suddenDeathReloadTime")));
 
-                        Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("matchConfigId"));
-                        Debug.Log("matchConfigId value: " + reader.GetDecimal(reader.GetOrdinal("matchConfigId")));
+                        //Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("matchConfigId"));
+                        //Debug.Log("matchConfigId value: " + reader.GetDecimal(reader.GetOrdinal("matchConfigId")));
 
                         config.RunName = reader.GetString(reader.GetOrdinal("name")); //1
                         config.GenerationNumber = reader.GetInt32(reader.GetOrdinal("currentGeneration"));
@@ -81,6 +81,57 @@ namespace Assets.Src.Database
                 }
                 return config;
             }
+        }
+
+        public int UpdateExistingConfig(Evolution1v1Config config)
+        {
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                IDbCommand dbcmd = null;
+                SqliteTransaction transaction = null;
+                try
+                {
+                    sql_con.Open(); //Open connection to the database.
+
+                    transaction = sql_con.BeginTransaction();
+
+                    SqliteCommand insertSQL = new SqliteCommand(sql_con)
+                    {
+                        Transaction = transaction
+                    };
+
+                    UpdateExistingMatchConfig(config.MatchConfig, insertSQL);
+                    UpdateExistingMutationConfig(config.MutationConfig, insertSQL);
+                    
+                    insertSQL.CommandText = "UPDATE " + CONFIG_TABLE +
+                        " SET name = ?, currentGeneration = ?, minMatchesPerIndividual = ?, winnersCount = ?, suddenDeathDamage = ?, suddenDeathReloadTime = ?" +
+                        " WHERE id = ?";
+
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.RunName));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationNumber));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinMatchesPerIndividual));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.WinnersFromEachGeneration));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathDamage));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathReloadTime));
+
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
+
+                    insertSQL.ExecuteNonQuery();
+
+                    transaction.Commit();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
+                    throw e;
+                }
+                finally
+                {
+                    Disconnect(null, transaction, dbcmd, sql_con);
+                }
+            }
+
+            return config.DatabaseId;
         }
 
         public int SaveConfig(Evolution1v1Config config)
@@ -116,10 +167,7 @@ namespace Assets.Src.Database
 
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MatchConfig.Id));
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MutationConfig.Id));
-
-                    //todo check if this is nessersary/how to use transactions correctly.
-                    insertSQL.Transaction = transaction;
-
+                    
                     insertSQL.ExecuteNonQuery();
                     
                     //From http://www.sliqtools.co.uk/blog/technical/sqlite-how-to-get-the-id-when-inserting-a-row-into-a-table/
@@ -278,8 +326,8 @@ namespace Assets.Src.Database
         
         private void UpdateIndividual(Individual1v1 individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
         {
-            SqliteCommand insertSQL = new SqliteCommand("UPDATE  Individual1v1 " +
-                            "SET score = ?, wins = ?, draws = ?, loses = ?, previousCombatants = ?" +
+            SqliteCommand insertSQL = new SqliteCommand("UPDATE  Individual1v1" +
+                            " SET score = ?, wins = ?, draws = ?, loses = ?, previousCombatants = ?" +
                             " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction);
 
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Score));

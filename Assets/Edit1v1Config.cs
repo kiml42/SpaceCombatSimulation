@@ -9,9 +9,9 @@ using UnityEngine.SceneManagement;
 using Assets.Src.Menus;
 
 public class Edit1v1Config : MonoBehaviour {
-
     [Tooltip("Set to -ve for new")]
     public int IdToLoad = -1;
+    private bool _hasLoadedExisting;
 
     public EditMutationConfig MutationConfig;
     public EditMatchConfig MatchConfig;
@@ -64,25 +64,27 @@ public class Edit1v1Config : MonoBehaviour {
             SuddenDeathReloadTime = float.Parse(SuddenDeathReloadTime.text)
         };
 
-        var id = _handler.SaveConfig(config);
+        if (_hasLoadedExisting)
+        {
+            _handler.UpdateExistingConfig(config);
+        } else
+        {
+            IdToLoad = _handler.SaveConfig(config);
+        }
 
-        ArgumentStore.IdToLoad = id;
+        ArgumentStore.IdToLoad = IdToLoad;
 
         if (!string.IsNullOrEmpty(EvolutionSceneToLoad))
         {
             SceneManager.LoadScene(EvolutionSceneToLoad);
         }
     }
-
-    // Update is called once per frame
-    //void Update () {
-    //       Debug.Log(RunName.text);
-    //}
-
+    
     private void LoadConfig()
     {
         IdToLoad = ArgumentStore.IdToLoad ?? IdToLoad;
-        Evolution1v1Config loaded = IdToLoad >= 0 ? _handler.ReadConfig(IdToLoad) : new Evolution1v1Config();
+        _hasLoadedExisting = IdToLoad >= 0;
+        var loaded = _hasLoadedExisting ? _handler.ReadConfig(IdToLoad) : new Evolution1v1Config();
 
         Debug.Log(loaded.RunName);
 

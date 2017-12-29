@@ -207,8 +207,8 @@ namespace Assets.Src.Database
         
         private void UpdateIndividual(IndividualTargetShooting individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
         {
-            SqliteCommand insertSQL = new SqliteCommand("UPDATE  DroneShootingIndividual " +
-                            "SET score = ?, matchesPlayed = ?, matchesSurvived = ?, completeKills = ?, totalKills = ?, matchScores = ?" +
+            SqliteCommand insertSQL = new SqliteCommand("UPDATE  DroneShootingIndividual" +
+                            " SET score = ?, matchesPlayed = ?, matchesSurvived = ?, completeKills = ?, totalKills = ?, matchScores = ?" +
                             " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction);
 
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Score));

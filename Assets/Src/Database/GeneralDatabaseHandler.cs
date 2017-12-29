@@ -111,8 +111,8 @@ namespace Assets.Src.Database
 
         protected MatchConfig ReadMatchConfig(IDataReader reader, int idIndex)
         {
-            Debug.Log("randomiseRotation ordinal: " + reader.GetOrdinal("randomiseRotation"));  //-1
-            Debug.Log("randomiseRotation value: " + reader.GetBoolean(reader.GetOrdinal("randomiseRotation")));  //-1
+            //Debug.Log("randomiseRotation ordinal: " + reader.GetOrdinal("randomiseRotation"));  //-1
+            //Debug.Log("randomiseRotation value: " + reader.GetBoolean(reader.GetOrdinal("randomiseRotation")));  //-1
 
             var config = new MatchConfig()
             {
@@ -214,6 +214,51 @@ namespace Assets.Src.Database
             config.Id = LastRowID;                
 
             return config.Id;
+        }
+
+        protected void UpdateExistingMutationConfig(MutationConfig config, SqliteCommand insertSQL)
+        {
+            insertSQL.CommandText = "UPDATE " + MUTATION_CONFIG_TABLE +
+                        " SET mutations = ?, allowedCharacters = ?, maxMutationLength = ?, genomeLength = ?, generationSize = ?, randomDefault = ?, defaultGenome = ?" +
+                        " WHERE id = ?";
+
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Mutations));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.AllowedCharacters));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxMutationLength));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenomeLength));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationSize));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.UseCompletelyRandomDefaultGenome));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DefaultGenome));
+
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Id));
+
+            insertSQL.ExecuteNonQuery();
+
+            return;
+        }
+
+        protected void UpdateExistingMatchConfig(MatchConfig config, SqliteCommand insertSQL)
+        {
+            insertSQL.CommandText = "UPDATE " + MATCH_CONFIG_TABLE +
+                        " SET matchTimeout = ?, winnerPollPeriod = ?, initialRange = ?, initialSpeed = ?, randomInitialSpeed = ?, competitorsPerTeam = ?," +
+                        " stepForwardProportion = ?, locationRandomisationRadiai = ?, randomiseRotation = ?" +
+                        " WHERE id = ?";
+
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MatchTimeout));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.WinnerPollPeriod));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialRange));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialSpeed));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.RandomInitialSpeed));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.CompetitorsPerTeam));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.StepForwardProportion));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.LocationRandomisationRadiaiString));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.RandomiseRotation));
+
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Id));
+
+            insertSQL.ExecuteNonQuery();
+
+            return;
         }
 
         protected int SaveMutationConfig(MutationConfig config)

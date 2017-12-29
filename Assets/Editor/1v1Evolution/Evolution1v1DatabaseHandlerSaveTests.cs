@@ -77,5 +77,24 @@ public class Evolution1v1DatabaseHandlerSaveTests
         Assert.AreEqual(7, mut.Id);
         Assert.AreEqual(config.MatchConfig.LocationRandomisationRadiai, match.LocationRandomisationRadiai);
     }
+
+    [Test]
+    public void UpdateTest()
+    {
+        var config = _handler.ReadConfig(0);
+
+        config.RunName = "Altered";
+        config.MatchConfig.InitialRange++;
+        config.MutationConfig.GenomeLength++;
+
+        _handler.UpdateExistingConfig(config);
+
+        var updated = _handler.ReadConfig(0);
+
+        Assert.AreEqual(config.RunName, updated.RunName);
+        Assert.AreEqual("Altered", updated.RunName);
+        Assert.AreEqual(config.MatchConfig.InitialRange, updated.MatchConfig.InitialRange);
+        Assert.AreEqual(config.MutationConfig.GenomeLength, updated.MutationConfig.GenomeLength);
+    }
     #endregion
 }
