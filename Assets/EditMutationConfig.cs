@@ -34,12 +34,12 @@ public class EditMutationConfig : MonoBehaviour {
     public MutationConfig ReadFromControls()
     {
         var config = new MutationConfig();
-        config.Mutations = Mutations.text;
+        config.Mutations = int.Parse(Mutations.text);
         config.AllowedCharacters = AllowedCharacters.text;
-        config.MaxMutationLength = MaxMutationLength.text;
-        config.GenomeLength = GenomeLength.text;
-        config.GenerationSize = GenerationSize.text;
-        config.UseCompletelyRandomDefaultGenome = UseCompletelyRandomDefaultGenome.text;
+        config.MaxMutationLength = int.Parse(MaxMutationLength.text);
+        config.GenomeLength = int.Parse(GenomeLength.text);
+        config.GenerationSize = int.Parse(GenerationSize.text);
+        config.UseCompletelyRandomDefaultGenome = bool.Parse(UseCompletelyRandomDefaultGenome.text);
         config.DefaultGenome = DefaultGenome.text;
 
         return config;

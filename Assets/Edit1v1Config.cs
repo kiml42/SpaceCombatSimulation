@@ -20,8 +20,8 @@ public class Edit1v1Config : MonoBehaviour {
     public InputField SuddenDeathDamage;
     public InputField SuddenDeathReloadTime;
 
-    Button RunButton;
-    Button CancelButton;
+    public Button RunButton;
+    public Button CancelButton;
     
     public string EvolutionSceneToLoad = "MainMenu";
     public string MainMenuSceneToLoad = "1v1Evolution";
@@ -35,7 +35,7 @@ public class Edit1v1Config : MonoBehaviour {
         LoadConfig();
         
         RunButton.onClick.AddListener(delegate () { SaveAndRun(); });
-        RunButton.onClick.AddListener(delegate () { ReturnToMainMenu(); });
+        CancelButton.onClick.AddListener(delegate () { ReturnToMainMenu(); });
     }
 
     private void ReturnToMainMenu()

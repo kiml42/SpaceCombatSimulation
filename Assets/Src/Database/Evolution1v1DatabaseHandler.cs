@@ -78,6 +78,69 @@ namespace Assets.Src.Database
             }
         }
 
+        public int SaveConfig(Evolution1v1Config config)
+        {
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                IDbCommand dbcmd = null;
+                SqliteTransaction transaction = null;
+                try
+                {
+                    sql_con.Open(); //Open connection to the database.
+
+                    transaction = sql_con.BeginTransaction();
+                                        
+                    SqliteCommand insertSQL = new SqliteCommand("INSERT INTO " + CONFIG_TABLE +
+                        "(name, currentGeneration, minMatchesPerIndividual, winnersCount, suddenDeathDamage, suddenDeathReloadTime, matchConfigId, mutationConfigId)" +
+                        " VALUES (?,?,?,?,?,?,?,?)", sql_con, transaction);
+                    
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.RunName));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationNumber));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinMatchesPerIndividual));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.WinnersFromEachGeneration));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathDamage));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathReloadTime));
+
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MatchConfig.Id));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MutationConfig.Id));
+
+                    //todo check if this is nessersary/how to use transactions correctly.
+                    insertSQL.Transaction = transaction;
+
+                    insertSQL.ExecuteNonQuery();
+
+
+
+                    //From http://www.sliqtools.co.uk/blog/technical/sqlite-how-to-get-the-id-when-inserting-a-row-into-a-table/
+                    insertSQL.CommandText = "select last_insert_rowid()";
+
+                    // The row ID is a 64-bit value - cast the Command result to an Int64.
+                    //
+                    Int64 LastRowID64 = (Int32)insertSQL.ExecuteScalar();
+
+                    // Then grab the bottom 32-bits as the unique ID of the row.
+                    //
+                    int LastRowID = (int)LastRowID64;
+                    //end of copied code.
+
+
+
+                    transaction.Commit();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
+                    throw e;
+                }
+                finally
+                {
+                    Disconnect(null, transaction, dbcmd, sql_con);
+                }
+            }
+
+            return config.DatabaseId;
+        }
+
         public Generation1v1 ReadGeneration(int runId, int generationNumber)
         {
             //Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);

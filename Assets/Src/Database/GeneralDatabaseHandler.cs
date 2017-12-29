@@ -24,6 +24,8 @@ namespace Assets.Src.Database
             }
         }
         protected string _databasePath; //Path to database.
+        protected const string MUTATION_CONFIG_TABLE = "MutationConfig";
+        protected const string MATCH_CONFIG_TABLE = "MatchConfig";
 
         public GeneralDatabaseHandler(string databasePath = DEFAULT_DB_PATH, string dbCreationCommandPath = DEFAULT_COMMAND_PATH)
         {
@@ -144,6 +146,130 @@ namespace Assets.Src.Database
                 DefaultGenome = reader.GetString(reader.GetOrdinal("defaultGenome"))
             };
             return config;
+        }
+
+        public int SaveMutationConfig(MutationConfig config)
+        {
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                IDbCommand dbcmd = null;
+                SqliteTransaction transaction = null;
+                try
+                {
+                    sql_con.Open(); //Open connection to the database.
+
+                    transaction = sql_con.BeginTransaction();
+
+                    SqliteCommand insertSQL = new SqliteCommand("INSERT INTO " + MUTATION_CONFIG_TABLE +
+                        "(mutations, allowedCharacters, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome)" +
+                        " VALUES (?,?,?,?,?,?,?)", sql_con, transaction);
+
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Mutations));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.AllowedCharacters));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxMutationLength));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenomeLength));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationSize));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.UseCompletelyRandomDefaultGenome));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DefaultGenome));
+
+                    //todo check if this is nessersary/how to use transactions correctly.
+                    insertSQL.Transaction = transaction;
+
+                    insertSQL.ExecuteNonQuery();
+                    
+
+
+                    //From http://www.sliqtools.co.uk/blog/technical/sqlite-how-to-get-the-id-when-inserting-a-row-into-a-table/
+                    insertSQL.CommandText = "select last_insert_rowid()";
+
+                    // The row ID is a 64-bit value - cast the Command result to an Int64.
+                    //
+                    Int64 LastRowID64 = (Int32)insertSQL.ExecuteScalar();
+
+                    // Then grab the bottom 32-bits as the unique ID of the row.
+                    //
+                    int LastRowID = (int)LastRowID64;
+                    //end of copied code.
+
+
+
+                    transaction.Commit();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
+                    throw e;
+                }
+                finally
+                {
+                    Disconnect(null, transaction, dbcmd, sql_con);
+                }
+            }
+
+            return config.Id;
+        }
+
+        public int SaveMatchConfig(MatchConfig config)
+        {
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                IDbCommand dbcmd = null;
+                SqliteTransaction transaction = null;
+                try
+                {
+                    sql_con.Open(); //Open connection to the database.
+
+                    transaction = sql_con.BeginTransaction();
+
+                    SqliteCommand insertSQL = new SqliteCommand("INSERT INTO " + MUTATION_CONFIG_TABLE +
+                        "(matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation)" +
+                        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", sql_con, transaction);
+
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MatchTimeout));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.WinnerPollPeriod));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialRange));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialSpeed));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.RandomInitialSpeed));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.CompetitorsPerTeam));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.StepForwardProportion));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.LocationRandomisationRadiaiString));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.RandomiseRotation));
+
+                    //todo check if this is nessersary/how to use transactions correctly.
+                    insertSQL.Transaction = transaction;
+
+                    insertSQL.ExecuteNonQuery();
+
+
+
+                    //From http://www.sliqtools.co.uk/blog/technical/sqlite-how-to-get-the-id-when-inserting-a-row-into-a-table/
+                    insertSQL.CommandText = "select last_insert_rowid()";
+
+                    // The row ID is a 64-bit value - cast the Command result to an Int64.
+                    //
+                    Int64 LastRowID64 = (Int32)insertSQL.ExecuteScalar();
+
+                    // Then grab the bottom 32-bits as the unique ID of the row.
+                    //
+                    int LastRowID = (int)LastRowID64;
+                    //end of copied code.
+
+
+
+                    transaction.Commit();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
+                    throw e;
+                }
+                finally
+                {
+                    Disconnect(null, transaction, dbcmd, sql_con);
+                }
+            }
+
+            return config.Id;
         }
 
         protected void Disconnect(IDataReader reader, SqliteTransaction transaction , IDbCommand dbcmd, SqliteConnection sql_con)

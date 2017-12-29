@@ -23,16 +23,16 @@ public class EditMatchConfig : MonoBehaviour {
         CompetitorsPerTeam.text = config.CompetitorsPerTeam.ToString();
     }
 
-    public MutationConfig ReadFromControls()
+    public MatchConfig ReadFromControls()
     {
         var config = new MatchConfig();
 
-        config.MatchTimeout = MatchTimeout.text;
-        config.WinnerPollPeriod = WinnerPollPeriod.text;
-        config.InitialRange = InitialRange.text;
-        config.InitialSpeed = InitialSpeed.text;
-        config.RandomInitialSpeed = RandomInitialSpeed.text;
-        config.CompetitorsPerTeam = CompetitorsPerTeam.text;
+        config.MatchTimeout = float.Parse(MatchTimeout.text);
+        config.WinnerPollPeriod = float.Parse(WinnerPollPeriod.text);
+        config.InitialRange = float.Parse(InitialRange.text);
+        config.InitialSpeed = float.Parse(InitialSpeed.text);
+        config.RandomInitialSpeed = float.Parse(RandomInitialSpeed.text);
+        config.CompetitorsPerTeam = int.Parse(CompetitorsPerTeam.text);
 
         return config;
     }

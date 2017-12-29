@@ -6,6 +6,7 @@ using System.Collections;
 using Assets.src.Evolution;
 using Assets.Src.Database;
 using System;
+using Assets.Src.Evolution;
 
 public class Evolution1v1DatabaseHandlerSaveTests
 {
@@ -49,6 +50,16 @@ public class Evolution1v1DatabaseHandlerSaveTests
         
         var config3 = _handler.ReadConfig(1);
         Assert.AreEqual(7, config3.GenerationNumber);  //has been read back out
+    }
+
+    [Test]
+    public void SaveConfig_savesWholeThingAndReturnsId()
+    {
+        var config = new Evolution1v1Config();
+
+        int result = _handler.SaveConfig(config);
+
+        Assert.AreEqual(2, result);
     }
     #endregion
 }
