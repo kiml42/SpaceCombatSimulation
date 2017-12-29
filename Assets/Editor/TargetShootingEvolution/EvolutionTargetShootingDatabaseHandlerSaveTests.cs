@@ -33,8 +33,8 @@ public class EvolutionTargetShootingDatabaseHandlerSaveTests
     [Test]
     public void SetCurrentGeneration_UpdatesCurrentGeneration()
     {
-
         var config =  _handler.ReadConfig(1);
+
         Assert.AreEqual(1, config.DatabaseId);
 
         _handler.SetCurrentGenerationNumber(1, 5);

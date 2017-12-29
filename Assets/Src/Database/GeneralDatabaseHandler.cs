@@ -111,8 +111,8 @@ namespace Assets.Src.Database
 
         protected MatchConfig ReadMatchConfig(IDataReader reader, int idIndex)
         {
-            Debug.Log("randomiseRotation ordinal: " + reader.GetOrdinal("randomiseRotation"));  //-1
-            Debug.Log("randomiseRotation value: " + reader.GetBoolean(reader.GetOrdinal("randomiseRotation")));  //-1
+            //Debug.Log("randomiseRotation ordinal: " + reader.GetOrdinal("randomiseRotation"));  //-1
+            //Debug.Log("randomiseRotation value: " + reader.GetBoolean(reader.GetOrdinal("randomiseRotation")));  //-1
 
             var config = new MatchConfig()
             {
@@ -240,9 +240,7 @@ namespace Assets.Src.Database
                     insertSQL.Transaction = transaction;
 
                     insertSQL.ExecuteNonQuery();
-
-
-
+                    
                     //From http://www.sliqtools.co.uk/blog/technical/sqlite-how-to-get-the-id-when-inserting-a-row-into-a-table/
                     insertSQL.CommandText = "select last_insert_rowid()";
 

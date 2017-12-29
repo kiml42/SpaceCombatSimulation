@@ -53,13 +53,29 @@ public class Evolution1v1DatabaseHandlerSaveTests
     public void SaveConfig_savesWholeThingAndReturnsId()
     {
         var config = new Evolution1v1Config();
+        config.MatchConfig.LocationRandomisationRadiai = new float[]
+        {
+            100,50
+        };
+
         config.DatabaseId = -13; //set id to something really obvious to show if it hasn't been set correctly.
 
         int result = _handler.SaveConfig(config);
 
-        Assert.AreEqual(2, result);
+        var expectedId = 2;
 
-        //TODO read it back out, and check all three Ids.
+        Assert.AreEqual(expectedId, result);
+        
+        var retrieved = _handler.ReadConfig(expectedId);
+
+        Assert.AreEqual(expectedId, retrieved.DatabaseId);
+
+        var match = retrieved.MatchConfig;
+        var mut = retrieved.MutationConfig;
+
+        Assert.AreEqual(6, match.Id);
+        Assert.AreEqual(7, mut.Id);
+        Assert.AreEqual(config.MatchConfig.LocationRandomisationRadiai, match.LocationRandomisationRadiai);
     }
     #endregion
 }
