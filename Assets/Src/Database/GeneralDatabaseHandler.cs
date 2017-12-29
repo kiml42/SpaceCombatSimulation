@@ -184,7 +184,7 @@ namespace Assets.Src.Database
 
                     // The row ID is a 64-bit value - cast the Command result to an Int64.
                     //
-                    Int64 LastRowID64 = (Int32)insertSQL.ExecuteScalar();
+                    var LastRowID64 = (Int64)insertSQL.ExecuteScalar();
 
                     // Then grab the bottom 32-bits as the unique ID of the row.
                     //
@@ -221,7 +221,7 @@ namespace Assets.Src.Database
 
                     transaction = sql_con.BeginTransaction();
 
-                    SqliteCommand insertSQL = new SqliteCommand("INSERT INTO " + MUTATION_CONFIG_TABLE +
+                    SqliteCommand insertSQL = new SqliteCommand("INSERT INTO " + MATCH_CONFIG_TABLE +
                         "(matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation)" +
                         " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", sql_con, transaction);
 
@@ -247,7 +247,7 @@ namespace Assets.Src.Database
 
                     // The row ID is a 64-bit value - cast the Command result to an Int64.
                     //
-                    Int64 LastRowID64 = (Int32)insertSQL.ExecuteScalar();
+                    var LastRowID64 = (Int64)insertSQL.ExecuteScalar();
 
                     // Then grab the bottom 32-bits as the unique ID of the row.
                     //

@@ -10,27 +10,24 @@ using Assets.Src.Evolution;
 
 public class Evolution1v1DatabaseHandlerSaveTests
 {
-    private string _dbPath = "/../tmp/TestDB/SpaceCombatSimulationDB3.s3db";
+    private string _dbPathStart = "/../tmp/TestDB/";
+    private string _dbPathExtension = ".s3db";
+    private string _dbPath;
     private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
     Evolution1v1DatabaseHandler _handler;
+    DatabaseInitialiser initialiser;
 
-    public Evolution1v1DatabaseHandlerSaveTests()
+    [SetUp]
+    public void Setup()
     {
-        var initialiser = new DatabaseInitialiser
+        _dbPath = _dbPathStart + Guid.NewGuid().ToString() + _dbPathExtension;
+
+        initialiser = new DatabaseInitialiser
         {
             DatabasePath = _dbPath
         };
 
-        try
-        {
-            initialiser.ReCreateDatabase(_createCommandPath);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("Caught exception: " + e.Message + ". when recreating the database, carrying on regardless, the data may not be correct.");
-        }
-
-        _handler = new Evolution1v1DatabaseHandler(_dbPath);
+        _handler = new Evolution1v1DatabaseHandler(_dbPath, _createCommandPath);
     }
 
     #region top level
@@ -56,6 +53,7 @@ public class Evolution1v1DatabaseHandlerSaveTests
     public void SaveConfig_savesWholeThingAndReturnsId()
     {
         var config = new Evolution1v1Config();
+        config.DatabaseId = -13; //set id to something really obvious to show if it hasn't been set correctly.
 
         int result = _handler.SaveConfig(config);
 

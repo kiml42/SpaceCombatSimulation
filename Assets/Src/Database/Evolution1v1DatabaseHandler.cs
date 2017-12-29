@@ -80,6 +80,9 @@ namespace Assets.Src.Database
 
         public int SaveConfig(Evolution1v1Config config)
         {
+            config.MatchConfig.Id = SaveMatchConfig(config.MatchConfig);
+            config.MutationConfig.Id = SaveMutationConfig(config.MutationConfig);
+
             using (var sql_con = new SqliteConnection(_connectionString))
             {
                 IDbCommand dbcmd = null;
@@ -116,7 +119,7 @@ namespace Assets.Src.Database
 
                     // The row ID is a 64-bit value - cast the Command result to an Int64.
                     //
-                    Int64 LastRowID64 = (Int32)insertSQL.ExecuteScalar();
+                    var LastRowID64 = (Int64)insertSQL.ExecuteScalar();
 
                     // Then grab the bottom 32-bits as the unique ID of the row.
                     //
