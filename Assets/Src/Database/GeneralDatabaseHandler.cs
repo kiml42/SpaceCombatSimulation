@@ -111,8 +111,8 @@ namespace Assets.Src.Database
 
         protected MatchConfig ReadMatchConfig(IDataReader reader, int idIndex)
         {
-            //Debug.Log("randomiseRotation ordinal: " + reader.GetOrdinal("randomiseRotation"));  //-1
-            //Debug.Log("randomiseRotation value: " + reader.GetBoolean(reader.GetOrdinal("randomiseRotation")));  //-1
+            Debug.Log("randomiseRotation ordinal: " + reader.GetOrdinal("randomiseRotation"));  //-1
+            Debug.Log("randomiseRotation value: " + reader.GetBoolean(reader.GetOrdinal("randomiseRotation")));  //-1
 
             var config = new MatchConfig()
             {

@@ -520,7 +520,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7861a1319d58a1b43960a19bd37ab7cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  IdToLoad: 0
+  IdToLoad: -1
   MutationConfig: {fileID: 1626788319}
   MatchConfig: {fileID: 1135211525}
   RunName: {fileID: 1302024387}

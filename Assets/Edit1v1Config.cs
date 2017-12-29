@@ -6,9 +6,12 @@ using Assets.Src.Evolution;
 using Assets.Src.Database;
 using System;
 using UnityEngine.SceneManagement;
+using Assets.Src.Menus;
 
 public class Edit1v1Config : MonoBehaviour {
-    public int IdToLoad;
+
+    [Tooltip("Set to -ve for new")]
+    public int IdToLoad = -1;
 
     public EditMutationConfig MutationConfig;
     public EditMatchConfig MatchConfig;
@@ -48,22 +51,27 @@ public class Edit1v1Config : MonoBehaviour {
 
     private void SaveAndRun()
     {
-        var config = new Evolution1v1Config();
+        var config = new Evolution1v1Config
+        {
+            MatchConfig = MatchConfig.ReadFromControls(),
+            MutationConfig = MutationConfig.ReadFromControls(),
 
-        config.MatchConfig = MatchConfig.ReadFromControls();
-        config.MutationConfig = MutationConfig.ReadFromControls();
+            RunName = RunName.text,
+            MinMatchesPerIndividual = int.Parse(MinMatchesPerIndividual.text),
+            WinnersFromEachGeneration = int.Parse(WinnersFromEachGeneration.text),
+            GenerationNumber = int.Parse(GenerationNumber.text),
+            SuddenDeathDamage = float.Parse(SuddenDeathDamage.text),
+            SuddenDeathReloadTime = float.Parse(SuddenDeathReloadTime.text)
+        };
 
-        config.RunName = RunName.text;
-        config.MinMatchesPerIndividual = int.Parse(MinMatchesPerIndividual.text);
-        config.WinnersFromEachGeneration = int.Parse(WinnersFromEachGeneration.text);
-        config.GenerationNumber = int.Parse(GenerationNumber.text);
-        config.SuddenDeathDamage = float.Parse(SuddenDeathDamage.text);
-        config.SuddenDeathReloadTime = float.Parse(SuddenDeathReloadTime.text);
+        var id = _handler.SaveConfig(config);
 
-        //if (!string.IsNullOrEmpty(EvolutionSceneToLoad))
-        //{
-        //    SceneManager.LoadScene(EvolutionSceneToLoad);
-        //}
+        ArgumentStore.IdToLoad = id;
+
+        if (!string.IsNullOrEmpty(EvolutionSceneToLoad))
+        {
+            SceneManager.LoadScene(EvolutionSceneToLoad);
+        }
     }
 
     // Update is called once per frame
@@ -73,7 +81,8 @@ public class Edit1v1Config : MonoBehaviour {
 
     private void LoadConfig()
     {
-        var loaded = _handler.ReadConfig(IdToLoad);
+        IdToLoad = ArgumentStore.IdToLoad ?? IdToLoad;
+        Evolution1v1Config loaded = IdToLoad >= 0 ? _handler.ReadConfig(IdToLoad) : new Evolution1v1Config();
 
         Debug.Log(loaded.RunName);
 
