@@ -148,7 +148,75 @@ namespace Assets.Src.Database
             return config;
         }
 
-        public int SaveMutationConfig(MutationConfig config)
+        protected int SaveMutationConfig(MutationConfig config, SqliteCommand insertSQL)
+        {
+            insertSQL.CommandText = "INSERT INTO " + MUTATION_CONFIG_TABLE +
+                        "(mutations, allowedCharacters, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome)" +
+                        " VALUES (?,?,?,?,?,?,?)";
+
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Mutations));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.AllowedCharacters));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxMutationLength));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenomeLength));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationSize));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.UseCompletelyRandomDefaultGenome));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DefaultGenome));
+            
+            insertSQL.ExecuteNonQuery();
+            
+            //From http://www.sliqtools.co.uk/blog/technical/sqlite-how-to-get-the-id-when-inserting-a-row-into-a-table/
+            insertSQL.CommandText = "select last_insert_rowid()";
+
+            // The row ID is a 64-bit value - cast the Command result to an Int64.
+            //
+            var LastRowID64 = (Int64)insertSQL.ExecuteScalar();
+
+            // Then grab the bottom 32-bits as the unique ID of the row.
+            //
+            int LastRowID = (int)LastRowID64;
+            //end of copied code.
+            
+            config.Id = LastRowID;                
+
+            return config.Id;
+        }
+
+        protected int SaveMatchConfig(MatchConfig config, SqliteCommand insertSQL)
+        {
+            insertSQL.CommandText = "INSERT INTO " + MATCH_CONFIG_TABLE +
+                        "(matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation)" +
+                        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MatchTimeout));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.WinnerPollPeriod));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialRange));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialSpeed));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.RandomInitialSpeed));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.CompetitorsPerTeam));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.StepForwardProportion));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.LocationRandomisationRadiaiString));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.RandomiseRotation));
+            
+            insertSQL.ExecuteNonQuery();
+
+            //From http://www.sliqtools.co.uk/blog/technical/sqlite-how-to-get-the-id-when-inserting-a-row-into-a-table/
+            insertSQL.CommandText = "select last_insert_rowid()";
+
+            // The row ID is a 64-bit value - cast the Command result to an Int64.
+            //
+            var LastRowID64 = (Int64)insertSQL.ExecuteScalar();
+
+            // Then grab the bottom 32-bits as the unique ID of the row.
+            //
+            int LastRowID = (int)LastRowID64;
+            //end of copied code.
+
+            config.Id = LastRowID;                
+
+            return config.Id;
+        }
+
+        protected int SaveMutationConfig(MutationConfig config)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -160,39 +228,10 @@ namespace Assets.Src.Database
 
                     transaction = sql_con.BeginTransaction();
 
-                    SqliteCommand insertSQL = new SqliteCommand("INSERT INTO " + MUTATION_CONFIG_TABLE +
-                        "(mutations, allowedCharacters, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome)" +
-                        " VALUES (?,?,?,?,?,?,?)", sql_con, transaction);
-
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Mutations));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.AllowedCharacters));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxMutationLength));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenomeLength));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationSize));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.UseCompletelyRandomDefaultGenome));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DefaultGenome));
-
-                    //todo check if this is nessersary/how to use transactions correctly.
+                    SqliteCommand insertSQL = new SqliteCommand(sql_con);
                     insertSQL.Transaction = transaction;
 
-                    insertSQL.ExecuteNonQuery();
-                    
-
-
-                    //From http://www.sliqtools.co.uk/blog/technical/sqlite-how-to-get-the-id-when-inserting-a-row-into-a-table/
-                    insertSQL.CommandText = "select last_insert_rowid()";
-
-                    // The row ID is a 64-bit value - cast the Command result to an Int64.
-                    //
-                    var LastRowID64 = (Int64)insertSQL.ExecuteScalar();
-
-                    // Then grab the bottom 32-bits as the unique ID of the row.
-                    //
-                    int LastRowID = (int)LastRowID64;
-                    //end of copied code.
-
-
-                    config.Id = LastRowID;
+                    config.Id = SaveMutationConfig(config, insertSQL);
 
                     transaction.Commit();
                 }
@@ -210,7 +249,7 @@ namespace Assets.Src.Database
             return config.Id;
         }
 
-        public int SaveMatchConfig(MatchConfig config)
+        protected int SaveMatchConfig(MatchConfig config)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -222,38 +261,10 @@ namespace Assets.Src.Database
 
                     transaction = sql_con.BeginTransaction();
 
-                    SqliteCommand insertSQL = new SqliteCommand("INSERT INTO " + MATCH_CONFIG_TABLE +
-                        "(matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation)" +
-                        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", sql_con, transaction);
-
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MatchTimeout));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.WinnerPollPeriod));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialRange));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialSpeed));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.RandomInitialSpeed));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.CompetitorsPerTeam));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.StepForwardProportion));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.LocationRandomisationRadiaiString));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.RandomiseRotation));
-
-                    //todo check if this is nessersary/how to use transactions correctly.
+                    SqliteCommand insertSQL = new SqliteCommand(sql_con);
                     insertSQL.Transaction = transaction;
 
-                    insertSQL.ExecuteNonQuery();
-                    
-                    //From http://www.sliqtools.co.uk/blog/technical/sqlite-how-to-get-the-id-when-inserting-a-row-into-a-table/
-                    insertSQL.CommandText = "select last_insert_rowid()";
-
-                    // The row ID is a 64-bit value - cast the Command result to an Int64.
-                    //
-                    var LastRowID64 = (Int64)insertSQL.ExecuteScalar();
-
-                    // Then grab the bottom 32-bits as the unique ID of the row.
-                    //
-                    int LastRowID = (int)LastRowID64;
-                    //end of copied code.
-
-                    config.Id = LastRowID;
+                    config.Id = SaveMatchConfig(config, insertSQL);
 
                     transaction.Commit();
                 }

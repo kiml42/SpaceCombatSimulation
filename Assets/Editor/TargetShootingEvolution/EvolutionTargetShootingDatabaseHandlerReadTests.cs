@@ -201,7 +201,7 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
     public void ReadConfig_MatchControl_LocationRandomisationRadiai()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual("3;6", config.MatchConfig.LocationRandomisationRadiaiString);
+        Assert.AreEqual("3,6", config.MatchConfig.LocationRandomisationRadiaiString);
         Assert.AreEqual(3, config.MatchConfig.LocationRandomisationRadiai[0]);
         Assert.AreEqual(6, config.MatchConfig.LocationRandomisationRadiai[1]);
     }

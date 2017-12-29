@@ -50,11 +50,11 @@ namespace Assets.Src.Evolution
         public string LocationRandomisationRadiaiString {
             get
             {
-                return string.Join(";", LocationRandomisationRadiai.Select(r => r.ToString()).ToArray());
+                return string.Join(",", LocationRandomisationRadiai.Select(r => r.ToString()).ToArray());
             }
             set
             {
-                LocationRandomisationRadiai = value.Split(';').Where(s => !string.IsNullOrEmpty(s)).Select(s => float.Parse(s)).ToArray();
+                LocationRandomisationRadiai = value.Split(',').Where(s => !string.IsNullOrEmpty(s)).Select(s => float.Parse(s)).ToArray();
             }
         }
 
