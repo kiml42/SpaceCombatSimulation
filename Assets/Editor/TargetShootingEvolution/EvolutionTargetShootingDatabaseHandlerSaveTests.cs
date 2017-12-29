@@ -9,27 +9,24 @@ using System;
 
 public class EvolutionTargetShootingDatabaseHandlerSaveTests
 {
-    private string _dbPath = "/../tmp/TestDB/SpaceCombatSimulationDB3.s3db";
+    private string _dbPathStart = "/../tmp/TestDB/";
+    private string _dbPathExtension = ".s3db";
+    private string _dbPath;
     private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
     EvolutionTargetShootingDatabaseHandler _handler;
+    DatabaseInitialiser initialiser;
 
-    public EvolutionTargetShootingDatabaseHandlerSaveTests()
+    [SetUp]
+    public void Setup()
     {
-        var initialiser = new DatabaseInitialiser
+        _dbPath = _dbPathStart + Guid.NewGuid().ToString() + _dbPathExtension;
+
+        initialiser = new DatabaseInitialiser
         {
             DatabasePath = _dbPath
         };
 
-        try
-        {
-            initialiser.ReCreateDatabase(_createCommandPath);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("Caught exception: " + e.Message + ". when recreating the database, carrying on regardless, the data may not be correct.");
-        }
-
-        _handler = new EvolutionTargetShootingDatabaseHandler(_dbPath);
+        _handler = new EvolutionTargetShootingDatabaseHandler(_dbPath, _createCommandPath);
     }
 
     #region top level

@@ -192,6 +192,7 @@ namespace Assets.Src.Database
                     //end of copied code.
 
 
+                    config.Id = LastRowID;
 
                     transaction.Commit();
                 }
@@ -254,7 +255,7 @@ namespace Assets.Src.Database
                     int LastRowID = (int)LastRowID64;
                     //end of copied code.
 
-
+                    config.Id = LastRowID;
 
                     transaction.Commit();
                 }

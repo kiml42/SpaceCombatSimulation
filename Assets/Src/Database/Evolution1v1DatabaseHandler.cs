@@ -126,7 +126,7 @@ namespace Assets.Src.Database
                     int LastRowID = (int)LastRowID64;
                     //end of copied code.
 
-
+                    config.DatabaseId = LastRowID;
 
                     transaction.Commit();
                 }
