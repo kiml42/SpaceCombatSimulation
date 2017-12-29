@@ -50,7 +50,12 @@ namespace Assets.Src.Database
                         //Debug.Log("EvolutionConfig1v1.id ordinal: " + reader.GetOrdinal("id"));
                         config.DatabaseId = reader.GetInt32(reader.GetOrdinal("id"));
 
-                        //Debug.Log("name ordinal: " + reader.GetOrdinal("name"));
+                        Debug.Log("suddenDeathReloadTime ordinal: " + reader.GetOrdinal("suddenDeathReloadTime"));
+                        Debug.Log("suddenDeathReloadTime value: " + reader.GetDecimal(reader.GetOrdinal("suddenDeathReloadTime")));
+
+                        Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("matchConfigId"));
+                        Debug.Log("matchConfigId value: " + reader.GetDecimal(reader.GetOrdinal("matchConfigId")));
+
                         config.RunName = reader.GetString(reader.GetOrdinal("name")); //1
                         config.GenerationNumber = reader.GetInt32(reader.GetOrdinal("currentGeneration"));
                         config.MinMatchesPerIndividual = reader.GetInt32(reader.GetOrdinal("minMatchesPerIndividual"));
@@ -58,8 +63,8 @@ namespace Assets.Src.Database
                         config.SuddenDeathDamage = reader.GetFloat(reader.GetOrdinal("suddenDeathDamage"));
                         config.SuddenDeathReloadTime = reader.GetFloat(reader.GetOrdinal("suddenDeathReloadTime"));
 
-                        config.MatchConfig = ReadMatchConfig(reader, 7);//TODO check index
-                        config.MutationConfig = ReadMutationConfig(reader, 8);//TODO check index
+                        config.MatchConfig = ReadMatchConfig(reader, reader.GetOrdinal("matchConfigId"));//TODO check index
+                        config.MutationConfig = ReadMutationConfig(reader, reader.GetOrdinal("mutationConfigId"));//TODO check index
                     } else
                     {
                         throw new Exception("Config not founr for ID " + id);
@@ -80,9 +85,6 @@ namespace Assets.Src.Database
 
         public int SaveConfig(Evolution1v1Config config)
         {
-            config.MatchConfig.Id = SaveMatchConfig(config.MatchConfig);
-            config.MutationConfig.Id = SaveMutationConfig(config.MutationConfig);
-
             using (var sql_con = new SqliteConnection(_connectionString))
             {
                 IDbCommand dbcmd = null;
@@ -92,11 +94,19 @@ namespace Assets.Src.Database
                     sql_con.Open(); //Open connection to the database.
 
                     transaction = sql_con.BeginTransaction();
-                                        
-                    SqliteCommand insertSQL = new SqliteCommand("INSERT INTO " + CONFIG_TABLE +
-                        "(name, currentGeneration, minMatchesPerIndividual, winnersCount, suddenDeathDamage, suddenDeathReloadTime, matchConfigId, mutationConfigId)" +
-                        " VALUES (?,?,?,?,?,?,?,?)", sql_con, transaction);
                     
+                    SqliteCommand insertSQL = new SqliteCommand(sql_con)
+                    {
+                        Transaction = transaction
+                    };
+
+                    config.MatchConfig.Id = SaveMatchConfig(config.MatchConfig, insertSQL);
+                    config.MutationConfig.Id = SaveMutationConfig(config.MutationConfig, insertSQL);
+
+                    insertSQL.CommandText = "INSERT INTO " + CONFIG_TABLE +
+                        "(name, currentGeneration, minMatchesPerIndividual, winnersCount, suddenDeathDamage, suddenDeathReloadTime, matchConfigId, mutationConfigId)" +
+                        " VALUES (?,?,?,?,?,?,?,?)";
+
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.RunName));
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationNumber));
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinMatchesPerIndividual));
@@ -111,9 +121,7 @@ namespace Assets.Src.Database
                     insertSQL.Transaction = transaction;
 
                     insertSQL.ExecuteNonQuery();
-
-
-
+                    
                     //From http://www.sliqtools.co.uk/blog/technical/sqlite-how-to-get-the-id-when-inserting-a-row-into-a-table/
                     insertSQL.CommandText = "select last_insert_rowid()";
 
