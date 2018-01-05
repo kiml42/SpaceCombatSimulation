@@ -180,6 +180,7 @@ namespace Assets.Src.Database
             // The row ID is a 64-bit value - cast the Command result to an Int64.
             //
             var LastRowID64 = (Int64)readIdCommand.ExecuteScalar();
+            readIdCommand.Dispose();
 
             // Then grab the bottom 32-bits as the unique ID of the row.
             //
@@ -213,6 +214,7 @@ namespace Assets.Src.Database
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.RandomiseRotation));
             
             insertSQL.ExecuteNonQuery();
+            insertSQL.Dispose();
 
             SqliteCommand readIdCommand = new SqliteCommand(sql_con)
             {
@@ -225,6 +227,7 @@ namespace Assets.Src.Database
             // The row ID is a 64-bit value - cast the Command result to an Int64.
             //
             var LastRowID64 = (Int64)readIdCommand.ExecuteScalar();
+            readIdCommand.Dispose();
 
             // Then grab the bottom 32-bits as the unique ID of the row.
             //
@@ -258,6 +261,7 @@ namespace Assets.Src.Database
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Id));
 
             insertSQL.ExecuteNonQuery();
+            insertSQL.Dispose();
 
             return;
         }
@@ -287,6 +291,7 @@ namespace Assets.Src.Database
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Id));
 
             insertSQL.ExecuteNonQuery();
+            insertSQL.Dispose();
 
             return;
         }

@@ -138,7 +138,6 @@ namespace Assets.Src.Database
         {
             using (var connection = new SqliteConnection(_connectionString))
             {
-                IDbCommand dbcmd = null;
                 SqliteTransaction transaction = null;
                 try
                 {
@@ -169,6 +168,7 @@ namespace Assets.Src.Database
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MutationConfig.Id));
 
                     insertSQL.ExecuteNonQuery();
+                    insertSQL.Dispose();
 
                     SqliteCommand readIdCommand = new SqliteCommand(connection)
                     {
@@ -181,6 +181,7 @@ namespace Assets.Src.Database
                     // The row ID is a 64-bit value - cast the Command result to an Int64.
                     //
                     var LastRowID64 = (Int64)readIdCommand.ExecuteScalar();
+                    readIdCommand.Dispose();
 
                     // Then grab the bottom 32-bits as the unique ID of the row.
                     //
@@ -198,7 +199,7 @@ namespace Assets.Src.Database
                 }
                 finally
                 {
-                    Disconnect(null, transaction, dbcmd, connection);
+                    Disconnect(null, transaction, null, connection);
                 }
             }
 
