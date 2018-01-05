@@ -148,8 +148,13 @@ namespace Assets.Src.Database
             return config;
         }
 
-        protected int SaveMutationConfig(MutationConfig config, SqliteCommand insertSQL)
+        protected int SaveMutationConfig(MutationConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
+            SqliteCommand insertSQL = new SqliteCommand(sql_con)
+            {
+                Transaction = transaction
+            };
+
             insertSQL.CommandText = "INSERT INTO " + MUTATION_CONFIG_TABLE +
                         "(mutations, allowedCharacters, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome)" +
                         " VALUES (?,?,?,?,?,?,?)";
@@ -163,26 +168,36 @@ namespace Assets.Src.Database
             insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DefaultGenome));
             
             insertSQL.ExecuteNonQuery();
-            
+
+            SqliteCommand readIdCommand = new SqliteCommand(sql_con)
+            {
+                Transaction = transaction
+            };
+
             //From http://www.sliqtools.co.uk/blog/technical/sqlite-how-to-get-the-id-when-inserting-a-row-into-a-table/
-            insertSQL.CommandText = "select last_insert_rowid()";
+            readIdCommand.CommandText = "select last_insert_rowid()";
 
             // The row ID is a 64-bit value - cast the Command result to an Int64.
             //
-            var LastRowID64 = (Int64)insertSQL.ExecuteScalar();
+            var LastRowID64 = (Int64)readIdCommand.ExecuteScalar();
 
             // Then grab the bottom 32-bits as the unique ID of the row.
             //
             int LastRowID = (int)LastRowID64;
             //end of copied code.
-            
-            config.Id = LastRowID;                
+
+            config.Id = LastRowID;
 
             return config.Id;
         }
 
-        protected int SaveMatchConfig(MatchConfig config, SqliteCommand insertSQL)
+        protected int SaveMatchConfig(MatchConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
+            SqliteCommand insertSQL = new SqliteCommand(sql_con)
+            {
+                Transaction = transaction
+            };
+
             insertSQL.CommandText = "INSERT INTO " + MATCH_CONFIG_TABLE +
                         "(matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation)" +
                         " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -199,12 +214,17 @@ namespace Assets.Src.Database
             
             insertSQL.ExecuteNonQuery();
 
+            SqliteCommand readIdCommand = new SqliteCommand(sql_con)
+            {
+                Transaction = transaction
+            };
+
             //From http://www.sliqtools.co.uk/blog/technical/sqlite-how-to-get-the-id-when-inserting-a-row-into-a-table/
-            insertSQL.CommandText = "select last_insert_rowid()";
+            readIdCommand.CommandText = "select last_insert_rowid()";
 
             // The row ID is a 64-bit value - cast the Command result to an Int64.
             //
-            var LastRowID64 = (Int64)insertSQL.ExecuteScalar();
+            var LastRowID64 = (Int64)readIdCommand.ExecuteScalar();
 
             // Then grab the bottom 32-bits as the unique ID of the row.
             //
@@ -216,8 +236,13 @@ namespace Assets.Src.Database
             return config.Id;
         }
 
-        protected void UpdateExistingMutationConfig(MutationConfig config, SqliteCommand insertSQL)
+        protected void UpdateExistingMutationConfig(MutationConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
+            SqliteCommand insertSQL = new SqliteCommand(sql_con)
+            {
+                Transaction = transaction
+            };
+
             insertSQL.CommandText = "UPDATE " + MUTATION_CONFIG_TABLE +
                         " SET mutations = ?, allowedCharacters = ?, maxMutationLength = ?, genomeLength = ?, generationSize = ?, randomDefault = ?, defaultGenome = ?" +
                         " WHERE id = ?";
@@ -237,8 +262,13 @@ namespace Assets.Src.Database
             return;
         }
 
-        protected void UpdateExistingMatchConfig(MatchConfig config, SqliteCommand insertSQL)
+        protected void UpdateExistingMatchConfig(MatchConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
+            SqliteCommand insertSQL = new SqliteCommand(sql_con)
+            {
+                Transaction = transaction
+            };
+
             insertSQL.CommandText = "UPDATE " + MATCH_CONFIG_TABLE +
                         " SET matchTimeout = ?, winnerPollPeriod = ?, initialRange = ?, initialSpeed = ?, randomInitialSpeed = ?, competitorsPerTeam = ?," +
                         " stepForwardProportion = ?, locationRandomisationRadiai = ?, randomiseRotation = ?" +
@@ -272,11 +302,8 @@ namespace Assets.Src.Database
                     sql_con.Open(); //Open connection to the database.
 
                     transaction = sql_con.BeginTransaction();
-
-                    SqliteCommand insertSQL = new SqliteCommand(sql_con);
-                    insertSQL.Transaction = transaction;
-
-                    config.Id = SaveMutationConfig(config, insertSQL);
+                    
+                    config.Id = SaveMutationConfig(config, sql_con, transaction);
 
                     transaction.Commit();
                 }
@@ -305,11 +332,8 @@ namespace Assets.Src.Database
                     sql_con.Open(); //Open connection to the database.
 
                     transaction = sql_con.BeginTransaction();
-
-                    SqliteCommand insertSQL = new SqliteCommand(sql_con);
-                    insertSQL.Transaction = transaction;
-
-                    config.Id = SaveMatchConfig(config, insertSQL);
+                    
+                    config.Id = SaveMatchConfig(config, sql_con, transaction);
 
                     transaction.Commit();
                 }

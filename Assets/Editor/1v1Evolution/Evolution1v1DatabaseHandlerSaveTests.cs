@@ -52,10 +52,25 @@ public class Evolution1v1DatabaseHandlerSaveTests
     [Test]
     public void SaveConfig_savesWholeThingAndReturnsId()
     {
-        var config = new Evolution1v1Config();
-        config.MatchConfig.LocationRandomisationRadiai = new float[]
+        var config = new Evolution1v1Config
         {
-            100,50
+            RunName = "SaveConfigTest",
+            GenerationNumber = 42,
+            MinMatchesPerIndividual = 6,
+            SuddenDeathDamage = 20,
+            SuddenDeathReloadTime = 5,
+            WinnersFromEachGeneration = 7,
+            MatchConfig = new MatchConfig
+            {
+                LocationRandomisationRadiai = new float[]
+                {
+                    100,50
+                }
+            },
+            MutationConfig = new MutationConfig
+            {
+                DefaultGenome = "SaveConfigTest_DefaultGenome"
+            }
         };
 
         config.DatabaseId = -13; //set id to something really obvious to show if it hasn't been set correctly.
@@ -65,10 +80,11 @@ public class Evolution1v1DatabaseHandlerSaveTests
         var expectedId = 2;
 
         Assert.AreEqual(expectedId, result);
-        
+
         var retrieved = _handler.ReadConfig(expectedId);
 
         Assert.AreEqual(expectedId, retrieved.DatabaseId);
+        Assert.AreEqual("SaveConfigTest", retrieved.RunName);
 
         var match = retrieved.MatchConfig;
         var mut = retrieved.MutationConfig;

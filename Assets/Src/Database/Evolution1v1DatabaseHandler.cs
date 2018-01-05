@@ -94,14 +94,14 @@ namespace Assets.Src.Database
                     sql_con.Open(); //Open connection to the database.
 
                     transaction = sql_con.BeginTransaction();
+                    
+                    UpdateExistingMatchConfig(config.MatchConfig, sql_con, transaction);
+                    UpdateExistingMutationConfig(config.MutationConfig, sql_con, transaction);
 
                     SqliteCommand insertSQL = new SqliteCommand(sql_con)
                     {
                         Transaction = transaction
                     };
-
-                    UpdateExistingMatchConfig(config.MatchConfig, insertSQL);
-                    UpdateExistingMutationConfig(config.MutationConfig, insertSQL);
                     
                     insertSQL.CommandText = "UPDATE " + CONFIG_TABLE +
                         " SET name = ?, currentGeneration = ?, minMatchesPerIndividual = ?, winnersCount = ?, suddenDeathDamage = ?, suddenDeathReloadTime = ?" +
@@ -136,23 +136,23 @@ namespace Assets.Src.Database
 
         public int SaveConfig(Evolution1v1Config config)
         {
-            using (var sql_con = new SqliteConnection(_connectionString))
+            using (var connection = new SqliteConnection(_connectionString))
             {
                 IDbCommand dbcmd = null;
                 SqliteTransaction transaction = null;
                 try
                 {
-                    sql_con.Open(); //Open connection to the database.
+                    connection.Open(); //Open connection to the database.
 
-                    transaction = sql_con.BeginTransaction();
+                    transaction = connection.BeginTransaction();
                     
-                    SqliteCommand insertSQL = new SqliteCommand(sql_con)
+                    config.MatchConfig.Id = SaveMatchConfig(config.MatchConfig, connection, transaction);
+                    config.MutationConfig.Id = SaveMutationConfig(config.MutationConfig, connection, transaction);
+
+                    SqliteCommand insertSQL = new SqliteCommand(connection)
                     {
                         Transaction = transaction
                     };
-
-                    config.MatchConfig.Id = SaveMatchConfig(config.MatchConfig, insertSQL);
-                    config.MutationConfig.Id = SaveMutationConfig(config.MutationConfig, insertSQL);
 
                     insertSQL.CommandText = "INSERT INTO " + CONFIG_TABLE +
                         "(name, currentGeneration, minMatchesPerIndividual, winnersCount, suddenDeathDamage, suddenDeathReloadTime, matchConfigId, mutationConfigId)" +
@@ -167,21 +167,26 @@ namespace Assets.Src.Database
 
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MatchConfig.Id));
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MutationConfig.Id));
-                    
+
                     insertSQL.ExecuteNonQuery();
-                    
+
+                    SqliteCommand readIdCommand = new SqliteCommand(connection)
+                    {
+                        Transaction = transaction
+                    };
+
                     //From http://www.sliqtools.co.uk/blog/technical/sqlite-how-to-get-the-id-when-inserting-a-row-into-a-table/
-                    insertSQL.CommandText = "select last_insert_rowid()";
+                    readIdCommand.CommandText = "select last_insert_rowid()";
 
                     // The row ID is a 64-bit value - cast the Command result to an Int64.
                     //
-                    var LastRowID64 = (Int64)insertSQL.ExecuteScalar();
+                    var LastRowID64 = (Int64)readIdCommand.ExecuteScalar();
 
                     // Then grab the bottom 32-bits as the unique ID of the row.
                     //
                     int LastRowID = (int)LastRowID64;
                     //end of copied code.
-
+                    
                     config.DatabaseId = LastRowID;
 
                     transaction.Commit();
@@ -193,7 +198,7 @@ namespace Assets.Src.Database
                 }
                 finally
                 {
-                    Disconnect(null, transaction, dbcmd, sql_con);
+                    Disconnect(null, transaction, dbcmd, connection);
                 }
             }
 
