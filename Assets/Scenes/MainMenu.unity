@@ -134,7 +134,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 53011345}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -3.49, z: 0}
+  m_LocalPosition: {x: -8.14, y: -4, z: -0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 2072210272}
@@ -285,7 +285,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 2072210272}
-  m_RootOrder: 3
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 10.318001, y: 11.806001, z: 0}
 --- !u!20 &150044543
 Camera:
@@ -1020,7 +1020,7 @@ Transform:
   m_LocalScale: {x: 0.1, y: 0.1, z: 0.1}
   m_Children: []
   m_Father: {fileID: 2072210272}
-  m_RootOrder: 2
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!102 &802752568
 TextMesh:
@@ -2282,6 +2282,34 @@ Transform:
   m_Father: {fileID: 363732409}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2000381821
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 2000381822}
+  m_Layer: 0
+  m_Name: FirstEditLocation
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2000381822
+Transform:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 2000381821}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 7.41, y: -4, z: -0}
+  m_LocalScale: {x: 0.9999999, y: 1, z: 0.9999999}
+  m_Children: []
+  m_Father: {fileID: 2072210272}
+  m_RootOrder: 2
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2045001708
 GameObject:
   m_ObjectHideFlags: 0
@@ -2375,6 +2403,7 @@ Transform:
   m_Children:
   - {fileID: 598517657}
   - {fileID: 53011346}
+  - {fileID: 2000381822}
   - {fileID: 802752567}
   - {fileID: 150044542}
   m_Father: {fileID: 398986232}
@@ -2394,7 +2423,7 @@ MonoBehaviour:
   MenuItemPrefab: {fileID: 102092584482509628, guid: 44e764a0b67d3414d98e8625b16e5ef2,
     type: 2}
   FirstMenuItemLocation: {fileID: 53011346}
-  FirstEditButtonLocation: {fileID: 0}
+  FirstEditButtonLocation: {fileID: 2000381822}
   SubsequentItemOffset: {x: 0, y: -1.5, z: 0}
-  RunScene: 
-  EditScene: 
+  RunScene: TargetEvolution
+  EditScene: EditDroneEvolutionConfig

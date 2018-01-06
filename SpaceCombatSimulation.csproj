@@ -13,11 +13,13 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Subset v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile></CompilerResponseFile>
+    <CompilerResponseFile>
+    </CompilerResponseFile>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>Android:13</UnityBuildTarget>
     <UnityVersion>2017.2.0f3</UnityVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -264,6 +266,7 @@
     <Compile Include="Assets\Src\Database\GeneralDatabaseHandler.cs" />
     <Compile Include="Assets\Src\Evolution\ArenaRecord.cs" />
     <Compile Include="Assets\Src\Evolution\BaseEvolutionController.cs" />
+    <Compile Include="Assets\Src\Evolution\EditDroneConfig.cs" />
     <Compile Include="Assets\Src\Evolution\Evolution1v1Config.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionFileManager.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionMatchController.cs" />

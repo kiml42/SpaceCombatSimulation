@@ -75,7 +75,7 @@ public class Evolution1v1DatabaseHandlerSaveTests
 
         config.DatabaseId = -13; //set id to something really obvious to show if it hasn't been set correctly.
 
-        int result = _handler.SaveConfig(config);
+        int result = _handler.SaveNewConfig(config);
 
         var expectedId = 2;
 

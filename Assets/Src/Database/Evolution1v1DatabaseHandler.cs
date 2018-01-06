@@ -134,7 +134,7 @@ namespace Assets.Src.Database
             return config.DatabaseId;
         }
 
-        public int SaveConfig(Evolution1v1Config config)
+        public int SaveNewConfig(Evolution1v1Config config)
         {
             using (var connection = new SqliteConnection(_connectionString))
             {

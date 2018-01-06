@@ -82,6 +82,143 @@ namespace Assets.Src.Database
             return config;
         }
 
+        public int UpdateExistingConfig(EvolutionTargetShootingConfig config)
+        {
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                IDbCommand dbcmd = null;
+                SqliteTransaction transaction = null;
+                try
+                {
+                    sql_con.Open(); //Open connection to the database.
+
+                    transaction = sql_con.BeginTransaction();
+
+                    UpdateExistingMatchConfig(config.MatchConfig, sql_con, transaction);
+                    UpdateExistingMutationConfig(config.MutationConfig, sql_con, transaction);
+
+                    SqliteCommand insertSQL = new SqliteCommand(sql_con)
+                    {
+                        Transaction = transaction
+                    };
+
+                    insertSQL.CommandText = "UPDATE " + CONFIG_TABLE +
+                        " SET name = ?, currentGeneration = ?, minMatchesPerIndividual = ?, winnersCount = ?, minDrones = ?," +
+                        " droneEscalation = ?, maxDrones = ?, killScoreMultiplier = ?, flatKillBonus = ?, completionBonus = ?, deathPenalty = ?, droneList = ?" +
+                        " WHERE id = ?";
+
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.RunName));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationNumber));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinMatchesPerIndividual));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.WinnersFromEachGeneration));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinDronesToSpawn));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.ExtraDromnesPerGeneration));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxDronesToSpawn));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.KillScoreMultiplier));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.FlatKillBonus));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.CompletionBonus));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.DeathPenalty));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DronesString));
+
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
+
+                    insertSQL.ExecuteNonQuery();
+
+                    transaction.Commit();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
+                    throw e;
+                }
+                finally
+                {
+                    Disconnect(null, transaction, dbcmd, sql_con);
+                }
+            }
+
+            return config.DatabaseId;
+        }
+
+        public int SaveNewConfig(EvolutionTargetShootingConfig config)
+        {
+            using (var connection = new SqliteConnection(_connectionString))
+            {
+                SqliteTransaction transaction = null;
+                try
+                {
+                    connection.Open(); //Open connection to the database.
+
+                    transaction = connection.BeginTransaction();
+
+                    config.MatchConfig.Id = SaveMatchConfig(config.MatchConfig, connection, transaction);
+                    config.MutationConfig.Id = SaveMutationConfig(config.MutationConfig, connection, transaction);
+
+                    SqliteCommand insertSQL = new SqliteCommand(connection)
+                    {
+                        Transaction = transaction
+                    };
+
+                    insertSQL.CommandText = "INSERT INTO " + CONFIG_TABLE +
+                        "(name, currentGeneration, minMatchesPerIndividual, winnersCount, minDrones, droneEscalation, maxDrones, " +
+                        "killScoreMultiplier, flatKillBonus, completionBonus, deathPenalty, droneList, matchConfigId, mutationConfigId)" +
+                        " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.RunName));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationNumber));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinMatchesPerIndividual));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.WinnersFromEachGeneration));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinDronesToSpawn));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.ExtraDromnesPerGeneration));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxDronesToSpawn));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.KillScoreMultiplier));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.FlatKillBonus));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.CompletionBonus));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.DeathPenalty));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DronesString));
+
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MatchConfig.Id));
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MutationConfig.Id));
+
+                    insertSQL.ExecuteNonQuery();
+                    insertSQL.Dispose();
+
+                    SqliteCommand readIdCommand = new SqliteCommand(connection)
+                    {
+                        Transaction = transaction
+                    };
+
+                    //From http://www.sliqtools.co.uk/blog/technical/sqlite-how-to-get-the-id-when-inserting-a-row-into-a-table/
+                    readIdCommand.CommandText = "select last_insert_rowid()";
+
+                    // The row ID is a 64-bit value - cast the Command result to an Int64.
+                    //
+                    var LastRowID64 = (Int64)readIdCommand.ExecuteScalar();
+                    readIdCommand.Dispose();
+
+                    // Then grab the bottom 32-bits as the unique ID of the row.
+                    //
+                    int LastRowID = (int)LastRowID64;
+                    //end of copied code.
+
+                    config.DatabaseId = LastRowID;
+
+                    transaction.Commit();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
+                    throw e;
+                }
+                finally
+                {
+                    Disconnect(null, transaction, null, connection);
+                }
+            }
+
+            return config.DatabaseId;
+        }
+
         public GenerationTargetShooting ReadGeneration(int runId, int generationNumber)
         {
             //Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);

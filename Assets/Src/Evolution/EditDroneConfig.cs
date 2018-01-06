@@ -8,7 +8,7 @@ using System;
 using UnityEngine.SceneManagement;
 using Assets.Src.Menus;
 
-public class Edit1v1Config : MonoBehaviour {
+public class EditDroneConfig : MonoBehaviour {
     [Tooltip("Set to -ve for new")]
     public int IdToLoad = -1;
     private bool _hasLoadedExisting;
@@ -17,24 +17,27 @@ public class Edit1v1Config : MonoBehaviour {
     public EditMatchConfig MatchConfig;
 
     public InputField RunName;
+    private int _generationNumber;
     public InputField MinMatchesPerIndividual;
     public InputField WinnersFromEachGeneration;
-    private int _generationNumber;
-    public InputField SuddenDeathDamage;
-    public InputField SuddenDeathReloadTime;
+    public InputField minDrones;
+    public InputField DroneEscalation;
+    public InputField MaxDrones;
+    public InputField DronesList;
 
     public Button RunButton;
     public Button CoppyButton;
     public Button CancelButton;
     
-    public string EvolutionSceneToLoad = "1v1Evolution";
+    public string EvolutionSceneToLoad = "TargetEvolution";
     public string MainMenuSceneToLoad = "MainMenu";
 
-    private Evolution1v1DatabaseHandler _handler;
+    private EvolutionTargetShootingDatabaseHandler _handler;
+    private EvolutionTargetShootingConfig _loaded;
 
     // Use this for initialization
     void Start () {
-        _handler = new Evolution1v1DatabaseHandler();
+        _handler = new EvolutionTargetShootingDatabaseHandler();
 
         LoadConfig();
         
@@ -81,41 +84,42 @@ public class Edit1v1Config : MonoBehaviour {
         SceneManager.LoadScene(EvolutionSceneToLoad);
     }
 
-    private Evolution1v1Config ReadControlls()
+    private EvolutionTargetShootingConfig ReadControlls()
     {
-        var config = new Evolution1v1Config
-        {
-            MatchConfig = MatchConfig.ReadFromControls(),
-            MutationConfig = MutationConfig.ReadFromControls(),
+        _loaded.MatchConfig = MatchConfig.ReadFromControls();
+        _loaded.MutationConfig = MutationConfig.ReadFromControls();
 
-            RunName = RunName.text,
-            MinMatchesPerIndividual = int.Parse(MinMatchesPerIndividual.text),
-            WinnersFromEachGeneration = int.Parse(WinnersFromEachGeneration.text),
-            GenerationNumber = _generationNumber,
-            SuddenDeathDamage = float.Parse(SuddenDeathDamage.text),
-            SuddenDeathReloadTime = float.Parse(SuddenDeathReloadTime.text)
-        };
+        _loaded.RunName = RunName.text;
+        _loaded.MinMatchesPerIndividual = int.Parse(MinMatchesPerIndividual.text);
+        _loaded.WinnersFromEachGeneration = int.Parse(WinnersFromEachGeneration.text);
+        _loaded.GenerationNumber = _generationNumber;
+        _loaded.MinDronesToSpawn = int.Parse(minDrones.text);
+        _loaded.ExtraDromnesPerGeneration = float.Parse(DroneEscalation.text);
+        _loaded.MaxDronesToSpawn = int.Parse(MaxDrones.text);
+        _loaded.DronesString = DronesList.text;
 
-        return config;
+        return _loaded;
     }
 
     private void LoadConfig()
     {
         IdToLoad = ArgumentStore.IdToLoad ?? IdToLoad;
         _hasLoadedExisting = IdToLoad >= 0;
-        var loaded = _hasLoadedExisting ? _handler.ReadConfig(IdToLoad) : new Evolution1v1Config();
+        _loaded = _hasLoadedExisting ? _handler.ReadConfig(IdToLoad) : new EvolutionTargetShootingConfig();
 
-        Debug.Log(loaded.RunName);
-
-        RunName.text = loaded.RunName;
-        MinMatchesPerIndividual.text = loaded.MinMatchesPerIndividual.ToString();
-        WinnersFromEachGeneration.text = loaded.WinnersFromEachGeneration.ToString();
-        SuddenDeathDamage.text = loaded.SuddenDeathDamage.ToString();
-        SuddenDeathReloadTime.text = loaded.SuddenDeathReloadTime.ToString();
-
-        _generationNumber = loaded.GenerationNumber;
+        Debug.Log(_loaded.RunName);
         
-        MatchConfig.LoadConfig(loaded.MatchConfig, _hasLoadedExisting);
-        MutationConfig.LoadConfig(loaded.MutationConfig, _hasLoadedExisting);
+        RunName.text = _loaded.RunName;
+        MinMatchesPerIndividual.text = _loaded.MinMatchesPerIndividual.ToString();
+        WinnersFromEachGeneration.text = _loaded.WinnersFromEachGeneration.ToString();
+        minDrones.text = _loaded.MinDronesToSpawn.ToString();
+        DroneEscalation.text = _loaded.ExtraDromnesPerGeneration.ToString();
+        MaxDrones.text = _loaded.MaxDronesToSpawn.ToString();
+        DronesList.text = _loaded.DronesString.ToString();
+
+        _generationNumber = _loaded.GenerationNumber;
+        
+        MatchConfig.LoadConfig(_loaded.MatchConfig, _hasLoadedExisting);
+        MutationConfig.LoadConfig(_loaded.MutationConfig, _hasLoadedExisting);
     }
 }
