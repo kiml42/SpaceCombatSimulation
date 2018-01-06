@@ -17,12 +17,12 @@ namespace Assets.Src.Evolution
 
         public int Id;
 
-        public float MatchTimeout = 10000;
+        public float MatchTimeout = 20;
 
         /// <summary>
         /// Number of seconds between winner polls
         /// </summary>
-        public float WinnerPollPeriod = 1;
+        public float WinnerPollPeriod = 2;
 
         /// <summary>
         /// Initial distance between competitors
