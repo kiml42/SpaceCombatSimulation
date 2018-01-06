@@ -5,7 +5,9 @@ using UnityEngine.UI;
 using Assets.Src.Evolution;
 
 public class EditMatchConfig : MonoBehaviour {
-    
+    private int LoadedId;
+    private bool _hasLoadedExisting = false;
+
     public InputField MatchTimeout;
     public InputField WinnerPollPeriod;
     public InputField InitialRange;
@@ -13,7 +15,7 @@ public class EditMatchConfig : MonoBehaviour {
     public InputField RandomInitialSpeed;
     public InputField CompetitorsPerTeam;
   
-    public void LoadConfig(MatchConfig config)
+    public void LoadConfig(MatchConfig config, bool isPreExisting)
     {
         MatchTimeout.text = config.MatchTimeout.ToString();
         WinnerPollPeriod.text = config.WinnerPollPeriod.ToString();
@@ -21,18 +23,26 @@ public class EditMatchConfig : MonoBehaviour {
         InitialSpeed.text = config.InitialSpeed.ToString();
         RandomInitialSpeed.text = config.RandomInitialSpeed.ToString();
         CompetitorsPerTeam.text = config.CompetitorsPerTeam.ToString();
+
+        LoadedId = config.Id;
+        _hasLoadedExisting = isPreExisting;
     }
 
     public MatchConfig ReadFromControls()
     {
-        var config = new MatchConfig();
-
-        config.MatchTimeout = float.Parse(MatchTimeout.text);
-        config.WinnerPollPeriod = float.Parse(WinnerPollPeriod.text);
-        config.InitialRange = float.Parse(InitialRange.text);
-        config.InitialSpeed = float.Parse(InitialSpeed.text);
-        config.RandomInitialSpeed = float.Parse(RandomInitialSpeed.text);
-        config.CompetitorsPerTeam = int.Parse(CompetitorsPerTeam.text);
+        var config = new MatchConfig()
+        {
+            MatchTimeout = float.Parse(MatchTimeout.text),
+            WinnerPollPeriod = float.Parse(WinnerPollPeriod.text),
+            InitialRange = float.Parse(InitialRange.text),
+            InitialSpeed = float.Parse(InitialSpeed.text),
+            RandomInitialSpeed = float.Parse(RandomInitialSpeed.text),
+            CompetitorsPerTeam = int.Parse(CompetitorsPerTeam.text)
+        };
+        if (_hasLoadedExisting)
+        {
+            config.Id = LoadedId;
+        }
 
         return config;
     }

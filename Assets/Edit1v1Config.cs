@@ -94,8 +94,8 @@ public class Edit1v1Config : MonoBehaviour {
         GenerationNumber.text = loaded.GenerationNumber.ToString();
         SuddenDeathDamage.text = loaded.SuddenDeathDamage.ToString();
         SuddenDeathReloadTime.text = loaded.SuddenDeathReloadTime.ToString();
-
-        MatchConfig.LoadConfig(loaded.MatchConfig);
-        MutationConfig.LoadConfig(loaded.MutationConfig);
+        
+        MatchConfig.LoadConfig(loaded.MatchConfig, _hasLoadedExisting);
+        MutationConfig.LoadConfig(loaded.MutationConfig, _hasLoadedExisting);
     }
 }

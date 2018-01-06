@@ -33,7 +33,7 @@ TODO:
                 (duplicate for drones)
             keyboard navigation
     Priority:
-
+        Improve default values.
         Add monobehaviour for modules that says what they are
             Has isEngine, isTurret, IsHub booleans
             Use this to limit engines hubs and turrets separately.
