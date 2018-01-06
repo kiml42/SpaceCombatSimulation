@@ -437,6 +437,7 @@ Transform:
   - {fileID: 1485576405}
   - {fileID: 1315414487}
   - {fileID: 1671253131}
+  - {fileID: 1911725299}
   - {fileID: 477906082}
   - {fileID: 1881323627}
   m_Father: {fileID: 398986232}
@@ -456,8 +457,10 @@ MonoBehaviour:
   MenuItemPrefab: {fileID: 102092584482509628, guid: 44e764a0b67d3414d98e8625b16e5ef2,
     type: 2}
   FirstMenuItemLocation: {fileID: 1671253131}
+  FirstEditButtonLocation: {fileID: 1911725299}
   SubsequentItemOffset: {x: 0, y: -1.5, z: 0}
-  SceneToLoad: 1v1Evolution
+  RunScene: 1v1Evolution
+  EditScene: Edit1v1EvolutionConfig
 --- !u!1 &398986231
 GameObject:
   m_ObjectHideFlags: 0
@@ -753,7 +756,7 @@ Transform:
   m_LocalScale: {x: 0.1, y: 0.1, z: 0.1}
   m_Children: []
   m_Father: {fileID: 363732409}
-  m_RootOrder: 3
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!102 &477906083
 TextMesh:
@@ -2117,7 +2120,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1671253130}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -4, z: 0}
+  m_LocalPosition: {x: -8.14, y: -4, z: -0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 363732409}
@@ -2214,7 +2217,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 363732409}
-  m_RootOrder: 4
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 10.318001, y: -11.806, z: 0}
 --- !u!20 &1881323628
 Camera:
@@ -2251,6 +2254,34 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
+--- !u!1 &1911725298
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 1911725299}
+  m_Layer: 0
+  m_Name: FirstEditLocation
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1911725299
+Transform:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1911725298}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 7.41, y: -4, z: -0}
+  m_LocalScale: {x: 0.9999999, y: 1, z: 0.9999999}
+  m_Children: []
+  m_Father: {fileID: 363732409}
+  m_RootOrder: 3
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2045001708
 GameObject:
   m_ObjectHideFlags: 0
@@ -2363,5 +2394,7 @@ MonoBehaviour:
   MenuItemPrefab: {fileID: 102092584482509628, guid: 44e764a0b67d3414d98e8625b16e5ef2,
     type: 2}
   FirstMenuItemLocation: {fileID: 53011346}
+  FirstEditButtonLocation: {fileID: 0}
   SubsequentItemOffset: {x: 0, y: -1.5, z: 0}
-  SceneToLoad: TargetEvolution
+  RunScene: 
+  EditScene: 

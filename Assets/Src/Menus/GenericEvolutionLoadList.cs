@@ -13,8 +13,10 @@ namespace Assets.Src.Menus
         private Dictionary<int, string> _configs;
         public TextMesh MenuItemPrefab;
         public Transform FirstMenuItemLocation;
+        public Transform FirstEditButtonLocation;
         public Vector3 SubsequentItemOffset = new Vector3(0, -1, 0);
-        public string SceneToLoad;
+        public string RunScene;
+        public string EditScene;
         
         protected void GenericInitialisation()
         {
@@ -29,7 +31,16 @@ namespace Assets.Src.Menus
 
                 menuItemScript.IdToLoad = config.Key;
                 menuItemScript.SetIdToLoad = true;
-                menuItemScript.SceneToLoad = SceneToLoad;
+                menuItemScript.SceneToLoad = RunScene;
+
+                var editButton = Instantiate(MenuItemPrefab, FirstEditButtonLocation.position + (i * SubsequentItemOffset), FirstMenuItemLocation.rotation, transform);
+                editButton.text = "edit";
+                editButton.fontSize = 100;
+                var editButtonScript = editButton.GetComponent<MenuItem>();
+
+                editButtonScript.IdToLoad = config.Key;
+                editButtonScript.SetIdToLoad = true;
+                editButtonScript.SceneToLoad = EditScene;
 
                 i++;
             }
