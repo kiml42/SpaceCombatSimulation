@@ -23,8 +23,12 @@ public class EditMutationConfig : MonoBehaviour {
     private int LoadedId;
     private bool _hasLoadedExisting = false;
 
+    private MutationConfig _loaded;
+
     public void LoadConfig(MutationConfig config, bool isPreExisting)
     {
+        _loaded = config;
+
         Mutations.text = config.Mutations.ToString();
         AllowedCharacters.text = config.AllowedCharacters;
         MaxMutationLength.text = config.MaxMutationLength.ToString();
@@ -39,21 +43,21 @@ public class EditMutationConfig : MonoBehaviour {
 
     public MutationConfig ReadFromControls()
     {
-        var config = new MutationConfig()
-        {
-            Mutations = int.Parse(Mutations.text),
-            AllowedCharacters = AllowedCharacters.text,
-            MaxMutationLength = int.Parse(MaxMutationLength.text),
-            GenomeLength = int.Parse(GenomeLength.text),
-            GenerationSize = int.Parse(GenerationSize.text),
-            UseCompletelyRandomDefaultGenome = bool.Parse(UseCompletelyRandomDefaultGenome.text),
-            DefaultGenome = DefaultGenome.text
-        };
+        _loaded = _loaded ?? new MutationConfig();
+
+        _loaded.Mutations = int.Parse(Mutations.text);
+        _loaded.AllowedCharacters = AllowedCharacters.text;
+        _loaded.MaxMutationLength = int.Parse(MaxMutationLength.text);
+        _loaded.GenomeLength = int.Parse(GenomeLength.text);
+        _loaded.GenerationSize = int.Parse(GenerationSize.text);
+        _loaded.UseCompletelyRandomDefaultGenome = bool.Parse(UseCompletelyRandomDefaultGenome.text);
+        _loaded.DefaultGenome = DefaultGenome.text;
+       
         if (_hasLoadedExisting)
         {
-            config.Id = LoadedId;
+            _loaded.Id = LoadedId;
         }
 
-        return config;
+        return _loaded;
     }
 }

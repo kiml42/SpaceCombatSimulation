@@ -113,6 +113,7 @@ public class EvolutionTargetShootingDatabaseHandlerSaveTests
         var config = _handler.ReadConfig(0);
 
         config.RunName = "Altered";
+        config.MatchConfig.LocationRandomisationRadiaiString = "1,2,3,4";
         config.MatchConfig.InitialRange++;
         config.MutationConfig.GenomeLength++;
 
@@ -122,6 +123,7 @@ public class EvolutionTargetShootingDatabaseHandlerSaveTests
 
         Assert.AreEqual(config.RunName, updated.RunName);
         Assert.AreEqual("Altered", updated.RunName);
+        Assert.AreEqual("1,2,3,4", updated.MatchConfig.LocationRandomisationRadiaiString);
         Assert.AreEqual(config.MatchConfig.InitialRange, updated.MatchConfig.InitialRange);
         Assert.AreEqual(config.MutationConfig.GenomeLength, updated.MutationConfig.GenomeLength);
     }
