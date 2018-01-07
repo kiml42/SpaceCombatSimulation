@@ -26,13 +26,13 @@ namespace Assets.Src.Evolution
         
         public int GenerationNumber;
 
-        public float SuddenDeathDamage = 10;
+        public float SuddenDeathDamage = 20;
 
         /// <summary>
         /// Time for repeating the sudden death damage.
         /// Also used as the minimum score for winning a match.
         /// </summary>
-        public float SuddenDeathReloadTime = 200;
+        public float SuddenDeathReloadTime = 2;
 
     }
 }

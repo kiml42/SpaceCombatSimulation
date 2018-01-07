@@ -10,6 +10,7 @@ using Assets.Src.ObjectManagement;
 using UnityEditor;
 using Assets.Src.Database;
 using Assets.Src.Evolution;
+using Assets.Src.Menus;
 
 public class EvolutionTargetShootingControler : BaseEvolutionController
 {
@@ -36,6 +37,8 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
     // Use this for initialization
     void Start()
     {
+        DatabaseId = ArgumentStore.IdToLoad ?? DatabaseId;
+
         //Debug.Log("EvolutionTargetShootingControler starting");
         _dbHandler = new EvolutionTargetShootingDatabaseHandler();
         

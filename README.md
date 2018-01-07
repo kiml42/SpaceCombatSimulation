@@ -22,12 +22,17 @@ Bugs:
     
 
 TODO:
-    Priority:
-        Store initial speed and random initial speed in the match config table
-        Randomise target choosing mechanism periods so they don't come up at the same time.
+    In Progress:
         Menus
-            Top menu - leads to general settings and various modes
-            Menu per mode, for setup - saves setup in the generation file.
+            keyboard navigation
+            Scrollable lists
+            Delete config option (takes all individuals and match and mutation configs too)
+    Priority:
+        Add monobehaviour for modules that says what they are
+            Has isEngine, isTurret, IsHub booleans
+            Use this to limit engines hubs and turrets separately.
+            Possibly have a cost for each and allow total cost instead of limits
+        Randomise target choosing mechanism periods so they don't come up at the same time.
         Cardboard support
         Test on phone
         Add to Play store?

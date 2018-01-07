@@ -52,9 +52,9 @@ namespace Assets.Src.Database
         {
             if (File.Exists(_databaseFullPath))
             {
-                Debug.Log("Dropping database " + _databaseFullPath);
+                //Debug.Log("Dropping database " + _databaseFullPath);
                 File.Delete(_databaseFullPath);
-                Debug.Log("database deleted");
+                //Debug.Log("database deleted");
                 return;
             }
             Debug.Log("cannot drop database because it does not exist: " + _databaseFullPath);
@@ -83,7 +83,7 @@ namespace Assets.Src.Database
 
                     var sql = File.ReadAllText(Application.dataPath + creationCommandFilePath);
 
-                    Debug.Log("create sql: " + sql);
+                    //Debug.Log("create sql: " + sql);
 
                     dbcmd = new SqliteCommand(sql, sql_con);
                     dbcmd.ExecuteNonQuery();

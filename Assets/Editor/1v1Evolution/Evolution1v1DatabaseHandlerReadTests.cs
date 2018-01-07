@@ -158,7 +158,7 @@ public class Evolution1v1DatabaseHandlerReadTests
     public void ReadConfig_MatchControl_LocationRandomisationRadiai()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual("7;342", config.MatchConfig.LocationRandomisationRadiaiString);
+        Assert.AreEqual("7,342", config.MatchConfig.LocationRandomisationRadiaiString);
         Assert.AreEqual(7, config.MatchConfig.LocationRandomisationRadiai[0]);
         Assert.AreEqual(342, config.MatchConfig.LocationRandomisationRadiai[1]);
     }

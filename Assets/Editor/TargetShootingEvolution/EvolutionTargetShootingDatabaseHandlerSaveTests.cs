@@ -6,38 +6,37 @@ using System.Collections;
 using Assets.src.Evolution;
 using Assets.Src.Database;
 using System;
+using Assets.Src.Evolution;
+using System.Collections.Generic;
 
 public class EvolutionTargetShootingDatabaseHandlerSaveTests
 {
-    private string _dbPath = "/../tmp/TestDB/SpaceCombatSimulationDB3.s3db";
+    private string _dbPathStart = "/../tmp/TestDB/";
+    private string _dbPathExtension = ".s3db";
+    private string _dbPath;
     private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
     EvolutionTargetShootingDatabaseHandler _handler;
+    DatabaseInitialiser initialiser;
 
-    public EvolutionTargetShootingDatabaseHandlerSaveTests()
+    [SetUp]
+    public void Setup()
     {
-        var initialiser = new DatabaseInitialiser
+        _dbPath = _dbPathStart + Guid.NewGuid().ToString() + _dbPathExtension;
+
+        initialiser = new DatabaseInitialiser
         {
             DatabasePath = _dbPath
         };
 
-        try
-        {
-            initialiser.ReCreateDatabase(_createCommandPath);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("Caught exception: " + e.Message + ". when recreating the database, carrying on regardless, the data may not be correct.");
-        }
-
-        _handler = new EvolutionTargetShootingDatabaseHandler(_dbPath);
+        _handler = new EvolutionTargetShootingDatabaseHandler(_dbPath, _createCommandPath);
     }
 
     #region top level
     [Test]
     public void SetCurrentGeneration_UpdatesCurrentGeneration()
     {
-
         var config =  _handler.ReadConfig(1);
+
         Assert.AreEqual(1, config.DatabaseId);
 
         _handler.SetCurrentGenerationNumber(1, 5);
@@ -52,6 +51,81 @@ public class EvolutionTargetShootingDatabaseHandlerSaveTests
         config.GenerationNumber = 3;  //set it werong
         var config2 = _handler.ReadConfig(1);
         Assert.AreEqual(7, config2.GenerationNumber);  //has been read back out
+    }
+
+    [Test]
+    public void SaveConfig_savesWholeThingAndReturnsId()
+    {
+        var config = new EvolutionTargetShootingConfig
+        {
+            RunName = "SaveConfigTest",
+            GenerationNumber = 42,
+            MinMatchesPerIndividual = 6,
+            CompletionBonus = 5,
+            DeathPenalty = 4,
+            Drones = new List<int>
+            {
+                1,2
+            },
+            ExtraDromnesPerGeneration = 0.03f,
+            FlatKillBonus = 56,
+            KillScoreMultiplier = 32,
+            MaxDronesToSpawn = 123,
+            MinDronesToSpawn = 7,
+            WinnersFromEachGeneration = 7,
+            MatchConfig = new MatchConfig
+            {
+                LocationRandomisationRadiai = new float[]
+                {
+                    100,50
+                }
+            },
+            MutationConfig = new MutationConfig
+            {
+                DefaultGenome = "SaveConfigTest_DefaultGenome"
+            }
+        };
+
+        config.DatabaseId = -13; //set id to something really obvious to show if it hasn't been set correctly.
+
+        int result = _handler.SaveNewConfig(config);
+
+        var expectedId = 2;
+
+        Assert.AreEqual(expectedId, result);
+
+        var retrieved = _handler.ReadConfig(expectedId);
+
+        Assert.AreEqual(expectedId, retrieved.DatabaseId);
+        Assert.AreEqual("SaveConfigTest", retrieved.RunName);
+
+        var match = retrieved.MatchConfig;
+        var mut = retrieved.MutationConfig;
+
+        Assert.AreEqual(6, match.Id);
+        Assert.AreEqual(7, mut.Id);
+        Assert.AreEqual(config.MatchConfig.LocationRandomisationRadiai, match.LocationRandomisationRadiai);
+    }
+
+    [Test]
+    public void UpdateTest()
+    {
+        var config = _handler.ReadConfig(0);
+
+        config.RunName = "Altered";
+        config.MatchConfig.LocationRandomisationRadiaiString = "1,2,3,4";
+        config.MatchConfig.InitialRange++;
+        config.MutationConfig.GenomeLength++;
+
+        _handler.UpdateExistingConfig(config);
+
+        var updated = _handler.ReadConfig(0);
+
+        Assert.AreEqual(config.RunName, updated.RunName);
+        Assert.AreEqual("Altered", updated.RunName);
+        Assert.AreEqual("1,2,3,4", updated.MatchConfig.LocationRandomisationRadiaiString);
+        Assert.AreEqual(config.MatchConfig.InitialRange, updated.MatchConfig.InitialRange);
+        Assert.AreEqual(config.MutationConfig.GenomeLength, updated.MutationConfig.GenomeLength);
     }
     #endregion
 }

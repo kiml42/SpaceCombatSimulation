@@ -13,11 +13,13 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Subset v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile></CompilerResponseFile>
+    <CompilerResponseFile>
+    </CompilerResponseFile>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>Android:13</UnityBuildTarget>
     <UnityVersion>2017.2.0f3</UnityVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -228,6 +230,9 @@
     <Compile Include="Assets\AngleTrigger.cs" />
     <Compile Include="Assets\ColourSetter.cs" />
     <Compile Include="Assets\DestroyAfterTimeout.cs" />
+    <Compile Include="Assets\Edit1v1Config.cs" />
+    <Compile Include="Assets\EditMatchConfig.cs" />
+    <Compile Include="Assets\EditMutationConfig.cs" />
     <Compile Include="Assets\EngineControler.cs" />
     <Compile Include="Assets\Evolution1v1Controler.cs" />
     <Compile Include="Assets\EvolutionArenaControler.cs" />
@@ -240,6 +245,7 @@
     <Compile Include="Assets\JointBreakHandler.cs" />
     <Compile Include="Assets\JointFriction.cs" />
     <Compile Include="Assets\LampAndParticlesEffectController.cs" />
+    <Compile Include="Assets\MainMenuController.cs" />
     <Compile Include="Assets\ModuleList.cs" />
     <Compile Include="Assets\RayTrigger.cs" />
     <Compile Include="Assets\RegisterAsTarget.cs" />
@@ -260,6 +266,7 @@
     <Compile Include="Assets\Src\Database\GeneralDatabaseHandler.cs" />
     <Compile Include="Assets\Src\Evolution\ArenaRecord.cs" />
     <Compile Include="Assets\Src\Evolution\BaseEvolutionController.cs" />
+    <Compile Include="Assets\Src\Evolution\EditDroneConfig.cs" />
     <Compile Include="Assets\Src\Evolution\Evolution1v1Config.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionFileManager.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionMatchController.cs" />
@@ -295,6 +302,11 @@
     <Compile Include="Assets\Src\Interfaces\ITurretController.cs" />
     <Compile Include="Assets\Src\Interfaces\ITurretRunner.cs" />
     <Compile Include="Assets\Src\Interfaces\ITurretTurner.cs" />
+    <Compile Include="Assets\Src\Menus\ArgumentStore.cs" />
+    <Compile Include="Assets\Src\Menus\Evolution1v1LoadList.cs" />
+    <Compile Include="Assets\Src\Menus\EvolutionDronesLoadList.cs" />
+    <Compile Include="Assets\Src\Menus\GenericEvolutionLoadList.cs" />
+    <Compile Include="Assets\Src\Menus\MenuItem.cs" />
     <Compile Include="Assets\Src\ObjectManagement\ShrapnelExploder.cs" />
     <Compile Include="Assets\Src\ObjectManagement\TargetRepository.cs" />
     <Compile Include="Assets\Src\ObjectManagement\TransformExtensions.cs" />

@@ -15,7 +15,7 @@ namespace Assets.Src.Evolution
 
         public int MaxMutationLength = 5;
 
-        public int GenomeLength = 50;
+        public int GenomeLength = 300;
 
         public int GenerationSize = 20;
 

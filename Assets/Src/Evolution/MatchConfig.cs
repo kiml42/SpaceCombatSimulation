@@ -17,12 +17,12 @@ namespace Assets.Src.Evolution
 
         public int Id;
 
-        public float MatchTimeout = 10000;
+        public float MatchTimeout = 20;
 
         /// <summary>
         /// Number of seconds between winner polls
         /// </summary>
-        public float WinnerPollPeriod = 1;
+        public float WinnerPollPeriod = 2;
 
         /// <summary>
         /// Initial distance between competitors
@@ -50,11 +50,11 @@ namespace Assets.Src.Evolution
         public string LocationRandomisationRadiaiString {
             get
             {
-                return string.Join(";", LocationRandomisationRadiai.Select(r => r.ToString()).ToArray());
+                return string.Join(",", LocationRandomisationRadiai.Select(r => r.ToString()).ToArray());
             }
             set
             {
-                LocationRandomisationRadiai = value.Split(';').Where(s => !string.IsNullOrEmpty(s)).Select(s => float.Parse(s)).ToArray();
+                LocationRandomisationRadiai = value.Split(',').Where(s => !string.IsNullOrEmpty(s)).Select(s => float.Parse(s)).ToArray();
             }
         }
 

@@ -80,7 +80,11 @@ namespace Assets.src.Evolution
 
         public string Mutate(string baseGenome)
         {
-            baseGenome = baseGenome.PadRight(GenomeLength, ' ');
+            if(baseGenome.Length < GenomeLength)
+            {
+                Debug.Log("Padding genome from length " + baseGenome.Length + " to " + GenomeLength + ". genome: " + baseGenome);
+                baseGenome = baseGenome.PadRight(GenomeLength, ' ');
+            }
             for (int i = 0; i < Mutations; i++)
             {
                 var n = UnityEngine.Random.value;
@@ -165,6 +169,15 @@ namespace Assets.src.Evolution
         
         private bool IsValidGenome(string baseGenome)
         {
+            if (GenomeLength < 6)
+            {
+                //Don't bother to validate really short genomes
+                return true;
+            }
+            if (string.IsNullOrEmpty(baseGenome) || baseGenome.Length < 6)
+            {
+                return false;
+            }
             //replace 2 so engines don't make a valid ship.
             var start = baseGenome.Replace("2", " ").Substring(0, 6).Trim();
             //Debug.Log("'" + start + "'");
