@@ -32,7 +32,6 @@ TODO:
             Has isEngine, isTurret, IsHub booleans
             Use this to limit engines hubs and turrets separately.
             Possibly have a cost for each and allow total cost instead of limits
-        Store initial speed and random initial speed in the match config table
         Randomise target choosing mechanism periods so they don't come up at the same time.
         Cardboard support
         Test on phone
