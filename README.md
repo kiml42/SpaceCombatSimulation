@@ -13,7 +13,6 @@ Filter and sort individuals in DB:
 
 Bugs:
     Priority:
-        Configs saved through the menu can't be loaded.
         ElevationHubs on some drones are disappearing.
         "Can't remove Rigidbody because HingeJoint depends on it"
         rocket engines carry on regardless if the rocket has no target.
@@ -25,13 +24,9 @@ Bugs:
 TODO:
     In Progress:
         Menus
-            Top menu - leads to general settings and various modes
-            Edit config menu for each evolution type as a separate scene
-                Needs to be able to edit existing
-                Add "edit" buttons alongside each load button in the main menu
-                Add "new" buttons
-                (duplicate for drones)
             keyboard navigation
+            Scrollable lists
+            Delete config option (takes all individuals and match and mutation configs too)
     Priority:
         Add monobehaviour for modules that says what they are
             Has isEngine, isTurret, IsHub booleans

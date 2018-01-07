@@ -31,6 +31,7 @@ public class Edit1v1Config : MonoBehaviour {
     public string MainMenuSceneToLoad = "MainMenu";
 
     private Evolution1v1DatabaseHandler _handler;
+    private Evolution1v1Config _loaded;
 
     // Use this for initialization
     void Start () {
@@ -83,39 +84,36 @@ public class Edit1v1Config : MonoBehaviour {
 
     private Evolution1v1Config ReadControlls()
     {
-        var config = new Evolution1v1Config
-        {
-            MatchConfig = MatchConfig.ReadFromControls(),
-            MutationConfig = MutationConfig.ReadFromControls(),
+        _loaded.MatchConfig = MatchConfig.ReadFromControls();
+        _loaded.MutationConfig = MutationConfig.ReadFromControls();
 
-            RunName = RunName.text,
-            MinMatchesPerIndividual = int.Parse(MinMatchesPerIndividual.text),
-            WinnersFromEachGeneration = int.Parse(WinnersFromEachGeneration.text),
-            GenerationNumber = _generationNumber,
-            SuddenDeathDamage = float.Parse(SuddenDeathDamage.text),
-            SuddenDeathReloadTime = float.Parse(SuddenDeathReloadTime.text)
-        };
-
-        return config;
+        _loaded.RunName = RunName.text;
+        _loaded.MinMatchesPerIndividual = int.Parse(MinMatchesPerIndividual.text);
+        _loaded.WinnersFromEachGeneration = int.Parse(WinnersFromEachGeneration.text);
+        _loaded.GenerationNumber = _generationNumber;
+        _loaded.SuddenDeathDamage = float.Parse(SuddenDeathDamage.text);
+        _loaded.SuddenDeathReloadTime = float.Parse(SuddenDeathReloadTime.text);
+        
+        return _loaded;
     }
 
     private void LoadConfig()
     {
         IdToLoad = ArgumentStore.IdToLoad ?? IdToLoad;
         _hasLoadedExisting = IdToLoad >= 0;
-        var loaded = _hasLoadedExisting ? _handler.ReadConfig(IdToLoad) : new Evolution1v1Config();
+        _loaded = _hasLoadedExisting ? _handler.ReadConfig(IdToLoad) : new Evolution1v1Config();
 
-        Debug.Log(loaded.RunName);
+        Debug.Log(_loaded.RunName);
 
-        RunName.text = loaded.RunName;
-        MinMatchesPerIndividual.text = loaded.MinMatchesPerIndividual.ToString();
-        WinnersFromEachGeneration.text = loaded.WinnersFromEachGeneration.ToString();
-        SuddenDeathDamage.text = loaded.SuddenDeathDamage.ToString();
-        SuddenDeathReloadTime.text = loaded.SuddenDeathReloadTime.ToString();
+        RunName.text = _loaded.RunName;
+        MinMatchesPerIndividual.text = _loaded.MinMatchesPerIndividual.ToString();
+        WinnersFromEachGeneration.text = _loaded.WinnersFromEachGeneration.ToString();
+        SuddenDeathDamage.text = _loaded.SuddenDeathDamage.ToString();
+        SuddenDeathReloadTime.text = _loaded.SuddenDeathReloadTime.ToString();
 
-        _generationNumber = loaded.GenerationNumber;
+        _generationNumber = _loaded.GenerationNumber;
         
-        MatchConfig.LoadConfig(loaded.MatchConfig, _hasLoadedExisting);
-        MutationConfig.LoadConfig(loaded.MutationConfig, _hasLoadedExisting);
+        MatchConfig.LoadConfig(_loaded.MatchConfig, _hasLoadedExisting);
+        MutationConfig.LoadConfig(_loaded.MutationConfig, _hasLoadedExisting);
     }
 }
