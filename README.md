@@ -32,7 +32,10 @@ TODO:
             Has isEngine, isTurret, IsHub booleans
             Use this to limit engines hubs and turrets separately.
             Possibly have a cost for each and allow total cost instead of limits
+            Have each part have a method (in an IGenomeConfigure, or something like that) that does all the config for that part, including adding new pieces and configuring turrets.
+        Lightsabers!
         Randomise target choosing mechanism periods so they don't come up at the same time.
+        Some tool to show graphs of genomes over time.
         Cardboard support
         Test on phone
         Add to Play store?
