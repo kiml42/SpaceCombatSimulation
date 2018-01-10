@@ -193,6 +193,7 @@ GameObject:
   - component: {fileID: 114078591662564136}
   - component: {fileID: 114043299542033894}
   - component: {fileID: 114328088543714880}
+  - component: {fileID: 114294135880629680}
   m_Layer: 8
   m_Name: Type2Turret
   m_TagString: Untagged
@@ -403,6 +404,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -910,6 +912,18 @@ MonoBehaviour:
   ElevationHubMotorFoce: 30
   ElevationHubMotorSpeedMultiplier: 500
   ElevationHubMotorSpeedCap: 100
+--- !u!114 &114294135880629680
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1866709225031140}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 01000000
 --- !u!114 &114306497983771438
 MonoBehaviour:
   m_ObjectHideFlags: 1

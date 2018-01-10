@@ -217,6 +217,7 @@ GameObject:
   - component: {fileID: 54718662206741180}
   - component: {fileID: 114490641755474552}
   - component: {fileID: 114106579232997888}
+  - component: {fileID: 114793710215309262}
   m_Layer: 0
   m_Name: EngineDrone
   m_TagString: Team2
@@ -558,6 +559,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -954,6 +956,18 @@ MonoBehaviour:
   MaxModules: 15
   EnemyTags: []
   ColourOverride: {r: 0.42745098, g: 0.105882354, b: 0.5372549, a: 1}
+--- !u!114 &114793710215309262
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1864121942924130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 00000000
 --- !u!114 &114914890810551814
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -980,8 +994,6 @@ MonoBehaviour:
   Torquer: {fileID: 54718662206741180}
   AngularDragForTorquers: 2
   VectorArrow: {fileID: 4529293601510746}
-  EnemyTags:
-  - Team1
 --- !u!124 &124811762482596920
 Behaviour:
   m_ObjectHideFlags: 1

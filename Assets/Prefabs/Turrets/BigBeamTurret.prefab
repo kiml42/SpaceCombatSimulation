@@ -346,6 +346,7 @@ GameObject:
   - component: {fileID: 114570975704400958}
   - component: {fileID: 114725588741119166}
   - component: {fileID: 114700062322557724}
+  - component: {fileID: 114343184687507468}
   m_Layer: 8
   m_Name: BigBeamTurret
   m_TagString: Team2
@@ -999,6 +1000,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -2216,6 +2218,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Friction: 0.6
+--- !u!114 &114343184687507468
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1617297998928176}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 01000000
 --- !u!114 &114372935907962804
 MonoBehaviour:
   m_ObjectHideFlags: 1
