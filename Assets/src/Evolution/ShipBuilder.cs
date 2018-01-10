@@ -1,4 +1,5 @@
 ﻿using Assets.Src.Interfaces;
+using Assets.Src.ModuleSystem;
 using Assets.Src.ObjectManagement;
 using System;
 using System.Collections.Generic;
@@ -143,7 +144,7 @@ namespace Assets.src.Evolution
                             SpawnModules(addedModule.transform);    //spawn modules on this module
 
                             addedModule.transform.SetColor(_colour);
-                            addedModule.velocity = InitialVelocity;
+                            addedModule.GetComponent<Rigidbody>().velocity = InitialVelocity;
                         }
                         //else
                         //{
@@ -219,7 +220,7 @@ namespace Assets.src.Evolution
             return _spawnPoints;
         }
 
-        private Rigidbody SelectModule()
+        private ModuleTypeKnower SelectModule()
         {
             if (_genomePosition + GeneLength <= _genome.Length)
             {

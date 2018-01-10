@@ -13,13 +13,11 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Subset v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile>
-    </CompilerResponseFile>
+    <CompilerResponseFile></CompilerResponseFile>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>Android:13</UnityBuildTarget>
     <UnityVersion>2017.3.0f3</UnityVersion>
-    <RootNamespace>
-    </RootNamespace>
+    <RootNamespace></RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -363,6 +361,7 @@
     <Compile Include="Assets\Src\ModuleSystem\ModuleList.cs" />
     <Compile Include="Assets\Src\ModuleSystem\ModuleType.cs" />
     <Compile Include="Assets\Src\ModuleSystem\ModuleTypeKnower.cs" />
+    <Compile Include="Assets\Src\ModuleSystem\RigidbodyList.cs" />
     <Compile Include="Assets\Src\ModuleSystem\SelfBuildingShip.cs" />
     <Compile Include="Assets\Src\ModuleSystem\TestCubeChecker.cs" />
     <Compile Include="Assets\Src\ObjectManagement\ColourSetter.cs" />

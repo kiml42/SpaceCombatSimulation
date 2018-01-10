@@ -19,7 +19,7 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4201237021589446}
-  - component: {fileID: 114722036526711760}
+  - component: {fileID: 114605218179096368}
   m_Layer: 0
   m_Name: DroneList
   m_TagString: Untagged
@@ -40,7 +40,7 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &114722036526711760
+--- !u!114 &114605218179096368
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
@@ -48,7 +48,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1362544152196114}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d4c1f3eb821c9e246a0738bee0028107, type: 3}
+  m_Script: {fileID: 11500000, guid: 9a07ff4cdfb47ec46bb9de409d2e457f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   Modules:

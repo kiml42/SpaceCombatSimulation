@@ -11,6 +11,7 @@ using UnityEditor;
 using Assets.Src.Database;
 using Assets.Src.Evolution;
 using Assets.Src.Menus;
+using Assets.Src.ModuleSystem;
 
 public class EvolutionTargetShootingControler : BaseEvolutionController
 {
@@ -32,7 +33,7 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
     
     EvolutionTargetShootingDatabaseHandler _dbHandler;
 
-    public ModuleList DroneList;
+    public RigidbodyList DroneList;
 
     // Use this for initialization
     void Start()
