@@ -68,7 +68,10 @@ namespace Assets.src.Evolution
         public Color ColourOverride;
         private Color _colour;
 
-        public ShipBuilder(string genome, Transform shipToBuildOn, ModuleList moduleList, TestCubeChecker testCubePrefab = null)
+        private float _cost = 0;
+        private float? _budget;
+
+        public ShipBuilder(string genome, Transform shipToBuildOn, ModuleList moduleList, TestCubeChecker testCubePrefab = null, float? budget = null)
         {
             _shipToBuildOn = shipToBuildOn;
             if (_shipToBuildOn == null)
@@ -82,6 +85,7 @@ namespace Assets.src.Evolution
             }
             _genome = genome;
             _testCubePrefab = testCubePrefab;
+            _budget = budget;
         }
 
         public void BuildShip(bool ConfigureConstants = true, bool setName = true, bool setColour = true)
@@ -105,7 +109,7 @@ namespace Assets.src.Evolution
 
             if(setName)
                 _shipToBuildOn.name = _genome;
-            //Debug.Log("Spawning modules");
+            Debug.Log("Spawning modules on " + _shipToBuildOn.name);
 
             _usedLocations.Add(_shipToBuildOn.position);
             SpawnModules(_shipToBuildOn);
@@ -133,18 +137,27 @@ namespace Assets.src.Evolution
 
                         if (moduleToAdd != null)
                         {
-                            //Debug.Log("adding " + moduleToAdd);
-                            var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, currentHub);
+                            _cost += moduleToAdd.Cost;
+
+                            if(!_budget.HasValue || _budget.Value >= _cost)
+                            {
+                                Debug.Log("adding " + moduleToAdd + " total cost = " + _cost);
+                                var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, currentHub);
                             
-                            addedModule.GetComponent<FixedJoint>().connectedBody = currentHub.GetComponent<Rigidbody>();
-                            addedModule.SendMessage("SetEnemyTags", EnemyTags, SendMessageOptions.DontRequireReceiver);
+                                addedModule.GetComponent<FixedJoint>().connectedBody = currentHub.GetComponent<Rigidbody>();
+                                addedModule.SendMessage("SetEnemyTags", EnemyTags, SendMessageOptions.DontRequireReceiver);
 
-                            addedModule.tag = currentHub.tag;
+                                addedModule.tag = currentHub.tag;
 
-                            SpawnModules(addedModule.transform);    //spawn modules on this module
+                                SpawnModules(addedModule.transform);    //spawn modules on this module
 
-                            addedModule.transform.SetColor(_colour);
-                            addedModule.GetComponent<Rigidbody>().velocity = InitialVelocity;
+                                addedModule.transform.SetColor(_colour);
+                                addedModule.GetComponent<Rigidbody>().velocity = InitialVelocity;
+                            }
+                            else
+                            {
+                                Debug.Log("Over budget: cost = " + _cost + ", budget = " + _budget);
+                            }
                         }
                         //else
                         //{

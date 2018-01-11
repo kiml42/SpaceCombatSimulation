@@ -99,7 +99,7 @@ namespace Assets.Src.Evolution
         public Vector3 VelocityForStartLocation(Vector3 startLocation)
         {
             var v = (InitialSpeed * -startLocation.normalized) + Random.insideUnitSphere * RandomInitialSpeed;
-            Debug.Log(v);
+            //Debug.Log(v);
             return v;
         }
 
