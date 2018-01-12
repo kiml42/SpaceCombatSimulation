@@ -13,11 +13,13 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Subset v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile></CompilerResponseFile>
+    <CompilerResponseFile>
+    </CompilerResponseFile>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>Android:13</UnityBuildTarget>
     <UnityVersion>2017.3.0f3</UnityVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -326,6 +328,8 @@
     <Compile Include="Assets\Src\Evolution\Generation.cs" />
     <Compile Include="Assets\Src\Evolution\Generation1V1.cs" />
     <Compile Include="Assets\Src\Evolution\GenerationTargetShooting.cs" />
+    <Compile Include="Assets\Src\Evolution\GenomeWrapper.cs" />
+    <Compile Include="Assets\Src\Interfaces\IGeneticConfigurable.cs" />
     <Compile Include="Assets\Src\Evolution\Individual1v1.cs" />
     <Compile Include="Assets\Src\Evolution\IndividualTargetShooting.cs" />
     <Compile Include="Assets\Src\Evolution\MatchConfig.cs" />
@@ -358,6 +362,7 @@
     <Compile Include="Assets\Src\Menus\GenericEvolutionLoadList.cs" />
     <Compile Include="Assets\Src\Menus\MainMenuController.cs" />
     <Compile Include="Assets\Src\Menus\MenuItem.cs" />
+    <Compile Include="Assets\Src\ModuleSystem\ModuleHub.cs" />
     <Compile Include="Assets\Src\ModuleSystem\ModuleList.cs" />
     <Compile Include="Assets\Src\ModuleSystem\ModuleType.cs" />
     <Compile Include="Assets\Src\ModuleSystem\ModuleTypeKnower.cs" />

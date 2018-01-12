@@ -1,4 +1,5 @@
 ﻿using Assets.src.Evolution;
+using Assets.Src.Evolution;
 using Assets.Src.Interfaces;
 using System.Collections;
 using System.Collections.Generic;
@@ -21,13 +22,17 @@ public class SelfBuildingShip : MonoBehaviour {
 
         var velocity = shipToEvolve.velocity;
 
-        new ShipBuilder(Genome, transform, ModuleList, TestCube)
+        var genomeWrapper = new GenomeWrapper(Genome)
+        {
+            MaxModules = MaxModules,
+            MaxTurrets = MaxTurrets
+        };
+
+        new ShipBuilder(genomeWrapper, transform, ModuleList, TestCube)
         {
             OverrideColour = true,
             ColourOverride = ColourOverride,
             EnemyTags = targetChoosingMechanism.GetEnemyTags(),
-            MaxTurrets = MaxTurrets,
-            MaxModules = MaxModules,
             InitialVelocity = velocity
         }.BuildShip(false,false);
     }
