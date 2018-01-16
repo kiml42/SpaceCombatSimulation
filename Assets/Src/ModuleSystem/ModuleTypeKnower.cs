@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Assets.Src.Evolution;
+using System.Linq;
 
 namespace Assets.Src.ModuleSystem
 {
@@ -14,14 +15,21 @@ namespace Assets.Src.ModuleSystem
         [Tooltip("the cost for this module when evolving ships.")]
         public float Cost = 100;
 
-        [Tooltip("These components will be configured in order by this behaviour when Configure is called on it.")]
-        public List<IGeneticConfigurable> ComponentsToConfigure = new List<IGeneticConfigurable>();
-
+        //[Tooltip("These components will be configured in order by this behaviour when Configure is called on it.")]
+        //public List<IGeneticConfigurable> ComponentsToConfigure = new List<IGeneticConfigurable>();
+        
         public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
         {
-            foreach (var c in ComponentsToConfigure)
+            var ComponentsToConfigure = GetComponents<IGeneticConfigurable>();
+            if (ComponentsToConfigure.Length > 1)   //if length == 1 then this has only found itself.
             {
-                genomeWrapper = c.Configure(genomeWrapper);
+                foreach (var c in ComponentsToConfigure)
+                {
+                    if (c != this)
+                    {
+                        genomeWrapper = c.Configure(genomeWrapper);
+                    }
+                }
             }
             return genomeWrapper;
         }
