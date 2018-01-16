@@ -1,4 +1,5 @@
 ﻿using Assets.src.Evolution;
+using Assets.Src.Evolution;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -45,7 +46,6 @@ public class ShipTester : MonoBehaviour {
             //GameObject.Destroy(Ship);
             //transform.Translate(new Vector3(0, 0, 200));
             Start();
-
         }
     }
 
@@ -55,15 +55,19 @@ public class ShipTester : MonoBehaviour {
         var randomPlacement = transform.position;
         Ship = Instantiate(ShipToEvolve, randomPlacement, orientation);
 
-        new ShipBuilder(Genome, Ship.transform, ModuleList)
+        var genomeWrapper = new GenomeWrapper(Genome)
+        {
+            MaxTurrets = MaxTurrets
+        };
+
+        new ShipBuilder(genomeWrapper, Ship.transform, ModuleList)
         {
             MaxShootAngle = MaxShootAngle,
             MaxLocationAimWeighting = MaxLocationAimWeighting,
             MaxSlowdownWeighting = MaxSlowdownWeighting,
             MaxMaxAndMinRange = MaxLocationTollerance,
             MaxVelociyTollerance = MaxVelociyTollerance,
-            MaxAngularDragForTorquers = MaxAngularDragForTorquers,
-            MaxTurrets = MaxTurrets
+            MaxAngularDragForTorquers = MaxAngularDragForTorquers
         }.BuildShip();
     }
 }

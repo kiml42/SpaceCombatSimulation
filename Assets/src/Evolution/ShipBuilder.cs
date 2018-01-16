@@ -55,19 +55,15 @@ namespace Assets.src.Evolution
         public int GeneLength = 1;
 
         private ModuleList _moduleList;
-
-        private int _genomePosition = 0;
+        
         private Transform _shipToBuildOn;
         private TestCubeChecker _testCubePrefab;
 
         public bool OverrideColour;
         public Color ColourOverride;
         private Color _colour;
-
-        private float _cost = 0;
-        private float? _budget;
-
-        public ShipBuilder(GenomeWrapper genomeWrapper, Transform shipToBuildOn, ModuleList moduleList, TestCubeChecker testCubePrefab = null, float? budget = null)
+        
+        public ShipBuilder(GenomeWrapper genomeWrapper, Transform shipToBuildOn, ModuleList moduleList, TestCubeChecker testCubePrefab = null)
         {
             _shipToBuildOn = shipToBuildOn;
             if (_shipToBuildOn == null)
@@ -81,10 +77,9 @@ namespace Assets.src.Evolution
             }
             _genome = genomeWrapper;
             _testCubePrefab = testCubePrefab;
-            _budget = budget;
         }
 
-        public void BuildShip(bool ConfigureConstants = true, bool setName = true, bool setColour = true)
+        public GenomeWrapper BuildShip(bool ConfigureConstants = true, bool setName = true, bool setColour = true)
         {
             //Debug.Log("Building " + _genome);
             if (setColour)
@@ -104,10 +99,12 @@ namespace Assets.src.Evolution
             Debug.Log("Spawning modules on " + _shipToBuildOn.name);
 
             _usedLocations.Add(_shipToBuildOn.position);
-            SpawnModules(_shipToBuildOn);
+            _genome = SpawnModules(_shipToBuildOn);
 
             if(ConfigureConstants)
                 ConfigureShip();
+
+            return _genome;
         }
 
         [Obsolete("This shouldn't be setable")]
@@ -116,61 +113,51 @@ namespace Assets.src.Evolution
             _genome = genomeWrapper;
         }
 
-        private void SpawnModules(Transform currentHub)
+        private GenomeWrapper SpawnModules(Transform currentHub)
         {
             var spawnPoints = GetSpawnPoints(currentHub);
-            if (spawnPoints.Any())
+
+            foreach (var spawnPoint in spawnPoints)
             {
-                //this is a hub - add more modules to it
-                foreach (var spawnPoint in spawnPoints)
+                if (CanSpawnHere(spawnPoint))
                 {
-                    if (CanSpawnHere(spawnPoint))
+                    var moduleToAdd = SelectModule();
+
+                    if (moduleToAdd != null)
                     {
-                        var moduleToAdd = SelectModule();
-
-                        if (moduleToAdd != null)
+                        if(_genome.CanSpawn())
                         {
-                            _cost += moduleToAdd.Cost;
-
-                            if(!_budget.HasValue || _budget.Value >= _cost)
-                            {
-                                Debug.Log("adding " + moduleToAdd + " total cost = " + _cost);
-                                var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, currentHub);
+                            Debug.Log("adding " + moduleToAdd + " total cost = " + _genome.Cost);
+                            var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, currentHub);
                             
-                                addedModule.GetComponent<FixedJoint>().connectedBody = currentHub.GetComponent<Rigidbody>();
-                                addedModule.SendMessage("SetEnemyTags", EnemyTags, SendMessageOptions.DontRequireReceiver);
+                            addedModule.GetComponent<FixedJoint>().connectedBody = currentHub.GetComponent<Rigidbody>();
+                            addedModule.SendMessage("SetEnemyTags", EnemyTags, SendMessageOptions.DontRequireReceiver);
 
-                                addedModule.tag = currentHub.tag;
+                            addedModule.tag = currentHub.tag;
 
-                                SpawnModules(addedModule.transform);    //spawn modules on this module
+                            addedModule.transform.SetColor(_colour);
+                            addedModule.GetComponent<Rigidbody>().velocity = InitialVelocity;
 
-                                addedModule.transform.SetColor(_colour);
-                                addedModule.GetComponent<Rigidbody>().velocity = InitialVelocity;
+                            _genome = addedModule.Configure(_genome);
 
-                                _genome.ModuleAdded();
-                            }
-                            else
-                            {
-                                Debug.Log("Over budget: cost = " + _cost + ", budget = " + _budget);
-                            }
+                            _genome.ModuleAdded(addedModule);
                         }
-                        //else
-                        //{
-                        //    Debug.Log("skipping null module");
-                        //}
+                        else
+                        {
+                            Debug.Log("Over budget: cost = " + _genome.Cost + ", budget = " + _genome.Budget);
+                        }
                     }
-                    //else
-                    //{
-                    //    Debug.Log("Can not spawn module here. _genomePosition: " + _genomePosition + ", _turretsAdded: " + _turretsAdded + ", _modulesAdded: " + _modulesAdded);
-                    //}
+                    else
+                    {
+                        Debug.Log("skipping null module");
+                    }
+                }
+                else
+                {
+                    Debug.Log("Can not spawn module here.");
                 }
             }
-            else
-            {
-                //this has no spawn points, so it must be aturret or engine - increment added turrets.
-                //Debug.Log("Cannot spawn on " + currentHub);
-                _genome.TurretAdded();
-            }
+            return _genome;
         }
 
         private List<Vector3> _usedLocations = new List<Vector3>();

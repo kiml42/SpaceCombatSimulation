@@ -37,12 +37,16 @@ public class EvolutionShipConfig : MonoBehaviour {
         var ship = Instantiate(ShipToEvolve, location, orientation);
         ship.tag = ownTag;
         var enemyTags = Tags.Where(t => t != ownTag).ToList();
-        
-        new ShipBuilder(genome, ship.transform, ModuleList, TestCube)
+
+        var genomeWrapper = new GenomeWrapper(genome)
+        {
+            MaxTurrets = MaxTurrets,
+            MaxModules = MaxModules
+        };
+
+        new ShipBuilder(genomeWrapper, ship.transform, ModuleList, TestCube)
         {
             EnemyTags = enemyTags,
-            MaxTurrets = MaxTurrets,
-            MaxModules = MaxModules,
             InitialVelocity = velocity
         }.BuildShip();
         ship.velocity = velocity;

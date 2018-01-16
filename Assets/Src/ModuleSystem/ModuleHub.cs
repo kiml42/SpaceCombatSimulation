@@ -12,8 +12,6 @@ namespace Assets.Src.ModuleSystem
     {
         public TestCubeChecker TestCube;
         public ModuleList ModuleList;
-        public int MaxTurrets = 10;
-        public int MaxModules = 15;
         public List<string> EnemyTags;
         public Color ColourOverride;
 
@@ -24,17 +22,13 @@ namespace Assets.Src.ModuleSystem
 
             var velocity = shipToEvolve.velocity;
 
-            new ShipBuilder(genomeWrapper, transform, ModuleList, TestCube)
+            return new ShipBuilder(genomeWrapper, transform, ModuleList, TestCube)
             {
                 OverrideColour = true,
                 ColourOverride = ColourOverride,
                 EnemyTags = targetChoosingMechanism.GetEnemyTags(),
-                MaxTurrets = MaxTurrets,
-                MaxModules = MaxModules,
                 InitialVelocity = velocity
             }.BuildShip(false, false);
-
-            return genomeWrapper;
         }
     }
 }

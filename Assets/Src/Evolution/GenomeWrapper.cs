@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Assets.Src.ModuleSystem;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,59 +11,68 @@ namespace Assets.Src.Evolution
     {
         private int _geneLength;
         private string _genome;
+        private const int DEFAULT_NAME_LENGTH = 50;
+        public int NameLength { get; set; }
+
         public string Genome { get
             {
                 return _genome;
             }
         }
-        public float Cost { get; set; }
-        public float Budget { get; set; }
+        public float Cost { get; private set; }
+        public float? Budget { get; set; }
         public int Position { get; private set; }
 
-        public int TurretsAdded { get; set; }
-        public int ModulesAdded { get; set; }
-        public int MaxTurrets { get; set; }
-        public int MaxModules { get; set; }
+        public int TurretsAdded { get; private set; }
+        public int ModulesAdded { get; private set; }
+        public int? MaxTurrets { get; set; }
+        public int? MaxModules { get; set; }
 
         public GenomeWrapper(string genome, int geneLength = 1)
         {
             _genome = genome;
             _geneLength = geneLength;
+            NameLength = DEFAULT_NAME_LENGTH;
+            Budget = null; //default tyhe budget to null, can be set later.
         }
 
-        /// <summary>
-        /// Register that a turret has been added
-        /// </summary>
-        /// <returns>boolean indicating if any more can be added</returns>
-        public bool TurretAdded()
-        {
-            TurretsAdded++;
-            //a turret is always a module s add to that too.
-            return TurretsAdded < MaxTurrets && ModuleAdded();
-        }
 
         /// <summary>
         /// Register that a module (of any type) has been added
         /// </summary>
+        /// <param name="types">List of types that this module should be treated as.</param>
         /// <returns>boolean indicating if any more can be added</returns>
-        public bool ModuleAdded()
+        public bool ModuleAdded(ModuleTypeKnower knower)
         {
+            //TODO expand to all types.
+            if (knower.Types.Contains(ModuleType.Turret))
+            {
+                TurretsAdded++;
+            }
             ModulesAdded++;
-            return ModulesAdded < MaxModules;
+
+            Cost += knower.Cost;
+
+            return CanSpawn();
         }
 
         internal string GetName()
         {
-            throw new NotImplementedException();
+            return _genome.Substring(0, NameLength);
         }
 
         public bool CanSpawn()
         {
-            var canSpawn = 
-                Position + _geneLength < _genome.Length && 
-                Cost < Budget &&
-                TurretsAdded < MaxTurrets && 
-                ModulesAdded < MaxModules;
+            var isWithinGenomeLength = Position + _geneLength < _genome.Length;
+            var isUnderBudget = !Budget.HasValue || Cost < Budget.Value;
+            var freeTurrets = !MaxTurrets.HasValue || TurretsAdded < MaxTurrets;
+            var freeModules = !MaxModules.HasValue || ModulesAdded < MaxModules;
+            var canSpawn =
+                isWithinGenomeLength &&
+                isUnderBudget &&
+                freeTurrets &&
+                freeModules;
+                
             return canSpawn;
         }
 
