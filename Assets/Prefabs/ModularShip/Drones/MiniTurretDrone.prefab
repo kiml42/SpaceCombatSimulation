@@ -337,7 +337,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1916413120173142}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -4156.614, y: -2.886776, z: 39.635685}
+  m_LocalPosition: {x: 17.613653, y: 31.026318, z: -31.390951}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4049225077687248}
@@ -863,6 +863,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Types: 00000000
+  Cost: 100
 --- !u!114 &114093417629960288
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -945,14 +946,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9bc29bd4fd161b47b777c3bacd61786, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Genome: ' 6 6'
   TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
   ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
     type: 2}
+  EnemyTags:
+  - Team1
+  - Enemy
+  ColourOverride: {r: 0.42745098, g: 0.105882354, b: 0.5372549, a: 1}
+  SpawnPoints:
+  - {fileID: 4867217387271818}
+  - {fileID: 4333346767789852}
+  Genome: 66
   MaxTurrets: 10
   MaxModules: 15
-  EnemyTags: []
-  ColourOverride: {r: 0.42745098, g: 0.105882354, b: 0.5372549, a: 1}
 --- !u!114 &114686219090931682
 MonoBehaviour:
   m_ObjectHideFlags: 1

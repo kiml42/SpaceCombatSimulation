@@ -14,6 +14,7 @@ namespace Assets.Src.ModuleSystem
         public ModuleList ModuleList;
         public List<string> EnemyTags;
         public Color ColourOverride;
+        public List<Transform> SpawnPoints;
 
         public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
         {
@@ -22,7 +23,7 @@ namespace Assets.Src.ModuleSystem
 
             var velocity = shipToEvolve.velocity;
 
-            return new ShipBuilder(genomeWrapper, transform, ModuleList, TestCube)
+            return new ShipBuilder(genomeWrapper, this)
             {
                 OverrideColour = true,
                 ColourOverride = ColourOverride,

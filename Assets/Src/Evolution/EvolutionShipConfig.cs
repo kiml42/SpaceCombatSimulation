@@ -1,5 +1,6 @@
 ﻿using Assets.src.Evolution;
 using Assets.Src.Evolution;
+using Assets.Src.ModuleSystem;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,7 +8,7 @@ using System.Linq;
 using UnityEngine;
 
 public class EvolutionShipConfig : MonoBehaviour {
-    public Rigidbody ShipToEvolve;
+    public ModuleHub ShipToEvolve;
 
     public List<string> Tags = new List<string>{"Team1", "Team2" };
 
@@ -44,12 +45,12 @@ public class EvolutionShipConfig : MonoBehaviour {
             MaxModules = MaxModules
         };
 
-        new ShipBuilder(genomeWrapper, ship.transform, ModuleList, TestCube)
+        new ShipBuilder(genomeWrapper, ship)
         {
             EnemyTags = enemyTags,
             InitialVelocity = velocity
         }.BuildShip();
-        ship.velocity = velocity;
+        ship.GetComponent<Rigidbody>().velocity = velocity;
 
         ship.SendMessage("SetEnemyTags", enemyTags);
     }

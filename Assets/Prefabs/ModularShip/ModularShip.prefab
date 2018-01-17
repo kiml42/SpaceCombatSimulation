@@ -55,6 +55,7 @@ GameObject:
   - component: {fileID: 54288706851983332}
   - component: {fileID: 114236226548321350}
   - component: {fileID: 114449226440654026}
+  - component: {fileID: 114768698117951274}
   m_Layer: 0
   m_Name: ModularShip
   m_TagString: Team1
@@ -557,6 +558,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -927,7 +929,6 @@ MonoBehaviour:
   Torquer: {fileID: 54288706851983332}
   AngularDragForTorquers: 1
   VectorArrow: {fileID: 4644144218678962}
-  EnemyTags: []
 --- !u!114 &114604232145694266
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -961,6 +962,31 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 0
   PickerAimingObject: {fileID: 0}
   PickerApproachWeighting: 50
+--- !u!114 &114768698117951274
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1176053855654468}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 860d5e6f16e96774cbe8d2f3506a71f4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
+  ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
+    type: 2}
+  EnemyTags:
+  - Team2
+  - Enemy
+  ColourOverride: {r: 0, g: 0, b: 0, a: 0}
+  SpawnPoints:
+  - {fileID: 4931801260557888}
+  - {fileID: 4220946007639468}
+  - {fileID: 4299963211890632}
+  - {fileID: 4600753851157154}
+  - {fileID: 4480249884983886}
+  - {fileID: 4067765450928818}
 --- !u!124 &124958046666288838
 Behaviour:
   m_ObjectHideFlags: 1

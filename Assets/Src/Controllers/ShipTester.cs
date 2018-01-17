@@ -1,5 +1,6 @@
 ﻿using Assets.src.Evolution;
 using Assets.Src.Evolution;
+using Assets.Src.ModuleSystem;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,7 +8,7 @@ using UnityEngine;
 
 public class ShipTester : MonoBehaviour {
 
-    public Rigidbody ShipToEvolve;
+    public ModuleHub ShipToEvolve;
     public string Genome = "";
 
     public int MaxTurrets = 10;
@@ -53,14 +54,14 @@ public class ShipTester : MonoBehaviour {
     {
         var orientation = transform.rotation;
         var randomPlacement = transform.position;
-        Ship = Instantiate(ShipToEvolve, randomPlacement, orientation);
+        var shipInstance = Instantiate(ShipToEvolve, randomPlacement, orientation);
 
         var genomeWrapper = new GenomeWrapper(Genome)
         {
             MaxTurrets = MaxTurrets
         };
 
-        new ShipBuilder(genomeWrapper, Ship.transform, ModuleList)
+        new ShipBuilder(genomeWrapper, shipInstance)
         {
             MaxShootAngle = MaxShootAngle,
             MaxLocationAimWeighting = MaxLocationAimWeighting,

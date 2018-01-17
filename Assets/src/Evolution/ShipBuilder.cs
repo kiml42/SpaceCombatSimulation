@@ -56,27 +56,27 @@ namespace Assets.src.Evolution
 
         private ModuleList _moduleList;
         
-        private Transform _shipToBuildOn;
+        private ModuleHub _hubToBuildOn;
         private TestCubeChecker _testCubePrefab;
 
         public bool OverrideColour;
         public Color ColourOverride;
         private Color _colour;
         
-        public ShipBuilder(GenomeWrapper genomeWrapper, Transform shipToBuildOn, ModuleList moduleList, TestCubeChecker testCubePrefab = null)
+        public ShipBuilder(GenomeWrapper genomeWrapper, ModuleHub hubToBuildOn)
         {
-            _shipToBuildOn = shipToBuildOn;
-            if (_shipToBuildOn == null)
+            _hubToBuildOn = hubToBuildOn;
+            if (_hubToBuildOn == null)
             {
                 throw new ArgumentNullException("shipToBuildOn", "shipToBuildOn must be a valid Transform.");
             }
-            _moduleList = moduleList;
+            _moduleList = _hubToBuildOn.ModuleList;
             if(_moduleList == null)
             {
                 throw new ArgumentNullException("moduleList", "moduleList must be a valid ModuleList objet.");
             }
             _genome = genomeWrapper;
-            _testCubePrefab = testCubePrefab;
+            _testCubePrefab = _hubToBuildOn.TestCube;
         }
 
         public GenomeWrapper BuildShip(bool ConfigureConstants = true, bool setName = true, bool setColour = true)
@@ -91,15 +91,15 @@ namespace Assets.src.Evolution
                 {
                     _colour = _genome.GetColorForGenome();
                 }
-                _shipToBuildOn.SetColor(_colour);
+                _hubToBuildOn.transform.SetColor(_colour);
             }
 
             if (setName)
-                _shipToBuildOn.name = _genome.GetName();
-            Debug.Log("Spawning modules on " + _shipToBuildOn.name);
+                _hubToBuildOn.name = _genome.GetName();
+            Debug.Log("Spawning modules on " + _hubToBuildOn.name);
 
-            _usedLocations.Add(_shipToBuildOn.position);
-            _genome = SpawnModules(_shipToBuildOn);
+            _genome.UsedLocations.Add(_hubToBuildOn.transform.position);
+            _genome = SpawnModules();
 
             if(ConfigureConstants)
                 ConfigureShip();
@@ -113,34 +113,35 @@ namespace Assets.src.Evolution
             _genome = genomeWrapper;
         }
 
-        private GenomeWrapper SpawnModules(Transform currentHub)
+        private GenomeWrapper SpawnModules()
         {
-            var spawnPoints = GetSpawnPoints(currentHub);
+            var spawnPoints = _hubToBuildOn.SpawnPoints;
 
             foreach (var spawnPoint in spawnPoints)
             {
-                if (CanSpawnHere(spawnPoint))
+                var newUsedLocation = Vector3.zero;
+                if (CanSpawnHere(spawnPoint, out newUsedLocation))
                 {
                     var moduleToAdd = SelectModule();
 
                     if (moduleToAdd != null)
                     {
-                        if(_genome.CanSpawn())
+                        if(_genome.IsUnderBudget())
                         {
                             Debug.Log("adding " + moduleToAdd + " total cost = " + _genome.Cost);
-                            var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, currentHub);
+                            var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, _hubToBuildOn.transform);
                             
-                            addedModule.GetComponent<FixedJoint>().connectedBody = currentHub.GetComponent<Rigidbody>();
+                            addedModule.GetComponent<FixedJoint>().connectedBody = _hubToBuildOn.GetComponent<Rigidbody>();
                             addedModule.SendMessage("SetEnemyTags", EnemyTags, SendMessageOptions.DontRequireReceiver);
 
-                            addedModule.tag = currentHub.tag;
+                            addedModule.tag = _hubToBuildOn.tag;
 
                             addedModule.transform.SetColor(_colour);
                             addedModule.GetComponent<Rigidbody>().velocity = InitialVelocity;
 
                             _genome = addedModule.Configure(_genome);
 
-                            _genome.ModuleAdded(addedModule);
+                            _genome.ModuleAdded(addedModule, newUsedLocation);
                         }
                         else
                         {
@@ -160,14 +161,12 @@ namespace Assets.src.Evolution
             return _genome;
         }
 
-        private List<Vector3> _usedLocations = new List<Vector3>();
-
         /// <summary>
         /// The distance below which two test cubes colliders are considered too close to spawn.
         /// </summary>
         private const float THRESHOLD_DISTANCE = 1;
 
-        private bool CanSpawnHere(Transform spawnPoint)
+        private bool CanSpawnHere(Transform spawnPoint, out Vector3 newUsedLocation)
         {
             if (_testCubePrefab != null)
             {
@@ -175,43 +174,31 @@ namespace Assets.src.Evolution
                 var testCube = GameObject.Instantiate(_testCubePrefab, spawnPoint.position, spawnPoint.rotation);
                 var collider = testCube.GetComponent<BoxCollider>();
                 var center = collider.center;
-                center = testCube.transform.TransformPoint(center); //turn it into world coords.
+                newUsedLocation = testCube.transform.TransformPoint(center); //turn it into world coords.
                 //collider.bounds.Intersects();//could be useful if the center isn't enough.
                 GameObject.Destroy(testCube.gameObject);
-                if (IsUsedLocation(center))
+                if (IsUsedLocation(newUsedLocation))
                 {
-                    //Debug.Log("Can't spawn at " + center + " because there is already something here");
+                    Debug.Log("Can't spawn at " + center + " because there is already something here");
                     return false;
                 }
-                else
-                {
-                    _usedLocations.Add(center);
-                }
+            }
+            else
+            {
+                newUsedLocation = Vector3.zero; //set to zero if there isn't a test cube - it doesn't matter.
             }
             var canSpawn = _genome.CanSpawn();
-            //Debug.Log("can Spawn: " + canSpawn);
+            if (!canSpawn)
+            {
+                Debug.Log("Can't spawn module because the Genome says so.");
+            }
             return canSpawn;
         }
 
         private bool IsUsedLocation(Vector3 worldLocation)
         {
-            var distances = _usedLocations.Select(l => Vector3.Distance(l, worldLocation));
+            var distances = _genome.UsedLocations.Select(l => Vector3.Distance(l, worldLocation));
             return distances.Any(d => d < THRESHOLD_DISTANCE);
-        }
-
-        private List<Transform> GetSpawnPoints(Transform currentHub)
-        {
-            var _spawnPoints = new List<Transform>();
-            var childCount = currentHub.childCount;
-            for (int i = 0; i < childCount; i++)
-            {
-                var child = currentHub.GetChild(i);
-                if (child.name.Contains("SP"))
-                {
-                    _spawnPoints.Add(child);
-                }
-            }
-            return _spawnPoints;
         }
 
         private ModuleTypeKnower SelectModule()
@@ -246,7 +233,7 @@ namespace Assets.src.Evolution
 
         private void ConfigureShip()
         {
-            var controller = _shipToBuildOn.GetComponent<SpaceShipControler>();
+            var controller = _hubToBuildOn.GetComponent<SpaceShipControler>();
 
             //Debug.Log("ConfiguringShip");
 

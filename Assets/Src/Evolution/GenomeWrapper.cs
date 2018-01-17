@@ -28,12 +28,15 @@ namespace Assets.Src.Evolution
         public int? MaxTurrets { get; set; }
         public int? MaxModules { get; set; }
 
+        public List<Vector3> UsedLocations { get; private set; }
+
         public GenomeWrapper(string genome, int geneLength = 1)
         {
             _genome = genome;
             _geneLength = geneLength;
             NameLength = DEFAULT_NAME_LENGTH;
             Budget = null; //default tyhe budget to null, can be set later.
+            UsedLocations = new List<Vector3>();
         }
 
 
@@ -42,7 +45,7 @@ namespace Assets.Src.Evolution
         /// </summary>
         /// <param name="types">List of types that this module should be treated as.</param>
         /// <returns>boolean indicating if any more can be added</returns>
-        public bool ModuleAdded(ModuleTypeKnower knower)
+        public bool ModuleAdded(ModuleTypeKnower knower, Vector3 usedLocation)
         {
             //TODO expand to all types.
             if (knower.Types.Contains(ModuleType.Turret))
@@ -52,6 +55,8 @@ namespace Assets.Src.Evolution
             ModulesAdded++;
 
             Cost += knower.Cost;
+
+            UsedLocations.Add(usedLocation);
 
             return CanSpawn();
         }
@@ -63,8 +68,8 @@ namespace Assets.Src.Evolution
 
         public bool CanSpawn()
         {
-            var isWithinGenomeLength = Position + _geneLength < _genome.Length;
-            var isUnderBudget = !Budget.HasValue || Cost < Budget.Value;
+            var isWithinGenomeLength = Position + _geneLength <= _genome.Length;
+            var isUnderBudget = IsUnderBudget();
             var freeTurrets = !MaxTurrets.HasValue || TurretsAdded < MaxTurrets;
             var freeModules = !MaxModules.HasValue || ModulesAdded < MaxModules;
             var canSpawn =
@@ -74,6 +79,11 @@ namespace Assets.Src.Evolution
                 freeModules;
                 
             return canSpawn;
+        }
+
+        public bool IsUnderBudget()
+        {
+            return !Budget.HasValue || Cost < Budget.Value;
         }
 
         /// <summary>
