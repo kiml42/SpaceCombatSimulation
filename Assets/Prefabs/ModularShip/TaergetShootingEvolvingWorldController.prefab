@@ -690,7 +690,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DatabaseId: 0
   ShipConfig: {fileID: 114276023159756518}
-  CurrentScore: -20998.602
+  CurrentScore: 0
   DroneList: {fileID: 114605218179096368, guid: e2dbee6a48a444f4aab01257450a7363,
     type: 2}
 --- !u!114 &114276023159756518
