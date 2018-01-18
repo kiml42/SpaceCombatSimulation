@@ -99,10 +99,9 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable, I
 
                 if (GetConfigFromGenome)
                 {
-                    var gc = projectile.GetComponent<IGeneticConfigurable>();
-                    if (gc != null)
+                    foreach (var c in projectile.GetComponents<IGeneticConfigurable>())
                     {
-                        gc.Configure(new GenomeWrapper(RocketGenome));
+                        c.Configure(new GenomeWrapper(RocketGenome));
                     }
                 }
 
