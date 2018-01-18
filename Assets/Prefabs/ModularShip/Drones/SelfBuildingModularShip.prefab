@@ -943,6 +943,7 @@ MonoBehaviour:
   Torquer: {fileID: 54333284254749140}
   AngularDragForTorquers: 1
   VectorArrow: {fileID: 4302648929483358}
+  GetConfigFromGenome: 0
 --- !u!114 &114818931273078884
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -976,6 +977,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 0
   PickerAimingObject: {fileID: 0}
   PickerApproachWeighting: 50
+  GetConfigFromGenome: 0
 --- !u!114 &114992781171396868
 MonoBehaviour:
   m_ObjectHideFlags: 1

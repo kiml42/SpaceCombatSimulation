@@ -12,9 +12,11 @@ public class SelfBuildingShip : ModuleHub
     public string Genome;
     public int MaxTurrets = 10;
     public int MaxModules = 15;
+    public int PadToLength = 100;
     
     public void Start()
     {
+        Genome = Genome.PadRight(PadToLength);
         var genomeWrapper = new GenomeWrapper(Genome)
         {
             MaxModules = MaxModules,

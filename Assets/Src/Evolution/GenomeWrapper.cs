@@ -70,7 +70,7 @@ namespace Assets.Src.Evolution
 
         public bool CanSpawn()
         {
-            var isWithinGenomeLength = Position + _geneLength <= _genome.Length;
+            var isWithinGenomeLength = IsWithinGenome();
             var isUnderBudget = IsUnderBudget();
             var freeTurrets = !MaxTurrets.HasValue || TurretsAdded < MaxTurrets;
             var freeModules = !MaxModules.HasValue || ModulesAdded < MaxModules;
@@ -81,6 +81,11 @@ namespace Assets.Src.Evolution
                 freeModules;
                 
             return canSpawn;
+        }
+
+        private bool IsWithinGenome()
+        {
+            return Position + _geneLength <= _genome.Length;
         }
 
         public bool IsUnderBudget()
@@ -94,9 +99,13 @@ namespace Assets.Src.Evolution
         /// <returns></returns>
         public string GetGene()
         {
-            var substring = _genome.Substring(Position, _geneLength);
-            Position += _geneLength;
-            return substring;
+            if (IsWithinGenome())
+            {
+                var substring = _genome.Substring(Position, _geneLength);
+                Position += _geneLength;
+                return substring;
+            }
+            return string.Empty;
         }
 
         /// <summary>
