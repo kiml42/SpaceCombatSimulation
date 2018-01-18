@@ -29,7 +29,7 @@ namespace Assets.Src.ModuleSystem
                 ColourOverride = ColourOverride,
                 EnemyTags = targetChoosingMechanism.GetEnemyTags(),
                 InitialVelocity = velocity
-            }.BuildShip(false, false);
+            }.BuildShip(true);
         }
     }
 }

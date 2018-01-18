@@ -56,6 +56,7 @@ GameObject:
   - component: {fileID: 114236226548321350}
   - component: {fileID: 114449226440654026}
   - component: {fileID: 114768698117951274}
+  - component: {fileID: 114077786339274376}
   m_Layer: 0
   m_Name: ModularShip
   m_TagString: Team1
@@ -850,6 +851,19 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1961404212981668}
   m_Enabled: 1
+--- !u!114 &114077786339274376
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1176053855654468}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 00000000
+  Cost: 200
 --- !u!114 &114169913862654500
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -929,6 +943,7 @@ MonoBehaviour:
   Torquer: {fileID: 54288706851983332}
   AngularDragForTorquers: 1
   VectorArrow: {fileID: 4644144218678962}
+  GetConfigFromGenome: 1
 --- !u!114 &114604232145694266
 MonoBehaviour:
   m_ObjectHideFlags: 1

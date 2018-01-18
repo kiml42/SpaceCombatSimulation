@@ -117,6 +117,49 @@ namespace Assets.Src.Evolution
         }
 
         /// <summary>
+        /// Returns the next gene as a float between 0 and 1.
+        /// </summary>
+        /// <param name="defaultProporion"></param>
+        /// <param name="length"></param>
+        /// <returns></returns>
+        public float GetProportionalNumber(float defaultProporion = 0.5f)
+        {
+
+            var substring = GetGene();
+
+            var simplified = substring.TrimStart().Replace(" ", "");
+            //Debug.Log(simplified);
+            int number;
+            if (int.TryParse(simplified, out number))
+            {
+                return (float)(number / (Math.Pow(10, _geneLength) - 1));
+            }
+
+            //Debug.Log("Defaulted to 0.5");
+            return defaultProporion;
+        }
+
+        public float GetScaledNumber(float max, float min = 0, float defaultProportion = 0.5f)
+        {
+            var range = max - min;
+            var randomValue = GetProportionalNumber(defaultProportion) * range;
+            return min + randomValue;
+        }
+
+        /// <summary>
+        /// Returns the color object that this genome specifies
+        /// </summary>
+        /// <returns></returns>
+        public Color GetColorForGenome()
+        {
+            var r = GetNumberFromGenome(0, 0.5f, 8);
+            var g = GetNumberFromGenome(10, 0.5f, 8);
+            var b = GetNumberFromGenome(20, 0.5f, 8);
+
+            return new Color(r, g, b);
+        }
+
+        /// <summary>
         /// Returns a float from the genome with the given parameters
         /// without moving the position in the genome for subsequent reads.
         /// </summary>
@@ -124,7 +167,7 @@ namespace Assets.Src.Evolution
         /// <param name="defaultProporion"></param>
         /// <param name="length"></param>
         /// <returns></returns>
-        public float GetNumberFromGenome(int fromEnd, float defaultProporion = 0.5f, int length = 2)
+        private float GetNumberFromGenome(int fromEnd, float defaultProporion = 0.5f, int length = 2)
         {
             var reversed = Reverse(_genome);
             if (fromEnd + length < reversed.Length)
@@ -143,19 +186,6 @@ namespace Assets.Src.Evolution
             return defaultProporion;
         }
 
-        /// <summary>
-        /// Returns the color object that this genome specifies
-        /// </summary>
-        /// <returns></returns>
-        public Color GetColorForGenome()
-        {
-            var r = GetNumberFromGenome(0, 0.5f, 8);
-            var g = GetNumberFromGenome(10, 0.5f, 8);
-            var b = GetNumberFromGenome(20, 0.5f, 8);
-
-            return new Color(r, g, b);
-        }
-        
         private static string Reverse(string s)
         {
             char[] charArray = s.ToCharArray();

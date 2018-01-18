@@ -16,7 +16,6 @@ namespace Assets.Src.Controllers
         public bool TagChildren = false;
         public bool ShouldSpawnDrones = true;
         public bool ShouldSetEnemyTag = false;
-        private Camera _currentCamera;
 
         #region EnemyTags
         public void AddEnemyTag(string newTag)
@@ -40,6 +39,7 @@ namespace Assets.Src.Controllers
         #endregion
 
         public Rigidbody Drone;
+
         public float Radius = 100;
 
         private float _reload = 0;

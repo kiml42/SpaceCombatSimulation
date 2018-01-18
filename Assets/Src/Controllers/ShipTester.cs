@@ -12,18 +12,10 @@ public class ShipTester : MonoBehaviour {
     public string Genome = "";
 
     public int MaxTurrets = 10;
-
-    public int MaxShootAngle = 180;
-    public int MaxLocationAimWeighting = 10;
-    public int MaxSlowdownWeighting = 60;
-    public int MaxLocationTollerance = 1000;
-    public int MaxVelociyTollerance = 200;
-    public int MaxAngularDragForTorquers = 1;
-
+    
     public int GenomeLength = 50;
 
     public ModuleList ModuleList;
-    private Rigidbody Ship;
     private string _previousGenome;
 
     // Use this for initialization
@@ -61,14 +53,6 @@ public class ShipTester : MonoBehaviour {
             MaxTurrets = MaxTurrets
         };
 
-        new ShipBuilder(genomeWrapper, shipInstance)
-        {
-            MaxShootAngle = MaxShootAngle,
-            MaxLocationAimWeighting = MaxLocationAimWeighting,
-            MaxSlowdownWeighting = MaxSlowdownWeighting,
-            MaxMaxAndMinRange = MaxLocationTollerance,
-            MaxVelociyTollerance = MaxVelociyTollerance,
-            MaxAngularDragForTorquers = MaxAngularDragForTorquers
-        }.BuildShip();
+        shipInstance.Configure(genomeWrapper);
     }
 }

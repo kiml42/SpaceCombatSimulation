@@ -9,8 +9,6 @@ namespace Assets.src.Evolution
     {
         private const char Delimiter = ';';
         public IEnumerable<string> Survivors;
-        private string[] v;
-        private IEnumerable<string> enumerable;
 
         public ArenaRecord(string recordLine)
         {

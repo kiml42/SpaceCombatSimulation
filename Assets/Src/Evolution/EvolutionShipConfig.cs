@@ -8,7 +8,7 @@ using System.Linq;
 using UnityEngine;
 
 public class EvolutionShipConfig : MonoBehaviour {
-    public ModuleHub ShipToEvolve;
+    public ModuleTypeKnower ShipToEvolve;
 
     public List<string> Tags = new List<string>{"Team1", "Team2" };
 
@@ -44,15 +44,11 @@ public class EvolutionShipConfig : MonoBehaviour {
             MaxTurrets = MaxTurrets,
             MaxModules = MaxModules
         };
-
-        new ShipBuilder(genomeWrapper, ship)
-        {
-            EnemyTags = enemyTags,
-            InitialVelocity = velocity
-        }.BuildShip();
         ship.GetComponent<Rigidbody>().velocity = velocity;
 
         ship.SendMessage("SetEnemyTags", enemyTags);
+
+        genomeWrapper = ship.Configure(genomeWrapper);
     }
 
     public string GetTag(int index)

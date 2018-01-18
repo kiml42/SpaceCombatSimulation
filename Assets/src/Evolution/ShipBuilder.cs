@@ -12,7 +12,6 @@ namespace Assets.src.Evolution
 {
     public class ShipBuilder : IKnowsEnemyTags
     {
-
         #region EnemyTags
         public void AddEnemyTag(string newTag)
         {
@@ -34,21 +33,6 @@ namespace Assets.src.Evolution
         public List<string> EnemyTags;
         #endregion
         
-        public float MaxShootAngle = 180;
-        public float DefaultShootAngleProportion = 0.5f;
-        public float MaxLocationAimWeighting = 2;
-        public float DefaultLocationAimWeightingProportion = 0.5f;
-        public float MaxSlowdownWeighting = 70;
-        public float DefaultSlowdownWeightingProportion = 0.5f;
-        public float MaxTangentialVelosityWeighting = 70;
-        public float DefaultTangentialVelosityWeightingProportion = 0.5f;
-        public float MaxMaxAndMinRange = 1000;
-        public float DefaultMaxAndMinRangeProportion = 0.1f;
-        public float MaxVelociyTollerance = 100;
-        public float DefaultVelociyTolleranceProportion = 0.1f;
-        public float MaxAngularDragForTorquers = 1;
-        public float DefaultAngularDragForTorquersProportion = 0.2f;
-
         public Vector3 InitialVelocity = Vector3.zero;
         
         private GenomeWrapper _genome;
@@ -79,7 +63,7 @@ namespace Assets.src.Evolution
             _testCubePrefab = _hubToBuildOn.TestCube;
         }
 
-        public GenomeWrapper BuildShip(bool ConfigureConstants = true, bool setName = true, bool setColour = true)
+        public GenomeWrapper BuildShip(bool setColour = true)
         {
             //Debug.Log("Building " + _genome);
             if (setColour)
@@ -94,16 +78,11 @@ namespace Assets.src.Evolution
                 _hubToBuildOn.transform.SetColor(_colour);
             }
 
-            if (setName)
-                _hubToBuildOn.name = _genome.GetName();
             Debug.Log("Spawning modules on " + _hubToBuildOn.name);
 
             _genome.UsedLocations.Add(_hubToBuildOn.transform.position);
             _genome = SpawnModules();
-
-            if(ConfigureConstants)
-                ConfigureShip();
-
+            
             return _genome;
         }
 
@@ -230,37 +209,6 @@ namespace Assets.src.Evolution
             //}
             return null;
         }
-
-        private void ConfigureShip()
-        {
-            var controller = _hubToBuildOn.GetComponent<SpaceShipControler>();
-
-            //Debug.Log("ConfiguringShip");
-
-            controller.ShootAngle =
-                _genome.GetNumberFromGenome(0, DefaultShootAngleProportion) * MaxShootAngle;
-            controller.LocationAimWeighting =
-                _genome.GetNumberFromGenome(2, DefaultLocationAimWeightingProportion) * MaxLocationAimWeighting;
-            controller.SlowdownWeighting =
-                _genome.GetNumberFromGenome(4, DefaultSlowdownWeightingProportion) * MaxSlowdownWeighting;
-            controller.MaxRange =
-                _genome.GetNumberFromGenome(6, DefaultMaxAndMinRangeProportion) * MaxMaxAndMinRange;
-            controller.MinRange =
-                _genome.GetNumberFromGenome(8, DefaultMaxAndMinRangeProportion) * MaxMaxAndMinRange;
-            controller.MaxTangentialVelocity =
-                _genome.GetNumberFromGenome(10, DefaultVelociyTolleranceProportion) * MaxVelociyTollerance;
-            controller.MinTangentialVelocity =
-                _genome.GetNumberFromGenome(12, DefaultVelociyTolleranceProportion) * MaxVelociyTollerance;
-            controller.TangentialSpeedWeighting =
-                _genome.GetNumberFromGenome(14, DefaultTangentialVelosityWeightingProportion) * MaxTangentialVelosityWeighting;
-            controller.AngularDragForTorquers =
-                _genome.GetNumberFromGenome(16, DefaultAngularDragForTorquersProportion) * MaxAngularDragForTorquers;
-            controller.RadialSpeedThreshold =
-                _genome.GetNumberFromGenome(18, DefaultVelociyTolleranceProportion) * MaxVelociyTollerance;
-        }
-
-        
-
     }
 }
 
