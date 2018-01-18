@@ -20,7 +20,7 @@ namespace Assets.Src.ModuleSystem
         {
             var shipToEvolve = GetComponent<Rigidbody>();
             var targetChoosingMechanism = GetComponent<IKnowsEnemyTags>();
-            var enemyTags = targetChoosingMechanism != null ? targetChoosingMechanism.GetEnemyTags() : null;
+            var enemyTags = targetChoosingMechanism != null ? targetChoosingMechanism.GetEnemyTags() : new List<string>();
 
             var velocity = shipToEvolve.velocity;
 
