@@ -33,6 +33,7 @@ TODO:
             Use this to limit engines hubs and turrets separately.
             Include budget as a nullable field in the mutationconfig (db and menu)
             Have each part have a method (in an IGenomeConfigure, or something like that) that does all the config for that part, including adding new pieces and configuring turrets.
+        Stop adding or removing modules from meesing up everything - at the moment adding a hub will mess up the placement and config of everything after te character that was changed to add the hub.
         Lightsabers!
         Randomise target choosing mechanism periods so they don't come up at the same time.
         Some tool to show graphs of genomes over time.

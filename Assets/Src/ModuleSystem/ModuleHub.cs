@@ -20,6 +20,7 @@ namespace Assets.Src.ModuleSystem
         {
             var shipToEvolve = GetComponent<Rigidbody>();
             var targetChoosingMechanism = GetComponent<IKnowsEnemyTags>();
+            var enemyTags = targetChoosingMechanism != null ? targetChoosingMechanism.GetEnemyTags() : null;
 
             var velocity = shipToEvolve.velocity;
 
@@ -27,7 +28,7 @@ namespace Assets.Src.ModuleSystem
             {
                 OverrideColour = true,
                 ColourOverride = ColourOverride,
-                EnemyTags = targetChoosingMechanism.GetEnemyTags(),
+                EnemyTags = enemyTags,
                 InitialVelocity = velocity
             }.BuildShip(true);
         }
