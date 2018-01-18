@@ -1,11 +1,14 @@
-﻿using Assets.Src.ObjectManagement;
+﻿using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
+using Assets.Src.ObjectManagement;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 //TODO neaten up fields and methods.
-public class EngineControler : MonoBehaviour {
+public class EngineControler : MonoBehaviour, IGeneticConfigurable
+{
     /// <summary>
     /// The force the engine applys at this transform's position in this transfornm's -up direction
     /// </summary>
@@ -200,6 +203,22 @@ public class EngineControler : MonoBehaviour {
         _active = false;
         SetPlumeState(0);
         tag = InactiveTag;
+    }
+
+    public bool GetConfigFromGenome = true;
+
+    private float MaxShootAngle = 180;
+    private float DefaultShootAngleProportion = 0.5f;
+
+    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    {
+        if (GetConfigFromGenome)
+        {
+            TranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
+            TorqueFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
+        }
+
+        return genomeWrapper;
     }
 
     private bool ApplysCorrectTorque()

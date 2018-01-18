@@ -136,25 +136,25 @@ public class SpaceShipControler : MonoBehaviour, IDeactivatable, IGeneticConfigu
         if (GetConfigFromGenome)
         {
             ShootAngle =
-                    genomeWrapper.GetScaledNumber(0, MaxShootAngle, DefaultShootAngleProportion);
+                    genomeWrapper.GetScaledNumber(MaxShootAngle, 0, DefaultShootAngleProportion);
             LocationAimWeighting =
-                genomeWrapper.GetScaledNumber(0, MaxLocationAimWeighting, DefaultLocationAimWeightingProportion);
+                genomeWrapper.GetScaledNumber(MaxLocationAimWeighting, 0, DefaultLocationAimWeightingProportion);
             SlowdownWeighting =
-                genomeWrapper.GetScaledNumber(0, MaxSlowdownWeighting, DefaultSlowdownWeightingProportion);
+                genomeWrapper.GetScaledNumber(MaxSlowdownWeighting, 0, DefaultSlowdownWeightingProportion);
             MaxRange =
-                genomeWrapper.GetScaledNumber(0, MaxMaxAndMinRange, DefaultMaxAndMinRangeProportion);
+                genomeWrapper.GetScaledNumber(MaxMaxAndMinRange, 0, DefaultMaxAndMinRangeProportion);
             MinRange =
-                genomeWrapper.GetScaledNumber(0, MaxMaxAndMinRange, DefaultMaxAndMinRangeProportion);
+                genomeWrapper.GetScaledNumber(MaxMaxAndMinRange, 0, DefaultMaxAndMinRangeProportion);
             MaxTangentialVelocity =
-                genomeWrapper.GetScaledNumber(0, MaxVelociyTollerance, DefaultVelociyTolleranceProportion);
+                genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
             MinTangentialVelocity =
-                genomeWrapper.GetScaledNumber(0, MaxVelociyTollerance, DefaultVelociyTolleranceProportion);
+                genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
             TangentialSpeedWeighting =
-                genomeWrapper.GetScaledNumber(0, MaxTangentialVelosityWeighting, DefaultTangentialVelosityWeightingProportion);
+                genomeWrapper.GetScaledNumber(MaxTangentialVelosityWeighting, 0, DefaultTangentialVelosityWeightingProportion);
             AngularDragForTorquers =
-                genomeWrapper.GetScaledNumber(0, MaxAngularDragForTorquers, DefaultAngularDragForTorquersProportion);
+                genomeWrapper.GetScaledNumber(MaxAngularDragForTorquers, 0, DefaultAngularDragForTorquersProportion);
             RadialSpeedThreshold =
-                genomeWrapper.GetScaledNumber(0, MaxVelociyTollerance, DefaultVelociyTolleranceProportion);
+                genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
             name = genomeWrapper.GetName();
         }
 

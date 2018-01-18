@@ -8,8 +8,9 @@ using System.Linq;
 using Assets.Src.Pilots;
 using Assets.Src.ObjectManagement;
 using System;
+using Assets.Src.Evolution;
 
-public class RocketController : MonoBehaviour
+public class RocketController : MonoBehaviour, IGeneticConfigurable
 {
     public TargetChoosingMechanism TargetChoosingMechanism;
     public float ShootAngle = 10;
@@ -124,5 +125,20 @@ public class RocketController : MonoBehaviour
             _detonator.DetonateNow();
         }
         TimeToLive -= Time.deltaTime;
+    }
+
+    public bool GetConfigFromGenome = true;
+
+    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    {
+        if (GetConfigFromGenome)
+        {
+            ShootAngle = genomeWrapper.GetScaledNumber(180);
+            TorqueMultiplier = genomeWrapper.GetScaledNumber(180);
+            LocationAimWeighting = genomeWrapper.GetScaledNumber(16);
+            TimeToTargetForDetonation = genomeWrapper.GetScaledNumber(2, 0 , 0.1f);
+        }
+
+        return genomeWrapper;
     }
 }

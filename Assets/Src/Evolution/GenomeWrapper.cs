@@ -12,6 +12,8 @@ namespace Assets.Src.Evolution
         private int _geneLength;
         private string _genome;
         private const int DEFAULT_NAME_LENGTH = 50;
+        private const int DEFAULT_GENE_LENGTH = 2;
+
         public int NameLength { get; set; }
 
         public string Genome { get
@@ -30,7 +32,7 @@ namespace Assets.Src.Evolution
 
         public List<Vector3> UsedLocations { get; private set; }
 
-        public GenomeWrapper(string genome, int geneLength = 1)
+        public GenomeWrapper(string genome, int geneLength = DEFAULT_GENE_LENGTH)
         {
             _genome = genome;
             _geneLength = geneLength;
