@@ -10,8 +10,9 @@ using UnityEngine;
 using System;
 using System.Linq;
 using Assets.Src.Pilots;
+using Assets.Src.Evolution;
 
-public class SpaceShipControler : MonoBehaviour, IDeactivatable
+public class SpaceShipControler : MonoBehaviour, IDeactivatable, IGeneticConfigurable
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
 
@@ -111,5 +112,52 @@ public class SpaceShipControler : MonoBehaviour, IDeactivatable
         _torquers.Add(torquer.GetComponent<Rigidbody>());
         Initialise();
         //_engineControl.SetEngine(Engine);
+    }
+
+    public bool GetConfigFromGenome = true;
+
+    private float MaxShootAngle = 180;
+    private float DefaultShootAngleProportion = 0.5f;
+    private float MaxLocationAimWeighting = 2;
+    private float DefaultLocationAimWeightingProportion = 0.5f;
+    private float MaxSlowdownWeighting = 70;
+    private float DefaultSlowdownWeightingProportion = 0.5f;
+    private float MaxTangentialVelosityWeighting = 70;
+    private float DefaultTangentialVelosityWeightingProportion = 0.5f;
+    private float MaxMaxAndMinRange = 1000;
+    private float DefaultMaxAndMinRangeProportion = 0.1f;
+    private float MaxVelociyTollerance = 100;
+    private float DefaultVelociyTolleranceProportion = 0.1f;
+    private float MaxAngularDragForTorquers = 1;
+    private float DefaultAngularDragForTorquersProportion = 0.2f;
+
+    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    {
+        if (GetConfigFromGenome)
+        {
+            ShootAngle =
+                    genomeWrapper.GetScaledNumber(MaxShootAngle, 0, DefaultShootAngleProportion);
+            LocationAimWeighting =
+                genomeWrapper.GetScaledNumber(MaxLocationAimWeighting, 0, DefaultLocationAimWeightingProportion);
+            SlowdownWeighting =
+                genomeWrapper.GetScaledNumber(MaxSlowdownWeighting, 0, DefaultSlowdownWeightingProportion);
+            MaxRange =
+                genomeWrapper.GetScaledNumber(MaxMaxAndMinRange, 0, DefaultMaxAndMinRangeProportion);
+            MinRange =
+                genomeWrapper.GetScaledNumber(MaxMaxAndMinRange, 0, DefaultMaxAndMinRangeProportion);
+            MaxTangentialVelocity =
+                genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
+            MinTangentialVelocity =
+                genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
+            TangentialSpeedWeighting =
+                genomeWrapper.GetScaledNumber(MaxTangentialVelosityWeighting, 0, DefaultTangentialVelosityWeightingProportion);
+            AngularDragForTorquers =
+                genomeWrapper.GetScaledNumber(MaxAngularDragForTorquers, 0, DefaultAngularDragForTorquersProportion);
+            RadialSpeedThreshold =
+                genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
+            name = genomeWrapper.GetName();
+        }
+
+        return genomeWrapper;
     }
 }

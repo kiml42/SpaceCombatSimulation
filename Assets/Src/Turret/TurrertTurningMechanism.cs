@@ -1,10 +1,12 @@
-﻿using Assets.Src.Interfaces;
+﻿using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
 using Assets.Src.Targeting;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TurrertTurningMechanism : MonoBehaviour {
+public class TurrertTurningMechanism : MonoBehaviour, IGeneticConfigurable
+{
     private IKnowsCurrentTarget _targetChoosingMechanism;
     public Transform RestTarget;
 
@@ -88,5 +90,22 @@ public class TurrertTurningMechanism : MonoBehaviour {
             }
             jointedObject.transform.parent = null;
         }
+    }
+
+    public bool GetConfigFromGenome = true;
+
+    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    {
+        if (GetConfigFromGenome)
+        {
+            TurnTableMotorFoce = genomeWrapper.GetScaledNumber(600);
+            TurnTableMotorSpeedMultiplier = genomeWrapper.GetScaledNumber(300);
+            TurnTableMotorSpeedCap = genomeWrapper.GetScaledNumber(100);
+            ElevationHubMotorFoce = genomeWrapper.GetScaledNumber(600);
+            ElevationHubMotorSpeedMultiplier = genomeWrapper.GetScaledNumber(300);
+            ElevationHubMotorSpeedCap = genomeWrapper.GetScaledNumber(100);
+        }
+
+        return genomeWrapper;
     }
 }

@@ -6,8 +6,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Assets.Src.Evolution;
 
-public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
+public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable, IGeneticConfigurable
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
     public bool TagChildren = false;
@@ -96,6 +97,14 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
                     projectile.transform.SetColor(_colerer.Colour);
                 }
 
+                if (GetConfigFromGenome)
+                {
+                    foreach (var c in projectile.GetComponents<IGeneticConfigurable>())
+                    {
+                        c.Configure(new GenomeWrapper(RocketGenome));
+                    }
+                }
+
                 _projectilesThisBurst++;
                 var stilBursting = _projectilesThisBurst < BurstCount;
                 _projectilesThisBurst = stilBursting ? _projectilesThisBurst : 0;
@@ -122,5 +131,18 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable
         //Debug.Log("Deactivating " + name);
         _active = false;
         tag = InactiveTag;
+    }
+
+
+    public bool GetConfigFromGenome = true;
+    private string RocketGenome;
+
+    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    {
+        if (GetConfigFromGenome)
+        {
+            RocketGenome = genomeWrapper.Genome.Substring(genomeWrapper.GetGeneAsInt() ?? 0);
+        }
+        return genomeWrapper;
     }
 }

@@ -16,17 +16,11 @@ public class EvolutionTargetShootingDatabaseHandlerSaveTests
     private string _dbPath;
     private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
     EvolutionTargetShootingDatabaseHandler _handler;
-    DatabaseInitialiser initialiser;
 
     [SetUp]
     public void Setup()
     {
         _dbPath = _dbPathStart + Guid.NewGuid().ToString() + _dbPathExtension;
-
-        initialiser = new DatabaseInitialiser
-        {
-            DatabasePath = _dbPath
-        };
 
         _handler = new EvolutionTargetShootingDatabaseHandler(_dbPath, _createCommandPath);
     }

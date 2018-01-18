@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-namespace Assets.src.Evolution
+namespace Assets.Src.ModuleSystem
 {
-    public class ModuleList : MonoBehaviour
+    public class RigidbodyList : MonoBehaviour
     {
         public List<Rigidbody> Modules;
     }

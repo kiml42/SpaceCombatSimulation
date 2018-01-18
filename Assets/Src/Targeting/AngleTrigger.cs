@@ -1,10 +1,11 @@
-﻿using Assets.Src.Interfaces;
+﻿using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
 using Assets.Src.Targeting;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class AngleTrigger : MonoBehaviour, IFireControl
+public class AngleTrigger : MonoBehaviour, IFireControl, IGeneticConfigurable
 {
     public Rigidbody AimingObject;
     public float ShootAngle = 10;
@@ -56,5 +57,19 @@ public class AngleTrigger : MonoBehaviour, IFireControl
     public bool ShouldShoot()
     {
         return ShouldShoot(_targetChoosingMechanism.CurrentTarget);
+    }
+
+    public bool GetConfigFromGenome = false;
+
+    private float MaxShootAngle = 20;
+
+    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    {
+        if (GetConfigFromGenome)
+        {
+            ShootAngle =genomeWrapper.GetScaledNumber(MaxShootAngle, 0, 0.01f);
+        }
+
+        return genomeWrapper;
     }
 }

@@ -43,6 +43,7 @@ GameObject:
   - component: {fileID: 114976923276652010}
   - component: {fileID: 114651903247474522}
   - component: {fileID: 114094802099809050}
+  - component: {fileID: 114494996643503678}
   m_Layer: 0
   m_Name: RocketDispenser
   m_TagString: Team1
@@ -340,6 +341,18 @@ MonoBehaviour:
   - Team4ForceField
   - Team5ForceField
   TeamTagForceFieldSuffix: FoceField
+--- !u!114 &114494996643503678
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1489824746261682}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 01000000
 --- !u!114 &114651903247474522
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -217,6 +217,7 @@ GameObject:
   - component: {fileID: 54718662206741180}
   - component: {fileID: 114490641755474552}
   - component: {fileID: 114106579232997888}
+  - component: {fileID: 114793710215309262}
   m_Layer: 0
   m_Name: EngineDrone
   m_TagString: Team2
@@ -511,7 +512,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1864121942924130}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -4156.614, y: -2.886776, z: 39.635685}
+  m_LocalPosition: {x: 4.723028, y: 13.518505, z: -58.33529}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4763124499507600}
@@ -558,6 +559,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -946,14 +948,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9bc29bd4fd161b47b777c3bacd61786, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Genome: 2
   TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
   ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
     type: 2}
+  EnemyTags:
+  - Team1
+  - Enemy
+  ColourOverride: {r: 0.42745098, g: 0.105882354, b: 0.5372549, a: 1}
+  SpawnPoints:
+  - {fileID: 4763124499507600}
+  Genome: 2
   MaxTurrets: 10
   MaxModules: 15
-  EnemyTags: []
-  ColourOverride: {r: 0.42745098, g: 0.105882354, b: 0.5372549, a: 1}
+--- !u!114 &114793710215309262
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1864121942924130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 00000000
+  Cost: 100
 --- !u!114 &114914890810551814
 MonoBehaviour:
   m_ObjectHideFlags: 1

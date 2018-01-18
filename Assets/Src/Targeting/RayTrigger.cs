@@ -9,7 +9,6 @@ public class RayTrigger : MonoBehaviour, IFireControl
 {
     public TargetChoosingMechanism TargetChoosingMechanism;
     public Transform AimingObject;
-    private IFireControl _fireControl;
     public float MaxDistance = 100000;
     public float MinDistance = 0;
 

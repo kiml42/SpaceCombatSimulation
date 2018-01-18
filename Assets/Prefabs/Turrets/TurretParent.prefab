@@ -177,6 +177,7 @@ GameObject:
   - component: {fileID: 114505701970822600}
   - component: {fileID: 114094423891481098}
   - component: {fileID: 114024670737010054}
+  - component: {fileID: 114365050818564930}
   m_Layer: 8
   m_Name: TurretParent
   m_TagString: Team1
@@ -239,8 +240,8 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1721119589249582}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 10, y: -2.98, z: 30}
+  m_LocalRotation: {x: 0.6532815, y: 0.6532815, z: -0.27059805, w: -0.27059805}
+  m_LocalPosition: {x: -39.32003, y: 0, z: 18.399223}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4489758503198134}
@@ -249,7 +250,7 @@ Transform:
   - {fileID: 4889143187695254}
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 180, y: 45, z: -90}
 --- !u!4 &4291995321138198
 Transform:
   m_ObjectHideFlags: 1
@@ -405,6 +406,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -710,7 +712,7 @@ HingeJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0, y: 0.5, z: 0}
+  m_ConnectedAnchor: {x: -0.000000089406974, y: 0.5000006, z: 0.000000059604645}
   m_UseSpring: 0
   m_Spring:
     spring: 0
@@ -744,7 +746,7 @@ HingeJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0.00000014701006, y: 2.5, z: 0.00002549961}
+  m_ConnectedAnchor: {x: -0.00000056826127, y: 2.4999995, z: 0.000027168528}
   m_UseSpring: 0
   m_Spring:
     spring: 0
@@ -943,6 +945,18 @@ MonoBehaviour:
   - Team4ForceField
   - Team5ForceField
   TeamTagForceFieldSuffix: FoceField
+--- !u!114 &114365050818564930
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1721119589249582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 01000000
 --- !u!114 &114375893224788504
 MonoBehaviour:
   m_ObjectHideFlags: 1

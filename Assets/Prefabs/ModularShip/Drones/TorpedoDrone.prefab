@@ -141,6 +141,7 @@ GameObject:
   - component: {fileID: 54861845782397696}
   - component: {fileID: 114379322365634880}
   - component: {fileID: 114675779533184216}
+  - component: {fileID: 114222657505056880}
   m_Layer: 0
   m_Name: TorpedoDrone
   m_TagString: Team2
@@ -498,7 +499,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1516246632463740}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -4156.614, y: -2.886776, z: 39.635685}
+  m_LocalPosition: {x: 20.433966, y: 10.088818, z: -49.705406}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4296425691075258}
@@ -558,6 +559,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -849,6 +851,19 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1511285681834764}
   m_Enabled: 1
+--- !u!114 &114222657505056880
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1516246632463740}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 00000000
+  Cost: 100
 --- !u!114 &114317958197295410
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -904,14 +919,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9bc29bd4fd161b47b777c3bacd61786, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Genome: '  8'
   TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
   ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
     type: 2}
+  EnemyTags:
+  - Team1
+  - Enemy
+  ColourOverride: {r: 0.42745098, g: 0.105882354, b: 0.5372549, a: 1}
+  SpawnPoints:
+  - {fileID: 4392159079440058}
+  Genome: 8
   MaxTurrets: 10
   MaxModules: 15
-  EnemyTags: []
-  ColourOverride: {r: 0.42745098, g: 0.105882354, b: 0.5372549, a: 1}
 --- !u!114 &114675779533184216
 MonoBehaviour:
   m_ObjectHideFlags: 1

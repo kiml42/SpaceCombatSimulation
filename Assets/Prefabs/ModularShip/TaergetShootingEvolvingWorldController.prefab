@@ -359,6 +359,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -394,6 +395,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -685,11 +687,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ec239746f603b64dbbbce3d88199ef4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DatabaseId: 1
+  DatabaseId: 0
   ShipConfig: {fileID: 114276023159756518}
   CurrentScore: 0
-  DroneList: {fileID: 114722036526711760, guid: e2dbee6a48a444f4aab01257450a7363,
-    type: 2}
+  DroneList: {fileID: 0}
 --- !u!114 &114276023159756518
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -701,7 +702,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ea828848f7240543aecf81d98f88a46, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ShipToEvolve: {fileID: 54288706851983332, guid: f3b4cb1aa8e6d4d4d9102e7e65998466,
+  ShipToEvolve: {fileID: 114768698117951274, guid: f3b4cb1aa8e6d4d4d9102e7e65998466,
     type: 2}
   Tags:
   - Team1
@@ -750,6 +751,7 @@ MonoBehaviour:
   ZoomMultiplier: 30
   ZoomOrSwitchThreshold: 500
   TranslateSpeed: 2
+  MainMenu: MainMenu
 --- !u!114 &114820249686054208
 MonoBehaviour:
   m_ObjectHideFlags: 1

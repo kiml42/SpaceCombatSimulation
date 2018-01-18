@@ -7,8 +7,9 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using System;
+using Assets.Src.Evolution;
 
-public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IDeactivateableTargetPicker
+public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IDeactivateableTargetPicker, IGeneticConfigurable
 {
 
     private ITargetDetector _detector;
@@ -218,5 +219,31 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IDeactiva
     public void Deactivate()
     {
         _active = false;
+    }
+
+    public bool GetConfigFromGenome = true;
+
+    private float MaxBonus = 180;
+    private float MaxMultiplier = 100;
+
+    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    {
+        if (GetConfigFromGenome)
+        {
+            PreferedTypeBonus = genomeWrapper.GetScaledNumber(MaxBonus);
+            InCorrectHemisphereBonus = genomeWrapper.GetScaledNumber(MaxBonus);
+            PickerMassMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
+            MinimumMass = genomeWrapper.GetScaledNumber(200);
+            PickerOverMinMassBonus = genomeWrapper.GetScaledNumber(MaxBonus);
+            PickerDistanceMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
+            PickerRange = genomeWrapper.GetScaledNumber(2000);
+            PickerInRangeBonus = genomeWrapper.GetScaledNumber(MaxBonus);
+            LineOfSightBonus = genomeWrapper.GetScaledNumber(MaxBonus);
+            MinLineOfSightDetectionDistance = genomeWrapper.GetScaledNumber(10);
+            PickerAimedAtMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
+            PickerApproachWeighting = genomeWrapper.GetScaledNumber(15);
+        }
+
+        return genomeWrapper;
     }
 }

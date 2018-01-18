@@ -421,6 +421,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -456,6 +457,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -843,7 +845,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3dff911269bfe564ba0a3d2fd1db1d11, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DatabaseId: 1
+  DatabaseId: 0
   ShipConfig: {fileID: 114162882494618574}
   MaxShootAngle: 180
   MaxTorqueMultiplier: 60000
@@ -864,7 +866,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ea828848f7240543aecf81d98f88a46, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ShipToEvolve: {fileID: 54288706851983332, guid: f3b4cb1aa8e6d4d4d9102e7e65998466,
+  ShipToEvolve: {fileID: 114077786339274376, guid: f3b4cb1aa8e6d4d4d9102e7e65998466,
     type: 2}
   Tags:
   - Team1
@@ -899,6 +901,7 @@ MonoBehaviour:
   ZoomMultiplier: 30
   ZoomOrSwitchThreshold: 500
   TranslateSpeed: 2
+  MainMenu: MainMenu
 --- !u!114 &114502806315632148
 MonoBehaviour:
   m_ObjectHideFlags: 1

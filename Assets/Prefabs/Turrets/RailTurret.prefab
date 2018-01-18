@@ -110,6 +110,7 @@ GameObject:
   - component: {fileID: 114898967683699902}
   - component: {fileID: 114295010989323166}
   - component: {fileID: 114932955728960498}
+  - component: {fileID: 114962832282088648}
   m_Layer: 8
   m_Name: RailTurret
   m_TagString: Team1
@@ -405,6 +406,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -1085,6 +1087,18 @@ MonoBehaviour:
   TagChildren: 0
   SetChildrensEnemy: 0
   RecoilForce: 500
+--- !u!114 &114962832282088648
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1290215007669200}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 01000000
 --- !u!114 &114963415697579388
 MonoBehaviour:
   m_ObjectHideFlags: 1

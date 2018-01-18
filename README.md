@@ -31,8 +31,15 @@ TODO:
         Add monobehaviour for modules that says what they are
             Has isEngine, isTurret, IsHub booleans
             Use this to limit engines hubs and turrets separately.
-            Possibly have a cost for each and allow total cost instead of limits
+            Include budget as a nullable field in the mutationconfig (db and menu)
+            Have each part have a method (in an IGenomeConfigure, or something like that) that does all the config for that part, including adding new pieces and configuring turrets.
+        Stop adding or removing modules from meesing up everything - at the moment adding a hub will mess up the placement and config of everything after the character that was changed to add the hub.
+            Possibly have components read a gene to say where to look for their config, making retreval of config invariant and shareable.
+            Include in theis config what gene to look for for each component to add, and never read through the genome in order.
+        Replace allowedCharacters with allowed Modules list.
+        Lightsabers!
         Randomise target choosing mechanism periods so they don't come up at the same time.
+        Some tool to show graphs of genomes over time.
         Cardboard support
         Test on phone
         Add to Play store?
