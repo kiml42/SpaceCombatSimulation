@@ -57,7 +57,7 @@ namespace Assets.src.Evolution
                 _hubToBuildOn.transform.SetColor(_colour);
             }
 
-            Debug.Log("Spawning modules on " + _hubToBuildOn.name);
+            //Debug.Log("Spawning modules on " + _hubToBuildOn.name);
 
             _genome.UsedLocations.Add(_hubToBuildOn.transform.position);
             _genome = SpawnModules();
@@ -86,7 +86,7 @@ namespace Assets.src.Evolution
                     {
                         if(_genome.IsUnderBudget())
                         {
-                            Debug.Log("adding " + moduleToAdd + " total cost = " + _genome.Cost);
+                            //Debug.Log("adding " + moduleToAdd + " total cost = " + _genome.Cost);
                             var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, _hubToBuildOn.transform);
                             
                             addedModule.GetComponent<FixedJoint>().connectedBody = _hubToBuildOn.GetComponent<Rigidbody>();
@@ -103,27 +103,31 @@ namespace Assets.src.Evolution
                             addedModule.GetComponent<Rigidbody>().velocity = InitialVelocity;
 
                             if (UseJump)
+                            {
                                 _genome.Jump();
-                            _genome = addedModule.Configure(_genome);
-                            if (UseJump)
+                                _genome = addedModule.Configure(_genome);
                                 _genome.JumpBack();
+                            } else
+                            {
+                                _genome = addedModule.Configure(_genome);
+                            }
 
                             _genome.ModuleAdded(addedModule, newUsedLocation);
                         }
-                        else
-                        {
-                            Debug.Log("Over budget: cost = " + _genome.Cost + ", budget = " + _genome.Budget);
-                        }
+                        //else
+                        //{
+                        //    Debug.Log("Over budget: cost = " + _genome.Cost + ", budget = " + _genome.Budget);
+                        //}
                     }
-                    else
-                    {
-                        Debug.Log("skipping null module");
-                    }
+                    //else
+                    //{
+                    //    Debug.Log("skipping null module");
+                    //}
                 }
-                else
-                {
-                    Debug.Log("Can not spawn module here.");
-                }
+                //else
+                //{
+                //    Debug.Log("Can not spawn module here.");
+                //}
             }
             return _genome;
         }

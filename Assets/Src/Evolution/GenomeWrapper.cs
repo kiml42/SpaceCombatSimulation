@@ -36,35 +36,24 @@ namespace Assets.Src.Evolution
 
 
         #region EnemyTags
-        void IKnowsEnemyTags.AddEnemyTag(string newTag)
+        public void AddEnemyTag(string newTag)
         {
             var tags = EnemyTags.ToList();
             tags.Add(newTag);
             EnemyTags = tags.Distinct().ToList();
         }
 
-        List<string> IKnowsEnemyTags.EnemyTags
-        {
-            get
-            {
-                return EnemyTags;
-            }
-            set
-            {
-                EnemyTags = value;
-            }
-        }
-
-        public List<string> EnemyTags;
+        public List<string> EnemyTags { get; set; }
         #endregion
 
-        public GenomeWrapper(string genome, int geneLength = DEFAULT_GENE_LENGTH)
+        public GenomeWrapper(string genome, List<string> enemyTags, int geneLength = DEFAULT_GENE_LENGTH)
         {
             _genome = genome;
             _geneLength = geneLength;
             NameLength = DEFAULT_NAME_LENGTH;
             Budget = null; //default tyhe budget to null, can be set later.
             UsedLocations = new List<Vector3>();
+            EnemyTags = enemyTags;
         }
 
 

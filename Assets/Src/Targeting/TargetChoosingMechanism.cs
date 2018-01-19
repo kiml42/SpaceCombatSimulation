@@ -112,11 +112,6 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
     // Use this for initialization
     void Start ()
     {
-        if(EnemyTags == null || !EnemyTags.Any())
-        {
-            Debug.LogWarning(name + " has no enemy tags configured.");
-        }
-
         var speedKnower = GetComponent("IKnowsProjectileSpeed") as IKnowsProjectileSpeed;
         var projectileSpeed = speedKnower != null ? speedKnower.ProjectileSpeed : null;
         _rigidbody = GetComponent<Rigidbody>();
@@ -204,6 +199,10 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
 
             if (targetIsInvalid || (ContinuallyCheckForTargets && _pollCountdonwn <= 0))
             {
+                if (EnemyTags == null || !EnemyTags.Any())
+                {
+                    Debug.LogWarning(name + " has no enemy tags configured.");
+                }
                 //either the target is invalid, or the poll interval has elapsed and the ContinuallyCheckForTargets boolean is true, so a new poll should be made.
                 //Debug.Log(name + " aquiring new target");
                 var allTargets = _detector.DetectTargets();
@@ -249,6 +248,12 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
             MinLineOfSightDetectionDistance = genomeWrapper.GetScaledNumber(10);
             PickerAimedAtMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
             PickerApproachWeighting = genomeWrapper.GetScaledNumber(15);
+
+            EnemyTags = genomeWrapper.EnemyTags;
+            _detector = new RepositoryTargetDetector()
+            {
+                EnemyTags = EnemyTags
+            };
         }
 
         return genomeWrapper;

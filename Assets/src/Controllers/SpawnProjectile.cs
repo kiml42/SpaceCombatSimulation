@@ -84,7 +84,7 @@ public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurab
                 {
                     foreach (var c in projectile.GetComponents<IGeneticConfigurable>())
                     {
-                        c.Configure(new GenomeWrapper(RocketGenome));
+                        c.Configure(new GenomeWrapper(RocketGenome, _targetChoosingMechanism.EnemyTags));
                     }
                 }
 

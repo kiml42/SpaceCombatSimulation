@@ -21,8 +21,11 @@ public class SelfBuildingShip : ModuleHub
     
     public void Start()
     {
+        var knower = GetComponent<IKnowsEnemyTags>();
+
         Genome = Genome.PadRight(PadToLength);
-        var genomeWrapper = new GenomeWrapper(Genome)
+
+        var genomeWrapper = new GenomeWrapper(Genome, knower.EnemyTags)
         {
             MaxModules = MaxModules,
             MaxTurrets = MaxTurrets

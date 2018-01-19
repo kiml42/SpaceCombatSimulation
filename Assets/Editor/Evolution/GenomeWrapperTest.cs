@@ -9,10 +9,12 @@ namespace Assets.Editor.Evolution
 {
     public class GenomeWrapperTest
     {
+        List<string> _enemyTags = new List<string>();
+
         [Test]
         public void GenomeWrappsCorrectly()
         {
-            var genome = new GenomeWrapper("123");
+            var genome = new GenomeWrapper("123", _enemyTags);
 
             var g1 = genome.GetGene();
             var g2 = genome.GetGene();
@@ -24,7 +26,7 @@ namespace Assets.Editor.Evolution
         [Test]
         public void JumpTest()
         {
-            var genome = new GenomeWrapper("053456789", 2);
+            var genome = new GenomeWrapper("053456789", _enemyTags, 2);
 
             genome.Jump();  //jumps to index 05
 
@@ -41,7 +43,7 @@ namespace Assets.Editor.Evolution
         [Test]
         public void JumpTest_tooManyJumpBacks()
         {
-            var genome = new GenomeWrapper("053456789", 2);
+            var genome = new GenomeWrapper("053456789", _enemyTags, 2);
 
             genome.Jump();  //jumps to index 05
 

@@ -46,11 +46,10 @@ public class EvolutionShipConfig : MonoBehaviour {
         ship.tag = ownTag;
         var enemyTags = Tags.Where(t => t != ownTag).ToList();
 
-        var genomeWrapper = new GenomeWrapper(genome)
+        var genomeWrapper = new GenomeWrapper(genome, enemyTags)
         {
             MaxTurrets = MaxTurrets,
-            MaxModules = MaxModules,
-            EnemyTags = enemyTags
+            MaxModules = MaxModules
         };
         ship.GetComponent<Rigidbody>().velocity = velocity;
 

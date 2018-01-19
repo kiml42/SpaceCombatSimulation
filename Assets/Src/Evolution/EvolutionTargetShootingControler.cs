@@ -77,7 +77,7 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
                 : -_config.DeathPenalty);
 
             Debug.Log("Match over! Score for kills: " + CurrentScore + ", Survival Bonus: " + survivalBonus);
-
+            
             CurrentScore += survivalBonus;
 
             _currentGeneration.RecordMatch(_genome, CurrentScore, _stillAlive, !_dronesRemain, _killsThisMatch);
@@ -145,6 +145,10 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
             
             _dronesRemain = droneCount > 0;
             _stillAlive = _hasModules && shipCount > 0; //ships that never had modules are considered dead.
+            if (!_hasModules)
+            {
+                Debug.Log("Ship spawned no modules - it is dead to me.");
+            }
 
             var killedDrones = _previousDroneCount - droneCount;
 

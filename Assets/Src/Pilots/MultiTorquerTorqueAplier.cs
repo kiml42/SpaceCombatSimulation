@@ -51,7 +51,7 @@ namespace Assets.Src.Pilots
             if(rotationVector.magnitude < 0.1 && vectorInPilotSpace.z < 0)
             {
                 //The target is exactly behind, turning in any direction will do.
-                Debug.Log("Target is exactly behind");
+                //Debug.Log("Target is exactly behind");
                 rotationVector = new Vector3(1, 0, 0);
             }
             //Debug.Log("rotationVector" + rotationVector);
