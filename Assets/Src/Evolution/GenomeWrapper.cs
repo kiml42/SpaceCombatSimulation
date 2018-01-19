@@ -25,7 +25,7 @@ namespace Assets.Src.Evolution
         public float Cost { get; private set; }
         public float? Budget { get; set; }
         private int _position;
-        private Stack<int> previousPositions = new Stack<int>();
+        private Stack<int> _previousPositions = new Stack<int>();
 
         public int TurretsAdded { get; private set; }
         public int ModulesAdded { get; private set; }
@@ -128,6 +128,37 @@ namespace Assets.Src.Evolution
             }
             
             return gene.ToString();
+        }
+
+        /// <summary>
+        /// Reads the next gene, then jumps to the indicated position in the genome.
+        /// if the gene does not have a valid integer value,
+        /// the position will be left as the position after the gene was read for where to jump to.
+        /// In this case, jump back will still return to this gene.
+        /// </summary>
+        public void Jump()
+        {
+            var gene = GetGeneAsInt();
+            _previousPositions.Push(_position);
+            if (gene.HasValue)
+            {
+                _position = gene.Value;
+            }
+        }
+
+        /// <summary>
+        /// Returns to the location before the last jump (will be one gene further on for the gene read by the jump)
+        /// </summary>
+        public void JumpBack()
+        {
+            if (_previousPositions.Any())
+            {
+                _position = _previousPositions.Pop();
+            }
+            else
+            {
+                Debug.LogWarning("Tried to jump back without having jumped.");
+            }
         }
 
         /// <summary>
