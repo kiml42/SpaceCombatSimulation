@@ -124,9 +124,7 @@ public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurab
     {
         if (GetConfigFromGenome)
         {
-            genomeWrapper.Jump();
             RocketGenome = genomeWrapper.Genome.Substring(genomeWrapper.GetGeneAsInt() ?? 0);
-            genomeWrapper.JumpBack();
         }
         return genomeWrapper;
     }

@@ -14,11 +14,10 @@ namespace Assets.Src.ModuleSystem
         public ModuleList ModuleList;
         public Color ColourOverride;
         public List<Transform> SpawnPoints;
+        protected virtual bool UseJump { get; set; }
 
         public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
         {
-            genomeWrapper.Jump();
-
             var shipToEvolve = GetComponent<Rigidbody>();
             var velocity = shipToEvolve.velocity;
 
@@ -26,10 +25,10 @@ namespace Assets.Src.ModuleSystem
             {
                 OverrideColour = true,
                 ColourOverride = ColourOverride,
-                InitialVelocity = velocity
+                InitialVelocity = velocity,
+                UseJump = UseJump
             }.BuildShip(true);
-
-            genomeWrapper.JumpBack();
+            
             return genomeWrapper;
         }
     }

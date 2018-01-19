@@ -135,7 +135,6 @@ public class SpaceShipControler : MonoBehaviour, IDeactivatable, IGeneticConfigu
     {
         if (GetConfigFromGenome)
         {
-            genomeWrapper.Jump();
             ShootAngle =
                     genomeWrapper.GetScaledNumber(MaxShootAngle, 0, DefaultShootAngleProportion);
             LocationAimWeighting =
@@ -157,7 +156,6 @@ public class SpaceShipControler : MonoBehaviour, IDeactivatable, IGeneticConfigu
             RadialSpeedThreshold =
                 genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
             name = genomeWrapper.GetName();
-            genomeWrapper.JumpBack();
         }
 
         return genomeWrapper;

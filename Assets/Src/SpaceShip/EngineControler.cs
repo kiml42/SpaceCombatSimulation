@@ -214,10 +214,8 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
     {
         if (GetConfigFromGenome)
         {
-            genomeWrapper.Jump();
             TranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
             TorqueFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
-            genomeWrapper.JumpBack();
         }
 
         return genomeWrapper;

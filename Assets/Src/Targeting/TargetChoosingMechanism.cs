@@ -237,7 +237,6 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
     {
         if (GetConfigFromGenome)
         {
-            genomeWrapper.Jump();
             PreferedTypeBonus = genomeWrapper.GetScaledNumber(MaxBonus);
             InCorrectHemisphereBonus = genomeWrapper.GetScaledNumber(MaxBonus);
             PickerMassMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
@@ -250,7 +249,6 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
             MinLineOfSightDetectionDistance = genomeWrapper.GetScaledNumber(10);
             PickerAimedAtMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
             PickerApproachWeighting = genomeWrapper.GetScaledNumber(15);
-            genomeWrapper.JumpBack();
         }
 
         return genomeWrapper;
