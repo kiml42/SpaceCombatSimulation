@@ -9,7 +9,7 @@ using UnityEngine;
 using System;
 using Assets.Src.Evolution;
 
-public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IDeactivateableTargetPicker, IGeneticConfigurable
+public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicker, IGeneticConfigurable
 {
 
     private ITargetDetector _detector;

@@ -13,11 +13,13 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Full v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile></CompilerResponseFile>
+    <CompilerResponseFile>
+    </CompilerResponseFile>
     <UnityProjectType>Editor:5</UnityProjectType>
     <UnityBuildTarget>Android:13</UnityBuildTarget>
     <UnityVersion>2017.3.0f3</UnityVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -300,6 +302,7 @@
     <Compile Include="Assets\Editor\1v1Evolution\Evolution1v1DatabaseHandlerIndividualsTests.cs" />
     <Compile Include="Assets\Editor\1v1Evolution\Evolution1v1DatabaseHandlerReadTests.cs" />
     <Compile Include="Assets\Editor\1v1Evolution\Evolution1v1DatabaseHandlerSaveTests.cs" />
+    <Compile Include="Assets\Editor\Evolution\GenomeWrapperTest.cs" />
     <Compile Include="Assets\Editor\GenerationTests.cs" />
     <Compile Include="Assets\Editor\TargetShootingEvolution\EvolutionTargetShootingDatabaseHandlerIndividualsTests.cs" />
     <Compile Include="Assets\Editor\TargetShootingEvolution\EvolutionTargetShootingDatabaseHandlerReadTests.cs" />

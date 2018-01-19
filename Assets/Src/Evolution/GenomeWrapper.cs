@@ -24,7 +24,8 @@ namespace Assets.Src.Evolution
         }
         public float Cost { get; private set; }
         public float? Budget { get; set; }
-        public int Position { get; private set; }
+        private int _position;
+        private Stack<int> previousPositions = new Stack<int>();
 
         public int TurretsAdded { get; private set; }
         public int ModulesAdded { get; private set; }
@@ -88,31 +89,24 @@ namespace Assets.Src.Evolution
             return CanSpawn();
         }
 
-        internal string GetName()
+        public string GetName()
         {
             return _genome.Substring(0, NameLength);
         }
 
         public bool CanSpawn()
         {
-            var isWithinGenomeLength = IsWithinGenome();
             var isUnderBudget = IsUnderBudget();
             var freeTurrets = !MaxTurrets.HasValue || TurretsAdded < MaxTurrets;
             var freeModules = !MaxModules.HasValue || ModulesAdded < MaxModules;
             var canSpawn =
-                isWithinGenomeLength &&
                 isUnderBudget &&
                 freeTurrets &&
                 freeModules;
                 
             return canSpawn;
         }
-
-        private bool IsWithinGenome()
-        {
-            return Position + _geneLength <= _genome.Length;
-        }
-
+        
         public bool IsUnderBudget()
         {
             return !Budget.HasValue || Cost < Budget.Value;
@@ -124,13 +118,16 @@ namespace Assets.Src.Evolution
         /// <returns></returns>
         public string GetGene()
         {
-            if (IsWithinGenome())
+            var gene = new StringBuilder();
+
+            for (int i = 0; i < _geneLength; i++)
             {
-                var substring = _genome.Substring(Position, _geneLength);
-                Position += _geneLength;
-                return substring;
+                var character =  _genome[_position];
+                _position = (_position+1) % _genome.Length;
+                gene.Append(character);
             }
-            return string.Empty;
+            
+            return gene.ToString();
         }
 
         /// <summary>

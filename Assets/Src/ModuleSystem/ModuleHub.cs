@@ -18,8 +18,6 @@ namespace Assets.Src.ModuleSystem
         public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
         {
             var shipToEvolve = GetComponent<Rigidbody>();
-            var targetChoosingMechanism = GetComponent<IKnowsEnemyTags>();
-
             var velocity = shipToEvolve.velocity;
 
             return new ShipBuilder(genomeWrapper, this)

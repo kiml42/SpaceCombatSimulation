@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Assets.Src.Interfaces
 {
-    public interface IDeactivateableTargetPicker : IKnowsCurrentTarget, IDeactivatable
+    public interface IDeactivateableTargetPicker : IKnowsEnemyTagsAndCurrentTarget, IDeactivatable
     {
     }
 }

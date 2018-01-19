@@ -10,8 +10,7 @@ using Assets.Src.Evolution;
 
 public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurable
 {
-    private IKnowsCurrentTarget _targetChoosingMechanism;
-    private IKnowsEnemyTags _enemyTagKnower;
+    private IKnowsEnemyTagsAndCurrentTarget _targetChoosingMechanism;
     public bool TagChildren = false;
     public Rigidbody Projectile;
     public Transform Emitter;
@@ -40,8 +39,7 @@ public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurab
         _colerer = GetComponent<ColourSetter>();
         _reload = UnityEngine.Random.value * RandomStartTime + MinStartTime;
         Emitter = Emitter ?? transform;
-        _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
-        _enemyTagKnower = GetComponent<IKnowsEnemyTags>();
+        _targetChoosingMechanism = GetComponent<IKnowsEnemyTagsAndCurrentTarget>();
 
         _spawner = GetComponent<Rigidbody>();
     }
@@ -71,7 +69,7 @@ public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurab
                 var tagKnower = projectile.GetComponent<IKnowsEnemyTags>();
                 if(tagKnower != null)
                 {
-                    tagKnower.EnemyTags = _enemyTagKnower.EnemyTags;
+                    tagKnower.EnemyTags = _targetChoosingMechanism.EnemyTags;
                 }
                 
                 if (TagChildren) { projectile.tag = tag; }

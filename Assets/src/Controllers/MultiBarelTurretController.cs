@@ -10,8 +10,7 @@ using UnityEngine;
 
 public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDeactivatable, IKnowsProjectileSpeed
 {
-    private IKnowsCurrentTarget _targetChoosingMechanism;
-    private IKnowsEnemyTags _tagKnower;
+    private IKnowsEnemyTagsAndCurrentTarget _targetChoosingMechanism;
     public Rigidbody Projectile;
     public Rigidbody MuzzleFlash;
     public float LoadTime = 200;
@@ -48,9 +47,8 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
     // Use this for initialization
     void Start()
     {
-        _colerer = GetComponent("ColourSetter") as ColourSetter;
-        _targetChoosingMechanism = GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
-        _tagKnower = GetComponent("IKnowsEnemyTags") as IKnowsEnemyTags;
+        _colerer = GetComponent<ColourSetter>();
+        _targetChoosingMechanism = GetComponent<IKnowsEnemyTagsAndCurrentTarget>();
         var emitterCount = EmitterParent.childCount;
 
         _emitters = new List<Transform>();
@@ -61,7 +59,7 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
         
         _reload = LoadTime;
         
-        _fireControl = GetComponent("IFireControl") as IFireControl;
+        _fireControl = GetComponent<IFireControl>();
     }
 
     // Update is called once per frame
@@ -96,9 +94,9 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
                 _reload = LoadTime;
                 ElevationHub.AddForceAtPosition(RecoilForce * (-emitter.forward), emitter.position, ForceMode.Impulse);
 
-                if (SetChildrensEnemy && _tagKnower != null)
+                if (SetChildrensEnemy && _targetChoosingMechanism != null)
                 {
-                    projectile.GetComponent<IKnowsEnemyTags>().EnemyTags = _tagKnower.EnemyTags;
+                    projectile.GetComponent<IKnowsEnemyTags>().EnemyTags = _targetChoosingMechanism.EnemyTags;
                 }
                 if (_colerer != null)
                 {

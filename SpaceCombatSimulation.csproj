@@ -13,11 +13,13 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Subset v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile></CompilerResponseFile>
+    <CompilerResponseFile>
+    </CompilerResponseFile>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>Android:13</UnityBuildTarget>
     <UnityVersion>2017.3.0f3</UnityVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -345,6 +347,7 @@
     <Compile Include="Assets\Src\Interfaces\IGeneticConfigurable.cs" />
     <Compile Include="Assets\Src\Interfaces\IKnowsCurrentTarget.cs" />
     <Compile Include="Assets\Src\Interfaces\IKnowsEnemyTag.cs" />
+    <Compile Include="Assets\Src\Interfaces\IKnowsEnemyTagsAndCurrentTarget.cs" />
     <Compile Include="Assets\Src\Interfaces\IKnowsProjectileSpeed.cs" />
     <Compile Include="Assets\Src\Interfaces\IPilot.cs" />
     <Compile Include="Assets\Src\Interfaces\IRocketRunner.cs" />
