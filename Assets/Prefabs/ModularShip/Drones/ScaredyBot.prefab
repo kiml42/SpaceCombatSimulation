@@ -894,7 +894,9 @@ MonoBehaviour:
   - {fileID: 4983299594709834}
   - {fileID: 4872453078131896}
   - {fileID: 4008066721246052}
-  Genome: '2  1         1            1     '
+  - {fileID: 4921964856346530}
+  - {fileID: 4339993213128444}
+  Genome: '   1        2              1                  1        2             1        2               1        2                                                        '
   MaxTurrets: 10
   MaxModules: 15
   PadToLength: 100
