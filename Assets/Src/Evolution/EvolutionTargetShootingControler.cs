@@ -12,6 +12,7 @@ using Assets.Src.Database;
 using Assets.Src.Evolution;
 using Assets.Src.Menus;
 using Assets.Src.ModuleSystem;
+using Assets.Src.Interfaces;
 
 public class EvolutionTargetShootingControler : BaseEvolutionController
 {
@@ -117,8 +118,8 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
             ship.tag = droneTag;
             
             ship.velocity = _config.MatchConfig.VelocityForStartLocation(randomPlacement);
-
-            ship.SendMessage("SetEnemyTags", enemyTags, SendMessageOptions.DontRequireReceiver);
+            
+            ship.GetComponent<IKnowsEnemyTags>().EnemyTags = enemyTags;
         }
     }
     

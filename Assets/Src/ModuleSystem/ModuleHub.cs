@@ -12,7 +12,6 @@ namespace Assets.Src.ModuleSystem
     {
         public TestCubeChecker TestCube;
         public ModuleList ModuleList;
-        public List<string> EnemyTags;
         public Color ColourOverride;
         public List<Transform> SpawnPoints;
 
@@ -20,7 +19,6 @@ namespace Assets.Src.ModuleSystem
         {
             var shipToEvolve = GetComponent<Rigidbody>();
             var targetChoosingMechanism = GetComponent<IKnowsEnemyTags>();
-            var enemyTags = targetChoosingMechanism != null ? targetChoosingMechanism.GetEnemyTags() : new List<string>();
 
             var velocity = shipToEvolve.velocity;
 
@@ -28,7 +26,6 @@ namespace Assets.Src.ModuleSystem
             {
                 OverrideColour = true,
                 ColourOverride = ColourOverride,
-                EnemyTags = enemyTags,
                 InitialVelocity = velocity
             }.BuildShip(true);
         }

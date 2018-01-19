@@ -1,4 +1,5 @@
-﻿using Assets.Src.ModuleSystem;
+﻿using Assets.Src.Interfaces;
+using Assets.Src.ModuleSystem;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +8,7 @@ using UnityEngine;
 
 namespace Assets.Src.Evolution
 {
-    public class GenomeWrapper
+    public class GenomeWrapper: IKnowsEnemyTags
     {
         private int _geneLength;
         private string _genome;
@@ -31,6 +32,30 @@ namespace Assets.Src.Evolution
         public int? MaxModules { get; set; }
 
         public List<Vector3> UsedLocations { get; private set; }
+
+
+        #region EnemyTags
+        void IKnowsEnemyTags.AddEnemyTag(string newTag)
+        {
+            var tags = EnemyTags.ToList();
+            tags.Add(newTag);
+            EnemyTags = tags.Distinct().ToList();
+        }
+
+        List<string> IKnowsEnemyTags.EnemyTags
+        {
+            get
+            {
+                return EnemyTags;
+            }
+            set
+            {
+                EnemyTags = value;
+            }
+        }
+
+        public List<string> EnemyTags;
+        #endregion
 
         public GenomeWrapper(string genome, int geneLength = DEFAULT_GENE_LENGTH)
         {

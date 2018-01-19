@@ -33,7 +33,7 @@ public class RayTrigger : MonoBehaviour, IFireControl
                 //is a hit
                 if (ShootAnyEnemy)
                 {
-                    var tags = TargetChoosingMechanism.GetEnemyTags();
+                    var tags = TargetChoosingMechanism.EnemyTags;
                     return tags.Contains(hit.transform.tag);
                 }
 

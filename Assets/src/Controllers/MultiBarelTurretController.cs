@@ -96,8 +96,9 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
                 _reload = LoadTime;
                 ElevationHub.AddForceAtPosition(RecoilForce * (-emitter.forward), emitter.position, ForceMode.Impulse);
 
-                if (SetChildrensEnemy && _tagKnower != null) {
-                    projectile.SendMessage("SetEnemyTags", _tagKnower.GetEnemyTags());
+                if (SetChildrensEnemy && _tagKnower != null)
+                {
+                    projectile.GetComponent<IKnowsEnemyTags>().EnemyTags = _tagKnower.EnemyTags;
                 }
                 if (_colerer != null)
                 {

@@ -10,29 +10,8 @@ using UnityEngine;
 
 namespace Assets.src.Evolution
 {
-    public class ShipBuilder : IKnowsEnemyTags
-    {
-        #region EnemyTags
-        public void AddEnemyTag(string newTag)
-        {
-            var tags = EnemyTags.ToList();
-            tags.Add(newTag);
-            EnemyTags = tags.Distinct().ToList();
-        }
-
-        public void SetEnemyTags(List<string> allEnemyTags)
-        {
-            EnemyTags = allEnemyTags;
-        }
-
-        public List<string> GetEnemyTags()
-        {
-            return EnemyTags;
-        }
-
-        public List<string> EnemyTags;
-        #endregion
-        
+    public class ShipBuilder
+    {        
         public Vector3 InitialVelocity = Vector3.zero;
         
         private GenomeWrapper _genome;
@@ -111,7 +90,12 @@ namespace Assets.src.Evolution
                             var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, _hubToBuildOn.transform);
                             
                             addedModule.GetComponent<FixedJoint>().connectedBody = _hubToBuildOn.GetComponent<Rigidbody>();
-                            addedModule.SendMessage("SetEnemyTags", EnemyTags, SendMessageOptions.DontRequireReceiver);
+
+                            var tagKnower = addedModule.GetComponent<IKnowsEnemyTags>();
+                            if (tagKnower != null)
+                            {
+                                tagKnower.EnemyTags = _genome.EnemyTags;
+                            }
 
                             addedModule.tag = _hubToBuildOn.tag;
 

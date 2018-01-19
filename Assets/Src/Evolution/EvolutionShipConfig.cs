@@ -42,11 +42,10 @@ public class EvolutionShipConfig : MonoBehaviour {
         var genomeWrapper = new GenomeWrapper(genome)
         {
             MaxTurrets = MaxTurrets,
-            MaxModules = MaxModules
+            MaxModules = MaxModules,
+            EnemyTags = enemyTags
         };
         ship.GetComponent<Rigidbody>().velocity = velocity;
-
-        ship.SendMessage("SetEnemyTags", enemyTags);
 
         genomeWrapper = ship.Configure(genomeWrapper);
     }

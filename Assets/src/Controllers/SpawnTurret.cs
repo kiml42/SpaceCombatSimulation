@@ -9,22 +9,25 @@ public class SpawnTurret : MonoBehaviour, IKnowsEnemyTags
 {
     public bool TagChildren = false;
 
+
     #region EnemyTags
-    public void AddEnemyTag(string newTag)
+    void IKnowsEnemyTags.AddEnemyTag(string newTag)
     {
         var tags = EnemyTags.ToList();
         tags.Add(newTag);
         EnemyTags = tags.Distinct().ToList();
     }
 
-    public void SetEnemyTags(List<string> allEnemyTags)
+    List<string> IKnowsEnemyTags.EnemyTags
     {
-        EnemyTags = allEnemyTags;
-    }
-
-    public List<string> GetEnemyTags()
-    {
-        return EnemyTags;
+        get
+        {
+            return EnemyTags;
+        }
+        set
+        {
+            EnemyTags = value;
+        }
     }
 
     public List<string> EnemyTags;
@@ -39,7 +42,9 @@ public class SpawnTurret : MonoBehaviour, IKnowsEnemyTags
         turret.parent = transform.parent;
 
         turret.GetComponent<FixedJoint>().connectedBody = transform.parent.GetComponent<Rigidbody>();
-        turret.SendMessage("SetEnemyTags", EnemyTags);
+
+        turret.GetComponent<IKnowsEnemyTags>().EnemyTags = EnemyTags;
+        
         if (TagChildren) { turret.tag = tag; }
 
         var renderer = transform.parent.GetComponent("Renderer") as Renderer;

@@ -18,21 +18,21 @@ namespace Assets.Src.Controllers
         public bool ShouldSetEnemyTag = false;
 
         #region EnemyTags
-        public void AddEnemyTag(string newTag)
+        void IKnowsEnemyTags.AddEnemyTag(string newTag)
         {
             var tags = EnemyTags.ToList();
             tags.Add(newTag);
             EnemyTags = tags.Distinct().ToList();
         }
 
-        public void SetEnemyTags(List<string> allEnemyTags)
-        {
-            EnemyTags = allEnemyTags;
-        }
-
-        public List<string> GetEnemyTags()
-        {
-            return EnemyTags;
+        List<string> IKnowsEnemyTags.EnemyTags { get
+            {
+                return EnemyTags;
+            }
+            set
+            {
+                EnemyTags = value;
+            }
         }
 
         public List<string> EnemyTags;
@@ -233,8 +233,11 @@ namespace Assets.Src.Controllers
 
                     var velocity = SpeedScaler * UnityEngine.Random.insideUnitSphere;
                     drone.velocity = velocity;
+                    
+                    if (ShouldSetEnemyTag) {
+                        drone.GetComponent<IKnowsEnemyTags>().EnemyTags = new List<string> { TarGetTag };
+                    }
 
-                    if (ShouldSetEnemyTag) { drone.SendMessage("SetEnemyTags", TarGetTag); }
                     if (TagChildren) { drone.tag = tag; }
 
                     _reload = LoadTime;
