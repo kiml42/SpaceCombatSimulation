@@ -67,7 +67,9 @@ public class AngleTrigger : MonoBehaviour, IFireControl, IGeneticConfigurable
     {
         if (GetConfigFromGenome)
         {
+            genomeWrapper.Jump();
             ShootAngle =genomeWrapper.GetScaledNumber(MaxShootAngle, 0, 0.01f);
+            genomeWrapper.JumpBack();
         }
 
         return genomeWrapper;

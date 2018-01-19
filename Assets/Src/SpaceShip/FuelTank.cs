@@ -64,7 +64,9 @@ public class FuelTank : MonoBehaviour, IGeneticConfigurable
     {
         if (GetConfigFromGenome)
         {
+            genomeWrapper.Jump();
             Fuel = genomeWrapper.GetScaledNumber(MaxFuel, MinFuel);
+            genomeWrapper.JumpBack();
         }
 
         return genomeWrapper;

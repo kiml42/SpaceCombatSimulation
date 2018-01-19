@@ -133,10 +133,12 @@ public class RocketController : MonoBehaviour, IGeneticConfigurable
     {
         if (GetConfigFromGenome)
         {
+            genomeWrapper.Jump();
             ShootAngle = genomeWrapper.GetScaledNumber(180);
             TorqueMultiplier = genomeWrapper.GetScaledNumber(180);
             LocationAimWeighting = genomeWrapper.GetScaledNumber(16);
             TimeToTargetForDetonation = genomeWrapper.GetScaledNumber(2, 0 , 0.1f);
+            genomeWrapper.JumpBack();
         }
 
         return genomeWrapper;

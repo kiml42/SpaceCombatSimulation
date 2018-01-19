@@ -16,6 +16,7 @@ Bugs:
         ElevationHubs on some drones are disappearing.
         "Can't remove Rigidbody because HingeJoint depends on it"
         rocket engines carry on regardless if the rocket has no target.
+        Duplicate match controler in drone evolution
     Graphical - Beams don't turn off when the turret dies. - haven't seen this one in a while.
     Rocket engine plumes start on
     Accounting for speed fails for spinning targets.

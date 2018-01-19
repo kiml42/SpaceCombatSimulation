@@ -17,15 +17,20 @@ namespace Assets.Src.ModuleSystem
 
         public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
         {
+            genomeWrapper.Jump();
+
             var shipToEvolve = GetComponent<Rigidbody>();
             var velocity = shipToEvolve.velocity;
 
-            return new ShipBuilder(genomeWrapper, this)
+            genomeWrapper = new ShipBuilder(genomeWrapper, this)
             {
                 OverrideColour = true,
                 ColourOverride = ColourOverride,
                 InitialVelocity = velocity
             }.BuildShip(true);
+
+            genomeWrapper.JumpBack();
+            return genomeWrapper;
         }
     }
 }

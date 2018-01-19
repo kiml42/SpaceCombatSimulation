@@ -13,7 +13,7 @@ namespace Assets.Src.Evolution
         private int _geneLength;
         private string _genome;
         private const int DEFAULT_NAME_LENGTH = 50;
-        private const int DEFAULT_GENE_LENGTH = 2;
+        private const int DEFAULT_GENE_LENGTH = 3;
 
         public int NameLength { get; set; }
 

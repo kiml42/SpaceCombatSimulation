@@ -98,12 +98,14 @@ public class TurrertTurningMechanism : MonoBehaviour, IGeneticConfigurable
     {
         if (GetConfigFromGenome)
         {
+            genomeWrapper.Jump();
             TurnTableMotorFoce = genomeWrapper.GetScaledNumber(600);
             TurnTableMotorSpeedMultiplier = genomeWrapper.GetScaledNumber(300);
             TurnTableMotorSpeedCap = genomeWrapper.GetScaledNumber(100);
             ElevationHubMotorFoce = genomeWrapper.GetScaledNumber(600);
             ElevationHubMotorSpeedMultiplier = genomeWrapper.GetScaledNumber(300);
             ElevationHubMotorSpeedCap = genomeWrapper.GetScaledNumber(100);
+            genomeWrapper.JumpBack();
         }
 
         return genomeWrapper;

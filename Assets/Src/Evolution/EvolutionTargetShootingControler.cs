@@ -36,6 +36,8 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
 
     public RigidbodyList DroneList;
 
+    private bool _hasModules;
+
     // Use this for initialization
     void Start()
     {
@@ -59,7 +61,7 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
         
         ReadInGeneration();
 
-        SpawnShips();
+        _hasModules = SpawnShips();
 
         IsMatchOver();
     }
@@ -87,15 +89,17 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
         }
     }
 
-    private void SpawnShips()
+    private bool SpawnShips()
     {
         _genome = _currentGeneration.PickCompetitor();
 
         Debug.Log(_genome + " enters the arena!");
 
-        ShipConfig.SpawnShip(_genome, SHIP_INDEX);
+        var gw = ShipConfig.SpawnShip(_genome, SHIP_INDEX);
 
         SpawnDrones();
+
+        return gw.ModulesAdded > 0;
     }
 
     private void SpawnDrones()
@@ -140,7 +144,7 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
             var droneCount = tags.Count(t => t == ShipConfig.Tags[DRONES_INDEX]);
             
             _dronesRemain = droneCount > 0;
-            _stillAlive = shipCount > 0;
+            _stillAlive = _hasModules && shipCount > 0; //ships that never had modules are considered dead.
 
             var killedDrones = _previousDroneCount - droneCount;
 
@@ -154,7 +158,6 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
             }
             _previousDroneCount = droneCount;
             
-            //return true if one team is wipred out.
             return !_stillAlive || !_dronesRemain;
         }
         return false;

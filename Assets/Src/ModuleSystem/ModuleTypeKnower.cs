@@ -20,6 +20,7 @@ namespace Assets.Src.ModuleSystem
         
         public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
         {
+            genomeWrapper.Jump();
             var ComponentsToConfigure = GetComponents<IGeneticConfigurable>();
             if (ComponentsToConfigure.Length > 1)   //if length == 1 then this has only found itself.
             {
@@ -31,6 +32,7 @@ namespace Assets.Src.ModuleSystem
                     }
                 }
             }
+            genomeWrapper.JumpBack();
             return genomeWrapper;
         }
     }
