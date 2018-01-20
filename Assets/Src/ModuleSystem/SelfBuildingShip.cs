@@ -13,11 +13,6 @@ public class SelfBuildingShip : ModuleHub
     public int MaxTurrets = 10;
     public int MaxModules = 15;
     public int PadToLength = 100;
-    protected override bool UseJump
-    {
-        get { return false; }
-        set { }
-    }
     
     public void Start()
     {
@@ -28,7 +23,8 @@ public class SelfBuildingShip : ModuleHub
         var genomeWrapper = new GenomeWrapper(Genome, knower.EnemyTags)
         {
             MaxModules = MaxModules,
-            MaxTurrets = MaxTurrets
+            MaxTurrets = MaxTurrets,
+            UseJump = false
         };
 
         Configure(genomeWrapper);

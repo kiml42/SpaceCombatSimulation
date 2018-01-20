@@ -101,17 +101,11 @@ namespace Assets.src.Evolution
 
                             addedModule.transform.SetColor(_colour);
                             addedModule.GetComponent<Rigidbody>().velocity = InitialVelocity;
-
-                            if (UseJump)
-                            {
-                                _genome.Jump();
-                                _genome = addedModule.Configure(_genome);
-                                _genome.JumpBack();
-                            } else
-                            {
-                                _genome = addedModule.Configure(_genome);
-                            }
-
+                            
+                            _genome.Jump();
+                            _genome = addedModule.Configure(_genome);
+                            _genome.JumpBack();
+                           
                             _genome.ModuleAdded(addedModule, newUsedLocation);
                         }
                         //else
@@ -136,7 +130,6 @@ namespace Assets.src.Evolution
         /// The distance below which two test cubes colliders are considered too close to spawn.
         /// </summary>
         private const float THRESHOLD_DISTANCE = 1;
-        public bool UseJump = true;
 
         private bool CanSpawnHere(Transform spawnPoint, out Vector3 newUsedLocation)
         {

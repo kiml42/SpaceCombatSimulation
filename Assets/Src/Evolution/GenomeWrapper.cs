@@ -34,6 +34,7 @@ namespace Assets.Src.Evolution
 
         public List<Vector3> UsedLocations { get; private set; }
 
+        public bool UseJump = true;
 
         #region EnemyTags
         public void AddEnemyTag(string newTag)
@@ -127,11 +128,13 @@ namespace Assets.Src.Evolution
         /// </summary>
         public void Jump()
         {
-            var gene = GetGeneAsInt();
-            _previousPositions.Push(_position);
-            if (gene.HasValue)
-            {
-                _position = gene.Value;
+            if (UseJump) {
+                var gene = GetGeneAsInt();
+                _previousPositions.Push(_position);
+                if (gene.HasValue)
+                {
+                    _position = gene.Value;
+                }
             }
         }
 
@@ -140,13 +143,16 @@ namespace Assets.Src.Evolution
         /// </summary>
         public void JumpBack()
         {
-            if (_previousPositions.Any())
+            if (UseJump)
             {
-                _position = _previousPositions.Pop();
-            }
-            else
-            {
-                Debug.LogWarning("Tried to jump back without having jumped.");
+                if (_previousPositions.Any())
+                {
+                    _position = _previousPositions.Pop();
+                }
+                else
+                {
+                    Debug.LogWarning("Tried to jump back without having jumped.");
+                }
             }
         }
 
