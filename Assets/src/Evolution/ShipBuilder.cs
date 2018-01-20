@@ -167,16 +167,8 @@ namespace Assets.src.Evolution
                 int? number = _genome.GetGeneAsInt();
                 if (number.HasValue)
                 {
-                    //Debug.Log("Gene as number: " + number);
-                    if (number < _moduleList.Modules.Count())
-                    {
-                        //Debug.Log("Adding Module " + number + ": " + Modules[number] );
-                        return _moduleList.Modules[number.Value];
-                    }
-                    //else
-                    //{
-                    //    Debug.Log("there are " + Modules.Count() + " modules, so cannot spawn number " + number);
-                    //}
+                    //Debug.Log("Adding Module " + number + ": " + Modules[number.Value % _moduleList.Modules.Count()] );
+                    return _moduleList.Modules[number.Value % _moduleList.Modules.Count()];
                 }
                 //else
                 //{

@@ -31,10 +31,12 @@ TODO:
     Priority:
         Add monobehaviour for modules that says what they are
             Has isEngine, isTurret, IsHub booleans
+            make it more likely that modules are spawned
             Use this to limit engines hubs and turrets separately.
             Include budget as a nullable field in the mutationconfig (db and menu)
             Have each part have a method (in an IGenomeConfigure, or something like that) that does all the config for that part, including adding new pieces and configuring turrets.
         Replace allowedCharacters with allowed Modules list.
+        Torpedoes detonate at closest approach isf out of fuel.
         Lightsabers!
         Randomise target choosing mechanism periods so they don't come up at the same time.
         Some tool to show graphs of genomes over time.
@@ -59,8 +61,6 @@ TODO:
         limited power
             Hubs have batteries to store energy
             Hubs have generators to recharge batteries.
-        Only escalate total targets for each generation if all targets were killed by X per generation for Y generations, or some proportion of total individuals for the last Z generations.
-            Alternatively just have the drone escalation value be multiplied by the count of complete kills across all previous generations.
 
 
     Avoid GetComponent and sendMessage in update methods.
