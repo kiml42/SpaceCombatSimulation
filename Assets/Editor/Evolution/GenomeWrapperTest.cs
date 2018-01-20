@@ -14,7 +14,7 @@ namespace Assets.Editor.Evolution
         [Test]
         public void GenomeWrappsCorrectly()
         {
-            var genome = new GenomeWrapper("123", _enemyTags);
+            var genome = new GenomeWrapper("123", _enemyTags, 2);
 
             var g1 = genome.GetGene();
             var g2 = genome.GetGene();

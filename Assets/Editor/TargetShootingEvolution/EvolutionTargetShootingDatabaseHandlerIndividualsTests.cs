@@ -48,7 +48,7 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
         Assert.AreEqual(42, i1.Score);
         Assert.AreEqual(3, i1.MatchesPlayed);
         Assert.AreEqual(1, i1.MatchesSurvived);
-        Assert.AreEqual(0, i1.CompleteKills);
+        Assert.AreEqual(2, i1.CompleteKills);
         Assert.AreEqual(5, i1.TotalKills);
         Assert.AreEqual("123,321", i1.MatchScoresString);
         Assert.AreEqual(2, i1.MatchScores.Count);

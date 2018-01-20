@@ -138,6 +138,14 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
         var config = _handler.ReadConfig(0);
         Assert.AreEqual("0;2;1;3;1;1;3;1;5;1;1;1;6;1;1", config.DronesString);
     }
+
+    [Test]
+    public void CountCompleteKillersTest()
+    {
+        var result = _handler.CountCompleteKillers(0);
+
+        Assert.AreEqual(3, result);
+    }
     #endregion
 
     #region MatchControl
