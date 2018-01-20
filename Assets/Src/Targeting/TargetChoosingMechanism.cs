@@ -9,7 +9,7 @@ using UnityEngine;
 using System;
 using Assets.Src.Evolution;
 
-public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IDeactivateableTargetPicker, IGeneticConfigurable
+public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicker, IGeneticConfigurable
 {
 
     private ITargetDetector _detector;
@@ -31,26 +31,28 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IDeactiva
     public float PollInterval = 0;
     private float _pollCountdonwn = 0;
 
-    #region EnemyTags
 
-    public void AddEnemyTag(string newTag)
+    #region EnemyTags
+    void IKnowsEnemyTags.AddEnemyTag(string newTag)
     {
         var tags = EnemyTags.ToList();
         tags.Add(newTag);
         EnemyTags = tags.Distinct().ToList();
     }
 
-    public void SetEnemyTags(List<string> allEnemyTags)
+    List<string> IKnowsEnemyTags.EnemyTags
     {
-        EnemyTags = allEnemyTags;
+        get
+        {
+            return EnemyTags;
+        }
+        set
+        {
+            EnemyTags = value;
+        }
     }
 
-    public List<string> GetEnemyTags()
-    {
-        return EnemyTags;
-    }
-    
-    public List<string> EnemyTags = new List<string> { "Enemy" };
+    public List<string> EnemyTags;
     #endregion
 
     [Header("TargetPickerVariables")]
@@ -197,6 +199,10 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IDeactiva
 
             if (targetIsInvalid || (ContinuallyCheckForTargets && _pollCountdonwn <= 0))
             {
+                if (EnemyTags == null || !EnemyTags.Any())
+                {
+                    Debug.LogWarning(name + " has no enemy tags configured.");
+                }
                 //either the target is invalid, or the poll interval has elapsed and the ContinuallyCheckForTargets boolean is true, so a new poll should be made.
                 //Debug.Log(name + " aquiring new target");
                 var allTargets = _detector.DetectTargets();
@@ -242,6 +248,12 @@ public class TargetChoosingMechanism : MonoBehaviour, IKnowsEnemyTags, IDeactiva
             MinLineOfSightDetectionDistance = genomeWrapper.GetScaledNumber(10);
             PickerAimedAtMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
             PickerApproachWeighting = genomeWrapper.GetScaledNumber(15);
+
+            EnemyTags = genomeWrapper.EnemyTags;
+            _detector = new RepositoryTargetDetector()
+            {
+                EnemyTags = EnemyTags
+            };
         }
 
         return genomeWrapper;

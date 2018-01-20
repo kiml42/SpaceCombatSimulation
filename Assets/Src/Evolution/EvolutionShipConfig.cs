@@ -21,8 +21,15 @@ public class EvolutionShipConfig : MonoBehaviour {
     public int MaxModules = 15;
 
     public MatchConfig Config;
-    
-    public void SpawnShip(string genome, int index, int stepsTowardsCentre = 0)
+
+    /// <summary>
+    /// Spawns a ship with the given genome.
+    /// </summary>
+    /// <param name="genome"></param>
+    /// <param name="index"></param>
+    /// <param name="stepsTowardsCentre"></param>
+    /// <returns>Returns the GenomeWrapper for that ship.</returns>
+    public GenomeWrapper SpawnShip(string genome, int index, int stepsTowardsCentre = 0)
     {
         if(Config == null)
         {
@@ -39,16 +46,16 @@ public class EvolutionShipConfig : MonoBehaviour {
         ship.tag = ownTag;
         var enemyTags = Tags.Where(t => t != ownTag).ToList();
 
-        var genomeWrapper = new GenomeWrapper(genome)
+        var genomeWrapper = new GenomeWrapper(genome, enemyTags)
         {
             MaxTurrets = MaxTurrets,
             MaxModules = MaxModules
         };
         ship.GetComponent<Rigidbody>().velocity = velocity;
 
-        ship.SendMessage("SetEnemyTags", enemyTags);
-
         genomeWrapper = ship.Configure(genomeWrapper);
+
+        return genomeWrapper;
     }
 
     public string GetTag(int index)

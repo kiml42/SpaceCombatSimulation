@@ -8,9 +8,9 @@ using System.Linq;
 using UnityEngine;
 using Assets.Src.Evolution;
 
-public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable, IGeneticConfigurable
+public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurable
 {
-    private IKnowsCurrentTarget _targetChoosingMechanism;
+    private IKnowsEnemyTagsAndCurrentTarget _targetChoosingMechanism;
     public bool TagChildren = false;
     public Rigidbody Projectile;
     public Transform Emitter;
@@ -23,29 +23,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable, I
     public int BurstCount = 1;
     private int _projectilesThisBurst = 0;
     public float BurstInterval = 1;
-
-
-    #region EnemyTags
-    public void AddEnemyTag(string newTag)
-    {
-        var tags = EnemyTags.ToList();
-        tags.Add(newTag);
-        EnemyTags = tags.Distinct().ToList();
-    }
-
-    public void SetEnemyTags(List<string> allEnemyTags)
-    {
-        EnemyTags = allEnemyTags;
-    }
-
-    public List<string> GetEnemyTags()
-    {
-        return EnemyTags;
-    }
-
-    public List<string> EnemyTags;
-    #endregion
-
+    
     public Vector3 Velocity = new Vector3(0, 0, 10);
     public float RandomSpeed = 1;
 
@@ -58,12 +36,12 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable, I
     // Use this for initialization
     void Start()
     {
-        _colerer = GetComponent("ColourSetter") as ColourSetter;
+        _colerer = GetComponent<ColourSetter>();
         _reload = UnityEngine.Random.value * RandomStartTime + MinStartTime;
         Emitter = Emitter ?? transform;
-        _targetChoosingMechanism = GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
-                
-        _spawner = GetComponent("Rigidbody") as Rigidbody;
+        _targetChoosingMechanism = GetComponent<IKnowsEnemyTagsAndCurrentTarget>();
+
+        _spawner = GetComponent<Rigidbody>();
     }
 
     // Update is called once per frame
@@ -88,7 +66,12 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable, I
 
                 projectile.velocity = velocity;
 
-                projectile.SendMessage("SetEnemyTags", EnemyTags, SendMessageOptions.DontRequireReceiver);
+                var tagKnower = projectile.GetComponent<IKnowsEnemyTags>();
+                if(tagKnower != null)
+                {
+                    tagKnower.EnemyTags = _targetChoosingMechanism.EnemyTags;
+                }
+                
                 if (TagChildren) { projectile.tag = tag; }
 
                 if (_colerer != null)
@@ -101,7 +84,7 @@ public class SpawnProjectile : MonoBehaviour, IKnowsEnemyTags, IDeactivatable, I
                 {
                     foreach (var c in projectile.GetComponents<IGeneticConfigurable>())
                     {
-                        c.Configure(new GenomeWrapper(RocketGenome));
+                        c.Configure(new GenomeWrapper(RocketGenome, _targetChoosingMechanism.EnemyTags));
                     }
                 }
 

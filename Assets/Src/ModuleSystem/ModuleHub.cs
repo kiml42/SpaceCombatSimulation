@@ -12,25 +12,22 @@ namespace Assets.Src.ModuleSystem
     {
         public TestCubeChecker TestCube;
         public ModuleList ModuleList;
-        public List<string> EnemyTags;
         public Color ColourOverride;
         public List<Transform> SpawnPoints;
 
         public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
         {
             var shipToEvolve = GetComponent<Rigidbody>();
-            var targetChoosingMechanism = GetComponent<IKnowsEnemyTags>();
-            var enemyTags = targetChoosingMechanism != null ? targetChoosingMechanism.GetEnemyTags() : new List<string>();
-
             var velocity = shipToEvolve.velocity;
 
-            return new ShipBuilder(genomeWrapper, this)
+            genomeWrapper = new ShipBuilder(genomeWrapper, this)
             {
                 OverrideColour = true,
                 ColourOverride = ColourOverride,
-                EnemyTags = enemyTags,
                 InitialVelocity = velocity
             }.BuildShip(true);
+            
+            return genomeWrapper;
         }
     }
 }

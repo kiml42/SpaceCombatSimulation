@@ -99,9 +99,15 @@ public class Evolution1v1Controler : BaseEvolutionController
         _matchControl.MatchRunTime = _matchControl.Config.MatchTimeout - _config.SuddenDeathReloadTime;
     }
     
-    private void SpawnShips()
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <returns>Boolean indecating that something has at least one module</returns>
+    private bool SpawnShips()
     {
         var genomes = PickTwoGenomesFromHistory();
+
+        bool hasAnyModules = false;
 
         Debug.Log("\"" + string.Join("\" vs \"", genomes.ToArray()) + "\"");
 
@@ -110,11 +116,16 @@ public class Evolution1v1Controler : BaseEvolutionController
         foreach (var g in genomes)
         {
             for(var j=0; j < _matchControl.Config.CompetitorsPerTeam; j++)
-                ShipConfig.SpawnShip(g, i, j);
+            {
+                var gw = ShipConfig.SpawnShip(g, i, j);
+                hasAnyModules = hasAnyModules || gw.ModulesAdded > 0;
+            }
             _currentGenomes[ShipConfig.GetTag(i)] = g;
 
             i++;
         }
+
+        return hasAnyModules;
     }
     
     public string _previousWinner;

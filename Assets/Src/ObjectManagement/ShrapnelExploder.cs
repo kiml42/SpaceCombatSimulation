@@ -13,7 +13,7 @@ namespace Assets.Src.ObjectManagement
         private int _shrapnelCount;
         private Rigidbody _shrapnel;
         public float ShrapnelSpeed = 100;
-        public IEnumerable<string> EnemyTags;
+        public List<string> EnemyTags;
         public bool SetEnemyTagOnShrapnel = false;
         public bool TagShrapnel = false;
         private readonly Rigidbody _explosionEffect;
@@ -47,7 +47,7 @@ namespace Assets.Src.ObjectManagement
                 
                     if (SetEnemyTagOnShrapnel && EnemyTags != null && EnemyTags.Any())
                     {
-                        fragment.SendMessage("SetEnemyTags", EnemyTags);
+                        fragment.GetComponent<IKnowsEnemyTags>().EnemyTags = EnemyTags;
                     }
 
                     if (TagShrapnel)

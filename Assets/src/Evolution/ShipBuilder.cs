@@ -10,29 +10,8 @@ using UnityEngine;
 
 namespace Assets.src.Evolution
 {
-    public class ShipBuilder : IKnowsEnemyTags
-    {
-        #region EnemyTags
-        public void AddEnemyTag(string newTag)
-        {
-            var tags = EnemyTags.ToList();
-            tags.Add(newTag);
-            EnemyTags = tags.Distinct().ToList();
-        }
-
-        public void SetEnemyTags(List<string> allEnemyTags)
-        {
-            EnemyTags = allEnemyTags;
-        }
-
-        public List<string> GetEnemyTags()
-        {
-            return EnemyTags;
-        }
-
-        public List<string> EnemyTags;
-        #endregion
-        
+    public class ShipBuilder
+    {        
         public Vector3 InitialVelocity = Vector3.zero;
         
         private GenomeWrapper _genome;
@@ -78,7 +57,7 @@ namespace Assets.src.Evolution
                 _hubToBuildOn.transform.SetColor(_colour);
             }
 
-            Debug.Log("Spawning modules on " + _hubToBuildOn.name);
+            //Debug.Log("Spawning modules on " + _hubToBuildOn.name);
 
             _genome.UsedLocations.Add(_hubToBuildOn.transform.position);
             _genome = SpawnModules();
@@ -107,35 +86,42 @@ namespace Assets.src.Evolution
                     {
                         if(_genome.IsUnderBudget())
                         {
-                            Debug.Log("adding " + moduleToAdd + " total cost = " + _genome.Cost);
+                            //Debug.Log("adding " + moduleToAdd + " total cost = " + _genome.Cost);
                             var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, _hubToBuildOn.transform);
                             
                             addedModule.GetComponent<FixedJoint>().connectedBody = _hubToBuildOn.GetComponent<Rigidbody>();
-                            addedModule.SendMessage("SetEnemyTags", EnemyTags, SendMessageOptions.DontRequireReceiver);
+
+                            var tagKnower = addedModule.GetComponent<IKnowsEnemyTags>();
+                            if (tagKnower != null)
+                            {
+                                tagKnower.EnemyTags = _genome.EnemyTags;
+                            }
 
                             addedModule.tag = _hubToBuildOn.tag;
 
                             addedModule.transform.SetColor(_colour);
                             addedModule.GetComponent<Rigidbody>().velocity = InitialVelocity;
-
+                            
+                            _genome.Jump();
                             _genome = addedModule.Configure(_genome);
-
+                            _genome.JumpBack();
+                           
                             _genome.ModuleAdded(addedModule, newUsedLocation);
                         }
-                        else
-                        {
-                            Debug.Log("Over budget: cost = " + _genome.Cost + ", budget = " + _genome.Budget);
-                        }
+                        //else
+                        //{
+                        //    Debug.Log("Over budget: cost = " + _genome.Cost + ", budget = " + _genome.Budget);
+                        //}
                     }
-                    else
-                    {
-                        Debug.Log("skipping null module");
-                    }
+                    //else
+                    //{
+                    //    Debug.Log("skipping null module");
+                    //}
                 }
-                else
-                {
-                    Debug.Log("Can not spawn module here.");
-                }
+                //else
+                //{
+                //    Debug.Log("Can not spawn module here.");
+                //}
             }
             return _genome;
         }

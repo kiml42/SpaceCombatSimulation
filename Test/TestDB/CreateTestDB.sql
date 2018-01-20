@@ -13,7 +13,7 @@ INSERT INTO DroneEvolutionConfig (id, name, currentGeneration, minMatchesPerIndi
 
 -- Table: DroneShootingIndividual
 CREATE TABLE DroneShootingIndividual (runConfigId INTEGER NOT NULL REFERENCES DroneEvolutionConfig (id), generation INTEGER NOT NULL, genome VARCHAR (1000) NOT NULL, score FLOAT, matchesPlayed INTEGER, matchesSurvived INTEGER, completeKills INTEGER, totalKills INTEGER, matchScores VARCHAR (500), PRIMARY KEY (runConfigId, generation, genome));
-INSERT INTO DroneShootingIndividual (runConfigId, generation, genome, score, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores) VALUES (0, 0, '123', 42, 3, 1, 0, 5, '123,321');
+INSERT INTO DroneShootingIndividual (runConfigId, generation, genome, score, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores) VALUES (0, 0, '123', 42, 3, 1, 2, 5, '123,321');
 INSERT INTO DroneShootingIndividual (runConfigId, generation, genome, score, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores) VALUES (0, 0, '148', 65, 2, 0, 1, 1, '3');
 
 -- Table: EvolutionConfig1v1

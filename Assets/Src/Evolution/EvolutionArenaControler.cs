@@ -7,6 +7,7 @@ using UnityEngine.SceneManagement;
 using System;
 using System.IO;
 using Assets.Src.ObjectManagement;
+using Assets.Src.Interfaces;
 
 public class EvolutionArenaControler : MonoBehaviour
 {
@@ -71,7 +72,8 @@ public class EvolutionArenaControler : MonoBehaviour
         var orientation = UnityEngine.Random.rotation;
         var randomPlacement = ShipConfig.Config.PositionForCompetitor((int)UnityEngine.Random.value);
         var death = Instantiate(SuddenDeathObject, randomPlacement, orientation);
-        death.SendMessage("SetEnemyTags", ShipConfig.Tags);
+
+        death.GetComponent<IKnowsEnemyTags>().EnemyTags = ShipConfig.Tags;
         MatchCountdown = SuddenDeathObjectReloadTime;
     }
 

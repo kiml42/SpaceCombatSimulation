@@ -3,6 +3,7 @@ using Assets.Src.Evolution;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 public class EvolutionMutationWrapper {
     private MutationConfig _config = new MutationConfig();    
@@ -32,8 +33,17 @@ public class EvolutionMutationWrapper {
 
     public List<string> CreateDefaultGeneration()
     {
-        var defaultGenomes = Config.UseCompletelyRandomDefaultGenome ? null : new List<string> { Config.DefaultGenome };
+        var defaultGenomes = Config.UseCompletelyRandomDefaultGenome ? null : new List<string> { PadGenome( Config.DefaultGenome ) };
         return CreateGenerationOfMutants(defaultGenomes);
+    }
+
+    private string PadGenome(string genome)
+    {
+        while(genome.Length < _config.GenomeLength)
+        {
+            genome = genome + genome;
+        }
+        return genome.Substring(0, _config.GenomeLength);
     }
 
     public string CreateSingleMutant(string original)

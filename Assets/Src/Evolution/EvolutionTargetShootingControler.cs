@@ -12,6 +12,7 @@ using Assets.Src.Database;
 using Assets.Src.Evolution;
 using Assets.Src.Menus;
 using Assets.Src.ModuleSystem;
+using Assets.Src.Interfaces;
 
 public class EvolutionTargetShootingControler : BaseEvolutionController
 {
@@ -34,6 +35,8 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
     EvolutionTargetShootingDatabaseHandler _dbHandler;
 
     public RigidbodyList DroneList;
+
+    private bool _hasModules;
 
     // Use this for initialization
     void Start()
@@ -58,7 +61,7 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
         
         ReadInGeneration();
 
-        SpawnShips();
+        _hasModules = SpawnShips();
 
         IsMatchOver();
     }
@@ -74,7 +77,7 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
                 : -_config.DeathPenalty);
 
             Debug.Log("Match over! Score for kills: " + CurrentScore + ", Survival Bonus: " + survivalBonus);
-
+            
             CurrentScore += survivalBonus;
 
             _currentGeneration.RecordMatch(_genome, CurrentScore, _stillAlive, !_dronesRemain, _killsThisMatch);
@@ -86,20 +89,23 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
         }
     }
 
-    private void SpawnShips()
+    private bool SpawnShips()
     {
         _genome = _currentGeneration.PickCompetitor();
 
         Debug.Log(_genome + " enters the arena!");
 
-        ShipConfig.SpawnShip(_genome, SHIP_INDEX);
+        var gw = ShipConfig.SpawnShip(_genome, SHIP_INDEX);
 
         SpawnDrones();
+
+        return gw.ModulesAdded > 0;
     }
 
     private void SpawnDrones()
     {
-        var DroneCount = _config.MinDronesToSpawn + Math.Floor((double)_config.GenerationNumber * _config.ExtraDromnesPerGeneration);
+        var completeKillers = _dbHandler.CountCompleteKillers(_config.DatabaseId);
+        var DroneCount = _config.MinDronesToSpawn + Math.Floor((double)completeKillers * _config.ExtraDromnesPerGeneration);
         Debug.Log(DroneCount + " drones this match");
         
         var droneTag = ShipConfig.GetTag(DRONES_INDEX);
@@ -117,8 +123,8 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
             ship.tag = droneTag;
             
             ship.velocity = _config.MatchConfig.VelocityForStartLocation(randomPlacement);
-
-            ship.SendMessage("SetEnemyTags", enemyTags, SendMessageOptions.DontRequireReceiver);
+            
+            ship.GetComponent<IKnowsEnemyTags>().EnemyTags = enemyTags;
         }
     }
     
@@ -139,7 +145,11 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
             var droneCount = tags.Count(t => t == ShipConfig.Tags[DRONES_INDEX]);
             
             _dronesRemain = droneCount > 0;
-            _stillAlive = shipCount > 0;
+            _stillAlive = _hasModules && shipCount > 0; //ships that never had modules are considered dead.
+            if (!_hasModules)
+            {
+                Debug.Log("Ship spawned no modules - it is dead to me.");
+            }
 
             var killedDrones = _previousDroneCount - droneCount;
 
@@ -153,7 +163,6 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
             }
             _previousDroneCount = droneCount;
             
-            //return true if one team is wipred out.
             return !_stillAlive || !_dronesRemain;
         }
         return false;

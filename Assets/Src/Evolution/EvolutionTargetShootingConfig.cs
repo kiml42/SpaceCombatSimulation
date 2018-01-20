@@ -18,11 +18,11 @@ namespace Assets.Src.Evolution
         #region "Drones
         public List<int> Drones = new List<int>();
 
-        [Tooltip("number of drones spawned = MinDronesToSpawn + CurrentGeneration * ExtraDromnesPerGeneration")]
+        [Tooltip("number of drones spawned = MinDronesToSpawn + #individualsWithCompleteKills * ExtraDromnesPerGeneration")]
         public int MinDronesToSpawn = 3;
 
-        [Tooltip("number of drones spawned = MinDronesToSpawn + CurrentGeneration * ExtraDromnesPerGeneration")]
-        public float ExtraDromnesPerGeneration = 5;
+        [Tooltip("number of drones spawned = MinDronesToSpawn + #individualsWithCompleteKills * ExtraDromnesPerGeneration")]
+        public float ExtraDromnesPerGeneration = 0.2f;
         public int MaxDronesToSpawn = 100;
 
         public string DronesString

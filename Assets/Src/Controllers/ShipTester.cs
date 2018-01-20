@@ -48,7 +48,7 @@ public class ShipTester : MonoBehaviour {
         var randomPlacement = transform.position;
         var shipInstance = Instantiate(ShipToEvolve, randomPlacement, orientation);
 
-        var genomeWrapper = new GenomeWrapper(Genome)
+        var genomeWrapper = new GenomeWrapper(Genome, new List<string>())
         {
             MaxTurrets = MaxTurrets
         };

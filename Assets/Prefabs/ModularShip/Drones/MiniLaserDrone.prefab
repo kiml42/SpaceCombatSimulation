@@ -872,7 +872,7 @@ MonoBehaviour:
   SpawnPoints:
   - {fileID: 4272012272945900}
   - {fileID: 4971280851972722}
-  Genome: 44
+  Genome: '4 4    '
   MaxTurrets: 10
   MaxModules: 15
 --- !u!114 &114373522710992530
@@ -908,6 +908,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 0
   PickerAimingObject: {fileID: 0}
   PickerApproachWeighting: 50
+  GetConfigFromGenome: 0
 --- !u!114 &114495384469222602
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -988,6 +989,7 @@ MonoBehaviour:
   Torquer: {fileID: 54937077967875234}
   AngularDragForTorquers: 1
   VectorArrow: {fileID: 4408631218593940}
+  GetConfigFromGenome: 0
 --- !u!114 &114941638070839662
 MonoBehaviour:
   m_ObjectHideFlags: 1

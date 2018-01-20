@@ -82,6 +82,43 @@ namespace Assets.Src.Database
             return config;
         }
 
+        public int CountCompleteKillers(int id)
+        {
+            int count = 0;
+            //Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                IDbCommand dbcmd = null;
+                IDataReader reader = null;
+                try
+                {
+                    string sqlQuery = "SELECT completeKills" +
+                           " FROM " + INDIVIDUAL_TABLE +
+                           " WHERE runConfigId = " + id + " AND completeKills > 0 ;";
+                    reader = OpenReaderWithCommand(sql_con, sqlQuery, out dbcmd);
+
+                    while (reader.Read())
+                    {
+                        //Debug.Log("genome ordinal: " + reader.GetOrdinal("genome"));  //-1
+                        var completeKills = reader.GetInt32(reader.GetOrdinal("completeKills"));
+                        count += completeKills;
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
+                    throw e;
+                }
+                finally
+                {
+                    Disconnect(reader, null, dbcmd, sql_con);
+                }
+            }
+
+            return count;
+        }
+
         public int UpdateExistingConfig(EvolutionTargetShootingConfig config)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
