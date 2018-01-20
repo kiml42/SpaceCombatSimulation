@@ -13,7 +13,10 @@ public class SelfBuildingShip : ModuleHub
     public int MaxTurrets = 10;
     public int MaxModules = 15;
     public int PadToLength = 100;
-    
+
+    public bool OverrideColour = true;
+    public Color ColourOverride;
+
     public void Start()
     {
         var knower = GetComponent<IKnowsEnemyTags>();
@@ -26,6 +29,11 @@ public class SelfBuildingShip : ModuleHub
             MaxTurrets = MaxTurrets,
             UseJump = false
         };
+
+        if (OverrideColour)
+        {
+            genomeWrapper.ColorOverride = ColourOverride;
+        }
 
         Configure(genomeWrapper);
     }

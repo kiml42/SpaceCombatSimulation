@@ -12,7 +12,6 @@ namespace Assets.Src.ModuleSystem
     {
         public TestCubeChecker TestCube;
         public ModuleList ModuleList;
-        public Color ColourOverride;
         public List<Transform> SpawnPoints;
 
         public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
@@ -22,8 +21,6 @@ namespace Assets.Src.ModuleSystem
 
             genomeWrapper = new ShipBuilder(genomeWrapper, this)
             {
-                OverrideColour = true,
-                ColourOverride = ColourOverride,
                 InitialVelocity = velocity
             }.BuildShip(true);
             

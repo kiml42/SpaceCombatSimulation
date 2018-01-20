@@ -205,12 +205,18 @@ namespace Assets.Src.Evolution
             return min + randomValue;
         }
 
+        public Color? ColorOverride = null;
+
         /// <summary>
         /// Returns the color object that this genome specifies
         /// </summary>
         /// <returns></returns>
         public Color GetColorForGenome()
         {
+            if (ColorOverride.HasValue)
+            {
+                return ColorOverride.Value;
+            }
             var r = GetNumberFromGenome(0, 0.5f, 8);
             var g = GetNumberFromGenome(10, 0.5f, 8);
             var b = GetNumberFromGenome(20, 0.5f, 8);

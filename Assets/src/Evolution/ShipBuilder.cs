@@ -21,9 +21,7 @@ namespace Assets.src.Evolution
         
         private ModuleHub _hubToBuildOn;
         private TestCubeChecker _testCubePrefab;
-
-        public bool OverrideColour;
-        public Color ColourOverride;
+        
         private Color _colour;
         
         public ShipBuilder(GenomeWrapper genomeWrapper, ModuleHub hubToBuildOn)
@@ -47,13 +45,7 @@ namespace Assets.src.Evolution
             //Debug.Log("Building " + _genome);
             if (setColour)
             {
-                if(OverrideColour)
-                {
-                    _colour = ColourOverride;
-                } else
-                {
-                    _colour = _genome.GetColorForGenome();
-                }
+                _colour = _genome.GetColorForGenome();
                 _hubToBuildOn.transform.SetColor(_colour);
             }
 
@@ -101,7 +93,9 @@ namespace Assets.src.Evolution
 
                             addedModule.transform.SetColor(_colour);
                             addedModule.GetComponent<Rigidbody>().velocity = InitialVelocity;
-                            
+
+                            addedModule.transform.SetColor(_colour);
+
                             _genome.Jump();
                             _genome = addedModule.Configure(_genome);
                             _genome.JumpBack();
