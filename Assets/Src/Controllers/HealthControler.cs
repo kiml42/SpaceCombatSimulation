@@ -97,10 +97,19 @@ public class HealthControler : MonoBehaviour
         }
         //Debug.Log("hit by " + collision.collider.name + ",v=" + collision.relativeVelocity + ",m=" + collision.rigidbody.mass);
         var p = collision.impulse;
-        var damage = (p.magnitude / Resilience) - Armour;
+        float damage;
+        if(Resilience != 0)
+        {
+            damage = (p.magnitude / Resilience) - Armour;
+        }
+        else
+        {
+            damage = p.magnitude - Armour;
+            Debug.LogWarning("avoided div0 error");
+        }
+        ApplyDamage(Mathf.Max(0, damage));
         //Debug.Log("h=" + Health + ",d=" + damage);
 
-        ApplyDamage(Mathf.Max(0, damage));
     }
 
     /// <summary>
@@ -154,6 +163,14 @@ public class HealthControler : MonoBehaviour
     /// </summary>
     public float HealthProportion { get
         {
-            return Health / OriginalHealth;
-        } }
+            if(OriginalHealth != 0)
+            {
+                return Health / OriginalHealth;
+            } else
+            {
+                Debug.LogWarning("Avoided div0 error");
+                return Health;
+            }
+        }
+    }
 }

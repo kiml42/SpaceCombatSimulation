@@ -158,8 +158,15 @@ namespace Assets.Src.Pilots
                     
                     _friendlyAvoidenceVector = - VectorToCancelLateralVelocityInWorldSpace(new Target(hit.transform));
                     _vectorAwayFromFriendly = _pilotObject.position - hit.transform.position;
-
-                    var timeToImpact = distance / approachSpeed;
+                    float timeToImpact;
+                    if(approachSpeed != 0)
+                    {
+                        timeToImpact = distance / approachSpeed;
+                    } else
+                    {
+                        Debug.LogWarning("Avoided div0 eror");
+                        timeToImpact = float.MaxValue;
+                    }
                     //Debug.Log(hit.transform.name + " is in the way, " + timeToImpact + " to impact. Evading on vector " + _friendlyAvoidenceVector + ", vector away = " + _vectorAwayFromFriendly);
                     
                     FriendlyAvoidencelevel newLevel = FriendlyAvoidencelevel.NONE;

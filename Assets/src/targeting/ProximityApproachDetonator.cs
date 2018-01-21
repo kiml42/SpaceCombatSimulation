@@ -51,8 +51,22 @@ namespace Assets.Src.Targeting
             var approachVelocity = relativeVelocity.ComponentParalellTo(reletiveLocation);
             //var TangentialVelocity = velocity.ComponentPerpendicularTo(reletiveLocation);
 
-            var shrapnelConeAngel = Math.Atan(_shrapnelSpeed / approachVelocity.magnitude);
-            if(approachAngle > shrapnelConeAngel)
+            var distance = reletiveLocation.magnitude;
+
+            float shrapnelConeAngel;
+            float timeToTaget;
+            if(approachVelocity.magnitude != 0)
+            {
+                shrapnelConeAngel = (float)Math.Atan(_shrapnelSpeed / approachVelocity.magnitude);
+                timeToTaget = distance / approachVelocity.magnitude;
+            } else
+            {
+                Debug.LogWarning("Avoided div0 error");
+                shrapnelConeAngel = 0;
+                timeToTaget = float.MaxValue;
+            }
+
+            if (approachAngle > shrapnelConeAngel)
             {
                 //Debug.Log("Target not in shrapnel cone");
                 return false;
@@ -60,9 +74,7 @@ namespace Assets.Src.Targeting
 
             //var minShrapnelApproachSpeed = approachVelocity.magnitude - _shrapnelSpeed;
 
-            var distance = reletiveLocation.magnitude;
 
-            var timeToTaget = distance / approachVelocity.magnitude;
 
             var shouldDetonate = timeToTaget < _detonationTimeToTarget;
 

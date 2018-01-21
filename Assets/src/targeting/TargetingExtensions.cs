@@ -147,11 +147,19 @@ namespace Assets.Src.Targeting
 
             velocity = baseObject == null ? velocity : velocity - baseObject.velocity;
 
-            var offsetdistance = distance * velocity / projectileSpeedValue;
+            Vector3 offsetDistance;
+            if(projectileSpeedValue != 0)
+            {
+                offsetDistance = distance * velocity / projectileSpeedValue;
+            } else
+            {
+                Debug.LogWarning("avoided div0 error");
+                offsetDistance = Vector3.zero;
+            }
 
             //Debug.Log("s=" + distance + "v=" + velocity + ", vp=" + _projectileSpeed + ", aiming " + offsetdistance + " ahead.");
 
-            return location + offsetdistance;
+            return location + offsetDistance;
         }
 
         /// <summary>
@@ -259,10 +267,17 @@ namespace Assets.Src.Targeting
             //https://math.stackexchange.com/questions/1455740/resolve-u-into-components-that-are-parallel-and-perpendicular-to-any-other-nonze
             var numerator = Vector3.Dot(u, v);
             var denominator = Vector3.Dot(v, v);
-            var division = numerator / denominator;
+            if(denominator != 0)
+            {
+                var division = numerator / denominator;
 
-            var paralell = (division * v);
-            return paralell;
+                var paralell = (division * v);
+                return paralell;
+            } else
+            {
+                Debug.LogWarning("avoidedDiv0 error ");
+                return Vector3.zero;
+            }
         }
     }
 }

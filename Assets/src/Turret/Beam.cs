@@ -115,8 +115,13 @@ namespace Assets.Src.Turret
         private float ReduceForDistance(float baseDamage, float distance)
         {
             var radius = InitialRadius + (Divergence * distance);
-            var reduced = baseDamage * Time.deltaTime / (radius * radius);
-            return reduced;
+            if(radius != 0)
+            {
+                var reduced = baseDamage * Time.deltaTime / (radius * radius);
+                return reduced;
+            }
+            Debug.LogWarning("avoided div0 error");
+            return baseDamage * Time.deltaTime;
         }
 
         public void TurnOff()
