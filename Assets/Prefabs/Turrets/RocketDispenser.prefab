@@ -307,7 +307,7 @@ MonoBehaviour:
   BurstInterval: 2
   Velocity: {x: 0, y: 15, z: 0}
   RandomSpeed: 0.5
-  LoadTime: 2.1
+  LoadTime: 3
   GetConfigFromGenome: 1
 --- !u!114 &114479078115912028
 MonoBehaviour:

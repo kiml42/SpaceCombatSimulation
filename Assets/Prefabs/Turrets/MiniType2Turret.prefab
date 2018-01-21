@@ -1392,14 +1392,14 @@ MonoBehaviour:
     type: 2}
   MuzzleFlash: {fileID: 54135229686313498, guid: 6b1aec0fbdeab0f4d9e77b64863b4a23,
     type: 2}
-  LoadTime: 0.1
+  LoadTime: 0.15
   ProjectileSpeed: 1200
-  RandomSpeed: 4
+  RandomSpeed: 2
   ElevationHub: {fileID: 54647014223265010}
   EmitterParent: {fileID: 4095713925445172}
   TagChildren: 0
   SetChildrensEnemy: 0
-  RecoilForce: 3
+  RecoilForce: 2
 --- !u!114 &114403257017664172
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1500,7 +1500,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Types: 01000000
-  Cost: 150
+  Cost: 160
 --- !u!114 &114801315628883180
 MonoBehaviour:
   m_ObjectHideFlags: 1

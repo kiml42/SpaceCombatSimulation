@@ -408,7 +408,7 @@ MonoBehaviour:
   BurstInterval: 0.4
   Velocity: {x: 0, y: 15, z: 0}
   RandomSpeed: 2
-  LoadTime: 10
+  LoadTime: 15
   GetConfigFromGenome: 1
 --- !u!138 &138875538257973814
 FixedJoint:
