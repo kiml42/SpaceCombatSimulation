@@ -97,6 +97,8 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
 
         var gw = ShipConfig.SpawnShip(_genome, SHIP_INDEX);
 
+        Debug.Log("Ship cost = " + gw.Cost);
+
         SpawnDrones();
 
         return gw.ModulesAdded > 0;

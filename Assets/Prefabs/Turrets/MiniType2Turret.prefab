@@ -1500,7 +1500,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Types: 01000000
-  Cost: 120
+  Cost: 150
 --- !u!114 &114801315628883180
 MonoBehaviour:
   m_ObjectHideFlags: 1
