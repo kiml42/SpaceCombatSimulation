@@ -191,7 +191,14 @@ namespace Assets.Src.Evolution
             int number;
             if (int.TryParse(simplified, out number))
             {
-                return (float)(number / (Math.Pow(10, _geneLength) - 1));
+                if ((Math.Pow(10, _geneLength) - 1) != 0)
+                {
+                    return (float)(number / (Math.Pow(10, _geneLength) - 1));
+                }
+                else
+                {
+                    Debug.LogWarning("Avoided div 0");
+                } 
             }
 
             //Debug.Log("Defaulted to 0.5");
@@ -205,12 +212,18 @@ namespace Assets.Src.Evolution
             return min + randomValue;
         }
 
+        public Color? ColorOverride = null;
+
         /// <summary>
         /// Returns the color object that this genome specifies
         /// </summary>
         /// <returns></returns>
         public Color GetColorForGenome()
         {
+            if (ColorOverride.HasValue)
+            {
+                return ColorOverride.Value;
+            }
             var r = GetNumberFromGenome(0, 0.5f, 8);
             var g = GetNumberFromGenome(10, 0.5f, 8);
             var b = GetNumberFromGenome(20, 0.5f, 8);
@@ -238,7 +251,10 @@ namespace Assets.Src.Evolution
                 int number;
                 if (int.TryParse(simplified, out number))
                 {
-                    return (float)(number / (Math.Pow(10, length) - 1));
+                    if ((Math.Pow(10, length) - 1) != 0)
+                        return (float)(number / (Math.Pow(10, length) - 1));
+                    else
+                        Debug.LogWarning("Avoided div0 error");
                 }
             }
             //Debug.Log("Defaulted to 0.5");

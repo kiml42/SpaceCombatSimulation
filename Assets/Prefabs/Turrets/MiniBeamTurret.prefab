@@ -937,7 +937,6 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
-  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -2222,6 +2221,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Types: 01000000
+  Cost: 130
 --- !u!114 &114634532448284018
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2270,6 +2270,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 80
   PickerAimingObject: {fileID: 54867097553581106}
   PickerApproachWeighting: 20
+  GetConfigFromGenome: 1
 --- !u!114 &114735945283404792
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2332,6 +2333,7 @@ MonoBehaviour:
   ElevationHubMotorFoce: 200
   ElevationHubMotorSpeedMultiplier: 200
   ElevationHubMotorSpeedCap: 100
+  GetConfigFromGenome: 1
 --- !u!124 &124357949528397776
 Behaviour:
   m_ObjectHideFlags: 1

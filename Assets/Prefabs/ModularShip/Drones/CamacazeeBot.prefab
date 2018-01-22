@@ -927,7 +927,6 @@ MonoBehaviour:
   TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
   ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
     type: 2}
-  ColourOverride: {r: 0.42745098, g: 0.105882354, b: 0.5372549, a: 1}
   SpawnPoints:
   - {fileID: 4650020486865154}
   - {fileID: 4559735644353392}
@@ -939,6 +938,8 @@ MonoBehaviour:
   MaxTurrets: 10
   MaxModules: 15
   PadToLength: 100
+  OverrideColour: 1
+  ColourOverride: {r: 0.42745098, g: 0.105882354, b: 0.5372549, a: 1}
 --- !u!114 &114479827403267862
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -953,14 +954,14 @@ MonoBehaviour:
   ShootAngle: 90
   TorqueMultiplier: 3000
   StartDelay: 0
-  SlowdownWeighting: 0
-  RadialSpeedThreshold: 8
+  SlowdownWeighting: 50
+  RadialSpeedThreshold: 70
   MaxRange: 0
-  MinRange: -10
+  MinRange: 0
   LocationAimWeighting: 1
   MaxTangentialVelocity: 0
   MinTangentialVelocity: 0
-  TangentialSpeedWeighting: 35
+  TangentialSpeedWeighting: 500
   Engine: {fileID: 0}
   Torquer: {fileID: 54900120814694378}
   AngularDragForTorquers: 2

@@ -19,6 +19,7 @@ public class EvolutionShipConfig : MonoBehaviour {
     public ModuleList ModuleList;
     public int MaxTurrets = 10;
     public int MaxModules = 15;
+    public float? Budget = 1000;
 
     public MatchConfig Config;
 
@@ -49,7 +50,8 @@ public class EvolutionShipConfig : MonoBehaviour {
         var genomeWrapper = new GenomeWrapper(genome, enemyTags)
         {
             MaxTurrets = MaxTurrets,
-            MaxModules = MaxModules
+            MaxModules = MaxModules,
+            Budget = Budget
         };
         ship.GetComponent<Rigidbody>().velocity = velocity;
 

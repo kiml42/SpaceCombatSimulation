@@ -549,10 +549,6 @@ MonoBehaviour:
   TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
   ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
     type: 2}
-  EnemyTags:
-  - 
-  - 
-  ColourOverride: {r: 0, g: 0, b: 0, a: 0}
   SpawnPoints:
   - {fileID: 4334916700351920}
   - {fileID: 4876971570491590}
@@ -628,7 +624,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Types: 00000000
-  Cost: 100
+  Cost: 80
 --- !u!138 &138166615921016154
 FixedJoint:
   m_ObjectHideFlags: 1
@@ -636,8 +632,8 @@ FixedJoint:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1887750702999502}
   m_ConnectedBody: {fileID: 0}
-  m_BreakForce: 400000
-  m_BreakTorque: 400000
+  m_BreakForce: 500000
+  m_BreakTorque: 700000
   m_EnableCollision: 0
   m_EnablePreprocessing: 1
   m_MassScale: 1

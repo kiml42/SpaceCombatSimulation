@@ -201,11 +201,10 @@ MonoBehaviour:
   MinStartTime: 0.5
   BurstCount: 1
   BurstInterval: 0.1
-  EnemyTags:
-  - Enemy
   Velocity: {x: 0, y: 0, z: 60}
   RandomSpeed: 1
   LoadTime: 25
+  GetConfigFromGenome: 1
 --- !u!114 &114414139633770338
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -229,6 +228,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Types: 01000000
+  Cost: 210
 --- !u!114 &114751207751942540
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -318,6 +318,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 0
   PickerAimingObject: {fileID: 0}
   PickerApproachWeighting: 0
+  GetConfigFromGenome: 1
 --- !u!136 &136529036643778040
 CapsuleCollider:
   m_ObjectHideFlags: 1

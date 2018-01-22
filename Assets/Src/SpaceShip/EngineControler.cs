@@ -136,7 +136,16 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
             if (UseAsTorquer && throttle < 1 && ApplysCorrectTorque())
             {
                 var angle = Vector3.Angle(Pilot.forward, OrientationVector.Value);
-                var additionalThrottle = angle / TorquerFullThrottleAngle;
+                float additionalThrottle;
+                if(TorquerFullThrottleAngle != 0)
+                {
+                    additionalThrottle = angle / TorquerFullThrottleAngle;
+                }
+                else
+                {
+                    Debug.LogWarning("avoided div0 error");
+                    additionalThrottle = 0;
+                }
                 throttle = Math.Min(throttle + additionalThrottle, 1);
             }
 
@@ -167,7 +176,7 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
         float actualThrottle;
         if (FuelTank != null)
         {
-            var singleFrameConsumption = FullThrottleFuelConsumption * Time.deltaTime;
+            var singleFrameConsumption = Math.Max(FullThrottleFuelConsumption * Time.deltaTime, 0.0001f);
             var desiredFuel = throttle * singleFrameConsumption;
             var fuel = FuelTank.DrainFuel(desiredFuel);
             actualThrottle = fuel / singleFrameConsumption;
@@ -257,7 +266,15 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
                 primaryAngleError = (angleSum - pToSAngle)/2;   //set the primaryAngleError to the distance from being on the ark(ish)
                 //the maths here isn't quite right, but it'll probably do, it's qualatatively correct. (I hope)
             }
-            var throttle = Math.Max(0, 1 - (primaryAngleError / TranslateFireAngle));
+            float throttle;
+            if(TranslateFireAngle != 0)
+            {
+                throttle = Math.Max(0, 1 - (primaryAngleError / TranslateFireAngle));
+            } else
+            {
+                Debug.LogWarning("avoided div0 error");
+                throttle = 0;
+            }
             //Debug.Log("TranslateThrotleSetting=" + throttle);
             return throttle;
         }
