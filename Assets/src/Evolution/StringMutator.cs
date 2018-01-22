@@ -12,7 +12,12 @@ namespace Assets.src.Evolution
         public int GenomeLength = 50;
         public int Mutations = 3;
         public int MaxMutationLength = 3;
-        public string AllowedCharacters = " 0123456789  ";
+
+        /// <summary>
+        /// Characters that can be used in a genome.
+        /// Some are duplicated to make them more likely to come up.
+        /// </summary>
+        private string AllowedCharacters = " 0123456789  ";
 
         public MutationConfig Config {
             set
@@ -20,7 +25,6 @@ namespace Assets.src.Evolution
                 GenomeLength = value.GenomeLength;
                 Mutations = value.Mutations;
                 MaxMutationLength = value.MaxMutationLength;
-                AllowedCharacters = value.AllowedCharacters;
             }
         }
 

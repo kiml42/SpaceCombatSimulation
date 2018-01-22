@@ -161,8 +161,13 @@ public class Evolution1v1DatabaseHandlerReadTests
         Assert.AreEqual("7,342", config.MatchConfig.LocationRandomisationRadiaiString);
         Assert.AreEqual(7, config.MatchConfig.LocationRandomisationRadiai[0]);
         Assert.AreEqual(342, config.MatchConfig.LocationRandomisationRadiai[1]);
+    }
 
-        Assert.AreEqual("1,2,3,4,5,6,7,8,9,0", config.MatchConfig.AllowedModulesString);
+    [Test]
+    public void ReadConfig_MatchControl_AllowedModulesString()
+    {
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual("1,2,4,5", config.MatchConfig.AllowedModulesString);
         Assert.AreEqual(1, config.MatchConfig.AllowedModuleIndicies[0]);
         Assert.AreEqual(2, config.MatchConfig.AllowedModuleIndicies[1]);
     }
@@ -188,13 +193,6 @@ public class Evolution1v1DatabaseHandlerReadTests
     {
         var config = _handler.ReadConfig(0);
         Assert.AreEqual(17, config.MutationConfig.Mutations);
-    }
-
-    [Test]
-    public void ReadConfig_MutationControl_AllowedCharacters()
-    {
-        var config = _handler.ReadConfig(0);
-        Assert.AreEqual(" xyzq ", config.MutationConfig.AllowedCharacters);
     }
 
     [Test]

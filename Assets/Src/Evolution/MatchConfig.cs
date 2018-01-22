@@ -65,7 +65,11 @@ namespace Assets.Src.Evolution
         public string AllowedModulesString {
             get
             {
-                return string.Join(",", AllowedModuleIndicies.Select(r => r.ToString()).ToArray());
+                if (AllowedModuleIndicies != null && AllowedModuleIndicies.Any())
+                {
+                    return string.Join(",", AllowedModuleIndicies.Select(r => r.ToString()).ToArray());
+                }
+                return null;
             }
             set
             {

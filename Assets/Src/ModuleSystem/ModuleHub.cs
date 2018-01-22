@@ -13,7 +13,7 @@ namespace Assets.Src.ModuleSystem
         public TestCubeChecker TestCube;
         public ModuleList ModuleList;
         public List<Transform> SpawnPoints;
-        public List<int> AllowedModuleIndicies = null;
+        public int[] AllowedModuleIndicies = null;
 
         public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
         {

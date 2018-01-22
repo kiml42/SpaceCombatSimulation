@@ -10,7 +10,7 @@ public class ShipTester : MonoBehaviour {
 
     public ModuleHub ShipToEvolve;
     public string Genome = "";
-    public List<int> AllowedModuleIndicies = null;
+    public int[] AllowedModuleIndicies = null;
     public int MaxTurrets = 10;
     
     public int GenomeLength = 50;

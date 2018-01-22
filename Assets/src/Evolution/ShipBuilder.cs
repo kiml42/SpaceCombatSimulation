@@ -175,7 +175,7 @@ namespace Assets.src.Evolution
                 int? number = _genome.GetGeneAsInt();
                 if (number.HasValue)
                 {
-                    if (AllowedModuleIndicies == null || AllowedModuleIndicies.Contains(number.Value))
+                    if (AllowedModuleIndicies == null || !AllowedModuleIndicies.Any() || AllowedModuleIndicies.Contains(number.Value))
                     {
                         //Debug.Log("Adding Module " + number + ": " + Modules[number.Value % _moduleList.Modules.Count()] );
                         return _moduleList.Modules[number.Value % _moduleList.Modules.Count()];

@@ -63,8 +63,8 @@ namespace Assets.Src.Database
                         config.SuddenDeathDamage = reader.GetFloat(reader.GetOrdinal("suddenDeathDamage"));
                         config.SuddenDeathReloadTime = reader.GetFloat(reader.GetOrdinal("suddenDeathReloadTime"));
 
-                        config.MatchConfig = ReadMatchConfig(reader, reader.GetOrdinal("matchConfigId"));//TODO check index
-                        config.MutationConfig = ReadMutationConfig(reader, reader.GetOrdinal("mutationConfigId"));//TODO check index
+                        config.MatchConfig = ReadMatchConfig(reader, reader.GetOrdinal("matchConfigId"));
+                        config.MutationConfig = ReadMutationConfig(reader, reader.GetOrdinal("mutationConfigId"));
                     } else
                     {
                         throw new Exception("Config not founr for ID " + id);

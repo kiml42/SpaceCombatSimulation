@@ -30,7 +30,6 @@ public class EditMutationConfig : MonoBehaviour {
         _loaded = config;
 
         Mutations.text = config.Mutations.ToString();
-        AllowedCharacters.text = config.AllowedCharacters;
         MaxMutationLength.text = config.MaxMutationLength.ToString();
         GenomeLength.text = config.GenomeLength.ToString();
         GenerationSize.text = config.GenerationSize.ToString();
@@ -46,7 +45,6 @@ public class EditMutationConfig : MonoBehaviour {
         _loaded = _loaded ?? new MutationConfig();
 
         _loaded.Mutations = int.Parse(Mutations.text);
-        _loaded.AllowedCharacters = AllowedCharacters.text;
         _loaded.MaxMutationLength = int.Parse(MaxMutationLength.text);
         _loaded.GenomeLength = int.Parse(GenomeLength.text);
         _loaded.GenerationSize = int.Parse(GenerationSize.text);

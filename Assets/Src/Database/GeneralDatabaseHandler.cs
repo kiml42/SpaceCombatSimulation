@@ -116,7 +116,7 @@ namespace Assets.Src.Database
 
             var config = new MatchConfig()
             {
-                Id = reader.GetInt32(idIndex),  //TODO check this
+                Id = reader.GetInt32(idIndex),
                 MatchTimeout = reader.GetFloat(reader.GetOrdinal("matchTimeout")), //16
                 WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")), //17
                 InitialRange = reader.GetFloat(reader.GetOrdinal("initialRange")),
@@ -125,8 +125,12 @@ namespace Assets.Src.Database
                 CompetitorsPerTeam = reader.GetInt32(reader.GetOrdinal("competitorsPerTeam")),
                 StepForwardProportion = reader.GetFloat(reader.GetOrdinal("stepForwardProportion")),
                 LocationRandomisationRadiaiString = reader.GetString(reader.GetOrdinal("locationRandomisationRadiai")),
-                RandomiseRotation = reader.GetBoolean(reader.GetOrdinal("randomiseRotation"))
+                RandomiseRotation = reader.GetBoolean(reader.GetOrdinal("randomiseRotation")),
             };
+            if (!reader.IsDBNull(reader.GetOrdinal("allowedModules")))
+            {
+                config.AllowedModulesString = reader.GetString(reader.GetOrdinal("allowedModules"));
+            }
             return config;
         }
 
@@ -138,7 +142,6 @@ namespace Assets.Src.Database
             {
                 Id = reader.GetInt32(idIndex),
                 Mutations = reader.GetInt32(reader.GetOrdinal("mutations")),
-                AllowedCharacters = reader.GetString(reader.GetOrdinal("allowedCharacters")),
                 MaxMutationLength = reader.GetInt32(reader.GetOrdinal("maxMutationLength")),
                 GenomeLength = reader.GetInt32(reader.GetOrdinal("genomeLength")),
                 GenerationSize = reader.GetInt32(reader.GetOrdinal("generationSize")),
@@ -156,11 +159,10 @@ namespace Assets.Src.Database
             };
 
             insertSQL.CommandText = "INSERT INTO " + MUTATION_CONFIG_TABLE +
-                        "(mutations, allowedCharacters, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome)" +
-                        " VALUES (?,?,?,?,?,?,?)";
+                        "(mutations, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome)" +
+                        " VALUES (?,?,?,?,?,?)";
 
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Mutations));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.AllowedCharacters));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxMutationLength));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenomeLength));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationSize));
@@ -200,8 +202,8 @@ namespace Assets.Src.Database
             };
 
             insertSQL.CommandText = "INSERT INTO " + MATCH_CONFIG_TABLE +
-                        "(matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation)" +
-                        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                        "(matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation, allowedModules)" +
+                        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MatchTimeout));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.WinnerPollPeriod));
@@ -212,7 +214,12 @@ namespace Assets.Src.Database
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.StepForwardProportion));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.LocationRandomisationRadiaiString));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.RandomiseRotation));
-            
+            if(!string.IsNullOrEmpty(config.AllowedModulesString))
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.AllowedModulesString));
+            else
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, DBNull.Value));
+
+
             insertSQL.ExecuteNonQuery();
             insertSQL.Dispose();
 
@@ -247,11 +254,10 @@ namespace Assets.Src.Database
             };
 
             insertSQL.CommandText = "UPDATE " + MUTATION_CONFIG_TABLE +
-                        " SET mutations = ?, allowedCharacters = ?, maxMutationLength = ?, genomeLength = ?, generationSize = ?, randomDefault = ?, defaultGenome = ?" +
+                        " SET mutations = ?, maxMutationLength = ?, genomeLength = ?, generationSize = ?, randomDefault = ?, defaultGenome = ?" +
                         " WHERE id = ?";
 
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Mutations));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.AllowedCharacters));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxMutationLength));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenomeLength));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationSize));
@@ -275,7 +281,7 @@ namespace Assets.Src.Database
 
             insertSQL.CommandText = "UPDATE " + MATCH_CONFIG_TABLE +
                         " SET matchTimeout = ?, winnerPollPeriod = ?, initialRange = ?, initialSpeed = ?, randomInitialSpeed = ?, competitorsPerTeam = ?," +
-                        " stepForwardProportion = ?, locationRandomisationRadiai = ?, randomiseRotation = ?" +
+                        " stepForwardProportion = ?, locationRandomisationRadiai = ?, randomiseRotation = ?, allowedModules = ?" +
                         " WHERE id = ?";
 
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MatchTimeout));
@@ -287,6 +293,11 @@ namespace Assets.Src.Database
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.StepForwardProportion));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.LocationRandomisationRadiaiString));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.RandomiseRotation));
+
+            if (!string.IsNullOrEmpty(config.AllowedModulesString))
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.AllowedModulesString));
+            else
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, DBNull.Value));
 
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Id));
 
