@@ -33,6 +33,7 @@ TODO:
             Use this to limit engines hubs and turrets separately.
             Include budget as a nullable field in the mutationconfig (db and menu)
         Replace allowedCharacters with allowed Modules list.
+            Done, needs to be pushed through to menus.
         Torpedoes detonate at closest approach isf out of fuel.
         Lightsabers!
         Randomise target choosing mechanism periods so they don't come up at the same time.
@@ -64,6 +65,7 @@ TODO:
     Avoid GetComponent and sendMessage in update methods.
     Limit throttle change speeds.
     Velocity override option for exploder - to prevent the flyaway explosions in very high speed collisions.
+        Possibly go by the average momentum of the colliding bodies.
     option for spaceships that don't break up   
         Turrets can be destroyed, but otherwise the whole thing has one lot of health - probably using pass damage up.
     allow components in the same cubic volume if they wouldn't intersect.
@@ -73,9 +75,6 @@ TODO:
     projectiles apply force to cancel lateral V. Target set on projectile when fired.
     Spherical modules with two angles given for where to spawn the sub modules and something to specify termination of that module's spawning (going back up to the previous)
     FuelTank option to balance fuel with parent.
-
-    Use fixed update for time critical scripts, update for others
-
 
     Repulsive shield- repels objects in trigger
 
@@ -88,8 +87,6 @@ TODO:
     Camera controller should allow panning also - moot for ship cam
     Camera controller to handle zoom - active when camera is active - moot for shipcam
     Make mini type 2 actually manage to hit torpedoes.
-    Just set a single name for evolution files (all types) and have it work out the folders from there.
-        Done for 1v1 evolution
 
     From Endarren:
         Option to just disable the object at zero health, instead of destroying it.

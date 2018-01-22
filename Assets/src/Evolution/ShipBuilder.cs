@@ -175,14 +175,15 @@ namespace Assets.src.Evolution
                 int? number = _genome.GetGeneAsInt();
                 if (number.HasValue)
                 {
-                    if (AllowedModuleIndicies == null || !AllowedModuleIndicies.Any() || AllowedModuleIndicies.Contains(number.Value))
+                    var numberInRange = number.Value % _moduleList.Modules.Count();
+                    if (AllowedModuleIndicies == null || !AllowedModuleIndicies.Any() || AllowedModuleIndicies.Contains(numberInRange))
                     {
                         //Debug.Log("Adding Module " + number + ": " + Modules[number.Value % _moduleList.Modules.Count()] );
-                        return _moduleList.Modules[number.Value % _moduleList.Modules.Count()];
+                        return _moduleList.Modules[numberInRange];
                     }
                     else
                     {
-                        Debug.Log("Not allowed to spawn module " + number.Value);
+                        Debug.Log("Not allowed to spawn module " + numberInRange);
                     }
                 }
                 //else

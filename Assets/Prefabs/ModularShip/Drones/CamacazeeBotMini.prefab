@@ -559,6 +559,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -898,6 +899,7 @@ MonoBehaviour:
   - {fileID: 4658093421493920}
   - {fileID: 4277719520510368}
   - {fileID: 4435593446143214}
+  AllowedModuleIndicies: 
   Genome: '2            1                                                 '
   MaxTurrets: 10
   MaxModules: 15
@@ -949,7 +951,9 @@ MonoBehaviour:
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
   PollInterval: 1
-  EnemyTags: []
+  EnemyTags:
+  - Team1
+  - Enemy
   DisalowedTypes: 000000000100000002000000
   PreferdTypes: 03000000040000000700000008000000
   PreferedTypeBonus: 100
