@@ -29,11 +29,13 @@ namespace Assets.Src.Evolution
         {
             get
             {
-                return string.Join(";", Drones.Select(d => d.ToString()).ToArray());
+                return string.Join(",", Drones.Select(d => d.ToString()).ToArray());
             }
             set
             {
-                var splitDronesString = value.Split(';');
+                if (value.Contains(";"))
+                    Debug.LogWarning("Use of ; as a delimiter is obsolete, use , instead.");
+                var splitDronesString = value.Split(';', ',');
                 Drones = splitDronesString.Select(d => int.Parse(d)).ToList();
             }
         }

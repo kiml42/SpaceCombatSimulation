@@ -59,6 +59,7 @@ namespace Assets.Src.Evolution
         /// If one section (i.e. no semicolons) is given, it will be interpereted as a new genome with no matches completed.
         /// </summary>
         /// <param name="line"></param>
+        [Obsolete("Should always use database version")]
         public Individual1v1(string line)
         {
             var parts = line.Split(';');
