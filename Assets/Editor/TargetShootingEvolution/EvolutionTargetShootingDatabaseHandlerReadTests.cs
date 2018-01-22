@@ -212,6 +212,11 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
         Assert.AreEqual("3,6", config.MatchConfig.LocationRandomisationRadiaiString);
         Assert.AreEqual(3, config.MatchConfig.LocationRandomisationRadiai[0]);
         Assert.AreEqual(6, config.MatchConfig.LocationRandomisationRadiai[1]);
+
+        Assert.AreEqual("1,2,4,5", config.MatchConfig.AllowedModulesString);
+        Assert.AreEqual(1, config.MatchConfig.AllowedModulesString[0]);
+        Assert.AreEqual(2, config.MatchConfig.AllowedModulesString[1]);
+        Assert.AreEqual(4, config.MatchConfig.AllowedModulesString[2]);
     }
 
     [Test]
@@ -235,13 +240,6 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
     {
         var config = _handler.ReadConfig(0);
         Assert.AreEqual(7, config.MutationConfig.Mutations);
-    }
-
-    [Test]
-    public void ReadDroneConfig_MutationControl_AllowedCharacters()
-    {
-        var config = _handler.ReadConfig(0);
-        Assert.AreEqual(" xyz ", config.MutationConfig.AllowedCharacters);
     }
 
     [Test]

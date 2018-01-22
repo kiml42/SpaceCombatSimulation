@@ -13,6 +13,7 @@ namespace Assets.Src.ModuleSystem
         public TestCubeChecker TestCube;
         public ModuleList ModuleList;
         public List<Transform> SpawnPoints;
+        public List<int> AllowedModuleIndicies = null;
 
         public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
         {
@@ -21,7 +22,8 @@ namespace Assets.Src.ModuleSystem
 
             genomeWrapper = new ShipBuilder(genomeWrapper, this)
             {
-                InitialVelocity = velocity
+                InitialVelocity = velocity,
+                AllowedModuleIndicies = AllowedModuleIndicies
             }.BuildShip(true);
             
             return genomeWrapper;

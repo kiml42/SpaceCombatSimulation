@@ -9,13 +9,11 @@ namespace Assets.Src.Evolution
     {
         public int Id;
 
-        public int Mutations = 3;
+        public int Mutations = 20;
 
-        public string AllowedCharacters = " 0123456789  ";
+        public int MaxMutationLength = 10;
 
-        public int MaxMutationLength = 5;
-
-        public int GenomeLength = 300;
+        public int GenomeLength = 1000;
 
         public int GenerationSize = 20;
 

@@ -10,7 +10,7 @@ public class ShipTester : MonoBehaviour {
 
     public ModuleHub ShipToEvolve;
     public string Genome = "";
-
+    public List<int> AllowedModuleIndicies = null;
     public int MaxTurrets = 10;
     
     public int GenomeLength = 50;
@@ -47,6 +47,8 @@ public class ShipTester : MonoBehaviour {
         var orientation = transform.rotation;
         var randomPlacement = transform.position;
         var shipInstance = Instantiate(ShipToEvolve, randomPlacement, orientation);
+
+        shipInstance.AllowedModuleIndicies = AllowedModuleIndicies;
 
         var genomeWrapper = new GenomeWrapper(Genome, new List<string>())
         {

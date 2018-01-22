@@ -30,11 +30,8 @@ TODO:
             Delete config option (takes all individuals and match and mutation configs too)
     Priority:
         Add monobehaviour for modules that says what they are
-            Has isEngine, isTurret, IsHub booleans
-            make it more likely that modules are spawned
             Use this to limit engines hubs and turrets separately.
             Include budget as a nullable field in the mutationconfig (db and menu)
-            Have each part have a method (in an IGenomeConfigure, or something like that) that does all the config for that part, including adding new pieces and configuring turrets.
         Replace allowedCharacters with allowed Modules list.
         Torpedoes detonate at closest approach isf out of fuel.
         Lightsabers!

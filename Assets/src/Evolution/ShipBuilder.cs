@@ -11,7 +11,9 @@ using UnityEngine;
 namespace Assets.src.Evolution
 {
     public class ShipBuilder
-    {        
+    {
+        public int[] AllowedModuleIndicies = null;
+
         public Vector3 InitialVelocity = Vector3.zero;
         
         private GenomeWrapper _genome;
@@ -87,6 +89,12 @@ namespace Assets.src.Evolution
                             if (tagKnower != null)
                             {
                                 tagKnower.EnemyTags = _genome.EnemyTags;
+                            }
+
+                            var hub = addedModule.GetComponent<ModuleHub>();
+                            if(hub != null)
+                            {
+                                hub.AllowedModuleIndicies = AllowedModuleIndicies;
                             }
 
                             addedModule.tag = _hubToBuildOn.tag;
@@ -167,8 +175,15 @@ namespace Assets.src.Evolution
                 int? number = _genome.GetGeneAsInt();
                 if (number.HasValue)
                 {
-                    //Debug.Log("Adding Module " + number + ": " + Modules[number.Value % _moduleList.Modules.Count()] );
-                    return _moduleList.Modules[number.Value % _moduleList.Modules.Count()];
+                    if (AllowedModuleIndicies == null || AllowedModuleIndicies.Contains(number.Value))
+                    {
+                        //Debug.Log("Adding Module " + number + ": " + Modules[number.Value % _moduleList.Modules.Count()] );
+                        return _moduleList.Modules[number.Value % _moduleList.Modules.Count()];
+                    }
+                    else
+                    {
+                        Debug.Log("Not allowed to spawn module " + number.Value);
+                    }
                 }
                 //else
                 //{

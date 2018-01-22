@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Assets.Src.Evolution
@@ -59,6 +60,18 @@ namespace Assets.Src.Evolution
         }
 
         public bool RandomiseRotation = true;
+
+        public int[] AllowedModuleIndicies = null;
+        public string AllowedModulesString {
+            get
+            {
+                return string.Join(",", AllowedModuleIndicies.Select(r => r.ToString()).ToArray());
+            }
+            set
+            {
+                AllowedModuleIndicies = value.Split(',').Where(s => !string.IsNullOrEmpty(s)).Select(s => int.Parse(s)).ToArray();
+            }
+        }
 
         /// <summary>
         /// Returns the start position for the competitior with the given index.

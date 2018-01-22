@@ -45,6 +45,13 @@ public class EvolutionShipConfig : MonoBehaviour {
 
         var ship = Instantiate(ShipToEvolve, location, orientation);
         ship.tag = ownTag;
+
+        var hub = ship.GetComponent<ModuleHub>();
+        if (hub != null)
+        {
+            hub.AllowedModuleIndicies = Config.AllowedModuleIndicies;
+        }
+
         var enemyTags = Tags.Where(t => t != ownTag).ToList();
 
         var genomeWrapper = new GenomeWrapper(genome, enemyTags)
