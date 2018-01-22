@@ -53,29 +53,10 @@ namespace Assets.Src.Evolution
                 PreviousCombatants = value.Split(',').Where(s => !string.IsNullOrEmpty(s)).ToList();
             }
         }
-
-        /// <summary>
-        /// Construct from a generation line.
-        /// If one section (i.e. no semicolons) is given, it will be interpereted as a new genome with no matches completed.
-        /// </summary>
-        /// <param name="line"></param>
-        [Obsolete("Should always use database version")]
-        public Individual1v1(string line)
+        
+        public Individual1v1(string genome)
         {
-            var parts = line.Split(';');
-            //Debug.Log(parts.Length);
-            Genome = parts[0];
-            Score = ParsePart(parts, SCORE_INDEX);
-            Wins = (int)ParsePart(parts, WINS_INDEX);
-            Draws = (int)ParsePart(parts, DRAWS_INDEX);
-            Loses = (int)ParsePart(parts, LOSES_INDEX);
-
-            if (parts.Length > PC_INDEX)
-            {
-                //Debug.Log(parts[PC_INDEX]);
-                var competitorsString = parts[PC_INDEX];
-                PreviousCombatants = competitorsString.Split(',').ToList();
-            }
+            Genome = genome;
         }
 
         public void RecordMatch(string otherCompetitor, string victor, float winScore, float losScore, float drawScore)

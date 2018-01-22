@@ -136,7 +136,7 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
     public void ReadDroneConfig_Drones()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual("0;2;1;3;1;1;3;1;5;1;1;1;6;1;1", config.DronesString);
+        Assert.AreEqual("0,2,1,3,1,1,3,1,5,1,1,1,6,1,1", config.DronesString);
     }
 
     [Test]
