@@ -111,8 +111,8 @@ namespace Assets.Src.Database
 
         protected MatchConfig ReadMatchConfig(IDataReader reader, int idIndex)
         {
-            //Debug.Log("randomiseRotation ordinal: " + reader.GetOrdinal("randomiseRotation"));  //-1
-            //Debug.Log("randomiseRotation value: " + reader.GetBoolean(reader.GetOrdinal("randomiseRotation")));  //-1
+            Debug.Log("locationRandomisationRadiai ordinal: " + reader.GetOrdinal("locationRandomisationRadiai"));
+            //Debug.Log("locationRandomisationRadiai value: " + reader.GetString(reader.GetOrdinal("locationRandomisationRadiai")));
 
             var config = new MatchConfig()
             {
@@ -124,12 +124,29 @@ namespace Assets.Src.Database
                 RandomInitialSpeed = reader.GetFloat(reader.GetOrdinal("randomInitialSpeed")),
                 CompetitorsPerTeam = reader.GetInt32(reader.GetOrdinal("competitorsPerTeam")),
                 StepForwardProportion = reader.GetFloat(reader.GetOrdinal("stepForwardProportion")),
-                LocationRandomisationRadiaiString = reader.GetString(reader.GetOrdinal("locationRandomisationRadiai")),
-                RandomiseRotation = reader.GetBoolean(reader.GetOrdinal("randomiseRotation")),
+                RandomiseRotation = reader.GetBoolean(reader.GetOrdinal("randomiseRotation"))
             };
+
+            if (!reader.IsDBNull(reader.GetOrdinal("locationRandomisationRadiai")))
+            {
+                config.LocationRandomisationRadiaiString = reader.GetString(reader.GetOrdinal("locationRandomisationRadiai"));
+            }
+            else
+            {
+                config.LocationRandomisationRadiaiString = null;
+            }
+
             if (!reader.IsDBNull(reader.GetOrdinal("allowedModules")))
             {
                 config.AllowedModulesString = reader.GetString(reader.GetOrdinal("allowedModules"));
+            }
+
+            if (!reader.IsDBNull(reader.GetOrdinal("budget")))
+            {
+                config.Budget = reader.GetInt32(reader.GetOrdinal("budget"));
+            } else
+            {
+                config.Budget = null;
             }
             return config;
         }
@@ -202,8 +219,8 @@ namespace Assets.Src.Database
             };
 
             insertSQL.CommandText = "INSERT INTO " + MATCH_CONFIG_TABLE +
-                        "(matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation, allowedModules)" +
-                        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                        "(matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation, allowedModules, budget)" +
+                        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MatchTimeout));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.WinnerPollPeriod));
@@ -214,10 +231,16 @@ namespace Assets.Src.Database
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.StepForwardProportion));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.LocationRandomisationRadiaiString));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.RandomiseRotation));
+
             if(!string.IsNullOrEmpty(config.AllowedModulesString))
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.AllowedModulesString));
             else
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.String, DBNull.Value));
+
+            if (config.Budget.HasValue)
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Budget.Value));
+            else
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, DBNull.Value));
 
 
             insertSQL.ExecuteNonQuery();
@@ -281,7 +304,7 @@ namespace Assets.Src.Database
 
             insertSQL.CommandText = "UPDATE " + MATCH_CONFIG_TABLE +
                         " SET matchTimeout = ?, winnerPollPeriod = ?, initialRange = ?, initialSpeed = ?, randomInitialSpeed = ?, competitorsPerTeam = ?," +
-                        " stepForwardProportion = ?, locationRandomisationRadiai = ?, randomiseRotation = ?, allowedModules = ?" +
+                        " stepForwardProportion = ?, locationRandomisationRadiai = ?, randomiseRotation = ?, allowedModules = ?, budget = ?" +
                         " WHERE id = ?";
 
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MatchTimeout));
@@ -298,6 +321,11 @@ namespace Assets.Src.Database
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.AllowedModulesString));
             else
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.String, DBNull.Value));
+
+            if (config.Budget.HasValue)
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Budget.Value));
+            else
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, DBNull.Value));
 
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Id));
 

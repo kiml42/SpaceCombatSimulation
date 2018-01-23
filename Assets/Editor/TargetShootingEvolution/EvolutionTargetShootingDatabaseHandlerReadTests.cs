@@ -230,6 +230,20 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
         var config = _handler.ReadConfig(0);
         Assert.AreEqual(true, config.MatchConfig.RandomiseRotation);
     }
+
+    [Test]
+    public void ReadConfig_MatchControl_Budget()
+    {
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(12345, config.MatchConfig.Budget);
+    }
+
+    [Test]
+    public void ReadConfig_MatchControl_Budget_null()
+    {
+        var config = _handler.ReadConfig(1);
+        Assert.Null(config.MatchConfig.Budget);
+    }
     #endregion
 
     #region MutationControl

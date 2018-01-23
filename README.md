@@ -20,10 +20,12 @@ Bugs:
     Graphical - Beams don't turn off when the turret dies. - haven't seen this one in a while.
     Rocket engine plumes start on
     Accounting for speed fails for spinning targets.
+    Leting the DB default locationRandomisationRadiai makes it unreadable.
     
 
 TODO:
     In Progress:
+        Add budget setters to the menu.
         Menus
             keyboard navigation
             Scrollable lists

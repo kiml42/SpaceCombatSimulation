@@ -72,7 +72,8 @@ public class EvolutionTargetShootingDatabaseHandlerSaveTests
                 LocationRandomisationRadiai = new float[]
                 {
                     100,50
-                }
+                },
+                Budget = 1235
             },
             MutationConfig = new MutationConfig
             {
@@ -99,6 +100,29 @@ public class EvolutionTargetShootingDatabaseHandlerSaveTests
         Assert.AreEqual(6, match.Id);
         Assert.AreEqual(7, mut.Id);
         Assert.AreEqual(config.MatchConfig.LocationRandomisationRadiai, match.LocationRandomisationRadiai);
+        Assert.AreEqual(config.MatchConfig.Budget, match.Budget);
+    }
+
+    [Test]
+    public void SaveConfig_savesNullBudget()
+    {
+        var config = new EvolutionTargetShootingConfig
+        {
+            MatchConfig = new MatchConfig
+            {
+                LocationRandomisationRadiai = new float[]
+                {
+                    0,1
+                },
+                Budget = null
+            }
+        };
+
+        int result = _handler.SaveNewConfig(config);
+
+        var retrieved = _handler.ReadConfig(result);
+
+        Assert.IsNull(retrieved.MatchConfig.Budget);
     }
 
     [Test]
@@ -110,6 +134,7 @@ public class EvolutionTargetShootingDatabaseHandlerSaveTests
         config.MatchConfig.LocationRandomisationRadiaiString = "1,2,3,4";
         config.MatchConfig.AllowedModulesString = "1,3,5";
         config.MatchConfig.InitialRange++;
+        config.MatchConfig.Budget++;
         config.MutationConfig.GenomeLength++;
 
         _handler.UpdateExistingConfig(config);
@@ -120,8 +145,23 @@ public class EvolutionTargetShootingDatabaseHandlerSaveTests
         Assert.AreEqual("Altered", updated.RunName);
         Assert.AreEqual("1,2,3,4", updated.MatchConfig.LocationRandomisationRadiaiString);
         Assert.AreEqual("1,3,5", updated.MatchConfig.AllowedModulesString);
+        Assert.AreEqual(config.MatchConfig.Budget, updated.MatchConfig.Budget);
         Assert.AreEqual(config.MatchConfig.InitialRange, updated.MatchConfig.InitialRange);
         Assert.AreEqual(config.MutationConfig.GenomeLength, updated.MutationConfig.GenomeLength);
+    }
+
+    [Test]
+    public void UpdateTest_setBudgetToNull()
+    {
+        var config = _handler.ReadConfig(0);
+
+        config.MatchConfig.Budget = null;
+
+        _handler.UpdateExistingConfig(config);
+
+        var updated = _handler.ReadConfig(0);
+        
+        Assert.IsNull(updated.MatchConfig.Budget);
     }
     #endregion
 }

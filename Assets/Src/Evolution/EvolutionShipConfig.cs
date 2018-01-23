@@ -56,7 +56,7 @@ public class EvolutionShipConfig : MonoBehaviour {
 
         var genomeWrapper = new GenomeWrapper(genome, enemyTags)
         {
-            Budget = Budget
+            Budget = Config.Budget
         };
         ship.GetComponent<Rigidbody>().velocity = velocity;
 

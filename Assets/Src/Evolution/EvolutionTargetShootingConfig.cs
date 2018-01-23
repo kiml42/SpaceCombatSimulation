@@ -35,8 +35,17 @@ namespace Assets.Src.Evolution
             {
                 if (value.Contains(";"))
                     Debug.LogWarning("Use of ; as a delimiter is obsolete, use , instead.");
-                var splitDronesString = value.Split(';', ',');
-                Drones = splitDronesString.Select(d => int.Parse(d)).ToList();
+                if (string.IsNullOrEmpty(value))
+                {
+                    Debug.LogWarning("Empty Drones list was provided, no drones will spawn");
+                    Drones = new List<int>();
+                }
+                else
+                {
+                    var splitDronesString = value.Split(';', ',');
+                    Drones = splitDronesString.Select(d => int.Parse(d)).ToList();
+                }
+                    
             }
         }
         #endregion

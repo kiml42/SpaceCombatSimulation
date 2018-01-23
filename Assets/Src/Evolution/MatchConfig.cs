@@ -55,7 +55,13 @@ namespace Assets.Src.Evolution
             }
             set
             {
-                LocationRandomisationRadiai = value.Split(',').Where(s => !string.IsNullOrEmpty(s)).Select(s => float.Parse(s)).ToArray();
+                if (string.IsNullOrEmpty(value))
+                {
+                    LocationRandomisationRadiai = new float[] { 0 };
+                } else
+                {
+                    LocationRandomisationRadiai = value.Split(',').Where(s => !string.IsNullOrEmpty(s)).Select(s => float.Parse(s)).ToArray();
+                }
             }
         }
 
@@ -76,6 +82,8 @@ namespace Assets.Src.Evolution
                 AllowedModuleIndicies = value.Split(',').Where(s => !string.IsNullOrEmpty(s)).Select(s => int.Parse(s)).ToArray();
             }
         }
+
+        public float? Budget { get; set; }
 
         /// <summary>
         /// Returns the start position for the competitior with the given index.

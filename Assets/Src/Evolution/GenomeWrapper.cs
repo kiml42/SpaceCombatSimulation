@@ -50,7 +50,7 @@ namespace Assets.Src.Evolution
             _genome = genome;
             _geneLength = geneLength;
             NameLength = DEFAULT_NAME_LENGTH;
-            Budget = null; //default tyhe budget to null, can be set later.
+            Budget = null; //default the budget to null, can be set later.
             UsedLocations = new List<Vector3>();
             EnemyTags = enemyTags;
             ModuleTypeCounts = new Dictionary<ModuleType, int>();
