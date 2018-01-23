@@ -23,6 +23,8 @@ public class EyeballTurrertTurningMechanism : MonoBehaviour, IGeneticConfigurabl
     public float MotorSpeedMultiplier = 500;
     public float MotorSpeedCap = 100;
 
+    public Transform VectorArrow;
+
     // Use this for initialization
     void Start()
     {
@@ -35,7 +37,8 @@ public class EyeballTurrertTurningMechanism : MonoBehaviour, IGeneticConfigurabl
         {
             Torque = MotorForce,
             SpeedMultiplier = MotorSpeedMultiplier,
-            SpeedCap = MotorSpeedCap
+            SpeedCap = MotorSpeedCap,
+            VectorArrow = VectorArrow
         };
 
         _runner = new TurretRunner(_targetChoosingMechanism, _turner);

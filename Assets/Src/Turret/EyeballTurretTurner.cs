@@ -22,6 +22,8 @@ namespace Assets.Src.Targeting
 
         private readonly float? _projectileSpeed;
 
+        public Transform VectorArrow;
+
         public EyeballTurretTurner(Rigidbody thisTurret, Rigidbody turnTable, Transform restTarget, float? projectileSpeed)
         {
             _thisTurret = thisTurret;
@@ -55,32 +57,43 @@ namespace Assets.Src.Targeting
                 var LocationInTurnTableSpace = target.LocationInOthersSpace(_ball, _projectileSpeed);
 
                 var TTCancelationSpeed = -parentAngularVInTurntableSpace.y * 180 / Mathf.PI;    //convert from radians per second to degrees per second
+                
 
-                TurnToVectorInWorldSpace(LocationInTurnTableSpace);
+                //Debug.Log("vector" + vector);
+                var vectorInBallSpace = _ball.transform.InverseTransformVector(LocationInTurnTableSpace);
 
+                //Debug.Log(_pilot + " vectorInPilotSpace " + vectorInPilotSpace);
+                var rotationVector = new Vector3(-vectorInBallSpace.y, vectorInBallSpace.x, 0);   //set z to 0 to not add spin
+                if (rotationVector.magnitude < 0.1 && vectorInBallSpace.z < 0)
+                {
+                    //The target is exactly behind, turning in any direction will do.
+                    //Debug.Log("Target is exactly behind");
+                    rotationVector = new Vector3(1, 0, 0);
+                }
+                //Debug.Log("rotationVector" + rotationVector);
+
+                var worldTorque = _ball.transform.TransformVector(rotationVector).normalized;
+
+                var localSpaceVector = _ball.transform.InverseTransformVector(worldTorque).normalized;    //transform vector to torquer space
+                _ball.AddRelativeTorque(Torque * localSpaceVector); //apply torque to torquer
+
+
+
+
+                if (VectorArrow != null)
+                {
+                    if (LocationInTurnTableSpace.magnitude > 0)
+                    {
+                        VectorArrow.rotation = Quaternion.LookRotation(LocationInTurnTableSpace);
+                        VectorArrow.localScale = Vector3.one;
+                    }
+                    else
+                    {
+                        VectorArrow.localScale = Vector3.zero;
+                    }
+                }
 
             }
-        }
-
-        private void TurnToVectorInWorldSpace(Vector3 vector)
-        {
-            //Debug.Log("vector" + vector);
-            var vectorInBallSpace = _ball.transform.InverseTransformVector(vector);
-
-            //Debug.Log(_pilot + " vectorInPilotSpace " + vectorInPilotSpace);
-            var rotationVector = new Vector3(-vectorInBallSpace.y, vectorInBallSpace.x, 0);   //set z to 0 to not add spin
-            if (rotationVector.magnitude < 0.1 && vectorInBallSpace.z < 0)
-            {
-                //The target is exactly behind, turning in any direction will do.
-                //Debug.Log("Target is exactly behind");
-                rotationVector = new Vector3(1, 0, 0);
-            }
-            //Debug.Log("rotationVector" + rotationVector);
-
-            var worldTorque = _ball.transform.TransformVector(rotationVector).normalized;
-
-            var localSpaceVector = _ball.transform.InverseTransformVector(worldTorque).normalized;    //transform vector to torquer space
-            _ball.AddRelativeTorque(Torque * localSpaceVector); //apply torque to torquer
         }
     }
 }
