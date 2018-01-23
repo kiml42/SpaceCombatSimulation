@@ -28,10 +28,10 @@ TODO:
             keyboard navigation
             Scrollable lists
             Delete config option (takes all individuals and match and mutation configs too)
-    Priority:
         Add monobehaviour for modules that says what they are
             Use this to limit engines hubs and turrets separately.
             Include budget as a nullable field in the mutationconfig (db and menu)
+    Priority:
         Replace allowedCharacters with allowed Modules list.
             Done, needs to be pushed through to menus.
         Torpedoes detonate at closest approach isf out of fuel.

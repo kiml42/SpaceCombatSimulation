@@ -50,10 +50,7 @@ public class ShipTester : MonoBehaviour {
 
         shipInstance.AllowedModuleIndicies = AllowedModuleIndicies;
 
-        var genomeWrapper = new GenomeWrapper(Genome, new List<string>())
-        {
-            MaxTurrets = MaxTurrets
-        };
+        var genomeWrapper = new GenomeWrapper(Genome, new List<string>());
 
         shipInstance.Configure(genomeWrapper);
     }

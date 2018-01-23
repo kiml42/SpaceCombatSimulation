@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Assets.Src.Evolution
 {
-    public class GenomeWrapper: IKnowsEnemyTags
+    public class GenomeWrapper : IKnowsEnemyTags
     {
         private int _geneLength;
         private string _genome;
@@ -27,10 +27,8 @@ namespace Assets.Src.Evolution
         private int _position;
         private Stack<int> _previousPositions = new Stack<int>();
 
-        public int TurretsAdded { get; private set; }
+        public Dictionary<ModuleType, int> ModuleTypeCounts { get; private set; }
         public int ModulesAdded { get; private set; }
-        public int? MaxTurrets { get; set; }
-        public int? MaxModules { get; set; }
 
         public List<Vector3> UsedLocations { get; private set; }
 
@@ -55,6 +53,7 @@ namespace Assets.Src.Evolution
             Budget = null; //default tyhe budget to null, can be set later.
             UsedLocations = new List<Vector3>();
             EnemyTags = enemyTags;
+            ModuleTypeCounts = new Dictionary<ModuleType, int>();
         }
 
 
@@ -66,9 +65,15 @@ namespace Assets.Src.Evolution
         public bool ModuleAdded(ModuleTypeKnower knower, Vector3 usedLocation)
         {
             //TODO expand to all types.
-            if (knower.Types.Contains(ModuleType.Turret))
+            foreach (var type in knower.Types.Distinct())
             {
-                TurretsAdded++;
+                if (ModuleTypeCounts.ContainsKey(type))
+                {
+                    ModuleTypeCounts[type]++;
+                } else
+                {
+                    ModuleTypeCounts[type] = 1;
+                }
             }
             ModulesAdded++;
 
@@ -87,12 +92,8 @@ namespace Assets.Src.Evolution
         public bool CanSpawn()
         {
             var isUnderBudget = IsUnderBudget();
-            var freeTurrets = !MaxTurrets.HasValue || TurretsAdded < MaxTurrets;
-            var freeModules = !MaxModules.HasValue || ModulesAdded < MaxModules;
             var canSpawn =
-                isUnderBudget &&
-                freeTurrets &&
-                freeModules;
+                isUnderBudget;
                 
             return canSpawn;
         }

@@ -25,8 +25,6 @@ public class SelfBuildingShip : ModuleHub
 
         var genomeWrapper = new GenomeWrapper(Genome, knower.EnemyTags)
         {
-            MaxModules = MaxModules,
-            MaxTurrets = MaxTurrets,
             UseJump = false
         };
 
