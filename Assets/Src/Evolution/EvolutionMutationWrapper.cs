@@ -39,6 +39,11 @@ public class EvolutionMutationWrapper {
 
     private string PadGenome(string genome)
     {
+        if (string.IsNullOrEmpty(genome))
+        {
+            return string.Empty.PadRight(_config.GenomeLength);
+        }
+
         while(genome.Length < _config.GenomeLength)
         {
             genome = genome + genome;
