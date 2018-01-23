@@ -51,7 +51,7 @@ public class Evolution1v1Controler : BaseEvolutionController
 
         ReadInGeneration();
 
-        SpawnShips();
+        _hasModules = SpawnShips();
     }
 
     // Update is called once per frame
@@ -129,6 +129,7 @@ public class Evolution1v1Controler : BaseEvolutionController
     }
     
     public string _previousWinner;
+    private bool _hasModules;
 
     /// <summary>
     /// Returns the genome of the victor.
@@ -154,8 +155,9 @@ public class Evolution1v1Controler : BaseEvolutionController
                 //Debug.Log(StringifyGenomes() + " winning tag: " + winningTag);
                 currentWinner = _currentGenomes[winningTag];
             }
-            if (tags.Count() == 0)
+            if (tags.Count() == 0 || !_hasModules)
             {
+                //Treat them both as dead if nthing has modules.
                 Debug.Log("Everyone's dead!");
                 currentWinner = string.Empty;
             }
