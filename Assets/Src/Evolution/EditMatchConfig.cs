@@ -16,6 +16,7 @@ public class EditMatchConfig : MonoBehaviour {
     public InputField CompetitorsPerTeam;
     public InputField LocationRandomisationRadiai;
     public InputField AllowedModules;
+    public InputField Budget;
 
     private MatchConfig _loaded;
 
@@ -31,6 +32,7 @@ public class EditMatchConfig : MonoBehaviour {
         CompetitorsPerTeam.text = config.CompetitorsPerTeam.ToString();
         LocationRandomisationRadiai.text = config.LocationRandomisationRadiaiString;
         AllowedModules.text = config.AllowedModulesString;
+        Budget.text = config.Budget.ToString();
 
         LoadedId = config.Id;
         _hasLoadedExisting = isPreExisting;
@@ -48,6 +50,7 @@ public class EditMatchConfig : MonoBehaviour {
         _loaded.CompetitorsPerTeam = int.Parse(CompetitorsPerTeam.text);
         _loaded.LocationRandomisationRadiaiString = LocationRandomisationRadiai.text;
         _loaded.AllowedModulesString = AllowedModules.text;
+        _loaded.Budget = float.Parse(Budget.text);
 
         if (_hasLoadedExisting)
         {
