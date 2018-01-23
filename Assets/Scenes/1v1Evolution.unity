@@ -245,6 +245,11 @@ Prefab:
       propertyPath: m_Name
       value: EvolvingWorldController1V1
       objectReference: {fileID: 0}
+    - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
+        type: 2}
+      propertyPath: DatabaseId
+      value: 3
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 590da46f61a57f34ba77094de519068c, type: 2}
   m_IsPrefabParent: 0

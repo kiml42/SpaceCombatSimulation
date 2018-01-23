@@ -30,12 +30,9 @@ TODO:
             Scrollable lists
             Delete config option (takes all individuals and match and mutation configs too)
             Proper inputs for numbrers and bools
-        Add monobehaviour for modules that says what they are
-            Use this to limit engines hubs and turrets separately.
-            Include budget as a nullable field in the mutationconfig (db and menu)
+        Eyeball turret
+            Needs its own version of joint friction
     Priority:
-        Replace allowedCharacters with allowed Modules list.
-            Done, needs to be pushed through to menus.
         Torpedoes detonate at closest approach isf out of fuel.
         Lightsabers!
         Randomise target choosing mechanism periods so they don't come up at the same time.
@@ -55,7 +52,6 @@ TODO:
         Destruction only leaves objects with a rigibdbody and a health controller
         TargetPickers have option to kull all but the best x.
         Prevent fluttery torpedoes.
-        Eyeball turret
         limited ammo
             Turrets can store some
             hubs contain generic ammo, turrets can ask for a mass of it.
