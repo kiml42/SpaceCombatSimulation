@@ -66,17 +66,11 @@ namespace Assets.src.Evolution
                     baseGenome = "Primordial Ooze";
                     mutant = GenerateCompletelyRandomGenome();
                 }
-                if (IsValidGenome(mutant))
-                {
-                    Debug.Log(mutant + " spawn of " + baseGenome + " is born");
-                    generation.Add(mutant);
-                    generation = generation.Distinct().ToList();
-                    //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
-                }
-                else
-                {
-                    Debug.Log(mutant + " spawn of " + baseGenome + " is too rubbish to be born");
-                }
+
+                Debug.Log(mutant + " spawn of " + baseGenome + " is born");
+                generation.Add(mutant);
+                generation = generation.Distinct().ToList();
+                //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
             }
             //Debug.Log("mutant Generation: " + genration);
             return generation;
@@ -169,25 +163,6 @@ namespace Assets.src.Evolution
             var sectionToReverse = Reverse(genome.Substring(n, count));
             genome = genome.Remove(n, count);
             return genome.Insert(n, sectionToReverse);
-        }
-        
-        private bool IsValidGenome(string baseGenome)
-        {
-            if (GenomeLength < 6)
-            {
-                //Don't bother to validate really short genomes
-                return true;
-            }
-            if (string.IsNullOrEmpty(baseGenome) || baseGenome.Length < 6)
-            {
-                return false;
-            }
-            //replace 2 so engines don't make a valid ship.
-            var start = baseGenome.Replace("2", " ").Substring(0, 6).Trim();
-            //Debug.Log("'" + start + "'");
-            var valid = !string.IsNullOrEmpty(start);
-            //Debug.Log("'" + baseGenome + "' valid? " + valid);
-            return valid;
         }
 
         public static string Reverse(string s)

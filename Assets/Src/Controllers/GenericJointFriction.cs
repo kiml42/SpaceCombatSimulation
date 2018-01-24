@@ -49,7 +49,7 @@ public class GenericJointFriction : MonoBehaviour, IGeneticConfigurable
     {
         if (GetConfigFromGenome)
         {
-            Friction = genomeWrapper.GetScaledNumber(3);
+            Friction = genomeWrapper.GetScaledNumber(600);
         }
 
         return genomeWrapper;
