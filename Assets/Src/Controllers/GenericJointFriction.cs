@@ -2,7 +2,8 @@
 using Assets.Src.Interfaces;
 using UnityEngine;
 
-public class JointFriction : MonoBehaviour, IGeneticConfigurable {
+public class GenericJointFriction : MonoBehaviour, IGeneticConfigurable
+{
 
     [Tooltip("mulitiplier for the angular velocity for the torque to apply.")]
     public float Friction = 0.4f;
@@ -10,16 +11,14 @@ public class JointFriction : MonoBehaviour, IGeneticConfigurable {
     //[Tooltip("For debugging and testing")]
     //public Vector3 InitialKick;
 
-    private HingeJoint _hinge;
-    private Rigidbody _thisBody;
-    private Rigidbody _connectedBody;
-    private Vector3 _axis;  //local space
+    public Joint _hinge;
+    public Rigidbody _thisBody;
+    public Rigidbody _connectedBody;
 
 	// Use this for initialization
 	void Start () {
-        _hinge = GetComponent<HingeJoint>();
+        _hinge = GetComponent<Joint>();
         _connectedBody = _hinge.connectedBody;
-        _axis = _hinge.axis;
 
         _thisBody = GetComponent<Rigidbody>();
 
@@ -33,16 +32,17 @@ public class JointFriction : MonoBehaviour, IGeneticConfigurable {
 	void FixedUpdate () {
         if(_hinge != null)
         {
-            var angularV = _hinge.velocity;
+            var parentAngularV = _connectedBody.angularVelocity;
+            var ownAngularV = _thisBody.angularVelocity;
+            
             //Debug.Log("angularV " + angularV);
-            var worldAxis = transform.TransformVector(_axis);
-            var worldTorque = Friction * angularV * worldAxis;
+            var worldTorque = Friction * (ownAngularV - parentAngularV);
 
             _thisBody.AddTorque(-worldTorque);
-            if(_connectedBody != null)
-                _connectedBody.AddTorque(worldTorque);
+            _connectedBody.AddTorque(worldTorque);
         }
     }
+
     public bool GetConfigFromGenome = true;
 
     public GenomeWrapper Configure(GenomeWrapper genomeWrapper)

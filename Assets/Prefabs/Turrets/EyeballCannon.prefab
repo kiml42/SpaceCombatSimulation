@@ -68,6 +68,7 @@ GameObject:
   - component: {fileID: 114048782821786802}
   - component: {fileID: 114408232798132066}
   - component: {fileID: 153534368472797824}
+  - component: {fileID: 114618227198503354}
   m_Layer: 8
   m_Name: Ball
   m_TagString: Untagged
@@ -594,9 +595,9 @@ Rigidbody:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1267231652857596}
   serializedVersion: 2
-  m_Mass: 30
+  m_Mass: 70
   m_Drag: 0
-  m_AngularDrag: 1
+  m_AngularDrag: 0
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -709,9 +710,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   RestTarget: {fileID: 4437790412788042}
   Ball: {fileID: 54975269060084612}
-  MotorForce: 30
-  MotorSpeedMultiplier: 500
-  MotorSpeedCap: 100
+  MotorForce: 60
   VectorArrow: {fileID: 4450844992451306}
   GetConfigFromGenome: 1
 --- !u!114 &114159249817315196
@@ -771,6 +770,21 @@ MonoBehaviour:
   FriendlyDetectionDistance: 80
   MinFriendlyDetectionDistance: 1.5
   GetConfigFromGenome: 0
+--- !u!114 &114618227198503354
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1267231652857596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd0a30461d8031f48a342fb404f57543, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Friction: 300
+  _hinge: {fileID: 153534368472797824}
+  _thisBody: {fileID: 54975269060084612}
+  _connectedBody: {fileID: 54242731177552390}
 --- !u!114 &114678540620407502
 MonoBehaviour:
   m_ObjectHideFlags: 1

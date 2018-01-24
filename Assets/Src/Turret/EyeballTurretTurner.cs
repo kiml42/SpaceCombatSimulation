@@ -12,8 +12,6 @@ namespace Assets.Src.Targeting
     public class EyeballTurretTurner : ITurretTurner
     {
         public float Torque = 30;
-        public float SpeedMultiplier = 500;
-        public float SpeedCap = 100;
 
         private readonly Rigidbody _thisTurret;
         private readonly PotentialTarget _restTarget;

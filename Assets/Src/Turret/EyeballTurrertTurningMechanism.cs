@@ -20,8 +20,6 @@ public class EyeballTurrertTurningMechanism : MonoBehaviour, IGeneticConfigurabl
     private ITurretRunner _runner;
 
     public float MotorForce = 30;
-    public float MotorSpeedMultiplier = 500;
-    public float MotorSpeedCap = 100;
 
     public Transform VectorArrow;
 
@@ -36,8 +34,6 @@ public class EyeballTurrertTurningMechanism : MonoBehaviour, IGeneticConfigurabl
         _turner = new EyeballTurretTurner(rigidbody, Ball, RestTarget, projectileSpeed)
         {
             Torque = MotorForce,
-            SpeedMultiplier = MotorSpeedMultiplier,
-            SpeedCap = MotorSpeedCap,
             VectorArrow = VectorArrow
         };
 
@@ -89,8 +85,6 @@ public class EyeballTurrertTurningMechanism : MonoBehaviour, IGeneticConfigurabl
         if (GetConfigFromGenome)
         {
             MotorForce = genomeWrapper.GetScaledNumber(600);
-            MotorSpeedMultiplier = genomeWrapper.GetScaledNumber(300);
-            MotorSpeedCap = genomeWrapper.GetScaledNumber(100);
         }
 
         return genomeWrapper;
