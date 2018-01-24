@@ -47,44 +47,37 @@ namespace Assets.Src.Targeting
         {
             if (target != null && target.Transform.IsValid())
             {
-                //Debug.Log(_thisTurret.name + " Turning to target with named " + target.Target.name + " with score " + target.Score);
-
-                //Debug.Log("getting location in turn table space");
-                var parentAngularV = _thisTurret.angularVelocity;
-
-                var parentAngularVInTurntableSpace = _ball.transform.InverseTransformVector(parentAngularV);
-
-                var LocationInTurnTableSpace = target.LocationInOthersSpace(_ball, _projectileSpeed);
-
-                var TTCancelationSpeed = -parentAngularVInTurntableSpace.y * 180 / Mathf.PI;    //convert from radians per second to degrees per second
+                Debug.Log(_thisTurret.name + " Turning to target with named " + target.Transform.name + " Location: " + target.Transform.position);
                 
-
-                //Debug.Log("vector" + vector);
-                var vectorInBallSpace = _ball.transform.InverseTransformVector(LocationInTurnTableSpace);
-
-                //Debug.Log(_pilot + " vectorInPilotSpace " + vectorInPilotSpace);
+                var vectorInBallSpace = target.LocationInOthersSpace(_ball, _projectileSpeed);
+                Debug.Log("location in ball space: " + vectorInBallSpace);
+                
+                //var parentAngularV = _thisTurret.angularVelocity;
+                //var parentAngularVInBallSpace = _ball.transform.InverseTransformVector(parentAngularV);
+                //TODO use this to correct for the rotation of the whole turret. - unless I make this frictionless
+                
                 var rotationVector = new Vector3(-vectorInBallSpace.y, vectorInBallSpace.x, 0);   //set z to 0 to not add spin
                 if (rotationVector.magnitude < 0.1 && vectorInBallSpace.z < 0)
                 {
                     //The target is exactly behind, turning in any direction will do.
-                    //Debug.Log("Target is exactly behind");
+                    Debug.Log("Target is exactly behind");
                     rotationVector = new Vector3(1, 0, 0);
                 }
-                //Debug.Log("rotationVector" + rotationVector);
+                Debug.Log("rotationVector" + rotationVector);
 
                 var worldTorque = _ball.transform.TransformVector(rotationVector).normalized;
 
                 var localSpaceVector = _ball.transform.InverseTransformVector(worldTorque).normalized;    //transform vector to torquer space
                 _ball.AddRelativeTorque(Torque * localSpaceVector); //apply torque to torquer
-
-
-
+                _thisTurret.AddRelativeTorque(Torque * -localSpaceVector); //apply torque to torquer
 
                 if (VectorArrow != null)
                 {
-                    if (LocationInTurnTableSpace.magnitude > 0)
+                    var WorldSpaceVectorToTarget = _ball.transform.TransformVector(vectorInBallSpace);
+                    Debug.Log("WorldSpaceVectorToTarget: " + WorldSpaceVectorToTarget);
+                    if (WorldSpaceVectorToTarget.magnitude > 0)
                     {
-                        VectorArrow.rotation = Quaternion.LookRotation(LocationInTurnTableSpace);
+                        VectorArrow.rotation = Quaternion.LookRotation(WorldSpaceVectorToTarget);
                         VectorArrow.localScale = Vector3.one;
                     }
                     else

@@ -113,48 +113,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1001 &16993103
-Prefab:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 4509530563570974, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4509530563570974, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4509530563570974, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4509530563570974, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4509530563570974, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4509530563570974, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4509530563570974, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4509530563570974, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
-      propertyPath: m_RootOrder
-      value: 1
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-  m_ParentPrefab: {fileID: 100100000, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
-  m_IsPrefabParent: 0
 --- !u!1001 &32318619
 Prefab:
   m_ObjectHideFlags: 0
@@ -267,6 +225,48 @@ Prefab:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: e1363427697fac546a554aa229b862b5, type: 2}
+  m_IsPrefabParent: 0
+--- !u!1001 &155452987
+Prefab:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 4509530563570974, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4509530563570974, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4509530563570974, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4509530563570974, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4509530563570974, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4509530563570974, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4509530563570974, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4509530563570974, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
+      propertyPath: m_RootOrder
+      value: 1
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+  m_ParentPrefab: {fileID: 100100000, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
   m_IsPrefabParent: 0
 --- !u!1001 &176621181
 Prefab:
@@ -410,7 +410,7 @@ Prefab:
     - target: {fileID: 114805640114796924, guid: 8ad76c9d2e309504e9eaf8abb8d91e63,
         type: 2}
       propertyPath: ShouldSpawnDrones
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 114805640114796924, guid: 8ad76c9d2e309504e9eaf8abb8d91e63,
         type: 2}

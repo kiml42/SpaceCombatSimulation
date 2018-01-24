@@ -11,6 +11,14 @@ namespace Assets.Src.Targeting
     public static class TargetingExtensions
     {
         #region TargetVersions
+        /// <summary>
+        /// Returns the location of the target in the origin's space
+        /// Offsets for projectile speed if provided.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="origin"></param>
+        /// <param name="projectileSpeed"></param>
+        /// <returns></returns>
         public static Vector3 LocationInOthersSpace(this Target target, Rigidbody origin, float? projectileSpeed)
         {
             return target.Rigidbody != null ?
