@@ -31,7 +31,6 @@ TODO:
             Delete config option (takes all individuals and match and mutation configs too)
             Proper inputs for numbrers and bools
         Eyeball turret
-            Needs its own version of joint friction
     Priority:
         Torpedoes detonate at closest approach isf out of fuel.
         Lightsabers!
