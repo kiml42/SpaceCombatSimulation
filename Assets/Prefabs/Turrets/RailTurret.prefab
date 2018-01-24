@@ -61,6 +61,7 @@ GameObject:
   - component: {fileID: 114365713965616160}
   - component: {fileID: 114087630914805474}
   - component: {fileID: 114081091463309440}
+  - component: {fileID: 114891178512948038}
   m_Layer: 8
   m_Name: TurnTable
   m_TagString: Untagged
@@ -84,6 +85,7 @@ GameObject:
   - component: {fileID: 114442848275739752}
   - component: {fileID: 114514129602303482}
   - component: {fileID: 114011614568703486}
+  - component: {fileID: 114463582919565752}
   m_Layer: 8
   m_Name: ElevationHub
   m_TagString: Untagged
@@ -406,6 +408,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -843,6 +846,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Friction: 0.4
+  GetConfigFromGenome: 1
 --- !u!114 &114081091463309440
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -855,6 +859,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Friction: 0.4
+  GetConfigFromGenome: 1
 --- !u!114 &114087630914805474
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -972,6 +977,20 @@ MonoBehaviour:
   - Team4ForceField
   - Team5ForceField
   TeamTagForceFieldSuffix: FoceField
+--- !u!114 &114463582919565752
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1249572457395074}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 
+  Cost: 0
+  ExtraConfigurables: []
 --- !u!114 &114511911055331708
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1038,6 +1057,20 @@ MonoBehaviour:
   ElevationHubMotorSpeedMultiplier: 500
   ElevationHubMotorSpeedCap: 100
   GetConfigFromGenome: 1
+--- !u!114 &114891178512948038
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1213778823602180}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 
+  Cost: 0
+  ExtraConfigurables: []
 --- !u!114 &114898967683699902
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1101,6 +1134,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Types: 01000000
   Cost: 180
+  ExtraConfigurables:
+  - {fileID: 114463582919565752}
+  - {fileID: 114891178512948038}
 --- !u!114 &114963415697579388
 MonoBehaviour:
   m_ObjectHideFlags: 1

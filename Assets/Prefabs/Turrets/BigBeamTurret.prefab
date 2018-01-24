@@ -200,6 +200,7 @@ GameObject:
   - component: {fileID: 114372935907962804}
   - component: {fileID: 114184997240908936}
   - component: {fileID: 114656583338367978}
+  - component: {fileID: 114354627298347372}
   m_Layer: 8
   m_Name: ElevationHubBigBeam
   m_TagString: Untagged
@@ -453,6 +454,7 @@ GameObject:
   - component: {fileID: 114570703834796536}
   - component: {fileID: 114760828794790922}
   - component: {fileID: 114306299788334896}
+  - component: {fileID: 114393700766348002}
   m_Layer: 8
   m_Name: TurnTable
   m_TagString: Untagged
@@ -1000,6 +1002,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -2217,6 +2220,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Friction: 0.6
+  GetConfigFromGenome: 1
 --- !u!114 &114343184687507468
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2230,6 +2234,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Types: 01000000
   Cost: 180
+  ExtraConfigurables:
+  - {fileID: 114354627298347372}
+  - {fileID: 114393700766348002}
+--- !u!114 &114354627298347372
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1384344338879448}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 
+  Cost: 0
+  ExtraConfigurables: []
 --- !u!114 &114372935907962804
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2260,6 +2281,20 @@ MonoBehaviour:
   - Team4ForceField
   - Team5ForceField
   TeamTagForceFieldSuffix: FoceField
+--- !u!114 &114393700766348002
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1752287746396600}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 
+  Cost: 0
+  ExtraConfigurables: []
 --- !u!114 &114570703834796536
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2317,6 +2352,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Friction: 0.4
+  GetConfigFromGenome: 1
 --- !u!114 &114700062322557724
 MonoBehaviour:
   m_ObjectHideFlags: 1

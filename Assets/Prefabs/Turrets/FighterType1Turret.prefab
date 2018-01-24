@@ -192,6 +192,7 @@ GameObject:
   - component: {fileID: 114919619323114402}
   - component: {fileID: 114405329290526470}
   - component: {fileID: 114283958382082072}
+  - component: {fileID: 114332769695738428}
   m_Layer: 8
   m_Name: ElevationHub (1)
   m_TagString: Untagged
@@ -305,6 +306,7 @@ GameObject:
   - component: {fileID: 114941249901636450}
   - component: {fileID: 114515924771520270}
   - component: {fileID: 114940399260904748}
+  - component: {fileID: 114182358708101830}
   m_Layer: 8
   m_Name: TurnTable
   m_TagString: Untagged
@@ -1077,6 +1079,20 @@ MonoBehaviour:
   DeactivateOnBreak: 1
   DisconectFromParent: 1
   BreakExplosion: {fileID: 0}
+--- !u!114 &114182358708101830
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1933304274201636}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 
+  Cost: 0
+  ExtraConfigurables: []
 --- !u!114 &114202474750580562
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1103,6 +1119,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Friction: 0.01
+  GetConfigFromGenome: 1
 --- !u!114 &114319289946815552
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1119,6 +1136,21 @@ MonoBehaviour:
   AvoidFriendlyFire: 1
   FriendlyDetectionDistance: 80
   MinFriendlyDetectionDistance: 0.5
+  GetConfigFromGenome: 0
+--- !u!114 &114332769695738428
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1448629686933626}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 
+  Cost: 0
+  ExtraConfigurables: []
 --- !u!114 &114338336384845628
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1206,6 +1238,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 80
   PickerAimingObject: {fileID: 54752720944489846}
   PickerApproachWeighting: 20
+  GetConfigFromGenome: 1
 --- !u!114 &114606438034051628
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1278,6 +1311,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Friction: 0.6
+  GetConfigFromGenome: 1
 --- !u!114 &114941249901636450
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1328,6 +1362,7 @@ MonoBehaviour:
   ElevationHubMotorFoce: 200
   ElevationHubMotorSpeedMultiplier: 200
   ElevationHubMotorSpeedCap: 100
+  GetConfigFromGenome: 1
 --- !u!136 &136144013733270418
 CapsuleCollider:
   m_ObjectHideFlags: 1

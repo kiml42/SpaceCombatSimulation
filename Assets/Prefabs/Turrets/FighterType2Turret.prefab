@@ -75,6 +75,7 @@ GameObject:
   - component: {fileID: 114267042021218294}
   - component: {fileID: 114647912274754196}
   - component: {fileID: 114386818526608076}
+  - component: {fileID: 114200973491640330}
   m_Layer: 8
   m_Name: TurnTableMiniType2
   m_TagString: Untagged
@@ -333,6 +334,7 @@ GameObject:
   - component: {fileID: 114817219194645528}
   - component: {fileID: 114167772017330858}
   - component: {fileID: 114327979475213554}
+  - component: {fileID: 114459586111849866}
   m_Layer: 8
   m_Name: ElevationHub
   m_TagString: Untagged
@@ -359,6 +361,7 @@ GameObject:
   - component: {fileID: 114599845652586160}
   - component: {fileID: 114287102028383374}
   - component: {fileID: 114186032407112306}
+  - component: {fileID: 114002789580365638}
   m_Layer: 8
   m_Name: FighterType2Turret
   m_TagString: Team1
@@ -676,6 +679,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -1277,6 +1281,22 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1937165482167530}
   m_Enabled: 1
+--- !u!114 &114002789580365638
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1966910344123700}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 
+  Cost: 100
+  ExtraConfigurables:
+  - {fileID: 114459586111849866}
+  - {fileID: 114200973491640330}
 --- !u!114 &114123943331739718
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1327,6 +1347,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Type: 5
+--- !u!114 &114200973491640330
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1279856424914436}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 
+  Cost: 0
+  ExtraConfigurables: []
 --- !u!114 &114267042021218294
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1377,6 +1411,7 @@ MonoBehaviour:
   ElevationHubMotorFoce: 200
   ElevationHubMotorSpeedMultiplier: 200
   ElevationHubMotorSpeedCap: 100
+  GetConfigFromGenome: 1
 --- !u!114 &114287102028383374
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1433,6 +1468,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Friction: 0.01
+  GetConfigFromGenome: 1
 --- !u!114 &114386818526608076
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1445,6 +1481,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Friction: 0.01
+  GetConfigFromGenome: 1
 --- !u!114 &114389132765830884
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1456,6 +1493,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &114459586111849866
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1963251741759646}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 
+  Cost: 0
+  ExtraConfigurables: []
 --- !u!114 &114505053388813058
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1490,6 +1541,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 80
   PickerAimingObject: {fileID: 54068794490101062}
   PickerApproachWeighting: 20
+  GetConfigFromGenome: 1
 --- !u!114 &114599845652586160
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1566,6 +1618,7 @@ MonoBehaviour:
   AvoidFriendlyFire: 1
   FriendlyDetectionDistance: 80
   MinFriendlyDetectionDistance: 0.5
+  GetConfigFromGenome: 0
 --- !u!124 &124470725017084334
 Behaviour:
   m_ObjectHideFlags: 1

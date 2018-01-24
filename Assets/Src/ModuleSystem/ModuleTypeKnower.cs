@@ -15,22 +15,29 @@ namespace Assets.Src.ModuleSystem
         [Tooltip("the cost for this module when evolving ships.")]
         public float Cost = 100;
 
+        [Tooltip("Configurable modules on other objects")]
+        public List<ModuleTypeKnower> ExtraConfigurables = new List<ModuleTypeKnower>();
+
         //[Tooltip("These components will be configured in order by this behaviour when Configure is called on it.")]
         //public List<IGeneticConfigurable> ComponentsToConfigure = new List<IGeneticConfigurable>();
         
         public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
         {
-            var ComponentsToConfigure = GetComponents<IGeneticConfigurable>();
-            if (ComponentsToConfigure.Length > 1)   //if length == 1 then this has only found itself.
+            var componentsToConfigure = GetComponents<IGeneticConfigurable>().ToList();
+
+            componentsToConfigure.AddRange(ExtraConfigurables.Select(c => c as IGeneticConfigurable));
+
+            componentsToConfigure = componentsToConfigure.Distinct().Where(c => c != null && c != this).ToList();
+
+
+            if (componentsToConfigure.Any())   //if length == 1 then this has only found itself.
             {
-                foreach (var c in ComponentsToConfigure)
+                foreach (var c in componentsToConfigure)
                 {
-                    if (c != this)
-                    {
-                        genomeWrapper = c.Configure(genomeWrapper);
-                    }
+                    genomeWrapper = c.Configure(genomeWrapper);
                 }
             }
+
             return genomeWrapper;
         }
     }

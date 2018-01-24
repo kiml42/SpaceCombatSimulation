@@ -76,6 +76,7 @@ GameObject:
   - component: {fileID: 114201230822804862}
   - component: {fileID: 114575880276079734}
   - component: {fileID: 114067974381764894}
+  - component: {fileID: 114220203062301108}
   m_Layer: 8
   m_Name: TurnTable
   m_TagString: Untagged
@@ -99,6 +100,7 @@ GameObject:
   - component: {fileID: 114735797348154080}
   - component: {fileID: 114380905531141384}
   - component: {fileID: 114057691376441784}
+  - component: {fileID: 114131933278038030}
   m_Layer: 8
   m_Name: ElevationHub
   m_TagString: Untagged
@@ -406,6 +408,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -855,6 +858,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Friction: 0.4
+  GetConfigFromGenome: 1
 --- !u!114 &114067974381764894
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -867,6 +871,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Friction: 0.6
+  GetConfigFromGenome: 1
 --- !u!114 &114078742538678138
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -915,6 +920,20 @@ MonoBehaviour:
   Colour: {r: 0.42647058, g: 0.42647058, b: 0.458, a: 0}
   Depth: 3
   SetInStart: 0
+--- !u!114 &114131933278038030
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1554187838490230}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 
+  Cost: 0
+  ExtraConfigurables: []
 --- !u!114 &114201230822804862
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -945,6 +964,20 @@ MonoBehaviour:
   - Team4ForceField
   - Team5ForceField
   TeamTagForceFieldSuffix: FoceField
+--- !u!114 &114220203062301108
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1547687066501114}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 
+  Cost: 0
+  ExtraConfigurables: []
 --- !u!114 &114365050818564930
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -958,6 +991,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Types: 01000000
   Cost: 180
+  ExtraConfigurables:
+  - {fileID: 114131933278038030}
+  - {fileID: 114220203062301108}
 --- !u!114 &114375893224788504
 MonoBehaviour:
   m_ObjectHideFlags: 1

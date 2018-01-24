@@ -42,6 +42,7 @@ GameObject:
   - component: {fileID: 114447421175719934}
   - component: {fileID: 114395788500693144}
   - component: {fileID: 114735945283404792}
+  - component: {fileID: 114055044124451460}
   m_Layer: 8
   m_Name: TurnTableMiniBeam
   m_TagString: Untagged
@@ -305,6 +306,7 @@ GameObject:
   - component: {fileID: 114844622593280128}
   - component: {fileID: 114233701405603516}
   - component: {fileID: 114374078530005190}
+  - component: {fileID: 114778836518427244}
   m_Layer: 8
   m_Name: ElevationHub
   m_TagString: Untagged
@@ -937,6 +939,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -2030,6 +2033,20 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1779614606238932}
   m_Enabled: 1
+--- !u!114 &114055044124451460
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1060150790031920}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 
+  Cost: 0
+  ExtraConfigurables: []
 --- !u!114 &114140716898617586
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2124,6 +2141,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Friction: 0.01
+  GetConfigFromGenome: 1
 --- !u!114 &114395788500693144
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2222,6 +2240,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Types: 01000000
   Cost: 130
+  ExtraConfigurables:
+  - {fileID: 114778836518427244}
+  - {fileID: 114055044124451460}
 --- !u!114 &114634532448284018
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2283,6 +2304,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Friction: 0.01
+  GetConfigFromGenome: 1
+--- !u!114 &114778836518427244
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1649118934938034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 
+  Cost: 0
+  ExtraConfigurables: []
 --- !u!114 &114844622593280128
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -45,10 +45,10 @@ namespace Assets.Src.Targeting
         {
             if (target != null && target.Transform.IsValid())
             {
-                Debug.Log(_thisTurret.name + " Turning to target with named " + target.Transform.name + " Location: " + target.Transform.position);
+                //Debug.Log(_thisTurret.name + " Turning to target with named " + target.Transform.name + " Location: " + target.Transform.position);
                 
                 var vectorInBallSpace = target.LocationInOthersSpace(_ball, _projectileSpeed);
-                Debug.Log("location in ball space: " + vectorInBallSpace);
+                //Debug.Log("location in ball space: " + vectorInBallSpace);
                 
                 //var parentAngularV = _thisTurret.angularVelocity;
                 //var parentAngularVInBallSpace = _ball.transform.InverseTransformVector(parentAngularV);
@@ -61,7 +61,7 @@ namespace Assets.Src.Targeting
                     Debug.Log("Target is exactly behind");
                     rotationVector = new Vector3(1, 0, 0);
                 }
-                Debug.Log("rotationVector" + rotationVector);
+                //Debug.Log("rotationVector" + rotationVector);
 
                 var worldTorque = _ball.transform.TransformVector(rotationVector).normalized;
 
@@ -72,7 +72,7 @@ namespace Assets.Src.Targeting
                 if (VectorArrow != null)
                 {
                     var WorldSpaceVectorToTarget = _ball.transform.TransformVector(vectorInBallSpace);
-                    Debug.Log("WorldSpaceVectorToTarget: " + WorldSpaceVectorToTarget);
+                    //Debug.Log("WorldSpaceVectorToTarget: " + WorldSpaceVectorToTarget);
                     if (WorldSpaceVectorToTarget.magnitude > 0)
                     {
                         VectorArrow.rotation = Quaternion.LookRotation(WorldSpaceVectorToTarget);

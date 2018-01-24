@@ -24,6 +24,7 @@ GameObject:
   - component: {fileID: 114306497983771438}
   - component: {fileID: 114904709351601692}
   - component: {fileID: 114569116938896616}
+  - component: {fileID: 114754421758235748}
   m_Layer: 8
   m_Name: TurnTable
   m_TagString: Untagged
@@ -167,6 +168,7 @@ GameObject:
   - component: {fileID: 114904066030491806}
   - component: {fileID: 114902381399359470}
   - component: {fileID: 114884857142944774}
+  - component: {fileID: 114325656387658718}
   m_Layer: 8
   m_Name: ElevationHub
   m_TagString: Untagged
@@ -404,6 +406,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -926,6 +929,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Types: 01000000
   Cost: 180
+  ExtraConfigurables:
+  - {fileID: 114325656387658718}
+  - {fileID: 114754421758235748}
 --- !u!114 &114306497983771438
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -955,6 +961,20 @@ MonoBehaviour:
   - Team4ForceField
   - Team5ForceField
   TeamTagForceFieldSuffix: FoceField
+--- !u!114 &114325656387658718
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1851867619676866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 
+  Cost: 0
+  ExtraConfigurables: []
 --- !u!114 &114328088543714880
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -996,6 +1016,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Friction: 0.4
+  GetConfigFromGenome: 1
 --- !u!114 &114714754333530302
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1019,6 +1040,20 @@ MonoBehaviour:
   TagChildren: 0
   SetChildrensEnemy: 0
   RecoilForce: 0
+--- !u!114 &114754421758235748
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1053151280372486}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Types: 
+  Cost: 0
+  ExtraConfigurables: []
 --- !u!114 &114792225503145664
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1061,6 +1096,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Friction: 0.4
+  GetConfigFromGenome: 1
 --- !u!114 &114902381399359470
 MonoBehaviour:
   m_ObjectHideFlags: 1
