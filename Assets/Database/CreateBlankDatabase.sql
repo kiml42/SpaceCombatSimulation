@@ -32,7 +32,7 @@ VALUES (1, 300, 3, 6000, 10, 1, 1, .8, '30;30', 0, null, 1200);
 INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation, allowedModules, budget)
 VALUES (2, 120, 3, 6000, 10, 1, 1, .8, '30;30', 0, null, 1200);
 INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation, allowedModules, budget)
-VALUES (2, 180, 3, 8000, 5, .5, 2, .9, '100', 0, null, 1200);
+VALUES (3, 180, 3, 8000, 5, .5, 2, .9, '100', 0, null, 1200);
 
 -- Table: MutationConfig
 CREATE TABLE MutationConfig (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, mutations BIGINT NOT NULL, maxMutationLength INTEGER DEFAULT '5' NOT NULL, genomeLength INTEGER DEFAULT '300' NOT NULL, generationSize INTEGER DEFAULT '20' NOT NULL, randomDefault BOOLEAN DEFAULT 'FALSE' NOT NULL, defaultGenome VARCHAR (1000));
