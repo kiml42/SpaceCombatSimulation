@@ -8,8 +8,8 @@ BEGIN TRANSACTION;
 
 -- Table: DroneEvolutionConfig
 CREATE TABLE DroneEvolutionConfig (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name VARCHAR (50) NOT NULL ON CONFLICT REPLACE DEFAULT Unnamed, currentGeneration INTEGER DEFAULT '''0''' NOT NULL, minMatchesPerIndividual INTEGER DEFAULT '''1''' NOT NULL, winnersCount INTEGER DEFAULT '''5''' NOT NULL, minDrones INTEGER DEFAULT '''3''' NOT NULL, droneEscalation FLOAT DEFAULT (0.05) NOT NULL, maxDrones INTEGER DEFAULT '''50''' NOT NULL, killScoreMultiplier FLOAT DEFAULT '''1''' NOT NULL, flatKillBonus FLOAT DEFAULT '''100''' NOT NULL, completionBonus FLOAT DEFAULT '''1''' NOT NULL, deathPenalty FLOAT DEFAULT '''70''' NOT NULL, matchConfigId INTEGER REFERENCES MatchConfig (id) NOT NULL ON CONFLICT ROLLBACK, mutationConfigId INTEGER REFERENCES MutationConfig (id) NOT NULL, droneList VARCHAR (3000));
-INSERT INTO DroneEvolutionConfig (id, name, currentGeneration, minMatchesPerIndividual, winnersCount, minDrones, droneEscalation, maxDrones, killScoreMultiplier, flatKillBonus, completionBonus, deathPenalty, matchConfigId, mutationConfigId, droneList) VALUES (0, 'Pasive', 0, 1, 5, 3, 8, 100, 50, 100, 388, 70, 0, 0, '1;2;1');
-INSERT INTO DroneEvolutionConfig (id, name, currentGeneration, minMatchesPerIndividual, winnersCount, minDrones, droneEscalation, maxDrones, killScoreMultiplier, flatKillBonus, completionBonus, deathPenalty, matchConfigId, mutationConfigId, droneList) VALUES (1, 'mixedTargets-morePassive-test', 0, 1, 5, 3, 8, 100, 50, 100, 388, 70, 1, 1, '0;2;1;3;1;1;3;1;5;1;1;1;6;1;1');
+INSERT INTO DroneEvolutionConfig (id, name, currentGeneration, minMatchesPerIndividual, winnersCount, minDrones, droneEscalation, maxDrones, killScoreMultiplier, flatKillBonus, completionBonus, deathPenalty, matchConfigId, mutationConfigId, droneList) VALUES (0, 'Pasive', 0, 1, 5, 3, 8, 100, 50, 100, 388, 70, 0, 0, '1,2,1');
+INSERT INTO DroneEvolutionConfig (id, name, currentGeneration, minMatchesPerIndividual, winnersCount, minDrones, droneEscalation, maxDrones, killScoreMultiplier, flatKillBonus, completionBonus, deathPenalty, matchConfigId, mutationConfigId, droneList) VALUES (1, 'mixedTargets-morePassive-test', 0, 1, 5, 3, 8, 100, 50, 100, 388, 70, 1, 1, '0,2,1,3,1,1,3,1,5,1,1,1,6,1,1');
 
 -- Table: DroneShootingIndividual
 CREATE TABLE DroneShootingIndividual (runConfigId INTEGER NOT NULL REFERENCES DroneEvolutionConfig (id), generation INTEGER NOT NULL, genome VARCHAR (1000) NOT NULL, score FLOAT, matchesPlayed INTEGER, matchesSurvived INTEGER, completeKills INTEGER, totalKills INTEGER, matchScores VARCHAR (500), PRIMARY KEY (runConfigId, generation, genome));
@@ -26,11 +26,11 @@ CREATE TABLE Individual1v1 (runConfigId INTEGER NOT NULL REFERENCES DroneEvoluti
 -- Table: MatchConfig
 CREATE TABLE MatchConfig (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, matchTimeout FLOAT DEFAULT '300' NOT NULL, winnerPollPeriod FLOAT DEFAULT '2' NOT NULL, initialRange FLOAT DEFAULT '''6000''' NOT NULL, initialSpeed FLOAT DEFAULT '''0''' NOT NULL, randomInitialSpeed FLOAT DEFAULT '''0''' NOT NULL, competitorsPerTeam INTEGER DEFAULT '''1''' NOT NULL, stepForwardProportion FLOAT DEFAULT '''0.5''' NOT NULL, locationRandomisationRadiai STRING DEFAULT '''0''' NOT NULL, randomiseRotation BOOLEAN DEFAULT 'TRUE' NOT NULL, allowedModules STRING DEFAULT null, budget INTEGER DEFAULT 1000);
 INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation, allowedModules, budget)
-VALUES (0, 300, 3, 6000, 10, 1, 1, .8, '30;30', 0, null, 1200);
+VALUES (0, 300, 3, 6000, 10, 1, 1, .8, '30,30', 0, null, 1200);
 INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation, allowedModules, budget)
-VALUES (1, 300, 3, 6000, 10, 1, 1, .8, '30;30', 0, null, 1200);
+VALUES (1, 300, 3, 6000, 10, 1, 1, .8, '30,30', 0, null, 1200);
 INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation, allowedModules, budget)
-VALUES (2, 120, 3, 6000, 10, 1, 1, .8, '30;30', 0, null, 1200);
+VALUES (2, 120, 3, 6000, 10, 1, 1, .8, '30,30', 0, null, 1200);
 INSERT INTO MatchConfig (id, matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation, allowedModules, budget)
 VALUES (3, 180, 3, 8000, 5, .5, 2, .9, '100', 0, null, 1200);
 
