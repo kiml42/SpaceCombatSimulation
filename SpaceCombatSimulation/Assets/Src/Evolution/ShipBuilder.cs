@@ -181,10 +181,10 @@ namespace Assets.src.Evolution
                         //Debug.Log("Adding Module " + number + ": " + Modules[number.Value % _moduleList.Modules.Count()] );
                         return _moduleList.Modules[numberInRange];
                     }
-                    else
-                    {
-                        Debug.Log("Not allowed to spawn module " + numberInRange);
-                    }
+                    //else
+                    //{
+                    //    Debug.Log("Not allowed to spawn module " + numberInRange);
+                    //}
                 }
                 //else
                 //{
