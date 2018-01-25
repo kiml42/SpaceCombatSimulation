@@ -159,6 +159,7 @@ namespace Assets.Src.Evolution
 
         /// <summary>
         /// Geturns the next gene as an int - null if it is empty or can't be parsed
+        /// blanks in th egene are removed.
         /// </summary>
         /// <returns></returns>
         public int? GetGeneAsInt()
@@ -167,6 +168,10 @@ namespace Assets.Src.Evolution
             //Debug.Log("Gene to spawn: " + substring);
 
             var simplified = substring.Replace(" ", "");
+            if (string.IsNullOrEmpty(simplified))
+            {
+                return null;
+            }
 
             int number;
             if (int.TryParse(simplified, out number))
@@ -178,6 +183,7 @@ namespace Assets.Src.Evolution
 
         /// <summary>
         /// Returns the next gene as a float between 0 and 1.
+        /// Blanks in the gene are replaced with 0.
         /// </summary>
         /// <param name="defaultProporion"></param>
         /// <param name="length"></param>
@@ -187,7 +193,7 @@ namespace Assets.Src.Evolution
 
             var substring = GetGene();
 
-            var simplified = substring.TrimStart().Replace(" ", "");
+            var simplified = substring.TrimStart().Replace(" ", "0");
             //Debug.Log(simplified);
             int number;
             if (int.TryParse(simplified, out number))
