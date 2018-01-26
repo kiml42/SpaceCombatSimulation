@@ -12,7 +12,7 @@ namespace Assets.Src.Database
 {
     public abstract class GeneralDatabaseHandler
     {
-        private const string DEFAULT_COMMAND_PATH = "/Database/CreateBlankDatabase.sql";
+        public const string DEFAULT_COMMAND_PATH = "/Database/CreateBlankDatabase.sql";
         private const string DEFAULT_DB_PATH = "/tmp/SpaceCombatSimulationDB.s3db";
         protected string _connectionString
         {
