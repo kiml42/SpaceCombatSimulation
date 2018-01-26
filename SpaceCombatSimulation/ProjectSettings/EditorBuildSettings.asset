@@ -20,6 +20,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Edit1v1EvolutionConfig.unity
     guid: e6a9a411b0a03a645ada455454ba9e47
+  - enabled: 1
+    path: Assets/Scenes/EditDroneEvolutionConfig.unity
+    guid: 617ffbab7a6b85b4694fec216a3ae48d
   - enabled: 0
     path: Assets/Scenes/1v1Ships.unity
     guid: 56d8e6f0e2de7d04a94542bc4cce9dc3
