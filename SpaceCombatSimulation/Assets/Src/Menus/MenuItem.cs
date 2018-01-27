@@ -11,6 +11,7 @@ public class MenuItem : MonoBehaviour {
     public Color HighlightColour = Color.yellow;
     public MainMenuController MainMenu;
 
+    [Tooltip("If true, the Id to load is set to the 'IdToLoad', otherwise it is set to null.")]
     public bool SetIdToLoad = false;
     public int IdToLoad;
 
@@ -60,11 +61,8 @@ public class MenuItem : MonoBehaviour {
             #endif
             return;
         }
-
-        if (SetIdToLoad)
-        {
-            ArgumentStore.IdToLoad = IdToLoad;
-        }
+        
+        ArgumentStore.IdToLoad = SetIdToLoad ? (int?)IdToLoad : null;
 
         if(!string.IsNullOrEmpty(SceneToLoad))
         {

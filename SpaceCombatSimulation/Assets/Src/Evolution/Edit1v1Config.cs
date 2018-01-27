@@ -9,8 +9,7 @@ using UnityEngine.SceneManagement;
 using Assets.Src.Menus;
 
 public class Edit1v1Config : MonoBehaviour {
-    [Tooltip("Set to -ve for new")]
-    public int IdToLoad = -1;
+    private int _loadedId = -1;
     private bool _hasLoadedExisting;
 
     public EditMutationConfig MutationConfig;
@@ -61,10 +60,10 @@ public class Edit1v1Config : MonoBehaviour {
             _handler.UpdateExistingConfig(config);
         } else
         {
-            IdToLoad = _handler.SaveNewConfig(config);
+            _loadedId = _handler.SaveNewConfig(config);
         }
 
-        ArgumentStore.IdToLoad = IdToLoad;
+        ArgumentStore.IdToLoad = _loadedId;
         
         SceneManager.LoadScene(EvolutionSceneToLoad);
     }
@@ -75,9 +74,9 @@ public class Edit1v1Config : MonoBehaviour {
 
         config.GenerationNumber = 0;
 
-        IdToLoad = _handler.SaveNewConfig(config);
+        _loadedId = _handler.SaveNewConfig(config);
 
-        ArgumentStore.IdToLoad = IdToLoad;
+        ArgumentStore.IdToLoad = _loadedId;
         
         SceneManager.LoadScene(EvolutionSceneToLoad);
     }
@@ -99,12 +98,10 @@ public class Edit1v1Config : MonoBehaviour {
 
     private void LoadConfig()
     {
-        IdToLoad = ArgumentStore.IdToLoad ?? IdToLoad;
-        _hasLoadedExisting = IdToLoad >= 0;
-        _loaded = _hasLoadedExisting ? _handler.ReadConfig(IdToLoad) : new Evolution1v1Config();
-
-        Debug.Log(_loaded.RunName);
-
+        _hasLoadedExisting = ArgumentStore.IdToLoad.HasValue;
+        _loadedId = ArgumentStore.IdToLoad ?? -1;
+        _loaded = _hasLoadedExisting ? _handler.ReadConfig(_loadedId) : new Evolution1v1Config();
+        
         RunName.text = _loaded.RunName;
         MinMatchesPerIndividual.text = _loaded.MinMatchesPerIndividual.ToString();
         WinnersFromEachGeneration.text = _loaded.WinnersFromEachGeneration.ToString();
