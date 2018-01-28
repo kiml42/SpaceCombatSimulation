@@ -26,9 +26,6 @@ Bugs:
 TODO:
     In Progress:
         Menus
-            Initialise DB when starting main menu - so that the ons to load show the deult ones when a new DB is created.
-                Added button, but it loads a scene, instead of opening blank.
-            New button for drone evolution
             keyboard navigation
             Scrollable lists
             Delete config option (takes all individuals and match and mutation configs too)
