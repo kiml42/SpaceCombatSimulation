@@ -272,20 +272,24 @@ namespace Assets.Src.Targeting
 
         public static Vector3 ComponentParalellTo(this Vector3 u, Vector3 v)
         {
-            //https://math.stackexchange.com/questions/1455740/resolve-u-into-components-that-are-parallel-and-perpendicular-to-any-other-nonze
-            var numerator = Vector3.Dot(u, v);
-            var denominator = Vector3.Dot(v, v);
-            if(denominator != 0)
+            if(v.magnitude != 0)
             {
-                var division = numerator / denominator;
+                //https://math.stackexchange.com/questions/1455740/resolve-u-into-components-that-are-parallel-and-perpendicular-to-any-other-nonze
+                var numerator = Vector3.Dot(u, v);
+                var denominator = Vector3.Dot(v, v);
+                if(denominator != 0)
+                {
+                    var division = numerator / denominator;
 
-                var paralell = (division * v);
-                return paralell;
-            } else
-            {
-                Debug.LogWarning("avoidedDiv0 error ");
-                return Vector3.zero;
+                    var paralell = (division * v);
+                    return paralell;
+                } else
+                {
+                    //This shouldn't ever happen, but I've left the inner if in just in case.
+                    Debug.LogError("Div0 error");
+                }
             }
+            return Vector3.zero;
         }
     }
 }
