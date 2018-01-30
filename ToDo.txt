@@ -19,6 +19,7 @@ TODO:
             Delete config option (takes all individuals and match and mutation configs too)
             Proper inputs for numbers and bools
     Priority:
+        misiles configure their engines as part of their config.
         Torpedoes detonate at closest approach isf out of fuel.
         Lightsabers!
         score -= genome.Cost (final cost)
