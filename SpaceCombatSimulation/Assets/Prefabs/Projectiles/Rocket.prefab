@@ -106,7 +106,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4895382575219984}
   - component: {fileID: 114647872415290320}
-  - component: {fileID: 114088245349969402}
   m_Layer: 0
   m_Name: MainEngine
   m_TagString: Untagged
@@ -183,7 +182,7 @@ GameObject:
   - component: {fileID: 114310481633652866}
   - component: {fileID: 114916808352173484}
   - component: {fileID: 114497169605843674}
-  - component: {fileID: 114844165666466538}
+  - component: {fileID: 114100636965721236}
   m_Layer: 0
   m_Name: Rocket
   m_TagString: Untagged
@@ -714,20 +713,23 @@ TrailRenderer:
     generateLightingData: 0
   m_MinVertexDistance: 0.1
   m_Autodestruct: 0
---- !u!114 &114088245349969402
+--- !u!114 &114100636965721236
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1473806784434710}
+  m_GameObject: {fileID: 1844183048995594}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Script: {fileID: 11500000, guid: 5c45bc14bf73106468d41c2a7bac90c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Types: 02000000
-  Cost: 20
-  ExtraConfigurables: []
+  Cost: 10
+  TargetChoosingMechanism: {fileID: 114954702964643402}
+  RocketController: {fileID: 114136396789891348}
+  FuelTank: {fileID: 114274753216163754}
+  Engines:
+  - {fileID: 114647872415290320}
 --- !u!114 &114136396789891348
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -810,8 +812,8 @@ MonoBehaviour:
   Fuel: 200
   UseFuelMass: 1
   FuelDensity: 0.001
-  GetConfigFromGenome: 0
-  MaxFuel: 180
+  GetConfigFromGenome: 1
+  MaxFuel: 200
   MinFuel: 0
 --- !u!114 &114310481633652866
 MonoBehaviour:
@@ -861,21 +863,6 @@ MonoBehaviour:
   TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
   GetConfigFromGenome: 1
---- !u!114 &114844165666466538
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1844183048995594}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Types: 03000000
-  Cost: 10
-  ExtraConfigurables:
-  - {fileID: 114088245349969402}
 --- !u!114 &114916808352173484
 MonoBehaviour:
   m_ObjectHideFlags: 1

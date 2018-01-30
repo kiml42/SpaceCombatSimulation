@@ -20,7 +20,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4173018633797924}
   - component: {fileID: 114403901151772014}
-  - component: {fileID: 114436214435057698}
   m_Layer: 0
   m_Name: Engine (7)
   m_TagString: Untagged
@@ -103,7 +102,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4360529475980794}
   - component: {fileID: 114879168298503238}
-  - component: {fileID: 114761309392924494}
   m_Layer: 0
   m_Name: Engine (2)
   m_TagString: Untagged
@@ -120,7 +118,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4442588816209452}
   - component: {fileID: 114802830622270584}
-  - component: {fileID: 114530068935429124}
   m_Layer: 0
   m_Name: Engine
   m_TagString: Untagged
@@ -171,7 +168,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4378821328922914}
   - component: {fileID: 114399943264876254}
-  - component: {fileID: 114029956742390350}
   m_Layer: 0
   m_Name: MainEngine
   m_TagString: Untagged
@@ -206,7 +202,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4416893000533318}
   - component: {fileID: 114621118424015926}
-  - component: {fileID: 114336393125055644}
   m_Layer: 0
   m_Name: Engine (1)
   m_TagString: Untagged
@@ -284,7 +279,7 @@ GameObject:
   - component: {fileID: 114804116594877402}
   - component: {fileID: 114939486053213880}
   - component: {fileID: 114163877250555504}
-  - component: {fileID: 114720408820650318}
+  - component: {fileID: 114053199409669074}
   m_Layer: 0
   m_Name: Torpedo
   m_TagString: Team1
@@ -372,7 +367,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4180701268189872}
   - component: {fileID: 114829031791185520}
-  - component: {fileID: 114107069069373100}
   m_Layer: 0
   m_Name: Engine (6)
   m_TagString: Untagged
@@ -443,7 +437,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4057068257846252}
   - component: {fileID: 114565309780138334}
-  - component: {fileID: 114983304492332310}
   m_Layer: 0
   m_Name: Engine (5)
   m_TagString: Untagged
@@ -614,7 +607,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4125681096952382}
   - component: {fileID: 114187712391752756}
-  - component: {fileID: 114079216368663332}
   m_Layer: 0
   m_Name: Engine (4)
   m_TagString: Untagged
@@ -736,7 +728,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4613424297978254}
   - component: {fileID: 114205327518238268}
-  - component: {fileID: 114532255119775012}
   m_Layer: 0
   m_Name: Engine (3)
   m_TagString: Untagged
@@ -2527,48 +2518,31 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1.0000001, y: 2, z: 1.0000002}
   m_Center: {x: 0.000000059604645, y: 0, z: -0.00000008940697}
---- !u!114 &114029956742390350
+--- !u!114 &114053199409669074
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1208417949232398}
+  m_GameObject: {fileID: 1301380948880376}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
+  m_Script: {fileID: 11500000, guid: 5c45bc14bf73106468d41c2a7bac90c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Types: 02000000
-  Cost: 20
-  ExtraConfigurables: []
---- !u!114 &114079216368663332
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1821733991163330}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Types: 02000000
-  Cost: 20
-  ExtraConfigurables: []
---- !u!114 &114107069069373100
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1426804054001380}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Types: 02000000
-  Cost: 20
-  ExtraConfigurables: []
+  Cost: 60
+  TargetChoosingMechanism: {fileID: 114754498876685630}
+  RocketController: {fileID: 114902674925534566}
+  FuelTank: {fileID: 114488115583942366}
+  Engines:
+  - {fileID: 114802830622270584}
+  - {fileID: 114621118424015926}
+  - {fileID: 114879168298503238}
+  - {fileID: 114205327518238268}
+  - {fileID: 114187712391752756}
+  - {fileID: 114565309780138334}
+  - {fileID: 114829031791185520}
+  - {fileID: 114403901151772014}
+  - {fileID: 114399943264876254}
 --- !u!114 &114163877250555504
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2659,20 +2633,6 @@ MonoBehaviour:
   - Team4ForceField
   - Team5ForceField
   TeamTagForceFieldSuffix: FoceField
---- !u!114 &114336393125055644
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1226897152134698}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Types: 02000000
-  Cost: 20
-  ExtraConfigurables: []
 --- !u!114 &114399943264876254
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2721,20 +2681,6 @@ MonoBehaviour:
   TorquerFullThrottleAngle: 20
   _fullTrhrottlePlumeRate: 0
   GetConfigFromGenome: 1
---- !u!114 &114436214435057698
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1062997562689200}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Types: 02000000
-  Cost: 20
-  ExtraConfigurables: []
 --- !u!114 &114488115583942366
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2749,37 +2695,9 @@ MonoBehaviour:
   Fuel: 3000
   UseFuelMass: 1
   FuelDensity: 0.001
-  GetConfigFromGenome: 0
-  MaxFuel: 180
+  GetConfigFromGenome: 1
+  MaxFuel: 3000
   MinFuel: 0
---- !u!114 &114530068935429124
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1170786592507630}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Types: 02000000
-  Cost: 20
-  ExtraConfigurables: []
---- !u!114 &114532255119775012
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1949584971031668}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Types: 02000000
-  Cost: 20
-  ExtraConfigurables: []
 --- !u!114 &114565309780138334
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2828,29 +2746,6 @@ MonoBehaviour:
   TorquerFullThrottleAngle: 20
   _fullTrhrottlePlumeRate: 0
   GetConfigFromGenome: 1
---- !u!114 &114720408820650318
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1301380948880376}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Types: 03000000
-  Cost: 60
-  ExtraConfigurables:
-  - {fileID: 114530068935429124}
-  - {fileID: 114336393125055644}
-  - {fileID: 114761309392924494}
-  - {fileID: 114532255119775012}
-  - {fileID: 114079216368663332}
-  - {fileID: 114983304492332310}
-  - {fileID: 114107069069373100}
-  - {fileID: 114436214435057698}
-  - {fileID: 114029956742390350}
 --- !u!114 &114754498876685630
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2885,20 +2780,6 @@ MonoBehaviour:
   PickerAimingObject: {fileID: 0}
   PickerApproachWeighting: 60
   GetConfigFromGenome: 1
---- !u!114 &114761309392924494
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1158259066322274}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Types: 02000000
-  Cost: 20
-  ExtraConfigurables: []
 --- !u!114 &114802830622270584
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -3040,20 +2921,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &114983304492332310
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1467482982973368}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Types: 02000000
-  Cost: 20
-  ExtraConfigurables: []
 --- !u!136 &136732948526313666
 CapsuleCollider:
   m_ObjectHideFlags: 1

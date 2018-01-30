@@ -62,7 +62,7 @@ namespace Assets.Src.Evolution
         /// </summary>
         /// <param name="types">List of types that this module should be treated as.</param>
         /// <returns>boolean indicating if any more can be added</returns>
-        public bool ModuleAdded(ModuleTypeKnower knower, Vector3 usedLocation)
+        public bool ModuleAdded(IModuleTypeKnower knower, Vector3 usedLocation)
         {
             //TODO expand to all types.
             foreach (var type in knower.Types.Distinct())

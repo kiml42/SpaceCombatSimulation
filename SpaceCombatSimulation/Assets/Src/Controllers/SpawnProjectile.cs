@@ -82,9 +82,10 @@ public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurab
 
                 if (GetConfigFromGenome)
                 {
-                    foreach (var c in projectile.GetComponents<IGeneticConfigurable>())
+                    var typeKnower = projectile.GetComponent<IModuleTypeKnower>();
+                    if(typeKnower != null)
                     {
-                        c.Configure(new GenomeWrapper(RocketGenome, _targetChoosingMechanism.EnemyTags));
+                        typeKnower.Configure(new GenomeWrapper(RocketGenome, _targetChoosingMechanism.EnemyTags));
                     }
                 }
 

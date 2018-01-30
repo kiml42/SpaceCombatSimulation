@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace Assets.Src.ModuleSystem
 {
-    public class ModuleTypeKnower : MonoBehaviour, IGeneticConfigurable
+    public class ModuleTypeKnower : MonoBehaviour, IModuleTypeKnower
     {
         [Tooltip("the list of types that this module can act as.")]
         public List<ModuleType> Types;
@@ -15,12 +15,29 @@ namespace Assets.Src.ModuleSystem
         [Tooltip("the cost for this module when evolving ships.")]
         public float Cost = 100;
 
+        float IModuleTypeKnower.Cost
+        {
+            get
+            {
+                return Cost;
+            }
+        }
+
         [Tooltip("Configurable modules on other objects")]
-        public List<ModuleTypeKnower> ExtraConfigurables = new List<ModuleTypeKnower>();
+        public List<IModuleTypeKnower> ExtraConfigurables = new List<IModuleTypeKnower>();
+
+        List<ModuleType> IModuleTypeKnower.Types
+        {
+            get
+            {
+                return Types;
+            }
+        }
+
 
         //[Tooltip("These components will be configured in order by this behaviour when Configure is called on it.")]
         //public List<IGeneticConfigurable> ComponentsToConfigure = new List<IGeneticConfigurable>();
-        
+
         public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
         {
             var componentsToConfigure = GetComponents<IGeneticConfigurable>().ToList();

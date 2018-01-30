@@ -148,7 +148,7 @@ GameObject:
   - component: {fileID: 114087177041280492}
   - component: {fileID: 114161706696368820}
   - component: {fileID: 114249161889169034}
-  - component: {fileID: 114200129584606204}
+  - component: {fileID: 114514755861448430}
   m_Layer: 0
   m_Name: ClusterRocket
   m_TagString: Untagged
@@ -165,7 +165,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4365959887145080}
   - component: {fileID: 114095532759699856}
-  - component: {fileID: 114974960286011104}
   m_Layer: 0
   m_Name: MainEngine
   m_TagString: Untagged
@@ -727,8 +726,8 @@ MonoBehaviour:
   Fuel: 80
   UseFuelMass: 1
   FuelDensity: 0.001
-  GetConfigFromGenome: 0
-  MaxFuel: 180
+  GetConfigFromGenome: 1
+  MaxFuel: 80
   MinFuel: 0
 --- !u!114 &114095532759699856
 MonoBehaviour:
@@ -766,21 +765,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GroupName: Projectiles
---- !u!114 &114200129584606204
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1923394915539256}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Types: 03000000
-  Cost: 10
-  ExtraConfigurables:
-  - {fileID: 114974960286011104}
 --- !u!114 &114249161889169034
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -823,6 +807,23 @@ MonoBehaviour:
   - Team4ForceField
   - Team5ForceField
   TeamTagForceFieldSuffix: FoceField
+--- !u!114 &114514755861448430
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1923394915539256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c45bc14bf73106468d41c2a7bac90c9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Cost: 10
+  TargetChoosingMechanism: {fileID: 114958396777747442}
+  RocketController: {fileID: 114634549180162652}
+  FuelTank: {fileID: 114087177041280492}
+  Engines:
+  - {fileID: 114095532759699856}
 --- !u!114 &114634549180162652
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -895,20 +896,6 @@ MonoBehaviour:
   PickerAimingObject: {fileID: 0}
   PickerApproachWeighting: 100
   GetConfigFromGenome: 1
---- !u!114 &114974960286011104
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1948943214812786}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Types: 02000000
-  Cost: 20
-  ExtraConfigurables: []
 --- !u!135 &135228887540377652
 SphereCollider:
   m_ObjectHideFlags: 1
