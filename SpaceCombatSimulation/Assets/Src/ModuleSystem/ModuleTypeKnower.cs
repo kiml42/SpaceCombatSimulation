@@ -25,7 +25,7 @@ namespace Assets.Src.ModuleSystem
         {
             var componentsToConfigure = GetComponents<IGeneticConfigurable>().ToList();
 
-            componentsToConfigure.AddRange(ExtraConfigurables.Select(c => c as IGeneticConfigurable));
+            componentsToConfigure.AddRange(ExtraConfigurables.Where(c => c != null).Select(c => c as IGeneticConfigurable));
 
             componentsToConfigure = componentsToConfigure.Distinct().Where(c => c != null && c != this).ToList();
 

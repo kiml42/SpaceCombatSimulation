@@ -7,6 +7,6 @@ namespace Assets.Src.ModuleSystem
 {
     public enum ModuleType
     {
-        Hub, Turret, Engine
+        Hub, Turret, Engine, Projectile
     }
 }
