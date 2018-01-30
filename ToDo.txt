@@ -65,6 +65,7 @@ TODO:
     projectiles apply force to cancel lateral V. Target set on projectile when fired.
     Spherical modules with two angles given for where to spawn the sub modules and something to specify termination of that module's spawning (going back up to the previous)
     FuelTank option to balance fuel with parent.
+    Add more max and min settings for genetic configurables, as is done in the fuel tank. Use this for things like projectile speed.
 
     Repulsive shield- repels objects in trigger
 

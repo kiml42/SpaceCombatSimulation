@@ -555,6 +555,7 @@ MonoBehaviour:
   - {fileID: 4769832154977092}
   - {fileID: 4442004166745056}
   - {fileID: 4348634622081534}
+  AllowedModuleIndicies: 
 --- !u!114 &114456467286586328
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -632,8 +633,8 @@ FixedJoint:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1887750702999502}
   m_ConnectedBody: {fileID: 0}
-  m_BreakForce: 500000
-  m_BreakTorque: 700000
+  m_BreakForce: 700000
+  m_BreakTorque: 900000
   m_EnableCollision: 0
   m_EnablePreprocessing: 1
   m_MassScale: 1
