@@ -33,6 +33,8 @@ TODO:
     Priority:
         Torpedoes detonate at closest approach isf out of fuel.
         Lightsabers!
+        score -= genome.Cost (final cost)
+        score -= genome.Length (for use with variable length genomes)
         Randomise target choosing mechanism periods so they don't come up at the same time.
         Some tool to show graphs of genomes over time.
         Cardboard support

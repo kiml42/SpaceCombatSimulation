@@ -104,11 +104,12 @@ namespace Assets.src.Evolution
 
                             addedModule.transform.SetColor(_colour);
 
+                            //must be before module is configured, so the cost is updated before more modules are added.
+                            _genome.ModuleAdded(addedModule, newUsedLocation);
+
                             _genome.Jump();
                             _genome = addedModule.Configure(_genome);
                             _genome.JumpBack();
-                           
-                            _genome.ModuleAdded(addedModule, newUsedLocation);
                         }
                         //else
                         //{
