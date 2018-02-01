@@ -412,9 +412,9 @@ MeshCollider:
   m_Material: {fileID: 0}
   m_IsTrigger: 0
   m_Enabled: 1
-  serializedVersion: 3
+  serializedVersion: 2
   m_Convex: 1
-  m_CookingOptions: 14
+  m_InflateMesh: 0
   m_SkinWidth: 0.01
   m_Mesh: {fileID: 4300000, guid: 30de26c7cd61da843adfd314ec84d4e9, type: 3}
 --- !u!114 &114215453883252808
@@ -466,7 +466,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 60
   Armour: 0
-  Health: 7000
+  Health: 700000
   DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
