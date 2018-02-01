@@ -7,7 +7,8 @@ using UnityEngine;
 
 public class SpawnTurret : MonoBehaviour, IKnowsEnemyTags
 {
-    public IKnowsEnemyTags EnemyTagSource;
+    public TargetChoosingMechanism EnemyTagSource;
+    public IKnowsEnemyTags _enemyTagSource;
     public bool TagChildren = false;
 
 
@@ -38,14 +39,19 @@ public class SpawnTurret : MonoBehaviour, IKnowsEnemyTags
 
 	// Use this for initialization
 	void Start () {
+
         if(EnemyTagSource == null && transform.parent != null)
         {
-            EnemyTagSource = transform.parent.GetComponent<IKnowsEnemyTags>();
+            _enemyTagSource = transform.parent.GetComponent<IKnowsEnemyTags>();
+        }
+        else
+        {
+            _enemyTagSource = EnemyTagSource;
         }
 
-        if(EnemyTagSource != null)
+        if(_enemyTagSource != null)
         {
-            EnemyTags = EnemyTagSource.EnemyTags;
+            EnemyTags = _enemyTagSource.EnemyTags;
         }
 
         var turret = Instantiate(TurretPrefab, transform.position, transform.rotation, transform);
@@ -63,8 +69,15 @@ public class SpawnTurret : MonoBehaviour, IKnowsEnemyTags
             }
         }
 
-        turret.GetComponent<IKnowsEnemyTags>().EnemyTags = EnemyTags;
-        if (TagChildren) { turret.tag = tag; }
+        var tagKnower = turret.GetComponent<IKnowsEnemyTags>();
+        if(tagKnower != null)
+        {
+            tagKnower.EnemyTags = EnemyTags;
+        }
+
+        if (TagChildren) {
+            turret.tag = tag;
+        }
 
 
         Destroy(gameObject);

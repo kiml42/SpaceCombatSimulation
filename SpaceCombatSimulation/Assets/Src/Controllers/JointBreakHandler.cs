@@ -11,7 +11,7 @@ public class JointBreakHandler : MonoBehaviour {
 
     void OnJointBreak(float breakForce)
     {
-        //Debug.Log(transform.name + "'s joint has just been broken!, force: " + breakForce);
+        Debug.Log(transform.name + "'s joint has just been broken!, force: " + breakForce);
         if (DisconectFromParent)
         {
             transform.parent = null;
