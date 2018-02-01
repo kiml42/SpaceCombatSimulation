@@ -84,7 +84,6 @@ SpaceCombatSimulation/**/Properties/launchSettings.json
 *_p.c
 *_i.h
 *.ilk
-*.obj
 *.pch
 *.pdb
 *.pgc
