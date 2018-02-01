@@ -67,7 +67,7 @@ public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurab
                 projectile.velocity = velocity;
 
                 var tagKnower = projectile.GetComponent<IKnowsEnemyTags>();
-                if(tagKnower != null)
+                if(tagKnower != null && _targetChoosingMechanism != null)
                 {
                     tagKnower.EnemyTags = _targetChoosingMechanism.EnemyTags;
                 }

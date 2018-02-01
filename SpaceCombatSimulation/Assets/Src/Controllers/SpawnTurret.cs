@@ -57,6 +57,13 @@ public class SpawnTurret : MonoBehaviour, IKnowsEnemyTags
         var turret = Instantiate(TurretPrefab, transform.position, transform.rotation, transform);
         if(transform.parent != null)
         {
+            var parentRigidbody = transform.parent.GetComponent<Rigidbody>();
+            var turretRigidbody = turret.parent.GetComponent<Rigidbody>();
+            if(parentRigidbody != null && turretRigidbody != null)
+            {
+                turretRigidbody.velocity = parentRigidbody.velocity;
+            }
+
             turret.parent = transform.parent;
             turret.GetComponent<FixedJoint>().connectedBody = transform.parent.GetComponent<Rigidbody>();
 
