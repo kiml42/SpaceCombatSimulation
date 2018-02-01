@@ -111,7 +111,7 @@ namespace Assets.Src.Database
 
         protected MatchConfig ReadMatchConfig(IDataReader reader, int idIndex)
         {
-            Debug.Log("locationRandomisationRadiai ordinal: " + reader.GetOrdinal("locationRandomisationRadiai"));
+            //Debug.Log("locationRandomisationRadiai ordinal: " + reader.GetOrdinal("locationRandomisationRadiai"));
             //Debug.Log("locationRandomisationRadiai value: " + reader.GetString(reader.GetOrdinal("locationRandomisationRadiai")));
 
             var config = new MatchConfig()

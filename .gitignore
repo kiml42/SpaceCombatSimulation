@@ -311,3 +311,4 @@ SpaceCombatSimulation/tmp/**/*
 
 !SpaceCombatSimulation/Assets/Plugins/*.dll
 SpaceCombatSimulation/Assets/tmp/
+Temp/

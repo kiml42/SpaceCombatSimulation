@@ -7,7 +7,6 @@ using UnityEngine.SceneManagement;
 using System;
 using System.IO;
 using Assets.Src.ObjectManagement;
-using UnityEditor;
 using Assets.Src.Database;
 using Assets.Src.Evolution;
 using Assets.Src.Menus;

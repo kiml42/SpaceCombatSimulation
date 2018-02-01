@@ -1,5 +1,6 @@
 Bugs:
     Priority:
+        DB doesn't work in built project.
         ElevationHubs on some drones are disappearing.
         "Can't remove Rigidbody because HingeJoint depends on it"
         rocket engines carry on regardless if the rocket has no target.

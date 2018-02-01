@@ -156,10 +156,10 @@ namespace Assets.src.Evolution
                 newUsedLocation = Vector3.zero; //set to zero if there isn't a test cube - it doesn't matter.
             }
             var canSpawn = _genome.CanSpawn();
-            if (!canSpawn)
-            {
-                Debug.Log("Can't spawn module because the Genome says so.");
-            }
+            //if (!canSpawn)
+            //{
+            //    Debug.Log("Can't spawn module because the Genome says so.");
+            //}
             return canSpawn;
         }
 

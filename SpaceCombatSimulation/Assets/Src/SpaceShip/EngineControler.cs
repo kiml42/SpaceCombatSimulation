@@ -19,6 +19,9 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
     public Rigidbody ForceApplier;
     public ParticleSystem Plume;
 
+    [Tooltip("angle error at which the engine starts to turn on. \n" + 
+        "Its throttle will be 0 at this angle, and go up towards 1 as the angle decreases to 0. \n" +
+        "0 will disable this engine for translation")]
     public float TranslateFireAngle = 45;
     public float TorqueFireAngle = 90;
 
@@ -250,8 +253,9 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
 
     private float TranslateThrotleSetting()
     {
-        if(VectorIsUseful(PrimaryTranslateVector))
+        if(TranslateFireAngle > 0 && VectorIsUseful(PrimaryTranslateVector))
         {
+            float throttle;
             //the enemy's gate is down
             var primaryAngleError = Vector3.Angle(-transform.up, PrimaryTranslateVector.Value);
             //Debug.Log("fire angle = " + angle);
@@ -266,15 +270,8 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
                 primaryAngleError = (angleSum - pToSAngle)/2;   //set the primaryAngleError to the distance from being on the ark(ish)
                 //the maths here isn't quite right, but it'll probably do, it's qualatatively correct. (I hope)
             }
-            float throttle;
-            if(TranslateFireAngle != 0)
-            {
-                throttle = Math.Max(0, 1 - (primaryAngleError / TranslateFireAngle));
-            } else
-            {
-                Debug.LogWarning("avoided div0 error");
-                throttle = 0;
-            }
+            throttle = Math.Max(0, 1 - (primaryAngleError / TranslateFireAngle));
+           
             //Debug.Log("TranslateThrotleSetting=" + throttle);
             return throttle;
         }
