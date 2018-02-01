@@ -2,12 +2,19 @@
 # SpaceCombatSimulation Specific #
 # ============================== #
 SpaceCombatSimulation/Assets/tmp/
+*.ods#
+SpaceCombatSimulation/tmp/**/*
+!SpaceCombatSimulation/Assets/Plugins/*.dll
+!*.obj
+SpaceCombatSimulation/Assets/tmp/
+Temp/
+
 
 # =============== #
 # Unity generated #
 # =============== #
 SpaceCombatSimulation/[Tt]emp/
-#SpaceCombatSimulation/[Oo]bj/
+SpaceCombatSimulation/[Oo]bj/
 SpaceCombatSimulation/[Bb]uild
 /SpaceCombatSimulation/[Bb]uilds/
 /SpaceCombatSimulation/[Ll]ibrary/
