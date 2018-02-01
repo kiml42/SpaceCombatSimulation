@@ -80,7 +80,7 @@ public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurab
                     projectile.transform.SetColor(_colerer.Colour);
                 }
 
-                if (GetConfigFromGenome)
+                if (GetConfigFromGenome && !string.IsNullOrEmpty(RocketGenome))
                 {
                     var typeKnower = projectile.GetComponent<IModuleTypeKnower>();
                     if(typeKnower != null)

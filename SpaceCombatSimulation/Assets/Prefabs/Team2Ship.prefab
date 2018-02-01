@@ -99,6 +99,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4007074019723936}
   - component: {fileID: 54276188861948588}
+  - component: {fileID: 114443668600227482}
   - component: {fileID: 114747107200871312}
   - component: {fileID: 114418977453750346}
   - component: {fileID: 114317863401166388}
@@ -551,7 +552,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1249936944491648}
   m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -1000, y: 0, z: 0}
+  m_LocalPosition: {x: 570.20575, y: 753.6788, z: -15696.418}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4883552422616708}
@@ -1022,11 +1023,11 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
-  m_StereoMirrorMode: 0
 --- !u!23 &23285669946829726
 MeshRenderer:
   m_ObjectHideFlags: 1
@@ -1036,6 +1037,7 @@ MeshRenderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
@@ -1051,6 +1053,7 @@ MeshRenderer:
   m_PreserveUVs: 1
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
+  m_StitchLightmapSeams: 0
   m_SelectedEditorRenderState: 3
   m_MinimumChartSize: 4
   m_AutoUVMaxDistance: 0.5
@@ -1068,6 +1071,7 @@ MeshRenderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
@@ -1083,6 +1087,7 @@ MeshRenderer:
   m_PreserveUVs: 1
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
+  m_StitchLightmapSeams: 0
   m_SelectedEditorRenderState: 3
   m_MinimumChartSize: 4
   m_AutoUVMaxDistance: 0.5
@@ -1100,6 +1105,7 @@ MeshRenderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
@@ -1115,6 +1121,7 @@ MeshRenderer:
   m_PreserveUVs: 1
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
+  m_StitchLightmapSeams: 0
   m_SelectedEditorRenderState: 3
   m_MinimumChartSize: 4
   m_AutoUVMaxDistance: 0.5
@@ -1132,6 +1139,7 @@ MeshRenderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
@@ -1147,6 +1155,7 @@ MeshRenderer:
   m_PreserveUVs: 1
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
+  m_StitchLightmapSeams: 0
   m_SelectedEditorRenderState: 3
   m_MinimumChartSize: 4
   m_AutoUVMaxDistance: 0.5
@@ -1164,6 +1173,7 @@ MeshRenderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
@@ -1179,6 +1189,7 @@ MeshRenderer:
   m_PreserveUVs: 1
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
+  m_StitchLightmapSeams: 0
   m_SelectedEditorRenderState: 3
   m_MinimumChartSize: 4
   m_AutoUVMaxDistance: 0.5
@@ -1196,6 +1207,7 @@ MeshRenderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
@@ -1211,6 +1223,7 @@ MeshRenderer:
   m_PreserveUVs: 1
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
+  m_StitchLightmapSeams: 0
   m_SelectedEditorRenderState: 3
   m_MinimumChartSize: 4
   m_AutoUVMaxDistance: 0.5
@@ -1340,13 +1353,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
+  TurretPrefab: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
 --- !u!114 &114195862481846182
 MonoBehaviour:
@@ -1359,13 +1373,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5,
+  TurretPrefab: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5,
     type: 2}
 --- !u!114 &114240588793415512
 MonoBehaviour:
@@ -1378,13 +1393,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
+  TurretPrefab: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
 --- !u!114 &114288527176595656
 MonoBehaviour:
@@ -1408,13 +1424,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4591031957274470, guid: ecb13bd8e1b25e74c820d8d87b56d573,
+  TurretPrefab: {fileID: 4591031957274470, guid: ecb13bd8e1b25e74c820d8d87b56d573,
     type: 2}
 --- !u!114 &114313480017677072
 MonoBehaviour:
@@ -1427,13 +1444,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4121223800764556, guid: 6ab6feab40aaa5d4d8d3e711a86dd712,
+  TurretPrefab: {fileID: 4047970151895330, guid: 2cf111255dce5d94ca7b02db1dcffd57,
     type: 2}
 --- !u!114 &114317863401166388
 MonoBehaviour:
@@ -1460,13 +1478,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4591031957274470, guid: ecb13bd8e1b25e74c820d8d87b56d573,
+  TurretPrefab: {fileID: 4591031957274470, guid: ecb13bd8e1b25e74c820d8d87b56d573,
     type: 2}
 --- !u!114 &114329369993175836
 MonoBehaviour:
@@ -1479,13 +1498,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4591031957274470, guid: ecb13bd8e1b25e74c820d8d87b56d573,
+  TurretPrefab: {fileID: 4591031957274470, guid: ecb13bd8e1b25e74c820d8d87b56d573,
     type: 2}
 --- !u!114 &114348856064056662
 MonoBehaviour:
@@ -1498,13 +1518,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4121223800764556, guid: 6ab6feab40aaa5d4d8d3e711a86dd712,
+  TurretPrefab: {fileID: 4047970151895330, guid: 2cf111255dce5d94ca7b02db1dcffd57,
     type: 2}
 --- !u!114 &114389676085485550
 MonoBehaviour:
@@ -1529,13 +1550,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
+  TurretPrefab: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
 --- !u!114 &114418977453750346
 MonoBehaviour:
@@ -1556,7 +1578,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 500
   ShrapnelSpeed2: 200
-  FramesOfInvulnerability: 1
+  SecondsOfInvulnerability: 1
   OriginalHealth: 0
   DamageDelegate: {fileID: 0}
   IgnoredTags:
@@ -1573,14 +1595,50 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4047970151895330, guid: 2cf111255dce5d94ca7b02db1dcffd57,
+  TurretPrefab: {fileID: 4047970151895330, guid: 2cf111255dce5d94ca7b02db1dcffd57,
     type: 2}
+--- !u!114 &114443668600227482
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1249936944491648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ContinuallyCheckForTargets: 1
+  NeverRetarget: 0
+  DropInvalidTargetsWhenTereAreValidTargets: 1
+  PollInterval: 1
+  EnemyTags:
+  - Enemy
+  - Team1
+  DisalowedTypes: 000000000100000002000000
+  PreferdTypes: 03000000040000000700000008000000
+  PreferedTypeBonus: 100
+  HemisphereFilterObject: {fileID: 0}
+  InCorrectHemisphereBonus: 0
+  PickerMassMultiplier: 1
+  MinimumMass: 80
+  PickerOverMinMassBonus: 10000
+  PickerDistanceMultiplier: 1
+  PickerRange: 500
+  PickerInRangeBonus: 0
+  LineOfSightBonus: 1000
+  MinLineOfSightDetectionDistance: 2
+  PickerAimedAtMultiplier: 0
+  PickerAimingObject: {fileID: 0}
+  PickerApproachWeighting: 50
+  GetConfigFromGenome: 1
 --- !u!114 &114509901029198870
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1592,13 +1650,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
+  TurretPrefab: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
 --- !u!114 &114588122642984816
 MonoBehaviour:
@@ -1635,6 +1694,7 @@ MonoBehaviour:
   FullThrottleFuelConsumption: 1
   TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
+  GetConfigFromGenome: 1
 --- !u!114 &114656143969148516
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1646,13 +1706,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
+  TurretPrefab: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
 --- !u!114 &114676278195169948
 MonoBehaviour:
@@ -1665,13 +1726,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4591031957274470, guid: ecb13bd8e1b25e74c820d8d87b56d573,
+  TurretPrefab: {fileID: 4591031957274470, guid: ecb13bd8e1b25e74c820d8d87b56d573,
     type: 2}
 --- !u!114 &114747107200871312
 MonoBehaviour:
@@ -1699,15 +1761,7 @@ MonoBehaviour:
   Torquer: {fileID: 54276188861948588}
   AngularDragForTorquers: 20
   VectorArrow: {fileID: 4485696577621294}
-  PickerDistanceMultiplier: 1
-  MinimumMass: 80
-  PickerMasMultiplier: 1
-  PickerOverMinMassBonus: 10000
-  EnemyTags:
-  - Team1
-  - Team4
-  - Team3
-  - Team5
+  GetConfigFromGenome: 1
 --- !u!114 &114786272439021768
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1719,13 +1773,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5,
+  TurretPrefab: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5,
     type: 2}
 --- !u!114 &114856220346818776
 MonoBehaviour:
@@ -1738,13 +1793,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5,
+  TurretPrefab: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5,
     type: 2}
 --- !u!114 &114907229060552898
 MonoBehaviour:
@@ -1757,13 +1813,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
+  TurretPrefab: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
 --- !u!114 &114911307968119844
 MonoBehaviour:
@@ -1776,13 +1833,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
+  TurretPrefab: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
 --- !u!114 &114956335456203722
 MonoBehaviour:
@@ -1803,7 +1861,7 @@ MonoBehaviour:
   Shrapnel: {fileID: 0}
   ShrapnelCount2: 30
   ShrapnelSpeed2: 20
-  FramesOfInvulnerability: 1
+  SecondsOfInvulnerability: 1
   OriginalHealth: 0
   DamageDelegate: {fileID: 0}
   IgnoredTags:
@@ -1820,13 +1878,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4047970151895330, guid: 2cf111255dce5d94ca7b02db1dcffd57,
+  TurretPrefab: {fileID: 4047970151895330, guid: 2cf111255dce5d94ca7b02db1dcffd57,
     type: 2}
 --- !u!114 &114991033818541756
 MonoBehaviour:
@@ -1839,13 +1898,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
+  TurretPrefab: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 2}
 --- !u!114 &114995939610876586
 MonoBehaviour:
@@ -1858,13 +1918,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  EnemyTagSource: {fileID: 0}
   TagChildren: 1
   EnemyTags:
   - Team1
   - Team3
   - Team4
   - Team5
-  TurretParent: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5,
+  TurretPrefab: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5,
     type: 2}
 --- !u!124 &124240570874645640
 Behaviour:
@@ -1921,6 +1982,7 @@ ParticleSystem:
   serializedVersion: 5
   lengthInSec: 1
   simulationSpeed: 1
+  stopAction: 0
   looping: 1
   prewarm: 0
   playOnAwake: 1
@@ -2424,11 +2486,11 @@ ParticleSystem:
     m_Rotation: {x: 0, y: 0, z: 0}
     m_Scale: {x: 1, y: 1, z: 1}
     placementMode: 0
+    m_MeshMaterialIndex: 0
+    m_MeshNormalOffset: 0
     m_Mesh: {fileID: 0}
     m_MeshRenderer: {fileID: 0}
     m_SkinnedMeshRenderer: {fileID: 0}
-    m_MeshMaterialIndex: 0
-    m_MeshNormalOffset: 0
     m_UseMeshMaterialIndex: 0
     m_UseMeshColors: 1
     alignToDirection: 0
@@ -3150,6 +3212,47 @@ ParticleSystem:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
+    speedModifier:
+      serializedVersion: 2
+      minMaxState: 0
+      scalar: 1
+      minScalar: 1
+      maxCurve:
+        serializedVersion: 2
+        m_Curve:
+        - serializedVersion: 2
+          time: 0
+          value: 1
+          inSlope: 0
+          outSlope: 0
+          tangentMode: 0
+        - serializedVersion: 2
+          time: 1
+          value: 1
+          inSlope: 0
+          outSlope: 0
+          tangentMode: 0
+        m_PreInfinity: 2
+        m_PostInfinity: 2
+        m_RotationOrder: 4
+      minCurve:
+        serializedVersion: 2
+        m_Curve:
+        - serializedVersion: 2
+          time: 0
+          value: 1
+          inSlope: 0
+          outSlope: 0
+          tangentMode: 0
+        - serializedVersion: 2
+          time: 1
+          value: 1
+          inSlope: 0
+          outSlope: 0
+          tangentMode: 0
+        m_PreInfinity: 2
+        m_PostInfinity: 2
+        m_RotationOrder: 4
     inWorldSpace: 0
   InheritVelocityModule:
     enabled: 1
@@ -3493,7 +3596,50 @@ ParticleSystem:
         m_RotationOrder: 4
     separateAxis: 0
     inWorldSpace: 0
+    multiplyDragByParticleSize: 1
+    multiplyDragByParticleVelocity: 1
     dampen: 1
+    drag:
+      serializedVersion: 2
+      minMaxState: 0
+      scalar: 0
+      minScalar: 0
+      maxCurve:
+        serializedVersion: 2
+        m_Curve:
+        - serializedVersion: 2
+          time: 0
+          value: 0
+          inSlope: 0
+          outSlope: 0
+          tangentMode: 0
+        - serializedVersion: 2
+          time: 1
+          value: 0
+          inSlope: 0
+          outSlope: 0
+          tangentMode: 0
+        m_PreInfinity: 2
+        m_PostInfinity: 2
+        m_RotationOrder: 4
+      minCurve:
+        serializedVersion: 2
+        m_Curve:
+        - serializedVersion: 2
+          time: 0
+          value: 0
+          inSlope: 0
+          outSlope: 0
+          tangentMode: 0
+        - serializedVersion: 2
+          time: 1
+          value: 0
+          inSlope: 0
+          outSlope: 0
+          tangentMode: 0
+        m_PreInfinity: 2
+        m_PostInfinity: 2
+        m_RotationOrder: 4
   NoiseModule:
     enabled: 0
     strength:
@@ -4401,7 +4547,8 @@ ParticleSystem:
     serializedVersion: 2
     enabled: 0
     subEmitters:
-    - emitter: {fileID: 0}
+    - serializedVersion: 2
+      emitter: {fileID: 0}
       type: 0
       properties: 0
   LightsModule:
@@ -4497,6 +4644,7 @@ ParticleSystem:
     maxLights: 20
   TrailModule:
     enabled: 0
+    mode: 0
     ratio: 1
     lifetime:
       serializedVersion: 2
@@ -4541,12 +4689,14 @@ ParticleSystem:
         m_RotationOrder: 4
     minVertexDistance: 0.2
     textureMode: 0
+    ribbonCount: 1
     worldSpace: 0
     dieWithParticles: 1
     sizeAffectsWidth: 1
     sizeAffectsLifetime: 0
     inheritParticleColor: 1
     generateLightingData: 0
+    splitSubEmitterRibbons: 0
     colorOverLifetime:
       serializedVersion: 2
       minMaxState: 0
@@ -4781,6 +4931,7 @@ ParticleSystem:
         m_Mode: 0
         m_NumColorKeys: 2
         m_NumAlphaKeys: 2
+    colorLabel0: Color
     vector0_0:
       serializedVersion: 2
       minMaxState: 0
@@ -4822,6 +4973,7 @@ ParticleSystem:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
+    vectorLabel0_0: X
     vector0_1:
       serializedVersion: 2
       minMaxState: 0
@@ -4863,6 +5015,7 @@ ParticleSystem:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
+    vectorLabel0_1: Y
     vector0_2:
       serializedVersion: 2
       minMaxState: 0
@@ -4904,6 +5057,7 @@ ParticleSystem:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
+    vectorLabel0_2: Z
     vector0_3:
       serializedVersion: 2
       minMaxState: 0
@@ -4945,6 +5099,7 @@ ParticleSystem:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
+    vectorLabel0_3: W
     mode1: 0
     vectorComponentCount1: 4
     color1:
@@ -5010,6 +5165,7 @@ ParticleSystem:
         m_Mode: 0
         m_NumColorKeys: 2
         m_NumAlphaKeys: 2
+    colorLabel1: Color
     vector1_0:
       serializedVersion: 2
       minMaxState: 0
@@ -5051,6 +5207,7 @@ ParticleSystem:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
+    vectorLabel1_0: X
     vector1_1:
       serializedVersion: 2
       minMaxState: 0
@@ -5092,6 +5249,7 @@ ParticleSystem:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
+    vectorLabel1_1: Y
     vector1_2:
       serializedVersion: 2
       minMaxState: 0
@@ -5133,6 +5291,7 @@ ParticleSystem:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
+    vectorLabel1_2: Z
     vector1_3:
       serializedVersion: 2
       minMaxState: 0
@@ -5174,6 +5333,7 @@ ParticleSystem:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
+    vectorLabel1_3: W
 --- !u!199 &199410095601474522
 ParticleSystemRenderer:
   serializedVersion: 4
@@ -5184,6 +5344,7 @@ ParticleSystemRenderer:
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
+  m_DynamicOccludee: 1
   m_MotionVectors: 1
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
@@ -5200,6 +5361,7 @@ ParticleSystemRenderer:
   m_PreserveUVs: 0
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
+  m_StitchLightmapSeams: 0
   m_SelectedEditorRenderState: 0
   m_MinimumChartSize: 4
   m_AutoUVMaxDistance: 0.5
