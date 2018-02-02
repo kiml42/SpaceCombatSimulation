@@ -2,6 +2,7 @@
 using Assets.Src.Evolution;
 using Assets.Src.Interfaces;
 using Assets.Src.ModuleSystem;
+using Assets.Src.ObjectManagement;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,5 +35,7 @@ public class SelfBuildingShip : ModuleHub
         }
 
         Configure(genomeWrapper);
+        if(ColourOverride != null)
+            transform.SetColor(ColourOverride);
     }
 }
