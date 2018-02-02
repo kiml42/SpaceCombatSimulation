@@ -1093,6 +1093,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyTagSource: {fileID: 0}
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1162,6 +1163,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyTagSource: {fileID: 0}
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1182,6 +1184,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyTagSource: {fileID: 0}
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1202,6 +1205,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyTagSource: {fileID: 0}
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1222,6 +1226,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyTagSource: {fileID: 0}
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1242,6 +1247,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyTagSource: {fileID: 0}
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1262,6 +1268,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyTagSource: {fileID: 0}
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1305,6 +1312,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyTagSource: {fileID: 0}
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1325,6 +1333,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyTagSource: {fileID: 0}
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1394,6 +1403,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyTagSource: {fileID: 0}
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1414,6 +1424,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyTagSource: {fileID: 0}
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1434,6 +1445,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyTagSource: {fileID: 0}
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1454,6 +1466,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyTagSource: {fileID: 0}
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1474,6 +1487,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyTagSource: {fileID: 0}
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1494,6 +1508,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyTagSource: {fileID: 0}
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1541,6 +1556,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyTagSource: {fileID: 0}
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1561,7 +1577,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 20
   Armour: 0
-  Health: 10000
+  Health: 100000
   DeathExplosion: {fileID: 54927953782019320, guid: 43b496cc80a22f54ca5f7359d3fccbbd,
     type: 2}
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
