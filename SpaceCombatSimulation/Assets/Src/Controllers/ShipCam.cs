@@ -106,7 +106,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
 
     // Use this for initialization
     void Start () {
-        _rigidbody = GetComponent("Rigidbody") as Rigidbody;
+        _rigidbody = GetComponent<Rigidbody>();
         _detector = new ChildTagTargetDetector
         {
             Tags = _tags
@@ -275,7 +275,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
             if (ReticleTexture != null)
                 GUI.DrawTexture(rect, ReticleTexture);
 
-            var healthControler = target.Transform.GetComponent("HealthControler") as HealthControler;
+            var healthControler = target.Transform.GetComponent<HealthControler>();
             if (healthControler != null && healthControler.IsDamaged)
             {
                 if (HealthBGTexture != null)
@@ -300,7 +300,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     private void PickTargetToWatch()
     {
         //Debug.Log("to watch");
-        var knower = FollowedTarget.GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
+        var knower = FollowedTarget.GetComponent<IKnowsCurrentTarget>();
         if (knower != null && knower.CurrentTarget != null)
         {
             TargetToWatch = knower.CurrentTarget.Rigidbody;

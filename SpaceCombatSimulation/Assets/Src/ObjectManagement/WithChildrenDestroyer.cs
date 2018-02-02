@@ -38,7 +38,7 @@ namespace Assets.Src.ObjectManagement
                 } else
                 {
                     child.SendMessage("Deactivate", SendMessageOptions.DontRequireReceiver);
-                    var rigidbody = child.GetComponent("Rigidbody") as Rigidbody;
+                    var rigidbody = child.GetComponent<Rigidbody>();
                     child.parent = null;
                     if (UntagChildren)
                     {
@@ -50,12 +50,12 @@ namespace Assets.Src.ObjectManagement
                     {
                         //Debug.Log("Severing " + rigidbody.name);
                         rigidbody.angularDrag = 0;
-                        var fixedJoint = child.GetComponent("FixedJoint") as FixedJoint;
+                        var fixedJoint = child.GetComponent<FixedJoint>();
                         if (fixedJoint != null)
                         {
                             UnityEngine.Object.Destroy(fixedJoint);
                         }
-                        var hingeJoint = child.GetComponent("HingeJoint") as HingeJoint;
+                        var hingeJoint = child.GetComponent<HingeJoint>();
                         if (hingeJoint != null)
                         {
                             UnityEngine.Object.Destroy(fixedJoint);
@@ -104,7 +104,7 @@ namespace Assets.Src.ObjectManagement
 
         private GameObject FindNextParentRigidbody(GameObject thing)
         {
-            var rb = thing.GetComponent("Rigidbody") as Rigidbody;
+            var rb = thing.GetComponent<Rigidbody>();
 
             if(rb != null || thing.transform.parent == null)
             {

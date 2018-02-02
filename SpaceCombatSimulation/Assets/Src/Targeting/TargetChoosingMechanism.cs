@@ -112,7 +112,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
     // Use this for initialization
     void Start ()
     {
-        var speedKnower = GetComponent("IKnowsProjectileSpeed") as IKnowsProjectileSpeed;
+        var speedKnower = GetComponent<IKnowsProjectileSpeed>();
         var projectileSpeed = speedKnower != null ? speedKnower.ProjectileSpeed : null;
         _rigidbody = GetComponent<Rigidbody>();
         PickerAimingObject = PickerAimingObject ?? _rigidbody;

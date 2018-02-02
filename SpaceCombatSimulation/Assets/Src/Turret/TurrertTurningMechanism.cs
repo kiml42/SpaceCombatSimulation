@@ -31,8 +31,8 @@ public class TurrertTurningMechanism : MonoBehaviour, IGeneticConfigurable
     // Use this for initialization
     void Start()
     {
-        _targetChoosingMechanism = GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
-        var speedKnower = GetComponent("IKnowsProjectileSpeed") as IKnowsProjectileSpeed;
+        _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
+        var speedKnower = GetComponent<IKnowsProjectileSpeed>();
         var projectileSpeed = speedKnower != null ? speedKnower.ProjectileSpeed : null;
         var rigidbody = GetComponent<Rigidbody>();
 
@@ -83,7 +83,7 @@ public class TurrertTurningMechanism : MonoBehaviour, IGeneticConfigurable
     {
         if (jointedObject != null)
         {
-            var hinge = jointedObject.GetComponent("HingeJoint") as HingeJoint;
+            var hinge = jointedObject.GetComponent<HingeJoint>();
             if (hinge != null)
             {
                 GameObject.Destroy(hinge);

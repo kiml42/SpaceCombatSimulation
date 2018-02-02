@@ -24,7 +24,7 @@ namespace Assets.Src.Targeting
             {
                 var gameObjects = GameObject.FindGameObjectsWithTag(tag)
                     .Select(o => o.transform.parent)
-                    .Where(o => o != null && o.GetComponent("Rigidbody"));
+                    .Where(o => o != null && o.GetComponent<Rigidbody>());
                 //Debug.Log(gameObjects.Count() + " for tag " + tag);
                 targets.AddRange(gameObjects.Select(g => new PotentialTarget(g.transform)));
             }

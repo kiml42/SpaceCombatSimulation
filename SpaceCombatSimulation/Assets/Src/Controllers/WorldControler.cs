@@ -71,7 +71,7 @@ namespace Assets.Src.Controllers
         private void DetectActiveCamera()
         {
             var cameras = GameObject.FindGameObjectsWithTag("MainCamera")
-                .Where(c => c.GetComponent("Camera") != null)
+                .Where(c => c.GetComponent<Camera>() != null)
                 .Select(c => c.GetComponent<Camera>()).ToList();
 
             for (int i = 0; i < cameras.Count(); i++)
@@ -113,7 +113,7 @@ namespace Assets.Src.Controllers
             var objects = GameObject.FindGameObjectsWithTag("SpaceShip")
             .Where(s =>
                 s.transform.parent != null &&
-                s.transform.parent.GetComponent("Rigidbody") != null
+                s.transform.parent.GetComponent<Rigidbody>() != null
             ); ;
 
             if (objects.Any())
@@ -180,7 +180,7 @@ namespace Assets.Src.Controllers
         private void CycleCameras(bool forwards = true)
         {
             var cameras = GameObject.FindGameObjectsWithTag("MainCamera")
-                .Where(c => c.GetComponent("Camera") != null)
+                .Where(c => c.GetComponent<Camera>() != null)
                 .Select(c => c.GetComponent<Camera>()).ToList();
 
             //var cameras = Camera.allCameras;

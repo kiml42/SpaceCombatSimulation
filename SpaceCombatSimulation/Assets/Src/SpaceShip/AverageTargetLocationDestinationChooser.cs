@@ -25,7 +25,7 @@ namespace Assets.Src.SpaceShip
         {
             var targets = _detector
                 .DetectTargets()
-                .Select(t => t.Rigidbody.GetComponent("Rigidbody") as Rigidbody)
+                .Select(t => t.Rigidbody.GetComponent<Rigidbody>())
                 .Where(t => t != null)
                 .Select(t => new PotentialTarget(t));
 

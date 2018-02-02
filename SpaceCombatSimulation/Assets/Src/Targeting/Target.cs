@@ -20,7 +20,7 @@ namespace Assets.Src.Targeting
             {
                 if (!_type.HasValue)
                 {
-                    var typeKnower = Transform.GetComponent("TypeKnower") as TypeKnower;
+                    var typeKnower = Transform.GetComponent<TypeKnower>();
                     if(typeKnower == null)
                     {
                         Debug.LogWarning(Transform + " has no TypeKnower");
@@ -43,7 +43,7 @@ namespace Assets.Src.Targeting
         public Target(Transform target)
         {
             Transform = target;
-            Rigidbody = target.GetComponent("Rigidbody") as Rigidbody;
+            Rigidbody = target.GetComponent<Rigidbody>();
         }
 
         public Target(Target target)

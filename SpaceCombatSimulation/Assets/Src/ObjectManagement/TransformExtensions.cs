@@ -28,7 +28,7 @@ namespace Assets.Src.ObjectManagement
 
         public static void SetColor(this Transform transform, Color colour, int depth = 20)
         {
-            var colourer = transform.GetComponent("ColourSetter") as ColourSetter;
+            var colourer = transform.GetComponent<ColourSetter>();
             if(colourer != null)
             {
                 //use the ColourSetter if it has one.
@@ -37,7 +37,7 @@ namespace Assets.Src.ObjectManagement
             }
             //Debug.Log(colour);
             //Debug.Log(transform + " is having its colour set by the extension");
-            var renderer = transform.GetComponent("Renderer") as Renderer;
+            var renderer = transform.GetComponent<Renderer>();
             if (renderer != null)
             {
                 //Debug.Log("has renderer");

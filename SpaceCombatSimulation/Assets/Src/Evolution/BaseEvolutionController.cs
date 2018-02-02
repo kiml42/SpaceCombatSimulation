@@ -19,7 +19,7 @@ namespace Assets.Src.Evolution
             return GameObject.FindGameObjectsWithTag(ShipConfig.SpaceShipTag)
                     .Where(s =>
                         s.transform.parent != null &&
-                        s.transform.parent.GetComponent("Rigidbody") != null
+                        s.transform.parent.GetComponent<Rigidbody>() != null
                     ).Select(s => s.transform.parent);
         }
     }

@@ -71,7 +71,7 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
             });
         }
 
-        _fireControl = GetComponent("IFireControl") as IFireControl;
+        _fireControl = GetComponent<IFireControl>();
     }
 
     // Update is called once per frame

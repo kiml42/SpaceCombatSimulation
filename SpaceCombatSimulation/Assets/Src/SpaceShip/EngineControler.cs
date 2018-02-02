@@ -289,12 +289,12 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
         if (FuelTank == null)
         {
             //first object found with a fuel tank
-            FuelTank = transform.GetComponent("FuelTank") as FuelTank;
+            FuelTank = transform.GetComponent<FuelTank>();
         }
         if(ForceApplier == null)
         {
             //firstComponent with a rigidbody
-            ForceApplier = transform.GetComponent("Rigidbody") as Rigidbody;
+            ForceApplier = transform.GetComponent<Rigidbody>();
         }
         var parent = transform.parent;
         if (parent == null && Pilot == null)

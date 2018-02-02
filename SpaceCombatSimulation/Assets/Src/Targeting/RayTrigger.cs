@@ -19,7 +19,7 @@ public class RayTrigger : MonoBehaviour, IFireControl
     // Use this for initialization
     void Start()
     {
-        TargetChoosingMechanism = TargetChoosingMechanism ?? GetComponent("TargetChoosingMechanism") as TargetChoosingMechanism;
+        TargetChoosingMechanism = TargetChoosingMechanism ?? GetComponent<TargetChoosingMechanism>();
     }
 
     public bool ShouldShoot(Target target)

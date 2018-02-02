@@ -19,8 +19,8 @@ public class AngleTrigger : MonoBehaviour, IFireControl, IGeneticConfigurable
     // Use this for initialization
     void Start ()
     {
-        var speedKnower = GetComponent("IKnowsProjectileSpeed") as IKnowsProjectileSpeed;
-        _targetChoosingMechanism = GetComponent("IKnowsCurrentTarget") as IKnowsCurrentTarget;
+        var speedKnower = GetComponent<IKnowsProjectileSpeed>();
+        _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
         _projectileSpeed = speedKnower != null ? speedKnower.ProjectileSpeed : null;
     }
 

@@ -35,9 +35,9 @@ namespace Assets.Src.Targeting
                 _restTarget = new PotentialTarget(restTarget);
             }
             _turnTable = turnTable;
-            _turnTableHinge = turnTable.GetComponent("HingeJoint") as HingeJoint;
+            _turnTableHinge = turnTable.GetComponent<HingeJoint>();
             _elevationHub = elevationHub;
-            _elevationHubHinge = elevationHub.GetComponent("HingeJoint") as HingeJoint;
+            _elevationHubHinge = elevationHub.GetComponent<HingeJoint>();
             _projectileSpeed = projectileSpeed;
         }
 

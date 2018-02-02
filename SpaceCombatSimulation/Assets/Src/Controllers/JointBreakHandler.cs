@@ -19,7 +19,7 @@ public class JointBreakHandler : MonoBehaviour {
         if (BreakExplosion != null)
         {
             var boom = Instantiate(BreakExplosion, transform.position, transform.rotation );
-            var rb = GetComponent("Rigidbody") as Rigidbody;
+            var rb = GetComponent<Rigidbody>();
             if (rb != null)
                 boom.velocity = rb.velocity;
         }

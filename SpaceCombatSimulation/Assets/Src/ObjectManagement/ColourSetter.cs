@@ -26,7 +26,7 @@ public class ColourSetter : MonoBehaviour
     {
         //Debug.Log(transform + " Is having its color set");
         Colour = colour;
-        var renderer = transform.GetComponent("Renderer") as Renderer;
+        var renderer = transform.GetComponent<Renderer>();
         if (renderer != null)
         {
             //Debug.Log("has renderer");
