@@ -403,7 +403,18 @@ namespace Assets.Src.Database
             reader = null;
 
             if (transaction != null)
-                transaction.Dispose();
+            {
+                try
+                {
+                    transaction.Dispose();
+                }
+                catch (SqliteException e)
+                {
+                    Debug.LogWarning("Failed to dispose of transaction. Carrying on reguardless.");
+                    Debug.LogWarning(e.Message);
+                    Debug.LogWarning(e.StackTrace);
+                }
+            }
             transaction = null;
 
             if (dbcmd != null)
