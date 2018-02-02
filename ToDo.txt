@@ -1,7 +1,6 @@
 Bugs:
     Priority:
         DB doesn't work in built project.
-        Spawned turrets don't inherit velocity correctly - tend to get ripped off when spawning at a high velocity.
         ElevationHubs on some drones are disappearing.
         "Can't remove Rigidbody because HingeJoint depends on it"
         rocket engines carry on regardless if the rocket has no target.

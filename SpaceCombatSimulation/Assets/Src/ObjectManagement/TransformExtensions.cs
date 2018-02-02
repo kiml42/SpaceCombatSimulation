@@ -61,6 +61,16 @@ namespace Assets.Src.ObjectManagement
             }
         }
 
+        public static void SetVelocity(this Transform transform, Vector3 velocity)
+        {
+            var childRigidbodies = transform.GetComponentsInChildren<Rigidbody>();
+
+            foreach (var r in childRigidbodies)
+            {
+                r.velocity = velocity;
+            }
+        }
+
         public static Transform FindOldestParent(this Transform transform)
         {
             var parent = transform.parent;

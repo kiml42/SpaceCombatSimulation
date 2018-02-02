@@ -11,6 +11,8 @@ public class SpawnTurret : MonoBehaviour, IKnowsEnemyTags
     public IKnowsEnemyTags _enemyTagSource;
     public bool TagChildren = false;
 
+    public Transform ParentForTurret;
+
 
     #region EnemyTags
     void IKnowsEnemyTags.AddEnemyTag(string newTag)
@@ -54,20 +56,26 @@ public class SpawnTurret : MonoBehaviour, IKnowsEnemyTags
             EnemyTags = _enemyTagSource.EnemyTags;
         }
 
-        var turret = Instantiate(TurretPrefab, transform.position, transform.rotation, transform);
-        if(transform.parent != null)
+        if(ParentForTurret == null && transform.parent != null)
         {
-            var parentRigidbody = transform.parent.GetComponent<Rigidbody>();
-            var turretRigidbody = turret.parent.GetComponent<Rigidbody>();
-            if(parentRigidbody != null && turretRigidbody != null)
+            ParentForTurret = transform.parent;
+        }
+
+        var turret = Instantiate(TurretPrefab, transform.position, transform.rotation, ParentForTurret);
+
+        if(ParentForTurret != null)
+        {
+            var parentRigidbody = ParentForTurret.GetComponent<Rigidbody>();
+            var turretRigidbody = turret.GetComponent<Rigidbody>();
+            if(parentRigidbody != null)
             {
-                turretRigidbody.velocity = parentRigidbody.velocity;
+                turret.SetVelocity(parentRigidbody.velocity);
             }
 
-            turret.parent = transform.parent;
-            turret.GetComponent<FixedJoint>().connectedBody = transform.parent.GetComponent<Rigidbody>();
+            turret.parent = ParentForTurret;
+            turret.GetComponent<FixedJoint>().connectedBody = parentRigidbody;
 
-            var renderer = transform.parent.GetComponent("Renderer") as Renderer;
+            var renderer = ParentForTurret.GetComponent<Renderer>();
 
             if (renderer != null)
             {
