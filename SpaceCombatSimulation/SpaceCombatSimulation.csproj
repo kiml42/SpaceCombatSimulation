@@ -336,7 +336,6 @@
     <Compile Include="Assets\Src\Evolution\MatchConfig.cs" />
     <Compile Include="Assets\Src\Evolution\MatchRecord.cs" />
     <Compile Include="Assets\Src\Evolution\MutationConfig.cs" />
-    <Compile Include="Assets\Src\Evolution\ShipBuilder.cs" />
     <Compile Include="Assets\Src\Evolution\StringMutator.cs" />
     <Compile Include="Assets\Src\Health\DamagePacket.cs" />
     <Compile Include="Assets\Src\Interfaces\IDeactivatable.cs" />
@@ -373,6 +372,7 @@
     <Compile Include="Assets\Src\ModuleSystem\RigidbodyList.cs" />
     <Compile Include="Assets\Src\ModuleSystem\RocketTypeKnower.cs" />
     <Compile Include="Assets\Src\ModuleSystem\SelfBuildingShip.cs" />
+    <Compile Include="Assets\Src\ModuleSystem\ShipBuilder.cs" />
     <Compile Include="Assets\Src\ModuleSystem\TestCubeChecker.cs" />
     <Compile Include="Assets\Src\ObjectManagement\ColourSetter.cs" />
     <Compile Include="Assets\Src\ObjectManagement\DestroyAfterTimeout.cs" />
