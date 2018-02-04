@@ -9,6 +9,6 @@ namespace Assets.Src.Interfaces
     public interface IExploder
     {
         void SetExplodingObject(Rigidbody explodingRigidbody);
-        void ExplodeNow();
+        void ExplodeNow(Vector3? velocityOverride = null);
     }
 }
