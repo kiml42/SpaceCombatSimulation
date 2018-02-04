@@ -50,9 +50,13 @@ public class ImpactDetonator : MonoBehaviour {
             //Get velocity weighted by object masses, so it doesn't fly away because the projectile would have.
             var averageP = ((_rigidbody.mass * _rigidbody.velocity) + (collision.rigidbody.mass * collision.rigidbody.velocity))/2;
             velocity = (averageP / (_rigidbody.mass + collision.rigidbody.mass)) * _rigidbody.mass;
+        } else if (collision.rigidbody != null)
+        {
+            velocity = collision.rigidbody.velocity;
+            Debug.LogWarning(name + "is Missing Rigidbody");
         } else
         {
-            Debug.LogWarning("Missing Rigidbody");
+            Debug.LogWarning(name + " and " + collision.gameObject.name  + " are both Missing Rigidbody");
         }
         ExplodeNow(velocity);
     }

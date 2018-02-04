@@ -77,7 +77,7 @@ namespace Assets.Src.ObjectManagement
             {
                 var rigidBodyToExplode = toDestroy.GetComponent<Rigidbody>();
                 Exploder.SetExplodingObject(rigidBodyToExplode);
-                Exploder.ExplodeNow();
+                Exploder.ExplodeNow(velocityOverride);
             }
 
             toDestroy.transform.SendMessage("DieNow", SendMessageOptions.DontRequireReceiver);

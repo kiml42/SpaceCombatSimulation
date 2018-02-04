@@ -26,7 +26,6 @@ GameObject:
   - component: {fileID: 96405224812634666}
   - component: {fileID: 114031993041432958}
   - component: {fileID: 114985888697979568}
-  - component: {fileID: 114562387840620348}
   - component: {fileID: 114643190023993202}
   - component: {fileID: 114020372064151342}
   m_Layer: 0
@@ -229,24 +228,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Lifetime: 30
   RandomLifetime: 10
---- !u!114 &114562387840620348
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1896722452323280}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 35b52ee304ad6454d8b5f67bcd1d706a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &114643190023993202
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1896722452323280}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: eff07e5891a21244483f5839c46600e5, type: 3}
   m_Name: 
@@ -274,7 +262,7 @@ SphereCollider:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1896722452323280}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: e8464e9e62ae2784eab8e05273acf126, type: 2}
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
