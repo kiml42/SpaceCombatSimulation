@@ -19,22 +19,22 @@ namespace Assets.Src.ObjectManagement
         /// </summary>
         public bool KillCompletely = false;
 
-        public void Destroy(GameObject toDestroy, bool useExplosion)
+        public void Destroy(GameObject toDestroy, bool useExplosion, Vector3? velocityOverride = null)
         {
             //Debug.Log("Destroy called for " + toDestroy.name + ", useExplosion = " + useExplosion);
             toDestroy = FindNextParentRigidbody(toDestroy);
             //Debug.Log("Parent to destroy: " + toDestroy.name);
-            DestroyWithoutLookingForParent(toDestroy, useExplosion);
+            DestroyWithoutLookingForParent(toDestroy, useExplosion, velocityOverride);
         }
 
-        private void DestroyWithoutLookingForParent(GameObject toDestroy, bool useExplosion)
+        private void DestroyWithoutLookingForParent(GameObject toDestroy, bool useExplosion, Vector3? velocityOverride)
         {
             var allChilldren = FindImediateChildren(toDestroy);
             foreach (var child in allChilldren)
             {
                 if (KillCompletely)
                 {
-                    DestroyWithoutLookingForParent(child.gameObject, false);
+                    DestroyWithoutLookingForParent(child.gameObject, false, velocityOverride);
                 } else
                 {
                     child.SendMessage("Deactivate", SendMessageOptions.DontRequireReceiver);
@@ -63,12 +63,12 @@ namespace Assets.Src.ObjectManagement
                         if(fixedJoint==null && hingeJoint == null)
                         {
                             //destroy anything that wasnt jointed to this object.
-                            DestroyWithoutLookingForParent(child.gameObject, false);
+                            DestroyWithoutLookingForParent(child.gameObject, false, velocityOverride);
                         }
                     }
                     else
                     {
-                        DestroyWithoutLookingForParent(child.gameObject, false);
+                        DestroyWithoutLookingForParent(child.gameObject, false, velocityOverride);
                     }
                 }
             }

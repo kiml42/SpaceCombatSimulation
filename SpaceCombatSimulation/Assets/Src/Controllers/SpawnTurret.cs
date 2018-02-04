@@ -66,7 +66,6 @@ public class SpawnTurret : MonoBehaviour, IKnowsEnemyTags
         if(ParentForTurret != null)
         {
             var parentRigidbody = ParentForTurret.GetComponent<Rigidbody>();
-            var turretRigidbody = turret.GetComponent<Rigidbody>();
             if(parentRigidbody != null)
             {
                 turret.SetVelocity(parentRigidbody.velocity);
