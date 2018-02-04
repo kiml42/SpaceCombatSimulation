@@ -44,17 +44,8 @@ public class ImpactDetonator : MonoBehaviour {
 
     void OnCollisionEnter(Collision collision)
     {
-        Vector3? velocity = null;
-        if(_rigidbody != null && collision.rigidbody != null)
-        {
-            //Get velocity weighted by object masses, so it doesn't fly away because the projectile would have.
-            var averageP = ((_rigidbody.mass * _rigidbody.velocity) + (collision.rigidbody.mass * collision.rigidbody.velocity))/2;
-            velocity = (averageP / (_rigidbody.mass + collision.rigidbody.mass)) * _rigidbody.mass;
-        } else
-        {
-            Debug.LogWarning("Missing Rigidbody");
-        }
-        ExplodeNow(velocity);
+        //use apply damage to destroy it.
+        ApplyDamage();
     }
 
     /// <summary>
@@ -65,7 +56,15 @@ public class ImpactDetonator : MonoBehaviour {
     {
         //anything trying to apply damage should destroy this.
         //don't destroy it if it hasn't started yet.
-        ExplodeNow();
+        if (StartCalled)
+        {
+            if (_destroyer == null)
+            {
+                Debug.LogWarning(gameObject + " has null destroyer, Start called: " + StartCalled);
+                Start();
+            }
+            _destroyer.Destroy(gameObject, true);
+        }
     }
 
     /// <summary>
@@ -74,19 +73,6 @@ public class ImpactDetonator : MonoBehaviour {
     /// <param name="damage"></param>
     public void ApplyDamage(DamagePacket damage)
     {
-        ExplodeNow();
-    }
-
-    private void ExplodeNow(Vector3? velocity = null)
-    {
-        if (StartCalled)
-        {
-            if (_destroyer == null)
-            {
-                Debug.LogWarning(gameObject + " has null destroyer, Start called: " + StartCalled);
-                Start();
-            }
-            _destroyer.Destroy(gameObject, true, velocity);
-        }
+        ApplyDamage();
     }
 }

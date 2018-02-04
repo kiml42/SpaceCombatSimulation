@@ -26,13 +26,13 @@ namespace Assets.Src.ObjectManagement
             _explosionEffect = explosionEffect;
         }
 
-        public void ExplodeNow(Vector3? velocityOverride = null)
+        public void ExplodeNow()
         {
             //Debug.Log(_exploder + " is exploding");
             if (_explosionEffect != null)
             {
                 var explosion = UnityEngine.Object.Instantiate(_explosionEffect, _exploder.position, _exploder.rotation);
-                explosion.velocity = velocityOverride ?? _exploder.velocity;
+                explosion.velocity = _exploder.velocity;
             }
 
             //add shrapnel to be exploded
@@ -42,7 +42,7 @@ namespace Assets.Src.ObjectManagement
                 {
                     var location = UnityEngine.Random.insideUnitSphere;
                     var fragment = UnityEngine.Object.Instantiate(_shrapnel, _exploder.position + location, _exploder.transform.rotation);
-                    fragment.velocity = (velocityOverride ?? _exploder.velocity) + (ShrapnelSpeed * location);
+                    fragment.velocity = _exploder.velocity + (ShrapnelSpeed * location);
                     //gameObjects.Add(fragment);
                 
                     if (SetEnemyTagOnShrapnel && EnemyTags != null && EnemyTags.Any())
