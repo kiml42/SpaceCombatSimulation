@@ -48,8 +48,8 @@ public class ImpactDetonator : MonoBehaviour {
         if(_rigidbody != null && collision.rigidbody != null)
         {
             //Get velocity weighted by object masses, so it doesn't fly away because the projectile would have.
-            var averageP = ((_rigidbody.mass * _rigidbody.velocity) + (collision.rigidbody.mass * collision.rigidbody.velocity))/2;
-            velocity = (averageP / (_rigidbody.mass + collision.rigidbody.mass)) * _rigidbody.mass;
+            var TotalP = ((_rigidbody.mass * _rigidbody.velocity) + (collision.rigidbody.mass * collision.rigidbody.velocity));
+            velocity = TotalP / (_rigidbody.mass + collision.rigidbody.mass);
         } else if (collision.rigidbody != null)
         {
             velocity = collision.rigidbody.velocity;
