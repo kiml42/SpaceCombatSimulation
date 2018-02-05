@@ -1,12 +1,12 @@
 # ============================== #
 # SpaceCombatSimulation Specific #
 # ============================== #
-SpaceCombatSimulation/Assets/tmp/
 *.ods#
 SpaceCombatSimulation/tmp/**/*
 !SpaceCombatSimulation/Assets/Plugins/*.dll
 !*.obj
-SpaceCombatSimulation/Assets/tmp/
+!SpaceCombatSimulation/Assets/tmp/placeholder.txt
+SpaceCombatSimulation/Assets/tmp/**/*
 Temp/
 
 
