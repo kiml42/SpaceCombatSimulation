@@ -31,7 +31,34 @@ namespace Assets.Src.Evolution
 
         public bool UseJump = true;
 
-        public ModuleRecord TopModuleRecord { get; private set; }
+        private ModuleRecord _topModuleRecord;
+
+        public string Species
+        {
+            get
+            {
+                return _topModuleRecord.ToSimpleString();
+            }
+        }
+
+        public string VerboseSpecies()
+        {
+            return _topModuleRecord.ToSimpleStringWithFullNames();
+        }
+
+        public string Subspecies
+        {
+            get
+            {
+                return _topModuleRecord.ToString();
+            }
+        }
+
+        public string VerboseSubspecies()
+        {
+            return _topModuleRecord.ToStringWithFullNames();
+        }
+
         private Stack<ModuleRecord> _previousModuleRecords = new Stack<ModuleRecord>();
         private ModuleRecord _currentModuleRecord;
 
@@ -54,8 +81,8 @@ namespace Assets.Src.Evolution
             UsedLocations = new List<Vector3>();
             EnemyTags = enemyTags;
             ModuleTypeCounts = new Dictionary<ModuleType, int>();
-            TopModuleRecord = new ModuleRecord();
-            _currentModuleRecord = TopModuleRecord;
+            _topModuleRecord = new ModuleRecord();
+            _currentModuleRecord = _topModuleRecord;
         }
 
 
@@ -110,7 +137,7 @@ namespace Assets.Src.Evolution
         {
             _currentModuleRecord.AddModule(null);
         }
-
+        
         /// <summary>
         /// Tells the genomeWrapper that a module has been finished.
         /// </summary>
@@ -121,7 +148,7 @@ namespace Assets.Src.Evolution
 
         public string GetName()
         {
-            return TopModuleRecord.ToString();
+            return _topModuleRecord.ToString();
         }
 
         public bool CanSpawn()

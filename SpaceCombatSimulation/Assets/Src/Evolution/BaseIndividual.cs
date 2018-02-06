@@ -11,8 +11,8 @@
 
         public void SetSpieciesNames(GenomeWrapper a)
         {
-            Species = a.TopModuleRecord.ToSimpleString();
-            Subspecies = a.TopModuleRecord.ToString();
+            Species = a.Species;
+            Subspecies = a.Subspecies;
         }
     }
 }
