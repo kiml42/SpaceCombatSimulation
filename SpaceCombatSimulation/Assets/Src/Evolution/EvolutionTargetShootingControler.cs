@@ -24,8 +24,6 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
     private const int SHIP_INDEX = 0;
     private const int DRONES_INDEX = 1;
 
-    private string _genome;
-
     private bool _stillAlive;
     private bool _dronesRemain;
 
@@ -36,6 +34,7 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
     public RigidbodyList DroneList;
 
     private bool _hasModules;
+    private GenomeWrapper _genomeWrapper;
 
     // Use this for initialization
     void Start()
@@ -79,7 +78,7 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
             
             CurrentScore += survivalBonus;
 
-            _currentGeneration.RecordMatch(_genome, CurrentScore, _stillAlive, !_dronesRemain, _killsThisMatch);
+            _currentGeneration.RecordMatch(_genomeWrapper, CurrentScore, _stillAlive, !_dronesRemain, _killsThisMatch);
         
             //save the current generation
             _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, _config.GenerationNumber);
@@ -90,17 +89,16 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
 
     private bool SpawnShips()
     {
-        _genome = _currentGeneration.PickCompetitor();
+        var genome = _currentGeneration.PickCompetitor();
+        
+        _genomeWrapper = ShipConfig.SpawnShip(genome, SHIP_INDEX);
 
-        Debug.Log(_genome + " enters the arena!");
-
-        var gw = ShipConfig.SpawnShip(_genome, SHIP_INDEX);
-
-        Debug.Log("Ship cost = " + gw.Cost);
+        Debug.Log(_genomeWrapper.GetName() + " enters the arena!");
+        Debug.Log("Ship cost = " + _genomeWrapper.Cost);
 
         SpawnDrones();
 
-        return gw.ModulesAdded > 0;
+        return _genomeWrapper.ModulesAdded > 0;
     }
 
     private void SpawnDrones()

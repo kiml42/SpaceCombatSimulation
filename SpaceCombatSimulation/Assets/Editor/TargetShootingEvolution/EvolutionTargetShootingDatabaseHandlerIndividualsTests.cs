@@ -93,7 +93,7 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
         Assert.AreEqual("", i2.MatchScoresString);
         Assert.AreEqual(0, i2.MatchScores.Count);
 
-        gen.RecordMatch("abc", 42, true, true, 15);
+        gen.RecordMatch(new GenomeWrapper("abc"), 42, true, true, 15);
 
         _handler.UpdateGeneration(gen, 3, 4);
 

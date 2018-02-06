@@ -46,11 +46,15 @@ namespace Assets.src.Evolution
             return true;
         }
 
-        public void RecordMatch(string contestant, float finalScore, bool survived, bool killedEverything, int killsThisMatch)
+        public void RecordMatch(GenomeWrapper contestant, float finalScore, bool survived, bool killedEverything, int killsThisMatch)
         {
             //Debug.Log("Recording Match: " + a + " vs " + b + " victor: " + victor);
 
-            Individuals.First(i => i.Genome == contestant).RecordMatch(finalScore, survived, killedEverything, killsThisMatch);
+            var individual = Individuals.First(i => i.Genome == contestant.Genome);
+            individual.RecordMatch(finalScore, survived, killedEverything, killsThisMatch);
+            individual.SetSpieciesNames(contestant);
+
+            Individuals.First(i => i.Genome == contestant.Genome).RecordMatch(finalScore, survived, killedEverything, killsThisMatch);
 
             SortGeneration();
         }
