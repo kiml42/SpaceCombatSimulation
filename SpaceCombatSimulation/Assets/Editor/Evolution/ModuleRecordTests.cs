@@ -17,6 +17,8 @@ namespace Assets.Editor.Evolution
 
             Assert.IsEmpty(mr.ToString());
             Assert.IsEmpty(mr.ToStringWithFullNames());
+            Assert.IsEmpty(mr.ToSimpleString());
+            Assert.IsEmpty(mr.ToSimpleStringWithFullNames());
         }
 
         [Test]
@@ -25,7 +27,9 @@ namespace Assets.Editor.Evolution
             var mr = new ModuleRecord(42);
 
             Assert.AreEqual("42", mr.ToString());
-            Assert.IsEmpty(mr.ToStringWithFullNames());
+            Assert.AreEqual("42", mr.ToStringWithFullNames());
+            Assert.AreEqual("42", mr.ToSimpleString());
+            Assert.AreEqual("42", mr.ToSimpleStringWithFullNames());
         }
 
         [Test]
@@ -35,6 +39,8 @@ namespace Assets.Editor.Evolution
 
             Assert.IsEmpty(mr.ToString());
             Assert.AreEqual("name", mr.ToStringWithFullNames());
+            Assert.IsEmpty(mr.ToSimpleString());
+            Assert.AreEqual("name", mr.ToSimpleStringWithFullNames());
         }
 
         [Test]
@@ -44,6 +50,8 @@ namespace Assets.Editor.Evolution
 
             Assert.IsEmpty(mr.ToString());
             Assert.AreEqual("name", mr.ToStringWithFullNames());
+            Assert.IsEmpty(mr.ToSimpleString());
+            Assert.AreEqual("name", mr.ToSimpleStringWithFullNames());
         }
 
         [Test]
@@ -53,6 +61,8 @@ namespace Assets.Editor.Evolution
 
             Assert.IsEmpty(mr.ToString());
             Assert.AreEqual("Clone", mr.ToStringWithFullNames());
+            Assert.IsEmpty(mr.ToSimpleString());
+            Assert.AreEqual("Clone", mr.ToSimpleStringWithFullNames());
         }
 
         [Test]
@@ -62,6 +72,8 @@ namespace Assets.Editor.Evolution
 
             Assert.AreEqual("42()", mr.ToString());
             Assert.AreEqual("name()", mr.ToStringWithFullNames());
+            Assert.AreEqual("42", mr.ToSimpleString());
+            Assert.AreEqual("name", mr.ToSimpleStringWithFullNames());
         }
 
         [Test]
@@ -71,9 +83,33 @@ namespace Assets.Editor.Evolution
             mr.AddModule(new ModuleRecord(2, "name2"));
             mr.AddModule(null);
             mr.AddModule(new ModuleRecord(3, "name3", true));
-
+            
             Assert.AreEqual("42(2,-,3())", mr.ToString());
             Assert.AreEqual("name(name2,-,name3())", mr.ToStringWithFullNames());
+
+            Assert.AreEqual("2,3,42", mr.ToSimpleString());
+            Assert.AreEqual("name,name2,name3", mr.ToSimpleStringWithFullNames());
+        }
+
+        [Test]
+        public void WithFilledHubWithDuplicates()
+        {
+            var mr = new ModuleRecord(42, "name", true);
+            mr.AddModule(new ModuleRecord(2, "name2"));
+            mr.AddModule(null);
+            mr.AddModule(new ModuleRecord(3, "name3", true));
+            mr.AddModule(new ModuleRecord(3, "name3", true));
+            mr.AddModule(new ModuleRecord(4, "turret", false));
+            mr.AddModule(new ModuleRecord(4, "turret", false));
+            mr.AddModule(new ModuleRecord(4, "turret", false));
+            mr.AddModule(new ModuleRecord(4, "turret", false));
+            mr.AddModule(new ModuleRecord(4, "turret", false));
+
+            Assert.AreEqual("42(2,-,3(),3(),4,4,4,4,4)", mr.ToString());
+            Assert.AreEqual("name(name2,-,name3(),name3(),turret,turret,turret,turret,turret)", mr.ToStringWithFullNames());
+
+            Assert.AreEqual("5*4,2*3,2,42", mr.ToSimpleString());
+            Assert.AreEqual("5*turret,2*name3,name,name2", mr.ToSimpleStringWithFullNames());
         }
 
         [Test]
@@ -82,7 +118,7 @@ namespace Assets.Editor.Evolution
             var mr = new ModuleRecord(null, 42);
 
             Assert.AreEqual("42", mr.ToString());
-            Assert.IsEmpty(mr.ToStringWithFullNames());
+            Assert.AreEqual("42", mr.ToStringWithFullNames());
         }
 
         [Test]

@@ -9,13 +9,25 @@ namespace Assets.Src.ModuleSystem
     public class ModuleRecord
     {
         private readonly int? _moduleNumber;
-        private readonly string _moduleName;
+        private string _moduleName { get
+            {
+                var processed = ProcessName(_baseName);
+
+                if (string.IsNullOrEmpty(processed) && _moduleNumber.HasValue)
+                {
+                    return _moduleNumber.Value.ToString();
+                }
+
+                return processed;
+            }
+        }
+        private readonly string _baseName;
         private List<ModuleRecord> _childModules;
 
         public ModuleRecord(int? moduleNumber = null, string moduleName = null, bool isHub = false)
         {
             _moduleNumber = moduleNumber;
-            _moduleName = ProcessName(moduleName);
+            _baseName = moduleName;
             if (isHub)
             {
                 _childModules = new List<ModuleRecord>();
@@ -26,23 +38,12 @@ namespace Assets.Src.ModuleSystem
         {
             if(moduleTypeKnower != null)
             {
-                _moduleName = ProcessName(moduleTypeKnower.Name);
+                _baseName = moduleTypeKnower.Name;
                 if(moduleTypeKnower.Types != null && moduleTypeKnower.Types.Contains(ModuleType.Hub))
                 {
                     _childModules = new List<ModuleRecord>();
                 }
             }
-        }
-
-        private string ProcessName(string original)
-        {
-            if (string.IsNullOrEmpty(original))
-            {
-                return null;
-            }
-            var processed = original.Replace("(Clone)", "");
-            processed = string.IsNullOrEmpty(processed) ? original : processed;
-            return processed.Replace("(", "").Replace(")", "");
         }
 
         public void AddModule(ModuleRecord module)
@@ -78,16 +79,80 @@ namespace Assets.Src.ModuleSystem
             return sb.ToString();
         }
 
-        internal string ToSimpleString()
+        protected List<int?> ListUsedModuleNumbers()
         {
-            //TODO make this return a summary of what modules are used, and how many of each.
-            return ToString();
+            var list = new List<int?>
+            {
+                _moduleNumber
+            };
+
+            if(_childModules != null)
+            {
+                foreach (var module in _childModules.Where(m => m!= null))
+                {
+                    list.AddRange(module.ListUsedModuleNumbers());
+                }
+            }
+
+            return list;
         }
 
-        internal string ToSimpleStringWithFullNames()
+        protected List<string> ListUsedModuleNames()
         {
-            //TODO make this return a summary of what modules are used, and how many of each.
-            return ToStringWithFullNames();
+            var list = new List<string>
+            {
+                _moduleName
+            };
+
+            if (_childModules != null)
+            {
+                foreach (var module in _childModules.Where(m => m != null))
+                {
+                    list.AddRange(module.ListUsedModuleNames());
+                }
+            }
+
+            return list;
+        }
+
+        public string ToSimpleString()
+        {
+            var sb = new StringBuilder();
+
+            var list = ListUsedModuleNumbers();
+            
+            var map = new Dictionary<int, int>();
+
+            foreach(var n in list.Where(n => n.HasValue).Distinct())
+            {
+                map[n.Value] = list.Count(x => x == n);
+            }
+
+            var strings = map.OrderByDescending(kv => kv.Value).ThenBy(kv => kv.Key).Select(kv => (kv.Value > 1 ? kv.Value + "*" : "") + kv.Key);
+
+            sb.Append(string.Join(",", strings.ToArray()));
+
+            return sb.ToString();
+        }
+
+        public string ToSimpleStringWithFullNames()
+        {
+            var sb = new StringBuilder();
+
+            var list = ListUsedModuleNames();
+
+            var map = new Dictionary<string, int>();
+
+            foreach (var n in list.Where(n => !string.IsNullOrEmpty(n)).Distinct())
+            {
+                map[n] = list.Count(x => x == n);
+            }
+
+            var strings = map.OrderByDescending(kv => kv.Value).ThenBy(kv => kv.Key).Select(kv => (kv.Value > 1 ? kv.Value + "*" : "") + kv.Key);
+
+            sb.Append(string.Join(",", strings.ToArray()));
+
+            return sb.ToString();
         }
 
         public string ToStringWithFullNames()
@@ -104,6 +169,17 @@ namespace Assets.Src.ModuleSystem
             }
 
             return sb.ToString();
+        }
+
+        private string ProcessName(string original)
+        {
+            if (string.IsNullOrEmpty(original))
+            {
+                return null;
+            }
+            var processed = original.Replace("(Clone)", "");
+            processed = string.IsNullOrEmpty(processed) ? original : processed;
+            return processed.Replace("(", "").Replace(")", "");
         }
     }
 }

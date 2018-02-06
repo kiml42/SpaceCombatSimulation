@@ -23,8 +23,6 @@ TODO:
             Account for parent angularV
         Analysis
             Record the modules used to make a species and subspecies of a genome
-                Species: the modules used, sorted numerically, e.g. "0,0,1,5,5,6,11"
-                SubSpecies: The modules in the order they are used including blanks. e.g. "1(5,2,6,,,2),,5,0(,,1(,,,,6,),,,)" - DONE
                 This would ideally be recorded in the genome as the ship is built (species can be derived from subspecies) and stored in the DB, could also be calculated after by building the ship and then destroying it (could only run analysis of species in unity).
                 Graphs of both against generations, possibly moving sums/averages.
                     Mouse-overs reveal the species/subspecies (possibly include creating a model of one to show what it looked like.)
