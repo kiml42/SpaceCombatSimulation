@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Assets.Src.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,42 +8,53 @@ namespace Assets.Src.ModuleSystem
 {
     public class ModuleRecord
     {
-        private int? ModuleNumber;
-        private string ModuleName;
-        private List<ModuleRecord> ChildModules;
+        private readonly int? _moduleNumber;
+        private readonly string _moduleName;
+        private List<ModuleRecord> _childModules;
 
         public ModuleRecord(int? moduleNumber = null, string moduleName = null, bool isHub = false)
         {
-            ModuleNumber = moduleNumber;
-            ModuleName = moduleName;
+            _moduleNumber = moduleNumber;
+            _moduleName = ProcessName(moduleName);
             if (isHub)
             {
-                ChildModules = new List<ModuleRecord>();
+                _childModules = new List<ModuleRecord>();
             }
         }
 
-        public ModuleRecord(ModuleTypeKnower moduleTypeKnower, int? moduleNumber = null) : this(moduleNumber)
+        public ModuleRecord(IModuleTypeKnower moduleTypeKnower, int? moduleNumber = null) : this(moduleNumber)
         {
             if(moduleTypeKnower != null)
             {
-                ModuleName = moduleTypeKnower.name;
+                _moduleName = ProcessName(moduleTypeKnower.Name);
                 if(moduleTypeKnower.Types != null && moduleTypeKnower.Types.Contains(ModuleType.Hub))
                 {
-                    ChildModules = new List<ModuleRecord>();
+                    _childModules = new List<ModuleRecord>();
                 }
             }
         }
 
-        public void AddModule(ModuleRecord module)
+        private string ProcessName(string original)
         {
-            if(ChildModules == null)
+            if (string.IsNullOrEmpty(original))
             {
-                ChildModules = new List<ModuleRecord>();
+                return null;
             }
-            ChildModules.Add(module);
+            var processed = original.Replace("(Clone)", "");
+            processed = string.IsNullOrEmpty(processed) ? original : processed;
+            return processed.Replace("(", "").Replace(")", "");
         }
 
-        public void AddModule(ModuleTypeKnower module, int? moduleNumber = null)
+        public void AddModule(ModuleRecord module)
+        {
+            if(_childModules == null)
+            {
+                _childModules = new List<ModuleRecord>();
+            }
+            _childModules.Add(module);
+        }
+
+        public void AddModule(IModuleTypeKnower module, int? moduleNumber = null)
         {
             AddModule(new ModuleRecord(module, moduleNumber));
         }
@@ -50,15 +62,15 @@ namespace Assets.Src.ModuleSystem
         public override string ToString()
         {
             var sb = new StringBuilder();
-            if (ModuleNumber.HasValue)
+            if (_moduleNumber.HasValue)
             {
-                sb.Append(ModuleNumber.Value);
+                sb.Append(_moduleNumber.Value);
             }
 
-            if(ChildModules != null)
+            if(_childModules != null)
             {
                 sb.Append("(");
-                var moduleStrings = ChildModules.Select(m => m == null ? "-" : m.ToString()).ToArray();
+                var moduleStrings = _childModules.Select(m => m == null ? "-" : m.ToString()).ToArray();
                 sb.Append(string.Join(",", moduleStrings));
                 sb.Append(")");
             }
@@ -66,15 +78,27 @@ namespace Assets.Src.ModuleSystem
             return sb.ToString();
         }
 
-        public string ToVerboseString()
+        internal string ToSimpleString()
+        {
+            //TODO make this return a summary of what modules are used, and how many of each.
+            return ToString();
+        }
+
+        internal string ToSimpleStringWithFullNames()
+        {
+            //TODO make this return a summary of what modules are used, and how many of each.
+            return ToStringWithFullNames();
+        }
+
+        public string ToStringWithFullNames()
         {
             var sb = new StringBuilder();
-            sb.Append(ModuleName);
+            sb.Append(_moduleName);
 
-            if (ChildModules != null)
+            if (_childModules != null)
             {
                 sb.Append("(");
-                var moduleStrings = ChildModules.Select(m => m == null ? "-" : m.ToVerboseString()).ToArray();
+                var moduleStrings = _childModules.Select(m => m == null ? "-" : m.ToStringWithFullNames()).ToArray();
                 sb.Append(string.Join(",", moduleStrings));
                 sb.Append(")");
             }

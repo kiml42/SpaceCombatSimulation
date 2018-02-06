@@ -4,6 +4,7 @@ using UnityEngine.TestTools;
 using NUnit.Framework;
 using System.Collections;
 using Assets.src.Evolution;
+using Assets.Src.Evolution;
 
 public class GenerationTests
 {
@@ -18,7 +19,7 @@ public class GenerationTests
         gen.AddGenome(b);
         gen.AddGenome("blancmonge");
 
-        gen.RecordMatch(a, b, a, 13, 7, 5);
+        gen.RecordMatch(new GenomeWrapper(a), new GenomeWrapper(b), a, 13, 7, 5);
 
         var genString = gen.ToString();
 

@@ -155,7 +155,6 @@ public class SpaceShipControler : MonoBehaviour, IDeactivatable, IGeneticConfigu
                 genomeWrapper.GetScaledNumber(MaxAngularDragForTorquers, 0, DefaultAngularDragForTorquersProportion);
             RadialSpeedThreshold =
                 genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
-            name = genomeWrapper.GetName();
         }
 
         return genomeWrapper;

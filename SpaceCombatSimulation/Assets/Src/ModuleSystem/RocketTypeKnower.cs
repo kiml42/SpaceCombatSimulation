@@ -39,6 +39,14 @@ namespace Assets.Src.ModuleSystem
             }
         }
 
+        public string Name
+        {
+            get
+            {
+                return name;
+            }
+        }
+
         public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
         {
             foreach (var engine in Engines)

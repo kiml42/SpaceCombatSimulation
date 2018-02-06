@@ -55,12 +55,17 @@ namespace Assets.src.Evolution
         /// <param name="winScore">Score to add to the winner</param>
         /// <param name="lossScore">Score to add to the looser</param>
         /// <param name="drawScore">Score to add to both in the event of a draw</param>
-        public void RecordMatch(string a, string b, string victor, float winScore, float lossScore, float drawScore)
+        public void RecordMatch(GenomeWrapper a, GenomeWrapper b, string victor, float winScore, float lossScore, float drawScore)
         {
             //Debug.Log("Recording Match: " + a + " vs " + b + " victor: " + victor);
 
-            Individuals.First(i => i.Genome == a).RecordMatch(b, victor,  winScore,  lossScore,  drawScore);
-            Individuals.First(i => i.Genome == b).RecordMatch(a, victor,  winScore,  lossScore,  drawScore);
+            var individuala = Individuals.First(i => i.Genome == a.Genome);
+            individuala.RecordMatch(b.Genome, victor,  winScore,  lossScore,  drawScore);
+            individuala.SetSpieciesNames(a);
+
+            var individualb = Individuals.First(i => i.Genome == b.Genome);
+            individualb.RecordMatch(a.Genome, victor,  winScore,  lossScore,  drawScore);
+            individualb.SetSpieciesNames(b);
 
             Individuals = Individuals.OrderByDescending(i => i.AverageScore).ToList();
         }

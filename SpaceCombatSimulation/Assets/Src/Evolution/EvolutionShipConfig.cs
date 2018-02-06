@@ -62,6 +62,8 @@ public class EvolutionShipConfig : MonoBehaviour {
 
         genomeWrapper = ship.Configure(genomeWrapper);
 
+        ship.name = genomeWrapper.GetName();
+
         return genomeWrapper;
     }
 

@@ -34,6 +34,14 @@ namespace Assets.Src.ModuleSystem
             }
         }
 
+        public string Name
+        {
+            get
+            {
+                return name;
+            }
+        }
+
 
         //[Tooltip("These components will be configured in order by this behaviour when Configure is called on it.")]
         //public List<IGeneticConfigurable> ComponentsToConfigure = new List<IGeneticConfigurable>();

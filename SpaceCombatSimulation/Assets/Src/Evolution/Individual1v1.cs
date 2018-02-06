@@ -6,18 +6,11 @@ using UnityEngine;
 
 namespace Assets.Src.Evolution
 {
-    public class Individual1v1
+    public class Individual1v1 : BaseIndividual
     {
-        public string Genome;
-
-        public float Score;
-        private const int SCORE_INDEX = 1;
         public int Wins;
-        private const int WINS_INDEX = 2;
         public int Draws;
-        private const int DRAWS_INDEX = 3;
         public int Loses;
-        private const int LOSES_INDEX = 4;
 
         public int MatchesPlayed { get { return Wins + Draws + Loses; } }
 
@@ -53,7 +46,7 @@ namespace Assets.Src.Evolution
                 PreviousCombatants = value.Split(',').Where(s => !string.IsNullOrEmpty(s)).ToList();
             }
         }
-        
+
         public Individual1v1(string genome)
         {
             Genome = genome;
@@ -106,18 +99,12 @@ namespace Assets.Src.Evolution
             var strings = new List<string>
                 {
                     Genome,
-                    "",
-                    "",
-                    "",
-                    "",
-                    ""
+                    Score.ToString(),
+                     Wins.ToString(),
+                    Draws.ToString(),
+                    Loses.ToString(),
+                   competitorsString.ToString()
                 };
-
-            strings[SCORE_INDEX] = Score.ToString();
-            strings[WINS_INDEX] = Wins.ToString();
-            strings[DRAWS_INDEX] = Draws.ToString();
-            strings[LOSES_INDEX] = Loses.ToString();
-            strings[PC_INDEX] = competitorsString.ToString();
 
             return string.Join(";", strings.ToArray());
         }

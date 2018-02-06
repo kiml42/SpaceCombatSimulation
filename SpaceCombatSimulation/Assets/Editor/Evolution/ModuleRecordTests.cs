@@ -16,7 +16,7 @@ namespace Assets.Editor.Evolution
             var mr = new ModuleRecord();
 
             Assert.IsEmpty(mr.ToString());
-            Assert.IsEmpty(mr.ToVerboseString());
+            Assert.IsEmpty(mr.ToStringWithFullNames());
         }
 
         [Test]
@@ -25,7 +25,7 @@ namespace Assets.Editor.Evolution
             var mr = new ModuleRecord(42);
 
             Assert.AreEqual("42", mr.ToString());
-            Assert.IsEmpty(mr.ToVerboseString());
+            Assert.IsEmpty(mr.ToStringWithFullNames());
         }
 
         [Test]
@@ -34,7 +34,25 @@ namespace Assets.Editor.Evolution
             var mr = new ModuleRecord(null, "name");
 
             Assert.IsEmpty(mr.ToString());
-            Assert.AreEqual("name", mr.ToVerboseString());
+            Assert.AreEqual("name", mr.ToStringWithFullNames());
+        }
+
+        [Test]
+        public void ModuleNameRemovesClone()
+        {
+            var mr = new ModuleRecord(null, "name(Clone)");
+
+            Assert.IsEmpty(mr.ToString());
+            Assert.AreEqual("name", mr.ToStringWithFullNames());
+        }
+
+        [Test]
+        public void ModuleNameDoesNotRemoveCloneIfItsTheWholeName()
+        {
+            var mr = new ModuleRecord(null, "(Clone)");
+
+            Assert.IsEmpty(mr.ToString());
+            Assert.AreEqual("Clone", mr.ToStringWithFullNames());
         }
 
         [Test]
@@ -43,7 +61,7 @@ namespace Assets.Editor.Evolution
             var mr = new ModuleRecord(42, "name", true);
 
             Assert.AreEqual("42()", mr.ToString());
-            Assert.AreEqual("name()", mr.ToVerboseString());
+            Assert.AreEqual("name()", mr.ToStringWithFullNames());
         }
 
         [Test]
@@ -55,7 +73,7 @@ namespace Assets.Editor.Evolution
             mr.AddModule(new ModuleRecord(3, "name3", true));
 
             Assert.AreEqual("42(2,-,3())", mr.ToString());
-            Assert.AreEqual("name(name2,-,name3())", mr.ToVerboseString());
+            Assert.AreEqual("name(name2,-,name3())", mr.ToStringWithFullNames());
         }
 
         [Test]
@@ -64,7 +82,7 @@ namespace Assets.Editor.Evolution
             var mr = new ModuleRecord(null, 42);
 
             Assert.AreEqual("42", mr.ToString());
-            Assert.IsEmpty(mr.ToVerboseString());
+            Assert.IsEmpty(mr.ToStringWithFullNames());
         }
 
         [Test]
@@ -78,7 +96,7 @@ namespace Assets.Editor.Evolution
             var mr = new ModuleRecord(typeKnower);
 
             Assert.IsEmpty(mr.ToString());
-            Assert.AreEqual("name", mr.ToVerboseString());
+            Assert.AreEqual("name", mr.ToStringWithFullNames());
         }
 
         [Test]
@@ -96,7 +114,7 @@ namespace Assets.Editor.Evolution
             var mr = new ModuleRecord(typeKnower, 42);
 
             Assert.AreEqual("42()", mr.ToString());
-            Assert.AreEqual("name()", mr.ToVerboseString());
+            Assert.AreEqual("name()", mr.ToStringWithFullNames());
         }
 
         [Test]
@@ -135,7 +153,7 @@ namespace Assets.Editor.Evolution
             mr.AddModule(typeKnower3, 3);
 
             Assert.AreEqual("42(2,-,3())", mr.ToString());
-            Assert.AreEqual("name(name2,-,name3())", mr.ToVerboseString());
+            Assert.AreEqual("name(name2,-,name3())", mr.ToStringWithFullNames());
         }
 
         [Test]
@@ -163,7 +181,7 @@ namespace Assets.Editor.Evolution
             mr.AddModule(typeKnower2, 2);
 
             Assert.AreEqual("42(2)", mr.ToString());
-            Assert.AreEqual("name(name2)", mr.ToVerboseString());
+            Assert.AreEqual("name(name2)", mr.ToStringWithFullNames());
         }
     }
 }

@@ -6,11 +6,8 @@ using UnityEngine;
 
 namespace Assets.Src.Evolution
 {
-    public class IndividualTargetShooting
+    public class IndividualTargetShooting : BaseIndividual
     {
-        public string Genome;
-
-        public float Score;
         public int MatchesPlayed;
         public int MatchesSurvived;
         public int CompleteKills;

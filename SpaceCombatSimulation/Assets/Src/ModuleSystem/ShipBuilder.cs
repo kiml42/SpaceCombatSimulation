@@ -74,7 +74,8 @@ namespace Assets.src.Evolution
                 var newUsedLocation = Vector3.zero;
                 if (CanSpawnHere(spawnPoint, out newUsedLocation))
                 {
-                    var moduleToAdd = SelectModule();
+                    int? moduleIndex;
+                    var moduleToAdd = SelectModule(out moduleIndex);
 
                     if (moduleToAdd != null)
                     {
@@ -104,12 +105,8 @@ namespace Assets.src.Evolution
 
                             addedModule.transform.SetColor(_colour);
 
-                            //must be before module is configured, so the cost is updated before more modules are added.
-                            _genome.ModuleAdded(addedModule, newUsedLocation);
-
-                            _genome.Jump();
-                            _genome = addedModule.Configure(_genome);
-                            _genome.JumpBack();
+                            _genome.ConfigureAddedModule(addedModule, newUsedLocation, moduleIndex);
+                            continue;
                         }
                         //else
                         //{
@@ -125,6 +122,7 @@ namespace Assets.src.Evolution
                 //{
                 //    Debug.Log("Can not spawn module here.");
                 //}
+                _genome.NoModuleAddedHere();
             }
             return _genome;
         }
@@ -169,7 +167,7 @@ namespace Assets.src.Evolution
             return distances.Any(d => d < THRESHOLD_DISTANCE);
         }
 
-        private ModuleTypeKnower SelectModule()
+        private ModuleTypeKnower SelectModule(out int? moduleIndex)
         {
             if (_genome.CanSpawn())
             {
@@ -180,6 +178,7 @@ namespace Assets.src.Evolution
                     if (AllowedModuleIndicies == null || !AllowedModuleIndicies.Any() || AllowedModuleIndicies.Contains(numberInRange))
                     {
                         //Debug.Log("Adding Module " + number + ": " + Modules[number.Value % _moduleList.Modules.Count()] );
+                        moduleIndex = numberInRange;
                         return _moduleList.Modules[numberInRange];
                     }
                     //else
@@ -196,6 +195,7 @@ namespace Assets.src.Evolution
             //{
             //    Debug.Log("Cannot read gene of length " + GeneLength + " at position " + _genomePosition + " in '" + _genome + "'");
             //}
+            moduleIndex = null;
             return null;
         }
     }

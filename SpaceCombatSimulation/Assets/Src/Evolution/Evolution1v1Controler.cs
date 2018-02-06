@@ -15,7 +15,7 @@ public class Evolution1v1Controler : BaseEvolutionController
 {
     Evolution1v1Config _config;
     
-    private Dictionary<string, string> _currentGenomes;
+    private Dictionary<string, GenomeWrapper> _currentGenomes;
         
     public int MaxShootAngle = 180;
     public int MaxTorqueMultiplier = 2000;
@@ -107,25 +107,26 @@ public class Evolution1v1Controler : BaseEvolutionController
     {
         var genomes = PickTwoGenomesFromHistory();
 
-        bool hasAnyModules = false;
 
-        Debug.Log("\"" + string.Join("\" vs \"", genomes.ToArray()) + "\"");
-
-        _currentGenomes = new Dictionary<string, string>();
+        var wrappers = new List<GenomeWrapper>();
+        _currentGenomes = new Dictionary<string, GenomeWrapper>();
         var i = 0;
         foreach (var g in genomes)
         {
             for(var j=0; j < _matchControl.Config.CompetitorsPerTeam; j++)
             {
                 var gw = ShipConfig.SpawnShip(g, i, j);
-                hasAnyModules = hasAnyModules || gw.ModulesAdded > 0;
+                wrappers.Add(gw);
+
+                _currentGenomes[ShipConfig.GetTag(i)] = gw; //This will only save the last gw, but they should be functionally identical.
             }
-            _currentGenomes[ShipConfig.GetTag(i)] = g;
 
             i++;
         }
+        
+        Debug.Log("\"" + string.Join("\" vs \"", wrappers.Select(w => w.TopModuleRecord.ToStringWithFullNames()).Distinct().ToArray()) + "\"");
 
-        return hasAnyModules;
+        return wrappers.Any(w => w.ModulesAdded > 0);
     }
     
     public string _previousWinner;
@@ -153,7 +154,11 @@ public class Evolution1v1Controler : BaseEvolutionController
                 var winningTag = tags.First();
 
                 //Debug.Log(StringifyGenomes() + " winning tag: " + winningTag);
-                currentWinner = _currentGenomes[winningTag];
+                var winningGW = _currentGenomes[winningTag];
+                if(winningGW != null)
+                {
+                    currentWinner = winningGW.Genome;
+                }
             }
             if (tags.Count() == 0 || !_hasModules)
             {

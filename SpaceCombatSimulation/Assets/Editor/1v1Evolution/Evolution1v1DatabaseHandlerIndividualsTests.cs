@@ -89,7 +89,7 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
         Assert.AreEqual("", i2.PreviousCombatantsString);
         Assert.AreEqual(0, i2.PreviousCombatants.Count);
 
-        gen.RecordMatch("abc", "def", "abc", 5, 15, 7);
+        gen.RecordMatch(new GenomeWrapper("abc"), new GenomeWrapper("def"), "abc", 5, 15, 7);
 
         _handler.UpdateGeneration(gen, 3, 4);
 
@@ -155,7 +155,7 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
         Assert.AreEqual("", i2.PreviousCombatantsString);
         Assert.AreEqual(0, i2.PreviousCombatants.Count);
 
-        gen.RecordMatch("abc", "def", null, 5, 15, 7);
+        gen.RecordMatch(new GenomeWrapper("abc"), new GenomeWrapper("def"), null, 5, 15, 7);
 
         _handler.UpdateGeneration(gen, 3, 4);
 

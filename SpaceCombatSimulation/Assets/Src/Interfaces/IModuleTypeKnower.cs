@@ -8,6 +8,7 @@ namespace Assets.Src.Interfaces
 {
     public interface IModuleTypeKnower: IGeneticConfigurable
     {
+        string Name { get; }
         List<ModuleType> Types { get; }
         float Cost { get; }
     }

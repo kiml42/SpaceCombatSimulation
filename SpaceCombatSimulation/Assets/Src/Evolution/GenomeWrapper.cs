@@ -12,10 +12,7 @@ namespace Assets.Src.Evolution
     {
         private int _geneLength;
         private string _genome;
-        private const int DEFAULT_NAME_LENGTH = 50;
         private const int DEFAULT_GENE_LENGTH = 3;
-
-        public int NameLength { get; set; }
 
         public string Genome { get
             {
@@ -34,6 +31,10 @@ namespace Assets.Src.Evolution
 
         public bool UseJump = true;
 
+        public ModuleRecord TopModuleRecord { get; private set; }
+        private Stack<ModuleRecord> _previousModuleRecords = new Stack<ModuleRecord>();
+        private ModuleRecord _currentModuleRecord;
+
         #region EnemyTags
         public void AddEnemyTag(string newTag)
         {
@@ -45,15 +46,16 @@ namespace Assets.Src.Evolution
         public List<string> EnemyTags { get; set; }
         #endregion
 
-        public GenomeWrapper(string genome, List<string> enemyTags, int geneLength = DEFAULT_GENE_LENGTH)
+        public GenomeWrapper(string genome, List<string> enemyTags = null, int geneLength = DEFAULT_GENE_LENGTH)
         {
             _genome = genome;
             _geneLength = geneLength;
-            NameLength = DEFAULT_NAME_LENGTH;
             Budget = null; //default the budget to null, can be set later.
             UsedLocations = new List<Vector3>();
             EnemyTags = enemyTags;
             ModuleTypeCounts = new Dictionary<ModuleType, int>();
+            TopModuleRecord = new ModuleRecord();
+            _currentModuleRecord = TopModuleRecord;
         }
 
 
@@ -62,31 +64,64 @@ namespace Assets.Src.Evolution
         /// </summary>
         /// <param name="types">List of types that this module should be treated as.</param>
         /// <returns>boolean indicating if any more can be added</returns>
-        public bool ModuleAdded(IModuleTypeKnower knower, Vector3 usedLocation)
+        public bool ConfigureAddedModule(IModuleTypeKnower knower, Vector3 usedLocation, int? moduleNumber)
         {
-            //TODO expand to all types.
-            foreach (var type in knower.Types.Distinct())
+            if (knower != null)
             {
-                if (ModuleTypeCounts.ContainsKey(type))
+
+                foreach (var type in knower.Types.Distinct())
                 {
-                    ModuleTypeCounts[type]++;
-                } else
-                {
-                    ModuleTypeCounts[type] = 1;
+                    if (ModuleTypeCounts.ContainsKey(type))
+                    {
+                        ModuleTypeCounts[type]++;
+                    } else
+                    {
+                        ModuleTypeCounts[type] = 1;
+                    }
                 }
+                ModulesAdded++;
+
+                Cost += knower.Cost;
+
+                UsedLocations.Add(usedLocation);
+
+                var nextMR = new ModuleRecord(knower, moduleNumber);
+                _currentModuleRecord.AddModule(nextMR);
+                _previousModuleRecords.Push(_currentModuleRecord);
+                _currentModuleRecord = nextMR;
+
+                //must be before module is configured, so the cost is updated before more modules are added.
+                Jump();
+                knower.Configure(this);
+                ModuleFinished();
+                JumpBack();
             }
-            ModulesAdded++;
-
-            Cost += knower.Cost;
-
-            UsedLocations.Add(usedLocation);
-
+            else
+            {
+                NoModuleAddedHere();
+            }
             return CanSpawn();
+        }
+
+        /// <summary>
+        /// Register that a spawn point was present, but no module was added there.
+        /// </summary>
+        public void NoModuleAddedHere()
+        {
+            _currentModuleRecord.AddModule(null);
+        }
+
+        /// <summary>
+        /// Tells the genomeWrapper that a module has been finished.
+        /// </summary>
+        private void ModuleFinished()
+        {
+            _currentModuleRecord = _previousModuleRecords.Pop();
         }
 
         public string GetName()
         {
-            return _genome.Substring(0, NameLength);
+            return TopModuleRecord.ToString();
         }
 
         public bool CanSpawn()

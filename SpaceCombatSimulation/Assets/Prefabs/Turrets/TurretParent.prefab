@@ -933,7 +933,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Types: 
   Cost: 0
-  ExtraConfigurables: []
 --- !u!114 &114201230822804862
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -977,7 +976,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Types: 
   Cost: 0
-  ExtraConfigurables: []
 --- !u!114 &114365050818564930
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -991,9 +989,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Types: 01000000
   Cost: 180
-  ExtraConfigurables:
-  - {fileID: 114131933278038030}
-  - {fileID: 114220203062301108}
 --- !u!114 &114375893224788504
 MonoBehaviour:
   m_ObjectHideFlags: 1
