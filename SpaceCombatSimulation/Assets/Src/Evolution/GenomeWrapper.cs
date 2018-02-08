@@ -41,9 +41,12 @@ namespace Assets.Src.Evolution
             }
         }
 
-        public string VerboseSpecies()
+        public string VerboseSpecies
         {
-            return _topModuleRecord.ToSimpleStringWithFullNames();
+            get
+            {
+                return _topModuleRecord.ToSimpleStringWithFullNames();
+            }
         }
 
         public string Subspecies
@@ -54,9 +57,12 @@ namespace Assets.Src.Evolution
             }
         }
 
-        public string VerboseSubspecies()
+        public string VerboseSubspecies
         {
-            return _topModuleRecord.ToStringWithFullNames();
+            get
+            {
+                return _topModuleRecord.ToStringWithFullNames();
+            }
         }
 
         private Stack<ModuleRecord> _previousModuleRecords = new Stack<ModuleRecord>();

@@ -51,8 +51,8 @@ namespace Assets.src.Evolution
             //Debug.Log("Recording Match: " + a + " vs " + b + " victor: " + victor);
 
             var individual = Individuals.First(i => i.Genome == contestant.Genome);
+            individual.Finalise(contestant);
             individual.RecordMatch(finalScore, survived, killedEverything, killsThisMatch);
-            individual.SetSpieciesNames(contestant);
 
             Individuals.First(i => i.Genome == contestant.Genome).RecordMatch(finalScore, survived, killedEverything, killsThisMatch);
 

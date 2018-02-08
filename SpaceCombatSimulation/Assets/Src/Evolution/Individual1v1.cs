@@ -21,6 +21,10 @@ namespace Assets.Src.Evolution
         private const int DRAW_SCORE = -2;
         private const int LOOSE_SCORE = -10;
 
+        public Individual1v1(string genome) : base(genome)
+        {
+        }
+
         public float AverageScore
         {
             get
@@ -47,24 +51,21 @@ namespace Assets.Src.Evolution
             }
         }
 
-        public Individual1v1(string genome)
-        {
-            Genome = genome;
-        }
-
         public void RecordMatch(string otherCompetitor, string victor, float winScore, float losScore, float drawScore)
         {
             PreviousCombatants.Add(otherCompetitor);
 
             if (string.IsNullOrEmpty(victor))
             {
+                Debug.Log("Draw");
                 Draws++;
                 Score += drawScore;
             }
             else
             {
-                if (Genome == victor)
+                if (Summary.Genome == victor)
                 {
+                    Debug.Log(Summary.GetName() + " Wins!");
                     Wins++;
                     Score += winScore;
                 }

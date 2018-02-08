@@ -70,7 +70,6 @@ public class Evolution1v1Controler : BaseEvolutionController
 
         if (winningGenome != null)
         {
-            Debug.Log("\"" + winningGenome + "\" Wins!");
             var a = _currentGenomes.Values.First();
             var b = _currentGenomes.Values.Skip(1).First();
 
@@ -106,8 +105,7 @@ public class Evolution1v1Controler : BaseEvolutionController
     private bool SpawnShips()
     {
         var genomes = PickTwoGenomesFromHistory();
-
-
+        
         var wrappers = new List<GenomeWrapper>();
         _currentGenomes = new Dictionary<string, GenomeWrapper>();
         var i = 0;
@@ -124,7 +122,7 @@ public class Evolution1v1Controler : BaseEvolutionController
             i++;
         }
         
-        Debug.Log("\"" + string.Join("\" vs \"", wrappers.Select(w => w.VerboseSubspecies()).Distinct().ToArray()) + "\"");
+        Debug.Log("\"" + string.Join("\" vs \"", wrappers.Select(w => w.GetName()).Distinct().ToArray()) + "\"");
 
         return wrappers.Any(w => w.ModulesAdded > 0);
     }

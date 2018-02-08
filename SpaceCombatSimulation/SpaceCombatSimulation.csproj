@@ -333,6 +333,7 @@
     <Compile Include="Assets\Src\Evolution\Generation.cs" />
     <Compile Include="Assets\Src\Evolution\Generation1V1.cs" />
     <Compile Include="Assets\Src\Evolution\GenerationTargetShooting.cs" />
+    <Compile Include="Assets\Src\Evolution\SeciesSummary.cs" />
     <Compile Include="Assets\Src\Evolution\GenomeWrapper.cs" />
     <Compile Include="Assets\Src\Evolution\Individual1v1.cs" />
     <Compile Include="Assets\Src\Evolution\IndividualTargetShooting.cs" />

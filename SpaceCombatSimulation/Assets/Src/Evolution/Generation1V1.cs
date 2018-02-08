@@ -60,12 +60,12 @@ namespace Assets.src.Evolution
             //Debug.Log("Recording Match: " + a + " vs " + b + " victor: " + victor);
 
             var individuala = Individuals.First(i => i.Genome == a.Genome);
+            individuala.Finalise(a);
             individuala.RecordMatch(b.Genome, victor,  winScore,  lossScore,  drawScore);
-            individuala.SetSpieciesNames(a);
 
             var individualb = Individuals.First(i => i.Genome == b.Genome);
+            individualb.Finalise(b);
             individualb.RecordMatch(a.Genome, victor,  winScore,  lossScore,  drawScore);
-            individualb.SetSpieciesNames(b);
 
             Individuals = Individuals.OrderByDescending(i => i.AverageScore).ToList();
         }

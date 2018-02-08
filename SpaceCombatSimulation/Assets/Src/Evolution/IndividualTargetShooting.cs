@@ -14,6 +14,14 @@ namespace Assets.Src.Evolution
         public int TotalKills;
         public List<float> MatchScores = new List<float>();
 
+        /// <summary>
+        /// Construct an indifvidual from a genome, all other firelds will be empty or 0
+        /// </summary>
+        /// <param name="line"></param>
+        public IndividualTargetShooting(string genome) : base(genome)
+        {
+        }
+
         public float AverageScore
         {
             get
@@ -43,15 +51,6 @@ namespace Assets.Src.Evolution
                     MatchScores = parts.Select(s => float.Parse(s)).ToList();
                 }
             }
-        }
-
-        /// <summary>
-        /// Construct an indifvidual from a genome, all other firelds will be empty or 0
-        /// </summary>
-        /// <param name="line"></param>
-        public IndividualTargetShooting(string genome)
-        {
-            Genome = genome;
         }
 
         public void RecordMatch(float finalScore, bool survived, bool killedEverything, int killsThisMatch)
