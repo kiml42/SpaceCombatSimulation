@@ -45,14 +45,24 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
         var i1 = generation.Individuals.First();
 
         Assert.AreEqual("123", i1.Genome);
-        Assert.AreEqual(42, i1.Score);
         Assert.AreEqual(3, i1.Wins);
         Assert.AreEqual(1, i1.Draws);
         Assert.AreEqual(0, i1.Loses);
+        
         Assert.AreEqual("123,321", i1.PreviousCombatantsString);
         Assert.AreEqual(2, i1.PreviousCombatants.Count);
         Assert.AreEqual("123", i1.PreviousCombatants.First());
         Assert.AreEqual("321", i1.PreviousCombatants[1]);
+
+        //BaseMembers
+        Assert.AreEqual(42, i1.Score);
+        Assert.AreEqual(123, i1.Summary.Cost);
+        Assert.AreEqual(120, i1.Summary.Budget);
+        Assert.AreEqual(new Color(1,2,3), i1.Summary.Color);
+        Assert.AreEqual("species", i1.Summary.Species);
+        Assert.AreEqual("speciesV", i1.Summary.VerboseSpecies);
+        Assert.AreEqual("subspecies", i1.Summary.Subspecies);
+        Assert.AreEqual("subspeciesV", i1.Summary.VerboseSubspecies);
     }
 
     [Test]
@@ -89,7 +99,13 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
         Assert.AreEqual("", i2.PreviousCombatantsString);
         Assert.AreEqual(0, i2.PreviousCombatants.Count);
 
-        gen.RecordMatch(new GenomeWrapper("abc"), new GenomeWrapper("def"), "abc", 5, 15, 7);
+        var gwA = new GenomeWrapper("abc")
+        {
+            Budget = 59
+        };
+
+
+        gen.RecordMatch(gwA, new GenomeWrapper("def"), "abc", 5, 15, 7);
 
         _handler.UpdateGeneration(gen, 3, 4);
 
@@ -108,6 +124,7 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
         Assert.AreEqual("def", i1b.PreviousCombatantsString);
         Assert.AreEqual(1, i1b.PreviousCombatants.Count);
         Assert.AreEqual("def", i1b.PreviousCombatants.First());
+        Assert.AreEqual(59, i1b.Summary.Budget);
 
         var i2b = RetrievedGen2.Individuals[1];
 
@@ -119,6 +136,7 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
         Assert.AreEqual("abc", i2b.PreviousCombatantsString);
         Assert.AreEqual(1, i2b.PreviousCombatants.Count);
         Assert.AreEqual("abc", i2b.PreviousCombatants.First());
+        Assert.Null(i2b.Summary.Budget);
     }
 
     [Test]

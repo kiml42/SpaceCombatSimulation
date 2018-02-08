@@ -58,15 +58,5 @@ namespace Assets.Src.Evolution
         {
             return Subspecies;
         }
-        
-
-        /// <summary>
-        /// Returns the color object that this genome specifies
-        /// </summary>
-        /// <returns></returns>
-        public Color GetColorForGenome()
-        {
-            return Color;
-        }
     }
 }
