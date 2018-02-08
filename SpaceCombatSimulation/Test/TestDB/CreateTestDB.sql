@@ -51,21 +51,21 @@ INSERT INTO MutationConfig (id, mutations, maxMutationLength, genomeLength, gene
 
 
 -- Table: BaseIndividual
-CREATE TABLE BaseIndividual (runType VARCHAR (1000) NOT NULL, runConfigId INTEGER NOT NULL REFERENCES DroneEvolutionConfig (id), generation INTEGER NOT NULL, genome VARCHAR (1000) NOT NULL, score FLOAT, cost FLOAT, modules FLOAT, r FLOAT, g FLOAT, b FLOAT, species VARCHAR (1000), speciesVerbose VARCHAR (1000), subspecies VARCHAR (1000), subspeciesVerbose VARCHAR (1000));
-INSERT INTO BaseIndividual (runType, runConfigId, generation, genome, score, cost, modules, r,g,b, species, speciesVerbose, subspecies, subspeciesVerbose) VALUES ('drone', 0, 0, '123', 42, 123, 6, 1,2,3, 'species42', 'speciesV42', 'subspecies42', 'subspeciesV42');
+CREATE TABLE BaseIndividual (runType VARCHAR (1000) NOT NULL, runConfigId INTEGER NOT NULL REFERENCES BaseEvolutionConfig (id), generation INTEGER NOT NULL, genome VARCHAR (1000) NOT NULL, score FLOAT, cost FLOAT, modules INTEGER, r FLOAT, g FLOAT, b FLOAT, species VARCHAR (1000), speciesVerbose VARCHAR (1000), subspecies VARCHAR (1000), subspeciesVerbose VARCHAR (1000));
+INSERT INTO BaseIndividual (runType, runConfigId, generation, genome, score, cost, modules, r,g,b, species, speciesVerbose, subspecies, subspeciesVerbose) VALUES ('drone', 0, 0, '123', 42, 5646, 6, 1,2,3, 'species42', 'speciesV42', 'subspecies42', 'subspeciesV42');
 INSERT INTO BaseIndividual (runType, runConfigId, generation, genome, score, cost, modules, r,g,b, species, speciesVerbose, subspecies, subspeciesVerbose) VALUES ('drone', 0, 0, '148', 65, 466, 8, 0.5,0.5,0.5, 'species', 'speciesVerbose', 'subspecies', 'subspeciesVerbose');
-INSERT INTO BaseIndividual (runType, runConfigId, generation, genome, score, cost, modules, r,g,b, species, speciesVerbose, subspecies, subspeciesVerbose) VALUES ('1v1',   0, 0, '123', 42, 466, 8, 0.5,0.5,0.5, 'species', 'speciesVerbose', 'subspecies', 'subspeciesVerbose');
-INSERT INTO BaseIndividual (runType, runConfigId, generation, genome, score, cost, modules, r,g,b, species, speciesVerbose, subspecies, subspeciesVerbose) VALUES ('1v1',   0, 0, '148', 65, 466, 8, 0.5,0.5,0.5, 'species', 'speciesVerbose', 'subspecies', 'subspeciesVerbose');
+INSERT INTO BaseIndividual (runType, runConfigId, generation, genome, score, cost, modules, r,g,b, species, speciesVerbose, subspecies, subspeciesVerbose) VALUES ('1v1',   2, 0, '123', 42, 123, 6, 1,2,3, 'species42', 'speciesV42', 'subspecies42', 'subspeciesV42');
+INSERT INTO BaseIndividual (runType, runConfigId, generation, genome, score, cost, modules, r,g,b, species, speciesVerbose, subspecies, subspeciesVerbose) VALUES ('1v1',   2, 0, '148', 65, 466, 8, 0.5,0.5,0.5, 'species', 'speciesVerbose', 'subspecies', 'subspeciesVerbose');
 
 -- Table: DroneShootingIndividual
-CREATE TABLE DroneShootingIndividual (runConfigId INTEGER NOT NULL REFERENCES DroneEvolutionConfig (id), generation INTEGER NOT NULL, genome VARCHAR (1000) NOT NULL, matchesPlayed INTEGER, matchesSurvived INTEGER, completeKills INTEGER, totalKills INTEGER, matchScores VARCHAR (500), PRIMARY KEY (runConfigId, generation, genome));
+CREATE TABLE DroneShootingIndividual (runConfigId INTEGER NOT NULL REFERENCES BaseIndividual (runConfigId), generation INTEGER REFERENCES BaseIndividual (generation) NOT NULL, genome VARCHAR (1000) REFERENCES BaseIndividual (genome) NOT NULL, matchesPlayed INTEGER, matchesSurvived INTEGER, completeKills INTEGER, totalKills INTEGER, matchScores VARCHAR (500), PRIMARY KEY (runConfigId, generation, genome));
 INSERT INTO DroneShootingIndividual (runConfigId, generation, genome, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores) VALUES (0, 0, '123', 3, 1, 2, 5, '123,321');
 INSERT INTO DroneShootingIndividual (runConfigId, generation, genome, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores) VALUES (0, 0, '148', 2, 0, 1, 1, '3');
 
 -- Table: Individual1v1
-CREATE TABLE Individual1v1 (runConfigId INTEGER NOT NULL REFERENCES DroneEvolutionConfig (id), generation INTEGER NOT NULL, genome VARCHAR (1000) NOT NULL, wins INTEGER, draws INTEGER, loses INTEGER, previousCombatants VARCHAR (500), PRIMARY KEY (runConfigId, generation, genome));
-INSERT INTO Individual1v1 (runConfigId, generation, genome, wins, draws, loses, previousCombatants) VALUES (0, 0, '123', 3, 1, 0, '123,321');
-INSERT INTO Individual1v1 (runConfigId, generation, genome, wins, draws, loses, previousCombatants) VALUES (0, 0, '148', 2, 0, 1, '3');
+CREATE TABLE Individual1v1           (runConfigId INTEGER NOT NULL REFERENCES BaseIndividual (runConfigId), generation INTEGER REFERENCES BaseIndividual (generation) NOT NULL, genome VARCHAR (1000) REFERENCES BaseIndividual (genome) NOT NULL, wins INTEGER, draws INTEGER, loses INTEGER, previousCombatants VARCHAR (500), PRIMARY KEY (runConfigId, generation, genome));
+INSERT INTO Individual1v1 (runConfigId, generation, genome, wins, draws, loses, previousCombatants) VALUES (2, 0, '123', 3, 1, 0, '123,321');
+INSERT INTO Individual1v1 (runConfigId, generation, genome, wins, draws, loses, previousCombatants) VALUES (2, 0, '148', 2, 0, 1, '3');
 
 COMMIT TRANSACTION;
 PRAGMA foreign_keys = on;

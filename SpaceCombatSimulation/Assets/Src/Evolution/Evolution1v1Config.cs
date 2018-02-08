@@ -15,6 +15,5 @@ namespace Assets.Src.Evolution
         /// Also used as the minimum score for winning a match.
         /// </summary>
         public float SuddenDeathReloadTime = 2;
-
     }
 }

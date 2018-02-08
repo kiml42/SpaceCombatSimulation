@@ -24,6 +24,10 @@ namespace Assets.Src.Evolution
         {
         }
 
+        public Individual1v1(SpeciesSummary summary) : base(summary)
+        {
+        }
+
         public float AverageScore
         {
             get

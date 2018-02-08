@@ -94,7 +94,10 @@ namespace Assets.Src.Database
         {
             string sqlQuery = "SELECT *" +
                         " FROM " + table +
-                        " WHERE runConfigId = " + runId + " AND generation = " + generationNumber +
+                        " LEFT JOIN BaseIndividual on BaseIndividual.runConfigId = " + table + ".runConfigId AND" +
+                        " BaseIndividual.generation = " + table + ".generation AND" +
+                        " BaseIndividual.genome = " + table + ".genome" +
+                        " WHERE BaseIndividual.runConfigId = " + runId + " AND BaseIndividual.generation = " + generationNumber +
                         ";";
             return sqlQuery;
         }
@@ -447,6 +450,26 @@ namespace Assets.Src.Database
                     Disconnect(null, null, command, sql_con);
                 }
             }
+        }
+
+        protected SpeciesSummary ReadSpeciesSummary(IDataReader reader)
+        {
+            Debug.Log("modules ordinal: " + reader.GetOrdinal("modules"));
+            Debug.Log("modules isNull: " + reader.IsDBNull(reader.GetOrdinal("modules")));
+            var modulesCount = reader.GetInt32(reader.GetOrdinal("modules"));
+
+            return new SpeciesSummary(
+                    reader.GetString(reader.GetOrdinal("genome")),
+                    reader.GetFloat(reader.GetOrdinal("cost")),
+                    modulesCount,
+                    reader.GetFloat(reader.GetOrdinal("r")),
+                    reader.GetFloat(reader.GetOrdinal("g")),
+                    reader.GetFloat(reader.GetOrdinal("b")),
+                    reader.GetString(reader.GetOrdinal("species")),
+                    reader.GetString(reader.GetOrdinal("speciesVerbose")),
+                    reader.GetString(reader.GetOrdinal("subspecies")),
+                    reader.GetString(reader.GetOrdinal("subspeciesVerbose"))
+                );
         }
     }
 }

@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Assets.Src.Evolution
 {
-    public class SeciesSummary
+    public class SpeciesSummary
     {
         public string Genome { get; private set; }
         public float? Cost { get; private set; }
@@ -29,7 +29,7 @@ namespace Assets.Src.Evolution
         /// creates a summary for an incomplete individual (before the configuration has been run)
         /// </summary>
         /// <param name="genome"></param>
-        public SeciesSummary(string genome)
+        public SpeciesSummary(string genome)
         {
             Genome = genome;
         }
@@ -38,7 +38,7 @@ namespace Assets.Src.Evolution
         /// Creates a species summary for a completed individual (after all the configuration has been run)
         /// </summary>
         /// <param name="genomeWrapper"></param>
-        public SeciesSummary(GenomeWrapper genomeWrapper)
+        public SpeciesSummary(GenomeWrapper genomeWrapper)
         {
             Genome = genomeWrapper.Genome;
             Cost = genomeWrapper.Cost;
@@ -48,6 +48,22 @@ namespace Assets.Src.Evolution
             VerboseSpecies = genomeWrapper.VerboseSpecies;
             Subspecies = genomeWrapper.Subspecies;
             VerboseSubspecies = genomeWrapper.VerboseSubspecies;
+        }
+
+        /// <summary>
+        /// Creates a species summary for a completed individual with specified values
+        /// </summary>
+        /// <param name="genomeWrapper"></param>
+        public SpeciesSummary(string genome, float? cost, int modulesAdded, float r, float g, float b, string species, string verboseSpecies, string subspecies, string verboseSubspecies)
+        {
+            Genome = genome;
+            Cost = cost;
+            ModulesAdded = modulesAdded;
+            Color = new Color(r,g,b);
+            Species = species;
+            VerboseSpecies = verboseSpecies;
+            Subspecies = subspecies;
+            VerboseSubspecies = verboseSubspecies;
         }
 
         public string GetName()

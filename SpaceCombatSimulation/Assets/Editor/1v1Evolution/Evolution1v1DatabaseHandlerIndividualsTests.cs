@@ -37,7 +37,7 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
     [Test]
     public void SetCurrentGeneration_ReadsCurrentGeneration()
     {
-        Generation1v1 generation = _handler.ReadGeneration(0, 0);
+        Generation1v1 generation = _handler.ReadGeneration(2, 0);
 
         Assert.NotNull(generation);
         Assert.AreEqual(2, generation.Individuals.Count);

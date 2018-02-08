@@ -220,20 +220,17 @@ namespace Assets.Src.Database
                     
                     while (reader.Read())
                     {
-                        //Debug.Log("genome ordinal: " + reader.GetOrdinal("genome"));  //-1
-                        var genome = reader.GetString(reader.GetOrdinal("genome"));
+                        //Debug.Log("wins ordinal: " + reader.GetOrdinal("wins"));
 
-                        //Debug.Log("wins ordinal: " + reader.GetOrdinal("wins"));  //-1
-
-                        var individual = new Individual1v1(genome)
+                        var individual = new Individual1v1(ReadSpeciesSummary(reader))
                         {
                             Score = reader.GetFloat(reader.GetOrdinal("score")),
                             Wins = reader.GetInt32(reader.GetOrdinal("wins")),
                             Loses = reader.GetInt32(reader.GetOrdinal("loses")),
                             Draws = reader.GetInt32(reader.GetOrdinal("draws")),
-                            PreviousCombatantsString = reader.GetString(reader.GetOrdinal("previousCombatants")),
-                        };
-
+                            PreviousCombatantsString = reader.GetString(reader.GetOrdinal("previousCombatants"))
+                    };
+                        
                         generation.Individuals.Add(individual);
                     }
 
@@ -251,7 +248,7 @@ namespace Assets.Src.Database
 
             return generation;
         }
-
+        
         public void SaveNewGeneration(Generation1v1 generation, int runId, int generationNumber)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
@@ -290,6 +287,7 @@ namespace Assets.Src.Database
                 catch (Exception e)
                 {
                     Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
+                    Debug.LogWarning(e.StackTrace);
                     throw e;
                 }
                 finally
