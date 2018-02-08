@@ -15,7 +15,6 @@ namespace Assets.Src.Evolution
         public int MatchesPlayed { get { return Wins + Draws + Loses; } }
 
         public List<string> PreviousCombatants = new List<string>();
-        private const int PC_INDEX = 5;
 
         private const int WIN_SCORE = 10;
         private const int DRAW_SCORE = -2;

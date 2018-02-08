@@ -1,6 +1,6 @@
 ﻿namespace Assets.Src.Evolution
 {
-    public class BaseIndividual
+    public abstract class BaseIndividual
     {
         public string Genome { get
             {

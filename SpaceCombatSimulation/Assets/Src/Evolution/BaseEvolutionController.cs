@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Assets.Src.Evolution
 {
-    public class BaseEvolutionController : MonoBehaviour
+    public abstract class BaseEvolutionController : MonoBehaviour
     {
         public int DatabaseId;
 

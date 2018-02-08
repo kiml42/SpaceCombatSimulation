@@ -315,6 +315,7 @@
     <Compile Include="Assets\Src\Database\EvolutionTargetShootingDatabaseHandler.cs" />
     <Compile Include="Assets\Src\Database\GeneralDatabaseHandler.cs" />
     <Compile Include="Assets\Src\Evolution\ArenaRecord.cs" />
+    <Compile Include="Assets\Src\Evolution\BaseEvolutionConfig.cs" />
     <Compile Include="Assets\Src\Evolution\BaseEvolutionController.cs" />
     <Compile Include="Assets\Src\Evolution\BaseIndividual.cs" />
     <Compile Include="Assets\Src\Evolution\Edit1v1Config.cs" />

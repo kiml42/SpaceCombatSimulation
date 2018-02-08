@@ -57,12 +57,12 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
         //BaseMembers
         Assert.AreEqual(42, i1.Score);
         Assert.AreEqual(123, i1.Summary.Cost);
-        Assert.AreEqual(120, i1.Summary.Budget);
+        Assert.AreEqual(6, i1.Summary.ModulesAdded);
         Assert.AreEqual(new Color(1,2,3), i1.Summary.Color);
-        Assert.AreEqual("species", i1.Summary.Species);
-        Assert.AreEqual("speciesV", i1.Summary.VerboseSpecies);
-        Assert.AreEqual("subspecies", i1.Summary.Subspecies);
-        Assert.AreEqual("subspeciesV", i1.Summary.VerboseSubspecies);
+        Assert.AreEqual("species42", i1.Summary.Species);
+        Assert.AreEqual("speciesV42", i1.Summary.VerboseSpecies);
+        Assert.AreEqual("subspecies42", i1.Summary.Subspecies);
+        Assert.AreEqual("subspeciesV42", i1.Summary.VerboseSubspecies);
     }
 
     [Test]
@@ -124,7 +124,6 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
         Assert.AreEqual("def", i1b.PreviousCombatantsString);
         Assert.AreEqual(1, i1b.PreviousCombatants.Count);
         Assert.AreEqual("def", i1b.PreviousCombatants.First());
-        Assert.AreEqual(59, i1b.Summary.Budget);
 
         var i2b = RetrievedGen2.Individuals[1];
 
@@ -136,7 +135,6 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
         Assert.AreEqual("abc", i2b.PreviousCombatantsString);
         Assert.AreEqual(1, i2b.PreviousCombatants.Count);
         Assert.AreEqual("abc", i2b.PreviousCombatants.First());
-        Assert.Null(i2b.Summary.Budget);
     }
 
     [Test]

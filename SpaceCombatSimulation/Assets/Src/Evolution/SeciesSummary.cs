@@ -12,9 +12,7 @@ namespace Assets.Src.Evolution
     {
         public string Genome { get; private set; }
         public float? Cost { get; private set; }
-        public float? Budget { get; private set; }
-
-        public Dictionary<ModuleType, int> ModuleTypeCounts { get; private set; }
+        
         public int? ModulesAdded { get; private set; }
 
         public Color Color { get; private set; }
@@ -44,8 +42,6 @@ namespace Assets.Src.Evolution
         {
             Genome = genomeWrapper.Genome;
             Cost = genomeWrapper.Cost;
-            Budget = genomeWrapper.Budget;
-            ModuleTypeCounts = genomeWrapper.ModuleTypeCounts;
             ModulesAdded = genomeWrapper.ModulesAdded;
             Color = genomeWrapper.GetColorForGenome();
             Species = genomeWrapper.Species;
