@@ -54,7 +54,7 @@ namespace Assets.Src.Evolution
         /// Creates a species summary for a completed individual with specified values
         /// </summary>
         /// <param name="genomeWrapper"></param>
-        public SpeciesSummary(string genome, float? cost, int modulesAdded, float r, float g, float b, string species, string verboseSpecies, string subspecies, string verboseSubspecies)
+        public SpeciesSummary(string genome, float? cost, int? modulesAdded, float r, float g, float b, string species, string verboseSpecies, string subspecies, string verboseSubspecies)
         {
             Genome = genome;
             Cost = cost;

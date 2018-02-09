@@ -15,6 +15,8 @@ namespace Assets.Src.Database
         private const string CONFIG_TABLE = "DroneEvolutionConfig";
         private const string INDIVIDUAL_TABLE = "DroneShootingIndividual";
 
+        protected override string RUN_TYPE_NAME { get { return "drone"; } }
+
         public EvolutionTargetShootingDatabaseHandler(string databasePath, string dbCreationCommandPath):base(databasePath, dbCreationCommandPath)
         {
         }

@@ -14,6 +14,7 @@ namespace Assets.Src.Database
     {
         private const string CONFIG_TABLE = "EvolutionConfig1v1";
         private const string INDIVIDUAL_TABLE = "Individual1v1";
+        protected override string RUN_TYPE_NAME { get { return "1v1"; } }
 
         public Evolution1v1DatabaseHandler(string databasePath, string dbCreationCommandPath):base(databasePath, dbCreationCommandPath)
         {
@@ -261,16 +262,18 @@ namespace Assets.Src.Database
 
                     transaction = sql_con.BeginTransaction();
                     
+
                     foreach (var individual in generation.Individuals)
                     {
+                        SaveBaseIndividual(RUN_TYPE_NAME, individual, runId, generationNumber, sql_con, transaction);
+
                         SqliteCommand insertSQL = new SqliteCommand("INSERT INTO Individual1v1 " +
-                            "(runConfigId, generation, genome, score, wins, draws, loses, previousCombatants)" +
-                            " VALUES (?,?,?,?,?,?,?,?)", sql_con, transaction);
+                            "(runConfigId, generation, genome, wins, draws, loses, previousCombatants)" +
+                            " VALUES (?,?,?,?,?,?,?)", sql_con, transaction);
 
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
-                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Score));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Wins));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Draws));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Loses));

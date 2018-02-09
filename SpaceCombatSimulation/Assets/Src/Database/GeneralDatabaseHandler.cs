@@ -14,6 +14,9 @@ namespace Assets.Src.Database
     {
         public const string DEFAULT_COMMAND_PATH = "/Database/CreateBlankDatabase.sql";
         private const string DEFAULT_DB_PATH = "/tmp/SpaceCombatSimulationDB.s3db";
+
+        protected abstract string RUN_TYPE_NAME { get; }
+
         protected string _connectionString
         {
             get
@@ -454,22 +457,75 @@ namespace Assets.Src.Database
 
         protected SpeciesSummary ReadSpeciesSummary(IDataReader reader)
         {
-            Debug.Log("modules ordinal: " + reader.GetOrdinal("modules"));
-            Debug.Log("modules isNull: " + reader.IsDBNull(reader.GetOrdinal("modules")));
-            var modulesCount = reader.GetInt32(reader.GetOrdinal("modules"));
+            //Debug.Log("modules ordinal: " + reader.GetOrdinal("modules"));
+            //Debug.Log("modules isNull: " + reader.IsDBNull(reader.GetOrdinal("modules")));
 
             return new SpeciesSummary(
                     reader.GetString(reader.GetOrdinal("genome")),
-                    reader.GetFloat(reader.GetOrdinal("cost")),
-                    modulesCount,
+                    GetNullableFloat(reader, "cost"),
+                    GetNullableInt(reader, "modules"),
                     reader.GetFloat(reader.GetOrdinal("r")),
                     reader.GetFloat(reader.GetOrdinal("g")),
                     reader.GetFloat(reader.GetOrdinal("b")),
-                    reader.GetString(reader.GetOrdinal("species")),
-                    reader.GetString(reader.GetOrdinal("speciesVerbose")),
-                    reader.GetString(reader.GetOrdinal("subspecies")),
-                    reader.GetString(reader.GetOrdinal("subspeciesVerbose"))
+                    GetNullableString(reader,"species"),
+                    GetNullableString(reader,"speciesVerbose"),
+                    GetNullableString(reader,"subspecies"),
+                    GetNullableString(reader,"subspeciesVerbose")
                 );
+        }
+
+        private int? GetNullableInt(IDataReader reader, string name)
+        {
+            var ordinal = reader.GetOrdinal(name);
+            if (reader.IsDBNull(ordinal))
+            {
+                return null;
+            }
+            return reader.GetInt32(ordinal);
+        }
+
+        private float? GetNullableFloat(IDataReader reader, string name)
+        {
+            var ordinal = reader.GetOrdinal(name);
+            if (reader.IsDBNull(ordinal))
+            {
+                return null;
+            }
+            return reader.GetFloat(ordinal);
+        }
+
+        private string GetNullableString(IDataReader reader, string name)
+        {
+            var ordinal = reader.GetOrdinal(name);
+            if (reader.IsDBNull(ordinal))
+            {
+                return null;
+            }
+            return reader.GetString(ordinal);
+        }
+
+        protected void SaveBaseIndividual(string runtype, BaseIndividual individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
+        {
+            SqliteCommand insertSQL = new SqliteCommand("INSERT INTO BaseIndividual " +
+                            "(runType, runConfigId, generation, genome, score, cost, modules, r,g,b, species, speciesVerbose, subspecies, subspeciesVerbose)" +
+                            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", sql_con, transaction);
+
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)runtype));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Score));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Cost));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Summary.ModulesAdded));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.r));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.g));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.b));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.Species));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.VerboseSpecies));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.Subspecies));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.VerboseSubspecies));
+
+            insertSQL.ExecuteNonQuery();
         }
     }
 }
