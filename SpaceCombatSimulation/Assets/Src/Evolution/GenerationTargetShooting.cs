@@ -48,13 +48,9 @@ namespace Assets.src.Evolution
 
         public void RecordMatch(GenomeWrapper contestant, float finalScore, bool survived, bool killedEverything, int killsThisMatch)
         {
-            //Debug.Log("Recording Match: " + a + " vs " + b + " victor: " + victor);
-
             var individual = Individuals.First(i => i.Genome == contestant.Genome);
             individual.Finalise(contestant);
             individual.RecordMatch(finalScore, survived, killedEverything, killsThisMatch);
-
-            Individuals.First(i => i.Genome == contestant.Genome).RecordMatch(finalScore, survived, killedEverything, killsThisMatch);
 
             SortGeneration();
         }

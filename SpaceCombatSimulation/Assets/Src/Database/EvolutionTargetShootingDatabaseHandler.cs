@@ -316,14 +316,15 @@ namespace Assets.Src.Database
                     
                     foreach (var individual in generation.Individuals)
                     {
+                        SaveBaseIndividual(RUN_TYPE_NAME, individual, runId, generationNumber, sql_con, transaction);
+
                         SqliteCommand insertSQL = new SqliteCommand("INSERT INTO DroneShootingIndividual " +
-                            "(runConfigId, generation, genome, score, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores)" +
-                            " VALUES (?,?,?,?,?,?,?,?,?)", sql_con, transaction);
+                            "(runConfigId, generation, genome, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores)" +
+                            " VALUES (?,?,?,?,?,?,?,?)", sql_con, transaction);
 
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
-                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Score));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesPlayed));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesSurvived));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.CompleteKills));
@@ -383,11 +384,12 @@ namespace Assets.Src.Database
         
         private void UpdateIndividual(IndividualTargetShooting individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
         {
-            SqliteCommand insertSQL = new SqliteCommand("UPDATE  DroneShootingIndividual" +
-                            " SET score = ?, matchesPlayed = ?, matchesSurvived = ?, completeKills = ?, totalKills = ?, matchScores = ?" +
-                            " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction);
+            UpdateBaseIndividual(individual, runId, generationNumber, sql_con, transaction);
 
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Score));
+            SqliteCommand insertSQL = new SqliteCommand("UPDATE  DroneShootingIndividual" +
+                            " SET matchesPlayed = ?, matchesSurvived = ?, completeKills = ?, totalKills = ?, matchScores = ?" +
+                            " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction);
+            
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesPlayed));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesSurvived));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.CompleteKills));

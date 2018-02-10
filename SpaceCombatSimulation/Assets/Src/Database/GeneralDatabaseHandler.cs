@@ -528,7 +528,7 @@ namespace Assets.Src.Database
             insertSQL.ExecuteNonQuery();
         }
 
-        protected void UpdateBaseIndividual(Individual1v1 individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
+        protected void UpdateBaseIndividual(BaseIndividual individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             SqliteCommand insertSQL = new SqliteCommand("UPDATE  BaseIndividual" +
                            " SET score = ?, cost = ?, modules = ?, r = ?, g = ?, b = ?, species = ?, speciesVerbose = ?, subspecies = ?, subspeciesVerbose = ?" +
