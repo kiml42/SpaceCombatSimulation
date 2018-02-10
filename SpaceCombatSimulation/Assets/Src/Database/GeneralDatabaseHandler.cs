@@ -527,5 +527,29 @@ namespace Assets.Src.Database
 
             insertSQL.ExecuteNonQuery();
         }
+
+        protected void UpdateBaseIndividual(Individual1v1 individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
+        {
+            SqliteCommand insertSQL = new SqliteCommand("UPDATE  BaseIndividual" +
+                           " SET score = ?, cost = ?, modules = ?, r = ?, g = ?, b = ?, species = ?, speciesVerbose = ?, subspecies = ?, subspeciesVerbose = ?" +
+                           " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction);
+            
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Score));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Cost));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Summary.ModulesAdded));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.r));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.g));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.b));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.Species));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.VerboseSpecies));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.Subspecies));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.VerboseSubspecies));
+
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
+
+            insertSQL.ExecuteNonQuery();
+        }
     }
 }

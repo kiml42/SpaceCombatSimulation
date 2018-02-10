@@ -333,11 +333,12 @@ namespace Assets.Src.Database
         
         private void UpdateIndividual(Individual1v1 individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
         {
-            SqliteCommand insertSQL = new SqliteCommand("UPDATE  Individual1v1" +
-                            " SET score = ?, wins = ?, draws = ?, loses = ?, previousCombatants = ?" +
-                            " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction);
+            UpdateBaseIndividual(individual, runId, generationNumber, sql_con, transaction);
 
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Score));
+            SqliteCommand insertSQL = new SqliteCommand("UPDATE  Individual1v1" +
+                            " SET wins = ?, draws = ?, loses = ?, previousCombatants = ?" +
+                            " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction);
+            
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Wins));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Draws));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Loses));
@@ -346,13 +347,10 @@ namespace Assets.Src.Database
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
-
-            //todo check if this is nessersary/how to use transactions correctly.
-            insertSQL.Transaction = transaction;
-
+            
             insertSQL.ExecuteNonQuery();
         }
-        
+
         public void SetCurrentGenerationNumber(int databaseId, int generationNumber)
         {
             SetCurrentGenerationNumber(CONFIG_TABLE, databaseId, generationNumber);

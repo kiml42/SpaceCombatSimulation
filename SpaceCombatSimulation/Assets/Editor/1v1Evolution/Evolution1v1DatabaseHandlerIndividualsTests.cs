@@ -103,8 +103,7 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
         {
             Budget = 59
         };
-
-
+        
         gen.RecordMatch(gwA, new GenomeWrapper("def"), "abc", 5, 15, 7);
 
         _handler.UpdateGeneration(gen, 3, 4);
