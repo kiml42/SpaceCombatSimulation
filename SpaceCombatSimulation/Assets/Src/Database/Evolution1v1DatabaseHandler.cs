@@ -68,7 +68,7 @@ namespace Assets.Src.Database
                         config.MutationConfig = ReadMutationConfig(reader, reader.GetOrdinal("mutationConfigId"));
                     } else
                     {
-                        throw new Exception("Config not founr for ID " + id);
+                        throw new Exception("Config not found for ID " + id);
                     }
                 }
                 catch (Exception e)

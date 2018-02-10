@@ -87,6 +87,7 @@ namespace Assets.Src.Database
         {
             string sqlQuery = "SELECT *" +
                         " FROM " + table +
+                        " LEFT JOIN BaseConfig on BaseConfig.id = " + table + ".id" +
                         " LEFT JOIN MatchConfig on MatchConfig.id = " + table + ".matchConfigId" +
                         " LEFT JOIN MutationConfig on MutationConfig.id = " + table + ".mutationConfigId" +
                         " WHERE " + table + ".id = " + id + ";";
