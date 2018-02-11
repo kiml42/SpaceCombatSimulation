@@ -559,6 +559,9 @@ namespace Assets.Src.Database
 
         protected int SaveBaseEvolutionConfig(BaseEvolutionConfig config, SqliteConnection connection, SqliteTransaction transaction)
         {
+            config.MatchConfig.Id = SaveMatchConfig(config.MatchConfig, connection, transaction);
+            config.MutationConfig.Id = SaveMutationConfig(config.MutationConfig, connection, transaction);
+
             using (SqliteCommand insertSQL = new SqliteCommand("INSERT INTO BaseEvolutionConfig" +
                 " (name, currentGeneration, minMatchesPerIndividual, winnersCount, matchConfigId, mutationConfigId) " +
                 " VALUES (?,?,?,?,?,?)", connection, transaction))
@@ -579,7 +582,10 @@ namespace Assets.Src.Database
         
         protected void UpdateBaseEvolutionConfig(BaseEvolutionConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
-            using(SqliteCommand insertSQL = new SqliteCommand("UPDATE BaseEvolutionConfig" +
+            UpdateExistingMatchConfig(config.MatchConfig, sql_con, transaction);
+            UpdateExistingMutationConfig(config.MutationConfig, sql_con, transaction);
+
+            using (SqliteCommand insertSQL = new SqliteCommand("UPDATE BaseEvolutionConfig" +
                              " SET name = ?, minMatchesPerIndividual = ?, winnersCount = ?" +
                              " WHERE id = ?", sql_con, transaction))
             {

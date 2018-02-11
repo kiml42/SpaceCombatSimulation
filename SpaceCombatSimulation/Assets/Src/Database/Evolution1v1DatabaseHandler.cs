@@ -96,8 +96,6 @@ namespace Assets.Src.Database
 
                     transaction = sql_con.BeginTransaction();
                     
-                    UpdateExistingMatchConfig(config.MatchConfig, sql_con, transaction);
-                    UpdateExistingMutationConfig(config.MutationConfig, sql_con, transaction);
                     UpdateBaseEvolutionConfig(config, sql_con, transaction);
 
                     SqliteCommand insertSQL = new SqliteCommand(sql_con)
@@ -142,9 +140,6 @@ namespace Assets.Src.Database
                     connection.Open(); //Open connection to the database.
 
                     transaction = connection.BeginTransaction();
-                    
-                    config.MatchConfig.Id = SaveMatchConfig(config.MatchConfig, connection, transaction);
-                    config.MutationConfig.Id = SaveMutationConfig(config.MutationConfig, connection, transaction);
 
                     SaveBaseEvolutionConfig(config, connection, transaction);
 
@@ -235,7 +230,6 @@ namespace Assets.Src.Database
 
                     transaction = sql_con.BeginTransaction();
                     
-
                     foreach (var individual in generation.Individuals)
                     {
                         SaveBaseIndividual(RUN_TYPE_NAME, individual, runId, generationNumber, sql_con, transaction);
@@ -308,20 +302,21 @@ namespace Assets.Src.Database
         {
             UpdateBaseIndividual(individual, runId, generationNumber, sql_con, transaction);
 
-            SqliteCommand insertSQL = new SqliteCommand("UPDATE  Individual1v1" +
+            using (var insertSQL = new SqliteCommand("UPDATE  Individual1v1" +
                             " SET wins = ?, draws = ?, loses = ?, previousCombatants = ?" +
-                            " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction);
-            
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Wins));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Draws));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Loses));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.PreviousCombatantsString));
+                            " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction))
+            {
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Wins));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Draws));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Loses));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.PreviousCombatantsString));
 
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
             
-            insertSQL.ExecuteNonQuery();
+                insertSQL.ExecuteNonQuery();
+            }
         }
     }
 }
