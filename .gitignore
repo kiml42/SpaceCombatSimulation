@@ -8,6 +8,7 @@ SpaceCombatSimulation/tmp/**/*
 Temp/
 SpaceCombatSimulation/Assets/Database/SpaceCombatSimulationDB.s3db
 SpaceCombatSimulation/Assets/Database/SpaceCombatSimulationDB.s3db.meta
+SpaceCombatSimulation/Assets/Database/SpaceCombatSimulationDB.s3db-journal
 
 
 # =============== #
