@@ -146,17 +146,15 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
         Assert.NotNull(RetrievedGen1);
         Assert.AreEqual(2, RetrievedGen1.Individuals.Count);
 
-        var i1 = RetrievedGen1.Individuals.First();
-
-        Assert.AreEqual("123", i1.Genome);
+        var i1 = RetrievedGen1.Individuals.First(i => i.Genome == "123");
+        
         Assert.AreEqual("species42", i1.Summary.Species);
         Assert.AreEqual("subspecies42", i1.Summary.Subspecies);
         Assert.AreEqual("speciesV42", i1.Summary.VerboseSpecies);
         Assert.AreEqual("subspeciesV42", i1.Summary.VerboseSubspecies);
 
-        var i2 = RetrievedGen1.Individuals[1];
+        var i2 = RetrievedGen1.Individuals.First(i => i.Genome == "148");
         
-        Assert.AreEqual("148", i2.Genome);
         Assert.AreEqual("species", i2.Summary.Species);
         Assert.AreEqual("subspecies", i2.Summary.Subspecies);
         Assert.AreEqual("speciesVerbose", i2.Summary.VerboseSpecies);
@@ -171,17 +169,15 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
         Assert.NotNull(RetrievedGen2);
         Assert.AreEqual(2, RetrievedGen2.Individuals.Count);
         
-        var i1b = RetrievedGen1.Individuals.First();
-
-        Assert.AreEqual("123", i1b.Genome);
+        var i1b = RetrievedGen1.Individuals.First(i => i.Genome == "123");
+        
         Assert.AreEqual("species42", i1b.Summary.Species);
         Assert.AreEqual("subspecies42", i1b.Summary.Subspecies);
         Assert.AreEqual("speciesV42", i1b.Summary.VerboseSpecies);
         Assert.AreEqual("subspeciesV42", i1b.Summary.VerboseSubspecies);
 
-        var i2b = RetrievedGen1.Individuals[1];
-
-        Assert.AreEqual("148", i2b.Genome);
+        var i2b = RetrievedGen1.Individuals.First(i => i.Genome == "148");
+        
         Assert.AreEqual("species", i2b.Summary.Species);
         Assert.AreEqual("subspecies", i2b.Summary.Subspecies);
         Assert.AreEqual("speciesVerbose", i2b.Summary.VerboseSpecies);
