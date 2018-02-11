@@ -79,7 +79,7 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
     }
 
     [Test]
-    public void SetCurrentGeneration_SavesCurrentGeneration()
+    public void UpdateGeneration_SavesCurrentGeneration()
     {
         Generation1v1 gen = new Generation1v1();
         gen.Individuals.Add(new Individual1v1("abc"));
@@ -150,7 +150,7 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
     }
 
     [Test]
-    public void SetCurrentGeneration_SavesADraw()
+    public void UpdateGeneration_SavesADraw()
     {
         Generation1v1 gen = new Generation1v1();
         gen.Individuals.Add(new Individual1v1("abc"));
@@ -216,7 +216,7 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
     }
 
     [Test]
-    public void SetCurrentGeneration_SavesNewGeneration()
+    public void SaveNewGeneration_SavesNewGeneration()
     {
         //TODO make sure the rows don't exist before running this test
         Generation1v1 gen = new Generation1v1();

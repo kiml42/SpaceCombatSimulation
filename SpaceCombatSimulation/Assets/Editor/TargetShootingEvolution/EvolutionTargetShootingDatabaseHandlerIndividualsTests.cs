@@ -109,33 +109,83 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
 
         _handler.UpdateGeneration(gen, 3, 4);
 
-        //GenerationTargetShooting RetrievedGen2 = _handler.ReadGeneration(3, 4);
+        GenerationTargetShooting RetrievedGen2 = _handler.ReadGeneration(3, 4);
 
-        //Assert.NotNull(RetrievedGen2);
-        //Assert.AreEqual(2, RetrievedGen2.Individuals.Count);
+        Assert.NotNull(RetrievedGen2);
+        Assert.AreEqual(2, RetrievedGen2.Individuals.Count);
 
-        //var i1b = RetrievedGen2.Individuals.First();
+        var i1b = RetrievedGen2.Individuals.First();
 
-        //Assert.AreEqual("abc", i1b.Genome);
-        //Assert.AreEqual(42, i1b.Score);
-        //Assert.AreEqual(1, i1b.MatchesPlayed);
-        //Assert.AreEqual(1, i1b.MatchesSurvived);
-        //Assert.AreEqual(1, i1b.CompleteKills);
-        //Assert.AreEqual(15, i1b.TotalKills);
-        //Assert.AreEqual("42", i1b.MatchScoresString);
-        //Assert.AreEqual(1, i1b.MatchScores.Count);
-        //Assert.AreEqual(42, i1b.MatchScores.First());
+        Assert.AreEqual("abc", i1b.Genome);
+        Assert.AreEqual(42, i1b.Score);
+        Assert.AreEqual(1, i1b.MatchesPlayed);
+        Assert.AreEqual(1, i1b.MatchesSurvived);
+        Assert.AreEqual(1, i1b.CompleteKills);
+        Assert.AreEqual(15, i1b.TotalKills);
+        Assert.AreEqual("42", i1b.MatchScoresString);
+        Assert.AreEqual(1, i1b.MatchScores.Count);
+        Assert.AreEqual(42, i1b.MatchScores.First());
 
-        //var i2b = RetrievedGen2.Individuals[1];
+        var i2b = RetrievedGen2.Individuals[1];
 
-        //Assert.AreEqual("def", i2b.Genome);
-        //Assert.AreEqual(0, i2b.Score);
-        //Assert.AreEqual(0, i2b.MatchesPlayed);
-        //Assert.AreEqual(0, i2b.MatchesSurvived);
-        //Assert.AreEqual(0, i2b.CompleteKills);
-        //Assert.AreEqual(0, i2b.TotalKills);
-        //Assert.AreEqual("", i2b.MatchScoresString);
-        //Assert.AreEqual(0, i2b.MatchScores.Count);
+        Assert.AreEqual("def", i2b.Genome);
+        Assert.AreEqual(0, i2b.Score);
+        Assert.AreEqual(0, i2b.MatchesPlayed);
+        Assert.AreEqual(0, i2b.MatchesSurvived);
+        Assert.AreEqual(0, i2b.CompleteKills);
+        Assert.AreEqual(0, i2b.TotalKills);
+        Assert.AreEqual("", i2b.MatchScoresString);
+        Assert.AreEqual(0, i2b.MatchScores.Count);
+    }
+
+    [Test]
+    public void UpdateGeneration_PreservesUnalteredSpecies()
+    {
+        var RetrievedGen1 = _handler.ReadGeneration(0, 0);
+
+        Assert.NotNull(RetrievedGen1);
+        Assert.AreEqual(2, RetrievedGen1.Individuals.Count);
+
+        var i1 = RetrievedGen1.Individuals.First();
+
+        Assert.AreEqual("123", i1.Genome);
+        Assert.AreEqual("species42", i1.Summary.Species);
+        Assert.AreEqual("subspecies42", i1.Summary.Subspecies);
+        Assert.AreEqual("speciesV42", i1.Summary.VerboseSpecies);
+        Assert.AreEqual("subspeciesV42", i1.Summary.VerboseSubspecies);
+
+        var i2 = RetrievedGen1.Individuals[1];
+        
+        Assert.AreEqual("148", i2.Genome);
+        Assert.AreEqual("species", i2.Summary.Species);
+        Assert.AreEqual("subspecies", i2.Summary.Subspecies);
+        Assert.AreEqual("speciesVerbose", i2.Summary.VerboseSpecies);
+        Assert.AreEqual("subspeciesVerbose", i2.Summary.VerboseSubspecies);
+
+        RetrievedGen1.RecordMatch(new GenomeWrapper("123"), 42, true, true, 15);
+
+        _handler.UpdateGeneration(RetrievedGen1, 3, 4);
+
+        GenerationTargetShooting RetrievedGen2 = _handler.ReadGeneration(0, 0);
+
+        Assert.NotNull(RetrievedGen2);
+        Assert.AreEqual(2, RetrievedGen2.Individuals.Count);
+        
+        var i1b = RetrievedGen1.Individuals.First();
+
+        Assert.AreEqual("123", i1b.Genome);
+        Assert.AreEqual("species42", i1b.Summary.Species);
+        Assert.AreEqual("subspecies42", i1b.Summary.Subspecies);
+        Assert.AreEqual("speciesV42", i1b.Summary.VerboseSpecies);
+        Assert.AreEqual("subspeciesV42", i1b.Summary.VerboseSubspecies);
+
+        var i2b = RetrievedGen1.Individuals[1];
+
+        Assert.AreEqual("148", i2b.Genome);
+        Assert.AreEqual("species", i2b.Summary.Species);
+        Assert.AreEqual("subspecies", i2b.Summary.Subspecies);
+        Assert.AreEqual("speciesVerbose", i2b.Summary.VerboseSpecies);
+        Assert.AreEqual("subspeciesVerbose", i2b.Summary.VerboseSubspecies);
     }
 
     [Test]

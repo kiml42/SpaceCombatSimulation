@@ -22,6 +22,10 @@ namespace Assets.Src.Evolution
         {
         }
 
+        public IndividualTargetShooting(SpeciesSummary summary) : base(summary)
+        {
+        }
+
         public float AverageScore
         {
             get
