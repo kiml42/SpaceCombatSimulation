@@ -54,20 +54,21 @@ namespace Assets.Src.Database
 
             using (var sql_con = new SqliteConnection(_connectionString))
             {
-                IDbCommand dbcmd = null;
                 IDataReader reader = null;
                 try
                 {
                     sql_con.Open(); //Open connection to the database.
-                    dbcmd = sql_con.CreateCommand();
-                    dbcmd.CommandText = sqlQuery;
-                    reader = dbcmd.ExecuteReader();
-
-                    while (reader.Read())
+                    using (var dbcmd = sql_con.CreateCommand())
                     {
-                        var id = reader.GetInt32(reader.GetOrdinal("id"));
-                        var name = reader.GetString(reader.GetOrdinal("name"));
-                        configs.Add(id, name);
+                        dbcmd.CommandText = sqlQuery;
+                        reader = dbcmd.ExecuteReader();
+
+                        while (reader.Read())
+                        {
+                            var id = reader.GetInt32(reader.GetOrdinal("id"));
+                            var name = reader.GetString(reader.GetOrdinal("name"));
+                            configs.Add(id, name);
+                        }
                     }
                 }
                 catch (Exception e)
@@ -77,7 +78,7 @@ namespace Assets.Src.Database
                 }
                 finally
                 {
-                    Disconnect(reader, null, dbcmd, sql_con);
+                    Disconnect(reader, sql_con);
                 }
             }
             return configs;
@@ -106,17 +107,17 @@ namespace Assets.Src.Database
             return sqlQuery;
         }
 
-        protected IDataReader OpenReaderWithCommand(SqliteConnection connection, string command, out IDbCommand dbcmd)
+        protected IDataReader OpenReaderWithCommand(SqliteConnection connection, string command)
         {
             connection.Open(); //Open connection to the database.
-            dbcmd = connection.CreateCommand();
+            var dbcmd = connection.CreateCommand();
             dbcmd.CommandText = command;
             var reader = dbcmd.ExecuteReader();
 
             return reader;
         }
 
-        protected MatchConfig ReadMatchConfig(IDataReader reader, int idIndex)
+        protected MatchConfig ReadMatchConfig(IDataReader reader)
         {
             //Debug.Log("BaseEvolutionConfig.matchConfigId ordinal: " + reader.GetOrdinal("matchConfigId"));
             //Debug.Log("BaseEvolutionConfig.matchConfigId value: " + reader.GetInt32(reader.GetOrdinal("matchConfigId")));
@@ -158,7 +159,7 @@ namespace Assets.Src.Database
             return config;
         }
 
-        protected MutationConfig ReadMutationConfig(IDataReader reader, int idIndex)
+        protected MutationConfig ReadMutationConfig(IDataReader reader)
         {
             //Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("mutationConfigId"));
 
@@ -350,17 +351,16 @@ namespace Assets.Src.Database
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
-                IDbCommand dbcmd = null;
-                SqliteTransaction transaction = null;
                 try
                 {
                     sql_con.Open(); //Open connection to the database.
 
-                    transaction = sql_con.BeginTransaction();
-                    
-                    config.Id = SaveMutationConfig(config, sql_con, transaction);
+                    using (var transaction = sql_con.BeginTransaction())
+                    {
+                        config.Id = SaveMutationConfig(config, sql_con, transaction);
 
-                    transaction.Commit();
+                        transaction.Commit();
+                    }
                 }
                 catch (Exception e)
                 {
@@ -369,7 +369,7 @@ namespace Assets.Src.Database
                 }
                 finally
                 {
-                    Disconnect(null, transaction, dbcmd, sql_con);
+                    Disconnect(null, sql_con);
                 }
             }
 
@@ -380,17 +380,15 @@ namespace Assets.Src.Database
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
-                IDbCommand dbcmd = null;
-                SqliteTransaction transaction = null;
                 try
                 {
                     sql_con.Open(); //Open connection to the database.
+                    using (var transaction = sql_con.BeginTransaction())
+                    {
+                        config.Id = SaveMatchConfig(config, sql_con, transaction);
 
-                    transaction = sql_con.BeginTransaction();
-                    
-                    config.Id = SaveMatchConfig(config, sql_con, transaction);
-
-                    transaction.Commit();
+                        transaction.Commit();
+                    }
                 }
                 catch (Exception e)
                 {
@@ -399,38 +397,19 @@ namespace Assets.Src.Database
                 }
                 finally
                 {
-                    Disconnect(null, transaction, dbcmd, sql_con);
+                    Disconnect(null, sql_con);
                 }
             }
 
             return config.Id;
         }
 
-        protected void Disconnect(IDataReader reader, SqliteTransaction transaction , IDbCommand dbcmd, SqliteConnection sql_con)
+        protected void Disconnect(IDataReader reader, SqliteConnection sql_con)
         {
             //Debug.Log("Disconnecting");
             if (reader != null)
                 reader.Close();
             reader = null;
-
-            if (transaction != null)
-            {
-                try
-                {
-                    transaction.Dispose();
-                }
-                catch (SqliteException e)
-                {
-                    Debug.LogWarning("Failed to dispose of transaction. Carrying on reguardless.");
-                    Debug.LogWarning(e.Message);
-                    Debug.LogWarning(e.StackTrace);
-                }
-            }
-            transaction = null;
-
-            if (dbcmd != null)
-                dbcmd.Dispose();
-            dbcmd = null;
 
             if (sql_con != null)
                 sql_con.Close();
@@ -441,21 +420,21 @@ namespace Assets.Src.Database
             using (var sql_con = new SqliteConnection(_connectionString))
             {
                 sql_con.Open();
-                SqliteCommand command = null;
 
                 try
                 {
                     //Debug.Log("Updating generation to " + config.GenerationNumber);
-                    command = new SqliteCommand("UPDATE BaseEvolutionConfig SET currentGeneration = ? WHERE id = ?;", sql_con);
-                    
-                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
-                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
+                    using (var command = new SqliteCommand("UPDATE BaseEvolutionConfig SET currentGeneration = ? WHERE id = ?;", sql_con))
+                    {
+                        command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+                        command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
 
-                    command.ExecuteNonQuery();
+                        command.ExecuteNonQuery();
+                    }
                 }
                 finally
                 {
-                    Disconnect(null, null, command, sql_con);
+                    Disconnect(null, sql_con);
                 }
             }
         }

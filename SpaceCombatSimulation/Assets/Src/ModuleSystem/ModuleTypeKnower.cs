@@ -53,8 +53,7 @@ namespace Assets.Src.ModuleSystem
             componentsToConfigure.AddRange(ExtraConfigurables.Where(c => c != null).Select(c => c as IGeneticConfigurable));
 
             componentsToConfigure = componentsToConfigure.Distinct().Where(c => c != null && c != this).ToList();
-
-
+            
             if (componentsToConfigure.Any())   //if length == 1 then this has only found itself.
             {
                 foreach (var c in componentsToConfigure)

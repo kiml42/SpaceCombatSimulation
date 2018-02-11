@@ -40,11 +40,10 @@ namespace Assets.Src.Database
             //Debug.Log("Reading config from DB. Id: " + id);
             using (var sql_con = new SqliteConnection(_connectionString))
             {
-                IDbCommand dbcmd = null;
                 IDataReader reader = null;
                 try
                 {
-                    reader = OpenReaderWithCommand(sql_con, CreateReadConfigQuery(CONFIG_TABLE, id), out dbcmd);
+                    reader = OpenReaderWithCommand(sql_con, CreateReadConfigQuery(CONFIG_TABLE, id));
 
                     if (reader.Read())
                     {
@@ -64,8 +63,8 @@ namespace Assets.Src.Database
                         config.SuddenDeathDamage = reader.GetFloat(reader.GetOrdinal("suddenDeathDamage"));
                         config.SuddenDeathReloadTime = reader.GetFloat(reader.GetOrdinal("suddenDeathReloadTime"));
 
-                        config.MatchConfig = ReadMatchConfig(reader, reader.GetOrdinal("matchConfigId"));
-                        config.MutationConfig = ReadMutationConfig(reader, reader.GetOrdinal("mutationConfigId"));
+                        config.MatchConfig = ReadMatchConfig(reader);
+                        config.MutationConfig = ReadMutationConfig(reader);
                     } else
                     {
                         throw new Exception("Config not found for ID " + id);
@@ -78,7 +77,7 @@ namespace Assets.Src.Database
                 }
                 finally
                 {
-                    Disconnect(reader, null, dbcmd, sql_con);
+                    Disconnect(reader, sql_con);
                 }
                 return config;
             }
@@ -88,33 +87,32 @@ namespace Assets.Src.Database
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
-                IDbCommand dbcmd = null;
-                SqliteTransaction transaction = null;
                 try
                 {
                     sql_con.Open(); //Open connection to the database.
 
-                    transaction = sql_con.BeginTransaction();
-                    
-                    UpdateBaseEvolutionConfig(config, sql_con, transaction);
-
-                    SqliteCommand insertSQL = new SqliteCommand(sql_con)
+                    using (var transaction = sql_con.BeginTransaction())
                     {
-                        Transaction = transaction
-                    };
-                    
-                    insertSQL.CommandText = "UPDATE " + CONFIG_TABLE +
-                        " SET suddenDeathDamage = ?, suddenDeathReloadTime = ?" +
-                        " WHERE id = ?";
-                    
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathDamage));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathReloadTime));
+                        UpdateBaseEvolutionConfig(config, sql_con, transaction);
 
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
+                        using (var insertSQL = new SqliteCommand(sql_con)
+                        {
+                            Transaction = transaction
+                        })
+                        {
+                            insertSQL.CommandText = "UPDATE " + CONFIG_TABLE +
+                                " SET suddenDeathDamage = ?, suddenDeathReloadTime = ?" +
+                                " WHERE id = ?";
 
-                    insertSQL.ExecuteNonQuery();
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathDamage));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathReloadTime));
 
-                    transaction.Commit();
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
+
+                            insertSQL.ExecuteNonQuery();
+                        }
+                        transaction.Commit();
+                    }
                 }
                 catch (Exception e)
                 {
@@ -123,7 +121,7 @@ namespace Assets.Src.Database
                 }
                 finally
                 {
-                    Disconnect(null, transaction, dbcmd, sql_con);
+                    Disconnect(null, sql_con);
                 }
             }
 
@@ -134,32 +132,32 @@ namespace Assets.Src.Database
         {
             using (var connection = new SqliteConnection(_connectionString))
             {
-                SqliteTransaction transaction = null;
                 try
                 {
                     connection.Open(); //Open connection to the database.
 
-                    transaction = connection.BeginTransaction();
-
-                    SaveBaseEvolutionConfig(config, connection, transaction);
-
-                    using(var insertSQL = new SqliteCommand(connection)
+                    using (var transaction = connection.BeginTransaction())
                     {
-                        Transaction = transaction
-                    })
-                    {
-                        insertSQL.CommandText = "INSERT INTO " + CONFIG_TABLE +
-                            "(id, suddenDeathDamage, suddenDeathReloadTime)" +
-                            " VALUES (?,?,?)";
+                        SaveBaseEvolutionConfig(config, connection, transaction);
 
-                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
-                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathDamage));
-                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathReloadTime));
+                        using(var insertSQL = new SqliteCommand(connection)
+                        {
+                            Transaction = transaction
+                        })
+                        {
+                            insertSQL.CommandText = "INSERT INTO " + CONFIG_TABLE +
+                                "(id, suddenDeathDamage, suddenDeathReloadTime)" +
+                                " VALUES (?,?,?)";
 
-                        insertSQL.ExecuteNonQuery();
-                    }
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathDamage));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathReloadTime));
+
+                            insertSQL.ExecuteNonQuery();
+                        }
                     
-                    transaction.Commit();
+                        transaction.Commit();
+                    }
                 }
                 catch (Exception e)
                 {
@@ -168,7 +166,7 @@ namespace Assets.Src.Database
                 }
                 finally
                 {
-                    Disconnect(null, transaction, null, connection);
+                    Disconnect(null, connection);
                 }
             }
 
@@ -181,11 +179,10 @@ namespace Assets.Src.Database
             var generation = new Generation1v1();
             using (var sql_con = new SqliteConnection(_connectionString))
             {
-                IDbCommand dbcmd = null;
                 IDataReader reader = null;
                 try
                 {
-                    reader = OpenReaderWithCommand(sql_con, CreateReadIndividualsQuery(INDIVIDUAL_TABLE, runId, generationNumber), out dbcmd);
+                    reader = OpenReaderWithCommand(sql_con, CreateReadIndividualsQuery(INDIVIDUAL_TABLE, runId, generationNumber));
                     
                     while (reader.Read())
                     {
@@ -211,7 +208,7 @@ namespace Assets.Src.Database
                 }
                 finally
                 {
-                    Disconnect(reader, null, dbcmd, sql_con);
+                    Disconnect(reader, sql_con);
                 }
             }
 
@@ -222,37 +219,35 @@ namespace Assets.Src.Database
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
-                IDbCommand dbcmd = null;
-                SqliteTransaction transaction = null;
                 try
                 {
                     sql_con.Open(); //Open connection to the database.
 
-                    transaction = sql_con.BeginTransaction();
-                    
-                    foreach (var individual in generation.Individuals)
+                    using (var transaction = sql_con.BeginTransaction())
                     {
-                        SaveBaseIndividual(RUN_TYPE_NAME, individual, runId, generationNumber, sql_con, transaction);
 
-                        SqliteCommand insertSQL = new SqliteCommand("INSERT INTO Individual1v1 " +
-                            "(runConfigId, generation, genome, wins, draws, loses, previousCombatants)" +
-                            " VALUES (?,?,?,?,?,?,?)", sql_con, transaction);
 
-                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
-                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
-                        insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
-                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Wins));
-                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Draws));
-                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Loses));
-                        insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.PreviousCombatantsString));
+                        foreach (var individual in generation.Individuals)
+                        {
+                            SaveBaseIndividual(RUN_TYPE_NAME, individual, runId, generationNumber, sql_con, transaction);
 
-                        //todo check if this is nessersary/how to use transactions correctly.
-                        insertSQL.Transaction = transaction;
+                            SqliteCommand insertSQL = new SqliteCommand("INSERT INTO Individual1v1 " +
+                                "(runConfigId, generation, genome, wins, draws, loses, previousCombatants)" +
+                                " VALUES (?,?,?,?,?,?,?)", sql_con, transaction);
 
-                        insertSQL.ExecuteNonQuery();
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Wins));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Draws));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Loses));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.PreviousCombatantsString));
+                            
+                            insertSQL.ExecuteNonQuery();
+                        }
+
+                        transaction.Commit();
                     }
-
-                    transaction.Commit();
                 }
                 catch (Exception e)
                 {
@@ -262,7 +257,7 @@ namespace Assets.Src.Database
                 }
                 finally
                 {
-                    Disconnect(null, transaction, dbcmd, sql_con);
+                    Disconnect(null, sql_con);
                 }
             }
         }
@@ -271,20 +266,19 @@ namespace Assets.Src.Database
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
-                IDbCommand dbcmd = null;
-                SqliteTransaction transaction = null;
                 try
                 {
                     sql_con.Open(); //Open connection to the database.
 
-                    transaction = sql_con.BeginTransaction();
-
-                    foreach (var individual in generation.Individuals)
+                    using (var transaction = sql_con.BeginTransaction())
                     {
-                        UpdateIndividual(individual, runId, generationNumber, sql_con, transaction);
-                    }
+                        foreach (var individual in generation.Individuals)
+                        {
+                            UpdateIndividual(individual, runId, generationNumber, sql_con, transaction);
+                        }
 
-                    transaction.Commit();
+                        transaction.Commit();
+                    }
                 }
                 catch (Exception e)
                 {
@@ -293,7 +287,7 @@ namespace Assets.Src.Database
                 }
                 finally
                 {
-                    Disconnect(null, transaction, dbcmd, sql_con);
+                    Disconnect(null, sql_con);
                 }
             }
         }
