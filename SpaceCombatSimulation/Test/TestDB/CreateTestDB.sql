@@ -49,7 +49,6 @@ INSERT INTO MutationConfig (id, mutations, maxMutationLength, genomeLength, gene
 INSERT INTO MutationConfig (id, mutations, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome) VALUES (3, 27, 24, 291, 227, 21, '2abc');
 
 
-
 -- Table: BaseIndividual
 CREATE TABLE BaseIndividual (runType VARCHAR (1000) NOT NULL, runConfigId INTEGER NOT NULL REFERENCES BaseEvolutionConfig (id), generation INTEGER NOT NULL, genome VARCHAR (1000) NOT NULL, score FLOAT NOT NULL, cost FLOAT, modules INTEGER, r FLOAT NOT NULL, g FLOAT NOT NULL, b FLOAT NOT NULL, species VARCHAR (1000), speciesVerbose VARCHAR (1000), subspecies VARCHAR (1000), subspeciesVerbose VARCHAR (1000), PRIMARY KEY (runConfigId, generation, genome));
 INSERT INTO BaseIndividual (runType, runConfigId, generation, genome, score, cost, modules, r,g,b, species, speciesVerbose, subspecies, subspeciesVerbose) VALUES ('drone', 0, 0, '123', 42, 5646, 6, 1,2,3, 'species42', 'speciesV42', 'subspecies42', 'subspeciesV42');

@@ -44,6 +44,19 @@ public class Evolution1v1DatabaseHandlerReadTests
 
     #region top level
     [Test]
+    public void ListConfigs_listsConfigs()
+    {
+        var configs = _handler.ListConfigs();
+
+        Assert.NotNull(configs);
+        Assert.IsNotEmpty(configs);
+        Assert.True(configs.ContainsKey(2));
+        Assert.AreEqual("Default1v1", configs[2]);
+        Assert.True(configs.ContainsKey(3));
+        Assert.AreEqual("Default1v1b", configs[3]);
+    }
+
+    [Test]
     public void ReadConfig_ReadsID()
     {
         var config = _handler.ReadConfig(2);

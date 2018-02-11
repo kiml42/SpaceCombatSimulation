@@ -12,8 +12,8 @@ namespace Assets.Src.Database
 {
     public class EvolutionTargetShootingDatabaseHandler : GeneralDatabaseHandler
     {
-        private const string CONFIG_TABLE = "DroneEvolutionConfig";
-        private const string INDIVIDUAL_TABLE = "DroneShootingIndividual";
+        protected override string CONFIG_TABLE { get { return "DroneEvolutionConfig"; } }
+        protected override string INDIVIDUAL_TABLE { get { return "DroneShootingIndividual";} }
 
         protected override string RUN_TYPE_NAME { get { return "drone"; } }
 
@@ -27,11 +27,6 @@ namespace Assets.Src.Database
 
         public EvolutionTargetShootingDatabaseHandler() : base()
         {
-        }
-
-        public override Dictionary<int, string> ListConfigs()
-        {
-            return ListConfigs(CONFIG_TABLE);
         }
 
         public EvolutionTargetShootingConfig ReadConfig(int id)

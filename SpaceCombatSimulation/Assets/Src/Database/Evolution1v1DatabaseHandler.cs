@@ -12,11 +12,11 @@ namespace Assets.Src.Database
 {
     public class Evolution1v1DatabaseHandler : GeneralDatabaseHandler
     {
-        private const string CONFIG_TABLE = "EvolutionConfig1v1";
-        private const string INDIVIDUAL_TABLE = "Individual1v1";
+        protected override string CONFIG_TABLE { get { return "EvolutionConfig1v1"; } }
+        protected override string INDIVIDUAL_TABLE { get { return "Individual1v1"; } }
         protected override string RUN_TYPE_NAME { get { return "1v1"; } }
 
-        public Evolution1v1DatabaseHandler(string databasePath, string dbCreationCommandPath):base(databasePath, dbCreationCommandPath)
+        public Evolution1v1DatabaseHandler(string databasePath, string dbCreationCommandPath) : base(databasePath, dbCreationCommandPath)
         {
         }
 
@@ -26,11 +26,6 @@ namespace Assets.Src.Database
 
         public Evolution1v1DatabaseHandler() : base()
         {
-        }
-
-        public override Dictionary<int, string> ListConfigs()
-        {
-            return ListConfigs(CONFIG_TABLE);
         }
 
         public Evolution1v1Config ReadConfig(int id)
@@ -114,7 +109,7 @@ namespace Assets.Src.Database
                 {
                     SaveBaseEvolutionConfig(config, connection, transaction);
 
-                    using(var insertSQL = new SqliteCommand(connection)
+                    using (var insertSQL = new SqliteCommand(connection)
                     {
                         Transaction = transaction
                     })
@@ -129,7 +124,7 @@ namespace Assets.Src.Database
 
                         insertSQL.ExecuteNonQuery();
                     }
-                    
+
                     transaction.Commit();
                 }
             }
@@ -165,7 +160,7 @@ namespace Assets.Src.Database
 
             return generation;
         }
-        
+
         public void SaveNewGeneration(Generation1v1 generation, int runId, int generationNumber)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
@@ -189,7 +184,7 @@ namespace Assets.Src.Database
                             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Draws));
                             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Loses));
                             insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.PreviousCombatantsString));
-                            
+
                             insertSQL.ExecuteNonQuery();
                         }
                     }
@@ -215,7 +210,7 @@ namespace Assets.Src.Database
                 }
             }
         }
-        
+
         private void UpdateIndividual(Individual1v1 individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             UpdateBaseIndividual(individual, runId, generationNumber, sql_con, transaction);
@@ -232,7 +227,7 @@ namespace Assets.Src.Database
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
-            
+
                 insertSQL.ExecuteNonQuery();
             }
         }

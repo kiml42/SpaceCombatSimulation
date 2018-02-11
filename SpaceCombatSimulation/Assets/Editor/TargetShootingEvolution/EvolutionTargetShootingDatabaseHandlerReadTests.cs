@@ -44,6 +44,19 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
 
     #region top level
     [Test]
+    public void ListConfigs_listsConfigs()
+    {
+        var configs = _handler.ListConfigs();
+
+        Assert.NotNull(configs);
+        Assert.IsNotEmpty(configs);
+        Assert.True(configs.ContainsKey(0));
+        Assert.AreEqual("Run0", configs[0]);
+        Assert.True(configs.ContainsKey(1));
+        Assert.AreEqual("Run1", configs[1]);
+    }
+
+    [Test]
     public void ReadDroneConfig_ReadsID()
     {
         var config = _handler.ReadConfig(0);

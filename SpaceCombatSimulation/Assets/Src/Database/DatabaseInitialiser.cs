@@ -20,7 +20,7 @@ namespace Assets.Src.Database
                 return connection;
             }
         }
-        public string DatabasePath = "/SpaceCombatSimulationDB.s3db"; //Path to database.
+        public string DatabasePath = "/Database/SpaceCombatSimulationDB.s3db"; //Path to database.
         private string _databaseFullPath { get { return Application.dataPath + DatabasePath; } }
         
         /// <summary>

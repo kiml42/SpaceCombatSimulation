@@ -5,9 +5,9 @@
 SpaceCombatSimulation/tmp/**/*
 !SpaceCombatSimulation/Assets/Plugins/*.dll
 !*.obj
-!SpaceCombatSimulation/Assets/tmp/placeholder.txt
-SpaceCombatSimulation/Assets/tmp/**/*
 Temp/
+SpaceCombatSimulation/Assets/Database/SpaceCombatSimulationDB.s3db
+SpaceCombatSimulation/Assets/Database/SpaceCombatSimulationDB.s3db.meta
 
 
 # =============== #

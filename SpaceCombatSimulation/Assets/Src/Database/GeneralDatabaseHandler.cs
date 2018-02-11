@@ -12,8 +12,11 @@ namespace Assets.Src.Database
 {
     public abstract class GeneralDatabaseHandler
     {
+        protected abstract string CONFIG_TABLE { get; }
+        protected abstract string INDIVIDUAL_TABLE { get; }
+
         public const string DEFAULT_COMMAND_PATH = "/Database/CreateBlankDatabase.sql";
-        private const string DEFAULT_DB_PATH = "/tmp/SpaceCombatSimulationDB.s3db";
+        private const string DEFAULT_DB_PATH = "/Database/SpaceCombatSimulationDB.s3db";
 
         protected abstract string RUN_TYPE_NAME { get; }
 
@@ -44,13 +47,12 @@ namespace Assets.Src.Database
             }
         }
 
-        public abstract Dictionary<int, string> ListConfigs();
-
-        protected Dictionary<int, string> ListConfigs(string table)
-        {
+        public Dictionary<int, string> ListConfigs()
+        { 
             var configs = new Dictionary<int, string>();
 
-            string sqlQuery = "SELECT id, name" + " FROM " + table + ";";
+            string sqlQuery = "SELECT " + CONFIG_TABLE + ".id, name" + " FROM " + CONFIG_TABLE + 
+                " LEFT JOIN BaseEvolutionConfig on BaseEvolutionConfig.id = " + CONFIG_TABLE + ".id"+ ";";
 
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -58,7 +60,8 @@ namespace Assets.Src.Database
                 using (var dbcmd = sql_con.CreateCommand())
                 {
                     dbcmd.CommandText = sqlQuery;
-                    using (var reader = dbcmd.ExecuteReader()){
+                    using (var reader = dbcmd.ExecuteReader())
+                    {
 
 
                         while (reader.Read())
@@ -143,7 +146,8 @@ namespace Assets.Src.Database
             if (!reader.IsDBNull(reader.GetOrdinal("budget")))
             {
                 config.Budget = reader.GetInt32(reader.GetOrdinal("budget"));
-            } else
+            }
+            else
             {
                 config.Budget = null;
             }
@@ -184,7 +188,7 @@ namespace Assets.Src.Database
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationSize));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.UseCompletelyRandomDefaultGenome));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DefaultGenome));
-            
+
                 insertSQL.ExecuteNonQuery();
             }
 
@@ -214,7 +218,7 @@ namespace Assets.Src.Database
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.LocationRandomisationRadiaiString));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.RandomiseRotation));
 
-                if(!string.IsNullOrEmpty(config.AllowedModulesString))
+                if (!string.IsNullOrEmpty(config.AllowedModulesString))
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.AllowedModulesString));
                 else
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.String, DBNull.Value));
@@ -223,11 +227,11 @@ namespace Assets.Src.Database
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Budget.Value));
                 else
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, DBNull.Value));
-            
+
                 insertSQL.ExecuteNonQuery();
                 insertSQL.Dispose();
-            
-                config.Id = GetLastUpdatedId(sql_con, transaction);         
+
+                config.Id = GetLastUpdatedId(sql_con, transaction);
 
                 return config.Id;
             }
@@ -318,13 +322,13 @@ namespace Assets.Src.Database
                 insertSQL.Dispose();
             }
         }
-        
+
         public void SetCurrentGenerationNumber(int databaseId, int generationNumber)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
                 sql_con.Open();
-                
+
                 //Debug.Log("Updating generation to " + config.GenerationNumber);
                 using (var command = new SqliteCommand("UPDATE BaseEvolutionConfig SET currentGeneration = ? WHERE id = ?;", sql_con))
                 {
@@ -348,10 +352,10 @@ namespace Assets.Src.Database
                     reader.GetFloat(reader.GetOrdinal("r")),
                     reader.GetFloat(reader.GetOrdinal("g")),
                     reader.GetFloat(reader.GetOrdinal("b")),
-                    GetNullableString(reader,"species"),
-                    GetNullableString(reader,"speciesVerbose"),
-                    GetNullableString(reader,"subspecies"),
-                    GetNullableString(reader,"subspeciesVerbose")
+                    GetNullableString(reader, "species"),
+                    GetNullableString(reader, "speciesVerbose"),
+                    GetNullableString(reader, "subspecies"),
+                    GetNullableString(reader, "subspeciesVerbose")
                 );
         }
 
@@ -427,7 +431,7 @@ namespace Assets.Src.Database
             config.DatabaseId = GetLastUpdatedId(connection, transaction);
             return config.DatabaseId;
         }
-        
+
         protected void UpdateBaseEvolutionConfig(BaseEvolutionConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             UpdateExistingMatchConfig(config.MatchConfig, sql_con, transaction);
