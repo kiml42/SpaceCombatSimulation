@@ -26,8 +26,6 @@ namespace Assets.Src.Evolution
             }
             set
             {
-                if (value.Contains(";"))
-                    Debug.LogWarning("Use of ; as a delimiter is obsolete, use , instead.");
                 if (string.IsNullOrEmpty(value))
                 {
                     Debug.LogWarning("Empty Drones list was provided, no drones will spawn");
@@ -35,7 +33,7 @@ namespace Assets.Src.Evolution
                 }
                 else
                 {
-                    var splitDronesString = value.Split(';', ',');
+                    var splitDronesString = value.Split(',');
                     Drones = splitDronesString.Select(d => int.Parse(d)).ToList();
                 }
                     

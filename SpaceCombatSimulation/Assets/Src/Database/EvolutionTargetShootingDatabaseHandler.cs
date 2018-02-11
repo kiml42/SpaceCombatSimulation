@@ -349,21 +349,22 @@ namespace Assets.Src.Database
         {
             UpdateBaseIndividual(individual, runId, generationNumber, sql_con, transaction);
 
-            SqliteCommand insertSQL = new SqliteCommand("UPDATE  DroneShootingIndividual" +
+            using (var insertSQL = new SqliteCommand("UPDATE  DroneShootingIndividual" +
                             " SET matchesPlayed = ?, matchesSurvived = ?, completeKills = ?, totalKills = ?, matchScores = ?" +
-                            " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction);
+                            " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction))
+            {
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesPlayed));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesSurvived));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.CompleteKills));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.TotalKills));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.MatchScoresString));
 
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesPlayed));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesSurvived));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.CompleteKills));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.TotalKills));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.MatchScoresString));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
 
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
-
-            insertSQL.ExecuteNonQuery();
+                insertSQL.ExecuteNonQuery();
+            }
         }
     }
 }

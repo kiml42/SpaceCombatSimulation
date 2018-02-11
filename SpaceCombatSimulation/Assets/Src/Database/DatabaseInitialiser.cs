@@ -72,7 +72,6 @@ namespace Assets.Src.Database
             Debug.Log("Creating database '" + _databaseFullPath + "' using command file '" + creationCommandFilePath + "'");
             SqliteConnection.CreateFile(_databaseFullPath);
 
-
             IDbCommand dbcmd = null;
 
             using (var sql_con = new SqliteConnection(_connectionString))

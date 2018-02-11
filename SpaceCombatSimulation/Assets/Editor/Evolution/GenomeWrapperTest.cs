@@ -50,7 +50,7 @@ namespace Assets.Editor.Evolution
             var g1 = genome.GetGene();  //reads index 05 & 06
 
             genome.JumpBack();  //jumps back to index 2.
-            genome.JumpBack();  //jumps back faile, left at index 2.
+            genome.JumpBack();  //jumps back fails, left at index 2.
 
             var g2 = genome.GetGene();
 

@@ -14,13 +14,32 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
     private string _dbPath;
     private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
     EvolutionTargetShootingDatabaseHandler _handler;
+    DatabaseInitialiser _initialiser;
 
     [SetUp]
     public void Setup()
     {
         _dbPath = _dbPathStart + Guid.NewGuid().ToString() + _dbPathExtension;
 
+        _initialiser = new DatabaseInitialiser
+        {
+            DatabasePath = _dbPath
+        };
+
         _handler = new EvolutionTargetShootingDatabaseHandler(_dbPath, _createCommandPath);
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        try
+        {
+            _initialiser.DropDatabase();
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning("Failed to tear down database: " + e.Message);
+        }
     }
 
     #region top level

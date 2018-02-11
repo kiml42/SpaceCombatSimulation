@@ -110,11 +110,13 @@ namespace Assets.Src.Database
         protected IDataReader OpenReaderWithCommand(SqliteConnection connection, string command)
         {
             connection.Open(); //Open connection to the database.
-            var dbcmd = connection.CreateCommand();
-            dbcmd.CommandText = command;
-            var reader = dbcmd.ExecuteReader();
+            using (var dbcmd = connection.CreateCommand())
+            {
+                dbcmd.CommandText = command;
+                var reader = dbcmd.ExecuteReader();
 
-            return reader;
+                return reader;
+            }
         }
 
         protected MatchConfig ReadMatchConfig(IDataReader reader)
@@ -178,89 +180,73 @@ namespace Assets.Src.Database
 
         protected int SaveMutationConfig(MutationConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
-            SqliteCommand insertSQL = new SqliteCommand(sql_con)
+            using (var insertSQL = new SqliteCommand(sql_con)
             {
                 Transaction = transaction
-            };
+            })
+            {
+                insertSQL.CommandText = "INSERT INTO " + MUTATION_CONFIG_TABLE +
+                            "(mutations, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome)" +
+                            " VALUES (?,?,?,?,?,?)";
 
-            insertSQL.CommandText = "INSERT INTO " + MUTATION_CONFIG_TABLE +
-                        "(mutations, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome)" +
-                        " VALUES (?,?,?,?,?,?)";
-
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Mutations));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxMutationLength));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenomeLength));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationSize));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.UseCompletelyRandomDefaultGenome));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DefaultGenome));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Mutations));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxMutationLength));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenomeLength));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationSize));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.UseCompletelyRandomDefaultGenome));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DefaultGenome));
             
-            insertSQL.ExecuteNonQuery();
+                insertSQL.ExecuteNonQuery();
+            }
 
-            SqliteCommand readIdCommand = new SqliteCommand(sql_con)
-            {
-                Transaction = transaction
-            };
-
-            //From http://www.sliqtools.co.uk/blog/technical/sqlite-how-to-get-the-id-when-inserting-a-row-into-a-table/
-            readIdCommand.CommandText = "select last_insert_rowid()";
-
-            // The row ID is a 64-bit value - cast the Command result to an Int64.
-            //
-            var LastRowID64 = (Int64)readIdCommand.ExecuteScalar();
-            readIdCommand.Dispose();
-
-            // Then grab the bottom 32-bits as the unique ID of the row.
-            //
-            int LastRowID = (int)LastRowID64;
-            //end of copied code.
-
-            config.Id = LastRowID;
+            config.Id = GetLastUpdatedId(sql_con, transaction);
 
             return config.Id;
         }
 
         protected int SaveMatchConfig(MatchConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
-            SqliteCommand insertSQL = new SqliteCommand(sql_con)
+            using (var insertSQL = new SqliteCommand(sql_con)
             {
                 Transaction = transaction
-            };
+            })
+            {
+                insertSQL.CommandText = "INSERT INTO " + MATCH_CONFIG_TABLE +
+                            "(matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation, allowedModules, budget)" +
+                            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-            insertSQL.CommandText = "INSERT INTO " + MATCH_CONFIG_TABLE +
-                        "(matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation, allowedModules, budget)" +
-                        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MatchTimeout));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.WinnerPollPeriod));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialRange));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialSpeed));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.RandomInitialSpeed));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.CompetitorsPerTeam));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.StepForwardProportion));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.LocationRandomisationRadiaiString));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.RandomiseRotation));
 
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MatchTimeout));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.WinnerPollPeriod));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialRange));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialSpeed));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.RandomInitialSpeed));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.CompetitorsPerTeam));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.StepForwardProportion));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.LocationRandomisationRadiaiString));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.RandomiseRotation));
+                if(!string.IsNullOrEmpty(config.AllowedModulesString))
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.AllowedModulesString));
+                else
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, DBNull.Value));
 
-            if(!string.IsNullOrEmpty(config.AllowedModulesString))
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.AllowedModulesString));
-            else
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, DBNull.Value));
-
-            if (config.Budget.HasValue)
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Budget.Value));
-            else
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, DBNull.Value));
+                if (config.Budget.HasValue)
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Budget.Value));
+                else
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, DBNull.Value));
             
-            insertSQL.ExecuteNonQuery();
-            insertSQL.Dispose();
+                insertSQL.ExecuteNonQuery();
+                insertSQL.Dispose();
             
-            config.Id = GetLastUpdatedId(sql_con, transaction);         
+                config.Id = GetLastUpdatedId(sql_con, transaction);         
 
-            return config.Id;
+                return config.Id;
+            }
         }
 
         protected int GetLastUpdatedId(SqliteConnection sql_con, SqliteTransaction transaction)
         {
-            using (SqliteCommand readIdCommand = new SqliteCommand(sql_con)
+            using (var readIdCommand = new SqliteCommand(sql_con)
             {
                 Transaction = transaction
             })
@@ -271,7 +257,6 @@ namespace Assets.Src.Database
                 // The row ID is a 64-bit value - cast the Command result to an Int64.
                 //
                 var LastRowID64 = (Int64)readIdCommand.ExecuteScalar();
-                readIdCommand.Dispose();
 
                 // Then grab the bottom 32-bits as the unique ID of the row.
                 //
@@ -283,68 +268,66 @@ namespace Assets.Src.Database
 
         protected void UpdateExistingMutationConfig(MutationConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
-            SqliteCommand insertSQL = new SqliteCommand(sql_con)
+            using (var insertSQL = new SqliteCommand(sql_con)
             {
                 Transaction = transaction
-            };
+            })
+            {
+                insertSQL.CommandText = "UPDATE " + MUTATION_CONFIG_TABLE +
+                            " SET mutations = ?, maxMutationLength = ?, genomeLength = ?, generationSize = ?, randomDefault = ?, defaultGenome = ?" +
+                            " WHERE id = ?";
 
-            insertSQL.CommandText = "UPDATE " + MUTATION_CONFIG_TABLE +
-                        " SET mutations = ?, maxMutationLength = ?, genomeLength = ?, generationSize = ?, randomDefault = ?, defaultGenome = ?" +
-                        " WHERE id = ?";
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Mutations));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxMutationLength));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenomeLength));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationSize));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.UseCompletelyRandomDefaultGenome));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DefaultGenome));
 
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Mutations));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxMutationLength));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenomeLength));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationSize));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.UseCompletelyRandomDefaultGenome));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DefaultGenome));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Id));
 
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Id));
-
-            insertSQL.ExecuteNonQuery();
-            insertSQL.Dispose();
-
-            return;
+                insertSQL.ExecuteNonQuery();
+                insertSQL.Dispose();
+            }
         }
 
         protected void UpdateExistingMatchConfig(MatchConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
-            SqliteCommand insertSQL = new SqliteCommand(sql_con)
+            using (var insertSQL = new SqliteCommand(sql_con)
             {
                 Transaction = transaction
-            };
+            })
+            {
+                insertSQL.CommandText = "UPDATE " + MATCH_CONFIG_TABLE +
+                            " SET matchTimeout = ?, winnerPollPeriod = ?, initialRange = ?, initialSpeed = ?, randomInitialSpeed = ?, competitorsPerTeam = ?," +
+                            " stepForwardProportion = ?, locationRandomisationRadiai = ?, randomiseRotation = ?, allowedModules = ?, budget = ?" +
+                            " WHERE id = ?";
 
-            insertSQL.CommandText = "UPDATE " + MATCH_CONFIG_TABLE +
-                        " SET matchTimeout = ?, winnerPollPeriod = ?, initialRange = ?, initialSpeed = ?, randomInitialSpeed = ?, competitorsPerTeam = ?," +
-                        " stepForwardProportion = ?, locationRandomisationRadiai = ?, randomiseRotation = ?, allowedModules = ?, budget = ?" +
-                        " WHERE id = ?";
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MatchTimeout));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.WinnerPollPeriod));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialRange));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialSpeed));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.RandomInitialSpeed));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.CompetitorsPerTeam));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.StepForwardProportion));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.LocationRandomisationRadiaiString));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.RandomiseRotation));
 
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MatchTimeout));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.WinnerPollPeriod));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialRange));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialSpeed));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.RandomInitialSpeed));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.CompetitorsPerTeam));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.StepForwardProportion));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.LocationRandomisationRadiaiString));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.RandomiseRotation));
+                if (!string.IsNullOrEmpty(config.AllowedModulesString))
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.AllowedModulesString));
+                else
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, DBNull.Value));
 
-            if (!string.IsNullOrEmpty(config.AllowedModulesString))
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.AllowedModulesString));
-            else
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, DBNull.Value));
+                if (config.Budget.HasValue)
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Budget.Value));
+                else
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, DBNull.Value));
 
-            if (config.Budget.HasValue)
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Budget.Value));
-            else
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, DBNull.Value));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Id));
 
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Id));
-
-            insertSQL.ExecuteNonQuery();
-            insertSQL.Dispose();
-
-            return;
+                insertSQL.ExecuteNonQuery();
+                insertSQL.Dispose();
+            }
         }
 
         protected int SaveMutationConfig(MutationConfig config)
@@ -490,50 +473,52 @@ namespace Assets.Src.Database
 
         protected void SaveBaseIndividual(string runtype, BaseIndividual individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
         {
-            SqliteCommand insertSQL = new SqliteCommand("INSERT INTO BaseIndividual " +
+            using (var insertSQL = new SqliteCommand("INSERT INTO BaseIndividual " +
                             "(runType, runConfigId, generation, genome, score, cost, modules, r,g,b, species, speciesVerbose, subspecies, subspeciesVerbose)" +
-                            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", sql_con, transaction);
+                            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", sql_con, transaction))
+            {
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)runtype));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Score));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Cost));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Summary.ModulesAdded));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.r));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.g));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.b));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.Species));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.VerboseSpecies));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.Subspecies));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.VerboseSubspecies));
 
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)runtype));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Score));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Cost));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Summary.ModulesAdded));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.r));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.g));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.b));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.Species));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.VerboseSpecies));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.Subspecies));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.VerboseSubspecies));
-
-            insertSQL.ExecuteNonQuery();
+                insertSQL.ExecuteNonQuery();
+            }
         }
 
         protected void UpdateBaseIndividual(BaseIndividual individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
         {
-            SqliteCommand insertSQL = new SqliteCommand("UPDATE  BaseIndividual" +
+            using (var insertSQL = new SqliteCommand("UPDATE  BaseIndividual" +
                            " SET score = ?, cost = ?, modules = ?, r = ?, g = ?, b = ?, species = ?, speciesVerbose = ?, subspecies = ?, subspeciesVerbose = ?" +
-                           " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction);
-            
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Score));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Cost));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Summary.ModulesAdded));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.r));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.g));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.b));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.Species));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.VerboseSpecies));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.Subspecies));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.VerboseSubspecies));
+                           " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction))
+            {
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Score));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Cost));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Summary.ModulesAdded));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.r));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.g));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.b));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.Species));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.VerboseSpecies));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.Subspecies));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Summary.VerboseSubspecies));
 
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
-            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
 
-            insertSQL.ExecuteNonQuery();
+                insertSQL.ExecuteNonQuery();
+            }
         }
 
         protected int SaveBaseEvolutionConfig(BaseEvolutionConfig config, SqliteConnection connection, SqliteTransaction transaction)
@@ -541,7 +526,7 @@ namespace Assets.Src.Database
             config.MatchConfig.Id = SaveMatchConfig(config.MatchConfig, connection, transaction);
             config.MutationConfig.Id = SaveMutationConfig(config.MutationConfig, connection, transaction);
 
-            using (SqliteCommand insertSQL = new SqliteCommand("INSERT INTO BaseEvolutionConfig" +
+            using (var insertSQL = new SqliteCommand("INSERT INTO BaseEvolutionConfig" +
                 " (name, currentGeneration, minMatchesPerIndividual, winnersCount, matchConfigId, mutationConfigId) " +
                 " VALUES (?,?,?,?,?,?)", connection, transaction))
             {
@@ -564,7 +549,7 @@ namespace Assets.Src.Database
             UpdateExistingMatchConfig(config.MatchConfig, sql_con, transaction);
             UpdateExistingMutationConfig(config.MutationConfig, sql_con, transaction);
 
-            using (SqliteCommand insertSQL = new SqliteCommand("UPDATE BaseEvolutionConfig" +
+            using (var insertSQL = new SqliteCommand("UPDATE BaseEvolutionConfig" +
                              " SET name = ?, minMatchesPerIndividual = ?, winnersCount = ?" +
                              " WHERE id = ?", sql_con, transaction))
             {

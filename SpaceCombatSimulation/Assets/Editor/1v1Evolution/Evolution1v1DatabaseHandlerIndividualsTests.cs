@@ -18,19 +18,32 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
     private string _dbPath;
     private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
     Evolution1v1DatabaseHandler _handler;
-    DatabaseInitialiser initialiser;
+    DatabaseInitialiser _initialiser;
     
     [SetUp]
     public void Setup()
     {
         _dbPath = _dbPathStart + Guid.NewGuid().ToString() + _dbPathExtension;
         
-        initialiser = new DatabaseInitialiser
+        _initialiser = new DatabaseInitialiser
         {
             DatabasePath = _dbPath
         };
         
         _handler = new Evolution1v1DatabaseHandler(_dbPath, _createCommandPath);
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        try
+        {
+            _initialiser.DropDatabase();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Failed to tear down database: " + e.Message);
+        }
     }
 
     #region top level
@@ -242,16 +255,5 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
 
     #endregion
 
-    [TearDown]
-    public void TearDown()
-    {
-        try
-        {
-            initialiser.DropDatabase();
-        } catch (Exception e)
-        {
-            Debug.LogWarning("Failed to tear down database: " + e.Message);
-        }
-    }
 
 }

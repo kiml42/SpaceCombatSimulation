@@ -225,25 +225,24 @@ namespace Assets.Src.Database
 
                     using (var transaction = sql_con.BeginTransaction())
                     {
-
-
                         foreach (var individual in generation.Individuals)
                         {
                             SaveBaseIndividual(RUN_TYPE_NAME, individual, runId, generationNumber, sql_con, transaction);
 
-                            SqliteCommand insertSQL = new SqliteCommand("INSERT INTO Individual1v1 " +
+                            using (var insertSQL = new SqliteCommand("INSERT INTO Individual1v1 " +
                                 "(runConfigId, generation, genome, wins, draws, loses, previousCombatants)" +
-                                " VALUES (?,?,?,?,?,?,?)", sql_con, transaction);
-
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Wins));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Draws));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Loses));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.PreviousCombatantsString));
+                                " VALUES (?,?,?,?,?,?,?)", sql_con, transaction))
+                            {
+                                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
+                                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+                                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
+                                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Wins));
+                                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Draws));
+                                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Loses));
+                                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.PreviousCombatantsString));
                             
-                            insertSQL.ExecuteNonQuery();
+                                insertSQL.ExecuteNonQuery();
+                            }
                         }
 
                         transaction.Commit();
