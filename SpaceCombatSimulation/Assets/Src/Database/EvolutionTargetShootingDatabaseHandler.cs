@@ -41,11 +41,8 @@ namespace Assets.Src.Database
             //Debug.Log("Reading config from DB. Id: " + id);
             using (var sql_con = new SqliteConnection(_connectionString))
             {
-                IDataReader reader = null;
-                try
+                using (var reader = OpenReaderWithCommand(sql_con, CreateReadConfigQuery(CONFIG_TABLE, id)))
                 {
-                    reader = OpenReaderWithCommand(sql_con, CreateReadConfigQuery(CONFIG_TABLE, id));
-
                     reader.Read();
 
                     //Debug.Log("DroneEvolutionConfig.id ordinal: " + reader.GetOrdinal("id"));
@@ -68,18 +65,10 @@ namespace Assets.Src.Database
                     
                     config.MatchConfig = ReadMatchConfig(reader);
                     config.MutationConfig = ReadMutationConfig(reader);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
-                    throw e;
-                }
-                finally
-                {
-                    Disconnect(reader, sql_con);
+
+                    return config;
                 }
             }
-            return config;
         }
 
         public int CountCompleteKillers(int id)
@@ -88,33 +77,19 @@ namespace Assets.Src.Database
             //Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);
             using (var sql_con = new SqliteConnection(_connectionString))
             {
-                IDataReader reader = null;
-                try
+                string sqlQuery = "SELECT completeKills" +
+                        " FROM " + INDIVIDUAL_TABLE +
+                        " WHERE runConfigId = " + id + " AND completeKills > 0 ;";
+                using (var reader = OpenReaderWithCommand(sql_con, sqlQuery))
                 {
-                    string sqlQuery = "SELECT completeKills" +
-                           " FROM " + INDIVIDUAL_TABLE +
-                           " WHERE runConfigId = " + id + " AND completeKills > 0 ;";
-                    reader = OpenReaderWithCommand(sql_con, sqlQuery);
-
                     while (reader.Read())
                     {
                         //Debug.Log("genome ordinal: " + reader.GetOrdinal("genome"));  //-1
                         var completeKills = reader.GetInt32(reader.GetOrdinal("completeKills"));
                         count += completeKills;
                     }
-
-                }
-                catch (Exception e)
-                {
-                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
-                    throw e;
-                }
-                finally
-                {
-                    Disconnect(reader, sql_con);
                 }
             }
-
             return count;
         }
 
@@ -122,49 +97,37 @@ namespace Assets.Src.Database
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
-                try
-                {
-                    sql_con.Open(); //Open connection to the database.
+                sql_con.Open(); //Open connection to the database.
 
-                    using (var transaction = sql_con.BeginTransaction())
+                using (var transaction = sql_con.BeginTransaction())
+                {
+                    UpdateBaseEvolutionConfig(config, sql_con, transaction);
+
+                    using (var insertSQL = new SqliteCommand(sql_con)
                     {
-                        UpdateBaseEvolutionConfig(config, sql_con, transaction);
+                        Transaction = transaction
+                    })
+                    {
+                        insertSQL.CommandText = "UPDATE " + CONFIG_TABLE +
+                            " SET  minDrones = ?," +
+                            " droneEscalation = ?, maxDrones = ?, killScoreMultiplier = ?, flatKillBonus = ?, completionBonus = ?, deathPenalty = ?, droneList = ?" +
+                            " WHERE id = ?";
 
-                        using (var insertSQL = new SqliteCommand(sql_con)
-                        {
-                            Transaction = transaction
-                        })
-                        {
-                            insertSQL.CommandText = "UPDATE " + CONFIG_TABLE +
-                                " SET  minDrones = ?," +
-                                " droneEscalation = ?, maxDrones = ?, killScoreMultiplier = ?, flatKillBonus = ?, completionBonus = ?, deathPenalty = ?, droneList = ?" +
-                                " WHERE id = ?";
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinDronesToSpawn));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.ExtraDromnesPerGeneration));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxDronesToSpawn));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.KillScoreMultiplier));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.FlatKillBonus));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.CompletionBonus));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.DeathPenalty));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DronesString));
 
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinDronesToSpawn));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.ExtraDromnesPerGeneration));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxDronesToSpawn));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.KillScoreMultiplier));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.FlatKillBonus));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.CompletionBonus));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.DeathPenalty));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DronesString));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
 
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
-
-                            insertSQL.ExecuteNonQuery();
-                        }
-
-                        transaction.Commit();
+                        insertSQL.ExecuteNonQuery();
                     }
-                }
-                catch (Exception e)
-                {
-                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
-                    throw e;
-                }
-                finally
-                {
-                    Disconnect(null, sql_con);
+
+                    transaction.Commit();
                 }
             }
 
@@ -175,50 +138,35 @@ namespace Assets.Src.Database
         {
             using (var connection = new SqliteConnection(_connectionString))
             {
-                try
-                {
-                    connection.Open(); //Open connection to the database.
+                connection.Open(); //Open connection to the database.
 
-                    using (var transaction = connection.BeginTransaction())
+                using (var transaction = connection.BeginTransaction())
+                {
+                    SaveBaseEvolutionConfig(config, connection, transaction);
+
+                    using (var insertSQL = new SqliteCommand(connection)
                     {
+                        Transaction = transaction
+                    })
+                    {
+                        insertSQL.CommandText = "INSERT INTO " + CONFIG_TABLE +
+                            "(id, minDrones, droneEscalation, maxDrones, killScoreMultiplier, flatKillBonus, completionBonus, deathPenalty, droneList)" +
+                            " VALUES (?,?,?,?,?,?,?,?,?)";
 
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinDronesToSpawn));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.ExtraDromnesPerGeneration));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxDronesToSpawn));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.KillScoreMultiplier));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.FlatKillBonus));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.CompletionBonus));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.DeathPenalty));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DronesString));
 
-                        SaveBaseEvolutionConfig(config, connection, transaction);
-
-                        using (var insertSQL = new SqliteCommand(connection)
-                        {
-                            Transaction = transaction
-                        })
-                        {
-                            insertSQL.CommandText = "INSERT INTO " + CONFIG_TABLE +
-                                "(id, minDrones, droneEscalation, maxDrones, killScoreMultiplier, flatKillBonus, completionBonus, deathPenalty, droneList)" +
-                                " VALUES (?,?,?,?,?,?,?,?,?)";
-
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinDronesToSpawn));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.ExtraDromnesPerGeneration));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxDronesToSpawn));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.KillScoreMultiplier));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.FlatKillBonus));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.CompletionBonus));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.DeathPenalty));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DronesString));
-
-                            insertSQL.ExecuteNonQuery();
-                            insertSQL.Dispose();
-                        }
-
-                        transaction.Commit();
+                        insertSQL.ExecuteNonQuery();
+                        insertSQL.Dispose();
                     }
-                }
-                catch (Exception e)
-                {
-                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
-                    throw e;
-                }
-                finally
-                {
-                    Disconnect(null, connection);
+                    transaction.Commit();
                 }
             }
 
@@ -231,11 +179,8 @@ namespace Assets.Src.Database
             var generation = new GenerationTargetShooting();
             using (var sql_con = new SqliteConnection(_connectionString))
             {
-                IDataReader reader = null;
-                try
+                using (var reader = OpenReaderWithCommand(sql_con, CreateReadIndividualsQuery(INDIVIDUAL_TABLE, runId, generationNumber)))
                 {
-                    reader = OpenReaderWithCommand(sql_con, CreateReadIndividualsQuery(INDIVIDUAL_TABLE, runId, generationNumber));
-
                     while (reader.Read())
                     {
                         //Debug.Log("genome ordinal: " + reader.GetOrdinal("genome"));  //-1
@@ -253,15 +198,6 @@ namespace Assets.Src.Database
                         generation.Individuals.Add(individual);
                     }
                 }
-                catch (Exception e)
-                {
-                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
-                    throw e;
-                }
-                finally
-                {
-                    Disconnect(reader, sql_con);
-                }
             }
 
             return generation;
@@ -271,46 +207,31 @@ namespace Assets.Src.Database
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
-                try
-                {
-                    sql_con.Open(); //Open connection to the database.
+                sql_con.Open(); //Open connection to the database.
 
-                    using (var transaction = sql_con.BeginTransaction())
+                using (var transaction = sql_con.BeginTransaction())
+                {
+                    foreach (var individual in generation.Individuals)
                     {
+                        SaveBaseIndividual(RUN_TYPE_NAME, individual, runId, generationNumber, sql_con, transaction);
 
-
-                        foreach (var individual in generation.Individuals)
+                        using (var insertSQL = new SqliteCommand("INSERT INTO DroneShootingIndividual " +
+                            "(runConfigId, generation, genome, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores)" +
+                            " VALUES (?,?,?,?,?,?,?,?)", sql_con, transaction))
                         {
-                            SaveBaseIndividual(RUN_TYPE_NAME, individual, runId, generationNumber, sql_con, transaction);
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesPlayed));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesSurvived));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.CompleteKills));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.TotalKills));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.MatchScoresString));
 
-                            using (var insertSQL = new SqliteCommand("INSERT INTO DroneShootingIndividual " +
-                                "(runConfigId, generation, genome, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores)" +
-                                " VALUES (?,?,?,?,?,?,?,?)", sql_con, transaction))
-                            {
-                                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
-                                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
-                                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
-                                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesPlayed));
-                                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesSurvived));
-                                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.CompleteKills));
-                                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.TotalKills));
-                                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.MatchScoresString));
-
-                                insertSQL.ExecuteNonQuery();
-                            }
+                            insertSQL.ExecuteNonQuery();
                         }
-
-                        transaction.Commit();
                     }
-                }
-                catch (Exception e)
-                {
-                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
-                    throw e;
-                }
-                finally
-                {
-                    Disconnect(null, sql_con);
+                    transaction.Commit();
                 }
             }
         }
@@ -319,28 +240,16 @@ namespace Assets.Src.Database
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
-                try
-                {
-                    sql_con.Open(); //Open connection to the database.
+                sql_con.Open(); //Open connection to the database.
 
-                    using (var transaction = sql_con.BeginTransaction())
+                using (var transaction = sql_con.BeginTransaction())
+                {
+                    foreach (var individual in generation.Individuals)
                     {
-                        foreach (var individual in generation.Individuals)
-                        {
-                            UpdateIndividual(individual, runId, generationNumber, sql_con, transaction);
-                        }
-
-                        transaction.Commit();
+                        UpdateIndividual(individual, runId, generationNumber, sql_con, transaction);
                     }
-                }
-                catch (Exception e)
-                {
-                    Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
-                    throw e;
-                }
-                finally
-                {
-                    Disconnect(null, sql_con);
+
+                    transaction.Commit();
                 }
             }
         }

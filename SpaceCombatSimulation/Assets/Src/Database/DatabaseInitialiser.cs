@@ -71,9 +71,7 @@ namespace Assets.Src.Database
 
             Debug.Log("Creating database '" + _databaseFullPath + "' using command file '" + creationCommandFilePath + "'");
             SqliteConnection.CreateFile(_databaseFullPath);
-
-            IDbCommand dbcmd = null;
-
+            
             using (var sql_con = new SqliteConnection(_connectionString))
             {
                 try
@@ -84,22 +82,15 @@ namespace Assets.Src.Database
 
                     //Debug.Log("create sql: " + sql);
 
-                    dbcmd = new SqliteCommand(sql, sql_con);
-                    dbcmd.ExecuteNonQuery();
+                    using (var dbcmd = new SqliteCommand(sql, sql_con))
+                    {
+                        dbcmd.ExecuteNonQuery();
+                    }
                 }
                 catch (Exception e)
                 {
                     Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
                     throw e;
-                }
-                finally
-                {
-                    //Debug.Log("Disconnecting");
-                    if (dbcmd != null)
-                        dbcmd.Dispose();
-                    dbcmd = null;
-                    if (sql_con != null)
-                        sql_con.Close();
                 }
             }
         }
