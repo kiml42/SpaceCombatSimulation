@@ -405,10 +405,5 @@ namespace Assets.Src.Database
 
             insertSQL.ExecuteNonQuery();
         }
-
-        public void SetCurrentGenerationNumber(int databaseId, int generationNumber)
-        {
-            SetCurrentGenerationNumber(CONFIG_TABLE, databaseId, generationNumber);
-        }
     }
 }

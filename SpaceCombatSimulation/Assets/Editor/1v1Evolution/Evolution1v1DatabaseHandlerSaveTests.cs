@@ -28,18 +28,18 @@ public class Evolution1v1DatabaseHandlerSaveTests
     [Test]
     public void SetCurrentGeneration_UpdatesCurrentGeneration()
     {
-        var config = _handler.ReadConfig(1);
-        Assert.AreEqual(1, config.DatabaseId);
+        var config = _handler.ReadConfig(3);
+        Assert.AreEqual(3, config.DatabaseId);
 
-        _handler.SetCurrentGenerationNumber(1, 5);
+        _handler.SetCurrentGenerationNumber(3, 5);
         
-        var config2 = _handler.ReadConfig(1);
+        var config2 = _handler.ReadConfig(3);
         Assert.AreEqual(5, config2.GenerationNumber);  //has been read back out
 
         //repeat with a different number, to be sure it wasn't just 5 to begin with.
-        _handler.SetCurrentGenerationNumber(1, 7);
+        _handler.SetCurrentGenerationNumber(3, 7);
         
-        var config3 = _handler.ReadConfig(1);
+        var config3 = _handler.ReadConfig(3);
         Assert.AreEqual(7, config3.GenerationNumber);  //has been read back out
     }
 
@@ -71,7 +71,7 @@ public class Evolution1v1DatabaseHandlerSaveTests
 
         int result = _handler.SaveNewConfig(config);
 
-        var expectedId = 2;
+        var expectedId = 4;
 
         Assert.AreEqual(expectedId, result);
 
@@ -91,7 +91,7 @@ public class Evolution1v1DatabaseHandlerSaveTests
     [Test]
     public void UpdateTest()
     {
-        var config = _handler.ReadConfig(0);
+        var config = _handler.ReadConfig(2);
 
         config.RunName = "Altered";
         config.MatchConfig.InitialRange++;
@@ -99,7 +99,7 @@ public class Evolution1v1DatabaseHandlerSaveTests
 
         _handler.UpdateExistingConfig(config);
 
-        var updated = _handler.ReadConfig(0);
+        var updated = _handler.ReadConfig(2);
 
         Assert.AreEqual(config.RunName, updated.RunName);
         Assert.AreEqual("Altered", updated.RunName);
