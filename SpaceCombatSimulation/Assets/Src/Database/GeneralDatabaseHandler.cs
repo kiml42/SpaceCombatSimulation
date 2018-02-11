@@ -118,12 +118,12 @@ namespace Assets.Src.Database
 
         protected MatchConfig ReadMatchConfig(IDataReader reader, int idIndex)
         {
-            //Debug.Log("locationRandomisationRadiai ordinal: " + reader.GetOrdinal("locationRandomisationRadiai"));
-            //Debug.Log("locationRandomisationRadiai value: " + reader.GetString(reader.GetOrdinal("locationRandomisationRadiai")));
+            //Debug.Log("BaseEvolutionConfig.matchConfigId ordinal: " + reader.GetOrdinal("matchConfigId"));
+            //Debug.Log("BaseEvolutionConfig.matchConfigId value: " + reader.GetInt32(reader.GetOrdinal("matchConfigId")));
 
             var config = new MatchConfig()
             {
-                Id = reader.GetInt32(idIndex),
+                Id = reader.GetInt32(reader.GetOrdinal("matchConfigId")),
                 MatchTimeout = reader.GetFloat(reader.GetOrdinal("matchTimeout")), //16
                 WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")), //17
                 InitialRange = reader.GetFloat(reader.GetOrdinal("initialRange")),
@@ -160,11 +160,11 @@ namespace Assets.Src.Database
 
         protected MutationConfig ReadMutationConfig(IDataReader reader, int idIndex)
         {
-            //Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("MatchConfig.Id"));  //-1
+            //Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("mutationConfigId"));
 
             var config = new MutationConfig()
             {
-                Id = reader.GetInt32(idIndex),
+                Id = reader.GetInt32(reader.GetOrdinal("mutationConfigId")),
                 Mutations = reader.GetInt32(reader.GetOrdinal("mutations")),
                 MaxMutationLength = reader.GetInt32(reader.GetOrdinal("maxMutationLength")),
                 GenomeLength = reader.GetInt32(reader.GetOrdinal("genomeLength")),

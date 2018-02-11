@@ -85,7 +85,7 @@ public class EvolutionTargetShootingDatabaseHandlerSaveTests
 
         int result = _handler.SaveNewConfig(config);
 
-        var expectedId = 2;
+        var expectedId = 4;
 
         Assert.AreEqual(expectedId, result);
 

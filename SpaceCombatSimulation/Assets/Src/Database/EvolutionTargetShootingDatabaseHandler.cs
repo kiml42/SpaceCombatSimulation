@@ -133,8 +133,7 @@ namespace Assets.Src.Database
 
                     transaction = sql_con.BeginTransaction();
 
-                    UpdateExistingMatchConfig(config.MatchConfig, sql_con, transaction);
-                    UpdateExistingMutationConfig(config.MutationConfig, sql_con, transaction);
+                    UpdateBaseEvolutionConfig(config, sql_con, transaction);
 
                     SqliteCommand insertSQL = new SqliteCommand(sql_con)
                     {
@@ -142,14 +141,10 @@ namespace Assets.Src.Database
                     };
 
                     insertSQL.CommandText = "UPDATE " + CONFIG_TABLE +
-                        " SET name = ?, currentGeneration = ?, minMatchesPerIndividual = ?, winnersCount = ?, minDrones = ?," +
+                        " SET  minDrones = ?," +
                         " droneEscalation = ?, maxDrones = ?, killScoreMultiplier = ?, flatKillBonus = ?, completionBonus = ?, deathPenalty = ?, droneList = ?" +
                         " WHERE id = ?";
-
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.RunName));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationNumber));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinMatchesPerIndividual));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.WinnersFromEachGeneration));
+                    
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinDronesToSpawn));
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.ExtraDromnesPerGeneration));
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxDronesToSpawn));
@@ -190,8 +185,7 @@ namespace Assets.Src.Database
 
                     transaction = connection.BeginTransaction();
 
-                    config.MatchConfig.Id = SaveMatchConfig(config.MatchConfig, connection, transaction);
-                    config.MutationConfig.Id = SaveMutationConfig(config.MutationConfig, connection, transaction);
+                    SaveBaseEvolutionConfig(config, connection, transaction);
 
                     SqliteCommand insertSQL = new SqliteCommand(connection)
                     {
@@ -199,14 +193,10 @@ namespace Assets.Src.Database
                     };
 
                     insertSQL.CommandText = "INSERT INTO " + CONFIG_TABLE +
-                        "(name, currentGeneration, minMatchesPerIndividual, winnersCount, minDrones, droneEscalation, maxDrones, " +
-                        "killScoreMultiplier, flatKillBonus, completionBonus, deathPenalty, droneList, matchConfigId, mutationConfigId)" +
-                        " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.RunName));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationNumber));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinMatchesPerIndividual));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.WinnersFromEachGeneration));
+                        "(id, minDrones, droneEscalation, maxDrones, killScoreMultiplier, flatKillBonus, completionBonus, deathPenalty, droneList)" +
+                        " VALUES (?,?,?,?,?,?,?,?,?)";
+                    
+                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinDronesToSpawn));
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.ExtraDromnesPerGeneration));
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxDronesToSpawn));
@@ -216,9 +206,6 @@ namespace Assets.Src.Database
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.DeathPenalty));
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DronesString));
 
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MatchConfig.Id));
-                    insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MutationConfig.Id));
-
                     insertSQL.ExecuteNonQuery();
                     insertSQL.Dispose();
 
@@ -226,21 +213,6 @@ namespace Assets.Src.Database
                     {
                         Transaction = transaction
                     };
-
-                    //From http://www.sliqtools.co.uk/blog/technical/sqlite-how-to-get-the-id-when-inserting-a-row-into-a-table/
-                    readIdCommand.CommandText = "select last_insert_rowid()";
-
-                    // The row ID is a 64-bit value - cast the Command result to an Int64.
-                    //
-                    var LastRowID64 = (Int64)readIdCommand.ExecuteScalar();
-                    readIdCommand.Dispose();
-
-                    // Then grab the bottom 32-bits as the unique ID of the row.
-                    //
-                    int LastRowID = (int)LastRowID64;
-                    //end of copied code.
-
-                    config.DatabaseId = LastRowID;
 
                     transaction.Commit();
                 }
@@ -330,10 +302,7 @@ namespace Assets.Src.Database
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.CompleteKills));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.TotalKills));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.MatchScoresString));
-
-                        //todo check if this is nessersary/how to use transactions correctly.
-                        insertSQL.Transaction = transaction;
-
+                        
                         insertSQL.ExecuteNonQuery();
                     }
 
@@ -399,10 +368,7 @@ namespace Assets.Src.Database
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
             insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
-
-            //todo check if this is nessersary/how to use transactions correctly.
-            insertSQL.Transaction = transaction;
-
+            
             insertSQL.ExecuteNonQuery();
         }
     }
