@@ -28,6 +28,7 @@ TODO:
                 Graphs of both against generations, possibly moving sums/averages.
                     Mouse-overs reveal the species/subspecies (possibly include creating a model of one to show what it looked like.)
     Priority:
+        Better defaults for evolution configs in teh menus.
         Master targeting contrller on spaceships with which other targeters can register to have a list of everything being targeted by that ship.
             this list could be used ba a targeter to apply an extra score for each time a target is in that list - either promoting or avoiding all guns targeting the same thing.
         Torpedoes detonate at closest approach isf out of fuel.
