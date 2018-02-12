@@ -51,10 +51,10 @@ namespace Assets.Src.Evolution
         /// <returns>List of genomes</returns>
         public IEnumerable<string> PickWinners(int WinnersCount)
         {
+            var minScore = _baseIndividuals.Min(i => i.Score);
             return _baseIndividuals.OrderByDescending(i => {
-                var randomNumber = 0.5 - _rng.NextDouble();
-                //UnityEngine.Debug.Log(randomNumber);
-                return i.AverageScore * randomNumber;
+                var randomNumber = _rng.NextDouble();
+                return (1 + i.AverageScore - minScore) * randomNumber;
                 }).Take(WinnersCount).Select(i => i.Genome);
         }
 

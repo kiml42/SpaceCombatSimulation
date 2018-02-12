@@ -36,15 +36,14 @@ public class GenerationTests
         var maxes = new List<int>();
         var mins = new List<int>();
 
-        var runs = 10000;
+        var runs = 1000;
         var count = 50;
+        var winnersCount = 23;
 
         for(int j = 0; j< runs; j++)
         {
             var gen = new GenerationTargetShooting();
-
-            var genomes = new List<string>();
-
+            
             for(int i = 0; i < count; i++)
             {
                 var score = i - (count / 2);
@@ -53,7 +52,8 @@ public class GenerationTests
                 gen.RecordMatch(new GenomeWrapper(score.ToString()), score, true, true, 1);
             }
 
-            var winners = gen.PickWinners(20);
+            var winners = gen.PickWinners(winnersCount);
+
             var ints = winners.Select(g => int.Parse(g));
             all.AddRange(ints);
 
@@ -68,9 +68,11 @@ public class GenerationTests
 
         foreach(var group in groups.OrderByDescending(g => g.Key))
         {
-            Debug.Log(group.Key.ToString().PadRight(5) + 
-                (" (" + group.Count().ToString() + ")").PadRight(6) + 
+            Debug.Log((group.Key.ToString()).PadRight(5) + 
+                (" (" + group.Count().ToString() + ")").PadRight(8) + 
                 "".PadRight(group.Count() * 80/runs, '|'));
         }
+
+        Assert.Less(mins.Min(), 0);
     }
 }
