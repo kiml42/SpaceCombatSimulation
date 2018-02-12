@@ -103,7 +103,7 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
 
     private void SpawnDrones()
     {
-        var completeKillers = _dbHandler.CountCompleteKillers(_config.DatabaseId);
+        var completeKillers = _dbHandler.CountCompleteKillers(_config.DatabaseId, _config.GenerationNumber);
         var DroneCount = _config.MinDronesToSpawn + Math.Floor((double)completeKillers * _config.ExtraDromnesPerGeneration);
         Debug.Log(DroneCount + " drones this match");
         

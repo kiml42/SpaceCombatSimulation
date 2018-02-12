@@ -66,7 +66,13 @@ namespace Assets.Src.Database
             }
         }
 
-        public int CountCompleteKillers(int id)
+        /// <summary>
+        /// Returns the number of matches that ended in complete kills in all previous generations.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="currentGeneration"></param>
+        /// <returns></returns>
+        public int CountCompleteKillers(int id, int currentGeneration)
         {
             int count = 0;
             //Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);
@@ -74,7 +80,9 @@ namespace Assets.Src.Database
             {
                 string sqlQuery = "SELECT completeKills" +
                         " FROM " + INDIVIDUAL_TABLE +
-                        " WHERE runConfigId = " + id + " AND completeKills > 0 ;";
+                        " WHERE runConfigId = " + id +
+                        " AND generation < " + currentGeneration +
+                        " AND completeKills > 0 ;";
                 using (var reader = OpenReaderWithCommand(sql_con, sqlQuery))
                 {
                     while (reader.Read())

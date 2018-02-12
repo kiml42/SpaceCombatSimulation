@@ -164,7 +164,7 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
     [Test]
     public void CountCompleteKillersTest()
     {
-        var result = _handler.CountCompleteKillers(0);
+        var result = _handler.CountCompleteKillers(0, 1);
 
         Assert.AreEqual(3, result);
     }
