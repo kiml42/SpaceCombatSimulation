@@ -30,23 +30,90 @@ public class GenerationTests
     }
 
     [Test]
-    public void PickWinners_PicksWithAReasonableDistribution()
+    public void PickWinners_PicksWithAReasonableDistribution_50_23()
     {
-        var all = new List<int>();
-        var maxes = new List<int>();
-        var mins = new List<int>();
-
-        var runs = 1000;
         var count = 50;
         var winnersCount = 23;
 
-        for(int j = 0; j< runs; j++)
+        var all = TestPickWinnersDistribution(count, winnersCount);
+
+        Assert.Less(Min(all), 0);
+        Assert.Contains(3, all);
+    }
+
+    [Test]
+    public void PickWinners_PicksWithAReasonableDistribution_20_7()
+    {
+        var count = 20;
+        var winnersCount = 7;
+
+        var all = TestPickWinnersDistribution(count, winnersCount);
+
+        Assert.Less(Min(all), 0);
+        Assert.Contains(3, all);
+    }
+
+    [Test]
+    public void PickWinners_PicksWithAReasonableDistribution_50_25()
+    {
+        var count = 50;
+        var winnersCount = 25;
+
+        var all = TestPickWinnersDistribution(count, winnersCount);
+
+        Assert.Less(Min(all), 0);
+        Assert.Contains(3, all);
+    }
+
+    [Test]
+    public void PickWinners_PicksWithAReasonableDistribution_20_1()
+    {
+        var runs = 5000;
+        var count = 20;
+        var winnersCount = 1;
+
+        TestPickWinnersDistribution(count, winnersCount, runs);
+        //no assertion here because it won't nessersarily come up with a negative.
+    }
+
+    [Test]
+    public void PickWinners_PicksWithAReasonableDistribution_20_10()
+    {
+        var count = 20;
+        var winnersCount = 10;
+
+        var all = TestPickWinnersDistribution(count, winnersCount);
+
+        Assert.Less(Min(all), 0);
+        Assert.Contains(3, all);
+    }
+
+    [Test]
+    public void PickWinners_PicksWithAReasonableDistribution_20_5()
+    {
+        var count = 20;
+        var winnersCount = 5;
+
+        var all = TestPickWinnersDistribution(count, winnersCount);
+
+        Assert.Less(Min(all), 0);
+        Assert.Contains(3, all);
+    }
+
+    private List<int> TestPickWinnersDistribution(int generationSize, int winnersCount, int runs = 1000)
+    {
+        Debug.Log(runs + "runs, " + generationSize + " individuals, " + winnersCount + " winners");
+        var all = new List<int>();
+        var maxes = new List<int>();
+        var mins = new List<int>();
+        
+        for (int j = 0; j < runs; j++)
         {
             var gen = new GenerationTargetShooting();
-            
-            for(int i = 0; i < count; i++)
+
+            for (int i = 0; i < generationSize; i++)
             {
-                var score = i - (count / 2);
+                var score = i - (generationSize / 2);
                 gen.AddGenome(score.ToString());
 
                 gen.RecordMatch(new GenomeWrapper(score.ToString()), score, true, true, 1);
@@ -54,25 +121,33 @@ public class GenerationTests
 
             var winners = gen.PickWinners(winnersCount);
 
-            var ints = winners.Select(g => int.Parse(g));
-            all.AddRange(ints);
+            var ints = winners.Select(g => int.Parse(g)).ToList();
 
+            all.AddRange(ints);
             maxes.Add(ints.Max());
-            mins.Add(ints.Min());
-            //Debug.Log(string.Join(",", winners.ToArray()) + " max: " + ints.Max() + " min: " + ints.Min());
+            mins.Add(Min(ints));
         }
-        Debug.Log("max max: " + maxes.Max() + ", min max: " + maxes.Min());
-        Debug.Log("max min: " + mins.Max() + ", min min: " + mins.Min());
+        Debug.Log("max max: " + maxes.Max() + ", min max: " + Min(maxes));
+        Debug.Log("max min: " + mins.Max() + ", min min: " + Min(mins));
+        Debug.Log("max all: " + all.Max() + ", min all: " + Min(all));
+
+        //Debug.Log("all:  " + string.Join(",",  all.OrderBy(x => x).Select(x => x.ToString()).Take(30).ToArray()));
+        //Debug.Log("mins: " + string.Join(",", mins.OrderBy(x => x).Select(x => x.ToString()).Take(30).ToArray()));
 
         var groups = all.GroupBy(i => i);
 
-        foreach(var group in groups.OrderByDescending(g => g.Key))
+        foreach (var group in groups.OrderByDescending(g => g.Key))
         {
-            Debug.Log((group.Key.ToString()).PadRight(5) + 
-                (" (" + group.Count().ToString() + ")").PadRight(8) + 
-                "".PadRight(group.Count() * 80/runs, '|'));
+            Debug.Log((group.Key.ToString()).PadRight(5) +
+                (" (" + group.Count().ToString() + ")").PadRight(8) +
+                "".PadRight(group.Count() * 80 / runs, '|'));
         }
 
-        Assert.Less(mins.Min(), 0);
+        return all;
+    }
+
+    private int Min(List<int> ints)
+    {
+        return ints.Min();
     }
 }
