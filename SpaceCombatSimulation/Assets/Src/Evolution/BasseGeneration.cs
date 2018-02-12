@@ -51,7 +51,11 @@ namespace Assets.Src.Evolution
         /// <returns>List of genomes</returns>
         public IEnumerable<string> PickWinners(int WinnersCount)
         {
-            return _baseIndividuals.OrderByDescending(i => i.AverageScore).ThenBy(i => _rng.NextDouble()).Take(WinnersCount).Select(i => i.Genome);
+            return _baseIndividuals.OrderByDescending(i => {
+                var randomNumber = 0.5 - _rng.NextDouble();
+                //UnityEngine.Debug.Log(randomNumber);
+                return i.AverageScore * randomNumber;
+                }).Take(WinnersCount).Select(i => i.Genome);
         }
 
         public override string ToString()
