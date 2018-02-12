@@ -11,7 +11,7 @@ namespace Assets.src.Evolution
     /// <summary>
     /// Class for storing a generation where each ship fights one other.
     /// </summary>
-    public class Generation1v1 : IGeneration
+    public class Generation1v1 : BasseGeneration
     {
         private System.Random _rng = new System.Random();
         public List<Individual1v1> Individuals = new List<Individual1v1>();
@@ -31,12 +31,7 @@ namespace Assets.src.Evolution
             AddGenomes(lines);
         }
 
-        public int CountIndividuals()
-        {
-            return Individuals.Count;
-        }
-
-        public bool AddGenome(string genome)
+        public override bool AddGenome(string genome)
         {
             if (Individuals.Any(i => i.Genome == genome))
             {
@@ -70,17 +65,12 @@ namespace Assets.src.Evolution
             Individuals = Individuals.OrderByDescending(i => i.AverageScore).ToList();
         }
 
-        public int MinimumMatchesPlayed
+        protected override IEnumerable<BaseIndividual> _baseIndividuals
         {
             get
             {
-                return Individuals.Min(i => i.MatchesPlayed);
+                return Individuals.Select(i => i as BaseIndividual);
             }
-        }
-
-        public IEnumerable<string> PickWinners(int WinnersCount)
-        {
-            return Individuals.OrderByDescending(i => i.AverageScore).ThenBy(i => _rng.NextDouble()).Take(WinnersCount).Select(i => i.Genome);
         }
 
         /// <summary>
@@ -115,20 +105,6 @@ namespace Assets.src.Evolution
                 return best.Genome;
             }
             return null;
-        }
-
-        public override string ToString()
-        {
-            return string.Join(Environment.NewLine, Individuals.Select(i => i.ToString()).ToArray());
-        }
-
-        public int AddGenomes(List<string> Genomes)
-        {
-            foreach (var g in Genomes)
-            {
-                AddGenome(g);
-            }
-            return CountIndividuals();
         }
     }
 }

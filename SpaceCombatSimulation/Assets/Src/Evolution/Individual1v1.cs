@@ -12,7 +12,7 @@ namespace Assets.Src.Evolution
         public int Draws;
         public int Loses;
 
-        public int MatchesPlayed { get { return Wins + Draws + Loses; } }
+        public override int MatchesPlayed { get { return Wins + Draws + Loses; } set { throw new NotImplementedException("Cannot set MatchesPlayed on Individual1v1"); } }
 
         public List<string> PreviousCombatants = new List<string>();
 
@@ -26,21 +26,6 @@ namespace Assets.Src.Evolution
 
         public Individual1v1(SpeciesSummary summary) : base(summary)
         {
-        }
-
-        public float AverageScore
-        {
-            get
-            {
-                if (MatchesPlayed > 0)
-                {
-                    return Score / MatchesPlayed;
-                }
-                else
-                {
-                    return 0;
-                }
-            }
         }
 
         public string PreviousCombatantsString {

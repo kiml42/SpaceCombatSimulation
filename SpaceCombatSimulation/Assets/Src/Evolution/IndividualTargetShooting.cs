@@ -8,7 +8,7 @@ namespace Assets.Src.Evolution
 {
     public class IndividualTargetShooting : BaseIndividual
     {
-        public int MatchesPlayed;
+        public override int MatchesPlayed { get; set; }
         public int MatchesSurvived;
         public int CompleteKills;
         public int TotalKills;
@@ -24,21 +24,6 @@ namespace Assets.Src.Evolution
 
         public IndividualTargetShooting(SpeciesSummary summary) : base(summary)
         {
-        }
-
-        public float AverageScore
-        {
-            get
-            {
-                if (MatchesPlayed > 0)
-                {
-                    return Score / MatchesPlayed;
-                }
-                else
-                {
-                    return 0;
-                }
-            }
         }
 
         public string MatchScoresString {

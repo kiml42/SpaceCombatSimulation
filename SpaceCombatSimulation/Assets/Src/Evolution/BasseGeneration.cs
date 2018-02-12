@@ -1,0 +1,62 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace Assets.Src.Evolution
+{
+    public abstract class BasseGeneration
+    {
+        private Random _rng = new Random();
+
+        protected abstract IEnumerable<BaseIndividual> _baseIndividuals { get; }
+
+        public int CountIndividuals()
+        {
+            return _baseIndividuals.Count();
+        }
+
+        /// <summary>
+        /// Adds a new individual with the given genome.
+        /// Does nothing in the case of a duplicate
+        /// </summary>
+        /// <param name="genome"></param>
+        /// <returns>Successfully added - false id genome already present.</returns>
+        public abstract bool AddGenome(string genome);
+
+        /// <summary>
+        /// Adds the given genomes to the generation
+        /// </summary>
+        /// <param name="Genomes"></param>
+        /// <returns>Count of individuals</returns>
+        public int AddGenomes(List<string> Genomes)
+        {
+            foreach(var genome in Genomes)
+            {
+                AddGenome(genome);
+            }
+            return _baseIndividuals.Count();
+        }
+
+        /// <summary>
+        /// The lowest number of matches played by any individual
+        /// </summary>
+        /// <returns></returns>
+        public int MinimumMatchesPlayed { get { return _baseIndividuals.Min(i => i.MatchesPlayed); } }
+
+        /// <summary>
+        /// Picks the given number of individuals with the best scores.
+        /// </summary>
+        /// <param name="WinnersCount"></param>
+        /// <returns>List of genomes</returns>
+        public IEnumerable<string> PickWinners(int WinnersCount)
+        {
+            return _baseIndividuals.OrderByDescending(i => i.AverageScore).ThenBy(i => _rng.NextDouble()).Take(WinnersCount).Select(i => i.Genome);
+        }
+
+        public override string ToString()
+        {
+            return string.Join(Environment.NewLine, _baseIndividuals.Select(i => i.ToString()).ToArray());
+        }
+    }
+}

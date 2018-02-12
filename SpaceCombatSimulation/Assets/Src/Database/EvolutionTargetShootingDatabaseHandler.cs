@@ -187,7 +187,6 @@ namespace Assets.Src.Database
                     while (reader.Read())
                     {
                         //Debug.Log("genome ordinal: " + reader.GetOrdinal("genome"));  //-1
-                        var genome = reader.GetString(reader.GetOrdinal("genome"));
                         var individual = new IndividualTargetShooting(ReadSpeciesSummary(reader))
                         {
                             Score = reader.GetFloat(reader.GetOrdinal("score")),

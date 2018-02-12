@@ -11,7 +11,7 @@ namespace Assets.src.Evolution
     /// <summary>
     /// Class for storing a generation where each ship fights one other.
     /// </summary>
-    public class GenerationTargetShooting : IGeneration
+    public class GenerationTargetShooting : BasseGeneration
     {
         private System.Random _rng = new System.Random();
         public List<IndividualTargetShooting> Individuals = new List<IndividualTargetShooting>();
@@ -31,12 +31,7 @@ namespace Assets.src.Evolution
             AddGenomes(lines);
         }
 
-        public int CountIndividuals()
-        {
-            return Individuals.Count;
-        }
-
-        public bool AddGenome(string genome)
+        public override bool AddGenome(string genome)
         {
             if (Individuals.Any(i => i.Genome == genome))
             {
@@ -51,27 +46,14 @@ namespace Assets.src.Evolution
             var individual = Individuals.First(i => i.Genome == contestant.Genome);
             individual.Finalise(contestant);
             individual.RecordMatch(finalScore, survived, killedEverything, killsThisMatch);
-
-            SortGeneration();
         }
 
-        public int MinimumMatchesPlayed
+        protected override IEnumerable<BaseIndividual> _baseIndividuals
         {
             get
             {
-                return Individuals.Min(i => i.MatchesPlayed);
+                return Individuals.Select(i => i as BaseIndividual);
             }
-        }
-
-        public IEnumerable<string> PickWinners(int WinnersCount)
-        {
-            return SortGeneration().Take(WinnersCount).Select(i => i.Genome);
-        }
-
-        private IEnumerable<IndividualTargetShooting> SortGeneration()
-        {
-            Individuals = Individuals.OrderByDescending(i => i.AverageScore).ThenByDescending(i => i.MatchesPlayed).ThenBy(i => _rng.NextDouble()).ToList();
-            return Individuals;
         }
 
         /// <summary>
@@ -95,20 +77,5 @@ namespace Assets.src.Evolution
             }
             return null;
         }
-
-        public override string ToString()
-        {
-            return string.Join(Environment.NewLine, Individuals.Select(i => i.ToString()).ToArray());
-        }
-
-        public int AddGenomes(List<string> Genomes)
-        {
-            foreach (var g in Genomes)
-            {
-                AddGenome(g);
-            }
-            return CountIndividuals();
-        }
-
     }
 }

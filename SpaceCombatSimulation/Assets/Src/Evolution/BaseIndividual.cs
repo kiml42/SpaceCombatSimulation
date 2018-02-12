@@ -10,6 +10,23 @@
         public SpeciesSummary Summary { get; private set; }
 
         public float Score { get; set; }
+        
+        public abstract int MatchesPlayed { get; set; }
+
+        public float AverageScore
+        {
+            get
+            {
+                if (MatchesPlayed > 0)
+                {
+                    return Score / MatchesPlayed;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+        }
 
         /// <summary>
         /// creates an incomplete individual (before the configuration has been run)
