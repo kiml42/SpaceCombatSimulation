@@ -9,7 +9,7 @@ Z - make the ship cam follow a different object.
 R - cycle reticle state
 
 Filter and sort individuals in DB:
-    runConfigId = 2 ORDER BY generation DESC, score DESC;
+    runConfigId = 2 ORDER BY generation DESC, score DESC LIMIT 200;
 
 Limerick;
 There once was a man from Toronto
