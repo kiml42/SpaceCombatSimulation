@@ -63,6 +63,8 @@ public class ShipCamSideView : MonoBehaviour, IKnowsCurrentTarget
     /// </summary>
     public float NearlyAimedAngle = 3;
 
+    public float AngleProportion = 1.6f;
+
     public float MinShowDistanceDistance = 20;
 
     private Rigidbody _rigidbody;
@@ -203,14 +205,20 @@ public class ShipCamSideView : MonoBehaviour, IKnowsCurrentTarget
                 //Debug.Log("Following " + _followedTarget.Transform.name + ", Watching " + _targetToWatch.Transform.name);
                 transform.rotation = desiredOrientation;
 
-                var setBack = vectorBetweenWatchedObjects.magnitude * 2;
+                var setBack = vectorBetweenWatchedObjects.magnitude * 3;
 
                 Camera.transform.position = desiredLocation - transform.forward * setBack;
 
                 var cameraToTargetVector = TargetToWatch.transform.position - Camera.transform.position;
+                var cameraToFollowedVector = FollowedTarget.transform.position - Camera.transform.position;
 
-                var desiredAngle = Vector3.Angle(Camera.transform.forward, cameraToTargetVector) * 1.3;
-                var angle = Clamp((float)(desiredAngle), 1, 90);
+                var baseAngle = Math.Max(
+                    Vector3.Angle(Camera.transform.forward, cameraToTargetVector),
+                    Vector3.Angle(Camera.transform.forward, cameraToFollowedVector)
+                    );
+
+                var desiredAngle = baseAngle * AngleProportion;
+                var angle = Clamp(desiredAngle, 1, 90);
                 Camera.fieldOfView = angle;
             }
         }
