@@ -115,7 +115,7 @@ public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
         _tagPicker = new HasTagTargetPicker(null);
         _currentlyFollowingPicker = new PreviousTargetPicker(this)
         {
-            AdditionalScore = AdditionalScoreForSameTagOrCurrentlyFllowed
+            BonusScore = AdditionalScoreForSameTagOrCurrentlyFllowed
         };
 
         var watchPickers = new List<ITargetPicker>

@@ -128,7 +128,7 @@ public class SpaceShipControler : MonoBehaviour, IDeactivatable, IGeneticConfigu
     private float DefaultMaxAndMinRangeProportion = 0.1f;
     private float MaxVelociyTollerance = 100;
     private float DefaultVelociyTolleranceProportion = 0.1f;
-    private float MaxAngularDragForTorquers = 1;
+    private float MaxAngularDragForTorquers = 2;
     private float DefaultAngularDragForTorquersProportion = 0.2f;
 
     public GenomeWrapper Configure(GenomeWrapper genomeWrapper)

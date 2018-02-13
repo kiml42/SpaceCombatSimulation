@@ -101,6 +101,9 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
 
     [Header("Approaching")]
     public float PickerApproachWeighting = 20;
+
+    [Header("Approaching")]
+    public float PreviousTargetBonus = 500;
     #endregion
 
     #region knowsCurrentTarget
@@ -188,6 +191,11 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
             pickers.Add(new ApproachingTargetPicker(_rigidbody, PickerApproachWeighting));
         }
 
+        if(PreviousTargetBonus != 0)
+        {
+            pickers.Add(new PreviousTargetPicker(this, PreviousTargetBonus ));
+        }
+
         _targetPicker = new CombinedTargetPicker(pickers);
     }
 	
@@ -199,17 +207,21 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
 
             if (targetIsInvalid || (ContinuallyCheckForTargets && _pollCountdonwn <= 0))
             {
+                //either the target is invalid, or the poll interval has elapsed and the ContinuallyCheckForTargets boolean is true, so a new poll should be made.
                 if (EnemyTags == null || !EnemyTags.Any())
                 {
                     Debug.LogWarning(name + " has no enemy tags configured.");
                 }
-                //either the target is invalid, or the poll interval has elapsed and the ContinuallyCheckForTargets boolean is true, so a new poll should be made.
                 //Debug.Log(name + " aquiring new target");
                 var allTargets = _detector.DetectTargets();
                 var bestTarget = _targetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).FirstOrDefault();
-                //Debug.Log(transform.name + " is targeting " + bestTarget.Transform);
-                CurrentTarget = bestTarget;
-                if (bestTarget != null && NeverRetarget)
+                if(TargetHasChanged(bestTarget, CurrentTarget))
+                {
+                    LogTargetChange(CurrentTarget, bestTarget, targetIsInvalid);
+                    
+                    CurrentTarget = bestTarget;
+                }
+                if (CurrentTarget != null && NeverRetarget)
                 {
                     Deactivate();   //never try to find a new target, so deactivate
                 }
@@ -222,6 +234,42 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
         }
     }
 
+    private bool TargetHasChanged(Target old, Target newTarget)
+    {
+        if(old == newTarget)
+        {
+            //covers both are null
+            return false;
+        }
+        if(old == null && newTarget != null || old != null && newTarget == null)
+        {
+            return true;
+        }
+        return old.Transform != newTarget.Transform;
+    }
+
+    private void LogTargetChange(Target old, PotentialTarget newTarget, bool oldWasInvalid)
+    {
+        var log = transform.name + " has started targeting ";
+        if (newTarget != null)
+        {
+            log += newTarget.Transform.name + " (score=" + newTarget.Score + ") at " + newTarget.Transform.position;
+        } else
+        {
+            log += "nothing";
+        }
+        if (oldWasInvalid)
+        {
+            log += " because the previous target was invalid";
+        } else if (old != null)
+        {
+            log += ". Previously " + old.Transform.name + " at " + old.Transform.position;
+            Debug.Log(log); //log only retargets.
+            return;
+        }
+        //Debug.Log(log);
+    }
+
     public void Deactivate()
     {
         _active = false;
@@ -229,7 +277,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
 
     public bool GetConfigFromGenome = true;
 
-    private float MaxBonus = 180;
+    private float MaxBonus = 1800;
     private float MaxMultiplier = 100;
 
     public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
@@ -248,6 +296,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
             MinLineOfSightDetectionDistance = genomeWrapper.GetScaledNumber(10);
             PickerAimedAtMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
             PickerApproachWeighting = genomeWrapper.GetScaledNumber(15);
+            PreviousTargetBonus = genomeWrapper.GetScaledNumber(MaxBonus);
 
             EnemyTags = genomeWrapper.EnemyTags;
             _detector = new RepositoryTargetDetector()

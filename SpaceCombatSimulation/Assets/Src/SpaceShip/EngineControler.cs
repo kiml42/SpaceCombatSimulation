@@ -107,7 +107,7 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
         }
         if (FuelTank == null)
         {
-            Debug.LogWarning(transform.name + " found no fuel tank - INFINITE FUEL!");
+            Debug.Log(transform.name + " found no fuel tank - INFINITE FUEL!");
         }
         if(ForceApplier == null)
         {

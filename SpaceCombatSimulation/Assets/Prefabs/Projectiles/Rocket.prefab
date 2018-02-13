@@ -814,7 +814,7 @@ MonoBehaviour:
   FuelDensity: 0.001
   GetConfigFromGenome: 1
   MaxFuel: 200
-  MinFuel: 0
+  MinFuel: 50
 --- !u!114 &114310481633652866
 MonoBehaviour:
   m_ObjectHideFlags: 1

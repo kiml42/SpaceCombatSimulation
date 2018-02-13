@@ -29,7 +29,8 @@ TODO:
                 Graphs of both against generations, possibly moving sums/averages.
                     Mouse-overs reveal the species/subspecies (possibly include creating a model of one to show what it looked like.)
     Priority:
-        Randomise winners selection - weighted by score.
+        Add previous target picker to the target choosing mechanism.
+        Async
         Side view mode for camera
         Find an easy way to delete individuals.
         Better defaults for evolution configs in the menus.

@@ -67,7 +67,7 @@ namespace Assets.src.Evolution
                     mutant = GenerateCompletelyRandomGenome();
                 }
 
-                Debug.Log(mutant + " spawn of " + baseGenome + " is born");
+                //Debug.Log(mutant + " spawn of " + baseGenome + " is born");
                 generation.Add(mutant);
                 generation = generation.Distinct().ToList();
                 //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());

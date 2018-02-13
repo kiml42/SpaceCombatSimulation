@@ -157,7 +157,7 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
             {
                 _killsThisMatch += killedDrones;
                 var scorePerKill = (_matchControl.RemainingTime() * _config.KillScoreMultiplier) + _config.FlatKillBonus;
-                Debug.Log(killedDrones + " drones killed this interval for " + scorePerKill + " each.");
+                //Debug.Log(killedDrones + " drones killed this interval for " + scorePerKill + " each.");
                 CurrentScore += killedDrones * scorePerKill;
             }
             _previousDroneCount = droneCount;
