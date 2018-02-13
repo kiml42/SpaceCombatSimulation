@@ -28,10 +28,14 @@ TODO:
                 This would ideally be recorded in the genome as the ship is built (species can be derived from subspecies) and stored in the DB, could also be calculated after by building the ship and then destroying it (could only run analysis of species in unity).
                 Graphs of both against generations, possibly moving sums/averages.
                     Mouse-overs reveal the species/subspecies (possibly include creating a model of one to show what it looked like.)
+        Side view mode for camera
+            Make both sort of ship cams calculate locations and orientations and camera viewing angles
+            Make simple camera controller that can get its locationa and orientations from the camera controllers - this will handle moving smoothly to the targets.
+            Add a separate component for picking a list of prioritised targets to look at and to follow.
+            Move HUD overlays into a separate controller. (on camera itself?)
     Priority:
         Add previous target picker to the target choosing mechanism.
         Async
-        Side view mode for camera
         Find an easy way to delete individuals.
         Better defaults for evolution configs in the menus.
         Master targeting contrller on spaceships with which other targeters can register to have a list of everything being targeted by that ship.
