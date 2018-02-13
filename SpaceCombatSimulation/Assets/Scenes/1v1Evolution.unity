@@ -152,6 +152,10 @@ Prefab:
       propertyPath: m_RootOrder
       value: 3
       objectReference: {fileID: 0}
+    - target: {fileID: 1452437122874096, guid: 4b859b23543de9c4fa4e8d2403b1dcd6, type: 2}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 4b859b23543de9c4fa4e8d2403b1dcd6, type: 2}
   m_IsPrefabParent: 0
@@ -160,6 +164,52 @@ Light:
   m_PrefabParentObject: {fileID: 108735939666816164, guid: 590da46f61a57f34ba77094de519068c,
     type: 2}
   m_PrefabInternal: {fileID: 1615456727}
+--- !u!1001 &1305378925
+Prefab:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 4460618022728516, guid: 1c8f370ffb19bbd49b6b4c4c6dc73e38, type: 2}
+      propertyPath: m_LocalPosition.x
+      value: -2000
+      objectReference: {fileID: 0}
+    - target: {fileID: 4460618022728516, guid: 1c8f370ffb19bbd49b6b4c4c6dc73e38, type: 2}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4460618022728516, guid: 1c8f370ffb19bbd49b6b4c4c6dc73e38, type: 2}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4460618022728516, guid: 1c8f370ffb19bbd49b6b4c4c6dc73e38, type: 2}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4460618022728516, guid: 1c8f370ffb19bbd49b6b4c4c6dc73e38, type: 2}
+      propertyPath: m_LocalRotation.y
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 4460618022728516, guid: 1c8f370ffb19bbd49b6b4c4c6dc73e38, type: 2}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4460618022728516, guid: 1c8f370ffb19bbd49b6b4c4c6dc73e38, type: 2}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 4460618022728516, guid: 1c8f370ffb19bbd49b6b4c4c6dc73e38, type: 2}
+      propertyPath: m_RootOrder
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 1333708814730052, guid: 1c8f370ffb19bbd49b6b4c4c6dc73e38, type: 2}
+      propertyPath: m_Name
+      value: ShipCamSideView (1)
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+  m_ParentPrefab: {fileID: 100100000, guid: 1c8f370ffb19bbd49b6b4c4c6dc73e38, type: 2}
+  m_IsPrefabParent: 0
 --- !u!1001 &1388345614
 Prefab:
   m_ObjectHideFlags: 0
@@ -244,11 +294,6 @@ Prefab:
     - target: {fileID: 1406041262789598, guid: 590da46f61a57f34ba77094de519068c, type: 2}
       propertyPath: m_Name
       value: EvolvingWorldController1V1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
-        type: 2}
-      propertyPath: DatabaseId
-      value: 5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 590da46f61a57f34ba77094de519068c, type: 2}

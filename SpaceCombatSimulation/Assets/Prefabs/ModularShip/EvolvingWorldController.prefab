@@ -845,7 +845,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3dff911269bfe564ba0a3d2fd1db1d11, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DatabaseId: 0
+  DatabaseId: 3
   ShipConfig: {fileID: 114162882494618574}
   MaxShootAngle: 180
   MaxTorqueMultiplier: 60000
