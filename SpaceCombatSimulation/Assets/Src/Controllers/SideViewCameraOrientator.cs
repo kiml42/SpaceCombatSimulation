@@ -8,15 +8,12 @@ using Assets.Src.Interfaces;
 using Assets.Src.Targeting;
 using Assets.Src.Targeting.TargetPickers;
 using Assets.Src.ObjectManagement;
-using Assets.Src.Controllers;
 
 
 namespace Assets.Src.Controllers
 {
-    public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
+    public class SideViewCameraOrientator : BaseCameraOrientator
     {
-        private IEnumerable<BaseCameraOrientator> _cameraModes;
-
         /// <summary>
         /// tag of a child object of a fhing to watch or follow.
         /// </summary>
@@ -65,15 +62,11 @@ namespace Assets.Src.Controllers
         public float AdditionalScoreForSameTagOrCurrentlyFllowed = -100000;
 
         /// <summary>
-        /// The distance the camera is trying to zoom in to to see well.
-        /// Should be private, but exposed for debuging reasons.
-        /// </summary>
-        public float _focusDistance = 0;
-
-        /// <summary>
         /// when the parent is within this angle of looking at the watched object, the camera tself starts tracking.
         /// </summary>
         public float NearlyAimedAngle = 3;
+
+        public float AngleProportion = 1.6f;
 
         public float MinShowDistanceDistance = 20;
 
@@ -110,16 +103,25 @@ namespace Assets.Src.Controllers
             }
         }
 
+        public override Vector3? ParentLocationTarget
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public override Vector3? CameraLocationTarget => throw new NotImplementedException();
+
+        public override Quaternion? ParentOrientationTarget => throw new NotImplementedException();
+
+        public override Quaternion? CameraOrientationTarget => throw new NotImplementedException();
+
+        public override float? CameraFieldOfView => throw new NotImplementedException();
+
         // Use this for initialization
         void Start()
         {
-            _cameraModes = GetComponents<BaseCameraOrientator>();
-
-            foreach (var cam in _cameraModes)
-            {
-                cam.RegisterOwner(this);
-            }
-
             _rigidbody = GetComponent<Rigidbody>();
             _detector = new ChildTagTargetDetector
             {
@@ -186,13 +188,17 @@ namespace Assets.Src.Controllers
         }
 
         // Update is called once per frame
-        void FixedUpdate()
+        void Update()
         {
+
+            if (Input.GetKeyUp(KeyCode.R))
+            {
+                CycleReticleState();
+            }
             if (Input.GetKeyUp(KeyCode.Z))
             {
                 PickRandomToFollow();
             }
-
             else if (FollowedTarget == null)
             {
                 PickBestTargetToFollow();
@@ -200,54 +206,44 @@ namespace Assets.Src.Controllers
 
             if (FollowedTarget != null)
             {
-                //Debug.Log("following " + _followedTarget.Transform);
-                var totalTranslateSpeed = TranslateSpeed;
-                if (FollowedTarget != null && FollowedObjectTranslateSpeedMultiplier != 0)
-                {
-                    totalTranslateSpeed += FollowedObjectTranslateSpeedMultiplier * FollowedTarget.velocity.magnitude;
-                }
-                transform.position = Vector3.Slerp(transform.position, FollowedTarget.position, Time.deltaTime * totalTranslateSpeed);
-
                 PickTargetToWatch();
                 if (TargetToWatch != null && FollowedTarget != TargetToWatch)
                 {
+                    var desiredLocation = (TargetToWatch.position + FollowedTarget.position) / 2;
+
+                    transform.position = desiredLocation;
+
+                    var vectorBetweenWatchedObjects = TargetToWatch.position - transform.position;
+
+                    var desiredOrientation = Quaternion.LookRotation(
+                            new Vector3(
+                                vectorBetweenWatchedObjects.z,
+                                vectorBetweenWatchedObjects.y,
+                                vectorBetweenWatchedObjects.x
+                            )
+                        );
+
+
                     //Debug.Log("Following " + _followedTarget.Transform.name + ", Watching " + _targetToWatch.Transform.name);
-                    //rotate enpty parent
-                    var direction = (TargetToWatch.position - transform.position).normalized;
-                    var lookRotation = Quaternion.LookRotation(direction);
-                    transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * RotationSpeed);
+                    transform.rotation = desiredOrientation;
 
-                    //move the focus
-                    _focusDistance = Mathf.Lerp(_focusDistance, Vector3.Distance(transform.position, TargetToWatch.position), Time.deltaTime * FocusMoveSpeed);
+                    var setBack = vectorBetweenWatchedObjects.magnitude * 3;
 
-                    if (Quaternion.Angle(lookRotation, transform.rotation) < NearlyAimedAngle)
-                    {
-                        //rotate the camera itself - only if the parent is looking in vaguely the right direction.
-                        direction = (TargetToWatch.position - Camera.transform.position).normalized;
-                        lookRotation = Quaternion.LookRotation(direction);
-                        Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, lookRotation, Time.deltaTime * RotationSpeed * 0.3f);
-                    }
-                }
-                else
-                {
-                    //Debug.Log("Nothing to watch");
-                    IdleRotation();
+                    Camera.transform.position = desiredLocation - transform.forward * setBack;
+
+                    var cameraToTargetVector = TargetToWatch.transform.position - Camera.transform.position;
+                    var cameraToFollowedVector = FollowedTarget.transform.position - Camera.transform.position;
+
+                    var baseAngle = Math.Max(
+                        Vector3.Angle(Camera.transform.forward, cameraToTargetVector),
+                        Vector3.Angle(Camera.transform.forward, cameraToFollowedVector)
+                        );
+
+                    var desiredAngle = baseAngle * AngleProportion;
+                    var angle = Clamp(desiredAngle, 1, 90);
+                    Camera.fieldOfView = angle;
                 }
             }
-            else
-            {
-                //Debug.Log("Nothing to follow");
-                IdleRotation();
-            }
-            var angle = Clamp((float)(FocusAngleMultiplier * Math.Pow(_focusDistance, FocusAnglePower)), 1, 90);
-            Camera.fieldOfView = angle;
-            var setBack = SetbackIntercept - _focusDistance * SetBackMultiplier;
-            var camPosition = Camera.transform.localPosition;
-            camPosition.z = setBack;
-            Camera.transform.localPosition = camPosition;
-
-
-            //DrawHealthBars();
         }
 
         public void OnGUI()
@@ -302,13 +298,6 @@ namespace Assets.Src.Controllers
                     //Debug.Log(boxPosition.z + "--x--" + boxPosition.x + "----y--" + boxPosition.y);
                 }
             }
-        }
-
-        private void IdleRotation()
-        {
-            //Debug.Log("IdleRotation");
-            transform.rotation *= Quaternion.Euler(transform.up * IdleRotationSpeed);
-            _focusDistance = Mathf.Lerp(_focusDistance, DefaultFocusDistance, Time.deltaTime * FocusMoveSpeed);
         }
 
         private void PickTargetToWatch()

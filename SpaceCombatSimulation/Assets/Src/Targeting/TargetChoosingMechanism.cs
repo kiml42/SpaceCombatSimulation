@@ -217,7 +217,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
                 var bestTarget = _targetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).FirstOrDefault();
                 if(TargetHasChanged(bestTarget, CurrentTarget))
                 {
-                    LogTargetChange(CurrentTarget, bestTarget, targetIsInvalid);
+                    //LogTargetChange(CurrentTarget, bestTarget, targetIsInvalid);
                     
                     CurrentTarget = bestTarget;
                 }
