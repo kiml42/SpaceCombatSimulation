@@ -296,6 +296,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\Src\Controllers\ICameraOrientator.cs" />
+    <Compile Include="Assets\Src\Controllers\BaseCameraOrientator.cs" />
     <Compile Include="Assets\Src\Controllers\BeamTurretController.cs" />
     <Compile Include="Assets\Src\Controllers\GenericJointFriction.cs" />
     <Compile Include="Assets\Src\Controllers\HealthControler.cs" />
@@ -305,12 +307,13 @@
     <Compile Include="Assets\Src\Controllers\LampAndParticlesEffectController.cs" />
     <Compile Include="Assets\Src\Controllers\MultiBarelTurretController.cs" />
     <Compile Include="Assets\Src\Controllers\OverShoulderCameraOrientator.cs" />
-    <Compile Include="Assets\Src\Controllers\SideViewCameraOrientator.cs" />
     <Compile Include="Assets\Src\Controllers\ShipCam.cs" />
     <Compile Include="Assets\Src\Controllers\ShipTester.cs" />
+    <Compile Include="Assets\Src\Controllers\SideViewCameraOrientator.cs" />
     <Compile Include="Assets\Src\Controllers\SpawnProjectile.cs" />
     <Compile Include="Assets\Src\Controllers\SpawnTurret.cs" />
     <Compile Include="Assets\Src\Controllers\SphereExplosion.cs" />
+    <Compile Include="Assets\Src\Controllers\WeightedCameraOrientator.cs" />
     <Compile Include="Assets\Src\Controllers\WorldControler.cs" />
     <Compile Include="Assets\Src\Database\DatabaseInitialiser.cs" />
     <Compile Include="Assets\Src\Database\Evolution1v1DatabaseHandler.cs" />
@@ -344,7 +347,6 @@
     <Compile Include="Assets\Src\Evolution\SeciesSummary.cs" />
     <Compile Include="Assets\Src\Evolution\StringMutator.cs" />
     <Compile Include="Assets\Src\Health\DamagePacket.cs" />
-    <Compile Include="Assets\Src\Controllers\BaseCameraOrientator.cs" />
     <Compile Include="Assets\Src\Interfaces\IDeactivatable.cs" />
     <Compile Include="Assets\Src\Interfaces\IDeactivateableTargetPicker.cs" />
     <Compile Include="Assets\Src\Interfaces\IDestinationChooser.cs" />

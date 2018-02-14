@@ -44,48 +44,53 @@ namespace Assets.Src.Controllers
         
         public float DefaultFocusDistance = 200;
 
-        public override Vector3? ParentLocationTarget { get { return _shipCam.FollowedTarget.position; } }
+        public override Vector3 ParentLocationTarget { get { return _shipCam.FollowedTarget.position; } }
 
         public Transform DefaultCamLocation;
-        public override Vector3? CameraLocationTarget { get { return DefaultCamLocation.position; } }
+        private Vector3 _cameraLocationTarget;
+        public override Vector3 CameraLocationTarget { get { return _cameraLocationTarget; } }
 
-        public override Quaternion? ParentOrientationTarget { get { throw new NotImplementedException(); } }
+        private Quaternion _parentOrientationTarget;
+        public override Quaternion ParentOrientationTarget { get { return _parentOrientationTarget; } }
 
         private Quaternion _cameraOrientationTarget;
-        public override Quaternion? CameraOrientationTarget { get { return _cameraOrientationTarget; } }
+        public override Quaternion CameraOrientationTarget { get { return _cameraOrientationTarget; } }
 
-        public float? _cameraFieldOfView;
-        public override float? CameraFieldOfView { get { throw new NotImplementedException(); } }
+        public float _cameraFieldOfView;
+        public override float CameraFieldOfView { get { return _cameraFieldOfView; } }
         
+        public bool _hasTargets;
+        public override bool HasTargets { get { return _hasTargets; } }
+
         // Update is called once per frame
         void FixedUpdate()
         {
-            if (_shipCam.FollowedTarget != null)
-            {                
-                if (_shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch)
+            if (_shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch)
+            {
+                _hasTargets = true;
+                //Debug.Log("Following " + _followedTarget.Transform.name + ", Watching " + _targetToWatch.Transform.name);
+                //rotate enpty parent
+                var direction = (_shipCam.TargetToWatch.position - transform.position);
+                _parentOrientationTarget = Quaternion.LookRotation(direction);
+
+                //move the focus
+                _focusDistance = Mathf.Lerp(_focusDistance, Vector3.Distance(transform.position, _shipCam.TargetToWatch.position), Time.deltaTime * FocusMoveSpeed);
+
+                _cameraFieldOfView = Clamp((float)(FocusAngleMultiplier * Math.Pow(_focusDistance, FocusAnglePower)), 1, 90);
+
+                var setBack = SetbackIntercept - _focusDistance * SetBackMultiplier;
+                _cameraLocationTarget = DefaultCamLocation.position + (DefaultCamLocation.forward * setBack);
+
+                if (Quaternion.Angle(_cameraOrientationTarget, transform.rotation) < NearlyAimedAngle)
                 {
-                    //Debug.Log("Following " + _followedTarget.Transform.name + ", Watching " + _targetToWatch.Transform.name);
-                    //rotate enpty parent
-                    var direction = (_shipCam.TargetToWatch.position - transform.position).normalized;
-                    _cameraOrientationTarget = Quaternion.LookRotation(direction);
-
-                    //move the focus
-                    _focusDistance = Mathf.Lerp(_focusDistance, Vector3.Distance(transform.position, _shipCam.TargetToWatch.position), Time.deltaTime * FocusMoveSpeed);
-
-                    if (Quaternion.Angle(_cameraOrientationTarget, transform.rotation) < NearlyAimedAngle)
-                    {
-                        //rotate the camera itself - only if the parent is looking in vaguely the right direction.
-                        direction = (_shipCam.TargetToWatch.position - _shipCam.Camera.transform.position).normalized;
-                        _shipCam.Camera.transform.rotation = Quaternion.Slerp(_shipCam.Camera.transform.rotation, _cameraOrientationTarget, Time.deltaTime * _shipCam.RotationSpeed * 0.3f);
-                    }
+                    //rotate the camera itself - only if the parent is looking in vaguely the right direction.
+                    var camDirection = (_shipCam.TargetToWatch.position - _shipCam.Camera.transform.position);
+                    _cameraOrientationTarget = Quaternion.LookRotation(camDirection);
                 }
+            } else
+            {
+                _hasTargets = false;
             }
-            var angle = Clamp((float)(FocusAngleMultiplier * Math.Pow(_focusDistance, FocusAnglePower)), 1, 90);
-            _shipCam.Camera.fieldOfView = angle;
-            var setBack = SetbackIntercept - _focusDistance * SetBackMultiplier;
-            var camPosition = _shipCam.Camera.transform.localPosition;
-            camPosition.z = setBack;
-            _shipCam.Camera.transform.localPosition = camPosition;
         }
     }
 }

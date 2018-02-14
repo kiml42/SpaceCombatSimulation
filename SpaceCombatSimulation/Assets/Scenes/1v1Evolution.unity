@@ -113,7 +113,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1001 &798340242
+--- !u!1001 &171045604
 Prefab:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -151,10 +151,6 @@ Prefab:
     - target: {fileID: 4822790151158226, guid: 4b859b23543de9c4fa4e8d2403b1dcd6, type: 2}
       propertyPath: m_RootOrder
       value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 1452437122874096, guid: 4b859b23543de9c4fa4e8d2403b1dcd6, type: 2}
-      propertyPath: m_IsActive
-      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 4b859b23543de9c4fa4e8d2403b1dcd6, type: 2}
@@ -206,6 +202,10 @@ Prefab:
     - target: {fileID: 1333708814730052, guid: 1c8f370ffb19bbd49b6b4c4c6dc73e38, type: 2}
       propertyPath: m_Name
       value: ShipCamSideView (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 1333708814730052, guid: 1c8f370ffb19bbd49b6b4c4c6dc73e38, type: 2}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 1c8f370ffb19bbd49b6b4c4c6dc73e38, type: 2}

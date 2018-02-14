@@ -103,7 +103,7 @@ namespace Assets.Src.Controllers
             }
         }
 
-        public override Vector3? ParentLocationTarget
+        public override Vector3 ParentLocationTarget
         {
             get
             {
@@ -111,13 +111,21 @@ namespace Assets.Src.Controllers
             }
         }
 
-        public override Vector3? CameraLocationTarget => throw new NotImplementedException();
+        public override Vector3 CameraLocationTarget { get { throw new NotImplementedException(); } }
 
-        public override Quaternion? ParentOrientationTarget => throw new NotImplementedException();
+        public override Quaternion ParentOrientationTarget { get { throw new NotImplementedException(); } }
 
-        public override Quaternion? CameraOrientationTarget => throw new NotImplementedException();
+        public override Quaternion CameraOrientationTarget { get { throw new NotImplementedException(); } }
 
-        public override float? CameraFieldOfView => throw new NotImplementedException();
+        public override float CameraFieldOfView { get { throw new NotImplementedException(); } }
+
+        public override bool HasTargets
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
 
         // Use this for initialization
         void Start()
@@ -129,7 +137,7 @@ namespace Assets.Src.Controllers
             };
 
             _tagPicker = new HasTagTargetPicker(null);
-            _currentlyFollowingPicker = new PreviousTargetPicker(this)
+            _currentlyFollowingPicker = new PreviousTargetPicker(_shipCam)
             {
                 BonusScore = AdditionalScoreForSameTagOrCurrentlyFllowed
             };

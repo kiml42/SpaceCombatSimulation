@@ -6,15 +6,17 @@ using UnityEngine;
 
 namespace Assets.Src.Controllers
 {
-    public abstract class BaseCameraOrientator : MonoBehaviour
+    public abstract class BaseCameraOrientator : MonoBehaviour, ICameraOrientator
     {
         protected ShipCam _shipCam;
 
-        public abstract Vector3? ParentLocationTarget { get; }
-        public abstract Vector3? CameraLocationTarget { get; }
-        public abstract Quaternion? ParentOrientationTarget { get; }
-        public abstract Quaternion? CameraOrientationTarget { get; }
-        public abstract float? CameraFieldOfView { get; }
+        public abstract Vector3 ParentLocationTarget { get; }
+        public abstract Vector3 CameraLocationTarget { get; }
+        public abstract Quaternion ParentOrientationTarget { get; }
+        public abstract Quaternion CameraOrientationTarget { get; }
+        public abstract float CameraFieldOfView { get; }
+
+        public abstract bool HasTargets { get; }
 
         public void RegisterOwner(ShipCam shipcam)
         {

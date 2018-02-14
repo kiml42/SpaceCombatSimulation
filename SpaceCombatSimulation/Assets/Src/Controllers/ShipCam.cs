@@ -97,6 +97,8 @@ namespace Assets.Src.Controllers
 
         public ReticleState ShowReticles = ReticleState.ALL;
 
+        private ICameraOrientator _orientator;
+
         public Target CurrentTarget
         {
             get
@@ -114,6 +116,8 @@ namespace Assets.Src.Controllers
         void Start()
         {
             _cameraModes = GetComponents<BaseCameraOrientator>();
+
+            _orientator = new WeightedCameraOrientator(_cameraModes.ToList());
 
             foreach (var cam in _cameraModes)
             {
@@ -133,14 +137,14 @@ namespace Assets.Src.Controllers
             };
 
             var watchPickers = new List<ITargetPicker>
-        {
-            _tagPicker,
-            _currentlyFollowingPicker,
-            new ProximityTargetPicker(transform)
             {
-                KullInvalidTargets = false
-            }
-        };
+                _tagPicker,
+                _currentlyFollowingPicker,
+                new ProximityTargetPicker(transform)
+                {
+                    KullInvalidTargets = false
+                }
+            };
 
             if (_rigidbody != null)
             {
@@ -162,12 +166,12 @@ namespace Assets.Src.Controllers
             _watchPicker = new CombinedTargetPicker(watchPickers);
 
             var followPickers = new List<ITargetPicker>
-        {
-            new ProximityTargetPicker(transform)
             {
-                KullInvalidTargets = false
-            }
-        };
+                new ProximityTargetPicker(transform)
+                {
+                    KullInvalidTargets = false
+                }
+            };
 
             if (_rigidbody != null)
             {
@@ -198,56 +202,26 @@ namespace Assets.Src.Controllers
                 PickBestTargetToFollow();
             }
 
-            if (FollowedTarget != null)
+            PickTargetToWatch();
+
+            var totalTranslateSpeed = TranslateSpeed;
+            if (FollowedTarget != null && FollowedObjectTranslateSpeedMultiplier != 0)
             {
-                //Debug.Log("following " + _followedTarget.Transform);
-                var totalTranslateSpeed = TranslateSpeed;
-                if (FollowedTarget != null && FollowedObjectTranslateSpeedMultiplier != 0)
-                {
-                    totalTranslateSpeed += FollowedObjectTranslateSpeedMultiplier * FollowedTarget.velocity.magnitude;
-                }
-                transform.position = Vector3.Slerp(transform.position, FollowedTarget.position, Time.deltaTime * totalTranslateSpeed);
-
-                PickTargetToWatch();
-                if (TargetToWatch != null && FollowedTarget != TargetToWatch)
-                {
-                    //Debug.Log("Following " + _followedTarget.Transform.name + ", Watching " + _targetToWatch.Transform.name);
-                    //rotate enpty parent
-                    var direction = (TargetToWatch.position - transform.position).normalized;
-                    var lookRotation = Quaternion.LookRotation(direction);
-                    transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * RotationSpeed);
-
-                    //move the focus
-                    _focusDistance = Mathf.Lerp(_focusDistance, Vector3.Distance(transform.position, TargetToWatch.position), Time.deltaTime * FocusMoveSpeed);
-
-                    if (Quaternion.Angle(lookRotation, transform.rotation) < NearlyAimedAngle)
-                    {
-                        //rotate the camera itself - only if the parent is looking in vaguely the right direction.
-                        direction = (TargetToWatch.position - Camera.transform.position).normalized;
-                        lookRotation = Quaternion.LookRotation(direction);
-                        Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, lookRotation, Time.deltaTime * RotationSpeed * 0.3f);
-                    }
-                }
-                else
-                {
-                    //Debug.Log("Nothing to watch");
-                    IdleRotation();
-                }
+                totalTranslateSpeed += FollowedObjectTranslateSpeedMultiplier * FollowedTarget.velocity.magnitude;
             }
-            else
+
+            if (_orientator.HasTargets)
             {
-                //Debug.Log("Nothing to follow");
+                transform.position = Vector3.Slerp(transform.position, _orientator.ParentLocationTarget, Time.deltaTime * totalTranslateSpeed);
+                transform.rotation = Quaternion.Slerp(transform.rotation, _orientator.ParentOrientationTarget, Time.deltaTime * RotationSpeed);
+                Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, _orientator.CameraOrientationTarget, Time.deltaTime * RotationSpeed * 0.3f);
+                Camera.fieldOfView = _orientator.CameraFieldOfView;
+                Camera.transform.position = _orientator.CameraLocationTarget;
+            }
+            else { 
                 IdleRotation();
             }
-            var angle = Clamp((float)(FocusAngleMultiplier * Math.Pow(_focusDistance, FocusAnglePower)), 1, 90);
-            Camera.fieldOfView = angle;
-            var setBack = SetbackIntercept - _focusDistance * SetBackMultiplier;
-            var camPosition = Camera.transform.localPosition;
-            camPosition.z = setBack;
-            Camera.transform.localPosition = camPosition;
-
-
-            //DrawHealthBars();
+            
         }
 
         public void OnGUI()
