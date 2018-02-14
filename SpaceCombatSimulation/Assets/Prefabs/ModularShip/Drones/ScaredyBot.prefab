@@ -559,6 +559,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -887,8 +888,6 @@ MonoBehaviour:
   TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
   ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
     type: 2}
-  OverrideColour: 1
-  ColourOverride: {r: 0.42745098, g: 0.105882354, b: 0.5372549, a: 1}
   SpawnPoints:
   - {fileID: 4359482471281970}
   - {fileID: 4983299594709834}
@@ -896,10 +895,13 @@ MonoBehaviour:
   - {fileID: 4008066721246052}
   - {fileID: 4921964856346530}
   - {fileID: 4339993213128444}
+  AllowedModuleIndicies: 
   Genome: '   1        2              1                  1        2             1        2               1        2                                                        '
   MaxTurrets: 10
   MaxModules: 15
   PadToLength: 100
+  OverrideColour: 1
+  ColourOverride: {r: 0.42745098, g: 0.105882354, b: 0.5372549, a: 1}
 --- !u!114 &114297067167645948
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -962,8 +964,8 @@ MonoBehaviour:
   MaxRange: 10000
   MinRange: 8000
   LocationAimWeighting: 1
-  MaxTangentialVelocity: 500
-  MinTangentialVelocity: 200
+  MaxTangentialVelocity: 200
+  MinTangentialVelocity: 50
   TangentialSpeedWeighting: 35
   Engine: {fileID: 0}
   Torquer: {fileID: 54564561303838756}
@@ -1002,6 +1004,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 0
   PickerAimingObject: {fileID: 0}
   PickerApproachWeighting: 50
+  PreviousTargetBonus: 500
   GetConfigFromGenome: 0
 --- !u!124 &124256286502460316
 Behaviour:

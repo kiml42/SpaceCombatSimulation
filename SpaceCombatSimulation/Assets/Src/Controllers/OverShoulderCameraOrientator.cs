@@ -9,18 +9,10 @@ using Assets.Src.Targeting;
 using Assets.Src.Targeting.TargetPickers;
 using Assets.Src.ObjectManagement;
 
-
 namespace Assets.Src.Controllers
 {
     public class OverShoulderCameraOrientator : BaseCameraOrientator
     {
-        /// <summary>
-        /// tag of a child object of a fhing to watch or follow.
-        /// </summary>
-        public List<string> MainTags = new List<string> { "SpaceShip" };
-        public List<string> SecondaryTags = new List<string> { "Projectile" };
-        private List<string> _tags = new List<string> { "SpaceShip", "Projectile" };
-
         /// <summary>
         /// rate at which the camera will zoom in and out.
         /// </summary>
@@ -41,8 +33,6 @@ namespace Assets.Src.Controllers
         /// when the parent is within this angle of looking at the watched object, the camera tself starts tracking.
         /// </summary>
         public float NearlyAimedAngle = 3;
-        
-        public float DefaultFocusDistance = 200;
 
         public override Vector3 ParentLocationTarget { get { return _shipCam.FollowedTarget.position; } }
 
@@ -81,11 +71,15 @@ namespace Assets.Src.Controllers
                 var setBack = SetbackIntercept - _focusDistance * SetBackMultiplier;
                 _cameraLocationTarget = DefaultCamLocation.position + (DefaultCamLocation.forward * setBack);
 
-                if (Quaternion.Angle(_cameraOrientationTarget, transform.rotation) < NearlyAimedAngle)
+
+                if (Quaternion.Angle(_parentOrientationTarget, transform.rotation) < NearlyAimedAngle)
                 {
                     //rotate the camera itself - only if the parent is looking in vaguely the right direction.
                     var camDirection = (_shipCam.TargetToWatch.position - _shipCam.Camera.transform.position);
                     _cameraOrientationTarget = Quaternion.LookRotation(camDirection);
+                } else
+                {
+                    _cameraOrientationTarget = _shipCam.Camera.transform.rotation;
                 }
             } else
             {
