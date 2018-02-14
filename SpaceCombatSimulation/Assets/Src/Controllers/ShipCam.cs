@@ -288,7 +288,10 @@ namespace Assets.Src.Controllers
         private void PickTargetToWatch()
         {
             //Debug.Log("to watch");
-            var knower = FollowedTarget.GetComponent<IKnowsCurrentTarget>();
+            IKnowsCurrentTarget knower = null;
+            if(FollowedTarget != null) {
+                knower = FollowedTarget.GetComponent<IKnowsCurrentTarget>();
+            }
             if (knower != null && knower.CurrentTarget != null)
             {
                 TargetToWatch = knower.CurrentTarget.Rigidbody;

@@ -37,12 +37,22 @@ namespace Assets.Src.Targeting
         public Target(Rigidbody target)
         {
             Rigidbody = target;
+            if(target == null)
+            {
+                Debug.LogWarning("Created target for null rigidbody");
+                return;
+            }
             Transform = target.transform;
         }
 
         public Target(Transform target)
         {
             Transform = target;
+            if (target == null)
+            {
+                Debug.LogWarning("Created target for null transform");
+                return;
+            }
             Rigidbody = target.GetComponent<Rigidbody>();
         }
 
