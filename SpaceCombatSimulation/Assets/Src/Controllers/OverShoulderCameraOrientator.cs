@@ -33,6 +33,8 @@ namespace Assets.Src.Controllers
         public override Vector3 CameraLocationTarget { get { return _cameraLocationTarget; } }
 
         private Quaternion _parentOrientationTarget;
+        private float _watchDistance;
+
         public override Quaternion ParentOrientationTarget { get { return _parentOrientationTarget; } }
 
         private Quaternion _cameraOrientationTarget;
@@ -43,6 +45,14 @@ namespace Assets.Src.Controllers
 
         private bool _hasTargets;
         public override bool HasTargets { get { return _hasTargets; } }
+        
+        public override float Priority
+        {
+            get
+            {
+                return _watchDistance * PriorityMultiplier;
+            }
+        }
 
         // Update is called once per frame
         void FixedUpdate()
@@ -55,8 +65,10 @@ namespace Assets.Src.Controllers
                 var direction = (_shipCam.TargetToWatch.position - transform.position);
                 _parentOrientationTarget = Quaternion.LookRotation(direction);
 
+                _watchDistance = Vector3.Distance(transform.position, _shipCam.TargetToWatch.position);
+
                 //move the focus
-                _focusDistance = Mathf.Lerp(_focusDistance, Vector3.Distance(transform.position, _shipCam.TargetToWatch.position), Time.deltaTime * FocusMoveSpeed);
+                _focusDistance = Mathf.Lerp(_focusDistance, _watchDistance, Time.deltaTime * FocusMoveSpeed);
 
                 _cameraFieldOfView = Clamp((float)(FocusAngleMultiplier * Math.Pow(_focusDistance, FocusAnglePower)), 1, 90);
 

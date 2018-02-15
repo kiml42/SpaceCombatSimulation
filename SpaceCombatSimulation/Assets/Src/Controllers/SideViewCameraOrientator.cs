@@ -22,6 +22,18 @@ namespace Assets.Src.Controllers
         private bool _hasTargets;
         public override bool HasTargets { get { return _hasTargets; } }
 
+        [Tooltip("The distance at which this Orientator starts to get a positive score.")]
+        public float MaxDistance = 3000;
+        public override float Priority
+        {
+            get
+            {
+                return (MaxDistance - _watchDistance) * PriorityMultiplier;
+            }
+        }
+
+        private float _watchDistance;
+
         public float AngleProportion = 1.6f;
         
         // Update is called once per frame
@@ -31,7 +43,7 @@ namespace Assets.Src.Controllers
             if (_hasTargets)
             {
                 _parentLocationTarget = (_shipCam.TargetToWatch.position + _shipCam.FollowedTarget.position) / 2;
-
+                
                 var vectorBetweenWatchedObjects = _shipCam.TargetToWatch.position - transform.position;
 
                 _parentAndCameraOrientationTarget = Quaternion.LookRotation(
@@ -42,7 +54,8 @@ namespace Assets.Src.Controllers
                         )
                     );
 
-                var setBack = vectorBetweenWatchedObjects.magnitude * 3;
+                _watchDistance = vectorBetweenWatchedObjects.magnitude;
+                var setBack = _watchDistance * 3;
 
                 _cameraLocationTarget = _parentLocationTarget - transform.forward * setBack;
 

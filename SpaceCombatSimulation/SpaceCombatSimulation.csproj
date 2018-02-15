@@ -314,7 +314,7 @@
     <Compile Include="Assets\Src\Controllers\SpawnProjectile.cs" />
     <Compile Include="Assets\Src\Controllers\SpawnTurret.cs" />
     <Compile Include="Assets\Src\Controllers\SphereExplosion.cs" />
-    <Compile Include="Assets\Src\Controllers\WeightedCameraOrientator.cs" />
+    <Compile Include="Assets\Src\Controllers\PriorityCameraOrientator.cs" />
     <Compile Include="Assets\Src\Controllers\WorldControler.cs" />
     <Compile Include="Assets\Src\Database\DatabaseInitialiser.cs" />
     <Compile Include="Assets\Src\Database\Evolution1v1DatabaseHandler.cs" />

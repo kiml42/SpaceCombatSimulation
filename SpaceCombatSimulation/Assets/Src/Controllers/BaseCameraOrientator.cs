@@ -11,6 +11,8 @@ namespace Assets.Src.Controllers
         public abstract Quaternion ParentOrientationTarget { get; }
         public abstract Quaternion CameraOrientationTarget { get; }
         public abstract float CameraFieldOfView { get; }
+        public float PriorityMultiplier = 1;
+        public abstract float Priority { get; }
 
         public abstract bool HasTargets { get; }
 

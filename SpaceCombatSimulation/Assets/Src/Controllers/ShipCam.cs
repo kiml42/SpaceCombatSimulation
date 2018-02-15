@@ -5,7 +5,6 @@ using Assets.Src.Interfaces;
 using Assets.Src.Targeting;
 using Assets.Src.Targeting.TargetPickers;
 
-
 namespace Assets.Src.Controllers
 {
     public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
@@ -61,6 +60,7 @@ namespace Assets.Src.Controllers
         public float IdleRotationSpeed = -0.05f;
         
         private ICameraOrientator _orientator;
+        public float ZoomSpeed = 2;
 
         public Target CurrentTarget
         {
@@ -80,7 +80,7 @@ namespace Assets.Src.Controllers
         {
             _cameraModes = GetComponents<BaseCameraOrientator>();
 
-            _orientator = new WeightedCameraOrientator(_cameraModes.ToList());
+            _orientator = new PriorityCameraOrientator(_cameraModes.ToList());
 
             foreach (var cam in _cameraModes)
             {
@@ -178,8 +178,8 @@ namespace Assets.Src.Controllers
                 transform.position = Vector3.Slerp(transform.position, _orientator.ParentLocationTarget, Time.deltaTime * totalTranslateSpeed);
                 transform.rotation = Quaternion.Slerp(transform.rotation, _orientator.ParentOrientationTarget, Time.deltaTime * RotationSpeed);
                 Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, _orientator.CameraOrientationTarget, Time.deltaTime * RotationSpeed * 0.3f);
-                Camera.fieldOfView = _orientator.CameraFieldOfView;
-                Camera.transform.position = _orientator.CameraLocationTarget;
+                Camera.fieldOfView = Mathf.LerpAngle(Camera.fieldOfView, _orientator.CameraFieldOfView, Time.deltaTime * ZoomSpeed * 0.3f);
+                Camera.transform.position = Vector3.Slerp(Camera.transform.position, _orientator.CameraLocationTarget, Time.deltaTime * totalTranslateSpeed);
             }
             else { 
                 IdleRotation();

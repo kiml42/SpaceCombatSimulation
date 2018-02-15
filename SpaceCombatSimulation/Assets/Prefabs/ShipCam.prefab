@@ -22,9 +22,9 @@ GameObject:
   - component: {fileID: 114217615723430598}
   - component: {fileID: 114722429569201848}
   - component: {fileID: 114657117113572014}
+  - component: {fileID: 114999490068584086}
   - component: {fileID: 33050143366594104}
   - component: {fileID: 23208142688241360}
-  - component: {fileID: 114999490068584086}
   m_Layer: 0
   m_Name: ShipCam
   m_TagString: Untagged
@@ -202,7 +202,7 @@ MeshRenderer:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1452437122874096}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -262,32 +262,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad345fb19f8229744818c9dfeb8b677a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  MainTags:
+  Tags:
   - SpaceShip
-  SecondaryTags:
   - Projectile
   RotationSpeed: 0.5
-  TranslateSpeed: 2
-  FollowedObjectTranslateSpeedMultiplier: 0
-  FocusMoveSpeed: 1
+  TranslateSpeed: 1.5
+  FollowedObjectTranslateSpeedMultiplier: 1
   Camera: {fileID: 20197087680658222}
-  FocusAnglePower: -0.67
-  FocusAngleMultiplier: 1000
-  SetbackIntercept: -70
-  SetBackMultiplier: 0.5
   ApproachTargetPickerWeighting: 20
   MinimumMass: 0
   AdditionalScoreForSameTagOrCurrentlyFllowed: -100000
-  _focusDistance: 0
-  NearlyAimedAngle: 3
-  MinShowDistanceDistance: 20
   FollowedTarget: {fileID: 0}
   TargetToWatch: {fileID: 0}
-  DefaultFocusDistance: 200
   IdleRotationSpeed: -0.05
-  ReticleTexture: {fileID: 2800000, guid: 14bf342960bd97948b0b45ba35ebf57f, type: 3}
-  HealthFGTexture: {fileID: 2800000, guid: 05d0476b5848f0441a101a2ccfa62101, type: 3}
-  HealthBGTexture: {fileID: 2800000, guid: 21488ce2c0d040c4a94c9999c6beee92, type: 3}
+  ZoomSpeed: 3
 --- !u!114 &114559164490886276
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -336,6 +324,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 656e578ec6ab3634fbfe9c8183a0b871, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  PriorityMultiplier: 1
+  MaxDistance: 3000
   AngleProportion: 1.6
 --- !u!114 &114682085724931116
 MonoBehaviour:
@@ -370,11 +360,12 @@ MonoBehaviour:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1452437122874096}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e16423326dfbf224e81c18bcdab95ca3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  PriorityMultiplier: 1
   FocusMoveSpeed: 1
   FocusAnglePower: -0.67
   FocusAngleMultiplier: 1000
