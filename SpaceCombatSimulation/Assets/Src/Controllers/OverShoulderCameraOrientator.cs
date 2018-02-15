@@ -46,18 +46,18 @@ namespace Assets.Src.Controllers
         private Quaternion _cameraOrientationTarget;
         public override Quaternion CameraOrientationTarget { get { return _cameraOrientationTarget; } }
 
-        public float _cameraFieldOfView;
+        private float _cameraFieldOfView;
         public override float CameraFieldOfView { get { return _cameraFieldOfView; } }
-        
-        public bool _hasTargets;
+
+        private bool _hasTargets;
         public override bool HasTargets { get { return _hasTargets; } }
 
         // Update is called once per frame
         void FixedUpdate()
         {
-            if (_shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch)
+            _hasTargets = _shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch;
+            if (_hasTargets)
             {
-                _hasTargets = true;
                 //Debug.Log("Following " + _followedTarget.Transform.name + ", Watching " + _targetToWatch.Transform.name);
                 //rotate enpty parent
                 var direction = (_shipCam.TargetToWatch.position - transform.position);
@@ -81,9 +81,6 @@ namespace Assets.Src.Controllers
                 {
                     _cameraOrientationTarget = _shipCam.Camera.transform.rotation;
                 }
-            } else
-            {
-                _hasTargets = false;
             }
         }
     }

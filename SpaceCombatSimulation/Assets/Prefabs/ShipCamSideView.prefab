@@ -54,6 +54,7 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4460618022728516}
+  - component: {fileID: 114702689849495524}
   - component: {fileID: 114790060924566476}
   - component: {fileID: 33450160680630726}
   - component: {fileID: 23785773821279364}
@@ -63,7 +64,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!1 &1446349678614924
 GameObject:
   m_ObjectHideFlags: 0
@@ -310,6 +311,44 @@ MonoBehaviour:
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
   m_DynamicPixelsPerUnit: 1
+--- !u!114 &114702689849495524
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1333708814730052}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ad345fb19f8229744818c9dfeb8b677a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  MainTags:
+  - SpaceShip
+  SecondaryTags:
+  - Projectile
+  RotationSpeed: 0.5
+  TranslateSpeed: 2
+  FollowedObjectTranslateSpeedMultiplier: 0
+  FocusMoveSpeed: 1
+  Camera: {fileID: 20528727289609720}
+  FocusAnglePower: -0.67
+  FocusAngleMultiplier: 1000
+  SetbackIntercept: -70
+  SetBackMultiplier: 0.5
+  ApproachTargetPickerWeighting: 20
+  MinimumMass: 0
+  AdditionalScoreForSameTagOrCurrentlyFllowed: -100000
+  _focusDistance: 0
+  NearlyAimedAngle: 3
+  MinShowDistanceDistance: 20
+  FollowedTarget: {fileID: 0}
+  TargetToWatch: {fileID: 0}
+  DefaultFocusDistance: 200
+  IdleRotationSpeed: -0.05
+  ReticleTexture: {fileID: 2800000, guid: 14bf342960bd97948b0b45ba35ebf57f, type: 3}
+  HealthFGTexture: {fileID: 2800000, guid: 05d0476b5848f0441a101a2ccfa62101, type: 3}
+  HealthBGTexture: {fileID: 2800000, guid: 21488ce2c0d040c4a94c9999c6beee92, type: 3}
+  ShowReticles: 2
 --- !u!114 &114790060924566476
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -321,32 +360,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 656e578ec6ab3634fbfe9c8183a0b871, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  MainTags:
-  - SpaceShip
-  SecondaryTags:
-  - Projectile
-  RotationSpeed: 0.5
-  TranslateSpeed: 2
-  FollowedObjectTranslateSpeedMultiplier: 0.5
-  FocusMoveSpeed: 0.8
-  Camera: {fileID: 20528727289609720}
-  FocusAnglePower: -0.65
-  FocusAngleMultiplier: 1000
-  SetbackIntercept: -40
-  SetBackMultiplier: 0.4
-  ApproachTargetPickerWeighting: 20
-  MinimumMass: 0
-  AdditionalScoreForSameTagOrCurrentlyFllowed: -100000
-  NearlyAimedAngle: 3
-  MinShowDistanceDistance: 20
-  FollowedTarget: {fileID: 0}
-  TargetToWatch: {fileID: 0}
-  DefaultFocusDistance: 500
-  IdleRotationSpeed: -0.15
-  ReticleTexture: {fileID: 2800000, guid: 14bf342960bd97948b0b45ba35ebf57f, type: 3}
-  HealthFGTexture: {fileID: 2800000, guid: 05d0476b5848f0441a101a2ccfa62101, type: 3}
-  HealthBGTexture: {fileID: 2800000, guid: 21488ce2c0d040c4a94c9999c6beee92, type: 3}
-  ShowReticles: 2
+  _cameraFieldOfView: 0
+  _hasTargets: 0
+  AngleProportion: 1.6
 --- !u!124 &124423953879570618
 Behaviour:
   m_ObjectHideFlags: 1
