@@ -39,7 +39,7 @@ namespace Assets.Src.Controllers
         // Update is called once per frame
         void Update()
         {
-            _hasTargets = _shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch;
+            _hasTargets = _shipCam != null && _shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch;
             if (_hasTargets)
             {
                 _parentLocationTarget = (_shipCam.TargetToWatch.position + _shipCam.FollowedTarget.position) / 2;

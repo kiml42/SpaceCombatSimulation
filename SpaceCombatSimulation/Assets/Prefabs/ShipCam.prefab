@@ -40,6 +40,7 @@ GameObject:
   - component: {fileID: 114217615723430598}
   - component: {fileID: 114722429569201848}
   - component: {fileID: 114657117113572014}
+  - component: {fileID: 114127339082602284}
   - component: {fileID: 114999490068584086}
   m_Layer: 0
   m_Name: ShipCam
@@ -154,7 +155,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1452437122874096}
   m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 3000, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4924564836931496}
@@ -293,6 +294,21 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1596262510301064}
   m_Enabled: 1
+--- !u!114 &114127339082602284
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1452437122874096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8f0086f47de8f548a710085861e5a0a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  PriorityMultiplier: 1
+  SetBack: 50
+  IdleRotationSpeed: -1500
+  FieldOfView: 80
 --- !u!114 &114217615723430598
 MonoBehaviour:
   m_ObjectHideFlags: 1

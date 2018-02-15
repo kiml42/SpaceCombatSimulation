@@ -57,7 +57,6 @@ namespace Assets.Src.Controllers
 
         private HasTagTargetPicker _tagPicker;
         private PreviousTargetPicker _currentlyFollowingPicker;
-        public float IdleRotationSpeed = -0.05f;
         
         private ICameraOrientator _orientator;
         public float ZoomSpeed = 2;
@@ -181,18 +180,8 @@ namespace Assets.Src.Controllers
                 Camera.fieldOfView = Mathf.LerpAngle(Camera.fieldOfView, _orientator.CameraFieldOfView, Time.deltaTime * ZoomSpeed * 0.3f);
                 Camera.transform.position = Vector3.Slerp(Camera.transform.position, _orientator.CameraLocationTarget, Time.deltaTime * totalTranslateSpeed);
             }
-            else { 
-                IdleRotation();
-            }
-            
         }
-
-        private void IdleRotation()
-        {
-            //Debug.Log("IdleRotation");
-            transform.rotation *= Quaternion.Euler(transform.up * IdleRotationSpeed);
-        }
-
+        
         private void PickTargetToWatch()
         {
             //Debug.Log("to watch");
