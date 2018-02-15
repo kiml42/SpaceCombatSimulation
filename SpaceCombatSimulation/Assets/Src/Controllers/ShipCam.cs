@@ -1,14 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using System.Linq;
-using System;
 using Assets.Src.Interfaces;
 using Assets.Src.Targeting;
 using Assets.Src.Targeting.TargetPickers;
-using Assets.Src.ObjectManagement;
-using Assets.Src.Controllers;
 
 
 namespace Assets.Src.Controllers
@@ -37,18 +32,8 @@ namespace Assets.Src.Controllers
         /// </summary>
         public float FollowedObjectTranslateSpeedMultiplier = 0;
 
-        /// <summary>
-        /// rate at which the camera will zoom in and out.
-        /// </summary>
-        public float FocusMoveSpeed = 1;
-
         public Camera Camera;
-
-        public float FocusAnglePower = -0.67f;
-        public float FocusAngleMultiplier = 1000;
-        public float SetbackIntercept = -70;
-        public float SetBackMultiplier = 0.5f;
-
+        
         public float ApproachTargetPickerWeighting = 20;
 
         /// <summary>
@@ -61,18 +46,7 @@ namespace Assets.Src.Controllers
         /// Used when picking a target to look at, if the object being followed doensn't have its own target.
         /// </summary>
         public float AdditionalScoreForSameTagOrCurrentlyFllowed = -100000;
-
-        /// <summary>
-        /// The distance the camera is trying to zoom in to to see well.
-        /// Should be private, but exposed for debuging reasons.
-        /// </summary>
-        public float _focusDistance = 0;
-
-        /// <summary>
-        /// when the parent is within this angle of looking at the watched object, the camera tself starts tracking.
-        /// </summary>
-        public float NearlyAimedAngle = 3;
-
+        
         private Rigidbody _rigidbody;
         private ITargetDetector _detector;
 
@@ -84,7 +58,6 @@ namespace Assets.Src.Controllers
 
         private HasTagTargetPicker _tagPicker;
         private PreviousTargetPicker _currentlyFollowingPicker;
-        public float DefaultFocusDistance = 200;
         public float IdleRotationSpeed = -0.05f;
         
         private ICameraOrientator _orientator;
@@ -218,7 +191,6 @@ namespace Assets.Src.Controllers
         {
             //Debug.Log("IdleRotation");
             transform.rotation *= Quaternion.Euler(transform.up * IdleRotationSpeed);
-            _focusDistance = Mathf.Lerp(_focusDistance, DefaultFocusDistance, Time.deltaTime * FocusMoveSpeed);
         }
 
         private void PickTargetToWatch()
