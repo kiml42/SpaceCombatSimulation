@@ -13,7 +13,24 @@ namespace Assets.Src.Controllers
         /// </summary>
         public List<string> MainTags = new List<string> { "SpaceShip" };
         public List<string> SecondaryTags = new List<string> { "Projectile" };
-        private List<string> _allTags = new List<string> { "SpaceShip", "Projectile" };
+        private List<string> _tags
+        {
+            get
+            {
+                var allTags = new List<string>();
+                switch (ShowReticles)
+                {
+                    case ReticleState.ALL:
+                        allTags.AddRange(MainTags);
+                        allTags.AddRange(SecondaryTags);
+                        break;
+                    case ReticleState.MAIN:
+                        allTags = MainTags;
+                        break;
+                }
+                return allTags;
+            }
+        }
         
         public Camera Camera;
         
@@ -31,7 +48,7 @@ namespace Assets.Src.Controllers
         {
             _detector = new ChildTagTargetDetector
             {
-                Tags = _allTags
+                Tags = _tags
             };
         }
 
@@ -103,20 +120,16 @@ namespace Assets.Src.Controllers
             {
                 case ReticleState.NONE:
                     ShowReticles = ReticleState.ALL;
-                    _allTags = new List<string>();
-                    _allTags.AddRange(MainTags);
-                    _allTags.AddRange(SecondaryTags);
                     _detector = new ChildTagTargetDetector
                     {
-                        Tags = _allTags
+                        Tags = _tags
                     };
                     break;
                 case ReticleState.ALL:
                     ShowReticles = ReticleState.MAIN;
-                    _allTags = MainTags;
                     _detector = new ChildTagTargetDetector
                     {
-                        Tags = _allTags
+                        Tags = _tags
                     };
                     break;
                 case ReticleState.MAIN:
