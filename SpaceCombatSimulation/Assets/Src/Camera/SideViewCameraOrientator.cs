@@ -14,10 +14,10 @@ namespace Assets.Src.Controllers
         private Vector3 _cameraLocationTarget;
         public override Vector3 CameraLocationTarget { get { return _cameraLocationTarget; } }
 
-        private Quaternion _parentAndCameraOrientationTarget;
-        public override Quaternion ParentOrientationTarget { get { return _parentAndCameraOrientationTarget; } }
+        private Quaternion _parentOrientationTarget;
+        public override Quaternion ParentOrientationTarget { get { return _parentOrientationTarget; } }
         
-        public override Quaternion CameraOrientationTarget { get { return _parentAndCameraOrientationTarget; } }
+        public override Quaternion CameraOrientationTarget { get { return CameraLocationOrientation.rotation; } }
 
         private float _cameraFieldOfView;
         public override float CameraFieldOfView { get { return _cameraFieldOfView; } }
@@ -40,6 +40,8 @@ namespace Assets.Src.Controllers
         public float AngleProportion = 1.6f;
 
         public float MinimumDistance = 400;
+
+        public Transform CameraLocationOrientation;
         
         // Update is called once per frame
         void Update()
@@ -53,18 +55,12 @@ namespace Assets.Src.Controllers
 
                 var vectorBetweenWatchedObjects = _shipCam.TargetToWatch.position - transform.position;
 
-                _parentAndCameraOrientationTarget = Quaternion.LookRotation(
-                        new Vector3(
-                            vectorBetweenWatchedObjects.z,
-                            vectorBetweenWatchedObjects.y,
-                            vectorBetweenWatchedObjects.x
-                        )
-                    );
-
+                _parentOrientationTarget = Quaternion.LookRotation(vectorBetweenWatchedObjects);
+                
                 _watchDistance = vectorBetweenWatchedObjects.magnitude;
                 var setBack = Clamp(_watchDistance * 3, MinimumDistance, _watchDistance * 3);
 
-                _cameraLocationTarget = _parentLocationTarget - transform.forward * setBack;
+                _cameraLocationTarget = CameraLocationOrientation.transform.position - CameraLocationOrientation.transform.forward * setBack;
 
                 var cameraToTargetVector = _shipCam.TargetToWatch.transform.position - _shipCam.Camera.transform.position;
                 var cameraToFollowedVector = _shipCam.FollowedTarget.transform.position - _shipCam.Camera.transform.position;
