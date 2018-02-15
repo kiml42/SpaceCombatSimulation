@@ -28,6 +28,9 @@ namespace Assets.Src.Controllers
 
         public override Vector3 ParentLocationTarget { get { return _shipCam.FollowedTarget.position; } }
 
+        private Vector3 _referenceVelocity;
+        public override Vector3 ReferenceVelocity { get { return _referenceVelocity; } }
+
         public Transform DefaultCamLocation;
         private Vector3 _cameraLocationTarget;
         public override Vector3 CameraLocationTarget { get { return _cameraLocationTarget; } }
@@ -64,6 +67,8 @@ namespace Assets.Src.Controllers
                 //rotate enpty parent
                 var direction = (_shipCam.TargetToWatch.position - transform.position);
                 _parentOrientationTarget = Quaternion.LookRotation(direction);
+
+                _referenceVelocity = _shipCam.FollowedTarget.velocity;
 
                 _watchDistance = Vector3.Distance(transform.position, _shipCam.TargetToWatch.position);
 

@@ -4,10 +4,13 @@ using System;
 namespace Assets.Src.Controllers
 {
     public class SideViewCameraOrientator : BaseCameraOrientator
-    {        
+    {
         private Vector3 _parentLocationTarget;
         public override Vector3 ParentLocationTarget { get { return _parentLocationTarget; } }
-        
+
+        private Vector3 _referenceVelocity;
+        public override Vector3 ReferenceVelocity { get { return _referenceVelocity; } }
+
         private Vector3 _cameraLocationTarget;
         public override Vector3 CameraLocationTarget { get { return _cameraLocationTarget; } }
 
@@ -35,6 +38,8 @@ namespace Assets.Src.Controllers
         private float _watchDistance;
 
         public float AngleProportion = 1.6f;
+
+        public float MinimumDistance = 400;
         
         // Update is called once per frame
         void Update()
@@ -43,7 +48,9 @@ namespace Assets.Src.Controllers
             if (_hasTargets)
             {
                 _parentLocationTarget = (_shipCam.TargetToWatch.position + _shipCam.FollowedTarget.position) / 2;
-                
+
+                _referenceVelocity = (_shipCam.TargetToWatch.velocity + _shipCam.FollowedTarget.velocity) / 2;
+
                 var vectorBetweenWatchedObjects = _shipCam.TargetToWatch.position - transform.position;
 
                 _parentAndCameraOrientationTarget = Quaternion.LookRotation(
@@ -55,7 +62,7 @@ namespace Assets.Src.Controllers
                     );
 
                 _watchDistance = vectorBetweenWatchedObjects.magnitude;
-                var setBack = _watchDistance * 3;
+                var setBack = Clamp(_watchDistance * 3, MinimumDistance, _watchDistance * 3);
 
                 _cameraLocationTarget = _parentLocationTarget - transform.forward * setBack;
 

@@ -7,7 +7,10 @@ namespace Assets.Src.Controllers
     {        
         private Vector3 _parentLocationTarget;
         public override Vector3 ParentLocationTarget { get { return _parentLocationTarget; } }
-        
+
+        private Vector3 _referenceVelocity;
+        public override Vector3 ReferenceVelocity { get { return _referenceVelocity; } }
+
         public override Vector3 CameraLocationTarget { get { return _parentLocationTarget - (transform.forward * SetBack); } }
 
         private Quaternion _parentAndCameraOrientationTarget;
@@ -31,7 +34,16 @@ namespace Assets.Src.Controllers
             Rigidbody target = null;
             if(_shipCam != null && (_shipCam.FollowedTarget != null || _shipCam.TargetToWatch != null))
                 target = _shipCam.FollowedTarget ?? _shipCam.TargetToWatch;
-            _parentLocationTarget = target != null ? target.position : Vector3.zero;
+            if(target != null)
+            {
+                _parentLocationTarget = target.position;
+                _referenceVelocity = target.velocity;
+            }
+            else
+            {
+                _parentLocationTarget = Vector3.zero;
+                _referenceVelocity = Vector3.zero;
+            }
             _parentAndCameraOrientationTarget = transform.rotation * Quaternion.Euler(Time.deltaTime * IdleRotationSpeed * transform.up);
         }
     }

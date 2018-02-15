@@ -332,7 +332,6 @@ MonoBehaviour:
   AdditionalScoreForSameTagOrCurrentlyFllowed: -100000
   FollowedTarget: {fileID: 0}
   TargetToWatch: {fileID: 0}
-  IdleRotationSpeed: -0.05
   ZoomSpeed: 3
 --- !u!114 &114559164490886276
 MonoBehaviour:
@@ -385,6 +384,7 @@ MonoBehaviour:
   PriorityMultiplier: 1
   MaxDistance: 2000
   AngleProportion: 1.8
+  MinimumDistance: 1000
 --- !u!114 &114682085724931116
 MonoBehaviour:
   m_ObjectHideFlags: 1

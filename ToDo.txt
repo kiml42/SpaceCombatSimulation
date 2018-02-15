@@ -30,11 +30,9 @@ TODO:
                     Mouse-overs reveal the species/subspecies (possibly include creating a model of one to show what it looked like.)
         Side view mode for camera
             Add a separate component for picking a list of prioritised targets to look at and to follow.
-            CameraOrientator for idle rotation - allways HasTargets, constant priority (= PriorityMultiplier)
             Handle looking at more than 2 objects in side view.
             Rotate camera in side view so that most distant objects are to the left and right (for landscape screens)
             Camera jumps to target location etc. when it first reads one.
-            shipCam always moves by some multiplier of the followed target's velocity, so it can follow fast moving objects.
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.
             Manual orientator - gets high priority when the user applies input, decays over time.

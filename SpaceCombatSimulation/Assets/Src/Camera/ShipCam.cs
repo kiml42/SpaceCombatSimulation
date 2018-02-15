@@ -166,15 +166,13 @@ namespace Assets.Src.Controllers
 
             PickTargetToWatch();
 
-            var totalTranslateSpeed = TranslateSpeed;
-            if (FollowedTarget != null && FollowedObjectTranslateSpeedMultiplier != 0)
-            {
-                totalTranslateSpeed += FollowedObjectTranslateSpeedMultiplier * FollowedTarget.velocity.magnitude;
-            }
-
+            var totalTranslateSpeed = TranslateSpeed + (FollowedObjectTranslateSpeedMultiplier * Time.deltaTime);
+            
             if (_orientator.HasTargets)
             {
-                transform.position = Vector3.Slerp(transform.position, _orientator.ParentLocationTarget, Time.deltaTime * totalTranslateSpeed);
+                transform.position += FollowedObjectTranslateSpeedMultiplier * Time.deltaTime * _orientator.ReferenceVelocity;
+                transform.position = Vector3.Slerp(transform.position, _orientator.ParentLocationTarget, Time.deltaTime * TranslateSpeed);
+
                 transform.rotation = Quaternion.Slerp(transform.rotation, _orientator.ParentOrientationTarget, Time.deltaTime * RotationSpeed);
                 Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, _orientator.CameraOrientationTarget, Time.deltaTime * RotationSpeed * 0.3f);
                 Camera.fieldOfView = Mathf.LerpAngle(Camera.fieldOfView, _orientator.CameraFieldOfView, Time.deltaTime * ZoomSpeed * 0.3f);

@@ -24,6 +24,14 @@ namespace Assets.Src.Controllers
             }
         }
 
+        public Vector3 ReferenceVelocity
+        {
+            get
+            {
+                return _bestOrientator.ReferenceVelocity;
+            }
+        }
+
         public Vector3 ParentLocationTarget
         {
             get

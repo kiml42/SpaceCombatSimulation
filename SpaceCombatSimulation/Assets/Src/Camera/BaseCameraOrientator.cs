@@ -7,6 +7,7 @@ namespace Assets.Src.Controllers
         protected ShipCam _shipCam;
 
         public abstract Vector3 ParentLocationTarget { get; }
+        public abstract Vector3 ReferenceVelocity { get; }
         public abstract Vector3 CameraLocationTarget { get; }
         public abstract Quaternion ParentOrientationTarget { get; }
         public abstract Quaternion CameraOrientationTarget { get; }
