@@ -43,6 +43,8 @@ namespace Assets.Src.Controllers
         public float MinShowDistanceDistance = 20;
 
         private ITargetDetector _detector;
+        
+        private ShipCam _shipCam;
 
         void Start()
         {
@@ -50,6 +52,7 @@ namespace Assets.Src.Controllers
             {
                 Tags = _tags
             };
+            _shipCam = GetComponent<ShipCam>();
         }
 
         // Update is called once per frame
@@ -60,7 +63,8 @@ namespace Assets.Src.Controllers
                 CycleReticleState();
             }
         }
-            public void OnGUI()
+
+        public void OnGUI()
         {
             DrawHealthBars();
         }
@@ -84,7 +88,15 @@ namespace Assets.Src.Controllers
             Vector3 boxPosition = Camera.main.WorldToScreenPoint(target.Transform.position);
             if (boxPosition.z > 0)
             {
-                var distance = Vector3.Distance(Camera.transform.position, target.Transform.position);
+                Vector3 baseLocation;
+                if(_shipCam != null && _shipCam.FollowedTarget != null)
+                {
+                    baseLocation = _shipCam.FollowedTarget.transform.position;
+                } else
+                {
+                    baseLocation = Camera.transform.position;
+                }
+                var distance = Vector3.Distance(baseLocation, target.Transform.position);
 
                 // "Flip" it into screen coordinates
                 boxPosition.y = Screen.height - boxPosition.y;
