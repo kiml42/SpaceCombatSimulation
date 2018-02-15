@@ -38,6 +38,7 @@ TODO:
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.
             Manual orientator - gets high priority when the user applies input, decays over time.
+            Distance displayed should be reletive to followed target.
     Priority:
         Add previous target picker to the target choosing mechanism.
         Async
