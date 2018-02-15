@@ -1,13 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
-using System.Linq;
+﻿using UnityEngine;
 using System;
-using Assets.Src.Interfaces;
-using Assets.Src.Targeting;
-using Assets.Src.Targeting.TargetPickers;
-using Assets.Src.ObjectManagement;
 
 namespace Assets.Src.Controllers
 {

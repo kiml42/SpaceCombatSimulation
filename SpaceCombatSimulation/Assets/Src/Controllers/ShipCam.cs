@@ -22,7 +22,7 @@ namespace Assets.Src.Controllers
         /// </summary>
         public List<string> MainTags = new List<string> { "SpaceShip" };
         public List<string> SecondaryTags = new List<string> { "Projectile" };
-        private List<string> _tags = new List<string> { "SpaceShip", "Projectile" };
+        private List<string> _allTags = new List<string> { "SpaceShip", "Projectile" };
 
         /// <summary>
         /// Rotation speed multiplier
@@ -75,8 +75,6 @@ namespace Assets.Src.Controllers
         /// </summary>
         public float NearlyAimedAngle = 3;
 
-        public float MinShowDistanceDistance = 20;
-
         private Rigidbody _rigidbody;
         private ITargetDetector _detector;
 
@@ -90,13 +88,7 @@ namespace Assets.Src.Controllers
         private PreviousTargetPicker _currentlyFollowingPicker;
         public float DefaultFocusDistance = 200;
         public float IdleRotationSpeed = -0.05f;
-
-        public Texture ReticleTexture;
-        public Texture HealthFGTexture;
-        public Texture HealthBGTexture;
-
-        public ReticleState ShowReticles = ReticleState.ALL;
-
+        
         private ICameraOrientator _orientator;
 
         public Target CurrentTarget
@@ -127,7 +119,7 @@ namespace Assets.Src.Controllers
             _rigidbody = GetComponent<Rigidbody>();
             _detector = new ChildTagTargetDetector
             {
-                Tags = _tags
+                Tags = _allTags
             };
 
             _tagPicker = new HasTagTargetPicker(null);
@@ -224,60 +216,6 @@ namespace Assets.Src.Controllers
             
         }
 
-        public void OnGUI()
-        {
-            DrawHealthBars();
-        }
-
-        private void DrawHealthBars()
-        {
-            if (ShowReticles != ReticleState.NONE)
-            {
-                var targets = _detector.DetectTargets();
-
-                foreach (var target in targets)
-                {
-                    DrawSingleLable(target);
-                }
-            }
-        }
-
-        private void DrawSingleLable(PotentialTarget target)
-        {
-            // Find the 2D position of the object using the main camera
-            Vector3 boxPosition = Camera.main.WorldToScreenPoint(target.Transform.position);
-            if (boxPosition.z > 0)
-            {
-                var distance = Vector3.Distance(transform.position, target.Transform.position);
-
-                // "Flip" it into screen coordinates
-                boxPosition.y = Screen.height - boxPosition.y;
-
-                //Draw the distance from the followed object to this object - only if it's suitably distant, and has no parent.
-                if (distance > MinShowDistanceDistance && target.Transform.parent == null)
-                {
-                    GUI.Box(new Rect(boxPosition.x - 20, boxPosition.y + 25, 40, 40), Math.Round(distance).ToString());
-                }
-
-                var rect = new Rect(boxPosition.x - 50, boxPosition.y - 50, 100, 100);
-                if (ReticleTexture != null)
-                    GUI.DrawTexture(rect, ReticleTexture);
-
-                var healthControler = target.Transform.GetComponent<HealthControler>();
-                if (healthControler != null && healthControler.IsDamaged)
-                {
-                    if (HealthBGTexture != null)
-                        GUI.DrawTexture(rect, HealthBGTexture);
-                    if (HealthFGTexture != null)
-                    {
-                        rect.width *= healthControler.HealthProportion;
-                        GUI.DrawTexture(rect, HealthFGTexture);
-                    }
-                    //Debug.Log(boxPosition.z + "--x--" + boxPosition.x + "----y--" + boxPosition.y);
-                }
-            }
-        }
-
         private void IdleRotation()
         {
             //Debug.Log("IdleRotation");
@@ -343,51 +281,11 @@ namespace Assets.Src.Controllers
 
         private void PickRandomToFollow()
         {
-            var tagrgetToFollow = _detector
-                .DetectTargets()
+            var tagrgetToFollow = _detector.DetectTargets()
                 .Where(s => s.Transform.parent == null && s.Rigidbody != FollowedTarget)
                 .OrderBy(s => UnityEngine.Random.value)
                 .FirstOrDefault();
             FollowedTarget = tagrgetToFollow != null ? tagrgetToFollow.Rigidbody : null;
-        }
-
-        public static float Clamp(float value, float min, float max)
-        {
-            return (value < min) ? min : (value > max) ? max : value;
-        }
-
-        private void CycleReticleState()
-        {
-            switch (ShowReticles)
-            {
-                case ReticleState.NONE:
-                    ShowReticles = ReticleState.ALL;
-                    _tags = new List<string>();
-                    _tags.AddRange(MainTags);
-                    _tags.AddRange(SecondaryTags);
-                    _detector = new ChildTagTargetDetector
-                    {
-                        Tags = _tags
-                    };
-                    break;
-                case ReticleState.ALL:
-                    ShowReticles = ReticleState.MAIN;
-                    _tags = MainTags;
-                    _detector = new ChildTagTargetDetector
-                    {
-                        Tags = _tags
-                    };
-                    break;
-                case ReticleState.MAIN:
-                    ShowReticles = ReticleState.NONE;
-                    break;
-            }
-            Debug.Log(ShowReticles);
-        }
-
-        public enum ReticleState
-        {
-            NONE, MAIN, ALL
         }
     }
 }

@@ -13,11 +13,13 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Full v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile></CompilerResponseFile>
+    <CompilerResponseFile>
+    </CompilerResponseFile>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>StandaloneWindows64:19</UnityBuildTarget>
     <UnityVersion>2017.3.0f3</UnityVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -305,6 +307,7 @@
     <Compile Include="Assets\Src\Controllers\LampAndParticlesEffectController.cs" />
     <Compile Include="Assets\Src\Controllers\MultiBarelTurretController.cs" />
     <Compile Include="Assets\Src\Controllers\OverShoulderCameraOrientator.cs" />
+    <Compile Include="Assets\Src\Controllers\Hud.cs" />
     <Compile Include="Assets\Src\Controllers\ShipCam.cs" />
     <Compile Include="Assets\Src\Controllers\ShipTester.cs" />
     <Compile Include="Assets\Src\Controllers\SideViewCameraOrientator.cs" />

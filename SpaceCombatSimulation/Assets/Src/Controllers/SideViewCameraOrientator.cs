@@ -1,14 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
-using System.Linq;
+﻿using UnityEngine;
 using System;
-using Assets.Src.Interfaces;
-using Assets.Src.Targeting;
-using Assets.Src.Targeting.TargetPickers;
-using Assets.Src.ObjectManagement;
-
 
 namespace Assets.Src.Controllers
 {
@@ -20,11 +11,10 @@ namespace Assets.Src.Controllers
         private Vector3 _cameraLocationTarget;
         public override Vector3 CameraLocationTarget { get { return _cameraLocationTarget; } }
 
-        private Quaternion _parentOrientationTarget;
-        public override Quaternion ParentOrientationTarget { get { return _parentOrientationTarget; } }
-
-        private Quaternion _cameraOrientationTarget;
-        public override Quaternion CameraOrientationTarget { get { return _cameraOrientationTarget; } }
+        private Quaternion _parentAndCameraOrientationTarget;
+        public override Quaternion ParentOrientationTarget { get { return _parentAndCameraOrientationTarget; } }
+        
+        public override Quaternion CameraOrientationTarget { get { return _parentAndCameraOrientationTarget; } }
 
         private float _cameraFieldOfView;
         public override float CameraFieldOfView { get { return _cameraFieldOfView; } }
@@ -40,26 +30,21 @@ namespace Assets.Src.Controllers
             _hasTargets = _shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch;
             if (_hasTargets)
             {
-                var desiredLocation = (_shipCam.TargetToWatch.position + _shipCam.FollowedTarget.position) / 2;
-
-                transform.position = desiredLocation;
+                _parentLocationTarget = (_shipCam.TargetToWatch.position + _shipCam.FollowedTarget.position) / 2;
 
                 var vectorBetweenWatchedObjects = _shipCam.TargetToWatch.position - transform.position;
 
-                var desiredOrientation = Quaternion.LookRotation(
+                _parentAndCameraOrientationTarget = Quaternion.LookRotation(
                         new Vector3(
                             vectorBetweenWatchedObjects.z,
                             vectorBetweenWatchedObjects.y,
                             vectorBetweenWatchedObjects.x
                         )
                     );
-                
-                //Debug.Log("Following " + _followedTarget.Transform.name + ", Watching " + _targetToWatch.Transform.name);
-                transform.rotation = desiredOrientation;
 
                 var setBack = vectorBetweenWatchedObjects.magnitude * 3;
 
-                _cameraLocationTarget = desiredLocation - transform.forward * setBack;
+                _cameraLocationTarget = _parentLocationTarget - transform.forward * setBack;
 
                 var cameraToTargetVector = _shipCam.TargetToWatch.transform.position - _shipCam.Camera.transform.position;
                 var cameraToFollowedVector = _shipCam.FollowedTarget.transform.position - _shipCam.Camera.transform.position;
@@ -70,8 +55,7 @@ namespace Assets.Src.Controllers
                     );
 
                 var desiredAngle = baseAngle * AngleProportion;
-                var angle = Clamp(desiredAngle, 1, 90);
-                _cameraFieldOfView = angle;
+                _cameraFieldOfView = Clamp(desiredAngle, 1, 90);
             }
         }
     }
