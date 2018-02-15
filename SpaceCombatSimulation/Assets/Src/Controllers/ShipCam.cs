@@ -20,9 +20,7 @@ namespace Assets.Src.Controllers
         /// <summary>
         /// tag of a child object of a fhing to watch or follow.
         /// </summary>
-        public List<string> MainTags = new List<string> { "SpaceShip" };
-        public List<string> SecondaryTags = new List<string> { "Projectile" };
-        private List<string> _allTags = new List<string> { "SpaceShip", "Projectile" };
+        public List<string> Tags = new List<string> { "SpaceShip", "Projectile" };
 
         /// <summary>
         /// Rotation speed multiplier
@@ -119,7 +117,7 @@ namespace Assets.Src.Controllers
             _rigidbody = GetComponent<Rigidbody>();
             _detector = new ChildTagTargetDetector
             {
-                Tags = _allTags
+                Tags = Tags
             };
 
             _tagPicker = new HasTagTargetPicker(null);
