@@ -31,13 +31,12 @@ TODO:
         Side view mode for camera
             Add a separate component for picking a list of prioritised targets to look at and to follow.
             Handle looking at more than 2 objects in side view.
-            Rotate camera in side view so that most distant objects are to the left and right (for landscape screens)
             Camera jumps to target location etc. when it first reads one.
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.
             Manual orientator - gets high priority when the user applies input, decays over time.
             SideviewMode 
-                parent points forward towards a target, camera goes to one side and looks at it
+                Calculate the field of view without reference to the camera's current orientation, so that you don't get the weird zoom out thing.
             only calculate full location and orientation data when asked.
     Priority:
         Add previous target picker to the target choosing mechanism.
