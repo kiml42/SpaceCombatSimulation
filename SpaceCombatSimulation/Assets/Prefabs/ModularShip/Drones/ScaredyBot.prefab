@@ -916,7 +916,7 @@ MonoBehaviour:
   Resilience: 15
   Armour: 0
   Health: 700
-  DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
+  DeathExplosion: {fileID: 54676907005264760, guid: 3e50e2f9c5112064a98f27cc456a46fb,
     type: 2}
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 30

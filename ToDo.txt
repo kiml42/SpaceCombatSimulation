@@ -78,7 +78,7 @@ TODO:
             Hubs have batteries to store energy
             Hubs have generators to recharge batteries.
 
-
+    Replace 1v1 with free for all with an arbirtary number of teams.
     Avoid GetComponent and sendMessage in update methods.
     Limit throttle change speeds.
     option for spaceships that don't break up   

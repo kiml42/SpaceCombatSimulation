@@ -559,6 +559,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -895,6 +896,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 0
   PickerAimingObject: {fileID: 0}
   PickerApproachWeighting: 50
+  PreviousTargetBonus: 500
   GetConfigFromGenome: 0
 --- !u!114 &114490641755474552
 MonoBehaviour:
@@ -921,7 +923,7 @@ MonoBehaviour:
   Resilience: 15
   Armour: 0
   Health: 700
-  DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
+  DeathExplosion: {fileID: 54676907005264760, guid: 3e50e2f9c5112064a98f27cc456a46fb,
     type: 2}
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 30
@@ -951,14 +953,15 @@ MonoBehaviour:
   TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
   ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
     type: 2}
-  OverrideColour: 1
-  ColourOverride: {r: 0.42745098, g: 0.105882354, b: 0.5372549, a: 1}
   SpawnPoints:
   - {fileID: 4763124499507600}
+  AllowedModuleIndicies: 
   Genome: '2   '
   MaxTurrets: 10
   MaxModules: 15
   PadToLength: 100
+  OverrideColour: 1
+  ColourOverride: {r: 0.42745098, g: 0.105882354, b: 0.5372549, a: 1}
 --- !u!114 &114793710215309262
 MonoBehaviour:
   m_ObjectHideFlags: 1
