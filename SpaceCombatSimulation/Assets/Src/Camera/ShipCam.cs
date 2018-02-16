@@ -45,12 +45,15 @@ namespace Assets.Src.Controllers
         /// Used when picking a target to look at, if the object being followed doensn't have its own target.
         /// </summary>
         public float AdditionalScoreForSameTagOrCurrentlyFllowed = -100000;
-        
+
+        public float WatchTargetsScoreProportion = 0.4f;
+
         private Rigidbody _rigidbody;
         private ITargetDetector _detector;
 
         public Rigidbody FollowedTarget { get; set; }
         public Rigidbody TargetToWatch { get; set; }
+        public IEnumerable<Rigidbody> TargetsToWatch { get; set; }
 
         private ITargetPicker _watchPicker;
         private ITargetPicker _followPicker;
@@ -202,12 +205,14 @@ namespace Assets.Src.Controllers
                 //{
                 //    Debug.Log(item.Transform.name + ": " + item.Score);
                 //}
+                if (targets.Any())
+                {
+                    var bestScore = targets.First().Score;
 
-                TargetToWatch = targets.Any()
-                    ? targets
-                    .FirstOrDefault()
-                    .Rigidbody
-                    : null;
+                    TargetsToWatch = targets.Where(t => t.Score > bestScore * WatchTargetsScoreProportion).Select(t => t.Rigidbody);
+
+                    TargetToWatch = targets.First().Rigidbody;
+                }
                 //Debug.Log("Watching picked target: " + _targetToWatch.Transform.name);
             }
         }
