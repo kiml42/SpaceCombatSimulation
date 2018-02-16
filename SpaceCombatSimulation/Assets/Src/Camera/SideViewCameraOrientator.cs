@@ -52,7 +52,7 @@ namespace Assets.Src.Controllers
             {
                 var targets = _shipCam.TargetsToWatch.ToList();
                 targets.Add(_shipCam.FollowedTarget);
-                Debug.Log(string.Join(",", targets.Select(t=>t.name).ToArray()));
+                Debug.Log("SideView: " + string.Join(",", targets.Select(t=>t.name).ToArray()));
 
                 var averageX = targets.Average(t => t.position.x);
                 var averageY = targets.Average(t => t.position.y);

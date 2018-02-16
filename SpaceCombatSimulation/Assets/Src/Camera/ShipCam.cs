@@ -194,6 +194,8 @@ namespace Assets.Src.Controllers
             if (knower != null && knower.CurrentTarget != null)
             {
                 TargetToWatch = knower.CurrentTarget.Rigidbody;
+                TargetsToWatch = new List<Rigidbody> { TargetToWatch };
+                //TODO add all targets even when there is a target knower.
                 //Debug.Log("Watching followed object's target: " + _targetToWatch.Transform.name);
             }
             else
@@ -210,6 +212,7 @@ namespace Assets.Src.Controllers
                 {
                     var bestScore = targets.First().Score;
 
+                    Debug.Log("ShipCam: " + string.Join(",", targets.Select(t => t.Transform.name).ToArray()));
                     TargetsToWatch = targets.Where(t => t.Score > bestScore * WatchTargetsScoreProportion).Select(t => t.Rigidbody);
 
                     TargetToWatch = targets.First().Rigidbody;
