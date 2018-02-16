@@ -31,6 +31,9 @@ TODO:
         Side view mode for camera
             Add a separate component for picking a list of prioritised targets to look at and to follow.
             Handle looking at more than 2 objects in side view.
+                Filter targets by score - implemented, but not working as expecte
+            Prevent flipping arround when changing order of targets
+                Have the parent point to one at a good distance with the minimum angle change from its current orientation.
             Camera jumps to target location etc. when it first reads one.
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.

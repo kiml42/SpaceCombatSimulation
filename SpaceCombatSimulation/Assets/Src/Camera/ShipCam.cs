@@ -54,7 +54,7 @@ namespace Assets.Src.Controllers
 
         public Rigidbody FollowedTarget { get; set; }
         public Rigidbody TargetToWatch { get; set; }
-        public IEnumerable<Rigidbody> TargetsToWatch { get; set; }
+        public List<Rigidbody> TargetsToWatch { get; set; }
 
         private ITargetPicker _watchPicker;
         private ITargetPicker _followPicker;
@@ -191,34 +191,34 @@ namespace Assets.Src.Controllers
             if(FollowedTarget != null) {
                 knower = FollowedTarget.GetComponent<IKnowsCurrentTarget>();
             }
+            var targets = _detector.DetectTargets()
+                .Where(t => t.Transform.IsValid() && t.Transform.parent == null);  //Don't watch anything that still has a parent.
+            targets = _watchPicker.FilterTargets(targets)
+                .OrderByDescending(s => s.Score);
+            //foreach (var item in targets)
+            //{
+            //    Debug.Log(item.Transform.name + ": " + item.Score);
+            //}
+            TargetsToWatch = new List<Rigidbody>();
+            if (targets.Any())
+            {
+                var bestScore = targets.First().Score;
+
+                //Debug.Log("ShipCam: " + string.Join(",", targets.Select(t => t.Transform.name).ToArray()));
+                //TargetsToWatch = targets.Where(t => t.Score > bestScore * WatchTargetsScoreProportion).Select(t => t.Rigidbody).ToList();
+                TargetsToWatch = targets.Select(t => t.Rigidbody).ToList();
+
+                TargetToWatch = targets.First().Rigidbody;
+            }
             if (knower != null && knower.CurrentTarget != null)
             {
                 TargetToWatch = knower.CurrentTarget.Rigidbody;
-                TargetsToWatch = new List<Rigidbody> { TargetToWatch };
-                //TODO add all targets even when there is a target knower.
-                //Debug.Log("Watching followed object's target: " + _targetToWatch.Transform.name);
-            }
-            else
-            {
-                var targets = _detector.DetectTargets()
-                    .Where(t => t.Transform.IsValid() && t.Transform.parent == null);  //Don't watch anything that still has a parent.
-                targets = _watchPicker.FilterTargets(targets)
-                    .OrderByDescending(s => s.Score);
-                //foreach (var item in targets)
-                //{
-                //    Debug.Log(item.Transform.name + ": " + item.Score);
-                //}
-                if (targets.Any())
+                if (!TargetsToWatch.Contains(TargetToWatch))
                 {
-                    var bestScore = targets.First().Score;
-
-                    Debug.Log("ShipCam: " + string.Join(",", targets.Select(t => t.Transform.name).ToArray()));
-                    TargetsToWatch = targets.Where(t => t.Score > bestScore * WatchTargetsScoreProportion).Select(t => t.Rigidbody);
-
-                    TargetToWatch = targets.First().Rigidbody;
+                    TargetsToWatch.Add(TargetToWatch);
                 }
-                //Debug.Log("Watching picked target: " + _targetToWatch.Transform.name);
             }
+            //Debug.Log("Watching picked target: " + _targetToWatch.Transform.name);
         }
 
         private void PickBestTargetToFollow()

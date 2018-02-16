@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System;
 using System.Linq;
+using Assets.Src.ObjectManagement;
 
 namespace Assets.Src.Controllers
 {
@@ -52,7 +53,8 @@ namespace Assets.Src.Controllers
             {
                 var targets = _shipCam.TargetsToWatch.ToList();
                 targets.Add(_shipCam.FollowedTarget);
-                Debug.Log("SideView: " + string.Join(",", targets.Select(t=>t.name).ToArray()));
+                targets = targets.Distinct().Where(t => t.transform.IsValid()).ToList();
+                //Debug.Log("SideView: " + string.Join(",", targets.Select(t=>t.name).ToArray()));
 
                 var averageX = targets.Average(t => t.position.x);
                 var averageY = targets.Average(t => t.position.y);
