@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System;
+using System.Linq;
 
 namespace Assets.Src.Controllers
 {
@@ -49,11 +50,23 @@ namespace Assets.Src.Controllers
             _hasTargets = _shipCam != null && _shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch;
             if (_hasTargets)
             {
-                _parentLocationTarget = (_shipCam.TargetToWatch.position + _shipCam.FollowedTarget.position) / 2;
+                var targets = _shipCam.TargetsToWatch.ToList();
+                targets.Add(_shipCam.FollowedTarget);
+                Debug.Log(string.Join(",", targets.Select(t=>t.name).ToArray()));
 
-                _referenceVelocity = (_shipCam.TargetToWatch.velocity + _shipCam.FollowedTarget.velocity) / 2;
+                var averageX = targets.Average(t => t.position.x);
+                var averageY = targets.Average(t => t.position.y);
+                var averageZ = targets.Average(t => t.position.z);
 
-                var vectorBetweenWatchedObjects = _shipCam.TargetToWatch.position - transform.position;
+                _parentLocationTarget = new Vector3(averageX, averageY, averageZ);
+                
+                var averageVX = targets.Average(t => t.velocity.x);
+                var averageVY = targets.Average(t => t.velocity.y);
+                var averageVZ = targets.Average(t => t.velocity.z);
+
+                _referenceVelocity = new Vector3(averageVX, averageVY, averageVZ);
+                
+                var vectorBetweenWatchedObjects = _shipCam.TargetToWatch.position - _shipCam.FollowedTarget.position;
 
                 _parentOrientationTarget = Quaternion.LookRotation(vectorBetweenWatchedObjects);
                 
@@ -61,15 +74,9 @@ namespace Assets.Src.Controllers
                 var setBack = Clamp(_watchDistance * 3, MinimumDistance, _watchDistance * 3);
 
                 _cameraLocationTarget = CameraLocationOrientation.transform.position - CameraLocationOrientation.transform.forward * setBack;
-
-                var cameraToTargetVector = _shipCam.TargetToWatch.transform.position - _cameraLocationTarget;
-                var cameraToFollowedVector = _shipCam.FollowedTarget.transform.position - _cameraLocationTarget;
-
+                
                 var vectorToParent = CameraLocationOrientation.transform.forward;
-                var baseAngle = Math.Max(
-                    Vector3.Angle(vectorToParent, cameraToTargetVector),
-                    Vector3.Angle(vectorToParent, cameraToFollowedVector)
-                    );
+                var baseAngle = targets.Max(t => Vector3.Angle(vectorToParent, t.position - _cameraLocationTarget));
 
                 var desiredAngle = baseAngle * AngleProportion;
                 _cameraFieldOfView = Clamp(desiredAngle, 1, 90);

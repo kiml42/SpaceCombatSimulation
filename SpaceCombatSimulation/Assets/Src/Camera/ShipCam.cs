@@ -4,6 +4,7 @@ using System.Linq;
 using Assets.Src.Interfaces;
 using Assets.Src.Targeting;
 using Assets.Src.Targeting.TargetPickers;
+using Assets.Src.ObjectManagement;
 
 namespace Assets.Src.Controllers
 {
@@ -198,7 +199,7 @@ namespace Assets.Src.Controllers
             else
             {
                 var targets = _detector.DetectTargets()
-                    .Where(t => t.Transform.parent == null);  //Don't watch anything that still has a parent.
+                    .Where(t => t.Transform.IsValid() && t.Transform.parent == null);  //Don't watch anything that still has a parent.
                 targets = _watchPicker.FilterTargets(targets)
                     .OrderByDescending(s => s.Score);
                 //foreach (var item in targets)

@@ -458,7 +458,7 @@ Prefab:
     - target: {fileID: 114805640114796924, guid: 8ad76c9d2e309504e9eaf8abb8d91e63,
         type: 2}
       propertyPath: ShouldSpawnDrones
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 114805640114796924, guid: 8ad76c9d2e309504e9eaf8abb8d91e63,
         type: 2}
@@ -488,6 +488,12 @@ Prefab:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 114805640114796924, guid: 8ad76c9d2e309504e9eaf8abb8d91e63,
+        type: 2}
+      propertyPath: Drone
+      value: 
+      objectReference: {fileID: 54333284254749140, guid: 673f730f11e01f942a1943124006aa6f,
+        type: 2}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 8ad76c9d2e309504e9eaf8abb8d91e63, type: 2}
   m_IsPrefabParent: 0
