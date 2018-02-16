@@ -336,7 +336,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   PriorityMultiplier: 1
   SetBack: 50
-  IdleRotationSpeed: -1500
+  IdleRotationSpeed: -500
   FieldOfView: 80
 --- !u!114 &114217615723430598
 MonoBehaviour:
@@ -352,7 +352,7 @@ MonoBehaviour:
   Tags:
   - SpaceShip
   - Projectile
-  RotationSpeed: 0.5
+  RotationSpeed: 5
   TranslateSpeed: 1.5
   FollowedObjectTranslateSpeedMultiplier: 1
   Camera: {fileID: 20197087680658222}
@@ -413,7 +413,7 @@ MonoBehaviour:
   PriorityMultiplier: 1
   MaxDistance: 2000
   AngleProportion: 1.8
-  MinimumDistance: 1000
+  MinimumDistance: 400
   CameraLocationOrientation: {fileID: 4948679709624696}
 --- !u!114 &114682085724931116
 MonoBehaviour:

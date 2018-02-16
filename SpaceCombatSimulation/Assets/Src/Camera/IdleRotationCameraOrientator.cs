@@ -25,7 +25,7 @@ namespace Assets.Src.Controllers
         public override float Priority { get { return PriorityMultiplier; } }
 
         public float SetBack = 50;
-        public float IdleRotationSpeed = -1500;
+        public float IdleRotationSpeed = -500;
         public float FieldOfView = 80;
 
         // Update is called once per frame

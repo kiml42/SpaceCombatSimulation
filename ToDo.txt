@@ -35,8 +35,6 @@ TODO:
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.
             Manual orientator - gets high priority when the user applies input, decays over time.
-            SideviewMode 
-                Calculate the field of view without reference to the camera's current orientation, so that you don't get the weird zoom out thing.
             only calculate full location and orientation data when asked.
     Priority:
         Add previous target picker to the target choosing mechanism.
@@ -75,6 +73,11 @@ TODO:
             Hubs have generators to recharge batteries.
 
     Replace 1v1 with free for all with an arbirtary number of teams.
+    Race evolution
+        Periodically check distance to target and add more score for closer (nonlinear?)
+        Target could be fixed, moveable, or a scardeybot.
+    TractorbeamTurret
+    Add a small cheap engine module - meant for manuvring.
     Avoid GetComponent and sendMessage in update methods.
     Limit throttle change speeds.
     option for spaceships that don't break up   

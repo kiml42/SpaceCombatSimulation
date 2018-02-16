@@ -19,17 +19,17 @@ namespace Assets.Src.Controllers
         /// <summary>
         /// Rotation speed multiplier
         /// </summary>
-        public float RotationSpeed = 0.5f;
+        public float RotationSpeed = 5;
 
         /// <summary>
         /// transtlation speed multiplier. Higher values will be able to track faster objects, but may move from object to object too fast.
         /// </summary>
-        public float TranslateSpeed = 2;
+        public float TranslateSpeed = 1.5f;
 
         /// <summary>
         /// This value times the speed of the followed object is added to the translate speed.
         /// </summary>
-        public float FollowedObjectTranslateSpeedMultiplier = 0;
+        public float FollowedObjectTranslateSpeedMultiplier = 1;
 
         public Camera Camera;
         
@@ -49,8 +49,8 @@ namespace Assets.Src.Controllers
         private Rigidbody _rigidbody;
         private ITargetDetector _detector;
 
-        public Rigidbody FollowedTarget;
-        public Rigidbody TargetToWatch;
+        public Rigidbody FollowedTarget { get; set; }
+        public Rigidbody TargetToWatch { get; set; }
 
         private ITargetPicker _watchPicker;
         private ITargetPicker _followPicker;

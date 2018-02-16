@@ -19,7 +19,7 @@ namespace Assets.Src.Controllers
         /// The distance the camera is trying to zoom in to to see well.
         /// Should be private, but exposed for debuging reasons.
         /// </summary>
-        public float _focusDistance = 0;
+        private float _focusDistance = 0;
 
         /// <summary>
         /// when the parent is within this angle of looking at the watched object, the camera tself starts tracking.

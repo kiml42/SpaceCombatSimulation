@@ -26,7 +26,7 @@ namespace Assets.Src.Controllers
         public override bool HasTargets { get { return _hasTargets; } }
 
         [Tooltip("The distance at which this Orientator starts to get a positive score.")]
-        public float MaxDistance = 3000;
+        public float MaxDistance = 2000;
         public override float Priority
         {
             get
@@ -37,7 +37,7 @@ namespace Assets.Src.Controllers
 
         private float _watchDistance;
 
-        public float AngleProportion = 1.6f;
+        public float AngleProportion = 1.8f;
 
         public float MinimumDistance = 400;
 
@@ -62,12 +62,13 @@ namespace Assets.Src.Controllers
 
                 _cameraLocationTarget = CameraLocationOrientation.transform.position - CameraLocationOrientation.transform.forward * setBack;
 
-                var cameraToTargetVector = _shipCam.TargetToWatch.transform.position - _shipCam.Camera.transform.position;
-                var cameraToFollowedVector = _shipCam.FollowedTarget.transform.position - _shipCam.Camera.transform.position;
+                var cameraToTargetVector = _shipCam.TargetToWatch.transform.position - _cameraLocationTarget;
+                var cameraToFollowedVector = _shipCam.FollowedTarget.transform.position - _cameraLocationTarget;
 
+                var vectorToParent = CameraLocationOrientation.transform.forward;
                 var baseAngle = Math.Max(
-                    Vector3.Angle(_shipCam.Camera.transform.forward, cameraToTargetVector),
-                    Vector3.Angle(_shipCam.Camera.transform.forward, cameraToFollowedVector)
+                    Vector3.Angle(vectorToParent, cameraToTargetVector),
+                    Vector3.Angle(vectorToParent, cameraToFollowedVector)
                     );
 
                 var desiredAngle = baseAngle * AngleProportion;
