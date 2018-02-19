@@ -43,6 +43,12 @@ namespace Assets.Src.Controllers
         private Quaternion _cameraOrientationTarget;
         public override Quaternion CameraOrientationTarget { get { return _cameraOrientationTarget; } }
 
+        private Vector3 _parentPollTarget;
+        public override Vector3 ParentPollTarget { get { return _parentPollTarget; } }
+
+        private Vector3 _cameraPollTarget;
+        public override Vector3 CameraPollTarget { get { return _cameraPollTarget; } }
+
         private float _cameraFieldOfView;
         public override float CameraFieldOfView { get { return _cameraFieldOfView; } }
 
@@ -65,8 +71,8 @@ namespace Assets.Src.Controllers
             {
                 //Debug.Log("Following " + _followedTarget.Transform.name + ", Watching " + _targetToWatch.Transform.name);
                 //rotate enpty parent
-                var direction = (_shipCam.TargetToWatch.position - transform.position);
-                _parentOrientationTarget = Quaternion.LookRotation(direction);
+                _parentPollTarget = (_shipCam.TargetToWatch.position - transform.position);
+                _parentOrientationTarget = Quaternion.LookRotation(_parentPollTarget);
 
                 _referenceVelocity = _shipCam.FollowedTarget.velocity;
 
@@ -84,10 +90,11 @@ namespace Assets.Src.Controllers
                 if (Quaternion.Angle(_parentOrientationTarget, transform.rotation) < NearlyAimedAngle)
                 {
                     //rotate the camera itself - only if the parent is looking in vaguely the right direction.
-                    var camDirection = (_shipCam.TargetToWatch.position - _shipCam.Camera.transform.position);
-                    _cameraOrientationTarget = Quaternion.LookRotation(camDirection);
+                    _cameraPollTarget = (_shipCam.TargetToWatch.position - _shipCam.Camera.transform.position);
+                    _cameraOrientationTarget = Quaternion.LookRotation(_cameraPollTarget);
                 } else
                 {
+                    _cameraPollTarget = _shipCam.Camera.transform.forward;
                     _cameraOrientationTarget = _shipCam.Camera.transform.rotation;
                 }
             }

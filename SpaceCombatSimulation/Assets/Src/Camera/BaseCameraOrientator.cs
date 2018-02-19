@@ -17,6 +17,9 @@ namespace Assets.Src.Controllers
 
         public abstract bool HasTargets { get; }
 
+        public abstract Vector3 ParentPollTarget { get; }
+        public abstract Vector3 CameraPollTarget { get; }
+
         public void RegisterOwner(ShipCam shipcam)
         {
             _shipCam = shipcam;

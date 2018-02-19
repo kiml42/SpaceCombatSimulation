@@ -21,6 +21,11 @@ namespace Assets.Src.Controllers
         
         public override Quaternion CameraOrientationTarget { get { return CameraLocationOrientation.rotation; } }
 
+        private Vector3 _parentPollTarget;
+        public override Vector3 ParentPollTarget { get { return _parentPollTarget; } }
+        
+        public override Vector3 CameraPollTarget { get { return CameraLocationOrientation.forward; } }
+
         private float _cameraFieldOfView;
         public override float CameraFieldOfView { get { return _cameraFieldOfView; } }
 
@@ -67,12 +72,12 @@ namespace Assets.Src.Controllers
                 var averageVZ = targets.Average(t => t.velocity.z);
 
                 _referenceVelocity = new Vector3(averageVX, averageVY, averageVZ);
-                
-                var vectorBetweenWatchedObjects = _shipCam.TargetToWatch.position - _shipCam.FollowedTarget.position;
 
-                _parentOrientationTarget = Quaternion.LookRotation(vectorBetweenWatchedObjects);
+                _parentPollTarget = _shipCam.TargetToWatch.position - _shipCam.FollowedTarget.position;
                 
-                _watchDistance = vectorBetweenWatchedObjects.magnitude;
+                _parentOrientationTarget = Quaternion.LookRotation(_parentPollTarget);
+                
+                _watchDistance = _parentPollTarget.magnitude;
                 var setBack = Clamp(_watchDistance * 3, MinimumDistance, _watchDistance * 3);
 
                 _cameraLocationTarget = CameraLocationOrientation.transform.position - CameraLocationOrientation.transform.forward * setBack;

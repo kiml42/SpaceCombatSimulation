@@ -17,7 +17,13 @@ namespace Assets.Src.Controllers
         public override Quaternion ParentOrientationTarget { get { return _parentAndCameraOrientationTarget; } }
         
         public override Quaternion CameraOrientationTarget { get { return _parentAndCameraOrientationTarget; } }
-        
+
+        private Vector3 _parentPollTarget;
+        public override Vector3 ParentPollTarget { get { return _parentPollTarget; } }
+
+        private Vector3 _cameraPollTarget;
+        public override Vector3 CameraPollTarget { get { return _cameraPollTarget; } }
+
         public override float CameraFieldOfView { get { return FieldOfView; } }
         
         public override bool HasTargets { get { return true; } }
@@ -44,7 +50,9 @@ namespace Assets.Src.Controllers
                 _parentLocationTarget = Vector3.zero;
                 _referenceVelocity = Vector3.zero;
             }
+            _parentPollTarget = Quaternion.AngleAxis(Time.deltaTime * IdleRotationSpeed, transform.up) * transform.forward;
             _parentAndCameraOrientationTarget = transform.rotation * Quaternion.Euler(Time.deltaTime * IdleRotationSpeed * transform.up);
+            
         }
     }
 }

@@ -24,59 +24,22 @@ namespace Assets.Src.Controllers
             }
         }
 
-        public Vector3 ReferenceVelocity
-        {
-            get
-            {
-                return _bestOrientator.ReferenceVelocity;
-            }
-        }
+        public Vector3 ReferenceVelocity { get { return _bestOrientator.ReferenceVelocity; } }
 
-        public Vector3 ParentLocationTarget
-        {
-            get
-            {
-                return _bestOrientator.ParentLocationTarget;
-            }
-        }
+        public Vector3 ParentLocationTarget { get { return _bestOrientator.ParentLocationTarget; } }
 
-        public Vector3 CameraLocationTarget
-        {
-            get {
-                return _bestOrientator.CameraLocationTarget;
-            }
-        }
+        public Vector3 CameraLocationTarget { get { return _bestOrientator.CameraLocationTarget; } }
 
-        public Quaternion ParentOrientationTarget
-        {
-            get
-            {
-                return _bestOrientator.ParentOrientationTarget;
-            }
-        }
+        public Quaternion ParentOrientationTarget { get { return _bestOrientator.ParentOrientationTarget; } }
 
-        public Quaternion CameraOrientationTarget
-        {
-            get
-            {
-                return _bestOrientator.CameraOrientationTarget;
-            }
-        }
+        public Quaternion CameraOrientationTarget { get { return _bestOrientator.CameraOrientationTarget; } }
 
-        public float CameraFieldOfView
-        {
-            get
-            {
-                return _bestOrientator.CameraFieldOfView;
-            }
-        }
+        public Vector3 ParentPollTarget { get { return _bestOrientator.ParentPollTarget; } }
 
-        public bool HasTargets
-        {
-            get
-            {
-                return _bestOrientator.HasTargets;
-            }
-        }
+        public Vector3 CameraPollTarget { get { return _bestOrientator.CameraPollTarget; } }
+
+        public float CameraFieldOfView { get { return _bestOrientator.CameraFieldOfView; } }
+
+        public bool HasTargets { get { return _bestOrientator.HasTargets; } }
     }
 }
