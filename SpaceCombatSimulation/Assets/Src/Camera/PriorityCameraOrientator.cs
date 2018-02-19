@@ -13,16 +13,7 @@ namespace Assets.Src.Controllers
             _orientators = orientators;
         }
 
-        private BaseCameraOrientator _bestOrientator
-        {
-            get
-            {
-                var active = _orientators.Where(o => o.HasTargets);
-                active = active.Any() ? active : _orientators;
-                //Debug.Log(string.Join(",", active.OrderByDescending(o => o.Priority).Select(o => o.ToString() + o.Priority).ToArray()));
-                return active.OrderByDescending(o => o.Priority).FirstOrDefault();
-            }
-        }
+        private BaseCameraOrientator _bestOrientator;
 
         public Vector3 ReferenceVelocity { get { return _bestOrientator.ReferenceVelocity; } }
 
@@ -40,6 +31,18 @@ namespace Assets.Src.Controllers
 
         public float CameraFieldOfView { get { return _bestOrientator.CameraFieldOfView; } }
 
-        public bool HasTargets { get { return _bestOrientator.HasTargets; } }
+        public bool HasTargets { get { return _orientators.Any(o => o.HasTargets); } }
+
+        public void CalculateTargets()
+        {
+            var active = _orientators.Where(o => o.HasTargets);
+            active = active.Any() ? active : _orientators;
+
+            //Debug.Log(string.Join(", ", active.OrderByDescending(o => o.Priority).Select(o => o.ToString() + o.Priority).ToArray()));
+
+            _bestOrientator = active.OrderByDescending(o => o.Priority).FirstOrDefault();
+
+            _bestOrientator.CalculateTargets();
+        }
     }
 }

@@ -64,6 +64,7 @@ namespace Assets.Src.Controllers
         
         private ICameraOrientator _orientator;
         public float ZoomSpeed = 2;
+        public bool UseFollowedTargetsTarget = true;
 
         public Target CurrentTarget
         {
@@ -174,6 +175,8 @@ namespace Assets.Src.Controllers
             
             if (_orientator.HasTargets)
             {
+                _orientator.CalculateTargets();
+
                 transform.position += FollowedObjectTranslateSpeedMultiplier * Time.deltaTime * _orientator.ReferenceVelocity;
                 transform.position = Vector3.Slerp(transform.position, _orientator.ParentLocationTarget, Time.deltaTime * TranslateSpeed);
 
@@ -188,7 +191,7 @@ namespace Assets.Src.Controllers
         {
             //Debug.Log("to watch");
             IKnowsCurrentTarget knower = null;
-            if(FollowedTarget != null) {
+            if(UseFollowedTargetsTarget && FollowedTarget != null) {
                 knower = FollowedTarget.GetComponent<IKnowsCurrentTarget>();
             }
             var targets = _detector.DetectTargets()

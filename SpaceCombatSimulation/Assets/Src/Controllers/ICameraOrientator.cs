@@ -27,5 +27,7 @@ namespace Assets.Src.Controllers
         float CameraFieldOfView { get; }
 
         bool HasTargets { get; }
+
+        void CalculateTargets();
     }
 }

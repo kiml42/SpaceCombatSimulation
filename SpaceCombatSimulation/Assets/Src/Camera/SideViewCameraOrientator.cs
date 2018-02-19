@@ -28,33 +28,35 @@ namespace Assets.Src.Controllers
 
         private float _cameraFieldOfView;
         public override float CameraFieldOfView { get { return _cameraFieldOfView; } }
-
-        private bool _hasTargets;
-        public override bool HasTargets { get { return _hasTargets; } }
+        
+        public override bool HasTargets { get { return _shipCam != null && _shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch; } }
 
         [Tooltip("The distance at which this Orientator starts to get a positive score.")]
         public float MaxDistance = 2000;
+
         public override float Priority
         {
             get
             {
-                return (MaxDistance - _watchDistance) * PriorityMultiplier;
+                return (MaxDistance - GetWatchDistance()) * PriorityMultiplier;
             }
         }
 
-        private float _watchDistance;
-
         public float AngleProportion = 1.8f;
 
-        public float MinimumDistance = 400;
+        public float MinimumSetBackDistance = 400;
+        public float MaximumSetBackDistance = 5000;
 
         public Transform CameraLocationOrientation;
         
-        // Update is called once per frame
-        void Update()
+        private float GetWatchDistance()
         {
-            _hasTargets = _shipCam != null && _shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch;
-            if (_hasTargets)
+            return Vector3.Distance(transform.position, _shipCam.TargetToWatch.position);
+        }
+
+        public override void CalculateTargets()
+        {
+            if (HasTargets)
             {
                 var targets = _shipCam.TargetsToWatch.ToList();
                 targets.Add(_shipCam.FollowedTarget);
@@ -66,7 +68,7 @@ namespace Assets.Src.Controllers
                 var averageZ = targets.Average(t => t.position.z);
 
                 _parentLocationTarget = new Vector3(averageX, averageY, averageZ);
-                
+
                 var averageVX = targets.Average(t => t.velocity.x);
                 var averageVY = targets.Average(t => t.velocity.y);
                 var averageVZ = targets.Average(t => t.velocity.z);
@@ -74,14 +76,13 @@ namespace Assets.Src.Controllers
                 _referenceVelocity = new Vector3(averageVX, averageVY, averageVZ);
 
                 _parentPollTarget = _shipCam.TargetToWatch.position - _shipCam.FollowedTarget.position;
-                
+
                 _parentOrientationTarget = Quaternion.LookRotation(_parentPollTarget);
                 
-                _watchDistance = _parentPollTarget.magnitude;
-                var setBack = Clamp(_watchDistance * 3, MinimumDistance, _watchDistance * 3);
+                var setBack = Clamp(GetWatchDistance() * 3, MinimumSetBackDistance, MaximumSetBackDistance);
 
                 _cameraLocationTarget = CameraLocationOrientation.transform.position - CameraLocationOrientation.transform.forward * setBack;
-                
+
                 var vectorToParent = CameraLocationOrientation.transform.forward;
                 var baseAngle = targets.Max(t => Vector3.Angle(vectorToParent, t.position - _cameraLocationTarget));
 

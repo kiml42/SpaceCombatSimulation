@@ -36,7 +36,6 @@ namespace Assets.Src.Controllers
         public override Vector3 CameraLocationTarget { get { return _cameraLocationTarget; } }
 
         private Quaternion _parentOrientationTarget;
-        private float _watchDistance;
 
         public override Quaternion ParentOrientationTarget { get { return _parentOrientationTarget; } }
 
@@ -51,23 +50,25 @@ namespace Assets.Src.Controllers
 
         private float _cameraFieldOfView;
         public override float CameraFieldOfView { get { return _cameraFieldOfView; } }
-
-        private bool _hasTargets;
-        public override bool HasTargets { get { return _hasTargets; } }
+        
+        public override bool HasTargets { get { return _shipCam != null && _shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch; } }
         
         public override float Priority
         {
             get
             {
-                return _watchDistance * PriorityMultiplier;
+                return GetWatchDistance() * PriorityMultiplier;
             }
         }
-
-        // Update is called once per frame
-        void FixedUpdate()
+        
+        private float GetWatchDistance()
         {
-            _hasTargets = _shipCam != null && _shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch;
-            if (_hasTargets)
+            return Vector3.Distance(transform.position, _shipCam.TargetToWatch.position);
+        }
+
+        public override void CalculateTargets()
+        {
+            if (HasTargets)
             {
                 //Debug.Log("Following " + _followedTarget.Transform.name + ", Watching " + _targetToWatch.Transform.name);
                 //rotate enpty parent
@@ -76,23 +77,21 @@ namespace Assets.Src.Controllers
 
                 _referenceVelocity = _shipCam.FollowedTarget.velocity;
 
-                _watchDistance = Vector3.Distance(transform.position, _shipCam.TargetToWatch.position);
-
                 //move the focus
-                _focusDistance = Mathf.Lerp(_focusDistance, _watchDistance, Time.deltaTime * FocusMoveSpeed);
+                _focusDistance = Mathf.Lerp(_focusDistance, GetWatchDistance(), Time.deltaTime * FocusMoveSpeed);
 
                 _cameraFieldOfView = Clamp((float)(FocusAngleMultiplier * Math.Pow(_focusDistance, FocusAnglePower)), 1, 90);
 
                 var setBack = SetbackIntercept - _focusDistance * SetBackMultiplier;
                 _cameraLocationTarget = DefaultCamLocation.position + (DefaultCamLocation.forward * setBack);
-
-
+                
                 if (Quaternion.Angle(_parentOrientationTarget, transform.rotation) < NearlyAimedAngle)
                 {
                     //rotate the camera itself - only if the parent is looking in vaguely the right direction.
                     _cameraPollTarget = (_shipCam.TargetToWatch.position - _shipCam.Camera.transform.position);
                     _cameraOrientationTarget = Quaternion.LookRotation(_cameraPollTarget);
-                } else
+                }
+                else
                 {
                     _cameraPollTarget = _shipCam.Camera.transform.forward;
                     _cameraOrientationTarget = _shipCam.Camera.transform.rotation;

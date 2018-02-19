@@ -13,16 +13,15 @@ namespace Assets.Src.Controllers
 
         public override Vector3 CameraLocationTarget { get { return _parentLocationTarget - (transform.forward * SetBack); } }
 
-        private Quaternion _parentAndCameraOrientationTarget;
-        public override Quaternion ParentOrientationTarget { get { return _parentAndCameraOrientationTarget; } }
+        private Quaternion _orientationTarget;
+        public override Quaternion ParentOrientationTarget { get { return _orientationTarget; } }
         
-        public override Quaternion CameraOrientationTarget { get { return _parentAndCameraOrientationTarget; } }
+        public override Quaternion CameraOrientationTarget { get { return _orientationTarget; } }
 
-        private Vector3 _parentPollTarget;
-        public override Vector3 ParentPollTarget { get { return _parentPollTarget; } }
-
-        private Vector3 _cameraPollTarget;
-        public override Vector3 CameraPollTarget { get { return _cameraPollTarget; } }
+        private Vector3 _pollTarget;
+        public override Vector3 ParentPollTarget { get { return _pollTarget; } }
+        
+        public override Vector3 CameraPollTarget { get { return _pollTarget; } }
 
         public override float CameraFieldOfView { get { return FieldOfView; } }
         
@@ -33,14 +32,13 @@ namespace Assets.Src.Controllers
         public float SetBack = 50;
         public float IdleRotationSpeed = -500;
         public float FieldOfView = 80;
-
-        // Update is called once per frame
-        void Update()
+        
+        public override void CalculateTargets()
         {
             Rigidbody target = null;
-            if(_shipCam != null && (_shipCam.FollowedTarget != null || _shipCam.TargetToWatch != null))
+            if (_shipCam != null && (_shipCam.FollowedTarget != null || _shipCam.TargetToWatch != null))
                 target = _shipCam.FollowedTarget ?? _shipCam.TargetToWatch;
-            if(target != null)
+            if (target != null)
             {
                 _parentLocationTarget = target.position;
                 _referenceVelocity = target.velocity;
@@ -50,9 +48,8 @@ namespace Assets.Src.Controllers
                 _parentLocationTarget = Vector3.zero;
                 _referenceVelocity = Vector3.zero;
             }
-            _parentPollTarget = Quaternion.AngleAxis(Time.deltaTime * IdleRotationSpeed, transform.up) * transform.forward;
-            _parentAndCameraOrientationTarget = transform.rotation * Quaternion.Euler(Time.deltaTime * IdleRotationSpeed * transform.up);
-            
+            _pollTarget = Quaternion.AngleAxis(Time.deltaTime * IdleRotationSpeed, transform.up) * transform.forward;
+            _orientationTarget = transform.rotation * Quaternion.Euler(Time.deltaTime * IdleRotationSpeed * transform.up);
         }
     }
 }
