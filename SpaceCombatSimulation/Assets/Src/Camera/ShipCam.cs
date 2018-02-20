@@ -65,6 +65,7 @@ namespace Assets.Src.Controllers
         private ICameraOrientator _orientator;
         public float ZoomSpeed = 2;
         public bool UseFollowedTargetsTarget = true;
+        public bool UseWeightedOrientator = false;
 
         public Target CurrentTarget
         {
@@ -84,7 +85,13 @@ namespace Assets.Src.Controllers
         {
             _cameraModes = GetComponents<BaseCameraOrientator>();
 
-            _orientator = new PriorityCameraOrientator(_cameraModes.ToList());
+            if (UseWeightedOrientator)
+            {
+                _orientator = new WeightedCameraOrientator(_cameraModes.ToList());
+            } else
+            {
+                _orientator = new PriorityCameraOrientator(_cameraModes.ToList());
+            }
 
             foreach (var cam in _cameraModes)
             {

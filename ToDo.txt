@@ -29,7 +29,6 @@ TODO:
                 Graphs of both against generations, possibly moving sums/averages.
                     Mouse-overs reveal the species/subspecies (possibly include creating a model of one to show what it looked like.)
         Side view mode for camera
-            Add a separate component for picking a list of prioritised targets to look at and to follow.
             Prevent flipping arround when changing order of targets
                 Have the parent point to one at a good distance with the minimum angle change from its current orientation.
             Camera jumps to target location etc. when it first reads one.
@@ -37,6 +36,7 @@ TODO:
                 "Friction" with "referenceVelocity" given by the orientator.
             Manual orientator - gets high priority when the user applies input, decays over time.
             Weighted camera orientator using poll targets, ignores rotatin targets (must be calculated with look rotations)
+                Implemented - works rather badly, different vectors would need different weights to make it work right.
     Priority:
         Add previous target picker to the target choosing mechanism.
         Async
