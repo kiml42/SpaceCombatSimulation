@@ -300,6 +300,7 @@
     <Compile Include="Assets\Src\Camera\Hud.cs" />
     <Compile Include="Assets\Src\Camera\IdleRotationCameraOrientator.cs" />
     <Compile Include="Assets\Src\Camera\OverShoulderCameraOrientator.cs" />
+    <Compile Include="Assets\Src\Camera\CyclingCameraOrientator.cs" />
     <Compile Include="Assets\Src\Camera\WeightedCameraOrientator.cs" />
     <Compile Include="Assets\Src\Camera\PriorityCameraOrientator.cs" />
     <Compile Include="Assets\Src\Camera\ShipCam.cs" />

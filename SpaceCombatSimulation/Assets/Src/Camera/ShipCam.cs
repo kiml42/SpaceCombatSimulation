@@ -65,7 +65,8 @@ namespace Assets.Src.Controllers
         private ICameraOrientator _orientator;
         public float ZoomSpeed = 2;
         public bool UseFollowedTargetsTarget = true;
-        public bool UseWeightedOrientator = false;
+        public CameraPickerMode cameraPickerMode = CameraPickerMode.Priority;
+        public float CameraModeCyclePeriod = 30;
 
         public Target CurrentTarget
         {
@@ -85,12 +86,17 @@ namespace Assets.Src.Controllers
         {
             _cameraModes = GetComponents<BaseCameraOrientator>();
 
-            if (UseWeightedOrientator)
+            switch (cameraPickerMode)
             {
-                _orientator = new WeightedCameraOrientator(_cameraModes.ToList());
-            } else
-            {
-                _orientator = new PriorityCameraOrientator(_cameraModes.ToList());
+                case CameraPickerMode.Priority:
+                    _orientator = new PriorityCameraOrientator(_cameraModes.ToList());
+                    break;
+                case CameraPickerMode.Weighted:
+                    _orientator = new WeightedCameraOrientator(_cameraModes.ToList());
+                    break;
+                case CameraPickerMode.Cycle:
+                    _orientator = new CyclingCameraOrientator(_cameraModes.ToList(), CameraModeCyclePeriod);
+                    break;
             }
 
             foreach (var cam in _cameraModes)
@@ -263,5 +269,12 @@ namespace Assets.Src.Controllers
                 .FirstOrDefault();
             FollowedTarget = tagrgetToFollow != null ? tagrgetToFollow.Rigidbody : null;
         }
+
+        
+    }
+
+    public enum CameraPickerMode
+    {
+        Priority, Weighted, Cycle
     }
 }
