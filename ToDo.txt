@@ -42,6 +42,7 @@ TODO:
                     make a new orientator monobehaviour for the chooser one
                     this gets a list of the others, and behaves like the existing "CyclingCameraOrientator"
                     Priority is set to the PriorityMultiplier when a change is forced (by button push) and decays over time towards zero
+                    Alternatively addapt the existing PriorityCameraOrientator to add some boost to the orientator with a given index so it becomes the main one - this boost decays over time to zero and is replenished when the user changes camera.
     Priority:
         Add previous target picker to the target choosing mechanism.
         Async
