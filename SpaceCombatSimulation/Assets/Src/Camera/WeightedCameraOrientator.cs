@@ -113,7 +113,7 @@ namespace Assets.Src.Controllers
                 o.CalculateTargets();
             }
             
-            //Debug.Log(string.Join(", ", _active.OrderByDescending(o => o.Priority).Select(o => o.ToString() + o.Priority).ToArray()));
+            //Debug.Log(string.Join(", ", _active.OrderByDescending(o => o.Priority).Select(o => o.Description + o.Priority).ToArray()));
         }
     }
 }

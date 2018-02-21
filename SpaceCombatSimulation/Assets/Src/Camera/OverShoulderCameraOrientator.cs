@@ -65,6 +65,13 @@ namespace Assets.Src.Controllers
         {
             return Vector3.Distance(transform.position, _shipCam.TargetToWatch.position);
         }
+        public override string Description
+        {
+            get
+            {
+                return "OverShoulder";
+            }
+        }
 
         public override void CalculateTargets()
         {

@@ -362,8 +362,9 @@ MonoBehaviour:
   WatchTargetsScoreProportion: 0.4
   ZoomSpeed: 3
   UseFollowedTargetsTarget: 0
-  cameraPickerMode: 2
+  cameraPickerMode: 0
   CameraModeCyclePeriod: Infinity
+  UserPriorityTime: 30
 --- !u!114 &114559164490886276
 MonoBehaviour:
   m_ObjectHideFlags: 1

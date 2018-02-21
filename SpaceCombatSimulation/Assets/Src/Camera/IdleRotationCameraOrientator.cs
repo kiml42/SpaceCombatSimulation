@@ -29,6 +29,14 @@ namespace Assets.Src.Controllers
 
         public override float Priority { get { return PriorityMultiplier; } }
 
+        public override string Description
+        {
+            get
+            {
+                return "IdleRotation";
+            }
+        }
+
         public float SetBack = 50;
         public float IdleRotationSpeed = -500;
         public float FieldOfView = 80;

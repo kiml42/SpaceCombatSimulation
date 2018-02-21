@@ -14,6 +14,7 @@ namespace Assets.Src.Controllers
         public abstract float CameraFieldOfView { get; }
         public float PriorityMultiplier = 1;
         public abstract float Priority { get; }
+        public abstract string Description { get; }
 
         public abstract bool HasTargets { get; }
 

@@ -68,6 +68,8 @@ namespace Assets.Src.Controllers
         public CameraPickerMode cameraPickerMode = CameraPickerMode.Priority;
         public float CameraModeCyclePeriod = 30;
 
+        public float UserPriorityTime = 10;
+
         public Target CurrentTarget
         {
             get
@@ -89,7 +91,7 @@ namespace Assets.Src.Controllers
             switch (cameraPickerMode)
             {
                 case CameraPickerMode.Priority:
-                    _orientator = new PriorityCameraOrientator(_cameraModes.ToList());
+                    _orientator = new PriorityCameraOrientator(_cameraModes.ToList(), UserPriorityTime);
                     break;
                 case CameraPickerMode.Weighted:
                     _orientator = new WeightedCameraOrientator(_cameraModes.ToList());

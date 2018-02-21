@@ -42,6 +42,14 @@ namespace Assets.Src.Controllers
             }
         }
 
+        public override string Description
+        {
+            get
+            {
+                return "SideView";
+            }
+        }
+
         public float AngleProportion = 1.8f;
 
         public float MinimumSetBackDistance = 400;
