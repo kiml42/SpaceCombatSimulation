@@ -61,7 +61,7 @@ namespace Assets.Src.Controllers
 
         private float GetWatchDistance()
         {
-            return Vector3.Distance(transform.position, _shipCam.TargetToWatch.position);
+            return Vector3.Distance(_shipCam.FollowedTarget.position, _shipCam.TargetToWatch.position);
         }
 
         public override void CalculateTargets()
@@ -70,7 +70,7 @@ namespace Assets.Src.Controllers
             {
                 var targets = _shipCam.TargetsToWatch.ToList();
                 targets.Add(_shipCam.FollowedTarget);
-                targets = targets.Distinct().Where(t => t.transform.IsValid() && Vector3.Distance(t.position, _shipCam.FollowedTarget.position) < MaxDistance).ToList();
+                targets = targets.Distinct().Where(t => t.transform.IsValid()).ToList();
                 //Debug.Log("SideView: " + string.Join(",", targets.Select(t=>t.name).ToArray()));
 
                 var averageX = targets.Average(t => t.position.x);
@@ -86,7 +86,6 @@ namespace Assets.Src.Controllers
                 _referenceVelocity = new Vector3(averageVX, averageVY, averageVZ);
 
                 _parentPollTarget = PickPollTarget(_parentLocationTarget, targets);
-
                 _parentOrientationTarget = Quaternion.LookRotation(_parentPollTarget);
                 
                 var setBack = Clamp(GetWatchDistance() * 3, MinimumSetBackDistance, MaximumSetBackDistance);

@@ -171,7 +171,7 @@ namespace Assets.Src.Controllers
             _followPicker = new CombinedTargetPicker(followPickers);
         }
 
-        private bool _firstCall = true;
+        private int _calls = 0;
 
         // Update is called once per frame
         void FixedUpdate()
@@ -194,7 +194,7 @@ namespace Assets.Src.Controllers
             {
                 _orientator.CalculateTargets();
 
-                if (_firstCall)
+                if (_calls < 10)
                 {
                     transform.position = _orientator.ParentLocationTarget;
 
@@ -213,7 +213,7 @@ namespace Assets.Src.Controllers
                     Camera.transform.position = Vector3.Slerp(Camera.transform.position, _orientator.CameraLocationTarget, Time.deltaTime * totalTranslateSpeed);
                 }
 
-                _firstCall = false;
+                _calls++;
             }
         }
         
