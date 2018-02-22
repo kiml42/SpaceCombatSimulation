@@ -171,6 +171,8 @@ namespace Assets.Src.Controllers
             _followPicker = new CombinedTargetPicker(followPickers);
         }
 
+        private bool _firstCall = true;
+
         // Update is called once per frame
         void FixedUpdate()
         {
@@ -192,13 +194,26 @@ namespace Assets.Src.Controllers
             {
                 _orientator.CalculateTargets();
 
-                transform.position += FollowedObjectTranslateSpeedMultiplier * Time.deltaTime * _orientator.ReferenceVelocity;
-                transform.position = Vector3.Slerp(transform.position, _orientator.ParentLocationTarget, Time.deltaTime * TranslateSpeed);
+                if (_firstCall)
+                {
+                    transform.position = _orientator.ParentLocationTarget;
 
-                transform.rotation = Quaternion.Slerp(transform.rotation, _orientator.ParentOrientationTarget, Time.deltaTime * RotationSpeed);
-                Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, _orientator.CameraOrientationTarget, Time.deltaTime * RotationSpeed * 0.3f);
-                Camera.fieldOfView = Mathf.LerpAngle(Camera.fieldOfView, _orientator.CameraFieldOfView, Time.deltaTime * ZoomSpeed * 0.3f);
-                Camera.transform.position = Vector3.Slerp(Camera.transform.position, _orientator.CameraLocationTarget, Time.deltaTime * totalTranslateSpeed);
+                    transform.rotation =_orientator.ParentOrientationTarget;
+                    Camera.transform.rotation = _orientator.CameraOrientationTarget;
+                    Camera.fieldOfView = _orientator.CameraFieldOfView;
+                    Camera.transform.position = _orientator.CameraLocationTarget;
+                } else
+                {
+                    transform.position += FollowedObjectTranslateSpeedMultiplier * Time.deltaTime * _orientator.ReferenceVelocity;
+                    transform.position = Vector3.Slerp(transform.position, _orientator.ParentLocationTarget, Time.deltaTime * TranslateSpeed);
+
+                    transform.rotation = Quaternion.Slerp(transform.rotation, _orientator.ParentOrientationTarget, Time.deltaTime * RotationSpeed);
+                    Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, _orientator.CameraOrientationTarget, Time.deltaTime * RotationSpeed * 0.3f);
+                    Camera.fieldOfView = Mathf.LerpAngle(Camera.fieldOfView, _orientator.CameraFieldOfView, Time.deltaTime * ZoomSpeed * 0.3f);
+                    Camera.transform.position = Vector3.Slerp(Camera.transform.position, _orientator.CameraLocationTarget, Time.deltaTime * totalTranslateSpeed);
+                }
+
+                _firstCall = false;
             }
         }
         

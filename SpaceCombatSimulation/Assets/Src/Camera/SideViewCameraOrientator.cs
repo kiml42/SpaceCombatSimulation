@@ -70,7 +70,7 @@ namespace Assets.Src.Controllers
             {
                 var targets = _shipCam.TargetsToWatch.ToList();
                 targets.Add(_shipCam.FollowedTarget);
-                targets = targets.Distinct().Where(t => t.transform.IsValid()).ToList();
+                targets = targets.Distinct().Where(t => t.transform.IsValid() && Vector3.Distance(t.position, _shipCam.FollowedTarget.position) < MaxDistance).ToList();
                 //Debug.Log("SideView: " + string.Join(",", targets.Select(t=>t.name).ToArray()));
 
                 var averageX = targets.Average(t => t.position.x);
