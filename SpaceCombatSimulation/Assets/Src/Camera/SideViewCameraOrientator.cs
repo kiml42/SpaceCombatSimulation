@@ -2,6 +2,7 @@
 using System;
 using System.Linq;
 using Assets.Src.ObjectManagement;
+using System.Collections.Generic;
 
 namespace Assets.Src.Controllers
 {
@@ -56,7 +57,8 @@ namespace Assets.Src.Controllers
         public float MaximumSetBackDistance = 5000;
 
         public Transform CameraLocationOrientation;
-        
+        private float _lookAtDistanceProportion = 0.7f;
+
         private float GetWatchDistance()
         {
             return Vector3.Distance(transform.position, _shipCam.TargetToWatch.position);
@@ -80,10 +82,10 @@ namespace Assets.Src.Controllers
                 var averageVX = targets.Average(t => t.velocity.x);
                 var averageVY = targets.Average(t => t.velocity.y);
                 var averageVZ = targets.Average(t => t.velocity.z);
-
+                
                 _referenceVelocity = new Vector3(averageVX, averageVY, averageVZ);
 
-                _parentPollTarget = _shipCam.TargetToWatch.position - _shipCam.FollowedTarget.position;
+                _parentPollTarget = PickPollTarget(_parentLocationTarget, targets);
 
                 _parentOrientationTarget = Quaternion.LookRotation(_parentPollTarget);
                 
@@ -97,6 +99,14 @@ namespace Assets.Src.Controllers
                 var desiredAngle = baseAngle * AngleProportion;
                 _cameraFieldOfView = Clamp(desiredAngle, 1, 90);
             }
+        }
+
+        private Vector3 PickPollTarget(Vector3 parentTargetLocation, List<Rigidbody> targets)
+        {
+            var vectors = targets.Select(t => t.position - parentTargetLocation);
+            var maxDistance = vectors.Max(t => t.magnitude);
+            var farEnough = vectors.Where(t => t.magnitude >= maxDistance * _lookAtDistanceProportion);
+            return farEnough.OrderBy(t => Vector3.Angle(t, _shipCam.transform.forward)).First();
         }
     }
 }

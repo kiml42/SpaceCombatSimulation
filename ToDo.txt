@@ -29,8 +29,6 @@ TODO:
                 Graphs of both against generations, possibly moving sums/averages.
                     Mouse-overs reveal the species/subspecies (possibly include creating a model of one to show what it looked like.)
         Side view mode for camera
-            Prevent flipping arround when changing order of targets
-                Have the parent point to one at a good distance with the minimum angle change from its current orientation.
             Camera jumps to target location etc. when it first reads one.
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.
