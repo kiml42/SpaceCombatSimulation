@@ -107,6 +107,7 @@ GameObject:
   - component: {fileID: 114474380245739952}
   - component: {fileID: 114283091465744020}
   - component: {fileID: 114313777679375054}
+  - component: {fileID: 114790935720585964}
   - component: {fileID: 114322797149157928}
   m_Layer: 0
   m_Name: ShipCamForBigShips
@@ -492,6 +493,25 @@ MonoBehaviour:
   m_FillAmount: 1
   m_FillClockwise: 1
   m_FillOrigin: 0
+--- !u!114 &114790935720585964
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1621751806191074}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d876e1fcf51ef6f41b09440f1d04d279, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  PriorityMultiplier: 1
+  DefaultCamLocation: {fileID: 4518497463421236}
+  SetBack: 50
+  IdleRotationSpeed: -500
+  FieldOfView: 80
+  PriorityDecay: 1
+  ManualPriority: 5000
+  RotationSpeed: 10
 --- !u!114 &114872935681875732
 MonoBehaviour:
   m_ObjectHideFlags: 1

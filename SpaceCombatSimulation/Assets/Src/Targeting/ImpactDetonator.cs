@@ -45,18 +45,21 @@ public class ImpactDetonator : MonoBehaviour {
     void OnCollisionEnter(Collision collision)
     {
         Vector3? velocity = null;
-        if(_rigidbody != null && collision.rigidbody != null)
+        if((Shrapnel != null && ShrapnelCount2 > 0) || DeathExplosion != null)
         {
-            //Get velocity weighted by object masses, so it doesn't fly away because the projectile would have.
-            var TotalP = ((_rigidbody.mass * _rigidbody.velocity) + (collision.rigidbody.mass * collision.rigidbody.velocity));
-            velocity = TotalP / (_rigidbody.mass + collision.rigidbody.mass);
-        } else if (collision.rigidbody != null)
-        {
-            velocity = collision.rigidbody.velocity;
-            Debug.LogWarning(name + "is Missing Rigidbody");
-        } else
-        {
-            Debug.LogWarning(name + " and " + collision.gameObject.name  + " are both Missing Rigidbody");
+            if(_rigidbody != null && collision.rigidbody != null)
+            {
+                //Get velocity weighted by object masses, so it doesn't fly away because the projectile would have.
+                var TotalP = ((_rigidbody.mass * _rigidbody.velocity) + (collision.rigidbody.mass * collision.rigidbody.velocity));
+                velocity = TotalP / (_rigidbody.mass + collision.rigidbody.mass);
+            } else if (collision.rigidbody != null)
+            {
+                velocity = collision.rigidbody.velocity;
+                Debug.LogWarning(name + "is Missing Rigidbody");
+            } else
+            {
+                Debug.LogWarning(name + " and " + collision.gameObject.name  + " are both Missing Rigidbody");
+            }
         }
         ExplodeNow(velocity);
     }

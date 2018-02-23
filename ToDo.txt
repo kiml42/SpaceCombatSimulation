@@ -32,9 +32,12 @@ TODO:
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.
             Manual orientator - gets high priority when the user applies input, decays over time.
+                Started - works but quite badly
+                Scroll to zoom
             Weighted camera orientator using poll targets, ignores rotatin targets (must be calculated with look rotations)
                 Implemented - works rather badly, different vectors would need different weights to make it work right.
                 Might be nice to have user prioritisation in this too.
+            Click to chose followed and watched target.
     Priority:
         Add previous target picker to the target choosing mechanism.
         Async

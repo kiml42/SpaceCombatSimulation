@@ -73,6 +73,7 @@ GameObject:
   - component: {fileID: 114722429569201848}
   - component: {fileID: 114657117113572014}
   - component: {fileID: 114127339082602284}
+  - component: {fileID: 114279558876074152}
   - component: {fileID: 114999490068584086}
   m_Layer: 0
   m_Name: ShipCam
@@ -454,6 +455,24 @@ MonoBehaviour:
   cameraPickerMode: 0
   CameraModeCyclePeriod: Infinity
   UserPriorityTime: 30
+--- !u!114 &114279558876074152
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1452437122874096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d876e1fcf51ef6f41b09440f1d04d279, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  PriorityMultiplier: 1
+  DefaultCamLocation: {fileID: 4079626012994640}
+  SetBack: 20
+  FieldOfView: 50
+  PriorityDecay: 50
+  ManualPriority: 5000
+  RotationSpeed: 50
 --- !u!114 &114559164490886276
 MonoBehaviour:
   m_ObjectHideFlags: 1
