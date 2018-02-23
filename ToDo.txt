@@ -28,8 +28,7 @@ TODO:
                 This would ideally be recorded in the genome as the ship is built (species can be derived from subspecies) and stored in the DB, could also be calculated after by building the ship and then destroying it (could only run analysis of species in unity).
                 Graphs of both against generations, possibly moving sums/averages.
                     Mouse-overs reveal the species/subspecies (possibly include creating a model of one to show what it looked like.)
-        Side view mode for camera
-            Camera jumps to target location etc. when it first reads one.
+        Camera
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.
             Manual orientator - gets high priority when the user applies input, decays over time.
