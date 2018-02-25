@@ -82,11 +82,15 @@ namespace Assets.Src.Controllers
                 targets = targets.Distinct().Where(t => t.transform.IsValid()).ToList();
                 //Debug.Log("SideView: " + string.Join(",", targets.Select(t=>t.name).ToArray()));
 
-                var averageX = targets.Average(t => t.position.x);
-                var averageY = targets.Average(t => t.position.y);
-                var averageZ = targets.Average(t => t.position.z);
+                var minX = targets.Min(t => t.position.x);
+                var minY = targets.Min(t => t.position.y);
+                var minZ = targets.Min(t => t.position.z);
 
-                _parentLocationTarget = new Vector3(averageX, averageY, averageZ);
+                var maxX = targets.Max(t => t.position.x);
+                var maxY = targets.Max(t => t.position.y);
+                var maxZ = targets.Max(t => t.position.z);
+
+                _parentLocationTarget = new Vector3((maxX + minX) / 2, (maxY + minY) / 2, (maxZ + minZ) / 2);
 
                 var averageVX = targets.Average(t => t.velocity.x);
                 var averageVY = targets.Average(t => t.velocity.y);
