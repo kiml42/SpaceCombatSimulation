@@ -31,17 +31,14 @@ TODO:
         Camera
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.
-            Manual orientator - gets high priority when the user applies input, decays over time.
-                Started - works but quite badly
-                use right instead of left click
+            Manual orientator
                 Scroll to zoom
-            Weighted camera orientator using poll targets, ignores rotatin targets (must be calculated with look rotations)
+            Weighted camera orientator using poll targets, ignores rotation targets (must be calculated with look rotations)
                 Implemented - works rather badly, different vectors would need different weights to make it work right.
                 Might be nice to have user prioritisation in this too.
             Click to chose followed and watched target.
-            Manual mode for all three automatic ones instead of seperate manual one, so that the parent stays in place, and the camera doesn't need to move.
             Move camera relative to parent (localRotation)
-            Make camera location target and orientation target nullable so that they don't have t be specified.
+            Make camera location target and orientation target nullable so that they don't have t be specified. (does no rotation/moving if null)
 
     Priority:
         Replace 1v1 with free for all with an arbirtary number of teams (battle royal).
