@@ -3,74 +3,51 @@ using System;
 
 namespace Assets.Src.Controllers
 {
-    public class ManualCameraOrientator : BaseCameraOrientator
-    {        
-        public override Vector3 ParentLocationTarget { get { return _shipCam.FollowedTarget.position; } }
+    public abstract class ManualCameraOrientator : BaseCameraOrientator
+    {
+        public sealed override Quaternion ParentOrientationTarget { get { return Quaternion.LookRotation(ParentPollTarget); } }
 
-        private Vector3 _referenceVelocity;
-        public override Vector3 ReferenceVelocity { get { return _shipCam.FollowedTarget.velocity; } }
+        protected abstract Vector3 AutomaticParentPollTarget {get;}
+        private Vector3 _ManualParentPollTarget;
+        public sealed override Vector3 ParentPollTarget { get { return ManualMode ? _ManualParentPollTarget : AutomaticParentPollTarget; } }
 
-        public Transform DefaultCamLocation;
-        private Vector3 _cameraLocationTarget;
-        public override Vector3 CameraLocationTarget { get { return _cameraLocationTarget; } }
-
-        public override Quaternion ParentOrientationTarget { get { return Quaternion.LookRotation(_pollTarget); } }
+        protected abstract float AutomaticFieldOfView { get; }
+        public sealed override float CameraFieldOfView { get { return ManualMode ? _manualFieldOfView : AutomaticFieldOfView; } }
         
-        public override Quaternion CameraOrientationTarget { get { return Quaternion.LookRotation(_pollTarget); } }
+        private float _manualFieldOfView = 80;
 
-        private Vector3 _pollTarget;
-        public override Vector3 ParentPollTarget { get { return _pollTarget; } }
-        
-        public override Vector3 CameraPollTarget { get { return _pollTarget; } }
+        private bool _mouseIsDown = false;
+        public float RotationSpeed = 10;
 
-        public override float CameraFieldOfView { get { return FieldOfView; } }
-        
-        public override bool HasTargets { get { return true; } }
-        
-        public override float Priority {
-            get {
-                var mouseDown = Input.GetMouseButtonDown(0);
-                if (mouseDown)
-                {
+        [Tooltip("The time this camera mode stays at the manual orientation after the user releases teh button.")]
+        public float ManualTime = 20;
+        private float _manualTimeRemaining = 0;
+        public int MouseButtonIndex = 1;
 
-                }
-                //Debug.Log("mouse down: " + mouseDown);
-
-                _mouseIsDown = _mouseIsDown || mouseDown;
-
-                _priority = _mouseIsDown ? ManualPriority : _priority;
-
-                return _priority * PriorityMultiplier;
-            }
-        }
-
-        public override string Description
+        protected bool ManualMode
         {
             get
             {
-                return "IdleRotation";
+                return _manualTimeRemaining > 0;
             }
         }
 
-        public float SetBack = 50;
-        public float FieldOfView = 80;
-
-        private bool _mouseIsDown = false;
-        private float _priority;
-        public float PriorityDecay = 50;
-        public float ManualPriority = 5000;
-        public float RotationSpeed = 10;
-
         public override void CalculateTargets()
         {
-            var mouseUp = Input.GetMouseButtonUp(0);
+            if (Input.GetMouseButtonDown(MouseButtonIndex))
+            {
+                _mouseIsDown = true;
 
-            if (mouseUp)
+                //set these before they will be affected buy setting the _manualTimeRemaining up.
+                _ManualParentPollTarget = ParentPollTarget;
+                _manualFieldOfView = CameraFieldOfView;
+
+                _manualTimeRemaining = ManualTime;
+            }
+            if (Input.GetMouseButtonUp(MouseButtonIndex))
             {
                 _mouseIsDown = false;
             }
-            
-            _cameraLocationTarget = DefaultCamLocation.position + (DefaultCamLocation.forward * -SetBack);
 
             if (_mouseIsDown)
             {
@@ -78,19 +55,14 @@ namespace Assets.Src.Controllers
                 var horizontal = Input.GetAxis("Mouse X");
                 //Debug.Log("vertical: " + vertical);
                 //Debug.Log("horizontal: " + horizontal);
-
-
-                _pollTarget = Quaternion.AngleAxis(-RotationSpeed * vertical, transform.right) * transform.forward;
-                _pollTarget = Quaternion.AngleAxis(RotationSpeed * horizontal, transform.up) * _pollTarget;
+                
+                _ManualParentPollTarget = Quaternion.AngleAxis(-RotationSpeed * vertical, _shipCam.Camera.transform.right) * transform.forward;
+                _ManualParentPollTarget = Quaternion.AngleAxis(RotationSpeed * horizontal, _shipCam.Camera.transform.up) * _ManualParentPollTarget;
                 //Debug.Log(_pollTarget);
-
             } else
             {
-                _pollTarget = transform.forward;
-                _priority -= PriorityDecay * Time.deltaTime;
+                _manualTimeRemaining -= Time.deltaTime;
             }
-
-
             //Debug.Log("mouse is down: " + _mouseIsDown);
         }
     }

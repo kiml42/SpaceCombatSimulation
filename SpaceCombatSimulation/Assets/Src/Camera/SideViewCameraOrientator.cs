@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace Assets.Src.Controllers
 {
-    public class SideViewCameraOrientator : BaseCameraOrientator
+    public class SideViewCameraOrientator : ManualCameraOrientator
     {
         private Vector3 _parentLocationTarget;
         public override Vector3 ParentLocationTarget { get { return _parentLocationTarget; } }
@@ -16,20 +16,11 @@ namespace Assets.Src.Controllers
 
         private Vector3 _cameraLocationTarget;
         public override Vector3 CameraLocationTarget { get { return _cameraLocationTarget; } }
-
-        private Quaternion _parentOrientationTarget;
-        public override Quaternion ParentOrientationTarget { get { return _parentOrientationTarget; } }
-        
+                
         public override Quaternion CameraOrientationTarget { get { return CameraLocationOrientation.rotation; } }
-
-        private Vector3 _parentPollTarget;
-        public override Vector3 ParentPollTarget { get { return _parentPollTarget; } }
-        
+                
         public override Vector3 CameraPollTarget { get { return CameraLocationOrientation.forward; } }
-
-        private float _cameraFieldOfView;
-        public override float CameraFieldOfView { get { return _cameraFieldOfView; } }
-        
+                
         public override bool HasTargets { get { return _shipCam != null && _shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch; } }
 
         [Tooltip("The distance at which this Orientator starts to get a positive score.")]
@@ -51,6 +42,24 @@ namespace Assets.Src.Controllers
             }
         }
 
+        private Vector3 _automaticParentPollTarget;
+        protected override Vector3 AutomaticParentPollTarget
+        {
+            get
+            {
+                return _automaticParentPollTarget;
+            }
+        }
+
+        private float _automaticFieldOfView;
+        protected override float AutomaticFieldOfView
+        {
+            get
+            {
+                return _automaticFieldOfView;
+            }
+        }
+
         public float AngleProportion = 1.8f;
 
         public float MinimumSetBackDistance = 400;
@@ -66,6 +75,7 @@ namespace Assets.Src.Controllers
 
         public override void CalculateTargets()
         {
+            base.CalculateTargets();
             if (HasTargets)
             {
                 var targets = _shipCam.TargetsToWatch.ToList();
@@ -84,19 +94,19 @@ namespace Assets.Src.Controllers
                 var averageVZ = targets.Average(t => t.velocity.z);
                 
                 _referenceVelocity = new Vector3(averageVX, averageVY, averageVZ);
-
-                _parentPollTarget = PickPollTarget(_parentLocationTarget, targets);
-                _parentOrientationTarget = Quaternion.LookRotation(_parentPollTarget);
+                
+                _automaticParentPollTarget = PickPollTarget(_parentLocationTarget, targets);
                 
                 var setBack = Clamp(GetWatchDistance() * 3, MinimumSetBackDistance, MaximumSetBackDistance);
 
+                //TODO stop using this transform because it works from the current orientation of the parent, not it's desired orientation.
                 _cameraLocationTarget = CameraLocationOrientation.transform.position - CameraLocationOrientation.transform.forward * setBack;
 
                 var vectorToParent = CameraLocationOrientation.transform.forward;
                 var baseAngle = targets.Max(t => Vector3.Angle(vectorToParent, t.position - _cameraLocationTarget));
 
                 var desiredAngle = baseAngle * AngleProportion;
-                _cameraFieldOfView = Clamp(desiredAngle, 1, 90);
+                _automaticFieldOfView = Clamp(desiredAngle, 1, 90);
             }
         }
 

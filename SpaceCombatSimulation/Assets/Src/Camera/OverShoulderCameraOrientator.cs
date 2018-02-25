@@ -3,7 +3,7 @@ using System;
 
 namespace Assets.Src.Controllers
 {
-    public class OverShoulderCameraOrientator : BaseCameraOrientator
+    public class OverShoulderCameraOrientator : ManualCameraOrientator
     {
         /// <summary>
         /// rate at which the camera will zoom in and out.
@@ -34,23 +34,12 @@ namespace Assets.Src.Controllers
         public Transform DefaultCamLocation;
         private Vector3 _cameraLocationTarget;
         public override Vector3 CameraLocationTarget { get { return _cameraLocationTarget; } }
-
-        private Quaternion _parentOrientationTarget;
-
-        public override Quaternion ParentOrientationTarget { get { return _parentOrientationTarget; } }
-
-        private Quaternion _cameraOrientationTarget;
-        public override Quaternion CameraOrientationTarget { get { return _cameraOrientationTarget; } }
-
-        private Vector3 _parentPollTarget;
-        public override Vector3 ParentPollTarget { get { return _parentPollTarget; } }
-
+                
+        public override Quaternion CameraOrientationTarget { get { return Quaternion.LookRotation(_cameraPollTarget); } }
+        
         private Vector3 _cameraPollTarget;
         public override Vector3 CameraPollTarget { get { return _cameraPollTarget; } }
-
-        private float _cameraFieldOfView;
-        public override float CameraFieldOfView { get { return _cameraFieldOfView; } }
-        
+                
         public override bool HasTargets { get { return _shipCam != null && _shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch; } }
         
         public override float Priority
@@ -73,36 +62,53 @@ namespace Assets.Src.Controllers
             }
         }
 
+        private Vector3 _automaticParentPollTarget;
+        protected override Vector3 AutomaticParentPollTarget
+        {
+            get
+            {
+                return _automaticParentPollTarget;
+            }
+        }
+
+        private float _automaticFieldOfView;
+        protected override float AutomaticFieldOfView
+        {
+            get
+            {
+                return _automaticFieldOfView;
+            }
+        }
+
         public override void CalculateTargets()
         {
+            base.CalculateTargets();
             if (HasTargets)
             {
                 //Debug.Log("Following " + _followedTarget.Transform.name + ", Watching " + _targetToWatch.Transform.name);
                 //rotate enpty parent
-                _parentPollTarget = (_shipCam.TargetToWatch.position - ParentLocationTarget);
-                _parentOrientationTarget = Quaternion.LookRotation(_parentPollTarget);
+                
+                _automaticParentPollTarget = (_shipCam.TargetToWatch.position - ParentLocationTarget);
+                if (!ManualMode && Vector3.Angle(_automaticParentPollTarget, transform.forward) < NearlyAimedAngle)
+                {
+                    //rotate the camera itself - only if the parent is looking in vaguely the right direction.
+                    _cameraPollTarget = (_shipCam.TargetToWatch.position - _shipCam.Camera.transform.position);
+                }
+                else
+                {
+                    _cameraPollTarget = DefaultCamLocation.forward;
+                }
 
                 _referenceVelocity = _shipCam.FollowedTarget.velocity;
 
                 //move the focus
                 _focusDistance =  GetWatchDistance();
 
-                _cameraFieldOfView = Clamp((float)(FocusAngleMultiplier * Math.Pow(_focusDistance, FocusAnglePower)), 1, 90);
+                _automaticFieldOfView = Clamp((float)(FocusAngleMultiplier * Math.Pow(_focusDistance, FocusAnglePower)), 1, 90);
 
                 var setBack = SetbackIntercept - _focusDistance * SetBackMultiplier;
                 _cameraLocationTarget = DefaultCamLocation.position + (DefaultCamLocation.forward * setBack);
                 
-                if (Vector3.Angle(_parentPollTarget, transform.forward) < NearlyAimedAngle)
-                {
-                    //rotate the camera itself - only if the parent is looking in vaguely the right direction.
-                    _cameraPollTarget = (_shipCam.TargetToWatch.position - _shipCam.Camera.transform.position);
-                    _cameraOrientationTarget = Quaternion.LookRotation(_cameraPollTarget);
-                }
-                else
-                {
-                    _cameraPollTarget = _shipCam.Camera.transform.forward;
-                    _cameraOrientationTarget = _shipCam.Camera.transform.rotation;
-                }
             }
         }
     }

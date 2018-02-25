@@ -25,7 +25,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!1 &1118343996572050
 GameObject:
   m_ObjectHideFlags: 1
@@ -52,7 +52,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4695532673310124}
   - component: {fileID: 33981442218149270}
-  - component: {fileID: 135938195887443616}
   - component: {fileID: 23289946954113130}
   m_Layer: 0
   m_Name: Sphere
@@ -73,7 +72,6 @@ GameObject:
   - component: {fileID: 114722429569201848}
   - component: {fileID: 114657117113572014}
   - component: {fileID: 114127339082602284}
-  - component: {fileID: 114279558876074152}
   - component: {fileID: 114999490068584086}
   m_Layer: 0
   m_Name: ShipCam
@@ -243,8 +241,8 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1452437122874096}
-  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 3000, y: 0, z: 0}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: -2000, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4924564836931496}
@@ -455,24 +453,6 @@ MonoBehaviour:
   cameraPickerMode: 0
   CameraModeCyclePeriod: Infinity
   UserPriorityTime: 30
---- !u!114 &114279558876074152
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1452437122874096}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d876e1fcf51ef6f41b09440f1d04d279, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  PriorityMultiplier: 1
-  DefaultCamLocation: {fileID: 4079626012994640}
-  SetBack: 20
-  FieldOfView: 50
-  PriorityDecay: 50
-  ManualPriority: 5000
-  RotationSpeed: 50
 --- !u!114 &114559164490886276
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -522,6 +502,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PriorityMultiplier: 1
+  RotationSpeed: 10
+  ManualTime: 20
+  MouseButtonIndex: 1
   MaxDistance: 3000
   AngleProportion: 1.8
   MinimumSetBackDistance: 400
@@ -566,6 +549,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PriorityMultiplier: 1
+  RotationSpeed: 10
+  ManualTime: 20
+  MouseButtonIndex: 1
   FocusMoveSpeed: 1
   FocusAnglePower: -0.67
   FocusAngleMultiplier: 1000
@@ -628,18 +614,6 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1596262510301064}
   m_Enabled: 1
---- !u!135 &135938195887443616
-SphereCollider:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1159120280472186}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!222 &222082720871016170
 CanvasRenderer:
   m_ObjectHideFlags: 1
