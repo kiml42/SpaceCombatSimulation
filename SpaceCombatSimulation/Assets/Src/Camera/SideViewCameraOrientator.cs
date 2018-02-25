@@ -73,9 +73,8 @@ namespace Assets.Src.Controllers
             return Vector3.Distance(_shipCam.FollowedTarget.position, _shipCam.TargetToWatch.position);
         }
 
-        public override void CalculateTargets()
+        protected override void CalculateAutomaticTargets()
         {
-            base.CalculateTargets();
             if (HasTargets)
             {
                 var targets = _shipCam.TargetsToWatch.ToList();

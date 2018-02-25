@@ -32,7 +32,9 @@ namespace Assets.Src.Controllers
             }
         }
 
-        public override void CalculateTargets()
+        protected abstract void CalculateAutomaticTargets();
+
+        public sealed override void CalculateTargets()
         {
             if (Input.GetMouseButtonDown(MouseButtonIndex))
             {
@@ -63,6 +65,7 @@ namespace Assets.Src.Controllers
             {
                 _manualTimeRemaining -= Time.deltaTime;
             }
+            CalculateAutomaticTargets();
             //Debug.Log("mouse is down: " + _mouseIsDown);
         }
     }

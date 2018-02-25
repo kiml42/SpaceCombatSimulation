@@ -49,8 +49,8 @@ namespace Assets.Src.Controllers
                 return FieldOfView;
             }
         }
-
-        public override void CalculateTargets()
+        
+        protected override void CalculateAutomaticTargets()
         {
             Rigidbody target = null;
             if (_shipCam != null && (_shipCam.FollowedTarget != null || _shipCam.TargetToWatch != null))

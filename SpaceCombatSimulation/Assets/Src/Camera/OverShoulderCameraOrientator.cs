@@ -80,9 +80,8 @@ namespace Assets.Src.Controllers
             }
         }
 
-        public override void CalculateTargets()
+        protected override void CalculateAutomaticTargets()
         {
-            base.CalculateTargets();
             if (HasTargets)
             {
                 //Debug.Log("Following " + _followedTarget.Transform.name + ", Watching " + _targetToWatch.Transform.name);

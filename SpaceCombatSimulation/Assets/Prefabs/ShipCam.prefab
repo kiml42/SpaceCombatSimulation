@@ -25,7 +25,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!1 &1118343996572050
 GameObject:
   m_ObjectHideFlags: 1
@@ -423,6 +423,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PriorityMultiplier: 1
+  RotationSpeed: 10
+  ManualTime: 20
+  MouseButtonIndex: 1
   SetBack: 50
   IdleRotationSpeed: -500
   FieldOfView: 80
