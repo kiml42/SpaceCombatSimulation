@@ -117,6 +117,10 @@ namespace Assets.Src.Pilots
             return targetsVelocity - ownVelocity;
         }
 
+        /// <summary>
+        /// Sets both the turning and translation vecor on all the engines.
+        /// </summary>
+        /// <param name="flightVector"></param>
         protected void SetFlightVectorOnEngines(Vector3? flightVector)
         {
             foreach (var engine in _engines)
@@ -125,6 +129,10 @@ namespace Assets.Src.Pilots
             }
         }
 
+        /// <summary>
+        /// sets just the turning vector on all engines.
+        /// </summary>
+        /// <param name="torqueVector"></param>
         protected void SetTurningVectorOnEngines(Vector3? torqueVector)
         {
             foreach (var engine in _engines)

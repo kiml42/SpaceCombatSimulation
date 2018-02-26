@@ -99,7 +99,7 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
             _fullTrhrottlePlumeRate = Plume.emission.rateOverTime.constant;
         }
 
-        Pilot = FindOtherComponents(transform);
+        FindOtherComponents(transform);
         
         if(Pilot != transform)
         {
@@ -279,13 +279,13 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
         return 0;
     }
 
-    private Transform FindOtherComponents(Transform transform)
+    private void FindOtherComponents(Transform transform)
     {
         //TODO replace this with getComponentInParent() method if possible.
         if(Pilot != null && FuelTank != null && ForceApplier != null)
         {
             //everyhting's set already, so stop looking.
-            return Pilot;
+            return;
         }
         if(transform != null)
         {
@@ -304,11 +304,9 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
             {
                 //pilot is highest in hierarchy
                 Pilot = transform;
-                return transform;
             }
-            return FindOtherComponents(parent);
+            if(parent != null) FindOtherComponents(parent);
         }
-        return null;
     }
 
     private void NotifyPilot()

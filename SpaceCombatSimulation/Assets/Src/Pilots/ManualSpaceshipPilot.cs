@@ -37,6 +37,7 @@ namespace Assets.Src.Pilots
                 //    ", turningVector: " + turningVector);
 
                 _torqueApplier.TurnToVectorInWorldSpace(worldTurningVector);
+                SetTurningVectorOnEngines(worldTurningVector);
 
                 if (VectorArrow != null)
                 {
@@ -51,7 +52,7 @@ namespace Assets.Src.Pilots
                 }
 
                 var forceVector = ReadWorldForceVectorFromControls();
-                SetFlightVectorOnEngines(forceVector);  //turn off the engine
+                SetPrimaryTranslationVectorOnEngines(forceVector);
             }
             else
             {
