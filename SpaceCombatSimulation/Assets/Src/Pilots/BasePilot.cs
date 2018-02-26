@@ -44,7 +44,7 @@ namespace Assets.Src.Pilots
 
         protected List<EngineControler> _engines = new List<EngineControler>();
 
-        protected bool ShouldTurn()
+        protected bool HasActivated()
         {
             //Debug.Log("TurningStartDelay:" + TurningStartDelay);
             TurningStartDelay -= Time.deltaTime;

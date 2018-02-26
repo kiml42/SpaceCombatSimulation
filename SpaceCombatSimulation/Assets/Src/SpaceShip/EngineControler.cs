@@ -281,40 +281,48 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
 
     private Transform FindOtherComponents(Transform transform)
     {
+        //TODO replace this with getComponentInParent() method if possible.
         if(Pilot != null && FuelTank != null && ForceApplier != null)
         {
             //everyhting's set already, so stop looking.
             return Pilot;
         }
-        if (FuelTank == null)
+        if(transform != null)
         {
-            //first object found with a fuel tank
-            FuelTank = transform.GetComponent<FuelTank>();
+            if (FuelTank == null)
+            {
+                //first object found with a fuel tank
+                FuelTank = transform.GetComponent<FuelTank>();
+            }
+            if(ForceApplier == null)
+            {
+                //firstComponent with a rigidbody
+                ForceApplier = transform.GetComponent<Rigidbody>();
+            }
+            var parent = transform.parent;
+            if (parent == null && Pilot == null)
+            {
+                //pilot is highest in hierarchy
+                Pilot = transform;
+                return transform;
+            }
+            return FindOtherComponents(parent);
         }
-        if(ForceApplier == null)
-        {
-            //firstComponent with a rigidbody
-            ForceApplier = transform.GetComponent<Rigidbody>();
-        }
-        var parent = transform.parent;
-        if (parent == null && Pilot == null)
-        {
-            //pilot is highest in hierarchy
-            Pilot = transform;
-            return transform;
-        }
-        return FindOtherComponents(parent);
+        return null;
     }
 
     private void NotifyPilot()
     {
-        //Debug.Log("Registering engine with " + parent);
-        Pilot.SendMessage("RegisterEngine", this, SendMessageOptions.DontRequireReceiver);
+        if(Pilot != null)
+        {
+            //Debug.Log("Registering engine with " + parent);
+            Pilot.SendMessage("RegisterEngine", this, SendMessageOptions.DontRequireReceiver);
+        }
     }
 
     private Vector3? CalculateEngineTorqueVector()
     {
-        if (!TorqueVector.HasValue)
+        if (Pilot != null && !TorqueVector.HasValue)
         {
             var pilotSpaceVector = Pilot.InverseTransformVector(-transform.up);
             var pilotSpaceEngineLocation = Pilot.InverseTransformPoint(transform.position);

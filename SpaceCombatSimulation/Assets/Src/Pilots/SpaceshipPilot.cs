@@ -49,7 +49,7 @@ namespace Assets.Src.Pilots
         public override void Fly(Target target)
         {
             RemoveNullEngines();
-            if (ShouldTurn())
+            if (HasActivated())
             {
                 var reletiveLocation = target == null
                     ? -_pilotObject.position     //Return to the centre if there is no target

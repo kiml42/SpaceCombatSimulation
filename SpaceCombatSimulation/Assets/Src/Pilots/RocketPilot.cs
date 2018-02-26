@@ -47,7 +47,7 @@ namespace Assets.Src.Pilots
         public override void Fly(Target target)
         {
             RemoveNullEngines();
-            if (ShouldTurn() && HasStarted())
+            if (HasActivated() && HasStarted())
             {
                 //Debug.Log("flying");
                 UpdateFriendlyAvoidenceLevel();
