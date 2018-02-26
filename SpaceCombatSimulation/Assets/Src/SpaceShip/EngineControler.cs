@@ -22,8 +22,11 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
     [Tooltip("angle error at which the engine starts to turn on. \n" + 
         "Its throttle will be 0 at this angle, and go up towards 1 as the angle decreases to 0. \n" +
         "0 will disable this engine for translation")]
-    public float TranslateFireAngle = 45;
-    public float TorqueFireAngle = 90;
+    public float TranslateFireAngle = 90;
+    public float TorqueFireAngle = 45;
+
+    public float FullThrottleTranslateFireAngle = 45;
+    public float FullThrottleTorqueFireAngle = 10;
 
     public bool UseAsTorquer = true;
     public bool UseAsTranslator = true;
@@ -142,6 +145,8 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
                 float additionalThrottle;
                 if(TorquerFullThrottleAngle != 0)
                 {
+
+                    additionalThrottle = Math.Max(1, Math.Max(0, 1 - (angle - FullThrottleTranslateFireAngle / TranslateFireAngle - FullThrottleTranslateFireAngle)));
                     additionalThrottle = angle / TorquerFullThrottleAngle;
                 }
                 else
@@ -228,12 +233,14 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
         {
             TranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
             TorqueFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
+            FullThrottleTranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0, DefaultShootAngleProportion);
+            FullThrottleTorqueFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0, DefaultShootAngleProportion);
         }
 
         return genomeWrapper;
     }
 
-    private bool ApplysCorrectTorque()
+    private float ApplysCorrectTorque()
     {
         if (Pilot != null && Pilot.IsValid() && OrientationVector.HasValue && OrientationVector.Value.magnitude > 0 && TorqueVector.HasValue && TorqueVector.Value.magnitude > 0.5)
         {
@@ -255,7 +262,7 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
     {
         if(TranslateFireAngle > 0 && VectorIsUseful(PrimaryTranslateVector))
         {
-            float throttle;
+            float throttle = 0;
             //the enemy's gate is down
             var primaryAngleError = Vector3.Angle(-transform.up, PrimaryTranslateVector.Value);
             //Debug.Log("fire angle = " + angle);
@@ -270,8 +277,9 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
                 primaryAngleError = (angleSum - pToSAngle)/2;   //set the primaryAngleError to the distance from being on the ark(ish)
                 //the maths here isn't quite right, but it'll probably do, it's qualatatively correct. (I hope)
             }
-            throttle = Math.Max(0, 1 - (primaryAngleError / TranslateFireAngle));
-           
+            
+            throttle = Math.Max(1,Math.Max(0, 1 - (primaryAngleError - FullThrottleTranslateFireAngle / TranslateFireAngle - FullThrottleTranslateFireAngle)));
+
             //Debug.Log("TranslateThrotleSetting=" + throttle);
             return throttle;
         }
