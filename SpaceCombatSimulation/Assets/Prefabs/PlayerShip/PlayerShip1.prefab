@@ -1238,7 +1238,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4846400136055366}
-  m_RootOrder: 11
+  m_RootOrder: 10
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4266025556918928
 Transform:
@@ -1359,7 +1359,7 @@ Transform:
   - {fileID: 4185155241133248}
   - {fileID: 4655377371029732}
   m_Father: {fileID: 4846400136055366}
-  m_RootOrder: 12
+  m_RootOrder: 11
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4333600728509708
 Transform:
@@ -1593,7 +1593,7 @@ Transform:
   - {fileID: 4818856600606516}
   - {fileID: 4462012679076126}
   m_Father: {fileID: 4846400136055366}
-  m_RootOrder: 13
+  m_RootOrder: 12
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4616435863571634
 Transform:
@@ -1715,7 +1715,7 @@ Transform:
   - {fileID: 4430423882779108}
   - {fileID: 4319344229534102}
   m_Father: {fileID: 4846400136055366}
-  m_RootOrder: 10
+  m_RootOrder: 13
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!4 &4786887289622180
 Transform:
@@ -1832,10 +1832,10 @@ Transform:
   - {fileID: 4843253673490584}
   - {fileID: 4994527885704808}
   - {fileID: 4372043221709582}
-  - {fileID: 4770197111909668}
   - {fileID: 4252503575204198}
   - {fileID: 4328346132872766}
   - {fileID: 4601638992981590}
+  - {fileID: 4770197111909668}
   - {fileID: 4210180643052990}
   - {fileID: 4280207237807642}
   - {fileID: 4653108380540040}
@@ -3502,17 +3502,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 100000
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54087358730236130}
   Plume: {fileID: 198320839311444054}
+  EngineForce2: 300000
   TranslateFireAngle: 90
-  TorqueFireAngle: 90
+  FullThrottleTranslateFireAngle: 45
+  TorqueFireAngle: 45
+  TorquerFullThrottleAngle: 20
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 20
   _fullTrhrottlePlumeRate: 0
   GetConfigFromGenome: 1
 --- !u!114 &114020174866861756
@@ -3526,17 +3527,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 100000
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54684426007771114}
   Plume: {fileID: 198901711587647066}
+  EngineForce2: 300000
   TranslateFireAngle: 90
-  TorqueFireAngle: 90
+  FullThrottleTranslateFireAngle: 45
+  TorqueFireAngle: 45
+  TorquerFullThrottleAngle: 20
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 20
   _fullTrhrottlePlumeRate: 0
   GetConfigFromGenome: 1
 --- !u!114 &114141969949008824
@@ -3638,17 +3640,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 100000
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54923186016187324}
   Plume: {fileID: 198990211593875376}
+  EngineForce2: 300000
   TranslateFireAngle: 90
-  TorqueFireAngle: 90
+  FullThrottleTranslateFireAngle: 45
+  TorqueFireAngle: 45
+  TorquerFullThrottleAngle: 20
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 20
   _fullTrhrottlePlumeRate: 0
   GetConfigFromGenome: 1
 --- !u!114 &114296369495801048
@@ -3662,17 +3665,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 100000
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54486208755904514}
   Plume: {fileID: 198281594193050982}
+  EngineForce2: 300000
   TranslateFireAngle: 90
-  TorqueFireAngle: 90
+  FullThrottleTranslateFireAngle: 45
+  TorqueFireAngle: 45
+  TorquerFullThrottleAngle: 20
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 20
   _fullTrhrottlePlumeRate: 0
   GetConfigFromGenome: 1
 --- !u!114 &114357752766998002
@@ -3728,17 +3732,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 100000
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54333775750004750}
   Plume: {fileID: 198194414232994122}
+  EngineForce2: 300000
   TranslateFireAngle: 90
-  TorqueFireAngle: 90
+  FullThrottleTranslateFireAngle: 45
+  TorqueFireAngle: 45
+  TorquerFullThrottleAngle: 20
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 20
   _fullTrhrottlePlumeRate: 0
   GetConfigFromGenome: 1
 --- !u!114 &114482494858231946
@@ -3752,17 +3757,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 100000
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54311300306141198}
   Plume: {fileID: 198052542838225924}
+  EngineForce2: 300000
   TranslateFireAngle: 90
-  TorqueFireAngle: 90
+  FullThrottleTranslateFireAngle: 45
+  TorqueFireAngle: 45
+  TorquerFullThrottleAngle: 20
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 20
   _fullTrhrottlePlumeRate: 0
   GetConfigFromGenome: 1
 --- !u!114 &114486650647271090
@@ -3867,7 +3873,7 @@ MonoBehaviour:
   - {fileID: 114482494858231946}
   - {fileID: 114645732113754254}
   - {fileID: 114424003240346374}
-  AngularDragForTorquers: 20
+  AngularDragForTorquers: 1
   VectorArrow: {fileID: 4328346132872766}
   GetConfigFromGenome: 1
 --- !u!114 &114549649490661226
@@ -3940,17 +3946,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 100000
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54005488202487768}
   Plume: {fileID: 198770759371772734}
+  EngineForce2: 300000
   TranslateFireAngle: 90
-  TorqueFireAngle: 90
+  FullThrottleTranslateFireAngle: 45
+  TorqueFireAngle: 45
+  TorquerFullThrottleAngle: 20
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 20
   _fullTrhrottlePlumeRate: 0
   GetConfigFromGenome: 1
 --- !u!114 &114645732113754254
@@ -3964,17 +3971,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 100000
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54618770371209884}
   Plume: {fileID: 198267101199626784}
+  EngineForce2: 300000
   TranslateFireAngle: 90
-  TorqueFireAngle: 90
+  FullThrottleTranslateFireAngle: 45
+  TorqueFireAngle: 45
+  TorquerFullThrottleAngle: 20
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 20
   _fullTrhrottlePlumeRate: 0
   GetConfigFromGenome: 1
 --- !u!114 &114826728704148082
@@ -4044,17 +4052,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 100000
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54982811263021852}
   Plume: {fileID: 198292896385445530}
+  EngineForce2: 500000
   TranslateFireAngle: 90
-  TorqueFireAngle: 90
+  FullThrottleTranslateFireAngle: 45
+  TorqueFireAngle: 45
+  TorquerFullThrottleAngle: 20
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 20
   _fullTrhrottlePlumeRate: 0
   GetConfigFromGenome: 1
 --- !u!114 &114892079273808878
@@ -4068,17 +4077,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 800000
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54318108759424522}
   Plume: {fileID: 198520413050995724}
+  EngineForce2: 800000
   TranslateFireAngle: 90
-  TorqueFireAngle: 90
+  FullThrottleTranslateFireAngle: 45
+  TorqueFireAngle: 45
+  TorquerFullThrottleAngle: 10
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 1
-  TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
   GetConfigFromGenome: 1
 --- !u!114 &114925771223882250
@@ -4113,17 +4123,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 100000
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54127611332422456}
   Plume: {fileID: 198006855036020810}
+  EngineForce2: 300000
   TranslateFireAngle: 90
-  TorqueFireAngle: 90
+  FullThrottleTranslateFireAngle: 45
+  TorqueFireAngle: 45
+  TorquerFullThrottleAngle: 20
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 20
   _fullTrhrottlePlumeRate: 0
   GetConfigFromGenome: 1
 --- !u!136 &136122615615373614

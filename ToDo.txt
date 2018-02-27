@@ -16,6 +16,41 @@ Bugs:
 
 TODO:
     In Progress:
+        Camera
+            Rigidbody for shipcam, use forces to move to desired location
+                "Friction" with "referenceVelocity" given by the orientator.
+            Manual orientator
+                Scroll to zoom
+            Weighted camera orientator using poll targets, ignores rotation targets (must be calculated with look rotations)
+                Implemented - works rather badly, different vectors would need different weights to make it work right.
+                Might be nice to have user prioritisation in this too.
+            Click to chose followed and watched target.
+            Move camera relative to parent (localRotation)
+            Make camera location target and orientation target nullable so that they don't have t be specified. (does no rotation/moving if null)
+            Orientators Calculate targets methods return a ShipCamTargets object, instead of accessing their properties. - this makes sure calculate isn't forgotten.
+            Orientators specify up vector for both camera and parent.
+        Player ship
+            Vs evolved ships using battle royal mode
+            pick target by clicking on it
+            cycle ships with key press
+            Switch modes with tab
+                Flight mode:
+                    KSP(RCS) controlls for ship orientation/location - done
+                        Enable roll controler
+                    Turrets pick their own targets
+                Turret mode
+                    Flight left on automatic
+                    show reticle for aiming
+                    cast ray from camera through reticle
+                    turrets are given the target hit by the ray as very high priority (probably lower bonus than in hemisphere so that the ones that can't aim don't try)
+                    turrets fire on click
+
+
+    Priority:
+        Replace 1v1 with free for all with an arbirtary number of teams (battle royal).
+        Parent target picker 
+            adds bonus to the pilot's target
+            use GetComponentInParent
         Menus
             keyboard navigation
             Scrollable lists
@@ -28,39 +63,6 @@ TODO:
                 This would ideally be recorded in the genome as the ship is built (species can be derived from subspecies) and stored in the DB, could also be calculated after by building the ship and then destroying it (could only run analysis of species in unity).
                 Graphs of both against generations, possibly moving sums/averages.
                     Mouse-overs reveal the species/subspecies (possibly include creating a model of one to show what it looked like.)
-        Camera
-            Rigidbody for shipcam, use forces to move to desired location
-                "Friction" with "referenceVelocity" given by the orientator.
-            Manual orientator
-                Scroll to zoom
-            Weighted camera orientator using poll targets, ignores rotation targets (must be calculated with look rotations)
-                Implemented - works rather badly, different vectors would need different weights to make it work right.
-                Might be nice to have user prioritisation in this too.
-            Click to chose followed and watched target.
-            Move camera relative to parent (localRotation)
-            Make camera location target and orientation target nullable so that they don't have t be specified. (does no rotation/moving if null)
-
-    Priority:
-        Replace 1v1 with free for all with an arbirtary number of teams (battle royal).
-        Parent target picker 
-            adds bonus to the pilot's target
-            use GetComponentInParent
-        Player ship
-            Vs evolved ships using battle royal mode
-            pick target by clicking on it
-            cycle ships with key press
-            Switch modes with tab
-                Flight mode:
-                    KSP(RCS) controlls for ship orientation/location
-                    Turrets pick their own targets
-                Turret mode
-                    Flight left on automatic
-                    show reticle for aiming
-                    cast ray from camera through reticle
-                    turrets are given the target hit by the ray as very high priority (probably lower bonus than in hemisphere so that the ones that can't aim don't try)
-                    turrets fire on click
-
-        Add previous target picker to the target choosing mechanism.
         Async
         Find an easy way to delete individuals.
         Better defaults for evolution configs in the menus.

@@ -9,24 +9,29 @@ using UnityEngine;
 //TODO neaten up fields and methods.
 public class EngineControler : MonoBehaviour, IGeneticConfigurable
 {
-    /// <summary>
-    /// The force the engine applys at this transform's position in this transfornm's -up direction
-    /// </summary>
-    public float EngineForce2;
-
     public Transform Pilot;
     public FuelTank FuelTank;
     public Rigidbody ForceApplier;
     public ParticleSystem Plume;
 
-    [Tooltip("angle error at which the engine starts to turn on. \n" + 
-        "Its throttle will be 0 at this angle, and go up towards 1 as the angle decreases to 0. \n" +
+    /// <summary>
+    /// The force the engine applys at this transform's position in this transfornm's -up direction
+    /// </summary>
+    public float EngineForce2;
+    
+    [Tooltip("angle error at which the engine starts to turn on. \n" +
+        "Its throttle will be 0 at this angle, and go up towards 1 as the angle decreases to FullThrottleTranslateFireAngle. \n" +
         "0 will disable this engine for translation")]
     public float TranslateFireAngle = 90;
+
+    [Tooltip("Engine will apply full throttle for translation if the angle error is less than this.")]
+    public float FullThrottleTranslateFireAngle = 45;
+
+    [Tooltip("Will be used for torque if the angle between this engine's torque vector and the desired torque vector is less than this.")]
     public float TorqueFireAngle = 45;
 
-    public float FullThrottleTranslateFireAngle = 45;
-    public float FullThrottleTorqueFireAngle = 10;
+    [Tooltip("throttle for torquing will be set to angle to turn / TorquerFullThrottleAngle capped at 1.")]
+    public float TorquerFullThrottleAngle = 10;
 
     public bool UseAsTorquer = true;
     public bool UseAsTranslator = true;
@@ -85,10 +90,6 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
     /// </summary>
     public Vector3? TorqueVector = null;
 
-    /// <summary>
-    /// throttle for torquing will be set to angle to turn / TorquerFullThrottleAngle capped at 1.
-    /// </summary>
-    public float TorquerFullThrottleAngle = 10;
 
     private bool _active = true;
     private string InactiveTag = "Untagged";
@@ -139,24 +140,24 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
                 throttle = TranslateThrotleSetting();
             }
 
-            if (UseAsTorquer && throttle < 1 && ApplysCorrectTorque())
+            if(throttle != 0)
             {
-                var angle = Vector3.Angle(Pilot.forward, OrientationVector.Value);
-                float additionalThrottle;
-                if(TorquerFullThrottleAngle != 0)
-                {
-
-                    additionalThrottle = Math.Max(1, Math.Max(0, 1 - (angle - FullThrottleTranslateFireAngle / TranslateFireAngle - FullThrottleTranslateFireAngle)));
-                    additionalThrottle = angle / TorquerFullThrottleAngle;
-                }
-                else
-                {
-                    Debug.LogWarning("avoided div0 error");
-                    additionalThrottle = 0;
-                }
-                throttle = Math.Min(throttle + additionalThrottle, 1);
+                Debug.Log(name + " translate throttle " + throttle);
             }
 
+            if (UseAsTorquer)
+            {
+                float additionalThrottle = RotateThrottleSetting();
+
+                if (additionalThrottle != 0)
+                {
+                    Debug.Log(name + " torque throttle " + additionalThrottle);
+                }
+
+                throttle = throttle + additionalThrottle;  //add the additional throttle.
+            }
+            throttle = Math.Min(1, throttle);  //cut the throttle whole thing down to the propper range.
+            
             if(throttle > 0)
             {
                 throttle = AdjustThrottleForFuel(throttle);
@@ -184,6 +185,7 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
         float actualThrottle;
         if (FuelTank != null)
         {
+            //TODO check why this is capped.
             var singleFrameConsumption = Math.Max(FullThrottleFuelConsumption * Time.deltaTime, 0.0001f);
             var desiredFuel = throttle * singleFrameConsumption;
             var fuel = FuelTank.DrainFuel(desiredFuel);
@@ -234,13 +236,12 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
             TranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
             TorqueFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
             FullThrottleTranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0, DefaultShootAngleProportion);
-            FullThrottleTorqueFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0, DefaultShootAngleProportion);
         }
 
         return genomeWrapper;
     }
 
-    private float ApplysCorrectTorque()
+    private int TorqueThrustDirectionMultiplier()
     {
         if (Pilot != null && Pilot.IsValid() && OrientationVector.HasValue && OrientationVector.Value.magnitude > 0 && TorqueVector.HasValue && TorqueVector.Value.magnitude > 0.5)
         {
@@ -252,12 +253,43 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
 
             //Debug.Log("torquer to vector angle: " + angle);
             //Debug.Log(_torqueVector + " - " + FlightVector.Value);
-            return angle < TorqueFireAngle;
+            if(angle < TorqueFireAngle)
+            {
+                return 1;
+            }
+            if(angle > 180 - TorqueFireAngle)
+            {
+                return -1;
+            }
         }
         //Debug.Log("vectors not set");
-        return false;
+        return 0;
     }
 
+    /// <summary>
+    /// Gets the throttle setting appropriate for this engine to apply torqu towards the desired pilot orientation.
+    /// </summary>
+    /// <returns></returns>
+    private float RotateThrottleSetting()
+    {
+        var thrustDirectionMultiplier = TorqueThrustDirectionMultiplier();
+        if (TorquerFullThrottleAngle != 0 && thrustDirectionMultiplier != 0)
+        {
+            var pilotorientationErrorAngle = Vector3.Angle(Pilot.forward, OrientationVector.Value);
+
+            float additionalThrottle = thrustDirectionMultiplier * (pilotorientationErrorAngle / TorquerFullThrottleAngle);
+
+            return Clamp(additionalThrottle, -1, 1);
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// Returns the unclamped translate throttle calculated from the angle between this engine's line of action and the desired translate vector.
+    /// If this is < 0 that implies that this would push away from the intended translate vector, so any additional torquer throttle should be reduced.
+    /// If this is > 1 the angle is so close to correct that the torquer angle has to be a strong negative to counter this.
+    /// </summary>
+    /// <returns></returns>
     private float TranslateThrotleSetting()
     {
         if(TranslateFireAngle > 0 && VectorIsUseful(PrimaryTranslateVector))
@@ -277,11 +309,18 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
                 primaryAngleError = (angleSum - pToSAngle)/2;   //set the primaryAngleError to the distance from being on the ark(ish)
                 //the maths here isn't quite right, but it'll probably do, it's qualatatively correct. (I hope)
             }
-            
-            throttle = Math.Max(1,Math.Max(0, 1 - (primaryAngleError - FullThrottleTranslateFireAngle / TranslateFireAngle - FullThrottleTranslateFireAngle)));
+            if(primaryAngleError < TranslateFireAngle)
+            {
+                throttle = 1 - (primaryAngleError - FullThrottleTranslateFireAngle / TranslateFireAngle - FullThrottleTranslateFireAngle);
+            }
+
+            if(primaryAngleError > 180 - FullThrottleTranslateFireAngle)
+            {
+                throttle = -1;
+            }
 
             //Debug.Log("TranslateThrotleSetting=" + throttle);
-            return throttle;
+            return Clamp(throttle, -1, 1);
         }
         //Debug.Log("No FlightVector set Defaulting To False");
         return 0;
@@ -348,5 +387,10 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
     private bool VectorIsUseful(Vector3? vector)
     {
         return vector.HasValue && vector.Value.magnitude > 0;
+    }
+
+    public static float Clamp(float value, float min, float max)
+    {
+        return (value < min) ? min : (value > max) ? max : value;
     }
 }
