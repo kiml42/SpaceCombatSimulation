@@ -61,7 +61,9 @@ namespace Assets.Src.ShipCamera
                 _manualTimeRemaining -= Time.deltaTime;
             }
             //Debug.Log("mouse is down: " + _mouseIsDown);
-            return null;
+
+            //ToDo Stop this using its public properties. (maybe just make them private)
+            return new ShipCamTargetValues(targets.ParentLocationTarget, ParentPollTarget, targets.CameraLocationTarget, CameraPollTarget, targets.CameraFieldOfView, targets.ReferenceVelocity, targets.UpTarget);
         }
     }
 }

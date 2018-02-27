@@ -109,13 +109,10 @@ namespace Assets.Src.ShipCamera
         {
             _active = _orientators.Where(o => o.HasTargets && o.Priority > 0);
 
-            foreach(var o in _active)
-            {
-                o.CalculateTargets();
-            }
+            var targetValues = _active.ToDictionary(o => o.Priority, o => o.CalculateTargets());
 
             //Debug.Log(string.Join(", ", _active.OrderByDescending(o => o.Priority).Select(o => o.Description + o.Priority).ToArray()));
-            return null;
+            return new ShipCamTargetValues(ParentLocationTarget, ParentOrientationTarget, CameraLocationTarget, CameraOrientationTarget, CameraFieldOfView, ReferenceVelocity);
         }
     }
 }

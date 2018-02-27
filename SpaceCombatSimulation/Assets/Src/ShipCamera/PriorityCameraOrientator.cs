@@ -61,8 +61,7 @@ namespace Assets.Src.ShipCamera
                 .OrderByDescending(o => o.Priority)
                 .FirstOrDefault();
 
-            _bestOrientator.CalculateTargets();
-            return null;
+            return _bestOrientator.CalculateTargets();
         }
 
         private void CycleToNextVallidOrientator()

@@ -47,8 +47,7 @@ namespace Assets.Src.ShipCamera
             }
 
             _cycleTimer += Time.deltaTime;
-            _bestOrientator.CalculateTargets();
-            return null;
+            return _bestOrientator.CalculateTargets();
         }
 
         private void CycleToNextVallidOrientator()
