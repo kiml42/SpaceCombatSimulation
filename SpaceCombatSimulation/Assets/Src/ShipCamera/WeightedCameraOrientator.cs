@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using Assets.Src.Interfaces;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace Assets.Src.Controllers
+namespace Assets.Src.ShipCamera
 {
     public class WeightedCameraOrientator : ICameraOrientator
     {
@@ -104,7 +105,7 @@ namespace Assets.Src.Controllers
             }
         }
 
-        public void CalculateTargets()
+        public ShipCamTargetValues CalculateTargets()
         {
             _active = _orientators.Where(o => o.HasTargets && o.Priority > 0);
 
@@ -112,8 +113,9 @@ namespace Assets.Src.Controllers
             {
                 o.CalculateTargets();
             }
-            
+
             //Debug.Log(string.Join(", ", _active.OrderByDescending(o => o.Priority).Select(o => o.Description + o.Priority).ToArray()));
+            return null;
         }
     }
 }

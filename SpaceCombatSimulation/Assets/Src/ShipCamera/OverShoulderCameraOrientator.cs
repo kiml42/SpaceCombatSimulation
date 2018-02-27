@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System;
 
-namespace Assets.Src.Controllers
+namespace Assets.Src.ShipCamera
 {
     public class OverShoulderCameraOrientator : ManualCameraOrientator
     {

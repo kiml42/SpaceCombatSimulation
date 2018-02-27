@@ -1,6 +1,8 @@
-﻿using UnityEngine;
+﻿using Assets.Src.Controllers;
+using Assets.Src.Interfaces;
+using UnityEngine;
 
-namespace Assets.Src.Controllers
+namespace Assets.Src.ShipCamera
 {
     public abstract class BaseCameraOrientator : MonoBehaviour, ICameraOrientator
     {
@@ -26,7 +28,7 @@ namespace Assets.Src.Controllers
             _shipCam = shipcam;
         }
 
-        public abstract void CalculateTargets();
+        public abstract ShipCamTargetValues CalculateTargets();
 
         public static float Clamp(float value, float min, float max)
         {

@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using Assets.Src.ShipCamera;
 using UnityEngine;
 
-namespace Assets.Src.Controllers
+namespace Assets.Src.Interfaces
 {
     public interface ICameraOrientator
     {
@@ -28,6 +25,6 @@ namespace Assets.Src.Controllers
 
         bool HasTargets { get; }
 
-        void CalculateTargets();
+        ShipCamTargetValues CalculateTargets();
     }
 }

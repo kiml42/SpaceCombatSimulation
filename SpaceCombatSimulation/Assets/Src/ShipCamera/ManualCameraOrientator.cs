@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System;
 
-namespace Assets.Src.Controllers
+namespace Assets.Src.ShipCamera
 {
     public abstract class ManualCameraOrientator : BaseCameraOrientator
     {
@@ -34,7 +34,7 @@ namespace Assets.Src.Controllers
 
         protected abstract void CalculateAutomaticTargets();
 
-        public sealed override void CalculateTargets()
+        public sealed override ShipCamTargetValues CalculateTargets()
         {
             if (Input.GetMouseButtonDown(MouseButtonIndex))
             {
@@ -67,6 +67,7 @@ namespace Assets.Src.Controllers
             }
             CalculateAutomaticTargets();
             //Debug.Log("mouse is down: " + _mouseIsDown);
+            return null;
         }
     }
 }

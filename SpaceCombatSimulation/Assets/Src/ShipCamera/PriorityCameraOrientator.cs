@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using Assets.Src.Interfaces;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace Assets.Src.Controllers
+namespace Assets.Src.ShipCamera
 {
     public class PriorityCameraOrientator : ICameraOrientator
     {
@@ -39,7 +40,7 @@ namespace Assets.Src.Controllers
 
         public bool HasTargets { get { return _orientators.Any(o => o.HasTargets); } }
 
-        public void CalculateTargets()
+        public ShipCamTargetValues CalculateTargets()
         {
             _userPriorityCountdown -= Time.deltaTime;
 
@@ -61,6 +62,7 @@ namespace Assets.Src.Controllers
                 .FirstOrDefault();
 
             _bestOrientator.CalculateTargets();
+            return null;
         }
 
         private void CycleToNextVallidOrientator()

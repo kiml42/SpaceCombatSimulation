@@ -1,9 +1,9 @@
-﻿using System;
+﻿using Assets.Src.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace Assets.Src.Controllers
+namespace Assets.Src.ShipCamera
 {
     public class CyclingCameraOrientator : ICameraOrientator
     {
@@ -38,7 +38,7 @@ namespace Assets.Src.Controllers
 
         public bool HasTargets { get { return _orientators.Any(o => o.HasTargets); } }
 
-        public void CalculateTargets()
+        public ShipCamTargetValues CalculateTargets()
         {
             if(HasTargets && ((_cyclePeriod > 0 && _cycleTimer > _cyclePeriod) || Input.GetKeyUp(KeyCode.O) || _bestOrientator == null || !_bestOrientator.HasTargets))
             {
@@ -48,6 +48,7 @@ namespace Assets.Src.Controllers
 
             _cycleTimer += Time.deltaTime;
             _bestOrientator.CalculateTargets();
+            return null;
         }
 
         private void CycleToNextVallidOrientator()

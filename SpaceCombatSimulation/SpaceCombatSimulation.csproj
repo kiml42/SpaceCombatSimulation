@@ -296,17 +296,17 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\Src\Camera\BaseCameraOrientator.cs" />
-    <Compile Include="Assets\Src\Camera\CyclingCameraOrientator.cs" />
-    <Compile Include="Assets\Src\Camera\Hud.cs" />
-    <Compile Include="Assets\Src\Camera\IdleRotationCameraOrientator.cs" />
-    <Compile Include="Assets\Src\Camera\ManualCameraOrientator.cs" />
-    <Compile Include="Assets\Src\Camera\OverShoulderCameraOrientator.cs" />
-    <Compile Include="Assets\Src\Camera\PriorityCameraOrientator.cs" />
-    <Compile Include="Assets\Src\Camera\ShipCam.cs" />
-    <Compile Include="Assets\Src\Camera\ShipCamTargetValues.cs" />
-    <Compile Include="Assets\Src\Camera\SideViewCameraOrientator.cs" />
-    <Compile Include="Assets\Src\Camera\WeightedCameraOrientator.cs" />
+    <Compile Include="Assets\Src\ShipCamera\BaseCameraOrientator.cs" />
+    <Compile Include="Assets\Src\ShipCamera\CyclingCameraOrientator.cs" />
+    <Compile Include="Assets\Src\ShipCamera\Hud.cs" />
+    <Compile Include="Assets\Src\ShipCamera\IdleRotationCameraOrientator.cs" />
+    <Compile Include="Assets\Src\ShipCamera\ManualCameraOrientator.cs" />
+    <Compile Include="Assets\Src\ShipCamera\OverShoulderCameraOrientator.cs" />
+    <Compile Include="Assets\Src\ShipCamera\PriorityCameraOrientator.cs" />
+    <Compile Include="Assets\Src\ShipCamera\ShipCam.cs" />
+    <Compile Include="Assets\Src\ShipCamera\ShipCamTargetValues.cs" />
+    <Compile Include="Assets\Src\ShipCamera\SideViewCameraOrientator.cs" />
+    <Compile Include="Assets\Src\ShipCamera\WeightedCameraOrientator.cs" />
     <Compile Include="Assets\Src\Controllers\BeamTurretController.cs" />
     <Compile Include="Assets\Src\Controllers\GenericJointFriction.cs" />
     <Compile Include="Assets\Src\Controllers\HealthControler.cs" />

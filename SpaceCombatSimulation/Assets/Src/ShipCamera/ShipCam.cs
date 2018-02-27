@@ -6,7 +6,7 @@ using Assets.Src.Targeting;
 using Assets.Src.Targeting.TargetPickers;
 using Assets.Src.ObjectManagement;
 
-namespace Assets.Src.Controllers
+namespace Assets.Src.ShipCamera
 {
     public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
     {
@@ -32,7 +32,7 @@ namespace Assets.Src.Controllers
         /// </summary>
         public float FollowedObjectTranslateSpeedMultiplier = 1;
 
-        public Camera Camera;
+        public UnityEngine.Camera Camera;
         
         public float ApproachTargetPickerWeighting = 20;
 

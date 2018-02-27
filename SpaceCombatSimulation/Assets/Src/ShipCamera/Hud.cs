@@ -4,7 +4,7 @@ using System;
 using Assets.Src.Interfaces;
 using Assets.Src.Targeting;
 
-namespace Assets.Src.Controllers
+namespace Assets.Src.ShipCamera
 {
     public class Hud : MonoBehaviour
     {

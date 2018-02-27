@@ -4,7 +4,7 @@ using System.Linq;
 using Assets.Src.ObjectManagement;
 using System.Collections.Generic;
 
-namespace Assets.Src.Controllers
+namespace Assets.Src.ShipCamera
 {
     public class SideViewCameraOrientator : ManualCameraOrientator
     {
