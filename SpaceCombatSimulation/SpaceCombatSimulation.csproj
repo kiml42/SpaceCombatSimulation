@@ -304,6 +304,7 @@
     <Compile Include="Assets\Src\Camera\OverShoulderCameraOrientator.cs" />
     <Compile Include="Assets\Src\Camera\PriorityCameraOrientator.cs" />
     <Compile Include="Assets\Src\Camera\ShipCam.cs" />
+    <Compile Include="Assets\Src\Camera\ShipCamTargetValues.cs" />
     <Compile Include="Assets\Src\Camera\SideViewCameraOrientator.cs" />
     <Compile Include="Assets\Src\Camera\WeightedCameraOrientator.cs" />
     <Compile Include="Assets\Src\Controllers\BeamTurretController.cs" />

@@ -17,6 +17,8 @@ Bugs:
 TODO:
     In Progress:
         Camera
+            Orientators Calculate targets methods return a ShipCamTargets object, instead of accessing their properties. - this makes sure calculate isn't forgotten.
+                In progress: I've created the class, but not used it yet.
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.
             Manual orientator
@@ -27,7 +29,6 @@ TODO:
             Click to chose followed and watched target.
             Move camera relative to parent (localRotation)
             Make camera location target and orientation target nullable so that they don't have t be specified. (does no rotation/moving if null)
-            Orientators Calculate targets methods return a ShipCamTargets object, instead of accessing their properties. - this makes sure calculate isn't forgotten.
             Orientators specify up vector for both camera and parent.
         Player ship
             Vs evolved ships using battle royal mode
