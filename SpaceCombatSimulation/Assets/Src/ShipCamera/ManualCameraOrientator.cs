@@ -15,8 +15,7 @@ namespace Assets.Src.ShipCamera
         public sealed override float CameraFieldOfView { get { return ManualMode ? _manualFieldOfView : AutomaticFieldOfView; } }
         
         private float _manualFieldOfView = 80;
-
-        private bool _mouseIsDown = false;
+        
         public float RotationSpeed = 10;
 
         [Tooltip("The time this camera mode stays at the manual orientation after the user releases teh button.")]
@@ -32,26 +31,22 @@ namespace Assets.Src.ShipCamera
             }
         }
 
-        protected abstract void CalculateAutomaticTargets();
+        protected abstract ShipCamTargetValues CalculateAutomaticTargets();
 
         public sealed override ShipCamTargetValues CalculateTargets()
         {
+            var targets = CalculateAutomaticTargets();
+
             if (Input.GetMouseButtonDown(MouseButtonIndex))
             {
-                _mouseIsDown = true;
-
                 //set these before they will be affected buy setting the _manualTimeRemaining up.
                 _ManualParentPollTarget = ParentPollTarget;
                 _manualFieldOfView = CameraFieldOfView;
 
                 _manualTimeRemaining = ManualTime;
             }
-            if (Input.GetMouseButtonUp(MouseButtonIndex))
-            {
-                _mouseIsDown = false;
-            }
 
-            if (_mouseIsDown)
+            if (Input.GetMouseButton(MouseButtonIndex))
             {
                 var vertical = Input.GetAxis("Mouse Y");
                 var horizontal = Input.GetAxis("Mouse X");
@@ -65,7 +60,6 @@ namespace Assets.Src.ShipCamera
             {
                 _manualTimeRemaining -= Time.deltaTime;
             }
-            CalculateAutomaticTargets();
             //Debug.Log("mouse is down: " + _mouseIsDown);
             return null;
         }

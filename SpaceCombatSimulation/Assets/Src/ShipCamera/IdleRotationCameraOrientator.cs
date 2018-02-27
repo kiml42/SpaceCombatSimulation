@@ -50,7 +50,7 @@ namespace Assets.Src.ShipCamera
             }
         }
         
-        protected override void CalculateAutomaticTargets()
+        protected override ShipCamTargetValues CalculateAutomaticTargets()
         {
             Rigidbody target = null;
             if (_shipCam != null && (_shipCam.FollowedTarget != null || _shipCam.TargetToWatch != null))
@@ -66,6 +66,8 @@ namespace Assets.Src.ShipCamera
                 _referenceVelocity = Vector3.zero;
             }
             _automaticParentPollTarget = Quaternion.AngleAxis(Time.deltaTime * IdleRotationSpeed, transform.up) * transform.forward;
+
+            return new ShipCamTargetValues(_parentLocationTarget, _automaticParentPollTarget, _parentLocationTarget - (transform.forward * SetBack), ParentPollTarget, FieldOfView, _referenceVelocity, _shipCam.FollowedTarget.transform.up);
         }
     }
 }

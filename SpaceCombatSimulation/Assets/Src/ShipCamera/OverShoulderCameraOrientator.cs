@@ -80,7 +80,7 @@ namespace Assets.Src.ShipCamera
             }
         }
 
-        protected override void CalculateAutomaticTargets()
+        protected override ShipCamTargetValues CalculateAutomaticTargets()
         {
             if (HasTargets)
             {
@@ -107,8 +107,9 @@ namespace Assets.Src.ShipCamera
 
                 var setBack = SetbackIntercept - _focusDistance * SetBackMultiplier;
                 _cameraLocationTarget = DefaultCamLocation.position + (DefaultCamLocation.forward * setBack);
-                
+                return new ShipCamTargetValues(_shipCam.FollowedTarget.position, _automaticParentPollTarget, _cameraLocationTarget, _cameraPollTarget, _automaticFieldOfView, _referenceVelocity, _shipCam.FollowedTarget.transform.up);
             }
+            return null;
         }
     }
 }

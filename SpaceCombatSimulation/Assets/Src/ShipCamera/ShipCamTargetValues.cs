@@ -20,14 +20,12 @@ namespace Assets.Src.ShipCamera
 
         public float CameraFieldOfView { get; private set; }
 
-        public bool HasTargets { get; private set; }
-
         public Vector3 ReferenceVelocity { get; private set; }
 
         public ShipCamTargetValues(
             Vector3 parentLoc, Vector3 parentPole,
             Vector3 camLoc, Vector3 camPole,
-            float camFov, bool hasTargets, Vector3 vRef,
+            float camFov, Vector3 vRef,
             Vector3? up = null
             )
         {
@@ -42,16 +40,14 @@ namespace Assets.Src.ShipCamera
             CameraOrientationTarget = Quaternion.LookRotation(CameraPollTarget, UpTarget);
 
             CameraFieldOfView = camFov;
-
-            HasTargets = hasTargets;
-
+            
             ReferenceVelocity = vRef;
         }
 
         public ShipCamTargetValues(
            Vector3 parentLoc, Quaternion parentOrientation,
            Vector3 camLoc, Quaternion camOrientation,
-           float camFov, bool hasTargets, Vector3 vRef
+           float camFov, Vector3 vRef
            )
         {
             ParentLocationTarget = parentLoc;
@@ -65,8 +61,6 @@ namespace Assets.Src.ShipCamera
             CameraPollTarget = CameraOrientationTarget * Vector3.forward;
 
             CameraFieldOfView = camFov;
-
-            HasTargets = hasTargets;
 
             ReferenceVelocity = vRef;
         }
