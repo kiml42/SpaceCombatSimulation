@@ -29,14 +29,16 @@ namespace Assets.Src.ShipCamera
                 target = _shipCam.FollowedTarget ?? _shipCam.TargetToWatch;
             var referenceVelocity = Vector3.zero;
             var parentLocationTarget = Vector3.zero;
+            var up = Vector3.up;
             if (target != null)
             {
                 parentLocationTarget = target.position;
                 referenceVelocity = target.velocity;
+                up = target.transform.up;
             }
-            var automaticParentPollTarget = Quaternion.AngleAxis(Time.deltaTime * IdleRotationSpeed, transform.up) * transform.forward;
+            var automaticParentPollTarget = Quaternion.AngleAxis(Time.deltaTime * IdleRotationSpeed, up) * transform.forward;
 
-            return new ShipCamTargetValues(parentLocationTarget, automaticParentPollTarget, parentLocationTarget - (transform.forward * SetBack), automaticParentPollTarget, FieldOfView, referenceVelocity, _shipCam.FollowedTarget.transform.up);
+            return new ShipCamTargetValues(parentLocationTarget, automaticParentPollTarget, parentLocationTarget - (transform.forward * SetBack), automaticParentPollTarget, FieldOfView, referenceVelocity, up);
         }
     }
 }
