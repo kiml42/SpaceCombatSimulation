@@ -5,15 +5,7 @@ namespace Assets.Src.ShipCamera
 {
     public abstract class ManualCameraOrientator : BaseCameraOrientator
     {
-        public sealed override Quaternion ParentOrientationTarget { get { return Quaternion.LookRotation(ParentPollTarget); } }
-
-        protected abstract Vector3 AutomaticParentPollTarget {get;}
         private Vector3 _ManualParentPollTarget;
-        public sealed override Vector3 ParentPollTarget { get { return ManualMode ? _ManualParentPollTarget : AutomaticParentPollTarget; } }
-
-        protected abstract float AutomaticFieldOfView { get; }
-        public sealed override float CameraFieldOfView { get { return ManualMode ? _manualFieldOfView : AutomaticFieldOfView; } }
-        
         private float _manualFieldOfView = 80;
         
         public float RotationSpeed = 10;
@@ -40,8 +32,8 @@ namespace Assets.Src.ShipCamera
             if (Input.GetMouseButtonDown(MouseButtonIndex))
             {
                 //set these before they will be affected buy setting the _manualTimeRemaining up.
-                _ManualParentPollTarget = ParentPollTarget;
-                _manualFieldOfView = CameraFieldOfView;
+                _ManualParentPollTarget = GetParentPollTarget(targets);
+                _manualFieldOfView = GetCameraFieldOfView(targets);
 
                 _manualTimeRemaining = ManualTime;
             }
@@ -63,7 +55,17 @@ namespace Assets.Src.ShipCamera
             //Debug.Log("mouse is down: " + _mouseIsDown);
 
             //ToDo Stop this using its public properties. (maybe just make them private)
-            return new ShipCamTargetValues(targets.ParentLocationTarget, ParentPollTarget, targets.CameraLocationTarget, CameraPollTarget, targets.CameraFieldOfView, targets.ReferenceVelocity, targets.UpTarget);
+            return new ShipCamTargetValues(targets.ParentLocationTarget, GetParentPollTarget(targets), targets.CameraLocationTarget, targets.CameraPollTarget, targets.CameraFieldOfView, targets.ReferenceVelocity, targets.UpTarget);
+        }
+
+        private Vector3 GetParentPollTarget(ShipCamTargetValues automaticTargets)
+        {
+            return ManualMode ? _ManualParentPollTarget : automaticTargets.ParentPollTarget;
+        }
+
+        private float GetCameraFieldOfView(ShipCamTargetValues automaticTargets)
+        {
+            return ManualMode ? _manualFieldOfView : automaticTargets.CameraFieldOfView;
         }
     }
 }

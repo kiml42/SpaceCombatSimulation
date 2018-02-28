@@ -140,19 +140,19 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
                 throttle = TranslateThrotleSetting();
             }
 
-            if(throttle != 0)
-            {
-                Debug.Log(name + " translate throttle " + throttle);
-            }
+            //if(throttle != 0)
+            //{
+            //    Debug.Log(name + " translate throttle " + throttle);
+            //}
 
             if (UseAsTorquer)
             {
                 float additionalThrottle = RotateThrottleSetting();
 
-                if (additionalThrottle != 0)
-                {
-                    Debug.Log(name + " torque throttle " + additionalThrottle);
-                }
+                //if (additionalThrottle != 0)
+                //{
+                //    Debug.Log(name + " torque throttle " + additionalThrottle);
+                //}
 
                 throttle = throttle + additionalThrottle;  //add the additional throttle.
             }

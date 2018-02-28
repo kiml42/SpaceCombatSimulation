@@ -8,19 +8,6 @@ namespace Assets.Src.ShipCamera
 {
     public class SideViewCameraOrientator : ManualCameraOrientator
     {
-        private Vector3 _parentLocationTarget;
-        public override Vector3 ParentLocationTarget { get { return _parentLocationTarget; } }
-
-        private Vector3 _referenceVelocity;
-        public override Vector3 ReferenceVelocity { get { return _referenceVelocity; } }
-
-        private Vector3 _cameraLocationTarget;
-        public override Vector3 CameraLocationTarget { get { return _cameraLocationTarget; } }
-                
-        public override Quaternion CameraOrientationTarget { get { return CameraLocationOrientation.rotation; } }
-                
-        public override Vector3 CameraPollTarget { get { return CameraLocationOrientation.forward; } }
-                
         public override bool HasTargets { get { return _shipCam != null && _shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch; } }
 
         [Tooltip("The distance at which this Orientator starts to get a positive score.")]
@@ -41,25 +28,7 @@ namespace Assets.Src.ShipCamera
                 return "SideView";
             }
         }
-
-        private Vector3 _automaticParentPollTarget;
-        protected override Vector3 AutomaticParentPollTarget
-        {
-            get
-            {
-                return _automaticParentPollTarget;
-            }
-        }
-
-        private float _automaticFieldOfView;
-        protected override float AutomaticFieldOfView
-        {
-            get
-            {
-                return _automaticFieldOfView;
-            }
-        }
-
+        
         public float AngleProportion = 1.8f;
 
         public float MinimumSetBackDistance = 400;
@@ -90,27 +59,27 @@ namespace Assets.Src.ShipCamera
                 var maxY = targets.Max(t => t.position.y);
                 var maxZ = targets.Max(t => t.position.z);
 
-                _parentLocationTarget = new Vector3((maxX + minX) / 2, (maxY + minY) / 2, (maxZ + minZ) / 2);
+                var parentLocationTarget = new Vector3((maxX + minX) / 2, (maxY + minY) / 2, (maxZ + minZ) / 2);
 
                 var averageVX = targets.Average(t => t.velocity.x);
                 var averageVY = targets.Average(t => t.velocity.y);
                 var averageVZ = targets.Average(t => t.velocity.z);
                 
-                _referenceVelocity = new Vector3(averageVX, averageVY, averageVZ);
+                var referenceVelocity = new Vector3(averageVX, averageVY, averageVZ);
                 
-                _automaticParentPollTarget = PickPollTarget(_parentLocationTarget, targets);
+                var automaticParentPollTarget = PickPollTarget(parentLocationTarget, targets);
                 
                 var setBack = Clamp(GetWatchDistance() * 3, MinimumSetBackDistance, MaximumSetBackDistance);
 
                 //TODO stop using this transform because it works from the current orientation of the parent, not it's desired orientation.
-                _cameraLocationTarget = CameraLocationOrientation.transform.position - CameraLocationOrientation.transform.forward * setBack;
+                var cameraLocationTarget = CameraLocationOrientation.transform.position - CameraLocationOrientation.transform.forward * setBack;
 
                 var vectorToParent = CameraLocationOrientation.transform.forward;
-                var baseAngle = targets.Max(t => Vector3.Angle(vectorToParent, t.position - _cameraLocationTarget));
+                var baseAngle = targets.Max(t => Vector3.Angle(vectorToParent, t.position - cameraLocationTarget));
 
                 var desiredAngle = baseAngle * AngleProportion;
-                _automaticFieldOfView = Clamp(desiredAngle, 1, 90);
-                return new ShipCamTargetValues(_parentLocationTarget, _automaticParentPollTarget, _cameraLocationTarget, CameraLocationOrientation.forward, _automaticFieldOfView, _referenceVelocity, _shipCam.FollowedTarget.transform.up);
+                var automaticFieldOfView = Clamp(desiredAngle, 1, 90);
+                return new ShipCamTargetValues(parentLocationTarget, automaticParentPollTarget, cameraLocationTarget, CameraLocationOrientation.forward, automaticFieldOfView, referenceVelocity, _shipCam.FollowedTarget.transform.up);
             }
             return null;
         }

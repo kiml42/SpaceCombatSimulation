@@ -7,21 +7,12 @@ namespace Assets.Src.ShipCamera
     public abstract class BaseCameraOrientator : MonoBehaviour, ICameraOrientator
     {
         protected ShipCam _shipCam;
-
-        public abstract Vector3 ParentLocationTarget { get; }
-        public abstract Vector3 ReferenceVelocity { get; }
-        public abstract Vector3 CameraLocationTarget { get; }
-        public abstract Quaternion ParentOrientationTarget { get; }
-        public abstract Quaternion CameraOrientationTarget { get; }
-        public abstract float CameraFieldOfView { get; }
+        
         public float PriorityMultiplier = 1;
         public abstract float Priority { get; }
         public abstract string Description { get; }
 
         public abstract bool HasTargets { get; }
-
-        public abstract Vector3 ParentPollTarget { get; }
-        public abstract Vector3 CameraPollTarget { get; }
 
         public void RegisterOwner(ShipCam shipcam)
         {

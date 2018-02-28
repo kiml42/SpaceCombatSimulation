@@ -192,25 +192,25 @@ namespace Assets.Src.ShipCamera
             
             if (_orientator.HasTargets)
             {
-                _orientator.CalculateTargets();
+                var targets = _orientator.CalculateTargets();
 
                 if (_calls < 10)
                 {
-                    transform.position = _orientator.ParentLocationTarget;
+                    transform.position = targets.ParentLocationTarget;
 
-                    transform.rotation =_orientator.ParentOrientationTarget;
-                    Camera.transform.rotation = _orientator.CameraOrientationTarget;
-                    Camera.fieldOfView = _orientator.CameraFieldOfView;
-                    Camera.transform.position = _orientator.CameraLocationTarget;
+                    transform.rotation = targets.ParentOrientationTarget;
+                    Camera.transform.rotation = targets.CameraOrientationTarget;
+                    Camera.fieldOfView = targets.CameraFieldOfView;
+                    Camera.transform.position = targets.CameraLocationTarget;
                 } else
                 {
-                    transform.position += FollowedObjectTranslateSpeedMultiplier * Time.deltaTime * _orientator.ReferenceVelocity;
-                    transform.position = Vector3.Slerp(transform.position, _orientator.ParentLocationTarget, Time.deltaTime * TranslateSpeed);
+                    transform.position += FollowedObjectTranslateSpeedMultiplier * Time.deltaTime * targets.ReferenceVelocity;
+                    transform.position = Vector3.Slerp(transform.position, targets.ParentLocationTarget, Time.deltaTime * TranslateSpeed);
 
-                    transform.rotation = Quaternion.Slerp(transform.rotation, _orientator.ParentOrientationTarget, Time.deltaTime * RotationSpeed);
-                    Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, _orientator.CameraOrientationTarget, Time.deltaTime * RotationSpeed * 0.3f);
-                    Camera.fieldOfView = Mathf.LerpAngle(Camera.fieldOfView, _orientator.CameraFieldOfView, Time.deltaTime * ZoomSpeed * 0.3f);
-                    Camera.transform.position = Vector3.Slerp(Camera.transform.position, _orientator.CameraLocationTarget, Time.deltaTime * totalTranslateSpeed);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, targets.ParentOrientationTarget, Time.deltaTime * RotationSpeed);
+                    Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, targets.CameraOrientationTarget, Time.deltaTime * RotationSpeed * 0.3f);
+                    Camera.fieldOfView = Mathf.LerpAngle(Camera.fieldOfView, targets.CameraFieldOfView, Time.deltaTime * ZoomSpeed * 0.3f);
+                    Camera.transform.position = Vector3.Slerp(Camera.transform.position, targets.CameraLocationTarget, Time.deltaTime * totalTranslateSpeed);
                 }
 
                 _calls++;
