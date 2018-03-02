@@ -378,7 +378,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PriorityMultiplier: 1
-  SetBack: 50
+  UseFollowedShipUpVector: 0
   RotationSpeed: 10
   ManualTime: 20
   MouseButtonIndex: 1
@@ -399,9 +399,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PriorityMultiplier: 1
+  UseFollowedShipUpVector: 0
+  RotationSpeed: 10
+  ManualTime: 20
+  MouseButtonIndex: 1
   SetBack: 250
   IdleRotationSpeed: -500
   FieldOfView: 80
+  StartRotatingDistance: 60
 --- !u!114 &114322797149157928
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -421,7 +426,7 @@ MonoBehaviour:
   ReticleTexture: {fileID: 2800000, guid: 14bf342960bd97948b0b45ba35ebf57f, type: 3}
   HealthFGTexture: {fileID: 2800000, guid: 05d0476b5848f0441a101a2ccfa62101, type: 3}
   HealthBGTexture: {fileID: 2800000, guid: 21488ce2c0d040c4a94c9999c6beee92, type: 3}
-  ShowReticles: 2
+  ShowReticles: 1
   MinShowDistanceDistance: 20
 --- !u!114 &114409427314771528
 MonoBehaviour:
@@ -462,6 +467,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PriorityMultiplier: 1
+  UseFollowedShipUpVector: 0
+  RotationSpeed: 10
+  ManualTime: 20
+  MouseButtonIndex: 1
   FocusMoveSpeed: 1
   FocusAnglePower: -0.5
   FocusAngleMultiplier: 1000
