@@ -79,7 +79,8 @@ namespace Assets.Src.ShipCamera
 
                 var desiredAngle = baseAngle * AngleProportion;
                 var automaticFieldOfView = Clamp(desiredAngle, 1, 90);
-                return new ShipCamTargetValues(parentLocationTarget, automaticParentPollTarget, cameraLocationTarget, CameraLocationOrientation.forward, automaticFieldOfView, referenceVelocity, _shipCam.FollowedTarget.transform.up);
+
+                return new ShipCamTargetValues(parentLocationTarget, automaticParentPollTarget, cameraLocationTarget, CameraLocationOrientation.forward, automaticFieldOfView, referenceVelocity, UpVector);
             }
             return null;
         }

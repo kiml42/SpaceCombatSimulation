@@ -14,6 +14,8 @@ namespace Assets.Src.ShipCamera
 
         public abstract bool HasTargets { get; }
 
+        public bool UseFollowedShipUpVector = false;
+
         public void RegisterOwner(ShipCam shipcam)
         {
             _shipCam = shipcam;
@@ -24,6 +26,17 @@ namespace Assets.Src.ShipCamera
         public static float Clamp(float value, float min, float max)
         {
             return (value < min) ? min : (value > max) ? max : value;
+        }
+
+        public Vector3 UpVector {
+            get
+            {
+                if(UseFollowedShipUpVector && _shipCam != null && _shipCam.FollowedTarget != null)
+                {
+                    return _shipCam.FollowedTarget.transform.up;
+                }
+                return Vector3.up;
+            }
         }
     }
 }
