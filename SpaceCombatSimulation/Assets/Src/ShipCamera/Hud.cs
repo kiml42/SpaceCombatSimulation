@@ -48,6 +48,7 @@ namespace Assets.Src.ShipCamera
         private ITargetDetector _detector;
         
         private ShipCam _shipCam;
+        public bool OnlyDrawReticlesForTopParent = true;
 
         void Start()
         {
@@ -130,6 +131,10 @@ namespace Assets.Src.ShipCamera
     
         private void DrawSingleReticle(Transform targetTransform, Rect rect)
         {
+            if(OnlyDrawReticlesForTopParent && targetTransform.parent != null)
+            {
+                return;
+            }
             if(_shipCam != null)
             {
                 if(FollowedTargetReticleTexture != null && _shipCam.FollowedTarget != null && targetTransform == _shipCam.FollowedTarget.transform)
