@@ -11,13 +11,13 @@ namespace Assets.Src.ShipCamera
         public override bool HasTargets { get { return _shipCam != null && _shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch; } }
 
         [Tooltip("The distance at which this Orientator starts to get a positive score.")]
-        public float MaxDistance = 2000;
+        public float ZeroScoreDistance = 2000;
 
         public override float Priority
         {
             get
             {
-                return (MaxDistance - GetWatchDistance()) * PriorityMultiplier;
+                return (ZeroScoreDistance - _watchDistance) * PriorityMultiplier;
             }
         }
 
@@ -37,18 +37,40 @@ namespace Assets.Src.ShipCamera
         public Transform CameraLocationOrientation;
         private float _lookAtDistanceProportion = 0.7f;
 
-        private float GetWatchDistance()
+        private float _watchDistance
         {
-            return Vector3.Distance(_shipCam.FollowedTarget.position, _shipCam.TargetToWatch.position);
+            get
+            {
+                return Vector3.Distance(_shipCam.FollowedTarget.position, _shipCam.TargetToWatch.position);
+            }
+        }
+
+        [Tooltip("Only target within this distance will be considered. unless hthere aren't any in this distance")]
+        public float TargetFilterDistance = 2000;
+        private List<Rigidbody> _filteredTargets
+        {
+            get
+            {
+                var targets = _shipCam.TargetsToWatch.Where(t => t.transform.IsValid()).ToList();
+
+                var closeTargets = targets.Where(t => Vector3.Distance(t.position,_shipCam.FollowedTarget.position) < TargetFilterDistance).ToList();
+
+                //Debug.Log("Close targets count = " + closeTargets.Count());
+                targets = closeTargets.Any(t => t != _shipCam.FollowedTarget) ? closeTargets : targets;
+
+                //make sure these two are included
+                targets.Add(_shipCam.FollowedTarget);
+                targets.Add(_shipCam.TargetToWatch);
+
+                return targets.Distinct().Where(t => t.transform.IsValid()).ToList();
+            }
         }
 
         protected override ShipCamTargetValues CalculateAutomaticTargets()
         {
             if (HasTargets)
             {
-                var targets = _shipCam.TargetsToWatch.ToList();
-                targets.Add(_shipCam.FollowedTarget);
-                targets = targets.Distinct().Where(t => t.transform.IsValid()).ToList();
+                var targets = _filteredTargets;
                 //Debug.Log("SideView: " + string.Join(",", targets.Select(t=>t.name).ToArray()));
 
                 var minX = targets.Min(t => t.position.x);
@@ -69,7 +91,7 @@ namespace Assets.Src.ShipCamera
                 
                 var automaticParentPollTarget = PickPollTarget(parentLocationTarget, targets);
                 
-                var setBack = Clamp(GetWatchDistance() * 3, MinimumSetBackDistance, MaximumSetBackDistance);
+                var setBack = Clamp(_watchDistance * 3, MinimumSetBackDistance, MaximumSetBackDistance);
 
                 //TODO stop using this transform because it works from the current orientation of the parent, not it's desired orientation.
                 var cameraLocationTarget = CameraLocationOrientation.transform.position - CameraLocationOrientation.transform.forward * setBack;
