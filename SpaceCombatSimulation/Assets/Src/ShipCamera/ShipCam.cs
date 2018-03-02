@@ -74,7 +74,7 @@ namespace Assets.Src.ShipCamera
         {
             get
             {
-                return new Target(FollowedTarget);
+                return FollowedTarget == null ? null : new Target(FollowedTarget);
             }
 
             set
@@ -284,9 +284,9 @@ namespace Assets.Src.ShipCamera
 
         private Rigidbody GetActualTarget(Rigidbody target)
         {
-            if (OnlyUseRootParents && FollowedTarget.transform.parent != null)
+            if (OnlyUseRootParents && target != null && target.transform.IsValid() && target.transform.parent != null)
             {
-                var oldest = FollowedTarget.transform.FindOldestParent();
+                var oldest = target.transform.FindOldestParent();
                 var rb = oldest.GetComponent<Rigidbody>();
                 if (rb != null)
                 {

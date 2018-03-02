@@ -121,8 +121,9 @@ public class Evolution1v1Controler : BaseEvolutionController
 
             i++;
         }
-        
-        Debug.Log("\"" + string.Join("\" vs \"", wrappers.Select(w => w.GetName()).Distinct().ToArray()) + "\"");
+
+        var names = wrappers.Select(w => w.GetName()).ToList();
+        Debug.Log("\"" + string.Join("\" vs \"", names.Distinct().ToArray()) + "\"");
 
         return wrappers.Any(w => w.ModulesAdded > 0);
     }
