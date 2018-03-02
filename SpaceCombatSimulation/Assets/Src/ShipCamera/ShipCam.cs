@@ -172,6 +172,7 @@ namespace Assets.Src.ShipCamera
         }
 
         private int _calls = 0;
+        public bool OnlyUseRootParents = true;
 
         // Update is called once per frame
         void FixedUpdate()
@@ -251,6 +252,7 @@ namespace Assets.Src.ShipCamera
                     TargetsToWatch.Add(TargetToWatch);
                 }
             }
+            TargetToWatch = GetActualTarget(TargetToWatch);
             //Debug.Log("Watching picked target: " + _targetToWatch.Transform.name);
         }
 
@@ -272,10 +274,26 @@ namespace Assets.Src.ShipCamera
                 .Rigidbody
                 : null;
 
+            FollowedTarget = GetActualTarget(FollowedTarget);
+
             if (FollowedTarget != null)
             {
                 _tagPicker.Tag = FollowedTarget.tag;
             }
+        }
+
+        private Rigidbody GetActualTarget(Rigidbody target)
+        {
+            if (OnlyUseRootParents && FollowedTarget.transform.parent != null)
+            {
+                var oldest = FollowedTarget.transform.FindOldestParent();
+                var rb = oldest.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    return rb;
+                }
+            }
+            return target;
         }
 
         private void PickRandomToFollow()
@@ -284,10 +302,9 @@ namespace Assets.Src.ShipCamera
                 .Where(s => s.Transform.parent == null && s.Rigidbody != FollowedTarget)
                 .OrderBy(s => UnityEngine.Random.value)
                 .FirstOrDefault();
-            FollowedTarget = tagrgetToFollow != null ? tagrgetToFollow.Rigidbody : null;
-        }
 
-        
+            FollowedTarget = tagrgetToFollow != null ? GetActualTarget(tagrgetToFollow.Rigidbody) : null;
+        }
     }
 
     public enum CameraPickerMode
