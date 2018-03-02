@@ -38,6 +38,9 @@ namespace Assets.Src.ShipCamera
         public Texture HealthFGTexture;
         public Texture HealthBGTexture;
 
+        public Texture FollowedTargetReticleTexture;
+        public Texture WatchedTargetReticleTexture;
+
         public ReticleState ShowReticles = ReticleState.ALL;
 
         public float MinShowDistanceDistance = 20;
@@ -108,8 +111,7 @@ namespace Assets.Src.ShipCamera
                 }
 
                 var rect = new Rect(boxPosition.x - 50, boxPosition.y - 50, 100, 100);
-                if (ReticleTexture != null)
-                    GUI.DrawTexture(rect, ReticleTexture);
+                DrawSingleReticle(target.Transform, rect);
 
                 var healthControler = target.Transform.GetComponent<HealthControler>();
                 if (healthControler != null && healthControler.IsDamaged)
@@ -126,6 +128,25 @@ namespace Assets.Src.ShipCamera
             }
         }
     
+        private void DrawSingleReticle(Transform targetTransform, Rect rect)
+        {
+            if(_shipCam != null)
+            {
+                if(FollowedTargetReticleTexture != null && _shipCam.FollowedTarget != null && targetTransform == _shipCam.FollowedTarget.transform)
+                {
+                    GUI.DrawTexture(rect, FollowedTargetReticleTexture);
+                    return;
+                }
+                if (WatchedTargetReticleTexture != null && _shipCam.TargetToWatch != null && targetTransform == _shipCam.TargetToWatch.transform)
+                {
+                    GUI.DrawTexture(rect, WatchedTargetReticleTexture);
+                    return;
+                }
+            }
+            if (ReticleTexture != null)
+                GUI.DrawTexture(rect, ReticleTexture);
+        }
+
         private void CycleReticleState()
         {
             switch (ShowReticles)

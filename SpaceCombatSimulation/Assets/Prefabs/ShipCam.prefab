@@ -241,8 +241,8 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1452437122874096}
-  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -2000, y: 0, z: 0}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4924564836931496}
@@ -511,11 +511,12 @@ MonoBehaviour:
   RotationSpeed: 10
   ManualTime: 20
   MouseButtonIndex: 1
-  MaxDistance: 3000
+  ZeroScoreDistance: 2000
   AngleProportion: 1.8
   MinimumSetBackDistance: 400
   MaximumSetBackDistance: 5000
   CameraLocationOrientation: {fileID: 4948679709624696}
+  TargetFilterDistance: 2000
 --- !u!114 &114682085724931116
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -612,6 +613,10 @@ MonoBehaviour:
   ReticleTexture: {fileID: 2800000, guid: 14bf342960bd97948b0b45ba35ebf57f, type: 3}
   HealthFGTexture: {fileID: 2800000, guid: 05d0476b5848f0441a101a2ccfa62101, type: 3}
   HealthBGTexture: {fileID: 2800000, guid: 21488ce2c0d040c4a94c9999c6beee92, type: 3}
+  FollowedTargetReticleTexture: {fileID: 2800000, guid: 71f6568bfb77fc841b8afbffcdc1efc5,
+    type: 3}
+  WatchedTargetReticleTexture: {fileID: 2800000, guid: 6fef3cb5ae197d84a982a146043dad13,
+    type: 3}
   ShowReticles: 1
   MinShowDistanceDistance: 20
 --- !u!124 &124747188152472936
