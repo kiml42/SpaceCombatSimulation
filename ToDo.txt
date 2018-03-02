@@ -17,28 +17,27 @@ Bugs:
 TODO:
     In Progress:
         Camera
-            Orientators Calculate targets methods return a ShipCamTargets object, instead of accessing their properties. - this makes sure calculate isn't forgotten.
-                In progress: I've created the class, but not used it yet.
+            Side view rlimits range for viewed objects
+                If there are < 2 it will always use the full list.
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.
             Manual orientator
                 Scroll to zoom
-            Weighted camera orientator using poll targets, ignores rotation targets (must be calculated with look rotations)
-                Implemented - works rather badly, different vectors would need different weights to make it work right.
-                Might be nice to have user prioritisation in this too.
             Click to chose followed and watched target.
             Move camera relative to parent (localRotation)
             Make camera location target and orientation target nullable so that they don't have t be specified. (does no rotation/moving if null)
-            Orientators specify up vector for both camera and parent.
         Player ship
             Vs evolved ships using battle royal mode
             pick target by clicking on it
             cycle ships with key press
             Switch modes with tab
                 Flight mode:
-                    KSP(RCS) controlls for ship orientation/location - done
-                        Enable roll controler
+                    KSP(RCS) controls for ship orientation/location - done
+                        Enable roll controller
                     Turrets pick their own targets
+                Cam relative flight mode:
+                    WASD shift and control tells ship to turn and move in a direction reletive to the camera.
+                    Needs to set camera modes to use global up.
                 Turret mode
                     Flight left on automatic
                     show reticle for aiming
@@ -98,6 +97,9 @@ TODO:
             Hubs have batteries to store energy
             Hubs have generators to recharge batteries.
 
+    Weighted camera orientator using poll targets, ignores rotation targets (must be calculated with look rotations)
+        Implemented - works rather badly, different vectors would need different weights to make it work right.
+        Might be nice to have user prioritisation in this too.
     Race evolution
         Periodically check distance to target and add more score for closer (nonlinear?)
         Target could be fixed, moveable, or a scardeybot.
@@ -116,6 +118,7 @@ TODO:
     FuelTank option to balance fuel with parent.
     Add more max and min settings for genetic configurables, as is done in the fuel tank. Use this for things like projectile speed.
     Track what parts of the genome get used for assembly and config.
+    HUD merges reticles for related objects.
 
     Repulsive shield- repels objects in trigger
 
@@ -125,7 +128,6 @@ TODO:
         only watch torpedoes instead of other ships when they are close.
         Continue tracking a dead object a while to see it explode and any subsequent effects.
 
-    Camera controller should allow panning also - moot for ship cam
     Make mini type 2 actually manage to hit torpedoes.
 
     From Endarren:
