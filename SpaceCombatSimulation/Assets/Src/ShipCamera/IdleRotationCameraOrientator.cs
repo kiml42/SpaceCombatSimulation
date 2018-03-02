@@ -21,6 +21,8 @@ namespace Assets.Src.ShipCamera
         public float IdleRotationSpeed = -500;
 
         public float FieldOfView = 80;
+
+        public float StartRotatingDistance = 60;
                 
         protected override ShipCamTargetValues CalculateAutomaticTargets()
         {
@@ -34,7 +36,13 @@ namespace Assets.Src.ShipCamera
                 parentLocationTarget = target.position;
                 referenceVelocity = target.velocity;
             }
-            var automaticParentPollTarget = Quaternion.AngleAxis(Time.deltaTime * IdleRotationSpeed, UpVector) * transform.forward;
+
+            var vectorToTargetLocation = transform.position - parentLocationTarget;
+            var currentDistance = vectorToTargetLocation.magnitude;
+
+            var automaticParentPollTarget = currentDistance < StartRotatingDistance
+                ? Quaternion.AngleAxis(Time.deltaTime * IdleRotationSpeed, UpVector) * transform.forward 
+                : vectorToTargetLocation;
 
             return new ShipCamTargetValues(parentLocationTarget, automaticParentPollTarget, parentLocationTarget - (transform.forward * SetBack), automaticParentPollTarget, FieldOfView, referenceVelocity, UpVector);
         }
