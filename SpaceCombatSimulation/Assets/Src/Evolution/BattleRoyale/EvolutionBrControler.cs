@@ -27,14 +27,14 @@ public class EvolutionBrControler : BaseEvolutionController
     
     private GenerationBr _currentGeneration;
 
-    Evolution1v1DatabaseHandler _dbHandler;
+    EvolutionBrDatabaseHandler _dbHandler;
 
     // Use this for initialization
     void Start()
     {
         DatabaseId = ArgumentStore.IdToLoad ?? DatabaseId;
 
-        _dbHandler = new Evolution1v1DatabaseHandler();
+        _dbHandler = new EvolutionBrDatabaseHandler();
 
         _config = _dbHandler.ReadConfig(DatabaseId);
 

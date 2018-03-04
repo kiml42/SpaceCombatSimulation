@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Assets.Src.Evolution
 {
-    public class IndividualTargetShooting : BaseIndividual
+    public class IndividualDrone : BaseIndividual
     {
         public override int MatchesPlayed { get; set; }
         public int MatchesSurvived;
@@ -18,11 +18,11 @@ namespace Assets.Src.Evolution
         /// Construct an indifvidual from a genome, all other firelds will be empty or 0
         /// </summary>
         /// <param name="line"></param>
-        public IndividualTargetShooting(string genome) : base(genome)
+        public IndividualDrone(string genome) : base(genome)
         {
         }
 
-        public IndividualTargetShooting(SpeciesSummary summary) : base(summary)
+        public IndividualDrone(SpeciesSummary summary) : base(summary)
         {
         }
 

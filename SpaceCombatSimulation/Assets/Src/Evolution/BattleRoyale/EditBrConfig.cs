@@ -29,12 +29,12 @@ public class EditBrConfig : MonoBehaviour {
     public string EvolutionSceneToLoad = "1v1Evolution";
     public string MainMenuSceneToLoad = "MainMenu";
 
-    private Evolution1v1DatabaseHandler _handler;
+    private EvolutionBrDatabaseHandler _handler;
     private EvolutionBrConfig _loaded;
 
     // Use this for initialization
     void Start () {
-        _handler = new Evolution1v1DatabaseHandler();
+        _handler = new EvolutionBrDatabaseHandler();
 
         LoadConfig();
         

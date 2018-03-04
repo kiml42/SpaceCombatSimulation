@@ -31,12 +31,12 @@ public class EditDroneConfig : MonoBehaviour {
     public string EvolutionSceneToLoad = "TargetEvolution";
     public string MainMenuSceneToLoad = "MainMenu";
 
-    private EvolutionTargetShootingDatabaseHandler _handler;
-    private EvolutionTargetShootingConfig _loaded;
+    private EvolutionDroneDatabaseHandler _handler;
+    private EvolutionDroneConfig _loaded;
 
     // Use this for initialization
     void Start () {
-        _handler = new EvolutionTargetShootingDatabaseHandler();
+        _handler = new EvolutionDroneDatabaseHandler();
 
         LoadConfig();
         
@@ -83,7 +83,7 @@ public class EditDroneConfig : MonoBehaviour {
         SceneManager.LoadScene(EvolutionSceneToLoad);
     }
 
-    private EvolutionTargetShootingConfig ReadControlls()
+    private EvolutionDroneConfig ReadControlls()
     {
         _loaded.MatchConfig = MatchConfig.ReadFromControls();
         _loaded.MutationConfig = MutationConfig.ReadFromControls();
@@ -104,7 +104,7 @@ public class EditDroneConfig : MonoBehaviour {
     {
         _hasLoadedExisting = ArgumentStore.IdToLoad.HasValue;
         _loadedId = ArgumentStore.IdToLoad ?? -1;
-        _loaded = _hasLoadedExisting ? _handler.ReadConfig(_loadedId) : new EvolutionTargetShootingConfig();
+        _loaded = _hasLoadedExisting ? _handler.ReadConfig(_loadedId) : new EvolutionDroneConfig();
         
         RunName.text = _loaded.RunName;
         MinMatchesPerIndividual.text = _loaded.MinMatchesPerIndividual.ToString();

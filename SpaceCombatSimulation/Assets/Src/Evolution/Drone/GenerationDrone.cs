@@ -11,22 +11,22 @@ namespace Assets.src.Evolution
     /// <summary>
     /// Class for storing a generation where each ship fights one other.
     /// </summary>
-    public class GenerationTargetShooting : BasseGeneration
+    public class GenerationDrone : BasseGeneration
     {
         private System.Random _rng = new System.Random();
-        public List<IndividualTargetShooting> Individuals = new List<IndividualTargetShooting>();
+        public List<IndividualDrone> Individuals = new List<IndividualDrone>();
 
-        public GenerationTargetShooting()
+        public GenerationDrone()
         {
             //Debug.Log("Default Constructor");
         }
 
-        public GenerationTargetShooting(string[] lines)
+        public GenerationDrone(string[] lines)
         {
             AddGenomes(lines.ToList());
         }
 
-        public GenerationTargetShooting(List<string> lines)
+        public GenerationDrone(List<string> lines)
         {
             AddGenomes(lines);
         }
@@ -37,7 +37,7 @@ namespace Assets.src.Evolution
             {
                 return false;
             }
-            Individuals.Add(new IndividualTargetShooting(genome));
+            Individuals.Add(new IndividualDrone(genome));
             return true;
         }
 
@@ -62,7 +62,7 @@ namespace Assets.src.Evolution
         /// <returns>genome of a competetor from this generation</returns>
         public string PickCompetitor()
         {
-            List<IndividualTargetShooting> validCompetitors;
+            List<IndividualDrone> validCompetitors;
             
             validCompetitors = Individuals
                 .OrderBy(i => i.MatchesPlayed)

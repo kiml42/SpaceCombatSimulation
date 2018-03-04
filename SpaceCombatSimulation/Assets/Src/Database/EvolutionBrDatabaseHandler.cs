@@ -10,21 +10,21 @@ using Assets.Src.Evolution;
 
 namespace Assets.Src.Database
 {
-    public class Evolution1v1DatabaseHandler : GeneralDatabaseHandler
+    public class EvolutionBrDatabaseHandler : GeneralDatabaseHandler
     {
-        protected override string CONFIG_TABLE { get { return "EvolutionConfig1v1"; } }
-        protected override string INDIVIDUAL_TABLE { get { return "Individual1v1"; } }
-        protected override string RUN_TYPE_NAME { get { return "1v1"; } }
+        protected override string CONFIG_TABLE { get { return "BrEvolutionConfig"; } }
+        protected override string INDIVIDUAL_TABLE { get { return "BrIndividual"; } }
+        protected override string RUN_TYPE_NAME { get { return "Battle Royale"; } }
 
-        public Evolution1v1DatabaseHandler(string databasePath, string dbCreationCommandPath) : base(databasePath, dbCreationCommandPath)
+        public EvolutionBrDatabaseHandler(string databasePath, string dbCreationCommandPath) : base(databasePath, dbCreationCommandPath)
         {
         }
 
-        public Evolution1v1DatabaseHandler(string databasePath) : base(databasePath)
+        public EvolutionBrDatabaseHandler(string databasePath) : base(databasePath)
         {
         }
 
-        public Evolution1v1DatabaseHandler() : base()
+        public EvolutionBrDatabaseHandler() : base()
         {
         }
 
@@ -176,8 +176,8 @@ namespace Assets.Src.Database
                     {
                         SaveBaseIndividual(RUN_TYPE_NAME, individual, runId, generationNumber, sql_con, transaction);
 
-                        using (var insertSQL = new SqliteCommand("INSERT INTO Individual1v1 " +
-                            "(runConfigId, generation, genome, wins, draws, loses, previousCombatants)" +
+                        using (var insertSQL = new SqliteCommand("INSERT INTO " + INDIVIDUAL_TABLE +
+                            " (runConfigId, generation, genome, wins, draws, loses, previousCombatants)" +
                             " VALUES (?,?,?,?,?,?,?)", sql_con, transaction))
                         {
                             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
@@ -218,7 +218,7 @@ namespace Assets.Src.Database
         {
             UpdateBaseIndividual(individual, runId, generationNumber, sql_con, transaction);
 
-            using (var insertSQL = new SqliteCommand("UPDATE  Individual1v1" +
+            using (var insertSQL = new SqliteCommand("UPDATE " + INDIVIDUAL_TABLE +
                             " SET wins = ?, draws = ?, loses = ?, previousCombatants = ?" +
                             " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction))
             {

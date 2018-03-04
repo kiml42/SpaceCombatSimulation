@@ -14,7 +14,7 @@ public class EvolutionBRDatabaseHandlerSaveTests
     private string _dbPathExtension = ".s3db";
     private string _dbPath;
     private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
-    Evolution1v1DatabaseHandler _handler;
+    EvolutionBrDatabaseHandler _handler;
     DatabaseInitialiser _initialiser;
 
     [SetUp]
@@ -27,7 +27,7 @@ public class EvolutionBRDatabaseHandlerSaveTests
             DatabasePath = _dbPath
         };
 
-        _handler = new Evolution1v1DatabaseHandler(_dbPath, _createCommandPath);
+        _handler = new EvolutionBrDatabaseHandler(_dbPath, _createCommandPath);
     }
 
     [TearDown]

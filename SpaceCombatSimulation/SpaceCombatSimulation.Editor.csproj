@@ -305,9 +305,9 @@
     <Compile Include="Assets\Editor\Evolution\GenerationTests.cs" />
     <Compile Include="Assets\Editor\Evolution\GenomeWrapperTest.cs" />
     <Compile Include="Assets\Editor\Evolution\ModuleRecordTests.cs" />
-    <Compile Include="Assets\Editor\TargetShootingEvolution\EvolutionTargetShootingDatabaseHandlerIndividualsTests.cs" />
-    <Compile Include="Assets\Editor\TargetShootingEvolution\EvolutionTargetShootingDatabaseHandlerReadTests.cs" />
-    <Compile Include="Assets\Editor\TargetShootingEvolution\EvolutionTargetShootingDatabaseHandlerSaveTests.cs" />
+    <Compile Include="Assets\Editor\DroneEvolution\EvolutionDroneDatabaseHandlerIndividualsTests.cs" />
+    <Compile Include="Assets\Editor\DroneEvolution\EvolutionDroneDatabaseHandlerReadTests.cs" />
+    <Compile Include="Assets\Editor\DroneEvolution\EvolutionDroneDatabaseHandlerSaveTests.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />

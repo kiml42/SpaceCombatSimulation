@@ -308,8 +308,8 @@
     <Compile Include="Assets\Src\Controllers\SphereExplosion.cs" />
     <Compile Include="Assets\Src\Controllers\WorldControler.cs" />
     <Compile Include="Assets\Src\Database\DatabaseInitialiser.cs" />
-    <Compile Include="Assets\Src\Database\Evolution1v1DatabaseHandler.cs" />
-    <Compile Include="Assets\Src\Database\EvolutionTargetShootingDatabaseHandler.cs" />
+    <Compile Include="Assets\Src\Database\EvolutionBrDatabaseHandler.cs" />
+    <Compile Include="Assets\Src\Database\EvolutionDroneDatabaseHandler.cs" />
     <Compile Include="Assets\Src\Database\GeneralDatabaseHandler.cs" />
     <Compile Include="Assets\Src\Evolution\ArenaRecord.cs" />
     <Compile Include="Assets\Src\Evolution\BaseEvolutionConfig.cs" />
@@ -317,7 +317,7 @@
     <Compile Include="Assets\Src\Evolution\BaseIndividual.cs" />
     <Compile Include="Assets\Src\Evolution\BasseGeneration.cs" />
     <Compile Include="Assets\Src\Evolution\BattleRoyale\EditBrConfig.cs" />
-    <Compile Include="Assets\Src\Evolution\EditDroneConfig.cs" />
+    <Compile Include="Assets\Src\Evolution\Drone\EditDroneConfig.cs" />
     <Compile Include="Assets\Src\Evolution\EditMatchConfig.cs" />
     <Compile Include="Assets\Src\Evolution\EditMutationConfig.cs" />
     <Compile Include="Assets\Src\Evolution\BattleRoyale\EvolutionBrConfig.cs" />
@@ -326,13 +326,13 @@
     <Compile Include="Assets\Src\Evolution\EvolutionMatchController.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionMutationWrapper.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionShipConfig.cs" />
-    <Compile Include="Assets\Src\Evolution\EvolutionTargetShootingConfig.cs" />
-    <Compile Include="Assets\Src\Evolution\EvolutionTargetShootingControler.cs" />
+    <Compile Include="Assets\Src\Evolution\Drone\EvolutionDroneConfig.cs" />
+    <Compile Include="Assets\Src\Evolution\Drone\EvolutionDroneControler.cs" />
     <Compile Include="Assets\Src\Evolution\BattleRoyale\GenerationBr.cs" />
-    <Compile Include="Assets\Src\Evolution\GenerationTargetShooting.cs" />
+    <Compile Include="Assets\Src\Evolution\Drone\GenerationDrone.cs" />
     <Compile Include="Assets\Src\Evolution\GenomeWrapper.cs" />
     <Compile Include="Assets\Src\Evolution\BattleRoyale\IndividualBr.cs" />
-    <Compile Include="Assets\Src\Evolution\IndividualTargetShooting.cs" />
+    <Compile Include="Assets\Src\Evolution\Drone\IndividualDrone.cs" />
     <Compile Include="Assets\Src\Evolution\MatchConfig.cs" />
     <Compile Include="Assets\Src\Evolution\MatchRecord.cs" />
     <Compile Include="Assets\Src\Evolution\MutationConfig.cs" />

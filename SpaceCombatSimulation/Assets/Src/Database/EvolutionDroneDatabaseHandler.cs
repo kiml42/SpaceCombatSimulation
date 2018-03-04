@@ -10,28 +10,28 @@ using Assets.Src.Evolution;
 
 namespace Assets.Src.Database
 {
-    public class EvolutionTargetShootingDatabaseHandler : GeneralDatabaseHandler
+    public class EvolutionDroneDatabaseHandler : GeneralDatabaseHandler
     {
         protected override string CONFIG_TABLE { get { return "DroneEvolutionConfig"; } }
-        protected override string INDIVIDUAL_TABLE { get { return "DroneShootingIndividual";} }
+        protected override string INDIVIDUAL_TABLE { get { return "DroneIndividual";} }
 
         protected override string RUN_TYPE_NAME { get { return "drone"; } }
 
-        public EvolutionTargetShootingDatabaseHandler(string databasePath, string dbCreationCommandPath) : base(databasePath, dbCreationCommandPath)
+        public EvolutionDroneDatabaseHandler(string databasePath, string dbCreationCommandPath) : base(databasePath, dbCreationCommandPath)
         {
         }
 
-        public EvolutionTargetShootingDatabaseHandler(string databasePath) : base(databasePath)
+        public EvolutionDroneDatabaseHandler(string databasePath) : base(databasePath)
         {
         }
 
-        public EvolutionTargetShootingDatabaseHandler() : base()
+        public EvolutionDroneDatabaseHandler() : base()
         {
         }
 
-        public EvolutionTargetShootingConfig ReadConfig(int id)
+        public EvolutionDroneConfig ReadConfig(int id)
         {
-            var config = new EvolutionTargetShootingConfig();
+            var config = new EvolutionDroneConfig();
 
             //Debug.Log("Reading config from DB. Id: " + id);
             using (var sql_con = new SqliteConnection(_connectionString))
@@ -96,7 +96,7 @@ namespace Assets.Src.Database
             return count;
         }
 
-        public int UpdateExistingConfig(EvolutionTargetShootingConfig config)
+        public int UpdateExistingConfig(EvolutionDroneConfig config)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -137,7 +137,7 @@ namespace Assets.Src.Database
             return config.DatabaseId;
         }
 
-        public int SaveNewConfig(EvolutionTargetShootingConfig config)
+        public int SaveNewConfig(EvolutionDroneConfig config)
         {
             using (var connection = new SqliteConnection(_connectionString))
             {
@@ -176,10 +176,10 @@ namespace Assets.Src.Database
             return config.DatabaseId;
         }
 
-        public GenerationTargetShooting ReadGeneration(int runId, int generationNumber)
+        public GenerationDrone ReadGeneration(int runId, int generationNumber)
         {
             //Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);
-            var generation = new GenerationTargetShooting();
+            var generation = new GenerationDrone();
             using (var sql_con = new SqliteConnection(_connectionString))
             {
                 using (var reader = OpenReaderWithCommand(sql_con, CreateReadIndividualsQuery(INDIVIDUAL_TABLE, runId, generationNumber)))
@@ -187,7 +187,7 @@ namespace Assets.Src.Database
                     while (reader.Read())
                     {
                         //Debug.Log("genome ordinal: " + reader.GetOrdinal("genome"));  //-1
-                        var individual = new IndividualTargetShooting(ReadSpeciesSummary(reader))
+                        var individual = new IndividualDrone(ReadSpeciesSummary(reader))
                         {
                             Score = reader.GetFloat(reader.GetOrdinal("score")),
                             MatchesPlayed = reader.GetInt32(reader.GetOrdinal("matchesPlayed")),
@@ -205,7 +205,7 @@ namespace Assets.Src.Database
             return generation;
         }
 
-        public void SaveNewGeneration(GenerationTargetShooting generation, int runId, int generationNumber)
+        public void SaveNewGeneration(GenerationDrone generation, int runId, int generationNumber)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -217,8 +217,8 @@ namespace Assets.Src.Database
                     {
                         SaveBaseIndividual(RUN_TYPE_NAME, individual, runId, generationNumber, sql_con, transaction);
 
-                        using (var insertSQL = new SqliteCommand("INSERT INTO DroneShootingIndividual " +
-                            "(runConfigId, generation, genome, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores)" +
+                        using (var insertSQL = new SqliteCommand("INSERT INTO " + INDIVIDUAL_TABLE +
+                            " (runConfigId, generation, genome, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores)" +
                             " VALUES (?,?,?,?,?,?,?,?)", sql_con, transaction))
                         {
                             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
@@ -238,7 +238,7 @@ namespace Assets.Src.Database
             }
         }
 
-        public void UpdateGeneration(GenerationTargetShooting generation, int runId, int generationNumber)
+        public void UpdateGeneration(GenerationDrone generation, int runId, int generationNumber)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -256,11 +256,11 @@ namespace Assets.Src.Database
             }
         }
 
-        private void UpdateIndividual(IndividualTargetShooting individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
+        private void UpdateIndividual(IndividualDrone individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             UpdateBaseIndividual(individual, runId, generationNumber, sql_con, transaction);
 
-            using (var insertSQL = new SqliteCommand("UPDATE  DroneShootingIndividual" +
+            using (var insertSQL = new SqliteCommand("UPDATE " + INDIVIDUAL_TABLE +
                             " SET matchesPlayed = ?, matchesSurvived = ?, completeKills = ?, totalKills = ?, matchScores = ?" +
                             " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction))
             {

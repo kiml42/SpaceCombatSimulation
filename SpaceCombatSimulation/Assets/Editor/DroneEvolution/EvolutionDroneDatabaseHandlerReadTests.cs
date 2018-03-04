@@ -7,13 +7,13 @@ using Assets.src.Evolution;
 using Assets.Src.Database;
 using System;
 
-public class EvolutionTargetShootingDatabaseHandlerReadTests
+public class EvolutionDroneDatabaseHandlerReadTests
 {
     private string _dbPathStart = "/../tmp/TestDB/";
     private string _dbPathExtension = ".s3db";
     private string _dbPath;
     private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
-    EvolutionTargetShootingDatabaseHandler _handler;
+    EvolutionDroneDatabaseHandler _handler;
     DatabaseInitialiser _initialiser;
 
     [SetUp]
@@ -26,7 +26,7 @@ public class EvolutionTargetShootingDatabaseHandlerReadTests
             DatabasePath = _dbPath
         };
 
-        _handler = new EvolutionTargetShootingDatabaseHandler(_dbPath, _createCommandPath);
+        _handler = new EvolutionDroneDatabaseHandler(_dbPath, _createCommandPath);
     }
 
     [TearDown]

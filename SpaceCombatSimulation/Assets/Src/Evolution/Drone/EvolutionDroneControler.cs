@@ -13,13 +13,13 @@ using Assets.Src.Menus;
 using Assets.Src.ModuleSystem;
 using Assets.Src.Interfaces;
 
-public class EvolutionTargetShootingControler : BaseEvolutionController
+public class EvolutionDroneControler : BaseEvolutionController
 {
-    EvolutionTargetShootingConfig _config;
+    EvolutionDroneConfig _config;
     
     public float CurrentScore = 0;
       
-    private GenerationTargetShooting _currentGeneration;
+    private GenerationDrone _currentGeneration;
     private int _killsThisMatch = 0;
     private const int SHIP_INDEX = 0;
     private const int DRONES_INDEX = 1;
@@ -29,7 +29,7 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
 
     private int _previousDroneCount;
     
-    EvolutionTargetShootingDatabaseHandler _dbHandler;
+    EvolutionDroneDatabaseHandler _dbHandler;
 
     public RigidbodyList DroneList;
 
@@ -40,9 +40,8 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
     void Start()
     {
         DatabaseId = ArgumentStore.IdToLoad ?? DatabaseId;
-
-        //Debug.Log("EvolutionTargetShootingControler starting");
-        _dbHandler = new EvolutionTargetShootingDatabaseHandler();
+        
+        _dbHandler = new EvolutionDroneDatabaseHandler();
         
         _config = _dbHandler.ReadConfig(DatabaseId);
 
@@ -194,16 +193,16 @@ public class EvolutionTargetShootingControler : BaseEvolutionController
     /// The current generation is set to the generation that is created.
     /// </summary>
     /// <param name="winners"></param>
-    private GenerationTargetShooting CreateNewGeneration(IEnumerable<string> winners)
+    private GenerationDrone CreateNewGeneration(IEnumerable<string> winners)
     {
         if (winners != null && winners.Any())
         {
-            _currentGeneration = new GenerationTargetShooting(_mutationControl.CreateGenerationOfMutants(winners.ToList()));
+            _currentGeneration = new GenerationDrone(_mutationControl.CreateGenerationOfMutants(winners.ToList()));
         }
         else
         {
             Debug.Log("Generating generation from default genomes");
-            _currentGeneration = new GenerationTargetShooting(_mutationControl.CreateDefaultGeneration());
+            _currentGeneration = new GenerationDrone(_mutationControl.CreateDefaultGeneration());
             _config.GenerationNumber = 0;   //it's always generation 0 for a default genteration.
         }
 

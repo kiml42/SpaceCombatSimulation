@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Assets.Src.Evolution
 {
-    public class EvolutionTargetShootingConfig : BaseEvolutionConfig
+    public class EvolutionDroneConfig : BaseEvolutionConfig
     {
         #region "Drones
         public List<int> Drones = new List<int>();

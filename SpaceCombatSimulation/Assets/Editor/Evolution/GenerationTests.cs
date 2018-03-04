@@ -173,7 +173,7 @@ public class GenerationTests
         
         for (int j = 0; j < runs; j++)
         {
-            var gen = new GenerationTargetShooting();
+            var gen = new GenerationDrone();
 
             for (int i = 0; i < generationSize; i++)
             {
@@ -217,7 +217,7 @@ public class GenerationTests
         var maxes = new List<float>();
         var mins = new List<float>();
 
-        var gen = new GenerationTargetShooting();
+        var gen = new GenerationDrone();
 
         var random = new System.Random();
 

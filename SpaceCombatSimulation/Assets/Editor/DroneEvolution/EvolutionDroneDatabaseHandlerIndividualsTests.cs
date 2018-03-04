@@ -11,13 +11,13 @@ using System.Collections.Generic;
 using System;
 using System.IO;
 
-public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
+public class EvolutionDroneDatabaseHandlerIndividualsTests
 {
     private string _dbPathStart = "/../tmp/TestDB/";
     private string _dbPathExtension = ".s3db";
     private string _dbPath;
     private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
-    EvolutionTargetShootingDatabaseHandler _handler;
+    EvolutionDroneDatabaseHandler _handler;
     DatabaseInitialiser _initialiser;
     
     [SetUp]
@@ -30,7 +30,7 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
             DatabasePath = _dbPath
         };
         
-        _handler = new EvolutionTargetShootingDatabaseHandler(_dbPath, _createCommandPath);
+        _handler = new EvolutionDroneDatabaseHandler(_dbPath, _createCommandPath);
     }
 
     [TearDown]
@@ -50,7 +50,7 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
     [Test]
     public void SetCurrentGeneration_ReadsCurrentGeneration()
     {
-        GenerationTargetShooting generation = _handler.ReadGeneration(0, 0);
+        GenerationDrone generation = _handler.ReadGeneration(0, 0);
 
         Assert.NotNull(generation);
         Assert.AreEqual(2, generation.Individuals.Count);
@@ -72,13 +72,13 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
     [Test]
     public void UpdateGeneration_savesAlteredGeneration()
     {
-        GenerationTargetShooting gen = new GenerationTargetShooting();
-        gen.Individuals.Add(new IndividualTargetShooting("abc"));
-        gen.Individuals.Add(new IndividualTargetShooting("def"));
+        GenerationDrone gen = new GenerationDrone();
+        gen.Individuals.Add(new IndividualDrone("abc"));
+        gen.Individuals.Add(new IndividualDrone("def"));
 
         _handler.SaveNewGeneration(gen, 3, 4);
 
-        GenerationTargetShooting RetrievedGen1 = _handler.ReadGeneration(3, 4);
+        GenerationDrone RetrievedGen1 = _handler.ReadGeneration(3, 4);
 
         Assert.NotNull(RetrievedGen1);
         Assert.AreEqual(2, RetrievedGen1.Individuals.Count);
@@ -109,7 +109,7 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
 
         _handler.UpdateGeneration(gen, 3, 4);
 
-        GenerationTargetShooting RetrievedGen2 = _handler.ReadGeneration(3, 4);
+        GenerationDrone RetrievedGen2 = _handler.ReadGeneration(3, 4);
 
         Assert.NotNull(RetrievedGen2);
         Assert.AreEqual(2, RetrievedGen2.Individuals.Count);
@@ -164,7 +164,7 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
 
         _handler.UpdateGeneration(RetrievedGen1, 3, 4);
 
-        GenerationTargetShooting RetrievedGen2 = _handler.ReadGeneration(0, 0);
+        GenerationDrone RetrievedGen2 = _handler.ReadGeneration(0, 0);
 
         Assert.NotNull(RetrievedGen2);
         Assert.AreEqual(2, RetrievedGen2.Individuals.Count);
@@ -188,8 +188,8 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
     public void SetCurrentGeneration_SavesNewGeneration()
     {
         //TODO make sure the rows don't exist before running this test
-        GenerationTargetShooting gen = new GenerationTargetShooting();
-        gen.Individuals.Add(new IndividualTargetShooting("abc")
+        GenerationDrone gen = new GenerationDrone();
+        gen.Individuals.Add(new IndividualDrone("abc")
         {
             CompleteKills = 2,
             MatchesPlayed = 4,
@@ -201,11 +201,11 @@ public class EvolutionTargetShootingDatabaseHandlerIndividualsTests
             Score = 35,
             TotalKills = 7
         });
-        gen.Individuals.Add(new IndividualTargetShooting("def"));
+        gen.Individuals.Add(new IndividualDrone("def"));
 
         _handler.SaveNewGeneration(gen, 3, 4);
 
-        GenerationTargetShooting generation = _handler.ReadGeneration(3, 4);
+        GenerationDrone generation = _handler.ReadGeneration(3, 4);
 
         Assert.NotNull(generation);
         Assert.AreEqual(2, generation.Individuals.Count);

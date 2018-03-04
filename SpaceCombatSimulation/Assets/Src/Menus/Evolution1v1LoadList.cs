@@ -10,7 +10,7 @@ namespace Assets.Src.Menus
     {
         public void Start()
         {
-            _handler = new Evolution1v1DatabaseHandler();
+            _handler = new EvolutionBrDatabaseHandler();
             GenericInitialisation();
         }
     }
