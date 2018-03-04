@@ -14,7 +14,6 @@ public class EditMatchConfig : MonoBehaviour {
     public InputField InitialSpeed;
     public InputField RandomInitialSpeed;
     public InputField CompetitorsPerTeam;
-    public InputField LocationRandomisationRadiai;
     public InputField AllowedModules;
     public InputField Budget;
 
@@ -30,7 +29,6 @@ public class EditMatchConfig : MonoBehaviour {
         InitialSpeed.text = config.InitialSpeed.ToString();
         RandomInitialSpeed.text = config.RandomInitialSpeed.ToString();
         CompetitorsPerTeam.text = config.CompetitorsPerTeam.ToString();
-        LocationRandomisationRadiai.text = config.LocationRandomisationRadiaiString;
         AllowedModules.text = config.AllowedModulesString;
         Budget.text = config.Budget.ToString();
 
@@ -48,7 +46,6 @@ public class EditMatchConfig : MonoBehaviour {
         _loaded.InitialSpeed = float.Parse(InitialSpeed.text);
         _loaded.RandomInitialSpeed = float.Parse(RandomInitialSpeed.text);
         _loaded.CompetitorsPerTeam = int.Parse(CompetitorsPerTeam.text);
-        _loaded.LocationRandomisationRadiaiString = LocationRandomisationRadiai.text;
         _loaded.AllowedModulesString = AllowedModules.text;
         _loaded.Budget = float.Parse(Budget.text);
 

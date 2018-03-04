@@ -47,23 +47,24 @@ namespace Assets.Src.Evolution
         /// </summary>
         public float StepForwardProportion = 0.5f;
         
-        public float[] LocationRandomisationRadiai = { 0 };
-        public string LocationRandomisationRadiaiString {
-            get
-            {
-                return string.Join(",", LocationRandomisationRadiai.Select(r => r.ToString()).ToArray());
-            }
-            set
-            {
-                if (string.IsNullOrEmpty(value))
-                {
-                    LocationRandomisationRadiai = new float[] { 0 };
-                } else
-                {
-                    LocationRandomisationRadiai = value.Split(',').Where(s => !string.IsNullOrEmpty(s)).Select(s => float.Parse(s)).ToArray();
-                }
-            }
-        }
+        //public float[] LocationRandomisationRadiai = { 0 };
+
+        //public string LocationRandomisationRadiaiString {
+        //    get
+        //    {
+        //        return string.Join(",", LocationRandomisationRadiai.Select(r => r.ToString()).ToArray());
+        //    }
+        //    set
+        //    {
+        //        if (string.IsNullOrEmpty(value))
+        //        {
+        //            LocationRandomisationRadiai = new float[] { 0 };
+        //        } else
+        //        {
+        //            LocationRandomisationRadiai = value.Split(',').Where(s => !string.IsNullOrEmpty(s)).Select(s => float.Parse(s)).ToArray();
+        //        }
+        //    }
+        //}
 
         public bool RandomiseRotation = true;
 
@@ -91,13 +92,14 @@ namespace Assets.Src.Evolution
         /// <param name="index"></param>
         /// <param name="stepsTowardsCentre">number of increments of the step forward proportion to use</param>
         /// <returns></returns>
-        public Vector3 PositionForCompetitor(int index, float stepsTowardsCentre = 0)
+        public Vector3 PositionForCompetitor(int index, float stepsTowardsCentre = 0, float inSphereRandomisationRadius = 0, float onSphereRandomisationRadius = 0)
         {
             var stepForwards = stepsTowardsCentre * StepForwardProportion * InitialRange; 
 
             var distanceToCentre = (InitialRange - stepForwards) / 2;
 
-            var randomisation = Random.insideUnitSphere * GetLocationRandomisationRadius(index);
+            var randomisation = Random.insideUnitSphere * inSphereRandomisationRadius;
+            randomisation += Random.onUnitSphere * onSphereRandomisationRadius;
 
             var randomisedLocation = (_startVector[index % _startVector.Length] * distanceToCentre) + randomisation;
 
@@ -128,15 +130,15 @@ namespace Assets.Src.Evolution
             return v;
         }
 
-        private float GetLocationRandomisationRadius(int index)
-        {
-            if (!LocationRandomisationRadiai.Any())
-            {
-                throw new System.Exception("The LocationRandomisationRadiai list is empty.");
-            }
+        //private float GetLocationRandomisationRadius(int index)
+        //{
+        //    if (!LocationRandomisationRadiai.Any())
+        //    {
+        //        throw new System.Exception("The LocationRandomisationRadiai list is empty.");
+        //    }
 
-            return LocationRandomisationRadiai[index % LocationRandomisationRadiai.Length];
-        }
+        //    return LocationRandomisationRadiai[index % LocationRandomisationRadiai.Length];
+        //}
 
         private Vector3 GetStartLocationVector(int index)
         {
