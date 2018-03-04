@@ -13,11 +13,13 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Full v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile></CompilerResponseFile>
+    <CompilerResponseFile>
+    </CompilerResponseFile>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>StandaloneWindows64:19</UnityBuildTarget>
     <UnityVersion>2017.3.0f3</UnityVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -314,22 +316,22 @@
     <Compile Include="Assets\Src\Evolution\BaseEvolutionController.cs" />
     <Compile Include="Assets\Src\Evolution\BaseIndividual.cs" />
     <Compile Include="Assets\Src\Evolution\BasseGeneration.cs" />
-    <Compile Include="Assets\Src\Evolution\Edit1v1Config.cs" />
+    <Compile Include="Assets\Src\Evolution\BattleRoyale\EditBrConfig.cs" />
     <Compile Include="Assets\Src\Evolution\EditDroneConfig.cs" />
     <Compile Include="Assets\Src\Evolution\EditMatchConfig.cs" />
     <Compile Include="Assets\Src\Evolution\EditMutationConfig.cs" />
-    <Compile Include="Assets\Src\Evolution\Evolution1v1Config.cs" />
-    <Compile Include="Assets\Src\Evolution\Evolution1v1Controler.cs" />
+    <Compile Include="Assets\Src\Evolution\BattleRoyale\EvolutionBrConfig.cs" />
+    <Compile Include="Assets\Src\Evolution\BattleRoyale\EvolutionBrControler.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionArenaControler.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionMatchController.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionMutationWrapper.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionShipConfig.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionTargetShootingConfig.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionTargetShootingControler.cs" />
-    <Compile Include="Assets\Src\Evolution\Generation1V1.cs" />
+    <Compile Include="Assets\Src\Evolution\BattleRoyale\GenerationBr.cs" />
     <Compile Include="Assets\Src\Evolution\GenerationTargetShooting.cs" />
     <Compile Include="Assets\Src\Evolution\GenomeWrapper.cs" />
-    <Compile Include="Assets\Src\Evolution\Individual1v1.cs" />
+    <Compile Include="Assets\Src\Evolution\BattleRoyale\IndividualBr.cs" />
     <Compile Include="Assets\Src\Evolution\IndividualTargetShooting.cs" />
     <Compile Include="Assets\Src\Evolution\MatchConfig.cs" />
     <Compile Include="Assets\Src\Evolution\MatchRecord.cs" />
@@ -436,6 +438,7 @@
     <Compile Include="Assets\Src\Turret\TurretRunner.cs" />
     <Compile Include="Assets\Src\Turret\UnityTurretTurner.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />
 </Project>

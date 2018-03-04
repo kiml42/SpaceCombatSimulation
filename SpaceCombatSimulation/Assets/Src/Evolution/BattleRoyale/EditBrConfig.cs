@@ -8,7 +8,7 @@ using System;
 using UnityEngine.SceneManagement;
 using Assets.Src.Menus;
 
-public class Edit1v1Config : MonoBehaviour {
+public class EditBrConfig : MonoBehaviour {
     private int _loadedId = -1;
     private bool _hasLoadedExisting;
 
@@ -30,7 +30,7 @@ public class Edit1v1Config : MonoBehaviour {
     public string MainMenuSceneToLoad = "MainMenu";
 
     private Evolution1v1DatabaseHandler _handler;
-    private Evolution1v1Config _loaded;
+    private EvolutionBrConfig _loaded;
 
     // Use this for initialization
     void Start () {
@@ -81,7 +81,7 @@ public class Edit1v1Config : MonoBehaviour {
         SceneManager.LoadScene(EvolutionSceneToLoad);
     }
 
-    private Evolution1v1Config ReadControlls()
+    private EvolutionBrConfig ReadControlls()
     {
         _loaded.MatchConfig = MatchConfig.ReadFromControls();
         _loaded.MutationConfig = MutationConfig.ReadFromControls();
@@ -100,7 +100,7 @@ public class Edit1v1Config : MonoBehaviour {
     {
         _hasLoadedExisting = ArgumentStore.IdToLoad.HasValue;
         _loadedId = ArgumentStore.IdToLoad ?? -1;
-        _loaded = _hasLoadedExisting ? _handler.ReadConfig(_loadedId) : new Evolution1v1Config();
+        _loaded = _hasLoadedExisting ? _handler.ReadConfig(_loadedId) : new EvolutionBrConfig();
         
         RunName.text = _loaded.RunName;
         MinMatchesPerIndividual.text = _loaded.MinMatchesPerIndividual.ToString();

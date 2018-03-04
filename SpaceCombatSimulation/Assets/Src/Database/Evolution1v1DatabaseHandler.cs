@@ -28,9 +28,9 @@ namespace Assets.Src.Database
         {
         }
 
-        public Evolution1v1Config ReadConfig(int id)
+        public EvolutionBrConfig ReadConfig(int id)
         {
-            var config = new Evolution1v1Config();
+            var config = new EvolutionBrConfig();
 
             //Debug.Log("Reading config from DB. Id: " + id);
             using (var sql_con = new SqliteConnection(_connectionString))
@@ -54,6 +54,7 @@ namespace Assets.Src.Database
                         config.WinnersFromEachGeneration = reader.GetInt32(reader.GetOrdinal("winnersCount"));
                         config.SuddenDeathDamage = reader.GetFloat(reader.GetOrdinal("suddenDeathDamage"));
                         config.SuddenDeathReloadTime = reader.GetFloat(reader.GetOrdinal("suddenDeathReloadTime"));
+                        config.NumberOfCombatants = reader.GetInt32(reader.GetOrdinal("combatants"));
 
                         config.MatchConfig = ReadMatchConfig(reader);
                         config.MutationConfig = ReadMutationConfig(reader);
@@ -67,7 +68,7 @@ namespace Assets.Src.Database
             }
         }
 
-        public int UpdateExistingConfig(Evolution1v1Config config)
+        public int UpdateExistingConfig(EvolutionBrConfig config)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -83,11 +84,12 @@ namespace Assets.Src.Database
                     })
                     {
                         insertSQL.CommandText = "UPDATE " + CONFIG_TABLE +
-                            " SET suddenDeathDamage = ?, suddenDeathReloadTime = ?" +
+                            " SET suddenDeathDamage = ?, suddenDeathReloadTime = ?, combatants = ?" +
                             " WHERE id = ?";
 
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathDamage));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathReloadTime));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.NumberOfCombatants));
 
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
 
@@ -99,7 +101,7 @@ namespace Assets.Src.Database
             return config.DatabaseId;
         }
 
-        public int SaveNewConfig(Evolution1v1Config config)
+        public int SaveNewConfig(EvolutionBrConfig config)
         {
             using (var connection = new SqliteConnection(_connectionString))
             {
@@ -115,12 +117,13 @@ namespace Assets.Src.Database
                     })
                     {
                         insertSQL.CommandText = "INSERT INTO " + CONFIG_TABLE +
-                            "(id, suddenDeathDamage, suddenDeathReloadTime)" +
-                            " VALUES (?,?,?)";
+                            "(id, suddenDeathDamage, suddenDeathReloadTime, combatants)" +
+                            " VALUES (?,?,?,?)";
 
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathDamage));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathReloadTime));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.NumberOfCombatants));
 
                         insertSQL.ExecuteNonQuery();
                     }
@@ -132,10 +135,10 @@ namespace Assets.Src.Database
             return config.DatabaseId;
         }
 
-        public Generation1v1 ReadGeneration(int runId, int generationNumber)
+        public GenerationBr ReadGeneration(int runId, int generationNumber)
         {
             //Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);
-            var generation = new Generation1v1();
+            var generation = new GenerationBr();
             using (var sql_con = new SqliteConnection(_connectionString))
             {
                 using (var reader = OpenReaderWithCommand(sql_con, CreateReadIndividualsQuery(INDIVIDUAL_TABLE, runId, generationNumber)))
@@ -144,7 +147,7 @@ namespace Assets.Src.Database
                     {
                         //Debug.Log("wins ordinal: " + reader.GetOrdinal("wins"));
 
-                        var individual = new Individual1v1(ReadSpeciesSummary(reader))
+                        var individual = new IndividualBr(ReadSpeciesSummary(reader))
                         {
                             Score = reader.GetFloat(reader.GetOrdinal("score")),
                             Wins = reader.GetInt32(reader.GetOrdinal("wins")),
@@ -161,7 +164,7 @@ namespace Assets.Src.Database
             return generation;
         }
 
-        public void SaveNewGeneration(Generation1v1 generation, int runId, int generationNumber)
+        public void SaveNewGeneration(GenerationBr generation, int runId, int generationNumber)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -194,7 +197,7 @@ namespace Assets.Src.Database
             }
         }
 
-        public void UpdateGeneration(Generation1v1 generation, int runId, int generationNumber)
+        public void UpdateGeneration(GenerationBr generation, int runId, int generationNumber)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -211,7 +214,7 @@ namespace Assets.Src.Database
             }
         }
 
-        private void UpdateIndividual(Individual1v1 individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
+        private void UpdateIndividual(IndividualBr individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             UpdateBaseIndividual(individual, runId, generationNumber, sql_con, transaction);
 

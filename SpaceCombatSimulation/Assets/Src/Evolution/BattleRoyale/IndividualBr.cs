@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Assets.Src.Evolution
 {
-    public class Individual1v1 : BaseIndividual
+    public class IndividualBr : BaseIndividual
     {
         public int Wins;
         public int Draws;
@@ -20,11 +20,11 @@ namespace Assets.Src.Evolution
         private const int DRAW_SCORE = -2;
         private const int LOOSE_SCORE = -10;
 
-        public Individual1v1(string genome) : base(genome)
+        public IndividualBr(string genome) : base(genome)
         {
         }
 
-        public Individual1v1(SpeciesSummary summary) : base(summary)
+        public IndividualBr(SpeciesSummary summary) : base(summary)
         {
         }
 

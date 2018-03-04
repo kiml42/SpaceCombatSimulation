@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Assets.Src.Evolution
 {
-    public class Evolution1v1Config : BaseEvolutionConfig
+    public class EvolutionBrConfig : BaseEvolutionConfig
     {
 
         public float SuddenDeathDamage = 20;
@@ -15,5 +15,6 @@ namespace Assets.Src.Evolution
         /// Also used as the minimum score for winning a match.
         /// </summary>
         public float SuddenDeathReloadTime = 2;
+        public int NumberOfCombatants = 2;
     }
 }

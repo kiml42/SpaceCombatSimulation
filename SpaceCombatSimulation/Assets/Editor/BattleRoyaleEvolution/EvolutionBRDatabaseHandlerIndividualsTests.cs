@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using System;
 using System.IO;
 
-public class Evolution1v1DatabaseHandlerIndividualsTests
+public class EvolutionBRDatabaseHandlerIndividualsTests
 {
     private string _dbPathStart = "/../tmp/TestDB/";
     private string _dbPathExtension = ".s3db";
@@ -50,7 +50,7 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
     [Test]
     public void SetCurrentGeneration_ReadsCurrentGeneration()
     {
-        Generation1v1 generation = _handler.ReadGeneration(2, 0);
+        GenerationBr generation = _handler.ReadGeneration(2, 0);
 
         Assert.NotNull(generation);
         Assert.AreEqual(2, generation.Individuals.Count);
@@ -81,13 +81,13 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
     [Test]
     public void UpdateGeneration_SavesCurrentGeneration()
     {
-        Generation1v1 gen = new Generation1v1();
-        gen.Individuals.Add(new Individual1v1("abc"));
-        gen.Individuals.Add(new Individual1v1("def"));
+        GenerationBr gen = new GenerationBr();
+        gen.Individuals.Add(new IndividualBr("abc"));
+        gen.Individuals.Add(new IndividualBr("def"));
 
         _handler.SaveNewGeneration(gen, 3, 4);
 
-        Generation1v1 RetrievedGen1 = _handler.ReadGeneration(3, 4);
+        GenerationBr RetrievedGen1 = _handler.ReadGeneration(3, 4);
 
         Assert.NotNull(RetrievedGen1);
         Assert.AreEqual(2, RetrievedGen1.Individuals.Count);
@@ -121,7 +121,7 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
 
         _handler.UpdateGeneration(gen, 3, 4);
 
-        Generation1v1 RetrievedGen2 = _handler.ReadGeneration(3, 4);
+        GenerationBr RetrievedGen2 = _handler.ReadGeneration(3, 4);
 
         Assert.NotNull(RetrievedGen2);
         Assert.AreEqual(2, RetrievedGen2.Individuals.Count);
@@ -152,13 +152,13 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
     [Test]
     public void UpdateGeneration_SavesADraw()
     {
-        Generation1v1 gen = new Generation1v1();
-        gen.Individuals.Add(new Individual1v1("abc"));
-        gen.Individuals.Add(new Individual1v1("def"));
+        GenerationBr gen = new GenerationBr();
+        gen.Individuals.Add(new IndividualBr("abc"));
+        gen.Individuals.Add(new IndividualBr("def"));
 
         _handler.SaveNewGeneration(gen, 3, 4);
 
-        Generation1v1 RetrievedGen1 = _handler.ReadGeneration(3, 4);
+        GenerationBr RetrievedGen1 = _handler.ReadGeneration(3, 4);
 
         Assert.NotNull(RetrievedGen1);
         Assert.AreEqual(2, RetrievedGen1.Individuals.Count);
@@ -187,7 +187,7 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
 
         _handler.UpdateGeneration(gen, 3, 4);
 
-        Generation1v1 RetrievedGen2 = _handler.ReadGeneration(3, 4);
+        GenerationBr RetrievedGen2 = _handler.ReadGeneration(3, 4);
 
         Assert.NotNull(RetrievedGen2);
         Assert.AreEqual(2, RetrievedGen2.Individuals.Count);
@@ -219,8 +219,8 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
     public void SaveNewGeneration_SavesNewGeneration()
     {
         //TODO make sure the rows don't exist before running this test
-        Generation1v1 gen = new Generation1v1();
-        gen.Individuals.Add(new Individual1v1("abc")
+        GenerationBr gen = new GenerationBr();
+        gen.Individuals.Add(new IndividualBr("abc")
         {
             Loses = 2,
             Wins = 4,
@@ -231,11 +231,11 @@ public class Evolution1v1DatabaseHandlerIndividualsTests
             },
             Score = 35
         });
-        gen.Individuals.Add(new Individual1v1("def"));
+        gen.Individuals.Add(new IndividualBr("def"));
 
         _handler.SaveNewGeneration(gen, 3, 4);
 
-        Generation1v1 generation = _handler.ReadGeneration(3, 4);
+        GenerationBr generation = _handler.ReadGeneration(3, 4);
 
         Assert.NotNull(generation);
         Assert.AreEqual(2, generation.Individuals.Count);

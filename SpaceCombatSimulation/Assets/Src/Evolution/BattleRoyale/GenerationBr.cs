@@ -11,22 +11,22 @@ namespace Assets.src.Evolution
     /// <summary>
     /// Class for storing a generation where each ship fights one other.
     /// </summary>
-    public class Generation1v1 : BasseGeneration
+    public class GenerationBr : BasseGeneration
     {
         private System.Random _rng = new System.Random();
-        public List<Individual1v1> Individuals = new List<Individual1v1>();
+        public List<IndividualBr> Individuals = new List<IndividualBr>();
 
-        public Generation1v1()
+        public GenerationBr()
         {
             //Debug.Log("Default Constructor");
         }
 
-        public Generation1v1(string[] lines)
+        public GenerationBr(string[] lines)
         {
             AddGenomes(lines.ToList());
         }
 
-        public Generation1v1(List<string> lines)
+        public GenerationBr(List<string> lines)
         {
             AddGenomes(lines);
         }
@@ -37,7 +37,7 @@ namespace Assets.src.Evolution
             {
                 return false;
             }
-            Individuals.Add(new Individual1v1(genome));
+            Individuals.Add(new IndividualBr(genome));
             return true;
         }
 
@@ -81,7 +81,7 @@ namespace Assets.src.Evolution
         /// <returns>genome of a competetor from this generation</returns>
         public string PickCompetitor(string genomeToCompeteWith = null)
         {
-            List<Individual1v1> validCompetitors;
+            List<IndividualBr> validCompetitors;
 
             if (!string.IsNullOrEmpty(genomeToCompeteWith))
             {

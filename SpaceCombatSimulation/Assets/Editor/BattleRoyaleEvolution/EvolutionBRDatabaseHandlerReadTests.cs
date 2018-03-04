@@ -7,7 +7,7 @@ using Assets.src.Evolution;
 using Assets.Src.Database;
 using System;
 
-public class Evolution1v1DatabaseHandlerReadTests
+public class EvolutionBRDatabaseHandlerReadTests
 {
     private string _dbPathStart = "/../tmp/TestDB/";
     private string _dbPathExtension = ".s3db";
@@ -51,9 +51,9 @@ public class Evolution1v1DatabaseHandlerReadTests
         Assert.NotNull(configs);
         Assert.IsNotEmpty(configs);
         Assert.True(configs.ContainsKey(2));
-        Assert.AreEqual("Default1v1", configs[2]);
+        Assert.AreEqual("1v1", configs[2]);
         Assert.True(configs.ContainsKey(3));
-        Assert.AreEqual("Default1v1b", configs[3]);
+        Assert.AreEqual("4Way", configs[3]);
     }
 
     [Test]
@@ -74,14 +74,28 @@ public class Evolution1v1DatabaseHandlerReadTests
     public void ReadConfig_ReadsName()
     {
         var config = _handler.ReadConfig(2);
-        Assert.AreEqual("Default1v1", config.RunName);
+        Assert.AreEqual("1v1", config.RunName);
     }
 
     [Test]
     public void ReadConfig_ReadsDifferentName()
     {
         var config = _handler.ReadConfig(3);
-        Assert.AreEqual("Default1v1b", config.RunName);
+        Assert.AreEqual("4Way", config.RunName);
+    }
+
+    [Test]
+    public void ReadConfig_ReadsNumberOfCombatants()
+    {
+        var config = _handler.ReadConfig(2);
+        Assert.AreEqual(2, config.NumberOfCombatants);
+    }
+
+    [Test]
+    public void ReadConfig_ReadsDifferentNumberOfCombatants()
+    {
+        var config = _handler.ReadConfig(3);
+        Assert.AreEqual(4, config.NumberOfCombatants);
     }
 
     [Test]

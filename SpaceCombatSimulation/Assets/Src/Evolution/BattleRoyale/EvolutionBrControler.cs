@@ -11,9 +11,9 @@ using Assets.Src.Database;
 using Assets.Src.Evolution;
 using Assets.Src.Menus;
 
-public class Evolution1v1Controler : BaseEvolutionController
+public class EvolutionBrControler : BaseEvolutionController
 {
-    Evolution1v1Config _config;
+    EvolutionBrConfig _config;
     
     private Dictionary<string, GenomeWrapper> _currentGenomes;
         
@@ -25,7 +25,7 @@ public class Evolution1v1Controler : BaseEvolutionController
     public int MaxVelociyTollerance = 200;
     public int MaxAngularDragForTorquers = 1;
     
-    private Generation1v1 _currentGeneration;
+    private GenerationBr _currentGeneration;
 
     Evolution1v1DatabaseHandler _dbHandler;
 
@@ -209,16 +209,16 @@ public class Evolution1v1Controler : BaseEvolutionController
     /// The current generation is set to the generation that is created.
     /// </summary>
     /// <param name="winners"></param>
-    private Generation1v1 CreateNewGeneration(IEnumerable<string> winners)
+    private GenerationBr CreateNewGeneration(IEnumerable<string> winners)
     {
         if (winners != null && winners.Any())
         {
-            _currentGeneration = new Generation1v1(_mutationControl.CreateGenerationOfMutants(winners.ToList()));
+            _currentGeneration = new GenerationBr(_mutationControl.CreateGenerationOfMutants(winners.ToList()));
         }
         else
         {
             Debug.Log("Generating generation from default genomes");
-            _currentGeneration = new Generation1v1(_mutationControl.CreateDefaultGeneration());
+            _currentGeneration = new GenerationBr(_mutationControl.CreateDefaultGeneration());
             _config.GenerationNumber = 0;   //it's always generation 0 for a default genteration.
         }
 

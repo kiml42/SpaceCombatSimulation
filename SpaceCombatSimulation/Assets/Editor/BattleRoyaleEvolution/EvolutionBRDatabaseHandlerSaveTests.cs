@@ -8,7 +8,7 @@ using Assets.Src.Database;
 using System;
 using Assets.Src.Evolution;
 
-public class Evolution1v1DatabaseHandlerSaveTests
+public class EvolutionBRDatabaseHandlerSaveTests
 {
     private string _dbPathStart = "/../tmp/TestDB/";
     private string _dbPathExtension = ".s3db";
@@ -65,9 +65,10 @@ public class Evolution1v1DatabaseHandlerSaveTests
     [Test]
     public void SaveConfig_savesWholeThingAndReturnsId()
     {
-        var config = new Evolution1v1Config
+        var config = new EvolutionBrConfig
         {
             RunName = "SaveConfigTest",
+            NumberOfCombatants = 3,
             GenerationNumber = 42,
             MinMatchesPerIndividual = 6,
             SuddenDeathDamage = 20,
@@ -98,6 +99,7 @@ public class Evolution1v1DatabaseHandlerSaveTests
 
         Assert.AreEqual(expectedId, retrieved.DatabaseId);
         Assert.AreEqual("SaveConfigTest", retrieved.RunName);
+        Assert.AreEqual(3, retrieved.NumberOfCombatants);
 
         var match = retrieved.MatchConfig;
         var mut = retrieved.MutationConfig;
@@ -115,6 +117,7 @@ public class Evolution1v1DatabaseHandlerSaveTests
         config.RunName = "Altered";
         config.MatchConfig.InitialRange++;
         config.MutationConfig.GenomeLength++;
+        config.NumberOfCombatants++;
 
         _handler.UpdateExistingConfig(config);
 
@@ -124,6 +127,7 @@ public class Evolution1v1DatabaseHandlerSaveTests
         Assert.AreEqual("Altered", updated.RunName);
         Assert.AreEqual(config.MatchConfig.InitialRange, updated.MatchConfig.InitialRange);
         Assert.AreEqual(config.MutationConfig.GenomeLength, updated.MutationConfig.GenomeLength);
+        Assert.AreEqual(config.NumberOfCombatants, updated.NumberOfCombatants);
     }
     #endregion
 }
