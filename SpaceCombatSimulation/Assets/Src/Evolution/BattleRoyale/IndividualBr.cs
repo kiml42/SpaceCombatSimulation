@@ -8,17 +8,10 @@ namespace Assets.Src.Evolution
 {
     public class IndividualBr : BaseIndividual
     {
-        public int Wins;
-        public int Draws;
-        public int Loses;
-
-        public override int MatchesPlayed { get { return Wins + Draws + Loses; } set { throw new NotImplementedException("Cannot set MatchesPlayed on Individual1v1"); } }
+        public int Wins { get; set; }
+        public override int MatchesPlayed { get; set; }
 
         public List<string> PreviousCombatants = new List<string>();
-
-        private const int WIN_SCORE = 10;
-        private const int DRAW_SCORE = -2;
-        private const int LOOSE_SCORE = -10;
 
         public IndividualBr(string genome) : base(genome)
         {
@@ -39,36 +32,14 @@ namespace Assets.Src.Evolution
             }
         }
 
-        public void RecordMatch(List<string> otherCompetitors, string victor, float winScore, float losScore, float drawScore)
+        public void RecordMatch(float score, List<string> allCompetitors, bool HasWon)
         {
-            PreviousCombatants.Add(otherCompetitor);
-
-            if (string.IsNullOrEmpty(victor))
+            PreviousCombatants.AddRange(allCompetitors.Where(g => !string.IsNullOrEmpty(g) && g != Genome));
+            if (HasWon)
             {
-                Debug.Log("Draw");
-                Draws++;
-                Score += drawScore;
+                Wins++;
             }
-            else
-            {
-                if (Summary.Genome == victor)
-                {
-                    Debug.Log(Summary.GetName() + " Wins!");
-                    Wins++;
-                    Score += winScore;
-                }
-                else if (victor == otherCompetitor)
-                {
-                    Loses++;
-                    Score += losScore;
-                }
-                else
-                {
-                    Debug.LogWarning("Victor '" + victor + "' was not '" + Genome + "' or '" + otherCompetitor + "'");
-                    Draws++;
-                    Score += drawScore;
-                }
-            }
+            Score += score;
         }
 
         public int CountPreviousMatchesAgainst(List<string> genomes)
@@ -88,10 +59,7 @@ namespace Assets.Src.Evolution
                 {
                     Genome,
                     Score.ToString(),
-                     Wins.ToString(),
-                    Draws.ToString(),
-                    Loses.ToString(),
-                   competitorsString.ToString()
+                    competitorsString.ToString()
                 };
 
             return string.Join(";", strings.ToArray());
