@@ -12,8 +12,8 @@ CREATE TABLE BaseEvolutionConfig (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 -- Table: DroneEvolutionConfig
 CREATE TABLE DroneEvolutionConfig (id INTEGER PRIMARY KEY REFERENCES BaseEvolutionConfig (id) NOT NULL, minDrones INTEGER DEFAULT '''3''' NOT NULL, droneEscalation FLOAT DEFAULT (0.05) NOT NULL, maxDrones INTEGER DEFAULT '''50''' NOT NULL, killScoreMultiplier FLOAT DEFAULT '''1''' NOT NULL, flatKillBonus FLOAT DEFAULT '''100''' NOT NULL, completionBonus FLOAT DEFAULT '''1''' NOT NULL, deathPenalty FLOAT DEFAULT '''70''' NOT NULL, droneList VARCHAR (3000));
 
--- Table: EvolutionConfig1v1
-CREATE TABLE EvolutionConfig1v1 (id INTEGER PRIMARY KEY REFERENCES BaseEvolutionConfig (id) NOT NULL, suddenDeathDamage FLOAT DEFAULT '''1''' NOT NULL, suddenDeathReloadTime FLOAT DEFAULT '''100''' NOT NULL);
+-- Table: BrEvolutionConfig
+CREATE TABLE BrEvolutionConfig (id INTEGER PRIMARY KEY REFERENCES BaseEvolutionConfig (id) NOT NULL, suddenDeathDamage FLOAT DEFAULT '''1''' NOT NULL, suddenDeathReloadTime FLOAT DEFAULT '''100''' NOT NULL, combatants INTEGER DEFAULT '''2''' NOT NULL);
 
 -- Table: MatchConfig
 CREATE TABLE MatchConfig (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, matchTimeout FLOAT DEFAULT '300' NOT NULL, winnerPollPeriod FLOAT DEFAULT '2' NOT NULL, initialRange FLOAT DEFAULT '''6000''' NOT NULL, initialSpeed FLOAT DEFAULT '''0''' NOT NULL, randomInitialSpeed FLOAT DEFAULT '''0''' NOT NULL, competitorsPerTeam INTEGER DEFAULT '''1''' NOT NULL, stepForwardProportion FLOAT DEFAULT '''0.5''' NOT NULL, locationRandomisationRadiai STRING DEFAULT '0' NOT NULL, randomiseRotation BOOLEAN DEFAULT 'TRUE' NOT NULL, allowedModules STRING DEFAULT null, budget INTEGER DEFAULT 1000);
@@ -24,11 +24,11 @@ CREATE TABLE MutationConfig (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, muta
 -- Table: BaseIndividual
 CREATE TABLE BaseIndividual (runType VARCHAR (1000) NOT NULL, runConfigId INTEGER NOT NULL REFERENCES BaseEvolutionConfig (id), generation INTEGER NOT NULL, genome VARCHAR (1000) NOT NULL, score FLOAT NOT NULL, cost FLOAT, modules INTEGER, r FLOAT NOT NULL, g FLOAT NOT NULL, b FLOAT NOT NULL, species VARCHAR (1000), speciesVerbose VARCHAR (1000), subspecies VARCHAR (1000), subspeciesVerbose VARCHAR (1000), PRIMARY KEY (runConfigId, generation, genome));
 
--- Table: DroneShootingIndividual
-CREATE TABLE DroneShootingIndividual (runConfigId INTEGER NOT NULL REFERENCES BaseIndividual (runConfigId), generation INTEGER REFERENCES BaseIndividual (generation) NOT NULL, genome VARCHAR (1000) REFERENCES BaseIndividual (genome) NOT NULL, matchesPlayed INTEGER, matchesSurvived INTEGER, completeKills INTEGER, totalKills INTEGER, matchScores VARCHAR (500), PRIMARY KEY (runConfigId, generation, genome));
+-- Table: DroneIndividual
+CREATE TABLE DroneIndividual (runConfigId INTEGER NOT NULL REFERENCES BaseIndividual (runConfigId), generation INTEGER REFERENCES BaseIndividual (generation) NOT NULL, genome VARCHAR (1000) REFERENCES BaseIndividual (genome) NOT NULL, matchesPlayed INTEGER, matchesSurvived INTEGER, completeKills INTEGER, totalKills INTEGER, matchScores VARCHAR (500), PRIMARY KEY (runConfigId, generation, genome));
 
--- Table: Individual1v1
-CREATE TABLE Individual1v1 (runConfigId INTEGER NOT NULL REFERENCES BaseIndividual (runConfigId), generation INTEGER REFERENCES BaseIndividual (generation) NOT NULL, genome VARCHAR (1000) REFERENCES BaseIndividual (genome) NOT NULL, wins INTEGER, draws INTEGER, loses INTEGER, previousCombatants VARCHAR (500), PRIMARY KEY (runConfigId, generation, genome));
+-- Table: BrIndividual
+CREATE TABLE BrIndividual (runConfigId INTEGER NOT NULL REFERENCES BaseIndividual (runConfigId), generation INTEGER REFERENCES BaseIndividual (generation) NOT NULL, genome VARCHAR (1000) REFERENCES BaseIndividual (genome) NOT NULL, wins INTEGER, draws INTEGER, loses INTEGER, previousCombatants VARCHAR (500), PRIMARY KEY (runConfigId, generation, genome));
 
 COMMIT TRANSACTION;
 PRAGMA foreign_keys = on;

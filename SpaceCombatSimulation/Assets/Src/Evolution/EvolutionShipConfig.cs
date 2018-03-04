@@ -71,7 +71,7 @@ public class EvolutionShipConfig : MonoBehaviour {
     {
         if (!Tags.Any())
         {
-            throw new System.Exception("The Tags list is empty");
+            throw new Exception("The Tags list is empty");
         }
         var tagIndex = index % Tags.Count;
 

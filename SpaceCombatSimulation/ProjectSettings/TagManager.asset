@@ -19,6 +19,8 @@ TagManager:
   - Team3ForceField
   - Team4ForceField
   - Team5ForceField
+  - Team6
+  - Team6ForceField
   layers:
   - Default
   - TransparentFX

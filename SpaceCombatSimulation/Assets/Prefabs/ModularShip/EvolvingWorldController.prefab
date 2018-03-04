@@ -124,7 +124,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4589377682424178}
   - component: {fileID: 114162882494618574}
-  - component: {fileID: 114150487081735056}
+  - component: {fileID: 114333731870391954}
   - component: {fileID: 114478410833897430}
   - component: {fileID: 135682450383112948}
   m_Layer: 0
@@ -834,27 +834,6 @@ MonoBehaviour:
   Colour: {r: 0, g: 0, b: 0, a: 0}
   Depth: 1
   SetInStart: 0
---- !u!114 &114150487081735056
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1406041262789598}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3dff911269bfe564ba0a3d2fd1db1d11, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  DatabaseId: 3
-  ShipConfig: {fileID: 114162882494618574}
-  MaxShootAngle: 180
-  MaxTorqueMultiplier: 60000
-  MaxLocationAimWeighting: 10
-  MaxSlowdownWeighting: 150
-  MaxLocationTollerance: 2000
-  MaxVelociyTollerance: 100
-  MaxAngularDragForTorquers: 14
-  _previousWinner: 
 --- !u!114 &114162882494618574
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -871,12 +850,30 @@ MonoBehaviour:
   Tags:
   - Team1
   - Team2
+  - Team3
+  - Team4
+  - Team5
+  - Team6
   TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
   SpaceShipTag: SpaceShip
   ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
     type: 2}
   MaxTurrets: 5
   MaxModules: 20
+--- !u!114 &114333731870391954
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1406041262789598}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e20f4975f49970149b880a5cac4c48a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DatabaseId: 4
+  ShipConfig: {fileID: 114162882494618574}
+  _previousWinner: 
 --- !u!114 &114478410833897430
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -71,15 +71,14 @@ namespace Assets.Src.Evolution
             }
         }
 
-        private static float ParsePart(string[] parts, int index)
+        public int CountPreviousMatchesAgainst(List<string> genomes)
         {
-            float retVal = 0;
-            if (parts.Length > index)
+            var count = 0;
+            foreach (var g in genomes)
             {
-                var intString = parts[index];
-                float.TryParse(intString, out retVal);
+                count += PreviousCombatants.Count(p => p == g);
             }
-            return retVal;
+            return count;
         }
 
         public override string ToString()

@@ -16,14 +16,6 @@ public class EvolutionBrControler : BaseEvolutionController
     EvolutionBrConfig _config;
     
     private Dictionary<string, GenomeWrapper> _currentGenomes;
-        
-    public int MaxShootAngle = 180;
-    public int MaxTorqueMultiplier = 2000;
-    public int MaxLocationAimWeighting = 10;
-    public int MaxSlowdownWeighting = 60;
-    public int MaxLocationTollerance = 1000;
-    public int MaxVelociyTollerance = 200;
-    public int MaxAngularDragForTorquers = 1;
     
     private GenerationBr _currentGeneration;
 
@@ -104,26 +96,33 @@ public class EvolutionBrControler : BaseEvolutionController
     /// <returns>Boolean indecating that something has at least one module</returns>
     private bool SpawnShips()
     {
-        var genomes = PickTwoGenomesFromHistory();
+        var genomes = _currentGeneration.PickCompetitors(_config.NumberOfCombatants);
         
         var wrappers = new List<GenomeWrapper>();
         _currentGenomes = new Dictionary<string, GenomeWrapper>();
+
+        var names = new List<string>();
+
         var i = 0;
         foreach (var g in genomes)
         {
+            string name = "Nemo";
             for(var j=0; j < _matchControl.Config.CompetitorsPerTeam; j++)
             {
                 var gw = ShipConfig.SpawnShip(g, i, j);
                 wrappers.Add(gw);
 
+                name = gw.GetName();
+
                 _currentGenomes[ShipConfig.GetTag(i)] = gw; //This will only save the last gw, but they should be functionally identical.
             }
+
+            names.Add(name);
 
             i++;
         }
 
-        var names = wrappers.Select(w => w.GetName()).ToList();
-        Debug.Log("\"" + string.Join("\" vs \"", names.Distinct().ToArray()) + "\"");
+        Debug.Log("\"" + string.Join("\" vs \"", names.ToArray()) + "\"");
 
         return wrappers.Any(w => w.ModulesAdded > 0);
     }
@@ -172,13 +171,6 @@ public class EvolutionBrControler : BaseEvolutionController
             return actualWinner;
         }
         return null;
-    }
-    
-    private string[] PickTwoGenomesFromHistory()
-    {
-        var g1 = _currentGeneration.PickCompetitor();
-        var g2 = _currentGeneration.PickCompetitor(g1);
-        return new string[] { g1, g2 };
     }
     
     private void ReadInGeneration()

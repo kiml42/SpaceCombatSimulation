@@ -75,28 +75,21 @@ namespace Assets.src.Evolution
 
         /// <summary>
         /// Returns a genome from the individuals in this generation with the lowest number of completed matches.
-        /// If a non-empty genome is provded, the genome provided will not be that one, or be one that has already competed with that one.
+        /// If any competitorsAlreadyInMatch are provided this returns the individual with the fewest matches against any of those individuals.
         /// </summary>
         /// <param name="genomeToCompeteWith"></param>
         /// <returns>genome of a competetor from this generation</returns>
-        public string PickCompetitor(string genomeToCompeteWith = null)
+        private string PickCompetitor(List<string> competitorsAlreadyInMatch)
         {
             List<IndividualBr> validCompetitors;
-
-            if (!string.IsNullOrEmpty(genomeToCompeteWith))
-            {
-                validCompetitors = Individuals
-                    .Where(i => i.Genome != genomeToCompeteWith && !i.PreviousCombatants.Contains(genomeToCompeteWith))
-                    .OrderBy(i => i.MatchesPlayed)
-                    .ThenBy(i => _rng.NextDouble())
-                    .ToList();
-            } else
-            {
-                validCompetitors = Individuals
-                    .OrderBy(i => i.MatchesPlayed)
-                    .ThenBy(i => _rng.NextDouble())
-                    .ToList();
-            }
+            
+            validCompetitors = Individuals
+                .Where(i => !competitorsAlreadyInMatch.Contains(i.Genome))
+                .OrderBy(i => i.CountPreviousMatchesAgainst(competitorsAlreadyInMatch))
+                .ThenBy(i => i.MatchesPlayed)
+                .ThenBy(i => _rng.NextDouble())
+                .ToList();
+            
 
             var best = validCompetitors.FirstOrDefault();
             //Debug.Log("Picked Individual has played " + best.MatchesPlayed);
@@ -105,6 +98,18 @@ namespace Assets.src.Evolution
                 return best.Genome;
             }
             return null;
+        }
+
+        public List<string> PickCompetitors(int count)
+        {
+            var genomes = new List<string>();
+
+            for(var i = 0; i < count; i++)
+            {
+                genomes.Add(PickCompetitor(genomes));
+            }
+
+            return genomes;
         }
     }
 }

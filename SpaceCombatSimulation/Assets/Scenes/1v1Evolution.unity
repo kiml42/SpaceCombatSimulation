@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 953302730}
-  m_IndirectSpecularColor: {r: 0.048915952, g: 0.04687711, b: 0.048861906, a: 1}
+  m_IndirectSpecularColor: {r: 0.048542537, g: 0.04687711, b: 0.048488215, a: 1}
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
@@ -159,7 +159,7 @@ Prefab:
 Light:
   m_PrefabParentObject: {fileID: 108735939666816164, guid: 590da46f61a57f34ba77094de519068c,
     type: 2}
-  m_PrefabInternal: {fileID: 1615456727}
+  m_PrefabInternal: {fileID: 1881077183}
 --- !u!1001 &1136790713
 Prefab:
   m_ObjectHideFlags: 0
@@ -252,7 +252,7 @@ Prefab:
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: e2dbee6a48a444f4aab01257450a7363, type: 2}
   m_IsPrefabParent: 0
---- !u!1001 &1615456727
+--- !u!1001 &1881077183
 Prefab:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -294,11 +294,6 @@ Prefab:
     - target: {fileID: 1406041262789598, guid: 590da46f61a57f34ba77094de519068c, type: 2}
       propertyPath: m_Name
       value: EvolvingWorldController1V1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114150487081735056, guid: 590da46f61a57f34ba77094de519068c,
-        type: 2}
-      propertyPath: DatabaseId
-      value: 4
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 590da46f61a57f34ba77094de519068c, type: 2}

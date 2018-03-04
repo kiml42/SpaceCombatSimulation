@@ -15,6 +15,24 @@ namespace Assets.Src.Evolution
         /// Also used as the minimum score for winning a match.
         /// </summary>
         public float SuddenDeathReloadTime = 2;
-        public int NumberOfCombatants = 2;
+
+        public const int MAX_COMBATANTS = 6;
+        public const int MIN_COMBATANTS = 2;
+
+        private int _numberOfCombatants = 2;
+        public int NumberOfCombatants {
+            get {
+                return Math.Max(
+                    MIN_COMBATANTS,
+                    Math.Min(
+                        MAX_COMBATANTS, _numberOfCombatants
+                    )
+                );
+            }
+            set
+            {
+                _numberOfCombatants = value;
+            }
+        }
     }
 }
