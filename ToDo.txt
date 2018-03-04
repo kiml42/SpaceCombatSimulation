@@ -47,6 +47,7 @@ TODO:
 
 
     Priority:
+        Delete and reset options for evolution configs
         Replace 1v1 with free for all with an arbirtary number of teams (battle royal).
         Parent target picker 
             adds bonus to the pilot's target

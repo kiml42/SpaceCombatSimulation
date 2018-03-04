@@ -39,7 +39,7 @@ namespace Assets.Src.Evolution
             }
         }
 
-        public void RecordMatch(string otherCompetitor, string victor, float winScore, float losScore, float drawScore)
+        public void RecordMatch(List<string> otherCompetitors, string victor, float winScore, float losScore, float drawScore)
         {
             PreviousCombatants.Add(otherCompetitor);
 
