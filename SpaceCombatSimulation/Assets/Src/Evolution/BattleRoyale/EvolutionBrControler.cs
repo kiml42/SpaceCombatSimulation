@@ -140,7 +140,6 @@ public class EvolutionBrControler : BaseEvolutionController
             var deadGenomes = _extantTeams.Where(kv => !tags.Contains(kv.Key));
             foreach (var dead in deadGenomes)
             {
-                Debug.Log(dead.Value.Name + " has died");
                 AddScoreForDefeatedIndividual(dead);
             }
 
@@ -150,18 +149,21 @@ public class EvolutionBrControler : BaseEvolutionController
 
     private void AddScoreForDefeatedIndividual(KeyValuePair<string, GenomeWrapper> deadIndividual)
     {
+        Debug.Log(deadIndividual.Value.Name + " has died");
         var score = -_extantTeams.Count * _matchControl.RemainingTime();
         _currentGeneration.RecordMatch(deadIndividual.Value, score, _allCompetetrs, MatchOutcome.Loss);
     }
 
     private void AddScoreForWinner(KeyValuePair<string, GenomeWrapper> winner)
     {
+        Debug.Log(winner.Value.Name + " Wins!");
         var score = _matchControl.RemainingTime() + WinBonus;
         _currentGeneration.RecordMatch(winner.Value, score, _allCompetetrs, MatchOutcome.Win);
     }
 
     private void AddScoreSurvivingIndividualsAtTheEnd()
     {
+        Debug.Log("Match over: Draw. " + _extantTeams.Count + " survived.");
         var score = WinBonus / (2 * _extantTeams.Count);
         foreach (var team in _extantTeams)
         {
