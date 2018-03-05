@@ -57,7 +57,12 @@ namespace Assets.Src.Database
                     config.CompletionBonus = reader.GetFloat(reader.GetOrdinal("completionBonus"));
                     config.DeathPenalty = reader.GetFloat(reader.GetOrdinal("deathPenalty"));
                     config.DronesString = reader.GetString(reader.GetOrdinal("droneList"));
-                    
+
+                    config.ShipInSphereRandomRadius = reader.GetInt32(reader.GetOrdinal("shipInSphereRandomRadius"));
+                    config.ShipOnSphereRandomRadius = reader.GetInt32(reader.GetOrdinal("shipOnSphereRandomRadius"));
+                    config.DronesInSphereRandomRadius = reader.GetInt32(reader.GetOrdinal("dronesInSphereRandomRadius"));
+                    config.DronesOnSphereRandomRadius = reader.GetInt32(reader.GetOrdinal("dronesOnSphereRandomRadius"));
+
                     config.MatchConfig = ReadMatchConfig(reader);
                     config.MutationConfig = ReadMutationConfig(reader);
 

@@ -72,13 +72,7 @@ public class EvolutionBRDatabaseHandlerSaveTests
             GenerationNumber = 42,
             MinMatchesPerIndividual = 6,
             WinnersFromEachGeneration = 7,
-            MatchConfig = new MatchConfig
-            {
-                LocationRandomisationRadiai = new float[]
-                {
-                    100,50
-                }
-            },
+            MatchConfig = new MatchConfig(),
             MutationConfig = new MutationConfig
             {
                 DefaultGenome = "SaveConfigTest_DefaultGenome"
@@ -104,7 +98,6 @@ public class EvolutionBRDatabaseHandlerSaveTests
 
         Assert.AreEqual(6, match.Id);
         Assert.AreEqual(7, mut.Id);
-        Assert.AreEqual(config.MatchConfig.LocationRandomisationRadiai, match.LocationRandomisationRadiai);
     }
 
     [Test]

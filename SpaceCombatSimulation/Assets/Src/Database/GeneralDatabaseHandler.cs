@@ -129,15 +129,6 @@ namespace Assets.Src.Database
                 RandomiseRotation = reader.GetBoolean(reader.GetOrdinal("randomiseRotation"))
             };
 
-            if (!reader.IsDBNull(reader.GetOrdinal("locationRandomisationRadiai")))
-            {
-                config.LocationRandomisationRadiaiString = reader.GetString(reader.GetOrdinal("locationRandomisationRadiai"));
-            }
-            else
-            {
-                config.LocationRandomisationRadiaiString = null;
-            }
-
             if (!reader.IsDBNull(reader.GetOrdinal("allowedModules")))
             {
                 config.AllowedModulesString = reader.GetString(reader.GetOrdinal("allowedModules"));
@@ -205,8 +196,8 @@ namespace Assets.Src.Database
             })
             {
                 insertSQL.CommandText = "INSERT INTO " + MATCH_CONFIG_TABLE +
-                            "(matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, locationRandomisationRadiai, randomiseRotation, allowedModules, budget)" +
-                            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                            "(matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, randomiseRotation, allowedModules, budget)" +
+                            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MatchTimeout));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.WinnerPollPeriod));
@@ -215,7 +206,6 @@ namespace Assets.Src.Database
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.RandomInitialSpeed));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.CompetitorsPerTeam));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.StepForwardProportion));
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.LocationRandomisationRadiaiString));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.RandomiseRotation));
 
                 if (!string.IsNullOrEmpty(config.AllowedModulesString))
@@ -293,7 +283,7 @@ namespace Assets.Src.Database
             {
                 insertSQL.CommandText = "UPDATE " + MATCH_CONFIG_TABLE +
                             " SET matchTimeout = ?, winnerPollPeriod = ?, initialRange = ?, initialSpeed = ?, randomInitialSpeed = ?, competitorsPerTeam = ?," +
-                            " stepForwardProportion = ?, locationRandomisationRadiai = ?, randomiseRotation = ?, allowedModules = ?, budget = ?" +
+                            " stepForwardProportion = ?, randomiseRotation = ?, allowedModules = ?, budget = ?" +
                             " WHERE id = ?";
 
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MatchTimeout));
@@ -303,7 +293,6 @@ namespace Assets.Src.Database
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.RandomInitialSpeed));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.CompetitorsPerTeam));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.StepForwardProportion));
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.LocationRandomisationRadiaiString));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.RandomiseRotation));
 
                 if (!string.IsNullOrEmpty(config.AllowedModulesString))

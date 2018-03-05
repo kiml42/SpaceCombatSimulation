@@ -17,6 +17,11 @@ namespace Assets.Src.Evolution
         [Tooltip("number of drones spawned = MinDronesToSpawn + #individualsWithCompleteKills * ExtraDromnesPerGeneration")]
         public float ExtraDromnesPerGeneration = 0.2f;
         public int MaxDronesToSpawn = 100;
+        
+        public float ShipInSphereRandomRadius = 0;
+        public float ShipOnSphereRandomRadius = 0;
+        public float DronesInSphereRandomRadius = 0;
+        public float DronesOnSphereRandomRadius = 0;
 
         public string DronesString
         {

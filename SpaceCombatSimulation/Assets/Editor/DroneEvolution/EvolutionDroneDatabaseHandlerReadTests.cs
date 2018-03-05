@@ -228,15 +228,6 @@ public class EvolutionDroneDatabaseHandlerReadTests
     }
 
     [Test]
-    public void ReadConfig_MatchControl_LocationRandomisationRadiai()
-    {
-        var config = _handler.ReadConfig(0);
-        Assert.AreEqual("3,6", config.MatchConfig.LocationRandomisationRadiaiString);
-        Assert.AreEqual(3, config.MatchConfig.LocationRandomisationRadiai[0]);
-        Assert.AreEqual(6, config.MatchConfig.LocationRandomisationRadiai[1]);
-    }
-
-    [Test]
     public void ReadConfig_MatchControl_AllowedModulesString()
     {
         var config = _handler.ReadConfig(0);
@@ -251,6 +242,34 @@ public class EvolutionDroneDatabaseHandlerReadTests
     {
         var config = _handler.ReadConfig(0);
         Assert.AreEqual(true, config.MatchConfig.RandomiseRotation);
+    }
+
+    [Test]
+    public void ReadConfig_MatchControl_ShipInSphereRandomRadius()
+    {
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(100, config.ShipInSphereRandomRadius);
+    }
+
+    [Test]
+    public void ReadConfig_MatchControl_ShipOnSphereRandomRadius()
+    {
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(101, config.ShipOnSphereRandomRadius);
+    }
+
+    [Test]
+    public void ReadConfig_MatchControl_DronesInSphereRandomRadius()
+    {
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(102, config.DronesInSphereRandomRadius);
+    }
+
+    [Test]
+    public void ReadConfig_MatchControl_DronesOnSphereRandomRadius()
+    {
+        var config = _handler.ReadConfig(0);
+        Assert.AreEqual(103, config.DronesOnSphereRandomRadius);
     }
 
     [Test]
