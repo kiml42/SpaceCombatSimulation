@@ -143,7 +143,7 @@ namespace Assets.Src.Evolution
         {
             _currentModuleRecord.AddModule(null);
         }
-        
+
         /// <summary>
         /// Tells the genomeWrapper that a module has been finished.
         /// </summary>
@@ -152,9 +152,12 @@ namespace Assets.Src.Evolution
             _currentModuleRecord = _previousModuleRecords.Pop();
         }
 
-        public string GetName()
+        public string Name
         {
-            return _topModuleRecord.ToString();
+            get
+            {
+                return _topModuleRecord.ToString();
+            }
         }
 
         public bool CanSpawn()

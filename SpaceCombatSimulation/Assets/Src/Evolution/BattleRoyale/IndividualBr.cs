@@ -9,7 +9,10 @@ namespace Assets.Src.Evolution
     public class IndividualBr : BaseIndividual
     {
         public int Wins { get; set; }
-        public override int MatchesPlayed { get; set; }
+        public int Draws { get; set; }
+        public int Loses { get; set; }
+
+        public override int MatchesPlayed { get { return Wins + Draws + Loses; } set { throw new NotImplementedException("Cannot set MatchesPlayed on IndividualBr"); } }
 
         public List<string> PreviousCombatants = new List<string>();
 
@@ -28,16 +31,32 @@ namespace Assets.Src.Evolution
             }
             set
             {
-                PreviousCombatants = value.Split(',').Where(s => !string.IsNullOrEmpty(s)).ToList();
+                if (string.IsNullOrEmpty(value))
+                {
+                    PreviousCombatants = new List<string>();
+                }
+                else
+                {
+                    PreviousCombatants = value.Split(',').Where(s => !string.IsNullOrEmpty(s)).ToList();
+                }
             }
         }
 
-        public void RecordMatch(float score, List<string> allCompetitors, bool HasWon)
+
+        public void RecordMatch(float score, List<string> allCompetitors, MatchOutcome outcome)
         {
             PreviousCombatants.AddRange(allCompetitors.Where(g => !string.IsNullOrEmpty(g) && g != Genome));
-            if (HasWon)
+            switch (outcome)
             {
-                Wins++;
+                case MatchOutcome.Win:
+                    Wins++;
+                    break;
+                case MatchOutcome.Draw:
+                    Draws++;
+                    break;
+                case MatchOutcome.Loss:
+                    Loses++;
+                    break;
             }
             Score += score;
         }

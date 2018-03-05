@@ -352,10 +352,10 @@ namespace Assets.Src.Database
                     reader.GetFloat(reader.GetOrdinal("r")),
                     reader.GetFloat(reader.GetOrdinal("g")),
                     reader.GetFloat(reader.GetOrdinal("b")),
-                    GetNullableString(reader, "species"),
-                    GetNullableString(reader, "speciesVerbose"),
-                    GetNullableString(reader, "subspecies"),
-                    GetNullableString(reader, "subspeciesVerbose")
+                    GetValueForNullableStringField(reader, "species"),
+                    GetValueForNullableStringField(reader, "speciesVerbose"),
+                    GetValueForNullableStringField(reader, "subspecies"),
+                    GetValueForNullableStringField(reader, "subspeciesVerbose")
                 );
         }
 
@@ -451,7 +451,7 @@ namespace Assets.Src.Database
             }
         }
 
-        private int? GetNullableInt(IDataReader reader, string name)
+        protected static int? GetNullableInt(IDataReader reader, string name)
         {
             var ordinal = reader.GetOrdinal(name);
             if (reader.IsDBNull(ordinal))
@@ -461,7 +461,7 @@ namespace Assets.Src.Database
             return reader.GetInt32(ordinal);
         }
 
-        private float? GetNullableFloat(IDataReader reader, string name)
+        protected static float? GetNullableFloat(IDataReader reader, string name)
         {
             var ordinal = reader.GetOrdinal(name);
             if (reader.IsDBNull(ordinal))
@@ -471,7 +471,7 @@ namespace Assets.Src.Database
             return reader.GetFloat(ordinal);
         }
 
-        private string GetNullableString(IDataReader reader, string name)
+        protected static string GetValueForNullableStringField(IDataReader reader, string name)
         {
             var ordinal = reader.GetOrdinal(name);
             if (reader.IsDBNull(ordinal))

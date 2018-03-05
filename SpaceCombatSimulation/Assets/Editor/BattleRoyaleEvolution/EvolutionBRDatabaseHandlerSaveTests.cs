@@ -71,8 +71,6 @@ public class EvolutionBRDatabaseHandlerSaveTests
             NumberOfCombatants = 3,
             GenerationNumber = 42,
             MinMatchesPerIndividual = 6,
-            SuddenDeathDamage = 20,
-            SuddenDeathReloadTime = 5,
             WinnersFromEachGeneration = 7,
             MatchConfig = new MatchConfig
             {

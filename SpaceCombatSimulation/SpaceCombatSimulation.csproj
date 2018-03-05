@@ -334,6 +334,7 @@
     <Compile Include="Assets\Src\Evolution\BattleRoyale\IndividualBr.cs" />
     <Compile Include="Assets\Src\Evolution\Drone\IndividualDrone.cs" />
     <Compile Include="Assets\Src\Evolution\MatchConfig.cs" />
+    <Compile Include="Assets\Src\Evolution\MatchOutcome.cs" />
     <Compile Include="Assets\Src\Evolution\MatchRecord.cs" />
     <Compile Include="Assets\Src\Evolution\MutationConfig.cs" />
     <Compile Include="Assets\Src\Evolution\SeciesSummary.cs" />

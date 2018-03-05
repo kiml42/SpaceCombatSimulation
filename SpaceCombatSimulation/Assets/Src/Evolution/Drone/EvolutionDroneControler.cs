@@ -92,7 +92,7 @@ public class EvolutionDroneControler : BaseEvolutionController
         
         _genomeWrapper = ShipConfig.SpawnShip(genome, SHIP_INDEX);
 
-        Debug.Log(_genomeWrapper.GetName() + " enters the arena!");
+        Debug.Log(_genomeWrapper.Name + " enters the arena!");
         Debug.Log("Ship cost = " + _genomeWrapper.Cost);
 
         SpawnDrones();

@@ -10,25 +10,6 @@ using System.Linq;
 
 public class GenerationTests
 {
-
-    [Test]
-    public void RecordMatch_SavesCombatants()
-    {
-        var gen = new GenerationBr();
-        var a = "a";
-        var b = "b";
-        gen.AddGenome(a);
-        gen.AddGenome(b);
-        gen.AddGenome("blancmonge");
-
-        gen.RecordMatch(new GenomeWrapper(a), new GenomeWrapper(b), a, 13, 7, 5);
-
-        var genString = gen.ToString();
-
-        Assert.True(genString.Contains("a;13;1;0;0;b"), "a's line is wrong");
-        Assert.True(genString.Contains("b;7;0;0;1;a"), "b's line is wrong");
-    }
-
     [Test]
     public void PickWinners_PicksWithAReasonableDistribution_50_23()
     {

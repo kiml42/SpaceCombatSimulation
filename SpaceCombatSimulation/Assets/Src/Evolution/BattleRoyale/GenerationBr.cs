@@ -47,12 +47,14 @@ namespace Assets.src.Evolution
         /// <param name="competitor">the combatant's genomes</param>
         /// <param name="score">Score to add to the combatant</param>
         /// <param name="allCompetitors">All the individuals' genomes in the match</param>
-        /// <param name="HasWon">True if this individual was the last surviving individual</param>
-        public void RecordMatch(GenomeWrapper competitor, float score, List<string> allCompetitors, bool HasWon)
+        /// <param name="hasWon">True if this individual was the last surviving individual</param>
+        /// <param name="isDraw">True if this individual was not the only one alive at the end of time</param>
+        /// <param name="hasDied">True if this individual died</param>
+        public void RecordMatch(GenomeWrapper competitor, float score, List<string> allCompetitors, MatchOutcome outcome)
         {
             var individual = Individuals.First(i => i.Genome == competitor.Genome);
             individual.Finalise(competitor);
-            individual.RecordMatch(score, allCompetitors, HasWon);
+            individual.RecordMatch(score, allCompetitors, outcome);
         }
 
         protected override IEnumerable<BaseIndividual> _baseIndividuals
