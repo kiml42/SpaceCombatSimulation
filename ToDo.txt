@@ -47,6 +47,7 @@ TODO:
 
 
     Priority:
+        Delete and reset options for evolution configs
         Replace 1v1 with free for all with an arbirtary number of teams (battle royal).
         Parent target picker 
             adds bonus to the pilot's target
@@ -66,7 +67,7 @@ TODO:
         Async
         Find an easy way to delete individuals.
         Better defaults for evolution configs in the menus.
-        Master targeting contrller on spaceships with which other targeters can register to have a list of everything being targeted by that ship.
+        Master targeting controller on spaceships with which other targeters can register to have a list of everything being targeted by that ship.
             this list could be used ba a targeter to apply an extra score for each time a target is in that list - either promoting or avoiding all guns targeting the same thing.
         Torpedoes detonate at closest approach isf out of fuel.
         Lightsabers!
@@ -96,6 +97,16 @@ TODO:
         limited power
             Hubs have batteries to store energy
             Hubs have generators to recharge batteries.
+        Gimballed engines
+            Use basic turret turning setup - will need to be given a method that takes an pointing vector instead of a Target
+        Modular turrets
+            Turret body can be eyeball, normal or just fixed
+            business ends will be different sorts of firing mechanisms.
+            Turret turning mechanism looks for an orientation source in itself or its children.
+        Prevent turrets locking by trying to go round the back of the turret
+            Get current turn table forwards vector and vector to Target in rest target space
+                If they are on different sides of the rest target, turn towards the rest target (with the speed set for the actual angle to turn for the location of the target)
+
 
     Weighted camera orientator using poll targets, ignores rotation targets (must be calculated with look rotations)
         Implemented - works rather badly, different vectors would need different weights to make it work right.

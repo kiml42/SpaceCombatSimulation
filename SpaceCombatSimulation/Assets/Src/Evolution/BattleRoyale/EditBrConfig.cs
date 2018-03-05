@@ -19,8 +19,6 @@ public class EditBrConfig : MonoBehaviour {
     public InputField MinMatchesPerIndividual;
     public InputField WinnersFromEachGeneration;
     private int _generationNumber;
-    public InputField SuddenDeathDamage;
-    public InputField SuddenDeathReloadTime;
     public InputField NumberOfTeams;
 
     public Button RunButton;
@@ -91,8 +89,6 @@ public class EditBrConfig : MonoBehaviour {
         _loaded.MinMatchesPerIndividual = int.Parse(MinMatchesPerIndividual.text);
         _loaded.WinnersFromEachGeneration = int.Parse(WinnersFromEachGeneration.text);
         _loaded.GenerationNumber = _generationNumber;
-        _loaded.SuddenDeathDamage = float.Parse(SuddenDeathDamage.text);
-        _loaded.SuddenDeathReloadTime = float.Parse(SuddenDeathReloadTime.text);
         _loaded.NumberOfCombatants = int.Parse(NumberOfTeams.text);
 
         return _loaded;
@@ -107,8 +103,6 @@ public class EditBrConfig : MonoBehaviour {
         RunName.text = _loaded.RunName;
         MinMatchesPerIndividual.text = _loaded.MinMatchesPerIndividual.ToString();
         WinnersFromEachGeneration.text = _loaded.WinnersFromEachGeneration.ToString();
-        SuddenDeathDamage.text = _loaded.SuddenDeathDamage.ToString();
-        SuddenDeathReloadTime.text = _loaded.SuddenDeathReloadTime.ToString();
         NumberOfTeams.text = _loaded.NumberOfCombatants.ToString();
 
         _generationNumber = _loaded.GenerationNumber;

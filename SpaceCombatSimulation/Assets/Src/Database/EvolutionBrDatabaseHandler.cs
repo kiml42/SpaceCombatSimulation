@@ -41,10 +41,7 @@ namespace Assets.Src.Database
                     {
                         //Debug.Log("EvolutionConfig1v1.id ordinal: " + reader.GetOrdinal("id"));
                         config.DatabaseId = reader.GetInt32(reader.GetOrdinal("id"));
-
-                        //Debug.Log("suddenDeathReloadTime ordinal: " + reader.GetOrdinal("suddenDeathReloadTime"));
-                        //Debug.Log("suddenDeathReloadTime value: " + reader.GetDecimal(reader.GetOrdinal("suddenDeathReloadTime")));
-
+                        
                         //Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("matchConfigId"));
                         //Debug.Log("matchConfigId value: " + reader.GetDecimal(reader.GetOrdinal("matchConfigId")));
 
@@ -52,8 +49,6 @@ namespace Assets.Src.Database
                         config.GenerationNumber = reader.GetInt32(reader.GetOrdinal("currentGeneration"));
                         config.MinMatchesPerIndividual = reader.GetInt32(reader.GetOrdinal("minMatchesPerIndividual"));
                         config.WinnersFromEachGeneration = reader.GetInt32(reader.GetOrdinal("winnersCount"));
-                        config.SuddenDeathDamage = reader.GetFloat(reader.GetOrdinal("suddenDeathDamage"));
-                        config.SuddenDeathReloadTime = reader.GetFloat(reader.GetOrdinal("suddenDeathReloadTime"));
                         config.NumberOfCombatants = reader.GetInt32(reader.GetOrdinal("combatants"));
 
                         config.MatchConfig = ReadMatchConfig(reader);
@@ -84,11 +79,9 @@ namespace Assets.Src.Database
                     })
                     {
                         insertSQL.CommandText = "UPDATE " + CONFIG_TABLE +
-                            " SET suddenDeathDamage = ?, suddenDeathReloadTime = ?, combatants = ?" +
+                            " SET  combatants = ?" +
                             " WHERE id = ?";
 
-                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathDamage));
-                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathReloadTime));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.NumberOfCombatants));
 
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
@@ -117,12 +110,10 @@ namespace Assets.Src.Database
                     })
                     {
                         insertSQL.CommandText = "INSERT INTO " + CONFIG_TABLE +
-                            "(id, suddenDeathDamage, suddenDeathReloadTime, combatants)" +
-                            " VALUES (?,?,?,?)";
+                            "(id, combatants)" +
+                            " VALUES (?,?)";
 
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
-                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathDamage));
-                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.SuddenDeathReloadTime));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.NumberOfCombatants));
 
                         insertSQL.ExecuteNonQuery();
@@ -146,16 +137,14 @@ namespace Assets.Src.Database
                     while (reader.Read())
                     {
                         //Debug.Log("wins ordinal: " + reader.GetOrdinal("wins"));
-
                         var individual = new IndividualBr(ReadSpeciesSummary(reader))
                         {
                             Score = reader.GetFloat(reader.GetOrdinal("score")),
                             Wins = reader.GetInt32(reader.GetOrdinal("wins")),
                             Loses = reader.GetInt32(reader.GetOrdinal("loses")),
                             Draws = reader.GetInt32(reader.GetOrdinal("draws")),
-                            PreviousCombatantsString = reader.GetString(reader.GetOrdinal("previousCombatants"))
+                            PreviousCombatantsString = GetValueForNullableStringField(reader, "previousCombatants")
                         };
-
                         generation.Individuals.Add(individual);
                     }
                 }

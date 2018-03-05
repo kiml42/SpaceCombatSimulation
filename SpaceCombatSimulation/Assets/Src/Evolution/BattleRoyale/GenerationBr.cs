@@ -42,27 +42,19 @@ namespace Assets.src.Evolution
         }
 
         /// <summary>
-        /// Records a match by adding data to the individuals that participated.
+        /// Records a match for one individual by adding data to that individual.
         /// </summary>
-        /// <param name="a">One of tehe combatant's genomes</param>
-        /// <param name="b">Another of tehe combatant's genomes</param>
-        /// <param name="victor">The genome of the winner - null for a draw</param>
-        /// <param name="winScore">Score to add to the winner</param>
-        /// <param name="lossScore">Score to add to the looser</param>
-        /// <param name="drawScore">Score to add to both in the event of a draw</param>
-        public void RecordMatch(GenomeWrapper a, GenomeWrapper b, string victor, float winScore, float lossScore, float drawScore)
+        /// <param name="competitor">the combatant's genomes</param>
+        /// <param name="score">Score to add to the combatant</param>
+        /// <param name="allCompetitors">All the individuals' genomes in the match</param>
+        /// <param name="hasWon">True if this individual was the last surviving individual</param>
+        /// <param name="isDraw">True if this individual was not the only one alive at the end of time</param>
+        /// <param name="hasDied">True if this individual died</param>
+        public void RecordMatch(GenomeWrapper competitor, float score, List<string> allCompetitors, MatchOutcome outcome)
         {
-            //Debug.Log("Recording Match: " + a + " vs " + b + " victor: " + victor);
-
-            var individuala = Individuals.First(i => i.Genome == a.Genome);
-            individuala.Finalise(a);
-            individuala.RecordMatch(b.Genome, victor,  winScore,  lossScore,  drawScore);
-
-            var individualb = Individuals.First(i => i.Genome == b.Genome);
-            individualb.Finalise(b);
-            individualb.RecordMatch(a.Genome, victor,  winScore,  lossScore,  drawScore);
-
-            Individuals = Individuals.OrderByDescending(i => i.AverageScore).ToList();
+            var individual = Individuals.First(i => i.Genome == competitor.Genome);
+            individual.Finalise(competitor);
+            individual.RecordMatch(score, allCompetitors, outcome);
         }
 
         protected override IEnumerable<BaseIndividual> _baseIndividuals

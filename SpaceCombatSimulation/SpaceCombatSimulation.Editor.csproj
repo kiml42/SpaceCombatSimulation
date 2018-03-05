@@ -13,13 +13,11 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Full v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile>
-    </CompilerResponseFile>
+    <CompilerResponseFile></CompilerResponseFile>
     <UnityProjectType>Editor:5</UnityProjectType>
     <UnityBuildTarget>StandaloneWindows64:19</UnityBuildTarget>
     <UnityVersion>2017.3.0f3</UnityVersion>
-    <RootNamespace>
-    </RootNamespace>
+    <RootNamespace></RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -302,12 +300,12 @@
     <Compile Include="Assets\Editor\BattleRoyaleEvolution\EvolutionBRDatabaseHandlerIndividualsTests.cs" />
     <Compile Include="Assets\Editor\BattleRoyaleEvolution\EvolutionBRDatabaseHandlerReadTests.cs" />
     <Compile Include="Assets\Editor\BattleRoyaleEvolution\EvolutionBRDatabaseHandlerSaveTests.cs" />
-    <Compile Include="Assets\Editor\Evolution\GenerationTests.cs" />
-    <Compile Include="Assets\Editor\Evolution\GenomeWrapperTest.cs" />
-    <Compile Include="Assets\Editor\Evolution\ModuleRecordTests.cs" />
     <Compile Include="Assets\Editor\DroneEvolution\EvolutionDroneDatabaseHandlerIndividualsTests.cs" />
     <Compile Include="Assets\Editor\DroneEvolution\EvolutionDroneDatabaseHandlerReadTests.cs" />
     <Compile Include="Assets\Editor\DroneEvolution\EvolutionDroneDatabaseHandlerSaveTests.cs" />
+    <Compile Include="Assets\Editor\Evolution\GenerationTests.cs" />
+    <Compile Include="Assets\Editor\Evolution\GenomeWrapperTest.cs" />
+    <Compile Include="Assets\Editor\Evolution\ModuleRecordTests.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />

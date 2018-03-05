@@ -20,6 +20,13 @@ public class EvolutionBrControler : BaseEvolutionController
     private GenerationBr _currentGeneration;
 
     EvolutionBrDatabaseHandler _dbHandler;
+    
+    private bool _hasModules;
+
+    private Dictionary<string, GenomeWrapper> _extantTeams;
+    public float WinBonus = 1000;
+
+    List<string> _allCompetetrs { get { return _currentGenomes.Select(kv => kv.Value.Genome).ToList(); } }
 
     // Use this for initialization
     void Start()
@@ -49,45 +56,36 @@ public class EvolutionBrControler : BaseEvolutionController
     // Update is called once per frame
     void Update()
     {
-        var winningGenome = DetectVictorsGenome();
-        if (winningGenome == null && !_matchControl.IsOutOfTime())
+        bool matchIsOver = false;
+        if (_matchControl.ShouldPollForWinners() || _matchControl.IsOutOfTime() || !_hasModules)
         {
-            return;
+            ProcessDefeatedShips();
+            if(_extantTeams.Count == 1)
+            {
+                //we have a winner
+                AddScoreForWinner(_extantTeams.Single());
+                matchIsOver = true;
+            }
+            if(_extantTeams.Count == 0)
+            {
+                //everyone's dead
+                matchIsOver = true;
+            }
+            if (_matchControl.IsOutOfTime() || !_hasModules)
+            {
+                //time over - draw
+                //or noone has any modules, so treat it as a draw.
+                AddScoreSurvivingIndividualsAtTheEnd();
+                matchIsOver = true;
+            }
+
+            if (matchIsOver)
+            {
+                _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, _config.GenerationNumber);
+
+                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            }
         }
-        else if (_matchControl.IsOutOfTime()/* && _previousWinner == null*/)
-        {
-            //Debug.Log("Match Timeout!");
-            ActivateSuddenDeath();
-        }
-
-        if (winningGenome != null)
-        {
-            var a = _currentGenomes.Values.First();
-            var b = _currentGenomes.Values.Skip(1).First();
-
-            var winScore = Math.Max(_matchControl.RemainingTime(), _config.SuddenDeathReloadTime);
-
-            var losScore = -_config.SuddenDeathReloadTime;
-            var drawScore = -_config.SuddenDeathReloadTime /2;
-
-            _currentGeneration.RecordMatch(a, b, winningGenome, winScore, losScore, drawScore);
-
-            _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, _config.GenerationNumber);
-
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-        }
-    }
-
-    private void ActivateSuddenDeath()
-    {
-        //Debug.Log("Sudden Death!");
-        var ships = ListShips();
-        foreach (var ship in ships)
-        {
-            ship.transform.SendMessage("ApplyDamage", _config.SuddenDeathDamage, SendMessageOptions.DontRequireReceiver);
-        }
-        
-        _matchControl.MatchRunTime = _matchControl.Config.MatchTimeout - _config.SuddenDeathReloadTime;
     }
     
     /// <summary>
@@ -112,7 +110,7 @@ public class EvolutionBrControler : BaseEvolutionController
                 var gw = ShipConfig.SpawnShip(g, i, j);
                 wrappers.Add(gw);
 
-                name = gw.GetName();
+                name = gw.Name;
 
                 _currentGenomes[ShipConfig.GetTag(i)] = gw; //This will only save the last gw, but they should be functionally identical.
             }
@@ -122,57 +120,57 @@ public class EvolutionBrControler : BaseEvolutionController
             i++;
         }
 
+        _extantTeams = _currentGenomes;
+
         Debug.Log("\"" + string.Join("\" vs \"", names.ToArray()) + "\"");
 
         return wrappers.Any(w => w.ModulesAdded > 0);
     }
-    
-    public string _previousWinner;
-    private bool _hasModules;
 
-    /// <summary>
-    /// Returns the genome of the victor.
-    /// Or null if there's no victor yet.
-    /// Or empty string if everyone's dead.
-    /// </summary>
-    /// <returns></returns>
-    private string DetectVictorsGenome()
+    private void ProcessDefeatedShips()
     {
-        if (_matchControl.ShouldPollForWinners())
+        var tags = ListShips()
+            .Select(s => s.tag)
+            .Distinct();
+        //Debug.Log(tags.Count() + " teams still exist");
+
+        if (tags.Count() < _extantTeams.Count)
         {
-            string currentWinner = null;
-
-            var tags = ListShips()
-                .Select(s => s.tag)
-                .Distinct();
-            //Debug.Log(ships.Count() + " ships exist");
-
-            if (tags.Count() == 1)
+            //Something's died.
+            var deadGenomes = _extantTeams.Where(kv => !tags.Contains(kv.Key));
+            foreach (var dead in deadGenomes)
             {
-                var winningTag = tags.First();
-
-                //Debug.Log(StringifyGenomes() + " winning tag: " + winningTag);
-                var winningGW = _currentGenomes[winningTag];
-                if(winningGW != null)
-                {
-                    currentWinner = winningGW.Genome;
-                }
-            }
-            if (tags.Count() == 0 || !_hasModules)
-            {
-                //Treat them both as dead if nthing has modules.
-                Debug.Log("Everyone's dead!");
-                currentWinner = string.Empty;
+                AddScoreForDefeatedIndividual(dead);
             }
 
-            var actualWinner = currentWinner == _previousWinner ? currentWinner : null;
-            _previousWinner = currentWinner;
-            //if there's been the same winner for two consectutive periods return that, otherise null.
-            return actualWinner;
+            _extantTeams = _currentGenomes.Where(kv => tags.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
         }
-        return null;
     }
-    
+
+    private void AddScoreForDefeatedIndividual(KeyValuePair<string, GenomeWrapper> deadIndividual)
+    {
+        Debug.Log(deadIndividual.Value.Name + " has died");
+        var score = -_extantTeams.Count * _matchControl.RemainingTime();
+        _currentGeneration.RecordMatch(deadIndividual.Value, score, _allCompetetrs, MatchOutcome.Loss);
+    }
+
+    private void AddScoreForWinner(KeyValuePair<string, GenomeWrapper> winner)
+    {
+        Debug.Log(winner.Value.Name + " Wins!");
+        var score = _matchControl.RemainingTime() + WinBonus;
+        _currentGeneration.RecordMatch(winner.Value, score, _allCompetetrs, MatchOutcome.Win);
+    }
+
+    private void AddScoreSurvivingIndividualsAtTheEnd()
+    {
+        Debug.Log("Match over: Draw. " + _extantTeams.Count + " survived.");
+        var score = WinBonus / (2 * _extantTeams.Count);
+        foreach (var team in _extantTeams)
+        {
+            _currentGeneration.RecordMatch(team.Value, score, _allCompetetrs, MatchOutcome.Draw);
+        }
+    }
+
     private void ReadInGeneration()
     {
         _currentGeneration = _dbHandler.ReadGeneration(DatabaseId, _config.GenerationNumber);

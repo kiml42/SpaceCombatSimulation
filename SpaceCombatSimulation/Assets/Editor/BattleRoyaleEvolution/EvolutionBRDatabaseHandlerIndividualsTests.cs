@@ -117,7 +117,8 @@ public class EvolutionBRDatabaseHandlerIndividualsTests
             Budget = 59
         };
         
-        gen.RecordMatch(gwA, new GenomeWrapper("def"), "abc", 5, 15, 7);
+        gen.RecordMatch(gwA, 5, new List<string> { "abc", "def" }, MatchOutcome.Win);
+        gen.RecordMatch(new GenomeWrapper("def"), 15, new List<string> { "abc", "def" }, MatchOutcome.Loss);
 
         _handler.UpdateGeneration(gen, 3, 4);
 
@@ -126,9 +127,8 @@ public class EvolutionBRDatabaseHandlerIndividualsTests
         Assert.NotNull(RetrievedGen2);
         Assert.AreEqual(2, RetrievedGen2.Individuals.Count);
 
-        var i1b = RetrievedGen2.Individuals.First();
-
-        Assert.AreEqual("abc", i1b.Genome);
+        var i1b = RetrievedGen2.Individuals.First(i => i.Genome == "abc");
+        
         Assert.AreEqual(5, i1b.Score);
         Assert.AreEqual(1, i1b.Wins);
         Assert.AreEqual(0, i1b.Draws);
@@ -137,9 +137,8 @@ public class EvolutionBRDatabaseHandlerIndividualsTests
         Assert.AreEqual(1, i1b.PreviousCombatants.Count);
         Assert.AreEqual("def", i1b.PreviousCombatants.First());
 
-        var i2b = RetrievedGen2.Individuals[1];
-
-        Assert.AreEqual("def", i2b.Genome);
+        var i2b = RetrievedGen2.Individuals.First(i => i.Genome == "def");
+        
         Assert.AreEqual(15, i2b.Score);
         Assert.AreEqual(0, i2b.Wins);
         Assert.AreEqual(0, i2b.Draws);
@@ -183,7 +182,8 @@ public class EvolutionBRDatabaseHandlerIndividualsTests
         Assert.AreEqual("", i2.PreviousCombatantsString);
         Assert.AreEqual(0, i2.PreviousCombatants.Count);
 
-        gen.RecordMatch(new GenomeWrapper("abc"), new GenomeWrapper("def"), null, 5, 15, 7);
+        gen.RecordMatch(new GenomeWrapper("abc"), 7, new List<string> { "abc" , "def" }, MatchOutcome.Draw);
+        gen.RecordMatch(new GenomeWrapper("def"), 7, new List<string> { "abc" , "def" }, MatchOutcome.Draw);
 
         _handler.UpdateGeneration(gen, 3, 4);
 

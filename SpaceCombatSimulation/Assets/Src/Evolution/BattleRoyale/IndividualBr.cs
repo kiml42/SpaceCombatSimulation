@@ -8,17 +8,13 @@ namespace Assets.Src.Evolution
 {
     public class IndividualBr : BaseIndividual
     {
-        public int Wins;
-        public int Draws;
-        public int Loses;
+        public int Wins { get; set; }
+        public int Draws { get; set; }
+        public int Loses { get; set; }
 
-        public override int MatchesPlayed { get { return Wins + Draws + Loses; } set { throw new NotImplementedException("Cannot set MatchesPlayed on Individual1v1"); } }
+        public override int MatchesPlayed { get { return Wins + Draws + Loses; } set { throw new NotImplementedException("Cannot set MatchesPlayed on IndividualBr"); } }
 
         public List<string> PreviousCombatants = new List<string>();
-
-        private const int WIN_SCORE = 10;
-        private const int DRAW_SCORE = -2;
-        private const int LOOSE_SCORE = -10;
 
         public IndividualBr(string genome) : base(genome)
         {
@@ -35,40 +31,34 @@ namespace Assets.Src.Evolution
             }
             set
             {
-                PreviousCombatants = value.Split(',').Where(s => !string.IsNullOrEmpty(s)).ToList();
-            }
-        }
-
-        public void RecordMatch(string otherCompetitor, string victor, float winScore, float losScore, float drawScore)
-        {
-            PreviousCombatants.Add(otherCompetitor);
-
-            if (string.IsNullOrEmpty(victor))
-            {
-                Debug.Log("Draw");
-                Draws++;
-                Score += drawScore;
-            }
-            else
-            {
-                if (Summary.Genome == victor)
+                if (string.IsNullOrEmpty(value))
                 {
-                    Debug.Log(Summary.GetName() + " Wins!");
-                    Wins++;
-                    Score += winScore;
-                }
-                else if (victor == otherCompetitor)
-                {
-                    Loses++;
-                    Score += losScore;
+                    PreviousCombatants = new List<string>();
                 }
                 else
                 {
-                    Debug.LogWarning("Victor '" + victor + "' was not '" + Genome + "' or '" + otherCompetitor + "'");
-                    Draws++;
-                    Score += drawScore;
+                    PreviousCombatants = value.Split(',').Where(s => !string.IsNullOrEmpty(s)).ToList();
                 }
             }
+        }
+
+
+        public void RecordMatch(float score, List<string> allCompetitors, MatchOutcome outcome)
+        {
+            PreviousCombatants.AddRange(allCompetitors.Where(g => !string.IsNullOrEmpty(g) && g != Genome));
+            switch (outcome)
+            {
+                case MatchOutcome.Win:
+                    Wins++;
+                    break;
+                case MatchOutcome.Draw:
+                    Draws++;
+                    break;
+                case MatchOutcome.Loss:
+                    Loses++;
+                    break;
+            }
+            Score += score;
         }
 
         public int CountPreviousMatchesAgainst(List<string> genomes)
@@ -88,10 +78,7 @@ namespace Assets.Src.Evolution
                 {
                     Genome,
                     Score.ToString(),
-                     Wins.ToString(),
-                    Draws.ToString(),
-                    Loses.ToString(),
-                   competitorsString.ToString()
+                    competitorsString.ToString()
                 };
 
             return string.Join(";", strings.ToArray());

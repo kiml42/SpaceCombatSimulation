@@ -118,20 +118,6 @@ public class EvolutionBRDatabaseHandlerReadTests
         var config = _handler.ReadConfig(2);
         Assert.AreEqual(5, config.WinnersFromEachGeneration);
     }
-
-    [Test]
-    public void ReadConfig_SuddenDeathDamage()
-    {
-        var config = _handler.ReadConfig(2);
-        Assert.AreEqual(1, config.SuddenDeathDamage);
-    }
-
-    [Test]
-    public void ReadConfig_SuddenDeathReloadTime()
-    {
-        var config = _handler.ReadConfig(2);
-        Assert.AreEqual(5, config.SuddenDeathReloadTime);
-    }
     #endregion
 
     #region MatchControl
