@@ -118,7 +118,8 @@ namespace Assets.Src.Database
                     {
                         insertSQL.CommandText = "UPDATE " + CONFIG_TABLE +
                             " SET  minDrones = ?," +
-                            " droneEscalation = ?, maxDrones = ?, killScoreMultiplier = ?, flatKillBonus = ?, completionBonus = ?, deathPenalty = ?, droneList = ?" +
+                            " droneEscalation = ?, maxDrones = ?, killScoreMultiplier = ?, flatKillBonus = ?, completionBonus = ?, deathPenalty = ?, droneList = ?," +
+                            " shipInSphereRandomRadius = ?, shipOnSphereRandomRadius = ?, dronesInSphereRandomRadius = ?, dronesOnSphereRandomRadius = ?" +
                             " WHERE id = ?";
 
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinDronesToSpawn));
@@ -129,6 +130,11 @@ namespace Assets.Src.Database
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.CompletionBonus));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.DeathPenalty));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DronesString));
+
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.ShipInSphereRandomRadius));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.ShipOnSphereRandomRadius));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.DronesInSphereRandomRadius));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.DronesOnSphereRandomRadius));
 
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
 
@@ -158,8 +164,9 @@ namespace Assets.Src.Database
                     })
                     {
                         insertSQL.CommandText = "INSERT INTO " + CONFIG_TABLE +
-                            "(id, minDrones, droneEscalation, maxDrones, killScoreMultiplier, flatKillBonus, completionBonus, deathPenalty, droneList)" +
-                            " VALUES (?,?,?,?,?,?,?,?,?)";
+                            "(id, minDrones, droneEscalation, maxDrones, killScoreMultiplier, flatKillBonus, completionBonus, deathPenalty, droneList," +
+                            " shipInSphereRandomRadius, shipOnSphereRandomRadius, dronesInSphereRandomRadius, dronesOnSphereRandomRadius)" +
+                            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinDronesToSpawn));
@@ -170,6 +177,11 @@ namespace Assets.Src.Database
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.CompletionBonus));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.DeathPenalty));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DronesString));
+
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.ShipInSphereRandomRadius));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.ShipOnSphereRandomRadius));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.DronesInSphereRandomRadius));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.DronesOnSphereRandomRadius));
 
                         insertSQL.ExecuteNonQuery();
                         insertSQL.Dispose();

@@ -25,5 +25,8 @@ namespace Assets.Src.Evolution
                 _numberOfCombatants = value;
             }
         }
+
+        public float OnSphereRandomisationRadius = 50;
+        public float InSphereRandomisationRadius = 0;
     }
 }

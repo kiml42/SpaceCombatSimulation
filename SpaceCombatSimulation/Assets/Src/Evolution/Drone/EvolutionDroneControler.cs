@@ -90,7 +90,7 @@ public class EvolutionDroneControler : BaseEvolutionController
     {
         var genome = _currentGeneration.PickCompetitor();
         
-        _genomeWrapper = ShipConfig.SpawnShip(genome, SHIP_INDEX);
+        _genomeWrapper = ShipConfig.SpawnShip(genome, SHIP_INDEX, 0, _config.ShipInSphereRandomRadius, _config.ShipOnSphereRandomRadius);
 
         Debug.Log(_genomeWrapper.Name + " enters the arena!");
         Debug.Log("Ship cost = " + _genomeWrapper.Cost);
@@ -115,7 +115,7 @@ public class EvolutionDroneControler : BaseEvolutionController
             var dronePrefab = DroneList.Modules[droneIndex];
             //Debug.Log("spawning drone " + genome);
             
-            var randomPlacement = _config.MatchConfig.PositionForCompetitor(DRONES_INDEX);
+            var randomPlacement = _config.MatchConfig.PositionForCompetitor(DRONES_INDEX, 0, _config.DronesInSphereRandomRadius, _config.DronesOnSphereRandomRadius);
             var orientation = _config.MatchConfig.OrientationForStartLocation(randomPlacement);
             var ship = Instantiate(dronePrefab, randomPlacement, orientation);
             ship.tag = droneTag;

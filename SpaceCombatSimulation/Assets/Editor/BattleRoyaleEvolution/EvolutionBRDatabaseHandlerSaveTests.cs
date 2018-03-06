@@ -72,6 +72,8 @@ public class EvolutionBRDatabaseHandlerSaveTests
             GenerationNumber = 42,
             MinMatchesPerIndividual = 6,
             WinnersFromEachGeneration = 7,
+            InSphereRandomisationRadius = 43,
+            OnSphereRandomisationRadius = 44,
             MatchConfig = new MatchConfig(),
             MutationConfig = new MutationConfig
             {
@@ -92,6 +94,8 @@ public class EvolutionBRDatabaseHandlerSaveTests
         Assert.AreEqual(expectedId, retrieved.DatabaseId);
         Assert.AreEqual("SaveConfigTest", retrieved.RunName);
         Assert.AreEqual(3, retrieved.NumberOfCombatants);
+        Assert.AreEqual(43, retrieved.InSphereRandomisationRadius);
+        Assert.AreEqual(44, retrieved.OnSphereRandomisationRadius);
 
         var match = retrieved.MatchConfig;
         var mut = retrieved.MutationConfig;
@@ -109,6 +113,8 @@ public class EvolutionBRDatabaseHandlerSaveTests
         config.MatchConfig.InitialRange++;
         config.MutationConfig.GenomeLength++;
         config.NumberOfCombatants++;
+        config.InSphereRandomisationRadius++;
+        config.OnSphereRandomisationRadius++;
 
         _handler.UpdateExistingConfig(config);
 
@@ -119,6 +125,8 @@ public class EvolutionBRDatabaseHandlerSaveTests
         Assert.AreEqual(config.MatchConfig.InitialRange, updated.MatchConfig.InitialRange);
         Assert.AreEqual(config.MutationConfig.GenomeLength, updated.MutationConfig.GenomeLength);
         Assert.AreEqual(config.NumberOfCombatants, updated.NumberOfCombatants);
+        Assert.AreEqual(config.InSphereRandomisationRadius, updated.InSphereRandomisationRadius);
+        Assert.AreEqual(config.OnSphereRandomisationRadius, updated.OnSphereRandomisationRadius);
     }
     #endregion
 }

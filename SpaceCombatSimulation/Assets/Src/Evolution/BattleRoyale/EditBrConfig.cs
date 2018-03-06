@@ -20,6 +20,8 @@ public class EditBrConfig : MonoBehaviour {
     public InputField WinnersFromEachGeneration;
     private int _generationNumber;
     public InputField NumberOfTeams;
+    public InputField InSphereRandomisationRadius;
+    public InputField OnSphereRandomisationRadius;
 
     public Button RunButton;
     public Button CoppyButton;
@@ -90,6 +92,8 @@ public class EditBrConfig : MonoBehaviour {
         _loaded.WinnersFromEachGeneration = int.Parse(WinnersFromEachGeneration.text);
         _loaded.GenerationNumber = _generationNumber;
         _loaded.NumberOfCombatants = int.Parse(NumberOfTeams.text);
+        _loaded.InSphereRandomisationRadius = float.Parse(InSphereRandomisationRadius.text);
+        _loaded.OnSphereRandomisationRadius = float.Parse(OnSphereRandomisationRadius.text);
 
         return _loaded;
     }
@@ -104,6 +108,9 @@ public class EditBrConfig : MonoBehaviour {
         MinMatchesPerIndividual.text = _loaded.MinMatchesPerIndividual.ToString();
         WinnersFromEachGeneration.text = _loaded.WinnersFromEachGeneration.ToString();
         NumberOfTeams.text = _loaded.NumberOfCombatants.ToString();
+
+        InSphereRandomisationRadius.text = _loaded.InSphereRandomisationRadius.ToString();
+        OnSphereRandomisationRadius.text = _loaded.OnSphereRandomisationRadius.ToString();
 
         _generationNumber = _loaded.GenerationNumber;
         

@@ -70,7 +70,7 @@ public class EvolutionArenaControler : MonoBehaviour
     {
         Debug.Log("Sudden Death!");
         var orientation = UnityEngine.Random.rotation;
-        var randomPlacement = ShipConfig.Config.PositionForCompetitor((int)UnityEngine.Random.value);
+        var randomPlacement = ShipConfig.Config.PositionForCompetitor((int)UnityEngine.Random.value, 0, 0, 0);
         var death = Instantiate(SuddenDeathObject, randomPlacement, orientation);
 
         death.GetComponent<IKnowsEnemyTags>().EnemyTags = ShipConfig.Tags;
@@ -124,7 +124,7 @@ public class EvolutionArenaControler : MonoBehaviour
 
         var index = ShipConfig.Tags.IndexOf(ownTag);
         
-        ShipConfig.SpawnShip(genome, index, 0);
+        ShipConfig.SpawnShip(genome, index, 0, 0, 0);
         
         RememberNewExtantGenome(ownTag, genome);
     }

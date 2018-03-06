@@ -107,7 +107,7 @@ public class EvolutionBrControler : BaseEvolutionController
             string name = "Nemo";
             for(var j=0; j < _matchControl.Config.CompetitorsPerTeam; j++)
             {
-                var gw = ShipConfig.SpawnShip(g, i, j);
+                var gw = ShipConfig.SpawnShip(g, i, j, _config.InSphereRandomisationRadius, _config.OnSphereRandomisationRadius);
                 wrappers.Add(gw);
 
                 name = gw.Name;

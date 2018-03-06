@@ -30,14 +30,14 @@ public class EvolutionShipConfig : MonoBehaviour {
     /// <param name="index"></param>
     /// <param name="stepsTowardsCentre"></param>
     /// <returns>Returns the GenomeWrapper for that ship.</returns>
-    public GenomeWrapper SpawnShip(string genome, int index, int stepsTowardsCentre = 0)
+    public GenomeWrapper SpawnShip(string genome, int index, float stepsTowardsCentre, float inSphereRandomisationRadius, float onSphereRandomisationRadius)
     {
         if(Config == null)
         {
             throw new Exception("EvolutionShipConfig needs to have its Config set to a valid MatchConfig");
         }
         
-        var location = Config.PositionForCompetitor(index, stepsTowardsCentre);
+        var location = Config.PositionForCompetitor(index, stepsTowardsCentre, inSphereRandomisationRadius, onSphereRandomisationRadius);
         var orientation = Config.OrientationForStartLocation(location);
         var velocity = Config.VelocityForStartLocation(location);
 

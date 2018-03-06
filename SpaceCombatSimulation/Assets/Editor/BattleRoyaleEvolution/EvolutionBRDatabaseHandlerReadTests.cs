@@ -118,6 +118,20 @@ public class EvolutionBRDatabaseHandlerReadTests
         var config = _handler.ReadConfig(2);
         Assert.AreEqual(5, config.WinnersFromEachGeneration);
     }
+
+    [Test]
+    public void ReadConfig_InSphereRandomisationRadius()
+    {
+        var config = _handler.ReadConfig(2);
+        Assert.AreEqual(106, config.InSphereRandomisationRadius);
+    }
+
+    [Test]
+    public void ReadConfig_OnSphereRandomisationRadius()
+    {
+        var config = _handler.ReadConfig(2);
+        Assert.AreEqual(107, config.OnSphereRandomisationRadius);
+    }
     #endregion
 
     #region MatchControl

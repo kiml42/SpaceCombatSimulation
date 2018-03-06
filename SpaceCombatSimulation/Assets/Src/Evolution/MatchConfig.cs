@@ -92,7 +92,7 @@ namespace Assets.Src.Evolution
         /// <param name="index"></param>
         /// <param name="stepsTowardsCentre">number of increments of the step forward proportion to use</param>
         /// <returns></returns>
-        public Vector3 PositionForCompetitor(int index, float stepsTowardsCentre = 0, float inSphereRandomisationRadius = 0, float onSphereRandomisationRadius = 0)
+        public Vector3 PositionForCompetitor(int index, float stepsTowardsCentre, float inSphereRandomisationRadius, float onSphereRandomisationRadius)
         {
             var stepForwards = stepsTowardsCentre * StepForwardProportion * InitialRange; 
 
