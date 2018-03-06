@@ -89,8 +89,11 @@ public class EvolutionDroneControler : BaseEvolutionController
     private bool SpawnShips()
     {
         var genome = _currentGeneration.PickCompetitor();
-        
-        _genomeWrapper = ShipConfig.SpawnShip(genome, SHIP_INDEX, 0, _config.ShipInSphereRandomRadius, _config.ShipOnSphereRandomRadius);
+
+        for (var j = 0; j < _matchControl.Config.CompetitorsPerTeam; j++)
+        {
+            _genomeWrapper = ShipConfig.SpawnShip(genome, SHIP_INDEX, 0, _config.ShipInSphereRandomRadius, _config.ShipOnSphereRandomRadius);
+        }
 
         Debug.Log(_genomeWrapper.Name + " enters the arena!");
         Debug.Log("Ship cost = " + _genomeWrapper.Cost);
@@ -121,8 +124,9 @@ public class EvolutionDroneControler : BaseEvolutionController
             ship.tag = droneTag;
             
             ship.velocity = _config.MatchConfig.VelocityForStartLocation(randomPlacement);
-            
-            ship.GetComponent<IKnowsEnemyTags>().EnemyTags = enemyTags;
+
+            var knower = ship.GetComponent<IKnowsEnemyTags>();
+            if(knower != null) knower.EnemyTags = enemyTags;
         }
     }
     
