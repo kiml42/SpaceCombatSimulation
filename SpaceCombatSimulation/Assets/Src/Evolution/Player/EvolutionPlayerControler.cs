@@ -1,5 +1,7 @@
 ﻿using Assets.Src.Interfaces;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Assets.Src.Evolution.Player
@@ -32,6 +34,40 @@ namespace Assets.Src.Evolution.Player
             }
 
             return true;
+        }
+
+        protected override bool _survivorsAreWinners
+        {
+            get
+            {
+                return SetEnemyTagsForEachOther
+                    ? base._survivorsAreWinners
+                    : !_shipTagsPresent.Contains("Player");
+            }
+        }
+
+        protected override void AddScoreForDefeatedIndividual(KeyValuePair<string, GenomeWrapper> deadIndividual)
+        {
+            Debug.Log(deadIndividual.Value.Name + " has died");
+            var score = -_matchControl.RemainingTime();
+            _currentGeneration.RecordMatch(deadIndividual.Value, score, _allCompetetrs, MatchOutcome.Loss);
+        }
+
+        protected override void AddScoreForWinner(KeyValuePair<string, GenomeWrapper> winner)
+        {
+            Debug.Log(winner.Value.Name + " Wins!");
+            var score = _matchControl.RemainingTime() + WinBonus;
+            _currentGeneration.RecordMatch(winner.Value, score, _allCompetetrs, MatchOutcome.Win);
+        }
+
+        protected override void AddScoreSurvivingIndividualsAtTheEnd()
+        {
+            Debug.Log("Match over: Draw. " + _extantTeams.Count + " survived.");
+            var score = WinBonus / 2;
+            foreach (var team in _extantTeams)
+            {
+                _currentGeneration.RecordMatch(team.Value, score, _allCompetetrs, MatchOutcome.Draw);
+            }
         }
     }
 }

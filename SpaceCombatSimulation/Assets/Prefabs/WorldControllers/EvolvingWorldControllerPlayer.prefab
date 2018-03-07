@@ -859,7 +859,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f3301a6dc1b33d946995ff7752dba279, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DatabaseId: 4
+  DatabaseId: 7
   ShipConfig: {fileID: 114124101239488708}
   WinBonus: 1000
   PlayerShip: {fileID: 54223287168143756, guid: 09fcfc6eb1b6a56489963320ffe334b4,

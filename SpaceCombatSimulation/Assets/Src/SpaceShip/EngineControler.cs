@@ -109,10 +109,10 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
         {
             NotifyPilot();
         }
-        if (FuelTank == null)
-        {
-            Debug.Log(transform.name + " found no fuel tank - INFINITE FUEL!");
-        }
+        //if (FuelTank == null)
+        //{
+        //    Debug.Log(transform.name + " found no fuel tank - INFINITE FUEL!");
+        //}
         if(ForceApplier == null)
         {
             Debug.LogError("Engine found no rigidbody to apply forces to");

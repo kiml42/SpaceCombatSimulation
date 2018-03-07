@@ -14,19 +14,19 @@ using Assets.Src.Menus;
 public class EvolutionBrControler : BaseEvolutionController
 {
     EvolutionBrConfig _config;
-    
-    private Dictionary<string, GenomeWrapper> _currentGenomes;
-    
-    private GenerationBr _currentGeneration;
+
+    protected Dictionary<string, GenomeWrapper> _currentGenomes;
+
+    protected GenerationBr _currentGeneration;
 
     EvolutionBrDatabaseHandler _dbHandler;
     
     private bool _hasModules;
 
-    private Dictionary<string, GenomeWrapper> _extantTeams;
+    protected Dictionary<string, GenomeWrapper> _extantTeams;
     public float WinBonus = 1000;
 
-    List<string> _allCompetetrs { get { return _currentGenomes.Select(kv => kv.Value.Genome).ToList(); } }
+    protected List<string> _allCompetetrs { get { return _currentGenomes.Select(kv => kv.Value.Genome).ToList(); } }
 
     // Use this for initialization
     void Start()
@@ -53,6 +53,11 @@ public class EvolutionBrControler : BaseEvolutionController
         _hasModules = SpawnShips();
     }
 
+    /// <summary>
+    /// All the individuals still alive should be considered to have won the match.
+    /// </summary>
+    protected virtual bool _survivorsAreWinners { get { return _extantTeams.Count == 1; } }
+
     // Update is called once per frame
     void Update()
     {
@@ -60,10 +65,15 @@ public class EvolutionBrControler : BaseEvolutionController
         if (_matchControl.ShouldPollForWinners() || _matchControl.IsOutOfTime() || !_hasModules)
         {
             ProcessDefeatedShips();
-            if(_extantTeams.Count == 1)
+
+            Debug.Log(_extantTeams.Count + " teams survive");   //This is wrong!
+            if (_survivorsAreWinners)
             {
                 //we have a winner
-                AddScoreForWinner(_extantTeams.Single());
+                foreach (var winner in _extantTeams)
+                {
+                    AddScoreForWinner(winner);
+                }
                 matchIsOver = true;
             }
             if(_extantTeams.Count == 0)
@@ -127,13 +137,19 @@ public class EvolutionBrControler : BaseEvolutionController
         return wrappers.Any(w => w.ModulesAdded > 0);
     }
 
-    private void ProcessDefeatedShips()
-    {
-        var tags = ListShips()
+    protected IEnumerable<string> _shipTagsPresent {
+        get {
+            var tags = ListShips()
             .Select(s => s.tag)
             .Distinct();
-        //Debug.Log(tags.Count() + " teams still exist");
+            //Debug.Log(tags.Count() + " teams still exist");
+            return tags;
+        }
+    }
 
+    protected virtual void ProcessDefeatedShips()
+    {
+        var tags = _shipTagsPresent;
         if (tags.Count() < _extantTeams.Count)
         {
             //Something's died.
@@ -147,21 +163,21 @@ public class EvolutionBrControler : BaseEvolutionController
         }
     }
 
-    private void AddScoreForDefeatedIndividual(KeyValuePair<string, GenomeWrapper> deadIndividual)
+    protected virtual void AddScoreForDefeatedIndividual(KeyValuePair<string, GenomeWrapper> deadIndividual)
     {
         Debug.Log(deadIndividual.Value.Name + " has died");
         var score = -_extantTeams.Count * _matchControl.RemainingTime();
         _currentGeneration.RecordMatch(deadIndividual.Value, score, _allCompetetrs, MatchOutcome.Loss);
     }
 
-    private void AddScoreForWinner(KeyValuePair<string, GenomeWrapper> winner)
+    protected virtual void AddScoreForWinner(KeyValuePair<string, GenomeWrapper> winner)
     {
         Debug.Log(winner.Value.Name + " Wins!");
         var score = _matchControl.RemainingTime() + WinBonus;
         _currentGeneration.RecordMatch(winner.Value, score, _allCompetetrs, MatchOutcome.Win);
     }
 
-    private void AddScoreSurvivingIndividualsAtTheEnd()
+    protected virtual void AddScoreSurvivingIndividualsAtTheEnd()
     {
         Debug.Log("Match over: Draw. " + _extantTeams.Count + " survived.");
         var score = WinBonus / (2 * _extantTeams.Count);
