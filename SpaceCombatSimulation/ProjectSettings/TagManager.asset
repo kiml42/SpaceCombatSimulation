@@ -21,6 +21,7 @@ TagManager:
   - Team5ForceField
   - Team6
   - Team6ForceField
+  - PlayerSpaceShip
   layers:
   - Default
   - TransparentFX

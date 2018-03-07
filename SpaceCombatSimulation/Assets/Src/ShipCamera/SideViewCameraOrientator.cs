@@ -66,6 +66,8 @@ namespace Assets.Src.ShipCamera
             }
         }
 
+        private ShipCamTargetValues _previousTargets = ShipCamTargetValues.Zero;
+
         protected override ShipCamTargetValues CalculateAutomaticTargets()
         {
             if (HasTargets)
@@ -101,10 +103,10 @@ namespace Assets.Src.ShipCamera
 
                 var desiredAngle = baseAngle * AngleProportion;
                 var automaticFieldOfView = Clamp(desiredAngle, 1, 90);
-
-                return new ShipCamTargetValues(parentLocationTarget, automaticParentPollTarget, cameraLocationTarget, CameraLocationOrientation.forward, automaticFieldOfView, referenceVelocity, UpVector);
+                
+                _previousTargets = new ShipCamTargetValues(parentLocationTarget, automaticParentPollTarget, cameraLocationTarget, CameraLocationOrientation.forward, automaticFieldOfView, referenceVelocity, UpVector);
             }
-            return null;
+            return _previousTargets;
         }
 
         private Vector3 PickPollTarget(Vector3 parentTargetLocation, List<Rigidbody> targets)

@@ -17,6 +17,11 @@ namespace Assets.Src.ShipCamera
         /// </summary>
         public List<string> Tags = new List<string> { "SpaceShip", "Projectile" };
 
+        [Tooltip("Teams to allow this camera to follow - null or empty for any")]
+        public List<string> TeamTagsToFollow = null;
+
+        [Tooltip("Teams to allow this camera to watch - null or empty for any")]
+        public List<string> TeamTagsToWatch = null;
         /// <summary>
         /// Rotation speed multiplier
         /// </summary>
@@ -227,6 +232,12 @@ namespace Assets.Src.ShipCamera
             }
             var targets = _detector.DetectTargets()
                 .Where(t => t.Transform.IsValid() && t.Transform.parent == null);  //Don't watch anything that still has a parent.
+
+            if(TeamTagsToWatch != null && TeamTagsToWatch.Any(tag => targets.Any(target => target.Transform.tag == tag)))
+            {
+                targets = targets.Where(target => TeamTagsToWatch.Contains(target.Transform.tag));
+            }
+
             targets = _watchPicker.FilterTargets(targets)
                 .OrderByDescending(s => s.Score);
             //foreach (var item in targets)
@@ -261,6 +272,12 @@ namespace Assets.Src.ShipCamera
             //Debug.Log("To Follow");
             var targets = _detector.DetectTargets()
                 .Where(t => t.Transform.parent == null);  //Don't follow anything that still has a parent.
+
+            if (TeamTagsToFollow != null && TeamTagsToFollow.Any())
+            {
+                targets = targets.Where(target => TeamTagsToFollow.Contains(target.Transform.tag));
+            }
+
             targets = _followPicker.FilterTargets(targets)
                 .OrderByDescending(s => s.Score);
             //foreach (var item in targets)
@@ -298,9 +315,17 @@ namespace Assets.Src.ShipCamera
 
         private void PickRandomToFollow()
         {
-            var tagrgetToFollow = _detector.DetectTargets()
-                .Where(s => s.Transform.parent == null && s.Rigidbody != FollowedTarget)
-                .OrderBy(s => UnityEngine.Random.value)
+            var targets = _detector.DetectTargets()
+                   .Where(t => t.Transform.parent == null);  //Don't follow anything that still has a parent.
+
+            if (TeamTagsToFollow != null && TeamTagsToFollow.Any())
+            {
+                targets = targets.Where(target => TeamTagsToFollow.Contains(target.Transform.tag));
+            }
+
+            var tagrgetToFollow = targets
+                .Where(s => s.Rigidbody != FollowedTarget)
+                .OrderBy(s => Random.value)
                 .FirstOrDefault();
 
             FollowedTarget = tagrgetToFollow != null ? GetActualTarget(tagrgetToFollow.Rigidbody) : null;

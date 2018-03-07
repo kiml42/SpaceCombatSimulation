@@ -10,7 +10,9 @@ using UnityEngine;
 public class EvolutionShipConfig : MonoBehaviour {
     public ModuleTypeKnower ShipToEvolve;
 
-    public List<string> Tags = new List<string>{"Team1", "Team2" };
+    public List<string> Tags = new List<string>{"Team1", "Team2", "Team3", "Team4", "Team5", "Team6" };
+    public List<string> EnemyTagsForAll = new List<string> { "Player" };
+    public bool SetEnemyTagsForEachOther = true;
 
     public TestCubeChecker TestCube;
     [Tooltip("Randomise the rotation of all spawned ships")]
@@ -52,7 +54,12 @@ public class EvolutionShipConfig : MonoBehaviour {
             hub.AllowedModuleIndicies = Config.AllowedModuleIndicies;
         }
 
-        var enemyTags = Tags.Where(t => t != ownTag).ToList();
+        var enemyTags = EnemyTagsForAll;
+
+        if (SetEnemyTagsForEachOther)
+        {
+            enemyTags.AddRange(Tags.Where(t => t != ownTag).ToList());
+        }
 
         var genomeWrapper = new GenomeWrapper(genome, enemyTags)
         {

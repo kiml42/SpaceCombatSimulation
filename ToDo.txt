@@ -28,6 +28,7 @@ TODO:
             Make camera location target and orientation target nullable so that they don't have t be specified. (does no rotation/moving if null)
         Player ship
             Vs evolved ships using battle royal mode
+                Started - need to make game end when the player ship is defeated.
             pick target by clicking on it
             cycle ships with key press
             Switch modes with tab

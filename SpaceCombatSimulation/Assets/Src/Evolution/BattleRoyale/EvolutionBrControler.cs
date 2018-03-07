@@ -92,7 +92,7 @@ public class EvolutionBrControler : BaseEvolutionController
     /// 
     /// </summary>
     /// <returns>Boolean indecating that something has at least one module</returns>
-    private bool SpawnShips()
+    protected virtual bool SpawnShips()
     {
         var genomes = _currentGeneration.PickCompetitors(_config.NumberOfCombatants);
         
@@ -122,7 +122,7 @@ public class EvolutionBrControler : BaseEvolutionController
 
         _extantTeams = _currentGenomes;
 
-        Debug.Log("\"" + string.Join("\" vs \"", names.ToArray()) + "\"");
+        Debug.Log(_config.RunName + " \"" + string.Join("\" vs \"", names.ToArray()) + "\"");
 
         return wrappers.Any(w => w.ModulesAdded > 0);
     }
