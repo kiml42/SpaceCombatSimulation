@@ -48,6 +48,7 @@ TODO:
 
 
     Priority:
+        Use the evolution config's ID for the IDs of the match and mutation config.
         Delete and reset options for evolution configs
         Replace 1v1 with free for all with an arbirtary number of teams (battle royal).
         Parent target picker 

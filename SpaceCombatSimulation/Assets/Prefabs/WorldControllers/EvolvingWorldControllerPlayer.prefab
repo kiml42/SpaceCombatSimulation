@@ -868,7 +868,7 @@ MonoBehaviour:
   PlayerInSphereRadius: 50
   PlayerOnSphereRadius: 0
   SetEnemyTagsForEachOther: 0
-  PlayerStartLocation: {x: 0, y: 0, z: -5000}
+  PlayerStartLocation: {x: 0, y: 0, z: -100}
 --- !u!114 &114442468494501478
 MonoBehaviour:
   m_ObjectHideFlags: 1

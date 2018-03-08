@@ -16,11 +16,16 @@ namespace Assets.Src.Evolution
 
         protected IEnumerable<Transform> ListShips()
         {
-            return GameObject.FindGameObjectsWithTag(ShipConfig.SpaceShipTag)
+            var ships =  GameObject.FindGameObjectsWithTag(ShipConfig.SpaceShipTag)
                     .Where(s =>
                         s.transform.parent != null &&
                         s.transform.parent.GetComponent<Rigidbody>() != null
                     ).Select(s => s.transform.parent);
+
+
+            //Debug.Log("Extant ships: " + string.Join(",", ships.Select(tr => tr.name).ToArray()));
+
+            return ships;
         }
     }
 }

@@ -66,7 +66,8 @@ public class EvolutionBrControler : BaseEvolutionController
         {
             ProcessDefeatedShips();
 
-            Debug.Log(_extantTeams.Count + " teams survive");   //This is wrong!
+            //Debug.Log(_extantTeams.Count + " teams survive");   //This is wrong!
+            //Debug.Log("Surviving Teams: " + string.Join(",", _extantTeams.Select(kv => kv.Key).ToArray()));
             if (_survivorsAreWinners)
             {
                 //we have a winner
@@ -143,6 +144,7 @@ public class EvolutionBrControler : BaseEvolutionController
             .Select(s => s.tag)
             .Distinct();
             //Debug.Log(tags.Count() + " teams still exist");
+            //Debug.Log(string.Join(",", tags.ToArray()) + " teams still exist");
             return tags;
         }
     }
@@ -150,16 +152,19 @@ public class EvolutionBrControler : BaseEvolutionController
     protected virtual void ProcessDefeatedShips()
     {
         var tags = _shipTagsPresent;
-        if (tags.Count() < _extantTeams.Count)
+        var nonPlayerTags = tags.Where(t => ShipConfig.Tags.Contains(t));
+
+        if (nonPlayerTags.Count() < _extantTeams.Count)
         {
             //Something's died.
-            var deadGenomes = _extantTeams.Where(kv => !tags.Contains(kv.Key));
+            var deadGenomes = _extantTeams.Where(kv => !nonPlayerTags.Contains(kv.Key));
+            Debug.Log(deadGenomes.Count() + " genomes have died");
             foreach (var dead in deadGenomes)
             {
                 AddScoreForDefeatedIndividual(dead);
             }
 
-            _extantTeams = _currentGenomes.Where(kv => tags.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
+            _extantTeams = _currentGenomes.Where(kv => nonPlayerTags.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
         }
     }
 
