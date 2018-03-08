@@ -58,10 +58,14 @@ public class EvolutionBrControler : BaseEvolutionController
     /// </summary>
     protected virtual bool _survivorsAreWinners { get { return _extantTeams.Count == 1; } }
 
+    private bool _matchIsOver = false;
+
+    [Tooltip("the number of seconds to wait after the match is over.")]
+    public float WaitAtEnd = 0;
+
     // Update is called once per frame
     void Update()
     {
-        bool matchIsOver = false;
         if (_matchControl.ShouldPollForWinners() || _matchControl.IsOutOfTime() || !_hasModules)
         {
             ProcessDefeatedShips();
@@ -75,22 +79,27 @@ public class EvolutionBrControler : BaseEvolutionController
                 {
                     AddScoreForWinner(winner);
                 }
-                matchIsOver = true;
+                _matchIsOver = true;
             }
             if(_extantTeams.Count == 0)
             {
                 //everyone's dead
-                matchIsOver = true;
+                _matchIsOver = true;
             }
             if (_matchControl.IsOutOfTime() || !_hasModules)
             {
                 //time over - draw
                 //or noone has any modules, so treat it as a draw.
                 AddScoreSurvivingIndividualsAtTheEnd();
-                matchIsOver = true;
+                _matchIsOver = true;
             }
 
-            if (matchIsOver)
+        }
+
+        if (_matchIsOver)
+        {
+            WaitAtEnd -= Time.deltaTime;
+            if(WaitAtEnd < 0)
             {
                 _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, _config.GenerationNumber);
 
