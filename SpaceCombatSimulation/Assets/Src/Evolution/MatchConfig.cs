@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using UnityEngine;
 
 namespace Assets.Src.Evolution
@@ -15,8 +14,6 @@ namespace Assets.Src.Evolution
             new Vector3(0,0,-1),
             new Vector3(0,0,1)
         };
-
-        public int Id;
 
         public float MatchTimeout = 20;
 
@@ -47,25 +44,6 @@ namespace Assets.Src.Evolution
         /// </summary>
         public float StepForwardProportion = 0.5f;
         
-        //public float[] LocationRandomisationRadiai = { 0 };
-
-        //public string LocationRandomisationRadiaiString {
-        //    get
-        //    {
-        //        return string.Join(",", LocationRandomisationRadiai.Select(r => r.ToString()).ToArray());
-        //    }
-        //    set
-        //    {
-        //        if (string.IsNullOrEmpty(value))
-        //        {
-        //            LocationRandomisationRadiai = new float[] { 0 };
-        //        } else
-        //        {
-        //            LocationRandomisationRadiai = value.Split(',').Where(s => !string.IsNullOrEmpty(s)).Select(s => float.Parse(s)).ToArray();
-        //        }
-        //    }
-        //}
-
         public bool RandomiseRotation = true;
 
         public int[] AllowedModuleIndicies = null;

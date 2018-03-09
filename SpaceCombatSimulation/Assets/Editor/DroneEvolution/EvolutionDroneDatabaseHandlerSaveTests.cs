@@ -117,12 +117,7 @@ public class EvolutionDroneDatabaseHandlerSaveTests
         Assert.AreEqual(93, retrieved.DronesInSphereRandomRadius);
         Assert.AreEqual(94, retrieved.DronesOnSphereRandomRadius);
 
-        var match = retrieved.MatchConfig;
-        var mut = retrieved.MutationConfig;
-
-        Assert.AreEqual(6, match.Id);
-        Assert.AreEqual(7, mut.Id);
-        Assert.AreEqual(config.MatchConfig.Budget, match.Budget);
+        Assert.AreEqual(config.MatchConfig.Budget, retrieved.MatchConfig.Budget);
     }
 
     [Test]

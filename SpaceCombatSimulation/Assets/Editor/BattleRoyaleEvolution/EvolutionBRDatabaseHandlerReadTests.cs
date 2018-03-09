@@ -136,13 +136,6 @@ public class EvolutionBRDatabaseHandlerReadTests
 
     #region MatchControl
     [Test]
-    public void ReadConfig_MatchControl_Id()
-    {
-        var config = _handler.ReadConfig(2);
-        Assert.AreEqual(2, config.MatchConfig.Id);
-    }
-
-    [Test]
     public void ReadConfig_MatchControl_MatchTimeout()
     {
         var config = _handler.ReadConfig(2);
@@ -209,13 +202,6 @@ public class EvolutionBRDatabaseHandlerReadTests
     #endregion
 
     #region MutationControl
-    [Test]
-    public void ReadConfig_MutationControl_Id()
-    {
-        var config = _handler.ReadConfig(2);
-        Assert.AreEqual(2, config.MutationConfig.Id);
-    }
-
     [Test]
     public void ReadConfig_MutationControl_Mutations()
     {

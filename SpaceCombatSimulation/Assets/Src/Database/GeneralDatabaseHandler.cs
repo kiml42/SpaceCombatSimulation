@@ -81,8 +81,8 @@ namespace Assets.Src.Database
             string sqlQuery = "SELECT *" +
                         " FROM " + table +
                         " LEFT JOIN BaseEvolutionConfig on BaseEvolutionConfig.id = " + table + ".id" +
-                        " LEFT JOIN MatchConfig on MatchConfig.id = BaseEvolutionConfig.matchConfigId" +
-                        " LEFT JOIN MutationConfig on MutationConfig.id = BaseEvolutionConfig.mutationConfigId" +
+                        " LEFT JOIN MatchConfig on MatchConfig.id = BaseEvolutionConfig.id" +
+                        " LEFT JOIN MutationConfig on MutationConfig.id = BaseEvolutionConfig.id" +
                         " WHERE " + table + ".id = " + id + ";";
             return sqlQuery;
         }
@@ -113,12 +113,11 @@ namespace Assets.Src.Database
 
         protected MatchConfig ReadMatchConfig(IDataReader reader)
         {
-            //Debug.Log("BaseEvolutionConfig.matchConfigId ordinal: " + reader.GetOrdinal("matchConfigId"));
-            //Debug.Log("BaseEvolutionConfig.matchConfigId value: " + reader.GetInt32(reader.GetOrdinal("matchConfigId")));
+            //Debug.Log("BaseEvolutionConfig.id ordinal: " + reader.GetOrdinal("id"));
+            //Debug.Log("BaseEvolutionConfig.id value: " + reader.GetInt32(reader.GetOrdinal("id")));
 
             var config = new MatchConfig()
             {
-                Id = reader.GetInt32(reader.GetOrdinal("matchConfigId")),
                 MatchTimeout = reader.GetFloat(reader.GetOrdinal("matchTimeout")), //16
                 WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")), //17
                 InitialRange = reader.GetFloat(reader.GetOrdinal("initialRange")),
@@ -147,11 +146,10 @@ namespace Assets.Src.Database
 
         protected MutationConfig ReadMutationConfig(IDataReader reader)
         {
-            //Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("mutationConfigId"));
+            //Debug.Log("id ordinal: " + reader.GetOrdinal("id"));
 
             var config = new MutationConfig()
             {
-                Id = reader.GetInt32(reader.GetOrdinal("mutationConfigId")),
                 Mutations = reader.GetInt32(reader.GetOrdinal("mutations")),
                 MaxMutationLength = reader.GetInt32(reader.GetOrdinal("maxMutationLength")),
                 GenomeLength = reader.GetInt32(reader.GetOrdinal("genomeLength")),
@@ -162,7 +160,7 @@ namespace Assets.Src.Database
             return config;
         }
 
-        protected int SaveMutationConfig(MutationConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
+        protected void SaveMutationConfig(int id, MutationConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             using (var insertSQL = new SqliteCommand(sql_con)
             {
@@ -170,9 +168,10 @@ namespace Assets.Src.Database
             })
             {
                 insertSQL.CommandText = "INSERT INTO " + MUTATION_CONFIG_TABLE +
-                            "(mutations, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome)" +
-                            " VALUES (?,?,?,?,?,?)";
+                            "(id, mutations, maxMutationLength, genomeLength, generationSize, randomDefault, defaultGenome)" +
+                            " VALUES (?,?,?,?,?,?,?)";
 
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)id));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Mutations));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MaxMutationLength));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenomeLength));
@@ -182,13 +181,9 @@ namespace Assets.Src.Database
 
                 insertSQL.ExecuteNonQuery();
             }
-
-            config.Id = GetLastUpdatedId(sql_con, transaction);
-
-            return config.Id;
         }
 
-        protected int SaveMatchConfig(MatchConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
+        protected void SaveMatchConfig(int id, MatchConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             using (var insertSQL = new SqliteCommand(sql_con)
             {
@@ -196,8 +191,10 @@ namespace Assets.Src.Database
             })
             {
                 insertSQL.CommandText = "INSERT INTO " + MATCH_CONFIG_TABLE +
-                            "(matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, randomiseRotation, allowedModules, budget)" +
-                            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                            "(id, matchTimeout, winnerPollPeriod, initialRange, initialSpeed, randomInitialSpeed, competitorsPerTeam, stepForwardProportion, randomiseRotation, allowedModules, budget)" +
+                            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)id));
 
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MatchTimeout));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.WinnerPollPeriod));
@@ -220,10 +217,6 @@ namespace Assets.Src.Database
 
                 insertSQL.ExecuteNonQuery();
                 insertSQL.Dispose();
-
-                config.Id = GetLastUpdatedId(sql_con, transaction);
-
-                return config.Id;
             }
         }
 
@@ -249,7 +242,7 @@ namespace Assets.Src.Database
             }
         }
 
-        protected void UpdateExistingMutationConfig(MutationConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
+        protected void UpdateExistingMutationConfig(int id, MutationConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             using (var insertSQL = new SqliteCommand(sql_con)
             {
@@ -267,14 +260,14 @@ namespace Assets.Src.Database
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.UseCompletelyRandomDefaultGenome));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DefaultGenome));
 
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Id));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)id));
 
                 insertSQL.ExecuteNonQuery();
                 insertSQL.Dispose();
             }
         }
 
-        protected void UpdateExistingMatchConfig(MatchConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
+        protected void UpdateExistingMatchConfig(int id, MatchConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             using (var insertSQL = new SqliteCommand(sql_con)
             {
@@ -305,7 +298,7 @@ namespace Assets.Src.Database
                 else
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, DBNull.Value));
 
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.Id));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)id));
 
                 insertSQL.ExecuteNonQuery();
                 insertSQL.Dispose();
@@ -400,31 +393,30 @@ namespace Assets.Src.Database
 
         protected int SaveBaseEvolutionConfig(BaseEvolutionConfig config, SqliteConnection connection, SqliteTransaction transaction)
         {
-            config.MatchConfig.Id = SaveMatchConfig(config.MatchConfig, connection, transaction);
-            config.MutationConfig.Id = SaveMutationConfig(config.MutationConfig, connection, transaction);
 
             using (var insertSQL = new SqliteCommand("INSERT INTO BaseEvolutionConfig" +
-                " (name, currentGeneration, minMatchesPerIndividual, winnersCount, matchConfigId, mutationConfigId) " +
-                " VALUES (?,?,?,?,?,?)", connection, transaction))
+                " (name, currentGeneration, minMatchesPerIndividual, winnersCount) " +
+                " VALUES (?,?,?,?)", connection, transaction))
             {
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.RunName));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationNumber));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MinMatchesPerIndividual));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.WinnersFromEachGeneration));
 
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MatchConfig.Id));
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.MutationConfig.Id));
-
                 insertSQL.ExecuteNonQuery();
             }
             config.DatabaseId = GetLastUpdatedId(connection, transaction);
+
+            SaveMatchConfig(config.DatabaseId, config.MatchConfig, connection, transaction);
+            SaveMutationConfig(config.DatabaseId, config.MutationConfig, connection, transaction);
+
             return config.DatabaseId;
         }
 
         protected void UpdateBaseEvolutionConfig(BaseEvolutionConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
-            UpdateExistingMatchConfig(config.MatchConfig, sql_con, transaction);
-            UpdateExistingMutationConfig(config.MutationConfig, sql_con, transaction);
+            UpdateExistingMatchConfig(config.DatabaseId, config.MatchConfig, sql_con, transaction);
+            UpdateExistingMutationConfig(config.DatabaseId, config.MutationConfig, sql_con, transaction);
 
             using (var insertSQL = new SqliteCommand("UPDATE BaseEvolutionConfig" +
                              " SET name = ?, minMatchesPerIndividual = ?, winnersCount = ?" +

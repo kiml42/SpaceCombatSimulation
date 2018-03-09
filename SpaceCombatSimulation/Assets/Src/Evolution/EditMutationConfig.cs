@@ -19,8 +19,7 @@ public class EditMutationConfig : MonoBehaviour {
     public InputField UseCompletelyRandomDefaultGenome;
 
     public InputField DefaultGenome;
-
-    private int LoadedId;
+    
     private bool _hasLoadedExisting = false;
 
     private MutationConfig _loaded;
@@ -35,8 +34,7 @@ public class EditMutationConfig : MonoBehaviour {
         GenerationSize.text = config.GenerationSize.ToString();
         UseCompletelyRandomDefaultGenome.text = config.UseCompletelyRandomDefaultGenome.ToString();
         DefaultGenome.text = config.DefaultGenome.ToString();
-
-        LoadedId = config.Id;
+        
         _hasLoadedExisting = isPreExisting;
     }
 
@@ -51,11 +49,6 @@ public class EditMutationConfig : MonoBehaviour {
         _loaded.UseCompletelyRandomDefaultGenome = bool.Parse(UseCompletelyRandomDefaultGenome.text);
         _loaded.DefaultGenome = DefaultGenome.text;
        
-        if (_hasLoadedExisting)
-        {
-            _loaded.Id = LoadedId;
-        }
-
         return _loaded;
     }
 }
