@@ -52,7 +52,7 @@ namespace Assets.Src.Database
             var configs = new Dictionary<int, string>();
 
             string sqlQuery = "SELECT " + CONFIG_TABLE + ".id, name" + " FROM " + CONFIG_TABLE + 
-                " LEFT JOIN BaseEvolutionConfig on BaseEvolutionConfig.id = " + CONFIG_TABLE + ".id"+ ";";
+                " LEFT JOIN BaseEvolutionConfig on BaseEvolutionConfig.id = " + CONFIG_TABLE + ".id;";
 
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -434,8 +434,8 @@ namespace Assets.Src.Database
         {
             var sql = "INSERT INTO BaseEvolutionConfig" +
                 " (name, currentGeneration, minMatchesPerIndividual, winnersCount) " +
-                " VALUES (?,?,?,?)";
-            using (var insertSQL = new SqliteCommand(sql, connection, transaction))
+                " VALUES (?,?,?,?);";
+            using (var insertSQL = new SqliteCommand(sql, connection/*, transaction*/))
             {
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.RunName));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationNumber));

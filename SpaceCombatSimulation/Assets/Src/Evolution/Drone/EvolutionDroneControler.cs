@@ -114,8 +114,7 @@ public class EvolutionDroneControler : BaseEvolutionController
         
         for (int i = 0; i<DroneCount; i++)
         {
-            var droneIndex = _config.Drones[i % _config.Drones.Count];
-            var dronePrefab = DroneList.Modules[droneIndex];
+            var dronePrefab = SelectDrone(i);
             //Debug.Log("spawning drone " + genome);
             
             var randomPlacement = _config.MatchConfig.PositionForCompetitor(DRONES_INDEX, 0, _config.DronesInSphereRandomRadius, _config.DronesOnSphereRandomRadius);
@@ -128,6 +127,15 @@ public class EvolutionDroneControler : BaseEvolutionController
             var knower = ship.GetComponent<IKnowsEnemyTags>();
             if(knower != null) knower.EnemyTags = enemyTags;
         }
+    }
+
+    private Rigidbody SelectDrone(int index)
+    {
+        var droneIndex = _config.Drones.Any()
+            ? _config.Drones[index % _config.Drones.Count]
+            : index % DroneList.Modules.Count;
+        var dronePrefab = DroneList.Modules[droneIndex];
+        return dronePrefab;
     }
     
     /// <summary>
