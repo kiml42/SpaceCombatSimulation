@@ -62,8 +62,6 @@ namespace Assets.Src.Database
                     dbcmd.CommandText = sqlQuery;
                     using (var reader = dbcmd.ExecuteReader())
                     {
-
-
                         while (reader.Read())
                         {
                             var id = reader.GetInt32(reader.GetOrdinal("id"));
@@ -74,6 +72,64 @@ namespace Assets.Src.Database
                 }
             }
             return configs;
+        }
+
+        public void SetCurrentGenerationNumber(int databaseId, int generationNumber)
+        {
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                sql_con.Open();
+
+                //Debug.Log("Updating generation to " + config.GenerationNumber);
+                using (var command = new SqliteCommand("UPDATE BaseEvolutionConfig SET currentGeneration = ? WHERE id = ?;", sql_con))
+                {
+                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
+
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void DeleteConfig(int id)
+        {
+
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                sql_con.Open(); //Open connection to the database.
+                using (var transaction = sql_con.BeginTransaction())
+                {
+                    DeleteIndividuals(id, sql_con, transaction);
+                    using (var insertSQL = new SqliteCommand(sql_con)
+                    {
+                        Transaction = transaction
+                    })
+                    {
+                        var query = "DELETE FROM BaseEvolutionConfig WHERE id = ?;";
+                        insertSQL.CommandText = query;
+
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)id));
+
+                        insertSQL.ExecuteNonQuery();
+                    }
+                    transaction.Commit();
+                }
+            }
+        }
+
+        public void DeleteIndividuals(int runConfigId, SqliteConnection sql_con, SqliteTransaction transaction)
+        {
+            using (var insertSQL = new SqliteCommand(sql_con)
+            {
+                Transaction = transaction
+            })
+            {
+                insertSQL.CommandText = "DELETE FROM BaseIndividual WHERE runConfigId = ?;";
+
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runConfigId));
+
+                insertSQL.ExecuteNonQuery();
+            }
         }
 
         protected string CreateReadConfigQuery(string table, int id)
@@ -305,23 +361,6 @@ namespace Assets.Src.Database
             }
         }
 
-        public void SetCurrentGenerationNumber(int databaseId, int generationNumber)
-        {
-            using (var sql_con = new SqliteConnection(_connectionString))
-            {
-                sql_con.Open();
-
-                //Debug.Log("Updating generation to " + config.GenerationNumber);
-                using (var command = new SqliteCommand("UPDATE BaseEvolutionConfig SET currentGeneration = ? WHERE id = ?;", sql_con))
-                {
-                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
-                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
-
-                    command.ExecuteNonQuery();
-                }
-            }
-        }
-
         protected SpeciesSummary ReadSpeciesSummary(IDataReader reader)
         {
             //Debug.Log("modules ordinal: " + reader.GetOrdinal("modules"));
@@ -393,7 +432,6 @@ namespace Assets.Src.Database
 
         protected int SaveBaseEvolutionConfig(BaseEvolutionConfig config, SqliteConnection connection, SqliteTransaction transaction)
         {
-
             using (var insertSQL = new SqliteCommand("INSERT INTO BaseEvolutionConfig" +
                 " (name, currentGeneration, minMatchesPerIndividual, winnersCount) " +
                 " VALUES (?,?,?,?)", connection, transaction))

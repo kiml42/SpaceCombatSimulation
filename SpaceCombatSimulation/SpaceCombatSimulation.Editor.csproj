@@ -13,11 +13,13 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Full v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile></CompilerResponseFile>
+    <CompilerResponseFile>
+    </CompilerResponseFile>
     <UnityProjectType>Editor:5</UnityProjectType>
     <UnityBuildTarget>StandaloneWindows64:19</UnityBuildTarget>
     <UnityVersion>2017.3.1f1</UnityVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -301,8 +303,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Editor\BattleRoyaleEvolution\EvolutionBRDatabaseHandlerIndividualsTests.cs" />
+    <Compile Include="Assets\Editor\BattleRoyaleEvolution\EvolutionBRDatabaseHandlerDeleteTests.cs" />
     <Compile Include="Assets\Editor\BattleRoyaleEvolution\EvolutionBRDatabaseHandlerReadTests.cs" />
     <Compile Include="Assets\Editor\BattleRoyaleEvolution\EvolutionBRDatabaseHandlerSaveTests.cs" />
+    <Compile Include="Assets\Editor\DroneEvolution\EvolutionDroneDatabaseHandlerDeleteTests.cs" />
     <Compile Include="Assets\Editor\DroneEvolution\EvolutionDroneDatabaseHandlerIndividualsTests.cs" />
     <Compile Include="Assets\Editor\DroneEvolution\EvolutionDroneDatabaseHandlerReadTests.cs" />
     <Compile Include="Assets\Editor\DroneEvolution\EvolutionDroneDatabaseHandlerSaveTests.cs" />
