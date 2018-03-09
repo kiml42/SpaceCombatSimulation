@@ -96,12 +96,6 @@ public class EvolutionBRDatabaseHandlerSaveTests
         Assert.AreEqual(3, retrieved.NumberOfCombatants);
         Assert.AreEqual(43, retrieved.InSphereRandomisationRadius);
         Assert.AreEqual(44, retrieved.OnSphereRandomisationRadius);
-
-        var match = retrieved.MatchConfig;
-        var mut = retrieved.MutationConfig;
-
-        Assert.AreEqual(6, match.Id);
-        Assert.AreEqual(7, mut.Id);
     }
 
     [Test]

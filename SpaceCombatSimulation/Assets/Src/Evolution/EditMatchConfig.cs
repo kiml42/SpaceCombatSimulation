@@ -5,9 +5,6 @@ using UnityEngine.UI;
 using Assets.Src.Evolution;
 
 public class EditMatchConfig : MonoBehaviour {
-    private int LoadedId;
-    private bool _hasLoadedExisting = false;
-
     public InputField MatchTimeout;
     public InputField WinnerPollPeriod;
     public InputField InitialRange;
@@ -31,9 +28,6 @@ public class EditMatchConfig : MonoBehaviour {
         CompetitorsPerTeam.text = config.CompetitorsPerTeam.ToString();
         AllowedModules.text = config.AllowedModulesString;
         Budget.text = config.Budget.ToString();
-
-        LoadedId = config.Id;
-        _hasLoadedExisting = isPreExisting;
     }
 
     public MatchConfig ReadFromControls()
@@ -48,12 +42,7 @@ public class EditMatchConfig : MonoBehaviour {
         _loaded.CompetitorsPerTeam = int.Parse(CompetitorsPerTeam.text);
         _loaded.AllowedModulesString = AllowedModules.text;
         _loaded.Budget = float.Parse(Budget.text);
-
-        if (_hasLoadedExisting)
-        {
-            _loaded.Id = LoadedId;
-        }
-
+        
         return _loaded;
     }
 }

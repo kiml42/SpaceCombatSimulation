@@ -42,8 +42,8 @@ namespace Assets.Src.Database
                         //Debug.Log("EvolutionConfig1v1.id ordinal: " + reader.GetOrdinal("id"));
                         config.DatabaseId = reader.GetInt32(reader.GetOrdinal("id"));
                         
-                        //Debug.Log("matchConfigId ordinal: " + reader.GetOrdinal("matchConfigId"));
-                        //Debug.Log("matchConfigId value: " + reader.GetDecimal(reader.GetOrdinal("matchConfigId")));
+                        //Debug.Log("id ordinal: " + reader.GetOrdinal("id"));
+                        //Debug.Log("id value: " + reader.GetDecimal(reader.GetOrdinal("id")));
 
                         config.RunName = reader.GetString(reader.GetOrdinal("name")); //1
                         config.GenerationNumber = reader.GetInt32(reader.GetOrdinal("currentGeneration"));

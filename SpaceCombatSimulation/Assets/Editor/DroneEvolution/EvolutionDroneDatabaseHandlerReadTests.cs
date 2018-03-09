@@ -172,13 +172,6 @@ public class EvolutionDroneDatabaseHandlerReadTests
 
     #region MatchControl
     [Test]
-    public void ReadDroneConfig_MatchControl_Id()
-    {
-        var config = _handler.ReadConfig(0);
-        Assert.AreEqual(5, config.MatchConfig.Id);
-    }
-
-    [Test]
     public void ReadDroneConfig_MatchControl_MatchTimeout()
     {
         var config = _handler.ReadConfig(0);
@@ -288,13 +281,6 @@ public class EvolutionDroneDatabaseHandlerReadTests
     #endregion
 
     #region MutationControl
-    [Test]
-    public void ReadDroneConfig_MutationControl_Id()
-    {
-        var config = _handler.ReadConfig(0);
-        Assert.AreEqual(6, config.MutationConfig.Id);
-    }
-
     [Test]
     public void ReadDroneConfig_MutationControl_Mutations()
     {
