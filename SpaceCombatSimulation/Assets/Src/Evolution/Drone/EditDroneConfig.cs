@@ -1,12 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
+﻿using Assets.Src.Database;
 using Assets.Src.Evolution;
-using Assets.Src.Database;
-using System;
-using UnityEngine.SceneManagement;
-using Assets.Src.Menus;
+using UnityEngine.UI;
 
 public class EditDroneConfig : EditBaseConfig
 {
