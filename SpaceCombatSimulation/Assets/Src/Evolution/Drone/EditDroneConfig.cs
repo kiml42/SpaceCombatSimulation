@@ -31,9 +31,10 @@ public class EditDroneConfig : EditBaseConfig
     private EvolutionDroneDatabaseHandler _handler;
     private EvolutionDroneConfig _loaded;
 
-    public override void Initialise()
+    public override GeneralDatabaseHandler Initialise()
     {
         _handler = new EvolutionDroneDatabaseHandler();
+        return _handler;
     }
 
     protected override int SaveConfig()

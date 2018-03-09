@@ -1,12 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
+﻿using Assets.Src.Database;
 using Assets.Src.Evolution;
-using Assets.Src.Database;
-using System;
-using UnityEngine.SceneManagement;
-using Assets.Src.Menus;
+using UnityEngine.UI;
 
 public class EditBrConfig : EditBaseConfig
 {
@@ -25,11 +19,11 @@ public class EditBrConfig : EditBaseConfig
 
     private EvolutionBrDatabaseHandler _handler;
     private EvolutionBrConfig _loaded;
-
-
-    public override void Initialise()
+    
+    public override GeneralDatabaseHandler Initialise()
     {
         _handler = new EvolutionBrDatabaseHandler();
+        return _handler;
     }
 
     protected override int SaveConfig()

@@ -117,7 +117,19 @@ namespace Assets.Src.Database
             }
         }
 
-        public void DeleteIndividuals(int runConfigId, SqliteConnection sql_con, SqliteTransaction transaction)
+        public void DeleteIndividuals(int runConfigId)
+        {
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                sql_con.Open(); //Open connection to the database.
+                using (var transaction = sql_con.BeginTransaction())
+                {
+                    DeleteIndividuals(runConfigId, sql_con, transaction);
+                }
+            }
+        }
+
+        private void DeleteIndividuals(int runConfigId, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             using (var insertSQL = new SqliteCommand(sql_con)
             {

@@ -1,12 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
+﻿using Assets.Src.Database;
 using Assets.Src.Evolution;
-using Assets.Src.Database;
-using System;
-using UnityEngine.SceneManagement;
 using Assets.Src.Menus;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public abstract class EditBaseConfig : MonoBehaviour {
     protected int _loadedId = -1;
@@ -24,20 +21,48 @@ public abstract class EditBaseConfig : MonoBehaviour {
     public Button CoppyButton;
     public Button CancelButton;
 
+    public Button DeleteButton;
+    public Button ResetButton;
+
     public abstract string EvolutionSceneToLoad { get; }
     public abstract string MainMenuSceneToLoad { get; }
     
     // Use this for initialization
     void Start () {
-        Initialise();
+        var handler = Initialise();
         LoadConfigFromDB();
         
         RunButton.onClick.AddListener(delegate () { SaveAndRun(); });
         CoppyButton.onClick.AddListener(delegate () { SaveNewAndRun(); });
         CancelButton.onClick.AddListener(delegate () { ReturnToMainMenu(); });
+
+        DeleteButton.onClick.AddListener(delegate () {
+            if (ArgumentStore.IdToLoad.HasValue)
+            {
+                handler.DeleteConfig(ArgumentStore.IdToLoad.Value);
+                ReturnToMainMenu();
+            }
+            else
+            {
+
+                Debug.Log("Cannot delete config because there is none loaded.");
+            }
+        });
+
+        ResetButton.onClick.AddListener(delegate () {
+            if (ArgumentStore.IdToLoad.HasValue)
+            {
+                handler.DeleteIndividuals(ArgumentStore.IdToLoad.Value);
+                SaveAndRun();
+            }
+            else
+            {
+                Debug.Log("Cannot delete config because there is none loaded.");
+            }
+        });
     }
     
-    public abstract void Initialise();
+    public abstract GeneralDatabaseHandler Initialise();
 
     private void ReturnToMainMenu()
     {
