@@ -432,9 +432,10 @@ namespace Assets.Src.Database
 
         protected int SaveBaseEvolutionConfig(BaseEvolutionConfig config, SqliteConnection connection, SqliteTransaction transaction)
         {
-            using (var insertSQL = new SqliteCommand("INSERT INTO BaseEvolutionConfig" +
+            var sql = "INSERT INTO BaseEvolutionConfig" +
                 " (name, currentGeneration, minMatchesPerIndividual, winnersCount) " +
-                " VALUES (?,?,?,?)", connection, transaction))
+                " VALUES (?,?,?,?)";
+            using (var insertSQL = new SqliteCommand(sql, connection, transaction))
             {
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.RunName));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationNumber));
