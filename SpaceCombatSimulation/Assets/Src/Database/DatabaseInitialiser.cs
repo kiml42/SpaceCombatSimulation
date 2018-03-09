@@ -15,7 +15,7 @@ namespace Assets.Src.Database
         {
             get
             {
-                var connection = "URI=file:" + _databaseFullPath;
+                var connection = "URI=file:" + _databaseFullPath + "; foreign keys=true;";
                 //Debug.Log("connection string: " + connection);
                 return connection;
             }

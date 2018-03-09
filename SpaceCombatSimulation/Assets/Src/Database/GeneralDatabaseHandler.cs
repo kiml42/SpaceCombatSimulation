@@ -24,7 +24,7 @@ namespace Assets.Src.Database
         {
             get
             {
-                var connection = "URI=file:" + Application.dataPath + _databasePath;
+                var connection = "URI=file:" + Application.dataPath + _databasePath + "; foreign keys=true;";
                 //Debug.Log("connection string: " + connection);
                 return connection;
             }
@@ -93,13 +93,13 @@ namespace Assets.Src.Database
 
         public void DeleteConfig(int id)
         {
-
             using (var sql_con = new SqliteConnection(_connectionString))
             {
                 sql_con.Open(); //Open connection to the database.
                 using (var transaction = sql_con.BeginTransaction())
                 {
-                    DeleteIndividuals(id, sql_con, transaction);
+                    //DeleteIndividuals(id, sql_con, transaction);
+
                     using (var insertSQL = new SqliteCommand(sql_con)
                     {
                         Transaction = transaction
