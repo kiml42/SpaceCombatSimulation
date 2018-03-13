@@ -61,4 +61,23 @@ public class EvolutionDroneDatabaseHandlerDeleteTests
         var generationAfter = _handler.ReadGeneration(id, 0);
         Assert.AreEqual(0, generationAfter.Individuals.Count);
     }
+    
+    [Test]
+    public void DeleteConfig_DeletesDeletesIndividualsForConfigWithGivenID()
+    {
+        var id = 0;
+        var configs = _handler.ListConfigs();
+        Assert.True(configs.Any(c => c.Key == id));
+
+        var generationBefore = _handler.ReadGeneration(id, 0);
+        Assert.AreEqual(2, generationBefore.Individuals.Count);
+
+        _handler.DeleteIndividuals(id);
+
+        var configsAfter = _handler.ListConfigs();
+        Assert.True(configsAfter.Any(c => c.Key == 0));
+
+        var generationAfter = _handler.ReadGeneration(id, 0);
+        Assert.AreEqual(0, generationAfter.Individuals.Count);
+    }
 }

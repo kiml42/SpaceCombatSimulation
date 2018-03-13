@@ -61,4 +61,23 @@ public class EvolutionBRDatabaseHandlerDeleteTests
         var generationAfter = _handler.ReadGeneration(id, 0);
         Assert.AreEqual(0, generationAfter.Individuals.Count);
     }
+
+    [Test]
+    public void DeleteIndividuals_DeletesIndividualsForConfigWithGivenID()
+    {
+        var id = 2;
+        var configs = _handler.ListConfigs();
+        Assert.True(configs.Any(c => c.Key == id));
+
+        var generationBefore = _handler.ReadGeneration(id, 0);
+        Assert.AreEqual(2, generationBefore.Individuals.Count);
+
+        _handler.DeleteIndividuals(id);
+
+        var configsAfter = _handler.ListConfigs();
+        Assert.True(configsAfter.Any(c => c.Key == id));
+
+        var generationAfter = _handler.ReadGeneration(id, 0);
+        Assert.AreEqual(0, generationAfter.Individuals.Count);
+    }
 }
