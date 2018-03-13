@@ -15,7 +15,7 @@ namespace Assets.Src.Evolution
             new Vector3(0,0,1)
         };
 
-        public float MatchTimeout = 20;
+        public float MatchTimeout = 300;
 
         /// <summary>
         /// Number of seconds between winner polls
@@ -62,7 +62,7 @@ namespace Assets.Src.Evolution
             }
         }
 
-        public float? Budget { get; set; }
+        public float? Budget = 1000;
 
         /// <summary>
         /// Returns the start position for the competitior with the given index.

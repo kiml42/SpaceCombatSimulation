@@ -300,9 +300,11 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\Editor\BattleRoyaleEvolution\EvolutionBRDatabaseHandlerDeleteTests.cs" />
     <Compile Include="Assets\Editor\BattleRoyaleEvolution\EvolutionBRDatabaseHandlerIndividualsTests.cs" />
     <Compile Include="Assets\Editor\BattleRoyaleEvolution\EvolutionBRDatabaseHandlerReadTests.cs" />
     <Compile Include="Assets\Editor\BattleRoyaleEvolution\EvolutionBRDatabaseHandlerSaveTests.cs" />
+    <Compile Include="Assets\Editor\DroneEvolution\EvolutionDroneDatabaseHandlerDeleteTests.cs" />
     <Compile Include="Assets\Editor\DroneEvolution\EvolutionDroneDatabaseHandlerIndividualsTests.cs" />
     <Compile Include="Assets\Editor\DroneEvolution\EvolutionDroneDatabaseHandlerReadTests.cs" />
     <Compile Include="Assets\Editor\DroneEvolution\EvolutionDroneDatabaseHandlerSaveTests.cs" />

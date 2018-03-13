@@ -24,7 +24,7 @@ namespace Assets.Src.Database
         {
             get
             {
-                var connection = "URI=file:" + Application.dataPath + _databasePath;
+                var connection = "URI=file:" + Application.dataPath + _databasePath + "; foreign keys=true;";
                 //Debug.Log("connection string: " + connection);
                 return connection;
             }
@@ -52,7 +52,7 @@ namespace Assets.Src.Database
             var configs = new Dictionary<int, string>();
 
             string sqlQuery = "SELECT " + CONFIG_TABLE + ".id, name" + " FROM " + CONFIG_TABLE + 
-                " LEFT JOIN BaseEvolutionConfig on BaseEvolutionConfig.id = " + CONFIG_TABLE + ".id"+ ";";
+                " LEFT JOIN BaseEvolutionConfig on BaseEvolutionConfig.id = " + CONFIG_TABLE + ".id;";
 
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -62,8 +62,6 @@ namespace Assets.Src.Database
                     dbcmd.CommandText = sqlQuery;
                     using (var reader = dbcmd.ExecuteReader())
                     {
-
-
                         while (reader.Read())
                         {
                             var id = reader.GetInt32(reader.GetOrdinal("id"));
@@ -74,6 +72,124 @@ namespace Assets.Src.Database
                 }
             }
             return configs;
+        }
+
+        public void SetCurrentGenerationNumber(int databaseId, int generationNumber)
+        {
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                sql_con.Open();
+
+                //Debug.Log("Updating generation to " + config.GenerationNumber);
+                using (var command = new SqliteCommand("UPDATE BaseEvolutionConfig SET currentGeneration = ? WHERE id = ?;", sql_con))
+                {
+                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
+
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void DeleteConfig(int id)
+        {
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                sql_con.Open(); //Open connection to the database.
+                using (var transaction = sql_con.BeginTransaction())
+                {
+                    DeleteIndividuals(id, sql_con, transaction);
+                    DeleteMatchConfig(id, sql_con, transaction);
+                    DeleteMutationConfig(id, sql_con, transaction);
+                    DeleteBrConfig(id, sql_con, transaction);
+                    DeleteDroneConfig(id, sql_con, transaction);
+                    using (var insertSQL = new SqliteCommand("DELETE FROM BaseEvolutionConfig WHERE id = ?;", sql_con, transaction))
+                    {
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)id));
+
+                        insertSQL.ExecuteNonQuery();
+                    }
+                    transaction.Commit();
+                }
+            }
+        }
+
+        public void DeleteIndividuals(int runConfigId)
+        {
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                sql_con.Open(); //Open connection to the database.
+                using (var transaction = sql_con.BeginTransaction())
+                {
+                    DeleteIndividuals(runConfigId, sql_con, transaction);
+                    transaction.Commit();
+                }
+            }
+        }
+
+        private void DeleteMatchConfig(int databaseId, SqliteConnection sql_con, SqliteTransaction transaction)
+        {
+            using (var deleteSQL = new SqliteCommand("DELETE FROM MatchConfig WHERE id = ?;", sql_con, transaction))
+            {
+                deleteSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
+                deleteSQL.ExecuteNonQuery();
+            }
+        }
+        
+        private void DeleteMutationConfig(int databaseId, SqliteConnection sql_con, SqliteTransaction transaction)
+        {
+            using (var deleteSQL = new SqliteCommand("DELETE FROM MutationConfig WHERE id = ?;", sql_con, transaction))
+            {
+                deleteSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
+                deleteSQL.ExecuteNonQuery();
+            }
+        }
+
+        private void DeleteBrConfig(int databaseId, SqliteConnection sql_con, SqliteTransaction transaction)
+        {
+            using (var deleteSQL = new SqliteCommand("DELETE FROM BrEvolutionConfig WHERE id = ?;", sql_con, transaction))
+            {
+                deleteSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
+                deleteSQL.ExecuteNonQuery();
+            }
+        }
+
+        private void DeleteDroneConfig(int databaseId, SqliteConnection sql_con, SqliteTransaction transaction)
+        {
+            using (var deleteSQL = new SqliteCommand("DELETE FROM DroneEvolutionConfig WHERE id = ?;", sql_con, transaction))
+            {
+                deleteSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
+                deleteSQL.ExecuteNonQuery();
+            }
+        }
+
+        private void DeleteIndividuals(int runConfigId, SqliteConnection sql_con, SqliteTransaction transaction)
+        {
+            DeleteBrIndividuals(runConfigId, sql_con, transaction);
+            DeleteDroneIndividuals(runConfigId, sql_con, transaction);
+            using (var deleteSQL = new SqliteCommand("DELETE FROM BaseIndividual WHERE runConfigId = ?;", sql_con, transaction))
+            {
+                deleteSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runConfigId));
+                deleteSQL.ExecuteNonQuery();
+            }
+        }
+
+        private void DeleteBrIndividuals(int runConfigId, SqliteConnection sql_con, SqliteTransaction transaction)
+        {
+            using (var deleteSQL = new SqliteCommand("DELETE FROM BrIndividual WHERE runConfigId = ?;", sql_con, transaction))
+            {
+                deleteSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runConfigId));
+                deleteSQL.ExecuteNonQuery();
+            }
+        }
+
+        private void DeleteDroneIndividuals(int runConfigId, SqliteConnection sql_con, SqliteTransaction transaction)
+        {
+            using (var deleteSQL = new SqliteCommand("DELETE FROM DroneIndividual WHERE runConfigId = ?;", sql_con, transaction))
+            {
+                deleteSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runConfigId));
+                deleteSQL.ExecuteNonQuery();
+            }
         }
 
         protected string CreateReadConfigQuery(string table, int id)
@@ -305,23 +421,6 @@ namespace Assets.Src.Database
             }
         }
 
-        public void SetCurrentGenerationNumber(int databaseId, int generationNumber)
-        {
-            using (var sql_con = new SqliteConnection(_connectionString))
-            {
-                sql_con.Open();
-
-                //Debug.Log("Updating generation to " + config.GenerationNumber);
-                using (var command = new SqliteCommand("UPDATE BaseEvolutionConfig SET currentGeneration = ? WHERE id = ?;", sql_con))
-                {
-                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
-                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
-
-                    command.ExecuteNonQuery();
-                }
-            }
-        }
-
         protected SpeciesSummary ReadSpeciesSummary(IDataReader reader)
         {
             //Debug.Log("modules ordinal: " + reader.GetOrdinal("modules"));
@@ -393,10 +492,10 @@ namespace Assets.Src.Database
 
         protected int SaveBaseEvolutionConfig(BaseEvolutionConfig config, SqliteConnection connection, SqliteTransaction transaction)
         {
-
-            using (var insertSQL = new SqliteCommand("INSERT INTO BaseEvolutionConfig" +
+            var sql = "INSERT INTO BaseEvolutionConfig" +
                 " (name, currentGeneration, minMatchesPerIndividual, winnersCount) " +
-                " VALUES (?,?,?,?)", connection, transaction))
+                " VALUES (?,?,?,?);";
+            using (var insertSQL = new SqliteCommand(sql, connection, transaction))
             {
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.RunName));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.GenerationNumber));
