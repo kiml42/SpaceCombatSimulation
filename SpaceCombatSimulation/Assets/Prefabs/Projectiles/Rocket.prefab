@@ -652,19 +652,19 @@ TrailRenderer:
   m_Time: 1.5
   m_Parameters:
     serializedVersion: 2
-    widthMultiplier: 0.3
+    widthMultiplier: 0.6
     widthCurve:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 2
         time: 0
-        value: 0.5781746
-        inSlope: 0
-        outSlope: 0
+        value: 0.7354088
+        inSlope: 2.0759165
+        outSlope: 2.0759165
         tangentMode: 0
       - serializedVersion: 2
-        time: 0.21397781
-        value: 0.8904762
+        time: 0.2203331
+        value: 0.9470787
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -850,17 +850,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 1200
   Pilot: {fileID: 4469671951430032}
   FuelTank: {fileID: 114274753216163754}
   ForceApplier: {fileID: 54991379400455944}
   Plume: {fileID: 198416943245373774}
+  EngineForce2: 1200
   TranslateFireAngle: 10
+  FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
+  TorquerFullThrottleAngle: 10
   UseAsTorquer: 0
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
   GetConfigFromGenome: 1
 --- !u!114 &114916808352173484
@@ -907,6 +908,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 80
   PickerAimingObject: {fileID: 0}
   PickerApproachWeighting: 50
+  PreviousTargetBonus: 500
   GetConfigFromGenome: 1
 --- !u!135 &135943773985880198
 SphereCollider:
