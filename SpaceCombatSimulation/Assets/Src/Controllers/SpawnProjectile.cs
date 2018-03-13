@@ -7,8 +7,9 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Assets.Src.Evolution;
+using Assets.Src.ModuleSystem;
 
-public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurable
+public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
 {
     private IKnowsEnemyTagsAndCurrentTarget _targetChoosingMechanism;
     public bool TagChildren = false;
@@ -121,7 +122,7 @@ public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurab
     public bool GetConfigFromGenome = true;
     private string RocketGenome;
 
-    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
         if (GetConfigFromGenome)
         {

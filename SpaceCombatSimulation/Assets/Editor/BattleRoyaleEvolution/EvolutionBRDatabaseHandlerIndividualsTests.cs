@@ -52,7 +52,7 @@ public class EvolutionBRDatabaseHandlerIndividualsTests
     {
         GenerationBr generation = _handler.ReadGeneration(2, 0);
 
-        Assert.NotNull(generation);
+        Assert.IsNotNull(generation);
         Assert.AreEqual(2, generation.Individuals.Count);
 
         var i1 = generation.Individuals.First();
@@ -89,7 +89,7 @@ public class EvolutionBRDatabaseHandlerIndividualsTests
 
         GenerationBr RetrievedGen1 = _handler.ReadGeneration(3, 4);
 
-        Assert.NotNull(RetrievedGen1);
+        Assert.IsNotNull(RetrievedGen1);
         Assert.AreEqual(2, RetrievedGen1.Individuals.Count);
 
         var i1 = RetrievedGen1.Individuals.First();
@@ -124,7 +124,7 @@ public class EvolutionBRDatabaseHandlerIndividualsTests
 
         GenerationBr RetrievedGen2 = _handler.ReadGeneration(3, 4);
 
-        Assert.NotNull(RetrievedGen2);
+        Assert.IsNotNull(RetrievedGen2);
         Assert.AreEqual(2, RetrievedGen2.Individuals.Count);
 
         var i1b = RetrievedGen2.Individuals.First(i => i.Genome == "abc");
@@ -159,7 +159,7 @@ public class EvolutionBRDatabaseHandlerIndividualsTests
 
         GenerationBr RetrievedGen1 = _handler.ReadGeneration(3, 4);
 
-        Assert.NotNull(RetrievedGen1);
+        Assert.IsNotNull(RetrievedGen1);
         Assert.AreEqual(2, RetrievedGen1.Individuals.Count);
 
         var i1 = RetrievedGen1.Individuals.First();
@@ -189,7 +189,7 @@ public class EvolutionBRDatabaseHandlerIndividualsTests
 
         GenerationBr RetrievedGen2 = _handler.ReadGeneration(3, 4);
 
-        Assert.NotNull(RetrievedGen2);
+        Assert.IsNotNull(RetrievedGen2);
         Assert.AreEqual(2, RetrievedGen2.Individuals.Count);
 
         var i1b = RetrievedGen2.Individuals.First();
@@ -237,7 +237,7 @@ public class EvolutionBRDatabaseHandlerIndividualsTests
 
         GenerationBr generation = _handler.ReadGeneration(3, 4);
 
-        Assert.NotNull(generation);
+        Assert.IsNotNull(generation);
         Assert.AreEqual(2, generation.Individuals.Count);
 
         var i1 = generation.Individuals.First();

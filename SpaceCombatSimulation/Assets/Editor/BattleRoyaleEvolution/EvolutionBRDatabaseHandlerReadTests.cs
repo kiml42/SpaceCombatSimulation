@@ -48,11 +48,11 @@ public class EvolutionBRDatabaseHandlerReadTests
     {
         var configs = _handler.ListConfigs();
 
-        Assert.NotNull(configs);
+        Assert.IsNotNull(configs);
         Assert.IsNotEmpty(configs);
-        Assert.True(configs.ContainsKey(2));
+        Assert.IsTrue(configs.ContainsKey(2));
         Assert.AreEqual("1v1", configs[2]);
-        Assert.True(configs.ContainsKey(3));
+        Assert.IsTrue(configs.ContainsKey(3));
         Assert.AreEqual("4Way", configs[3]);
     }
 

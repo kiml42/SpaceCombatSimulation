@@ -48,11 +48,11 @@ public class EvolutionDroneDatabaseHandlerReadTests
     {
         var configs = _handler.ListConfigs();
 
-        Assert.NotNull(configs);
+        Assert.IsNotNull(configs);
         Assert.IsNotEmpty(configs);
-        Assert.True(configs.ContainsKey(0));
+        Assert.IsTrue(configs.ContainsKey(0));
         Assert.AreEqual("Run0", configs[0]);
-        Assert.True(configs.ContainsKey(1));
+        Assert.IsTrue(configs.ContainsKey(1));
         Assert.AreEqual("Run1", configs[1]);
     }
 
@@ -276,7 +276,7 @@ public class EvolutionDroneDatabaseHandlerReadTests
     public void ReadConfig_MatchControl_Budget_null()
     {
         var config = _handler.ReadConfig(1);
-        Assert.Null(config.MatchConfig.Budget);
+        Assert.IsNull(config.MatchConfig.Budget);
     }
     #endregion
 

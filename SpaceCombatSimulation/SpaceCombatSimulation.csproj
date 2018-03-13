@@ -369,6 +369,7 @@
     <Compile Include="Assets\Src\Menus\GenericEvolutionLoadList.cs" />
     <Compile Include="Assets\Src\Menus\MainMenuController.cs" />
     <Compile Include="Assets\Src\Menus\MenuItem.cs" />
+    <Compile Include="Assets\Src\ModuleSystem\GeneticConfigurableMonobehaviour.cs" />
     <Compile Include="Assets\Src\ModuleSystem\ModuleHub.cs" />
     <Compile Include="Assets\Src\ModuleSystem\ModuleList.cs" />
     <Compile Include="Assets\Src\ModuleSystem\ModuleRecord.cs" />

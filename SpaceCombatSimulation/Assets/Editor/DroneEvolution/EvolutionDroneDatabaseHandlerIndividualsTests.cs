@@ -52,7 +52,7 @@ public class EvolutionDroneDatabaseHandlerIndividualsTests
     {
         GenerationDrone generation = _handler.ReadGeneration(0, 0);
 
-        Assert.NotNull(generation);
+        Assert.IsNotNull(generation);
         Assert.AreEqual(2, generation.Individuals.Count);
 
         var i1 = generation.Individuals.First();
@@ -80,7 +80,7 @@ public class EvolutionDroneDatabaseHandlerIndividualsTests
 
         GenerationDrone RetrievedGen1 = _handler.ReadGeneration(3, 4);
 
-        Assert.NotNull(RetrievedGen1);
+        Assert.IsNotNull(RetrievedGen1);
         Assert.AreEqual(2, RetrievedGen1.Individuals.Count);
 
         var i1 = RetrievedGen1.Individuals.First();
@@ -111,7 +111,7 @@ public class EvolutionDroneDatabaseHandlerIndividualsTests
 
         GenerationDrone RetrievedGen2 = _handler.ReadGeneration(3, 4);
 
-        Assert.NotNull(RetrievedGen2);
+        Assert.IsNotNull(RetrievedGen2);
         Assert.AreEqual(2, RetrievedGen2.Individuals.Count);
 
         var i1b = RetrievedGen2.Individuals.First();
@@ -143,7 +143,7 @@ public class EvolutionDroneDatabaseHandlerIndividualsTests
     {
         var RetrievedGen1 = _handler.ReadGeneration(0, 0);
 
-        Assert.NotNull(RetrievedGen1);
+        Assert.IsNotNull(RetrievedGen1);
         Assert.AreEqual(2, RetrievedGen1.Individuals.Count);
 
         var i1 = RetrievedGen1.Individuals.First(i => i.Genome == "123");
@@ -166,7 +166,7 @@ public class EvolutionDroneDatabaseHandlerIndividualsTests
 
         GenerationDrone RetrievedGen2 = _handler.ReadGeneration(0, 0);
 
-        Assert.NotNull(RetrievedGen2);
+        Assert.IsNotNull(RetrievedGen2);
         Assert.AreEqual(2, RetrievedGen2.Individuals.Count);
         
         var i1b = RetrievedGen2.Individuals.First(i => i.Genome == "123");
@@ -207,7 +207,7 @@ public class EvolutionDroneDatabaseHandlerIndividualsTests
 
         GenerationDrone generation = _handler.ReadGeneration(3, 4);
 
-        Assert.NotNull(generation);
+        Assert.IsNotNull(generation);
         Assert.AreEqual(2, generation.Individuals.Count);
 
         var i1 = generation.Individuals.First();

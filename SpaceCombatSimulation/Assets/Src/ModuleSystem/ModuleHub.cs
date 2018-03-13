@@ -8,14 +8,14 @@ using Assets.Src.Evolution;
 
 namespace Assets.Src.ModuleSystem
 {
-    public class ModuleHub : MonoBehaviour, IGeneticConfigurable
+    public class ModuleHub : GeneticConfigurableMonobehaviour
     {
         public TestCubeChecker TestCube;
         public ModuleList ModuleList;
         public List<Transform> SpawnPoints;
         public int[] AllowedModuleIndicies = null;
 
-        public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+        protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
         {
             var shipToEvolve = GetComponent<Rigidbody>();
             var velocity = shipToEvolve.velocity;

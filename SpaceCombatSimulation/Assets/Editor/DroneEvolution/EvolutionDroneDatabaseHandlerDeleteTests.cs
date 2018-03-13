@@ -48,7 +48,7 @@ public class EvolutionDroneDatabaseHandlerDeleteTests
     {
         var id = 0;
         var configs = _handler.ListConfigs();
-        Assert.True(configs.Any(c => c.Key == id));
+        Assert.IsTrue(configs.Any(c => c.Key == id));
 
         var generationBefore = _handler.ReadGeneration(id, 0);
         Assert.AreEqual(2, generationBefore.Individuals.Count);
@@ -56,7 +56,7 @@ public class EvolutionDroneDatabaseHandlerDeleteTests
         _handler.DeleteConfig(id);
 
         var configsAfter = _handler.ListConfigs();
-        Assert.False(configsAfter.Any(c => c.Key == 0));
+        Assert.IsFalse(configsAfter.Any(c => c.Key == 0));
 
         var generationAfter = _handler.ReadGeneration(id, 0);
         Assert.AreEqual(0, generationAfter.Individuals.Count);
@@ -67,7 +67,7 @@ public class EvolutionDroneDatabaseHandlerDeleteTests
     {
         var id = 0;
         var configs = _handler.ListConfigs();
-        Assert.True(configs.Any(c => c.Key == id));
+        Assert.IsTrue(configs.Any(c => c.Key == id));
 
         var generationBefore = _handler.ReadGeneration(id, 0);
         Assert.AreEqual(2, generationBefore.Individuals.Count);
@@ -75,7 +75,7 @@ public class EvolutionDroneDatabaseHandlerDeleteTests
         _handler.DeleteIndividuals(id);
 
         var configsAfter = _handler.ListConfigs();
-        Assert.True(configsAfter.Any(c => c.Key == 0));
+        Assert.IsTrue(configsAfter.Any(c => c.Key == 0));
 
         var generationAfter = _handler.ReadGeneration(id, 0);
         Assert.AreEqual(0, generationAfter.Individuals.Count);
