@@ -285,6 +285,7 @@ public class TargetChoosingMechanism : GeneticConfigurableMonobehaviour, IDeacti
     {
         if (GetConfigFromGenome)
         {
+            Debug.Log("Configuring " + name + "'s TCM");
             PreferedTypeBonus = genomeWrapper.GetScaledNumber(MaxBonus);
             InCorrectHemisphereBonus = genomeWrapper.GetScaledNumber(MaxBonus);
             PickerMassMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);

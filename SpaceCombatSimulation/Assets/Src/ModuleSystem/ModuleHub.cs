@@ -15,17 +15,12 @@ namespace Assets.Src.ModuleSystem
         public List<Transform> SpawnPoints;
         public int[] AllowedModuleIndicies = null;
 
+        public Vector3 Velocity { get { return GetComponent<Rigidbody>().velocity; } }
+
         protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
         {
-            var shipToEvolve = GetComponent<Rigidbody>();
-            var velocity = shipToEvolve.velocity;
+            genomeWrapper = new ShipBuilder(genomeWrapper, this).BuildShip(true);
 
-            genomeWrapper = new ShipBuilder(genomeWrapper, this)
-            {
-                InitialVelocity = velocity,
-                AllowedModuleIndicies = AllowedModuleIndicies
-            }.BuildShip(true);
-            
             return genomeWrapper;
         }
     }

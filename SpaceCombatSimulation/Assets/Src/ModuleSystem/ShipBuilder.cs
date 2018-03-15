@@ -3,43 +3,37 @@ using Assets.Src.Interfaces;
 using Assets.Src.ModuleSystem;
 using Assets.Src.ObjectManagement;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.src.Evolution
 {
     public class ShipBuilder
     {
-        public int[] AllowedModuleIndicies = null;
-
-        public Vector3 InitialVelocity = Vector3.zero;
-        
         private GenomeWrapper _genome;
         public int GeneLength = 1;
 
         private ModuleList _moduleList;
         
-        private ModuleHub _hubToBuildOn;
+        private ModuleHub _rootHub;
         private TestCubeChecker _testCubePrefab;
         
         private Color _colour;
         
-        public ShipBuilder(GenomeWrapper genomeWrapper, ModuleHub hubToBuildOn)
+        public ShipBuilder(GenomeWrapper genomeWrapper, ModuleHub rootHub)
         {
-            _hubToBuildOn = hubToBuildOn;
-            if (_hubToBuildOn == null)
+            _rootHub = rootHub;
+            if (_rootHub == null)
             {
                 throw new ArgumentNullException("shipToBuildOn", "shipToBuildOn must be a valid Transform.");
             }
-            _moduleList = _hubToBuildOn.ModuleList;
+            _moduleList = _rootHub.ModuleList;
             if(_moduleList == null)
             {
                 throw new ArgumentNullException("moduleList", "moduleList must be a valid ModuleList objet.");
             }
             _genome = genomeWrapper;
-            _testCubePrefab = _hubToBuildOn.TestCube;
+            _testCubePrefab = _rootHub.TestCube;
         }
 
         public GenomeWrapper BuildShip(bool setColour = true)
@@ -48,12 +42,12 @@ namespace Assets.src.Evolution
             if (setColour)
             {
                 _colour = _genome.GetColorForGenome();
-                _hubToBuildOn.transform.SetColor(_colour);
+                _rootHub.transform.SetColor(_colour);
             }
 
             //Debug.Log("Spawning modules on " + _hubToBuildOn.name);
 
-            _genome.UsedLocations.Add(_hubToBuildOn.transform.position);
+            _genome.UsedLocations.Add(_rootHub.transform.position);
             _genome = SpawnModules();
             
             return _genome;
@@ -67,7 +61,7 @@ namespace Assets.src.Evolution
 
         private GenomeWrapper SpawnModules()
         {
-            var spawnPoints = _hubToBuildOn.SpawnPoints;
+            var spawnPoints = _rootHub.SpawnPoints;
 
             foreach (var spawnPoint in spawnPoints)
             {
@@ -82,9 +76,9 @@ namespace Assets.src.Evolution
                         if(_genome.IsUnderBudget())
                         {
                             //Debug.Log("adding " + moduleToAdd + " total cost = " + _genome.Cost);
-                            var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, _hubToBuildOn.transform);
+                            var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, _rootHub.transform);
                             
-                            addedModule.GetComponent<FixedJoint>().connectedBody = _hubToBuildOn.GetComponent<Rigidbody>();
+                            addedModule.GetComponent<FixedJoint>().connectedBody = _rootHub.GetComponent<Rigidbody>();
 
                             var tagKnower = addedModule.GetComponent<IKnowsEnemyTags>();
                             if (tagKnower != null)
@@ -95,13 +89,13 @@ namespace Assets.src.Evolution
                             var hub = addedModule.GetComponent<ModuleHub>();
                             if(hub != null)
                             {
-                                hub.AllowedModuleIndicies = AllowedModuleIndicies;
+                                hub.AllowedModuleIndicies = _rootHub.AllowedModuleIndicies;
                             }
 
-                            addedModule.tag = _hubToBuildOn.tag;
+                            addedModule.tag = _rootHub.tag;
 
                             addedModule.transform.SetColor(_colour);
-                            addedModule.GetComponent<Rigidbody>().velocity = InitialVelocity;
+                            addedModule.GetComponent<Rigidbody>().velocity = _rootHub.Velocity;
 
                             addedModule.transform.SetColor(_colour);
 
@@ -175,7 +169,7 @@ namespace Assets.src.Evolution
                 if (number.HasValue)
                 {
                     var numberInRange = number.Value % _moduleList.Modules.Count();
-                    if (AllowedModuleIndicies == null || !AllowedModuleIndicies.Any() || AllowedModuleIndicies.Contains(numberInRange))
+                    if (_rootHub.AllowedModuleIndicies == null || !_rootHub.AllowedModuleIndicies.Any() || _rootHub.AllowedModuleIndicies.Contains(numberInRange))
                     {
                         //Debug.Log("Adding Module " + number + ": " + Modules[number.Value % _moduleList.Modules.Count()] );
                         moduleIndex = numberInRange;

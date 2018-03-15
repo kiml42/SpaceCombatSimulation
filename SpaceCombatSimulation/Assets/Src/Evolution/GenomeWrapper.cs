@@ -102,7 +102,6 @@ namespace Assets.Src.Evolution
         {
             if (knower != null)
             {
-
                 foreach (var type in knower.Types.Distinct())
                 {
                     if (ModuleTypeCounts.ContainsKey(type))

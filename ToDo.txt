@@ -1,6 +1,7 @@
 Bugs:
     Priority:
         Read and resave unaltered species names - they are all getting nulled.
+        TargetChoosingMechanisms of root ship hubs are always configured starting at index 0.
         DB doesn't work in built project.
         Can't read locationRandomisationRadiai if they could be parsed as a number
         ElevationHubs on some drones are disappearing.
@@ -17,7 +18,7 @@ Bugs:
 TODO:
     In Progress:
         Camera
-            Side view rlimits range for viewed objects
+            Side view limits range for viewed objects
                 If there are < 2 it will always use the full list.
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.
@@ -27,7 +28,6 @@ TODO:
             Move camera relative to parent (localRotation)
             Make camera location target and orientation target nullable so that they don't have t be specified. (does no rotation/moving if null)
         Player ship
-            Vs evolved ships using battle royal mode
             pick target by clicking on it
             cycle ships with key press
             Switch modes with tab
