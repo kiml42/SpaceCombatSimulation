@@ -25,7 +25,7 @@ namespace Assets.Src.Controllers
             EnemyTags = tags.Distinct().ToList();
         }
 
-        List<string> IKnowsEnemyTags.EnemyTags { get
+        List<string> IKnowsEnemyTags.KnownEnemyTags { get
             {
                 return EnemyTags;
             }
@@ -235,7 +235,7 @@ namespace Assets.Src.Controllers
                     drone.velocity = velocity;
                     
                     if (ShouldSetEnemyTag) {
-                        drone.GetComponent<IKnowsEnemyTags>().EnemyTags = new List<string> { TarGetTag };
+                        drone.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = new List<string> { TarGetTag };
                     }
 
                     if (TagChildren) { drone.tag = tag; }

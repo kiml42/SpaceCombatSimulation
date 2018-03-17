@@ -184,7 +184,6 @@ namespace Assets.Src.Database
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.DronesOnSphereRandomRadius));
 
                         insertSQL.ExecuteNonQuery();
-                        insertSQL.Dispose();
                     }
                     transaction.Commit();
                 }

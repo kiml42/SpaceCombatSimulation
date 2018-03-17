@@ -36,7 +36,7 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
 
     private ColourSetter _colerer;
     
-    float? IKnowsProjectileSpeed.ProjectileSpeed
+    public float? KnownProjectileSpeed
     {
         get
         {
@@ -96,7 +96,7 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
 
                 if (SetChildrensEnemy && _targetChoosingMechanism != null)
                 {
-                    projectile.GetComponent<IKnowsEnemyTags>().EnemyTags = _targetChoosingMechanism.EnemyTags;
+                    projectile.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = _targetChoosingMechanism.KnownEnemyTags;
                 }
                 if (_colerer != null)
                 {

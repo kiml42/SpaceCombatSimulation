@@ -72,12 +72,12 @@ namespace Assets.Src.Evolution
         #region EnemyTags
         public void AddEnemyTag(string newTag)
         {
-            var tags = EnemyTags.ToList();
+            var tags = KnownEnemyTags.ToList();
             tags.Add(newTag);
-            EnemyTags = tags.Distinct().ToList();
+            KnownEnemyTags = tags.Distinct().ToList();
         }
 
-        public List<string> EnemyTags { get; set; }
+        public List<string> KnownEnemyTags { get; set; }
         #endregion
 
         public GenomeWrapper(string genome, List<string> enemyTags = null, int geneLength = DEFAULT_GENE_LENGTH)
@@ -86,7 +86,7 @@ namespace Assets.Src.Evolution
             _geneLength = geneLength;
             Budget = null; //default the budget to null, can be set later.
             UsedLocations = new List<Vector3>();
-            EnemyTags = enemyTags;
+            KnownEnemyTags = enemyTags;
             ModuleTypeCounts = new Dictionary<ModuleType, int>();
             _topModuleRecord = new ModuleRecord();
             _currentModuleRecord = _topModuleRecord;
@@ -102,7 +102,7 @@ namespace Assets.Src.Evolution
         {
             if (knower != null)
             {
-                foreach (var type in knower.Types.Distinct())
+                foreach (var type in knower.ModuleTypes.Distinct())
                 {
                     if (ModuleTypeCounts.ContainsKey(type))
                     {
@@ -114,7 +114,7 @@ namespace Assets.Src.Evolution
                 }
                 ModulesAdded++;
 
-                Cost += knower.Cost;
+                Cost += knower.ModuleCost;
 
                 UsedLocations.Add(usedLocation);
 

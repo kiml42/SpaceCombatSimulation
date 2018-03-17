@@ -90,7 +90,7 @@ namespace Assets.Src.Database
                 catch (Exception e)
                 {
                     Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
-                    throw e;
+                    throw;
                 }
             }
         }

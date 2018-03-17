@@ -70,7 +70,7 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
                 var tagKnower = projectile.GetComponent<IKnowsEnemyTags>();
                 if(tagKnower != null && _targetChoosingMechanism != null)
                 {
-                    tagKnower.EnemyTags = _targetChoosingMechanism.EnemyTags;
+                    tagKnower.KnownEnemyTags = _targetChoosingMechanism.KnownEnemyTags;
                 }
                 
                 if (TagChildren) { projectile.tag = tag; }
@@ -86,7 +86,7 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
                     var typeKnower = projectile.GetComponent<IModuleTypeKnower>();
                     if(typeKnower != null)
                     {
-                        typeKnower.Configure(new GenomeWrapper(RocketGenome, _targetChoosingMechanism.EnemyTags));
+                        typeKnower.Configure(new GenomeWrapper(RocketGenome, _targetChoosingMechanism.KnownEnemyTags));
                     }
                 }
 

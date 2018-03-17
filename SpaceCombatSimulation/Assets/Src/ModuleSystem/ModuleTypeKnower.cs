@@ -15,7 +15,7 @@ namespace Assets.Src.ModuleSystem
         [Tooltip("the cost for this module when evolving ships.")]
         public float Cost = 100;
 
-        float IModuleTypeKnower.Cost
+        public float ModuleCost
         {
             get
             {
@@ -26,7 +26,7 @@ namespace Assets.Src.ModuleSystem
         [Tooltip("Configurable modules on other objects")]
         public List<IModuleTypeKnower> ExtraConfigurables = new List<IModuleTypeKnower>();
 
-        List<ModuleType> IModuleTypeKnower.Types
+        public List<ModuleType> ModuleTypes
         {
             get
             {

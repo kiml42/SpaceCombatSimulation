@@ -125,7 +125,7 @@ public class EvolutionDroneControler : BaseEvolutionController
             ship.velocity = _config.MatchConfig.VelocityForStartLocation(randomPlacement);
 
             var knower = ship.GetComponent<IKnowsEnemyTags>();
-            if(knower != null) knower.EnemyTags = enemyTags;
+            if(knower != null) knower.KnownEnemyTags = enemyTags;
         }
     }
 

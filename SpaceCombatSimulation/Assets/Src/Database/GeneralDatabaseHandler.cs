@@ -332,7 +332,6 @@ namespace Assets.Src.Database
                     insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, DBNull.Value));
 
                 insertSQL.ExecuteNonQuery();
-                insertSQL.Dispose();
             }
         }
 
@@ -379,7 +378,6 @@ namespace Assets.Src.Database
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)id));
 
                 insertSQL.ExecuteNonQuery();
-                insertSQL.Dispose();
             }
         }
 
@@ -417,7 +415,6 @@ namespace Assets.Src.Database
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)id));
 
                 insertSQL.ExecuteNonQuery();
-                insertSQL.Dispose();
             }
         }
 
