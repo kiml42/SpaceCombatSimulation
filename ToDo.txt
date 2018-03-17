@@ -18,8 +18,6 @@ Bugs:
 TODO:
     In Progress:
         Camera
-            Side view limits range for viewed objects
-                If there are < 2 it will always use the full list.
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.
             Manual orientator

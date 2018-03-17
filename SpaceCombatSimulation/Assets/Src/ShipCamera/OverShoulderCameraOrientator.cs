@@ -53,7 +53,7 @@ namespace Assets.Src.ShipCamera
                 
                 var automaticParentPollTarget = (_shipCam.TargetToWatch.position - _shipCam.FollowedTarget.position);
                 var cameraPollTarget = DefaultCamLocation.forward;
-                if (!ManualMode && Vector3.Angle(automaticParentPollTarget, transform.forward) < NearlyAimedAngle)
+                if (!ManualPanMode && Vector3.Angle(automaticParentPollTarget, transform.forward) < NearlyAimedAngle)
                 {
                     //rotate the camera itself - only if the parent is looking in vaguely the right direction.
                     cameraPollTarget = (_shipCam.TargetToWatch.position - _shipCam.Camera.transform.position);

@@ -32,7 +32,7 @@ namespace Assets.Src.ShipCamera
         /// </summary>
         public float FollowedObjectTranslateSpeedMultiplier = 1;
 
-        public UnityEngine.Camera Camera;
+        public Camera Camera;
         
         public float ApproachTargetPickerWeighting = 20;
 
