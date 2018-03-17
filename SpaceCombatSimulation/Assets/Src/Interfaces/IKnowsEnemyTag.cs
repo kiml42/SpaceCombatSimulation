@@ -13,6 +13,6 @@ namespace Assets.Src.Interfaces
         /// <param name="newTag"></param>
         void AddEnemyTag(string newTag);
 
-        List<string> EnemyTags { get; set; }
+        List<string> KnownEnemyTags { get; set; }
     }
 }

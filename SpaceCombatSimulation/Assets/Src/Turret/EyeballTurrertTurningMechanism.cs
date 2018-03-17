@@ -28,7 +28,7 @@ public class EyeballTurrertTurningMechanism : MonoBehaviour, IGeneticConfigurabl
     {
         _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
         var speedKnower = GetComponent<IKnowsProjectileSpeed>();
-        var projectileSpeed = speedKnower != null ? speedKnower.ProjectileSpeed : null;
+        var projectileSpeed = speedKnower != null ? speedKnower.KnownProjectileSpeed : null;
         var rigidbody = GetComponent<Rigidbody>();
 
         _turner = new EyeballTurretTurner(rigidbody, Ball, RestTarget, projectileSpeed)

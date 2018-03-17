@@ -23,7 +23,7 @@ public class SelfBuildingShip : ModuleHub
 
         Genome = Genome.PadRight(PadToLength);
 
-        var genomeWrapper = new GenomeWrapper(Genome, knower.EnemyTags)
+        var genomeWrapper = new GenomeWrapper(Genome, knower.KnownEnemyTags)
         {
             UseJump = false
         };

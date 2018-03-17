@@ -89,7 +89,7 @@ namespace Assets.src.Evolution
                             var tagKnower = addedModule.GetComponent<IKnowsEnemyTags>();
                             if (tagKnower != null)
                             {
-                                tagKnower.EnemyTags = _genome.EnemyTags;
+                                tagKnower.KnownEnemyTags = _genome.KnownEnemyTags;
                             }
 
                             var hub = addedModule.GetComponent<ModuleHub>();

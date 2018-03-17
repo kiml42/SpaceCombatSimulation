@@ -33,14 +33,14 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
 
 
     #region EnemyTags
-    void IKnowsEnemyTags.AddEnemyTag(string newTag)
+    public void AddEnemyTag(string newTag)
     {
         var tags = EnemyTags.ToList();
         tags.Add(newTag);
         EnemyTags = tags.Distinct().ToList();
     }
 
-    List<string> IKnowsEnemyTags.EnemyTags
+    public List<string> KnownEnemyTags
     {
         get
         {
@@ -116,7 +116,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
     void Start ()
     {
         var speedKnower = GetComponent<IKnowsProjectileSpeed>();
-        var projectileSpeed = speedKnower != null ? speedKnower.ProjectileSpeed : null;
+        var projectileSpeed = speedKnower != null ? speedKnower.KnownProjectileSpeed : null;
         _rigidbody = GetComponent<Rigidbody>();
         PickerAimingObject = PickerAimingObject ?? _rigidbody;
 
@@ -298,7 +298,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
             PickerApproachWeighting = genomeWrapper.GetScaledNumber(15);
             PreviousTargetBonus = genomeWrapper.GetScaledNumber(MaxBonus);
 
-            EnemyTags = genomeWrapper.EnemyTags;
+            EnemyTags = genomeWrapper.KnownEnemyTags;
             _detector = new RepositoryTargetDetector()
             {
                 EnemyTags = EnemyTags

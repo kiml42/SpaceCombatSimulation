@@ -73,7 +73,7 @@ public class EvolutionArenaControler : MonoBehaviour
         var randomPlacement = ShipConfig.Config.PositionForCompetitor((int)UnityEngine.Random.value, 0, 0, 0);
         var death = Instantiate(SuddenDeathObject, randomPlacement, orientation);
 
-        death.GetComponent<IKnowsEnemyTags>().EnemyTags = ShipConfig.Tags;
+        death.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = ShipConfig.Tags;
         MatchCountdown = SuddenDeathObjectReloadTime;
     }
 
