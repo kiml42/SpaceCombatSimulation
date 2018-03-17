@@ -21,7 +21,7 @@ public class AngleTrigger : MonoBehaviour, IFireControl, IGeneticConfigurable
     {
         var speedKnower = GetComponent<IKnowsProjectileSpeed>();
         _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
-        _projectileSpeed = speedKnower != null ? speedKnower.ProjectileSpeed : null;
+        _projectileSpeed = speedKnower != null ? speedKnower.KnownProjectileSpeed : null;
     }
 
     public bool ShouldShoot(Target target)

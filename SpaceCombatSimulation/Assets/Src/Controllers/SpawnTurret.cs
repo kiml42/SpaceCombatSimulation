@@ -15,14 +15,14 @@ public class SpawnTurret : MonoBehaviour, IKnowsEnemyTags
 
 
     #region EnemyTags
-    void IKnowsEnemyTags.AddEnemyTag(string newTag)
+    public void AddEnemyTag(string newTag)
     {
         var tags = EnemyTags;
         tags.Add(newTag);
         EnemyTags = tags.Distinct().ToList();
     }
 
-    List<string> IKnowsEnemyTags.EnemyTags
+    public List<string> KnownEnemyTags
     {
         get
         {
@@ -53,7 +53,7 @@ public class SpawnTurret : MonoBehaviour, IKnowsEnemyTags
 
         if(_enemyTagSource != null)
         {
-            EnemyTags = _enemyTagSource.EnemyTags;
+            EnemyTags = _enemyTagSource.KnownEnemyTags;
         }
 
         if(ParentForTurret == null && transform.parent != null)
@@ -86,7 +86,7 @@ public class SpawnTurret : MonoBehaviour, IKnowsEnemyTags
         var tagKnower = turret.GetComponent<IKnowsEnemyTags>();
         if(tagKnower != null)
         {
-            tagKnower.EnemyTags = EnemyTags;
+            tagKnower.KnownEnemyTags = EnemyTags;
         }
 
         if (TagChildren) {

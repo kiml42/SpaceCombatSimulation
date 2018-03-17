@@ -47,7 +47,7 @@ namespace Assets.Src.ObjectManagement
                 
                     if (SetEnemyTagOnShrapnel && EnemyTags != null && EnemyTags.Any())
                     {
-                        fragment.GetComponent<IKnowsEnemyTags>().EnemyTags = EnemyTags;
+                        fragment.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = EnemyTags;
                     }
 
                     if (TagShrapnel)

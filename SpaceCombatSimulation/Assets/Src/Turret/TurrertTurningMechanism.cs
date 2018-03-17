@@ -33,7 +33,7 @@ public class TurrertTurningMechanism : MonoBehaviour, IGeneticConfigurable
     {
         _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
         var speedKnower = GetComponent<IKnowsProjectileSpeed>();
-        var projectileSpeed = speedKnower != null ? speedKnower.ProjectileSpeed : null;
+        var projectileSpeed = speedKnower != null ? speedKnower.KnownProjectileSpeed : null;
         var rigidbody = GetComponent<Rigidbody>();
 
         _turner = new UnityTurretTurner(rigidbody, TurnTable, ElevationHub, RestTarget, projectileSpeed)

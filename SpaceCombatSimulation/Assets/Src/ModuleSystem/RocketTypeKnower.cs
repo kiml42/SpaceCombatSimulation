@@ -15,7 +15,7 @@ namespace Assets.Src.ModuleSystem
             ModuleType.Projectile
         };
 
-        public List<ModuleType> Types
+        public List<ModuleType> ModuleTypes
         {
             get
             {
@@ -31,7 +31,7 @@ namespace Assets.Src.ModuleSystem
         public FuelTank FuelTank;
         public List<EngineControler> Engines;
 
-        float IModuleTypeKnower.Cost
+        public float ModuleCost
         {
             get
             {

@@ -40,7 +40,7 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     public float KeepShootingSeconds = 2;
     private float _shootingTime = 0;
 
-    public float? ProjectileSpeed
+    public float? KnownProjectileSpeed
     {
         get
         {

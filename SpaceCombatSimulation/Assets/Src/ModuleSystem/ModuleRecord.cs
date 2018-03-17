@@ -39,7 +39,7 @@ namespace Assets.Src.ModuleSystem
             if(moduleTypeKnower != null)
             {
                 _baseName = moduleTypeKnower.Name;
-                if(moduleTypeKnower.Types != null && moduleTypeKnower.Types.Contains(ModuleType.Hub))
+                if(moduleTypeKnower.ModuleTypes != null && moduleTypeKnower.ModuleTypes.Contains(ModuleType.Hub))
                 {
                     _childModules = new List<ModuleRecord>();
                 }
