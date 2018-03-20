@@ -6,7 +6,7 @@ namespace Assets.Src.ShipCamera
     public abstract class ManualCameraOrientator : BaseCameraOrientator
     {
         private Vector3 _ManualParentPollTarget;
-        private float _manualFieldOfView = 80;
+        private float _manualCameraLocOffset;
         
         public float RotationSpeed = 10;
 
@@ -25,6 +25,10 @@ namespace Assets.Src.ShipCamera
 
 
         private float _manualZoomTimeRemaining = 0;
+
+        [Tooltip("multiplier for moving the camera forwards or backwards when zooming")]
+        public float ZoomSpeed = 10;
+
         protected bool ManualZoomMode
         {
             get
@@ -41,19 +45,11 @@ namespace Assets.Src.ShipCamera
             ProcessManualPanning(targets);
             ProcessManualZoom(targets);
             
-            //ToDo Stop this using its public properties. (maybe just make them private)
-            return new ShipCamTargetValues(targets.ParentLocationTarget, GetParentPollTarget(targets), targets.CameraLocationTarget, targets.CameraPollTarget, targets.CameraFieldOfView, targets.ReferenceVelocity, targets.UpTarget);
+            return new ShipCamTargetValues(targets.ParentLocationTarget, GetParentPollTarget(targets), GetCameraLocationTarget(targets), targets.CameraPollTarget, targets.CameraFieldOfView, targets.ReferenceVelocity, targets.UpTarget);
         }
 
         private void ProcessManualPanning(ShipCamTargetValues targets)
         {
-            //if (Input.GetMouseButtonDown(MouseButtonIndex))
-            //{
-            //    //set these before they will be affected buy setting the _manualTimeRemaining up.
-            //    _ManualParentPollTarget = GetParentPollTarget(targets);
-            //    _manualPanTimeRemaining = ManualTime;
-            //}
-
             if (Input.GetMouseButton(MouseButtonIndex))
             {
                 if (!ManualPanMode)
@@ -78,12 +74,16 @@ namespace Assets.Src.ShipCamera
         private void ProcessManualZoom(ShipCamTargetValues targets)
         {
             var scroll = Input.GetAxis("Mouse ScrollWheel");
-            Debug.Log(scroll);
 
             if (scroll != 0)
             {
+                if (!ManualZoomMode)
+                {
+                    _manualCameraLocOffset = 0;
+                }
                 //_manualFieldOfView = _shipCam.Camera.fieldOfView + scroll * 100;
-                _manualFieldOfView = _manualFieldOfView + scroll;
+                _manualCameraLocOffset = _manualCameraLocOffset + (scroll * ZoomSpeed);
+                Debug.Log(" _manualCameraLocOffset: " + _manualCameraLocOffset + " scroll: " + scroll);
 
                 _manualZoomTimeRemaining = ManualTime;
 
@@ -97,9 +97,12 @@ namespace Assets.Src.ShipCamera
             return ManualPanMode ? _ManualParentPollTarget : automaticTargets.ParentPollTarget;
         }
 
-        private float GetCameraFieldOfView(ShipCamTargetValues automaticTargets)
+        private Vector3 GetCameraLocationTarget(ShipCamTargetValues automaticTargets)
         {
-            return ManualZoomMode ? _manualFieldOfView : automaticTargets.CameraFieldOfView;
+            var setbackDistance = ManualZoomMode ? _manualCameraLocOffset : 0;
+            var offset = automaticTargets.CameraPollTarget * setbackDistance;
+
+            return automaticTargets.CameraLocationTarget + offset;
         }
     }
 }
