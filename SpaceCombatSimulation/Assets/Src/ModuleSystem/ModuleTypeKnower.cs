@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace Assets.Src.ModuleSystem
 {
-    public class ModuleTypeKnower : MonoBehaviour, IModuleTypeKnower
+    public class ModuleTypeKnower : GeneticConfigurableMonobehaviour, IModuleTypeKnower
     {
         [Tooltip("the list of types that this module can act as.")]
         public List<ModuleType> Types;
@@ -46,7 +46,7 @@ namespace Assets.Src.ModuleSystem
         //[Tooltip("These components will be configured in order by this behaviour when Configure is called on it.")]
         //public List<IGeneticConfigurable> ComponentsToConfigure = new List<IGeneticConfigurable>();
 
-        public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+        protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
         {
             var componentsToConfigure = GetComponents<IGeneticConfigurable>().ToList();
 

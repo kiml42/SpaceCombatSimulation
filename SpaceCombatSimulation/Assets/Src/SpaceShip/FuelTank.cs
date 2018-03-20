@@ -1,11 +1,12 @@
 ﻿using Assets.Src.Evolution;
 using Assets.Src.Interfaces;
+using Assets.Src.ModuleSystem;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class FuelTank : MonoBehaviour, IGeneticConfigurable
+public class FuelTank : GeneticConfigurableMonobehaviour
 {
     public float Fuel;
 
@@ -60,7 +61,7 @@ public class FuelTank : MonoBehaviour, IGeneticConfigurable
     public float MaxFuel = 180;
     public float MinFuel = 0;
 
-    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
         if (GetConfigFromGenome)
         {

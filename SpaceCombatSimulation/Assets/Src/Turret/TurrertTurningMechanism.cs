@@ -1,11 +1,12 @@
 ﻿using Assets.Src.Evolution;
 using Assets.Src.Interfaces;
+using Assets.Src.ModuleSystem;
 using Assets.Src.Targeting;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TurrertTurningMechanism : MonoBehaviour, IGeneticConfigurable
+public class TurrertTurningMechanism : GeneticConfigurableMonobehaviour
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
     public Transform RestTarget;
@@ -94,7 +95,7 @@ public class TurrertTurningMechanism : MonoBehaviour, IGeneticConfigurable
 
     public bool GetConfigFromGenome = true;
 
-    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
         if (GetConfigFromGenome)
         {

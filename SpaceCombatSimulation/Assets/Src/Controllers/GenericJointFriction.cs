@@ -1,8 +1,9 @@
 ﻿using Assets.Src.Evolution;
 using Assets.Src.Interfaces;
+using Assets.Src.ModuleSystem;
 using UnityEngine;
 
-public class GenericJointFriction : MonoBehaviour, IGeneticConfigurable
+public class GenericJointFriction : GeneticConfigurableMonobehaviour
 {
 
     [Tooltip("mulitiplier for the angular velocity for the torque to apply.")]
@@ -45,7 +46,7 @@ public class GenericJointFriction : MonoBehaviour, IGeneticConfigurable
 
     public bool GetConfigFromGenome = true;
 
-    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
         if (GetConfigFromGenome)
         {

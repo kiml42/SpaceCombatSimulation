@@ -22,6 +22,7 @@ namespace Assets.Src.Evolution
         public float Cost { get; private set; }
         public float? Budget { get; set; }
         private int _position;
+        public int Position { get { return _position; } }
         private Stack<int> _previousPositions = new Stack<int>();
 
         public Dictionary<ModuleType, int> ModuleTypeCounts { get; private set; }
@@ -101,7 +102,6 @@ namespace Assets.Src.Evolution
         {
             if (knower != null)
             {
-
                 foreach (var type in knower.ModuleTypes.Distinct())
                 {
                     if (ModuleTypeCounts.ContainsKey(type))

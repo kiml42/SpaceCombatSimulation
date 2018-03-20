@@ -1,18 +1,11 @@
-﻿using Assets.Src.Interfaces;
-using Assets.Src.ObjectManagement;
-using Assets.Src.Rocket;
-using Assets.Src.SpaceShip;
-using Assets.Src.Targeting;
-using Assets.Src.Targeting.TargetPickers;
-using System.Collections;
+﻿using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
+using Assets.Src.ModuleSystem;
+using Assets.Src.Pilots;
 using System.Collections.Generic;
 using UnityEngine;
-using System;
-using System.Linq;
-using Assets.Src.Pilots;
-using Assets.Src.Evolution;
 
-public class ManualSpaceShipControler : MonoBehaviour, IDeactivatable, IGeneticConfigurable
+public class ManualSpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatable
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
 
@@ -129,7 +122,7 @@ public class ManualSpaceShipControler : MonoBehaviour, IDeactivatable, IGeneticC
     private float MaxAngularDragForTorquers = 2;
     private float DefaultAngularDragForTorquersProportion = 0.2f;
 
-    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
         if (GetConfigFromGenome)
         {

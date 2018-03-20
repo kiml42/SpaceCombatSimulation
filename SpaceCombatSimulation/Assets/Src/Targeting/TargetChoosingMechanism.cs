@@ -8,8 +8,9 @@ using System.Linq;
 using UnityEngine;
 using System;
 using Assets.Src.Evolution;
+using Assets.Src.ModuleSystem;
 
-public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicker, IGeneticConfigurable
+public class TargetChoosingMechanism : GeneticConfigurableMonobehaviour, IDeactivateableTargetPicker
 {
 
     private ITargetDetector _detector;
@@ -280,10 +281,11 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetPicke
     private float MaxBonus = 1800;
     private float MaxMultiplier = 100;
 
-    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
         if (GetConfigFromGenome)
         {
+            Debug.Log("Configuring " + name + "'s TCM");
             PreferedTypeBonus = genomeWrapper.GetScaledNumber(MaxBonus);
             InCorrectHemisphereBonus = genomeWrapper.GetScaledNumber(MaxBonus);
             PickerMassMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);

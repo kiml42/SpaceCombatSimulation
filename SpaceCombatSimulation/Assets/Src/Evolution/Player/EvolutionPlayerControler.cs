@@ -29,7 +29,7 @@ namespace Assets.Src.Evolution.Player
 
                 foreach (var tk in tagKnowers)
                 {
-                    tk.EnemyTags = ShipConfig.Tags;
+                    tk.KnownEnemyTags = ShipConfig.Tags;
                 }
             }
 

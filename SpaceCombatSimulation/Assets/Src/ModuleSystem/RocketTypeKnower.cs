@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Assets.Src.ModuleSystem
 {
-    public class RocketTypeKnower : MonoBehaviour, IModuleTypeKnower
+    public class RocketTypeKnower : GeneticConfigurableMonobehaviour, IModuleTypeKnower
     {
         private static readonly List<ModuleType> _types = new List<ModuleType>
         {
@@ -47,7 +47,7 @@ namespace Assets.Src.ModuleSystem
             }
         }
 
-        public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+        protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
         {
             foreach (var engine in Engines)
             {

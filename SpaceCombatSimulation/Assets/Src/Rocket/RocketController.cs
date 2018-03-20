@@ -9,8 +9,9 @@ using Assets.Src.Pilots;
 using Assets.Src.ObjectManagement;
 using System;
 using Assets.Src.Evolution;
+using Assets.Src.ModuleSystem;
 
-public class RocketController : MonoBehaviour, IGeneticConfigurable
+public class RocketController : GeneticConfigurableMonobehaviour
 {
     public TargetChoosingMechanism TargetChoosingMechanism;
     public float ShootAngle = 10;
@@ -129,7 +130,7 @@ public class RocketController : MonoBehaviour, IGeneticConfigurable
 
     public bool GetConfigFromGenome = true;
 
-    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
         if (GetConfigFromGenome)
         {

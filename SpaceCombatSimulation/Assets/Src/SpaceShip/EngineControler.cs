@@ -1,5 +1,6 @@
 ﻿using Assets.Src.Evolution;
 using Assets.Src.Interfaces;
+using Assets.Src.ModuleSystem;
 using Assets.Src.ObjectManagement;
 using System;
 using System.Collections;
@@ -7,7 +8,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 //TODO neaten up fields and methods.
-public class EngineControler : MonoBehaviour, IGeneticConfigurable
+public class EngineControler : GeneticConfigurableMonobehaviour
 {
     public Transform Pilot;
     public FuelTank FuelTank;
@@ -229,7 +230,7 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
     private float MaxShootAngle = 180;
     private float DefaultShootAngleProportion = 0.5f;
 
-    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
         if (GetConfigFromGenome)
         {
