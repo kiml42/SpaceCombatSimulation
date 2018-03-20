@@ -47,6 +47,13 @@ namespace Assets.Src.ShipCamera
 
         [Tooltip("Only target within this distance will be considered. unless hthere aren't any in this distance")]
         public float TargetFilterDistance = 2000;
+
+        [Tooltip("Extra distance around the edges of the volume contained by the targets centres to include in the camera's field of view.")]
+        public float AssumedTargetRadius = 15;
+
+        [Tooltip("Angle between the furthest out watched point and the edge of the field of view.")]
+        public float ExtraAngle = 10;
+
         private List<Rigidbody> _filteredTargets
         {
             get
@@ -97,12 +104,18 @@ namespace Assets.Src.ShipCamera
                 var cameraLocationTarget = CameraLocationOrientation.transform.position - CameraLocationOrientation.transform.forward * setBack;
 
                 var vectorToParent = CameraLocationOrientation.transform.forward;
-                var baseAngle = targets.Max(t => Vector3.Angle(vectorToParent, t.position - cameraLocationTarget));
+                var baseAngle = targets.Select(t =>
+                {
+                    var vectorToCamera = t.position - cameraLocationTarget;
+                    var angle = Vector3.Angle(vectorToParent, vectorToCamera);
+                    var extraAngleForTargetSize = (float)Math.Atan(AssumedTargetRadius / vectorToCamera.magnitude);
+                    return angle + extraAngleForTargetSize;
+                }).Max();
 
-                var desiredAngle = baseAngle * AngleProportion;
-                var automaticFieldOfView = Clamp(desiredAngle, 1, 90);
+                var desiredAngle = baseAngle * AngleProportion + ExtraAngle;
+                var FieldOfView = Clamp(desiredAngle, 1, 90);
 
-                return new ShipCamTargetValues(parentLocationTarget, automaticParentPollTarget, cameraLocationTarget, CameraLocationOrientation.forward, automaticFieldOfView, referenceVelocity, UpVector);
+                return new ShipCamTargetValues(parentLocationTarget, automaticParentPollTarget, cameraLocationTarget, CameraLocationOrientation.forward, FieldOfView, referenceVelocity, UpVector);
             }
             return null;
         }

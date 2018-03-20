@@ -22,8 +22,7 @@ namespace Assets.Src.ShipCamera
                 return _manualPanTimeRemaining > 0;
             }
         }
-
-
+        
         private float _manualZoomTimeRemaining = 0;
 
         [Tooltip("multiplier for moving the camera forwards or backwards when zooming")]

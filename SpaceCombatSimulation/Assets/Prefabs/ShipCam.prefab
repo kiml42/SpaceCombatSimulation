@@ -427,6 +427,7 @@ MonoBehaviour:
   RotationSpeed: 10
   ManualTime: 20
   MouseButtonIndex: 1
+  ZoomSpeed: 10
   SetBack: 50
   IdleRotationSpeed: -500
   FieldOfView: 80
@@ -458,6 +459,7 @@ MonoBehaviour:
   cameraPickerMode: 0
   CameraModeCyclePeriod: Infinity
   UserPriorityTime: 30
+  OnlyUseRootParents: 1
 --- !u!114 &114559164490886276
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -511,12 +513,15 @@ MonoBehaviour:
   RotationSpeed: 10
   ManualTime: 20
   MouseButtonIndex: 1
+  ZoomSpeed: 10
   ZeroScoreDistance: 2000
   AngleProportion: 1.8
   MinimumSetBackDistance: 400
   MaximumSetBackDistance: 5000
   CameraLocationOrientation: {fileID: 4948679709624696}
   TargetFilterDistance: 2000
+  AssumedTargetRadius: 15
+  ExtraAngle: 10
 --- !u!114 &114682085724931116
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -560,6 +565,7 @@ MonoBehaviour:
   RotationSpeed: 10
   ManualTime: 20
   MouseButtonIndex: 1
+  ZoomSpeed: 10
   FocusMoveSpeed: 1
   FocusAnglePower: -0.67
   FocusAngleMultiplier: 1000
@@ -619,6 +625,7 @@ MonoBehaviour:
     type: 3}
   ShowReticles: 1
   MinShowDistanceDistance: 20
+  OnlyDrawReticlesForTopParent: 1
 --- !u!124 &124747188152472936
 Behaviour:
   m_ObjectHideFlags: 1

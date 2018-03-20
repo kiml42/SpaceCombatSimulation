@@ -382,11 +382,15 @@ MonoBehaviour:
   RotationSpeed: 10
   ManualTime: 20
   MouseButtonIndex: 1
-  MaxDistance: 6000
+  ZoomSpeed: 10
+  ZeroScoreDistance: 2000
   AngleProportion: 1.8
   MinimumSetBackDistance: 400
   MaximumSetBackDistance: 5000
   CameraLocationOrientation: {fileID: 4161684310011530}
+  TargetFilterDistance: 2000
+  AssumedTargetRadius: 50
+  ExtraAngle: 10
 --- !u!114 &114313777679375054
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -403,6 +407,7 @@ MonoBehaviour:
   RotationSpeed: 10
   ManualTime: 20
   MouseButtonIndex: 1
+  ZoomSpeed: 10
   SetBack: 250
   IdleRotationSpeed: -500
   FieldOfView: 80
@@ -426,8 +431,11 @@ MonoBehaviour:
   ReticleTexture: {fileID: 2800000, guid: 14bf342960bd97948b0b45ba35ebf57f, type: 3}
   HealthFGTexture: {fileID: 2800000, guid: 05d0476b5848f0441a101a2ccfa62101, type: 3}
   HealthBGTexture: {fileID: 2800000, guid: 21488ce2c0d040c4a94c9999c6beee92, type: 3}
+  FollowedTargetReticleTexture: {fileID: 0}
+  WatchedTargetReticleTexture: {fileID: 0}
   ShowReticles: 1
   MinShowDistanceDistance: 20
+  OnlyDrawReticlesForTopParent: 1
 --- !u!114 &114409427314771528
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -455,6 +463,7 @@ MonoBehaviour:
   cameraPickerMode: 0
   CameraModeCyclePeriod: Infinity
   UserPriorityTime: 30
+  OnlyUseRootParents: 1
 --- !u!114 &114474380245739952
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -471,6 +480,7 @@ MonoBehaviour:
   RotationSpeed: 10
   ManualTime: 20
   MouseButtonIndex: 1
+  ZoomSpeed: 10
   FocusMoveSpeed: 1
   FocusAnglePower: -0.5
   FocusAngleMultiplier: 1000
