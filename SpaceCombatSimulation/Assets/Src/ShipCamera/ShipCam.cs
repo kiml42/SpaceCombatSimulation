@@ -192,11 +192,7 @@ namespace Assets.Src.ShipCamera
 
             if(Input.GetMouseButtonUp(SelectTargetButtonIndex))
             {
-                var clicked = BodyUnderPointer();
-                if (clicked != null)
-                {
-                    TargetToWatch = BodyUnderPointer();
-                }
+                TargetToWatch = BodyUnderPointer() ?? TargetToWatch;
             }
 
             if(TargetToWatch == null)
