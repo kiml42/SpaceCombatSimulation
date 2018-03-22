@@ -83,6 +83,10 @@ namespace Assets.Src.ShipCamera
             }
         }
 
+        private int _calls = 0;
+        public bool OnlyUseRootParents = true;
+        public int SelectTargetButtonIndex = 0;
+        
         // Use this for initialization
         void Start()
         {
@@ -171,12 +175,11 @@ namespace Assets.Src.ShipCamera
             _followPicker = new CombinedTargetPicker(followPickers);
         }
 
-        private int _calls = 0;
-        public bool OnlyUseRootParents = true;
 
         // Update is called once per frame
         void FixedUpdate()
         {
+
             if (Input.GetKeyUp(KeyCode.Z))
             {
                 PickRandomToFollow();
@@ -187,7 +190,19 @@ namespace Assets.Src.ShipCamera
                 PickBestTargetToFollow();
             }
 
-            PickTargetToWatch();
+            if(Input.GetMouseButtonUp(SelectTargetButtonIndex))
+            {
+                var clicked = BodyUnderPointer();
+                if (clicked != null)
+                {
+                    TargetToWatch = BodyUnderPointer();
+                }
+            }
+
+            if(TargetToWatch == null)
+            {
+                PickTargetToWatch();
+            }
 
             var totalTranslateSpeed = TranslateSpeed + (FollowedObjectTranslateSpeedMultiplier * Time.deltaTime);
             
@@ -217,6 +232,19 @@ namespace Assets.Src.ShipCamera
                 _calls++;
             }
         }
+
+        private Rigidbody BodyUnderPointer()
+        {
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit))
+            {
+                return hit.transform.GetComponent<Rigidbody>();
+            }
+            return null;
+        } 
         
         private void PickTargetToWatch()
         {

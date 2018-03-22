@@ -463,7 +463,9 @@ MonoBehaviour:
   cameraPickerMode: 0
   CameraModeCyclePeriod: Infinity
   UserPriorityTime: 30
+  TestObject: {fileID: 4476330559729020, guid: 66b6e30c7adaffe4f8c11bee6df7082a, type: 2}
   OnlyUseRootParents: 1
+  SelectTargetButtonIndex: 0
 --- !u!114 &114474380245739952
 MonoBehaviour:
   m_ObjectHideFlags: 1
