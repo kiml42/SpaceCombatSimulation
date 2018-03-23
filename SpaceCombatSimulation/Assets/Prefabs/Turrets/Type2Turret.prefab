@@ -196,6 +196,7 @@ GameObject:
   - component: {fileID: 114043299542033894}
   - component: {fileID: 114328088543714880}
   - component: {fileID: 114294135880629680}
+  - component: {fileID: 114493144024307614}
   m_Layer: 8
   m_Name: Type2Turret
   m_TagString: Untagged
@@ -872,6 +873,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
@@ -894,6 +896,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 80
   PickerAimingObject: {fileID: 54136877300926014}
   PickerApproachWeighting: 5
+  PreviousTargetBonus: 500
   GetConfigFromGenome: 1
 --- !u!114 &114269210039907450
 MonoBehaviour:
@@ -906,6 +909,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ec4508e0c0d409448a9d406412cb2b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   RestTarget: {fileID: 4507754672032468}
   TurnTable: {fileID: 54160784929646596}
   ElevationHub: {fileID: 54136877300926014}
@@ -927,11 +931,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Types: 01000000
   Cost: 180
-  ExtraConfigurables:
-  - {fileID: 114325656387658718}
-  - {fileID: 114754421758235748}
 --- !u!114 &114306497983771438
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -972,9 +974,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Types: 
   Cost: 0
-  ExtraConfigurables: []
 --- !u!114 &114328088543714880
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -998,12 +1000,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e74601cf9d2f67a4daff32dea07fee84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   AimingObject: {fileID: 54136877300926014}
   ShootAngle: 1
   AvoidFriendlyFire: 1
   FriendlyDetectionDistance: 80
   MinFriendlyDetectionDistance: 1.5
   GetConfigFromGenome: 0
+--- !u!114 &114493144024307614
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1866709225031140}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0f7c7a2b22a34548847247f5e09bad8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeferToParent: 1
+  EnemyTags:
+  - Enemy
 --- !u!114 &114569116938896616
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1015,6 +1032,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fbab2d8ba61987347953f7c003bfc3b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Friction: 0.4
   GetConfigFromGenome: 1
 --- !u!114 &114714754333530302
@@ -1051,9 +1069,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Types: 
   Cost: 0
-  ExtraConfigurables: []
 --- !u!114 &114792225503145664
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1095,6 +1113,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fbab2d8ba61987347953f7c003bfc3b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Friction: 0.4
   GetConfigFromGenome: 1
 --- !u!114 &114902381399359470

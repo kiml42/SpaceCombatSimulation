@@ -44,6 +44,7 @@ GameObject:
   - component: {fileID: 114651903247474522}
   - component: {fileID: 114094802099809050}
   - component: {fileID: 114494996643503678}
+  - component: {fileID: 114291342771100886}
   m_Layer: 0
   m_Name: RocketDispenser
   m_TagString: Team1
@@ -297,6 +298,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83e58fa7165ce5a45928cef3bc7fa9c2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   TagChildren: 1
   Projectile: {fileID: 54991379400455944, guid: 8bf03007d4e417c4087307829906f7d6,
     type: 2}
@@ -309,6 +311,20 @@ MonoBehaviour:
   RandomSpeed: 0.5
   LoadTime: 3
   GetConfigFromGenome: 1
+--- !u!114 &114291342771100886
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1489824746261682}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0f7c7a2b22a34548847247f5e09bad8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeferToParent: 1
+  EnemyTags:
+  - Enemy
 --- !u!114 &114479078115912028
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -350,6 +366,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Types: 01000000
   Cost: 200
 --- !u!114 &114651903247474522
@@ -377,6 +394,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
@@ -399,6 +417,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 0
   PickerAimingObject: {fileID: 0}
   PickerApproachWeighting: 0
+  PreviousTargetBonus: 500
   GetConfigFromGenome: 1
 --- !u!114 &114976923276652010
 MonoBehaviour:

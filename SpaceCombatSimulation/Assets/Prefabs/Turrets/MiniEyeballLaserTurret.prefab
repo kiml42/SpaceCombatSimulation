@@ -426,6 +426,7 @@ GameObject:
   - component: {fileID: 114008024248741744}
   - component: {fileID: 114000378633040010}
   - component: {fileID: 114902183505451084}
+  - component: {fileID: 114012121075913466}
   m_Layer: 8
   m_Name: MiniEyeballLaserTurret
   m_TagString: Team1
@@ -1770,6 +1771,20 @@ MonoBehaviour:
   Colour: {r: 0.42647058, g: 0.42647058, b: 0.458, a: 0}
   Depth: 3
   SetInStart: 0
+--- !u!114 &114012121075913466
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1837229257017258}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0f7c7a2b22a34548847247f5e09bad8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeferToParent: 1
+  EnemyTags:
+  - Enemy
 --- !u!114 &114115062143682100
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1781,6 +1796,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 256084f3d75ae614fa611684f16a9d12, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   RestTarget: {fileID: 4922111931230516}
   Ball: {fileID: 54694517608553766}
   MotorForce: 40
@@ -1853,6 +1869,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
@@ -1876,6 +1893,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 80
   PickerAimingObject: {fileID: 54694517608553766}
   PickerApproachWeighting: 20
+  PreviousTargetBonus: 500
   GetConfigFromGenome: 1
 --- !u!114 &114704847875723046
 MonoBehaviour:
@@ -1942,6 +1960,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd0a30461d8031f48a342fb404f57543, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Friction: 50
   _hinge: {fileID: 153318544335635452}
   _thisBody: {fileID: 54694517608553766}
@@ -1989,9 +2008,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Types: 
   Cost: 0
-  ExtraConfigurables: []
 --- !u!114 &114902183505451084
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2003,10 +2022,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Types: 01000000
   Cost: 160
-  ExtraConfigurables:
-  - {fileID: 114855848627196506}
 --- !u!135 &135981587219583104
 SphereCollider:
   m_ObjectHideFlags: 1

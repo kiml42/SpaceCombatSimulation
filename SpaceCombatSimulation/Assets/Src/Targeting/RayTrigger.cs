@@ -1,8 +1,6 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class RayTrigger : MonoBehaviour, IFireControl
@@ -33,7 +31,7 @@ public class RayTrigger : MonoBehaviour, IFireControl
                 //is a hit
                 if (ShootAnyEnemy)
                 {
-                    var tags = TargetChoosingMechanism.EnemyTags;
+                    var tags = TargetChoosingMechanism.EnemyTagKnower.KnownEnemyTags;
                     return tags.Contains(hit.transform.tag);
                 }
 

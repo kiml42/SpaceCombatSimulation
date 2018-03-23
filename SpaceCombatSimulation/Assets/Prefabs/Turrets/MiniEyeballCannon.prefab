@@ -247,6 +247,7 @@ GameObject:
   - component: {fileID: 114855057622574748}
   - component: {fileID: 114980672151214202}
   - component: {fileID: 114802747981876806}
+  - component: {fileID: 114997201852970272}
   m_Layer: 8
   m_Name: MiniEyeballCannon
   m_TagString: Team1
@@ -1026,6 +1027,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
@@ -1049,6 +1051,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 80
   PickerAimingObject: {fileID: 54959959390863300}
   PickerApproachWeighting: 20
+  PreviousTargetBonus: 500
   GetConfigFromGenome: 1
 --- !u!114 &114240850328804124
 MonoBehaviour:
@@ -1076,6 +1079,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e74601cf9d2f67a4daff32dea07fee84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   AimingObject: {fileID: 54959959390863300}
   ShootAngle: 10
   AvoidFriendlyFire: 1
@@ -1123,6 +1127,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd0a30461d8031f48a342fb404f57543, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Friction: 50
   _hinge: {fileID: 153548075016921346}
   _thisBody: {fileID: 54959959390863300}
@@ -1154,10 +1159,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Types: 01000000
   Cost: 160
-  ExtraConfigurables:
-  - {fileID: 114874839691075796}
 --- !u!114 &114855057622574748
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1183,9 +1187,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Types: 
   Cost: 0
-  ExtraConfigurables: []
 --- !u!114 &114928060284331826
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1208,6 +1212,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 256084f3d75ae614fa611684f16a9d12, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   RestTarget: {fileID: 4121642326064828}
   Ball: {fileID: 54959959390863300}
   MotorForce: 40
@@ -1255,6 +1260,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Type: 5
+--- !u!114 &114997201852970272
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1808045139990444}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0f7c7a2b22a34548847247f5e09bad8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeferToParent: 1
+  EnemyTags:
+  - Enemy
 --- !u!135 &135978750235818190
 SphereCollider:
   m_ObjectHideFlags: 1

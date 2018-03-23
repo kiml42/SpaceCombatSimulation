@@ -332,6 +332,7 @@ GameObject:
   - component: {fileID: 114480404348208448}
   - component: {fileID: 114647071250511262}
   - component: {fileID: 114643007884192298}
+  - component: {fileID: 114506968631610576}
   m_Layer: 8
   m_Name: EyeballLaserTurret
   m_TagString: Team1
@@ -2045,6 +2046,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 256084f3d75ae614fa611684f16a9d12, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   RestTarget: {fileID: 4474036551127820}
   Ball: {fileID: 54896033135306754}
   MotorForce: 60
@@ -2125,6 +2127,20 @@ MonoBehaviour:
   MaxDistance: 100000
   MinDistance: 1.5
   ShootAnyEnemy: 1
+--- !u!114 &114506968631610576
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1437211957521406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0f7c7a2b22a34548847247f5e09bad8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeferToParent: 1
+  EnemyTags:
+  - Enemy
 --- !u!114 &114535490914927928
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2181,10 +2197,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Types: 01000000
   Cost: 180
-  ExtraConfigurables:
-  - {fileID: 114757632400514190}
 --- !u!114 &114647071250511262
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2208,6 +2223,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd0a30461d8031f48a342fb404f57543, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Friction: 300
   _hinge: {fileID: 153297127988232016}
   _thisBody: {fileID: 54896033135306754}
@@ -2224,9 +2240,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Types: 
   Cost: 0
-  ExtraConfigurables: []
 --- !u!114 &114814751877932570
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2249,6 +2265,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
@@ -2272,6 +2289,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 80
   PickerAimingObject: {fileID: 54896033135306754}
   PickerApproachWeighting: 5
+  PreviousTargetBonus: 500
   GetConfigFromGenome: 1
 --- !u!114 &114876910892675524
 MonoBehaviour:

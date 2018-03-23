@@ -29,6 +29,7 @@ GameObject:
   - component: {fileID: 114575573135212276}
   - component: {fileID: 114267718403293904}
   - component: {fileID: 114133651317761492}
+  - component: {fileID: 114545783740981016}
   m_Layer: 0
   m_Name: BurstRocketDispenser
   m_TagString: Team1
@@ -285,6 +286,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Types: 01000000
   Cost: 200
 --- !u!114 &114267718403293904
@@ -299,6 +301,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Type: 5
+--- !u!114 &114545783740981016
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1088526681955390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0f7c7a2b22a34548847247f5e09bad8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeferToParent: 1
+  EnemyTags:
+  - Enemy
 --- !u!114 &114568050524591240
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -339,6 +355,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
@@ -361,6 +378,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 0
   PickerAimingObject: {fileID: 0}
   PickerApproachWeighting: 0
+  PreviousTargetBonus: 500
   GetConfigFromGenome: 1
 --- !u!114 &114844752098337668
 MonoBehaviour:
@@ -398,6 +416,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83e58fa7165ce5a45928cef3bc7fa9c2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   TagChildren: 1
   Projectile: {fileID: 54991379400455944, guid: 8bf03007d4e417c4087307829906f7d6,
     type: 2}

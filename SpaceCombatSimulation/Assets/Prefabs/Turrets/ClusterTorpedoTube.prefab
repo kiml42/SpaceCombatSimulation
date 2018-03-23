@@ -63,6 +63,7 @@ GameObject:
   - component: {fileID: 114840576299562410}
   - component: {fileID: 114751207751942540}
   - component: {fileID: 114515468842287428}
+  - component: {fileID: 114946415720464784}
   m_Layer: 0
   m_Name: ClusterTorpedoTube
   m_TagString: Untagged
@@ -193,6 +194,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83e58fa7165ce5a45928cef3bc7fa9c2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   TagChildren: 1
   Projectile: {fileID: 54626451642089132, guid: f799f57ace58a9d4eb0f518258a0971c,
     type: 2}
@@ -227,6 +229,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Types: 01000000
   Cost: 210
 --- !u!114 &114751207751942540
@@ -285,6 +288,20 @@ MonoBehaviour:
   Colour: {r: 0.42647058, g: 0.42647058, b: 0.458, a: 0}
   Depth: 3
   SetInStart: 0
+--- !u!114 &114946415720464784
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1897952689785042}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0f7c7a2b22a34548847247f5e09bad8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeferToParent: 1
+  EnemyTags:
+  - Enemy
 --- !u!114 &114986679433825684
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -296,6 +313,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
@@ -318,6 +336,7 @@ MonoBehaviour:
   PickerAimedAtMultiplier: 0
   PickerAimingObject: {fileID: 0}
   PickerApproachWeighting: 0
+  PreviousTargetBonus: 500
   GetConfigFromGenome: 1
 --- !u!136 &136529036643778040
 CapsuleCollider:

@@ -1,18 +1,15 @@
-﻿using Assets.Src.Interfaces;
+﻿using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
+using Assets.Src.ModuleSystem;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
 using Assets.Src.Targeting.TargetPickers;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using System;
-using Assets.Src.Evolution;
-using Assets.Src.ModuleSystem;
 
-public class TargetChoosingMechanism : GeneticConfigurableMonobehaviour, IDeactivateableTargetPicker
+public class TargetChoosingMechanism : GeneticConfigurableMonobehaviour, IDeactivateableTargetKnower
 {
-
     private ITargetDetector _detector;
     private ITargetPicker _targetPicker;
     private Rigidbody _rigidbody;
@@ -31,31 +28,7 @@ public class TargetChoosingMechanism : GeneticConfigurableMonobehaviour, IDeacti
     [Tooltip("time to wait between polling for better targets (seconds).")]
     public float PollInterval = 0;
     private float _pollCountdonwn = 0;
-
-
-    #region EnemyTags
-    public void AddEnemyTag(string newTag)
-    {
-        var tags = EnemyTags.ToList();
-        tags.Add(newTag);
-        EnemyTags = tags.Distinct().ToList();
-    }
-
-    public List<string> KnownEnemyTags
-    {
-        get
-        {
-            return EnemyTags;
-        }
-        set
-        {
-            EnemyTags = value;
-        }
-    }
-
-    public List<string> EnemyTags;
-    #endregion
-
+    
     [Header("TargetPickerVariables")]
     #region TargetPickerVariables
     [Header("TargetTypes")]
@@ -110,21 +83,27 @@ public class TargetChoosingMechanism : GeneticConfigurableMonobehaviour, IDeacti
     #region knowsCurrentTarget
     public Target CurrentTarget { get; set; }
     #endregion
+
+    public IKnowsEnemyTags EnemyTagKnower;
     
     private bool _active = true;
 
     // Use this for initialization
     void Start ()
     {
+        EnemyTagKnower = EnemyTagKnower ?? GetComponent<IKnowsEnemyTags>() ?? GetComponentInParent<IKnowsEnemyTags>();
+        if(EnemyTagKnower == null)
+        {
+            Debug.LogError("Could not find enemy tag source for target picker");
+            _active = false;
+            return;
+        }
         var speedKnower = GetComponent<IKnowsProjectileSpeed>();
         var projectileSpeed = speedKnower != null ? speedKnower.KnownProjectileSpeed : null;
         _rigidbody = GetComponent<Rigidbody>();
         PickerAimingObject = PickerAimingObject ?? _rigidbody;
 
-        _detector = new RepositoryTargetDetector()
-        {
-            EnemyTags = EnemyTags
-        };
+        _detector = new RepositoryTargetDetector(EnemyTagKnower);
 
         var pickers = new List<ITargetPicker>
         {
@@ -209,7 +188,7 @@ public class TargetChoosingMechanism : GeneticConfigurableMonobehaviour, IDeacti
             if (targetIsInvalid || (ContinuallyCheckForTargets && _pollCountdonwn <= 0))
             {
                 //either the target is invalid, or the poll interval has elapsed and the ContinuallyCheckForTargets boolean is true, so a new poll should be made.
-                if (EnemyTags == null || !EnemyTags.Any())
+                if (EnemyTagKnower.KnownEnemyTags == null || !EnemyTagKnower.KnownEnemyTags.Any())
                 {
                     Debug.LogWarning(name + " has no enemy tags configured.");
                 }
@@ -299,12 +278,6 @@ public class TargetChoosingMechanism : GeneticConfigurableMonobehaviour, IDeacti
             PickerAimedAtMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
             PickerApproachWeighting = genomeWrapper.GetScaledNumber(15);
             PreviousTargetBonus = genomeWrapper.GetScaledNumber(MaxBonus);
-
-            EnemyTags = genomeWrapper.KnownEnemyTags;
-            _detector = new RepositoryTargetDetector()
-            {
-                EnemyTags = EnemyTags
-            };
         }
 
         return genomeWrapper;

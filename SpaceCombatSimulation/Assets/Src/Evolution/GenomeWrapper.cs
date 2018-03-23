@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Assets.Src.Evolution
 {
-    public class GenomeWrapper : IKnowsEnemyTags
+    public class GenomeWrapper
     {
         private int _geneLength;
         private string _genome;
@@ -68,17 +68,8 @@ namespace Assets.Src.Evolution
 
         private Stack<ModuleRecord> _previousModuleRecords = new Stack<ModuleRecord>();
         private ModuleRecord _currentModuleRecord;
-
-        #region EnemyTags
-        public void AddEnemyTag(string newTag)
-        {
-            var tags = KnownEnemyTags.ToList();
-            tags.Add(newTag);
-            KnownEnemyTags = tags.Distinct().ToList();
-        }
-
-        public List<string> KnownEnemyTags { get; set; }
-        #endregion
+        
+        public List<string> EnemyTags { get; set; }
 
         public GenomeWrapper(string genome, List<string> enemyTags = null, int geneLength = DEFAULT_GENE_LENGTH)
         {
@@ -86,7 +77,7 @@ namespace Assets.Src.Evolution
             _geneLength = geneLength;
             Budget = null; //default the budget to null, can be set later.
             UsedLocations = new List<Vector3>();
-            KnownEnemyTags = enemyTags;
+            EnemyTags = enemyTags;
             ModuleTypeCounts = new Dictionary<ModuleType, int>();
             _topModuleRecord = new ModuleRecord();
             _currentModuleRecord = _topModuleRecord;

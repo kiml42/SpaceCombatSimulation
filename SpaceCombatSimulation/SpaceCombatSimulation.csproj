@@ -13,11 +13,13 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Full v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile></CompilerResponseFile>
+    <CompilerResponseFile>
+    </CompilerResponseFile>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>StandaloneWindows64:19</UnityBuildTarget>
     <UnityVersion>2017.3.1f1</UnityVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -343,7 +345,7 @@
     <Compile Include="Assets\Src\Evolution\StringMutator.cs" />
     <Compile Include="Assets\Src\Health\DamagePacket.cs" />
     <Compile Include="Assets\Src\Interfaces\IDeactivatable.cs" />
-    <Compile Include="Assets\Src\Interfaces\IDeactivateableTargetPicker.cs" />
+    <Compile Include="Assets\Src\Interfaces\IDeactivateableTargetKnower.cs" />
     <Compile Include="Assets\Src\Interfaces\IDestinationChooser.cs" />
     <Compile Include="Assets\Src\Interfaces\IDestroyer.cs" />
     <Compile Include="Assets\Src\Interfaces\IDetonator.cs" />
@@ -352,7 +354,6 @@
     <Compile Include="Assets\Src\Interfaces\IGeneticConfigurable.cs" />
     <Compile Include="Assets\Src\Interfaces\IKnowsCurrentTarget.cs" />
     <Compile Include="Assets\Src\Interfaces\IKnowsEnemyTag.cs" />
-    <Compile Include="Assets\Src\Interfaces\IKnowsEnemyTagsAndCurrentTarget.cs" />
     <Compile Include="Assets\Src\Interfaces\IKnowsProjectileSpeed.cs" />
     <Compile Include="Assets\Src\Interfaces\IModuleTypeKnower.cs" />
     <Compile Include="Assets\Src\Interfaces\IPilot.cs" />
@@ -413,6 +414,7 @@
     <Compile Include="Assets\Src\SpaceShip\TorquerController.cs" />
     <Compile Include="Assets\Src\Targeting\AngleTrigger.cs" />
     <Compile Include="Assets\Src\Targeting\ChildTagTargetDetector.cs" />
+    <Compile Include="Assets\Src\Targeting\EnemyTagSource.cs" />
     <Compile Include="Assets\Src\Targeting\ImpactDetonator.cs" />
     <Compile Include="Assets\Src\Targeting\PotentialTarget.cs" />
     <Compile Include="Assets\Src\Targeting\ProximityApproachDetonator.cs" />

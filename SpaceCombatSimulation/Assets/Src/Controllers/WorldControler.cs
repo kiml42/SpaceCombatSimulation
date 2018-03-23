@@ -1,42 +1,21 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace Assets.Src.Controllers
 {
-    class WorldControler : MonoBehaviour, IKnowsEnemyTags
+    class WorldControler : MonoBehaviour
     {
         public bool FollowShips = true;
         public string TarGetTag = "Enemy";
         public bool TagChildren = false;
         public bool ShouldSpawnDrones = true;
         public bool ShouldSetEnemyTag = false;
-
-        #region EnemyTags
-        void IKnowsEnemyTags.AddEnemyTag(string newTag)
-        {
-            var tags = EnemyTags.ToList();
-            tags.Add(newTag);
-            EnemyTags = tags.Distinct().ToList();
-        }
-
-        List<string> IKnowsEnemyTags.KnownEnemyTags { get
-            {
-                return EnemyTags;
-            }
-            set
-            {
-                EnemyTags = value;
-            }
-        }
-
+        
         public List<string> EnemyTags;
-        #endregion
 
         public Rigidbody Drone;
 
@@ -227,11 +206,11 @@ namespace Assets.Src.Controllers
             {
                 if (_reload <= 0)
                 {
-                    var bearing = UnityEngine.Random.rotation;
-                    var location = (bearing * new Vector3(0, 0, UnityEngine.Random.value * Radius)) + transform.position;
+                    var bearing = Random.rotation;
+                    var location = (bearing * new Vector3(0, 0, Random.value * Radius)) + transform.position;
                     var drone = Instantiate(Drone, location, transform.rotation);
 
-                    var velocity = SpeedScaler * UnityEngine.Random.insideUnitSphere;
+                    var velocity = SpeedScaler * Random.insideUnitSphere;
                     drone.velocity = velocity;
                     
                     if (ShouldSetEnemyTag) {

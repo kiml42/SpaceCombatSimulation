@@ -1,41 +1,17 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class SpawnTurret : MonoBehaviour, IKnowsEnemyTags
+public class SpawnTurret : MonoBehaviour
 {
-    public TargetChoosingMechanism EnemyTagSource;
-    public IKnowsEnemyTags _enemyTagSource;
+    public IKnowsEnemyTags EnemyTagSource;
     public bool TagChildren = false;
 
     public Transform ParentForTurret;
-
-
-    #region EnemyTags
-    public void AddEnemyTag(string newTag)
-    {
-        var tags = EnemyTags;
-        tags.Add(newTag);
-        EnemyTags = tags.Distinct().ToList();
-    }
-
-    public List<string> KnownEnemyTags
-    {
-        get
-        {
-            return EnemyTags;
-        }
-        set
-        {
-            EnemyTags = value;
-        }
-    }
-
+    
     public List<string> EnemyTags;
-    #endregion
 
     public Transform TurretPrefab;
 
@@ -44,16 +20,12 @@ public class SpawnTurret : MonoBehaviour, IKnowsEnemyTags
 
         if(EnemyTagSource == null && transform.parent != null)
         {
-            _enemyTagSource = transform.parent.GetComponent<IKnowsEnemyTags>();
-        }
-        else
-        {
-            _enemyTagSource = EnemyTagSource;
+            EnemyTagSource = transform.parent.GetComponent<IKnowsEnemyTags>();
         }
 
-        if(_enemyTagSource != null)
+        if(EnemyTagSource != null)
         {
-            EnemyTags = _enemyTagSource.KnownEnemyTags;
+            EnemyTags = EnemyTagSource.KnownEnemyTags;
         }
 
         if(ParentForTurret == null && transform.parent != null)
