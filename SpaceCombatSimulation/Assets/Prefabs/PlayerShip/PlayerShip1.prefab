@@ -3502,6 +3502,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54087358730236130}
@@ -3527,6 +3528,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54684426007771114}
@@ -3640,6 +3642,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54923186016187324}
@@ -3665,6 +3668,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54486208755904514}
@@ -3732,6 +3736,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54333775750004750}
@@ -3757,6 +3762,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54311300306141198}
@@ -3849,6 +3855,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c8a51f1938e82d149bf175247c5dddb2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   ShootAngle: 30
   TorqueMultiplier: 8000
   StartDelay: 0
@@ -3946,6 +3953,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54005488202487768}
@@ -3971,6 +3979,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54618770371209884}
@@ -4017,12 +4026,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
   PollInterval: 1
   EnemyTags:
   - Enemy
+  - Team2
+  - Team3
+  - Team4
+  - Team5
+  - Team6
   DisalowedTypes: 000000000100000002000000
   PreferdTypes: 03000000040000000700000008000000
   PreferedTypeBonus: 100
@@ -4052,6 +4067,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54982811263021852}
@@ -4077,6 +4093,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54318108759424522}
@@ -4123,6 +4140,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ConfigIndex: -1
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54127611332422456}

@@ -58,7 +58,7 @@ namespace Assets.Src.ShipCamera
         {
             get
             {
-                var targets = _shipCam.TargetsToWatch.Where(t => t.transform.IsValid()).ToList();
+                var targets = _shipCam.TargetsToWatch.Where(t => t != null && t.transform.IsValid()).ToList();
 
                 var closeTargets = targets.Where(t => Vector3.Distance(t.position,_shipCam.FollowedTarget.position) < TargetFilterDistance).ToList();
 
