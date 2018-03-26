@@ -1,16 +1,12 @@
-﻿using Assets.Src.Interfaces;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
 {
-    class InCorrectHemisphereTargetPicker : ITargetPicker
+    class InCorrectHemisphereTargetPicker : GeneticallyConfigurableTargetPicker
     {
         private Transform _sourceObject;
-        public float ExtraScoreForValidTargets = 1000;
         public bool KullInvalidTargets = true;
 
         public InCorrectHemisphereTargetPicker(Transform sourceObject)
@@ -18,13 +14,13 @@ namespace Assets.Src.Targeting.TargetPickers
             _sourceObject = sourceObject;
         }
 
-        public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
+        public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             potentialTargets = potentialTargets.Select(t => {
                 if (t.LocationInOthersSpace(_sourceObject, null).y >= 0)
                 {
                     t.IsValidForCurrentPicker = true;
-                    t.Score += ExtraScoreForValidTargets;
+                    t.Score += FlatBoost;
                 } else
                 {
                     t.IsValidForCurrentPicker = false;

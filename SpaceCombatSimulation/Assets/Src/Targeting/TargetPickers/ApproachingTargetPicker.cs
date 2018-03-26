@@ -1,24 +1,21 @@
-﻿using Assets.Src.Interfaces;
+﻿using Assets.Src.Evolution;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
 {
-    class ApproachingTargetPicker : ITargetPicker
+    class ApproachingTargetPicker : GeneticallyConfigurableTargetPicker
     {
         private Rigidbody _sourceObject;
-        private readonly float _weighting;
 
-        public ApproachingTargetPicker(Rigidbody sourceObject, float weighting = 1)
+        public ApproachingTargetPicker(Rigidbody sourceObject)
         {
             _sourceObject = sourceObject;
-            _weighting = weighting;
         }
 
-        public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
+        public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             return potentialTargets.Select(t => AddScoreForDifference(t));
         }
@@ -37,7 +34,7 @@ namespace Assets.Src.Targeting.TargetPickers
 
             angleComponent = (float)Math.Pow(angleComponent, 3); //decrease influence near 90degrees
 
-            var score = angleComponent * relativeVelocity.magnitude * _weighting;
+            var score = angleComponent * relativeVelocity.magnitude * Multiplier;
 
             target.Score += score;
 

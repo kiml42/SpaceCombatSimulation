@@ -1,16 +1,13 @@
-﻿using Assets.Src.Interfaces;
-using System;
+﻿using Assets.Src.Evolution;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
 {
-    class LineOfSightTargetPicker : ITargetPicker
+    class LineOfSightTargetPicker : GeneticallyConfigurableTargetPicker
     {
         private Transform _sourceObject;
-        public float BonusForCorrectObject = 1000;
         public bool KullInvalidTargets = true;
         public float MinDetectionDistance = 2;
 
@@ -19,7 +16,7 @@ namespace Assets.Src.Targeting.TargetPickers
             _sourceObject = sourceObject;
         }
 
-        public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
+        public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             potentialTargets =  potentialTargets.Select(t => {
                 var direction = t.Transform.position - _sourceObject.position;
@@ -33,7 +30,7 @@ namespace Assets.Src.Targeting.TargetPickers
                     {
                         //is hiting correct object
                         t.IsValidForCurrentPicker = true;
-                        t.Score += BonusForCorrectObject;
+                        t.Score += FlatBoost;
                     } else
                     {
                         t.IsValidForCurrentPicker = false;

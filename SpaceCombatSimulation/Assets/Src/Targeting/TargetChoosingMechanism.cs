@@ -3,7 +3,6 @@ using Assets.Src.Interfaces;
 using Assets.Src.ModuleSystem;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
-using Assets.Src.Targeting.TargetPickers;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -11,7 +10,6 @@ using UnityEngine;
 public class TargetChoosingMechanism : GeneticConfigurableMonobehaviour, IDeactivateableTargetKnower
 {
     private ITargetDetector _detector;
-    private ITargetPicker _targetPicker;
     private Rigidbody _rigidbody;
 
     [Tooltip("Check for best targets every frame if true, otherwise only on target loss")]
@@ -85,98 +83,22 @@ public class TargetChoosingMechanism : GeneticConfigurableMonobehaviour, IDeacti
     #endregion
 
     public IKnowsEnemyTags EnemyTagKnower;
+    public CombinedTargetPicker TargetPicker;
     
     private bool _active = true;
 
     // Use this for initialization
     void Start ()
     {
-        EnemyTagKnower = EnemyTagKnower ?? GetComponent<IKnowsEnemyTags>() ?? GetComponentInParent<IKnowsEnemyTags>();
+        EnemyTagKnower = EnemyTagKnower ?? GetComponentInParent<IKnowsEnemyTags>();
         if(EnemyTagKnower == null)
         {
             Debug.LogError("Could not find enemy tag source for target picker");
             _active = false;
             return;
         }
-        var speedKnower = GetComponent<IKnowsProjectileSpeed>();
-        var projectileSpeed = speedKnower != null ? speedKnower.KnownProjectileSpeed : null;
         _rigidbody = GetComponent<Rigidbody>();
-        PickerAimingObject = PickerAimingObject ?? _rigidbody;
-
         _detector = new RepositoryTargetDetector(EnemyTagKnower);
-
-        var pickers = new List<ITargetPicker>
-        {
-            new ShipTypeTagetPicker
-            {
-                DisalowedTypes = DisalowedTypes,
-                PreferdTypes = PreferdTypes,
-                PreferedTypeBonus = PreferedTypeBonus
-            }
-        };
-        
-
-        if(HemisphereFilterObject != null && InCorrectHemisphereBonus != 0)
-        {
-            pickers.Add(new InCorrectHemisphereTargetPicker(HemisphereFilterObject)
-            {
-                ExtraScoreForValidTargets = InCorrectHemisphereBonus,
-                KullInvalidTargets = DropInvalidTargetsWhenTereAreValidTargets
-            });
-        }
-
-        if (MinimumMass > 0 || PickerMassMultiplier != 0)
-        {
-            pickers.Add(new MassTargetPicker
-            {
-                MinMass = MinimumMass,
-                MassMultiplier = PickerMassMultiplier,
-                OverMinMassBonus = PickerOverMinMassBonus,
-                KullInvalidTargets = DropInvalidTargetsWhenTereAreValidTargets
-            });
-        }
-
-        if(PickerDistanceMultiplier != 0 || (PickerInRangeBonus != 0 && PickerRange > 0))
-        {
-            pickers.Add(new ProximityTargetPicker(_rigidbody)
-            {
-                DistanceMultiplier = PickerDistanceMultiplier,
-                InRangeBonus = PickerInRangeBonus,
-                Range = PickerRange,
-                KullInvalidTargets = DropInvalidTargetsWhenTereAreValidTargets
-            });
-        }
-        
-        if(LineOfSightBonus != 0)
-        {
-            pickers.Add(new LineOfSightTargetPicker(transform)
-            {
-                BonusForCorrectObject = LineOfSightBonus,
-                KullInvalidTargets = DropInvalidTargetsWhenTereAreValidTargets,
-                MinDetectionDistance = MinLineOfSightDetectionDistance
-            });
-        }
-        
-        if(PickerAimedAtMultiplier != 0)
-        {
-            pickers.Add(new LookingAtTargetPicker(PickerAimingObject)
-            {
-                Multiplier = PickerAimedAtMultiplier,
-                ProjectileSpeed = projectileSpeed
-            });
-        }
-
-        if(PickerApproachWeighting != 0)
-        {
-            pickers.Add(new ApproachingTargetPicker(_rigidbody, PickerApproachWeighting));
-        }
-
-        if(PreviousTargetBonus != 0)
-        {
-            pickers.Add(new PreviousTargetPicker(this, PreviousTargetBonus ));
-        }
-
-        _targetPicker = new CombinedTargetPicker(pickers);
     }
 	
 	// Update is called once per frame
@@ -194,7 +116,7 @@ public class TargetChoosingMechanism : GeneticConfigurableMonobehaviour, IDeacti
                 }
                 //Debug.Log(name + " aquiring new target");
                 var allTargets = _detector.DetectTargets();
-                var bestTarget = _targetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).FirstOrDefault();
+                var bestTarget = TargetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).FirstOrDefault();
                 if(TargetHasChanged(bestTarget, CurrentTarget))
                 {
                     //LogTargetChange(CurrentTarget, bestTarget, targetIsInvalid);
@@ -255,31 +177,26 @@ public class TargetChoosingMechanism : GeneticConfigurableMonobehaviour, IDeacti
         _active = false;
     }
 
-    public bool GetConfigFromGenome = true;
-
     private float MaxBonus = 1800;
     private float MaxMultiplier = 100;
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
-            Debug.Log("Configuring " + name + "'s TCM");
-            PreferedTypeBonus = genomeWrapper.GetScaledNumber(MaxBonus);
-            InCorrectHemisphereBonus = genomeWrapper.GetScaledNumber(MaxBonus);
-            PickerMassMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
-            MinimumMass = genomeWrapper.GetScaledNumber(200);
-            PickerOverMinMassBonus = genomeWrapper.GetScaledNumber(MaxBonus);
-            PickerDistanceMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
-            PickerRange = genomeWrapper.GetScaledNumber(2000);
-            PickerInRangeBonus = genomeWrapper.GetScaledNumber(MaxBonus);
-            LineOfSightBonus = genomeWrapper.GetScaledNumber(MaxBonus);
-            MinLineOfSightDetectionDistance = genomeWrapper.GetScaledNumber(10);
-            PickerAimedAtMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
-            PickerApproachWeighting = genomeWrapper.GetScaledNumber(15);
-            PreviousTargetBonus = genomeWrapper.GetScaledNumber(MaxBonus);
-        }
-
+        Debug.Log("Configuring " + name + "'s TCM");
+        PreferedTypeBonus = genomeWrapper.GetScaledNumber(MaxBonus);
+        InCorrectHemisphereBonus = genomeWrapper.GetScaledNumber(MaxBonus);
+        PickerMassMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
+        MinimumMass = genomeWrapper.GetScaledNumber(200);
+        PickerOverMinMassBonus = genomeWrapper.GetScaledNumber(MaxBonus);
+        PickerDistanceMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
+        PickerRange = genomeWrapper.GetScaledNumber(2000);
+        PickerInRangeBonus = genomeWrapper.GetScaledNumber(MaxBonus);
+        LineOfSightBonus = genomeWrapper.GetScaledNumber(MaxBonus);
+        MinLineOfSightDetectionDistance = genomeWrapper.GetScaledNumber(10);
+        PickerAimedAtMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
+        PickerApproachWeighting = genomeWrapper.GetScaledNumber(15);
+        PreviousTargetBonus = genomeWrapper.GetScaledNumber(MaxBonus);
+        
         return genomeWrapper;
     }
 }

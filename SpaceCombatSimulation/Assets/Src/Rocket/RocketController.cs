@@ -127,19 +127,13 @@ public class RocketController : GeneticConfigurableMonobehaviour
         }
         TimeToLive -= Time.deltaTime;
     }
-
-    public bool GetConfigFromGenome = true;
-
+    
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
-            ShootAngle = genomeWrapper.GetScaledNumber(180);
-            TorqueMultiplier = genomeWrapper.GetScaledNumber(180);
-            LocationAimWeighting = genomeWrapper.GetScaledNumber(16);
-            TimeToTargetForDetonation = genomeWrapper.GetScaledNumber(2, 0 , 0.1f);
-        }
-
-        return genomeWrapper;
+        ShootAngle = genomeWrapper.GetScaledNumber(180);
+        TorqueMultiplier = genomeWrapper.GetScaledNumber(180);
+        LocationAimWeighting = genomeWrapper.GetScaledNumber(16);
+        TimeToTargetForDetonation = genomeWrapper.GetScaledNumber(2, 0 , 0.1f);
+         return genomeWrapper;
     }
 }

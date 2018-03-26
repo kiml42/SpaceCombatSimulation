@@ -92,21 +92,16 @@ public class TurrertTurningMechanism : GeneticConfigurableMonobehaviour
             jointedObject.transform.parent = null;
         }
     }
-
-    public bool GetConfigFromGenome = true;
-
+    
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
-            TurnTableMotorFoce = genomeWrapper.GetScaledNumber(600);
-            TurnTableMotorSpeedMultiplier = genomeWrapper.GetScaledNumber(300);
-            TurnTableMotorSpeedCap = genomeWrapper.GetScaledNumber(100);
-            ElevationHubMotorFoce = genomeWrapper.GetScaledNumber(600);
-            ElevationHubMotorSpeedMultiplier = genomeWrapper.GetScaledNumber(300);
-            ElevationHubMotorSpeedCap = genomeWrapper.GetScaledNumber(100);
-        }
-
+        TurnTableMotorFoce = genomeWrapper.GetScaledNumber(600);
+        TurnTableMotorSpeedMultiplier = genomeWrapper.GetScaledNumber(300);
+        TurnTableMotorSpeedCap = genomeWrapper.GetScaledNumber(100);
+        ElevationHubMotorFoce = genomeWrapper.GetScaledNumber(600);
+        ElevationHubMotorSpeedMultiplier = genomeWrapper.GetScaledNumber(300);
+        ElevationHubMotorSpeedCap = genomeWrapper.GetScaledNumber(100);
+        
         return genomeWrapper;
     }
 }

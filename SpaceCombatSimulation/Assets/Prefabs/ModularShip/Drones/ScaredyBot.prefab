@@ -125,6 +125,7 @@ GameObject:
   - component: {fileID: 114085539773346214}
   - component: {fileID: 114151030207520200}
   - component: {fileID: 114667350613628620}
+  - component: {fileID: 114523553488512574}
   m_Layer: 0
   m_Name: ScaredyBot
   m_TagString: Team2
@@ -885,6 +886,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9bc29bd4fd161b47b777c3bacd61786, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
   ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
     type: 2}
@@ -932,6 +935,21 @@ MonoBehaviour:
   - Team4ForceField
   - Team5ForceField
   TeamTagForceFieldSuffix: FoceField
+--- !u!114 &114523553488512574
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1487884588089748}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0f7c7a2b22a34548847247f5e09bad8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeferToParent: 1
+  EnemyTags:
+  - Enemy
+  - Team1
 --- !u!114 &114667350613628620
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -943,6 +961,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   Types: 00000000
   Cost: 100
 --- !u!114 &114727425230370864
@@ -956,6 +976,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6cc8ba250bdfeb74ca72df3ebf9e4267, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
+  ConfigIndex: -1
   ShootAngle: 90
   TorqueMultiplier: 3000
   StartDelay: 0
@@ -971,7 +993,6 @@ MonoBehaviour:
   Torquer: {fileID: 54564561303838756}
   AngularDragForTorquers: 2
   VectorArrow: {fileID: 4464256057473960}
-  GetConfigFromGenome: 0
 --- !u!114 &114884476927376630
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -983,11 +1004,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
+  ConfigIndex: -1
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
   PollInterval: 1
-  EnemyTags: []
   DisalowedTypes: 000000000100000002000000
   PreferdTypes: 03000000040000000700000008000000
   PreferedTypeBonus: 100
@@ -1005,7 +1027,6 @@ MonoBehaviour:
   PickerAimingObject: {fileID: 0}
   PickerApproachWeighting: 50
   PreviousTargetBonus: 500
-  GetConfigFromGenome: 0
 --- !u!124 &124256286502460316
 Behaviour:
   m_ObjectHideFlags: 1

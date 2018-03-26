@@ -33,9 +33,9 @@ public class EnemyTagSource : MonoBehaviour, IKnowsEnemyTags
 
     public void Start()
     {
-        if (DeferToParent)
+        if (DeferToParent && transform.parent != null)
         {
-            _parentTagSource = GetComponentInParent<IKnowsEnemyTags>();
+            _parentTagSource = transform.parent.GetComponentInParent<IKnowsEnemyTags>();
         }
     }
 

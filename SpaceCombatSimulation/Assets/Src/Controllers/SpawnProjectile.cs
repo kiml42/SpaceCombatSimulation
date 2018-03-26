@@ -113,17 +113,12 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
         _active = false;
         tag = InactiveTag;
     }
-
-
-    public bool GetConfigFromGenome = true;
+    
     private string RocketGenome;
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
-            RocketGenome = genomeWrapper.Genome.Substring(genomeWrapper.GetGeneAsInt() ?? 0);
-        }
+        RocketGenome = genomeWrapper.Genome.Substring(genomeWrapper.GetGeneAsInt() ?? 0);
         return genomeWrapper;
     }
 }

@@ -1,27 +1,24 @@
-﻿using Assets.Src.Interfaces;
-using System;
+﻿using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
+using Assets.Src.ModuleSystem;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
 {
     /// <summary>
     /// Adds an additional score to the current target of the given IKnowsCurrentTarget
     /// </summary>
-    class PreviousTargetPicker : ITargetPicker
+    class PreviousTargetPicker : GeneticallyConfigurableTargetPicker
     {
         private readonly IKnowsCurrentTarget _knower;
-        public float BonusScore;
 
-        public PreviousTargetPicker(IKnowsCurrentTarget knower, float bonusScore = 100)
+        public PreviousTargetPicker(IKnowsCurrentTarget knower)
         {
             _knower = knower;
-            BonusScore = bonusScore;
         }
 
-        public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
+        public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             if(_knower.CurrentTarget == null)
             {
@@ -32,7 +29,7 @@ namespace Assets.Src.Targeting.TargetPickers
                 if(t.Transform == _knower.CurrentTarget.Transform)
                 {
                     //Debug.Log(t.Transform.name + " gets the previous target bonus of " + BonusScore + " on top of its " + t.Score);
-                    t.Score += BonusScore;
+                    t.Score += FlatBoost;
                 }
                 //else
                 //{

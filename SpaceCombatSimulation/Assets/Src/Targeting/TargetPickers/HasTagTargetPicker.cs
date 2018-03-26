@@ -1,10 +1,7 @@
-﻿using Assets.Src.Interfaces;
+﻿using Assets.Src.Evolution;
 using Assets.Src.ObjectManagement;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
 {
@@ -12,10 +9,9 @@ namespace Assets.Src.Targeting.TargetPickers
     /// Adds an additional score to targets with the given tag.
     /// Defaults to a negative score to avoid picking targets with that tag (to avoid targeting friendlies)
     /// </summary>
-    class HasTagTargetPicker : ITargetPicker
+    class HasTagTargetPicker : GeneticallyConfigurableTargetPicker
     {
         public string Tag;
-        public float AdditionalScore = -10000;
         public bool KullInvalidTargets = false;
 
         /// <summary>
@@ -30,9 +26,9 @@ namespace Assets.Src.Targeting.TargetPickers
             Tag = tag;
         }
 
-        public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
+        public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
-            if(AdditionalScore != 0 && !string.IsNullOrEmpty(Tag))
+            if(FlatBoost != 0 && !string.IsNullOrEmpty(Tag))
             {
                 return potentialTargets.Select(t => {
                     if(t.Transform.IsValid() && t.Transform.tag == Tag)
@@ -40,7 +36,7 @@ namespace Assets.Src.Targeting.TargetPickers
                         //Debug.Log(t.Transform + " score += " + AdditionalScore);
                         
                         t.IsValidForCurrentPicker = TargetsWitTagAreValid;
-                        t.Score += AdditionalScore;
+                        t.Score += FlatBoost;
                     } else
                     {
                         //different tag

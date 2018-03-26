@@ -119,7 +119,7 @@ namespace Assets.Src.ShipCamera
             _tagPicker = new HasTagTargetPicker(null);
             _currentlyFollowingPicker = new PreviousTargetPicker(this)
             {
-                BonusScore = AdditionalScoreForSameTagOrCurrentlyFllowed
+                FlatBoost = AdditionalScoreForSameTagOrCurrentlyFllowed
             };
 
             var watchPickers = new List<ITargetPicker>
@@ -144,7 +144,7 @@ namespace Assets.Src.ShipCamera
             {
                 watchPickers.Add(new MassTargetPicker
                 {
-                    MinMass = MinimumMass,
+                    Threshold = MinimumMass,
                     KullInvalidTargets = false
                 });
             }
@@ -161,21 +161,23 @@ namespace Assets.Src.ShipCamera
 
             if (_rigidbody != null)
             {
-                followPickers.Add(new ApproachingTargetPicker(_rigidbody, ApproachTargetPickerWeighting));
+                followPickers.Add(new ApproachingTargetPicker(_rigidbody)
+                {
+                    Multiplier = ApproachTargetPickerWeighting
+                });
             }
 
             if (MinimumMass > 0)
             {
                 followPickers.Add(new MassTargetPicker
                 {
-                    MinMass = MinimumMass,
+                    Threshold = MinimumMass,
                     KullInvalidTargets = false
                 });
             }
             _followPicker = new CombinedTargetPicker(followPickers);
         }
-
-
+        
         // Update is called once per frame
         void FixedUpdate()
         {

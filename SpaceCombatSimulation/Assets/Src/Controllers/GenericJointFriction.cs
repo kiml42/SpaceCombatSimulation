@@ -1,5 +1,4 @@
 ﻿using Assets.Src.Evolution;
-using Assets.Src.Interfaces;
 using Assets.Src.ModuleSystem;
 using UnityEngine;
 
@@ -44,15 +43,9 @@ public class GenericJointFriction : GeneticConfigurableMonobehaviour
         }
     }
 
-    public bool GetConfigFromGenome = true;
-
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
-            Friction = genomeWrapper.GetScaledNumber(600);
-        }
-
+        Friction = genomeWrapper.GetScaledNumber(600);
         return genomeWrapper;
     }
 }

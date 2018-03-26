@@ -269,6 +269,7 @@ GameObject:
   - component: {fileID: 114771047308502522}
   - component: {fileID: 114093417629960288}
   - component: {fileID: 114065070422927876}
+  - component: {fileID: 114050451329567928}
   m_Layer: 0
   m_Name: MiniTurretDrone
   m_TagString: Team2
@@ -851,6 +852,21 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1481788342111684}
   m_Enabled: 1
+--- !u!114 &114050451329567928
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1916413120173142}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0f7c7a2b22a34548847247f5e09bad8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeferToParent: 1
+  EnemyTags:
+  - Enemy
+  - Team1
 --- !u!114 &114065070422927876
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -862,6 +878,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   Types: 00000000
   Cost: 100
 --- !u!114 &114093417629960288
@@ -887,12 +905,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
+  ConfigIndex: -1
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   DropInvalidTargetsWhenTereAreValidTargets: 1
   PollInterval: 1
-  EnemyTags:
-  - Enemy
   DisalowedTypes: 000000000100000002000000
   PreferdTypes: 03000000040000000700000008000000
   PreferedTypeBonus: 100
@@ -910,7 +928,6 @@ MonoBehaviour:
   PickerAimingObject: {fileID: 0}
   PickerApproachWeighting: 50
   PreviousTargetBonus: 500
-  GetConfigFromGenome: 0
 --- !u!114 &114503885951392034
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -922,6 +939,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6cc8ba250bdfeb74ca72df3ebf9e4267, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
+  ConfigIndex: -1
   ShootAngle: 30
   TorqueMultiplier: 2000
   StartDelay: 0
@@ -937,7 +956,6 @@ MonoBehaviour:
   Torquer: {fileID: 54341790251113956}
   AngularDragForTorquers: 1
   VectorArrow: {fileID: 4319882000499392}
-  GetConfigFromGenome: 0
 --- !u!114 &114538516773498438
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -949,6 +967,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9bc29bd4fd161b47b777c3bacd61786, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
   ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
     type: 2}

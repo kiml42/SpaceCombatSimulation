@@ -1,8 +1,6 @@
-﻿using Assets.Src.Interfaces;
-using System;
+﻿using Assets.Src.Evolution;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
@@ -14,25 +12,21 @@ namespace Assets.Src.Targeting.TargetPickers
     ///     S = S + OverMinMassBonus
     /// as well.
     /// </summary>
-    class MassTargetPicker : ITargetPicker
+    class MassTargetPicker : GeneticallyConfigurableTargetPicker
     {
-        public float MinMass = 80;
-        public float OverMinMassBonus = 10000;
-        public float MassMultiplier = 1;
-
         public bool KullInvalidTargets = true;
 
-        public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
+        public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             //Debug.Log(potentialTargets.Count());
             potentialTargets = potentialTargets.Select(t => {
                 var rigidbody = t.Rigidbody;
-                t.Score += MassMultiplier * rigidbody.mass;
-                if (rigidbody.mass > MinMass)
+                t.Score += Multiplier * rigidbody.mass;
+                if (rigidbody.mass > Threshold)
                 {
                     //Debug.Log("Adding score for mass. m=" + rigidbody.mass + ", original score = " + t.Score);
                     t.IsValidForCurrentPicker = true;
-                    t.Score += OverMinMassBonus;
+                    t.Score += FlatBoost;
                 } else
                 {
                     t.IsValidForCurrentPicker = false;

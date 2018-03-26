@@ -1,16 +1,13 @@
-﻿using Assets.Src.Interfaces;
-using System;
+﻿using Assets.Src.Evolution;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
 {
-    class LookingAtTargetPicker : ITargetPicker
+    class LookingAtTargetPicker : GeneticallyConfigurableTargetPicker
     {
         private Rigidbody _aimingObject;
-        public float Multiplier = 100;
 
         /// <summary>
         /// kull targets more than 90 degrees awy from looked direction
@@ -28,7 +25,7 @@ namespace Assets.Src.Targeting.TargetPickers
             _aimingObject = aimingObject;
         }
 
-        public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
+        public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             potentialTargets = potentialTargets.Select(t => AddScoreForAngle(t));
 
@@ -46,6 +43,7 @@ namespace Assets.Src.Targeting.TargetPickers
             var angle = Vector3.Angle(reletiveLocation, Vector3.forward);
             
             var newScore = Multiplier * (1 - (angle/ 180));
+            newScore += angle < Threshold ? FlatBoost : 0;
             target.Score = target.Score + newScore;
             target.IsValidForCurrentPicker = angle < 90;
             return target;
