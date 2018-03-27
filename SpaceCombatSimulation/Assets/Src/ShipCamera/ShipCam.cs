@@ -34,21 +34,6 @@ namespace Assets.Src.ShipCamera
 
         public Camera Camera;
         
-        public float ApproachTargetPickerWeighting = 20;
-
-        /// <summary>
-        /// Minimum mass of objects to follow or look at.
-        /// </summary>
-        public float MinimumMass = 0;
-
-        /// <summary>
-        /// added to the score of the currently followed object and other objectes with the same tag.
-        /// Used when picking a target to look at, if the object being followed doensn't have its own target.
-        /// </summary>
-        public float AdditionalScoreForSameTagOrCurrentlyFllowed = -100000;
-
-        public float WatchTargetsScoreProportion = 0.4f;
-
         private Rigidbody _rigidbody;
         private ITargetDetector _detector;
 
@@ -56,11 +41,10 @@ namespace Assets.Src.ShipCamera
         public Rigidbody TargetToWatch { get; set; }
         public List<Rigidbody> TargetsToWatch { get; set; }
 
-        private ITargetPicker _watchPicker;
-        private ITargetPicker _followPicker;
+        public CombinedTargetPicker WatchPicker;
+        public CombinedTargetPicker FollowPicker;
 
-        private HasTagTargetPicker _tagPicker;
-        private PreviousTargetPicker _currentlyFollowingPicker;
+        public HasTagTargetPicker TagPicker;
         
         private ICameraOrientator _orientator;
         public float ZoomSpeed = 2;
@@ -115,67 +99,6 @@ namespace Assets.Src.ShipCamera
             {
                 Tags = Tags
             };
-
-            _tagPicker = new HasTagTargetPicker(null);
-            _currentlyFollowingPicker = new PreviousTargetPicker(this)
-            {
-                FlatBoost = AdditionalScoreForSameTagOrCurrentlyFllowed
-            };
-
-            var watchPickers = new List<ITargetPicker>
-            {
-                _tagPicker,
-                _currentlyFollowingPicker,
-                new ProximityTargetPicker(transform)
-                {
-                    KullInvalidTargets = false
-                }
-            };
-
-            if (_rigidbody != null)
-            {
-                watchPickers.Add(new LookingAtTargetPicker(_rigidbody)
-                {
-                    KullInvalidTargets = false
-                });
-            }
-
-            if (MinimumMass > 0)
-            {
-                watchPickers.Add(new MassTargetPicker
-                {
-                    Threshold = MinimumMass,
-                    KullInvalidTargets = false
-                });
-            }
-
-            _watchPicker = new CombinedTargetPicker(watchPickers);
-
-            var followPickers = new List<ITargetPicker>
-            {
-                new ProximityTargetPicker(transform)
-                {
-                    KullInvalidTargets = false
-                }
-            };
-
-            if (_rigidbody != null)
-            {
-                followPickers.Add(new ApproachingTargetPicker(_rigidbody)
-                {
-                    Multiplier = ApproachTargetPickerWeighting
-                });
-            }
-
-            if (MinimumMass > 0)
-            {
-                followPickers.Add(new MassTargetPicker
-                {
-                    Threshold = MinimumMass,
-                    KullInvalidTargets = false
-                });
-            }
-            _followPicker = new CombinedTargetPicker(followPickers);
         }
         
         // Update is called once per frame
@@ -257,7 +180,7 @@ namespace Assets.Src.ShipCamera
             }
             var targets = _detector.DetectTargets()
                 .Where(t => t.Transform.IsValid() && t.Transform.parent == null);  //Don't watch anything that still has a parent.
-            targets = _watchPicker.FilterTargets(targets)
+            targets = WatchPicker.FilterTargets(targets)
                 .OrderByDescending(s => s.Score);
             //foreach (var item in targets)
             //{
@@ -291,7 +214,7 @@ namespace Assets.Src.ShipCamera
             //Debug.Log("To Follow");
             var targets = _detector.DetectTargets()
                 .Where(t => t.Transform.parent == null);  //Don't follow anything that still has a parent.
-            targets = _followPicker.FilterTargets(targets)
+            targets = FollowPicker.FilterTargets(targets)
                 .OrderByDescending(s => s.Score);
             //foreach (var item in targets)
             //{
@@ -308,7 +231,7 @@ namespace Assets.Src.ShipCamera
 
             if (FollowedTarget != null)
             {
-                _tagPicker.Tag = FollowedTarget.tag;
+                TagPicker.Tag = FollowedTarget.tag;
             }
         }
 

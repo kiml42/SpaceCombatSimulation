@@ -31,6 +31,8 @@ namespace Assets.Src.ModuleSystem
         public FuelTank FuelTank;
         public List<EngineControler> Engines;
 
+        public List<IGeneticConfigurable> GeneticConfigurables;
+
         public float ModuleCost
         {
             get
@@ -49,14 +51,10 @@ namespace Assets.Src.ModuleSystem
 
         protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
         {
-            foreach (var engine in Engines)
+            foreach (var configurable in GeneticConfigurables)
             {
-                genomeWrapper =  engine.Configure(genomeWrapper);
+                genomeWrapper =  configurable.Configure(genomeWrapper);
             }
-
-            genomeWrapper = TargetChoosingMechanism.Configure(genomeWrapper);
-            genomeWrapper = RocketController.Configure(genomeWrapper);
-            genomeWrapper = FuelTank.Configure(genomeWrapper);
 
             return genomeWrapper;
         }

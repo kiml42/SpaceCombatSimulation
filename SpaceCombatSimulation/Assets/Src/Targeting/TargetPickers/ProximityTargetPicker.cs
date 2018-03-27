@@ -16,24 +16,14 @@ namespace Assets.Src.Targeting.TargetPickers
     ///     S = S + InRangeBonus
     /// as well.
     /// </summary>
-    class ProximityTargetPicker : GeneticallyConfigurableTargetPicker
+    public class ProximityTargetPicker : GeneticallyConfigurableTargetPicker
     {
-        private Transform _sourceObject;
+        public Transform SourceObject;
 
         /// <summary>
         /// Remove targets outside the given range
         /// </summary>
         public bool KullInvalidTargets = true;
-
-        public ProximityTargetPicker(Rigidbody sourceObject)
-        {
-            _sourceObject = sourceObject.transform;
-        }
-
-        public ProximityTargetPicker(Transform sourceObject)
-        {
-            _sourceObject = sourceObject;
-        }
 
         public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
@@ -47,7 +37,7 @@ namespace Assets.Src.Targeting.TargetPickers
 
         private PotentialTarget AddScoreForDifference(PotentialTarget target)
         {
-            var dist = target.DistanceToTurret(_sourceObject);
+            var dist = target.DistanceToTurret(SourceObject);
             target.Score = target.Score - (dist * Multiplier);
             if(dist < Threshold)
             {

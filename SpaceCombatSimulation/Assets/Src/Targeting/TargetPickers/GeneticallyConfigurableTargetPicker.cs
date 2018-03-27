@@ -6,23 +6,23 @@ using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
 {
-    abstract class GeneticallyConfigurableTargetPicker : GeneticConfigurableMonobehaviour, ITargetPicker
+    public  abstract class GeneticallyConfigurableTargetPicker : GeneticConfigurableMonobehaviour, ITargetPicker
     {
         public float Threshold = 500;
-        public float FlatBoost = 0;
-        public float Multiplier = 1;
+        public float FlatBoost = 1000;
+        public float Multiplier = 1000;
 
-        public float MinBonus = 0;
-        public float DefaultBonus = 0;
-        public float MaxBonus = 1800;
+        private float MinBonus = 0;
+        private float DefaultBonus = 0;
+        private float MaxBonus = 1800;
 
-        public float MinMultiplier = 0;
-        public float DefaultMultiplier = 0;
-        public float MaxMultiplier = 100;
+        private float MinMultiplier = 0;
+        private float DefaultMultiplier = 0;
+        private float MaxMultiplier = 100;
 
-        public float MinThreshold = 0;
-        public float DefaultThreshold = 0;
-        public float MaxThreshold = 2000;
+        private float MinThreshold = 0;
+        private float DefaultThreshold = 0;
+        private float MaxThreshold = 2000;
 
         [Tooltip("Target pickers are used in ascending priority order." +
             "If targets are discarded by a low priority targeter higher priority targeters won't get to judge them at all.")]

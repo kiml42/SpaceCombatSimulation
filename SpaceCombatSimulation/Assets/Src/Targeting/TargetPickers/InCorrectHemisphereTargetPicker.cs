@@ -6,18 +6,18 @@ namespace Assets.Src.Targeting.TargetPickers
 {
     class InCorrectHemisphereTargetPicker : GeneticallyConfigurableTargetPicker
     {
-        private Transform _sourceObject;
+        public Transform SourceObject;
         public bool KullInvalidTargets = true;
 
         public InCorrectHemisphereTargetPicker(Transform sourceObject)
         {
-            _sourceObject = sourceObject;
+            SourceObject = sourceObject;
         }
 
         public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             potentialTargets = potentialTargets.Select(t => {
-                if (t.LocationInOthersSpace(_sourceObject, null).y >= 0)
+                if (t.LocationInOthersSpace(SourceObject, null).y >= 0)
                 {
                     t.IsValidForCurrentPicker = true;
                     t.Score += FlatBoost;

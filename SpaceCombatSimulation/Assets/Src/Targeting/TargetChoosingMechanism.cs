@@ -1,13 +1,11 @@
 ﻿using Assets.Src.Evolution;
 using Assets.Src.Interfaces;
-using Assets.Src.ModuleSystem;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
-using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class TargetChoosingMechanism : GeneticConfigurableMonobehaviour, IDeactivateableTargetKnower
+public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnower
 {
     private ITargetDetector _detector;
     private Rigidbody _rigidbody;
@@ -27,57 +25,6 @@ public class TargetChoosingMechanism : GeneticConfigurableMonobehaviour, IDeacti
     public float PollInterval = 0;
     private float _pollCountdonwn = 0;
     
-    [Header("TargetPickerVariables")]
-    #region TargetPickerVariables
-    [Header("TargetTypes")]
-    [Tooltip("Ship Types to always ignore")]
-    public List<ShipType> DisalowedTypes = new List<ShipType>
-        {
-            ShipType.TinyMunitions
-        };
-    [Tooltip("ShipTypes to grant a score bonus to")]
-    public List<ShipType> PreferdTypes = new List<ShipType>
-        {
-            ShipType.LargeMunitions,
-            ShipType.Fighter,
-            ShipType.Corvette,
-            ShipType.Turret,
-            ShipType.Capital,
-            ShipType.SuperCapital
-        };
-    public float PreferedTypeBonus = 100;
-
-    [Header("CorrectHemisphere")]
-    [Tooltip("Targets in the +y hemisphere of this object get the InCorrectHemisphereBonus")]
-    public Transform HemisphereFilterObject;
-    public float InCorrectHemisphereBonus = 1000;
-
-    [Header("Mass")]
-    public float PickerMassMultiplier = 1;
-    public float MinimumMass = 0;
-    public float PickerOverMinMassBonus = 10000;
-
-    [Header("Distance")]
-    public float PickerDistanceMultiplier = 1;
-    public float PickerRange = 500;
-    public float PickerInRangeBonus = 0;
-
-    [Header("LineOfSight")]
-    public float LineOfSightBonus = 1000;
-    public float MinLineOfSightDetectionDistance = 2;
-
-    [Header("AimedAt")]
-    public float PickerAimedAtMultiplier = 100;
-    [Tooltip("defaults to this object")]
-    public Rigidbody PickerAimingObject;
-
-    [Header("Approaching")]
-    public float PickerApproachWeighting = 20;
-
-    [Header("Approaching")]
-    public float PreviousTargetBonus = 500;
-    #endregion
-
     #region knowsCurrentTarget
     public Target CurrentTarget { get; set; }
     #endregion
@@ -175,28 +122,5 @@ public class TargetChoosingMechanism : GeneticConfigurableMonobehaviour, IDeacti
     public void Deactivate()
     {
         _active = false;
-    }
-
-    private float MaxBonus = 1800;
-    private float MaxMultiplier = 100;
-
-    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
-    {
-        Debug.Log("Configuring " + name + "'s TCM");
-        PreferedTypeBonus = genomeWrapper.GetScaledNumber(MaxBonus);
-        InCorrectHemisphereBonus = genomeWrapper.GetScaledNumber(MaxBonus);
-        PickerMassMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
-        MinimumMass = genomeWrapper.GetScaledNumber(200);
-        PickerOverMinMassBonus = genomeWrapper.GetScaledNumber(MaxBonus);
-        PickerDistanceMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
-        PickerRange = genomeWrapper.GetScaledNumber(2000);
-        PickerInRangeBonus = genomeWrapper.GetScaledNumber(MaxBonus);
-        LineOfSightBonus = genomeWrapper.GetScaledNumber(MaxBonus);
-        MinLineOfSightDetectionDistance = genomeWrapper.GetScaledNumber(10);
-        PickerAimedAtMultiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
-        PickerApproachWeighting = genomeWrapper.GetScaledNumber(15);
-        PreviousTargetBonus = genomeWrapper.GetScaledNumber(MaxBonus);
-        
-        return genomeWrapper;
     }
 }

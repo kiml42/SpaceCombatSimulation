@@ -6,15 +6,10 @@ using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
 {
-    class ApproachingTargetPicker : GeneticallyConfigurableTargetPicker
+    public class ApproachingTargetPicker : GeneticallyConfigurableTargetPicker
     {
-        private Rigidbody _sourceObject;
-
-        public ApproachingTargetPicker(Rigidbody sourceObject)
-        {
-            _sourceObject = sourceObject;
-        }
-
+        public Rigidbody SourceObject;
+        
         public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             return potentialTargets.Select(t => AddScoreForDifference(t));
@@ -24,9 +19,9 @@ namespace Assets.Src.Targeting.TargetPickers
         {
             Vector3 targetVelocity = target.Rigidbody == null ? Vector3.zero : target.Rigidbody.velocity;
 
-            var relativeVelocity = _sourceObject.velocity - targetVelocity;
+            var relativeVelocity = SourceObject.velocity - targetVelocity;
 
-            var reletiveLocation = target.Transform.position - _sourceObject.position;
+            var reletiveLocation = target.Transform.position - SourceObject.position;
 
             var approachAngle = Vector3.Angle(relativeVelocity, reletiveLocation);
 

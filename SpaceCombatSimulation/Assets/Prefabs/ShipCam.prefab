@@ -60,6 +60,25 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!1 &1281789443263064
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 4852111244069368}
+  - component: {fileID: 114319281320829604}
+  - component: {fileID: 114419749790641632}
+  - component: {fileID: 114228341913155152}
+  - component: {fileID: 114682732991779878}
+  m_Layer: 0
+  m_Name: FollowPickers
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
 --- !u!1 &1452437122874096
 GameObject:
   m_ObjectHideFlags: 0
@@ -166,6 +185,27 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!1 &1861207120610374
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 4233531278994002}
+  - component: {fileID: 114317625934294130}
+  - component: {fileID: 114116112608009328}
+  - component: {fileID: 114173380122806910}
+  - component: {fileID: 114714677814606026}
+  - component: {fileID: 114244102476855982}
+  - component: {fileID: 114068390980648662}
+  m_Layer: 0
+  m_Name: WatchPickers
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
 --- !u!1 &1977299094284428
 GameObject:
   m_ObjectHideFlags: 0
@@ -209,6 +249,19 @@ Transform:
   m_Father: {fileID: 4822790151158226}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &4233531278994002
+Transform:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1861207120610374}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 4822790151158226}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4393929957893326
 Transform:
   m_ObjectHideFlags: 1
@@ -241,7 +294,7 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1452437122874096}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
@@ -249,9 +302,24 @@ Transform:
   - {fileID: 4079626012994640}
   - {fileID: 4004801583122908}
   - {fileID: 4948679709624696}
+  - {fileID: 4233531278994002}
+  - {fileID: 4852111244069368}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
+--- !u!4 &4852111244069368
+Transform:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1281789443263064}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1.0000005, y: 1, z: 1.0000005}
+  m_Children: []
+  m_Father: {fileID: 4822790151158226}
+  m_RootOrder: 5
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4924564836931496
 Transform:
   m_ObjectHideFlags: 1
@@ -411,6 +479,43 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1596262510301064}
   m_Enabled: 1
+--- !u!114 &114068390980648662
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1861207120610374}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &114116112608009328
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1861207120610374}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7f4327519bbde141a84b06ba2ce70a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
+  ConfigIndex: 0
+  Threshold: 0
+  FlatBoost: -100000
+  Multiplier: 0
+  MinBonus: 0
+  DefaultBonus: 0
+  MaxBonus: 0
+  MinMultiplier: 0
+  DefaultMultiplier: 0
+  MaxMultiplier: 0
+  MinThreshold: 0
+  DefaultThreshold: 0
+  MaxThreshold: 0
+  Priority: 0
 --- !u!114 &114127339082602284
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -432,6 +537,34 @@ MonoBehaviour:
   IdleRotationSpeed: -500
   FieldOfView: 80
   StartRotatingDistance: 60
+--- !u!114 &114173380122806910
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1861207120610374}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29f294ef9c08a0841b9a8441db19c693, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
+  ConfigIndex: 0
+  Threshold: 1000
+  FlatBoost: 1000
+  Multiplier: 500
+  MinBonus: 0
+  DefaultBonus: 0
+  MaxBonus: 0
+  MinMultiplier: 0
+  DefaultMultiplier: 0
+  MaxMultiplier: 0
+  MinThreshold: 0
+  DefaultThreshold: 0
+  MaxThreshold: 0
+  Priority: 0
+  SourceObject: {fileID: 4822790151158226}
+  KullInvalidTargets: 0
 --- !u!114 &114217615723430598
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -452,16 +585,154 @@ MonoBehaviour:
   Camera: {fileID: 20197087680658222}
   ApproachTargetPickerWeighting: 20
   MinimumMass: 0
-  AdditionalScoreForSameTagOrCurrentlyFllowed: -100000
   WatchTargetsScoreProportion: 0.4
+  WatchPicker: {fileID: 114068390980648662}
+  FollowPicker: {fileID: 114682732991779878}
+  TagPicker: {fileID: 114317625934294130}
   ZoomSpeed: 3
   UseFollowedTargetsTarget: 0
   cameraPickerMode: 0
   CameraModeCyclePeriod: Infinity
   UserPriorityTime: 30
-  TestObject: {fileID: 4476330559729020, guid: 66b6e30c7adaffe4f8c11bee6df7082a, type: 2}
   OnlyUseRootParents: 1
   SelectTargetButtonIndex: 0
+--- !u!114 &114228341913155152
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1281789443263064}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: daa08e03f405a84439c74189f542b6c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  Threshold: 0
+  FlatBoost: 1000
+  Multiplier: 1000
+  MinBonus: 0
+  DefaultBonus: 0
+  MaxBonus: 0
+  MinMultiplier: 0
+  DefaultMultiplier: 0
+  MaxMultiplier: 0
+  MinThreshold: 0
+  DefaultThreshold: 0
+  MaxThreshold: 0
+  Priority: 0
+  KullInvalidTargets: 0
+--- !u!114 &114244102476855982
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1861207120610374}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: daa08e03f405a84439c74189f542b6c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  Threshold: 0
+  FlatBoost: 1000
+  Multiplier: 1000
+  MinBonus: 0
+  DefaultBonus: 0
+  MaxBonus: 0
+  MinMultiplier: 0
+  DefaultMultiplier: 0
+  MaxMultiplier: 0
+  MinThreshold: 0
+  DefaultThreshold: 0
+  MaxThreshold: 0
+  Priority: 0
+  KullInvalidTargets: 0
+--- !u!114 &114317625934294130
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1861207120610374}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f4ce3c9f57b8c6478b0b9cd0cd9e584, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
+  ConfigIndex: 0
+  Threshold: 0
+  FlatBoost: -100
+  Multiplier: 0
+  MinBonus: 0
+  DefaultBonus: 0
+  MaxBonus: 0
+  MinMultiplier: 0
+  DefaultMultiplier: 0
+  MaxMultiplier: 0
+  MinThreshold: 0
+  DefaultThreshold: 0
+  MaxThreshold: 0
+  Priority: 0
+  Tag: 
+  KullInvalidTargets: 1
+  TargetsWithTagAreValid: 0
+--- !u!114 &114319281320829604
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1281789443263064}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29f294ef9c08a0841b9a8441db19c693, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
+  ConfigIndex: 0
+  Threshold: 1000
+  FlatBoost: 1000
+  Multiplier: 1000
+  MinBonus: 0
+  DefaultBonus: 0
+  MaxBonus: 0
+  MinMultiplier: 0
+  DefaultMultiplier: 0
+  MaxMultiplier: 0
+  MinThreshold: 0
+  DefaultThreshold: 0
+  MaxThreshold: 0
+  Priority: 0
+  SourceObject: {fileID: 4822790151158226}
+  KullInvalidTargets: 0
+--- !u!114 &114419749790641632
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1281789443263064}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 392cb577148f68a4595c2c2a6ae081b8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
+  ConfigIndex: 0
+  Threshold: 1000
+  FlatBoost: 1000
+  Multiplier: 20
+  MinBonus: 0
+  DefaultBonus: 0
+  MaxBonus: 0
+  MinMultiplier: 0
+  DefaultMultiplier: 0
+  MaxMultiplier: 0
+  MinThreshold: 0
+  DefaultThreshold: 0
+  MaxThreshold: 0
+  Priority: 0
 --- !u!114 &114559164490886276
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -551,6 +822,45 @@ MonoBehaviour:
   m_FillAmount: 1
   m_FillClockwise: 1
   m_FillOrigin: 0
+--- !u!114 &114682732991779878
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1281789443263064}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &114714677814606026
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1861207120610374}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4ba5a5cfe59e574cb42cdbc76acb898, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
+  ConfigIndex: 0
+  Threshold: 1000
+  FlatBoost: 1000
+  Multiplier: 1000
+  MinBonus: 0
+  DefaultBonus: 0
+  MaxBonus: 0
+  MinMultiplier: 0
+  DefaultMultiplier: 0
+  MaxMultiplier: 0
+  MinThreshold: 0
+  DefaultThreshold: 0
+  MaxThreshold: 0
+  Priority: 0
+  AimingObject: {fileID: 0}
+  KullInvalidTargets: 0
 --- !u!114 &114722429569201848
 MonoBehaviour:
   m_ObjectHideFlags: 1

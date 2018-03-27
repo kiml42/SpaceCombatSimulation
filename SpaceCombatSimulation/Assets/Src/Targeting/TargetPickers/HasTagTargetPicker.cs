@@ -1,5 +1,4 @@
-﻿using Assets.Src.Evolution;
-using Assets.Src.ObjectManagement;
+﻿using Assets.Src.ObjectManagement;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,7 +8,7 @@ namespace Assets.Src.Targeting.TargetPickers
     /// Adds an additional score to targets with the given tag.
     /// Defaults to a negative score to avoid picking targets with that tag (to avoid targeting friendlies)
     /// </summary>
-    class HasTagTargetPicker : GeneticallyConfigurableTargetPicker
+    public class HasTagTargetPicker : GeneticallyConfigurableTargetPicker
     {
         public string Tag;
         public bool KullInvalidTargets = false;
@@ -19,12 +18,7 @@ namespace Assets.Src.Targeting.TargetPickers
         /// set to true to consider targets with the tag good.
         /// Only relavent if KullInalidTargets is true.
         /// </summary>
-        public bool TargetsWitTagAreValid = false;
-
-        public HasTagTargetPicker(string tag)
-        {
-            Tag = tag;
-        }
+        public bool TargetsWithTagAreValid = false;
 
         public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
@@ -35,12 +29,12 @@ namespace Assets.Src.Targeting.TargetPickers
                     {
                         //Debug.Log(t.Transform + " score += " + AdditionalScore);
                         
-                        t.IsValidForCurrentPicker = TargetsWitTagAreValid;
+                        t.IsValidForCurrentPicker = TargetsWithTagAreValid;
                         t.Score += FlatBoost;
                     } else
                     {
                         //different tag
-                        t.IsValidForCurrentPicker = !TargetsWitTagAreValid;
+                        t.IsValidForCurrentPicker = !TargetsWithTagAreValid;
                     }
                     return t;
                 });

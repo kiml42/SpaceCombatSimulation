@@ -1,28 +1,27 @@
-﻿using Assets.Src.Evolution;
+﻿using Assets.Src.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
 {
-    class LookingAtTargetPicker : GeneticallyConfigurableTargetPicker
+    public class LookingAtTargetPicker : GeneticallyConfigurableTargetPicker
     {
-        private Rigidbody _aimingObject;
+        public Rigidbody AimingObject;
+
+        [Tooltip("Fielf to use if the aiming object doesn't have a rigidbody.")]
+        public Transform AimingObjectFallback;
 
         /// <summary>
         /// kull targets more than 90 degrees awy from looked direction
         /// </summary>
         public bool KullInvalidTargets = false;
+        
+        public IKnowsProjectileSpeed ProjectileSpeedKnower;
 
-        /// <summary>
-        /// used for velocity correction.
-        /// Set to null to not correct for velocity (default)
-        /// </summary>
-        public float? ProjectileSpeed;
-
-        public LookingAtTargetPicker(Rigidbody aimingObject)
+        void Start()
         {
-            _aimingObject = aimingObject;
+            ProjectileSpeedKnower = ProjectileSpeedKnower ?? GetComponentInParent<IKnowsProjectileSpeed>();
         }
 
         public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
@@ -38,7 +37,11 @@ namespace Assets.Src.Targeting.TargetPickers
 
         private PotentialTarget AddScoreForAngle(PotentialTarget target)
         {
-            var reletiveLocation = target.LocationInAimedSpace(_aimingObject, ProjectileSpeed);
+            var projectileSpeed = ProjectileSpeedKnower != null ? ProjectileSpeedKnower.KnownProjectileSpeed : 0;
+            //TODO check this works.
+            var reletiveLocation = AimingObject != null
+                ? target.LocationInAimedSpace(AimingObject, projectileSpeed)
+                : target.LocationInOthersSpace(AimingObjectFallback, projectileSpeed);
 
             var angle = Vector3.Angle(reletiveLocation, Vector3.forward);
             

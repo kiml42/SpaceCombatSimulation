@@ -12,7 +12,7 @@ namespace Assets.Src.Targeting
         void Start()
         {
             var pickers = GetComponents<ITargetPicker>();
-            _targeters = pickers.Where(p => p != this).OrderBy(p => p.TargetPickerPriority);
+            _targeters = pickers.Where(p => p.GetType() != GetType()).OrderBy(p => p.TargetPickerPriority);
             if (!_targeters.Any()) Debug.LogWarning(name + " has no target pickers!");
         }
 
