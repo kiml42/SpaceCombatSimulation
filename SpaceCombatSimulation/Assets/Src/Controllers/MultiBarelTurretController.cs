@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDeactivatable, IKnowsProjectileSpeed
 {
-    private IDeactivateableTargetKnower _targetChoosingMechanism;
+    private IKnowsCurrentTarget _targetChoosingMechanism;
     private IKnowsEnemyTags _enemyTagKnower;
     public Rigidbody Projectile;
     public Rigidbody MuzzleFlash;
@@ -44,7 +44,7 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
     void Start()
     {
         _colerer = GetComponent<ColourSetter>();
-        _targetChoosingMechanism = GetComponent<IDeactivateableTargetKnower>();
+        _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
         _enemyTagKnower = GetComponent<IKnowsEnemyTags>();
         var emitterCount = EmitterParent.childCount;
 

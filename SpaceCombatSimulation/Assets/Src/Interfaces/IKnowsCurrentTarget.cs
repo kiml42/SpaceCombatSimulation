@@ -1,10 +1,11 @@
 ﻿using Assets.Src.Targeting;
-using UnityEngine;
+using System.Collections.Generic;
 
 namespace Assets.Src.Interfaces
 {
     public interface IKnowsCurrentTarget
     {
-        Target CurrentTarget { get; set; }
+        Target CurrentTarget { get; }
+        IEnumerable<Target> FilteredTargets { get; }
     }
 }

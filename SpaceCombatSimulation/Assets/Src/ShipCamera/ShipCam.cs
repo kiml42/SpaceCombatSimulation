@@ -1,14 +1,14 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
-using System.Linq;
-using Assets.Src.Interfaces;
+﻿using Assets.Src.Interfaces;
+using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
 using Assets.Src.Targeting.TargetPickers;
-using Assets.Src.ObjectManagement;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 
 namespace Assets.Src.ShipCamera
 {
-    public class ShipCam : MonoBehaviour, IKnowsCurrentTarget
+    public class ShipCam : MonoBehaviour
     {
         private IEnumerable<BaseCameraOrientator> _cameraModes;
 
@@ -33,16 +33,13 @@ namespace Assets.Src.ShipCamera
         public float FollowedObjectTranslateSpeedMultiplier = 1;
 
         public Camera Camera;
-        
-        private Rigidbody _rigidbody;
-        private ITargetDetector _detector;
 
         public Rigidbody FollowedTarget { get; set; }
         public Rigidbody TargetToWatch { get; set; }
         public List<Rigidbody> TargetsToWatch { get; set; }
 
-        public CombinedTargetPicker WatchPicker;
-        public CombinedTargetPicker FollowPicker;
+        public TargetChoosingMechanism WatchPicker;
+        public TargetChoosingMechanism FollowPicker;
 
         public HasTagTargetPicker TagPicker;
         
@@ -53,19 +50,6 @@ namespace Assets.Src.ShipCamera
         public float CameraModeCyclePeriod = 30;
 
         public float UserPriorityTime = 10;
-
-        public Target CurrentTarget
-        {
-            get
-            {
-                return FollowedTarget == null ? null : new Target(FollowedTarget);
-            }
-
-            set
-            {
-                FollowedTarget = value.Rigidbody;
-            }
-        }
 
         private int _calls = 0;
         public bool OnlyUseRootParents = true;
@@ -93,12 +77,14 @@ namespace Assets.Src.ShipCamera
             {
                 cam.RegisterOwner(this);
             }
-
-            _rigidbody = GetComponent<Rigidbody>();
-            _detector = new ChildTagTargetDetector
+            
+            var detector = new ChildTagTargetDetector
             {
                 Tags = Tags
             };
+
+            FollowPicker.Detector = detector;
+            WatchPicker.Detector = detector;
         }
         
         // Update is called once per frame
@@ -178,10 +164,7 @@ namespace Assets.Src.ShipCamera
             if(UseFollowedTargetsTarget && FollowedTarget != null) {
                 knower = FollowedTarget.GetComponent<IKnowsCurrentTarget>();
             }
-            var targets = _detector.DetectTargets()
-                .Where(t => t.Transform.IsValid() && t.Transform.parent == null);  //Don't watch anything that still has a parent.
-            targets = WatchPicker.FilterTargets(targets)
-                .OrderByDescending(s => s.Score);
+            var targets = WatchPicker.FilteredTargets.Where(t => t.Transform.IsValid() && t.Transform.parent == null);
             //foreach (var item in targets)
             //{
             //    Debug.Log(item.Transform.name + ": " + item.Score);
@@ -189,8 +172,6 @@ namespace Assets.Src.ShipCamera
             TargetsToWatch = new List<Rigidbody>();
             if (targets.Any())
             {
-                var bestScore = targets.First().Score;
-
                 //Debug.Log("ShipCam: " + string.Join(",", targets.Select(t => t.Transform.name).ToArray()));
                 //TargetsToWatch = targets.Where(t => t.Score > bestScore * WatchTargetsScoreProportion).Select(t => t.Rigidbody).ToList();
                 TargetsToWatch = targets.Select(t => t.Rigidbody).ToList();
@@ -212,10 +193,7 @@ namespace Assets.Src.ShipCamera
         private void PickBestTargetToFollow()
         {
             //Debug.Log("To Follow");
-            var targets = _detector.DetectTargets()
-                .Where(t => t.Transform.parent == null);  //Don't follow anything that still has a parent.
-            targets = FollowPicker.FilterTargets(targets)
-                .OrderByDescending(s => s.Score);
+            var targets = FollowPicker.FilteredTargets.Where(t => t.Transform.parent == null);  //Don't follow anything that still has a parent.
             //foreach (var item in targets)
             //{
             //    Debug.Log(item.Transform.name + ": " + item.Score);
@@ -223,7 +201,7 @@ namespace Assets.Src.ShipCamera
 
             FollowedTarget = targets.Any()
                 ? targets
-                .FirstOrDefault()
+                .First()
                 .Rigidbody
                 : null;
 
@@ -251,9 +229,9 @@ namespace Assets.Src.ShipCamera
 
         private void PickRandomToFollow()
         {
-            var tagrgetToFollow = _detector.DetectTargets()
+            var tagrgetToFollow = FollowPicker.FilteredTargets
                 .Where(s => s.Transform.parent == null && s.Rigidbody != FollowedTarget)
-                .OrderBy(s => UnityEngine.Random.value)
+                .OrderBy(s => Random.value)
                 .FirstOrDefault();
 
             FollowedTarget = tagrgetToFollow != null ? GetActualTarget(tagrgetToFollow.Rigidbody) : null;

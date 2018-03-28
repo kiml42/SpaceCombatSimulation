@@ -13,15 +13,12 @@ namespace Assets.Src.Targeting.TargetPickers
         public float Multiplier = 1000;
 
         private float MinBonus = 0;
-        private float DefaultBonus = 0;
         private float MaxBonus = 1800;
 
         private float MinMultiplier = 0;
-        private float DefaultMultiplier = 0;
         private float MaxMultiplier = 100;
 
         private float MinThreshold = 0;
-        private float DefaultThreshold = 0;
         private float MaxThreshold = 2000;
 
         [Tooltip("Target pickers are used in ascending priority order." +
@@ -40,9 +37,9 @@ namespace Assets.Src.Targeting.TargetPickers
 
         protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
         {
-            Multiplier = genomeWrapper.GetScaledNumber(MaxMultiplier);
-            Threshold = genomeWrapper.GetScaledNumber(2000);
-            FlatBoost = genomeWrapper.GetScaledNumber(MaxBonus);
+            Multiplier = genomeWrapper.GetScaledNumber(MinMultiplier, MaxMultiplier);
+            Threshold = genomeWrapper.GetScaledNumber(MinThreshold, MaxThreshold);
+            FlatBoost = genomeWrapper.GetScaledNumber(MinBonus, MaxBonus);
            
             return genomeWrapper;
         }

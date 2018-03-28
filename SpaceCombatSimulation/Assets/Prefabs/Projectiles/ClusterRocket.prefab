@@ -116,6 +116,29 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!1 &1814265355183408
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 4000194952030910}
+  - component: {fileID: 114690007143497914}
+  - component: {fileID: 114947516065319838}
+  - component: {fileID: 114469817723523586}
+  - component: {fileID: 114637520696751284}
+  - component: {fileID: 114549470954192914}
+  - component: {fileID: 114158602507760918}
+  - component: {fileID: 114584933388051282}
+  - component: {fileID: 114291357425200066}
+  m_Layer: 0
+  m_Name: DefaultTargetPickerConfig
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
 --- !u!1 &1884382097825012
 GameObject:
   m_ObjectHideFlags: 0
@@ -149,6 +172,7 @@ GameObject:
   - component: {fileID: 114161706696368820}
   - component: {fileID: 114249161889169034}
   - component: {fileID: 114514755861448430}
+  - component: {fileID: 114316670950375688}
   m_Layer: 0
   m_Name: ClusterRocket
   m_TagString: Untagged
@@ -189,6 +213,19 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!4 &4000194952030910
+Transform:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1814265355183408}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 4832477793392458}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4026360856077322
 Transform:
   m_ObjectHideFlags: 1
@@ -318,13 +355,14 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1923394915539256}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -4.2371626, y: 4.24, z: 0}
+  m_LocalPosition: {x: -29184.596, y: 26999.281, z: 2297.965}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4614382473680198}
   - {fileID: 4713389471056084}
   - {fileID: 4652279574369954}
   - {fileID: 4365959887145080}
+  - {fileID: 4000194952030910}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -723,10 +761,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00495207fc630df479e0d4f227bb1949, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   Fuel: 80
   UseFuelMass: 1
   FuelDensity: 0.001
-  GetConfigFromGenome: 1
   MaxFuel: 80
   MinFuel: 20
 --- !u!114 &114095532759699856
@@ -740,6 +779,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   Pilot: {fileID: 4832477793392458}
   FuelTank: {fileID: 114087177041280492}
   ForceApplier: {fileID: 54172732429601216}
@@ -753,7 +794,24 @@ MonoBehaviour:
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 8
   _fullTrhrottlePlumeRate: 0
+--- !u!114 &114158602507760918
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1814265355183408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7f4327519bbde141a84b06ba2ce70a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
+  ConfigIndex: -1
+  Threshold: 0
+  FlatBoost: 500
+  Multiplier: 0
+  Priority: 0
+  CurrentTargetKnower: {fileID: 114958396777747442}
 --- !u!114 &114161706696368820
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -778,6 +836,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Type: 1
+--- !u!114 &114291357425200066
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1814265355183408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c907ed620d72c4e4aacb57fc3fb6bd82, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  Threshold: -1
+  FlatBoost: 100
+  Multiplier: -1
+  Priority: 0
+  DisalowedTypes: 00000000
+  PreferdTypes: 020000000300000004000000050000000700000008000000
+  KullInvalidTargets: 0
 --- !u!114 &114315273727274886
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -808,6 +886,40 @@ MonoBehaviour:
   - Team4ForceField
   - Team5ForceField
   TeamTagForceFieldSuffix: FoceField
+--- !u!114 &114316670950375688
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1923394915539256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0f7c7a2b22a34548847247f5e09bad8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeferToParent: 0
+  EnemyTags:
+  - Enemy
+  - Team2
+--- !u!114 &114469817723523586
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1814265355183408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc02479869a149e4381460c54790e086, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
+  ConfigIndex: -1
+  Threshold: -1
+  FlatBoost: 1000
+  Multiplier: -1
+  Priority: 0
+  SourceObject: {fileID: 4832477793392458}
+  KullInvalidTargets: 0
 --- !u!114 &114514755861448430
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -819,12 +931,51 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c45bc14bf73106468d41c2a7bac90c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   Cost: 10
   TargetChoosingMechanism: {fileID: 114958396777747442}
   RocketController: {fileID: 114634549180162652}
   FuelTank: {fileID: 114087177041280492}
   Engines:
   - {fileID: 114095532759699856}
+--- !u!114 &114549470954192914
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1814265355183408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: daa08e03f405a84439c74189f542b6c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  Threshold: 0
+  FlatBoost: 10000
+  Multiplier: 1
+  Priority: 0
+  KullInvalidTargets: 1
+--- !u!114 &114584933388051282
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1814265355183408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29f294ef9c08a0841b9a8441db19c693, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  Threshold: 500
+  FlatBoost: 0
+  Multiplier: 1
+  Priority: 0
+  SourceObject: {fileID: 4832477793392458}
+  KullInvalidTargets: 1
 --- !u!114 &114634549180162652
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -836,6 +987,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 20dff57476741ff4781682649ce23934, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   TargetChoosingMechanism: {fileID: 114958396777747442}
   ShootAngle: 10
   TorqueMultiplier: 90
@@ -862,7 +1015,55 @@ MonoBehaviour:
   EvasionModeTime: 0.3
   MinimumFriendlyDetectionDistance: 1.5
   Tank: {fileID: 0}
-  GetConfigFromGenome: 1
+--- !u!114 &114637520696751284
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1814265355183408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57a5adaf99d596a4bb09472f47f9e4b5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
+  ConfigIndex: -1
+  Threshold: -1
+  FlatBoost: 1000
+  Multiplier: -1
+  Priority: 0
+  SourceObject: {fileID: 4832477793392458}
+  KullInvalidTargets: 0
+  MinDetectionDistance: 2
+--- !u!114 &114690007143497914
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1814265355183408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &114947516065319838
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1814265355183408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 392cb577148f68a4595c2c2a6ae081b8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
+  ConfigIndex: 0
+  Threshold: 0
+  FlatBoost: 0
+  Multiplier: 20
+  Priority: 0
+  SourceObject: {fileID: 54172732429601216}
 --- !u!114 &114958396777747442
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -876,28 +1077,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ContinuallyCheckForTargets: 0
   NeverRetarget: 1
-  DropInvalidTargetsWhenTereAreValidTargets: 1
   PollInterval: 0
-  EnemyTags:
-  - Enemy
-  DisalowedTypes: 
-  PreferdTypes: 02000000030000000400000005000000
-  PreferedTypeBonus: 200
-  HemisphereFilterObject: {fileID: 0}
-  InCorrectHemisphereBonus: 1000
-  PickerMassMultiplier: 1
-  MinimumMass: 10
-  PickerOverMinMassBonus: 200
-  PickerDistanceMultiplier: 2
-  PickerRange: 200
-  PickerInRangeBonus: 10000
-  LineOfSightBonus: 1000
-  MinLineOfSightDetectionDistance: 2
-  PickerAimedAtMultiplier: 80
-  PickerAimingObject: {fileID: 0}
-  PickerApproachWeighting: 100
-  PreviousTargetBonus: 500
-  GetConfigFromGenome: 1
+  TargetPicker: {fileID: 114690007143497914}
 --- !u!135 &135228887540377652
 SphereCollider:
   m_ObjectHideFlags: 1
@@ -3510,7 +3691,7 @@ ParticleSystem:
   LightsModule:
     enabled: 0
     ratio: 0.01
-    light: {fileID: 108030273114456356, guid: 35dfec220b15b814d9cc2bd28d309187, type: 2}
+    light: {fileID: 0}
     randomDistribution: 1
     color: 1
     range: 1

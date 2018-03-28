@@ -6,7 +6,7 @@ using UnityEngine;
 
 public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
 {
-    private IDeactivateableTargetKnower _targetChoosingMechanism;
+    private IKnowsCurrentTarget _targetChoosingMechanism;
     private IKnowsEnemyTags _enemyTagKnower;
     public bool TagChildren = false;
     public Rigidbody Projectile;
@@ -36,7 +36,7 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
         _colerer = GetComponent<ColourSetter>();
         _reload = Random.value * RandomStartTime + MinStartTime;
         Emitter = Emitter ?? transform;
-        _targetChoosingMechanism = GetComponent<IDeactivateableTargetKnower>();
+        _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
         _enemyTagKnower = GetComponent<IKnowsEnemyTags>();
         _spawner = GetComponent<Rigidbody>();
     }

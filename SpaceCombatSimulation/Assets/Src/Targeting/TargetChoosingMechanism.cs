@@ -1,14 +1,13 @@
-﻿using Assets.Src.Evolution;
-using Assets.Src.Interfaces;
+﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnower
 {
-    private ITargetDetector _detector;
-    private Rigidbody _rigidbody;
+    public ITargetDetector Detector;
 
     [Tooltip("Check for best targets every frame if true, otherwise only on target loss")]
     public bool ContinuallyCheckForTargets = false;
@@ -16,17 +15,14 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
     [Tooltip("If set to true a target will be aquired once only, once lost the rocket will deactivate." +
         " Emulates rockets being told their target by their launcher at launch.")]
     public bool NeverRetarget = false;
-
-    [Tooltip("Set to true to kull invalid targets rather than simply giving them much lower scores." +
-        " Targets will not be kulled if there are no valid targets (so invalid targets will be tracked in case they become valid later)")]
-    public bool DropInvalidTargetsWhenTereAreValidTargets = false;
-
+    
     [Tooltip("time to wait between polling for better targets (seconds).")]
     public float PollInterval = 0;
     private float _pollCountdonwn = 0;
     
     #region knowsCurrentTarget
-    public Target CurrentTarget { get; set; }
+    public Target CurrentTarget { get; private set; }
+    public IEnumerable<Target> FilteredTargets { get; private set; }
     #endregion
 
     public IKnowsEnemyTags EnemyTagKnower;
@@ -37,15 +33,18 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
     // Use this for initialization
     void Start ()
     {
-        EnemyTagKnower = EnemyTagKnower ?? GetComponentInParent<IKnowsEnemyTags>();
-        if(EnemyTagKnower == null)
+        if(Detector == null)
         {
-            Debug.LogError("Could not find enemy tag source for target picker");
-            _active = false;
-            return;
+            EnemyTagKnower = EnemyTagKnower ?? GetComponentInParent<IKnowsEnemyTags>();
+            if(EnemyTagKnower == null)
+            {
+                Debug.LogWarning(name + " Could not find enemy tag source for target picker while configuring the detector.");
+            } else
+            {
+                Detector = new RepositoryTargetDetector(EnemyTagKnower);
+            }
         }
-        _rigidbody = GetComponent<Rigidbody>();
-        _detector = new RepositoryTargetDetector(EnemyTagKnower);
+        FilteredTargets = new List<Target>();//ensure that this isn't null.
     }
 	
 	// Update is called once per frame
@@ -57,13 +56,15 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
             if (targetIsInvalid || (ContinuallyCheckForTargets && _pollCountdonwn <= 0))
             {
                 //either the target is invalid, or the poll interval has elapsed and the ContinuallyCheckForTargets boolean is true, so a new poll should be made.
-                if (EnemyTagKnower.KnownEnemyTags == null || !EnemyTagKnower.KnownEnemyTags.Any())
+                if (Detector == null)
                 {
-                    Debug.LogWarning(name + " has no enemy tags configured.");
+                    Debug.LogWarning(name + " has no detector.");
+                    return;
                 }
                 //Debug.Log(name + " aquiring new target");
-                var allTargets = _detector.DetectTargets();
-                var bestTarget = TargetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).FirstOrDefault();
+                var allTargets = Detector.DetectTargets();
+                FilteredTargets = TargetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).Select(t => t as Target);
+                var bestTarget = FilteredTargets.FirstOrDefault();
                 if(TargetHasChanged(bestTarget, CurrentTarget))
                 {
                     //LogTargetChange(CurrentTarget, bestTarget, targetIsInvalid);
