@@ -8,7 +8,7 @@ namespace Assets.Src.ShipCamera
 {
     public class SideViewCameraOrientator : ManualCameraOrientator
     {
-        public override bool HasTargets { get { return _shipCam != null && _shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch; } }
+        public override bool HasTargets { get { return _shipCam != null && _shipCam.FollowedTarget != null && _shipCam.WatchedRigidbody != null && _shipCam.FollowedTarget != _shipCam.WatchedRigidbody; } }
 
         [Tooltip("The distance at which this Orientator starts to get a positive score.")]
         public float ZeroScoreDistance = 2000;
@@ -41,7 +41,7 @@ namespace Assets.Src.ShipCamera
         {
             get
             {
-                return Vector3.Distance(_shipCam.FollowedTarget.position, _shipCam.TargetToWatch.position);
+                return Vector3.Distance(_shipCam.FollowedTarget.position, _shipCam.WatchedRigidbody.position);
             }
         }
 
@@ -58,7 +58,7 @@ namespace Assets.Src.ShipCamera
         {
             get
             {
-                var targets = _shipCam.TargetsToWatch.Where(t => t != null && t.transform.IsValid()).ToList();
+                var targets = _shipCam.WatchedRigidbodies.Where(t => t != null && t.transform.IsValid()).ToList();
 
                 var closeTargets = targets.Where(t => Vector3.Distance(t.position,_shipCam.FollowedTarget.position) < TargetFilterDistance).ToList();
 
@@ -67,7 +67,7 @@ namespace Assets.Src.ShipCamera
 
                 //make sure these two are included
                 targets.Add(_shipCam.FollowedTarget);
-                targets.Add(_shipCam.TargetToWatch);
+                targets.Add(_shipCam.WatchedRigidbody);
 
                 return targets.Distinct().Where(t => t.transform.IsValid()).ToList();
             }

@@ -11,32 +11,24 @@ namespace Assets.Src.ShipCamera
     public class ShipCam : MonoBehaviour
     {
         private IEnumerable<BaseCameraOrientator> _cameraModes;
-
-        /// <summary>
-        /// tag of a child object of a fhing to watch or follow.
-        /// </summary>
+        
+        [Tooltip("Watch or follow objects with children with one of these tags.")]
         public List<string> Tags = new List<string> { "SpaceShip", "Projectile" };
-
-        /// <summary>
-        /// Rotation speed multiplier
-        /// </summary>
+        
+        [Tooltip("Rotation speed multiplier")]
         public float RotationSpeed = 5;
-
-        /// <summary>
-        /// transtlation speed multiplier. Higher values will be able to track faster objects, but may move from object to object too fast.
-        /// </summary>
+        
+        [Tooltip("transtlation speed multiplier. Higher values will be able to track faster objects, but may move from object to object too fast.")]
         public float TranslateSpeed = 1.5f;
-
-        /// <summary>
-        /// This value times the speed of the followed object is added to the translate speed.
-        /// </summary>
+        
+        [Tooltip("This value times the speed of the followed object is added to the translate speed.")]
         public float FollowedObjectTranslateSpeedMultiplier = 1;
 
         public Camera Camera;
 
         public Rigidbody FollowedTarget { get; set; }
-        public Rigidbody TargetToWatch { get; set; }
-        public List<Rigidbody> TargetsToWatch { get; set; }
+        public Rigidbody WatchedRigidbody { get; set; }
+        public List<Rigidbody> WatchedRigidbodies { get; set; }
 
         public TargetChoosingMechanism WatchPicker;
         public TargetChoosingMechanism FollowPicker;
@@ -90,12 +82,10 @@ namespace Assets.Src.ShipCamera
         // Update is called once per frame
         void FixedUpdate()
         {
-
             if (Input.GetKeyUp(KeyCode.Z))
             {
                 PickRandomToFollow();
             }
-
             else if (FollowedTarget == null)
             {
                 PickBestTargetToFollow();
@@ -103,14 +93,14 @@ namespace Assets.Src.ShipCamera
 
             if(Input.GetMouseButtonUp(SelectTargetButtonIndex))
             {
-                var clicked = BodyUnderPointer() ?? TargetToWatch;
+                var clicked = BodyUnderPointer() ?? WatchedRigidbody;
                 if (clicked != null && clicked != FollowedTarget)
                 {
-                    TargetToWatch = BodyUnderPointer();
+                    WatchedRigidbody = BodyUnderPointer();
                 }
             }
 
-            if(TargetToWatch == null)
+            if(WatchedRigidbody == null)
             {
                 PickTargetToWatch();
             }
@@ -160,33 +150,34 @@ namespace Assets.Src.ShipCamera
         private void PickTargetToWatch()
         {
             //Debug.Log("to watch");
-            IKnowsCurrentTarget knower = null;
-            if(UseFollowedTargetsTarget && FollowedTarget != null) {
-                knower = FollowedTarget.GetComponent<IKnowsCurrentTarget>();
-            }
             var targets = WatchPicker.FilteredTargets.Where(t => t.Transform.IsValid() && t.Transform.parent == null);
             //foreach (var item in targets)
             //{
             //    Debug.Log(item.Transform.name + ": " + item.Score);
             //}
-            TargetsToWatch = new List<Rigidbody>();
+            WatchedRigidbodies = new List<Rigidbody>();
             if (targets.Any())
             {
                 //Debug.Log("ShipCam: " + string.Join(",", targets.Select(t => t.Transform.name).ToArray()));
                 //TargetsToWatch = targets.Where(t => t.Score > bestScore * WatchTargetsScoreProportion).Select(t => t.Rigidbody).ToList();
-                TargetsToWatch = targets.Select(t => t.Rigidbody).ToList();
+                WatchedRigidbodies = targets.Select(t => t.Rigidbody).ToList();
 
-                TargetToWatch = targets.First().Rigidbody;
+                WatchedRigidbody = targets.First().Rigidbody;
+            }
+
+            IKnowsCurrentTarget knower = null;
+            if(UseFollowedTargetsTarget && FollowedTarget != null) {
+                knower = FollowedTarget.GetComponent<IKnowsCurrentTarget>();
             }
             if (knower != null && knower.CurrentTarget != null)
             {
-                TargetToWatch = knower.CurrentTarget.Rigidbody;
-                if (!TargetsToWatch.Contains(TargetToWatch))
+                WatchedRigidbody = knower.CurrentTarget.Rigidbody;
+                if (!WatchedRigidbodies.Contains(WatchedRigidbody))
                 {
-                    TargetsToWatch.Add(TargetToWatch);
+                    WatchedRigidbodies.Add(WatchedRigidbody);
                 }
             }
-            TargetToWatch = GetActualTarget(TargetToWatch);
+            WatchedRigidbody = GetActualTarget(WatchedRigidbody);
             //Debug.Log("Watching picked target: " + _targetToWatch.Transform.name);
         }
 

@@ -1,6 +1,6 @@
-﻿using Assets.Src.Interfaces;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
 {
@@ -15,6 +15,10 @@ namespace Assets.Src.Targeting.TargetPickers
         {
             if(CurrentTargetKnower == null || CurrentTargetKnower.CurrentTarget == null)
             {
+                if(CurrentTargetKnower == null)
+                {
+                    Debug.LogWarning(name + "'s PreviousTargetPicker Has no referenced target choosing mechanism.");
+                }
                 return potentialTargets;
             }
 
