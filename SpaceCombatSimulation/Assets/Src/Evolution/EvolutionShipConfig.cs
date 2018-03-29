@@ -1,8 +1,8 @@
 ﻿using Assets.src.Evolution;
 using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
 using Assets.Src.ModuleSystem;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -52,9 +52,17 @@ public class EvolutionShipConfig : MonoBehaviour {
             hub.AllowedModuleIndicies = Config.AllowedModuleIndicies;
         }
 
+        var tagShource = ship.GetComponent<IKnowsEnemyTags>();
         var enemyTags = Tags.Where(t => t != ownTag).ToList();
-
-        var genomeWrapper = new GenomeWrapper(genome, enemyTags)
+        if (tagShource != null)
+        {
+            tagShource.KnownEnemyTags = enemyTags;
+        } else
+        {
+            Debug.LogError(ship.name + " Has no IKnowsEnemyTags available.");
+        }
+        
+        var genomeWrapper = new GenomeWrapper(genome)
         {
             Budget = Config.Budget
         };

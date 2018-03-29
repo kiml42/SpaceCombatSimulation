@@ -497,7 +497,7 @@ MonoBehaviour:
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   PollInterval: 3
-  TargetPicker: {fileID: 0}
+  TargetPicker: {fileID: 114635379457099824}
 --- !u!136 &136529036643778040
 CapsuleCollider:
   m_ObjectHideFlags: 1

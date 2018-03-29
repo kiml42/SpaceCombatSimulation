@@ -63,7 +63,9 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
                 }
                 //Debug.Log(name + " aquiring new target");
                 var allTargets = Detector.DetectTargets();
+                var allTargetsList = allTargets.ToList();
                 FilteredTargets = TargetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).Select(t => t as Target);
+                var filteredTargetsList = FilteredTargets.ToList();
                 var bestTarget = FilteredTargets.FirstOrDefault();
                 if(TargetHasChanged(bestTarget, CurrentTarget))
                 {

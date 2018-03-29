@@ -1,9 +1,8 @@
-﻿using Assets.Src.Interfaces;
-using System.Collections;
+﻿using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
 using System.Collections.Generic;
-using UnityEngine;
-using Assets.Src.Evolution;
 using System.Linq;
+using UnityEngine;
 
 namespace Assets.Src.ModuleSystem
 {

@@ -68,16 +68,13 @@ namespace Assets.Src.Evolution
 
         private Stack<ModuleRecord> _previousModuleRecords = new Stack<ModuleRecord>();
         private ModuleRecord _currentModuleRecord;
-        
-        public List<string> EnemyTags { get; set; }
 
-        public GenomeWrapper(string genome, List<string> enemyTags = null, int geneLength = DEFAULT_GENE_LENGTH)
+        public GenomeWrapper(string genome, int geneLength = DEFAULT_GENE_LENGTH)
         {
             _genome = genome;
             _geneLength = geneLength;
             Budget = null; //default the budget to null, can be set later.
             UsedLocations = new List<Vector3>();
-            EnemyTags = enemyTags;
             ModuleTypeCounts = new Dictionary<ModuleType, int>();
             _topModuleRecord = new ModuleRecord();
             _currentModuleRecord = _topModuleRecord;

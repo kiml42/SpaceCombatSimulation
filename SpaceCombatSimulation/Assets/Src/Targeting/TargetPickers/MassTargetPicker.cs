@@ -19,17 +19,25 @@ namespace Assets.Src.Targeting.TargetPickers
             //Debug.Log(potentialTargets.Count());
             potentialTargets = potentialTargets.Select(t => {
                 var rigidbody = t.Rigidbody;
-                t.Score += Multiplier * rigidbody.mass;
-                if (rigidbody.mass > Threshold)
+                if(rigidbody != null)
                 {
-                    //Debug.Log("Adding score for mass. m=" + rigidbody.mass + ", original score = " + t.Score);
-                    t.IsValidForCurrentPicker = true;
-                    t.Score += FlatBoost;
-                } else
+                    t.Score += Multiplier * rigidbody.mass;
+                    if (rigidbody.mass > Threshold)
+                    {
+                        //Debug.Log("Adding score for mass. m=" + rigidbody.mass + ", original score = " + t.Score);
+                        t.IsValidForCurrentPicker = true;
+                        t.Score += FlatBoost;
+                    } else
+                    {
+                        t.IsValidForCurrentPicker = false;
+                    }
+                    return t;
+                }
+                else
                 {
                     t.IsValidForCurrentPicker = false;
+                    return t;
                 }
-                return t;
             });
 
             //Debug.Log(string.Join(",",potentialTargets.Select(t => t.IsValidForCurrentPicker.ToString()).ToArray()));

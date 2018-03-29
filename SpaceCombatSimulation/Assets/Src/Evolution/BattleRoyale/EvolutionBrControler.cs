@@ -1,15 +1,12 @@
 ﻿using Assets.src.Evolution;
-using System.Collections;
+using Assets.Src.Database;
+using Assets.Src.Evolution;
+using Assets.Src.Menus;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using System;
-using System.IO;
-using Assets.Src.ObjectManagement;
-using Assets.Src.Database;
-using Assets.Src.Evolution;
-using Assets.Src.Menus;
 
 public class EvolutionBrControler : BaseEvolutionController
 {

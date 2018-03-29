@@ -100,10 +100,10 @@ namespace Assets.Src.ShipCamera
                 }
             }
 
-            if(WatchedRigidbody == null)
-            {
+            //if(WatchedRigidbody == null)
+            //{
                 PickTargetToWatch();
-            }
+            //}
 
             var totalTranslateSpeed = TranslateSpeed + (FollowedObjectTranslateSpeedMultiplier * Time.deltaTime);
             
@@ -221,11 +221,16 @@ namespace Assets.Src.ShipCamera
         private void PickRandomToFollow()
         {
             var tagrgetToFollow = FollowPicker.FilteredTargets
-                .Where(s => s.Transform.parent == null && s.Rigidbody != FollowedTarget)
+                .Where(s => s.Transform != null && s.Transform.parent == null && s.Rigidbody != FollowedTarget)
                 .OrderBy(s => Random.value)
                 .FirstOrDefault();
 
             FollowedTarget = tagrgetToFollow != null ? GetActualTarget(tagrgetToFollow.Rigidbody) : null;
+
+            if (FollowedTarget != null)
+            {
+                TagPicker.Tag = FollowedTarget.tag;
+            }
         }
     }
 

@@ -79,13 +79,7 @@ namespace Assets.src.Evolution
                             var addedModule = GameObject.Instantiate(moduleToAdd, spawnPoint.position, spawnPoint.rotation, _rootHub.transform);
                             
                             addedModule.GetComponent<FixedJoint>().connectedBody = _rootHub.GetComponent<Rigidbody>();
-
-                            var tagKnower = addedModule.GetComponent<IKnowsEnemyTags>();
-                            if (tagKnower != null)
-                            {
-                                tagKnower.KnownEnemyTags = _genome.EnemyTags;
-                            }
-
+                            
                             var hub = addedModule.GetComponent<ModuleHub>();
                             if(hub != null)
                             {

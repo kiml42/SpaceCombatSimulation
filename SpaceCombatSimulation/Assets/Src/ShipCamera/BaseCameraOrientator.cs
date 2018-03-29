@@ -1,5 +1,4 @@
-﻿using Assets.Src.Controllers;
-using Assets.Src.Interfaces;
+﻿using Assets.Src.Interfaces;
 using UnityEngine;
 
 namespace Assets.Src.ShipCamera

@@ -297,7 +297,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1452437122874096}
   m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 3000, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4924564836931496}
@@ -658,9 +658,9 @@ MonoBehaviour:
   GetConfigFromGenome: 0
   ConfigIndex: 0
   Threshold: 0
-  FlatBoost: -100
+  FlatBoost: -10000000
   Multiplier: 0
-  Priority: 0
+  Priority: -1
   Tag: 
   KullInvalidTargets: 1
   TargetsWithTagAreValid: 0

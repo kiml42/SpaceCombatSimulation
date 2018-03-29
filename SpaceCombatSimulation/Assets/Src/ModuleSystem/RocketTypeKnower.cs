@@ -1,9 +1,7 @@
-﻿using Assets.Src.Interfaces;
-using System;
+﻿using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Assets.Src.Evolution;
 using UnityEngine;
 
 namespace Assets.Src.ModuleSystem
@@ -31,7 +29,7 @@ namespace Assets.Src.ModuleSystem
         public FuelTank FuelTank;
         public List<EngineControler> Engines;
 
-        public List<IGeneticConfigurable> GeneticConfigurables;
+        //public List<IGeneticConfigurable> GeneticConfigurables;
 
         public float ModuleCost
         {
@@ -51,7 +49,9 @@ namespace Assets.Src.ModuleSystem
 
         protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
         {
-            foreach (var configurable in GeneticConfigurables)
+            var configurables = GetComponentsInChildren<IGeneticConfigurable>().Where(c => c.GetType() != GetType());
+
+            foreach (var configurable in configurables)
             {
                 genomeWrapper =  configurable.Configure(genomeWrapper);
             }
