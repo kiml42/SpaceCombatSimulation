@@ -20,13 +20,14 @@ GameObject:
   m_Component:
   - component: {fileID: 4650260976213090}
   - component: {fileID: 114579695566880972}
-  - component: {fileID: 114387984681894078}
-  - component: {fileID: 114376890533248926}
+  - component: {fileID: 114802877292790736}
   - component: {fileID: 114991051423930714}
   - component: {fileID: 114571067449647346}
   - component: {fileID: 114814378691811180}
   - component: {fileID: 114807987580031552}
   - component: {fileID: 114207706089015702}
+  - component: {fileID: 114486376268253052}
+  - component: {fileID: 114308527583278802}
   m_Layer: 0
   m_Name: DefaultTargetPickerConfig
   m_TagString: Untagged
@@ -66,8 +67,28 @@ MonoBehaviour:
   Priority: 0
   DisalowedTypes: 00000000
   PreferdTypes: 020000000300000004000000050000000700000008000000
-  KullInvalidTargets: 0
---- !u!114 &114376890533248926
+  KullInvalidTargets: 1
+--- !u!114 &114308527583278802
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1512603960076284}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4ba5a5cfe59e574cb42cdbc76acb898, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  Threshold: 500
+  FlatBoost: 1000
+  Multiplier: 1000
+  Priority: 0
+  AimingObject: {fileID: 0}
+  AimingObjectFallback: {fileID: 0}
+  KullInvalidTargets: 1
+--- !u!114 &114486376268253052
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
@@ -78,32 +99,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bc02479869a149e4381460c54790e086, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GetConfigFromGenome: 0
-  ConfigIndex: -1
-  Threshold: -1
-  FlatBoost: 1000
-  Multiplier: -1
-  Priority: 0
-  SourceObject: {fileID: 0}
-  KullInvalidTargets: 0
---- !u!114 &114387984681894078
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1512603960076284}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 392cb577148f68a4595c2c2a6ae081b8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  GetConfigFromGenome: 0
+  GetConfigFromGenome: 1
   ConfigIndex: 0
   Threshold: 0
   FlatBoost: 0
-  Multiplier: 20
+  Multiplier: 0
   Priority: 0
   SourceObject: {fileID: 0}
+  KullInvalidTargets: 1
 --- !u!114 &114571067449647346
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -133,6 +136,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &114802877292790736
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1512603960076284}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 392cb577148f68a4595c2c2a6ae081b8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  Threshold: 500
+  FlatBoost: 1000
+  Multiplier: 1000
+  Priority: 0
+  SourceObject: {fileID: 0}
 --- !u!114 &114807987580031552
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -181,12 +202,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 57a5adaf99d596a4bb09472f47f9e4b5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GetConfigFromGenome: 0
+  GetConfigFromGenome: 1
   ConfigIndex: -1
   Threshold: -1
   FlatBoost: 1000
   Multiplier: -1
   Priority: 0
   SourceObject: {fileID: 0}
-  KullInvalidTargets: 0
+  KullInvalidTargets: 1
   MinDetectionDistance: 2

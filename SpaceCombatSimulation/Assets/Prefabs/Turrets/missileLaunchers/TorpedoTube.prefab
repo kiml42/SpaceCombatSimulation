@@ -339,7 +339,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
-  DropInvalidTargetsWhenTereAreValidTargets: 1
   PollInterval: 3
   TargetPicker: {fileID: 114759548646495412}
 --- !u!114 &114324418083706666
@@ -371,14 +370,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 57a5adaf99d596a4bb09472f47f9e4b5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GetConfigFromGenome: 0
+  GetConfigFromGenome: 1
   ConfigIndex: -1
   Threshold: -1
   FlatBoost: 1000
   Multiplier: -1
   Priority: 0
   SourceObject: {fileID: 4047970151895330}
-  KullInvalidTargets: 0
+  KullInvalidTargets: 1
   MinDetectionDistance: 2
 --- !u!114 &114447041090903970
 MonoBehaviour:
@@ -410,14 +409,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bc02479869a149e4381460c54790e086, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GetConfigFromGenome: 0
+  GetConfigFromGenome: 1
   ConfigIndex: -1
   Threshold: -1
   FlatBoost: 1000
   Multiplier: -1
   Priority: 0
   SourceObject: {fileID: 4047970151895330}
-  KullInvalidTargets: 0
+  KullInvalidTargets: 1
 --- !u!114 &114652749979997948
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -429,7 +428,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 392cb577148f68a4595c2c2a6ae081b8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GetConfigFromGenome: 0
+  GetConfigFromGenome: 1
   ConfigIndex: 0
   Threshold: 0
   FlatBoost: 0
@@ -505,7 +504,7 @@ MonoBehaviour:
   Priority: 0
   DisalowedTypes: 00000000
   PreferdTypes: 020000000300000004000000050000000700000008000000
-  KullInvalidTargets: 0
+  KullInvalidTargets: 1
 --- !u!114 &114890795770256878
 MonoBehaviour:
   m_ObjectHideFlags: 1

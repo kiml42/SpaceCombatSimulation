@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.048542537, g: 0.04687711, b: 0.048488215, a: 1}
+  m_IndirectSpecularColor: {r: 0.048915952, g: 0.04687711, b: 0.048861906, a: 1}
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
@@ -120,11 +120,6 @@ Prefab:
   m_Modification:
     m_TransformParent: {fileID: 376795158}
     m_Modifications:
-    - target: {fileID: 114448033600742040, guid: 15ceeb42af967814e8349cb3b0c9a2bf,
-        type: 2}
-      propertyPath: EnemyTags.Array.size
-      value: 2
-      objectReference: {fileID: 0}
     - target: {fileID: 4383548496987130, guid: 15ceeb42af967814e8349cb3b0c9a2bf, type: 2}
       propertyPath: m_LocalPosition.x
       value: -422.7917
@@ -157,43 +152,6 @@ Prefab:
       propertyPath: m_RootOrder
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 114448033600742040, guid: 15ceeb42af967814e8349cb3b0c9a2bf,
-        type: 2}
-      propertyPath: EnemyTags.Array.data[0]
-      value: Team1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114448033600742040, guid: 15ceeb42af967814e8349cb3b0c9a2bf,
-        type: 2}
-      propertyPath: EnemyTags.Array.data[1]
-      value: Enemy
-      objectReference: {fileID: 0}
-    - target: {fileID: 114742997607030728, guid: 15ceeb42af967814e8349cb3b0c9a2bf,
-        type: 2}
-      propertyPath: Health
-      value: 9000
-      objectReference: {fileID: 0}
-    - target: {fileID: 114742997607030728, guid: 15ceeb42af967814e8349cb3b0c9a2bf,
-        type: 2}
-      propertyPath: Resilience
-      value: 30
-      objectReference: {fileID: 0}
-    - target: {fileID: 114420754573670844, guid: 15ceeb42af967814e8349cb3b0c9a2bf,
-        type: 2}
-      propertyPath: Genome
-      value: 23
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383548496987130, guid: 15ceeb42af967814e8349cb3b0c9a2bf, type: 2}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: -26.777
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383548496987130, guid: 15ceeb42af967814e8349cb3b0c9a2bf, type: 2}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: -18.25
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383548496987130, guid: 15ceeb42af967814e8349cb3b0c9a2bf, type: 2}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 8.981001
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 15ceeb42af967814e8349cb3b0c9a2bf, type: 2}
   m_IsPrefabParent: 0
@@ -204,11 +162,6 @@ Prefab:
   m_Modification:
     m_TransformParent: {fileID: 376795158}
     m_Modifications:
-    - target: {fileID: 114982279045545480, guid: b0b7fa152bf562f4eb02cc527dd51b36,
-        type: 2}
-      propertyPath: EnemyTags.Array.size
-      value: 2
-      objectReference: {fileID: 0}
     - target: {fileID: 4390864261220732, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
       propertyPath: m_LocalPosition.x
       value: -157.00006
@@ -242,44 +195,8 @@ Prefab:
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 1479899972145274, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
-      propertyPath: m_TagString
-      value: Team2
-      objectReference: {fileID: 0}
-    - target: {fileID: 114982279045545480, guid: b0b7fa152bf562f4eb02cc527dd51b36,
-        type: 2}
-      propertyPath: EnemyTags.Array.data[1]
-      value: Team1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1479899972145274, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
       propertyPath: m_Name
       value: TwinCannonDrone (1)
-      objectReference: {fileID: 0}
-    - target: {fileID: 114032145553300578, guid: b0b7fa152bf562f4eb02cc527dd51b36,
-        type: 2}
-      propertyPath: Health
-      value: 9000
-      objectReference: {fileID: 0}
-    - target: {fileID: 114032145553300578, guid: b0b7fa152bf562f4eb02cc527dd51b36,
-        type: 2}
-      propertyPath: Resilience
-      value: 30
-      objectReference: {fileID: 0}
-    - target: {fileID: 114291727613263708, guid: b0b7fa152bf562f4eb02cc527dd51b36,
-        type: 2}
-      propertyPath: Genome
-      value: '25 '
-      objectReference: {fileID: 0}
-    - target: {fileID: 4390864261220732, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: -26.777
-      objectReference: {fileID: 0}
-    - target: {fileID: 4390864261220732, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: -18.25
-      objectReference: {fileID: 0}
-    - target: {fileID: 4390864261220732, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 8.981001
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
@@ -3299,11 +3216,6 @@ Prefab:
   m_Modification:
     m_TransformParent: {fileID: 376795158}
     m_Modifications:
-    - target: {fileID: 114982279045545480, guid: b0b7fa152bf562f4eb02cc527dd51b36,
-        type: 2}
-      propertyPath: EnemyTags.Array.size
-      value: 2
-      objectReference: {fileID: 0}
     - target: {fileID: 4390864261220732, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
       propertyPath: m_LocalPosition.x
       value: 175.99992
@@ -3335,42 +3247,6 @@ Prefab:
     - target: {fileID: 4390864261220732, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
       propertyPath: m_RootOrder
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1479899972145274, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
-      propertyPath: m_TagString
-      value: Team1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114982279045545480, guid: b0b7fa152bf562f4eb02cc527dd51b36,
-        type: 2}
-      propertyPath: EnemyTags.Array.data[1]
-      value: Team2
-      objectReference: {fileID: 0}
-    - target: {fileID: 114032145553300578, guid: b0b7fa152bf562f4eb02cc527dd51b36,
-        type: 2}
-      propertyPath: Health
-      value: 9000
-      objectReference: {fileID: 0}
-    - target: {fileID: 114032145553300578, guid: b0b7fa152bf562f4eb02cc527dd51b36,
-        type: 2}
-      propertyPath: Resilience
-      value: 30
-      objectReference: {fileID: 0}
-    - target: {fileID: 114291727613263708, guid: b0b7fa152bf562f4eb02cc527dd51b36,
-        type: 2}
-      propertyPath: Genome
-      value: '25 '
-      objectReference: {fileID: 0}
-    - target: {fileID: 4390864261220732, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 28.379002
-      objectReference: {fileID: 0}
-    - target: {fileID: 4390864261220732, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: -18.003
-      objectReference: {fileID: 0}
-    - target: {fileID: 4390864261220732, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: -9.479
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: b0b7fa152bf562f4eb02cc527dd51b36, type: 2}
