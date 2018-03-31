@@ -3542,6 +3542,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54087358730236130}
@@ -3587,6 +3588,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54684426007771114}
@@ -3613,6 +3615,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 0
   FlatBoost: 10000
   Multiplier: 1
@@ -3716,6 +3719,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54923186016187324}
@@ -3742,6 +3746,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54486208755904514}
@@ -3768,6 +3773,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 0
   ConfigIndex: 0
+  HasBeenConfiguredByGenome: 0
   Threshold: 0
   FlatBoost: 0
   Multiplier: 20
@@ -3826,6 +3832,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54333775750004750}
@@ -3852,6 +3859,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 0
   FlatBoost: 500
   Multiplier: 0
@@ -3870,6 +3878,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: -1
   FlatBoost: 100
   Multiplier: -1
@@ -3890,6 +3899,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54311300306141198}
@@ -3981,6 +3991,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   ShootAngle: 30
   TorqueMultiplier: 8000
   StartDelay: 0
@@ -4032,6 +4043,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 5
   FlatBoost: 0
   Multiplier: 100
@@ -4072,6 +4084,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 0
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: -1
   FlatBoost: 1000
   Multiplier: -1
@@ -4102,9 +4115,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Colour: {r: 0, g: 0, b: 0, a: 0}
+  Colour: {r: 0.3948962, g: 0.46967545, b: 0.64705884, a: 0}
   Depth: 1
-  SetInStart: 0
+  SetInStart: 1
 --- !u!114 &114640346814360692
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4118,6 +4131,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54005488202487768}
@@ -4144,6 +4158,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54618770371209884}
@@ -4170,6 +4185,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 500
   FlatBoost: 0
   Multiplier: 1
@@ -4220,7 +4236,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
-  DropInvalidTargetsWhenTereAreValidTargets: 1
   PollInterval: 1
   TargetPicker: {fileID: 114740956340237022}
 --- !u!114 &114889284966269540
@@ -4236,6 +4251,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54982811263021852}
@@ -4262,6 +4278,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54318108759424522}
@@ -4308,6 +4325,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Pilot: {fileID: 4846400136055366}
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54127611332422456}

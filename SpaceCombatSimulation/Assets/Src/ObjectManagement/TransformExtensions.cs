@@ -18,45 +18,28 @@ namespace Assets.Src.ObjectManagement
             return !IsInvalid(transform);
         }
 
-        public static void SetColor(this Transform transform, float R, float G, float B, float A = 1, int depth = 20)
+        public static void SetColor(this Transform transform, float R, float G, float B, float A = 10)
         {
             var colour = new Color(R, G, B, A);
             //Debug.Log("setting " + transform.name + "'s colour to " + colour);
             //Debug.Log(transform);
-            transform.SetColor(colour, depth);
+            transform.SetColor(colour);
         }
 
-        public static void SetColor(this Transform transform, Color colour, int depth = 20)
+        /// <summary>
+        /// Sets the colour of this transform and all its children.
+        /// </summary>
+        /// <param name="transform"></param>
+        /// <param name="colour"></param>
+        public static void SetColor(this Transform transform, Color colour)
         {
-            var colourer = transform.GetComponent<ColourSetter>();
-            if(colourer != null)
+            var renderers = transform.GetComponentsInChildren<Renderer>();
+            foreach (var renderer in renderers)
             {
-                //use the ColourSetter if it has one.
-                colourer.SetColor(transform, colour, depth);
-                return;
-            }
-            //Debug.Log(colour);
-            //Debug.Log(transform + " is having its colour set by the extension");
-            var renderer = transform.GetComponent<Renderer>();
-            if (renderer != null)
-            {
-                //Debug.Log("has renderer");
-                renderer.material.color = colour;
-            }
-
-            if (depth > 0)
-            {
-                var noChildren = transform.childCount;
-                if (noChildren > 0)
+                if (renderer != null)
                 {
-                    for (int i = 0; i < noChildren; i++)
-                    {
-                        var child = transform.GetChild(i);
-                        if (child != null)
-                        {
-                            child.SetColor(colour, --depth);
-                        }
-                    }
+                    //Debug.Log("has renderer");
+                    renderer.material.color = colour;
                 }
             }
         }

@@ -1,7 +1,6 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class SpawnTurret : MonoBehaviour
@@ -50,7 +49,7 @@ public class SpawnTurret : MonoBehaviour
                 turret.parent = ParentForTurret;
                 turret.GetComponent<FixedJoint>().connectedBody = parentRigidbody;
 
-                var renderer = ParentForTurret.GetComponent<Renderer>();
+                var renderer = ParentForTurret.GetComponentInChildren<Renderer>();
 
                 if (renderer != null)
                 {

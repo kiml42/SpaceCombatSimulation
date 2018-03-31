@@ -300,7 +300,7 @@ GameObject:
   m_IsActive: 1
 --- !u!1 &1352958606271078
 GameObject:
-  m_ObjectHideFlags: 0
+  m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   serializedVersion: 5
@@ -613,7 +613,7 @@ GameObject:
   m_IsActive: 1
 --- !u!1 &1692875101488336
 GameObject:
-  m_ObjectHideFlags: 0
+  m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   serializedVersion: 5
@@ -1003,9 +1003,9 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1692875101488336}
-  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: -0, z: 25}
-  m_LocalScale: {x: 1, y: 1.0000005, z: 1.0000005}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 10, z: -0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4638920270241598}
   - {fileID: 4715215864867726}
@@ -1015,8 +1015,8 @@ Transform:
   - {fileID: 4121901711068252}
   - {fileID: 4689320362904400}
   - {fileID: 4882155866636308}
-  m_Father: {fileID: 4642084428604556}
-  m_RootOrder: 12
+  m_Father: {fileID: 4268709148752074}
+  m_RootOrder: 8
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!4 &4091687217007042
 Transform:
@@ -1115,9 +1115,9 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1352958606271078}
-  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: -0, z: 15}
-  m_LocalScale: {x: 1, y: 1.0000005, z: 1.0000005}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 10, z: -0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4348115294486106}
   - {fileID: 4158850820221822}
@@ -1127,8 +1127,9 @@ Transform:
   - {fileID: 4196569146527216}
   - {fileID: 4373679331699800}
   - {fileID: 4255361259917924}
-  m_Father: {fileID: 4642084428604556}
-  m_RootOrder: 11
+  - {fileID: 4080668477705128}
+  m_Father: {fileID: 4367710746532794}
+  m_RootOrder: 8
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!4 &4279243139290560
 Transform:
@@ -1226,6 +1227,7 @@ Transform:
   - {fileID: 4778916128945128}
   - {fileID: 4713440669477592}
   - {fileID: 4409017400082354}
+  - {fileID: 4268709148752074}
   m_Father: {fileID: 4642084428604556}
   m_RootOrder: 10
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
@@ -1308,7 +1310,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4642084428604556}
-  m_RootOrder: 13
+  m_RootOrder: 11
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4464256057473960
 Transform:
@@ -1428,8 +1430,6 @@ Transform:
   - {fileID: 4495800646576940}
   - {fileID: 4464256057473960}
   - {fileID: 4367710746532794}
-  - {fileID: 4268709148752074}
-  - {fileID: 4080668477705128}
   - {fileID: 4439278192646108}
   m_Father: {fileID: 0}
   m_RootOrder: 0
@@ -3076,7 +3076,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Colour: {r: 0.76695836, g: 0.17149654, b: 0.89705884, a: 0}
   Depth: 1
-  SetInStart: 0
+  SetInStart: 1
 --- !u!114 &114976606622485290
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -3133,7 +3133,7 @@ FixedJoint:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1692875101488336}
-  m_ConnectedBody: {fileID: 0}
+  m_ConnectedBody: {fileID: 54663308421432022}
   m_BreakForce: 700000
   m_BreakTorque: 900000
   m_EnableCollision: 0
@@ -3146,7 +3146,7 @@ FixedJoint:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1352958606271078}
-  m_ConnectedBody: {fileID: 0}
+  m_ConnectedBody: {fileID: 54185723321536184}
   m_BreakForce: 700000
   m_BreakTorque: 900000
   m_EnableCollision: 0
@@ -3159,7 +3159,7 @@ FixedJoint:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1456031142515540}
-  m_ConnectedBody: {fileID: 0}
+  m_ConnectedBody: {fileID: 54564561303838756}
   m_BreakForce: 700000
   m_BreakTorque: 900000
   m_EnableCollision: 0

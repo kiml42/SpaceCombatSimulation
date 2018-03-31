@@ -1109,7 +1109,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Colour: {r: 0.76695836, g: 0.17149654, b: 0.89705884, a: 0}
   Depth: 1
-  SetInStart: 0
+  SetInStart: 1
 --- !u!114 &114818931273078884
 MonoBehaviour:
   m_ObjectHideFlags: 1
