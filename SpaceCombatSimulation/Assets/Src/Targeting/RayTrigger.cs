@@ -29,7 +29,7 @@ public class RayTrigger : MonoBehaviour, IFireControl
             if (Physics.Raycast(ray, out hit, MaxDistance, -1, QueryTriggerInteraction.Ignore))
             {
                 //is a hit
-                if (ShootAnyEnemy)
+                if (ShootAnyEnemy && TargetChoosingMechanism != null && TargetChoosingMechanism.EnemyTagKnower != null)
                 {
                     var tags = TargetChoosingMechanism.EnemyTagKnower.KnownEnemyTags;
                     return tags.Contains(hit.transform.tag);
