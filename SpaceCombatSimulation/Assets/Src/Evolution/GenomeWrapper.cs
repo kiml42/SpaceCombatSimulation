@@ -13,6 +13,7 @@ namespace Assets.Src.Evolution
         private int _geneLength;
         private string _genome;
         private const int DEFAULT_GENE_LENGTH = 3;
+        private const float DEFAULT_BUDGET = 1000;
 
         public string Genome { get
             {
@@ -69,11 +70,11 @@ namespace Assets.Src.Evolution
         private Stack<ModuleRecord> _previousModuleRecords = new Stack<ModuleRecord>();
         private ModuleRecord _currentModuleRecord;
 
-        public GenomeWrapper(string genome, int geneLength = DEFAULT_GENE_LENGTH)
+        public GenomeWrapper(string genome, float budget = DEFAULT_BUDGET, int geneLength = DEFAULT_GENE_LENGTH)
         {
             _genome = genome;
             _geneLength = geneLength;
-            Budget = null; //default the budget to null, can be set later.
+            Budget = budget;
             UsedLocations = new List<Vector3>();
             ModuleTypeCounts = new Dictionary<ModuleType, int>();
             _topModuleRecord = new ModuleRecord();

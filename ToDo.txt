@@ -18,8 +18,6 @@ Bugs:
 
 TODO:
     In Progress:
-        Object structure Refactor 
-            Get target pickers to be genetically configured.
         Player ship
             pick target by clicking on it
             cycle ships with key press

@@ -47,18 +47,17 @@ namespace Assets.Src.ModuleSystem
 
         protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
         {
-            var componentsToConfigure = GetComponents<IGeneticConfigurable>().ToList();
+            var componentsToConfigure = GetComponentsInChildren<IGeneticConfigurable>().ToList();
 
             componentsToConfigure.AddRange(ExtraConfigurables.Where(c => c != null).Select(c => c as IGeneticConfigurable));
 
             componentsToConfigure = componentsToConfigure.Distinct().Where(c => c != null && c.GetType() != GetType()).ToList();
             
-            if (componentsToConfigure.Any())   //if length == 1 then this has only found itself.
+            foreach (var c in componentsToConfigure)
             {
-                foreach (var c in componentsToConfigure)
-                {
-                    genomeWrapper = c.Configure(genomeWrapper);
-                }
+                genomeWrapper.Jump();
+                genomeWrapper = c.Configure(genomeWrapper);
+                genomeWrapper.JumpBack();
             }
 
             return genomeWrapper;
