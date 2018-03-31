@@ -374,7 +374,6 @@
     <Compile Include="Assets\Src\ModuleSystem\ModuleTypeKnower.cs" />
     <Compile Include="Assets\Src\ModuleSystem\RigidbodyList.cs" />
     <Compile Include="Assets\Src\ModuleSystem\RocketTypeKnower.cs" />
-    <Compile Include="Assets\Src\ModuleSystem\SelfBuildingShip.cs" />
     <Compile Include="Assets\Src\ModuleSystem\ShipBuilder.cs" />
     <Compile Include="Assets\Src\ModuleSystem\TestCubeChecker.cs" />
     <Compile Include="Assets\Src\ObjectManagement\ColourSetter.cs" />
