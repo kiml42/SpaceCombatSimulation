@@ -17,7 +17,7 @@ namespace Assets.Src.Targeting.TargetPickers
             {
                 if(CurrentTargetKnower == null)
                 {
-                    Debug.LogWarning(name + "'s PreviousTargetPicker Has no referenced target choosing mechanism.");
+                    Debug.LogError(name + "'s PreviousTargetPicker Has no referenced target choosing mechanism. Parent: " + (transform.parent != null ? transform.parent.name : "(none)"));
                 }
                 return potentialTargets;
             }

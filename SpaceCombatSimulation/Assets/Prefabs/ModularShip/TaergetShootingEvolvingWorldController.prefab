@@ -710,7 +710,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07117f7a6724263428f71059b5344946, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DatabaseId: 0
+  DatabaseId: 13
   ShipConfig: {fileID: 114276023159756518}
   CurrentScore: 0
   DroneList: {fileID: 114605218179096368, guid: e2dbee6a48a444f4aab01257450a7363,
@@ -727,7 +727,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Colour: {r: 0, g: 0, b: 0, a: 0}
-  Depth: 1
   SetInStart: 0
 --- !u!114 &114768268343182516
 MonoBehaviour:
@@ -766,7 +765,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Colour: {r: 0, g: 0, b: 0, a: 0}
-  Depth: 1
   SetInStart: 0
 --- !u!114 &114863712890012964
 MonoBehaviour:

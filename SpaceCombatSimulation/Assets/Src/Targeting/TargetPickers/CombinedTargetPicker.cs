@@ -26,6 +26,11 @@ namespace Assets.Src.Targeting
 
         public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
+            if (_targeters == null || !_targeters.Any())
+            {
+                Debug.LogWarning(name + " has no target pickers! (might just not be initialised yet, attempting reinitialisation...)");
+                Start();
+            }
             foreach (var targeter in _targeters)
             {
                 potentialTargets = targeter.FilterTargets(potentialTargets);

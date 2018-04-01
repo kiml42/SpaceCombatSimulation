@@ -35,6 +35,14 @@ public class EvolutionDroneControler : BaseEvolutionController
 
     private bool _hasModules;
     private GenomeWrapper _genomeWrapper;
+    
+    protected override GeneralDatabaseHandler _dBHandler
+    {
+        get
+        {
+            return _dbHandler;
+        }
+    }
 
     // Use this for initialization
     void Start()

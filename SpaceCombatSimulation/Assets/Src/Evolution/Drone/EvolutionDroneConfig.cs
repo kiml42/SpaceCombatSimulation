@@ -33,7 +33,6 @@ namespace Assets.Src.Evolution
             {
                 if (string.IsNullOrEmpty(value))
                 {
-                    Debug.LogWarning("Empty Drones list was provided, no drones will spawn");
                     Drones = new List<int>();
                 }
                 else

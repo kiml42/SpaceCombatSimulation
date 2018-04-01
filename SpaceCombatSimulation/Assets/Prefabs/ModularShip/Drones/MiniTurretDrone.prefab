@@ -896,7 +896,7 @@ MonoBehaviour:
   FlatBoost: 500
   Multiplier: 0
   Priority: 0
-  CurrentTargetKnower: {fileID: 0}
+  CurrentTargetKnower: {fileID: 114356958382015754}
 --- !u!114 &114356958382015754
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -996,7 +996,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Colour: {r: 0.76695836, g: 0.17149654, b: 0.89705884, a: 0}
-  Depth: 1
   SetInStart: 1
 --- !u!114 &114521230111193302
 MonoBehaviour:
