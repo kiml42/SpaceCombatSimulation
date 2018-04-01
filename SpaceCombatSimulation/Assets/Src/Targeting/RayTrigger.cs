@@ -31,11 +31,15 @@ public class RayTrigger : MonoBehaviour, IFireControl
                 //is a hit
                 if (ShootAnyEnemy && TargetChoosingMechanism != null && TargetChoosingMechanism.EnemyTagKnower != null)
                 {
-                    var tags = TargetChoosingMechanism.EnemyTagKnower.KnownEnemyTags;
-                    return tags.Contains(hit.transform.tag);
+                    return TargetChoosingMechanism
+                        .EnemyTagKnower
+                        .KnownEnemyTags
+                        .Contains(hit.transform.tag);
                 }
-
-                return hit.transform == target.Transform;
+                if(target != null)
+                {
+                    return hit.transform == target.Transform;
+                }
             }
         } else
         {
