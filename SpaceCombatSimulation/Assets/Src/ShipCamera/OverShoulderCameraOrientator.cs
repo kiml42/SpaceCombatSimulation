@@ -22,7 +22,7 @@ namespace Assets.Src.ShipCamera
         
         public Transform DefaultCamLocation;
 
-        public override bool HasTargets { get { return _shipCam != null && _shipCam.FollowedTarget != null && _shipCam.TargetToWatch != null && _shipCam.FollowedTarget != _shipCam.TargetToWatch; } }
+        public override bool HasTargets { get { return _shipCam != null && _shipCam.FollowedTarget != null && _shipCam.WatchedRigidbody != null && _shipCam.FollowedTarget != _shipCam.WatchedRigidbody; } }
         
         public override float Priority
         {
@@ -34,7 +34,7 @@ namespace Assets.Src.ShipCamera
         
         private float GetWatchDistance()
         {
-            return Vector3.Distance(transform.position, _shipCam.TargetToWatch.position);
+            return Vector3.Distance(transform.position, _shipCam.WatchedRigidbody.position);
         }
         public override string Description
         {
@@ -53,12 +53,12 @@ namespace Assets.Src.ShipCamera
                 //Debug.Log("Following " + _followedTarget.Transform.name + ", Watching " + _targetToWatch.Transform.name);
                 //rotate enpty parent
                 
-                var automaticParentPollTarget = (_shipCam.TargetToWatch.position - _shipCam.FollowedTarget.position);
+                var automaticParentPollTarget = (_shipCam.WatchedRigidbody.position - _shipCam.FollowedTarget.position);
                 var cameraPollTarget = DefaultCamLocation.forward;
                 if (!ManualPanMode && Vector3.Angle(automaticParentPollTarget, transform.forward) < NearlyAimedAngle)
                 {
                     //rotate the camera itself - only if the parent is looking in vaguely the right direction.
-                    cameraPollTarget = (_shipCam.TargetToWatch.position - _shipCam.Camera.transform.position);
+                    cameraPollTarget = (_shipCam.WatchedRigidbody.position - _shipCam.Camera.transform.position);
                 }
 
                 var referenceVelocity = _shipCam.FollowedTarget.velocity;

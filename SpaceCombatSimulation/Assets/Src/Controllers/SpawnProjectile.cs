@@ -1,17 +1,13 @@
-﻿using Assets.Src.Interfaces;
-using Assets.Src.ObjectManagement;
-using Assets.Src.Targeting;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
-using Assets.Src.Evolution;
+﻿using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
 using Assets.Src.ModuleSystem;
+using Assets.Src.ObjectManagement;
+using UnityEngine;
 
 public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
 {
-    private IKnowsEnemyTagsAndCurrentTarget _targetChoosingMechanism;
+    private IKnowsCurrentTarget _targetChoosingMechanism;
+    private IKnowsEnemyTags _enemyTagKnower;
     public bool TagChildren = false;
     public Rigidbody Projectile;
     public Transform Emitter;
@@ -38,10 +34,10 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
     void Start()
     {
         _colerer = GetComponent<ColourSetter>();
-        _reload = UnityEngine.Random.value * RandomStartTime + MinStartTime;
+        _reload = Random.value * RandomStartTime + MinStartTime;
         Emitter = Emitter ?? transform;
-        _targetChoosingMechanism = GetComponent<IKnowsEnemyTagsAndCurrentTarget>();
-
+        _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
+        _enemyTagKnower = GetComponent<IKnowsEnemyTags>();
         _spawner = GetComponent<Rigidbody>();
     }
 
@@ -70,7 +66,7 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
                 var tagKnower = projectile.GetComponent<IKnowsEnemyTags>();
                 if(tagKnower != null && _targetChoosingMechanism != null)
                 {
-                    tagKnower.KnownEnemyTags = _targetChoosingMechanism.KnownEnemyTags;
+                    tagKnower.KnownEnemyTags = _enemyTagKnower.KnownEnemyTags;
                 }
                 
                 if (TagChildren) { projectile.tag = tag; }
@@ -86,7 +82,7 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
                     var typeKnower = projectile.GetComponent<IModuleTypeKnower>();
                     if(typeKnower != null)
                     {
-                        typeKnower.Configure(new GenomeWrapper(RocketGenome, _targetChoosingMechanism.KnownEnemyTags));
+                        typeKnower.Configure(new GenomeWrapper(RocketGenome));
                     }
                 }
 
@@ -117,17 +113,12 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
         _active = false;
         tag = InactiveTag;
     }
-
-
-    public bool GetConfigFromGenome = true;
+    
     private string RocketGenome;
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
-            RocketGenome = genomeWrapper.Genome.Substring(genomeWrapper.GetGeneAsInt() ?? 0);
-        }
+        RocketGenome = genomeWrapper.Genome.Substring(genomeWrapper.GetGeneAsInt() ?? 0);
         return genomeWrapper;
     }
 }

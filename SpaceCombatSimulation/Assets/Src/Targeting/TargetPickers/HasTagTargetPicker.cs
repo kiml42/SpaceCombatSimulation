@@ -1,10 +1,6 @@
-﻿using Assets.Src.Interfaces;
-using Assets.Src.ObjectManagement;
-using System;
+﻿using Assets.Src.ObjectManagement;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
 {
@@ -12,10 +8,9 @@ namespace Assets.Src.Targeting.TargetPickers
     /// Adds an additional score to targets with the given tag.
     /// Defaults to a negative score to avoid picking targets with that tag (to avoid targeting friendlies)
     /// </summary>
-    class HasTagTargetPicker : ITargetPicker
+    public class HasTagTargetPicker : GeneticallyConfigurableTargetPicker
     {
         public string Tag;
-        public float AdditionalScore = -10000;
         public bool KullInvalidTargets = false;
 
         /// <summary>
@@ -23,28 +18,23 @@ namespace Assets.Src.Targeting.TargetPickers
         /// set to true to consider targets with the tag good.
         /// Only relavent if KullInalidTargets is true.
         /// </summary>
-        public bool TargetsWitTagAreValid = false;
+        public bool TargetsWithTagAreValid = false;
 
-        public HasTagTargetPicker(string tag)
+        public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
-            Tag = tag;
-        }
-
-        public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
-        {
-            if(AdditionalScore != 0 && !string.IsNullOrEmpty(Tag))
+            if(FlatBoost != 0 && !string.IsNullOrEmpty(Tag))
             {
                 return potentialTargets.Select(t => {
                     if(t.Transform.IsValid() && t.Transform.tag == Tag)
                     {
                         //Debug.Log(t.Transform + " score += " + AdditionalScore);
                         
-                        t.IsValidForCurrentPicker = TargetsWitTagAreValid;
-                        t.Score += AdditionalScore;
+                        t.IsValidForCurrentPicker = TargetsWithTagAreValid;
+                        t.Score += FlatBoost;
                     } else
                     {
                         //different tag
-                        t.IsValidForCurrentPicker = !TargetsWitTagAreValid;
+                        t.IsValidForCurrentPicker = !TargetsWithTagAreValid;
                     }
                     return t;
                 });

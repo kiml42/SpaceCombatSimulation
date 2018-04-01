@@ -79,15 +79,9 @@ public class EyeballTurrertTurningMechanism : GeneticConfigurableMonobehaviour
         }
     }
 
-    public bool GetConfigFromGenome = true;
-
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
-            MotorForce = genomeWrapper.GetScaledNumber(600);
-        }
-
+        MotorForce = genomeWrapper.GetScaledNumber(600);
         return genomeWrapper;
     }
 }

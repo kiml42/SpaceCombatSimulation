@@ -1,99 +1,78 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
-public class SpawnTurret : MonoBehaviour, IKnowsEnemyTags
+public class SpawnTurret : MonoBehaviour
 {
-    public TargetChoosingMechanism EnemyTagSource;
-    public IKnowsEnemyTags _enemyTagSource;
-    public bool TagChildren = false;
+    public IKnowsEnemyTags EnemyTagSource;
+
+    [Tooltip("if true, the turret will be tagged with the parent objects tag. This object's tag is used if there is no parent.")]
+    public bool TagChildren = true;
 
     public Transform ParentForTurret;
-
-
-    #region EnemyTags
-    public void AddEnemyTag(string newTag)
-    {
-        var tags = EnemyTags;
-        tags.Add(newTag);
-        EnemyTags = tags.Distinct().ToList();
-    }
-
-    public List<string> KnownEnemyTags
-    {
-        get
-        {
-            return EnemyTags;
-        }
-        set
-        {
-            EnemyTags = value;
-        }
-    }
-
+    
+    [Tooltip("only used if the turret won't be able to find a deffered tag source.")]
     public List<string> EnemyTags;
-    #endregion
 
     public Transform TurretPrefab;
 
 	// Use this for initialization
 	void Start () {
-
-        if(EnemyTagSource == null && transform.parent != null)
+        if(TurretPrefab != null)
         {
-            _enemyTagSource = transform.parent.GetComponent<IKnowsEnemyTags>();
-        }
-        else
-        {
-            _enemyTagSource = EnemyTagSource;
-        }
-
-        if(_enemyTagSource != null)
-        {
-            EnemyTags = _enemyTagSource.KnownEnemyTags;
-        }
-
-        if(ParentForTurret == null && transform.parent != null)
-        {
-            ParentForTurret = transform.parent;
-        }
-
-        var turret = Instantiate(TurretPrefab, transform.position, transform.rotation, ParentForTurret);
-
-        if(ParentForTurret != null)
-        {
-            var parentRigidbody = ParentForTurret.GetComponent<Rigidbody>();
-            if(parentRigidbody != null)
+            if(EnemyTagSource == null && transform.parent != null)
             {
-                turret.SetVelocity(parentRigidbody.velocity);
+                EnemyTagSource = transform.GetComponentInParent<IKnowsEnemyTags>();
             }
 
-            turret.parent = ParentForTurret;
-            turret.GetComponent<FixedJoint>().connectedBody = parentRigidbody;
-
-            var renderer = ParentForTurret.GetComponent<Renderer>();
-
-            if (renderer != null)
+            if(EnemyTagSource != null)
             {
-                //Debug.Log("has renderer");
-                turret.transform.SetColor(renderer.material.color);
+                EnemyTags = EnemyTagSource.KnownEnemyTags;
             }
-        }
 
-        var tagKnower = turret.GetComponent<IKnowsEnemyTags>();
-        if(tagKnower != null)
+            if(ParentForTurret == null && transform.parent != null)
+            {
+                ParentForTurret = transform.parent;
+            }
+
+            var turret = Instantiate(TurretPrefab, transform.position, transform.rotation, ParentForTurret);
+
+            if(ParentForTurret != null)
+            {
+                var parentRigidbody = ParentForTurret.GetComponent<Rigidbody>();
+                if(parentRigidbody != null)
+                {
+                    turret.SetVelocity(parentRigidbody.velocity);
+                }
+
+                turret.parent = ParentForTurret;
+                turret.GetComponent<FixedJoint>().connectedBody = parentRigidbody;
+
+                var renderer = ParentForTurret.GetComponentInChildren<Renderer>();
+
+                if (renderer != null)
+                {
+                    //Debug.Log("has renderer");
+                    turret.transform.SetColor(renderer.material.color);
+                }
+            }
+
+            var tagKnower = turret.GetComponent<IKnowsEnemyTags>();
+            if(tagKnower != null)
+            {
+                tagKnower.KnownEnemyTags = EnemyTags;
+            }
+
+            if (TagChildren)
+            {
+                turret.tag = ParentForTurret != null ? ParentForTurret.tag : tag;
+            }
+        
+            Destroy(gameObject);
+        } else
         {
-            tagKnower.KnownEnemyTags = EnemyTags;
+            Debug.LogWarning(name + " Has no turret to spawn.");
         }
-
-        if (TagChildren) {
-            turret.tag = tag;
-        }
-
-
-        Destroy(gameObject);
     }
 }

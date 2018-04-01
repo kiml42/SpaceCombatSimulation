@@ -56,18 +56,12 @@ public class FuelTank : GeneticConfigurableMonobehaviour
         _rigidbody.mass = _originalMass + Fuel * FuelDensity;
     }
 
-    public bool GetConfigFromGenome = false;
-
     public float MaxFuel = 180;
     public float MinFuel = 0;
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
-            Fuel = genomeWrapper.GetScaledNumber(MaxFuel, MinFuel);
-        }
-
+        Fuel = genomeWrapper.GetScaledNumber(MaxFuel, MinFuel);
         return genomeWrapper;
     }
 }

@@ -1,16 +1,12 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
-using Assets.Src.Targeting;
-using Assets.Src.Targeting.TargetPickers;
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDeactivatable, IKnowsProjectileSpeed
 {
-    private IKnowsEnemyTagsAndCurrentTarget _targetChoosingMechanism;
+    private IKnowsCurrentTarget _targetChoosingMechanism;
+    private IKnowsEnemyTags _enemyTagKnower;
     public Rigidbody Projectile;
     public Rigidbody MuzzleFlash;
     public float LoadTime = 200;
@@ -48,7 +44,8 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
     void Start()
     {
         _colerer = GetComponent<ColourSetter>();
-        _targetChoosingMechanism = GetComponent<IKnowsEnemyTagsAndCurrentTarget>();
+        _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
+        _enemyTagKnower = GetComponent<IKnowsEnemyTags>();
         var emitterCount = EmitterParent.childCount;
 
         _emitters = new List<Transform>();
@@ -96,7 +93,7 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
 
                 if (SetChildrensEnemy && _targetChoosingMechanism != null)
                 {
-                    projectile.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = _targetChoosingMechanism.KnownEnemyTags;
+                    projectile.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = _enemyTagKnower.KnownEnemyTags;
                 }
                 if (_colerer != null)
                 {

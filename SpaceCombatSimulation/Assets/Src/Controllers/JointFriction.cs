@@ -45,15 +45,10 @@ public class JointFriction : GeneticConfigurableMonobehaviour
                 _connectedBody.AddTorque(worldTorque);
         }
     }
-    public bool GetConfigFromGenome = true;
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
-            Friction = genomeWrapper.GetScaledNumber(3);
-        }
-
+        Friction = genomeWrapper.GetScaledNumber(3);
         return genomeWrapper;
     }
 }

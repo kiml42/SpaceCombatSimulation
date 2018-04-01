@@ -224,21 +224,16 @@ public class EngineControler : GeneticConfigurableMonobehaviour
         SetPlumeState(0);
         tag = InactiveTag;
     }
-
-    public bool GetConfigFromGenome = true;
-
+    
     private float MaxShootAngle = 180;
     private float DefaultShootAngleProportion = 0.5f;
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
-            TranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
-            TorqueFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
-            FullThrottleTranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0, DefaultShootAngleProportion);
-        }
-
+        TranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
+        TorqueFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
+        FullThrottleTranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0, DefaultShootAngleProportion);
+        
         return genomeWrapper;
     }
 

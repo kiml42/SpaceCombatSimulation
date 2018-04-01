@@ -1,9 +1,6 @@
 ﻿using Assets.src.Evolution;
 using Assets.Src.Evolution;
 using Assets.Src.ModuleSystem;
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class ShipTester : MonoBehaviour {
@@ -50,7 +47,7 @@ public class ShipTester : MonoBehaviour {
 
         shipInstance.AllowedModuleIndicies = AllowedModuleIndicies;
 
-        var genomeWrapper = new GenomeWrapper(Genome, new List<string>());
+        var genomeWrapper = new GenomeWrapper(Genome);
 
         shipInstance.Configure(genomeWrapper);
     }

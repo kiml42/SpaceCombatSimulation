@@ -142,7 +142,7 @@ namespace Assets.Src.ShipCamera
                     GUI.DrawTexture(rect, FollowedTargetReticleTexture);
                     return;
                 }
-                if (WatchedTargetReticleTexture != null && _shipCam.TargetToWatch != null && targetTransform == _shipCam.TargetToWatch.transform)
+                if (WatchedTargetReticleTexture != null && _shipCam.WatchedRigidbody != null && targetTransform == _shipCam.WatchedRigidbody.transform)
                 {
                     GUI.DrawTexture(rect, WatchedTargetReticleTexture);
                     return;

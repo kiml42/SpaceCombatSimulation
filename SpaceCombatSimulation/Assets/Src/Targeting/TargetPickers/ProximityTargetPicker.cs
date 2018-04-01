@@ -1,8 +1,5 @@
-﻿using Assets.Src.Interfaces;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
@@ -14,29 +11,16 @@ namespace Assets.Src.Targeting.TargetPickers
     ///     S = S + InRangeBonus
     /// as well.
     /// </summary>
-    class ProximityTargetPicker : ITargetPicker
+    public class ProximityTargetPicker : GeneticallyConfigurableTargetPicker
     {
-        private Transform _sourceObject;
-        public float Range = 500;
-        public float InRangeBonus = 0;
-        public float DistanceMultiplier = 1;
+        public Transform SourceObject;
 
         /// <summary>
         /// Remove targets outside the given range
         /// </summary>
         public bool KullInvalidTargets = true;
 
-        public ProximityTargetPicker(Rigidbody sourceObject)
-        {
-            _sourceObject = sourceObject.transform;
-        }
-
-        public ProximityTargetPicker(Transform sourceObject)
-        {
-            _sourceObject = sourceObject;
-        }
-
-        public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
+        public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             potentialTargets = potentialTargets.Select(t => AddScoreForDifference(t));
             if (KullInvalidTargets && potentialTargets.Any(t => t.IsValidForCurrentPicker))
@@ -48,12 +32,12 @@ namespace Assets.Src.Targeting.TargetPickers
 
         private PotentialTarget AddScoreForDifference(PotentialTarget target)
         {
-            var dist = target.DistanceToTurret(_sourceObject);
-            target.Score = target.Score - (dist * DistanceMultiplier);
-            if(dist < Range)
+            var dist = target.DistanceToTurret(SourceObject);
+            target.Score = target.Score - (dist * Multiplier);
+            if(dist < Threshold)
             {
                 target.IsValidForCurrentPicker = true;
-                target.Score += InRangeBonus;
+                target.Score += FlatBoost;
             } else
             {
                 target.IsValidForCurrentPicker = false;

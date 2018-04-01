@@ -387,6 +387,29 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!1 &1303225037478226
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 4253666868572574}
+  - component: {fileID: 114545927458800066}
+  - component: {fileID: 114827817907999730}
+  - component: {fileID: 114736702425125750}
+  - component: {fileID: 114190787185966044}
+  - component: {fileID: 114579604902400050}
+  - component: {fileID: 114912402753537074}
+  - component: {fileID: 114725612029026676}
+  - component: {fileID: 114731327428991876}
+  m_Layer: 0
+  m_Name: DefaultTargetPickerConfig
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
 --- !u!1 &1312778503519854
 GameObject:
   m_ObjectHideFlags: 1
@@ -1258,6 +1281,7 @@ GameObject:
   - component: {fileID: 114317394816442712}
   - component: {fileID: 114048012371370762}
   - component: {fileID: 114675082619606438}
+  - component: {fileID: 114148340841657986}
   m_Layer: 0
   m_Name: ClusterTorpedo
   m_TagString: Team2
@@ -1546,6 +1570,19 @@ Transform:
   m_Father: {fileID: 4830713688809910}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+--- !u!4 &4253666868572574
+Transform:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1303225037478226}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 4797086269142920}
+  m_RootOrder: 12
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4296971616505184
 Transform:
   m_ObjectHideFlags: 1
@@ -2059,7 +2096,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1977664886136184}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 15.327575, y: 40.4162, z: -41.91943}
+  m_LocalPosition: {x: -29182.596, y: 27021.281, z: 1078.2152}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4175057121454258}
@@ -2074,6 +2111,7 @@ Transform:
   - {fileID: 4926214805557054}
   - {fileID: 4909971658279928}
   - {fileID: 4527964470998976}
+  - {fileID: 4253666868572574}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -4157,19 +4195,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 1500
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198172756332906458}
+  EngineForce2: 1500
   TranslateFireAngle: 45
+  FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
+  TorquerFullThrottleAngle: 10
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
-  GetConfigFromGenome: 1
 --- !u!114 &114101606245805576
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4211,6 +4251,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 20dff57476741ff4781682649ce23934, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   TargetChoosingMechanism: {fileID: 114344996389248322}
   ShootAngle: 5
   TorqueMultiplier: 0
@@ -4245,7 +4287,6 @@ MonoBehaviour:
   EvasionModeTime: 0.5
   MinimumFriendlyDetectionDistance: 5
   Tank: {fileID: 0}
-  GetConfigFromGenome: 1
 --- !u!114 &114117903943063150
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4257,19 +4298,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 1500
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198697009466859478}
+  EngineForce2: 1500
   TranslateFireAngle: 45
+  FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
+  TorquerFullThrottleAngle: 10
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
-  GetConfigFromGenome: 1
 --- !u!114 &114126897734597358
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4282,6 +4325,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GroupName: Projectiles
+--- !u!114 &114148340841657986
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1977664886136184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0f7c7a2b22a34548847247f5e09bad8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeferToParent: 0
+  EnemyTags:
+  - Enemy
+  - Team2
 --- !u!114 &114158890808086460
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4293,19 +4351,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 1500
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198795999527558018}
+  EngineForce2: 1500
   TranslateFireAngle: 45
+  FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
+  TorquerFullThrottleAngle: 10
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
-  GetConfigFromGenome: 1
 --- !u!114 &114170774721990032
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4317,19 +4377,41 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 1500
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198351732653024364}
+  EngineForce2: 1500
   TranslateFireAngle: 45
+  FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
+  TorquerFullThrottleAngle: 10
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
-  GetConfigFromGenome: 1
+--- !u!114 &114190787185966044
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1303225037478226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57a5adaf99d596a4bb09472f47f9e4b5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
+  ConfigIndex: -1
+  Threshold: -1
+  FlatBoost: 1000
+  Multiplier: -1
+  Priority: 0
+  SourceObject: {fileID: 4797086269142920}
+  KullInvalidTargets: 0
+  MinDetectionDistance: 2
 --- !u!114 &114227681578196334
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4341,19 +4423,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 1500
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198997727831111070}
+  EngineForce2: 1500
   TranslateFireAngle: 45
+  FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
+  TorquerFullThrottleAngle: 10
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
-  GetConfigFromGenome: 1
 --- !u!114 &114317394816442712
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4378,27 +4462,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ContinuallyCheckForTargets: 0
   NeverRetarget: 0
-  DropInvalidTargetsWhenTereAreValidTargets: 1
   PollInterval: 1.5
-  EnemyTags:
-  - Enemy
-  DisalowedTypes: 0000000001000000
-  PreferdTypes: 0700000006000000050000000400000003000000
-  PreferedTypeBonus: 10000
-  HemisphereFilterObject: {fileID: 0}
-  InCorrectHemisphereBonus: 1000
-  PickerMassMultiplier: 100
-  MinimumMass: 50
-  PickerOverMinMassBonus: 10000
-  PickerDistanceMultiplier: 1
-  PickerRange: 3000
-  PickerInRangeBonus: 500
-  LineOfSightBonus: 1000
-  MinLineOfSightDetectionDistance: 2
-  PickerAimedAtMultiplier: 10
-  PickerAimingObject: {fileID: 0}
-  PickerApproachWeighting: 60
-  GetConfigFromGenome: 1
+  TargetPicker: {fileID: 114545927458800066}
 --- !u!114 &114401707968426666
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4410,19 +4475,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 1500
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198664285877725190}
+  EngineForce2: 1500
   TranslateFireAngle: 45
+  FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
+  TorquerFullThrottleAngle: 10
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
-  GetConfigFromGenome: 1
 --- !u!114 &114419003778581402
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4434,19 +4501,50 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 1500
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198039860592788054}
+  EngineForce2: 1500
   TranslateFireAngle: 45
+  FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
+  TorquerFullThrottleAngle: 10
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
+--- !u!114 &114545927458800066
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1303225037478226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &114579604902400050
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1303225037478226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: daa08e03f405a84439c74189f542b6c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
+  ConfigIndex: -1
+  Threshold: 0
+  FlatBoost: 10000
+  Multiplier: 1
+  Priority: 0
+  KullInvalidTargets: 1
 --- !u!114 &114675082619606438
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4458,6 +4556,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c45bc14bf73106468d41c2a7bac90c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   Cost: 60
   TargetChoosingMechanism: {fileID: 114344996389248322}
   RocketController: {fileID: 114116952395043294}
@@ -4483,19 +4583,79 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 15000
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198998497963058642}
+  EngineForce2: 15000
   TranslateFireAngle: 10
+  FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
+  TorquerFullThrottleAngle: 10
   UseAsTorquer: 0
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 50
-  TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
+--- !u!114 &114725612029026676
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1303225037478226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29f294ef9c08a0841b9a8441db19c693, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
+  ConfigIndex: -1
+  Threshold: 500
+  FlatBoost: 0
+  Multiplier: 1
+  Priority: 0
+  SourceObject: {fileID: 4797086269142920}
+  KullInvalidTargets: 1
+--- !u!114 &114731327428991876
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1303225037478226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c907ed620d72c4e4aacb57fc3fb6bd82, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  Threshold: -1
+  FlatBoost: 100
+  Multiplier: -1
+  Priority: 0
+  DisalowedTypes: 00000000
+  PreferdTypes: 020000000300000004000000050000000700000008000000
+  KullInvalidTargets: 0
+--- !u!114 &114736702425125750
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1303225037478226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc02479869a149e4381460c54790e086, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
+  ConfigIndex: -1
+  Threshold: -1
+  FlatBoost: 1000
+  Multiplier: -1
+  Priority: 0
+  SourceObject: {fileID: 4797086269142920}
+  KullInvalidTargets: 0
 --- !u!114 &114766246677591618
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4507,12 +4667,49 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00495207fc630df479e0d4f227bb1949, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   Fuel: 2000
   UseFuelMass: 1
   FuelDensity: 0.001
-  GetConfigFromGenome: 1
   MaxFuel: 2000
   MinFuel: 500
+--- !u!114 &114827817907999730
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1303225037478226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 392cb577148f68a4595c2c2a6ae081b8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
+  ConfigIndex: 0
+  Threshold: 0
+  FlatBoost: 0
+  Multiplier: 20
+  Priority: 0
+  SourceObject: {fileID: 54626451642089132}
+--- !u!114 &114912402753537074
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1303225037478226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7f4327519bbde141a84b06ba2ce70a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  Threshold: 0
+  FlatBoost: 500
+  Multiplier: 0
+  Priority: 0
+  CurrentTargetKnower: {fileID: 114344996389248322}
 --- !u!114 &114925099274032058
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4524,19 +4721,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 079541208dee94d46b08f1952e641b02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  EngineForce2: 1500
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
   Pilot: {fileID: 4797086269142920}
   FuelTank: {fileID: 114766246677591618}
   ForceApplier: {fileID: 54626451642089132}
   Plume: {fileID: 198484535861951196}
+  EngineForce2: 1500
   TranslateFireAngle: 45
+  FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
+  TorquerFullThrottleAngle: 10
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
-  TorquerFullThrottleAngle: 10
   _fullTrhrottlePlumeRate: 0
-  GetConfigFromGenome: 1
 --- !u!136 &136759748819616910
 CapsuleCollider:
   m_ObjectHideFlags: 1

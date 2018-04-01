@@ -1,9 +1,5 @@
-﻿using Assets.Src.Interfaces;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
 {
@@ -14,30 +10,34 @@ namespace Assets.Src.Targeting.TargetPickers
     ///     S = S + OverMinMassBonus
     /// as well.
     /// </summary>
-    class MassTargetPicker : ITargetPicker
+    class MassTargetPicker : GeneticallyConfigurableTargetPicker
     {
-        public float MinMass = 80;
-        public float OverMinMassBonus = 10000;
-        public float MassMultiplier = 1;
-
         public bool KullInvalidTargets = true;
 
-        public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
+        public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             //Debug.Log(potentialTargets.Count());
             potentialTargets = potentialTargets.Select(t => {
                 var rigidbody = t.Rigidbody;
-                t.Score += MassMultiplier * rigidbody.mass;
-                if (rigidbody.mass > MinMass)
+                if(rigidbody != null)
                 {
-                    //Debug.Log("Adding score for mass. m=" + rigidbody.mass + ", original score = " + t.Score);
-                    t.IsValidForCurrentPicker = true;
-                    t.Score += OverMinMassBonus;
-                } else
+                    t.Score += Multiplier * rigidbody.mass;
+                    if (rigidbody.mass > Threshold)
+                    {
+                        //Debug.Log("Adding score for mass. m=" + rigidbody.mass + ", original score = " + t.Score);
+                        t.IsValidForCurrentPicker = true;
+                        t.Score += FlatBoost;
+                    } else
+                    {
+                        t.IsValidForCurrentPicker = false;
+                    }
+                    return t;
+                }
+                else
                 {
                     t.IsValidForCurrentPicker = false;
+                    return t;
                 }
-                return t;
             });
 
             //Debug.Log(string.Join(",",potentialTargets.Select(t => t.IsValidForCurrentPicker.ToString()).ToArray()));

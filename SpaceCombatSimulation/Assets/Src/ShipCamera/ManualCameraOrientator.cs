@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using System;
 
 namespace Assets.Src.ShipCamera
 {

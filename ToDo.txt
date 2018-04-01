@@ -1,5 +1,6 @@
 Bugs:
     Priority:
+        Zoom causes errors in over-shoulder mode.
         Read and resave unaltered species names - they are all getting nulled.
         TargetChoosingMechanisms of root ship hubs are always configured starting at index 0.
         DB doesn't work in built project.
@@ -17,14 +18,6 @@ Bugs:
 
 TODO:
     In Progress:
-        Camera
-            Rigidbody for shipcam, use forces to move to desired location
-                "Friction" with "referenceVelocity" given by the orientator.
-            Manual orientator
-                Scroll to zoom
-            Click to chose followed and watched target.
-            Move camera relative to parent (localRotation)
-            Make camera location target and orientation target nullable so that they don't have t be specified. (does no rotation/moving if null)
         Player ship
             Vs evolved ships using battle royal mode
                 Started - need to make game end when the player ship is defeated.
@@ -47,8 +40,14 @@ TODO:
 
 
     Priority:
-        Delete and reset options for evolution configs
-        Replace 1v1 with free for all with an arbirtary number of teams (battle royal).
+        Camera
+            Rigidbody for shipcam, use forces to move to desired location
+                "Friction" with "referenceVelocity" given by the orientator.
+            Manual orientator
+                Scroll to zoom
+            Click to chose followed and watched target.
+            Move camera relative to parent (localRotation)
+            Make camera location target and orientation target nullable so that they don't have t be specified. (does no rotation/moving if null)
         Parent target picker 
             adds bonus to the pilot's target
             use GetComponentInParent

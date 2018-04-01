@@ -114,9 +114,7 @@ public class SpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatab
         Initialise();
         //_engineControl.SetEngine(Engine);
     }
-
-    public bool GetConfigFromGenome = true;
-
+    
     private float MaxShootAngle = 180;
     private float DefaultShootAngleProportion = 0.5f;
     private float MaxLocationAimWeighting = 2;
@@ -134,8 +132,6 @@ public class SpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatab
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
             ShootAngle =
                     genomeWrapper.GetScaledNumber(MaxShootAngle, 0, DefaultShootAngleProportion);
             LocationAimWeighting =
@@ -156,8 +152,7 @@ public class SpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatab
                 genomeWrapper.GetScaledNumber(MaxAngularDragForTorquers, 0, DefaultAngularDragForTorquersProportion);
             RadialSpeedThreshold =
                 genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
-        }
-
+        
         return genomeWrapper;
     }
 }

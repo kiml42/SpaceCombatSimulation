@@ -27,8 +27,8 @@ namespace Assets.Src.ShipCamera
         protected override ShipCamTargetValues CalculateAutomaticTargets()
         {
             Rigidbody target = null;
-            if (_shipCam != null && (_shipCam.FollowedTarget != null || _shipCam.TargetToWatch != null))
-                target = _shipCam.FollowedTarget ?? _shipCam.TargetToWatch;
+            if (_shipCam != null && (_shipCam.FollowedTarget != null || _shipCam.WatchedRigidbody != null))
+                target = _shipCam.FollowedTarget ?? _shipCam.WatchedRigidbody;
             var referenceVelocity = Vector3.zero;
             var parentLocationTarget = Vector3.zero;
             if (target != null)

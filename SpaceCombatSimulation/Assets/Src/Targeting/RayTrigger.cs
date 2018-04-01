@@ -1,8 +1,6 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class RayTrigger : MonoBehaviour, IFireControl
@@ -31,13 +29,17 @@ public class RayTrigger : MonoBehaviour, IFireControl
             if (Physics.Raycast(ray, out hit, MaxDistance, -1, QueryTriggerInteraction.Ignore))
             {
                 //is a hit
-                if (ShootAnyEnemy)
+                if (ShootAnyEnemy && TargetChoosingMechanism != null && TargetChoosingMechanism.EnemyTagKnower != null)
                 {
-                    var tags = TargetChoosingMechanism.EnemyTags;
-                    return tags.Contains(hit.transform.tag);
+                    return TargetChoosingMechanism
+                        .EnemyTagKnower
+                        .KnownEnemyTags
+                        .Contains(hit.transform.tag);
                 }
-
-                return hit.transform == target.Transform;
+                if(target != null)
+                {
+                    return hit.transform == target.Transform;
+                }
             }
         } else
         {
