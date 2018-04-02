@@ -86,7 +86,7 @@ namespace Assets.Src.ShipCamera
                 }
                 //_manualFieldOfView = _shipCam.Camera.fieldOfView + scroll * 100;
                 _manualCameraLocOffset = _manualCameraLocOffset + (scroll * ZoomSpeed);
-                Debug.Log(" _manualCameraLocOffset: " + _manualCameraLocOffset + " scroll: " + scroll);
+                //Debug.Log(" _manualCameraLocOffset: " + _manualCameraLocOffset + " scroll: " + scroll);
 
                 _manualZoomTimeRemaining = ManualTime;
 

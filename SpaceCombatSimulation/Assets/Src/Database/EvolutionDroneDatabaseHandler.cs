@@ -293,5 +293,10 @@ namespace Assets.Src.Database
                 insertSQL.ExecuteNonQuery();
             }
         }
+
+        public override BaseGeneration ReadBaseGeneration(int runId, int generationNumber)
+        {
+            return ReadGeneration(runId, generationNumber);
+        }
     }
 }

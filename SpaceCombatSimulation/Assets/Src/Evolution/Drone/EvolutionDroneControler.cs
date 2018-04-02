@@ -44,6 +44,14 @@ public class EvolutionDroneControler : BaseEvolutionController
         }
     }
 
+    protected override BaseEvolutionConfig _baseConfig
+    {
+        get
+        {
+            return _config;
+        }
+    }
+
     // Use this for initialization
     void Start()
     {

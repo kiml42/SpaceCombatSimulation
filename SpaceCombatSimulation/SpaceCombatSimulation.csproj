@@ -13,12 +13,14 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Full v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile></CompilerResponseFile>
+    <CompilerResponseFile>
+    </CompilerResponseFile>
     <UnityProjectGenerator>VSTU</UnityProjectGenerator>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>StandaloneWindows64:19</UnityBuildTarget>
     <UnityVersion>2017.3.1f1</UnityVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -339,6 +341,11 @@
     <Compile Include="Assets\Src\Evolution\MutationConfig.cs" />
     <Compile Include="Assets\Src\Evolution\SeciesSummary.cs" />
     <Compile Include="Assets\Src\Evolution\StringMutator.cs" />
+    <Compile Include="Assets\Src\Graph\Graph.cs" />
+    <Compile Include="Assets\Src\Graph\GraphLine.cs" />
+    <Compile Include="Assets\Src\Graph\GraphPoint.cs" />
+    <Compile Include="Assets\Src\Graph\IScalableGraph.cs" />
+    <Compile Include="Assets\Src\Graph\ScaleBounds.cs" />
     <Compile Include="Assets\Src\Health\DamagePacket.cs" />
     <Compile Include="Assets\Src\Interfaces\IDeactivatable.cs" />
     <Compile Include="Assets\Src\Interfaces\IDeactivateableTargetKnower.cs" />

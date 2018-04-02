@@ -558,5 +558,6 @@ namespace Assets.Src.Database
             return reader.GetString(ordinal);
         }
 
+        public abstract BaseGeneration ReadBaseGeneration(int runId, int generationNumber);
     }
 }

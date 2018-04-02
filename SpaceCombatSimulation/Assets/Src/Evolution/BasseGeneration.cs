@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Assets.Src.Evolution
 {
-    public abstract class BasseGeneration
+    public abstract class BaseGeneration
     {
         private Random _rng = new Random();
 
@@ -43,6 +43,10 @@ namespace Assets.Src.Evolution
         /// </summary>
         /// <returns></returns>
         public int MinimumMatchesPlayed { get { return _baseIndividuals.Min(i => i.MatchesPlayed); } }
+
+        public float MinScore { get { return _baseIndividuals.Min(i => i.Score); } }
+        public float AvgScore { get { return _baseIndividuals.Average(i => i.Score); } }
+        public float MaxScore { get { return _baseIndividuals.Max(i => i.Score); } }
 
         /// <summary>
         /// Picks the given number of individuals with the best scores.
