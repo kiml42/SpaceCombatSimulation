@@ -15,5 +15,12 @@
             MaxX = maxX;
             MaxY = maxY;
         }
+
+        public static ScaleBounds Default {
+            get
+            {
+                return new ScaleBounds(-1, -1, 1, 1);
+            }
+        }
     }
 }

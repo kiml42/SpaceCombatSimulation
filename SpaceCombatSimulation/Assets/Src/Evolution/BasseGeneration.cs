@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace Assets.Src.Evolution
 {
@@ -15,6 +14,8 @@ namespace Assets.Src.Evolution
         {
             return _baseIndividuals.Count();
         }
+
+        public IEnumerable<SpeciesSummary> Summaries { get { return _baseIndividuals.Select(i => i.Summary); } }
 
         /// <summary>
         /// Adds a new individual with the given genome.

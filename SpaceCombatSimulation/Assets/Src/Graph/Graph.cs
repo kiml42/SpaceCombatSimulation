@@ -41,12 +41,16 @@ namespace Assets.Src.Graph
 
         public ScaleBounds GetScale()
         {
-            return new ScaleBounds(
-                Lines.Min(l => l.GetScale().MinX),
-                Lines.Min(l => l.GetScale().MinY),
-                Lines.Max(l => l.GetScale().MaxX),
-                Lines.Max(l => l.GetScale().MaxY)
-                );
+            if (Lines.Any())
+            {
+                return new ScaleBounds(
+                    Lines.Min(l => l.GetScale().MinX),
+                    Lines.Min(l => l.GetScale().MinY),
+                    Lines.Max(l => l.GetScale().MaxX),
+                    Lines.Max(l => l.GetScale().MaxY)
+                    );
+            }
+            return ScaleBounds.Default;
         }
     }
 }

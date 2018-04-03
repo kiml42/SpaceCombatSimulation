@@ -19,6 +19,9 @@ Bugs:
 
 TODO:
     In Progress:
+        Graphs:
+            Make them better!
+            Option to export a CSV of a graph.
         Player ship
             pick target by clicking on it
             cycle ships with key press
