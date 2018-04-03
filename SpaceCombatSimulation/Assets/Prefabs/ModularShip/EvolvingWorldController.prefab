@@ -128,6 +128,7 @@ GameObject:
   - component: {fileID: 114478410833897430}
   - component: {fileID: 135682450383112948}
   - component: {fileID: 114761333346593936}
+  - component: {fileID: 114606847447414282}
   m_Layer: 0
   m_Name: EvolvingWorldController
   m_TagString: Untagged
@@ -914,6 +915,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Colour: {r: 0, g: 0, b: 0, a: 0}
   SetInStart: 0
+--- !u!114 &114606847447414282
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1406041262789598}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a166f0abb37fcbc40ae3eb6601faddbf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  BorderTexture: {fileID: 2800000, guid: 14bf342960bd97948b0b45ba35ebf57f, type: 3}
+  PointTexture: {fileID: 10912, guid: 0000000000000000f000000000000000, type: 0}
+  GraphRect:
+    serializedVersion: 2
+    x: 10
+    y: 210
+    width: 600
+    height: 300
+  EvolutionControler: {fileID: 114333731870391954}
+  DrawGraphKey: 103
 --- !u!114 &114761333346593936
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -929,10 +951,10 @@ MonoBehaviour:
   PointTexture: {fileID: 10912, guid: 0000000000000000f000000000000000, type: 0}
   GraphRect:
     serializedVersion: 2
-    x: 50
-    y: 50
-    width: 450
-    height: 150
+    x: 10
+    y: 10
+    width: 600
+    height: 200
   EvolutionControler: {fileID: 114333731870391954}
   DrawGraphKey: 103
 --- !u!124 &124861379170882136

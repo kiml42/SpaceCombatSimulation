@@ -14,7 +14,23 @@ namespace Assets.Src.Graph
 
         public KeyCode DrawGraphKey = KeyCode.G;
 
-        protected abstract bool _hasCalculatedGraph { get; }
+        protected LineGraph _graph;
+
+        protected virtual bool _hasCalculatedGraph
+        {
+            get
+            {
+                return _graph != null;
+            }
+        }
+
+        internal virtual void DrawGraph()
+        {
+            if (_graph != null)
+            {
+                _graph.DrawGraph(GraphRect, BorderTexture, PointTexture);
+            }
+        }
 
         public void OnGUI()
         {
@@ -27,8 +43,7 @@ namespace Assets.Src.Graph
                 DrawGraph();
             }
         }
-
-        internal abstract void DrawGraph();
+        
         internal abstract void PrepareGraph();
     }
 }

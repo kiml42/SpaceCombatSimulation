@@ -349,6 +349,7 @@
     <Compile Include="Assets\Src\Graph\GraphPoint.cs" />
     <Compile Include="Assets\Src\Graph\IScalableGraph.cs" />
     <Compile Include="Assets\Src\Graph\ScaleBounds.cs" />
+    <Compile Include="Assets\Src\Graph\SpeciesGraphDrawer.cs" />
     <Compile Include="Assets\Src\Graph\ScoreGraphDrawer.cs" />
     <Compile Include="Assets\Src\Health\DamagePacket.cs" />
     <Compile Include="Assets\Src\Interfaces\IDeactivatable.cs" />

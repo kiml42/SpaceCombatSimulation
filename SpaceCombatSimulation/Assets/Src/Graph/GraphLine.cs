@@ -31,7 +31,7 @@ namespace Assets.Src.Graph
                     Points.Max(p => p.Y)
                     );
             }
-            return new ScaleBounds(-1, -1, 1, 1);
+            return ScaleBounds.Default;
         }
 
         internal void DrawPoints(ScaleBounds scale, Rect location, Texture pointTexture, float pointSize = 10)
