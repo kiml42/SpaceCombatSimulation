@@ -10,6 +10,7 @@ Bugs:
         rocket engines carry on regardless if the rocket has no target.
         Duplicate match controler in drone evolution
     Graphical - Beams don't turn off when the turret dies. - haven't seen this one in a while.
+        Torpedoes aren't picking up paren't's colour.
     Rocket engine plumes start on
     Accounting for speed fails for spinning targets.
     Leting the DB default locationRandomisationRadiai makes it unreadable.
