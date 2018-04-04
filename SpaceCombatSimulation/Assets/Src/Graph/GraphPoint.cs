@@ -14,7 +14,7 @@ namespace Assets.Src.Graph
             Y = y;
         }
 
-        public Vector2 ToUiPoint(ScaleBounds scale, Rect location)
+        public Vector2 ToUiPoint(Bounds2D scale, Rect location)
         {
             var xScaleRange = scale.MaxX - scale.MinX;
             var proportionAlongXScale = xScaleRange > 0 ? ((X - scale.MinX) / xScaleRange) : 0.5f;
@@ -29,7 +29,7 @@ namespace Assets.Src.Graph
             return new Vector2(uiX, uiY);
         }
 
-        internal void DrawPoint(ScaleBounds scale, Rect location, Texture pointTexture, float pointSize, Color colour)
+        internal void DrawPoint(Bounds2D scale, Rect location, Texture pointTexture, float pointSize, Color colour)
         {
             var uiPoint = ToUiPoint(scale, location);
             var rect = new Rect(uiPoint, Vector2.one * pointSize);

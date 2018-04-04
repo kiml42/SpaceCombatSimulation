@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Assets.Src.Graph
 {
-    public class GraphLine : IScalableGraph
+    public class GraphLine : I2DBounded
     {
         public string Name;
         public List<GraphPoint> Points = new List<GraphPoint>();
@@ -20,21 +20,21 @@ namespace Assets.Src.Graph
             Points.Add(new GraphPoint(x,y));
         }
 
-        public ScaleBounds GetScale()
+        public Bounds2D Get2DBounds()
         {
             if (Points.Any())
             {
-                return new ScaleBounds(
+                return new Bounds2D(
                     Points.Min(p => p.X),
                     Points.Min(p => p.Y),
                     Points.Max(p => p.X),
                     Points.Max(p => p.Y)
                     );
             }
-            return ScaleBounds.Default;
+            return Bounds2D.Default;
         }
 
-        internal void DrawPoints(ScaleBounds scale, Rect location, Texture pointTexture, float pointSize = 10)
+        internal void DrawPoints(Bounds2D scale, Rect location, Texture pointTexture, float pointSize = 10)
         {
             foreach(var point in Points)
             {

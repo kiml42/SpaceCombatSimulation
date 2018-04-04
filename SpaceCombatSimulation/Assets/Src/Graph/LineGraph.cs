@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Assets.Src.Graph
 {
-    public class LineGraph : IScalableGraph
+    public class LineGraph : I2DBounded, IGraph
     {
         public List<GraphLine> Lines;
 
@@ -17,7 +17,7 @@ namespace Assets.Src.Graph
         {
             GUI.DrawTexture(location, boarderTexture, ScaleMode.StretchToFill, true, 0.5f, Color.white, 5, 5);
 
-            var scale = GetScale();
+            var scale = Get2DBounds();
 
             foreach( var line in Lines)
             {
@@ -39,18 +39,18 @@ namespace Assets.Src.Graph
             }
         }
 
-        public ScaleBounds GetScale()
+        public Bounds2D Get2DBounds()
         {
             if (Lines.Any())
             {
-                return new ScaleBounds(
-                    Lines.Min(l => l.GetScale().MinX),
-                    Lines.Min(l => l.GetScale().MinY),
-                    Lines.Max(l => l.GetScale().MaxX),
-                    Lines.Max(l => l.GetScale().MaxY)
+                return new Bounds2D(
+                    Lines.Min(l => l.Get2DBounds().MinX),
+                    Lines.Min(l => l.Get2DBounds().MinY),
+                    Lines.Max(l => l.Get2DBounds().MaxX),
+                    Lines.Max(l => l.Get2DBounds().MaxY)
                     );
             }
-            return ScaleBounds.Default;
+            return Bounds2D.Default;
         }
     }
 }

@@ -44,7 +44,7 @@ namespace Assets.Src.Graph
                 //Debug.Log("--------");
             }
 
-            _graph = new LineGraph(speciesLines.Values.ToArray());
+            _graph = new StackedBarGraph(speciesLines.Values.ToArray());
         }
     }
 }

@@ -14,7 +14,7 @@ namespace Assets.Src.Graph
 
         public KeyCode DrawGraphKey = KeyCode.G;
 
-        protected LineGraph _graph;
+        protected IGraph _graph;
 
         protected virtual bool _hasCalculatedGraph
         {

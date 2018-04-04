@@ -1,6 +1,6 @@
 ﻿namespace Assets.Src.Graph
 {
-    public class ScaleBounds
+    public class Bounds2D
     {
         public float MinX;
         public float MinY;
@@ -8,7 +8,7 @@
         public float MaxX;
         public float MaxY;
 
-        public ScaleBounds(float minX, float minY, float maxX, float maxY)
+        public Bounds2D(float minX, float minY, float maxX, float maxY)
         {
             MinX = minX;
             MinY = minY;
@@ -16,10 +16,10 @@
             MaxY = maxY;
         }
 
-        public static ScaleBounds Default {
+        public static Bounds2D Default {
             get
             {
-                return new ScaleBounds(-1, -1, 1, 1);
+                return new Bounds2D(-1, -1, 1, 1);
             }
         }
     }
