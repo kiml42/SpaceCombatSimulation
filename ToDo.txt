@@ -115,6 +115,7 @@ TODO:
     Race evolution
         Periodically check distance to target and add more score for closer (nonlinear?)
         Target could be fixed, moveable, or a scardeybot.
+        Have as an option for an additional scoring mechanism for BR evolution.
     TractorbeamTurret
     Add a small cheap engine module - meant for manuvring.
     Avoid GetComponent and sendMessage in update methods.
