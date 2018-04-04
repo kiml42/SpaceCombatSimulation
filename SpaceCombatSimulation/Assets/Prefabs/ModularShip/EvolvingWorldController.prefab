@@ -127,6 +127,8 @@ GameObject:
   - component: {fileID: 114333731870391954}
   - component: {fileID: 114478410833897430}
   - component: {fileID: 135682450383112948}
+  - component: {fileID: 114761333346593936}
+  - component: {fileID: 114606847447414282}
   m_Layer: 0
   m_Name: EvolvingWorldController
   m_TagString: Untagged
@@ -832,7 +834,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Colour: {r: 0, g: 0, b: 0, a: 0}
-  Depth: 1
   SetInStart: 0
 --- !u!114 &114162882494618574
 MonoBehaviour:
@@ -873,7 +874,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DatabaseId: 4
   ShipConfig: {fileID: 114162882494618574}
-  _previousWinner: 
+  BorderTexture: {fileID: 0}
+  PointTexture: {fileID: 0}
+  WinBonus: 1000
 --- !u!114 &114478410833897430
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -911,8 +914,51 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Colour: {r: 0, g: 0, b: 0, a: 0}
-  Depth: 1
   SetInStart: 0
+--- !u!114 &114606847447414282
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1406041262789598}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a166f0abb37fcbc40ae3eb6601faddbf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  BorderTexture: {fileID: 0}
+  PointTexture: {fileID: 10906, guid: 0000000000000000f000000000000000, type: 0}
+  LineTexture: {fileID: 10305, guid: 0000000000000000f000000000000000, type: 0}
+  GraphRect:
+    serializedVersion: 2
+    x: 10
+    y: 240
+    width: 900
+    height: 300
+  EvolutionControler: {fileID: 114333731870391954}
+  DrawGraphKey: 103
+--- !u!114 &114761333346593936
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1406041262789598}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 956cadc568079fb49822cf8405d597b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  BorderTexture: {fileID: 0}
+  PointTexture: {fileID: 10912, guid: 0000000000000000f000000000000000, type: 0}
+  LineTexture: {fileID: 10305, guid: 0000000000000000f000000000000000, type: 0}
+  GraphRect:
+    serializedVersion: 2
+    x: 20
+    y: 10
+    width: 900
+    height: 200
+  EvolutionControler: {fileID: 114333731870391954}
+  DrawGraphKey: 103
 --- !u!124 &124861379170882136
 Behaviour:
   m_ObjectHideFlags: 1

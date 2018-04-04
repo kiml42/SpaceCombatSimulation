@@ -11,7 +11,7 @@ namespace Assets.src.Evolution
     /// <summary>
     /// Class for storing a generation where each ship fights one other.
     /// </summary>
-    public class GenerationBr : BasseGeneration
+    public class GenerationBr : BaseGeneration
     {
         private System.Random _rng = new System.Random();
         public List<IndividualBr> Individuals = new List<IndividualBr>();

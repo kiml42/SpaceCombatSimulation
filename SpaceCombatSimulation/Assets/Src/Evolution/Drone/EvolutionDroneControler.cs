@@ -1,17 +1,14 @@
 ﻿using Assets.src.Evolution;
-using System.Collections;
+using Assets.Src.Database;
+using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
+using Assets.Src.Menus;
+using Assets.Src.ModuleSystem;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using System;
-using System.IO;
-using Assets.Src.ObjectManagement;
-using Assets.Src.Database;
-using Assets.Src.Evolution;
-using Assets.Src.Menus;
-using Assets.Src.ModuleSystem;
-using Assets.Src.Interfaces;
 
 public class EvolutionDroneControler : BaseEvolutionController
 {
@@ -35,6 +32,30 @@ public class EvolutionDroneControler : BaseEvolutionController
 
     private bool _hasModules;
     private GenomeWrapper _genomeWrapper;
+    
+    public override GeneralDatabaseHandler DbHandler
+    {
+        get
+        {
+            return _dbHandler;
+        }
+    }
+
+    protected override BaseEvolutionConfig _baseConfig
+    {
+        get
+        {
+            return _config;
+        }
+    }
+
+    public override IEnumerable<string> Combatants
+    {
+        get
+        {
+            return new List<string> { _genomeWrapper.Species };
+        }
+    }
 
     // Use this for initialization
     void Start()

@@ -25,6 +25,30 @@ public class EvolutionBrControler : BaseEvolutionController
 
     protected List<string> _allCompetetrs { get { return _currentGenomes.Select(kv => kv.Value.Genome).ToList(); } }
 
+    public override GeneralDatabaseHandler DbHandler
+    {
+        get
+        {
+            return _dbHandler;
+        }
+    }
+
+    protected override BaseEvolutionConfig _baseConfig
+    {
+        get
+        {
+            return _config;
+        }
+    }
+
+    public override IEnumerable<string> Combatants
+    {
+        get
+        {
+            return _currentGenomes.Values.Select(g => g.Species);
+        }
+    }
+
     // Use this for initialization
     void Start()
     {

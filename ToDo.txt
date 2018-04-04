@@ -10,6 +10,7 @@ Bugs:
         rocket engines carry on regardless if the rocket has no target.
         Duplicate match controler in drone evolution
     Graphical - Beams don't turn off when the turret dies. - haven't seen this one in a while.
+        Torpedoes aren't picking up paren't's colour.
     Rocket engine plumes start on
     Accounting for speed fails for spinning targets.
     Leting the DB default locationRandomisationRadiai makes it unreadable.
@@ -105,7 +106,11 @@ TODO:
         Prevent turrets locking by trying to go round the back of the turret
             Get current turn table forwards vector and vector to Target in rest target space
                 If they are on different sides of the rest target, turn towards the rest target (with the speed set for the actual angle to turn for the location of the target)
-
+    
+    Graphs:
+        Option to export a CSV of a graph.
+        Graph of total counts of modules
+        Fix line alignment
 
     Weighted camera orientator using poll targets, ignores rotation targets (must be calculated with look rotations)
         Implemented - works rather badly, different vectors would need different weights to make it work right.
@@ -113,6 +118,7 @@ TODO:
     Race evolution
         Periodically check distance to target and add more score for closer (nonlinear?)
         Target could be fixed, moveable, or a scardeybot.
+        Have as an option for an additional scoring mechanism for BR evolution.
     TractorbeamTurret
     Add a small cheap engine module - meant for manuvring.
     Avoid GetComponent and sendMessage in update methods.
