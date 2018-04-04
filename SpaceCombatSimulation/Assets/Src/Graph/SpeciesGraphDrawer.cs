@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 
 namespace Assets.Src.Graph
 {
@@ -29,7 +28,7 @@ namespace Assets.Src.Graph
                         .ToDictionary(grp => grp.Key, grp => grp.Count())
                 );
 
-            _graph = new StackedBarGraph(GraphRect, BorderTexture, PointTexture, speciesOverGens);
+            _graph = new StackedBarGraph(GraphRect, BorderTexture, PointTexture, LineTexture, speciesOverGens);
         }
     }
 }

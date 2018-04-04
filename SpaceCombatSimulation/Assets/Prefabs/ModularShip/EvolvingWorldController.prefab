@@ -926,13 +926,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a166f0abb37fcbc40ae3eb6601faddbf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  BorderTexture: {fileID: 2800000, guid: 14bf342960bd97948b0b45ba35ebf57f, type: 3}
-  PointTexture: {fileID: 10305, guid: 0000000000000000f000000000000000, type: 0}
+  BorderTexture: {fileID: 0}
+  PointTexture: {fileID: 10906, guid: 0000000000000000f000000000000000, type: 0}
+  LineTexture: {fileID: 10305, guid: 0000000000000000f000000000000000, type: 0}
   GraphRect:
     serializedVersion: 2
     x: 10
-    y: 210
-    width: 600
+    y: 240
+    width: 900
     height: 300
   EvolutionControler: {fileID: 114333731870391954}
   DrawGraphKey: 103
@@ -947,13 +948,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 956cadc568079fb49822cf8405d597b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  BorderTexture: {fileID: 2800000, guid: 14bf342960bd97948b0b45ba35ebf57f, type: 3}
+  BorderTexture: {fileID: 0}
   PointTexture: {fileID: 10912, guid: 0000000000000000f000000000000000, type: 0}
+  LineTexture: {fileID: 10305, guid: 0000000000000000f000000000000000, type: 0}
   GraphRect:
     serializedVersion: 2
-    x: 10
+    x: 20
     y: 10
-    width: 600
+    width: 900
     height: 200
   EvolutionControler: {fileID: 114333731870391954}
   DrawGraphKey: 103

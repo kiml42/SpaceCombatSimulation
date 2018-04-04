@@ -345,6 +345,7 @@
     <Compile Include="Assets\Src\Evolution\StringMutator.cs" />
     <Compile Include="Assets\Src\Graph\BaseGraph.cs" />
     <Compile Include="Assets\Src\Graph\BaseGraphDrawer.cs" />
+    <Compile Include="Assets\Src\Graph\GraphUtils.cs" />
     <Compile Include="Assets\Src\Graph\IGraph.cs" />
     <Compile Include="Assets\Src\Graph\StackedBarGraph.cs" />
     <Compile Include="Assets\Src\Graph\LineGraph.cs" />

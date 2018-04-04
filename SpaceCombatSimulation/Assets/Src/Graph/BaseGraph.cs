@@ -9,16 +9,23 @@ namespace Assets.Src.Graph
 
         protected readonly Rect _location;
         protected readonly Texture _backgroundTexture;
+        protected readonly Texture _lineTexture;
+        protected readonly Texture _pointTexture;
 
-        public BaseGraph(Rect location, Texture backgroundTexture)
+        public BaseGraph(Rect location, Texture backgroundTexture, Texture pointTexture, Texture lineTexture)
         {
             _location = location;
             _backgroundTexture = backgroundTexture;
+            _lineTexture = lineTexture;
+            _pointTexture = pointTexture;
         }
 
         protected void DrawBackground()
         {
-            GUI.DrawTexture(_location, _backgroundTexture, ScaleMode.StretchToFill, true, 0.5f, Color.white, 5, 5);
+            if(_backgroundTexture != null)
+            {
+                GUI.DrawTexture(_location, _backgroundTexture);
+            }
         }
     }
 }

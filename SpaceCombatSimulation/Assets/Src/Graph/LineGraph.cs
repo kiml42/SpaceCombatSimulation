@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -9,7 +8,7 @@ namespace Assets.Src.Graph
     {
         public List<GraphLine> Lines;
 
-        public LineGraph(Rect location, Texture backgroundTexture, params GraphLine[] lines) : base(location, backgroundTexture)
+        public LineGraph(Rect location, Texture backgroundTexture, Texture pointTexture, Texture lineTexture, params GraphLine[] lines) : base(location, backgroundTexture, pointTexture, lineTexture)
         {
             Lines = lines.ToList();
         }

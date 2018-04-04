@@ -7,12 +7,21 @@ namespace Assets.Src.Graph
     public class StackedBarGraph : BaseGraph
     {
         public IDictionary<int, Dictionary<string, int>> _bars;
-        private Texture _barTexture;
+        public List<Color> Colours = new List<Color>
+        {
+            Color.white,
+            Color.red,
+            Color.blue,
+            Color.magenta,
+            Color.cyan,
+            Color.gray,
+            Color.green,
+            Color.yellow
+        };
 
-        public StackedBarGraph(Rect location, Texture backgroundTexture, Texture barTexture, IDictionary<int, Dictionary<string, int>> bars) : base(location, backgroundTexture)
+        public StackedBarGraph(Rect location, Texture backgroundTexture, Texture barTexture, Texture lineTexture, IDictionary<int, Dictionary<string, int>> bars) : base(location, backgroundTexture, barTexture, lineTexture)
         {
             _bars = bars;
-            _barTexture = barTexture;
         }
 
         public override void DrawGraph()
@@ -29,19 +38,43 @@ namespace Assets.Src.Graph
             var barWidth = fullWidth / _bars.Count;
 
             var xLoc = _location.xMin;
+
+            var allKeys = _bars.SelectMany(b => b.Value.Keys).ToList();
+
+            Dictionary<string, Vector2> previousCenters = null;
             foreach ( var bar in _bars)
             {
+                var centers = new Dictionary<string, Vector2>();
                 var yLoc = _location.yMax;
-                foreach(var segment in bar.Value)
+                foreach(var segment in bar.Value.OrderByDescending(seg => seg.Key))
                 {
                     var barHeight = segment.Value * heightMultiplier;
-                    var content = new GUIContent(_barTexture, segment.Key);
-                    GUI.Box(new Rect(xLoc, yLoc, barWidth, barHeight), content);
-                }
-            }
+                    yLoc -= barHeight;
+                    Color colour = GetColourForKey(segment.Key, allKeys);
+                    var position = new Rect(xLoc, yLoc, barWidth, barHeight);
+                    //var content = new GUIContent(segment.Key) { tooltip = segment.Key };
+                    //GUI.Button(position, content);
+                    GUI.DrawTexture(position, _pointTexture, ScaleMode.StretchToFill, true, 0.5f, colour, 0, 0);
 
-            var zeroZeroUiPoint = new GraphPoint(0, 0).ToUiPoint(scale, _location);
-            GUI.Label(new Rect(zeroZeroUiPoint.x, zeroZeroUiPoint.y, 40, 40), "0");
+                    var currentCenter = new Vector2(xLoc + (barWidth/2), yLoc + (barHeight / 2));
+                    centers[segment.Key] = currentCenter;
+
+                    if(previousCenters != null && previousCenters.ContainsKey(segment.Key))
+                    {
+                        var previousCenter = previousCenters[segment.Key];
+                        GraphUtils.DrawLineBetweenPoints(previousCenter, currentCenter, _lineTexture, colour);
+                    }
+                }
+                previousCenters = centers;
+                xLoc += barWidth;
+            }
+        }
+
+        private Color GetColourForKey(string key, List<string> keys)
+        {
+            var index = keys.IndexOf(key);
+
+            return Colours[index % Colours.Count];
         }
 
         public override Bounds2D Get2DBounds()

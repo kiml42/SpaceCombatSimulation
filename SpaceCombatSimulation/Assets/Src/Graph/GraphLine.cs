@@ -10,11 +10,13 @@ namespace Assets.Src.Graph
         public List<GraphPoint> Points = new List<GraphPoint>();
         public Color Colour = Random.ColorHSV();
         private readonly Texture _pointTexture;
+        private readonly Texture _lineTexture;
         private readonly float _pointSize;
 
-        public GraphLine(Texture pointTexture, float pointSize = 10)
+        public GraphLine(Texture pointTexture, Texture lineTexture, float pointSize = 10)
         {
             _pointTexture = pointTexture;
+            _lineTexture = lineTexture;
             _pointSize = pointSize;
         }
 
@@ -35,7 +37,7 @@ namespace Assets.Src.Graph
                 return new Bounds2D(
                     Points.Min(p => p.X),
                     Points.Min(p => p.Y),
-                    Points.Max(p => p.X),
+                    Points.Max(p => p.X + 1),
                     Points.Max(p => p.Y)
                     );
             }
@@ -44,9 +46,15 @@ namespace Assets.Src.Graph
 
         internal void DrawPoints(Bounds2D scale, Rect location)
         {
+            GraphPoint previous = null;
             foreach(var point in Points)
             {
                 point.DrawPoint(scale, location, _pointTexture, _pointSize, Colour);
+                if(previous != null)
+                {
+                    GraphUtils.DrawLineBetweenPoints(previous.ToUiPoint(scale,location), point.ToUiPoint(scale, location), _lineTexture, Colour, 3);
+                }
+                previous = point;
             }
         }
     }

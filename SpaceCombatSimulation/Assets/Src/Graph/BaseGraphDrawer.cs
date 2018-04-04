@@ -7,6 +7,7 @@ namespace Assets.Src.Graph
     {
         public Texture BorderTexture;
         public Texture PointTexture;
+        public Texture LineTexture;
 
         public Rect GraphRect = new Rect(50, 50, 450, 150);
 
