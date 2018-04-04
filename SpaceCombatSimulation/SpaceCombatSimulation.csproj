@@ -343,6 +343,7 @@
     <Compile Include="Assets\Src\Evolution\MutationConfig.cs" />
     <Compile Include="Assets\Src\Evolution\SeciesSummary.cs" />
     <Compile Include="Assets\Src\Evolution\StringMutator.cs" />
+    <Compile Include="Assets\Src\Graph\BaseGraph.cs" />
     <Compile Include="Assets\Src\Graph\BaseGraphDrawer.cs" />
     <Compile Include="Assets\Src\Graph\IGraph.cs" />
     <Compile Include="Assets\Src\Graph\StackedBarGraph.cs" />

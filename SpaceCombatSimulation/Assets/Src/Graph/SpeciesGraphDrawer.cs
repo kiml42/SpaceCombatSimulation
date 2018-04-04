@@ -28,7 +28,7 @@ namespace Assets.Src.Graph
 
                 foreach (var speciesCount in species)
                 {
-                    GraphLine line = speciesLines.ContainsKey(speciesCount.Key) ? speciesLines[speciesCount.Key] : new GraphLine();
+                    GraphLine line = speciesLines.ContainsKey(speciesCount.Key) ? speciesLines[speciesCount.Key] : new GraphLine(PointTexture);
 
                     line.Name = speciesCount.Key;
                     line.Add(kv.Key, speciesCount.Value);
@@ -44,7 +44,7 @@ namespace Assets.Src.Graph
                 //Debug.Log("--------");
             }
 
-            _graph = new StackedBarGraph(speciesLines.Values.ToArray());
+            _graph = new StackedBarGraph(GraphRect, BorderTexture, speciesLines.Values.ToArray());
         }
     }
 }

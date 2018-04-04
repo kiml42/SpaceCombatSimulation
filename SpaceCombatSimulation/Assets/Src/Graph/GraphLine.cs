@@ -9,6 +9,14 @@ namespace Assets.Src.Graph
         public string Name;
         public List<GraphPoint> Points = new List<GraphPoint>();
         public Color Colour = Random.ColorHSV();
+        private readonly Texture _pointTexture;
+        private readonly float _pointSize;
+
+        public GraphLine(Texture pointTexture, float pointSize = 10)
+        {
+            _pointTexture = pointTexture;
+            _pointSize = pointSize;
+        }
 
         public void Add(GraphPoint point)
         {
@@ -34,11 +42,11 @@ namespace Assets.Src.Graph
             return Bounds2D.Default;
         }
 
-        internal void DrawPoints(Bounds2D scale, Rect location, Texture pointTexture, float pointSize = 10)
+        internal void DrawPoints(Bounds2D scale, Rect location)
         {
             foreach(var point in Points)
             {
-                point.DrawPoint(scale, location, pointTexture, pointSize, Colour);
+                point.DrawPoint(scale, location, _pointTexture, _pointSize, Colour);
             }
         }
     }

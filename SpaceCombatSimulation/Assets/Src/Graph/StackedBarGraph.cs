@@ -4,27 +4,27 @@ using UnityEngine;
 
 namespace Assets.Src.Graph
 {
-    public class StackedBarGraph : I2DBounded, IGraph
+    public class StackedBarGraph : BaseGraph
     {
         public List<GraphLine> Lines;
 
-        public StackedBarGraph(params GraphLine[] lines)
+        public StackedBarGraph(Rect location, Texture backgroundTexture, params GraphLine[] lines) : base(location, backgroundTexture)
         {
             Lines = lines.ToList();
         }
 
-        public void DrawGraph(Rect location, Texture boarderTexture, Texture pointTexture)
+        public override void DrawGraph()
         {
-            GUI.DrawTexture(location, boarderTexture, ScaleMode.StretchToFill, true, 0.5f, Color.white, 5, 5);
+            DrawBackground();
 
             var scale = Get2DBounds();
 
             foreach( var line in Lines)
             {
-                line.DrawPoints(scale, location, pointTexture);
+                line.DrawPoints(scale, _location);
             }
 
-            var zeroZeroUiPoint = new GraphPoint(0, 0).ToUiPoint(scale, location);
+            var zeroZeroUiPoint = new GraphPoint(0, 0).ToUiPoint(scale, _location);
             GUI.Label(new Rect(zeroZeroUiPoint.x, zeroZeroUiPoint.y, 40, 40), "0");
 
             if (Lines.Any())
@@ -32,14 +32,14 @@ namespace Assets.Src.Graph
                 var line = Lines.First();
                 foreach (var point in line.Points)
                 {
-                    var uiPoint = point.ToUiPoint(scale, location);
+                    var uiPoint = point.ToUiPoint(scale, _location);
 
-                    GUI.Label(new Rect(uiPoint.x, location.max.y, 40, 40), point.X.ToString());
+                    GUI.Label(new Rect(uiPoint.x, _location.max.y, 40, 40), point.X.ToString());
                 }
             }
         }
 
-        public Bounds2D Get2DBounds()
+        public override Bounds2D Get2DBounds()
         {
             if (Lines.Any())
             {

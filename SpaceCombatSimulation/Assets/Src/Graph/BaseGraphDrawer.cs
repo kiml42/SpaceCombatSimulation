@@ -28,7 +28,7 @@ namespace Assets.Src.Graph
         {
             if (_graph != null)
             {
-                _graph.DrawGraph(GraphRect, BorderTexture, PointTexture);
+                _graph.DrawGraph();
             }
         }
 

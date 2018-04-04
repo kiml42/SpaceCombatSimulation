@@ -10,9 +10,9 @@ namespace Assets.Src.Graph
             var generations = Enumerable.Range(0, EvolutionControler.GenerationNumber)
                 .ToDictionary(i => i, i => EvolutionControler.DbHandler.ReadBaseGeneration(EvolutionControler.DatabaseId, i));
 
-            var minScore = new GraphLine { Colour = Color.red, Name = "Min Score" };
-            var avgScore = new GraphLine { Colour = Color.magenta, Name = "Average Score" };
-            var maxScore = new GraphLine { Colour = Color.green, Name = "Max Score" };
+            var minScore = new GraphLine(PointTexture) { Colour = Color.red, Name = "Min Score" };
+            var avgScore = new GraphLine(PointTexture) { Colour = Color.magenta, Name = "Average Score" };
+            var maxScore = new GraphLine(PointTexture) { Colour = Color.green, Name = "Max Score" };
 
             foreach (var generation in generations)
             {
@@ -21,7 +21,7 @@ namespace Assets.Src.Graph
                 maxScore.Add(generation.Key, generation.Value.MaxScore);
             }
 
-            _graph = new LineGraph(/*minScore,*/ avgScore, maxScore);
+            _graph = new LineGraph(GraphRect, BorderTexture,/*minScore,*/ avgScore, maxScore);
         }
     }
 }
