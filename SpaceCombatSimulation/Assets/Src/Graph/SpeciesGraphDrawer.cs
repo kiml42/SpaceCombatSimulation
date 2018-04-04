@@ -10,41 +10,26 @@ namespace Assets.Src.Graph
             var generations = Enumerable.Range(0, EvolutionControler.GenerationNumber)
                 .ToDictionary(i => i, i => EvolutionControler.DbHandler.ReadBaseGeneration(EvolutionControler.DatabaseId, i).Summaries);
 
-            var speciesOverGens = new Dictionary<int, IDictionary<string,int>>();
-            //var subspeciesOverGens = new Dictionary<int, IDictionary<string,int>>();
+            //var speciesOverGens = new Dictionary<int, IDictionary<string,int>>();
+            ////var subspeciesOverGens = new Dictionary<int, IDictionary<string,int>>();
+            
+            //foreach(var kv in generations)
+            //{
+            //    var species = kv.Value.GroupBy(s => s.Species).ToDictionary(grp => grp.Key, grp => grp.Count());
+            //    //var subspecies = summeries.GroupBy(s => s.Subspecies).ToDictionary(grp => grp.Key, grp => grp.Count());
 
-            var speciesLines = new Dictionary<string, GraphLine>();
+            //    speciesOverGens[kv.Key] = species;
+            //    //subspeciesOverGens[kv.Key] = subspecies;
+            //}
 
-            foreach(var kv in generations)
-            {
-                var summeries = kv.Value;
+            var speciesOverGens = generations.ToDictionary(
+                    keyedGen => keyedGen.Key,
+                    keyedGen => keyedGen.Value
+                        .GroupBy(s => s.Species)
+                        .ToDictionary(grp => grp.Key, grp => grp.Count())
+                );
 
-                var species = summeries.GroupBy(s => s.Species).OrderByDescending(grp => grp.Count()).ToDictionary(grp => grp.Key, grp => grp.Count());
-                //var subspecies = summeries.GroupBy(s => s.Subspecies).ToDictionary(grp => grp.Key, grp => grp.Count());
-
-                speciesOverGens[kv.Key] = species;
-                //subspeciesOverGens[kv.Key] = subspecies;
-
-
-                foreach (var speciesCount in species)
-                {
-                    GraphLine line = speciesLines.ContainsKey(speciesCount.Key) ? speciesLines[speciesCount.Key] : new GraphLine(PointTexture);
-
-                    line.Name = speciesCount.Key;
-                    line.Add(kv.Key, speciesCount.Value);
-
-                    speciesLines[speciesCount.Key] = line;
-
-                    //Debug.Log(
-                    //    "G:" + kv.Key.ToString().PadRight(4) +
-                    //    "spec: " + speciesCount.Key.PadRight(30) +
-                    //    "count:" + speciesCount.Value
-                    //    );
-                }
-                //Debug.Log("--------");
-            }
-
-            _graph = new StackedBarGraph(GraphRect, BorderTexture, speciesLines.Values.ToArray());
+            _graph = new StackedBarGraph(GraphRect, BorderTexture, PointTexture, speciesOverGens);
         }
     }
 }
