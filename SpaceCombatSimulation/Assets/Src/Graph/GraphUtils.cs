@@ -6,6 +6,7 @@ namespace Assets.Src.Graph
     {
         public static void DrawLineBetweenPoints(Vector2 p0, Vector2 p1, Texture lineTexture, Color colour, float height = 6, float extraLength = 0)
         {
+            //source: https://forum.unity.com/threads/draw-a-gui-line-between-two-points.227837/
             // Draw a thin, rotated box around the line between the given points.
             // Our approach is to rotate the GUI transformation matrix around the center
             // of the line, and then draw an unrotated (horizontal) box at that point.

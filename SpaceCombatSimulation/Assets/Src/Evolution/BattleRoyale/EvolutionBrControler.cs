@@ -41,6 +41,14 @@ public class EvolutionBrControler : BaseEvolutionController
         }
     }
 
+    public override IEnumerable<string> Combatants
+    {
+        get
+        {
+            return _currentGenomes.Values.Select(g => g.Species);
+        }
+    }
+
     // Use this for initialization
     void Start()
     {

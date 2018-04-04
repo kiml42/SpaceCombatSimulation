@@ -49,6 +49,14 @@ public class EvolutionDroneControler : BaseEvolutionController
         }
     }
 
+    public override IEnumerable<string> Combatants
+    {
+        get
+        {
+            return new List<string> { _genomeWrapper.Species };
+        }
+    }
+
     // Use this for initialization
     void Start()
     {

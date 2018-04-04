@@ -19,9 +19,6 @@ Bugs:
 
 TODO:
     In Progress:
-        Graphs:
-            Make them better!
-            Option to export a CSV of a graph.
         Player ship
             pick target by clicking on it
             cycle ships with key press
@@ -107,7 +104,11 @@ TODO:
         Prevent turrets locking by trying to go round the back of the turret
             Get current turn table forwards vector and vector to Target in rest target space
                 If they are on different sides of the rest target, turn towards the rest target (with the speed set for the actual angle to turn for the location of the target)
-
+    
+    Graphs:
+        Option to export a CSV of a graph.
+        Graph of total counts of modules
+        Fix line alignment
 
     Weighted camera orientator using poll targets, ignores rotation targets (must be calculated with look rotations)
         Implemented - works rather badly, different vectors would need different weights to make it work right.

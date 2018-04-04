@@ -19,6 +19,8 @@ namespace Assets.Src.Graph
             Color.yellow
         };
 
+        private readonly Vector2 _mouseoverSize = new Vector2(111, 30);
+
         public StackedBarGraph(Rect location, Texture backgroundTexture, Texture barTexture, Texture lineTexture, IDictionary<int, Dictionary<string, int>> bars) : base(location, backgroundTexture, barTexture, lineTexture)
         {
             _bars = bars;
@@ -52,12 +54,20 @@ namespace Assets.Src.Graph
                     yLoc -= barHeight;
                     Color colour = GetColourForKey(segment.Key, allKeys);
                     var position = new Rect(xLoc, yLoc, barWidth, barHeight);
+
+                    var mouseover = position.Contains(Event.current.mousePosition);
                     //var content = new GUIContent(segment.Key) { tooltip = segment.Key };
                     //GUI.Button(position, content);
                     GUI.DrawTexture(position, _pointTexture, ScaleMode.StretchToFill, true, 0.5f, colour, 0, 0);
 
                     var currentCenter = new Vector2(xLoc + (barWidth/2), yLoc + (barHeight / 2));
                     centers[segment.Key] = currentCenter;
+
+                    if (mouseover)
+                    {
+                        var mouseoverText = string.IsNullOrEmpty(segment.Key) ? "<No Modules>" : segment.Key;
+                        GUI.Box(new Rect(_location.xMax + 20, currentCenter.y, _mouseoverSize.x, _mouseoverSize.y), mouseoverText);
+                    }
 
                     if(previousCenters != null && previousCenters.ContainsKey(segment.Key))
                     {
