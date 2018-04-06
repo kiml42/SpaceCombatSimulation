@@ -18,6 +18,8 @@
         /// </summary>
         public int WinnersFromEachGeneration = 5;
 
+        public float DefaultTimeScale = 1;
+
         public MutationConfig MutationConfig = new MutationConfig();
         public MatchConfig MatchConfig = new MatchConfig();
     }
