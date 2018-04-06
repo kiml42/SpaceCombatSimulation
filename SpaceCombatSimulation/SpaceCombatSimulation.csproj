@@ -13,11 +13,13 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Full v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile></CompilerResponseFile>
+    <CompilerResponseFile>
+    </CompilerResponseFile>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>StandaloneWindows64:19</UnityBuildTarget>
     <UnityVersion>2017.3.1f1</UnityVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -307,6 +309,7 @@
     <Compile Include="Assets\Src\Controllers\SpawnProjectile.cs" />
     <Compile Include="Assets\Src\Controllers\SpawnTurret.cs" />
     <Compile Include="Assets\Src\Controllers\SphereExplosion.cs" />
+    <Compile Include="Assets\Src\Controllers\TimeDialationControler.cs" />
     <Compile Include="Assets\Src\Controllers\WorldControler.cs" />
     <Compile Include="Assets\Src\Database\DatabaseInitialiser.cs" />
     <Compile Include="Assets\Src\Database\EvolutionBrDatabaseHandler.cs" />

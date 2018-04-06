@@ -129,6 +129,7 @@ GameObject:
   - component: {fileID: 135682450383112948}
   - component: {fileID: 114761333346593936}
   - component: {fileID: 114606847447414282}
+  - component: {fileID: 114523557761115726}
   m_Layer: 0
   m_Name: EvolvingWorldController
   m_TagString: Untagged
@@ -876,6 +877,12 @@ MonoBehaviour:
   ShipConfig: {fileID: 114162882494618574}
   BorderTexture: {fileID: 0}
   PointTexture: {fileID: 0}
+  SummaryBox:
+    serializedVersion: 2
+    x: 800
+    y: 10
+    width: 230
+    height: 50
   WinBonus: 1000
 --- !u!114 &114478410833897430
 MonoBehaviour:
@@ -915,6 +922,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Colour: {r: 0, g: 0, b: 0, a: 0}
   SetInStart: 0
+--- !u!114 &114523557761115726
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1406041262789598}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 210b97488eef3764ba907fe7c9410e52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  AccelerateTimeKey: 280
+  DecelerateTimeKey: 281
+  SmallIncrement: 0.1
 --- !u!114 &114606847447414282
 MonoBehaviour:
   m_ObjectHideFlags: 1

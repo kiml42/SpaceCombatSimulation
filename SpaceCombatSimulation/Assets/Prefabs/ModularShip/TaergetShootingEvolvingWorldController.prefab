@@ -185,6 +185,7 @@ GameObject:
   - component: {fileID: 114863712890012964}
   - component: {fileID: 114363119969470166}
   - component: {fileID: 114351515869565954}
+  - component: {fileID: 114638886417140592}
   m_Layer: 0
   m_Name: TaergetShootingEvolvingWorldController
   m_TagString: Untagged
@@ -712,10 +713,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07117f7a6724263428f71059b5344946, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DatabaseId: 13
+  DatabaseId: 2
   ShipConfig: {fileID: 114276023159756518}
   BorderTexture: {fileID: 2800000, guid: 14bf342960bd97948b0b45ba35ebf57f, type: 3}
   PointTexture: {fileID: 10912, guid: 0000000000000000f000000000000000, type: 0}
+  SummaryBox:
+    serializedVersion: 2
+    x: 800
+    y: 10
+    width: 230
+    height: 50
   CurrentScore: 0
   DroneList: {fileID: 114605218179096368, guid: e2dbee6a48a444f4aab01257450a7363,
     type: 2}
@@ -776,6 +783,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Colour: {r: 0, g: 0, b: 0, a: 0}
   SetInStart: 0
+--- !u!114 &114638886417140592
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1951160143417706}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 210b97488eef3764ba907fe7c9410e52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  AccelerateTimeKey: 280
+  DecelerateTimeKey: 281
 --- !u!114 &114768268343182516
 MonoBehaviour:
   m_ObjectHideFlags: 1
