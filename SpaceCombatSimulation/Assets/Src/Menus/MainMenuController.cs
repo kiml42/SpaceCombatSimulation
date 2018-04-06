@@ -1,6 +1,4 @@
 ﻿using Assets.Src.Database;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class MainMenuController : MonoBehaviour {
@@ -13,7 +11,7 @@ public class MainMenuController : MonoBehaviour {
     // Use this for initialization
     void Start () {
         var initialiser = new DatabaseInitialiser();
-        initialiser.EnsureDatabaseExists(GeneralDatabaseHandler.DEFAULT_COMMAND_PATH);
+        initialiser.EnsureDatabaseExists();
 	}
 	
 	// Update is called once per frame

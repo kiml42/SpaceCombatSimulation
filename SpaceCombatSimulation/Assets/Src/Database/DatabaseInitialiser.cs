@@ -1,10 +1,6 @@
 ﻿using Mono.Data.Sqlite;
 using System;
-using System.Collections.Generic;
-using System.Data;
 using System.IO;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.Database
@@ -27,7 +23,7 @@ namespace Assets.Src.Database
         /// Creates teh database if it doesn't exist, if it does exist, this does nothing.
         /// </summary>
         /// <param name="creationCommandFilePath"></param>
-        public void EnsureDatabaseExists(string creationCommandFilePath)
+        public void EnsureDatabaseExists(string creationCommandFilePath = GeneralDatabaseHandler.DEFAULT_CREATE_DB_COMMAND_PATH)
         {
             if(!File.Exists(_databaseFullPath))
                 CreateDatabase(creationCommandFilePath);
@@ -78,7 +74,7 @@ namespace Assets.Src.Database
                 {
                     sql_con.Open();
 
-                    var sql = File.ReadAllText(Application.dataPath + creationCommandFilePath);
+                    var sql = File.ReadAllText(Application.streamingAssetsPath + creationCommandFilePath);
 
                     //Debug.Log("create sql: " + sql);
 

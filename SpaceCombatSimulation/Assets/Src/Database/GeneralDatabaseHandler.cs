@@ -1,11 +1,8 @@
-﻿using Assets.src.Evolution;
-using Assets.Src.Evolution;
+﻿using Assets.Src.Evolution;
 using Mono.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.Database
@@ -15,7 +12,7 @@ namespace Assets.Src.Database
         protected abstract string CONFIG_TABLE { get; }
         protected abstract string INDIVIDUAL_TABLE { get; }
 
-        public const string DEFAULT_COMMAND_PATH = "/Database/CreateBlankDatabase.sql";
+        public const string DEFAULT_CREATE_DB_COMMAND_PATH = "/CreateBlankDatabase.sql";
         private const string DEFAULT_DB_PATH = "/Database/SpaceCombatSimulationDB.s3db";
 
         protected abstract string RUN_TYPE_NAME { get; }
@@ -33,7 +30,7 @@ namespace Assets.Src.Database
         protected const string MUTATION_CONFIG_TABLE = "MutationConfig";
         protected const string MATCH_CONFIG_TABLE = "MatchConfig";
 
-        public GeneralDatabaseHandler(string databasePath = DEFAULT_DB_PATH, string dbCreationCommandPath = DEFAULT_COMMAND_PATH)
+        public GeneralDatabaseHandler(string databasePath = DEFAULT_DB_PATH, string dbCreationCommandPath = DEFAULT_CREATE_DB_COMMAND_PATH)
         {
             _databasePath = databasePath;
 
