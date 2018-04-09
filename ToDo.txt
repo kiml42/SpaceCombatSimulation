@@ -19,8 +19,6 @@ Bugs:
 
 TODO:
     In Progress:
-        AutoTimeScale
-            Use the average framerate to make a better guess at what time scale to run at.
         Player ship
             pick target by clicking on it
             cycle ships with key press
@@ -41,6 +39,8 @@ TODO:
 
 
     Priority:
+        Aotomatically open last opened run from main menu.
+            Store run to open in DB.
         Camera
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.

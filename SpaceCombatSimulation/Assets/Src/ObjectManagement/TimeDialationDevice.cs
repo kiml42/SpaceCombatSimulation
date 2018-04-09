@@ -10,14 +10,15 @@ namespace Assets.Src.ObjectManagement
     {
         public float LargeIncrement = 0.5f;
         public float SmallIncrement = 0.1f;
-
-        private List<float> _deltas = new List<float>();
-        public float AutoTimeScaleTime = 5;
-        public float AccelerateThreshod = 0.02f;
-        public float DecelerateThreshod = 0.1f;
-
         public float TimeScaleCap = 8;
         public float TimeScaleFloor = 0.1f;
+
+        private List<float> _deltas = new List<float>();
+
+        public float AutoTimeScaleTime = 5;
+        public float IdealDeltaTime = 0.05f;
+        public float ChangeThreshold = 0.01f;
+        public float AutoChangeMultiplier = 10;
 
         public void AutoSetTimeScale()
         {
@@ -25,10 +26,21 @@ namespace Assets.Src.ObjectManagement
             if(_deltas.Sum() > AutoTimeScaleTime)
             {
                 var averageDelta = _deltas.Average();
-                if(averageDelta < AccelerateThreshod) { AccelerateTime(); }
-                if(averageDelta > DecelerateThreshod) { DecelerateTime(); }
+                AutoSetTimeScaleFromAverageDeltaTime(averageDelta);
                 _deltas = new List<float>();
             }
+        }
+
+        private void AutoSetTimeScaleFromAverageDeltaTime(float averageDelta)
+        {
+            var desiredChange = IdealDeltaTime - averageDelta;
+            if(Math.Abs(desiredChange) > ChangeThreshold)
+            {
+                Time.timeScale = GetTimescaleInRange(Time.timeScale +(desiredChange * AutoChangeMultiplier));
+                //Debug.Log("TimeScale auto set to " + Time.timeScale);
+                return;
+            }
+            //Debug.Log("Frame rate is within tollerance. desiredChange =  " + desiredChange);
         }
 
         public void AccelerateTime()
