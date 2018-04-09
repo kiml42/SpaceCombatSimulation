@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Assets.Src.ObjectManagement;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,44 +7,27 @@ using UnityEngine;
 public class TimeDialationControler : MonoBehaviour {
     public KeyCode AccelerateTimeKey = KeyCode.PageUp;
     public KeyCode DecelerateTimeKey = KeyCode.PageDown;
-    public float SmallIncrement = 0.1f;
-
-    // Use this for initialization
-    void Start () {
-		
-	}
+    private TimeDialationDevice _tdd = new TimeDialationDevice();
+    public bool AutoSetTimeScale = true;
 
     // Update is called once per frame
     void Update()
     {
         if (Input.GetKeyUp(AccelerateTimeKey))
         {
-            AccelerateTime();
+            _tdd.AccelerateTime();
+            AutoSetTimeScale = false;
+            return;
         }
         if (Input.GetKeyUp(DecelerateTimeKey))
         {
-            DecelerateTime();
-        }
-        Debug.Log("TimeScale set to " + Time.timeScale);
-    }
-
-    private void AccelerateTime()
-    {
-        if(Time.timeScale < 1)
-        {
-            Time.timeScale += SmallIncrement;
+            _tdd.DecelerateTime();
+            AutoSetTimeScale = false;
             return;
         }
-        Time.timeScale++;
-    }
-
-    private void DecelerateTime()
-    {
-        if (Time.timeScale <= 1)
+        if (AutoSetTimeScale)
         {
-            Time.timeScale = Math.Max(0, Time.timeScale - SmallIncrement);
-            return;
+            _tdd.AutoSetTimeScale();
         }
-        Time.timeScale--;
     }
 }

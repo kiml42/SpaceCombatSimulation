@@ -19,6 +19,8 @@ Bugs:
 
 TODO:
     In Progress:
+        AutoTimeScale
+            Use the average framerate to make a better guess at what time scale to run at.
         Player ship
             pick target by clicking on it
             cycle ships with key press
