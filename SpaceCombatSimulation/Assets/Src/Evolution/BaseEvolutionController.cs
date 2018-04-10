@@ -34,12 +34,7 @@ namespace Assets.Src.Evolution
         public Rect SummaryBox = new Rect(800, 10, 230, 50);
 
         public abstract IEnumerable<string> Combatants { get; }
-
-        protected void SetTimeScaleToDefault()
-        {
-            Time.timeScale = _baseConfig.DefaultTimeScale;
-        }
-
+        
         private void OnGUI()
         {
             var text = "ID: " + DatabaseId + ", Name: " + _baseConfig.RunName + ", Generation: " + _baseConfig.GenerationNumber + Environment.NewLine +

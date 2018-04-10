@@ -1,8 +1,5 @@
-﻿using System;
+﻿using Assets.Src.Database;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Assets.Src.Database;
 using UnityEngine;
 
 namespace Assets.Src.Menus
@@ -20,7 +17,8 @@ namespace Assets.Src.Menus
         
         protected void GenericInitialisation()
         {
-            Debug.Log(_handler);
+            //Debug.Log(_handler);
+            var autoLoadId = _handler.ReadAutoloadId();
             _configs = _handler.ListConfigs();
             var i = 0;
             foreach (var config in _configs)
@@ -32,6 +30,11 @@ namespace Assets.Src.Menus
                 menuItemScript.IdToLoad = config.Key;
                 menuItemScript.SetIdToLoad = true;
                 menuItemScript.SceneToLoad = RunScene;
+                if(autoLoadId != null && autoLoadId.Value == config.Key)
+                {
+                    //This one is the one to load, simulate a click to load the scene.
+                    menuItemScript.OnMouseUp();
+                }
 
                 var editButton = Instantiate(MenuItemPrefab, FirstEditButtonLocation.position + (i * SubsequentItemOffset), FirstMenuItemLocation.rotation, transform);
                 editButton.text = "edit";

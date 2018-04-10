@@ -61,6 +61,7 @@ namespace Assets.Src.Database
                         throw new Exception("Config not found for ID " + id);
                     }
                 }
+                SetAutoloadId(id);
                 return config;
             }
         }
