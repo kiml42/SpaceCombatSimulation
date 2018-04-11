@@ -10,6 +10,7 @@ namespace Assets.Src.Database
     public abstract class GeneralDatabaseHandler
     {
         protected abstract string CONFIG_TABLE { get; }
+        protected const string MAIN_CONFIG_TABLE = "MainConfig";
         protected abstract string INDIVIDUAL_TABLE { get; }
 
         public const string DEFAULT_CREATE_DB_COMMAND_PATH = "/CreateBlankDatabase.sql";
@@ -91,12 +92,45 @@ namespace Assets.Src.Database
         #region Autoload
         public void SetAutoloadId(int? autoloadId)
         {
-            throw new NotImplementedException();
+            string sqlQuery = "UPDATE " + MAIN_CONFIG_TABLE + " set autoloadId = ?;";
+
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                sql_con.Open(); //Open connection to the database.
+                using (var dbcmd = sql_con.CreateCommand())
+                {
+                    dbcmd.CommandText = sqlQuery;
+
+                    dbcmd.Parameters.Add(new SqliteParameter(DbType.Int32, (object)autoloadId));
+
+                    dbcmd.ExecuteNonQuery();
+                }
+            }
         }
 
         public int? ReadAutoloadId()
         {
-            throw new NotImplementedException();
+            string sqlQuery = "SELECT autoloadId FROM " + MAIN_CONFIG_TABLE + ";";
+            int? idToLoad = null;
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                sql_con.Open(); //Open connection to the database.
+                using (var dbcmd = sql_con.CreateCommand())
+                {
+                    dbcmd.CommandText = sqlQuery;
+                    using (var reader = dbcmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            idToLoad = GetNullableInt(reader, "autoloadId");
+                        } else
+                        {
+                            Debug.Log("There are no rows in the main config table, there should be exactly 1");
+                        }
+                    }
+                }
+            }
+            return idToLoad;
         }
         #endregion
 

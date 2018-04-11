@@ -62,8 +62,8 @@ namespace Assets.Src.Database
                     }
                 }
                 SetAutoloadId(id);
-                return config;
             }
+            return config;
         }
 
         public int UpdateExistingConfig(EvolutionBrConfig config)

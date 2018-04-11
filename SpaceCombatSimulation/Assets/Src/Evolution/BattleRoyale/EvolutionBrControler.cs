@@ -58,6 +58,8 @@ public class EvolutionBrControler : BaseEvolutionController
 
         _config = _dbHandler.ReadConfig(DatabaseId);
 
+        _dbHandler.SetAutoloadId(DatabaseId);
+
         if(_config == null || _config.DatabaseId != DatabaseId)
         {
             throw new Exception("Did not retrieve expected config from database");
@@ -77,6 +79,10 @@ public class EvolutionBrControler : BaseEvolutionController
     // Update is called once per frame
     void Update()
     {
+        if (Input.GetKeyUp(KeyCode.Escape))
+        {
+            QuitToMainMenu();
+        }
         bool matchIsOver = false;
         if (_matchControl.ShouldPollForWinners() || _matchControl.IsOutOfTime() || !_hasModules)
         {

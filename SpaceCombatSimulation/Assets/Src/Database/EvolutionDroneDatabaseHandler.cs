@@ -67,10 +67,9 @@ namespace Assets.Src.Database
                     config.MutationConfig = ReadMutationConfig(reader);
 
                     SetAutoloadId(id);
-
-                    return config;
                 }
             }
+            return config;
         }
 
         /// <summary>

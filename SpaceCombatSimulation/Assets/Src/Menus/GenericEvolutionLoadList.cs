@@ -17,7 +17,6 @@ namespace Assets.Src.Menus
         
         protected void GenericInitialisation()
         {
-            //Debug.Log(_handler);
             var autoLoadId = _handler.ReadAutoloadId();
             _configs = _handler.ListConfigs();
             var i = 0;

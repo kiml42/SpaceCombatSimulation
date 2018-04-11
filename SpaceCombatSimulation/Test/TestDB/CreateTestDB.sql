@@ -10,6 +10,8 @@ BEGIN TRANSACTION;
 CREATE TABLE MainConfig (
     autoloadId INTEGER
 );
+INSERT INTO MainConfig (autoloadId)
+VALUES (null);
 
 -- Table: BaseEvolutionConfig
 CREATE TABLE BaseEvolutionConfig (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name VARCHAR (50) NOT NULL ON CONFLICT REPLACE DEFAULT Unnamed, currentGeneration INTEGER DEFAULT '''0''' NOT NULL, minMatchesPerIndividual INTEGER DEFAULT '''3''' NOT NULL, winnersCount INTEGER DEFAULT '''5''' NOT NULL);

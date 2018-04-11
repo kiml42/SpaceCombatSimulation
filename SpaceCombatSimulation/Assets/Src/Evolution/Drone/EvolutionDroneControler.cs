@@ -63,6 +63,8 @@ public class EvolutionDroneControler : BaseEvolutionController
         DatabaseId = ArgumentStore.IdToLoad ?? DatabaseId;
         
         _dbHandler = new EvolutionDroneDatabaseHandler();
+
+        _dbHandler.SetAutoloadId(DatabaseId);
         
         _config = _dbHandler.ReadConfig(DatabaseId);
 
@@ -87,6 +89,10 @@ public class EvolutionDroneControler : BaseEvolutionController
     // Update is called once per frame
     void Update()
     {
+        if (Input.GetKeyUp(KeyCode.Escape))
+        {
+            QuitToMainMenu();
+        }
         var matchOver = IsMatchOver();
         if (matchOver || _matchControl.IsOutOfTime())
         {

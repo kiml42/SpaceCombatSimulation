@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Assets.Src.Evolution
 {
@@ -34,7 +35,15 @@ namespace Assets.Src.Evolution
         public Rect SummaryBox = new Rect(800, 10, 230, 50);
 
         public abstract IEnumerable<string> Combatants { get; }
-        
+
+        public string MainMenu = "MainMenu";
+
+        protected void QuitToMainMenu()
+        {
+            DbHandler.SetAutoloadId(null);
+            SceneManager.LoadScene(MainMenu);
+        }
+
         private void OnGUI()
         {
             var text = "ID: " + DatabaseId + ", Name: " + _baseConfig.RunName + ", Generation: " + _baseConfig.GenerationNumber + Environment.NewLine +
