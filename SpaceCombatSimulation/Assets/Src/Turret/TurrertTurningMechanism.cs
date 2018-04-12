@@ -95,12 +95,12 @@ public class TurrertTurningMechanism : GeneticConfigurableMonobehaviour
     
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        TurnTableMotorFoce = genomeWrapper.GetScaledNumber(600);
-        TurnTableMotorSpeedMultiplier = genomeWrapper.GetScaledNumber(300);
-        TurnTableMotorSpeedCap = genomeWrapper.GetScaledNumber(100);
-        ElevationHubMotorFoce = genomeWrapper.GetScaledNumber(600);
-        ElevationHubMotorSpeedMultiplier = genomeWrapper.GetScaledNumber(300);
-        ElevationHubMotorSpeedCap = genomeWrapper.GetScaledNumber(100);
+        TurnTableMotorFoce = genomeWrapper.GetScaledNumber(TurnTableMotorFoce);
+        TurnTableMotorSpeedMultiplier = genomeWrapper.GetScaledNumber(TurnTableMotorSpeedMultiplier * 2);
+        TurnTableMotorSpeedCap = genomeWrapper.GetScaledNumber(TurnTableMotorSpeedCap * 2);
+        ElevationHubMotorFoce = genomeWrapper.GetScaledNumber(ElevationHubMotorFoce);
+        ElevationHubMotorSpeedMultiplier = genomeWrapper.GetScaledNumber(ElevationHubMotorSpeedMultiplier * 2);
+        ElevationHubMotorSpeedCap = genomeWrapper.GetScaledNumber(ElevationHubMotorSpeedCap * 2);
         
         return genomeWrapper;
     }

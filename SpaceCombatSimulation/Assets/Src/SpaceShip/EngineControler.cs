@@ -18,6 +18,7 @@ public class EngineControler : GeneticConfigurableMonobehaviour
     /// <summary>
     /// The force the engine applys at this transform's position in this transfornm's -up direction
     /// </summary>
+    [Tooltip("The force the engine applys at this transform's position in this transfornm's -up direction")]
     public float EngineForce2;
     
     [Tooltip("angle error at which the engine starts to turn on. \n" +
@@ -226,14 +227,14 @@ public class EngineControler : GeneticConfigurableMonobehaviour
     }
     
     private float MaxShootAngle = 180;
-    private float DefaultShootAngleProportion = 0.5f;
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        TranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
-        TorqueFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
-        FullThrottleTranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0, DefaultShootAngleProportion);
-        
+        TranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle);
+        TorqueFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle);
+        FullThrottleTranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle);
+        EngineForce2 = genomeWrapper.GetScaledNumber(EngineForce2);
+
         return genomeWrapper;
     }
 

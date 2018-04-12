@@ -1,9 +1,11 @@
-﻿using Assets.Src.Interfaces;
+﻿using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
+using Assets.Src.ModuleSystem;
 using Assets.Src.ObjectManagement;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDeactivatable, IKnowsProjectileSpeed
+public class MultiBarelTurretController : GeneticConfigurableMonobehaviour, ITurretController, IDeactivatable, IKnowsProjectileSpeed
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
     private IKnowsEnemyTags _enemyTagKnower;
@@ -113,5 +115,13 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
         //Debug.Log("Deactivating " + name);
         _active = false;
         tag = InactiveTag;
+    }
+
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
+    {
+        ProjectileSpeed = genomeWrapper.GetScaledNumber(ProjectileSpeed);
+        RandomSpeed = genomeWrapper.GetScaledNumber(ProjectileSpeed * 0.25f, RandomSpeed);
+        LoadTime = genomeWrapper.GetScaledNumber(LoadTime * 10, LoadTime, 0.1f);
+        return genomeWrapper;
     }
 }

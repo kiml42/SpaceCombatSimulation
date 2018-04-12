@@ -59,12 +59,10 @@ public class AngleTrigger : GeneticConfigurableMonobehaviour, IFireControl
     {
         return ShouldShoot(_targetChoosingMechanism.CurrentTarget);
     }
-    
-    private float MaxShootAngle = 20;
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        ShootAngle =genomeWrapper.GetScaledNumber(MaxShootAngle, 0, 0.01f);
+        ShootAngle =genomeWrapper.GetScaledNumber(20, 0, 0.01f);
         
         return genomeWrapper;
     }

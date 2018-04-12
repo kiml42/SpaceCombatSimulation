@@ -119,6 +119,11 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
         RocketGenome = genomeWrapper.Genome.Substring(genomeWrapper.GetGeneAsInt() ?? 0);
+        Velocity = Velocity * genomeWrapper.GetScaledNumber(1);
+        RandomStartTime = genomeWrapper.GetScaledNumber(RandomStartTime * 2);
+        MinStartTime = genomeWrapper.GetScaledNumber(MinStartTime * 2);
+        RandomSpeed = genomeWrapper.GetScaledNumber(RandomSpeed * 2, RandomSpeed, 0.1f);
+        LoadTime = genomeWrapper.GetScaledNumber(LoadTime * 2, LoadTime, 0.1f);
         return genomeWrapper;
     }
 }
