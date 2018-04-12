@@ -92,14 +92,12 @@ namespace Assets.Src.Database
         #region Autoload
         public void SetAutoloadId(int? autoloadId)
         {
-            string sqlQuery = "UPDATE " + MAIN_CONFIG_TABLE + " set autoloadId = ?;";
-
             using (var sql_con = new SqliteConnection(_connectionString))
             {
                 sql_con.Open(); //Open connection to the database.
                 using (var dbcmd = sql_con.CreateCommand())
                 {
-                    dbcmd.CommandText = sqlQuery;
+                    dbcmd.CommandText = "UPDATE " + MAIN_CONFIG_TABLE + " set autoloadId = ?;";
 
                     dbcmd.Parameters.Add(new SqliteParameter(DbType.Int32, (object)autoloadId));
 

@@ -64,9 +64,9 @@ public class EvolutionDroneControler : BaseEvolutionController
         
         _dbHandler = new EvolutionDroneDatabaseHandler();
 
-        _dbHandler.SetAutoloadId(DatabaseId);
-        
         _config = _dbHandler.ReadConfig(DatabaseId);
+        
+        _dbHandler.SetAutoloadId(DatabaseId);
 
         if (_config == null || _config.DatabaseId != DatabaseId)
         {
