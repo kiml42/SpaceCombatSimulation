@@ -184,7 +184,7 @@ namespace Assets.Src.ShipCamera
         private void PickBestTargetToFollow()
         {
             //Debug.Log("To Follow");
-            var targets = FollowPicker.FilteredTargets.Where(t => t.Transform.parent == null);  //Don't follow anything that still has a parent.
+            var targets = FollowPicker.FilteredTargets.Where(t => t != null && t.Transform != null && t.Transform.parent == null);  //Don't follow anything that still has a parent.
             //foreach (var item in targets)
             //{
             //    Debug.Log(item.Transform.name + ": " + item.Score);
