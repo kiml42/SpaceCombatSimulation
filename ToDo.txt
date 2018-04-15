@@ -1,6 +1,8 @@
 Bugs:
     Priority:
+        Autotime doesn't work with batchmode.
         Drones extra modules don't get their team tags set.
+        Graphs don't show current generation
         Zoom causes errors in over-shoulder mode.
         Read and resave unaltered species names - they are all getting nulled.
         TargetChoosingMechanisms of root ship hubs are always configured starting at index 0.
