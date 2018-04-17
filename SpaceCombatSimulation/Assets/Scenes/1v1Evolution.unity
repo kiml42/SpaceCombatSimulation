@@ -166,6 +166,7 @@ GameObject:
   - component: {fileID: 125513607}
   - component: {fileID: 125513606}
   - component: {fileID: 125513605}
+  - component: {fileID: 125513609}
   m_Layer: 0
   m_Name: RaceTarget
   m_TagString: RaceGoal
@@ -240,6 +241,17 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &125513609
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 125513604}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &544670324
 GameObject:
   m_ObjectHideFlags: 0
@@ -469,16 +481,6 @@ Prefab:
     - target: {fileID: 1406041262789598, guid: 590da46f61a57f34ba77094de519068c, type: 2}
       propertyPath: m_Name
       value: EvolvingWorldController1V1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114333731870391954, guid: 590da46f61a57f34ba77094de519068c,
-        type: 2}
-      propertyPath: DatabaseId
-      value: 12
-      objectReference: {fileID: 0}
-    - target: {fileID: 114333731870391954, guid: 590da46f61a57f34ba77094de519068c,
-        type: 2}
-      propertyPath: SummaryBox.width
-      value: 430
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 590da46f61a57f34ba77094de519068c, type: 2}
