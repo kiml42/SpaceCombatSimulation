@@ -1,9 +1,6 @@
 ﻿using Assets.Src.Evolution;
-using Assets.Src.Interfaces;
 using Assets.Src.ModuleSystem;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class FuelTank : GeneticConfigurableMonobehaviour
@@ -55,13 +52,10 @@ public class FuelTank : GeneticConfigurableMonobehaviour
     {
         _rigidbody.mass = _originalMass + Fuel * FuelDensity;
     }
-
-    public float MaxFuel = 180;
-    public float MinFuel = 0;
-
+    
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        Fuel = genomeWrapper.GetScaledNumber(MaxFuel, MinFuel);
+        Fuel = genomeWrapper.GetScaledNumber(Fuel, 0, 0.9f);
         return genomeWrapper;
     }
 }
