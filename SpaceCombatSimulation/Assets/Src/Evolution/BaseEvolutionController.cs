@@ -14,8 +14,6 @@ namespace Assets.Src.Evolution
         public EvolutionShipConfig ShipConfig;
         protected EvolutionMutationWrapper _mutationControl = new EvolutionMutationWrapper();
         protected EvolutionMatchController _matchControl;
-        public Texture BorderTexture;
-        public Texture PointTexture;
 
         protected IEnumerable<Transform> ListShips()
         {
@@ -32,7 +30,7 @@ namespace Assets.Src.Evolution
 
         public int GenerationNumber { get { return _baseConfig.GenerationNumber; } }
 
-        public Rect SummaryBox = new Rect(800, 10, 230, 50);
+        public Rect SummaryBox = new Rect(800, 10, 430, 50);
 
         public abstract IEnumerable<string> Combatants { get; }
 

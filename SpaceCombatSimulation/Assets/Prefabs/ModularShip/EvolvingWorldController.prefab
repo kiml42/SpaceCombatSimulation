@@ -125,8 +125,6 @@ GameObject:
   - component: {fileID: 4589377682424178}
   - component: {fileID: 114162882494618574}
   - component: {fileID: 114333731870391954}
-  - component: {fileID: 114478410833897430}
-  - component: {fileID: 135682450383112948}
   - component: {fileID: 114761333346593936}
   - component: {fileID: 114606847447414282}
   - component: {fileID: 114523557761115726}
@@ -873,42 +871,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e20f4975f49970149b880a5cac4c48a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DatabaseId: 4
+  DatabaseId: 12
   ShipConfig: {fileID: 114162882494618574}
-  BorderTexture: {fileID: 0}
-  PointTexture: {fileID: 0}
   SummaryBox:
     serializedVersion: 2
     x: 800
     y: 10
-    width: 230
+    width: 430
     height: 50
-  WinBonus: 1000
---- !u!114 &114478410833897430
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1406041262789598}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 628a885e0d9e74e42b03f443753e47a0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  FollowShips: 1
-  TarGetTag: Enemy
-  TagChildren: 0
-  ShouldSpawnDrones: 0
-  ShouldSetEnemyTag: 0
-  EnemyTags: []
-  Drone: {fileID: 54175251741429924, guid: 1d1e7608339a5a94981ee9e3f3de752a, type: 2}
-  Radius: 100
-  LoadTime: 200
-  SpeedScaler: 20
-  ZoomMultiplier: 30
-  ZoomOrSwitchThreshold: 500
-  TranslateSpeed: 2
   MainMenu: MainMenu
+  WinBonus: 1000
+  RaceTarget: {fileID: 0}
+  RaceScoreMultiplier: 0.01
 --- !u!114 &114502806315632148
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -935,7 +909,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   AccelerateTimeKey: 280
   DecelerateTimeKey: 281
-  SmallIncrement: 0.1
+  AutoSetTimeScale: 1
 --- !u!114 &114606847447414282
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1017,18 +991,6 @@ SphereCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!135 &135682450383112948
-SphereCollider:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1406041262789598}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 1
-  m_Enabled: 0
-  serializedVersion: 2
-  m_Radius: 7000
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!135 &135936103351072348
 SphereCollider:

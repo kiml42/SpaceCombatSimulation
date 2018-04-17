@@ -1,12 +1,8 @@
-﻿using Mono.Data.Sqlite;
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Text;
-using UnityEngine;
-using Assets.src.Evolution;
+﻿using Assets.src.Evolution;
 using Assets.Src.Evolution;
+using Mono.Data.Sqlite;
+using System;
+using System.Data;
 
 namespace Assets.Src.Database
 {

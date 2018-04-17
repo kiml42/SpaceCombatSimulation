@@ -73,6 +73,7 @@ GameObject:
   - component: {fileID: 114682732991779878}
   - component: {fileID: 114739944263660894}
   - component: {fileID: 114072112260931388}
+  - component: {fileID: 114049083187195046}
   m_Layer: 0
   m_Name: FollowPickers
   m_TagString: Untagged
@@ -202,6 +203,7 @@ GameObject:
   - component: {fileID: 114068390980648662}
   - component: {fileID: 114033952499498234}
   - component: {fileID: 114930942505021238}
+  - component: {fileID: 114035669230005642}
   m_Layer: 0
   m_Name: WatchPickers
   m_TagString: Untagged
@@ -495,8 +497,47 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
-  PollInterval: 10
+  PollInterval: 2
   TargetPicker: {fileID: 114068390980648662}
+--- !u!114 &114035669230005642
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1861207120610374}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0f7c7a2b22a34548847247f5e09bad8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeferToParent: 1
+  EnemyTags:
+  - Team1
+  - Team2
+  - Team3
+  - Team4
+  - Team5
+  - Team6
+  - RaceGoal
+--- !u!114 &114049083187195046
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1281789443263064}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0f7c7a2b22a34548847247f5e09bad8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeferToParent: 1
+  EnemyTags:
+  - Team1
+  - Team2
+  - Team3
+  - Team4
+  - Team5
+  - Team6
 --- !u!114 &114068390980648662
 MonoBehaviour:
   m_ObjectHideFlags: 1

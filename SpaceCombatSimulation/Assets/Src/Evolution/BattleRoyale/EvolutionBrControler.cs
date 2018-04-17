@@ -2,6 +2,7 @@
 using Assets.Src.Database;
 using Assets.Src.Evolution;
 using Assets.Src.Menus;
+using Assets.Src.ObjectManagement;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,6 +27,10 @@ public class EvolutionBrControler : BaseEvolutionController
     public float WinBonus = 1000;
 
     List<string> _allCompetetrs { get { return _currentGenomes.Select(kv => kv.Value.Genome).ToList(); } }
+
+    public Transform RaceTarget;
+    private const float RACE_MAX_DISTANCE = 2000;
+    public float RaceScoreMultiplier = 0.01f;
 
     public override GeneralDatabaseHandler DbHandler
     {
@@ -88,6 +93,7 @@ public class EvolutionBrControler : BaseEvolutionController
         bool matchIsOver = false;
         if (_matchControl.ShouldPollForWinners() || _matchControl.IsOutOfTime() || !_hasModules)
         {
+            AddRaceScores();
             ProcessDefeatedShips();
             if(_extantTeams.Count == 1)
             {
@@ -110,24 +116,27 @@ public class EvolutionBrControler : BaseEvolutionController
 
             if (matchIsOver)
             {
-                foreach(var scoreKv in _teamScores)
-                {
-                    var competitor = _currentGenomes[scoreKv.Key];
-                    var alive = _extantTeams.ContainsKey(scoreKv.Key);
-                    var outcome = alive
-                        ? _extantTeams.Count == 1
-                            ? MatchOutcome.Win
-                            : MatchOutcome.Draw
-                        : MatchOutcome.Loss;
-                    _currentGeneration.RecordMatch(competitor, scoreKv.Value, _allCompetetrs, outcome);
-                }
-                _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, _config.GenerationNumber);
-
+                SaveScores();
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             }
         }
     }
-    
+
+    private void AddRaceScores()
+    {
+        if(RACE_MAX_DISTANCE > 0 && RaceScoreMultiplier != 0)
+        {
+            foreach (var shipTeam in ShipConfig.ShipTeamMapping.Where(kv=>kv.Key != null && kv.Key.IsValid()))
+            {
+                var dist = Vector3.Distance(RaceTarget.position, shipTeam.Key.position);
+                var unscaledScore = (RACE_MAX_DISTANCE - dist) / RACE_MAX_DISTANCE;
+                var extraScore = (float)Math.Max(0, unscaledScore * RaceScoreMultiplier);
+                //Debug.Log("Adding race score " + extraScore + " to team " + shipTeam.Value);
+                AddScore(shipTeam.Value, extraScore);
+            }
+        }
+    }
+
     /// <summary>
     /// Chooses the individuals to compete this match and spawns them.
     /// </summary>
@@ -192,19 +201,19 @@ public class EvolutionBrControler : BaseEvolutionController
     {
         Debug.Log(deadIndividual.Value.Name + " has died");
         var score = -_extantTeams.Count * _matchControl.RemainingTime();
-        AddScore(deadIndividual, score);
+        AddScore(deadIndividual.Key, score);
     }
 
-    private void AddScore(KeyValuePair<string, GenomeWrapper> deadIndividuals, float score)
+    private void AddScore(string individual, float extraScore)
     {
-        _teamScores[deadIndividuals.Key] += score;
+        _teamScores[individual] += extraScore;
     }
 
     private void AddScoreForWinner(KeyValuePair<string, GenomeWrapper> winner)
     {
         Debug.Log(winner.Value.Name + " Wins!");
         var score = _matchControl.RemainingTime() + WinBonus;
-        AddScore(winner, score);
+        AddScore(winner.Key, score);
     }
 
     private void AddScoreSurvivingIndividualsAtTheEnd()
@@ -213,7 +222,7 @@ public class EvolutionBrControler : BaseEvolutionController
         var score = WinBonus / (2 * _extantTeams.Count);
         foreach (var team in _extantTeams)
         {
-            AddScore(team, score);
+            AddScore(team.Key, score);
         }
     }
 
@@ -262,5 +271,21 @@ public class EvolutionBrControler : BaseEvolutionController
         _dbHandler.SetCurrentGenerationNumber(DatabaseId, _config.GenerationNumber);
 
         return _currentGeneration;
+    }
+
+    private void SaveScores()
+    {
+        foreach (var scoreKv in _teamScores)
+        {
+            var competitor = _currentGenomes[scoreKv.Key];
+            var alive = _extantTeams.ContainsKey(scoreKv.Key);
+            var outcome = alive
+                ? _extantTeams.Count == 1
+                    ? MatchOutcome.Win
+                    : MatchOutcome.Draw
+                : MatchOutcome.Loss;
+            _currentGeneration.RecordMatch(competitor, scoreKv.Value, _allCompetetrs, outcome);
+        }
+        _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, _config.GenerationNumber);
     }
 }

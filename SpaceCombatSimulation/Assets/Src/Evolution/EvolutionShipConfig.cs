@@ -23,6 +23,8 @@ public class EvolutionShipConfig : MonoBehaviour {
 
     public MatchConfig Config;
 
+    public Dictionary<Transform, string> ShipTeamMapping = new Dictionary<Transform, string>();
+
     /// <summary>
     /// Spawns a ship with the given genome.
     /// </summary>
@@ -71,6 +73,8 @@ public class EvolutionShipConfig : MonoBehaviour {
         genomeWrapper = ship.Configure(genomeWrapper);
 
         ship.name = genomeWrapper.Name;
+
+        ShipTeamMapping[ship.transform] = ownTag;
 
         return genomeWrapper;
     }
