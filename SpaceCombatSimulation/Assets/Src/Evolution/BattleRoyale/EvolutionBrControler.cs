@@ -21,6 +21,8 @@ public class EvolutionBrControler : BaseEvolutionController
     private bool _hasModules;
 
     private Dictionary<string, GenomeWrapper> _extantTeams;
+    private Dictionary<string, float> _teamScores;
+
     public float WinBonus = 1000;
 
     List<string> _allCompetetrs { get { return _currentGenomes.Select(kv => kv.Value.Genome).ToList(); } }
@@ -108,6 +110,17 @@ public class EvolutionBrControler : BaseEvolutionController
 
             if (matchIsOver)
             {
+                foreach(var scoreKv in _teamScores)
+                {
+                    var competitor = _currentGenomes[scoreKv.Key];
+                    var alive = _extantTeams.ContainsKey(scoreKv.Key);
+                    var outcome = alive
+                        ? _extantTeams.Count == 1
+                            ? MatchOutcome.Win
+                            : MatchOutcome.Draw
+                        : MatchOutcome.Loss;
+                    _currentGeneration.RecordMatch(competitor, scoreKv.Value, _allCompetetrs, outcome);
+                }
                 _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, _config.GenerationNumber);
 
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
@@ -116,7 +129,7 @@ public class EvolutionBrControler : BaseEvolutionController
     }
     
     /// <summary>
-    /// 
+    /// Chooses the individuals to compete this match and spawns them.
     /// </summary>
     /// <returns>Boolean indecating that something has at least one module</returns>
     private bool SpawnShips()
@@ -148,6 +161,7 @@ public class EvolutionBrControler : BaseEvolutionController
         }
 
         _extantTeams = _currentGenomes;
+        _teamScores = _currentGenomes.ToDictionary(kv => kv.Key, kv => 0f);
 
         Debug.Log("\"" + string.Join("\" vs \"", names.ToArray()) + "\"");
 
@@ -178,14 +192,19 @@ public class EvolutionBrControler : BaseEvolutionController
     {
         Debug.Log(deadIndividual.Value.Name + " has died");
         var score = -_extantTeams.Count * _matchControl.RemainingTime();
-        _currentGeneration.RecordMatch(deadIndividual.Value, score, _allCompetetrs, MatchOutcome.Loss);
+        AddScore(deadIndividual, score);
+    }
+
+    private void AddScore(KeyValuePair<string, GenomeWrapper> deadIndividuals, float score)
+    {
+        _teamScores[deadIndividuals.Key] += score;
     }
 
     private void AddScoreForWinner(KeyValuePair<string, GenomeWrapper> winner)
     {
         Debug.Log(winner.Value.Name + " Wins!");
         var score = _matchControl.RemainingTime() + WinBonus;
-        _currentGeneration.RecordMatch(winner.Value, score, _allCompetetrs, MatchOutcome.Win);
+        AddScore(winner, score);
     }
 
     private void AddScoreSurvivingIndividualsAtTheEnd()
@@ -194,7 +213,7 @@ public class EvolutionBrControler : BaseEvolutionController
         var score = WinBonus / (2 * _extantTeams.Count);
         foreach (var team in _extantTeams)
         {
-            _currentGeneration.RecordMatch(team.Value, score, _allCompetetrs, MatchOutcome.Draw);
+            AddScore(team, score);
         }
     }
 
