@@ -95,7 +95,7 @@ public class EvolutionBrControler : BaseEvolutionController
         {
             AddRaceScores();
             ProcessDefeatedShips();
-            if(_extantTeams.Count == 1)
+            if(_extantTeams.Count == 1 && RaceScoreMultiplier == 0)
             {
                 //we have a winner
                 AddScoreForWinner(_extantTeams.Single());

@@ -5,7 +5,7 @@ namespace Assets.Src.Evolution
     public class EvolutionBrConfig : BaseEvolutionConfig
     {
         public const int MAX_COMBATANTS = 6;
-        public const int MIN_COMBATANTS = 2;
+        public const int MIN_COMBATANTS = 1;
 
         private int _numberOfCombatants = 2;
         public int NumberOfCombatants {
