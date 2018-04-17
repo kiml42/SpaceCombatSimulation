@@ -39,11 +39,22 @@ TODO:
                     cast ray from camera through reticle
                     turrets are given the target hit by the ray as very high priority (probably lower bonus than in hemisphere so that the ones that can't aim don't try)
                     turrets fire on click
+            Add a target picker for NPC ships that boosts the score for player ships
 
 
     Priority:
-        Aotomatically open last opened run from main menu.
-            Store run to open in DB.
+        Race evolution
+            Periodically check distance to target and add more score for closer (nonlinear?)
+            Target could be fixed, moveable, or a scardeybot.
+            Build as an extra scoring mechanism for BR evolution.
+            Make race target picker that knows the race target and adds it to the list with a set score (genetically configurable)
+            Set multipliers for kill scores and race scores 
+        Merge evolution modes
+            Add drones into BR
+            Set multipliers for kills, drones and race scores
+            All (living) ships get socre when drones die
+            Put drones in the middle, ships at set radius
+            Option to not make ships each other's enemy
         Camera
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.
@@ -63,10 +74,8 @@ TODO:
         Eyeball turret
             Account for parent angularV
         Analysis
-            Record the modules used to make a species and subspecies of a genome
-                This would ideally be recorded in the genome as the ship is built (species can be derived from subspecies) and stored in the DB, could also be calculated after by building the ship and then destroying it (could only run analysis of species in unity).
-                Graphs of both against generations, possibly moving sums/averages.
-                    Mouse-overs reveal the species/subspecies (possibly include creating a model of one to show what it looked like.)
+            Improve graphs
+                Add graph for number of each type of module present in a generation.
         Async
         Find an easy way to delete individuals.
         Better defaults for evolution configs in the menus.
@@ -118,10 +127,6 @@ TODO:
     Weighted camera orientator using poll targets, ignores rotation targets (must be calculated with look rotations)
         Implemented - works rather badly, different vectors would need different weights to make it work right.
         Might be nice to have user prioritisation in this too.
-    Race evolution
-        Periodically check distance to target and add more score for closer (nonlinear?)
-        Target could be fixed, moveable, or a scardeybot.
-        Have as an option for an additional scoring mechanism for BR evolution.
     TractorbeamTurret
     Add a small cheap engine module - meant for manuvring.
     Avoid GetComponent and sendMessage in update methods.
