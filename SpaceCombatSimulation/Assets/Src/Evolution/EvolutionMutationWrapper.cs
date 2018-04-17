@@ -1,13 +1,12 @@
 ﻿using Assets.src.Evolution;
 using Assets.Src.Evolution;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using System;
+using System.Collections.Generic;
 
 public class EvolutionMutationWrapper {
     private MutationConfig _config = new MutationConfig();    
     private StringMutator _mutator;
+    public float NewStartersProportion = 0.02f;
     
     public MutationConfig Config { get
         {
@@ -28,13 +27,25 @@ public class EvolutionMutationWrapper {
 
     public List<string> CreateGenerationOfMutants(List<string> baseGenomes)
     {
-        return _mutator.CreateGenerationOfMutants(baseGenomes, Config.GenerationSize);
+        var numberOfNewIndividuals = (int)Math.Ceiling(Config.GenerationSize * NewStartersProportion);
+
+        var mutants = _mutator.CreateGenerationOfMutants(baseGenomes, Config.GenerationSize - numberOfNewIndividuals);
+        var newIndividuals = CreateNewIndividuals(numberOfNewIndividuals);
+
+        mutants.AddRange(newIndividuals);
+
+        return mutants;
     }
 
     public List<string> CreateDefaultGeneration()
     {
-        var defaultGenomes = Config.UseCompletelyRandomDefaultGenome ? null : new List<string> { PadGenome( Config.DefaultGenome ) };
-        return CreateGenerationOfMutants(defaultGenomes);
+        return CreateNewIndividuals(Config.GenerationSize);
+    }
+    
+    private List<string> CreateNewIndividuals(int numberOfNewIndividuals)
+    {
+        var baseGenomes = Config.UseCompletelyRandomDefaultGenome ? null : new List<string> { PadGenome(Config.DefaultGenome) };
+        return _mutator.CreateGenerationOfMutants(baseGenomes, numberOfNewIndividuals);
     }
 
     private string PadGenome(string genome)

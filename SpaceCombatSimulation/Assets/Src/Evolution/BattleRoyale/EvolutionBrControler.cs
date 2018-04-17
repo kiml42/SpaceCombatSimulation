@@ -24,13 +24,13 @@ public class EvolutionBrControler : BaseEvolutionController
     private Dictionary<string, GenomeWrapper> _extantTeams;
     private Dictionary<string, float> _teamScores;
 
-    public float WinBonus = 1000;
+    public float WinBonus = 400;
 
     List<string> _allCompetetrs { get { return _currentGenomes.Select(kv => kv.Value.Genome).ToList(); } }
 
     public Transform RaceTarget;
-    private const float RACE_MAX_DISTANCE = 2000;
-    public float RaceScoreMultiplier = 0.01f;
+    private const float RACE_MAX_DISTANCE = 5000;
+    public float RaceScoreMultiplier = 100;
 
     public override GeneralDatabaseHandler DbHandler
     {

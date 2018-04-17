@@ -880,7 +880,7 @@ MonoBehaviour:
     width: 430
     height: 50
   MainMenu: MainMenu
-  WinBonus: 1000
+  WinBonus: 400
   RaceTarget: {fileID: 0}
   RaceScoreMultiplier: 0.01
 --- !u!114 &114502806315632148
