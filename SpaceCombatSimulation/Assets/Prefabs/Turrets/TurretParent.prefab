@@ -205,6 +205,7 @@ GameObject:
   - component: {fileID: 114011831340485998}
   - component: {fileID: 114401088259788994}
   - component: {fileID: 114225009500445016}
+  - component: {fileID: 114266357913767454}
   m_Layer: 0
   m_Name: TargetPickerConfig
   m_TagString: Untagged
@@ -972,7 +973,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Colour: {r: 0.42647058, g: 0.42647058, b: 0.458, a: 0}
-  Depth: 3
   SetInStart: 0
 --- !u!114 &114131933278038030
 MonoBehaviour:
@@ -1071,6 +1071,27 @@ MonoBehaviour:
   DeferToParent: 1
   EnemyTags:
   - Enemy
+--- !u!114 &114266357913767454
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1775096288595832}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f4ce3c9f57b8c6478b0b9cd0cd9e584, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  Threshold: 500
+  FlatBoost: 1000
+  Multiplier: 1000
+  Priority: 0
+  Tag: RaceGoal
+  KullInvalidTargets: 0
+  TargetsWithTagAreValid: 0
 --- !u!114 &114365050818564930
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1184,6 +1205,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 90fe067e2d1dba34980b24b8f5d74be5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Projectile: {fileID: 54662518417675552, guid: 312ddd340d56b9a4bab4336158c6b546,
     type: 2}
   MuzzleFlash: {fileID: 54885894584597264, guid: 66b6e30c7adaffe4f8c11bee6df7082a,

@@ -210,6 +210,7 @@ GameObject:
   - component: {fileID: 114179335973710170}
   - component: {fileID: 114435060050132624}
   - component: {fileID: 114407548385437944}
+  - component: {fileID: 114181326145341928}
   m_Layer: 0
   m_Name: TargetPickerConfig
   m_TagString: Untagged
@@ -900,6 +901,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Types: 00000000
   Cost: 200
 --- !u!114 &114169913862654500
@@ -945,11 +947,33 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 0
   FlatBoost: 500
   Multiplier: 0
   Priority: 0
   CurrentTargetKnower: {fileID: 114604232145694266}
+--- !u!114 &114181326145341928
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1889244637430338}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f4ce3c9f57b8c6478b0b9cd0cd9e584, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  Threshold: 500
+  FlatBoost: 1000
+  Multiplier: 1000
+  Priority: 0
+  Tag: RaceGoal
+  KullInvalidTargets: 0
+  TargetsWithTagAreValid: 0
 --- !u!114 &114236226548321350
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -974,6 +998,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: -1
   FlatBoost: 100
   Multiplier: -1
@@ -1005,6 +1030,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 0
   FlatBoost: 10000
   Multiplier: 1
@@ -1023,6 +1049,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 500
   FlatBoost: 0
   Multiplier: 1
@@ -1054,6 +1081,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   ShootAngle: 30
   TorqueMultiplier: 2000
   StartDelay: 0
@@ -1097,6 +1125,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
   ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
     type: 2}
@@ -1121,6 +1150,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: -1
   FlatBoost: 1000
   Multiplier: -1

@@ -187,6 +187,7 @@ GameObject:
   - component: {fileID: 114269476809663840}
   - component: {fileID: 114062502279549650}
   - component: {fileID: 114545755864321598}
+  - component: {fileID: 114205781745065270}
   m_Layer: 0
   m_Name: TargetPickerConfig
   m_TagString: Untagged
@@ -2218,6 +2219,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 5
   FlatBoost: 0
   Multiplier: 100
@@ -2238,6 +2240,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 500
   FlatBoost: 0
   Multiplier: 1
@@ -2257,6 +2260,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: 0
+  HasBeenConfiguredByGenome: 0
   Threshold: 0
   FlatBoost: 0
   Multiplier: 20
@@ -2306,6 +2310,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: -1
   FlatBoost: 1000
   Multiplier: -1
@@ -2323,6 +2328,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &114205781745065270
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1336752845105704}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f4ce3c9f57b8c6478b0b9cd0cd9e584, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  Threshold: 500
+  FlatBoost: 1000
+  Multiplier: 1000
+  Priority: 0
+  Tag: RaceGoal
+  KullInvalidTargets: 0
+  TargetsWithTagAreValid: 0
 --- !u!114 &114269476809663840
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2336,6 +2362,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 0
   FlatBoost: 500
   Multiplier: 0
@@ -2354,6 +2381,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Friction: 0.6
 --- !u!114 &114343184687507468
 MonoBehaviour:
@@ -2368,6 +2396,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Types: 01000000
   Cost: 180
 --- !u!114 &114354627298347372
@@ -2383,6 +2412,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Types: 
   Cost: 0
 --- !u!114 &114372935907962804
@@ -2428,6 +2458,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Types: 
   Cost: 0
 --- !u!114 &114524051033335858
@@ -2457,6 +2488,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: -1
   FlatBoost: 100
   Multiplier: -1
@@ -2522,6 +2554,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Friction: 0.4
 --- !u!114 &114700062322557724
 MonoBehaviour:
@@ -2548,6 +2581,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 0
   FlatBoost: 10000
   Multiplier: 1
@@ -2595,7 +2629,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Colour: {r: 0.42647058, g: 0.42647058, b: 0.458, a: 0}
-  Depth: 3
   SetInStart: 0
 --- !u!114 &114760828794790922
 MonoBehaviour:
@@ -2660,6 +2693,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: -1
   FlatBoost: 1000
   Multiplier: -1
@@ -2695,6 +2729,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   RestTarget: {fileID: 4539354648138898}
   TurnTable: {fileID: 54504467688077488}
   ElevationHub: {fileID: 54685917326791822}

@@ -29,8 +29,8 @@ public class EvolutionBrControler : BaseEvolutionController
     List<string> _allCompetetrs { get { return _currentGenomes.Select(kv => kv.Value.Genome).ToList(); } }
 
     public Transform RaceTarget;
-    private const float RACE_MAX_DISTANCE = 5000;
-    public float RaceScoreMultiplier = 100;
+    public float RacemaxDistance = 2000;
+    public float RaceScoreMultiplier = 1000;
 
     public override GeneralDatabaseHandler DbHandler
     {
@@ -120,14 +120,14 @@ public class EvolutionBrControler : BaseEvolutionController
 
     private void AddRaceScores()
     {
-        if(RACE_MAX_DISTANCE > 0 && RaceScoreMultiplier != 0)
+        if(RacemaxDistance > 0 && RaceScoreMultiplier != 0)
         {
             foreach (var shipTeam in ShipConfig.ShipTeamMapping.Where(kv=>kv.Key != null && kv.Key.IsValid()))
             {
                 var dist = Vector3.Distance(RaceTarget.position, shipTeam.Key.position);
-                var unscaledScore = (RACE_MAX_DISTANCE - dist) / RACE_MAX_DISTANCE;
+                var unscaledScore = (RacemaxDistance - dist) / RacemaxDistance;
                 var extraScore = (float)Math.Max(0, unscaledScore * RaceScoreMultiplier);
-                //Debug.Log("Adding race score " + extraScore + " to team " + shipTeam.Value);
+                if(extraScore > 0) Debug.Log("Race: Distance: " + dist + ", score: " + extraScore + ", team: " + shipTeam.Value);
                 AddScore(shipTeam.Value, extraScore);
             }
         }

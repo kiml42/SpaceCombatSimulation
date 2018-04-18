@@ -12,6 +12,9 @@ namespace Assets.Src.Targeting.TargetPickers
         public float FlatBoost = 1000;
         public float Multiplier = 1000;
 
+        ///Should this allow the FlatBoost and multiplier to have their signs flipped when configuring genetically.
+        public virtual bool AllowNegative { get { return false; } }
+
         [Tooltip("Target pickers are used in ascending priority order." +
             "If targets are discarded by a low priority targeter higher priority targeters won't get to judge them at all.")]
         public float Priority = 0;
@@ -28,9 +31,9 @@ namespace Assets.Src.Targeting.TargetPickers
 
         protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
         {
-            Multiplier = genomeWrapper.GetScaledNumber(Multiplier * 2);
+            Multiplier = genomeWrapper.GetScaledNumber(Multiplier * 2, AllowNegative ? -Multiplier * 2 : 0);
             Threshold = genomeWrapper.GetScaledNumber(Threshold * 2);
-            FlatBoost = genomeWrapper.GetScaledNumber(FlatBoost * 2);
+            FlatBoost = genomeWrapper.GetScaledNumber(FlatBoost * 2, AllowNegative ? -FlatBoost * 2 : 0);
            
             return genomeWrapper;
         }

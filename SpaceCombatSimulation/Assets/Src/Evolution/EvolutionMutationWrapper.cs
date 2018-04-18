@@ -2,11 +2,12 @@
 using Assets.Src.Evolution;
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class EvolutionMutationWrapper {
     private MutationConfig _config = new MutationConfig();    
     private StringMutator _mutator;
-    public float NewStartersProportion = 0.02f;
+    public float NewStartersProportion = 0.06f;
     
     public MutationConfig Config { get
         {
@@ -31,6 +32,8 @@ public class EvolutionMutationWrapper {
 
         var mutants = _mutator.CreateGenerationOfMutants(baseGenomes, Config.GenerationSize - numberOfNewIndividuals);
         var newIndividuals = CreateNewIndividuals(numberOfNewIndividuals);
+
+        Debug.Log("Creating new generation. New individuals: " + numberOfNewIndividuals + ", derrived individuals: " + mutants.Count);
 
         mutants.AddRange(newIndividuals);
 

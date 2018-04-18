@@ -210,6 +210,31 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!1 &1700398285256432
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 4118910189054180}
+  - component: {fileID: 114742829581481680}
+  - component: {fileID: 114524081987908644}
+  - component: {fileID: 114584008981625664}
+  - component: {fileID: 114477198977987186}
+  - component: {fileID: 114061493353875854}
+  - component: {fileID: 114959747755108320}
+  - component: {fileID: 114238410284370582}
+  - component: {fileID: 114060226530725742}
+  - component: {fileID: 114120126053110996}
+  - component: {fileID: 114219746744178774}
+  m_Layer: 0
+  m_Name: TargetPickerConfigMiniCannonBall
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
 --- !u!1 &1780702946764432
 GameObject:
   m_ObjectHideFlags: 1
@@ -367,6 +392,19 @@ Transform:
   m_Father: {fileID: 4251491789168726}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &4118910189054180
+Transform:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1700398285256432}
+  m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 4251491789168726}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4121642326064828
 Transform:
   m_ObjectHideFlags: 1
@@ -413,13 +451,14 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1808045139990444}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 21.161293, y: -10.73072, z: -90.35241}
+  m_LocalPosition: {x: -2055.7166, y: 22.384583, z: -62.3806}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4946265717213630}
   - {fileID: 4121642326064828}
   - {fileID: 4978981101531032}
   - {fileID: 4045913625718394}
+  - {fileID: 4118910189054180}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -993,6 +1032,68 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &114060226530725742
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1700398285256432}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29f294ef9c08a0841b9a8441db19c693, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  Threshold: 500
+  FlatBoost: 0
+  Multiplier: 1
+  Priority: 0
+  SourceObject: {fileID: 4251491789168726}
+  KullInvalidTargets: 1
+--- !u!114 &114061493353875854
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1700398285256432}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4ba5a5cfe59e574cb42cdbc76acb898, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  Threshold: 5
+  FlatBoost: 0
+  Multiplier: 100
+  Priority: 0
+  AimingObject: {fileID: 54959959390863300}
+  AimingObjectFallback: {fileID: 0}
+  KullInvalidTargets: 1
+--- !u!114 &114120126053110996
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1700398285256432}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c907ed620d72c4e4aacb57fc3fb6bd82, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  Threshold: -1
+  FlatBoost: 100
+  Multiplier: -1
+  Priority: 0
+  DisalowedTypes: 00000000
+  PreferdTypes: 020000000300000004000000050000000700000008000000
+  KullInvalidTargets: 1
 --- !u!114 &114172202945085264
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1004,6 +1105,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 90fe067e2d1dba34980b24b8f5d74be5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Projectile: {fileID: 54055825812382558, guid: 9332290abb101c54e870bf45e5c06ec1,
     type: 2}
   MuzzleFlash: {fileID: 54135229686313498, guid: 6b1aec0fbdeab0f4d9e77b64863b4a23,
@@ -1016,6 +1120,27 @@ MonoBehaviour:
   TagChildren: 0
   SetChildrensEnemy: 0
   RecoilForce: 2
+--- !u!114 &114219746744178774
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1700398285256432}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f4ce3c9f57b8c6478b0b9cd0cd9e584, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  Threshold: 500
+  FlatBoost: 1000
+  Multiplier: 1000
+  Priority: 0
+  Tag: RaceGoal
+  KullInvalidTargets: 0
+  TargetsWithTagAreValid: 0
 --- !u!114 &114236582301589474
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1027,32 +1152,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ConfigIndex: -1
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
-  DropInvalidTargetsWhenTereAreValidTargets: 1
   PollInterval: 1
-  EnemyTags:
-  - Enemy
-  - Team2
-  DisalowedTypes: 
-  PreferdTypes: 0200000003000000
-  PreferedTypeBonus: 5000
-  HemisphereFilterObject: {fileID: 4251491789168726}
-  InCorrectHemisphereBonus: 1000
-  PickerMassMultiplier: 15
-  MinimumMass: 10
-  PickerOverMinMassBonus: 5000
-  PickerDistanceMultiplier: 5
-  PickerRange: 1000
-  PickerInRangeBonus: 10000
-  LineOfSightBonus: 1000
-  MinLineOfSightDetectionDistance: 2
-  PickerAimedAtMultiplier: 80
-  PickerAimingObject: {fileID: 54959959390863300}
-  PickerApproachWeighting: 20
-  PreviousTargetBonus: 500
+  TargetPicker: {fileID: 114742829581481680}
+--- !u!114 &114238410284370582
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1700398285256432}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7f4327519bbde141a84b06ba2ce70a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  Threshold: 0
+  FlatBoost: 500
+  Multiplier: 0
+  Priority: 0
+  CurrentTargetKnower: {fileID: 114236582301589474}
 --- !u!114 &114240850328804124
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1079,13 +1201,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e74601cf9d2f67a4daff32dea07fee84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 0
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   AimingObject: {fileID: 54959959390863300}
   ShootAngle: 10
   AvoidFriendlyFire: 1
   FriendlyDetectionDistance: 80
   MinFriendlyDetectionDistance: 0.5
-  GetConfigFromGenome: 0
 --- !u!114 &114275804722675334
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1127,12 +1250,73 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd0a30461d8031f48a342fb404f57543, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Friction: 50
   _hinge: {fileID: 153548075016921346}
   _thisBody: {fileID: 54959959390863300}
   _connectedBody: {fileID: 54071768055599788}
+--- !u!114 &114477198977987186
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1700398285256432}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57a5adaf99d596a4bb09472f47f9e4b5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  Threshold: -1
+  FlatBoost: 1000
+  Multiplier: -1
+  Priority: 0
+  SourceObject: {fileID: 4946265717213630}
+  KullInvalidTargets: 1
+  MinDetectionDistance: 2
+--- !u!114 &114524081987908644
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1700398285256432}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 392cb577148f68a4595c2c2a6ae081b8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: 0
+  HasBeenConfiguredByGenome: 0
+  Threshold: 0
+  FlatBoost: 0
+  Multiplier: 20
+  Priority: 0
+  SourceObject: {fileID: 54071768055599788}
+--- !u!114 &114584008981625664
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1700398285256432}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc02479869a149e4381460c54790e086, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  Threshold: -1
+  FlatBoost: 1000
+  Multiplier: -1
+  Priority: 0
+  SourceObject: {fileID: 4251491789168726}
+  KullInvalidTargets: 1
 --- !u!114 &114693511354092798
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1148,6 +1332,17 @@ MonoBehaviour:
   DeactivateOnBreak: 1
   DisconectFromParent: 1
   BreakExplosion: {fileID: 0}
+--- !u!114 &114742829581481680
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1700398285256432}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114802747981876806
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1159,7 +1354,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Types: 01000000
   Cost: 160
 --- !u!114 &114855057622574748
@@ -1174,7 +1371,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Colour: {r: 0.42647058, g: 0.42647058, b: 0.458, a: 0}
-  Depth: 3
   SetInStart: 0
 --- !u!114 &114874839691075796
 MonoBehaviour:
@@ -1187,7 +1383,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffec0bf33a4aa8848b11bb77476c7f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Types: 
   Cost: 0
 --- !u!114 &114928060284331826
@@ -1212,12 +1410,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 256084f3d75ae614fa611684f16a9d12, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   RestTarget: {fileID: 4121642326064828}
   Ball: {fileID: 54959959390863300}
   MotorForce: 40
   VectorArrow: {fileID: 4045913625718394}
+--- !u!114 &114959747755108320
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1700398285256432}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: daa08e03f405a84439c74189f542b6c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  Threshold: 0
+  FlatBoost: 10000
+  Multiplier: 1
+  Priority: 0
+  KullInvalidTargets: 1
 --- !u!114 &114972723639891582
 MonoBehaviour:
   m_ObjectHideFlags: 1

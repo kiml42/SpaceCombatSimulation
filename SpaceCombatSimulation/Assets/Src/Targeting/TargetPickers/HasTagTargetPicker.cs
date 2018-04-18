@@ -1,4 +1,5 @@
-﻿using Assets.Src.ObjectManagement;
+﻿using Assets.Src.Evolution;
+using Assets.Src.ObjectManagement;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -12,6 +13,9 @@ namespace Assets.Src.Targeting.TargetPickers
     {
         public string Tag;
         public bool KullInvalidTargets = false;
+
+        ///Should this allow the FlatBoost and multiplier to have their signs flipped when configuring genetically.
+        public override bool AllowNegative { get { return true; } }
 
         /// <summary>
         /// Set to false (default) to consider targets with the tag bad,

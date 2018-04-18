@@ -12,6 +12,9 @@ public class EvolutionShipConfig : MonoBehaviour {
 
     public List<string> Tags = new List<string>{"Team1", "Team2" };
 
+    [Tooltip("all spawned ships get these set as their enemies")]
+    public List<string> TagsForAll = new List<string> { "RaceGoal" };
+
     public TestCubeChecker TestCube;
     [Tooltip("Randomise the rotation of all spawned ships")]
     public string SpaceShipTag = "SpaceShip";
@@ -56,6 +59,8 @@ public class EvolutionShipConfig : MonoBehaviour {
 
         var tagShource = ship.GetComponent<IKnowsEnemyTags>();
         var enemyTags = Tags.Where(t => t != ownTag).ToList();
+        enemyTags.AddRange(TagsForAll);
+
         if (tagShource != null)
         {
             tagShource.KnownEnemyTags = enemyTags;
