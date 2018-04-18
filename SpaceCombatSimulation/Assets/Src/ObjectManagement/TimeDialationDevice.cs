@@ -10,7 +10,7 @@ namespace Assets.Src.ObjectManagement
     {
         public float LargeIncrement = 0.5f;
         public float SmallIncrement = 0.1f;
-        public float TimeScaleCap = 20;
+        public float TimeScaleCap = 15;
         public float TimeScaleFloor = 0.1f;
 
         private List<float> _deltas = new List<float>();
