@@ -24,7 +24,7 @@ public class EvolutionBrControler : BaseEvolutionController
     private Dictionary<string, GenomeWrapper> _extantTeams;
     private Dictionary<string, float> _teamScores;
 
-    public float WinBonus = 400;
+    public float SurvivalBonus = 0;
 
     List<string> _allCompetetrs { get { return _currentGenomes.Select(kv => kv.Value.Genome).ToList(); } }
 
@@ -95,18 +95,14 @@ public class EvolutionBrControler : BaseEvolutionController
         {
             AddRaceScores();
             ProcessDefeatedShips();
-            if(_extantTeams.Count == 1 && RaceScoreMultiplier == 0)
-            {
-                //we have a winner
-                AddScoreForWinner(_extantTeams.Single());
-                matchIsOver = true;
-            }
+
             if(_extantTeams.Count == 0)
             {
                 //everyone's dead
                 matchIsOver = true;
             }
-            if (_matchControl.IsOutOfTime() || !_hasModules)
+
+            if( (_matchControl.IsOutOfTime() || !_hasModules) || (_extantTeams.Count == 1 && RaceScoreMultiplier == 0))
             {
                 //time over - draw
                 //or noone has any modules, so treat it as a draw.
@@ -209,17 +205,10 @@ public class EvolutionBrControler : BaseEvolutionController
         _teamScores[individual] += extraScore;
     }
 
-    private void AddScoreForWinner(KeyValuePair<string, GenomeWrapper> winner)
-    {
-        Debug.Log(winner.Value.Name + " Wins!");
-        var score = _matchControl.RemainingTime() + WinBonus;
-        AddScore(winner.Key, score);
-    }
-
     private void AddScoreSurvivingIndividualsAtTheEnd()
     {
-        Debug.Log("Match over: Draw. " + _extantTeams.Count + " survived.");
-        var score = WinBonus / (2 * _extantTeams.Count);
+        Debug.Log("Match over: " + _extantTeams.Count + " survived.");
+        var score = SurvivalBonus / _extantTeams.Count;
         foreach (var team in _extantTeams)
         {
             AddScore(team.Key, score);

@@ -10,13 +10,13 @@ namespace Assets.Src.ObjectManagement
     {
         public float LargeIncrement = 0.5f;
         public float SmallIncrement = 0.1f;
-        public float TimeScaleCap = 8;
+        public float TimeScaleCap = 20;
         public float TimeScaleFloor = 0.1f;
 
         private List<float> _deltas = new List<float>();
 
         public float AutoTimeScaleTime = 5;
-        public float IdealDeltaTime = 0.05f;
+        public float IdealDeltaTime = 0.04f;
         public float ChangeThreshold = 0.01f;
         public float AutoChangeMultiplier = 10;
 
@@ -55,7 +55,7 @@ namespace Assets.Src.ObjectManagement
                 currentTimeScale += LargeIncrement;
             }
             Time.timeScale = GetTimescaleInRange(currentTimeScale);
-            Debug.Log("TimeScale accelerated to " + currentTimeScale);
+            Debug.Log("TimeScale accelerated to " + Time.timeScale);
         }
 
         private float GetTimescaleInRange(float desiredTimeScale)
@@ -77,7 +77,7 @@ namespace Assets.Src.ObjectManagement
                 currentTimeScale -= LargeIncrement;
             }
             Time.timeScale = GetTimescaleInRange(currentTimeScale);
-            Debug.Log("TimeScale decelerated to " + currentTimeScale);
+            Debug.Log("TimeScale decelerated to " + Time.timeScale);
         }
     }
 }
