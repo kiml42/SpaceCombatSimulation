@@ -24,13 +24,9 @@ public class EvolutionBrControler : BaseEvolutionController
     private Dictionary<string, GenomeWrapper> _extantTeams;
     private Dictionary<string, float> _teamScores;
 
-    public float SurvivalBonus = 0;
-
     List<string> _allCompetetrs { get { return _currentGenomes.Select(kv => kv.Value.Genome).ToList(); } }
 
     public Transform RaceTarget;
-    public float RacemaxDistance = 2000;
-    public float RaceScoreMultiplier = 1000;
 
     public override GeneralDatabaseHandler DbHandler
     {
@@ -102,7 +98,7 @@ public class EvolutionBrControler : BaseEvolutionController
                 matchIsOver = true;
             }
 
-            if( (_matchControl.IsOutOfTime() || !_hasModules) || (_extantTeams.Count == 1 && RaceScoreMultiplier == 0))
+            if( (_matchControl.IsOutOfTime() || !_hasModules) || (_extantTeams.Count == 1 && _config.RaceScoreMultiplier == 0))
             {
                 //time over - draw
                 //or noone has any modules, so treat it as a draw.
@@ -120,13 +116,13 @@ public class EvolutionBrControler : BaseEvolutionController
 
     private void AddRaceScores()
     {
-        if(RacemaxDistance > 0 && RaceScoreMultiplier != 0)
+        if(_config.RaceMaxDistance > 0 && _config.RaceScoreMultiplier != 0)
         {
             foreach (var shipTeam in ShipConfig.ShipTeamMapping.Where(kv=>kv.Key != null && kv.Key.IsValid()))
             {
                 var dist = Vector3.Distance(RaceTarget.position, shipTeam.Key.position);
-                var unscaledScore = (RacemaxDistance - dist) / RacemaxDistance;
-                var extraScore = (float)Math.Max(0, unscaledScore * RaceScoreMultiplier);
+                var unscaledScore = (_config.RaceMaxDistance - dist) / _config.RaceMaxDistance;
+                var extraScore = (float)Math.Max(0, unscaledScore * _config.RaceScoreMultiplier);
                 if(extraScore > 0) Debug.Log("Race: Distance: " + dist + ", score: " + extraScore + ", team: " + shipTeam.Value);
                 AddScore(shipTeam.Value, extraScore);
             }
@@ -196,7 +192,7 @@ public class EvolutionBrControler : BaseEvolutionController
     private void AddScoreForDefeatedIndividual(KeyValuePair<string, GenomeWrapper> deadIndividual)
     {
         Debug.Log(deadIndividual.Value.Name + " has died");
-        var score = -_extantTeams.Count * _matchControl.RemainingTime();
+        var score = -_config.DeathScoreMultiplier * _extantTeams.Count * _matchControl.RemainingTime();
         AddScore(deadIndividual.Key, score);
     }
 
@@ -208,7 +204,7 @@ public class EvolutionBrControler : BaseEvolutionController
     private void AddScoreSurvivingIndividualsAtTheEnd()
     {
         Debug.Log("Match over: " + _extantTeams.Count + " survived.");
-        var score = SurvivalBonus / _extantTeams.Count;
+        var score = _config.SurvivalBonus / _extantTeams.Count;
         foreach (var team in _extantTeams)
         {
             AddScore(team.Key, score);

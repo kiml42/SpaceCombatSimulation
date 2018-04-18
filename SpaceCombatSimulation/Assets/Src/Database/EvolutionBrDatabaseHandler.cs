@@ -48,6 +48,10 @@ namespace Assets.Src.Database
                         config.NumberOfCombatants = reader.GetInt32(reader.GetOrdinal("combatants"));
                         config.InSphereRandomisationRadius = reader.GetFloat(reader.GetOrdinal("inSphereRandomisationRadius"));
                         config.OnSphereRandomisationRadius = reader.GetFloat(reader.GetOrdinal("onSphereRandomisationRadius"));
+                        config.RaceMaxDistance = reader.GetFloat(reader.GetOrdinal("raceMaxDistance"));
+                        config.RaceScoreMultiplier = reader.GetFloat(reader.GetOrdinal("raceScoreMultiplier"));
+                        config.SurvivalBonus = reader.GetFloat(reader.GetOrdinal("survivalBonus"));
+                        config.DeathScoreMultiplier = reader.GetFloat(reader.GetOrdinal("deathScoreMultiplier"));
 
                         config.MatchConfig = ReadMatchConfig(reader);
                         config.MutationConfig = ReadMutationConfig(reader);
@@ -78,12 +82,17 @@ namespace Assets.Src.Database
                     })
                     {
                         insertSQL.CommandText = "UPDATE " + CONFIG_TABLE +
-                            " SET  combatants = ?, inSphereRandomisationRadius = ?, onSphereRandomisationRadius = ?" +
+                            " SET  combatants = ?, inSphereRandomisationRadius = ?, onSphereRandomisationRadius = ?," +
+                            " raceMaxDistance = ?, raceScoreMultiplier = ?, survivalBonus = ?, deathScoreMultiplier = ?" +
                             " WHERE id = ?";
 
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.NumberOfCombatants));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.InSphereRandomisationRadius));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.OnSphereRandomisationRadius));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.RaceMaxDistance));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.RaceScoreMultiplier));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.SurvivalBonus));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.DeathScoreMultiplier));
 
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
 
@@ -111,13 +120,17 @@ namespace Assets.Src.Database
                     })
                     {
                         insertSQL.CommandText = "INSERT INTO " + CONFIG_TABLE +
-                            "(id, combatants, inSphereRandomisationRadius, onSphereRandomisationRadius)" +
-                            " VALUES (?,?,?,?)";
+                            "(id, combatants, inSphereRandomisationRadius, onSphereRandomisationRadius, raceMaxDistance, raceScoreMultiplier, survivalBonus, deathScoreMultiplier)" +
+                            " VALUES (?,?,?,?,?,?,?,?)";
 
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.NumberOfCombatants));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.InSphereRandomisationRadius));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.OnSphereRandomisationRadius));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.RaceMaxDistance));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.RaceScoreMultiplier));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.SurvivalBonus));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.DeathScoreMultiplier));
 
                         insertSQL.ExecuteNonQuery();
                     }

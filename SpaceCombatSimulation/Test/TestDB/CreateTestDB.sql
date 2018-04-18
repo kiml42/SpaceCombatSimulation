@@ -32,9 +32,9 @@ INSERT INTO DroneEvolutionConfig (id, minDrones, droneEscalation, maxDrones, kil
 VALUES (1, 3, 8, 100, 50, 100, 388, 70, '0,2,1,3,1,1,3,1,5,1,1,1,6,1,1', 200, 201, 2002, 203);
 
 -- Table: BrEvolutionConfig
-CREATE TABLE BrEvolutionConfig (id INTEGER PRIMARY KEY REFERENCES BaseEvolutionConfig (id) ON DELETE CASCADE NOT NULL, combatants INTEGER NOT NULL DEFAULT (2), inSphereRandomisationRadius FLOAT NOT NULL DEFAULT (0), onSphereRandomisationRadius FLOAT NOT NULL DEFAULT (0));
-INSERT INTO BrEvolutionConfig (id, combatants, inSphereRandomisationRadius, onSphereRandomisationRadius) VALUES (2, 2, 106, 107);
-INSERT INTO BrEvolutionConfig (id, combatants, inSphereRandomisationRadius, onSphereRandomisationRadius) VALUES (3, 4, 207, 208);
+CREATE TABLE BrEvolutionConfig (id INTEGER PRIMARY KEY REFERENCES BaseEvolutionConfig (id) ON DELETE CASCADE NOT NULL, combatants INTEGER NOT NULL DEFAULT (2), inSphereRandomisationRadius FLOAT NOT NULL DEFAULT (0), onSphereRandomisationRadius FLOAT NOT NULL DEFAULT (0), raceMaxDistance FLOAT NOT NULL DEFAULT (2000), raceScoreMultiplier FLOAT NOT NULL DEFAULT (1000), survivalBonus FLOAT NOT NULL DEFAULT (400), deathScoreMultiplier FLOAT NOT NULL DEFAULT (1));
+INSERT INTO BrEvolutionConfig (id, combatants, inSphereRandomisationRadius, onSphereRandomisationRadius, raceMaxDistance, raceScoreMultiplier, survivalBonus, deathScoreMultiplier) VALUES (2, 2, 106, 107, 2010, 1003, 42, 1.5);
+INSERT INTO BrEvolutionConfig (id, combatants, inSphereRandomisationRadius, onSphereRandomisationRadius, raceMaxDistance, raceScoreMultiplier, survivalBonus, deathScoreMultiplier) VALUES (3, 4, 207, 208, 2011, 1013, 421, 11.5);
 
 -- Table: MatchConfig
 CREATE TABLE MatchConfig (id INTEGER PRIMARY KEY REFERENCES BaseEvolutionConfig (id) ON DELETE CASCADE NOT NULL, matchTimeout FLOAT DEFAULT '300' NOT NULL, winnerPollPeriod FLOAT DEFAULT '2' NOT NULL, initialRange FLOAT DEFAULT '''6000''' NOT NULL, initialSpeed FLOAT DEFAULT '''0''' NOT NULL, randomInitialSpeed FLOAT DEFAULT '''0''' NOT NULL, competitorsPerTeam INTEGER DEFAULT '''1''' NOT NULL, stepForwardProportion FLOAT DEFAULT '''0.5''' NOT NULL, randomiseRotation BOOLEAN DEFAULT 'TRUE' NOT NULL, allowedModules STRING DEFAULT null, budget INTEGER DEFAULT 1000);

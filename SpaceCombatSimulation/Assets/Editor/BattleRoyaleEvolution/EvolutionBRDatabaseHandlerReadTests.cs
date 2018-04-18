@@ -12,7 +12,7 @@ public class EvolutionBRDatabaseHandlerReadTests
     private string _dbPathStart = "/../tmp/TestDB/";
     private string _dbPathExtension = ".s3db";
     private string _dbPath;
-    private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
+    private string _createCommandPath = "/../../Test/TestDB/CreateTestDB.sql";
     EvolutionBrDatabaseHandler _handler;
     DatabaseInitialiser _initialiser;
 
@@ -131,6 +131,34 @@ public class EvolutionBRDatabaseHandlerReadTests
     {
         var config = _handler.ReadConfig(2);
         Assert.AreEqual(107, config.OnSphereRandomisationRadius);
+    }
+
+    [Test]
+    public void ReadConfig_RaceMaxDistance()
+    {
+        var config = _handler.ReadConfig(2);
+        Assert.AreEqual(2010, config.RaceMaxDistance);
+    }
+
+    [Test]
+    public void ReadConfig_RaceScoreMultiplier()
+    {
+        var config = _handler.ReadConfig(2);
+        Assert.AreEqual(1003, config.RaceScoreMultiplier);
+    }
+
+    [Test]
+    public void ReadConfig_SurvivalBonus()
+    {
+        var config = _handler.ReadConfig(2);
+        Assert.AreEqual(42, config.SurvivalBonus);
+    }
+
+    [Test]
+    public void ReadConfig_DeathScoreMultiplier()
+    {
+        var config = _handler.ReadConfig(2);
+        Assert.AreEqual(1.5f, config.DeathScoreMultiplier);
     }
     #endregion
 

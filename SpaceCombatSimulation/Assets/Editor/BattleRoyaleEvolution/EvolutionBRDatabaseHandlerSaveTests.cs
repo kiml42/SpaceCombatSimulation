@@ -13,7 +13,7 @@ public class EvolutionBRDatabaseHandlerSaveTests
     private string _dbPathStart = "/../tmp/TestDB/";
     private string _dbPathExtension = ".s3db";
     private string _dbPath;
-    private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
+    private string _createCommandPath = "/../../Test/TestDB/CreateTestDB.sql";
     EvolutionBrDatabaseHandler _handler;
     DatabaseInitialiser _initialiser;
 
@@ -74,6 +74,10 @@ public class EvolutionBRDatabaseHandlerSaveTests
             WinnersFromEachGeneration = 7,
             InSphereRandomisationRadius = 43,
             OnSphereRandomisationRadius = 44,
+            DeathScoreMultiplier = 123,
+            RaceMaxDistance = 2342,
+            RaceScoreMultiplier = 1234,
+            SurvivalBonus = 432,
             MatchConfig = new MatchConfig(),
             MutationConfig = new MutationConfig
             {
@@ -96,6 +100,10 @@ public class EvolutionBRDatabaseHandlerSaveTests
         Assert.AreEqual(3, retrieved.NumberOfCombatants);
         Assert.AreEqual(43, retrieved.InSphereRandomisationRadius);
         Assert.AreEqual(44, retrieved.OnSphereRandomisationRadius);
+        Assert.AreEqual(123, retrieved.DeathScoreMultiplier);
+        Assert.AreEqual(2342, retrieved.RaceMaxDistance);
+        Assert.AreEqual(1234, retrieved.RaceScoreMultiplier);
+        Assert.AreEqual(432, retrieved.SurvivalBonus);
     }
 
     [Test]
@@ -109,6 +117,10 @@ public class EvolutionBRDatabaseHandlerSaveTests
         config.NumberOfCombatants++;
         config.InSphereRandomisationRadius++;
         config.OnSphereRandomisationRadius++;
+        config.SurvivalBonus++;
+        config.RaceMaxDistance++;
+        config.RaceScoreMultiplier++;
+        config.DeathScoreMultiplier++;
 
         _handler.UpdateExistingConfig(config);
 
@@ -121,6 +133,10 @@ public class EvolutionBRDatabaseHandlerSaveTests
         Assert.AreEqual(config.NumberOfCombatants, updated.NumberOfCombatants);
         Assert.AreEqual(config.InSphereRandomisationRadius, updated.InSphereRandomisationRadius);
         Assert.AreEqual(config.OnSphereRandomisationRadius, updated.OnSphereRandomisationRadius);
+        Assert.AreEqual(config.SurvivalBonus, updated.SurvivalBonus);
+        Assert.AreEqual(config.RaceMaxDistance, updated.RaceMaxDistance);
+        Assert.AreEqual(config.RaceScoreMultiplier, updated.RaceScoreMultiplier);
+        Assert.AreEqual(config.DeathScoreMultiplier, updated.DeathScoreMultiplier);
     }
     #endregion
 }

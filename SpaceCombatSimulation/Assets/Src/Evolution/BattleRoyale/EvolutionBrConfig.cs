@@ -25,5 +25,9 @@ namespace Assets.Src.Evolution
 
         public float OnSphereRandomisationRadius = 50;
         public float InSphereRandomisationRadius = 0;
+        public float RaceMaxDistance = 2000;
+        public float RaceScoreMultiplier = 1000;
+        public float SurvivalBonus = 400;
+        public float DeathScoreMultiplier = 1;
     }
 }

@@ -14,7 +14,7 @@ public class EvolutionDroneDatabaseHandlerSaveTests
     private string _dbPathStart = "/../tmp/TestDB/";
     private string _dbPathExtension = ".s3db";
     private string _dbPath;
-    private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
+    private string _createCommandPath = "/../../Test/TestDB/CreateTestDB.sql";
     EvolutionDroneDatabaseHandler _handler;
     DatabaseInitialiser _initialiser;
 
