@@ -28,7 +28,7 @@ public class EvolutionBrControler : BaseEvolutionController
     List<string> _allCompetetrs { get { return _currentGenomes.Select(kv => kv.Value.Genome).ToList(); } }
 
     public RigidbodyList RaceGoals;
-    private Transform RaceTarget;
+    private Rigidbody _raceGoalObject = null;
 
     public override GeneralDatabaseHandler DbHandler
     {
@@ -78,6 +78,8 @@ public class EvolutionBrControler : BaseEvolutionController
 
         ReadInGeneration();
 
+        SpawnRaceGoal();
+
         _hasModules = SpawnShips();
     }
 
@@ -118,11 +120,11 @@ public class EvolutionBrControler : BaseEvolutionController
 
     private void AddRaceScores()
     {
-        if(_config.RaceMaxDistance > 0 && _config.RaceScoreMultiplier != 0)
+        if(_raceGoalObject != null && _config.RaceMaxDistance > 0 && _config.RaceScoreMultiplier != 0)
         {
             foreach (var shipTeam in ShipConfig.ShipTeamMapping.Where(kv=>kv.Key != null && kv.Key.IsValid()))
             {
-                var dist = Vector3.Distance(RaceTarget.position, shipTeam.Key.position);
+                var dist = Vector3.Distance(_raceGoalObject.position, shipTeam.Key.position);
                 var unscaledScore = (_config.RaceMaxDistance - dist) / _config.RaceMaxDistance;
                 var extraScore = (float)Math.Max(0, unscaledScore * _config.RaceScoreMultiplier);
                 if(extraScore > 0) Debug.Log("Race: Distance: " + dist + ", score: " + extraScore + ", team: " + shipTeam.Value);
@@ -210,6 +212,15 @@ public class EvolutionBrControler : BaseEvolutionController
         foreach (var team in _extantTeams)
         {
             AddScore(team.Key, score);
+        }
+    }
+
+    private void SpawnRaceGoal()
+    {
+        if (_config.RaceGoalObject.HasValue && RaceGoals != null && RaceGoals.Modules.Count > _config.RaceGoalObject.Value)
+        {
+            var goalPrefab = RaceGoals.Modules[_config.RaceGoalObject.Value];
+            _raceGoalObject = Instantiate(goalPrefab, Vector3.zero, Quaternion.identity);
         }
     }
 
