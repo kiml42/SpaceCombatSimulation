@@ -2,6 +2,7 @@
 using Assets.Src.Database;
 using Assets.Src.Evolution;
 using Assets.Src.Menus;
+using Assets.Src.ModuleSystem;
 using Assets.Src.ObjectManagement;
 using System;
 using System.Collections.Generic;
@@ -26,7 +27,8 @@ public class EvolutionBrControler : BaseEvolutionController
 
     List<string> _allCompetetrs { get { return _currentGenomes.Select(kv => kv.Value.Genome).ToList(); } }
 
-    public Transform RaceTarget;
+    public RigidbodyList RaceGoals;
+    private Transform RaceTarget;
 
     public override GeneralDatabaseHandler DbHandler
     {

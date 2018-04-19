@@ -52,6 +52,7 @@ namespace Assets.Src.Database
                         config.RaceScoreMultiplier = reader.GetFloat(reader.GetOrdinal("raceScoreMultiplier"));
                         config.SurvivalBonus = reader.GetFloat(reader.GetOrdinal("survivalBonus"));
                         config.DeathScoreMultiplier = reader.GetFloat(reader.GetOrdinal("deathScoreMultiplier"));
+                        config.RaceGoalObject = GetNullableInt(reader, "raceGoalObject");
 
                         config.MatchConfig = ReadMatchConfig(reader);
                         config.MutationConfig = ReadMutationConfig(reader);
@@ -83,7 +84,7 @@ namespace Assets.Src.Database
                     {
                         insertSQL.CommandText = "UPDATE " + CONFIG_TABLE +
                             " SET  combatants = ?, inSphereRandomisationRadius = ?, onSphereRandomisationRadius = ?," +
-                            " raceMaxDistance = ?, raceScoreMultiplier = ?, survivalBonus = ?, deathScoreMultiplier = ?" +
+                            " raceMaxDistance = ?, raceScoreMultiplier = ?, raceGoalObject = ?, survivalBonus = ?, deathScoreMultiplier = ?" +
                             " WHERE id = ?";
 
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.NumberOfCombatants));
@@ -91,6 +92,7 @@ namespace Assets.Src.Database
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.OnSphereRandomisationRadius));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.RaceMaxDistance));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.RaceScoreMultiplier));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.RaceGoalObject));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.SurvivalBonus));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.DeathScoreMultiplier));
 
@@ -120,8 +122,8 @@ namespace Assets.Src.Database
                     })
                     {
                         insertSQL.CommandText = "INSERT INTO " + CONFIG_TABLE +
-                            "(id, combatants, inSphereRandomisationRadius, onSphereRandomisationRadius, raceMaxDistance, raceScoreMultiplier, survivalBonus, deathScoreMultiplier)" +
-                            " VALUES (?,?,?,?,?,?,?,?)";
+                            "(id, combatants, inSphereRandomisationRadius, onSphereRandomisationRadius, raceMaxDistance, raceScoreMultiplier, raceGoalObject, survivalBonus, deathScoreMultiplier)" +
+                            " VALUES (?,?,?,?,?,?,?,?,?)";
 
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.NumberOfCombatants));
@@ -129,6 +131,7 @@ namespace Assets.Src.Database
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.OnSphereRandomisationRadius));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.RaceMaxDistance));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.RaceScoreMultiplier));
+                        insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.RaceGoalObject));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.SurvivalBonus));
                         insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.DeathScoreMultiplier));
 

@@ -78,6 +78,7 @@ public class EvolutionBRDatabaseHandlerSaveTests
             RaceMaxDistance = 2342,
             RaceScoreMultiplier = 1234,
             SurvivalBonus = 432,
+            RaceGoalObject = 4,
             MatchConfig = new MatchConfig(),
             MutationConfig = new MutationConfig
             {
@@ -104,6 +105,42 @@ public class EvolutionBRDatabaseHandlerSaveTests
         Assert.AreEqual(2342, retrieved.RaceMaxDistance);
         Assert.AreEqual(1234, retrieved.RaceScoreMultiplier);
         Assert.AreEqual(432, retrieved.SurvivalBonus);
+        Assert.AreEqual(4, retrieved.RaceGoalObject);
+    }
+
+    [Test]
+    public void SaveConfig_savesNullGoal()
+    {
+        var config = new EvolutionBrConfig
+        {
+            RunName = "SaveConfigTest",
+            NumberOfCombatants = 3,
+            GenerationNumber = 42,
+            MinMatchesPerIndividual = 6,
+            WinnersFromEachGeneration = 7,
+            InSphereRandomisationRadius = 43,
+            OnSphereRandomisationRadius = 44,
+            DeathScoreMultiplier = 123,
+            RaceMaxDistance = 2342,
+            RaceScoreMultiplier = 1234,
+            SurvivalBonus = 432,
+            RaceGoalObject = null,
+            MatchConfig = new MatchConfig(),
+            MutationConfig = new MutationConfig
+            {
+                DefaultGenome = "SaveConfigTest_DefaultGenome"
+            }
+        };
+
+        int result = _handler.SaveNewConfig(config);
+
+        var expectedId = 4;
+
+        Assert.AreEqual(expectedId, result);
+
+        var retrieved = _handler.ReadConfig(expectedId);
+        
+        Assert.IsNull(retrieved.RaceGoalObject);
     }
 
     [Test]
@@ -121,6 +158,7 @@ public class EvolutionBRDatabaseHandlerSaveTests
         config.RaceMaxDistance++;
         config.RaceScoreMultiplier++;
         config.DeathScoreMultiplier++;
+        config.RaceGoalObject++;
 
         _handler.UpdateExistingConfig(config);
 
@@ -137,6 +175,21 @@ public class EvolutionBRDatabaseHandlerSaveTests
         Assert.AreEqual(config.RaceMaxDistance, updated.RaceMaxDistance);
         Assert.AreEqual(config.RaceScoreMultiplier, updated.RaceScoreMultiplier);
         Assert.AreEqual(config.DeathScoreMultiplier, updated.DeathScoreMultiplier);
+        Assert.AreEqual(config.RaceGoalObject, updated.RaceGoalObject);
+    }
+
+    [Test]
+    public void UpdateTest_setGoalToNull()
+    {
+        var config = _handler.ReadConfig(2);
+        
+        config.RaceGoalObject = null;
+
+        _handler.UpdateExistingConfig(config);
+
+        var updated = _handler.ReadConfig(2);
+        
+        Assert.IsNull(updated.RaceGoalObject);
     }
     #endregion
 }

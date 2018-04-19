@@ -160,6 +160,20 @@ public class EvolutionBRDatabaseHandlerReadTests
         var config = _handler.ReadConfig(2);
         Assert.AreEqual(1.5f, config.DeathScoreMultiplier);
     }
+
+    [Test]
+    public void ReadConfig_RaceGoalObject()
+    {
+        var config = _handler.ReadConfig(2);
+        Assert.AreEqual(4, config.RaceGoalObject);
+    }
+
+    [Test]
+    public void ReadConfig_RaceGoalObject_null()
+    {
+        var config = _handler.ReadConfig(3);
+        Assert.IsNull(config.RaceGoalObject);
+    }
     #endregion
 
     #region MatchControl

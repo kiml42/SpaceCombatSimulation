@@ -882,7 +882,8 @@ MonoBehaviour:
     width: 430
     height: 50
   MainMenu: MainMenu
-  RaceTarget: {fileID: 0}
+  RaceGoals: {fileID: 114737211958639058, guid: ca698eb3a6516b148a347994e01953a9,
+    type: 2}
 --- !u!114 &114502806315632148
 MonoBehaviour:
   m_ObjectHideFlags: 1

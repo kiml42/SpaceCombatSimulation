@@ -29,5 +29,6 @@ namespace Assets.Src.Evolution
         public float RaceScoreMultiplier = 1000;
         public float SurvivalBonus = 400;
         public float DeathScoreMultiplier = 1;
+        public int? RaceGoalObject = 0;
     }
 }

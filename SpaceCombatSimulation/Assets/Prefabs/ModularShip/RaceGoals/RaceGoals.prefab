@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &100100000
+Prefab:
+  m_ObjectHideFlags: 1
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications: []
+    m_RemovedComponents: []
+  m_ParentPrefab: {fileID: 0}
+  m_RootGameObject: {fileID: 1701511841582396}
+  m_IsPrefabParent: 1
+--- !u!1 &1701511841582396
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 4610741393561498}
+  - component: {fileID: 114461867560910802}
+  - component: {fileID: 114737211958639058}
+  m_Layer: 0
+  m_Name: RaceGoals
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 4294967295
+  m_IsActive: 1
+--- !u!4 &4610741393561498
+Transform:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1701511841582396}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 6019.7827, y: 27976.004, z: 550.93945}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &114461867560910802
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1701511841582396}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4c1f3eb821c9e246a0738bee0028107, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Modules:
+  - {fileID: 114745834972419908, guid: b6e297582f25e22439032bba93cfe02a, type: 2}
+  - {fileID: 114611931848730352, guid: 8629b68d84c101a458451c49aaba15dc, type: 2}
+  - {fileID: 114475317600689968, guid: 08efacbbb059a534586d7c97183f30e6, type: 2}
+  - {fileID: 114343184687507468, guid: ecb13bd8e1b25e74c820d8d87b56d573, type: 2}
+  - {fileID: 114634040673036692, guid: a5aecdf99e8c0d540a795c7a769bf0f7, type: 2}
+  - {fileID: 114365050818564930, guid: c19e2a0e8fe94a2458f1f5141511d791, type: 2}
+  - {fileID: 114793088816604878, guid: fb971bf036914224882cb762d5469d0a, type: 2}
+  - {fileID: 114494996643503678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5, type: 2}
+  - {fileID: 114004466257104536, guid: 2cf111255dce5d94ca7b02db1dcffd57, type: 2}
+  - {fileID: 114515468842287428, guid: 6ab6feab40aaa5d4d8d3e711a86dd712, type: 2}
+  - {fileID: 114356106654762282, guid: 0a3bf938f960da344a77f731262339bf, type: 2}
+--- !u!114 &114737211958639058
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1701511841582396}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a07ff4cdfb47ec46bb9de409d2e457f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Modules:
+  - {fileID: 54716097595600996, guid: 83948f7c23f60e248b82b649e30b8cec, type: 2}
