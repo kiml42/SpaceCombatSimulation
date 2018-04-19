@@ -128,7 +128,7 @@ public class EvolutionBrControler : BaseEvolutionController
                 var dist = Vector3.Distance(_raceGoalObject.position, shipTeam.Key.position);
                 var unscaledScore = (_config.RaceMaxDistance - dist) / _config.RaceMaxDistance;
                 var extraScore = (float)Math.Max(0, unscaledScore * _config.RaceScoreMultiplier);
-                if(extraScore > 0) Debug.Log("Race: Distance: " + dist + ", score: " + extraScore + ", team: " + shipTeam.Value);
+                //if(extraScore > 0) Debug.Log("Race: Distance: " + dist + ", score: " + extraScore + ", team: " + shipTeam.Value);
                 AddScore(shipTeam.Value, extraScore);
             }
         }
