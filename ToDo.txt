@@ -22,6 +22,9 @@ Bugs:
 
 TODO:
     In Progress:
+        Race evolution
+            Target could be fixed, moveable, or a scardeybot.
+            Include new settings in editBrConfig.
         Player ship
             pick target by clicking on it
             cycle ships with key press
@@ -43,12 +46,6 @@ TODO:
 
 
     Priority:
-        Race evolution
-            Periodically check distance to target and add more score for closer (nonlinear?)
-            Target could be fixed, moveable, or a scardeybot.
-            Build as an extra scoring mechanism for BR evolution.
-            Make race target picker that knows the race target and adds it to the list with a set score (genetically configurable)
-            Set multipliers for kill scores and race scores 
         Merge evolution modes
             Add drones into BR
             Set multipliers for kills, drones and race scores

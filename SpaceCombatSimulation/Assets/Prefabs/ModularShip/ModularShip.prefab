@@ -204,13 +204,13 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4775963575187932}
+  - component: {fileID: 114181326145341928}
   - component: {fileID: 114421613989307258}
   - component: {fileID: 114803365807962662}
   - component: {fileID: 114423642343454590}
   - component: {fileID: 114179335973710170}
   - component: {fileID: 114435060050132624}
   - component: {fileID: 114407548385437944}
-  - component: {fileID: 114181326145341928}
   m_Layer: 0
   m_Name: TargetPickerConfig
   m_TagString: Untagged
@@ -973,7 +973,7 @@ MonoBehaviour:
   Priority: 0
   Tag: RaceGoal
   KullInvalidTargets: 0
-  TargetsWithTagAreValid: 0
+  TargetsWithTagAreValid: 1
 --- !u!114 &114236226548321350
 MonoBehaviour:
   m_ObjectHideFlags: 1

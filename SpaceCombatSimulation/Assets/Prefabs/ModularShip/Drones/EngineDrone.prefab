@@ -119,6 +119,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4366255719113834}
   - component: {fileID: 114234392662935374}
+  - component: {fileID: 114406090076398884}
   - component: {fileID: 114787868390036164}
   - component: {fileID: 114138368857228204}
   - component: {fileID: 114683724939309310}
@@ -872,7 +873,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Colour: {r: 0.76695836, g: 0.17149654, b: 0.89705884, a: 0}
-  Depth: 1
   SetInStart: 1
 --- !u!114 &114234392662935374
 MonoBehaviour:
@@ -921,6 +921,27 @@ MonoBehaviour:
   EnemyTags: []
   TurretPrefab: {fileID: 4245982871522996, guid: 08efacbbb059a534586d7c97183f30e6,
     type: 2}
+--- !u!114 &114406090076398884
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1556790658283836}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f4ce3c9f57b8c6478b0b9cd0cd9e584, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  Threshold: 500
+  FlatBoost: -1000
+  Multiplier: -1000
+  Priority: 0
+  Tag: RaceGoal
+  KullInvalidTargets: 1
+  TargetsWithTagAreValid: 0
 --- !u!114 &114473103054702302
 MonoBehaviour:
   m_ObjectHideFlags: 1

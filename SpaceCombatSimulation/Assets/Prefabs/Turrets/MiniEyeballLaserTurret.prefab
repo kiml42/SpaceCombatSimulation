@@ -496,6 +496,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4324558444848622}
   - component: {fileID: 114588047309576130}
+  - component: {fileID: 114784742710476188}
   - component: {fileID: 114854194709567952}
   - component: {fileID: 114015391732261978}
   - component: {fileID: 114476750192235922}
@@ -504,7 +505,6 @@ GameObject:
   - component: {fileID: 114531126081758098}
   - component: {fileID: 114879639816105182}
   - component: {fileID: 114124176871277256}
-  - component: {fileID: 114784742710476188}
   m_Layer: 0
   m_Name: TargetPickerConfigMiniLaserBall
   m_TagString: Untagged
@@ -2131,11 +2131,11 @@ MonoBehaviour:
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
   Threshold: 500
-  FlatBoost: 1000
-  Multiplier: 1000
+  FlatBoost: -2000
+  Multiplier: -1000
   Priority: 0
   Tag: RaceGoal
-  KullInvalidTargets: 0
+  KullInvalidTargets: 1
   TargetsWithTagAreValid: 0
 --- !u!114 &114790800109996612
 MonoBehaviour:

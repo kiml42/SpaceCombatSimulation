@@ -219,6 +219,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4118910189054180}
   - component: {fileID: 114742829581481680}
+  - component: {fileID: 114219746744178774}
   - component: {fileID: 114524081987908644}
   - component: {fileID: 114584008981625664}
   - component: {fileID: 114477198977987186}
@@ -227,7 +228,6 @@ GameObject:
   - component: {fileID: 114238410284370582}
   - component: {fileID: 114060226530725742}
   - component: {fileID: 114120126053110996}
-  - component: {fileID: 114219746744178774}
   m_Layer: 0
   m_Name: TargetPickerConfigMiniCannonBall
   m_TagString: Untagged
@@ -1135,11 +1135,11 @@ MonoBehaviour:
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
   Threshold: 500
-  FlatBoost: 1000
-  Multiplier: 1000
+  FlatBoost: -2000
+  Multiplier: -1000
   Priority: 0
   Tag: RaceGoal
-  KullInvalidTargets: 0
+  KullInvalidTargets: 1
   TargetsWithTagAreValid: 0
 --- !u!114 &114236582301589474
 MonoBehaviour:

@@ -854,6 +854,8 @@ MonoBehaviour:
   - Team4
   - Team5
   - Team6
+  TagsForAll:
+  - RaceGoal
   TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 2}
   SpaceShipTag: SpaceShip
   ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
@@ -880,9 +882,7 @@ MonoBehaviour:
     width: 430
     height: 50
   MainMenu: MainMenu
-  WinBonus: 400
   RaceTarget: {fileID: 0}
-  RaceScoreMultiplier: 0.01
 --- !u!114 &114502806315632148
 MonoBehaviour:
   m_ObjectHideFlags: 1

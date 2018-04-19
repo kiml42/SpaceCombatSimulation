@@ -186,6 +186,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4065653230832758}
   - component: {fileID: 114775468288202038}
+  - component: {fileID: 114794031348196144}
   - component: {fileID: 114521697087286430}
   - component: {fileID: 114095442806217922}
   - component: {fileID: 114152246661157542}
@@ -971,7 +972,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Colour: {r: 0.76695836, g: 0.17149654, b: 0.89705884, a: 0}
-  Depth: 1
   SetInStart: 1
 --- !u!114 &114742997607030728
 MonoBehaviour:
@@ -1014,6 +1014,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &114794031348196144
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1816842856032316}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f4ce3c9f57b8c6478b0b9cd0cd9e584, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  Threshold: 500
+  FlatBoost: -1000
+  Multiplier: -1000
+  Priority: 0
+  Tag: RaceGoal
+  KullInvalidTargets: 1
+  TargetsWithTagAreValid: 0
 --- !u!114 &114810906937970192
 MonoBehaviour:
   m_ObjectHideFlags: 1

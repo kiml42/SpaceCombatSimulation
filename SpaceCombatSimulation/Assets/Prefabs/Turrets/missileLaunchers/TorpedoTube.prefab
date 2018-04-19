@@ -53,6 +53,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4365631721780334}
   - component: {fileID: 114759548646495412}
+  - component: {fileID: 114643782887142374}
   - component: {fileID: 114652749979997948}
   - component: {fileID: 114620176300170446}
   - component: {fileID: 114408119802896502}
@@ -61,7 +62,6 @@ GameObject:
   - component: {fileID: 114224595658588862}
   - component: {fileID: 114447041090903970}
   - component: {fileID: 114865074661735498}
-  - component: {fileID: 114643782887142374}
   m_Layer: 0
   m_Name: DefaultTargetPickerConfig
   m_TagString: Untagged
@@ -440,11 +440,11 @@ MonoBehaviour:
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
   Threshold: 500
-  FlatBoost: 1000
+  FlatBoost: -2000
   Multiplier: 1000
   Priority: 0
   Tag: RaceGoal
-  KullInvalidTargets: 0
+  KullInvalidTargets: 1
   TargetsWithTagAreValid: 0
 --- !u!114 &114652749979997948
 MonoBehaviour:
