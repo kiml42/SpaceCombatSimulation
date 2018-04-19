@@ -29,6 +29,7 @@ public class EvolutionBrControler : BaseEvolutionController
 
     public RigidbodyList RaceGoals;
     private Rigidbody _raceGoalObject = null;
+    private const string RACE_GAOL_TAG = "RaceGoal";
 
     public override GeneralDatabaseHandler DbHandler
     {
@@ -221,6 +222,12 @@ public class EvolutionBrControler : BaseEvolutionController
         {
             var goalPrefab = RaceGoals.Modules[_config.RaceGoalObject.Value];
             _raceGoalObject = Instantiate(goalPrefab, Vector3.zero, Quaternion.identity);
+            _raceGoalObject.tag = RACE_GAOL_TAG;
+            var health = _raceGoalObject.GetComponent<HealthControler>();
+            if(health != null)
+            {
+                health.enabled = false;
+            }
         }
     }
 
