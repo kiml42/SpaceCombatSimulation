@@ -10,8 +10,10 @@ namespace Assets.Src.ObjectManagement
     {
         public float LargeIncrement = 0.5f;
         public float SmallIncrement = 0.1f;
-        public float TimeScaleCap = 15;
+        public float TimeScaleCap = 20;
         public float TimeScaleFloor = 0.1f;
+        public float AutoTimeScaleCap = 15;
+        public float AutoTimeScaleFloor = 1f;
 
         private List<float> _deltas = new List<float>();
 
@@ -19,15 +21,19 @@ namespace Assets.Src.ObjectManagement
         public float IdealDeltaTime = 0.04f;
         public float ChangeThreshold = 0.01f;
         public float AutoChangeMultiplier = 10;
+        public bool AutoscaeTime = true;
 
         public void AutoSetTimeScale()
         {
-            _deltas.Add(Time.unscaledDeltaTime);
-            if(_deltas.Sum() > AutoTimeScaleTime)
+            if (AutoscaeTime)
             {
-                var averageDelta = _deltas.Average();
-                AutoSetTimeScaleFromAverageDeltaTime(averageDelta);
-                _deltas = new List<float>();
+                _deltas.Add(Time.unscaledDeltaTime);
+                if(_deltas.Sum() > AutoTimeScaleTime)
+                {
+                    var averageDelta = _deltas.Average();
+                    AutoSetTimeScaleFromAverageDeltaTime(averageDelta);
+                    _deltas = new List<float>();
+                }
             }
         }
 
@@ -36,7 +42,7 @@ namespace Assets.Src.ObjectManagement
             var desiredChange = IdealDeltaTime - averageDelta;
             if(Math.Abs(desiredChange) > ChangeThreshold)
             {
-                Time.timeScale = GetTimescaleInRange(Time.timeScale +(desiredChange * AutoChangeMultiplier));
+                Time.timeScale = GetTimescaleInRange(Time.timeScale +(desiredChange * AutoChangeMultiplier), AutoTimeScaleFloor, AutoTimeScaleCap);
                 //Debug.Log("TimeScale auto set to " + Time.timeScale);
                 return;
             }
@@ -56,13 +62,7 @@ namespace Assets.Src.ObjectManagement
             }
             Time.timeScale = GetTimescaleInRange(currentTimeScale);
             Debug.Log("TimeScale accelerated to " + Time.timeScale);
-        }
-
-        private float GetTimescaleInRange(float desiredTimeScale)
-        {
-            desiredTimeScale = Math.Max(TimeScaleFloor, desiredTimeScale);
-            desiredTimeScale = Math.Min(TimeScaleCap, desiredTimeScale);
-            return desiredTimeScale;
+            AutoscaeTime = false;
         }
 
         public void DecelerateTime()
@@ -72,12 +72,26 @@ namespace Assets.Src.ObjectManagement
             {
                 currentTimeScale = Math.Max(0, currentTimeScale - SmallIncrement);
                 return;
-            } else
+            }
+            else
             {
                 currentTimeScale -= LargeIncrement;
             }
             Time.timeScale = GetTimescaleInRange(currentTimeScale);
             Debug.Log("TimeScale decelerated to " + Time.timeScale);
+            AutoscaeTime = false;
+        }
+
+        private float GetTimescaleInRange(float desiredTimeScale)
+        {
+            return GetTimescaleInRange(desiredTimeScale, TimeScaleFloor, TimeScaleCap);
+        }
+
+        private float GetTimescaleInRange(float desiredTimeScale, float timeScaleFloor, float timeScaleCap)
+        {
+            desiredTimeScale = Math.Max(timeScaleFloor, desiredTimeScale);
+            desiredTimeScale = Math.Min(timeScaleCap, desiredTimeScale);
+            return desiredTimeScale;
         }
     }
 }
