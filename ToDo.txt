@@ -23,7 +23,6 @@ Bugs:
 TODO:
     In Progress:
         Race evolution
-            Target could be fixed, moveable, or a scardeybot.
             Include new settings in editBrConfig.
         Player ship
             pick target by clicking on it
