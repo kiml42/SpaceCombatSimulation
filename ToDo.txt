@@ -74,6 +74,9 @@ TODO:
             Improve graphs
                 Add graph for number of each type of module present in a generation.
         Async
+        Use whole mass of object
+            Consider the mass of all connected objects for mass target picker
+        Have ship cam look at the center of mass, not the root of the object.
         Find an easy way to delete individuals.
         Better defaults for evolution configs in the menus.
         Master targeting controller on spaceships with which other targeters can register to have a list of everything being targeted by that ship.

@@ -125,6 +125,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4000194952030910}
   - component: {fileID: 114690007143497914}
+  - component: {fileID: 114214808225391840}
   - component: {fileID: 114947516065319838}
   - component: {fileID: 114469817723523586}
   - component: {fileID: 114637520696751284}
@@ -763,11 +764,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Fuel: 80
   UseFuelMass: 1
   FuelDensity: 0.001
-  MaxFuel: 80
-  MinFuel: 20
 --- !u!114 &114095532759699856
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -781,6 +781,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Pilot: {fileID: 4832477793392458}
   FuelTank: {fileID: 114087177041280492}
   ForceApplier: {fileID: 54172732429601216}
@@ -807,6 +808,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 0
   FlatBoost: 500
   Multiplier: 0
@@ -824,6 +826,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GroupName: Projectiles
+--- !u!114 &114214808225391840
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1814265355183408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f4ce3c9f57b8c6478b0b9cd0cd9e584, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  Threshold: 500
+  FlatBoost: -1000
+  Multiplier: -1000
+  Priority: 0
+  Tag: RaceGoal
+  KullInvalidTargets: 1
+  TargetsWithTagAreValid: 0
 --- !u!114 &114249161889169034
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -849,6 +872,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: -1
   FlatBoost: 100
   Multiplier: -1
@@ -914,6 +938,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 0
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: -1
   FlatBoost: 1000
   Multiplier: -1
@@ -933,6 +958,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Cost: 10
   TargetChoosingMechanism: {fileID: 114958396777747442}
   RocketController: {fileID: 114634549180162652}
@@ -952,6 +978,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 0
   FlatBoost: 10000
   Multiplier: 1
@@ -970,6 +997,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 500
   FlatBoost: 0
   Multiplier: 1
@@ -989,6 +1017,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   TargetChoosingMechanism: {fileID: 114958396777747442}
   ShootAngle: 10
   TorqueMultiplier: 90
@@ -1028,6 +1057,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 0
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: -1
   FlatBoost: 1000
   Multiplier: -1
@@ -1059,6 +1089,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 0
   ConfigIndex: 0
+  HasBeenConfiguredByGenome: 0
   Threshold: 0
   FlatBoost: 0
   Multiplier: 20
