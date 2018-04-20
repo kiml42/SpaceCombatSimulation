@@ -1,4 +1,6 @@
 ﻿using Assets.Src.Evolution;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Assets.Src.Graph
@@ -8,14 +10,17 @@ namespace Assets.Src.Graph
         public Texture BorderTexture;
         public Texture PointTexture;
         public Texture LineTexture;
+        public int GenerationsToShow = 20;
 
         public Rect GraphRect = new Rect(50, 50, 450, 150);
 
         public BaseEvolutionController EvolutionControler;
 
         public KeyCode DrawGraphKey = KeyCode.G;
+        public KeyCode CancelGraphKey = KeyCode.Backspace;
 
         protected IGraph _graph;
+        private bool _graphOn;
 
         protected virtual bool _hasCalculatedGraph
         {
@@ -27,7 +32,7 @@ namespace Assets.Src.Graph
 
         internal virtual void DrawGraph()
         {
-            if (_graph != null)
+            if (_graph != null && _graphOn)
             {
                 _graph.DrawGraph();
             }
@@ -35,16 +40,29 @@ namespace Assets.Src.Graph
 
         public void OnGUI()
         {
-            if (Input.GetKeyUp(DrawGraphKey) && !_hasCalculatedGraph)
+            _graphOn = (_graphOn || Input.GetKeyUp(DrawGraphKey)) && !Input.GetKeyUp(CancelGraphKey);
+            if (_graphOn)
             {
-                PrepareGraph();
-            }
-            if (_hasCalculatedGraph)
-            {
-                DrawGraph();
+                if (!_hasCalculatedGraph)
+                {
+                    _graphOn = true;
+                    PrepareGraph();
+                }
+                if (_hasCalculatedGraph)
+                {
+                    DrawGraph();
+                }
             }
         }
         
         internal abstract void PrepareGraph();
+
+        protected IDictionary<int, BaseGeneration> ListGenerations()
+        {
+            var start = Mathf.Max(0, EvolutionControler.GenerationNumber - GenerationsToShow);
+            var generations = Enumerable.Range(start, EvolutionControler.GenerationNumber)
+                .ToDictionary(i => i, i => EvolutionControler.DbHandler.ReadBaseGeneration(EvolutionControler.DatabaseId, i));
+            return generations;
+        }
     }
 }

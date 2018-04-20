@@ -7,6 +7,7 @@ namespace Assets.Src.Graph
     {
         internal override void PrepareGraph()
         {
+            //var generations = ListGenerations();  //needs work
             var generations = Enumerable.Range(0, EvolutionControler.GenerationNumber)
                 .ToDictionary(i => i, i => EvolutionControler.DbHandler.ReadBaseGeneration(EvolutionControler.DatabaseId, i));
 
