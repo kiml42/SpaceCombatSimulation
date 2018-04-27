@@ -18,6 +18,9 @@ Bugs:
     Accounting for speed fails for spinning targets.
     Leting the DB default locationRandomisationRadiai makes it unreadable.
     Severed components remain targetable. - not sure if this is actually a problem.
+    Prevent turrets locking by trying to go round the back of the turret
+        Get current turn table forwards vector and vector to Target in rest target space
+            If they are on different sides of the rest target, turn towards the rest target (with the speed set for the actual angle to turn for the location of the target)
     
 
 TODO:
@@ -86,7 +89,6 @@ TODO:
         score -= genome.Length (for use with variable length genomes)
         investigate use of entity framework.
         Randomise target choosing mechanism periods so they don't come up at the same time.
-        Some tool to show graphs of genomes over time.
         Cardboard support
         Test on phone
         Add to Play store?
@@ -109,14 +111,12 @@ TODO:
             Hubs have batteries to store energy
             Hubs have generators to recharge batteries.
         Gimballed engines
-            Use basic turret turning setup - will need to be given a method that takes an pointing vector instead of a Target
+            Use basic turret turning setup - will need to be given a method that takes a pointing vector instead of a Target
         Modular turrets
             Turret body can be eyeball, normal or just fixed
             business ends will be different sorts of firing mechanisms.
             Turret turning mechanism looks for an orientation source in itself or its children.
-        Prevent turrets locking by trying to go round the back of the turret
-            Get current turn table forwards vector and vector to Target in rest target space
-                If they are on different sides of the rest target, turn towards the rest target (with the speed set for the actual angle to turn for the location of the target)
+        
     
     Graphs:
         Option to export a CSV of a graph.
