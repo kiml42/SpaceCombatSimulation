@@ -754,7 +754,7 @@ MonoBehaviour:
   FlatBoost: -2000
   Multiplier: -1000
   Priority: 0
-  Tag: Team1
+  Tag: 
   KullInvalidTargets: 1
   TargetsWithTagAreValid: 0
 --- !u!114 &114775695154774854
@@ -776,7 +776,7 @@ MonoBehaviour:
   FlatBoost: 0
   Multiplier: 20
   Priority: 0
-  SourceObject: {fileID: 0}
+  SourceObject: {fileID: 54764830426165942}
 --- !u!114 &114371238005047078
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -796,7 +796,7 @@ MonoBehaviour:
   FlatBoost: 1000
   Multiplier: -1
   Priority: 0
-  SourceObject: {fileID: 0}
+  SourceObject: {fileID: 4041192340741362}
   KullInvalidTargets: 1
 --- !u!114 &114402962522653144
 MonoBehaviour:
@@ -817,7 +817,7 @@ MonoBehaviour:
   FlatBoost: 1000
   Multiplier: -1
   Priority: 0
-  SourceObject: {fileID: 0}
+  SourceObject: {fileID: 4041192340741362}
   KullInvalidTargets: 1
   MinDetectionDistance: 2
 --- !u!114 &114900366567813392
@@ -839,7 +839,7 @@ MonoBehaviour:
   FlatBoost: 0
   Multiplier: 100
   Priority: 0
-  AimingObject: {fileID: 0}
+  AimingObject: {fileID: 54779679336992554}
   AimingObjectFallback: {fileID: 0}
   KullInvalidTargets: 1
 --- !u!114 &114153239458158700
@@ -881,7 +881,7 @@ MonoBehaviour:
   FlatBoost: 500
   Multiplier: 0
   Priority: 0
-  CurrentTargetKnower: {fileID: 0}
+  CurrentTargetKnower: {fileID: 114142694618207436}
 --- !u!114 &114646003224849480
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -901,7 +901,7 @@ MonoBehaviour:
   FlatBoost: 0
   Multiplier: 1
   Priority: 0
-  SourceObject: {fileID: 0}
+  SourceObject: {fileID: 4041192340741362}
   KullInvalidTargets: 1
 --- !u!114 &114439232203030128
 MonoBehaviour:
