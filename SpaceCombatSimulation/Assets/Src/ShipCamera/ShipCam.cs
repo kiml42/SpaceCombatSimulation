@@ -136,7 +136,7 @@ namespace Assets.Src.ShipCamera
 
         private Rigidbody BodyUnderPointer()
         {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
             RaycastHit hit;
 

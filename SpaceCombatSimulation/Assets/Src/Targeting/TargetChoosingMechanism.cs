@@ -33,6 +33,12 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
     // Use this for initialization
     void Start ()
     {
+        if(TargetPicker == null)
+        {
+            Debug.LogError(name + " Has no target picker");
+            _active = false;
+            return;
+        }
         if(Detector == null)
         {
             EnemyTagKnower = EnemyTagKnower ?? GetComponentInParent<IKnowsEnemyTags>();

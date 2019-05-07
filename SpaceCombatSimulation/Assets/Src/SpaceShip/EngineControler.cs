@@ -94,7 +94,7 @@ public class EngineControler : GeneticConfigurableMonobehaviour
 
 
     private bool _active = true;
-    private string InactiveTag = "Untagged";
+    private const string InactiveTag = "Untagged";
 
     public float _fullTrhrottlePlumeRate;
 
@@ -111,10 +111,10 @@ public class EngineControler : GeneticConfigurableMonobehaviour
         {
             NotifyPilot();
         }
-        if (FuelTank == null)
-        {
-            Debug.Log(transform.name + " found no fuel tank - INFINITE FUEL!");
-        }
+        //if (FuelTank == null)
+        //{
+        //    Debug.Log(transform.name + " found no fuel tank - INFINITE FUEL!");
+        //}
         if(ForceApplier == null)
         {
             Debug.LogError("Engine found no rigidbody to apply forces to");
