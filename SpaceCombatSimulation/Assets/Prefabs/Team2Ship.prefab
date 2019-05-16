@@ -340,7 +340,7 @@ MonoBehaviour:
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   PollInterval: 1
-  TargetPicker: {fileID: 0}
+  TargetPicker: {fileID: 4917561271610377563}
 --- !u!114 &114747107200871312
 MonoBehaviour:
   m_ObjectHideFlags: 0
