@@ -1,11 +1,8 @@
-﻿using Assets.Src.Targeting;
+﻿using Assets.Src.Health;
 using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System;
-using Assets.Src.Health;
 
 public class HealthControler : MonoBehaviour
 {
@@ -24,11 +21,11 @@ public class HealthControler : MonoBehaviour
     public Rigidbody DeathExplosion;
 
     private IDestroyer _destroyer;
-    
+
     public Rigidbody Shrapnel;
     public int ShrapnelCount2 = 30;
     public float ShrapnelSpeed2 = 20;
-    
+
     public float SecondsOfInvulnerability = 1;
 
     private Rigidbody _rigidbody;
@@ -47,7 +44,7 @@ public class HealthControler : MonoBehaviour
     public string TeamTagForceFieldSuffix = "FoceField";
 
     // Use this for initialization
-    void Start()
+    private void Start()
     {
         OriginalHealth = Health;
         _rigidbody = GetComponent<Rigidbody>();
@@ -70,9 +67,9 @@ public class HealthControler : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
-        if(SecondsOfInvulnerability > 0)
+        if (SecondsOfInvulnerability > 0)
         {
             SecondsOfInvulnerability -= Time.deltaTime;
             return;
@@ -84,21 +81,21 @@ public class HealthControler : MonoBehaviour
         }
     }
 
-    void OnCollisionEnter(Collision collision)
+    private void OnCollisionEnter(Collision collision)
     {
         if (IgnoredTags.Contains(collision.transform.tag))
         {
             //Debug.Log(name + " hit ignored tag: " + collision.transform.tag);
             return;
         }
-        if(SecondsOfInvulnerability > 0)
+        if (SecondsOfInvulnerability > 0)
         {
             return;
         }
         //Debug.Log("hit by " + collision.collider.name + ",v=" + collision.relativeVelocity + ",m=" + collision.rigidbody.mass);
         var p = collision.impulse;
         float damage;
-        if(Resilience != 0)
+        if (Resilience != 0)
         {
             damage = (p.magnitude / Resilience) - Armour;
         }
@@ -122,7 +119,7 @@ public class HealthControler : MonoBehaviour
         {
             return;
         }
-        if(DamageDelegate != null)
+        if (DamageDelegate != null)
         {
             //Debug.Log("Delegating " + damage + " Damage to " + DamageDelegate.name);
             DamageDelegate.ApplyDamage(damage);
@@ -140,10 +137,11 @@ public class HealthControler : MonoBehaviour
     /// <param name="damage"></param>
     public void ApplyDamage(DamagePacket damage)
     {
-        if(damage.IsAOE && DamageDelegate != null)
+        if (damage.IsAOE && DamageDelegate != null)
         {
             //Debug.Log(transform.name + " Ignoring AOE damage because it has a delegate");
-        } else
+        }
+        else
         {
             ApplyDamage(damage.Damage);
         }
@@ -161,12 +159,15 @@ public class HealthControler : MonoBehaviour
     /// The proportion of the original health the object still has.
     /// 0 to 1
     /// </summary>
-    public float HealthProportion { get
+    public float HealthProportion
+    {
+        get
         {
-            if(OriginalHealth != 0)
+            if (OriginalHealth != 0)
             {
                 return Health / OriginalHealth;
-            } else
+            }
+            else
             {
                 Debug.LogWarning("Avoided div0 error");
                 return Health;
