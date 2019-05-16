@@ -17,8 +17,8 @@ public class ImpactDetonator : MonoBehaviour
 
     private bool StartCalled = false;
 
-    float _startTime;
-    public float SecondsOfInvulnerability = 1;
+    //float _startTime;
+    //public float SecondsOfInvulnerability = 1;
     private readonly float _age = 0;
 
     // Use this for initialization
@@ -38,7 +38,7 @@ public class ImpactDetonator : MonoBehaviour
             UntagChildren = false
         };
 
-        _startTime = Time.time;
+        //_startTime = Time.time;
 
         //if (_destroyer == null)
         //{
