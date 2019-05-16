@@ -16,6 +16,7 @@ namespace Assets.Src.ObjectManagement
         public bool TagShrapnel = false;
         private readonly Rigidbody _explosionEffect;
         public bool RandomiseShrapnelOrientation = true;
+        public float ShrapnelStartRadius => ShrapnelSpeed/2;
 
         public ShrapnelExploder(Rigidbody explodingRigidbody, Rigidbody shrapnel, Rigidbody explosionEffect, int shrapnelCount = 50)
         {
@@ -39,7 +40,7 @@ namespace Assets.Src.ObjectManagement
             {
                 for (var i = 0; i < _shrapnelCount; i++)
                 {
-                    var location = Random.insideUnitSphere;
+                    var location = Random.insideUnitSphere * ShrapnelStartRadius;
                     var fragment = Object.Instantiate(_shrapnel, _exploder.position + location, RandomiseShrapnelOrientation ? Random.rotation : _exploder.transform.rotation);
                     fragment.velocity = (velocityOverride ?? _exploder.velocity) + (ShrapnelSpeed * location);
                     if (RandomiseShrapnelOrientation)

@@ -1,11 +1,10 @@
 ﻿using Assets.Src.Health;
 using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class ImpactDetonator : MonoBehaviour {
+public class ImpactDetonator : MonoBehaviour
+{
     public Rigidbody DeathExplosion;
 
     private IDestroyer _destroyer;
@@ -18,8 +17,12 @@ public class ImpactDetonator : MonoBehaviour {
 
     private bool StartCalled = false;
 
+    float _startTime;
+    public float SecondsOfInvulnerability = 1;
+    private readonly float _age = 0;
+
     // Use this for initialization
-    void Start()
+    private void Start()
     {
         StartCalled = true;
         _rigidbody = GetComponent<Rigidbody>();
@@ -35,6 +38,8 @@ public class ImpactDetonator : MonoBehaviour {
             UntagChildren = false
         };
 
+        _startTime = Time.time;
+
         //if (_destroyer == null)
         //{
         //    Debug.LogWarning(gameObject + " has null destroyer");
@@ -42,23 +47,25 @@ public class ImpactDetonator : MonoBehaviour {
         //}
     }
 
-    void OnCollisionEnter(Collision collision)
+    private void OnCollisionEnter(Collision collision)
     {
         Vector3? velocity = null;
-        if((Shrapnel != null && ShrapnelCount2 > 0) || DeathExplosion != null)
+        if ((Shrapnel != null && ShrapnelCount2 > 0) || DeathExplosion != null)
         {
-            if(_rigidbody != null && collision.rigidbody != null)
+            if (_rigidbody != null && collision.rigidbody != null)
             {
                 //Get velocity weighted by object masses, so it doesn't fly away because the projectile would have.
                 var TotalP = ((_rigidbody.mass * _rigidbody.velocity) + (collision.rigidbody.mass * collision.rigidbody.velocity));
                 velocity = TotalP / (_rigidbody.mass + collision.rigidbody.mass);
-            } else if (collision.rigidbody != null)
+            }
+            else if (collision.rigidbody != null)
             {
                 velocity = collision.rigidbody.velocity;
                 Debug.LogWarning(name + "is Missing Rigidbody");
-            } else
+            }
+            else
             {
-                Debug.LogWarning(name + " and " + collision.gameObject.name  + " are both Missing Rigidbody");
+                Debug.LogWarning(name + " and " + collision.gameObject.name + " are both Missing Rigidbody");
             }
         }
         ExplodeNow(velocity);
@@ -93,7 +100,12 @@ public class ImpactDetonator : MonoBehaviour {
                 Debug.LogWarning(gameObject + " has null destroyer, Start called: " + StartCalled);
                 Start();
             }
-            _destroyer.Destroy(gameObject, true, velocity);
+            //Debug.Log("CheckingAge" + transform.name);
+            //var age = Time.time - _startTime;
+            //if (age > SecondsOfInvulnerability)
+            //{
+                _destroyer.Destroy(gameObject, true, velocity);
+            //}
         }
     }
 }
