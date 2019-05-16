@@ -5019,7 +5019,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Resilience: 20
   Armour: 0
-  Health: 1000
+  Health: 3000
   DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 3}
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 3}
@@ -5050,7 +5050,7 @@ MonoBehaviour:
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54223752741852356}
   Plume: {fileID: 198180660864587914}
-  EngineForce2: 900000
+  EngineForce2: 2000000
   TranslateFireAngle: 30
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
@@ -5071,6 +5071,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  DeregisterOnDeactivate: 1
 --- !u!114 &114378008843930622
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,33 +1,40 @@
 ﻿using Assets.Src.Targeting;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using UnityEngine;
 
 namespace Assets.Src.ObjectManagement
 {
     public static class TargetRepository
     {
-        private static Dictionary<string, List<Target>> _targets = new Dictionary<string, List<Target>>();
+        private static readonly Dictionary<string, List<Target>> _targets = new Dictionary<string, List<Target>>();
 
         public static void RegisterTarget(Target target)
         {
-            if(target != null && target.Transform!= null && target.Transform.IsValid())
+            if (target != null && target.Transform != null && target.Transform.IsValid())
             {
                 var tag = target.Transform.tag;
-                List<Target> list = null;
-                if (!_targets.ContainsKey(tag) || _targets[tag] == null)
+                var exists = _targets.TryGetValue(tag, out var list);
+                if (!exists)
                 {
                     list = new List<Target>();
-                    _targets[tag] = list;
-                } else
-                {
-                    list = _targets[tag];
                 }
                 list.Add(target);
 
                 _targets[tag] = CleanList(list);
+            }
+        }
+
+        public static void DeregisterTarget(Target target)
+        {
+            if (target != null && target.Transform != null && target.Transform.IsValid())
+            {
+                var tag = target.Transform.tag;
+                var exists = _targets.TryGetValue(tag, out var list);
+                if (exists)
+                {
+                    list.Remove(target);
+                    _targets[tag] = CleanList(list);
+                }
             }
         }
 
@@ -46,11 +53,11 @@ namespace Assets.Src.ObjectManagement
 
         private static List<Target> CleanList(List<Target> list)
         {
-            if(list == null)
+            if (list == null)
             {
                 return new List<Target>();
             }
-            return  list
+            return list
                 .Where(target => target != null && target.Transform != null && target.Transform.IsValid())
                 .Distinct(new CompareTargetsByTransform())  //Specify the comparer to use 
                 .ToList();

@@ -118,7 +118,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
         }
         if (oldWasInvalid)
         {
-            log += " because the previous target was invalid";
+            //log += " because the previous target was invalid";
         } else if (old != null)
         {
             log += ". Previously " + old.Transform.name + " at " + old.Transform.position;

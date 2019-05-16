@@ -135,7 +135,7 @@ Transform:
   m_LocalScale: {x: 10, y: 30, z: 10}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 14
+  m_RootOrder: 12
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &33581586202107168
 MeshFilter:
@@ -211,7 +211,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &4257204165306108
 Transform:
   m_ObjectHideFlags: 0
@@ -224,7 +224,7 @@ Transform:
   m_LocalScale: {x: 1.0000005, y: 1, z: 1.0000005}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 12
+  m_RootOrder: 10
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!114 &114027521169237442
 MonoBehaviour:
@@ -338,8 +338,6 @@ Transform:
   - {fileID: 4559199440223708}
   - {fileID: 4320356066559680}
   - {fileID: 4794004019627512}
-  - {fileID: 4073061318776794}
-  - {fileID: 4168467053122610}
   - {fileID: 4449476039771616}
   - {fileID: 4930173464982772}
   - {fileID: 4257204165306108}
@@ -356,6 +354,8 @@ Transform:
   - {fileID: 624027271730842798}
   - {fileID: 2760979410910727184}
   - {fileID: 5779265689022939348}
+  - {fileID: 4073061318776794}
+  - {fileID: 4168467053122610}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -391,7 +391,7 @@ MonoBehaviour:
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
   ShootAngle: 30
-  TorqueMultiplier: 800000
+  TorqueMultiplier: 400000
   StartDelay: 0
   SlowdownWeighting: 50
   RadialSpeedThreshold: 10
@@ -470,6 +470,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  DeregisterOnDeactivate: 1
 --- !u!114 &114292686112436968
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -549,7 +550,7 @@ Transform:
   m_LocalScale: {x: 1.0000005, y: 1, z: 1.0000005}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 19
+  m_RootOrder: 17
   m_LocalEulerAnglesHint: {x: 0, y: 111.93301, z: 0}
 --- !u!20 &20797790757653000
 Camera:
@@ -647,7 +648,7 @@ Transform:
   m_LocalScale: {x: 1.0000005, y: 1, z: 1.0000005}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 11
+  m_RootOrder: 9
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 180}
 --- !u!114 &114335314299087854
 MonoBehaviour:
@@ -699,7 +700,7 @@ Transform:
   m_LocalScale: {x: 1.0000005, y: 1, z: 1.0000005}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 10
+  m_RootOrder: 8
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &114795360578161016
 MonoBehaviour:
@@ -857,7 +858,7 @@ GameObject:
   - component: {fileID: 4559199440223708}
   - component: {fileID: 114573316238929026}
   m_Layer: 0
-  m_Name: TurretSpawner (1)
+  m_Name: TorpedoTube
   m_TagString: Team1
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -896,7 +897,7 @@ MonoBehaviour:
   - Team3
   - Team4
   - Team5
-  TurretPrefab: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
+  TurretPrefab: {fileID: 4047970151895330, guid: 2cf111255dce5d94ca7b02db1dcffd57,
     type: 3}
 --- !u!1 &1484085735037016
 GameObject:
@@ -914,7 +915,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &4338518138702830
 Transform:
   m_ObjectHideFlags: 0
@@ -927,7 +928,7 @@ Transform:
   m_LocalScale: {x: 1.0000008, y: 1.000001, z: 1.0000008}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 13
+  m_RootOrder: 11
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!114 &114037596953828216
 MonoBehaviour:
@@ -974,12 +975,12 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1564488160701332}
-  m_LocalRotation: {x: 0.6644631, y: -0.24184474, z: 0.24184473, w: 0.66446304}
-  m_LocalPosition: {x: -6.729999, y: 0, z: 18.140015}
-  m_LocalScale: {x: 1.0000006, y: 1.0000012, z: 1.000001}
+  m_LocalRotation: {x: 0.6408563, y: 0.29883632, z: 0.6408563, w: 0.29883632}
+  m_LocalPosition: {x: 0, y: -6.7300014, z: 18.140017}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 9
+  m_RootOrder: 25
   m_LocalEulerAnglesHint: {x: 90.00001, y: 0, z: 40}
 --- !u!114 &114890280787510212
 MonoBehaviour:
@@ -1172,7 +1173,7 @@ Transform:
   m_LocalScale: {x: 20, y: 20, z: 20}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 15
+  m_RootOrder: 13
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!33 &33579678314414652
 MeshFilter:
@@ -6013,7 +6014,7 @@ Transform:
   m_LocalScale: {x: 0.50028, y: 0.50028, z: 0.50028}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 20
+  m_RootOrder: 18
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1759355907659506
 GameObject:
@@ -6045,7 +6046,7 @@ Transform:
   - {fileID: 4024047085532852}
   - {fileID: 4201979970373414}
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 22
+  m_RootOrder: 20
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1761312844494828
 GameObject:
@@ -6071,12 +6072,12 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1761312844494828}
-  m_LocalRotation: {x: 0.6644631, y: 0.24184474, z: -0.24184473, w: 0.66446304}
-  m_LocalPosition: {x: 6.73, y: -0, z: 18.14}
-  m_LocalScale: {x: 1.0000005, y: 1.0000005, z: 1}
+  m_LocalRotation: {x: 0.29883632, y: 0.6408563, z: 0.29883632, w: 0.6408563}
+  m_LocalPosition: {x: 0, y: 6.7300034, z: 18.140017}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 8
+  m_RootOrder: 24
   m_LocalEulerAnglesHint: {x: 90.00001, y: 0, z: -40}
 --- !u!114 &114814983627995166
 MonoBehaviour:
@@ -6133,7 +6134,7 @@ Transform:
   - {fileID: 4935400415658938}
   - {fileID: 4904317147759306}
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 17
+  m_RootOrder: 15
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &54996993457620460
 Rigidbody:
@@ -6374,7 +6375,7 @@ Transform:
   m_LocalScale: {x: 10, y: 30, z: 10}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 16
+  m_RootOrder: 14
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90.00001}
 --- !u!33 &33493547784756016
 MeshFilter:
@@ -6466,7 +6467,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 18
+  m_RootOrder: 16
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!20 &20636585114872592
 Camera:
@@ -6546,7 +6547,7 @@ GameObject:
   - component: {fileID: 4696198906067970}
   - component: {fileID: 114138892228479990}
   m_Layer: 0
-  m_Name: TurretSpawner
+  m_Name: TorpedoTube
   m_TagString: Team1
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6585,7 +6586,7 @@ MonoBehaviour:
   - Team3
   - Team4
   - Team5
-  TurretPrefab: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
+  TurretPrefab: {fileID: 4047970151895330, guid: 2cf111255dce5d94ca7b02db1dcffd57,
     type: 3}
 --- !u!1 &787893199704093817
 GameObject:
@@ -6616,7 +6617,7 @@ Transform:
   m_LocalScale: {x: 0.50028104, y: 0.5002811, z: 0.5002804}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 25
+  m_RootOrder: 23
   m_LocalEulerAnglesHint: {x: 90.00001, y: 0, z: -40}
 --- !u!114 &5443099149409062370
 MonoBehaviour:
@@ -6669,7 +6670,7 @@ Transform:
   m_LocalScale: {x: 10, y: 2, z: 10}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 21
+  m_RootOrder: 19
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!33 &5387448080876601668
 MeshFilter:
@@ -6729,7 +6730,7 @@ Transform:
   m_LocalScale: {x: 0.50028116, y: 0.50028145, z: 0.50028086}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 24
+  m_RootOrder: 22
   m_LocalEulerAnglesHint: {x: 90.00001, y: 0, z: 40}
 --- !u!114 &1300539653526100027
 MonoBehaviour:
@@ -6787,7 +6788,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 23
+  m_RootOrder: 21
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &8011177987528048717
 MonoBehaviour:

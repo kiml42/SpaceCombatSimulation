@@ -1,8 +1,5 @@
 ﻿using Assets.Src.Interfaces;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.ObjectManagement
@@ -11,7 +8,7 @@ namespace Assets.Src.ObjectManagement
     {
         public bool UntagChildren = true;
         public string DeadObjectTag = "Untagged";
-        
+
         public IExploder Exploder;
 
         /// <summary>
@@ -35,7 +32,8 @@ namespace Assets.Src.ObjectManagement
                 if (KillCompletely)
                 {
                     DestroyWithoutLookingForParent(child.gameObject, false, velocityOverride);
-                } else
+                }
+                else
                 {
                     child.SendMessage("Deactivate", SendMessageOptions.DontRequireReceiver);
                     var rigidbody = child.GetComponent<Rigidbody>();
@@ -60,7 +58,7 @@ namespace Assets.Src.ObjectManagement
                         {
                             UnityEngine.Object.Destroy(fixedJoint);
                         }
-                        if(fixedJoint==null && hingeJoint == null)
+                        if (fixedJoint == null && hingeJoint == null)
                         {
                             //destroy anything that wasnt jointed to this object.
                             DestroyWithoutLookingForParent(child.gameObject, false, velocityOverride);
@@ -89,9 +87,9 @@ namespace Assets.Src.ObjectManagement
         {
             var children = new List<Transform>();
             var childCount = parent.transform.childCount;
-            if(childCount > 0)
+            if (childCount > 0)
             {
-            for(int i =0; i<childCount; i++)
+                for (var i = 0; i < childCount; i++)
                 {
                     var child = parent.transform.GetChild(i);
                     children.Add(child);
@@ -106,7 +104,7 @@ namespace Assets.Src.ObjectManagement
         {
             var rb = thing.GetComponent<Rigidbody>();
 
-            if(rb != null || thing.transform.parent == null)
+            if (rb != null || thing.transform.parent == null)
             {
                 //this thing has a rigidbody or has no parent, so should be treated as the highest level thing to be destroyed.
                 return thing;

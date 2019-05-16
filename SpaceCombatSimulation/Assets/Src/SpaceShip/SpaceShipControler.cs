@@ -24,8 +24,8 @@ public class SpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatab
 
     public EngineControler Engine;
     public Rigidbody Torquer;
-    private List<EngineControler> _engines = new List<EngineControler>();
-    private List<Rigidbody> _torquers = new List<Rigidbody>();
+    private readonly List<EngineControler> _engines = new List<EngineControler>();
+    private readonly List<Rigidbody> _torquers = new List<Rigidbody>();
 
     public float AngularDragForTorquers = 20;
 
@@ -35,11 +35,11 @@ public class SpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatab
 
     private IPilot _pilot;
 
-    private string InactiveTag = "Untagged";
+    private readonly string InactiveTag = "Untagged";
     public Transform VectorArrow;
 
     // Use this for initialization
-    void Start()
+    private void Start()
     {
         _thisSpaceship = GetComponent<Rigidbody>();
         _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
@@ -78,7 +78,7 @@ public class SpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatab
     }
 
     // Update is called once per frame
-    void FixedUpdate()
+    private void FixedUpdate()
     {
         if (_active && _pilot != null)
             _pilot.Fly(_targetChoosingMechanism.CurrentTarget);
