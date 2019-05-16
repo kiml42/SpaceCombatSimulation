@@ -1,9 +1,6 @@
-﻿using System;
-using Assets.Src.Interfaces;
+﻿using Assets.Src.Interfaces;
+using System;
 using UnityEngine;
-using System.Linq;
-using Assets.Src.ObjectManagement;
-using Assets.Src.Turret;
 
 namespace Assets.Src.Targeting
 {
@@ -14,7 +11,7 @@ namespace Assets.Src.Targeting
         private readonly float _detonationTimeToTarget;
         private readonly float _shrapnelSpeed;
 
-        private IExploder _exploder;
+        private readonly IExploder _exploder;
 
         public ProximityApproachDetonator(IExploder exploder, Rigidbody exploderRigidBody, float detonationTimeToTarget, float shrapnelSpeed)
         {
@@ -35,19 +32,19 @@ namespace Assets.Src.Targeting
 
         private bool ShouldDetonate(Target target)
         {
-            if(target == null)
+            if (target == null)
             {
                 return false;
             }
 
-            Vector3 targetVelocity = target.Rigidbody == null ? Vector3.zero : target.Rigidbody.velocity;
+            var targetVelocity = target.Rigidbody == null ? Vector3.zero : target.Rigidbody.velocity;
 
             var relativeVelocity = _exploderRigidbody.velocity - targetVelocity;
 
             var reletiveLocation = target.Transform.position - _exploderRigidbody.position;
 
             var approachAngle = Vector3.Angle(relativeVelocity, reletiveLocation);
-            
+
             var approachVelocity = relativeVelocity.ComponentParalellTo(reletiveLocation);
             //var TangentialVelocity = velocity.ComponentPerpendicularTo(reletiveLocation);
 
@@ -55,11 +52,12 @@ namespace Assets.Src.Targeting
 
             float shrapnelConeAngel;
             float timeToTaget;
-            if(approachVelocity.magnitude != 0)
+            if (approachVelocity.magnitude != 0)
             {
                 shrapnelConeAngel = (float)Math.Atan(_shrapnelSpeed / approachVelocity.magnitude);
                 timeToTaget = distance / approachVelocity.magnitude;
-            } else
+            }
+            else
             {
                 Debug.LogWarning("Avoided div0 error");
                 shrapnelConeAngel = 0;
