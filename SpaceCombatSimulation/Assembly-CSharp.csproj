@@ -204,6 +204,7 @@
     <Compile Include="Assets\Src\Targeting\ShipType.cs" />
     <Compile Include="Assets\Src\Targeting\Target.cs" />
     <Compile Include="Assets\Src\Targeting\TargetChoosingMechanism.cs" />
+    <Compile Include="Assets\Src\Targeting\TargetIndicator.cs" />
     <Compile Include="Assets\Src\Targeting\TargetingExtensions.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\ApproachingTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\CombinedTargetPicker.cs" />

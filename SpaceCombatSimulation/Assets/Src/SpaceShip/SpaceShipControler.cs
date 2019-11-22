@@ -35,7 +35,7 @@ public class SpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatab
 
     private IPilot _pilot;
 
-    private string InactiveTag = "Untagged";
+    private const string InactiveTag = "Untagged";
     public Transform VectorArrow;
 
     // Use this for initialization
