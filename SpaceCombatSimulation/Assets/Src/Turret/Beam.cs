@@ -1,16 +1,12 @@
 ﻿using Assets.Src.ObjectManagement;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.Turret
 {
     public class Beam
     {
-        public Transform Transform { get; internal set; }
         public Transform RayCaster { get; internal set; }
+        public LineRenderer Line { get; internal set; }
 
         /// <summary>
         /// In Seconds
@@ -36,16 +32,17 @@ namespace Assets.Src.Turret
 
         public Beam(Transform beam, float runTime, float offTime, LampAndParticlesEffectController hitEffectPrefab = null)
         {
-            Transform = beam;
+            RayCaster = beam;
             OnTime = runTime;
             OffTime = offTime;
-            RayCaster = Transform;
             RemainingOnTime = OnTime;
+
+            Line = beam.GetComponent<LineRenderer>();
             
             if (hitEffectPrefab != null)
             {
                 _hitEffect = GameObject.Instantiate(hitEffectPrefab, RayCaster.position, RayCaster.rotation);
-                _hitEffect.transform.parent = RayCaster.parent;
+                _hitEffect.transform.parent = RayCaster;
             }
         }
 
@@ -75,19 +72,27 @@ namespace Assets.Src.Turret
                 RemainingOffTime -= Time.deltaTime;
                 RemainingOnTime = OnTime;
             }
-            Transform.localScale = new Vector3(1, 1, length);
+
+            Line.enabled = true;
+            Debug.Log("length:" + length);
+            Line.SetPosition(0, Vector3.zero);
+            Line.SetPosition(1, Vector3.forward * length);
         }
 
+        /// <summary>
+        /// Finds if the beam is hitting anything.
+        /// </summary>
+        /// <returns>The length the laser should be drawn as</returns>
         private float FireNow()
         {
-            RaycastHit hit;
             var ray = new Ray(RayCaster.position, RayCaster.forward);
-            if (Physics.Raycast(ray, out hit, MaxDistance, -1, QueryTriggerInteraction.Ignore))
+            if (Physics.Raycast(ray, out RaycastHit hit, MaxDistance, -1, QueryTriggerInteraction.Ignore))
             {
                 //is a hit
                 if (!string.IsNullOrEmpty(FriendlyTag) && hit.transform.tag == FriendlyTag)
                 {
-                    //turn off if not aimed at a friend
+                    //turn off if aimed at a friend
+                    Debug.Log("Aimed at friend");
                     TurnOff();
                     return 0;
                 }
@@ -102,6 +107,7 @@ namespace Assets.Src.Turret
                     _hitEffect.TurnOn();
                 }
                 hit.transform.SendMessage("ApplyDamage", ReduceForDistance(BeamDamage, hit.distance), SendMessageOptions.DontRequireReceiver);
+                Debug.Log("Aimed at enemy");
                 return hit.distance;
             }
             //is a miss
@@ -109,6 +115,7 @@ namespace Assets.Src.Turret
             {
                 _hitEffect.TurnOff();
             }
+            Debug.Log("Miss");
             return MaxDistance;
         }
 
@@ -127,8 +134,7 @@ namespace Assets.Src.Turret
         public void TurnOff()
         {
             RemainingOffTime -= Time.deltaTime;
-            if(Transform.IsValid())
-                Transform.localScale = Vector3.zero;
+            Line.enabled = false;
             if (_hitEffect != null)
             {
                 _hitEffect.TurnOff();

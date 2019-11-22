@@ -1,13 +1,7 @@
-﻿using Assets.Src.Evolution;
-using Assets.Src.Interfaces;
+﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
-using Assets.Src.Targeting;
-using Assets.Src.Targeting.TargetPickers;
 using Assets.Src.Turret;
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivatable, IKnowsProjectileSpeed
@@ -57,7 +51,6 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
         for (int i = 0; i < emitterCount; i++)
         {
             var beam = BeamsParent.GetChild(i);
-            beam.localScale = Vector3.zero;
             //Debug.Log("beam colour: " + BeamColour);
             beam.SetColor(BeamColour);
             _beams.Add(new Beam(beam, ShootTime, LoadTime, HitEffectPrefab)
@@ -127,8 +120,8 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
             foreach (var beam in _beams)
             {
                 beam.TurnOff();
-                if(beam.Transform.IsValid())
-                    Destroy(beam.Transform.gameObject);
+                if(beam.RayCaster.IsValid())
+                    Destroy(beam.RayCaster.gameObject);
             }
         }
         //scrub the list now they've all been turned off.
