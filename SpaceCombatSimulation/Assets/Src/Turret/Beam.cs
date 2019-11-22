@@ -30,7 +30,7 @@ namespace Assets.Src.Turret
         public float EffectRepeatTime = 0.1f;
         private LampAndParticlesEffectController _hitEffect;
 
-        public Beam(Transform beam, float runTime, float offTime, LampAndParticlesEffectController hitEffectPrefab = null)
+        public Beam(Transform beam, float runTime, float offTime, Color BeamColour, LampAndParticlesEffectController hitEffectPrefab = null)
         {
             RayCaster = beam;
             OnTime = runTime;
@@ -38,7 +38,11 @@ namespace Assets.Src.Turret
             RemainingOnTime = OnTime;
 
             Line = beam.GetComponent<LineRenderer>();
+            Line.SetPosition(0, Vector3.zero);
             
+            //Debug.Log("beam colour: " + BeamColour);
+            beam.SetColor(BeamColour);
+
             if (hitEffectPrefab != null)
             {
                 _hitEffect = GameObject.Instantiate(hitEffectPrefab, RayCaster.position, RayCaster.rotation);
@@ -50,14 +54,13 @@ namespace Assets.Src.Turret
         {
             //Debug.Log(Transform + ": remainingOffTime: " + RemainingOffTime +
             //    ", remainingOnTime" + RemainingOnTime);
-            var length = 0f;
             if (RemainingOffTime <= 0)
             {
                 if(RemainingOnTime > 0)
                 {
                     //Debug.Log("shooting");
                     //is running
-                    length = FireNow();
+                    FireNow();
                     RemainingOnTime -= Time.deltaTime;
                 } else
                 {
@@ -72,18 +75,13 @@ namespace Assets.Src.Turret
                 RemainingOffTime -= Time.deltaTime;
                 RemainingOnTime = OnTime;
             }
-
-            Line.enabled = true;
-            Debug.Log("length:" + length);
-            Line.SetPosition(0, Vector3.zero);
-            Line.SetPosition(1, Vector3.forward * length);
         }
 
         /// <summary>
         /// Finds if the beam is hitting anything.
         /// </summary>
         /// <returns>The length the laser should be drawn as</returns>
-        private float FireNow()
+        private void FireNow()
         {
             var ray = new Ray(RayCaster.position, RayCaster.forward);
             if (Physics.Raycast(ray, out RaycastHit hit, MaxDistance, -1, QueryTriggerInteraction.Ignore))
@@ -92,9 +90,8 @@ namespace Assets.Src.Turret
                 if (!string.IsNullOrEmpty(FriendlyTag) && hit.transform.tag == FriendlyTag)
                 {
                     //turn off if aimed at a friend
-                    Debug.Log("Aimed at friend");
                     TurnOff();
-                    return 0;
+                    return;
                 }
                 if (hit.rigidbody != null)
                 {
@@ -107,16 +104,18 @@ namespace Assets.Src.Turret
                     _hitEffect.TurnOn();
                 }
                 hit.transform.SendMessage("ApplyDamage", ReduceForDistance(BeamDamage, hit.distance), SendMessageOptions.DontRequireReceiver);
-                Debug.Log("Aimed at enemy");
-                return hit.distance;
-            }
-            //is a miss
-            if (_hitEffect != null)
+                
+                Line.SetPosition(1, Vector3.forward * hit.distance);
+            } else
             {
-                _hitEffect.TurnOff();
+                //is a miss
+                if (_hitEffect != null)
+                {
+                    _hitEffect.TurnOff();
+                }
+                Line.SetPosition(1, Vector3.forward * MaxDistance);
             }
-            Debug.Log("Miss");
-            return MaxDistance;
+            Line.enabled = true;
         }
 
         private float ReduceForDistance(float baseDamage, float distance)

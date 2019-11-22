@@ -23,7 +23,7 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     private bool _onInPrevFrame = false;
     private bool _active = true;
 
-    private string InactiveTag = "Untagged";
+    private const string InactiveTag = "Untagged";
     
     public float InitialRadius = 1;
     public float Divergence = 0.0005f;
@@ -31,7 +31,7 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     public Color BeamColour;
 
     [Tooltip("extra seconds to keep shooting after trigger says to stop - emulates slower control mechanism")]
-    public float KeepShootingSeconds = 2;
+    public float KeepShootingSeconds = 1;
     private float _shootingTime = 0;
 
     public float? KnownProjectileSpeed
@@ -46,14 +46,11 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     void Start()
     {
         var emitterCount = BeamsParent.childCount;
-
         _beams = new List<Beam>();
         for (int i = 0; i < emitterCount; i++)
         {
             var beam = BeamsParent.GetChild(i);
-            //Debug.Log("beam colour: " + BeamColour);
-            beam.SetColor(BeamColour);
-            _beams.Add(new Beam(beam, ShootTime, LoadTime, HitEffectPrefab)
+            _beams.Add(new Beam(beam, ShootTime, LoadTime, BeamColour, HitEffectPrefab)
             {
                 BeamForce = BeamForce,
                 EffectRepeatTime = EffectRepeatTime,
