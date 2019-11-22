@@ -288,7 +288,7 @@ HingeJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: -0.000000029802322, y: 0.5000114, z: 0.000021636486}
+  m_ConnectedAnchor: {x: 0, y: 0.5, z: 0}
   m_UseSpring: 0
   m_Spring:
     spring: 0
@@ -521,7 +521,7 @@ HingeJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: -0.000000091612335, y: 2.5000033, z: 0.00004743415}
+  m_ConnectedAnchor: {x: 0.00000014701006, y: 2.5, z: 0.00002549961}
   m_UseSpring: 0
   m_Spring:
     spring: 0
@@ -1707,4 +1707,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6353516bc348a4544894e4c5d088ad89, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  SourceObject: {fileID: 4489758503198134}
   TargetingLine: {fileID: 7898790091076721043}

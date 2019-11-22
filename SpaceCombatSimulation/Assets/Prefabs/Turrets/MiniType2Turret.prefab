@@ -859,7 +859,7 @@ HingeJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0, y: 0, z: 1.300003}
+  m_ConnectedAnchor: {x: 0, y: 0, z: 1.3000002}
   m_UseSpring: 0
   m_Spring:
     spring: 0
@@ -2106,8 +2106,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5192600022770067566}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4541375484301278}
@@ -2207,7 +2207,7 @@ LineRenderer:
     textureMode: 0
     shadowBias: 0.5
     generateLightingData: 0
-  m_UseWorldSpace: 1
+  m_UseWorldSpace: 0
   m_Loop: 0
 --- !u!114 &7280964374189904212
 MonoBehaviour:
@@ -2221,4 +2221,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6353516bc348a4544894e4c5d088ad89, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  SourceObject: {fileID: 4985851871091600}
   TargetingLine: {fileID: 1568193958407152790}

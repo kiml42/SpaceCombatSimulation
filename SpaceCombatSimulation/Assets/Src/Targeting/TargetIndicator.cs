@@ -3,28 +3,28 @@ using UnityEngine;
 
 public class TargetIndicator : MonoBehaviour
 {
+    public Transform SourceObject;
     public LineRenderer TargetingLine;
     public IKnowsCurrentTarget TargetKnower;
 
     // Use this for initialization
     void Start ()
     {
-        if (TargetKnower == null)
-        {
-            TargetKnower = TargetKnower ?? GetComponentInParent<IKnowsCurrentTarget>();
-        }
-        if (TargetingLine == null)
-        {
-            TargetingLine = TargetingLine ?? GetComponent<LineRenderer>();
-        }
+        TargetKnower = TargetKnower ?? GetComponentInParent<IKnowsCurrentTarget>();
+        TargetingLine = TargetingLine ?? GetComponent<LineRenderer>();
+        SourceObject = SourceObject ?? transform.parent ?? transform;
     }
 	
 	// Update is called once per frame
 	void Update () {
-        if(TargetingLine != null)
+        if(SourceObject != null && TargetKnower != null && TargetKnower.CurrentTarget != null)
         {
-            TargetingLine.SetPosition(0, transform.position);
+            TargetingLine.SetPosition(0, SourceObject.transform.position);
             TargetingLine.SetPosition(1, TargetKnower.CurrentTarget.Transform.position);
+            TargetingLine.enabled = true;
+        } else
+        {
+            TargetingLine.enabled = false;
         }
     }
 }
