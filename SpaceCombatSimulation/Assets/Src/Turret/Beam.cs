@@ -1,4 +1,5 @@
-﻿using Assets.Src.ObjectManagement;
+﻿using System;
+using Assets.Src.ObjectManagement;
 using UnityEngine;
 
 namespace Assets.Src.Turret
@@ -29,6 +30,9 @@ namespace Assets.Src.Turret
         
         public float EffectRepeatTime = 0.1f;
         private LampAndParticlesEffectController _hitEffect;
+
+        private bool _isShooting = false;
+        private float _hitDistance = 0;
 
         public Beam(Transform beam, float runTime, float offTime, Color BeamColour, LampAndParticlesEffectController hitEffectPrefab = null)
         {
@@ -77,6 +81,12 @@ namespace Assets.Src.Turret
             }
         }
 
+        public void Redraw()
+        {
+            Line.enabled = _isShooting;
+            Line.SetPosition(1, Vector3.forward * _hitDistance);
+        }
+
         /// <summary>
         /// Finds if the beam is hitting anything.
         /// </summary>
@@ -105,7 +115,7 @@ namespace Assets.Src.Turret
                 }
                 hit.transform.SendMessage("ApplyDamage", ReduceForDistance(BeamDamage, hit.distance), SendMessageOptions.DontRequireReceiver);
                 
-                Line.SetPosition(1, Vector3.forward * hit.distance);
+                _hitDistance = hit.distance;
             } else
             {
                 //is a miss
@@ -113,9 +123,9 @@ namespace Assets.Src.Turret
                 {
                     _hitEffect.TurnOff();
                 }
-                Line.SetPosition(1, Vector3.forward * MaxDistance);
+                _hitDistance = MaxDistance;
             }
-            Line.enabled = true;
+            _isShooting = true;
         }
 
         private float ReduceForDistance(float baseDamage, float distance)
@@ -133,7 +143,7 @@ namespace Assets.Src.Turret
         public void TurnOff()
         {
             RemainingOffTime -= Time.deltaTime;
-            Line.enabled = false;
+            _isShooting = false;
             if (_hitEffect != null)
             {
                 _hitEffect.TurnOff();

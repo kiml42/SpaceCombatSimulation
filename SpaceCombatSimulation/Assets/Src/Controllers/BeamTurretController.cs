@@ -64,7 +64,7 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
         _fireControl = GetComponent<IFireControl>();
     }
 
-    // Update is called once per frame
+    // FixedUpdate is called once per phisics time step
     void FixedUpdate()
     {
         if (_active && _fireControl != null && _beams != null)
@@ -80,6 +80,15 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
             }
             //scrub the list now they've all been turned off.
             _beams = new List<Beam>();
+        }
+    }
+
+    //Update is run once per graphics frame
+    void Update()
+    {
+        foreach (var beam in _beams)
+        {
+            beam.Redraw();
         }
     }
 
