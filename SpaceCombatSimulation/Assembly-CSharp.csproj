@@ -224,23 +224,17 @@
     <Compile Include="Assets\Src\Turret\TurrertTurningMechanism.cs" />
     <Compile Include="Assets\Src\Turret\TurretRunner.cs" />
     <Compile Include="Assets\Src\Turret\UnityTurretTurner.cs" />
-    <Reference Include="Unity.TextMeshPro.Editor">
-      <HintPath>C:/Users/kiml4/Documents/SpaceCombatSimulation/SpaceCombatSimulation/Library/ScriptAssemblies/Unity.TextMeshPro.Editor.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.CollabProxy.Editor">
-      <HintPath>C:/Users/kiml4/Documents/SpaceCombatSimulation/SpaceCombatSimulation/Library/ScriptAssemblies/Unity.CollabProxy.Editor.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.TextMeshPro">
-      <HintPath>C:/Users/kiml4/Documents/SpaceCombatSimulation/SpaceCombatSimulation/Library/ScriptAssemblies/Unity.TextMeshPro.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.Analytics.DataPrivacy">
-      <HintPath>C:/Users/kiml4/Documents/SpaceCombatSimulation/SpaceCombatSimulation/Library/ScriptAssemblies/Unity.Analytics.DataPrivacy.dll</HintPath>
-    </Reference>
     <Reference Include="Unity.VSCode.Editor">
       <HintPath>C:/Users/kiml4/Documents/SpaceCombatSimulation/SpaceCombatSimulation/Library/ScriptAssemblies/Unity.VSCode.Editor.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.TextMeshPro.Editor">
+      <HintPath>C:/Users/kiml4/Documents/SpaceCombatSimulation/SpaceCombatSimulation/Library/ScriptAssemblies/Unity.TextMeshPro.Editor.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>C:/Users/kiml4/Documents/SpaceCombatSimulation/SpaceCombatSimulation/Library/ScriptAssemblies/UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.CollabProxy.Editor">
+      <HintPath>C:/Users/kiml4/Documents/SpaceCombatSimulation/SpaceCombatSimulation/Library/ScriptAssemblies/Unity.CollabProxy.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Rider.Editor">
       <HintPath>C:/Users/kiml4/Documents/SpaceCombatSimulation/SpaceCombatSimulation/Library/ScriptAssemblies/Unity.Rider.Editor.dll</HintPath>
@@ -250,6 +244,12 @@
     </Reference>
     <Reference Include="Unity.2D.Tilemap.Editor">
       <HintPath>C:/Users/kiml4/Documents/SpaceCombatSimulation/SpaceCombatSimulation/Library/ScriptAssemblies/Unity.2D.Tilemap.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>C:/Users/kiml4/Documents/SpaceCombatSimulation/SpaceCombatSimulation/Library/ScriptAssemblies/Unity.TextMeshPro.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Analytics.DataPrivacy">
+      <HintPath>C:/Users/kiml4/Documents/SpaceCombatSimulation/SpaceCombatSimulation/Library/ScriptAssemblies/Unity.Analytics.DataPrivacy.dll</HintPath>
     </Reference>
     <Reference Include="UnityEditor.UI">
       <HintPath>C:/Users/kiml4/Documents/SpaceCombatSimulation/SpaceCombatSimulation/Library/ScriptAssemblies/UnityEditor.UI.dll</HintPath>

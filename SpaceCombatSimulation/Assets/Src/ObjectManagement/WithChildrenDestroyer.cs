@@ -1,8 +1,6 @@
 ﻿using Assets.Src.Interfaces;
-using System;
+using Assets.Src.Targeting;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.ObjectManagement
@@ -43,6 +41,7 @@ namespace Assets.Src.ObjectManagement
                     if (UntagChildren)
                     {
                         //Debug.Log("untagging " + child);
+                        TargetRepository.DeregisterTarget(new Target(child), child.tag);
                         child.tag = DeadObjectTag;
                     }
 

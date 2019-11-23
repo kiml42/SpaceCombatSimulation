@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.ObjectManagement
@@ -29,6 +28,30 @@ namespace Assets.Src.ObjectManagement
 
                 _targets[tag] = CleanList(list);
             }
+        }
+
+        public static void DeregisterTarget(Target target)
+        {
+            var tag = target.Transform.tag;
+            DeregisterTarget(target, tag);
+        }
+
+        public static void DeregisterTarget(Target target, string tag)
+        {
+            Debug.Log($"deregistering target {target} with tag {tag}");
+            var list = _targets[tag];
+            if (list == null)
+            {
+                Debug.LogWarning($"Cannot deregister target {target} with tag {tag} - there is no list for this tag.");
+                return;
+            }
+            var targetFromList = list.SingleOrDefault(t => t.Transform == target.Transform);
+            if (targetFromList == null)
+            {
+                Debug.LogWarning($"Cannot deregister target {target} with tag {tag} - it is not in the list for that tag.");
+                return;
+            }
+            list.Remove(targetFromList);
         }
 
         public static List<Target> ListTargetsForTags(IEnumerable<string> tags)
