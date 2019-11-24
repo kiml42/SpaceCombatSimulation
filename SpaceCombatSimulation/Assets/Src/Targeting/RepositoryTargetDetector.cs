@@ -7,7 +7,7 @@ namespace Assets.Src.Targeting
 {
     public class RepositoryTargetDetector : ITargetDetector
     {
-        private IKnowsEnemyTags _enemyTagKnower;
+        private readonly IKnowsEnemyTags _enemyTagKnower;
 
         public RepositoryTargetDetector(IKnowsEnemyTags enemyTagKnower)
         {

@@ -1,11 +1,11 @@
-﻿using Assets.Src.Evolution;
+﻿using Assets.Src.Controllers;
+using Assets.Src.Evolution;
 using Assets.Src.Interfaces;
-using Assets.Src.ModuleSystem;
 using Assets.Src.Pilots;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatable
+public class SpaceShipControler : AbstractDeactivatableController
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
 
@@ -24,18 +24,16 @@ public class SpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatab
 
     public EngineControler Engine;
     public Rigidbody Torquer;
-    private List<EngineControler> _engines = new List<EngineControler>();
-    private List<Rigidbody> _torquers = new List<Rigidbody>();
+    private readonly List<EngineControler> _engines = new List<EngineControler>();
+    private readonly List<Rigidbody> _torquers = new List<Rigidbody>();
 
     public float AngularDragForTorquers = 20;
 
     private const float Fuel = Mathf.Infinity;
     private Rigidbody _thisSpaceship;
-    private bool _active = true;
 
     private IPilot _pilot;
 
-    private const string InactiveTag = "Untagged";
     public Transform VectorArrow;
 
     // Use this for initialization
@@ -84,20 +82,12 @@ public class SpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatab
             _pilot.Fly(_targetChoosingMechanism.CurrentTarget);
     }
 
-    public void Deactivate()
-    {
-        //Debug.Log("Deactivating " + name);
-        _active = false;
-        tag = InactiveTag;
-    }
-
     public void RegisterEngine(EngineControler engine)
     {
         //Debug.Log("Registering engine");
         _engines.Add(engine);
         Initialise();
         //_engineControl.SetEngine(Engine);
-
     }
 
     public void RegisterTorquer(Transform torquer)
@@ -106,7 +96,6 @@ public class SpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatab
         Initialise();
         //_engineControl.SetEngine(Engine);
     }
-
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {

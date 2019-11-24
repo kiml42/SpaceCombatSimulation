@@ -21,6 +21,7 @@ namespace Assets.Src.ObjectManagement
         {
             //Debug.Log("Destroy called for " + toDestroy.name + ", useExplosion = " + useExplosion);
             toDestroy = FindNextParentRigidbody(toDestroy);
+            TargetRepository.DeregisterTarget(toDestroy.transform);
             //Debug.Log("Parent to destroy: " + toDestroy.name);
             DestroyWithoutLookingForParent(toDestroy, useExplosion, velocityOverride);
         }

@@ -1,5 +1,4 @@
 ﻿using Assets.Src.Targeting;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -8,14 +7,14 @@ namespace Assets.Src.ObjectManagement
 {
     public static class TargetRepository
     {
-        private static Dictionary<string, List<Target>> _targets = new Dictionary<string, List<Target>>();
+        private static readonly Dictionary<string, List<Target>> _targets = new Dictionary<string, List<Target>>();
 
         public static void RegisterTarget(Target target)
         {
             if(target != null && target.Transform!= null && target.Transform.IsValid())
             {
                 var tag = target.Transform.tag;
-                List<Target> list = null;
+                List<Target> list;
                 if (!_targets.ContainsKey(tag) || _targets[tag] == null)
                 {
                     list = new List<Target>();
@@ -28,6 +27,16 @@ namespace Assets.Src.ObjectManagement
 
                 _targets[tag] = CleanList(list);
             }
+        }
+        public static void DeregisterTarget(Transform target)
+        {
+            var tag = target.tag;
+            DeregisterTarget(target, tag);
+        }
+
+        public static void DeregisterTarget(Transform target, string tag)
+        {
+            DeregisterTarget(new Target(target), tag);
         }
 
         public static void DeregisterTarget(Target target)
@@ -45,7 +54,7 @@ namespace Assets.Src.ObjectManagement
                 Debug.LogWarning($"Cannot deregister target {target} with tag {tag} - there is no list for this tag.");
                 return;
             }
-            var targetFromList = list.SingleOrDefault(t => t.Transform == target.Transform);
+            var targetFromList = list.SingleOrDefault(t => t == target);
             if (targetFromList == null)
             {
                 Debug.LogWarning($"Cannot deregister target {target} with tag {tag} - it is not in the list for that tag.");

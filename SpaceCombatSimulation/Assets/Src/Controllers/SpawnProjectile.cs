@@ -1,10 +1,10 @@
-﻿using Assets.Src.Evolution;
+﻿using Assets.Src.Controllers;
+using Assets.Src.Evolution;
 using Assets.Src.Interfaces;
-using Assets.Src.ModuleSystem;
 using Assets.Src.ObjectManagement;
 using UnityEngine;
 
-public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
+public class SpawnProjectile : AbstractDeactivatableController
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
     private IKnowsEnemyTags _enemyTagKnower;
@@ -15,7 +15,6 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
     
     public float RandomStartTime = 30;
     public float MinStartTime = 30;
-    private bool _active = true;
 
     public int BurstCount = 1;
     private int _projectilesThisBurst = 0;
@@ -27,7 +26,6 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
     private float _reload = 0;
     public float LoadTime = 200;
 
-    private const string InactiveTag = "Untagged";
     private ColourSetter _colerer;
 
     // Use this for initialization
@@ -105,13 +103,6 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
             return _targetChoosingMechanism.CurrentTarget != null;
         }
         return true;
-    }
-
-    public void Deactivate()
-    {
-        //Debug.Log("Deactivating " + name);
-        _active = false;
-        tag = InactiveTag;
     }
     
     private string RocketGenome;

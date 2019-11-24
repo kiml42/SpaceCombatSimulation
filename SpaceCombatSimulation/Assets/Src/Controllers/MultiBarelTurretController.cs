@@ -1,11 +1,12 @@
-﻿using Assets.Src.Evolution;
+﻿using Assets.Src.Controllers;
+using Assets.Src.Evolution;
 using Assets.Src.Interfaces;
 using Assets.Src.ModuleSystem;
 using Assets.Src.ObjectManagement;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MultiBarelTurretController : GeneticConfigurableMonobehaviour, ITurretController, IDeactivatable, IKnowsProjectileSpeed
+public class MultiBarelTurretController : AbstractDeactivatableController, ITurretController, IKnowsProjectileSpeed
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
     private IKnowsEnemyTags _enemyTagKnower;
@@ -19,13 +20,10 @@ public class MultiBarelTurretController : GeneticConfigurableMonobehaviour, ITur
     public Transform EmitterParent;
     private List<Transform> _emitters;
     private int _nextEmitterToShoot = 0;
-    private bool _active = true;
     
     public bool TagChildren = false;
     
     private IFireControl _fireControl;
-
-    private const string InactiveTag = "Untagged";
     
     private float _reload = 0;
 
@@ -70,7 +68,6 @@ public class MultiBarelTurretController : GeneticConfigurableMonobehaviour, ITur
         }
     }
 
-
     public void Shoot(bool shouldShoot)
     {
         if(_active && ElevationHub != null)
@@ -108,13 +105,6 @@ public class MultiBarelTurretController : GeneticConfigurableMonobehaviour, ITur
             {
                 _reload-=Time.fixedDeltaTime;
             }
-    }
-
-    public void Deactivate()
-    {
-        //Debug.Log("Deactivating " + name);
-        _active = false;
-        tag = InactiveTag;
     }
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)

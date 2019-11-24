@@ -13,7 +13,7 @@ namespace Assets.Src.ShipCamera
         /// </summary>
         public List<string> MainTags = new List<string> { "SpaceShip" };
         public List<string> SecondaryTags = new List<string> { "Projectile" };
-        private List<string> _tags
+        private List<string> Tags
         {
             get
             {
@@ -54,7 +54,7 @@ namespace Assets.Src.ShipCamera
         {
             _detector = new ChildTagTargetDetector
             {
-                Tags = _tags
+                Tags = Tags
             };
             _shipCam = GetComponent<ShipCam>();
         }
@@ -160,14 +160,14 @@ namespace Assets.Src.ShipCamera
                     ShowReticles = ReticleState.ALL;
                     _detector = new ChildTagTargetDetector
                     {
-                        Tags = _tags
+                        Tags = Tags
                     };
                     break;
                 case ReticleState.ALL:
                     ShowReticles = ReticleState.MAIN;
                     _detector = new ChildTagTargetDetector
                     {
-                        Tags = _tags
+                        Tags = Tags
                     };
                     break;
                 case ReticleState.MAIN:

@@ -1,11 +1,13 @@
-﻿using Assets.Src.Interfaces;
+﻿using Assets.Src.Controllers;
+using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnower
+public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactivateableTargetKnower
 {
     public ITargetDetector Detector;
 
@@ -27,8 +29,6 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
 
     public IKnowsEnemyTags EnemyTagKnower;
     public CombinedTargetPicker TargetPicker;
-    
-    private bool _active = true;
 
     // Use this for initialization
     void Start ()
@@ -128,8 +128,10 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
     //    //Debug.Log(log);
     //}
 
-    public void Deactivate()
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        _active = false;
+        PollInterval = genomeWrapper.GetScaledNumber(10, 1);
+
+        return genomeWrapper;
     }
 }
