@@ -12,7 +12,7 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     public float BeamForce = 0;
     public float BeamDamage = 10;
     public LampAndParticlesEffectController HitEffectPrefab;
-    private float EffectRepeatTime = 0.1f;
+    private readonly float EffectRepeatTime = 0.1f;
 
     public Rigidbody ElevationHub;
     public Transform BeamsParent;
@@ -69,7 +69,7 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     {
         if (_active && _fireControl != null && _beams != null)
         {
-            _shootingTime = _fireControl.ShouldShoot() ? KeepShootingSeconds : _shootingTime -= Time.deltaTime;
+            _shootingTime = _fireControl.ShouldShoot() ? KeepShootingSeconds : _shootingTime -= Time.fixedDeltaTime;
             Shoot(_shootingTime >= 0);
         }
         else

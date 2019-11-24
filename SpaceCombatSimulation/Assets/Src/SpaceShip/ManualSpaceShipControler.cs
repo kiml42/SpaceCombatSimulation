@@ -35,7 +35,8 @@ public class ManualSpaceShipControler : GeneticConfigurableMonobehaviour, IDeact
     private IPilot _autoPilot;
     private IPilot _manualPilot;
 
-    private string InactiveTag = "Untagged";
+    //TODO Make an abstract class for deactivation of objects that get set to untagged when deactivated, also remove from target repo.
+    private const string InactiveTag = "Untagged";
     public Transform VectorArrow;
 
     // Use this for initialization

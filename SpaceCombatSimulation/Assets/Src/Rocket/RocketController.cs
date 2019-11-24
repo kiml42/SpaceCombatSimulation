@@ -125,7 +125,7 @@ public class RocketController : GeneticConfigurableMonobehaviour
         {
             _detonator.DetonateNow();
         }
-        TimeToLive -= Time.deltaTime;
+        TimeToLive -= Time.fixedDeltaTime;
     }
     
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)

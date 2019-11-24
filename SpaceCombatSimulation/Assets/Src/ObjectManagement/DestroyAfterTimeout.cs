@@ -14,11 +14,11 @@ public class DestroyAfterTimeout : MonoBehaviour {
 	}
 	
 	// Update is called once per frame
-	void Update () {
+	void FixedUpdate () {
         if(_age > Lifetime)
         {
             Destroy(gameObject);
         }
-        _age+=Time.deltaTime;
+        _age+=Time.fixedDeltaTime;
     }
 }

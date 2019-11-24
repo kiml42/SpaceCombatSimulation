@@ -47,27 +47,27 @@ namespace Assets.Src.Controllers
             //DetectActiveCamera();
         }
 
-        private void DetectActiveCamera()
-        {
-            var cameras = GameObject.FindGameObjectsWithTag("MainCamera")
-                .Where(c => c.GetComponent<Camera>() != null)
-                .Select(c => c.GetComponent<Camera>()).ToList();
+        //private void DetectActiveCamera()
+        //{
+        //    var cameras = GameObject.FindGameObjectsWithTag("MainCamera")
+        //        .Where(c => c.GetComponent<Camera>() != null)
+        //        .Select(c => c.GetComponent<Camera>()).ToList();
 
-            for (int i = 0; i < cameras.Count(); i++)
-            {
-                var cam = cameras[i];
-                if (_activeCamera != null)
-                {
-                    //if we already know the active camera, deactivate all others
-                    cam.enabled = false;
-                }
-                else if (cam.enabled)
-                {
-                    _activeCamera = cam;
-                    _activeCameraIndex = i;
-                }
-            }
-        }
+        //    for (int i = 0; i < cameras.Count(); i++)
+        //    {
+        //        var cam = cameras[i];
+        //        if (_activeCamera != null)
+        //        {
+        //            //if we already know the active camera, deactivate all others
+        //            cam.enabled = false;
+        //        }
+        //        else if (cam.enabled)
+        //        {
+        //            _activeCamera = cam;
+        //            _activeCameraIndex = i;
+        //        }
+        //    }
+        //}
 
         // Update is called once per frame
         void Update()
@@ -185,7 +185,7 @@ namespace Assets.Src.Controllers
                 _activeCameraIndex = _activeCameraIndex < 0 ? cameras.Count - 1 : _activeCameraIndex;
             }
 
-            _activeCameraIndex = _activeCameraIndex % cameras.Count();
+            _activeCameraIndex %= cameras.Count();
 
             _activeCamera = cameras[_activeCameraIndex];
             if (_activeCamera == null)

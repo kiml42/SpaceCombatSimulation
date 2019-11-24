@@ -85,7 +85,7 @@ public class EvolutionBrControler : BaseEvolutionController
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if (Input.GetKeyUp(KeyCode.Escape))
         {

@@ -191,7 +191,7 @@ namespace Assets.Src.Pilots
                 }
             }
 
-            _evasionModeTimeout -= Time.deltaTime;
+            _evasionModeTimeout -= Time.fixedDeltaTime;
             return _evasionLevel;
         }
 

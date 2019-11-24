@@ -80,7 +80,7 @@ namespace Assets.Src.ShipCamera
         }
         
         // Update is called once per frame
-        void FixedUpdate()
+        void Update()
         {
             if (Input.GetKeyUp(KeyCode.Z))
             {
@@ -93,7 +93,9 @@ namespace Assets.Src.ShipCamera
 
             if(Input.GetMouseButtonUp(SelectTargetButtonIndex))
             {
-                var clicked = BodyUnderPointer() ?? WatchedRigidbody;
+                var clicked = BodyUnderPointer();
+                clicked = clicked != null ? clicked : WatchedRigidbody;
+
                 if (clicked != null && clicked != FollowedTarget)
                 {
                     WatchedRigidbody = BodyUnderPointer();

@@ -19,10 +19,10 @@ public class EvolutionMatchController : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
-        MatchRunTime += Time.deltaTime;
-        _scoreUpdatePollCountdown -= Time.deltaTime;
+        MatchRunTime += Time.fixedDeltaTime;
+        _scoreUpdatePollCountdown -= Time.fixedDeltaTime;
     }
 
     public bool IsOutOfTime()

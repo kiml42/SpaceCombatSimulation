@@ -29,7 +29,7 @@ namespace Assets.Src.Turret
         public float Divergence = 0.0005f;
         
         public float EffectRepeatTime = 0.1f;
-        private LampAndParticlesEffectController _hitEffect;
+        private readonly LampAndParticlesEffectController _hitEffect;
 
         private bool _isShooting = false;
         private float _hitDistance = 0;
@@ -65,7 +65,7 @@ namespace Assets.Src.Turret
                     //Debug.Log("shooting");
                     //is running
                     FireNow();
-                    RemainingOnTime -= Time.deltaTime;
+                    RemainingOnTime -= Time.fixedDeltaTime;
                 } else
                 {
                     //Debug.Log("Needs Reloading");
@@ -76,7 +76,7 @@ namespace Assets.Src.Turret
             {
                 //is reloading
                 //Debug.Log("reloading");
-                RemainingOffTime -= Time.deltaTime;
+                RemainingOffTime -= Time.fixedDeltaTime;
                 RemainingOnTime = OnTime;
             }
         }
@@ -133,16 +133,16 @@ namespace Assets.Src.Turret
             var radius = InitialRadius + (Divergence * distance);
             if(radius != 0)
             {
-                var reduced = baseDamage * Time.deltaTime / (radius * radius);
+                var reduced = baseDamage * Time.fixedDeltaTime / (radius * radius);
                 return reduced;
             }
             Debug.LogWarning("avoided div0 error");
-            return baseDamage * Time.deltaTime;
+            return baseDamage * Time.fixedDeltaTime;
         }
 
         public void TurnOff()
         {
-            RemainingOffTime -= Time.deltaTime;
+            RemainingOffTime -= Time.fixedDeltaTime;
             _isShooting = false;
             if (_hitEffect != null)
             {
@@ -156,7 +156,7 @@ namespace Assets.Src.Turret
         /// <param name="timeToReload">use null (default) for the normal reload time.</param>
         public void ForceReload(float? timeToReload = null)
         {
-            timeToReload = timeToReload ?? OffTime;
+            timeToReload = timeToReload != null ? timeToReload : OffTime;
             RemainingOffTime = timeToReload.Value;
             RemainingOnTime = OnTime;
         }

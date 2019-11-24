@@ -27,7 +27,7 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
     private float _reload = 0;
     public float LoadTime = 200;
 
-    private string InactiveTag = "Untagged";
+    private const string InactiveTag = "Untagged";
     private ColourSetter _colerer;
 
     // Use this for initialization
@@ -35,7 +35,7 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
     {
         _colerer = GetComponent<ColourSetter>();
         _reload = Random.value * RandomStartTime + MinStartTime;
-        Emitter = Emitter ?? transform;
+        Emitter = Emitter != null ? Emitter : transform;
         _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
         _enemyTagKnower = GetComponent<IKnowsEnemyTags>();
         _spawner = GetComponent<Rigidbody>();
@@ -56,7 +56,7 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
 
                 if (_spawner != null)
                 {
-                    velocity = velocity + _spawner.velocity;
+                    velocity += _spawner.velocity;
                 }
 
                 velocity += RandomSpeed * UnityEngine.Random.insideUnitSphere;
@@ -94,7 +94,7 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
             }
             else
             {
-                _reload-=Time.deltaTime;
+                _reload-=Time.fixedDeltaTime;
             }
     }
 
@@ -119,7 +119,7 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
         RocketGenome = genomeWrapper.Genome.Substring(genomeWrapper.GetGeneAsInt() ?? 0);
-        Velocity = Velocity * genomeWrapper.GetScaledNumber(1);
+        Velocity *= genomeWrapper.GetScaledNumber(1);
         RandomStartTime = genomeWrapper.GetScaledNumber(RandomStartTime * 2);
         MinStartTime = genomeWrapper.GetScaledNumber(MinStartTime * 2);
         RandomSpeed = genomeWrapper.GetScaledNumber(RandomSpeed * 2, RandomSpeed, 0.1f);

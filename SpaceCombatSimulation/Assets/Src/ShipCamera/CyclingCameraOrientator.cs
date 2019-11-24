@@ -7,7 +7,7 @@ namespace Assets.Src.ShipCamera
 {
     public class CyclingCameraOrientator : ICameraOrientator
     {
-        private List<BaseCameraOrientator> _orientators;
+        private readonly List<BaseCameraOrientator> _orientators;
 
         public CyclingCameraOrientator(List<BaseCameraOrientator> orientators, float cyclePeriod )
         {
@@ -15,7 +15,7 @@ namespace Assets.Src.ShipCamera
             _cyclePeriod = cyclePeriod;
         }
 
-        private float _cyclePeriod;
+        private readonly float _cyclePeriod;
         private float _cycleTimer = 0;
 
         private BaseCameraOrientator _bestOrientator;

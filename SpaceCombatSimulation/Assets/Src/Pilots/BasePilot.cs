@@ -47,8 +47,8 @@ namespace Assets.Src.Pilots
         protected bool HasActivated()
         {
             //Debug.Log("TurningStartDelay:" + TurningStartDelay);
-            TurningStartDelay -= Time.deltaTime;
-            StartDelay -= Time.deltaTime;
+            TurningStartDelay -= Time.fixedDeltaTime;
+            StartDelay -= Time.fixedDeltaTime;
             return TurningStartDelay <= 0;
         }
 

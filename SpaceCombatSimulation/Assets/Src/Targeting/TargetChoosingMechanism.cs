@@ -41,7 +41,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
         }
         if(Detector == null)
         {
-            EnemyTagKnower = EnemyTagKnower ?? GetComponentInParent<IKnowsEnemyTags>();
+            EnemyTagKnower = EnemyTagKnower != null ? EnemyTagKnower : GetComponentInParent<IKnowsEnemyTags>();
             if(EnemyTagKnower == null)
             {
                 Debug.LogWarning(name + " Could not find enemy tag source for target picker while configuring the detector.");
@@ -54,7 +54,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
     }
 	
 	// Update is called once per frame
-	void Update () {
+	void FixedUpdate () {
         if (_active)
         {
             var targetIsInvalid = CurrentTarget == null || CurrentTarget.Transform.IsInvalid();
@@ -87,7 +87,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
             } else
             {
                 //there was no poll this frame, so decrement the countdown.
-                _pollCountdonwn -= Time.deltaTime;
+                _pollCountdonwn -= Time.fixedDeltaTime;
             }
         }
     }
@@ -106,27 +106,27 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
         return old.Transform != newTarget.Transform;
     }
 
-    private void LogTargetChange(Target old, PotentialTarget newTarget, bool oldWasInvalid)
-    {
-        var log = transform.name + " has started targeting ";
-        if (newTarget != null)
-        {
-            log += newTarget.Transform.name + " (score=" + newTarget.Score + ") at " + newTarget.Transform.position;
-        } else
-        {
-            log += "nothing";
-        }
-        if (oldWasInvalid)
-        {
-            log += " because the previous target was invalid";
-        } else if (old != null)
-        {
-            log += ". Previously " + old.Transform.name + " at " + old.Transform.position;
-            Debug.Log(log); //log only retargets.
-            return;
-        }
-        //Debug.Log(log);
-    }
+    //private void LogTargetChange(Target old, PotentialTarget newTarget, bool oldWasInvalid)
+    //{
+    //    var log = transform.name + " has started targeting ";
+    //    if (newTarget != null)
+    //    {
+    //        log += newTarget.Transform.name + " (score=" + newTarget.Score + ") at " + newTarget.Transform.position;
+    //    } else
+    //    {
+    //        log += "nothing";
+    //    }
+    //    if (oldWasInvalid)
+    //    {
+    //        log += " because the previous target was invalid";
+    //    } else if (old != null)
+    //    {
+    //        log += ". Previously " + old.Transform.name + " at " + old.Transform.position;
+    //        Debug.Log(log); //log only retargets.
+    //        return;
+    //    }
+    //    //Debug.Log(log);
+    //}
 
     public void Deactivate()
     {

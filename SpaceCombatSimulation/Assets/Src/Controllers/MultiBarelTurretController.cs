@@ -25,7 +25,7 @@ public class MultiBarelTurretController : GeneticConfigurableMonobehaviour, ITur
     
     private IFireControl _fireControl;
 
-    private string InactiveTag = "Untagged";
+    private const string InactiveTag = "Untagged";
     
     private float _reload = 0;
 
@@ -78,7 +78,7 @@ public class MultiBarelTurretController : GeneticConfigurableMonobehaviour, ITur
             {
                 var emitter = _emitters[_nextEmitterToShoot];
                 _nextEmitterToShoot++;
-                _nextEmitterToShoot = _nextEmitterToShoot % (_emitters.Count);
+                _nextEmitterToShoot %= (_emitters.Count);
                 var projectile = Instantiate(Projectile, emitter.transform.position, emitter.transform.rotation);
                 projectile.velocity = (projectile.transform.forward * ProjectileSpeed) +
                     ElevationHub.velocity +
@@ -106,7 +106,7 @@ public class MultiBarelTurretController : GeneticConfigurableMonobehaviour, ITur
             }
             else
             {
-                _reload-=Time.deltaTime;
+                _reload-=Time.fixedDeltaTime;
             }
     }
 

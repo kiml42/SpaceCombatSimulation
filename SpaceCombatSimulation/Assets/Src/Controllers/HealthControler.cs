@@ -1,11 +1,8 @@
-﻿using Assets.Src.Targeting;
+﻿using Assets.Src.Health;
 using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System;
-using Assets.Src.Health;
 
 public class HealthControler : MonoBehaviour
 {
@@ -69,12 +66,11 @@ public class HealthControler : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if(SecondsOfInvulnerability > 0)
         {
-            SecondsOfInvulnerability -= Time.deltaTime;
+            SecondsOfInvulnerability -= Time.fixedDeltaTime;
             return;
         }
         if (Health <= 0)

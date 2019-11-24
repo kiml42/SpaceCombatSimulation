@@ -7,11 +7,11 @@ using UnityEngine;
 public class TimeDialationControler : MonoBehaviour {
     public KeyCode AccelerateTimeKey = KeyCode.PageUp;
     public KeyCode DecelerateTimeKey = KeyCode.PageDown;
-    private TimeDialationDevice _tdd = new TimeDialationDevice();
+    private readonly TimeDialationDevice _tdd = new TimeDialationDevice();
     public bool AutoSetTimeScale = true;
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if (Input.GetKeyUp(AccelerateTimeKey))
         {
