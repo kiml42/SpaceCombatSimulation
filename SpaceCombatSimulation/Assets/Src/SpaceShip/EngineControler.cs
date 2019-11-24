@@ -1,14 +1,11 @@
-﻿using Assets.Src.Evolution;
-using Assets.Src.Interfaces;
-using Assets.Src.ModuleSystem;
+﻿using Assets.Src.Controllers;
+using Assets.Src.Evolution;
 using Assets.Src.ObjectManagement;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 //TODO neaten up fields and methods.
-public class EngineControler : GeneticConfigurableMonobehaviour
+public class EngineControler : AbstractDeactivatableController
 {
     public Transform Pilot;
     public FuelTank FuelTank;
@@ -218,12 +215,10 @@ public class EngineControler : GeneticConfigurableMonobehaviour
         }
     }
 
-    public void Deactivate()
+    public override void Deactivate()
     {
-        //Debug.Log("Deactivating " + name);
-        _active = false;
+        base.Deactivate();
         SetPlumeState(0);
-        tag = InactiveTag;
     }
     
     private const float MaxShootAngle = 180;

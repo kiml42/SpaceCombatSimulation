@@ -17,7 +17,7 @@ namespace Assets.Src.Controllers
 
         protected bool _active = true;
 
-        public void Deactivate()
+        public virtual void Deactivate()
         {
             Debug.Log("Deactivating " + name);
             TargetRepository.DeregisterTarget(transform);
