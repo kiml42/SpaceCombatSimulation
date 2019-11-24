@@ -982,6 +982,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   PollInterval: 2
@@ -1381,7 +1384,7 @@ LineRenderer:
   - {x: 0, y: 0, z: 30}
   m_Parameters:
     serializedVersion: 3
-    widthMultiplier: 1
+    widthMultiplier: 0.4
     widthCurve:
       serializedVersion: 2
       m_Curve:
