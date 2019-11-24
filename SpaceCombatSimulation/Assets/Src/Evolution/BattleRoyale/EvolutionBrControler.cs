@@ -39,7 +39,7 @@ public class EvolutionBrControler : BaseEvolutionController
         }
     }
 
-    protected override BaseEvolutionConfig _baseConfig
+    protected override BaseEvolutionConfig BaseConfig
     {
         get
         {

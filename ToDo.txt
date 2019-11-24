@@ -12,6 +12,7 @@ Bugs:
         "Can't remove Rigidbody because HingeJoint depends on it"
         rocket engines carry on regardless if the rocket has no target.
         Duplicate match controler in drone evolution
+		Engines of dead ships cary on trying to fly. - I think I've fixed this.
     Graphical - Beams don't turn off when the turret dies. - haven't seen this one in a while.
         Torpedoes aren't picking up paren't's colour.
     Rocket engine plumes start on

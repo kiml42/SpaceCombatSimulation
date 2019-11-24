@@ -1,7 +1,5 @@
 ﻿using Assets.Src.Evolution;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class EvolutionMatchController : MonoBehaviour

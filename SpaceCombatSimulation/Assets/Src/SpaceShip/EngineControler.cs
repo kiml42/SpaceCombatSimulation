@@ -88,11 +88,7 @@ public class EngineControler : AbstractDeactivatableController
     /// Calculated if not set (default)
     /// </summary>
     public Vector3? TorqueVector = null;
-
-
-    private bool _active = true;
-    private const string InactiveTag = "Untagged";
-
+    
     public float _fullTrhrottlePlumeRate;
 
     // Use this for initialization

@@ -1395,7 +1395,7 @@ HingeJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: -0.00000015497244, y: -0.00000011920929, z: 1.3000032}
+  m_ConnectedAnchor: {x: -0.00000015497207, y: -0.00000011920929, z: 1.3000001}
   m_UseSpring: 0
   m_Spring:
     spring: 0
@@ -2626,7 +2626,7 @@ LineRenderer:
     numCornerVertices: 0
     numCapVertices: 3
     alignment: 0
-    textureMode: 0
+    textureMode: 1
     shadowBias: 0.5
     generateLightingData: 0
   m_UseWorldSpace: 1

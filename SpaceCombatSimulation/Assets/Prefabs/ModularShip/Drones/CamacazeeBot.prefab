@@ -1384,7 +1384,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a124bb2bf147381439ad8c81fc59a1eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  InactiveTag: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
 --- !u!114 &114782938334624736
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1590,7 +1592,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a124bb2bf147381439ad8c81fc59a1eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  InactiveTag: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
 --- !u!114 &114200521358881432
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2056,7 +2060,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a124bb2bf147381439ad8c81fc59a1eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  InactiveTag: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
 --- !u!114 &114641532680917866
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3618,6 +3624,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   PollInterval: 1
@@ -4264,7 +4273,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a124bb2bf147381439ad8c81fc59a1eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  InactiveTag: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
 --- !u!114 &114883773719701314
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5118,7 +5129,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a124bb2bf147381439ad8c81fc59a1eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  InactiveTag: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
 --- !u!114 &114190170627188894
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5528,7 +5541,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a124bb2bf147381439ad8c81fc59a1eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  InactiveTag: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
 --- !u!114 &114266562070145608
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6058,7 +6073,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a124bb2bf147381439ad8c81fc59a1eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  InactiveTag: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
 --- !u!114 &114426765408494826
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6529,7 +6546,7 @@ LineRenderer:
     numCornerVertices: 0
     numCapVertices: 3
     alignment: 0
-    textureMode: 0
+    textureMode: 1
     shadowBias: 0.5
     generateLightingData: 0
   m_UseWorldSpace: 1

@@ -1,23 +1,36 @@
 ﻿using Assets.Src.Interfaces;
 using UnityEngine;
 
-public class TargetIndicator : MonoBehaviour
+public class TargetIndicator : MonoBehaviour, IDeactivatable
 {
     public Transform SourceObject;
     public LineRenderer TargetingLine;
     public IKnowsCurrentTarget TargetKnower;
+    private bool _isActive = true;
+
+    public void Deactivate()
+    {
+        _isActive = false;
+    }
 
     // Use this for initialization
     void Start ()
     {
-        TargetKnower = TargetKnower ?? GetComponentInParent<IKnowsCurrentTarget>();
-        TargetingLine = TargetingLine ?? GetComponent<LineRenderer>();
-        SourceObject = SourceObject ?? transform.parent ?? transform;
+        if(TargetKnower == null)
+            TargetKnower = GetComponentInParent<IKnowsCurrentTarget>();
+
+        if(TargetingLine == null)
+            TargetingLine = GetComponent<LineRenderer>();
+
+        if(SourceObject == null)
+            SourceObject = transform.parent;
+        if (SourceObject == null)
+            SourceObject =  transform;
     }
 	
 	// Update is called once per frame
 	void Update () {
-        if(SourceObject != null && TargetKnower != null && TargetKnower.CurrentTarget?.Transform != null )
+        if(_isActive && SourceObject != null && TargetKnower != null && TargetKnower.CurrentTarget?.Transform != null )
         {
             TargetingLine.SetPosition(0, SourceObject.transform.position);
             TargetingLine.SetPosition(1, TargetKnower.CurrentTarget.Transform.position);
