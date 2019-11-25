@@ -41,7 +41,7 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
         }
         if(Detector == null)
         {
-            EnemyTagKnower = EnemyTagKnower != null ? EnemyTagKnower : GetComponentInParent<IKnowsEnemyTags>();
+            EnemyTagKnower = EnemyTagKnower ?? GetComponentInParent<IKnowsEnemyTags>();
             if(EnemyTagKnower == null)
             {
                 Debug.LogWarning(name + " Could not find enemy tag source for target picker while configuring the detector.");
