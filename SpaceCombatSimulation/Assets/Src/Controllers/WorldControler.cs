@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 
 namespace Assets.Src.Controllers
 {
-    class WorldController : MonoBehaviour
+    class WorldControler : MonoBehaviour
     {
         public bool FollowShips = true;
         public string TarGetTag = "Enemy";

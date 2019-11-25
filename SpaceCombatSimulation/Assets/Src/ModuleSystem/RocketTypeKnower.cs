@@ -27,7 +27,7 @@ namespace Assets.Src.ModuleSystem
         public TargetChoosingMechanism TargetChoosingMechanism;
         public RocketController RocketController;
         public FuelTank FuelTank;
-        public List<EngineController> Engines;
+        public List<EngineControler> Engines;
 
         //public List<IGeneticConfigurable> GeneticConfigurables;
 

@@ -9,7 +9,7 @@ using System.IO;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Interfaces;
 
-public class EvolutionArenaController : MonoBehaviour
+public class EvolutionArenaControler : MonoBehaviour
 {
     public EvolutionShipConfig ShipConfig;
     public EvolutionMutationWrapper MutationControl;

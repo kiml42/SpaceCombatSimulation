@@ -42,7 +42,7 @@ namespace Assets.Src.Pilots
         private float _startDelay = 0;
         private float _turningStartDelay;
 
-        protected List<EngineController> _engines = new List<EngineController>();
+        protected List<EngineControler> _engines = new List<EngineControler>();
 
         protected bool HasActivated()
         {
@@ -162,7 +162,7 @@ namespace Assets.Src.Pilots
             _engines = _engines.Where(t => t != null).Distinct().ToList();
         }
         
-        public void AddEngine(EngineController engine)
+        public void AddEngine(EngineControler engine)
         {
             _engines.Add(engine);
         }

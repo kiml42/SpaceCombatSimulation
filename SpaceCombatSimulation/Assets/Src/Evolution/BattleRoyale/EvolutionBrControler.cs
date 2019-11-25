@@ -10,7 +10,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class EvolutionBrController : BaseEvolutionController
+public class EvolutionBrControler : BaseEvolutionController
 {
     EvolutionBrConfig _config;
     
@@ -223,7 +223,7 @@ public class EvolutionBrController : BaseEvolutionController
             var goalPrefab = RaceGoals.Modules[_config.RaceGoalObject.Value];
             _raceGoalObject = Instantiate(goalPrefab, Vector3.zero, Quaternion.identity);
             _raceGoalObject.tag = RACE_GAOL_TAG;
-            var health = _raceGoalObject.GetComponent<HealthController>();
+            var health = _raceGoalObject.GetComponent<HealthControler>();
             if(health != null)
             {
                 health.enabled = false;

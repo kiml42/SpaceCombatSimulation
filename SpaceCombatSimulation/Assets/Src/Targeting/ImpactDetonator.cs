@@ -19,7 +19,6 @@ public class ImpactDetonator : MonoBehaviour
 
     //float _startTime;
     //public float SecondsOfInvulnerability = 1;
-    private readonly float _age = 0;
 
     // Use this for initialization
     private void Start()

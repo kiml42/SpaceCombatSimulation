@@ -5,7 +5,7 @@ using Assets.Src.Pilots;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ManualSpaceShipController : AbstractDeactivatableController
+public class ManualSpaceShipControler : AbstractDeactivatableController
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
 
@@ -23,7 +23,7 @@ public class ManualSpaceShipController : AbstractDeactivatableController
     public float TangentialSpeedWeighting = 1;
     
     public Rigidbody Torquer;
-    public List<EngineController> Engines = new List<EngineController>();
+    public List<EngineControler> Engines = new List<EngineControler>();
     private readonly List<Rigidbody> _torquers = new List<Rigidbody>();
 
     public float AngularDragForTorquers = 20;
@@ -80,7 +80,7 @@ public class ManualSpaceShipController : AbstractDeactivatableController
             _manualPilot.Fly(_targetChoosingMechanism.CurrentTarget);
     }
 
-    public void RegisterEngine(EngineController engine)
+    public void RegisterEngine(EngineControler engine)
     {
         //Debug.Log("Registering engine");
         Engines.Add(engine);

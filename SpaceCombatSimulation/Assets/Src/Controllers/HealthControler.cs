@@ -4,7 +4,7 @@ using Assets.Src.ObjectManagement;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class HealthController : MonoBehaviour
+public class HealthControler : MonoBehaviour
 {
     /// <summary>
     ///damage = collider momentum/resistance 
@@ -32,7 +32,7 @@ public class HealthController : MonoBehaviour
     public float OriginalHealth;
 
     [Tooltip("if set, damage is passed to this object untill it is destroyed, then damage is taken by this object.")]
-    public HealthController DamageDelegate;
+    public HealthControler DamageDelegate;
 
     [Tooltip("Objects with any of these tags will not cause damage on collision.")]
     public List<string> IgnoredTags = new List<string>
@@ -40,7 +40,7 @@ public class HealthController : MonoBehaviour
         "ForceField"
     };
 
-    [Tooltip("set this to make this heatlth controller immune to <tag><TeamTagForceFieldSuffix> as well.")]
+    [Tooltip("set this to make this health controller immune to <tag><TeamTagForceFieldSuffix> as well.")]
     public string TeamTagForceFieldSuffix = "FoceField";
 
     // Use this for initialization

@@ -41,7 +41,7 @@ public class RocketController : GeneticConfigurableMonobehaviour
     public bool SetEnemyTagOnShrapnel = false;
     public Transform VectorArrow;
     
-    public List<EngineController> Engines;
+    public List<EngineControler> Engines;
 
     [Tooltip("Check for best targets every frame if true, otherwise only on target loss")]
     public bool ContinuallyCheckForTargets = false;

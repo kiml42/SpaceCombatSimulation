@@ -66,7 +66,7 @@ public class SphereExplosion : MonoBehaviour {
                     _previousCollisions.Add(rb);
                     rb.AddExplosionForce(ExplosionForce, transform.position, ExplosionRadius);
 
-                    var hc = rb.GetComponent<HealthController>();
+                    var hc = rb.GetComponent<HealthControler>();
 
                     if (hc != null)
                     {

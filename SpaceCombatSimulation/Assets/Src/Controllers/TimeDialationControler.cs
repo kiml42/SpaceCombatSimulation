@@ -4,7 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TimeDialationController : MonoBehaviour {
+public class TimeDialationControler : MonoBehaviour {
     public KeyCode AccelerateTimeKey = KeyCode.PageUp;
     public KeyCode DecelerateTimeKey = KeyCode.PageDown;
     public KeyCode TogglePause = KeyCode.Space;

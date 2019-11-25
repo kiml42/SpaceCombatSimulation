@@ -114,7 +114,7 @@ namespace Assets.Src.ShipCamera
                 var rect = new Rect(boxPosition.x - 50, boxPosition.y - 50, 100, 100);
                 DrawSingleReticle(target.Transform, rect);
 
-                var healthController = target.Transform.GetComponent<HealthController>();
+                var healthController = target.Transform.GetComponent<HealthControler>();
                 if (healthController != null && healthController.IsDamaged)
                 {
                     if (HealthBGTexture != null)

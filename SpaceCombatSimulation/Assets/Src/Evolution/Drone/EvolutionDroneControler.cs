@@ -10,7 +10,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class EvolutionDroneController : BaseEvolutionController
+public class EvolutionDroneControler : BaseEvolutionController
 {
     EvolutionDroneConfig _config;
     

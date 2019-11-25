@@ -5,7 +5,7 @@ using System;
 using UnityEngine;
 
 //TODO neaten up fields and methods.
-public class EngineController : AbstractDeactivatableController
+public class EngineControler : AbstractDeactivatableController
 {
     public Transform Pilot;
     public FuelTank FuelTank;
