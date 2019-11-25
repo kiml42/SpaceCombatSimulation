@@ -44,7 +44,7 @@ namespace Assets.Src.ShipCamera
             ProcessManualPanning(targets);
             ProcessManualZoom();
 
-            targets = targets != null ? targets : ShipCamTargetValues.Zero;
+            targets = targets ?? ShipCamTargetValues.Zero;
 
             return new ShipCamTargetValues(targets.ParentLocationTarget, GetParentPollTarget(targets), GetCameraLocationTarget(targets), targets.CameraPollTarget, targets.CameraFieldOfView, targets.ReferenceVelocity, GetUpTarget(targets));
         }
