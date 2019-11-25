@@ -26,18 +26,31 @@ public class TargetIndicator : MonoBehaviour, IDeactivatable
             SourceObject = transform.parent;
         if (SourceObject == null)
             SourceObject =  transform;
+
+        TargetingLine.useWorldSpace = true;
+
+        //transform.parent = null; //uncomment to separate indicator lines from their parents so the parent can be easily focused.
     }
 	
 	// Update is called once per frame
 	void Update () {
-        if(_isActive && SourceObject != null && TargetKnower != null && TargetKnower.CurrentTarget?.Transform != null )
+        if(_isActive && SourceObject != null && TargetKnower != null)
         {
-            TargetingLine.SetPosition(0, SourceObject.transform.position);
-            TargetingLine.SetPosition(1, TargetKnower.CurrentTarget.Transform.position);
-            TargetingLine.enabled = true;
+            if(TargetKnower.CurrentTarget?.Transform != null)
+            {
+                TargetingLine.SetPosition(0, SourceObject.transform.position);
+                TargetingLine.SetPosition(1, TargetKnower.CurrentTarget.Transform.position);
+                TargetingLine.enabled = true;
+                return;
+            }
+            else
+            {
+                TargetingLine.enabled = false;
+            }
         } else
         {
-            TargetingLine.enabled = false;
+            Debug.Log("Destroying disabled target line");
+            Object.Destroy(transform.gameObject);
         }
     }
 }
