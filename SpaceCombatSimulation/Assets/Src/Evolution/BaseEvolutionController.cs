@@ -26,9 +26,9 @@ namespace Assets.Src.Evolution
 
         public abstract GeneralDatabaseHandler DbHandler { get; }
 
-        protected abstract BaseEvolutionConfig _baseConfig { get; }
+        protected abstract BaseEvolutionConfig BaseConfig { get; }
 
-        public int GenerationNumber { get { return _baseConfig.GenerationNumber; } }
+        public int GenerationNumber { get { return BaseConfig.GenerationNumber; } }
 
         public Rect SummaryBox = new Rect(800, 10, 430, 50);
 
@@ -44,8 +44,14 @@ namespace Assets.Src.Evolution
 
         private void OnGUI()
         {
-            var text = "ID: " + DatabaseId + ", Name: " + _baseConfig.RunName + ", Generation: " + _baseConfig.GenerationNumber + Environment.NewLine +
+            var text = "ID: " + DatabaseId + ", Name: " + BaseConfig.RunName + ", Generation: " + BaseConfig.GenerationNumber + Environment.NewLine +
                 "Combatants: " + string.Join(" vs ", Combatants.ToArray());
+
+            var runTimeing = _matchControl.MatchRunTime;
+            var matchLength = _matchControl.Config.MatchTimeout;
+            var remaining = matchLength - runTimeing;
+
+            text +=Environment.NewLine + Math.Round(remaining) + " seconds remaining";
 
             GUI.Box(SummaryBox, text);
         }

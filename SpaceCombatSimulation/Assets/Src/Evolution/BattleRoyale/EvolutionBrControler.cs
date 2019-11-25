@@ -10,7 +10,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class EvolutionBrControler : BaseEvolutionController
+public class EvolutionBrController : BaseEvolutionController
 {
     EvolutionBrConfig _config;
     
@@ -39,7 +39,7 @@ public class EvolutionBrControler : BaseEvolutionController
         }
     }
 
-    protected override BaseEvolutionConfig _baseConfig
+    protected override BaseEvolutionConfig BaseConfig
     {
         get
         {
@@ -85,7 +85,7 @@ public class EvolutionBrControler : BaseEvolutionController
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if (Input.GetKeyUp(KeyCode.Escape))
         {
@@ -223,7 +223,7 @@ public class EvolutionBrControler : BaseEvolutionController
             var goalPrefab = RaceGoals.Modules[_config.RaceGoalObject.Value];
             _raceGoalObject = Instantiate(goalPrefab, Vector3.zero, Quaternion.identity);
             _raceGoalObject.tag = RACE_GAOL_TAG;
-            var health = _raceGoalObject.GetComponent<HealthControler>();
+            var health = _raceGoalObject.GetComponent<HealthController>();
             if(health != null)
             {
                 health.enabled = false;

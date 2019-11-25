@@ -746,7 +746,7 @@ MonoBehaviour:
     y: 240
     width: 900
     height: 300
-  EvolutionControler: {fileID: 114344867907796872}
+  EvolutionController: {fileID: 114344867907796872}
   DrawGraphKey: 103
 --- !u!114 &114363119969470166
 MonoBehaviour:
@@ -768,7 +768,7 @@ MonoBehaviour:
     y: 10
     width: 900
     height: 200
-  EvolutionControler: {fileID: 114344867907796872}
+  EvolutionController: {fileID: 114344867907796872}
   DrawGraphKey: 103
 --- !u!114 &114551084138593738
 MonoBehaviour:

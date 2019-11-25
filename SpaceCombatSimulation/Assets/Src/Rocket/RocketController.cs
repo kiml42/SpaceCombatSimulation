@@ -41,7 +41,7 @@ public class RocketController : GeneticConfigurableMonobehaviour
     public bool SetEnemyTagOnShrapnel = false;
     public Transform VectorArrow;
     
-    public List<EngineControler> Engines;
+    public List<EngineController> Engines;
 
     [Tooltip("Check for best targets every frame if true, otherwise only on target loss")]
     public bool ContinuallyCheckForTargets = false;
@@ -125,7 +125,7 @@ public class RocketController : GeneticConfigurableMonobehaviour
         {
             _detonator.DetonateNow();
         }
-        TimeToLive -= Time.deltaTime;
+        TimeToLive -= Time.fixedDeltaTime;
     }
     
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)

@@ -1,11 +1,11 @@
-﻿using Assets.Src.Evolution;
+﻿using Assets.Src.Controllers;
+using Assets.Src.Evolution;
 using Assets.Src.Interfaces;
-using Assets.Src.ModuleSystem;
 using Assets.Src.Pilots;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatable
+public class SpaceShipController : AbstractDeactivatableController
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
 
@@ -22,20 +22,18 @@ public class SpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatab
     public float MinTangentialVelocity = 0;
     public float TangentialSpeedWeighting = 1;
 
-    public EngineControler Engine;
+    public EngineController Engine;
     public Rigidbody Torquer;
-    private readonly List<EngineControler> _engines = new List<EngineControler>();
+    private readonly List<EngineController> _engines = new List<EngineController>();
     private readonly List<Rigidbody> _torquers = new List<Rigidbody>();
 
     public float AngularDragForTorquers = 20;
 
     private const float Fuel = Mathf.Infinity;
     private Rigidbody _thisSpaceship;
-    private bool _active = true;
 
     private IPilot _pilot;
 
-    private readonly string InactiveTag = "Untagged";
     public Transform VectorArrow;
 
     // Use this for initialization
@@ -84,20 +82,12 @@ public class SpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatab
             _pilot.Fly(_targetChoosingMechanism.CurrentTarget);
     }
 
-    public void Deactivate()
-    {
-        //Debug.Log("Deactivating " + name);
-        _active = false;
-        tag = InactiveTag;
-    }
-
-    public void RegisterEngine(EngineControler engine)
+    public void RegisterEngine(EngineController engine)
     {
         //Debug.Log("Registering engine");
         _engines.Add(engine);
         Initialise();
         //_engineControl.SetEngine(Engine);
-
     }
 
     public void RegisterTorquer(Transform torquer)
@@ -107,22 +97,21 @@ public class SpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatab
         //_engineControl.SetEngine(Engine);
     }
 
-
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        const float MaxVelociyTollerance = 100;
-        const float DefaultVelociyTolleranceProportion = 0.1f;
+        const float MaxVelocityTolerance = 100;
+        const float DefaultVelocityToleranceProportion = 0.1f;
 
         ShootAngle = genomeWrapper.GetScaledNumber(180);
         LocationAimWeighting = genomeWrapper.GetScaledNumber(2);
         SlowdownWeighting = genomeWrapper.GetScaledNumber(70);
         MaxRange = genomeWrapper.GetScaledNumber(5000, 0, 0.1f);
         MinRange = genomeWrapper.GetScaledNumber(1000, 0, 0.1f);
-        MaxTangentialVelocity = genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
-        MinTangentialVelocity = genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
+        MaxTangentialVelocity = genomeWrapper.GetScaledNumber(MaxVelocityTolerance, 0, DefaultVelocityToleranceProportion);
+        MinTangentialVelocity = genomeWrapper.GetScaledNumber(MaxVelocityTolerance, 0, DefaultVelocityToleranceProportion);
         TangentialSpeedWeighting = genomeWrapper.GetScaledNumber(70);
         AngularDragForTorquers = genomeWrapper.GetScaledNumber(2, 0, 0.2f);
-        RadialSpeedThreshold = genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
+        RadialSpeedThreshold = genomeWrapper.GetScaledNumber(MaxVelocityTolerance, 0, DefaultVelocityToleranceProportion);
 
         return genomeWrapper;
     }

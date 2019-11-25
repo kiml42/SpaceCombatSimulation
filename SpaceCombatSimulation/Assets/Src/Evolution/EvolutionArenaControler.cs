@@ -9,7 +9,7 @@ using System.IO;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Interfaces;
 
-public class EvolutionArenaControler : MonoBehaviour
+public class EvolutionArenaController : MonoBehaviour
 {
     public EvolutionShipConfig ShipConfig;
     public EvolutionMutationWrapper MutationControl;
@@ -40,7 +40,7 @@ public class EvolutionArenaControler : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         DetectSurvivingAndDeadTeams();
 
@@ -57,7 +57,7 @@ public class EvolutionArenaControler : MonoBehaviour
             SpawnShip(genome);
         } else
         {
-            MatchCountdown -= Time.deltaTime;
+            MatchCountdown -= Time.fixedDeltaTime;
         }
 
         if(MatchCountdown <= 0 && SuddenDeathObject != null)

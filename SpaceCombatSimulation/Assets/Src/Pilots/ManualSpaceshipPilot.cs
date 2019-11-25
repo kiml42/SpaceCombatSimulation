@@ -8,7 +8,7 @@ namespace Assets.Src.Pilots
 {
     public class ManualSpaceshipPilot : BasePilot
     {
-        public ManualSpaceshipPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<EngineControler> engines, float fuel = Mathf.Infinity)
+        public ManualSpaceshipPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<EngineController> engines, float fuel = Mathf.Infinity)
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;

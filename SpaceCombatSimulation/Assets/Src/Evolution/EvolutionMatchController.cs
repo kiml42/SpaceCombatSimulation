@@ -1,7 +1,5 @@
 ﻿using Assets.Src.Evolution;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class EvolutionMatchController : MonoBehaviour
@@ -19,10 +17,10 @@ public class EvolutionMatchController : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
-        MatchRunTime += Time.deltaTime;
-        _scoreUpdatePollCountdown -= Time.deltaTime;
+        MatchRunTime += Time.fixedDeltaTime;
+        _scoreUpdatePollCountdown -= Time.fixedDeltaTime;
     }
 
     public bool IsOutOfTime()

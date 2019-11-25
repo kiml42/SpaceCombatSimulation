@@ -118,14 +118,14 @@ namespace Assets.Src.Evolution
         //    return LocationRandomisationRadiai[index % LocationRandomisationRadiai.Length];
         //}
 
-        private Vector3 GetStartLocationVector(int index)
-        {
-            if (!_startVector.Any())
-            {
-                throw new System.Exception("The _startVector list is empty.");
-            }
+        //private Vector3 GetStartLocationVector(int index)
+        //{
+        //    if (!_startVector.Any())
+        //    {
+        //        throw new System.Exception("The _startVector list is empty.");
+        //    }
 
-            return _startVector[index % _startVector.Length];
-        }
+        //    return _startVector[index % _startVector.Length];
+        //}
     }
 }

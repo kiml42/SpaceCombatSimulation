@@ -10,7 +10,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class EvolutionDroneControler : BaseEvolutionController
+public class EvolutionDroneController : BaseEvolutionController
 {
     EvolutionDroneConfig _config;
     
@@ -41,7 +41,7 @@ public class EvolutionDroneControler : BaseEvolutionController
         }
     }
 
-    protected override BaseEvolutionConfig _baseConfig
+    protected override BaseEvolutionConfig BaseConfig
     {
         get
         {
@@ -87,7 +87,7 @@ public class EvolutionDroneControler : BaseEvolutionController
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if (Input.GetKeyUp(KeyCode.Escape))
         {

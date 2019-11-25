@@ -64,6 +64,11 @@ namespace Assets.Src.Targeting
             Debug.Log("Using my equals");
             return Transform == other.Transform;
         }
+
+        public override string ToString()
+        {
+            return Transform.name + base.ToString();
+        }
     }
 
     sealed class CompareTargetsByTransform : IEqualityComparer<Target>

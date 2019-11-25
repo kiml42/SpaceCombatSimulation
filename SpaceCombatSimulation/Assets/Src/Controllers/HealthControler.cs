@@ -4,7 +4,7 @@ using Assets.Src.ObjectManagement;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class HealthControler : MonoBehaviour
+public class HealthController : MonoBehaviour
 {
     /// <summary>
     ///damage = collider momentum/resistance 
@@ -32,7 +32,7 @@ public class HealthControler : MonoBehaviour
     public float OriginalHealth;
 
     [Tooltip("if set, damage is passed to this object untill it is destroyed, then damage is taken by this object.")]
-    public HealthControler DamageDelegate;
+    public HealthController DamageDelegate;
 
     [Tooltip("Objects with any of these tags will not cause damage on collision.")]
     public List<string> IgnoredTags = new List<string>
@@ -66,12 +66,11 @@ public class HealthControler : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
-    private void Update()
+    void FixedUpdate()
     {
         if (SecondsOfInvulnerability > 0)
         {
-            SecondsOfInvulnerability -= Time.deltaTime;
+            SecondsOfInvulnerability -= Time.fixedDeltaTime;
             return;
         }
         if (Health <= 0)
@@ -110,7 +109,7 @@ public class HealthControler : MonoBehaviour
     }
 
     /// <summary>
-    /// Applys damage, ignores resistance and armour
+    /// Applies damage, ignores resistance and armour
     /// </summary>
     /// <param name="damage"></param>
     public void ApplyDamage(float damage)
@@ -132,7 +131,7 @@ public class HealthControler : MonoBehaviour
     }
 
     /// <summary>
-    /// Applys damage, ignores resistance and armour
+    /// Applies damage, ignores resistance and armour
     /// </summary>
     /// <param name="damage"></param>
     public void ApplyDamage(DamagePacket damage)

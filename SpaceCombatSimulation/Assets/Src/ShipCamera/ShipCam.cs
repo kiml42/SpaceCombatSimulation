@@ -80,7 +80,7 @@ namespace Assets.Src.ShipCamera
         }
         
         // Update is called once per frame
-        void FixedUpdate()
+        void Update()
         {
             if (Input.GetKeyUp(KeyCode.Z))
             {
@@ -93,7 +93,9 @@ namespace Assets.Src.ShipCamera
 
             if(Input.GetMouseButtonUp(SelectTargetButtonIndex))
             {
-                var clicked = BodyUnderPointer() ?? WatchedRigidbody;
+                var clicked = BodyUnderPointer();
+                clicked = clicked != null ? clicked : WatchedRigidbody;
+
                 if (clicked != null && clicked != FollowedTarget)
                 {
                     WatchedRigidbody = BodyUnderPointer();
@@ -113,24 +115,29 @@ namespace Assets.Src.ShipCamera
 
                 if (_calls < 10)
                 {
+                    //Debug.Log("moving camera to desired position instantly");
                     transform.position = targets.ParentLocationTarget;
 
                     transform.rotation = targets.ParentOrientationTarget;
                     Camera.transform.rotation = targets.CameraOrientationTarget;
                     Camera.fieldOfView = targets.CameraFieldOfView;
                     Camera.transform.position = targets.CameraLocationTarget;
+                    _calls++;
                 } else
                 {
-                    transform.position += FollowedObjectTranslateSpeedMultiplier * Time.deltaTime * targets.ReferenceVelocity;
-                    transform.position = Vector3.Slerp(transform.position, targets.ParentLocationTarget, Time.deltaTime * TranslateSpeed);
+                    //Debug.Log("moving camera to desired position incrementally");
 
-                    transform.rotation = Quaternion.Slerp(transform.rotation, targets.ParentOrientationTarget, Time.deltaTime * RotationSpeed);
-                    Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, targets.CameraOrientationTarget, Time.deltaTime * RotationSpeed * 0.3f);
-                    Camera.fieldOfView = Mathf.LerpAngle(Camera.fieldOfView, targets.CameraFieldOfView, Time.deltaTime * ZoomSpeed * 0.3f);
-                    Camera.transform.position = Vector3.Slerp(Camera.transform.position, targets.CameraLocationTarget, Time.deltaTime * totalTranslateSpeed);
+                    transform.position += FollowedObjectTranslateSpeedMultiplier * Time.unscaledDeltaTime * targets.ReferenceVelocity;
+                    transform.position = Vector3.Slerp(transform.position, targets.ParentLocationTarget, Time.unscaledDeltaTime * TranslateSpeed);
+
+                    transform.rotation = Quaternion.Slerp(transform.rotation, targets.ParentOrientationTarget, Time.unscaledDeltaTime * RotationSpeed);
+                    Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, targets.CameraOrientationTarget, Time.unscaledDeltaTime * RotationSpeed * 0.3f);
+                    Camera.fieldOfView = Mathf.LerpAngle(Camera.fieldOfView, targets.CameraFieldOfView, Time.unscaledDeltaTime * ZoomSpeed * 0.3f);
+                    Camera.transform.position = Vector3.Slerp(Camera.transform.position, targets.CameraLocationTarget, Time.unscaledDeltaTime * totalTranslateSpeed);
+
+
+
                 }
-
-                _calls++;
             }
         }
 
@@ -138,9 +145,7 @@ namespace Assets.Src.ShipCamera
         {
             var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-            RaycastHit hit;
-
-            if (Physics.Raycast(ray, out hit))
+            if (Physics.Raycast(ray, out RaycastHit hit))
             {
                 return hit.transform.GetComponent<Rigidbody>();
             }

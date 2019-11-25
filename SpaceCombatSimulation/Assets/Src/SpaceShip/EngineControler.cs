@@ -1,14 +1,11 @@
-﻿using Assets.Src.Evolution;
-using Assets.Src.Interfaces;
-using Assets.Src.ModuleSystem;
+﻿using Assets.Src.Controllers;
+using Assets.Src.Evolution;
 using Assets.Src.ObjectManagement;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 //TODO neaten up fields and methods.
-public class EngineControler : GeneticConfigurableMonobehaviour
+public class EngineController : AbstractDeactivatableController
 {
     public Transform Pilot;
     public FuelTank FuelTank;
@@ -91,11 +88,7 @@ public class EngineControler : GeneticConfigurableMonobehaviour
     /// Calculated if not set (default)
     /// </summary>
     public Vector3? TorqueVector = null;
-
-
-    private bool _active = true;
-    private const string InactiveTag = "Untagged";
-
+    
     public float _fullTrhrottlePlumeRate;
 
     // Use this for initialization
@@ -156,7 +149,7 @@ public class EngineControler : GeneticConfigurableMonobehaviour
                 //    Debug.Log(name + " torque throttle " + additionalThrottle);
                 //}
 
-                throttle = throttle + additionalThrottle;  //add the additional throttle.
+                throttle += additionalThrottle;  //add the additional throttle.
             }
             throttle = Math.Min(1, throttle);  //cut the throttle whole thing down to the propper range.
             
@@ -164,7 +157,7 @@ public class EngineControler : GeneticConfigurableMonobehaviour
             {
                 throttle = AdjustThrottleForFuel(throttle);
 
-                ForceApplier.AddForceAtPosition(-transform.up * EngineForce2 * throttle * Time.deltaTime, transform.position, ForceMode.Force);
+                ForceApplier.AddForceAtPosition(-transform.up * EngineForce2 * throttle * Time.fixedDeltaTime, transform.position, ForceMode.Force);
                 //ForceApplier.AddRelativeForce(EngineForce * throttle);
                 SetPlumeState(throttle);
                 return;
@@ -188,7 +181,7 @@ public class EngineControler : GeneticConfigurableMonobehaviour
         if (FuelTank != null)
         {
             //TODO check why this is capped.
-            var singleFrameConsumption = Math.Max(FullThrottleFuelConsumption * Time.deltaTime, 0.0001f);
+            var singleFrameConsumption = Math.Max(FullThrottleFuelConsumption * Time.fixedDeltaTime, 0.0001f);
             var desiredFuel = throttle * singleFrameConsumption;
             var fuel = FuelTank.DrainFuel(desiredFuel);
             actualThrottle = fuel / singleFrameConsumption;
@@ -218,15 +211,13 @@ public class EngineControler : GeneticConfigurableMonobehaviour
         }
     }
 
-    public void Deactivate()
+    public override void Deactivate()
     {
-        //Debug.Log("Deactivating " + name);
-        _active = false;
+        base.Deactivate();
         SetPlumeState(0);
-        tag = InactiveTag;
     }
     
-    private float MaxShootAngle = 180;
+    private const float MaxShootAngle = 180;
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {

@@ -16,7 +16,7 @@ public class SphereExplosion : MonoBehaviour {
 
     private SphereCollider _collider;
     private float _intensityScaler;
-    private List<Rigidbody> _previousCollisions = new List<Rigidbody>();
+    private readonly List<Rigidbody> _previousCollisions = new List<Rigidbody>();
 
     [Tooltip("base force for the explosion force")]
     public float ExplosionForce = 30;
@@ -36,10 +36,10 @@ public class SphereExplosion : MonoBehaviour {
         _intensityScaler = Light.intensity/Lifetime;
     }
 	
-	void Update () {
+	void FixedUpdate () {
         if (_collider != null)
         {
-            _collider.radius += ExpandRate * Time.deltaTime;
+            _collider.radius += ExpandRate * Time.fixedDeltaTime;
             if (Light != null)
                 Light.intensity -= _intensityScaler;
             if (Lifetime <= 0)
@@ -51,7 +51,7 @@ public class SphereExplosion : MonoBehaviour {
         {
             Destroy(gameObject);
         }
-        Lifetime -= Time.deltaTime;
+        Lifetime -= Time.fixedDeltaTime;
     }
 
     private void OnTriggerEnter(Collider collider)
@@ -66,7 +66,7 @@ public class SphereExplosion : MonoBehaviour {
                     _previousCollisions.Add(rb);
                     rb.AddExplosionForce(ExplosionForce, transform.position, ExplosionRadius);
 
-                    var hc = rb.GetComponent<HealthControler>();
+                    var hc = rb.GetComponent<HealthController>();
 
                     if (hc != null)
                     {

@@ -13,7 +13,7 @@ namespace Assets.Src.ShipCamera
         /// </summary>
         public List<string> MainTags = new List<string> { "SpaceShip" };
         public List<string> SecondaryTags = new List<string> { "Projectile" };
-        private List<string> _tags
+        private List<string> Tags
         {
             get
             {
@@ -54,7 +54,7 @@ namespace Assets.Src.ShipCamera
         {
             _detector = new ChildTagTargetDetector
             {
-                Tags = _tags
+                Tags = Tags
             };
             _shipCam = GetComponent<ShipCam>();
         }
@@ -114,14 +114,14 @@ namespace Assets.Src.ShipCamera
                 var rect = new Rect(boxPosition.x - 50, boxPosition.y - 50, 100, 100);
                 DrawSingleReticle(target.Transform, rect);
 
-                var healthControler = target.Transform.GetComponent<HealthControler>();
-                if (healthControler != null && healthControler.IsDamaged)
+                var healthController = target.Transform.GetComponent<HealthController>();
+                if (healthController != null && healthController.IsDamaged)
                 {
                     if (HealthBGTexture != null)
                         GUI.DrawTexture(rect, HealthBGTexture);
                     if (HealthFGTexture != null)
                     {
-                        rect.width *= healthControler.HealthProportion;
+                        rect.width *= healthController.HealthProportion;
                         GUI.DrawTexture(rect, HealthFGTexture);
                     }
                     //Debug.Log(boxPosition.z + "--x--" + boxPosition.x + "----y--" + boxPosition.y);
@@ -160,14 +160,14 @@ namespace Assets.Src.ShipCamera
                     ShowReticles = ReticleState.ALL;
                     _detector = new ChildTagTargetDetector
                     {
-                        Tags = _tags
+                        Tags = Tags
                     };
                     break;
                 case ReticleState.ALL:
                     ShowReticles = ReticleState.MAIN;
                     _detector = new ChildTagTargetDetector
                     {
-                        Tags = _tags
+                        Tags = Tags
                     };
                     break;
                 case ReticleState.MAIN:

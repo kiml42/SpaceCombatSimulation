@@ -42,13 +42,13 @@ namespace Assets.Src.Pilots
         private float _startDelay = 0;
         private float _turningStartDelay;
 
-        protected List<EngineControler> _engines = new List<EngineControler>();
+        protected List<EngineController> _engines = new List<EngineController>();
 
         protected bool HasActivated()
         {
             //Debug.Log("TurningStartDelay:" + TurningStartDelay);
-            TurningStartDelay -= Time.deltaTime;
-            StartDelay -= Time.deltaTime;
+            TurningStartDelay -= Time.fixedDeltaTime;
+            StartDelay -= Time.fixedDeltaTime;
             return TurningStartDelay <= 0;
         }
 
@@ -162,7 +162,7 @@ namespace Assets.Src.Pilots
             _engines = _engines.Where(t => t != null).Distinct().ToList();
         }
         
-        public void AddEngine(EngineControler engine)
+        public void AddEngine(EngineController engine)
         {
             _engines.Add(engine);
         }

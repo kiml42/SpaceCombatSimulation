@@ -1,24 +1,26 @@
-﻿using Assets.Src.Interfaces;
+﻿using Assets.Src.Controllers;
+using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnower
+public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactivateableTargetKnower
 {
     public ITargetDetector Detector;
 
     [Tooltip("Check for best targets every frame if true, otherwise only on target loss")]
     public bool ContinuallyCheckForTargets = false;
 
-    [Tooltip("If set to true a target will be aquired once only, once lost the rocket will deactivate." +
+    [Tooltip("If set to true a target will be acquired once only, once lost the rocket will deactivate." +
         " Emulates rockets being told their target by their launcher at launch.")]
     public bool NeverRetarget = false;
     
     [Tooltip("time to wait between polling for better targets (seconds).")]
     public float PollInterval = 0;
-    private float _pollCountdonwn = 0;
+    private float _pollCountdown = 0;
     
     #region knowsCurrentTarget
     public Target CurrentTarget { get; private set; }
@@ -27,8 +29,6 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
 
     public IKnowsEnemyTags EnemyTagKnower;
     public CombinedTargetPicker TargetPicker;
-    
-    private bool _active = true;
 
     // Use this for initialization
     void Start ()
@@ -41,7 +41,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
         }
         if(Detector == null)
         {
-            EnemyTagKnower = EnemyTagKnower ?? GetComponentInParent<IKnowsEnemyTags>();
+            EnemyTagKnower = EnemyTagKnower != null ? EnemyTagKnower : GetComponentInParent<IKnowsEnemyTags>();
             if(EnemyTagKnower == null)
             {
                 Debug.LogWarning(name + " Could not find enemy tag source for target picker while configuring the detector.");
@@ -54,12 +54,12 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
     }
 	
 	// Update is called once per frame
-	void Update () {
+	void FixedUpdate () {
         if (_active)
         {
             var targetIsInvalid = CurrentTarget == null || CurrentTarget.Transform.IsInvalid();
 
-            if (targetIsInvalid || (ContinuallyCheckForTargets && _pollCountdonwn <= 0))
+            if (targetIsInvalid || (ContinuallyCheckForTargets && _pollCountdown <= 0))
             {
                 //either the target is invalid, or the poll interval has elapsed and the ContinuallyCheckForTargets boolean is true, so a new poll should be made.
                 if (Detector == null)
@@ -67,7 +67,7 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
                     Debug.LogWarning(name + " has no detector.");
                     return;
                 }
-                //Debug.Log(name + " aquiring new target");
+                //Debug.Log(name + " acquiring new target");
                 var allTargets = Detector.DetectTargets();
                 var allTargetsList = allTargets.ToList();
                 FilteredTargets = TargetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).Select(t => t as Target);
@@ -83,11 +83,11 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
                 {
                     Deactivate();   //never try to find a new target, so deactivate
                 }
-                _pollCountdonwn = PollInterval;
+                _pollCountdown = PollInterval;
             } else
             {
                 //there was no poll this frame, so decrement the countdown.
-                _pollCountdonwn -= Time.deltaTime;
+                _pollCountdown -= Time.fixedDeltaTime;
             }
         }
     }
@@ -106,30 +106,32 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
         return old.Transform != newTarget.Transform;
     }
 
-    private void LogTargetChange(Target old, PotentialTarget newTarget, bool oldWasInvalid)
-    {
-        var log = transform.name + " has started targeting ";
-        if (newTarget != null)
-        {
-            log += newTarget.Transform.name + " (score=" + newTarget.Score + ") at " + newTarget.Transform.position;
-        } else
-        {
-            log += "nothing";
-        }
-        if (oldWasInvalid)
-        {
-            //log += " because the previous target was invalid";
-        } else if (old != null)
-        {
-            log += ". Previously " + old.Transform.name + " at " + old.Transform.position;
-            Debug.Log(log); //log only retargets.
-            return;
-        }
-        //Debug.Log(log);
-    }
+    //private void LogTargetChange(Target old, PotentialTarget newTarget, bool oldWasInvalid)
+    //{
+    //    var log = transform.name + " has started targeting ";
+    //    if (newTarget != null)
+    //    {
+    //        log += newTarget.Transform.name + " (score=" + newTarget.Score + ") at " + newTarget.Transform.position;
+    //    } else
+    //    {
+    //        log += "nothing";
+    //    }
+    //    if (oldWasInvalid)
+    //    {
+    //        log += " because the previous target was invalid";
+    //    } else if (old != null)
+    //    {
+    //        log += ". Previously " + old.Transform.name + " at " + old.Transform.position;
+    //        Debug.Log(log); //log only retargets.
+    //        return;
+    //    }
+    //    //Debug.Log(log);
+    //}
 
-    public void Deactivate()
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        _active = false;
+        PollInterval = genomeWrapper.GetScaledNumber(10, 1);
+
+        return genomeWrapper;
     }
 }

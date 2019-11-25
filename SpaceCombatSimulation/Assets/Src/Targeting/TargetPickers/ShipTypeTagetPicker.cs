@@ -32,7 +32,8 @@ namespace Assets.Src.Targeting.TargetPickers
             ShipType.Corvette,
             ShipType.Turret,
             ShipType.Capital,
-            ShipType.SuperCapital
+            ShipType.SuperCapital,
+            ShipType.Engine
         };
 
         /// <summary>

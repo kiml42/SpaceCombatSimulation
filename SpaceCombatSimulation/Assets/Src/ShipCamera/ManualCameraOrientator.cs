@@ -42,7 +42,7 @@ namespace Assets.Src.ShipCamera
         {
             var targets = CalculateAutomaticTargets();
             ProcessManualPanning(targets);
-            ProcessManualZoom(targets);
+            ProcessManualZoom();
 
             targets = targets ?? ShipCamTargetValues.Zero;
 
@@ -76,7 +76,7 @@ namespace Assets.Src.ShipCamera
             _manualPanTimeRemaining -= Time.deltaTime;
         }
 
-        private void ProcessManualZoom(ShipCamTargetValues targets)
+        private void ProcessManualZoom()
         {
             var scroll = Input.GetAxis("Mouse ScrollWheel");
 
@@ -87,7 +87,7 @@ namespace Assets.Src.ShipCamera
                     _manualCameraLocOffset = 0;
                 }
                 //_manualFieldOfView = _shipCam.Camera.fieldOfView + scroll * 100;
-                _manualCameraLocOffset = _manualCameraLocOffset + (scroll * ZoomSpeed);
+                _manualCameraLocOffset += (scroll * ZoomSpeed);
                 //Debug.Log(" _manualCameraLocOffset: " + _manualCameraLocOffset + " scroll: " + scroll);
 
                 _manualZoomTimeRemaining = ManualTime;

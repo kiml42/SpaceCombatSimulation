@@ -1,4 +1,5 @@
 ﻿using Assets.Src.Interfaces;
+using Assets.Src.Targeting;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -20,14 +21,15 @@ namespace Assets.Src.ObjectManagement
         {
             //Debug.Log("Destroy called for " + toDestroy.name + ", useExplosion = " + useExplosion);
             toDestroy = FindNextParentRigidbody(toDestroy);
+            TargetRepository.DeregisterTarget(toDestroy.transform);
             //Debug.Log("Parent to destroy: " + toDestroy.name);
             DestroyWithoutLookingForParent(toDestroy, useExplosion, velocityOverride);
         }
 
         private void DestroyWithoutLookingForParent(GameObject toDestroy, bool useExplosion, Vector3? velocityOverride)
         {
-            var allChilldren = FindImediateChildren(toDestroy);
-            foreach (var child in allChilldren)
+            var allChildren = FindImmediateChildren(toDestroy);
+            foreach (var child in allChildren)
             {
                 if (KillCompletely)
                 {
@@ -41,6 +43,7 @@ namespace Assets.Src.ObjectManagement
                     if (UntagChildren)
                     {
                         //Debug.Log("untagging " + child);
+                        TargetRepository.DeregisterTarget(new Target(child), child.tag);
                         child.tag = DeadObjectTag;
                     }
 
@@ -51,16 +54,16 @@ namespace Assets.Src.ObjectManagement
                         var fixedJoint = child.GetComponent<FixedJoint>();
                         if (fixedJoint != null)
                         {
-                            UnityEngine.Object.Destroy(fixedJoint);
+                            Object.Destroy(fixedJoint);
                         }
                         var hingeJoint = child.GetComponent<HingeJoint>();
                         if (hingeJoint != null)
                         {
-                            UnityEngine.Object.Destroy(fixedJoint);
+                            Object.Destroy(fixedJoint);
                         }
                         if (fixedJoint == null && hingeJoint == null)
                         {
-                            //destroy anything that wasnt jointed to this object.
+                            //destroy anything that wasn't jointed to this object.
                             DestroyWithoutLookingForParent(child.gameObject, false, velocityOverride);
                         }
                     }
@@ -83,7 +86,7 @@ namespace Assets.Src.ObjectManagement
             GameObject.Destroy(toDestroy);
         }
 
-        private IEnumerable<Transform> FindImediateChildren(GameObject parent)
+        private IEnumerable<Transform> FindImmediateChildren(GameObject parent)
         {
             var children = new List<Transform>();
             var childCount = parent.transform.childCount;
