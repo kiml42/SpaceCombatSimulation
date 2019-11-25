@@ -47,7 +47,7 @@ namespace Assets.Src.ObjectManagement
 
         public static void DeregisterTarget(Target target, string tag)
         {
-            Debug.Log($"deregistering target {target} with tag {tag}");
+            //Debug.Log($"deregistering target {target} with tag {tag}");
             if (!_targets.ContainsKey(tag))
             {
                 Debug.LogWarning($"Cannot deregister target {target} with tag {tag} - there is no list for this tag.");

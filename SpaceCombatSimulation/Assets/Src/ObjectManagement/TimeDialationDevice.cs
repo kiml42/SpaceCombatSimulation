@@ -19,10 +19,12 @@ namespace Assets.Src.ObjectManagement
 
         public float AutoTimeScaleTime = 5;
         public float IdealDeltaTime = 0.04f;
+
+
         public float ChangeThreshold = 0.01f;
         public float AutoChangeMultiplier = 10;
         public bool AutoscaeTime = true;
-
+        
         public void AutoSetTimeScale()
         {
             if (AutoscaeTime)
@@ -80,6 +82,17 @@ namespace Assets.Src.ObjectManagement
             Time.timeScale = GetTimescaleInRange(currentTimeScale);
             Debug.Log("TimeScale decelerated to " + Time.timeScale);
             AutoscaeTime = false;
+        }
+
+        internal void TogglePause()
+        {
+            if(Time.timeScale != 0)
+            {
+                Time.timeScale = 0;
+            } else
+            {
+                Time.timeScale = 1;
+            }
         }
 
         private float GetTimescaleInRange(float desiredTimeScale)
