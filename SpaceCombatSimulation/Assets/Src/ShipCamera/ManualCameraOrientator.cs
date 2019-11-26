@@ -73,7 +73,7 @@ namespace Assets.Src.ShipCamera
                 //Debug.Log(_pollTarget);
                 return;
             }
-            _manualPanTimeRemaining -= Time.deltaTime;
+            _manualPanTimeRemaining -= Time.unscaledDeltaTime;
         }
 
         private void ProcessManualZoom()
@@ -94,7 +94,7 @@ namespace Assets.Src.ShipCamera
 
                 return;
             }
-            _manualZoomTimeRemaining -= Time.deltaTime;
+            _manualZoomTimeRemaining -= Time.unscaledDeltaTime;
         }
 
         private Vector3 GetParentPollTarget(ShipCamTargetValues automaticTargets)

@@ -7,4 +7,9 @@ public class RegisterAsTarget : MonoBehaviour {
 	void Start () {
         TargetRepository.RegisterTarget(new Target(transform));
 	}
+
+    public void Deactivate()
+    {
+        TargetRepository.DeregisterTarget(transform);
+    }
 }

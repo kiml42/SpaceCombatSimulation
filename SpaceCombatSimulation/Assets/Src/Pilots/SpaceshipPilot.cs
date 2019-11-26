@@ -196,7 +196,7 @@ namespace Assets.Src.Pilots
             if (_slowdownMode)
             {
                 //10% extra weight when in slowdown mode, to prevent flip-flopping
-                weightedSlowdownVector = weightedSlowdownVector * 1.1f;
+                weightedSlowdownVector *= 1.1f;
             }
             return weightedSlowdownVector;
         }

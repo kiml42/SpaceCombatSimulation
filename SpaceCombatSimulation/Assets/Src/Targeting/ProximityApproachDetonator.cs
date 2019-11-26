@@ -1,9 +1,6 @@
-﻿using System;
-using Assets.Src.Interfaces;
+﻿using Assets.Src.Interfaces;
+using System;
 using UnityEngine;
-using System.Linq;
-using Assets.Src.ObjectManagement;
-using Assets.Src.Turret;
 
 namespace Assets.Src.Targeting
 {
@@ -14,7 +11,7 @@ namespace Assets.Src.Targeting
         private readonly float _detonationTimeToTarget;
         private readonly float _shrapnelSpeed;
 
-        private IExploder _exploder;
+        private readonly IExploder _exploder;
 
         public ProximityApproachDetonator(IExploder exploder, Rigidbody exploderRigidBody, float detonationTimeToTarget, float shrapnelSpeed)
         {
@@ -40,7 +37,7 @@ namespace Assets.Src.Targeting
                 return false;
             }
 
-            Vector3 targetVelocity = target.Rigidbody == null ? Vector3.zero : target.Rigidbody.velocity;
+            var targetVelocity = target.Rigidbody == null ? Vector3.zero : target.Rigidbody.velocity;
 
             var relativeVelocity = _exploderRigidbody.velocity - targetVelocity;
 

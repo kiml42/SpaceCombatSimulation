@@ -14,8 +14,7 @@ namespace Assets.Src.ObjectManagement
             if(target != null && target.Transform!= null && target.Transform.IsValid())
             {
                 var tag = target.Transform.tag;
-                List<Target> list;
-                if (!_targets.ContainsKey(tag) || _targets[tag] == null)
+                if (!_targets.TryGetValue(tag, out List<Target> list) || list == null)
                 {
                     list = new List<Target>();
                     _targets[tag] = list;

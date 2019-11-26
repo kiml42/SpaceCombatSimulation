@@ -134,9 +134,6 @@ namespace Assets.Src.ShipCamera
                     Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, targets.CameraOrientationTarget, Time.unscaledDeltaTime * RotationSpeed * 0.3f);
                     Camera.fieldOfView = Mathf.LerpAngle(Camera.fieldOfView, targets.CameraFieldOfView, Time.unscaledDeltaTime * ZoomSpeed * 0.3f);
                     Camera.transform.position = Vector3.Slerp(Camera.transform.position, targets.CameraLocationTarget, Time.unscaledDeltaTime * totalTranslateSpeed);
-
-
-
                 }
             }
         }

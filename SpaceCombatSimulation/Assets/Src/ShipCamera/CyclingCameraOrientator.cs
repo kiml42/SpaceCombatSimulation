@@ -30,7 +30,7 @@ namespace Assets.Src.ShipCamera
                 _cycleTimer = 0;
             }
 
-            _cycleTimer += Time.deltaTime;
+            _cycleTimer += Time.unscaledDeltaTime;
             return _bestOrientator.CalculateTargets();
         }
 

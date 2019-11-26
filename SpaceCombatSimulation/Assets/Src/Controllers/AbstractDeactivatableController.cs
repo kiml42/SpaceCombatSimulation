@@ -19,7 +19,7 @@ namespace Assets.Src.Controllers
 
         public virtual void Deactivate()
         {
-            Debug.Log("Deactivating " + name);
+            //Debug.Log("Deactivating " + name);
             TargetRepository.DeregisterTarget(transform);
             _active = false;
             tag = InactiveTag;
