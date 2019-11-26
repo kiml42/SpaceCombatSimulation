@@ -1,4 +1,5 @@
-﻿using Assets.Src.Targeting;
+﻿using Assets.Src.Controllers;
+using Assets.Src.Targeting;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -49,7 +50,8 @@ namespace Assets.Src.ObjectManagement
             //Debug.Log($"deregistering target {target} with tag {tag}");
             if (!_targets.ContainsKey(tag))
             {
-                Debug.LogWarning($"Cannot deregister target {target} with tag {tag} - there is no list for this tag.");
+                if (tag != AbstractDeactivatableController.InactiveTag)
+                    Debug.LogWarning($"Cannot deregister target {target} with tag {tag} - there is no list for this tag.");
                 return;
             }
             var list = _targets[tag];

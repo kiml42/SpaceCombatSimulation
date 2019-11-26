@@ -21,7 +21,7 @@ namespace Assets.Src.ObjectManagement
         {
             //Debug.Log("Destroy called for " + toDestroy.name + ", useExplosion = " + useExplosion);
             toDestroy = FindNextParentRigidbody(toDestroy);
-            TargetRepository.DeregisterTarget(toDestroy.transform);
+            toDestroy.SendMessage("Deactivate", SendMessageOptions.DontRequireReceiver);
             //Debug.Log("Parent to destroy: " + toDestroy.name);
             DestroyWithoutLookingForParent(toDestroy, useExplosion, velocityOverride);
         }
@@ -31,20 +31,14 @@ namespace Assets.Src.ObjectManagement
             var allChilldren = FindImediateChildren(toDestroy);
             foreach (var child in allChilldren)
             {
+                child.SendMessage("Deactivate", SendMessageOptions.DontRequireReceiver);
                 if (KillCompletely)
                 {
                     DestroyWithoutLookingForParent(child.gameObject, false, velocityOverride);
                 } else
                 {
-                    child.SendMessage("Deactivate", SendMessageOptions.DontRequireReceiver);
                     var rigidbody = child.GetComponent<Rigidbody>();
                     child.parent = null;
-                    if (UntagChildren)
-                    {
-                        //Debug.Log("untagging " + child);
-                        TargetRepository.DeregisterTarget(new Target(child), child.tag);
-                        child.tag = DeadObjectTag;
-                    }
 
                     if (rigidbody != null)
                     {
