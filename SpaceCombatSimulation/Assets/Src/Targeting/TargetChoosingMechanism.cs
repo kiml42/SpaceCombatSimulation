@@ -21,7 +21,7 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
     [Tooltip("time to wait between polling for better targets (seconds).")]
     public float PollInterval = 0;
     private float _pollCountdonwn = 0;
-    
+
     #region knowsCurrentTarget
     public Target CurrentTarget { get; private set; }
     public IEnumerable<Target> FilteredTargets { get; private set; }
@@ -29,6 +29,8 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
 
     public IKnowsEnemyTags EnemyTagKnower;
     public CombinedTargetPicker TargetPicker;
+
+    public bool IncludeNavigationTargets = false;
 
     // Use this for initialization
     void Start ()
@@ -68,7 +70,7 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
                     return;
                 }
                 //Debug.Log(name + " aquiring new target");
-                var allTargets = Detector.DetectTargets();
+                var allTargets = Detector.DetectTargets(IncludeNavigationTargets);
                 var allTargetsList = allTargets.ToList();
                 FilteredTargets = TargetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).Select(t => t as Target);
                 var filteredTargetsList = FilteredTargets.ToList();

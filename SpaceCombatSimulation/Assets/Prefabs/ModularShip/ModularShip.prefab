@@ -129,6 +129,7 @@ MonoBehaviour:
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   PollInterval: 1
+  IncludeNavigationTargets: 1
   TargetPicker: {fileID: 114421613989307258}
 --- !u!114 &114477379494518138
 MonoBehaviour:
@@ -219,6 +220,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Shooting: 1
+  Navigation: 0
 --- !u!114 &114449226440654026
 MonoBehaviour:
   m_ObjectHideFlags: 0

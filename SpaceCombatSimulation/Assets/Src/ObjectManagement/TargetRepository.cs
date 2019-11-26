@@ -9,25 +9,18 @@ namespace Assets.Src.ObjectManagement
     public static class TargetRepository
     {
         private static readonly Dictionary<string, List<Target>> _targets = new Dictionary<string, List<Target>>();
+        private static readonly Dictionary<string, List<Target>> _navigationTargets = new Dictionary<string, List<Target>>();
 
         public static void RegisterTarget(Target target)
         {
-            if(target != null && target.Transform!= null && target.Transform.IsValid())
-            {
-                var tag = target.Transform.tag;
-                if (!_targets.TryGetValue(tag, out List<Target> list) || list == null)
-                {
-                    list = new List<Target>();
-                    _targets[tag] = list;
-                } else
-                {
-                    list = _targets[tag];
-                }
-                list.Add(target);
-
-                _targets[tag] = CleanList(list);
-            }
+            RegisterTargetToDictionary(target, _targets);
         }
+
+        public static void RegisterNavigationTarget(Target target)
+        {
+            RegisterTargetToDictionary(target, _navigationTargets);
+        }
+
         public static void DeregisterTarget(Transform target)
         {
             var tag = target.tag;
@@ -64,7 +57,7 @@ namespace Assets.Src.ObjectManagement
             list.Remove(targetFromList);
         }
 
-        public static List<Target> ListTargetsForTags(IEnumerable<string> tags)
+        public static List<Target> ListTargetsForTags(IEnumerable<string> tags, bool includeNavigationTargets = false)
         {
             var list = new List<Target>();
             foreach (var tag in tags)
@@ -73,8 +66,12 @@ namespace Assets.Src.ObjectManagement
                 {
                     list.AddRange(CleanList(_targets[tag]));
                 }
+                if (includeNavigationTargets && _navigationTargets.ContainsKey(tag))
+                {
+                    list.AddRange(CleanList(_navigationTargets[tag]));
+                }
             }
-            return list;
+            return list.Distinct().ToList();
         }
 
         private static List<Target> CleanList(List<Target> list)
@@ -87,6 +84,26 @@ namespace Assets.Src.ObjectManagement
                 .Where(target => target != null && target.Transform != null && target.Transform.IsValid())
                 .Distinct(new CompareTargetsByTransform())  //Specify the comparer to use 
                 .ToList();
+        }
+
+        private static void RegisterTargetToDictionary(Target target, Dictionary<string, List<Target>> _targets)
+        {
+            if (target != null && target.Transform != null && target.Transform.IsValid())
+            {
+                var tag = target.Transform.tag;
+                if (!_targets.TryGetValue(tag, out List<Target> list) || list == null)
+                {
+                    list = new List<Target>();
+                    _targets[tag] = list;
+                }
+                else
+                {
+                    list = _targets[tag];
+                }
+                list.Add(target);
+
+                _targets[tag] = CleanList(list);
+            }
         }
     }
 }

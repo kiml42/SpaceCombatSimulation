@@ -17,7 +17,7 @@ namespace Assets.Src.Targeting
 
         }
 
-        public IEnumerable<PotentialTarget> DetectTargets()
+        public IEnumerable<PotentialTarget> DetectTargets(bool includeNavigationTarets = false)
         {
             var targets = new List<PotentialTarget>();
             foreach (var tag in Tags)
