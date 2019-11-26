@@ -68,6 +68,8 @@ namespace Assets.Src.ShipCamera
 
                 var setBack = SetbackIntercept - focusDistance * SetBackMultiplier;
                 var cameraLocationTarget = DefaultCamLocation.position + (DefaultCamLocation.forward * setBack);
+
+                //Debug.Log($"OverShoulderCameraOrientator");
                 return new ShipCamTargetValues(_shipCam.FollowedTarget.position, automaticParentPollTarget, cameraLocationTarget, cameraPollTarget, automaticFieldOfView, referenceVelocity, UpVector);
             }
             return null;

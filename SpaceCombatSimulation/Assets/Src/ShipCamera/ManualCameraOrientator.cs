@@ -46,6 +46,7 @@ namespace Assets.Src.ShipCamera
 
             targets = targets ?? ShipCamTargetValues.Zero;
 
+            //Debug.Log($"ManualCameraOrientator");
             return new ShipCamTargetValues(targets.ParentLocationTarget, GetParentPollTarget(targets), GetCameraLocationTarget(targets), targets.CameraPollTarget, targets.CameraFieldOfView, targets.ReferenceVelocity, GetUpTarget(targets));
         }
 
