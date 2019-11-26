@@ -25,7 +25,7 @@ public class EvolutionBrControler : BaseEvolutionController
     private Dictionary<string, GenomeWrapper> _extantTeams;
     private Dictionary<string, float> _teamScores;
 
-    List<string> _allCompetetrs { get { return _currentGenomes.Select(kv => kv.Value.Genome).ToList(); } }
+    List<string> AllCompetetrs { get { return _currentGenomes.Select(kv => kv.Value.Genome).ToList(); } }
 
     public RigidbodyList RaceGoals;
     private Rigidbody _raceGoalObject = null;
@@ -117,6 +117,17 @@ public class EvolutionBrControler : BaseEvolutionController
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             }
         }
+    }
+
+    protected override string SummaryText()
+    {
+        var text = base.SummaryText();
+        foreach (var score in _teamScores)
+        {
+            text += $"{Environment.NewLine} {score.Key} : {score.Value}";
+        }
+
+        return text;
     }
 
     private void AddRaceScores()
@@ -289,7 +300,7 @@ public class EvolutionBrControler : BaseEvolutionController
                     ? MatchOutcome.Win
                     : MatchOutcome.Draw
                 : MatchOutcome.Loss;
-            _currentGeneration.RecordMatch(competitor, scoreKv.Value, _allCompetetrs, outcome);
+            _currentGeneration.RecordMatch(competitor, scoreKv.Value, AllCompetetrs, outcome);
         }
         _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, _config.GenerationNumber);
     }

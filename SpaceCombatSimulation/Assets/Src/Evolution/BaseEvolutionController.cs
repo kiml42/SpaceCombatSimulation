@@ -30,7 +30,7 @@ namespace Assets.Src.Evolution
 
         public int GenerationNumber { get { return BaseConfig.GenerationNumber; } }
 
-        public Rect SummaryBox = new Rect(800, 10, 430, 50);
+        public Rect SummaryBox = new Rect(800, 10, 430, 100);
 
         public abstract IEnumerable<string> Combatants { get; }
 
@@ -44,6 +44,11 @@ namespace Assets.Src.Evolution
 
         private void OnGUI()
         {
+            GUI.Box(SummaryBox, SummaryText());
+        }
+
+        protected virtual string SummaryText()
+        {
             var text = "ID: " + DatabaseId + ", Name: " + BaseConfig.RunName + ", Generation: " + BaseConfig.GenerationNumber + Environment.NewLine +
                 "Combatants: " + string.Join(" vs ", Combatants.ToArray());
 
@@ -51,9 +56,9 @@ namespace Assets.Src.Evolution
             var matchLength = _matchControl.Config.MatchTimeout;
             var remaining = matchLength - runTimeing;
 
-            text +=Environment.NewLine + Math.Round(remaining) + " seconds remaining";
+            text += Environment.NewLine + Math.Round(remaining) + " seconds remaining";
 
-            GUI.Box(SummaryBox, text);
+            return text;
         }
     }
 }

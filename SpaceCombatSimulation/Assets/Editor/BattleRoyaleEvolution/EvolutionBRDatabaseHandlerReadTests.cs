@@ -1,18 +1,14 @@
-﻿using UnityEngine;
-using UnityEditor;
-using UnityEngine.TestTools;
+﻿using Assets.Src.Database;
 using NUnit.Framework;
-using System.Collections;
-using Assets.src.Evolution;
-using Assets.Src.Database;
 using System;
+using UnityEngine;
 
 public class EvolutionBRDatabaseHandlerReadTests
 {
-    private string _dbPathStart = "/../tmp/TestDB/";
-    private string _dbPathExtension = ".s3db";
+    private const string _dbPathStart = "/../tmp/TestDB/";
+    private const string _dbPathExtension = ".s3db";
     private string _dbPath;
-    private string _createCommandPath = "/../../Test/TestDB/CreateTestDB.sql";
+    private const string _createCommandPath = "/../../Test/TestDB/CreateTestDB.sql";
     EvolutionBrDatabaseHandler _handler;
     DatabaseInitialiser _initialiser;
 

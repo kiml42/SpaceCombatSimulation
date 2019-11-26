@@ -1,9 +1,6 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.Targeting;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.SpaceShip
@@ -12,7 +9,7 @@ namespace Assets.Src.SpaceShip
     {
         private readonly ITargetDetector _detector;
         private readonly ITargetPicker _picker;
-        private Rigidbody _destination;
+        private readonly Rigidbody _destination;
 
         public AverageTargetLocationDestinationChooser(ITargetDetector detector, ITargetPicker picker, Rigidbody destination)
         {
