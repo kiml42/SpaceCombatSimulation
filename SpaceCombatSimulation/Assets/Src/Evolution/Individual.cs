@@ -80,6 +80,45 @@ namespace Assets.Src.Evolution
 
             return string.Join(";", strings.ToArray());
         }
+
+        /// <summary>
+        /// Records a match for this individual by adding data to that individual.
+        /// </summary>
+        /// <param name="finalScore">Score to add to the combatant</param>
+        /// <param name="survived">True if this individual was alive at the end of the match</param>
+        /// <param name="killedAllDrones">True if all the drones were killed in this match</param>
+        /// <param name="dronesKilledThisMatch">The number of drones killed in this match</param>
+        /// <param name="allCompetitors">All the individuals' genomes in the match</param>
+        /// <param name="outcome">Indicator of how the individual did against the others</param>
+        public void RecordMatch(float finalScore, bool survived, bool killedAllDrones, int dronesKilledThisMatch, List<string> allCompetitors, MatchOutcome outcome)
+        {
+            PreviousCombatants.AddRange(allCompetitors.Where(g => !string.IsNullOrEmpty(g) && g != Genome));
+            switch (outcome)
+            {
+                case MatchOutcome.Win:
+                    Wins++;
+                    break;
+                case MatchOutcome.Draw:
+                    Draws++;
+                    break;
+                case MatchOutcome.Loss:
+                    Loses++;
+                    break;
+            }
+            Score += finalScore;
+
+            TotalKills += dronesKilledThisMatch;
+            MatchesPlayed++;
+            if (survived)
+            {
+                MatchesSurvived++;
+            }
+            if (killedAllDrones)
+            {
+                CompleteKills++;
+            }
+            MatchScores.Add(finalScore);
+        }
         #endregion
 
         #region BR
@@ -106,24 +145,6 @@ namespace Assets.Src.Evolution
                     PreviousCombatants = value.Split(',').Where(s => !string.IsNullOrEmpty(s)).ToList();
                 }
             }
-        }
-
-        public void RecordMatch(float score, List<string> allCompetitors, MatchOutcome outcome)
-        {
-            PreviousCombatants.AddRange(allCompetitors.Where(g => !string.IsNullOrEmpty(g) && g != Genome));
-            switch (outcome)
-            {
-                case MatchOutcome.Win:
-                    Wins++;
-                    break;
-                case MatchOutcome.Draw:
-                    Draws++;
-                    break;
-                case MatchOutcome.Loss:
-                    Loses++;
-                    break;
-            }
-            Score += score;
         }
 
         public int CountPreviousMatchesAgainst(List<string> genomes)
@@ -158,22 +179,6 @@ namespace Assets.Src.Evolution
                     MatchScores = parts.Select(s => float.Parse(s)).ToList();
                 }
             }
-        }
-
-        public void RecordMatch(float finalScore, bool survived, bool killedEverything, int killsThisMatch)
-        {
-            Score += finalScore;
-            TotalKills += killsThisMatch;
-            MatchesPlayed++;
-            if (survived)
-            {
-                MatchesSurvived++;
-            }
-            if (killedEverything)
-            {
-                CompleteKills++;
-            }
-            MatchScores.Add(finalScore);
         }
         #endregion
     }

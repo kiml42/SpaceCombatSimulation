@@ -43,8 +43,6 @@ namespace Assets.Src.Evolution
         #endregion
 
         #region Drone
-        public float CurrentScore = 0;
-
         private int _killsThisMatch = 0;
         private const int SHIP_INDEX = 0;
         private const int DRONES_INDEX = 1;
@@ -56,8 +54,6 @@ namespace Assets.Src.Evolution
         EvolutionDroneDatabaseHandler _dbHandlerDrone;
 
         public RigidbodyList DroneList;
-
-        private GenomeWrapper _genomeWrapper;
         #endregion
 
         protected IEnumerable<Transform> ListShips()
@@ -83,22 +79,109 @@ namespace Assets.Src.Evolution
 
         public void Start()
         {
+            DatabaseId = ArgumentStore.IdToLoad ?? DatabaseId;
             InitBR();
             InitDrone();
         }
 
         public void FixedUpdate()
         {
-            BRFixedUpdate();
-            DroneFixedUpdate();
+            if (Input.GetKeyUp(KeyCode.Escape))
+            {
+                QuitToMainMenu();
+            }
+
+            //Debug.Log("IsMatchOver");
+            if (_matchControl.ShouldPollForWinners())
+            {
+                ProcessDefeatedShips();
+
+                var matchOver = false;
+
+                var tags = ListShips()
+                    .Select(s => s.tag);
+
+                var droneCount = tags.Count(t => t == ShipConfig.Tags[DRONES_INDEX]);
+
+                _dronesRemain = droneCount > 0;
+                
+                //TODO reimplement ending early if no ships have any modules
+
+                var killedDrones = _previousDroneCount - droneCount;
+
+                //Debug.Log(shipCount + " ship modules, " + droneCount + " drones still alive. (" + _previousDroneCount + " prev) " + _genome);
+                if (killedDrones > 0)
+                {
+                    _killsThisMatch += killedDrones;
+                    var scorePerKill = (_matchControl.RemainingTime() * EvolutionConfig.EvolutionDroneConfig.KillScoreMultiplier) + EvolutionConfig.EvolutionDroneConfig.FlatKillBonus;
+                    //Debug.Log(killedDrones + " drones killed this interval for " + scorePerKill + " each.");
+                    var scoreForDroneKills = killedDrones * scorePerKill;
+                    foreach (var teamTag in _extantTeams.Keys)
+                    {
+                        AddScore(teamTag, scoreForDroneKills);
+                    }
+                }
+
+                _previousDroneCount = droneCount;
+
+                matchOver = !_stillAlive;
+
+                if (matchOver || _matchControl.IsOutOfTime())
+                {
+                    var survivalBonus = _matchControl.RemainingTime() * (_stillAlive
+                        ? EvolutionConfig.EvolutionDroneConfig.CompletionBonus
+                        : -EvolutionConfig.EvolutionDroneConfig.DeathPenalty);
+
+                    Debug.Log("Match over!");
+                    foreach (var team in _teamScores)
+                    {
+                        var CurrentScore = team.Value;
+                        var extant = _extantTeams.TryGetValue(team.Key, out var gr);
+                        if (extant)
+                        {
+                            Debug.Log($"{gr}: Score for kills: {CurrentScore}, Survival Bonus: {survivalBonus}");
+                            CurrentScore += survivalBonus;
+                            _currentGeneration.RecordMatchDrone(gr, CurrentScore, _stillAlive, !_dronesRemain, _killsThisMatch);
+                        }
+                    }
+
+                    //save the current generation
+                    _dbHandlerDrone.UpdateGeneration(_currentGeneration, DatabaseId, EvolutionConfig.GenerationNumber);
+
+                    SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+                }
+
+                if (_matchControl.IsOutOfTime() || !_hasModules)
+                {
+                    AddRaceScores();
+
+                    if (_extantTeams.Count == 0)
+                    {
+                        //everyone's dead
+                        matchOver = true;
+                    }
+
+                    if ((_matchControl.IsOutOfTime() || !_hasModules) || (_extantTeams.Count == 1 && EvolutionConfig.RaceConfig.RaceScoreMultiplier == 0))
+                    {
+                        //time over - draw
+                        //or noone has any modules, so treat it as a draw.
+                        AddScoreSurvivingIndividualsAtTheEnd();
+                        matchOver = true;
+                    }
+
+                    if (matchOver)
+                    {
+                        SaveFinalScores();
+                        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+                    }
+                }
+            }
         }
 
         #region BR
         // Use this for initialization
         public void InitBR()
         {
-            DatabaseId = ArgumentStore.IdToLoad ?? DatabaseId;
-
             _dbHandlerBR = new EvolutionBrDatabaseHandler();
 
             EvolutionConfig.BrConfig = _dbHandlerBR.ReadConfig(DatabaseId);
@@ -120,41 +203,7 @@ namespace Assets.Src.Evolution
 
             SpawnRaceGoal();
 
-            _hasModules = SpawnShips();
-        }
-        // Update is called once per frame
-        public void BRFixedUpdate()
-        {
-            if (Input.GetKeyUp(KeyCode.Escape))
-            {
-                QuitToMainMenu();
-            }
-            bool matchIsOver = false;
-            if (_matchControl.ShouldPollForWinners() || _matchControl.IsOutOfTime() || !_hasModules)
-            {
-                AddRaceScores();
-                ProcessDefeatedShips();
-
-                if (_extantTeams.Count == 0)
-                {
-                    //everyone's dead
-                    matchIsOver = true;
-                }
-
-                if ((_matchControl.IsOutOfTime() || !_hasModules) || (_extantTeams.Count == 1 && EvolutionConfig.RaceConfig.RaceScoreMultiplier == 0))
-                {
-                    //time over - draw
-                    //or noone has any modules, so treat it as a draw.
-                    AddScoreSurvivingIndividualsAtTheEnd();
-                    matchIsOver = true;
-                }
-
-                if (matchIsOver)
-                {
-                    SaveScores();
-                    SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-                }
-            }
+            _hasModules = SpawnShipsBr();
         }
 
         private void AddRaceScores()
@@ -176,7 +225,7 @@ namespace Assets.Src.Evolution
         /// Chooses the individuals to compete this match and spawns them.
         /// </summary>
         /// <returns>Boolean indecating that something has at least one module</returns>
-        private bool SpawnShips()
+        private bool SpawnShipsBr()
         {
             var genomes = _currentGeneration.PickCompetitors(EvolutionConfig.BrConfig.NumberOfCombatants);
 
@@ -212,6 +261,11 @@ namespace Assets.Src.Evolution
             return wrappers.Any(w => w.ModulesAdded > 0);
         }
 
+        /// <summary>
+        /// Works out which individuals are now dead that weren't dead before.
+        /// The dead individuals get their scores updated for having died.
+        /// The _extantTeams list gets updated to only include the teams that are still alive.
+        /// </summary>
         private void ProcessDefeatedShips()
         {
             var tags = ListShips()
@@ -239,9 +293,9 @@ namespace Assets.Src.Evolution
             AddScore(deadIndividual.Key, score);
         }
 
-        private void AddScore(string individual, float extraScore)
+        private void AddScore(string teamTag, float extraScore)
         {
-            _teamScores[individual] += extraScore;
+            _teamScores[teamTag] += extraScore;
         }
 
         private void AddScoreSurvivingIndividualsAtTheEnd()
@@ -316,7 +370,7 @@ namespace Assets.Src.Evolution
             return _currentGeneration;
         }
 
-        private void SaveScores()
+        private void SaveFinalScores()
         {
             foreach (var scoreKv in _teamScores)
             {
@@ -327,7 +381,7 @@ namespace Assets.Src.Evolution
                         ? MatchOutcome.Win
                         : MatchOutcome.Draw
                     : MatchOutcome.Loss;
-                _currentGeneration.RecordMatch(competitor, scoreKv.Value, AllCompetetrs, outcome);
+                _currentGeneration.RecordMatchBr(competitor, scoreKv.Value, AllCompetetrs, outcome);
             }
             _dbHandlerBR.UpdateGeneration(_currentGeneration, DatabaseId, EvolutionConfig.BrConfig.GenerationNumber);
         }
@@ -337,8 +391,6 @@ namespace Assets.Src.Evolution
         #region Drone
         void InitDrone()
         {
-            DatabaseId = ArgumentStore.IdToLoad ?? DatabaseId;
-
             _dbHandlerDrone = new EvolutionDroneDatabaseHandler();
 
             EvolutionConfig.EvolutionDroneConfig = _dbHandlerDrone.ReadConfig(DatabaseId);
@@ -360,34 +412,7 @@ namespace Assets.Src.Evolution
 
             _hasModules = SpawnShipsDrone();
 
-            IsMatchOver();
-        }
-
-        // Update is called once per frame
-        void DroneFixedUpdate()
-        {
-            if (Input.GetKeyUp(KeyCode.Escape))
-            {
-                QuitToMainMenu();
-            }
-            var matchOver = IsMatchOver();
-            if (matchOver || _matchControl.IsOutOfTime())
-            {
-                var survivalBonus = _matchControl.RemainingTime() * (_stillAlive
-                    ? EvolutionConfig.EvolutionDroneConfig.CompletionBonus
-                    : -EvolutionConfig.EvolutionDroneConfig.DeathPenalty);
-
-                Debug.Log("Match over! Score for kills: " + CurrentScore + ", Survival Bonus: " + survivalBonus);
-
-                CurrentScore += survivalBonus;
-
-                _currentGeneration.RecordMatch(_genomeWrapper, CurrentScore, _stillAlive, !_dronesRemain, _killsThisMatch);
-
-                //save the current generation
-                _dbHandlerDrone.UpdateGeneration(_currentGeneration, DatabaseId, EvolutionConfig.GenerationNumber);
-
-                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-            }
+            IsMatchOver();  //TODO find out what bits of this method were needed for initialisation.
         }
 
         private bool SpawnShipsDrone()
@@ -442,46 +467,6 @@ namespace Assets.Src.Evolution
             return dronePrefab;
         }
 
-        /// <summary>
-        /// Updates the score based on the remaining ships.
-        /// Returns a true if the match is over because one team is wiped out.
-        /// </summary>
-        /// <returns>Match is over boolean</returns>
-        private bool IsMatchOver()
-        {
-            //Debug.Log("IsMatchOver");
-            if (_matchControl.ShouldPollForWinners())
-            {
-                var tags = ListShips()
-                    .Select(s => s.tag);
-
-                var shipCount = tags.Count(t => t == ShipConfig.Tags[SHIP_INDEX]);
-                var droneCount = tags.Count(t => t == ShipConfig.Tags[DRONES_INDEX]);
-
-                _dronesRemain = droneCount > 0;
-                _stillAlive = _hasModules && shipCount > 0; //ships that never had modules are considered dead.
-                if (!_hasModules)
-                {
-                    Debug.Log("Ship spawned no modules - it is dead to me.");
-                }
-
-                var killedDrones = _previousDroneCount - droneCount;
-
-                //Debug.Log(shipCount + " ship modules, " + droneCount + " drones still alive. (" + _previousDroneCount + " prev) " + _genome);
-                if (killedDrones > 0)
-                {
-                    _killsThisMatch += killedDrones;
-                    var scorePerKill = (_matchControl.RemainingTime() * EvolutionConfig.EvolutionDroneConfig.KillScoreMultiplier) + EvolutionConfig.EvolutionDroneConfig.FlatKillBonus;
-                    //Debug.Log(killedDrones + " drones killed this interval for " + scorePerKill + " each.");
-                    CurrentScore += killedDrones * scorePerKill;
-                }
-                _previousDroneCount = droneCount;
-
-                return !_stillAlive || !_dronesRemain;
-            }
-            return false;
-        }
-
         private void ReadInGenerationDrone()
         {
             _currentGeneration = _dbHandlerDrone.ReadGeneration(DatabaseId, EvolutionConfig.GenerationNumber);
@@ -530,7 +515,7 @@ namespace Assets.Src.Evolution
         }
         #endregion
 
-        protected void QuitToMainMenu()
+        private void QuitToMainMenu()
         {
             DbHandler.SetAutoloadId(null);
             SceneManager.LoadScene(MainMenu);

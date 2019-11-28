@@ -92,24 +92,26 @@ namespace Assets.Src.Evolution
             _individuals.Add(new Individual(genome));
             return true;
         }
-        #endregion
 
-        #region BR
         /// <summary>
         /// Records a match for one individual by adding data to that individual.
         /// </summary>
-        /// <param name="competitor">the combatant's genomes</param>
-        /// <param name="score">Score to add to the combatant</param>
+        /// <param name="contestant">the combatant's genomes</param>
+        /// <param name="finalScore">Score to add to the combatant</param>
+        /// <param name="survived">True if this individual was alive at the end of the match</param>
+        /// <param name="killedAllDrones">True if all the drones were killed in this match</param>
+        /// <param name="killedDrones">The number of drones killed in this match</param>
         /// <param name="allCompetitors">All the individuals' genomes in the match</param>
-        /// <param name="hasWon">True if this individual was the last surviving individual</param>
-        /// <param name="isDraw">True if this individual was not the only one alive at the end of time</param>
-        /// <param name="hasDied">True if this individual died</param>
-        public void RecordMatch(GenomeWrapper competitor, float score, List<string> allCompetitors, MatchOutcome outcome)
+        /// <param name="outcome">Indicator of how the individual did against the others</param>
+        public void RecordMatch(GenomeWrapper contestant, float finalScore, bool survived, bool killedAllDrones, int killedDrones, List<string> allCompetitors, MatchOutcome outcome)
         {
-            var individual = _individuals.First(i => i.Genome == competitor.Genome);
-            individual.Finalise(competitor);
-            individual.RecordMatch(score, allCompetitors, outcome);
+            var individual = _individuals.First(i => i.Genome == contestant.Genome);
+            individual.Finalise(contestant);
+            individual.RecordMatch(finalScore, survived, killedAllDrones, killedDrones, allCompetitors, outcome);
         }
+        #endregion
+
+        #region BR
 
         /// <summary>
         /// Returns a genome from the individuals in this generation with the lowest number of completed matches.
@@ -150,12 +152,6 @@ namespace Assets.Src.Evolution
         #endregion
 
         #region Drone
-        public void RecordMatch(GenomeWrapper contestant, float finalScore, bool survived, bool killedEverything, int killsThisMatch)
-        {
-            var individual = _individuals.First(i => i.Genome == contestant.Genome);
-            individual.Finalise(contestant);
-            individual.RecordMatch(finalScore, survived, killedEverything, killsThisMatch);
-        }
 
         /// <summary>
         /// Returns a genome from the individual in this generation with the lowest number of completed matches.
