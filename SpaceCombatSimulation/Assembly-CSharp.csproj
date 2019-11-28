@@ -102,6 +102,8 @@
     <Compile Include="Assets\Src\Evolution\EditMatchConfig.cs" />
     <Compile Include="Assets\Src\Evolution\EditMutationConfig.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionArenaControler.cs" />
+    <Compile Include="Assets\Src\Evolution\EvolutionConfig.cs" />
+    <Compile Include="Assets\Src\Evolution\EvolutionController.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionMatchController.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionMutationWrapper.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionShipConfig.cs" />
@@ -110,6 +112,8 @@
     <Compile Include="Assets\Src\Evolution\MatchOutcome.cs" />
     <Compile Include="Assets\Src\Evolution\MatchRecord.cs" />
     <Compile Include="Assets\Src\Evolution\MutationConfig.cs" />
+    <Compile Include="Assets\Src\Evolution\Race\EvolutionRaceConfig.cs" />
+    <Compile Include="Assets\Src\Evolution\Race\EvolutionRaceControler.cs" />
     <Compile Include="Assets\Src\Evolution\SeciesSummary.cs" />
     <Compile Include="Assets\Src\Evolution\StringMutator.cs" />
     <Compile Include="Assets\Src\Graph\BaseGraph.cs" />

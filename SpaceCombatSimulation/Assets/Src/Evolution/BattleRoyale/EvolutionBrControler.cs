@@ -56,7 +56,7 @@ public class EvolutionBrControler : BaseEvolutionController
     }
 
     // Use this for initialization
-    void Start()
+    public void Start()
     {
         DatabaseId = ArgumentStore.IdToLoad ?? DatabaseId;
 
@@ -85,7 +85,7 @@ public class EvolutionBrControler : BaseEvolutionController
     }
 
     // Update is called once per frame
-    void FixedUpdate()
+    public void FixedUpdate()
     {
         if (Input.GetKeyUp(KeyCode.Escape))
         {
