@@ -1,8 +1,8 @@
-﻿using Assets.src.Evolution;
-using Assets.Src.Database;
-using Assets.Src.Evolution.Race;
+﻿using Assets.Src.Database;
+using Assets.Src.Interfaces;
 using Assets.Src.Menus;
 using Assets.Src.ModuleSystem;
+using Assets.Src.ObjectManagement;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +13,7 @@ namespace Assets.Src.Evolution
 {
     public class EvolutionController : MonoBehaviour
     {
+        #region General
         public int DatabaseId;
 
         public EvolutionShipConfig ShipConfig;
@@ -21,12 +22,13 @@ namespace Assets.Src.Evolution
         protected EvolutionMutationWrapper _mutationControl = new EvolutionMutationWrapper();
         protected EvolutionMatchController _matchControl;
 
+        private Generation _currentGeneration;
+        #endregion
+
         #region BR
         private Dictionary<string, GenomeWrapper> _currentGenomes;
 
-        private GenerationBr _currentGeneration;
-
-        EvolutionBrDatabaseHandler _dbHandler;
+        EvolutionBrDatabaseHandler _dbHandlerBR;
 
         private bool _hasModules;
 
@@ -37,7 +39,25 @@ namespace Assets.Src.Evolution
 
         public RigidbodyList RaceGoals;
         private Rigidbody _raceGoalObject = null;
-        private const string RACE_GAOL_TAG = "RaceGoal"; 
+        private const string RACE_GAOL_TAG = "RaceGoal";
+        #endregion
+
+        #region Drone
+        public float CurrentScore = 0;
+
+        private int _killsThisMatch = 0;
+        private const int SHIP_INDEX = 0;
+        private const int DRONES_INDEX = 1;
+
+        private bool _stillAlive;
+        private bool _dronesRemain;
+
+        private int _previousDroneCount;
+        EvolutionDroneDatabaseHandler _dbHandlerDrone;
+
+        public RigidbodyList DroneList;
+
+        private GenomeWrapper _genomeWrapper;
         #endregion
 
         protected IEnumerable<Transform> ListShips()
@@ -61,17 +81,29 @@ namespace Assets.Src.Evolution
 
         public string MainMenu = "MainMenu";
 
+        public void Start()
+        {
+            InitBR();
+            InitDrone();
+        }
+
+        public void FixedUpdate()
+        {
+            BRFixedUpdate();
+            DroneFixedUpdate();
+        }
+
         #region BR
         // Use this for initialization
-        public void Start()
+        public void InitBR()
         {
             DatabaseId = ArgumentStore.IdToLoad ?? DatabaseId;
 
-            _dbHandler = new EvolutionBrDatabaseHandler();
+            _dbHandlerBR = new EvolutionBrDatabaseHandler();
 
-            EvolutionConfig.BrConfig = _dbHandler.ReadConfig(DatabaseId);
+            EvolutionConfig.BrConfig = _dbHandlerBR.ReadConfig(DatabaseId);
 
-            _dbHandler.SetAutoloadId(DatabaseId);
+            _dbHandlerBR.SetAutoloadId(DatabaseId);
 
             if (EvolutionConfig.BrConfig == null || EvolutionConfig.BrConfig.DatabaseId != DatabaseId)
             {
@@ -91,7 +123,7 @@ namespace Assets.Src.Evolution
             _hasModules = SpawnShips();
         }
         // Update is called once per frame
-        public void FixedUpdate()
+        public void BRFixedUpdate()
         {
             if (Input.GetKeyUp(KeyCode.Escape))
             {
@@ -239,7 +271,7 @@ namespace Assets.Src.Evolution
 
         private void ReadInGeneration()
         {
-            _currentGeneration = _dbHandler.ReadGeneration(DatabaseId, EvolutionConfig.BrConfig.GenerationNumber);
+            _currentGeneration = _dbHandlerBR.ReadGeneration(DatabaseId, EvolutionConfig.BrConfig.GenerationNumber);
 
             if (_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
             {
@@ -265,21 +297,21 @@ namespace Assets.Src.Evolution
         /// The current generation is set to the generation that is created.
         /// </summary>
         /// <param name="winners"></param>
-        private GenerationBr CreateNewGeneration(IEnumerable<string> winners)
+        private Generation CreateNewGeneration(IEnumerable<string> winners)
         {
             if (winners != null && winners.Any())
             {
-                _currentGeneration = new GenerationBr(_mutationControl.CreateGenerationOfMutants(winners.ToList()));
+                _currentGeneration = new Generation(_mutationControl.CreateGenerationOfMutants(winners.ToList()));
             }
             else
             {
                 Debug.Log("Generating generation from default genomes");
-                _currentGeneration = new GenerationBr(_mutationControl.CreateDefaultGeneration());
+                _currentGeneration = new Generation(_mutationControl.CreateDefaultGeneration());
                 EvolutionConfig.BrConfig.GenerationNumber = 0;   //it's always generation 0 for a default genteration.
             }
 
-            _dbHandler.SaveNewGeneration(_currentGeneration, DatabaseId, EvolutionConfig.BrConfig.GenerationNumber);
-            _dbHandler.SetCurrentGenerationNumber(DatabaseId, EvolutionConfig.BrConfig.GenerationNumber);
+            _dbHandlerBR.SaveNewGeneration(_currentGeneration, DatabaseId, EvolutionConfig.BrConfig.GenerationNumber);
+            _dbHandlerBR.SetCurrentGenerationNumber(DatabaseId, EvolutionConfig.BrConfig.GenerationNumber);
 
             return _currentGeneration;
         }
@@ -297,7 +329,204 @@ namespace Assets.Src.Evolution
                     : MatchOutcome.Loss;
                 _currentGeneration.RecordMatch(competitor, scoreKv.Value, AllCompetetrs, outcome);
             }
-            _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, EvolutionConfig.BrConfig.GenerationNumber);
+            _dbHandlerBR.UpdateGeneration(_currentGeneration, DatabaseId, EvolutionConfig.BrConfig.GenerationNumber);
+        }
+        #endregion
+
+
+        #region Drone
+        void InitDrone()
+        {
+            DatabaseId = ArgumentStore.IdToLoad ?? DatabaseId;
+
+            _dbHandlerDrone = new EvolutionDroneDatabaseHandler();
+
+            EvolutionConfig.EvolutionDroneConfig = _dbHandlerDrone.ReadConfig(DatabaseId);
+
+            _dbHandlerDrone.SetAutoloadId(DatabaseId);
+
+            if (EvolutionConfig.EvolutionDroneConfig == null || EvolutionConfig.DatabaseId != DatabaseId)
+            {
+                throw new Exception("Did not retrieve expected config from database");
+            }
+
+            _matchControl = gameObject.AddComponent<EvolutionMatchController>();
+
+            _mutationControl.Config = EvolutionConfig.MutationConfig;
+            _matchControl.Config = EvolutionConfig.MatchConfig;
+            ShipConfig.Config = EvolutionConfig.MatchConfig;
+
+            ReadInGenerationDrone();
+
+            _hasModules = SpawnShipsDrone();
+
+            IsMatchOver();
+        }
+
+        // Update is called once per frame
+        void DroneFixedUpdate()
+        {
+            if (Input.GetKeyUp(KeyCode.Escape))
+            {
+                QuitToMainMenu();
+            }
+            var matchOver = IsMatchOver();
+            if (matchOver || _matchControl.IsOutOfTime())
+            {
+                var survivalBonus = _matchControl.RemainingTime() * (_stillAlive
+                    ? EvolutionConfig.EvolutionDroneConfig.CompletionBonus
+                    : -EvolutionConfig.EvolutionDroneConfig.DeathPenalty);
+
+                Debug.Log("Match over! Score for kills: " + CurrentScore + ", Survival Bonus: " + survivalBonus);
+
+                CurrentScore += survivalBonus;
+
+                _currentGeneration.RecordMatch(_genomeWrapper, CurrentScore, _stillAlive, !_dronesRemain, _killsThisMatch);
+
+                //save the current generation
+                _dbHandlerDrone.UpdateGeneration(_currentGeneration, DatabaseId, EvolutionConfig.GenerationNumber);
+
+                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            }
+        }
+
+        private bool SpawnShipsDrone()
+        {
+            var genome = _currentGeneration.PickCompetitor();
+
+            for (var j = 0; j < _matchControl.Config.CompetitorsPerTeam; j++)
+            {
+                _genomeWrapper = ShipConfig.SpawnShip(genome, SHIP_INDEX, 0, EvolutionConfig.EvolutionDroneConfig.ShipInSphereRandomRadius, EvolutionConfig.EvolutionDroneConfig.ShipOnSphereRandomRadius);
+            }
+
+            Debug.Log(_genomeWrapper.Name + " enters the arena!");
+            Debug.Log("Ship cost = " + _genomeWrapper.Cost);
+
+            SpawnDrones();
+
+            return _genomeWrapper.ModulesAdded > 0;
+        }
+
+        private void SpawnDrones()
+        {
+            var completeKillers = _dbHandlerDrone.CountCompleteKillers(EvolutionConfig.DatabaseId, EvolutionConfig.GenerationNumber);
+            var DroneCount = EvolutionConfig.EvolutionDroneConfig.MinDronesToSpawn + Math.Floor((double)completeKillers * EvolutionConfig.EvolutionDroneConfig.ExtraDromnesPerGeneration);
+            Debug.Log(DroneCount + " drones this match");
+
+            var droneTag = ShipConfig.GetTag(DRONES_INDEX);
+            var enemyTags = ShipConfig.Tags.Where(t => t != droneTag).ToList();
+
+            for (int i = 0; i < DroneCount; i++)
+            {
+                var dronePrefab = SelectDrone(i);
+                //Debug.Log("spawning drone " + genome);
+
+                var randomPlacement = EvolutionConfig.MatchConfig.PositionForCompetitor(DRONES_INDEX, 0, EvolutionConfig.EvolutionDroneConfig.DronesInSphereRandomRadius, EvolutionConfig.EvolutionDroneConfig.DronesOnSphereRandomRadius);
+                var orientation = EvolutionConfig.MatchConfig.OrientationForStartLocation(randomPlacement);
+                var ship = Instantiate(dronePrefab, randomPlacement, orientation);
+                ship.tag = droneTag;
+
+                ship.velocity = EvolutionConfig.MatchConfig.VelocityForStartLocation(randomPlacement);
+
+                var knower = ship.GetComponent<IKnowsEnemyTags>();
+                if (knower != null) knower.KnownEnemyTags = enemyTags;
+            }
+        }
+
+        private Rigidbody SelectDrone(int index)
+        {
+            var droneIndex = EvolutionConfig.EvolutionDroneConfig.Drones.Any()
+                ? EvolutionConfig.EvolutionDroneConfig.Drones[index % EvolutionConfig.EvolutionDroneConfig.Drones.Count]
+                : index % DroneList.Modules.Count;
+            var dronePrefab = DroneList.Modules[droneIndex];
+            return dronePrefab;
+        }
+
+        /// <summary>
+        /// Updates the score based on the remaining ships.
+        /// Returns a true if the match is over because one team is wiped out.
+        /// </summary>
+        /// <returns>Match is over boolean</returns>
+        private bool IsMatchOver()
+        {
+            //Debug.Log("IsMatchOver");
+            if (_matchControl.ShouldPollForWinners())
+            {
+                var tags = ListShips()
+                    .Select(s => s.tag);
+
+                var shipCount = tags.Count(t => t == ShipConfig.Tags[SHIP_INDEX]);
+                var droneCount = tags.Count(t => t == ShipConfig.Tags[DRONES_INDEX]);
+
+                _dronesRemain = droneCount > 0;
+                _stillAlive = _hasModules && shipCount > 0; //ships that never had modules are considered dead.
+                if (!_hasModules)
+                {
+                    Debug.Log("Ship spawned no modules - it is dead to me.");
+                }
+
+                var killedDrones = _previousDroneCount - droneCount;
+
+                //Debug.Log(shipCount + " ship modules, " + droneCount + " drones still alive. (" + _previousDroneCount + " prev) " + _genome);
+                if (killedDrones > 0)
+                {
+                    _killsThisMatch += killedDrones;
+                    var scorePerKill = (_matchControl.RemainingTime() * EvolutionConfig.EvolutionDroneConfig.KillScoreMultiplier) + EvolutionConfig.EvolutionDroneConfig.FlatKillBonus;
+                    //Debug.Log(killedDrones + " drones killed this interval for " + scorePerKill + " each.");
+                    CurrentScore += killedDrones * scorePerKill;
+                }
+                _previousDroneCount = droneCount;
+
+                return !_stillAlive || !_dronesRemain;
+            }
+            return false;
+        }
+
+        private void ReadInGenerationDrone()
+        {
+            _currentGeneration = _dbHandlerDrone.ReadGeneration(DatabaseId, EvolutionConfig.GenerationNumber);
+
+            if (_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
+            {
+                //The current generation does not exist - create a new random generation.
+                CreateNewGenerationDrone(null);
+            }
+            else if (_currentGeneration.MinimumMatchesPlayed >= EvolutionConfig.MinMatchesPerIndividual)
+            {
+                //the current generation is finished - create a new generation
+                var winners = _currentGeneration.PickWinners(EvolutionConfig.WinnersFromEachGeneration);
+
+                EvolutionConfig.GenerationNumber++;
+
+                CreateNewGenerationDrone(winners);
+            }
+            //Debug.Log("_currentGeneration: " + _currentGeneration);
+        }
+
+        /// <summary>
+        /// Creates and saves a new generation in the database.
+        /// If winners are provided, the new generation will be mutatnts of those.
+        /// If no winners are provided, the generation number will be reset to 0, and a new default generation will be created.
+        /// The current generation is set to the generation that is created.
+        /// </summary>
+        /// <param name="winners"></param>
+        private Generation CreateNewGenerationDrone(IEnumerable<string> winners)
+        {
+            if (winners != null && winners.Any())
+            {
+                _currentGeneration = new Generation(_mutationControl.CreateGenerationOfMutants(winners.ToList()));
+            }
+            else
+            {
+                Debug.Log("Generating generation from default genomes");
+                _currentGeneration = new Generation(_mutationControl.CreateDefaultGeneration());
+                EvolutionConfig.GenerationNumber = 0;   //it's always generation 0 for a default genteration.
+            }
+
+            _dbHandlerDrone.SaveNewGeneration(_currentGeneration, DatabaseId, EvolutionConfig.GenerationNumber);
+            _dbHandlerDrone.SetCurrentGenerationNumber(DatabaseId, EvolutionConfig.GenerationNumber);
+
+            return _currentGeneration;
         }
         #endregion
 

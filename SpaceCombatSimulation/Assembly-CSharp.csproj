@@ -107,7 +107,9 @@
     <Compile Include="Assets\Src\Evolution\EvolutionMatchController.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionMutationWrapper.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionShipConfig.cs" />
+    <Compile Include="Assets\Src\Evolution\Generation.cs" />
     <Compile Include="Assets\Src\Evolution\GenomeWrapper.cs" />
+    <Compile Include="Assets\Src\Evolution\Individual.cs" />
     <Compile Include="Assets\Src\Evolution\MatchConfig.cs" />
     <Compile Include="Assets\Src\Evolution\MatchOutcome.cs" />
     <Compile Include="Assets\Src\Evolution\MatchRecord.cs" />
