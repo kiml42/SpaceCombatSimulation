@@ -9,14 +9,14 @@ namespace Assets.Src.Evolution
         #region General
         private readonly Random _rng = new Random();
 
-        private List<Individual> _individuals { get; }
+        public List<Individual> Individuals { get; }
 
         public int CountIndividuals()
         {
-            return _individuals.Count();
+            return Individuals.Count();
         }
 
-        public IEnumerable<SpeciesSummary> Summaries { get { return _individuals.Select(i => i.Summary); } }
+        public IEnumerable<SpeciesSummary> Summaries { get { return Individuals.Select(i => i.Summary); } }
 
         public Generation()
         {
@@ -44,18 +44,18 @@ namespace Assets.Src.Evolution
             {
                 AddGenome(genome);
             }
-            return _individuals.Count();
+            return Individuals.Count();
         }
 
         /// <summary>
         /// The lowest number of matches played by any individual
         /// </summary>
         /// <returns></returns>
-        public int MinimumMatchesPlayed { get { return _individuals.Min(i => i.MatchesPlayed); } }
+        public int MinimumMatchesPlayed { get { return Individuals.Min(i => i.MatchesPlayed); } }
 
-        public float MinScore { get { return _individuals.Min(i => i.Score); } }
-        public float AvgScore { get { return _individuals.Average(i => i.Score); } }
-        public float MaxScore { get { return _individuals.Max(i => i.Score); } }
+        public float MinScore { get { return Individuals.Min(i => i.Score); } }
+        public float AvgScore { get { return Individuals.Average(i => i.Score); } }
+        public float MaxScore { get { return Individuals.Max(i => i.Score); } }
 
         /// <summary>
         /// Picks the given number of individuals with the best scores.
@@ -64,8 +64,8 @@ namespace Assets.Src.Evolution
         /// <returns>List of genomes</returns>
         public IEnumerable<string> PickWinners(int WinnersCount)
         {
-            var minScore = _individuals.Min(i => i.Score);
-            return _individuals.OrderByDescending(i =>
+            var minScore = Individuals.Min(i => i.Score);
+            return Individuals.OrderByDescending(i =>
             {
                 var randomNumber = _rng.NextDouble();
                 return (1 + i.AverageScore - minScore) * randomNumber;
@@ -74,7 +74,7 @@ namespace Assets.Src.Evolution
 
         public override string ToString()
         {
-            return string.Join(Environment.NewLine, _individuals.Select(i => i.ToString()).ToArray());
+            return string.Join(Environment.NewLine, Individuals.Select(i => i.ToString()).ToArray());
         }
         
         /// <summary>
@@ -85,11 +85,11 @@ namespace Assets.Src.Evolution
         /// <returns>Successfully added - false id genome already present.</returns>
         public bool AddGenome(string genome)
         {
-            if (_individuals.Any(i => i.Genome == genome))
+            if (Individuals.Any(i => i.Genome == genome))
             {
                 return false;
             }
-            _individuals.Add(new Individual(genome));
+            Individuals.Add(new Individual(genome));
             return true;
         }
 
@@ -105,7 +105,7 @@ namespace Assets.Src.Evolution
         /// <param name="outcome">Indicator of how the individual did against the others</param>
         public void RecordMatch(GenomeWrapper contestant, float finalScore, bool survived, bool killedAllDrones, int killedDrones, List<string> allCompetitors, MatchOutcome outcome)
         {
-            var individual = _individuals.First(i => i.Genome == contestant.Genome);
+            var individual = Individuals.First(i => i.Genome == contestant.Genome);
             individual.Finalise(contestant);
             individual.RecordMatch(finalScore, survived, killedAllDrones, killedDrones, allCompetitors, outcome);
         }
@@ -121,7 +121,7 @@ namespace Assets.Src.Evolution
         /// <returns>genome of a competetor from this generation</returns>
         private string PickCompetitor(List<string> competitorsAlreadyInMatch)
         {
-            List<Individual> validCompetitors = _individuals
+            List<Individual> validCompetitors = Individuals
                 .Where(i => !competitorsAlreadyInMatch.Contains(i.Genome))
                 .OrderBy(i => i.CountPreviousMatchesAgainst(competitorsAlreadyInMatch))
                 .ThenBy(i => i.MatchesPlayed)
@@ -159,7 +159,7 @@ namespace Assets.Src.Evolution
         /// <returns>genome of a competetor from this generation</returns>
         public string PickCompetitor()
         {
-            List<Individual> validCompetitors= _individuals
+            List<Individual> validCompetitors= Individuals
                 .OrderBy(i => i.MatchesPlayed)
                 .ThenBy(i => _rng.NextDouble())
                 .ToList();
