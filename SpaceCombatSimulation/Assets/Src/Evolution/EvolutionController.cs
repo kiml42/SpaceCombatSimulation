@@ -43,7 +43,6 @@ namespace Assets.Src.Evolution
         #region Drone
         private int _droneKillsSoFar = 0;
         private const int SHIP_INDEX = 0;
-        private const int DRONES_INDEX = 1;
 
         private bool _dronesRemain;
 
@@ -51,6 +50,8 @@ namespace Assets.Src.Evolution
         EvolutionDroneDatabaseHandler _dbHandlerDrone;
 
         public RigidbodyList DroneList;
+        private const int DRONES_INDEX = 1;
+        private readonly List<Transform> _liveDrones = new List<Transform>();
         #endregion
 
         protected IEnumerable<Transform> ListShips()
@@ -81,58 +82,45 @@ namespace Assets.Src.Evolution
             InitDrone();
         }
 
-        public void FixedUpdate()
+        public void Update()
         {
             if (Input.GetKeyUp(KeyCode.Escape))
             {
                 QuitToMainMenu();
             }
+        }
 
+        public void FixedUpdate()
+        {
             //Debug.Log("IsMatchOver");
             if (_matchControl.ShouldPollForWinners())
             {
                 ProcessDefeatedShips();
-
                 AddRaceScores();
 
                 var matchOver = false;
 
-                var tags = ListShips().Select(s => s.tag);
-
-                var droneCount = tags.Count(t => t == ShipConfig.Tags[DRONES_INDEX]);
-
-                _dronesRemain = droneCount > 0;
+                var currentDroneCount = CountLiveDrones();             
+                _dronesRemain = currentDroneCount > 0;
+                var killedDrones = _previousDroneCount - currentDroneCount;
+                _previousDroneCount = currentDroneCount;
                 
                 //TODO reimplement ending early if no ships have any modules
-
-                var killedDrones = _previousDroneCount - droneCount;
-
-                //Debug.Log(shipCount + " ship modules, " + droneCount + " drones still alive. (" + _previousDroneCount + " prev) " + _genome);
-                if (killedDrones > 0)
-                {
-                    _droneKillsSoFar += killedDrones;
-                    var scorePerKill = (_matchControl.RemainingTime() * EvolutionConfig.EvolutionDroneConfig.KillScoreMultiplier) + EvolutionConfig.EvolutionDroneConfig.FlatKillBonus;
-                    //Debug.Log(killedDrones + " drones killed this interval for " + scorePerKill + " each.");
-                    var scoreForDroneKills = killedDrones * scorePerKill;
-                    foreach (var teamTag in _extantTeams.Keys)
-                    {
-                        AddScore(teamTag, scoreForDroneKills);
-                    }
-                }
-
-                _previousDroneCount = droneCount;
                 
                 if (_extantTeams.Count == 0)
                 {
                     //everyone's dead
                     matchOver = true;
                 }
-
-                if (_matchControl.IsOutOfTime())
+                else
                 {
-                    //time over - draw
-                    AddScoreSurvivingIndividualsAtTheEnd();
-                    matchOver = true;
+                    AddScoresForKilledDrones(killedDrones);
+                    if (_matchControl.IsOutOfTime())
+                    {
+                        //time over - draw
+                        AddScoreSurvivingIndividualsAtTheEnd();
+                        matchOver = true;
+                    }
                 }
 
                 if (matchOver)
@@ -160,6 +148,36 @@ namespace Assets.Src.Evolution
                     SceneManager.LoadScene(SceneManager.GetActiveScene().name);
                 }
             }
+        }
+
+        /// <summary>
+        /// Adds the score for the given number of killed drones to every extant team
+        /// </summary>
+        /// <param name="killedDrones"></param>
+        private void AddScoresForKilledDrones(int killedDrones)
+        {
+            if (killedDrones > 0)
+            {
+                _droneKillsSoFar += killedDrones;
+                var scorePerKill = (_matchControl.RemainingTime() * EvolutionConfig.EvolutionDroneConfig.KillScoreMultiplier) + EvolutionConfig.EvolutionDroneConfig.FlatKillBonus;
+                //Debug.Log(killedDrones + " drones killed this interval for " + scorePerKill + " each.");
+                var scoreForDroneKills = killedDrones * scorePerKill;
+                foreach (var teamTag in _extantTeams.Keys)
+                {
+                    AddScore(teamTag, scoreForDroneKills);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns the number of drones that are still alive
+        /// </summary>
+        /// <returns></returns>
+        private int CountLiveDrones()
+        {
+            _liveDrones.RemoveAll(t => t.IsInvalid());
+            var currentDroneCount = _liveDrones.Count;
+            return _liveDrones.Count;
         }
 
         #region BR
@@ -190,6 +208,9 @@ namespace Assets.Src.Evolution
             SpawnShipsBr();
         }
 
+        /// <summary>
+        /// Adds score to each team for every live ship on that team based on how close it is to the race goal.
+        /// </summary>
         private void AddRaceScores()
         {
             if (_raceGoalObject != null && EvolutionConfig.RaceConfig.RaceMaxDistance > 0 && EvolutionConfig.RaceConfig.RaceScoreMultiplier != 0)
@@ -380,7 +401,8 @@ namespace Assets.Src.Evolution
 
             SpawnShipsDrone();
 
-            IsMatchOver();  //TODO find out what bits of this method were needed for initialisation.
+            SpawnDrones();
+
         }
 
         private bool SpawnShipsDrone()
@@ -395,18 +417,20 @@ namespace Assets.Src.Evolution
             Debug.Log(_genomeWrapper.Name + " enters the arena!");
             Debug.Log("Ship cost = " + _genomeWrapper.Cost);
 
-            SpawnDrones();
 
             return _genomeWrapper.ModulesAdded > 0;
         }
 
+        /// <summary>
+        /// Instanciates all the drone prefabs for this match
+        /// </summary>
         private void SpawnDrones()
         {
             var completeKillers = _dbHandlerDrone.CountCompleteKillers(EvolutionConfig.DatabaseId, EvolutionConfig.GenerationNumber);
-            var DroneCount = EvolutionConfig.EvolutionDroneConfig.MinDronesToSpawn + Math.Floor((double)completeKillers * EvolutionConfig.EvolutionDroneConfig.ExtraDromnesPerGeneration);
+            int DroneCount = (int)(EvolutionConfig.EvolutionDroneConfig.MinDronesToSpawn + Math.Floor((double)completeKillers * EvolutionConfig.EvolutionDroneConfig.ExtraDromnesPerGeneration));
             Debug.Log(DroneCount + " drones this match");
 
-            var droneTag = ShipConfig.GetTag(DRONES_INDEX);
+            var droneTag = EvolutionConfig.EvolutionDroneConfig.DroneTag;
             var enemyTags = ShipConfig.Tags.Where(t => t != droneTag).ToList();
 
             for (int i = 0; i < DroneCount; i++)
@@ -416,16 +440,26 @@ namespace Assets.Src.Evolution
 
                 var randomPlacement = EvolutionConfig.MatchConfig.PositionForCompetitor(DRONES_INDEX, 0, EvolutionConfig.EvolutionDroneConfig.DronesInSphereRandomRadius, EvolutionConfig.EvolutionDroneConfig.DronesOnSphereRandomRadius);
                 var orientation = EvolutionConfig.MatchConfig.OrientationForStartLocation(randomPlacement);
-                var ship = Instantiate(dronePrefab, randomPlacement, orientation);
-                ship.tag = droneTag;
+                var drone = Instantiate(dronePrefab, randomPlacement, orientation);
+                drone.tag = droneTag;
 
-                ship.velocity = EvolutionConfig.MatchConfig.VelocityForStartLocation(randomPlacement);
+                drone.velocity = EvolutionConfig.MatchConfig.VelocityForStartLocation(randomPlacement);
 
-                var knower = ship.GetComponent<IKnowsEnemyTags>();
+                var knower = drone.GetComponent<IKnowsEnemyTags>();
                 if (knower != null) knower.KnownEnemyTags = enemyTags;
+
+                _liveDrones.Add(drone.transform);
             }
+
+            _previousDroneCount = DroneCount;
+            _dronesRemain = _previousDroneCount > 0;
         }
 
+        /// <summary>
+        /// Choses the correct drone to spawn for hte given index in the list
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
         private Rigidbody SelectDrone(int index)
         {
             var droneIndex = EvolutionConfig.EvolutionDroneConfig.Drones.Any()

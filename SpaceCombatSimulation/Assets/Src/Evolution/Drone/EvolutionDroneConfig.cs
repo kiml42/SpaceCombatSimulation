@@ -41,6 +41,8 @@ namespace Assets.Src.Evolution
                     
             }
         }
+
+        public string DroneTag = "Enemy"
         #endregion
 
         #region score

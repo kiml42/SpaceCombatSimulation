@@ -95,7 +95,6 @@
     <Compile Include="Assets\Src\Evolution\BattleRoyale\IndividualBr.cs" />
     <Compile Include="Assets\Src\Evolution\Drone\EditDroneConfig.cs" />
     <Compile Include="Assets\Src\Evolution\Drone\EvolutionDroneConfig.cs" />
-    <Compile Include="Assets\Src\Evolution\Drone\EvolutionDroneControler.cs" />
     <Compile Include="Assets\Src\Evolution\Drone\GenerationDrone.cs" />
     <Compile Include="Assets\Src\Evolution\Drone\IndividualDrone.cs" />
     <Compile Include="Assets\Src\Evolution\EditBaseConfig.cs" />
