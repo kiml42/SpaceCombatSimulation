@@ -27,7 +27,7 @@ namespace Assets.Src.Database
                 return connection;
             }
         }
-        private string _databasePath; //Path to database.
+        private readonly string _databasePath; //Path to database.
         private const string MUTATION_CONFIG_TABLE = "MutationConfig";
         private const string MATCH_CONFIG_TABLE = "MatchConfig";
 
@@ -49,8 +49,8 @@ namespace Assets.Src.Database
         { 
             var configs = new Dictionary<int, string>();
 
-            string sqlQuery = "SELECT " + CONFIG_TABLE + ".id, name" + " FROM " + CONFIG_TABLE + 
-                " LEFT JOIN BaseEvolutionConfig on BaseEvolutionConfig.id = " + CONFIG_TABLE + ".id;";
+            string sqlQuery = "SELECT " + MAIN_CONFIG_TABLE + ".id, name" + " FROM " + MAIN_CONFIG_TABLE + 
+                " LEFT JOIN BaseEvolutionConfig on BaseEvolutionConfig.id = " + MAIN_CONFIG_TABLE + ".id;";
 
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -89,7 +89,7 @@ namespace Assets.Src.Database
             }
         }
 
-        #region Autoload
+        #region Auto-load
         public void SetAutoloadId(int? autoloadId)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
@@ -297,7 +297,7 @@ namespace Assets.Src.Database
             }
         }
 
-        protected void SaveBaseIndividual(string runtype, BaseIndividual individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
+        protected void SaveBaseIndividual(string runtype, Individual individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             using (var insertSQL = new SqliteCommand("INSERT INTO BaseIndividual " +
                             "(runType, runConfigId, generation, genome, score, cost, modules, r,g,b, species, speciesVerbose, subspecies, subspeciesVerbose)" +
@@ -432,7 +432,7 @@ namespace Assets.Src.Database
             }
         }
 
-        protected void UpdateBaseEvolutionConfig(BaseEvolutionConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
+        protected void UpdateBaseEvolutionConfig(EvolutionConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             UpdateExistingMatchConfig(config.DatabaseId, config.MatchConfig, sql_con, transaction);
             UpdateExistingMutationConfig(config.DatabaseId, config.MutationConfig, sql_con, transaction);
@@ -609,7 +609,10 @@ namespace Assets.Src.Database
             }
         }
 
-        public abstract BaseGeneration ReadBaseGeneration(int runId, int generationNumber);
+        public Generation ReadBaseGeneration(int runId, int generationNumber)
+        {
+            throw new NotImplementedException();
+        }
 
         #region Br
         protected string CONFIG_TABLE_BR { get { return "BrEvolutionConfig"; } }
@@ -776,7 +779,7 @@ namespace Assets.Src.Database
                     {
                         SaveBaseIndividual(RUN_TYPE_NAME_BR, individual, runId, generationNumber, sql_con, transaction);
 
-                        using (var insertSQL = new SqliteCommand("INSERT INTO " + INDIVIDUAL_TABLE +
+                        using (var insertSQL = new SqliteCommand("INSERT INTO " + INDIVIDUAL_TABLE_BR +
                             " (runConfigId, generation, genome, wins, draws, loses, previousCombatants)" +
                             " VALUES (?,?,?,?,?,?,?)", sql_con, transaction))
                         {
@@ -797,7 +800,7 @@ namespace Assets.Src.Database
             }
         }
 
-        public void UpdateGeneration(GenerationBr generation, int runId, int generationNumber)
+        public void UpdateGeneration(Generation generation, int runId, int generationNumber)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -818,7 +821,7 @@ namespace Assets.Src.Database
         {
             UpdateBaseIndividual(individual, runId, generationNumber, sql_con, transaction);
 
-            using (var insertSQL = new SqliteCommand("UPDATE " + INDIVIDUAL_TABLE +
+            using (var insertSQL = new SqliteCommand("UPDATE " + INDIVIDUAL_TABLE_BR +
                             " SET wins = ?, draws = ?, loses = ?, previousCombatants = ?" +
                             " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction))
             {
@@ -834,33 +837,16 @@ namespace Assets.Src.Database
                 insertSQL.ExecuteNonQuery();
             }
         }
-
-        public override BaseGeneration ReadBaseGeneration(int runId, int generationNumber)
-        {
-            return ReadGeneration(runId, generationNumber);
-        }
         #endregion
 
         #region Drone
 
-        protected override string CONFIG_TABLE { get { return "DroneEvolutionConfig"; } }
-        protected override string INDIVIDUAL_TABLE { get { return "DroneIndividual"; } }
+        protected override string CONFIG_TABLE_DRONE { get { return "DroneEvolutionConfig"; } }
+        protected override string INDIVIDUAL_TABLE_DRONE { get { return "DroneIndividual"; } }
 
-        protected override string RUN_TYPE_NAME { get { return "drone"; } }
+        protected override string RUN_TYPE_NAME_DRONE { get { return "drone"; } }
 
-        public EvolutionDroneDatabaseHandler(string databasePath, string dbCreationCommandPath) : base(databasePath, dbCreationCommandPath)
-        {
-        }
-
-        public EvolutionDroneDatabaseHandler(string databasePath) : base(databasePath)
-        {
-        }
-
-        public EvolutionDroneDatabaseHandler() : base()
-        {
-        }
-
-        public EvolutionDroneConfig ReadConfig(int id)
+        public EvolutionDroneConfig ReadConfigDrone(int id)
         {
             var config = new EvolutionDroneConfig();
 
@@ -914,7 +900,7 @@ namespace Assets.Src.Database
             using (var sql_con = new SqliteConnection(_connectionString))
             {
                 string sqlQuery = "SELECT completeKills" +
-                        " FROM " + INDIVIDUAL_TABLE +
+                        " FROM " + INDIVIDUAL_TABLE_DRONE +
                         " WHERE runConfigId = " + id +
                         " AND generation < " + currentGeneration +
                         " AND completeKills > 0 ;";
@@ -1022,10 +1008,10 @@ namespace Assets.Src.Database
             return config.DatabaseId;
         }
 
-        public GenerationDrone ReadGeneration(int runId, int generationNumber)
+        public Generation ReadGeneration(int runId, int generationNumber)
         {
             //Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);
-            var generation = new GenerationDrone();
+            var generation = new Generation();
             using (var sql_con = new SqliteConnection(_connectionString))
             {
                 using (var reader = OpenReaderWithCommand(sql_con, CreateReadIndividualsQuery(INDIVIDUAL_TABLE, runId, generationNumber)))
@@ -1051,7 +1037,7 @@ namespace Assets.Src.Database
             return generation;
         }
 
-        public void SaveNewGeneration(GenerationDrone generation, int runId, int generationNumber)
+        public void SaveNewGenerationDrone(Generation generation, int runId, int generationNumber)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -1084,7 +1070,7 @@ namespace Assets.Src.Database
             }
         }
 
-        public void UpdateGeneration(GenerationDrone generation, int runId, int generationNumber)
+        public void UpdateGeneration(Generation generation, int runId, int generationNumber)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -1122,11 +1108,6 @@ namespace Assets.Src.Database
 
                 insertSQL.ExecuteNonQuery();
             }
-        }
-
-        public override BaseGeneration ReadBaseGeneration(int runId, int generationNumber)
-        {
-            return ReadGeneration(runId, generationNumber);
         }
         #endregion
     }
