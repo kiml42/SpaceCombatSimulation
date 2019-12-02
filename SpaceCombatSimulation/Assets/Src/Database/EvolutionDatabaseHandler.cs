@@ -34,6 +34,7 @@ namespace Assets.Src.Database
         private const string MUTATION_CONFIG_TABLE = "MutationConfig";
         private const string MATCH_CONFIG_TABLE = "MatchConfig";
 
+        #region General Methods
         public EvolutionDatabaseHandler(string databasePath = DEFAULT_DB_PATH, string dbCreationCommandPath = DEFAULT_CREATE_DB_COMMAND_PATH)
         {
             _databasePath = databasePath;
@@ -49,10 +50,10 @@ namespace Assets.Src.Database
         }
 
         public Dictionary<int, string> ListConfigs()
-        { 
+        {
             var configs = new Dictionary<int, string>();
 
-            string sqlQuery = "SELECT " + MAIN_CONFIG_TABLE + ".id, name" + " FROM " + MAIN_CONFIG_TABLE + 
+            string sqlQuery = "SELECT " + MAIN_CONFIG_TABLE + ".id, name" + " FROM " + MAIN_CONFIG_TABLE +
                 " LEFT JOIN BaseEvolutionConfig on BaseEvolutionConfig.id = " + MAIN_CONFIG_TABLE + ".id;";
 
             using (var sql_con = new SqliteConnection(_connectionString))
@@ -122,7 +123,8 @@ namespace Assets.Src.Database
                         if (reader.Read())
                         {
                             idToLoad = GetNullableInt(reader, "autoloadId");
-                        } else
+                        }
+                        else
                         {
                             Debug.Log("There are no rows in the main config table, there should be exactly 1");
                         }
@@ -235,6 +237,39 @@ namespace Assets.Src.Database
                     GetValueForNullableStringField(reader, "subspecies"),
                     GetValueForNullableStringField(reader, "subspeciesVerbose")
                 );
+        }
+
+        public Generation ReadGenerationBR(int runId, int generationNumber)
+        {
+            //Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);
+            var lines = new List<string>();
+            using (var sql_con = new SqliteConnection(_connectionString))
+            {
+                using (var reader = OpenReaderWithCommand(sql_con, CreateReadIndividualsQuery(INDIVIDUAL_TABLE, runId, generationNumber)))
+                {
+                    while (reader.Read())
+                    {
+                        //Debug.Log("wins ordinal: " + reader.GetOrdinal("wins"));
+                        var individual = new Individual(ReadSpeciesSummary(reader))
+                        {
+                            Score = reader.GetFloat(reader.GetOrdinal("score")),
+                            Wins = reader.GetInt32(reader.GetOrdinal("wins")),
+                            Loses = reader.GetInt32(reader.GetOrdinal("loses")),
+                            Draws = reader.GetInt32(reader.GetOrdinal("draws")),
+                            PreviousCombatantsString = GetValueForNullableStringField(reader, "previousCombatants"),
+
+                            MatchesPlayed = reader.GetInt32(reader.GetOrdinal("matchesPlayed")),
+                            MatchesSurvived = reader.GetInt32(reader.GetOrdinal("matchesSurvived")),
+                            KilledAllDrones = reader.GetInt32(reader.GetOrdinal("completeKills")),
+                            TotalDroneKills = reader.GetInt32(reader.GetOrdinal("totalKills")),
+                            MatchScoresString = reader.GetString(reader.GetOrdinal("matchScores"))
+                        };
+                        lines.Add(individual.Genome);
+                    }
+                }
+            }
+
+            return new Generation(lines);
         }
         #endregion
 
@@ -498,7 +533,7 @@ namespace Assets.Src.Database
                 deleteSQL.ExecuteNonQuery();
             }
         }
-        
+
         private void DeleteMutationConfig(int databaseId, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             using (var deleteSQL = new SqliteCommand("DELETE FROM MutationConfig WHERE id = ?;", sql_con, transaction))
@@ -555,7 +590,7 @@ namespace Assets.Src.Database
             }
         }
         #endregion
-        
+
         #region null handlers
         protected static int? GetNullableInt(IDataReader reader, string name)
         {
@@ -613,11 +648,11 @@ namespace Assets.Src.Database
         public Generation ReadBaseGeneration(int runId, int generationNumber)
         {
             throw new NotImplementedException();
-        }
+        } 
+        #endregion
 
         #region Br
-        
-        public EvolutionBrConfig ReadConfig(int id)
+        public EvolutionBrConfig ReadConfigBr(int id)
         {
             var config = new EvolutionBrConfig();
 
@@ -660,7 +695,7 @@ namespace Assets.Src.Database
             return config;
         }
 
-        public int UpdateExistingConfig(EvolutionBrConfig config)
+        public int UpdateExistingConfigBr(EvolutionBrConfig config)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
             {
@@ -736,33 +771,6 @@ namespace Assets.Src.Database
             }
 
             return config.DatabaseId;
-        }
-
-        public Generation ReadGeneration(int runId, int generationNumber)
-        {
-            //Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);
-            var lines = new List<string>();
-            using (var sql_con = new SqliteConnection(_connectionString))
-            {
-                using (var reader = OpenReaderWithCommand(sql_con, CreateReadIndividualsQuery(INDIVIDUAL_TABLE_BR, runId, generationNumber)))
-                {
-                    while (reader.Read())
-                    {
-                        //Debug.Log("wins ordinal: " + reader.GetOrdinal("wins"));
-                        var individual = new IndividualBr(ReadSpeciesSummary(reader))
-                        {
-                            Score = reader.GetFloat(reader.GetOrdinal("score")),
-                            Wins = reader.GetInt32(reader.GetOrdinal("wins")),
-                            Loses = reader.GetInt32(reader.GetOrdinal("loses")),
-                            Draws = reader.GetInt32(reader.GetOrdinal("draws")),
-                            PreviousCombatantsString = GetValueForNullableStringField(reader, "previousCombatants")
-                        };
-                        lines.Add(individual.Genome);
-                    }
-                }
-            }
-
-            return new Generation(lines);
         }
 
         public void SaveNewGeneration(Generation generation, int runId, int generationNumber)
@@ -1001,35 +1009,6 @@ namespace Assets.Src.Database
             return config.DatabaseId;
         }
 
-        public Generation ReadGeneration(int runId, int generationNumber)
-        {
-            //Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);
-            var generation = new Generation();
-            using (var sql_con = new SqliteConnection(_connectionString))
-            {
-                using (var reader = OpenReaderWithCommand(sql_con, CreateReadIndividualsQuery(INDIVIDUAL_TABLE, runId, generationNumber)))
-                {
-                    while (reader.Read())
-                    {
-                        //Debug.Log("genome ordinal: " + reader.GetOrdinal("genome"));  //-1
-                        var individual = new IndividualDrone(ReadSpeciesSummary(reader))
-                        {
-                            Score = reader.GetFloat(reader.GetOrdinal("score")),
-                            MatchesPlayed = reader.GetInt32(reader.GetOrdinal("matchesPlayed")),
-                            MatchesSurvived = reader.GetInt32(reader.GetOrdinal("matchesSurvived")),
-                            CompleteKills = reader.GetInt32(reader.GetOrdinal("completeKills")),
-                            TotalKills = reader.GetInt32(reader.GetOrdinal("totalKills")),
-                            MatchScoresString = reader.GetString(reader.GetOrdinal("matchScores"))
-                        };
-
-                        generation.Individuals.Add(individual);
-                    }
-                }
-            }
-
-            return generation;
-        }
-
         public void SaveNewGenerationDrone(Generation generation, int runId, int generationNumber)
         {
             using (var sql_con = new SqliteConnection(_connectionString))
@@ -1051,8 +1030,8 @@ namespace Assets.Src.Database
                             insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
                             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesPlayed));
                             insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesSurvived));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.CompleteKills));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.TotalKills));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.KilledAllDrones));
+                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.TotalDroneKills));
                             insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.MatchScoresString));
 
                             insertSQL.ExecuteNonQuery();

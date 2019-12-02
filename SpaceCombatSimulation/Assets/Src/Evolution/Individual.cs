@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Assets.Src.Evolution
@@ -17,7 +18,60 @@ namespace Assets.Src.Evolution
 
         public float Score { get; set; }
 
+        public List<float> MatchScores = new List<float>();
+
+        public string MatchScoresString
+        {
+            get
+            {
+                return string.Join(",", MatchScores.Select(s => s.ToString()).ToArray());
+            }
+            set
+            {
+                //Debug.Log("Parsing '" + value + "' into match scores list.");
+                if (!string.IsNullOrEmpty(value))
+                {
+                    var parts = value.Split(',');
+                    MatchScores = parts.Select(s => float.Parse(s)).ToList();
+                }
+            }
+        }
+
         public int MatchesPlayed { get; set; }
+
+        public int MatchesSurvived;
+
+        /// <summary>
+        /// matches in which this survived and noone else did.
+        /// (Drones may have survived)
+        /// </summary>
+        public int MatchesAsLastSurvivor;
+
+        [Obsolete("Use MatchesAsLastSurvivor instead")]
+        public int Wins { get
+            {
+                return MatchesAsLastSurvivor;
+            }
+            set
+            {
+                MatchesAsLastSurvivor = value;
+            }
+        }
+
+        public int Draws { get
+            {
+                return MatchesSurvived - MatchesAsLastSurvivor;
+            }
+        }
+
+        /// <summary>
+        /// matches in which this one died
+        /// </summary>
+        public int Loses { get
+            {
+                return MatchesPlayed - MatchesSurvived;
+            }
+        }
 
         public float AverageScore
         {
@@ -72,8 +126,8 @@ namespace Assets.Src.Evolution
                     Score.ToString(),
                     MatchesPlayed.ToString(),
                     MatchesSurvived.ToString(),
-                    CompleteKills.ToString(),
-                    TotalKills.ToString(),
+                    KilledAllDrones.ToString(),
+                    TotalDroneKills.ToString(),
                     matchScores,
                     competitorsString
                 };
@@ -89,42 +143,32 @@ namespace Assets.Src.Evolution
         /// <param name="killedAllDrones">True if all the drones were killed in this match</param>
         /// <param name="dronesKilledThisMatch">The number of drones killed in this match</param>
         /// <param name="allCompetitors">All the individuals' genomes in the match</param>
-        /// <param name="outcome">Indicator of how the individual did against the others</param>
-        public void RecordMatch(float finalScore, bool survived, bool killedAllDrones, int dronesKilledThisMatch, List<string> allCompetitors, MatchOutcome outcome)
+        /// <param name="lastSurvivor">True if this one survived and no others did</param>
+        public void RecordMatch(float finalScore, bool survived, bool killedAllDrones, int dronesKilledThisMatch, List<string> allCompetitors, bool lastSurvivor)
         {
             PreviousCombatants.AddRange(allCompetitors.Where(g => !string.IsNullOrEmpty(g) && g != Genome));
-            switch (outcome)
-            {
-                case MatchOutcome.Win:
-                    Wins++;
-                    break;
-                case MatchOutcome.Draw:
-                    Draws++;
-                    break;
-                case MatchOutcome.Loss:
-                    Loses++;
-                    break;
-            }
+
             Score += finalScore;
 
-            TotalKills += dronesKilledThisMatch;
+            TotalDroneKills += dronesKilledThisMatch;
             MatchesPlayed++;
             if (survived)
             {
                 MatchesSurvived++;
             }
+            if (lastSurvivor)
+            {
+                MatchesAsLastSurvivor++;
+            }
             if (killedAllDrones)
             {
-                CompleteKills++;
+                KilledAllDrones++;
             }
             MatchScores.Add(finalScore);
         }
         #endregion
 
         #region BR
-        public int Wins { get; set; }
-        public int Draws { get; set; }
-        public int Loses { get; set; }
 
         public List<string> PreviousCombatants = new List<string>();
         
@@ -159,27 +203,15 @@ namespace Assets.Src.Evolution
         #endregion
 
         #region Drone
-        public int MatchesSurvived;
-        public int CompleteKills;
-        public int TotalKills;
-        public List<float> MatchScores = new List<float>();
+        /// <summary>
+        /// Number of matches in which all the drones were dead before this team died
+        /// </summary>
+        public int KilledAllDrones;
 
-        public string MatchScoresString
-        {
-            get
-            {
-                return string.Join(",", MatchScores.Select(s => s.ToString()).ToArray());
-            }
-            set
-            {
-                //Debug.Log("Parsing '" + value + "' into match scores list.");
-                if (!string.IsNullOrEmpty(value))
-                {
-                    var parts = value.Split(',');
-                    MatchScores = parts.Select(s => float.Parse(s)).ToList();
-                }
-            }
-        }
+        /// <summary>
+        /// Total number of drones killed while this individual was alive.
+        /// </summary>
+        public int TotalDroneKills;
         #endregion
     }
 }

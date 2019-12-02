@@ -87,7 +87,10 @@ CREATE TABLE MutationConfig (
 CREATE TABLE Individual (
 	runConfigId INTEGER REFERENCES BaseEvolutionConfig (id) ON DELETE CASCADE NOT NULL,
 	generation INTEGER NOT NULL, genome VARCHAR (1000) NOT NULL,
+
 	score FLOAT NOT NULL, cost FLOAT,
+	matchScores VARCHAR (500),
+
 	modules INTEGER,
 	r FLOAT NOT NULL, g FLOAT NOT NULL, b FLOAT NOT NULL,
 	species VARCHAR (1000),
@@ -98,13 +101,10 @@ CREATE TABLE Individual (
 
 	matchesPlayed INTEGER,
 	matchesSurvived INTEGER,
-	completeKills INTEGER,
-	totalKills INTEGER,
-	matchScores VARCHAR (500),
+	matchesAsLastSurvivor INTEGER,
+	KilledAllDrones INTEGER,
+	TotalDroneKills INTEGER,
 
-	wins INTEGER NOT NULL,
-	draws INTEGER NOT NULL,
-	loses INTEGER NOT NULL,
 	previousCombatants VARCHAR (500),
 );
 
