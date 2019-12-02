@@ -74,16 +74,18 @@ namespace Assets.Src.Database
 
         public void SetCurrentGenerationNumber(int databaseId, int generationNumber)
         {
-            using var sql_con = new SqliteConnection(ConnectionString);
-            sql_con.Open();
-
-            //Debug.Log("Updating generation to " + config.GenerationNumber);
-            using (var command = new SqliteCommand("UPDATE BaseEvolutionConfig SET currentGeneration = ? WHERE id = ?;", sql_con))
+            using (var sql_con = new SqliteConnection(ConnectionString))
             {
-                command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
-                command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
+                sql_con.Open();
 
-                command.ExecuteNonQuery();
+                //Debug.Log("Updating generation to " + config.GenerationNumber);
+                using (var command = new SqliteCommand("UPDATE BaseEvolutionConfig SET currentGeneration = ? WHERE id = ?;", sql_con))
+                {
+                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
+
+                    command.ExecuteNonQuery();
+            }
             }
         }
 
