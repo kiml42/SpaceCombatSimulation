@@ -82,8 +82,9 @@ CREATE TABLE MutationConfig (
 	defaultGenome VARCHAR (1000)
 );
 
--- Table: BaseIndividual
-CREATE TABLE BaseIndividual (
+
+-- Table: Individual
+CREATE TABLE Individual (
 	runConfigId INTEGER REFERENCES BaseEvolutionConfig (id) ON DELETE CASCADE NOT NULL,
 	generation INTEGER NOT NULL, genome VARCHAR (1000) NOT NULL,
 	score FLOAT NOT NULL, cost FLOAT,

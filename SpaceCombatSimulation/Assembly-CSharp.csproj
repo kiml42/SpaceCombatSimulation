@@ -8,7 +8,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <ProjectGuid>{975AB409-05C3-15C3-D7DD-0D0DAF22C92D}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -81,6 +82,7 @@
     <Compile Include="Assets\Src\Controllers\WorldControler.cs" />
     <Compile Include="Assets\Src\Database\DatabaseInitialiser.cs" />
     <Compile Include="Assets\Src\Database\EvolutionBrDatabaseHandler.cs" />
+    <Compile Include="Assets\Src\Database\EvolutionDatabaseHandler.cs" />
     <Compile Include="Assets\Src\Database\EvolutionDroneDatabaseHandler.cs" />
     <Compile Include="Assets\Src\Database\GeneralDatabaseHandler.cs" />
     <Compile Include="Assets\Src\Evolution\ArenaRecord.cs" />

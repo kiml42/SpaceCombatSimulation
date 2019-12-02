@@ -11,6 +11,9 @@ namespace Assets.Src.Database
     {
         private string CONFIG_TABLE { get; }
         private const string MAIN_CONFIG_TABLE = "MainConfig";
+        private const string CONFIG_TABLE_BR = "BrEvolutionConfig";
+        private const string CONFIG_TABLE_DRONE = "DroneEvolutionConfig";
+
         private string INDIVIDUAL_TABLE { get; }
 
         public const string DEFAULT_CREATE_DB_COMMAND_PATH = "/CreateBlankDatabase.sql";
@@ -74,18 +77,16 @@ namespace Assets.Src.Database
 
         public void SetCurrentGenerationNumber(int databaseId, int generationNumber)
         {
-            using (var sql_con = new SqliteConnection(_connectionString))
+            using var sql_con = new SqliteConnection(_connectionString);
+            sql_con.Open();
+
+            //Debug.Log("Updating generation to " + config.GenerationNumber);
+            using (var command = new SqliteCommand("UPDATE BaseEvolutionConfig SET currentGeneration = ? WHERE id = ?;", sql_con))
             {
-                sql_con.Open();
+                command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
+                command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
 
-                //Debug.Log("Updating generation to " + config.GenerationNumber);
-                using (var command = new SqliteCommand("UPDATE BaseEvolutionConfig SET currentGeneration = ? WHERE id = ?;", sql_con))
-                {
-                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
-                    command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
-
-                    command.ExecuteNonQuery();
-                }
+                command.ExecuteNonQuery();
             }
         }
 
@@ -615,9 +616,6 @@ namespace Assets.Src.Database
         }
 
         #region Br
-        protected string CONFIG_TABLE_BR { get { return "BrEvolutionConfig"; } }
-        protected string INDIVIDUAL_TABLE_BR { get { return "BrIndividual"; } }
-        protected string RUN_TYPE_NAME_BR { get { return "Battle Royale"; } }
         
         public EvolutionBrConfig ReadConfig(int id)
         {
@@ -840,12 +838,7 @@ namespace Assets.Src.Database
         #endregion
 
         #region Drone
-
-        protected override string CONFIG_TABLE_DRONE { get { return "DroneEvolutionConfig"; } }
-        protected override string INDIVIDUAL_TABLE_DRONE { get { return "DroneIndividual"; } }
-
-        protected override string RUN_TYPE_NAME_DRONE { get { return "drone"; } }
-
+        
         public EvolutionDroneConfig ReadConfigDrone(int id)
         {
             var config = new EvolutionDroneConfig();
