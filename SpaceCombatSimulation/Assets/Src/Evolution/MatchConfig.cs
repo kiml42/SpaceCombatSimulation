@@ -37,6 +37,9 @@ namespace Assets.Src.Evolution
         /// </summary>
         public float RandomInitialSpeed = 0;
         
+        public float OnSphereRandomisationRadius = 50;
+        public float InSphereRandomisationRadius = 0;
+
         public int CompetitorsPerTeam = 1;
 
         /// <summary>

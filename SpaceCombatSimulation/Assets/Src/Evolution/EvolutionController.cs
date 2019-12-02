@@ -469,27 +469,6 @@ namespace Assets.Src.Evolution
             return dronePrefab;
         }
 
-        private void ReadInGenerationDrone()
-        {
-            _currentGeneration = _dbHandlerDrone.ReadGeneration(DatabaseId, EvolutionConfig.GenerationNumber);
-
-            if (_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
-            {
-                //The current generation does not exist - create a new random generation.
-                CreateNewGenerationDrone(null);
-            }
-            else if (_currentGeneration.MinimumMatchesPlayed >= EvolutionConfig.MinMatchesPerIndividual)
-            {
-                //the current generation is finished - create a new generation
-                var winners = _currentGeneration.PickWinners(EvolutionConfig.WinnersFromEachGeneration);
-
-                EvolutionConfig.GenerationNumber++;
-
-                CreateNewGenerationDrone(winners);
-            }
-            //Debug.Log("_currentGeneration: " + _currentGeneration);
-        }
-
         /// <summary>
         /// Creates and saves a new generation in the database.
         /// If winners are provided, the new generation will be mutatnts of those.

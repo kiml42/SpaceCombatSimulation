@@ -15,7 +15,7 @@ VALUES (null);
 
 
 -- Table: BaseEvolutionConfig
-CREATE TABLE BaseEvolutionConfig (
+CREATE TABLE EvolutionConfig (
 	id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 	name VARCHAR (50) NOT NULL ON CONFLICT REPLACE DEFAULT Unnamed,
 	currentGeneration INTEGER DEFAULT '''0''' NOT NULL,
@@ -32,7 +32,6 @@ CREATE TABLE DroneEvolutionConfig (
 	killScoreMultiplier FLOAT DEFAULT '''1''' NOT NULL,
 	flatKillBonus FLOAT DEFAULT '''100''' NOT NULL,
 	completionBonus FLOAT DEFAULT '''1''' NOT NULL,
-	deathPenalty FLOAT DEFAULT '''70''' NOT NULL,
 	droneList VARCHAR (3000),
 	dronesInSphereRandomRadius INTEGER DEFAULT '''0''' NOT NULL,
 	dronesOnSphereRandomRadius INTEGER DEFAULT '''0''' NOT NULL
@@ -102,8 +101,8 @@ CREATE TABLE Individual (
 	matchesPlayed INTEGER,
 	matchesSurvived INTEGER,
 	matchesAsLastSurvivor INTEGER,
-	KilledAllDrones INTEGER,
-	TotalDroneKills INTEGER,
+	killedAllDrones INTEGER,
+	totalDroneKills INTEGER,
 
 	previousCombatants VARCHAR (500),
 );

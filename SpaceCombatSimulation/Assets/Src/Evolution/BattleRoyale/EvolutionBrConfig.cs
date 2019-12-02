@@ -2,7 +2,7 @@
 
 namespace Assets.Src.Evolution
 {
-    public class EvolutionBrConfig : BaseEvolutionConfig
+    public class EvolutionBrConfig
     {
         #region Combatants
         public const int MAX_COMBATANTS = 6;
@@ -25,9 +25,6 @@ namespace Assets.Src.Evolution
                 _numberOfCombatants = value;
             }
         }
-
-        public float OnSphereRandomisationRadius = 50;
-        public float InSphereRandomisationRadius = 0;
         #endregion
 
         #region Combat Scores

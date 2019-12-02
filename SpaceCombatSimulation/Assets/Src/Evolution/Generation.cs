@@ -33,6 +33,11 @@ namespace Assets.Src.Evolution
             AddGenomes(lines);
         }
 
+        public Generation(List<Individual> individuals)
+        {
+            Individuals = individuals;
+        }
+
         /// <summary>
         /// Adds the given genomes to the generation
         /// </summary>

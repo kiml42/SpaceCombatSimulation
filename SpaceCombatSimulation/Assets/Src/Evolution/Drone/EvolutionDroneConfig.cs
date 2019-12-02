@@ -55,9 +55,6 @@ namespace Assets.Src.Evolution
 
         [Tooltip("Bonus Score for killing everything, timesd by remaining frames")]
         public float CompletionBonus = 100;
-
-        [Tooltip("penalty for dieing, multiplied by remining frames")]
-        public float DeathPenalty = 70;
         #endregion
     }
 }
