@@ -51,15 +51,6 @@ namespace Assets.Src.Evolution
         private readonly List<Transform> _liveDrones = new List<Transform>();
         #endregion
 
-        protected IEnumerable<Transform> ListShips()
-        {
-            return GameObject.FindGameObjectsWithTag(ShipConfig.SpaceShipTag)
-                    .Where(s =>
-                        s.transform.parent != null &&
-                        s.transform.parent.GetComponent<Rigidbody>() != null
-                    ).Select(s => s.transform.parent);
-        }
-
         public GeneralDatabaseHandler DbHandler { get; }
 
         protected BaseEvolutionConfig BaseConfig { get; }
@@ -169,6 +160,48 @@ namespace Assets.Src.Evolution
             }
         }
 
+        public void OnGUI()
+        {
+            GUI.Box(SummaryBox, SummaryText());
+        }
+
+        #region Initial Setup
+        private void ReadInGeneration()
+        {
+            _currentGeneration = _dbHandler.ReadGeneration(DatabaseId, EvolutionConfig.GenerationNumber);
+
+            if (_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
+            {
+                //The current generation does not exist - create a new random generation.
+                CreateNewGeneration(null);
+            }
+            else if (_currentGeneration.MinimumMatchesPlayed >= EvolutionConfig.MinMatchesPerIndividual)
+            {
+                //the current generation is finished - create a new generation
+                var winners = _currentGeneration.PickWinners(EvolutionConfig.WinnersFromEachGeneration);
+
+                EvolutionConfig.GenerationNumber++;
+
+                CreateNewGeneration(winners);
+            }
+            //Debug.Log("_currentGeneration: " + _currentGeneration);
+        }
+
+        private void SpawnRaceGoal()
+        {
+            if (EvolutionConfig.RaceConfig.RaceGoalObject.HasValue && RaceGoals != null && RaceGoals.Modules.Count > EvolutionConfig.RaceConfig.RaceGoalObject.Value)
+            {
+                var goalPrefab = RaceGoals.Modules[EvolutionConfig.RaceConfig.RaceGoalObject.Value];
+                _raceGoalObject = Instantiate(goalPrefab, Vector3.zero, Quaternion.identity);
+                _raceGoalObject.tag = RACE_GAOL_TAG;
+                var health = _raceGoalObject.GetComponent<HealthControler>();
+                if (health != null)
+                {
+                    health.enabled = false;
+                }
+            }
+        }
+
         /// <summary>
         /// Chooses the individuals to compete this match and spawns them.
         /// </summary>
@@ -214,163 +247,6 @@ namespace Assets.Src.Evolution
         }
 
         /// <summary>
-        /// Creates and saves a new generation in the database.
-        /// If winners are provided, the new generation will be mutatnts of those.
-        /// If no winners are provided, the generation number will be reset to 0, and a new default generation will be created.
-        /// The current generation is set to the generation that is created.
-        /// </summary>
-        /// <param name="winners"></param>
-        private Generation CreateNewGeneration(IEnumerable<string> winners)
-        {
-            if (winners != null && winners.Any())
-            {
-                _currentGeneration = new Generation(_mutationControl.CreateGenerationOfMutants(winners.ToList()));
-            }
-            else
-            {
-                Debug.Log("Generating generation from default genomes");
-                _currentGeneration = new Generation(_mutationControl.CreateDefaultGeneration());
-                EvolutionConfig.GenerationNumber = 0;   //it's always generation 0 for a default genteration.
-            }
-
-            _dbHandler.SaveNewGeneration(_currentGeneration, DatabaseId, EvolutionConfig.GenerationNumber);
-            _dbHandler.SetCurrentGenerationNumber(DatabaseId, EvolutionConfig.GenerationNumber);
-
-            return _currentGeneration;
-        }
-
-        /// <summary>
-        /// Adds the score for the given number of killed drones to every extant team
-        /// </summary>
-        /// <param name="killedDrones"></param>
-        private void AddScoresForKilledDrones(int killedDrones)
-        {
-            if (killedDrones > 0)
-            {
-                _droneKillsSoFar += killedDrones;
-                var scorePerKill = (_matchControl.RemainingTime() * EvolutionConfig.EvolutionDroneConfig.KillScoreMultiplier) + EvolutionConfig.EvolutionDroneConfig.FlatKillBonus;
-                //Debug.Log(killedDrones + " drones killed this interval for " + scorePerKill + " each.");
-                var scoreForDroneKills = killedDrones * scorePerKill;
-                foreach (var teamTag in _extantTeams.Keys)
-                {
-                    AddScore(teamTag, scoreForDroneKills);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Returns the number of drones that are still alive
-        /// </summary>
-        /// <returns></returns>
-        private int CountLiveDrones()
-        {
-            _liveDrones.RemoveAll(t => t.IsInvalid());
-            var currentDroneCount = _liveDrones.Count;
-            return _liveDrones.Count;
-        }
-
-        /// <summary>
-        /// Adds score to each team for every live ship on that team based on how close it is to the race goal.
-        /// </summary>
-        private void AddRaceScores()
-        {
-            if (_raceGoalObject != null && EvolutionConfig.RaceConfig.RaceMaxDistance > 0 && EvolutionConfig.RaceConfig.RaceScoreMultiplier != 0)
-            {
-                foreach (var shipTeam in ShipConfig.ShipTeamMapping.Where(kv => kv.Key != null && kv.Key.IsValid()))
-                {
-                    var dist = Vector3.Distance(_raceGoalObject.position, shipTeam.Key.position);
-                    var unscaledScore = (EvolutionConfig.RaceConfig.RaceMaxDistance - dist) / EvolutionConfig.RaceConfig.RaceMaxDistance;
-                    var extraScore = (float)Math.Max(0, unscaledScore * EvolutionConfig.RaceConfig.RaceScoreMultiplier);
-                    //if(extraScore > 0) Debug.Log("Race: Distance: " + dist + ", score: " + extraScore + ", team: " + shipTeam.Value);
-                    AddScore(shipTeam.Value, extraScore);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Works out which individuals are now dead that weren't dead before.
-        /// The dead individuals get their scores updated for having died.
-        /// The _extantTeams list gets updated to only include the teams that are still alive.
-        /// </summary>
-        private void ProcessDefeatedShips()
-        {
-            var tags = ListShips()
-                .Select(s => s.tag)
-                .Distinct();
-            //Debug.Log(tags.Count() + " teams still exist");
-
-            if (tags.Count() < _extantTeams.Count)
-            {
-                //Something's died.
-                var deadGenomes = _extantTeams.Where(kv => !tags.Contains(kv.Key));
-                foreach (var dead in deadGenomes)
-                {
-                    AddScoreForDefeatedIndividual(dead);
-                }
-
-                _extantTeams = _currentGenomes.Where(kv => tags.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
-            }
-        }
-
-        private void AddScoreForDefeatedIndividual(KeyValuePair<string, GenomeWrapper> deadIndividual)
-        {
-            Debug.Log(deadIndividual.Value.Name + " has died");
-            var score = -EvolutionConfig.BrConfig.DeathScoreMultiplier * _extantTeams.Count * _matchControl.RemainingTime();
-            AddScore(deadIndividual.Key, score);
-        }
-
-        private void AddScore(string teamTag, float extraScore)
-        {
-            _teamScores[teamTag] += extraScore;
-        }
-
-        private void AddScoreSurvivingIndividualsAtTheEnd()
-        {
-            Debug.Log("Match over: " + _extantTeams.Count + " survived.");
-            var score = EvolutionConfig.BrConfig.SurvivalBonus / _extantTeams.Count;
-            foreach (var team in _extantTeams)
-            {
-                AddScore(team.Key, score);
-            }
-        }
-
-        private void SpawnRaceGoal()
-        {
-            if (EvolutionConfig.RaceConfig.RaceGoalObject.HasValue && RaceGoals != null && RaceGoals.Modules.Count > EvolutionConfig.RaceConfig.RaceGoalObject.Value)
-            {
-                var goalPrefab = RaceGoals.Modules[EvolutionConfig.RaceConfig.RaceGoalObject.Value];
-                _raceGoalObject = Instantiate(goalPrefab, Vector3.zero, Quaternion.identity);
-                _raceGoalObject.tag = RACE_GAOL_TAG;
-                var health = _raceGoalObject.GetComponent<HealthControler>();
-                if (health != null)
-                {
-                    health.enabled = false;
-                }
-            }
-        }
-
-        private void ReadInGeneration()
-        {
-            _currentGeneration = _dbHandler.ReadGeneration(DatabaseId, EvolutionConfig.GenerationNumber);
-
-            if (_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
-            {
-                //The current generation does not exist - create a new random generation.
-                CreateNewGeneration(null);
-            }
-            else if (_currentGeneration.MinimumMatchesPlayed >= EvolutionConfig.MinMatchesPerIndividual)
-            {
-                //the current generation is finished - create a new generation
-                var winners = _currentGeneration.PickWinners(EvolutionConfig.WinnersFromEachGeneration);
-
-                EvolutionConfig.GenerationNumber++;
-
-                CreateNewGeneration(winners);
-            }
-            //Debug.Log("_currentGeneration: " + _currentGeneration);
-        }
-
-        /// <summary>
         /// Instanciates all the drone prefabs for this match
         /// </summary>
         private void SpawnDrones()
@@ -403,6 +279,32 @@ namespace Assets.Src.Evolution
             _previousDroneCount = DroneCount;
             _dronesRemain = _previousDroneCount > 0;
         }
+        
+        /// <summary>
+        /// Creates and saves a new generation in the database.
+        /// If winners are provided, the new generation will be mutatnts of those.
+        /// If no winners are provided, the generation number will be reset to 0, and a new default generation will be created.
+        /// The current generation is set to the generation that is created.
+        /// </summary>
+        /// <param name="winners"></param>
+        private Generation CreateNewGeneration(IEnumerable<string> winners)
+        {
+            if (winners != null && winners.Any())
+            {
+                _currentGeneration = new Generation(_mutationControl.CreateGenerationOfMutants(winners.ToList()));
+            }
+            else
+            {
+                Debug.Log("Generating generation from default genomes");
+                _currentGeneration = new Generation(_mutationControl.CreateDefaultGeneration());
+                EvolutionConfig.GenerationNumber = 0;   //it's always generation 0 for a default genteration.
+            }
+
+            _dbHandler.SaveNewGeneration(_currentGeneration, DatabaseId, EvolutionConfig.GenerationNumber);
+            _dbHandler.SetCurrentGenerationNumber(DatabaseId, EvolutionConfig.GenerationNumber);
+
+            return _currentGeneration;
+        }
 
         /// <summary>
         /// Choses the correct drone to spawn for hte given index in the list
@@ -417,18 +319,123 @@ namespace Assets.Src.Evolution
             var dronePrefab = DroneList.Modules[droneIndex];
             return dronePrefab;
         }
+        #endregion
 
+        #region Update Methods
         private void QuitToMainMenu()
         {
             DbHandler.SetAutoloadId(null);
             SceneManager.LoadScene(MainMenu);
         }
+        #endregion
 
-        private void OnGUI()
+        #region Fixed Update Methods
+        /// <summary>
+        /// Works out which individuals are now dead that weren't dead before.
+        /// The dead individuals get their scores updated for having died.
+        /// The _extantTeams list gets updated to only include the teams that are still alive.
+        /// </summary>
+        private void ProcessDefeatedShips()
         {
-            GUI.Box(SummaryBox, SummaryText());
+            var tags = ListShips()
+                .Select(s => s.tag)
+                .Distinct();
+            //Debug.Log(tags.Count() + " teams still exist");
+
+            if (tags.Count() < _extantTeams.Count)
+            {
+                //Something's died.
+                var deadGenomes = _extantTeams.Where(kv => !tags.Contains(kv.Key));
+                foreach (var dead in deadGenomes)
+                {
+                    AddScoreForDefeatedIndividual(dead);
+                }
+
+                _extantTeams = _currentGenomes.Where(kv => tags.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
+            }
         }
 
+        /// <summary>
+        /// Adds score to each team for every live ship on that team based on how close it is to the race goal.
+        /// </summary>
+        private void AddRaceScores()
+        {
+            if (_raceGoalObject != null && EvolutionConfig.RaceConfig.RaceMaxDistance > 0 && EvolutionConfig.RaceConfig.RaceScoreMultiplier != 0)
+            {
+                foreach (var shipTeam in ShipConfig.ShipTeamMapping.Where(kv => kv.Key != null && kv.Key.IsValid()))
+                {
+                    var dist = Vector3.Distance(_raceGoalObject.position, shipTeam.Key.position);
+                    var unscaledScore = (EvolutionConfig.RaceConfig.RaceMaxDistance - dist) / EvolutionConfig.RaceConfig.RaceMaxDistance;
+                    var extraScore = (float)Math.Max(0, unscaledScore * EvolutionConfig.RaceConfig.RaceScoreMultiplier);
+                    //if(extraScore > 0) Debug.Log("Race: Distance: " + dist + ", score: " + extraScore + ", team: " + shipTeam.Value);
+                    AddScore(shipTeam.Value, extraScore);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns the number of drones that are still alive
+        /// </summary>
+        /// <returns></returns>
+        private int CountLiveDrones()
+        {
+            _liveDrones.RemoveAll(t => t.IsInvalid());
+            var currentDroneCount = _liveDrones.Count;
+            return _liveDrones.Count;
+        }
+
+        /// <summary>
+        /// Adds the score for the given number of killed drones to every extant team
+        /// </summary>
+        /// <param name="killedDrones"></param>
+        private void AddScoresForKilledDrones(int killedDrones)
+        {
+            if (killedDrones > 0)
+            {
+                _droneKillsSoFar += killedDrones;
+                var scorePerKill = (_matchControl.RemainingTime() * EvolutionConfig.EvolutionDroneConfig.KillScoreMultiplier) + EvolutionConfig.EvolutionDroneConfig.FlatKillBonus;
+                //Debug.Log(killedDrones + " drones killed this interval for " + scorePerKill + " each.");
+                var scoreForDroneKills = killedDrones * scorePerKill;
+                foreach (var teamTag in _extantTeams.Keys)
+                {
+                    AddScore(teamTag, scoreForDroneKills);
+                }
+            }
+        }
+
+        private void AddScoreSurvivingIndividualsAtTheEnd()
+        {
+            Debug.Log("Match over: " + _extantTeams.Count + " survived.");
+            var score = EvolutionConfig.BrConfig.SurvivalBonus / _extantTeams.Count;
+            foreach (var team in _extantTeams)
+            {
+                AddScore(team.Key, score);
+            }
+        }
+
+        protected IEnumerable<Transform> ListShips()
+        {
+            return GameObject.FindGameObjectsWithTag(ShipConfig.SpaceShipTag)
+                    .Where(s =>
+                        s.transform.parent != null &&
+                        s.transform.parent.GetComponent<Rigidbody>() != null
+                    ).Select(s => s.transform.parent);
+        }
+
+        private void AddScoreForDefeatedIndividual(KeyValuePair<string, GenomeWrapper> deadIndividual)
+        {
+            Debug.Log(deadIndividual.Value.Name + " has died");
+            var score = -EvolutionConfig.BrConfig.DeathScoreMultiplier * _extantTeams.Count * _matchControl.RemainingTime();
+            AddScore(deadIndividual.Key, score);
+        }
+
+        private void AddScore(string teamTag, float extraScore)
+        {
+            _teamScores[teamTag] += extraScore;
+        }
+        #endregion
+
+        #region On GUI Methods
         protected virtual string SummaryText()
         {
             var text = "ID: " + DatabaseId + ", Name: " + BaseConfig.RunName + ", Generation: " + BaseConfig.GenerationNumber + Environment.NewLine +
@@ -447,5 +454,6 @@ namespace Assets.Src.Evolution
 
             return text;
         }
+        #endregion
     }
 }
