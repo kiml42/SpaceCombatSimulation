@@ -9,7 +9,7 @@ namespace Assets.src.Evolution
     /// </summary>
     public class GenerationDrone : BaseGeneration
     {
-        private System.Random _rng = new System.Random();
+        private readonly System.Random _rng = new System.Random();
         public List<IndividualDrone> Individuals = new List<IndividualDrone>();
 
         public GenerationDrone()

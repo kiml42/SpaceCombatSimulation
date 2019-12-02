@@ -27,9 +27,7 @@ namespace Assets.Src.Evolution
 
         #region BR
         private Dictionary<string, GenomeWrapper> _currentGenomes;
-
-        EvolutionBrDatabaseHandler _dbHandlerBR;
-
+        
         private Dictionary<string, GenomeWrapper> _extantTeams;
         private Dictionary<string, float> _teamScores;
 
@@ -42,12 +40,11 @@ namespace Assets.Src.Evolution
 
         #region Drone
         private int _droneKillsSoFar = 0;
-        private const int SHIP_INDEX = 0;
 
         private bool _dronesRemain;
 
         private int _previousDroneCount;
-        EvolutionDroneDatabaseHandler _dbHandlerDrone;
+        EvolutionDatabaseHandler _dbHandler;
 
         public RigidbodyList DroneList;
         private const int DRONES_INDEX = 1;
@@ -78,8 +75,31 @@ namespace Assets.Src.Evolution
         public void Start()
         {
             DatabaseId = ArgumentStore.IdToLoad ?? DatabaseId;
-            InitBR();
-            InitDrone();
+
+            _dbHandler = new EvolutionDatabaseHandler();
+
+            EvolutionConfig = _dbHandler.ReadConfig(DatabaseId);
+
+            _dbHandler.SetAutoloadId(DatabaseId);
+
+            if (EvolutionConfig == null || EvolutionConfig.DatabaseId != DatabaseId)
+            {
+                throw new Exception("Did not retrieve expected config from database");
+            }
+
+            _matchControl = gameObject.AddComponent<EvolutionMatchController>();
+
+            _mutationControl.Config = EvolutionConfig.MutationConfig;
+            _matchControl.Config = EvolutionConfig.MatchConfig;
+            ShipConfig.Config = EvolutionConfig.MatchConfig;
+
+            ReadInGeneration();
+
+            SpawnRaceGoal();
+
+            SpawnShips();
+
+            SpawnDrones();
         }
 
         public void Update()
@@ -142,12 +162,81 @@ namespace Assets.Src.Evolution
                         _currentGeneration.RecordMatch(competitor, score, alive, !_dronesRemain, _droneKillsSoFar, AllCompetetrs, outcome);
                     }
 
-                    _dbHandlerDrone.UpdateGeneration(_currentGeneration, DatabaseId, EvolutionConfig.GenerationNumber);
-                    _dbHandlerBR.UpdateGeneration(_currentGeneration, DatabaseId, EvolutionConfig.BrConfig.GenerationNumber);
+                    _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, EvolutionConfig.GenerationNumber);
 
                     SceneManager.LoadScene(SceneManager.GetActiveScene().name);
                 }
             }
+        }
+
+        /// <summary>
+        /// Chooses the individuals to compete this match and spawns them.
+        /// </summary>
+        /// <returns>Boolean indecating that something has at least one module</returns>
+        private bool SpawnShips()
+        {
+            var genomes = _currentGeneration.PickCompetitors(EvolutionConfig.BrConfig.NumberOfCombatants);
+
+            var wrappers = new List<GenomeWrapper>();
+            _currentGenomes = new Dictionary<string, GenomeWrapper>();
+
+            var names = new List<string>();
+
+            var i = 0;
+            foreach (var g in genomes)
+            {
+                string name = "Nemo";
+                for (var j = 0; j < _matchControl.Config.CompetitorsPerTeam; j++)
+                {
+                    var gw = ShipConfig.SpawnShip(g, i, j, EvolutionConfig.MatchConfig.InSphereRandomisationRadius, EvolutionConfig.MatchConfig.OnSphereRandomisationRadius);
+                    wrappers.Add(gw);
+
+                    Debug.Log(gw.Name + " enters the arena!");
+                    Debug.Log("Ship cost = " + gw.Cost);
+
+                    name = gw.Name;
+                    var hasModules = gw.ModulesAdded > 0;
+
+                    _currentGenomes[ShipConfig.GetTag(i)] = gw; //This will only save the last gw, but they should be functionally identical.
+                }
+
+                names.Add(name);
+
+                i++;
+            }
+
+            _extantTeams = _currentGenomes;
+            _teamScores = _currentGenomes.ToDictionary(kv => kv.Key, kv => 0f);
+
+            Debug.Log("\"" + string.Join("\" vs \"", names.ToArray()) + "\"");
+
+            return wrappers.Any(w => w.ModulesAdded > 0);
+        }
+
+        /// <summary>
+        /// Creates and saves a new generation in the database.
+        /// If winners are provided, the new generation will be mutatnts of those.
+        /// If no winners are provided, the generation number will be reset to 0, and a new default generation will be created.
+        /// The current generation is set to the generation that is created.
+        /// </summary>
+        /// <param name="winners"></param>
+        private Generation CreateNewGeneration(IEnumerable<string> winners)
+        {
+            if (winners != null && winners.Any())
+            {
+                _currentGeneration = new Generation(_mutationControl.CreateGenerationOfMutants(winners.ToList()));
+            }
+            else
+            {
+                Debug.Log("Generating generation from default genomes");
+                _currentGeneration = new Generation(_mutationControl.CreateDefaultGeneration());
+                EvolutionConfig.GenerationNumber = 0;   //it's always generation 0 for a default genteration.
+            }
+
+            _dbHandler.SaveNewGeneration(_currentGeneration, DatabaseId, EvolutionConfig.GenerationNumber);
+            _dbHandler.SetCurrentGenerationNumber(DatabaseId, EvolutionConfig.GenerationNumber);
+
+            return _currentGeneration;
         }
 
         /// <summary>
@@ -180,34 +269,6 @@ namespace Assets.Src.Evolution
             return _liveDrones.Count;
         }
 
-        #region BR
-        // Use this for initialization
-        public void InitBR()
-        {
-            _dbHandlerBR = new EvolutionBrDatabaseHandler();
-
-            EvolutionConfig.BrConfig = _dbHandlerBR.ReadConfig(DatabaseId);
-
-            _dbHandlerBR.SetAutoloadId(DatabaseId);
-
-            if (EvolutionConfig.BrConfig == null || EvolutionConfig.BrConfig.DatabaseId != DatabaseId)
-            {
-                throw new Exception("Did not retrieve expected config from database");
-            }
-
-            _matchControl = gameObject.AddComponent<EvolutionMatchController>();
-            
-            _mutationControl.Config = EvolutionConfig.BrConfig.MutationConfig;
-            _matchControl.Config = EvolutionConfig.BrConfig.MatchConfig;
-            ShipConfig.Config = EvolutionConfig.BrConfig.MatchConfig;
-
-            ReadInGeneration();
-
-            SpawnRaceGoal();
-
-            SpawnShipsBr();
-        }
-
         /// <summary>
         /// Adds score to each team for every live ship on that team based on how close it is to the race goal.
         /// </summary>
@@ -224,46 +285,6 @@ namespace Assets.Src.Evolution
                     AddScore(shipTeam.Value, extraScore);
                 }
             }
-        }
-
-        /// <summary>
-        /// Chooses the individuals to compete this match and spawns them.
-        /// </summary>
-        /// <returns>Boolean indecating that something has at least one module</returns>
-        private bool SpawnShipsBr()
-        {
-            var genomes = _currentGeneration.PickCompetitors(EvolutionConfig.BrConfig.NumberOfCombatants);
-
-            var wrappers = new List<GenomeWrapper>();
-            _currentGenomes = new Dictionary<string, GenomeWrapper>();
-
-            var names = new List<string>();
-
-            var i = 0;
-            foreach (var g in genomes)
-            {
-                string name = "Nemo";
-                for (var j = 0; j < _matchControl.Config.CompetitorsPerTeam; j++)
-                {
-                    var gw = ShipConfig.SpawnShip(g, i, j, EvolutionConfig.BrConfig.InSphereRandomisationRadius, EvolutionConfig.BrConfig.OnSphereRandomisationRadius);
-                    wrappers.Add(gw);
-
-                    name = gw.Name;
-
-                    _currentGenomes[ShipConfig.GetTag(i)] = gw; //This will only save the last gw, but they should be functionally identical.
-                }
-
-                names.Add(name);
-
-                i++;
-            }
-
-            _extantTeams = _currentGenomes;
-            _teamScores = _currentGenomes.ToDictionary(kv => kv.Key, kv => 0f);
-
-            Debug.Log("\"" + string.Join("\" vs \"", names.ToArray()) + "\"");
-
-            return wrappers.Any(w => w.ModulesAdded > 0);
         }
 
         /// <summary>
@@ -330,19 +351,19 @@ namespace Assets.Src.Evolution
 
         private void ReadInGeneration()
         {
-            _currentGeneration = _dbHandlerBR.ReadGeneration(DatabaseId, EvolutionConfig.BrConfig.GenerationNumber);
+            _currentGeneration = _dbHandler.ReadGeneration(DatabaseId, EvolutionConfig.GenerationNumber);
 
             if (_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
             {
                 //The current generation does not exist - create a new random generation.
                 CreateNewGeneration(null);
             }
-            else if (_currentGeneration.MinimumMatchesPlayed >= EvolutionConfig.BrConfig.MinMatchesPerIndividual)
+            else if (_currentGeneration.MinimumMatchesPlayed >= EvolutionConfig.MinMatchesPerIndividual)
             {
                 //the current generation is finished - create a new generation
-                var winners = _currentGeneration.PickWinners(EvolutionConfig.BrConfig.WinnersFromEachGeneration);
+                var winners = _currentGeneration.PickWinners(EvolutionConfig.WinnersFromEachGeneration);
 
-                EvolutionConfig.BrConfig.GenerationNumber++;
+                EvolutionConfig.GenerationNumber++;
 
                 CreateNewGeneration(winners);
             }
@@ -350,83 +371,11 @@ namespace Assets.Src.Evolution
         }
 
         /// <summary>
-        /// Creates and saves a new generation in the database.
-        /// If winners are provided, the new generation will be mutatnts of those.
-        /// If no winners are provided, the generation number will be reset to 0, and a new default generation will be created.
-        /// The current generation is set to the generation that is created.
-        /// </summary>
-        /// <param name="winners"></param>
-        private Generation CreateNewGeneration(IEnumerable<string> winners)
-        {
-            if (winners != null && winners.Any())
-            {
-                _currentGeneration = new Generation(_mutationControl.CreateGenerationOfMutants(winners.ToList()));
-            }
-            else
-            {
-                Debug.Log("Generating generation from default genomes");
-                _currentGeneration = new Generation(_mutationControl.CreateDefaultGeneration());
-                EvolutionConfig.BrConfig.GenerationNumber = 0;   //it's always generation 0 for a default genteration.
-            }
-
-            _dbHandlerBR.SaveNewGeneration(_currentGeneration, DatabaseId, EvolutionConfig.BrConfig.GenerationNumber);
-            _dbHandlerBR.SetCurrentGenerationNumber(DatabaseId, EvolutionConfig.BrConfig.GenerationNumber);
-
-            return _currentGeneration;
-        }
-        #endregion
-
-
-        #region Drone
-        void InitDrone()
-        {
-            _dbHandlerDrone = new EvolutionDroneDatabaseHandler();
-
-            EvolutionConfig.EvolutionDroneConfig = _dbHandlerDrone.ReadConfig(DatabaseId);
-
-            _dbHandlerDrone.SetAutoloadId(DatabaseId);
-
-            if (EvolutionConfig.EvolutionDroneConfig == null || EvolutionConfig.DatabaseId != DatabaseId)
-            {
-                throw new Exception("Did not retrieve expected config from database");
-            }
-
-            _matchControl = gameObject.AddComponent<EvolutionMatchController>();
-
-            _mutationControl.Config = EvolutionConfig.MutationConfig;
-            _matchControl.Config = EvolutionConfig.MatchConfig;
-            ShipConfig.Config = EvolutionConfig.MatchConfig;
-
-            ReadInGenerationDrone();
-
-            SpawnShipsDrone();
-
-            SpawnDrones();
-
-        }
-
-        private bool SpawnShipsDrone()
-        {
-            var genome = _currentGeneration.PickCompetitor();
-
-            for (var j = 0; j < _matchControl.Config.CompetitorsPerTeam; j++)
-            {
-                _genomeWrapper = ShipConfig.SpawnShip(genome, SHIP_INDEX, 0, EvolutionConfig.EvolutionDroneConfig.ShipInSphereRandomRadius, EvolutionConfig.EvolutionDroneConfig.ShipOnSphereRandomRadius);
-            }
-
-            Debug.Log(_genomeWrapper.Name + " enters the arena!");
-            Debug.Log("Ship cost = " + _genomeWrapper.Cost);
-
-
-            return _genomeWrapper.ModulesAdded > 0;
-        }
-
-        /// <summary>
         /// Instanciates all the drone prefabs for this match
         /// </summary>
         private void SpawnDrones()
         {
-            var completeKillers = _dbHandlerDrone.CountCompleteKillers(EvolutionConfig.DatabaseId, EvolutionConfig.GenerationNumber);
+            var completeKillers = _dbHandler.CountCompleteKillers(EvolutionConfig.DatabaseId, EvolutionConfig.GenerationNumber);
             int DroneCount = (int)(EvolutionConfig.EvolutionDroneConfig.MinDronesToSpawn + Math.Floor((double)completeKillers * EvolutionConfig.EvolutionDroneConfig.ExtraDromnesPerGeneration));
             Debug.Log(DroneCount + " drones this match");
 
@@ -468,33 +417,6 @@ namespace Assets.Src.Evolution
             var dronePrefab = DroneList.Modules[droneIndex];
             return dronePrefab;
         }
-
-        /// <summary>
-        /// Creates and saves a new generation in the database.
-        /// If winners are provided, the new generation will be mutatnts of those.
-        /// If no winners are provided, the generation number will be reset to 0, and a new default generation will be created.
-        /// The current generation is set to the generation that is created.
-        /// </summary>
-        /// <param name="winners"></param>
-        private Generation CreateNewGenerationDrone(IEnumerable<string> winners)
-        {
-            if (winners != null && winners.Any())
-            {
-                _currentGeneration = new Generation(_mutationControl.CreateGenerationOfMutants(winners.ToList()));
-            }
-            else
-            {
-                Debug.Log("Generating generation from default genomes");
-                _currentGeneration = new Generation(_mutationControl.CreateDefaultGeneration());
-                EvolutionConfig.GenerationNumber = 0;   //it's always generation 0 for a default genteration.
-            }
-
-            _dbHandlerDrone.SaveNewGeneration(_currentGeneration, DatabaseId, EvolutionConfig.GenerationNumber);
-            _dbHandlerDrone.SetCurrentGenerationNumber(DatabaseId, EvolutionConfig.GenerationNumber);
-
-            return _currentGeneration;
-        }
-        #endregion
 
         private void QuitToMainMenu()
         {
