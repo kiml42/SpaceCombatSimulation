@@ -16,8 +16,6 @@ namespace Assets.Src.Evolution
         public float ExtraDromnesPerGeneration = 0.2f;
         public int MaxDronesToSpawn = 100;
         
-        public float ShipInSphereRandomRadius = 0;
-        public float ShipOnSphereRandomRadius = 0;
         public float DronesInSphereRandomRadius = 0;
         public float DronesOnSphereRandomRadius = 0;
 

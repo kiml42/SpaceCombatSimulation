@@ -12,16 +12,13 @@ namespace Assets.Src.Database
     {
         private const string MAIN_CONFIG_TABLE = "MainConfig";
         private const string CONFIG_TABLE_BR = "BrEvolutionConfig";
-        private const string CONFIG_TABLE_DRONE = "DroneEvolutionConfig";
 
         private const string INDIVIDUAL_TABLE = "Individual";
 
         public const string DEFAULT_CREATE_DB_COMMAND_PATH = "/CreateBlankDatabase.sql";
         private const string DEFAULT_DB_PATH = "/Database/SpaceCombatSimulationDB.s3db";
-
-        private string RUN_TYPE_NAME { get; }
-
-        private string _connectionString
+        
+        private string ConnectionString
         {
             get
             {
@@ -55,7 +52,7 @@ namespace Assets.Src.Database
             string sqlQuery = "SELECT " + MAIN_CONFIG_TABLE + ".id, name" + " FROM " + MAIN_CONFIG_TABLE +
                 " LEFT JOIN BaseEvolutionConfig on BaseEvolutionConfig.id = " + MAIN_CONFIG_TABLE + ".id;";
 
-            using (var sql_con = new SqliteConnection(_connectionString))
+            using (var sql_con = new SqliteConnection(ConnectionString))
             {
                 sql_con.Open(); //Open connection to the database.
                 using (var dbcmd = sql_con.CreateCommand())
@@ -77,7 +74,7 @@ namespace Assets.Src.Database
 
         public void SetCurrentGenerationNumber(int databaseId, int generationNumber)
         {
-            using var sql_con = new SqliteConnection(_connectionString);
+            using var sql_con = new SqliteConnection(ConnectionString);
             sql_con.Open();
 
             //Debug.Log("Updating generation to " + config.GenerationNumber);
@@ -93,7 +90,7 @@ namespace Assets.Src.Database
         #region Auto-load
         public void SetAutoloadId(int? autoloadId)
         {
-            using (var sql_con = new SqliteConnection(_connectionString))
+            using (var sql_con = new SqliteConnection(ConnectionString))
             {
                 sql_con.Open(); //Open connection to the database.
                 using (var dbcmd = sql_con.CreateCommand())
@@ -111,7 +108,7 @@ namespace Assets.Src.Database
         {
             string sqlQuery = "SELECT autoloadId FROM " + MAIN_CONFIG_TABLE + ";";
             int? idToLoad = null;
-            using (var sql_con = new SqliteConnection(_connectionString))
+            using (var sql_con = new SqliteConnection(ConnectionString))
             {
                 sql_con.Open(); //Open connection to the database.
                 using (var dbcmd = sql_con.CreateCommand())
@@ -181,6 +178,8 @@ namespace Assets.Src.Database
                 WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")), //17
                 InitialRange = reader.GetFloat(reader.GetOrdinal("initialRange")),
                 InitialSpeed = reader.GetFloat(reader.GetOrdinal("initialSpeed")),
+                InSphereRandomisationRadius = reader.GetFloat(reader.GetOrdinal("inSphereRandomisationRadius")),
+                OnSphereRandomisationRadius = reader.GetFloat(reader.GetOrdinal("onSphereRandomisationRadius")),
                 RandomInitialSpeed = reader.GetFloat(reader.GetOrdinal("randomInitialSpeed")),
                 CompetitorsPerTeam = reader.GetInt32(reader.GetOrdinal("competitorsPerTeam")),
                 StepForwardProportion = reader.GetFloat(reader.GetOrdinal("stepForwardProportion")),
@@ -218,39 +217,31 @@ namespace Assets.Src.Database
             };
             return config;
         }
-
-        private EvolutionBrConfig ReadConfigBr(int id)
+        
+        public EvolutionConfig ReadConfig(int id)
         {
-            var config = new EvolutionBrConfig();
+            var config = new EvolutionConfig();
 
             //Debug.Log("Reading config from DB. Id: " + id);
-            using (var sql_con = new SqliteConnection(_connectionString))
+            using (var sql_con = new SqliteConnection(ConnectionString))
             {
-                using (var reader = OpenReaderWithCommand(sql_con, CreateReadConfigQuery(CONFIG_TABLE_BR, id)))
+                using (var reader = OpenReaderWithCommand(sql_con, CreateReadConfigQuery(id)))
                 {
                     if (reader.Read())
                     {
-                        //Debug.Log("EvolutionConfig1v1.id ordinal: " + reader.GetOrdinal("id"));
                         config.DatabaseId = reader.GetInt32(reader.GetOrdinal("id"));
-
-                        //Debug.Log("id ordinal: " + reader.GetOrdinal("id"));
-                        //Debug.Log("id value: " + reader.GetDecimal(reader.GetOrdinal("id")));
-
+                        
                         config.RunName = reader.GetString(reader.GetOrdinal("name")); //1
                         config.GenerationNumber = reader.GetInt32(reader.GetOrdinal("currentGeneration"));
                         config.MinMatchesPerIndividual = reader.GetInt32(reader.GetOrdinal("minMatchesPerIndividual"));
                         config.WinnersFromEachGeneration = reader.GetInt32(reader.GetOrdinal("winnersCount"));
-                        config.NumberOfCombatants = reader.GetInt32(reader.GetOrdinal("combatants"));
-                        config.InSphereRandomisationRadius = reader.GetFloat(reader.GetOrdinal("inSphereRandomisationRadius"));
-                        config.OnSphereRandomisationRadius = reader.GetFloat(reader.GetOrdinal("onSphereRandomisationRadius"));
-                        config.RaceMaxDistance = reader.GetFloat(reader.GetOrdinal("raceMaxDistance"));
-                        config.RaceScoreMultiplier = reader.GetFloat(reader.GetOrdinal("raceScoreMultiplier"));
-                        config.SurvivalBonus = reader.GetFloat(reader.GetOrdinal("survivalBonus"));
-                        config.DeathScoreMultiplier = reader.GetFloat(reader.GetOrdinal("deathScoreMultiplier"));
-                        config.RaceGoalObject = GetNullableInt(reader, "raceGoalObject");
-
+                        
                         config.MatchConfig = ReadMatchConfig(reader);
                         config.MutationConfig = ReadMutationConfig(reader);
+
+                        config.BrConfig = ReadConfigBr(reader);
+                        config.EvolutionDroneConfig = ReadConfigDrone(reader);
+                        config.RaceConfig = ReadConfigRace(reader);
                     }
                     else
                     {
@@ -259,6 +250,46 @@ namespace Assets.Src.Database
                 }
                 SetAutoloadId(id);
             }
+            return config;
+        }
+        private EvolutionBrConfig ReadConfigBr(IDataReader reader)
+        {
+            var config = new EvolutionBrConfig
+            {
+                NumberOfCombatants = reader.GetInt32(reader.GetOrdinal("combatants")),
+                SurvivalBonus = reader.GetFloat(reader.GetOrdinal("survivalBonus")),
+                DeathScoreMultiplier = reader.GetFloat(reader.GetOrdinal("deathScoreMultiplier"))
+            };
+            return config;
+        }
+
+        private EvolutionDroneConfig ReadConfigDrone(IDataReader reader)
+        {
+            var config = new EvolutionDroneConfig
+            {
+                MinDronesToSpawn = reader.GetInt32(reader.GetOrdinal("minDrones")),
+                //Debug.Log("droneEscalation ordinal: " + reader.GetOrdinal("droneEscalation"));
+                ExtraDromnesPerGeneration = reader.GetFloat(reader.GetOrdinal("droneEscalation")),
+                MaxDronesToSpawn = reader.GetInt32(reader.GetOrdinal("maxDrones")),
+                KillScoreMultiplier = reader.GetFloat(reader.GetOrdinal("killScoreMultiplier")),
+                FlatKillBonus = reader.GetFloat(reader.GetOrdinal("flatKillBonus")),
+                CompletionBonus = reader.GetFloat(reader.GetOrdinal("completionBonus")),
+                DronesString = reader.GetString(reader.GetOrdinal("droneList")),
+
+                DronesInSphereRandomRadius = reader.GetFloat(reader.GetOrdinal("dronesInSphereRandomRadius")),
+                DronesOnSphereRandomRadius = reader.GetFloat(reader.GetOrdinal("dronesOnSphereRandomRadius"))
+            };
+
+            return config;
+        }
+        private EvolutionRaceConfig ReadConfigRace(IDataReader reader)
+        {
+            var config = new EvolutionRaceConfig
+            {
+                RaceMaxDistance = reader.GetFloat(reader.GetOrdinal("raceMaxDistance")),
+                RaceScoreMultiplier = reader.GetFloat(reader.GetOrdinal("raceScoreMultiplier")),
+                RaceGoalObject = GetNullableInt(reader, "raceGoalObject")
+            };
             return config;
         }
 
@@ -285,7 +316,7 @@ namespace Assets.Src.Database
         {
             //Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);
             var individuals = new List<Individual>();
-            using (var sql_con = new SqliteConnection(_connectionString))
+            using (var sql_con = new SqliteConnection(ConnectionString))
             {
                 using (var reader = OpenReaderWithCommand(sql_con, CreateReadIndividualsQuery(runId, generationNumber)))
                 {
@@ -310,47 +341,6 @@ namespace Assets.Src.Database
             }
 
             return new Generation(individuals);
-        }
-
-        private EvolutionDroneConfig ReadConfigDrone(int id)
-        {
-            var config = new EvolutionDroneConfig();
-
-            //Debug.Log("Reading config from DB. Id: " + id);
-            using (var sql_con = new SqliteConnection(_connectionString))
-            {
-                using (var reader = OpenReaderWithCommand(sql_con, CreateReadConfigQuery(CONFIG_TABLE, id)))
-                {
-                    reader.Read();
-
-                    //Debug.Log("DroneEvolutionConfig.id ordinal: " + reader.GetOrdinal("id"));
-                    config.DatabaseId = reader.GetInt32(reader.GetOrdinal("id"));
-
-                    //Debug.Log("name ordinal: " + reader.GetOrdinal("name"));
-                    config.RunName = reader.GetString(reader.GetOrdinal("name"));
-                    config.GenerationNumber = reader.GetInt32(reader.GetOrdinal("currentGeneration"));
-                    config.MinMatchesPerIndividual = reader.GetInt32(reader.GetOrdinal("minMatchesPerIndividual"));
-                    config.WinnersFromEachGeneration = reader.GetInt32(reader.GetOrdinal("winnersCount"));
-                    config.MinDronesToSpawn = reader.GetInt32(reader.GetOrdinal("minDrones"));
-                    //Debug.Log("droneEscalation ordinal: " + reader.GetOrdinal("droneEscalation"));
-                    config.ExtraDromnesPerGeneration = reader.GetFloat(reader.GetOrdinal("droneEscalation"));
-                    config.MaxDronesToSpawn = reader.GetInt32(reader.GetOrdinal("maxDrones"));
-                    config.KillScoreMultiplier = reader.GetFloat(reader.GetOrdinal("killScoreMultiplier"));
-                    config.FlatKillBonus = reader.GetFloat(reader.GetOrdinal("flatKillBonus"));
-                    config.CompletionBonus = reader.GetFloat(reader.GetOrdinal("completionBonus"));
-                    config.DeathPenalty = reader.GetFloat(reader.GetOrdinal("deathPenalty"));
-                    config.DronesString = reader.GetString(reader.GetOrdinal("droneList"));
-
-                    config.ShipInSphereRandomRadius = reader.GetFloat(reader.GetOrdinal("shipInSphereRandomRadius"));
-                    config.ShipOnSphereRandomRadius = reader.GetFloat(reader.GetOrdinal("shipOnSphereRandomRadius"));
-                    config.DronesInSphereRandomRadius = reader.GetFloat(reader.GetOrdinal("dronesInSphereRandomRadius"));
-                    config.DronesOnSphereRandomRadius = reader.GetFloat(reader.GetOrdinal("dronesOnSphereRandomRadius"));
-
-                    config.MatchConfig = ReadMatchConfig(reader);
-                    config.MutationConfig = ReadMutationConfig(reader);
-                }
-            }
-            return config;
         }
         #endregion
 
@@ -546,7 +536,7 @@ namespace Assets.Src.Database
 
         public void SaveNewGeneration(Generation generation, int runId, int generationNumber)
         {
-            using (var sql_con = new SqliteConnection(_connectionString))
+            using (var sql_con = new SqliteConnection(ConnectionString))
             {
                 sql_con.Open(); //Open connection to the database.
 
@@ -554,57 +544,9 @@ namespace Assets.Src.Database
                 {
                     foreach (var individual in generation.Individuals)
                     {
-                        SaveBaseIndividual(RUN_TYPE_NAME, individual, runId, generationNumber, sql_con, transaction);
-
-                        using (var insertSQL = new SqliteCommand("INSERT INTO " + INDIVIDUAL_TABLE +
-                            " (runConfigId, generation, genome, wins, draws, loses, previousCombatants)" +
-                            " VALUES (?,?,?,?,?,?,?)", sql_con, transaction))
-                        {
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Wins));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Draws));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Loses));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.PreviousCombatantsString));
-
-                            insertSQL.ExecuteNonQuery();
-                        }
+                        SaveIndividual(individual, runId, generationNumber, sql_con, transaction);
                     }
 
-                    transaction.Commit();
-                }
-            }
-        }
-
-        public void SaveNewGenerationDrone(Generation generation, int runId, int generationNumber)
-        {
-            using (var sql_con = new SqliteConnection(_connectionString))
-            {
-                sql_con.Open(); //Open connection to the database.
-
-                using (var transaction = sql_con.BeginTransaction())
-                {
-                    foreach (var individual in generation.Individuals)
-                    {
-                        SaveBaseIndividual(RUN_TYPE_NAME, individual, runId, generationNumber, sql_con, transaction);
-
-                        using (var insertSQL = new SqliteCommand("INSERT INTO " + INDIVIDUAL_TABLE +
-                            " (runConfigId, generation, genome, matchesPlayed, matchesSurvived, completeKills, totalKills, matchScores)" +
-                            " VALUES (?,?,?,?,?,?,?,?)", sql_con, transaction))
-                        {
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)runId));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesPlayed));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.MatchesSurvived));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.KilledAllDrones));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.TotalDroneKills));
-                            insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.MatchScoresString));
-
-                            insertSQL.ExecuteNonQuery();
-                        }
-                    }
                     transaction.Commit();
                 }
             }
@@ -799,8 +741,6 @@ namespace Assets.Src.Database
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.CompletionBonus));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)config.DronesString));
 
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.ShipInSphereRandomRadius));
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.ShipOnSphereRandomRadius));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.DronesInSphereRandomRadius));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.DronesOnSphereRandomRadius));
 
@@ -812,7 +752,7 @@ namespace Assets.Src.Database
 
         public void UpdateGeneration(Generation generation, int runId, int generationNumber)
         {
-            using (var sql_con = new SqliteConnection(_connectionString))
+            using (var sql_con = new SqliteConnection(ConnectionString))
             {
                 sql_con.Open(); //Open connection to the database.
 
@@ -832,7 +772,7 @@ namespace Assets.Src.Database
         #region delete
         public void DeleteConfig(int id)
         {
-            using (var sql_con = new SqliteConnection(_connectionString))
+            using (var sql_con = new SqliteConnection(ConnectionString))
             {
                 sql_con.Open(); //Open connection to the database.
                 using (var transaction = sql_con.BeginTransaction())
@@ -857,7 +797,7 @@ namespace Assets.Src.Database
 
         public void DeleteIndividuals(int runConfigId)
         {
-            using (var sql_con = new SqliteConnection(_connectionString))
+            using (var sql_con = new SqliteConnection(ConnectionString))
             {
                 sql_con.Open(); //Open connection to the database.
                 using (var transaction = sql_con.BeginTransaction())
@@ -987,7 +927,7 @@ namespace Assets.Src.Database
         {
             int count = 0;
             //Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);
-            using (var sql_con = new SqliteConnection(_connectionString))
+            using (var sql_con = new SqliteConnection(ConnectionString))
             {
                 string sqlQuery = "SELECT completeKills" +
                         " FROM " + INDIVIDUAL_TABLE +
