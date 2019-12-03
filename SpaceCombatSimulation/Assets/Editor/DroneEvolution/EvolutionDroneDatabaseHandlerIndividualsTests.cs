@@ -100,7 +100,7 @@ public class EvolutionDroneDatabaseHandlerIndividualsTests
         Assert.AreEqual("", i2.MatchScoresString);
         Assert.AreEqual(0, i2.MatchScores.Count);
 
-        gen.RecordMatch(new GenomeWrapper("abc"), 42, true, true, 15, null, false);
+        gen.RecordMatch(new GenomeWrapper("abc"), 42, true, true, 15, new List<string> { "abc" }, false);
 
         _handler.UpdateGeneration(gen, 3, 4);
 
@@ -155,7 +155,7 @@ public class EvolutionDroneDatabaseHandlerIndividualsTests
         Assert.AreEqual("speciesVerbose", i2.Summary.VerboseSpecies);
         Assert.AreEqual("subspeciesVerbose", i2.Summary.VerboseSubspecies);
 
-        RetrievedGen1.RecordMatch(new GenomeWrapper("123"), 42, true, true, 15, null, false);
+        RetrievedGen1.RecordMatch(new GenomeWrapper("123"), 42, true, true, 15, new List<string> { "123" }, false);
 
         _handler.UpdateGeneration(RetrievedGen1, 3, 4);
 

@@ -259,9 +259,9 @@ namespace Assets.Src.Database
         {
             var config = new EvolutionBrConfig
             {
-                NumberOfCombatants = reader.GetInt32(reader.GetOrdinal("combatants")),
-                SurvivalBonus = reader.GetFloat(reader.GetOrdinal("survivalBonus")),
-                DeathScoreMultiplier = reader.GetFloat(reader.GetOrdinal("deathScoreMultiplier"))
+                NumberOfCombatants = GetNullableInt(reader,"combatants") ?? 1,
+                SurvivalBonus = GetNullableFloat(reader, "survivalBonus") ?? 0,
+                DeathScoreMultiplier = GetNullableFloat(reader, "deathScoreMultiplier") ?? 0
             };
             return config;
         }
@@ -288,8 +288,8 @@ namespace Assets.Src.Database
         {
             var config = new EvolutionRaceConfig
             {
-                RaceMaxDistance = reader.GetFloat(reader.GetOrdinal("raceMaxDistance")),
-                RaceScoreMultiplier = reader.GetFloat(reader.GetOrdinal("raceScoreMultiplier")),
+                RaceMaxDistance = GetNullableFloat(reader, "raceMaxDistance") ?? 0,
+                RaceScoreMultiplier = GetNullableFloat(reader, "raceScoreMultiplier") ?? 0,
                 RaceGoalObject = GetNullableInt(reader, "raceGoalObject")
             };
             return config;
@@ -388,7 +388,7 @@ namespace Assets.Src.Database
 
                 using (var transaction = sql_con.BeginTransaction())
                 {
-                    var id = SaveNewEvolutionConfig(config);
+                    var id = SaveNewEvolutionConfig(config, sql_con, transaction);
 
                     transaction.Commit();
 
@@ -541,8 +541,7 @@ namespace Assets.Src.Database
                 Transaction = transaction
             })
             {
-                insertSQL.CommandText = "INSERT INTO " + CONFIG_TABLE_BR +
-                    "(id, raceMaxDistance, raceScoreMultiplier, raceGoalObject)" +
+                insertSQL.CommandText = "INSERT INTO RaceEvolutionConfig (id, raceMaxDistance, raceScoreMultiplier, raceGoalObject)" +
                     " VALUES (?,?,?,?)";
 
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
@@ -968,7 +967,7 @@ namespace Assets.Src.Database
             //Debug.Log("Reading generation from DB. runId: " + runId + ", generation Number: " + generationNumber);
             using (var sql_con = new SqliteConnection(ConnectionString))
             {
-                string sqlQuery = "SELECT completeKills" +
+                string sqlQuery = "SELECT killedAllDrones" +
                         " FROM " + INDIVIDUAL_TABLE +
                         " WHERE runConfigId = " + id +
                         " AND generation < " + currentGeneration +
