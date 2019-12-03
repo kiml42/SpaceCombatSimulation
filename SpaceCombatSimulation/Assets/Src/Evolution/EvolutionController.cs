@@ -433,6 +433,10 @@ namespace Assets.Src.Evolution
         #region On GUI Methods
         protected virtual string SummaryText()
         {
+            if(Config == null) 
+            {
+                return "No config loaded!";
+            }
             var text = "ID: " + DatabaseId + ", Name: " + Config.RunName + ", Generation: " + Config.GenerationNumber + Environment.NewLine +
                 "Combatants: " + string.Join(" vs ", Combatants.ToArray());
 

@@ -12,7 +12,6 @@ namespace Assets.Src.Database
 {
     public class EvolutionDatabaseHandler
     {
-        private const string MAIN_CONFIG_TABLE = "EvolutionConfig";
         private const string CONFIG_TABLE_BR = "BrEvolutionConfig";
 
         private const string INDIVIDUAL_TABLE = "Individual";
@@ -33,25 +32,37 @@ namespace Assets.Src.Database
         private const string MUTATION_CONFIG_TABLE = "MutationConfig";
         private const string MATCH_CONFIG_TABLE = "MatchConfig";
 
+        private DatabaseInitialiser _initialiser;
+        private readonly string _dbCreationCommandPath;
+
         public EvolutionDatabaseHandler(string databasePath = DEFAULT_DB_PATH, string dbCreationCommandPath = DEFAULT_CREATE_DB_COMMAND_PATH)
         {
             _databasePath = databasePath;
 
             if (!string.IsNullOrEmpty(dbCreationCommandPath))
             {
-                var initialiser = new DatabaseInitialiser
+                _initialiser = new DatabaseInitialiser
                 {
                     DatabasePath = _databasePath
                 };
-                initialiser.EnsureDatabaseExists(dbCreationCommandPath);
+                _dbCreationCommandPath = dbCreationCommandPath;
             }
+            else
+            {
+                _dbCreationCommandPath = DEFAULT_CREATE_DB_COMMAND_PATH;
+            }
+        }
+
+        public void InitialiseConnection()
+        {
+            _initialiser.EnsureDatabaseExists(_dbCreationCommandPath);
         }
 
         public Dictionary<int, string> ListConfigs()
         {
             var configs = new Dictionary<int, string>();
 
-            string sqlQuery = "SELECT id, name FROM " + MAIN_CONFIG_TABLE +";";
+            string sqlQuery = "SELECT id, name FROM EvolutionConfig;";
 
             using (var sql_con = new SqliteConnection(ConnectionString))
             {
@@ -109,7 +120,7 @@ namespace Assets.Src.Database
 
         public int? ReadAutoloadId()
         {
-            string sqlQuery = "SELECT autoloadId FROM " + MAIN_CONFIG_TABLE + ";";
+            string sqlQuery = "SELECT autoloadId FROM MainConfig;";
             int? idToLoad = null;
             using (var sql_con = new SqliteConnection(ConnectionString))
             {

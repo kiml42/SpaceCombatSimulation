@@ -13,6 +13,7 @@ namespace Assets.Src.Evolution
         
         public EvolutionConfig ReadControls()
         {
+            _loaded = _loaded ?? new EvolutionConfig();
             _loaded.RunName = RunName.text;
             _loaded.MinMatchesPerIndividual = int.Parse(MinMatchesPerIndividual.text);
             _loaded.WinnersFromEachGeneration = int.Parse(WinnersFromEachGeneration.text);
@@ -23,7 +24,7 @@ namespace Assets.Src.Evolution
 
         public override void PopulateControls(EvolutionConfig config)
         {
-            _loaded = config;
+            _loaded = config ?? new EvolutionConfig();
             RunName.text = _loaded.RunName;
             MinMatchesPerIndividual.text = _loaded.MinMatchesPerIndividual.ToString();
             WinnersFromEachGeneration.text = _loaded.WinnersFromEachGeneration.ToString();

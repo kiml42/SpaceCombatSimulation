@@ -21,7 +21,7 @@ namespace Assets.Src.Evolution.BattleRoyale
 
         public override void PopulateControls(EvolutionConfig config)
         {
-            _loaded = config.BrConfig;
+            _loaded = config.BrConfig ?? new EvolutionBrConfig();
 
             NumberOfTeams.text = _loaded.NumberOfCombatants.ToString();
             DeathScoreMultiplier.text = _loaded.DeathScoreMultiplier.ToString();

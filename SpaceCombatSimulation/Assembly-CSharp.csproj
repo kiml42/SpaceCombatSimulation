@@ -142,7 +142,7 @@
     <Compile Include="Assets\Src\Interfaces\ITurretRunner.cs" />
     <Compile Include="Assets\Src\Interfaces\ITurretTurner.cs" />
     <Compile Include="Assets\Src\Menus\ArgumentStore.cs" />
-    <Compile Include="Assets\Src\Menus\GenericEvolutionLoadListController.cs" />
+    <Compile Include="Assets\Src\Menus\EvolutionLoadListController.cs" />
     <Compile Include="Assets\Src\Menus\MainMenuController.cs" />
     <Compile Include="Assets\Src\Menus\MenuItem.cs" />
     <Compile Include="Assets\Src\ModuleSystem\GeneticConfigurableMonobehaviour.cs" />

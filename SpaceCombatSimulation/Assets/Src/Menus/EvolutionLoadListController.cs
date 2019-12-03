@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Assets.Src.Menus
 {
-    public class GenericEvolutionLoadListController : MonoBehaviour
+    public class EvolutionLoadListController : MonoBehaviour
     {
         protected EvolutionDatabaseHandler _handler;
         private Dictionary<int, string> _configs;

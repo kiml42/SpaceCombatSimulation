@@ -38,6 +38,7 @@ namespace Assets.Src.Evolution
         // Use this for initialization
         void Start()
         {
+            _handler.InitialiseConnection();
             LoadConfigFromDB();
 
             RunButton.onClick.AddListener(delegate () { SaveAndRun(); });
@@ -73,6 +74,8 @@ namespace Assets.Src.Evolution
         {
             if (!string.IsNullOrEmpty(MainMenuSceneToLoad))
             {
+                ArgumentStore.IdToLoad = null;
+                _handler.SetAutoloadId(null);
                 SceneManager.LoadScene(MainMenuSceneToLoad);
             }
         }
@@ -130,21 +133,19 @@ namespace Assets.Src.Evolution
             SceneManager.LoadScene(EvolutionSceneToLoad);
         }
         
-        protected void LoadConfigFromDB()
+        private void LoadConfigFromDB()
         {
             _hasLoadedExisting = ArgumentStore.IdToLoad.HasValue;
             _loadedId = ArgumentStore.IdToLoad ?? -1;
-            if (_hasLoadedExisting)
-            {
-                var config = _handler.ReadConfig(_loadedId);
 
-                GeneralConfig.PopulateControls(config);
-                MatchConfig.PopulateControls(config);
-                MutationConfig.PopulateControls(config);
-                BrConfig.PopulateControls(config);
-                DroneConfig.PopulateControls(config);
-                RaceConfig.PopulateControls(config);
-            }
+            var config = _hasLoadedExisting ? _handler.ReadConfig(_loadedId) : new EvolutionConfig();
+
+            GeneralConfig.PopulateControls(config);
+            MatchConfig.PopulateControls(config);
+            MutationConfig.PopulateControls(config);
+            BrConfig.PopulateControls(config);
+            DroneConfig.PopulateControls(config);
+            RaceConfig.PopulateControls(config);
         }
     }
 }

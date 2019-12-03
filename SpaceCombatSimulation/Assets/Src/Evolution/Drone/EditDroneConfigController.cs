@@ -29,16 +29,19 @@ namespace Assets.Src.Evolution.Drone
             _loaded.DronesInSphereRandomRadius = int.Parse(DronesInSphereRandomRadius.text);
             _loaded.DronesOnSphereRandomRadius = int.Parse(DronesOnSphereRandomRadius.text);
 
-            _loaded.CompletionBonus = int.Parse(CompletionBonus.text);
-            _loaded.FlatKillBonus = int.Parse(FlatKillBonus.text);
-            _loaded.KillScoreMultiplier = int.Parse(KillScoreMultiplier.text);
+            if (CompletionBonus != null)
+                _loaded.CompletionBonus = int.Parse(CompletionBonus.text);
+            if (FlatKillBonus != null)
+                _loaded.FlatKillBonus = int.Parse(FlatKillBonus.text);
+            if (KillScoreMultiplier != null)
+                _loaded.KillScoreMultiplier = int.Parse(KillScoreMultiplier.text);
 
             return _loaded;
         }
 
         public override void PopulateControls(EvolutionConfig config)
         {
-            _loaded = config.EvolutionDroneConfig;
+            _loaded = config.EvolutionDroneConfig ?? new EvolutionDroneConfig();
             minDrones.text = _loaded.MinDronesToSpawn.ToString();
             DroneEscalation.text = _loaded.ExtraDromnesPerGeneration.ToString();
             MaxDrones.text = _loaded.MaxDronesToSpawn.ToString();
@@ -47,9 +50,12 @@ namespace Assets.Src.Evolution.Drone
             DronesInSphereRandomRadius.text = _loaded.DronesInSphereRandomRadius.ToString();
             DronesOnSphereRandomRadius.text = _loaded.DronesOnSphereRandomRadius.ToString();
 
-            CompletionBonus.text = _loaded.CompletionBonus.ToString();
-            FlatKillBonus.text = _loaded.FlatKillBonus.ToString();
-            KillScoreMultiplier.text = _loaded.KillScoreMultiplier.ToString();
+            if(CompletionBonus != null)
+                CompletionBonus.text = _loaded.CompletionBonus.ToString();
+            if (FlatKillBonus != null)
+                FlatKillBonus.text = _loaded.FlatKillBonus.ToString();
+            if (KillScoreMultiplier != null)
+                KillScoreMultiplier.text = _loaded.KillScoreMultiplier.ToString();
 
         }
     }
