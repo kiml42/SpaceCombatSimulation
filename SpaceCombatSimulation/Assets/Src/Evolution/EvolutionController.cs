@@ -52,15 +52,11 @@ namespace Assets.Src.Evolution
         #endregion
 
         public EvolutionDatabaseHandler DbHandler { get; }
-
-        protected EvolutionConfig Config { get; }
-
-        public int GenerationNumber { get { return Config.GenerationNumber; } }
+        
+        public int GenerationNumber { get { return EvolutionConfig.GenerationNumber; } }
 
         public Rect SummaryBox = new Rect(800, 10, 430, 100);
-
-        public IEnumerable<string> Combatants { get; }
-
+        
         public string MainMenu = "MainMenu";
 
         public void Start()
@@ -78,7 +74,7 @@ namespace Assets.Src.Evolution
                 throw new Exception("Did not retrieve expected config from database");
             }
 
-            _matchControl = gameObject.AddComponent<EvolutionMatchController>();
+            _matchControl = gameObject.GetComponent<EvolutionMatchController>() ?? gameObject.AddComponent<EvolutionMatchController>();
 
             _mutationControl.Config = EvolutionConfig.MutationConfig;
             _matchControl.Config = EvolutionConfig.MatchConfig;
@@ -433,12 +429,13 @@ namespace Assets.Src.Evolution
         #region On GUI Methods
         protected virtual string SummaryText()
         {
-            if(Config == null) 
+            if(EvolutionConfig == null)
             {
+                Debug.LogError($"No config loaded! DatabaseId: {DatabaseId}");
                 return "No config loaded!";
             }
-            var text = "ID: " + DatabaseId + ", Name: " + Config.RunName + ", Generation: " + Config.GenerationNumber + Environment.NewLine +
-                "Combatants: " + string.Join(" vs ", Combatants.ToArray());
+            var text = "ID: " + DatabaseId + ", Name: " + EvolutionConfig.RunName + ", Generation: " + EvolutionConfig.GenerationNumber + Environment.NewLine +
+                "Combatants: " + string.Join(" vs ", _currentGenomes.Values.Select(g => g.Name));
 
             var runTimeing = _matchControl.MatchRunTime;
             var matchLength = _matchControl.Config.MatchTimeout;
