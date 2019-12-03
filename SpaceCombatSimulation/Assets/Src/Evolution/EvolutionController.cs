@@ -44,15 +44,13 @@ namespace Assets.Src.Evolution
         private bool _dronesRemain;
 
         private int _previousDroneCount;
-        EvolutionDatabaseHandler _dbHandler;
-
         public RigidbodyList DroneList;
         private const int DRONES_INDEX = 1;
         private readonly List<Transform> _liveDrones = new List<Transform>();
         #endregion
 
-        public EvolutionDatabaseHandler DbHandler { get; }
-        
+        public EvolutionDatabaseHandler DbHandler { get; private set; }
+
         public int GenerationNumber { get { return EvolutionConfig.GenerationNumber; } }
 
         public Rect SummaryBox = new Rect(800, 10, 430, 100);
@@ -63,11 +61,11 @@ namespace Assets.Src.Evolution
         {
             DatabaseId = ArgumentStore.IdToLoad ?? DatabaseId;
 
-            _dbHandler = new EvolutionDatabaseHandler();
+            DbHandler = new EvolutionDatabaseHandler();
 
-            EvolutionConfig = _dbHandler.ReadConfig(DatabaseId);
+            EvolutionConfig = DbHandler.ReadConfig(DatabaseId);
 
-            _dbHandler.SetAutoloadId(DatabaseId);
+            DbHandler.SetAutoloadId(DatabaseId);
 
             if (EvolutionConfig == null || EvolutionConfig.DatabaseId != DatabaseId)
             {
@@ -144,7 +142,7 @@ namespace Assets.Src.Evolution
                         _currentGeneration.RecordMatch(competitor, score, alive, !_dronesRemain, _droneKillsSoFar, AllCompetetrs, alive && _extantTeams.Count == 1);
                     }
 
-                    _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, EvolutionConfig.GenerationNumber);
+                    DbHandler.UpdateGeneration(_currentGeneration, DatabaseId, EvolutionConfig.GenerationNumber);
 
                     SceneManager.LoadScene(SceneManager.GetActiveScene().name);
                 }
@@ -159,7 +157,7 @@ namespace Assets.Src.Evolution
         #region Initial Setup
         private void ReadInGeneration()
         {
-            _currentGeneration = _dbHandler.ReadGeneration(DatabaseId, EvolutionConfig.GenerationNumber);
+            _currentGeneration = DbHandler.ReadGeneration(DatabaseId, EvolutionConfig.GenerationNumber);
 
             if (_currentGeneration == null || _currentGeneration.CountIndividuals() < 2)
             {
@@ -242,7 +240,7 @@ namespace Assets.Src.Evolution
         /// </summary>
         private void SpawnDrones()
         {
-            var completeKillers = _dbHandler.CountCompleteKillers(EvolutionConfig.DatabaseId, EvolutionConfig.GenerationNumber);
+            var completeKillers = DbHandler.CountCompleteKillers(EvolutionConfig.DatabaseId, EvolutionConfig.GenerationNumber);
             int DroneCount = (int)(EvolutionConfig.EvolutionDroneConfig.MinDronesToSpawn + Math.Floor((double)completeKillers * EvolutionConfig.EvolutionDroneConfig.ExtraDromnesPerGeneration));
             Debug.Log(DroneCount + " drones this match");
 
@@ -291,8 +289,8 @@ namespace Assets.Src.Evolution
                 EvolutionConfig.GenerationNumber = 0;   //it's always generation 0 for a default genteration.
             }
 
-            _dbHandler.SaveNewGeneration(_currentGeneration, DatabaseId, EvolutionConfig.GenerationNumber);
-            _dbHandler.SetCurrentGenerationNumber(DatabaseId, EvolutionConfig.GenerationNumber);
+            DbHandler.SaveNewGeneration(_currentGeneration, DatabaseId, EvolutionConfig.GenerationNumber);
+            DbHandler.SetCurrentGenerationNumber(DatabaseId, EvolutionConfig.GenerationNumber);
 
             return _currentGeneration;
         }
