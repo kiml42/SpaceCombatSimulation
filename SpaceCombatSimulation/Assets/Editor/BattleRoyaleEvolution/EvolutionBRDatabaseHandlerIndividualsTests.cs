@@ -189,7 +189,7 @@ public class EvolutionBRDatabaseHandlerIndividualsTests
         Assert.AreEqual(7, i1b.Score);
         Assert.AreEqual(0, i1b.MatchesAsLastSurvivor);
         Assert.AreEqual(1, i1b.MatchesPlayed);
-        Assert.AreEqual(0, i1b.MatchesSurvived);
+        Assert.AreEqual(1, i1b.MatchesSurvived);
         Assert.AreEqual("def", i1b.PreviousCombatantsString);
         Assert.AreEqual(1, i1b.PreviousCombatants.Count);
         Assert.AreEqual("def", i1b.PreviousCombatants.First());

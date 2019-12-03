@@ -268,20 +268,18 @@ namespace Assets.Src.Database
 
         private EvolutionDroneConfig ReadConfigDrone(IDataReader reader)
         {
-            var config = new EvolutionDroneConfig
-            {
-                MinDronesToSpawn = reader.GetInt32(reader.GetOrdinal("minDrones")),
-                //Debug.Log("droneEscalation ordinal: " + reader.GetOrdinal("droneEscalation"));
-                ExtraDromnesPerGeneration = reader.GetFloat(reader.GetOrdinal("droneEscalation")),
-                MaxDronesToSpawn = reader.GetInt32(reader.GetOrdinal("maxDrones")),
-                KillScoreMultiplier = reader.GetFloat(reader.GetOrdinal("killScoreMultiplier")),
-                FlatKillBonus = reader.GetFloat(reader.GetOrdinal("flatKillBonus")),
-                CompletionBonus = reader.GetFloat(reader.GetOrdinal("completionBonus")),
-                DronesString = reader.GetString(reader.GetOrdinal("droneList")),
+            var config = new EvolutionDroneConfig();
+            config.MinDronesToSpawn = reader.GetInt32(reader.GetOrdinal("minDrones"));
+            //Debug.Log("droneEscalation ordinal: " + reader.GetOrdinal("droneEscalation"));
+            config.ExtraDromnesPerGeneration = reader.GetFloat(reader.GetOrdinal("droneEscalation"));
+            config.MaxDronesToSpawn = reader.GetInt32(reader.GetOrdinal("maxDrones"));
+            config.KillScoreMultiplier = reader.GetFloat(reader.GetOrdinal("killScoreMultiplier"));
+            config.FlatKillBonus = reader.GetFloat(reader.GetOrdinal("flatKillBonus"));
+            config.CompletionBonus = reader.GetFloat(reader.GetOrdinal("completionBonus"));
+            config.DronesString = reader.GetString(reader.GetOrdinal("droneList"));
 
-                DronesInSphereRandomRadius = reader.GetFloat(reader.GetOrdinal("dronesInSphereRandomRadius")),
-                DronesOnSphereRandomRadius = reader.GetFloat(reader.GetOrdinal("dronesOnSphereRandomRadius"))
-            };
+            config.DronesInSphereRandomRadius = reader.GetFloat(reader.GetOrdinal("dronesInSphereRandomRadius"));
+            config.DronesOnSphereRandomRadius = reader.GetFloat(reader.GetOrdinal("dronesOnSphereRandomRadius"));
 
             return config;
         }
@@ -351,7 +349,7 @@ namespace Assets.Src.Database
         private void SaveIndividual(Individual individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             using (var insertSQL = new SqliteCommand("INSERT INTO Individual " +
-                            "(runConfigId, generation, genome, score, cost, modules, r,g,b, species, speciesVerbose, subspecies, subspeciesVerbose," +
+                            "(runConfigId, generation, genome, score, matchScores, cost, modules, r,g,b, species, speciesVerbose, subspecies, subspeciesVerbose," +
                             " matchesPlayed, matchesSurvived, matchesAsLastSurvivor, killedAllDrones, totalDroneKills, previousCombatants)" +
                             " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", sql_con, transaction))
             {
@@ -359,6 +357,7 @@ namespace Assets.Src.Database
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.Genome));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Score));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.String, (object)individual.MatchScoresString));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Cost));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)individual.Summary.ModulesAdded));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)individual.Summary.Color.r));
@@ -579,7 +578,7 @@ namespace Assets.Src.Database
             using (var insertSQL = new SqliteCommand("UPDATE  Individual" +
 
                            " SET score = ?, cost = ?, modules = ?, r = ?, g = ?, b = ?, species = ?, speciesVerbose = ?, subspecies = ?, subspeciesVerbose = ?," +
-                           " previousCombatants = ?, matchesAsLastSurvivor = ?" +
+                           " previousCombatants = ?, matchesAsLastSurvivor = ?," +
                            " matchesPlayed = ?, matchesSurvived = ?, killedAllDrones = ?, totalDroneKills = ?, matchScores = ?" +
                            " WHERE runConfigId = ? AND generation = ? AND genome = ?", sql_con, transaction))
             {

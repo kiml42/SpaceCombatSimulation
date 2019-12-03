@@ -9,7 +9,7 @@ namespace Assets.Src.Evolution
         #region General
         private readonly Random _rng = new Random();
 
-        public List<Individual> Individuals { get; }
+        public List<Individual> Individuals { get; } = new List<Individual>();
 
         public int CountIndividuals()
         {
