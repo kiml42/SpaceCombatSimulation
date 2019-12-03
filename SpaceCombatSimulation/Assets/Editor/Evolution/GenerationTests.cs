@@ -156,14 +156,14 @@ namespace Assets.Editor.Evolution
 
             for (int j = 0; j < runs; j++)
             {
-                var gen = new GenerationDrone();
+                var gen = new Generation();
 
                 for (int i = 0; i < generationSize; i++)
                 {
                     var score = i - (generationSize / 2);
                     gen.AddGenome(score.ToString());
 
-                    gen.RecordMatch(new GenomeWrapper(score.ToString()), score, true, true, 1);
+                    gen.RecordMatch(new GenomeWrapper(score.ToString()), score, true, true, 1, null, false);
                 }
 
                 var winners = gen.PickWinners(winnersCount);
@@ -200,7 +200,7 @@ namespace Assets.Editor.Evolution
             var maxes = new List<float>();
             var mins = new List<float>();
 
-            var gen = new GenerationDrone();
+            var gen = new Generation();
 
             var random = new System.Random();
 
@@ -210,7 +210,7 @@ namespace Assets.Editor.Evolution
 
                 gen.AddGenome(score.ToString());
 
-                gen.RecordMatch(new GenomeWrapper(score.ToString()), score, true, true, 1);
+                gen.RecordMatch(new GenomeWrapper(score.ToString()), score, true, true, 1, null, false);
             }
 
             for (int j = 0; j < runs; j++)

@@ -14,7 +14,7 @@ INSERT INTO MainConfig (autoloadId)
 VALUES (null);
 
 
--- Table: BaseEvolutionConfig
+-- Table: EvolutionConfig
 CREATE TABLE EvolutionConfig (
 	id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 	name VARCHAR (50) NOT NULL ON CONFLICT REPLACE DEFAULT Unnamed,
@@ -25,7 +25,7 @@ CREATE TABLE EvolutionConfig (
 
 -- Table: DroneEvolutionConfig
 CREATE TABLE DroneEvolutionConfig (
-	id INTEGER PRIMARY KEY REFERENCES BaseEvolutionConfig (id) ON DELETE CASCADE NOT NULL,
+	id INTEGER PRIMARY KEY REFERENCES EvolutionConfig (id) ON DELETE CASCADE NOT NULL,
 	minDrones INTEGER DEFAULT '''3''' NOT NULL,
 	droneEscalation FLOAT DEFAULT (0.05) NOT NULL,
 	maxDrones INTEGER DEFAULT '''50''' NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE DroneEvolutionConfig (
 
 -- Table: RaceEvolutionConfig
 CREATE TABLE RaceEvolutionConfig (
-	id INTEGER PRIMARY KEY REFERENCES BaseEvolutionConfig (id) ON DELETE CASCADE NOT NULL,
+	id INTEGER PRIMARY KEY REFERENCES EvolutionConfig (id) ON DELETE CASCADE NOT NULL,
 	raceMaxDistance FLOAT NOT NULL DEFAULT (2000),
 	raceScoreMultiplier FLOAT NOT NULL DEFAULT (1000),
 	raceGoalObject INTEGER
@@ -47,7 +47,7 @@ CREATE TABLE RaceEvolutionConfig (
 
 -- Table: BrEvolutionConfig
 CREATE TABLE BrEvolutionConfig (
-	id INTEGER PRIMARY KEY REFERENCES BaseEvolutionConfig (id) ON DELETE CASCADE NOT NULL,
+	id INTEGER PRIMARY KEY REFERENCES EvolutionConfig (id) ON DELETE CASCADE NOT NULL,
 	combatants INTEGER NOT NULL DEFAULT (2),
 	survivalBonus FLOAT NOT NULL DEFAULT (400),
 	deathScoreMultiplier FLOAT NOT NULL DEFAULT (1)
@@ -55,7 +55,7 @@ CREATE TABLE BrEvolutionConfig (
 
 -- Table: MatchConfig
 CREATE TABLE MatchConfig (
-	id INTEGER PRIMARY KEY REFERENCES BaseEvolutionConfig (id) ON DELETE CASCADE NOT NULL,
+	id INTEGER PRIMARY KEY REFERENCES EvolutionConfig (id) ON DELETE CASCADE NOT NULL,
 	matchTimeout FLOAT DEFAULT '300' NOT NULL,
 	winnerPollPeriod FLOAT DEFAULT '2' NOT NULL,
 	inSphereRandomisationRadius FLOAT NOT NULL DEFAULT (0),
@@ -72,7 +72,7 @@ CREATE TABLE MatchConfig (
 
 -- Table: MutationConfig
 CREATE TABLE MutationConfig (
-	id INTEGER PRIMARY KEY REFERENCES BaseEvolutionConfig (id) ON DELETE CASCADE NOT NULL,
+	id INTEGER PRIMARY KEY REFERENCES EvolutionConfig (id) ON DELETE CASCADE NOT NULL,
 	mutations BIGINT NOT NULL,
 	maxMutationLength INTEGER DEFAULT '5' NOT NULL,
 	genomeLength INTEGER DEFAULT '100' NOT NULL,
@@ -84,11 +84,13 @@ CREATE TABLE MutationConfig (
 
 -- Table: Individual
 CREATE TABLE Individual (
-	runConfigId INTEGER REFERENCES BaseEvolutionConfig (id) ON DELETE CASCADE NOT NULL,
-	generation INTEGER NOT NULL, genome VARCHAR (1000) NOT NULL,
+	runConfigId INTEGER REFERENCES EvolutionConfig (id) ON DELETE CASCADE NOT NULL,
+	generation INTEGER NOT NULL,
+    genome VARCHAR (1000) NOT NULL,
 
-	score FLOAT NOT NULL, cost FLOAT,
+	score FLOAT NOT NULL,
 	matchScores VARCHAR (500),
+    cost FLOAT,
 
 	modules INTEGER,
 	r FLOAT NOT NULL, g FLOAT NOT NULL, b FLOAT NOT NULL,
@@ -96,7 +98,6 @@ CREATE TABLE Individual (
 	speciesVerbose VARCHAR (1000),
 	subspecies VARCHAR (1000),
 	subspeciesVerbose VARCHAR (1000),
-	PRIMARY KEY (runConfigId, generation, genome),
 
 	matchesPlayed INTEGER,
 	matchesSurvived INTEGER,
@@ -105,6 +106,8 @@ CREATE TABLE Individual (
 	totalDroneKills INTEGER,
 
 	previousCombatants VARCHAR (500),
+
+	PRIMARY KEY (runConfigId, generation, genome)
 );
 
 COMMIT TRANSACTION;

@@ -107,12 +107,12 @@ namespace Assets.Src.Evolution
         /// <param name="killedAllDrones">True if all the drones were killed in this match</param>
         /// <param name="killedDrones">The number of drones killed in this match</param>
         /// <param name="allCompetitors">All the individuals' genomes in the match</param>
-        /// <param name="outcome">Indicator of how the individual did against the others</param>
-        public void RecordMatch(GenomeWrapper contestant, float finalScore, bool survived, bool killedAllDrones, int killedDrones, List<string> allCompetitors, MatchOutcome outcome)
+        /// <param name="lastSurvivor">True if this contestant was the only one left at the end.</param>
+        public void RecordMatch(GenomeWrapper contestant, float finalScore, bool survived, bool killedAllDrones, int killedDrones, List<string> allCompetitors, bool lastSurvivor)
         {
             var individual = Individuals.First(i => i.Genome == contestant.Genome);
             individual.Finalise(contestant);
-            individual.RecordMatch(finalScore, survived, killedAllDrones, killedDrones, allCompetitors, outcome);
+            individual.RecordMatch(finalScore, survived, killedAllDrones, killedDrones, allCompetitors, lastSurvivor);
         }
         #endregion
 

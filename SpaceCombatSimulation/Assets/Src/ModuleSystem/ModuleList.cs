@@ -1,10 +1,9 @@
 ﻿using Assets.Src.ModuleSystem;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 
-namespace Assets.src.Evolution
+namespace Assets.Src.ModuleSystem
 {
     public class ModuleList : MonoBehaviour
     {

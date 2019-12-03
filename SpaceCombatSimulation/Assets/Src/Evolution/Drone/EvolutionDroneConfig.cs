@@ -2,7 +2,7 @@
 using System.Linq;
 using UnityEngine;
 
-namespace Assets.Src.Evolution
+namespace Assets.Src.Evolution.Drone
 {
     public class EvolutionDroneConfig
     {
@@ -40,7 +40,7 @@ namespace Assets.Src.Evolution
             }
         }
 
-        public string DroneTag = "Enemy"
+        public string DroneTag = "Enemy";
         #endregion
 
         #region score

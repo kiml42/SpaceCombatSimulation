@@ -11,13 +11,13 @@ namespace Assets.Src.Graph
 
         public Rect GraphRect = new Rect(50, 50, 450, 150);
 
-        public BaseEvolutionController EvolutionControler;
+        public EvolutionController EvolutionControler;
 
         public KeyCode DrawGraphKey = KeyCode.G;
 
         protected IGraph _graph;
 
-        protected virtual bool _hasCalculatedGraph
+        protected virtual bool HasCalculatedGraph
         {
             get
             {
@@ -35,11 +35,11 @@ namespace Assets.Src.Graph
 
         public void OnGUI()
         {
-            if (Input.GetKeyUp(DrawGraphKey) && !_hasCalculatedGraph)
+            if (Input.GetKeyUp(DrawGraphKey) && !HasCalculatedGraph)
             {
                 PrepareGraph();
             }
-            if (_hasCalculatedGraph)
+            if (HasCalculatedGraph)
             {
                 DrawGraph();
             }

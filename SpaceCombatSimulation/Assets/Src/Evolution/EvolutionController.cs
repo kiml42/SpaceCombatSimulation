@@ -51,11 +51,11 @@ namespace Assets.Src.Evolution
         private readonly List<Transform> _liveDrones = new List<Transform>();
         #endregion
 
-        public GeneralDatabaseHandler DbHandler { get; }
+        public EvolutionDatabaseHandler DbHandler { get; }
 
-        protected BaseEvolutionConfig BaseConfig { get; }
+        protected EvolutionConfig Config { get; }
 
-        public int GenerationNumber { get { return BaseConfig.GenerationNumber; } }
+        public int GenerationNumber { get { return Config.GenerationNumber; } }
 
         public Rect SummaryBox = new Rect(800, 10, 430, 100);
 
@@ -144,13 +144,8 @@ namespace Assets.Src.Evolution
                         var score = team.Value;
                                                 
                         var alive = _extantTeams.ContainsKey(team.Key);
-                        var outcome = alive
-                            ? _extantTeams.Count == 1
-                                ? MatchOutcome.Win
-                                : MatchOutcome.Draw
-                            : MatchOutcome.Loss;
 
-                        _currentGeneration.RecordMatch(competitor, score, alive, !_dronesRemain, _droneKillsSoFar, AllCompetetrs, outcome);
+                        _currentGeneration.RecordMatch(competitor, score, alive, !_dronesRemain, _droneKillsSoFar, AllCompetetrs, alive && _extantTeams.Count == 1);
                     }
 
                     _dbHandler.UpdateGeneration(_currentGeneration, DatabaseId, EvolutionConfig.GenerationNumber);
@@ -438,7 +433,7 @@ namespace Assets.Src.Evolution
         #region On GUI Methods
         protected virtual string SummaryText()
         {
-            var text = "ID: " + DatabaseId + ", Name: " + BaseConfig.RunName + ", Generation: " + BaseConfig.GenerationNumber + Environment.NewLine +
+            var text = "ID: " + DatabaseId + ", Name: " + Config.RunName + ", Generation: " + Config.GenerationNumber + Environment.NewLine +
                 "Combatants: " + string.Join(" vs ", Combatants.ToArray());
 
             var runTimeing = _matchControl.MatchRunTime;

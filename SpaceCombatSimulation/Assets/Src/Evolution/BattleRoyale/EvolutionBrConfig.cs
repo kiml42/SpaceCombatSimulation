@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Assets.Src.Evolution
+namespace Assets.Src.Evolution.BattleRoyale
 {
     public class EvolutionBrConfig
     {

@@ -9,7 +9,7 @@ public class EvolutionBRDatabaseHandlerReadTests
     private const string _dbPathExtension = ".s3db";
     private string _dbPath;
     private const string _createCommandPath = "/../../Test/TestDB/CreateTestDB.sql";
-    EvolutionBrDatabaseHandler _handler;
+    EvolutionDatabaseHandler _handler;
     DatabaseInitialiser _initialiser;
 
     [SetUp]
@@ -22,7 +22,7 @@ public class EvolutionBRDatabaseHandlerReadTests
             DatabasePath = _dbPath
         };
 
-        _handler = new EvolutionBrDatabaseHandler(_dbPath, _createCommandPath);
+        _handler = new EvolutionDatabaseHandler(_dbPath, _createCommandPath);
     }
 
     [TearDown]
@@ -84,14 +84,14 @@ public class EvolutionBRDatabaseHandlerReadTests
     public void ReadConfig_ReadsNumberOfCombatants()
     {
         var config = _handler.ReadConfig(2);
-        Assert.AreEqual(2, config.NumberOfCombatants);
+        Assert.AreEqual(2, config.BrConfig.NumberOfCombatants);
     }
 
     [Test]
     public void ReadConfig_ReadsDifferentNumberOfCombatants()
     {
         var config = _handler.ReadConfig(3);
-        Assert.AreEqual(4, config.NumberOfCombatants);
+        Assert.AreEqual(4, config.BrConfig.NumberOfCombatants);
     }
 
     [Test]
@@ -119,56 +119,56 @@ public class EvolutionBRDatabaseHandlerReadTests
     public void ReadConfig_InSphereRandomisationRadius()
     {
         var config = _handler.ReadConfig(2);
-        Assert.AreEqual(106, config.InSphereRandomisationRadius);
+        Assert.AreEqual(106, config.MatchConfig.InSphereRandomisationRadius);
     }
 
     [Test]
     public void ReadConfig_OnSphereRandomisationRadius()
     {
         var config = _handler.ReadConfig(2);
-        Assert.AreEqual(107, config.OnSphereRandomisationRadius);
+        Assert.AreEqual(107, config.MatchConfig.OnSphereRandomisationRadius);
     }
 
     [Test]
     public void ReadConfig_RaceMaxDistance()
     {
         var config = _handler.ReadConfig(2);
-        Assert.AreEqual(2010, config.RaceMaxDistance);
+        Assert.AreEqual(2010, config.RaceConfig.RaceMaxDistance);
     }
 
     [Test]
     public void ReadConfig_RaceScoreMultiplier()
     {
         var config = _handler.ReadConfig(2);
-        Assert.AreEqual(1003, config.RaceScoreMultiplier);
+        Assert.AreEqual(1003, config.RaceConfig.RaceScoreMultiplier);
     }
 
     [Test]
     public void ReadConfig_SurvivalBonus()
     {
         var config = _handler.ReadConfig(2);
-        Assert.AreEqual(42, config.SurvivalBonus);
+        Assert.AreEqual(42, config.BrConfig.SurvivalBonus);
     }
 
     [Test]
     public void ReadConfig_DeathScoreMultiplier()
     {
         var config = _handler.ReadConfig(2);
-        Assert.AreEqual(1.5f, config.DeathScoreMultiplier);
+        Assert.AreEqual(1.5f, config.BrConfig.DeathScoreMultiplier);
     }
 
     [Test]
     public void ReadConfig_RaceGoalObject()
     {
         var config = _handler.ReadConfig(2);
-        Assert.AreEqual(4, config.RaceGoalObject);
+        Assert.AreEqual(4, config.RaceConfig.RaceGoalObject);
     }
 
     [Test]
     public void ReadConfig_RaceGoalObject_null()
     {
         var config = _handler.ReadConfig(3);
-        Assert.IsNull(config.RaceGoalObject);
+        Assert.IsNull(config.RaceConfig.RaceGoalObject);
     }
     #endregion
 

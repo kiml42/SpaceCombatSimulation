@@ -1,4 +1,6 @@
 ﻿using Assets.Src.Evolution;
+using Assets.Src.Evolution.BattleRoyale;
+using Assets.Src.Evolution.Drone;
 using Assets.Src.Evolution.Race;
 using Mono.Data.Sqlite;
 using System;
@@ -10,14 +12,14 @@ namespace Assets.Src.Database
 {
     public class EvolutionDatabaseHandler
     {
-        private const string MAIN_CONFIG_TABLE = "MainConfig";
+        private const string MAIN_CONFIG_TABLE = "EvolutionConfig";
         private const string CONFIG_TABLE_BR = "BrEvolutionConfig";
 
         private const string INDIVIDUAL_TABLE = "Individual";
 
         public const string DEFAULT_CREATE_DB_COMMAND_PATH = "/CreateBlankDatabase.sql";
         private const string DEFAULT_DB_PATH = "/Database/SpaceCombatSimulationDB.s3db";
-        
+
         private string ConnectionString
         {
             get
@@ -49,8 +51,7 @@ namespace Assets.Src.Database
         {
             var configs = new Dictionary<int, string>();
 
-            string sqlQuery = "SELECT " + MAIN_CONFIG_TABLE + ".id, name" + " FROM " + MAIN_CONFIG_TABLE +
-                " LEFT JOIN BaseEvolutionConfig on BaseEvolutionConfig.id = " + MAIN_CONFIG_TABLE + ".id;";
+            string sqlQuery = "SELECT id, name FROM " + MAIN_CONFIG_TABLE +";";
 
             using (var sql_con = new SqliteConnection(ConnectionString))
             {
@@ -79,13 +80,13 @@ namespace Assets.Src.Database
                 sql_con.Open();
 
                 //Debug.Log("Updating generation to " + config.GenerationNumber);
-                using (var command = new SqliteCommand("UPDATE BaseEvolutionConfig SET currentGeneration = ? WHERE id = ?;", sql_con))
+                using (var command = new SqliteCommand("UPDATE EvolutionConfig SET currentGeneration = ? WHERE id = ?;", sql_con))
                 {
                     command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)generationNumber));
                     command.Parameters.Add(new SqliteParameter(DbType.Int32, (object)databaseId));
 
                     command.ExecuteNonQuery();
-            }
+                }
             }
         }
 
@@ -137,15 +138,15 @@ namespace Assets.Src.Database
         private string CreateReadConfigQuery(int id)
         {
             string sqlQuery = "SELECT *" +
-                        " FROM BaseEvolutionConfig" +
+                        " FROM EvolutionConfig" +
 
-                        " LEFT JOIN DroneEvolutionConfig on DroneEvolutionConfig.id = BaseEvolutionConfig.id" +
-                        " LEFT JOIN RaceEvolutionConfig on RaceEvolutionConfig.id = BaseEvolutionConfig.id" +
-                        " LEFT JOIN BrEvolutionConfig on BrEvolutionConfig.id = BaseEvolutionConfig.id" +
+                        " LEFT JOIN DroneEvolutionConfig on DroneEvolutionConfig.id = EvolutionConfig.id" +
+                        " LEFT JOIN RaceEvolutionConfig on RaceEvolutionConfig.id = EvolutionConfig.id" +
+                        " LEFT JOIN BrEvolutionConfig on BrEvolutionConfig.id = EvolutionConfig.id" +
 
-                        " LEFT JOIN MatchConfig on MatchConfig.id = BaseEvolutionConfig.id" +
-                        " LEFT JOIN MutationConfig on MutationConfig.id = BaseEvolutionConfig.id" +
-                        " WHERE BaseEvolutionConfig.id = " + id + ";";
+                        " LEFT JOIN MatchConfig on MatchConfig.id = EvolutionConfig.id" +
+                        " LEFT JOIN MutationConfig on MutationConfig.id = EvolutionConfig.id" +
+                        " WHERE EvolutionConfig.id = " + id + ";";
             return sqlQuery;
         }
 
@@ -153,7 +154,7 @@ namespace Assets.Src.Database
         {
             string sqlQuery = "SELECT *" +
                         " FROM Individual" +
-                        " WHERE BaseIndividual.runConfigId = " + runId + " AND BaseIndividual.generation = " + generationNumber +
+                        " WHERE Individual.runConfigId = " + runId + " AND Individual.generation = " + generationNumber +
                         ";";
             return sqlQuery;
         }
@@ -171,8 +172,8 @@ namespace Assets.Src.Database
 
         private MatchConfig ReadMatchConfig(IDataReader reader)
         {
-            //Debug.Log("BaseEvolutionConfig.id ordinal: " + reader.GetOrdinal("id"));
-            //Debug.Log("BaseEvolutionConfig.id value: " + reader.GetInt32(reader.GetOrdinal("id")));
+            //Debug.Log("EvolutionConfig.id ordinal: " + reader.GetOrdinal("id"));
+            //Debug.Log("EvolutionConfig.id value: " + reader.GetInt32(reader.GetOrdinal("id")));
 
             var config = new MatchConfig()
             {
@@ -219,7 +220,7 @@ namespace Assets.Src.Database
             };
             return config;
         }
-        
+
         public EvolutionConfig ReadConfig(int id)
         {
             var config = new EvolutionConfig();
@@ -232,12 +233,12 @@ namespace Assets.Src.Database
                     if (reader.Read())
                     {
                         config.DatabaseId = reader.GetInt32(reader.GetOrdinal("id"));
-                        
+
                         config.RunName = reader.GetString(reader.GetOrdinal("name")); //1
                         config.GenerationNumber = reader.GetInt32(reader.GetOrdinal("currentGeneration"));
                         config.MinMatchesPerIndividual = reader.GetInt32(reader.GetOrdinal("minMatchesPerIndividual"));
                         config.WinnersFromEachGeneration = reader.GetInt32(reader.GetOrdinal("winnersCount"));
-                        
+
                         config.MatchConfig = ReadMatchConfig(reader);
                         config.MutationConfig = ReadMutationConfig(reader);
 
@@ -379,9 +380,26 @@ namespace Assets.Src.Database
             }
         }
 
-        public int SaveNewEvolutionConfig(EvolutionConfig config, SqliteConnection connection, SqliteTransaction transaction)
+        public int SaveNewEvolutionConfig(EvolutionConfig config)
         {
-            var sql = "INSERT INTO BaseEvolutionConfig" +
+            using (var sql_con = new SqliteConnection(ConnectionString))
+            {
+                sql_con.Open(); //Open connection to the database.
+
+                using (var transaction = sql_con.BeginTransaction())
+                {
+                    var id = SaveNewEvolutionConfig(config);
+
+                    transaction.Commit();
+
+                    return id;
+                }
+            }
+        }
+
+        private int SaveNewEvolutionConfig(EvolutionConfig config, SqliteConnection connection, SqliteTransaction transaction)
+        {
+            var sql = "INSERT INTO EvolutionConfig" +
                 " (name, currentGeneration, minMatchesPerIndividual, winnersCount) " +
                 " VALUES (?,?,?,?);";
             using (var insertSQL = new SqliteCommand(sql, connection, transaction))
@@ -556,7 +574,7 @@ namespace Assets.Src.Database
         #endregion
 
         #region update existing
-        protected void UpdateIndividual(Individual individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
+        private void UpdateIndividual(Individual individual, int runId, int generationNumber, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             using (var insertSQL = new SqliteCommand("UPDATE  Individual" +
 
@@ -593,7 +611,24 @@ namespace Assets.Src.Database
             }
         }
 
-        public void UpdateExistingEvolutionConfig(EvolutionConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
+        public int UpdateExistingEvolutionConfig(EvolutionConfig config)
+        {
+            using (var sql_con = new SqliteConnection(ConnectionString))
+            {
+                sql_con.Open(); //Open connection to the database.
+
+                using (var transaction = sql_con.BeginTransaction())
+                {
+                    var id = UpdateExistingEvolutionConfig(config, sql_con, transaction);
+
+                    transaction.Commit();
+
+                    return id;
+                }
+            }
+        }
+
+        private int UpdateExistingEvolutionConfig(EvolutionConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             UpdateExistingMatchConfig(config.DatabaseId, config.MatchConfig, sql_con, transaction);
             UpdateExistingMutationConfig(config.DatabaseId, config.MutationConfig, sql_con, transaction);
@@ -612,6 +647,8 @@ namespace Assets.Src.Database
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.DatabaseId));
 
                 insertSQL.ExecuteNonQuery();
+
+                return config.DatabaseId;
             }
         }
 
@@ -679,7 +716,7 @@ namespace Assets.Src.Database
             }
         }
 
-        public void UpdateExistingConfigBr(int id, EvolutionBrConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
+        private void UpdateExistingConfigBr(int id, EvolutionBrConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             using (var insertSQL = new SqliteCommand(sql_con)
             {
@@ -700,7 +737,7 @@ namespace Assets.Src.Database
             }
         }
 
-        public void UpdateExistingConfigRace(int id, EvolutionRaceConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
+        private void UpdateExistingConfigRace(int id, EvolutionRaceConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
             using (var insertSQL = new SqliteCommand(sql_con)
             {
@@ -722,7 +759,7 @@ namespace Assets.Src.Database
             }
         }
 
-        public void UpdateExistingConfigDrone(int id, EvolutionDroneConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
+        private void UpdateExistingConfigDrone(int id, EvolutionDroneConfig config, SqliteConnection sql_con, SqliteTransaction transaction)
         {
            using (var insertSQL = new SqliteCommand(sql_con)
             {
@@ -866,7 +903,7 @@ namespace Assets.Src.Database
         #endregion
 
         #region null handlers
-        protected static int? GetNullableInt(IDataReader reader, string name)
+        private static int? GetNullableInt(IDataReader reader, string name)
         {
             var ordinal = reader.GetOrdinal(name);
             if (reader.IsDBNull(ordinal))
@@ -876,7 +913,7 @@ namespace Assets.Src.Database
             return reader.GetInt32(ordinal);
         }
 
-        protected static float? GetNullableFloat(IDataReader reader, string name)
+        private static float? GetNullableFloat(IDataReader reader, string name)
         {
             var ordinal = reader.GetOrdinal(name);
             if (reader.IsDBNull(ordinal))
@@ -886,7 +923,7 @@ namespace Assets.Src.Database
             return reader.GetFloat(ordinal);
         }
 
-        protected static string GetValueForNullableStringField(IDataReader reader, string name)
+        private static string GetValueForNullableStringField(IDataReader reader, string name)
         {
             var ordinal = reader.GetOrdinal(name);
             if (reader.IsDBNull(ordinal))
@@ -897,7 +934,7 @@ namespace Assets.Src.Database
         }
         #endregion
 
-        protected int GetLastUpdatedId(SqliteConnection sql_con, SqliteTransaction transaction)
+        private int GetLastUpdatedId(SqliteConnection sql_con, SqliteTransaction transaction)
         {
             using (var readIdCommand = new SqliteCommand(sql_con)
             {

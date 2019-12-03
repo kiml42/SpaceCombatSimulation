@@ -39,13 +39,13 @@ namespace Assets.Src.Evolution
 
         public int MatchesPlayed { get; set; }
 
-        public int MatchesSurvived;
+        public int MatchesSurvived { get; set; }
 
         /// <summary>
         /// matches in which this survived and noone else did.
         /// (Drones may have survived)
         /// </summary>
-        public int MatchesAsLastSurvivor;
+        public int MatchesAsLastSurvivor { get; set; }
 
         [Obsolete("Use MatchesAsLastSurvivor instead")]
         public int Wins { get
@@ -58,6 +58,9 @@ namespace Assets.Src.Evolution
             }
         }
 
+        /// <summary>
+        /// Matches in which this one suvived, but was not the only survivor
+        /// </summary>
         public int Draws { get
             {
                 return MatchesSurvived - MatchesAsLastSurvivor;

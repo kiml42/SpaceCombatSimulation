@@ -10,8 +10,8 @@ namespace Assets.Src.Evolution
 {
     public class GenomeWrapper
     {
-        private int _geneLength;
-        private string _genome;
+        private readonly int _geneLength;
+        private readonly string _genome;
         private const int DEFAULT_GENE_LENGTH = 3;
         private const float DEFAULT_BUDGET = 1000;
 
@@ -24,7 +24,7 @@ namespace Assets.Src.Evolution
         public float? Budget { get; set; }
         private int _position;
         public int Position { get { return _position; } }
-        private Stack<int> _previousPositions = new Stack<int>();
+        private readonly Stack<int> _previousPositions = new Stack<int>();
 
         public Dictionary<ModuleType, int> ModuleTypeCounts { get; private set; }
         public int ModulesAdded { get; private set; }
@@ -33,7 +33,7 @@ namespace Assets.Src.Evolution
 
         public bool UseJump = true;
 
-        private ModuleRecord _topModuleRecord;
+        private readonly ModuleRecord _topModuleRecord;
 
         public string Species
         {
@@ -67,7 +67,7 @@ namespace Assets.Src.Evolution
             }
         }
 
-        private Stack<ModuleRecord> _previousModuleRecords = new Stack<ModuleRecord>();
+        private readonly Stack<ModuleRecord> _previousModuleRecords = new Stack<ModuleRecord>();
         private ModuleRecord _currentModuleRecord;
 
         public GenomeWrapper(string genome, float budget = DEFAULT_BUDGET, int geneLength = DEFAULT_GENE_LENGTH)
@@ -233,8 +233,7 @@ namespace Assets.Src.Evolution
                 return null;
             }
 
-            int number;
-            if (int.TryParse(simplified, out number))
+            if (int.TryParse(simplified, out int number))
             {
                 return number;
             }
