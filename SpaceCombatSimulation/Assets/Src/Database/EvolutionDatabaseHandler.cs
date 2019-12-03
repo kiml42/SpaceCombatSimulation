@@ -98,7 +98,7 @@ namespace Assets.Src.Database
                 sql_con.Open(); //Open connection to the database.
                 using (var dbcmd = sql_con.CreateCommand())
                 {
-                    dbcmd.CommandText = "UPDATE " + MAIN_CONFIG_TABLE + " set autoloadId = ?;";
+                    dbcmd.CommandText = "UPDATE MainConfig set autoloadId = ?;";
 
                     dbcmd.Parameters.Add(new SqliteParameter(DbType.Int32, (object)autoloadId));
 
@@ -268,18 +268,19 @@ namespace Assets.Src.Database
 
         private EvolutionDroneConfig ReadConfigDrone(IDataReader reader)
         {
-            var config = new EvolutionDroneConfig();
-            config.MinDronesToSpawn = reader.GetInt32(reader.GetOrdinal("minDrones"));
-            //Debug.Log("droneEscalation ordinal: " + reader.GetOrdinal("droneEscalation"));
-            config.ExtraDromnesPerGeneration = reader.GetFloat(reader.GetOrdinal("droneEscalation"));
-            config.MaxDronesToSpawn = reader.GetInt32(reader.GetOrdinal("maxDrones"));
-            config.KillScoreMultiplier = reader.GetFloat(reader.GetOrdinal("killScoreMultiplier"));
-            config.FlatKillBonus = reader.GetFloat(reader.GetOrdinal("flatKillBonus"));
-            config.CompletionBonus = reader.GetFloat(reader.GetOrdinal("completionBonus"));
-            config.DronesString = reader.GetString(reader.GetOrdinal("droneList"));
+            var config = new EvolutionDroneConfig
+            {
+                MinDronesToSpawn = GetNullableInt(reader, "minDrones") ?? 0,
+                ExtraDromnesPerGeneration = GetNullableFloat(reader, "droneEscalation") ?? 0,
+                MaxDronesToSpawn = GetNullableInt(reader, "maxDrones") ?? 0,
+                KillScoreMultiplier = GetNullableFloat(reader, "killScoreMultiplier") ?? 0,
+                FlatKillBonus = GetNullableFloat(reader, "flatKillBonus") ?? 0,
+                CompletionBonus = GetNullableFloat(reader, "completionBonus") ?? 0,
+                DronesString = GetNullableString(reader, "droneList"),
 
-            config.DronesInSphereRandomRadius = reader.GetFloat(reader.GetOrdinal("dronesInSphereRandomRadius"));
-            config.DronesOnSphereRandomRadius = reader.GetFloat(reader.GetOrdinal("dronesOnSphereRandomRadius"));
+                DronesInSphereRandomRadius = GetNullableFloat(reader, "dronesInSphereRandomRadius") ?? 0,
+                DronesOnSphereRandomRadius = GetNullableFloat(reader, "dronesOnSphereRandomRadius") ?? 0
+            };
 
             return config;
         }
@@ -306,10 +307,10 @@ namespace Assets.Src.Database
                     reader.GetFloat(reader.GetOrdinal("r")),
                     reader.GetFloat(reader.GetOrdinal("g")),
                     reader.GetFloat(reader.GetOrdinal("b")),
-                    GetValueForNullableStringField(reader, "species"),
-                    GetValueForNullableStringField(reader, "speciesVerbose"),
-                    GetValueForNullableStringField(reader, "subspecies"),
-                    GetValueForNullableStringField(reader, "subspeciesVerbose")
+                    GetNullableString(reader, "species"),
+                    GetNullableString(reader, "speciesVerbose"),
+                    GetNullableString(reader, "subspecies"),
+                    GetNullableString(reader, "subspeciesVerbose")
                 );
         }
 
@@ -327,7 +328,7 @@ namespace Assets.Src.Database
                         var individual = new Individual(ReadSpeciesSummary(reader))
                         {
                             Score = reader.GetFloat(reader.GetOrdinal("score")),
-                            PreviousCombatantsString = GetValueForNullableStringField(reader, "previousCombatants"),
+                            PreviousCombatantsString = GetNullableString(reader, "previousCombatants"),
 
                             MatchesPlayed = reader.GetInt32(reader.GetOrdinal("matchesPlayed")),
                             MatchesSurvived = reader.GetInt32(reader.GetOrdinal("matchesSurvived")),
@@ -922,7 +923,7 @@ namespace Assets.Src.Database
             return reader.GetFloat(ordinal);
         }
 
-        private static string GetValueForNullableStringField(IDataReader reader, string name)
+        private static string GetNullableString(IDataReader reader, string name)
         {
             var ordinal = reader.GetOrdinal(name);
             if (reader.IsDBNull(ordinal))
