@@ -45,7 +45,7 @@ CREATE TABLE DroneEvolutionConfig (
 	dronesOnSphereRandomRadius INTEGER DEFAULT '''0''' NOT NULL
 );
 INSERT INTO DroneEvolutionConfig (id, minDrones, droneEscalation, maxDrones, killScoreMultiplier, flatKillBonus, completionBonus, droneList, dronesInSphereRandomRadius, dronesOnSphereRandomRadius)
-VALUES (0, 10, 3, 15, -4, -6, -8, '0,2,1,3,1,1,3,1,5,1,1,1,6,1,1', 100, 101);
+VALUES (0, 10, 3, 15, -4, -6, -8, '0,2,1,3,1,1,3,1,5,1,1,1,6,1,1', 102, 103);
 INSERT INTO DroneEvolutionConfig (id, minDrones, droneEscalation, maxDrones, killScoreMultiplier, flatKillBonus, completionBonus, droneList, dronesInSphereRandomRadius, dronesOnSphereRandomRadius)
 VALUES (1, 3, 8, 100, 50, 100, 388, '0,2,1,3,1,1,3,1,5,1,1,1,6,1,1', 200, 201);
 

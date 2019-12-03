@@ -109,6 +109,11 @@ public class EvolutionDroneDatabaseHandlerSaveTests
     {
         var config = DefaultEvolutionConfig;
 
+        config.MatchConfig.InSphereRandomisationRadius = 91;
+        config.MatchConfig.OnSphereRandomisationRadius = 92;
+        config.EvolutionDroneConfig.DronesInSphereRandomRadius = 93;
+        config.EvolutionDroneConfig.DronesOnSphereRandomRadius = 94;
+
         config.DatabaseId = -13; //set id to something really obvious to show if it hasn't been set correctly.
 
         int result = _handler.SaveNewEvolutionConfig(config);
@@ -134,6 +139,10 @@ public class EvolutionDroneDatabaseHandlerSaveTests
     {
         var config = new EvolutionConfig
         {
+            MatchConfig = new MatchConfig
+            {
+                Budget = null
+            },
             EvolutionDroneConfig = new EvolutionDroneConfig
             {
                 Drones = new List<int>
