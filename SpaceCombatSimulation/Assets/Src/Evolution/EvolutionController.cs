@@ -72,7 +72,11 @@ namespace Assets.Src.Evolution
                 throw new Exception("Did not retrieve expected config from database");
             }
 
-            _matchControl = gameObject.GetComponent<EvolutionMatchController>() ?? gameObject.AddComponent<EvolutionMatchController>();
+            _matchControl = gameObject.GetComponent<EvolutionMatchController>();
+            if(_matchControl = null)
+            {
+                _matchControl = gameObject.AddComponent<EvolutionMatchController>();
+            }
 
             _mutationControl.Config = EvolutionConfig.MutationConfig;
             _matchControl.Config = EvolutionConfig.MatchConfig;
