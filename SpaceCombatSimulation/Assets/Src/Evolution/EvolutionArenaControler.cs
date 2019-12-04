@@ -67,8 +67,8 @@ namespace Assets.Src.Evolution
         private void ActivateSuddenDeath()
         {
             Debug.Log("Sudden Death!");
-            var orientation = UnityEngine.Random.rotation;
-            var randomPlacement = ShipConfig.Config.PositionForCompetitor((int)UnityEngine.Random.value, 0, 0, 0);
+            var orientation = Random.rotation;
+            var randomPlacement = ShipConfig.Config.PositionForCompetitor((int)Random.value, 0, 0, 0);
             var death = Instantiate(SuddenDeathObject, randomPlacement, orientation);
 
             death.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = ShipConfig.Tags;
@@ -88,7 +88,7 @@ namespace Assets.Src.Evolution
         {
             if (_extantGenomes.Any())
             {
-                var skip = (int)UnityEngine.Random.value * _extantGenomes.Count();
+                var skip = (int)Random.value * _extantGenomes.Count();
                 return _extantGenomes.Skip(skip).First().Value;
             }
             return DefaultGenome;

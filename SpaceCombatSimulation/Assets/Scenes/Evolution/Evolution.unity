@@ -264,6 +264,16 @@ PrefabInstance:
       propertyPath: m_RootOrder
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 114162882494618574, guid: 590da46f61a57f34ba77094de519068c,
+        type: 3}
+      propertyPath: TagsForAll.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 114162882494618574, guid: 590da46f61a57f34ba77094de519068c,
+        type: 3}
+      propertyPath: TagsForAll.Array.data[1]
+      value: Enemy
+      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 114333731870391954, guid: 590da46f61a57f34ba77094de519068c, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: 590da46f61a57f34ba77094de519068c, type: 3}
@@ -285,7 +295,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da0773851669cd448b68af04c29ba13b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DatabaseId: 0
+  DatabaseId: 1
   ShipConfig: {fileID: 1881077186}
   RaceGoals: {fileID: 114737211958639058, guid: ca698eb3a6516b148a347994e01953a9,
     type: 3}

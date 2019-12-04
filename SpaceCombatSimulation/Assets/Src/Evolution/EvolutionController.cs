@@ -73,7 +73,7 @@ namespace Assets.Src.Evolution
             }
 
             _matchControl = gameObject.GetComponent<EvolutionMatchController>();
-            if(_matchControl = null)
+            if(_matchControl == null)
             {
                 _matchControl = gameObject.AddComponent<EvolutionMatchController>();
             }
@@ -256,7 +256,7 @@ namespace Assets.Src.Evolution
                 var dronePrefab = SelectDrone(i);
                 //Debug.Log("spawning drone " + genome);
 
-                var randomPlacement = EvolutionConfig.MatchConfig.PositionForCompetitor(DRONES_INDEX, 0, EvolutionConfig.EvolutionDroneConfig.DronesInSphereRandomRadius, EvolutionConfig.EvolutionDroneConfig.DronesOnSphereRandomRadius);
+                var randomPlacement = MatchConfig.RandomLocation(EvolutionConfig.EvolutionDroneConfig.DronesInSphereRandomRadius, EvolutionConfig.EvolutionDroneConfig.DronesOnSphereRandomRadius);
                 var orientation = EvolutionConfig.MatchConfig.OrientationForStartLocation(randomPlacement);
                 var drone = Instantiate(dronePrefab, randomPlacement, orientation);
                 drone.tag = droneTag;
@@ -332,8 +332,9 @@ namespace Assets.Src.Evolution
         {
             var tags = ListShips()
                 .Select(s => s.tag)
+                .Where(t => _extantTeams.Keys.Contains(t))
                 .Distinct();
-            //Debug.Log(tags.Count() + " teams still exist");
+            Debug.Log($"{tags.Count()} teams still exist: {string.Join(", ", tags)}");
 
             if (tags.Count() < _extantTeams.Count)
             {
@@ -387,6 +388,7 @@ namespace Assets.Src.Evolution
         {
             if (killedDrones > 0)
             {
+                Debug.Log($"DronesKilled: {killedDrones}");
                 _droneKillsSoFar += killedDrones;
                 var scorePerKill = (_matchControl.RemainingTime() * EvolutionConfig.EvolutionDroneConfig.KillScoreMultiplier) + EvolutionConfig.EvolutionDroneConfig.FlatKillBonus;
                 //Debug.Log(killedDrones + " drones killed this interval for " + scorePerKill + " each.");

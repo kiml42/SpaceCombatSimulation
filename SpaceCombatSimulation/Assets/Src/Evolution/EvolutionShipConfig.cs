@@ -11,10 +11,10 @@ namespace Assets.Src.Evolution
     {
         public ModuleTypeKnower ShipToEvolve;
 
-        public List<string> Tags = new List<string> { "Team1", "Team2" };
+        public List<string> Tags = new List<string> { "Team1", "Team2", "Team3", "Team4", "Team5", "Team6" };
 
         [Tooltip("all spawned ships get these set as their enemies")]
-        public List<string> TagsForAll = new List<string> { "RaceGoal" };
+        public List<string> TagsForAll = new List<string> { "RaceGoal", "Enemy" };
 
         public TestCubeChecker TestCube;
         [Tooltip("Randomise the rotation of all spawned ships")]

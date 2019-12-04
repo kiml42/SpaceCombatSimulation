@@ -79,12 +79,24 @@ namespace Assets.Src.Evolution
 
             var distanceToCentre = (InitialRange - stepForwards) / 2;
 
-            var randomisation = Random.insideUnitSphere * inSphereRandomisationRadius;
-            randomisation += Random.onUnitSphere * onSphereRandomisationRadius;
-
-            var randomisedLocation = (_startVector[index % _startVector.Length] * distanceToCentre) + randomisation;
+            var randomisedLocation = (_startVector[index % _startVector.Length] * distanceToCentre) + RandomLocation(inSphereRandomisationRadius, onSphereRandomisationRadius);
 
             return randomisedLocation;
+        }
+
+        /// <summary>
+        /// Returns a random location between the spheres at max and min distance.
+        /// Values will be evenly distributed in distance and in angle from the centre, not volumetrically.
+        /// </summary>
+        /// <param name="maximumDistance"></param>
+        /// <param name="minimumDistance"></param>
+        /// <returns></returns>
+        public static Vector3 RandomLocation(float maximumDistance, float minimumDistance = 0)
+        {
+            var randomMagnitude = Random.Range(minimumDistance, maximumDistance);
+            var orientation = Random.onUnitSphere;
+
+            return randomMagnitude * orientation;
         }
         
         /// <summary>
