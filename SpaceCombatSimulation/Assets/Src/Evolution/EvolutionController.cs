@@ -356,8 +356,10 @@ namespace Assets.Src.Evolution
                     var dist = Vector3.Distance(_raceGoalObject.position, shipTeam.Key.position);
                     var unscaledScore = (EvolutionConfig.RaceConfig.RaceMaxDistance - dist) / EvolutionConfig.RaceConfig.RaceMaxDistance;
                     var extraScore = (float)Math.Max(0, unscaledScore * EvolutionConfig.RaceConfig.RaceScoreMultiplier);
-                    //if(extraScore > 0) Debug.Log("Race: Distance: " + dist + ", score: " + extraScore + ", team: " + shipTeam.Value);
-                    AddScore(shipTeam.Value, extraScore);
+                    if (extraScore != 0)
+                    {
+                        AddScore(shipTeam.Value, extraScore, "race");
+                    }
                 }
             }
         }
@@ -387,7 +389,7 @@ namespace Assets.Src.Evolution
                 var scoreForDroneKills = killedDrones * scorePerKill;
                 foreach (var teamTag in _extantTeams.Keys)
                 {
-                    AddScore(teamTag, scoreForDroneKills);
+                    AddScore(teamTag, scoreForDroneKills, "drones");
                 }
             }
         }
@@ -396,9 +398,9 @@ namespace Assets.Src.Evolution
         {
             Debug.Log("Match over: " + _extantTeams.Count + " survived.");
             var score = EvolutionConfig.BrConfig.SurvivalBonus / _extantTeams.Count;
-            foreach (var team in _extantTeams)
+            foreach (var team in _extantTeams.Keys)
             {
-                AddScore(team.Key, score);
+                AddScore(team, score, "survivor");
             }
         }
 
@@ -413,13 +415,17 @@ namespace Assets.Src.Evolution
 
         private void AddScoreForDefeatedIndividual(KeyValuePair<string, GenomeWrapper> deadIndividual)
         {
-            Debug.Log(deadIndividual.Value.Name + " has died");
+            Debug.Log($"{deadIndividual.Value.Name} has died");
             var score = -EvolutionConfig.BrConfig.DeathScoreMultiplier * _extantTeams.Count * _matchControl.RemainingTime();
-            AddScore(deadIndividual.Key, score);
+            AddScore(deadIndividual.Key, score, "died");
         }
 
-        private void AddScore(string teamTag, float extraScore)
+        private void AddScore(string teamTag, float extraScore, string reason = "")
         {
+            if(extraScore!=0 && !string.IsNullOrEmpty(reason))
+            {
+                Debug.Log($"{reason}: Adding {extraScore} to {teamTag}");
+            }
             _teamScores[teamTag] += extraScore;
         }
         #endregion
