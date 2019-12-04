@@ -5,16 +5,6 @@ namespace Assets.Src.Evolution
 {
     public class MatchConfig
     {
-        private static readonly Vector3[] _startVector =
-        {
-            new Vector3(-1,0,0),
-            new Vector3(1,0,0),
-            new Vector3(0,-1,0),
-            new Vector3(0,1,0),
-            new Vector3(0,0,-1),
-            new Vector3(0,0,1)
-        };
-
         public float MatchTimeout = 300;
 
         /// <summary>
@@ -23,7 +13,7 @@ namespace Assets.Src.Evolution
         public float WinnerPollPeriod = 2;
 
         /// <summary>
-        /// Initial distance between competitors
+        /// Initial distance to the centre
         /// </summary>
         public float InitialRange = 6000;
 
@@ -37,8 +27,8 @@ namespace Assets.Src.Evolution
         /// </summary>
         public float RandomInitialSpeed = 0;
         
-        public float OnSphereRandomisationRadius = 50;
-        public float InSphereRandomisationRadius = 0;
+        public float MaximumLocationRandomisation = 50;
+        public float MinimumLocationRandomisation = 0;
 
         public int CompetitorsPerTeam = 1;
 
@@ -68,18 +58,24 @@ namespace Assets.Src.Evolution
         public float? Budget = 1000;
 
         /// <summary>
-        /// Returns the start position for the competitior with the given index.
+        /// Returns the start position for the competitior with the given spawnPointNumber.
         /// </summary>
-        /// <param name="index"></param>
-        /// <param name="stepsTowardsCentre">number of increments of the step forward proportion to use</param>
+        /// <param name="spawnPointNumber"></param>
+        /// <param name="totalSpawnPoints"></param>
         /// <returns></returns>
-        public Vector3 PositionForCompetitor(int index, float stepsTowardsCentre, float inSphereRandomisationRadius, float onSphereRandomisationRadius)
+        public Vector3 PositionForCompetitor(int spawnPointNumber, int totalSpawnPoints)
         {
-            var stepForwards = stepsTowardsCentre * StepForwardProportion * InitialRange; 
+            var stepForwards = (spawnPointNumber / totalSpawnPoints) * StepForwardProportion * InitialRange;
 
-            var distanceToCentre = (InitialRange - stepForwards) / 2;
+            var distanceToCentre = InitialRange - stepForwards;
 
-            var randomisedLocation = (_startVector[index % _startVector.Length] * distanceToCentre) + RandomLocation(inSphereRandomisationRadius, onSphereRandomisationRadius);
+            var angle = spawnPointNumber * (2 * Mathf.PI / (totalSpawnPoints + 1));
+
+            var x = Mathf.Cos(angle) * distanceToCentre;
+            var y = Mathf.Sin(angle) * distanceToCentre;
+            var baseLocation = new Vector3(x, y);
+
+            var randomisedLocation = baseLocation + RandomLocation();
 
             return randomisedLocation;
         }
@@ -88,12 +84,13 @@ namespace Assets.Src.Evolution
         /// Returns a random location between the spheres at max and min distance.
         /// Values will be evenly distributed in distance and in angle from the centre, not volumetrically.
         /// </summary>
-        /// <param name="maximumDistance"></param>
-        /// <param name="minimumDistance"></param>
         /// <returns></returns>
-        public static Vector3 RandomLocation(float maximumDistance, float minimumDistance = 0)
+        public Vector3 RandomLocation(float? MinimumLocationRandomisationOverride = null, float? MaximumLocationRandomisationOverride = null)
         {
-            var randomMagnitude = Random.Range(minimumDistance, maximumDistance);
+            var randomMagnitude = Random.Range(
+                    MinimumLocationRandomisationOverride ?? MinimumLocationRandomisation,
+                    MaximumLocationRandomisationOverride ?? MaximumLocationRandomisation
+                );
             var orientation = Random.onUnitSphere;
 
             return randomMagnitude * orientation;

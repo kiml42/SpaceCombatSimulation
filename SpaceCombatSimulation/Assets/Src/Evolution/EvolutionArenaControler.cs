@@ -68,7 +68,7 @@ namespace Assets.Src.Evolution
         {
             Debug.Log("Sudden Death!");
             var orientation = Random.rotation;
-            var randomPlacement = ShipConfig.Config.PositionForCompetitor((int)Random.value, 0, 0, 0);
+            var randomPlacement = ShipConfig.Config.PositionForCompetitor((int)Random.value, ConcurrentShips);
             var death = Instantiate(SuddenDeathObject, randomPlacement, orientation);
 
             death.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = ShipConfig.Tags;
@@ -122,7 +122,7 @@ namespace Assets.Src.Evolution
 
             var index = ShipConfig.Tags.IndexOf(ownTag);
 
-            ShipConfig.SpawnShip(genome, index, 0, 0, 0);
+            ShipConfig.SpawnShip(genome, index, ConcurrentShips);
 
             RememberNewExtantGenome(ownTag, genome);
         }

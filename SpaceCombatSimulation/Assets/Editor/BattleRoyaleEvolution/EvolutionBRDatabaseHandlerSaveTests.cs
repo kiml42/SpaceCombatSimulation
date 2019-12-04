@@ -26,8 +26,8 @@ public class EvolutionBRDatabaseHandlerSaveTests
                 WinnersFromEachGeneration = 7,
                 MatchConfig = new MatchConfig
                 {
-                    InSphereRandomisationRadius = 43,
-                    OnSphereRandomisationRadius = 44,
+                    MinimumLocationRandomisation = 43,
+                    MaximumLocationRandomisation = 44,
                 },
                 MutationConfig = new MutationConfig
                 {
@@ -116,8 +116,8 @@ public class EvolutionBRDatabaseHandlerSaveTests
         Assert.AreEqual(expectedId, retrieved.DatabaseId);
         Assert.AreEqual("SaveConfigTest", retrieved.RunName);
         Assert.AreEqual(3, retrieved.BrConfig.NumberOfCombatants);
-        Assert.AreEqual(43, retrieved.MatchConfig.InSphereRandomisationRadius);
-        Assert.AreEqual(44, retrieved.MatchConfig.OnSphereRandomisationRadius);
+        Assert.AreEqual(43, retrieved.MatchConfig.MinimumLocationRandomisation);
+        Assert.AreEqual(44, retrieved.MatchConfig.MaximumLocationRandomisation);
         Assert.AreEqual(123, retrieved.BrConfig.DeathScoreMultiplier);
         Assert.AreEqual(2342, retrieved.RaceConfig.RaceMaxDistance);
         Assert.AreEqual(1234, retrieved.RaceConfig.RaceScoreMultiplier);
@@ -152,8 +152,8 @@ public class EvolutionBRDatabaseHandlerSaveTests
         config.MatchConfig.InitialRange++;
         config.MutationConfig.GenomeLength++;
         config.BrConfig.NumberOfCombatants++;
-        config.MatchConfig.InSphereRandomisationRadius++;
-        config.MatchConfig.OnSphereRandomisationRadius++;
+        config.MatchConfig.MinimumLocationRandomisation++;
+        config.MatchConfig.MaximumLocationRandomisation++;
         config.BrConfig.SurvivalBonus++;
         config.RaceConfig.RaceMaxDistance++;
         config.RaceConfig.RaceScoreMultiplier++;
@@ -169,8 +169,8 @@ public class EvolutionBRDatabaseHandlerSaveTests
         Assert.AreEqual(config.MatchConfig.InitialRange, updated.MatchConfig.InitialRange);
         Assert.AreEqual(config.MutationConfig.GenomeLength, updated.MutationConfig.GenomeLength);
         Assert.AreEqual(config.BrConfig.NumberOfCombatants, updated.BrConfig.NumberOfCombatants);
-        Assert.AreEqual(config.MatchConfig.InSphereRandomisationRadius, updated.MatchConfig.InSphereRandomisationRadius);
-        Assert.AreEqual(config.MatchConfig.OnSphereRandomisationRadius, updated.MatchConfig.OnSphereRandomisationRadius);
+        Assert.AreEqual(config.MatchConfig.MinimumLocationRandomisation, updated.MatchConfig.MinimumLocationRandomisation);
+        Assert.AreEqual(config.MatchConfig.MaximumLocationRandomisation, updated.MatchConfig.MaximumLocationRandomisation);
         Assert.AreEqual(config.BrConfig.SurvivalBonus, updated.BrConfig.SurvivalBonus);
         Assert.AreEqual(config.RaceConfig.RaceMaxDistance, updated.RaceConfig.RaceMaxDistance);
         Assert.AreEqual(config.RaceConfig.RaceScoreMultiplier, updated.RaceConfig.RaceScoreMultiplier);

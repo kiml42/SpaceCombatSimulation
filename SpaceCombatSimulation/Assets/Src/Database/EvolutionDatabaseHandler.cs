@@ -192,8 +192,8 @@ namespace Assets.Src.Database
                 WinnerPollPeriod = reader.GetFloat(reader.GetOrdinal("winnerPollPeriod")), //17
                 InitialRange = reader.GetFloat(reader.GetOrdinal("initialRange")),
                 InitialSpeed = reader.GetFloat(reader.GetOrdinal("initialSpeed")),
-                InSphereRandomisationRadius = reader.GetFloat(reader.GetOrdinal("inSphereRandomisationRadius")),
-                OnSphereRandomisationRadius = reader.GetFloat(reader.GetOrdinal("onSphereRandomisationRadius")),
+                MinimumLocationRandomisation = reader.GetFloat(reader.GetOrdinal("inSphereRandomisationRadius")),
+                MaximumLocationRandomisation = reader.GetFloat(reader.GetOrdinal("onSphereRandomisationRadius")),
                 RandomInitialSpeed = reader.GetFloat(reader.GetOrdinal("randomInitialSpeed")),
                 CompetitorsPerTeam = reader.GetInt32(reader.GetOrdinal("competitorsPerTeam")),
                 StepForwardProportion = reader.GetFloat(reader.GetOrdinal("stepForwardProportion")),
@@ -456,8 +456,8 @@ namespace Assets.Src.Database
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialSpeed));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.RandomInitialSpeed));
 
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.InSphereRandomisationRadius));
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.OnSphereRandomisationRadius));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.MinimumLocationRandomisation));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Double, (object)config.MaximumLocationRandomisation));
 
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.CompetitorsPerTeam));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.StepForwardProportion));
@@ -705,8 +705,8 @@ namespace Assets.Src.Database
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InitialSpeed));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.RandomInitialSpeed));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Int32, (object)config.CompetitorsPerTeam));
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.InSphereRandomisationRadius));
-                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.OnSphereRandomisationRadius));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MinimumLocationRandomisation));
+                insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.MaximumLocationRandomisation));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Decimal, (object)config.StepForwardProportion));
                 insertSQL.Parameters.Add(new SqliteParameter(DbType.Boolean, (object)config.RandomiseRotation));
 

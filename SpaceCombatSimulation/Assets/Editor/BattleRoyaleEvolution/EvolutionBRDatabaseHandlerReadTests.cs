@@ -119,14 +119,14 @@ public class EvolutionBRDatabaseHandlerReadTests
     public void ReadConfig_InSphereRandomisationRadius()
     {
         var config = _handler.ReadConfig(2);
-        Assert.AreEqual(106, config.MatchConfig.InSphereRandomisationRadius);
+        Assert.AreEqual(106, config.MatchConfig.MinimumLocationRandomisation);
     }
 
     [Test]
     public void ReadConfig_OnSphereRandomisationRadius()
     {
         var config = _handler.ReadConfig(2);
-        Assert.AreEqual(107, config.MatchConfig.OnSphereRandomisationRadius);
+        Assert.AreEqual(107, config.MatchConfig.MaximumLocationRandomisation);
     }
 
     [Test]

@@ -214,16 +214,16 @@ namespace Assets.Src.Evolution
                 string name = "Nemo";
                 for (var j = 0; j < _matchControl.Config.CompetitorsPerTeam; j++)
                 {
-                    var gw = ShipConfig.SpawnShip(g, i, j, EvolutionConfig.MatchConfig.InSphereRandomisationRadius, EvolutionConfig.MatchConfig.OnSphereRandomisationRadius);
+                    var gw = ShipConfig.SpawnShip(g, i, EvolutionConfig.BrConfig.NumberOfCombatants);
                     wrappers.Add(gw);
 
-                    Debug.Log(gw.Name + " enters the arena!");
+                    Debug.Log($"{gw.Name} enters the arena on team {gw.Tag}!");
                     Debug.Log("Ship cost = " + gw.Cost);
 
                     name = gw.Name;
                     var hasModules = gw.ModulesAdded > 0;
 
-                    _currentGenomes[ShipConfig.GetTag(i)] = gw; //This will only save the last gw, but they should be functionally identical.
+                    _currentGenomes[gw.Tag] = gw; //This will only save the last gw, but they should be functionally identical.
                 }
 
                 names.Add(name);
@@ -234,7 +234,7 @@ namespace Assets.Src.Evolution
             _extantTeams = _currentGenomes;
             _teamScores = _currentGenomes.ToDictionary(kv => kv.Key, kv => 0f);
 
-            Debug.Log("\"" + string.Join("\" vs \"", names.ToArray()) + "\"");
+            Debug.Log("\"" + string.Join("\" vs \"", names.Distinct().ToArray()) + "\"");
 
             return wrappers.Any(w => w.ModulesAdded > 0);
         }

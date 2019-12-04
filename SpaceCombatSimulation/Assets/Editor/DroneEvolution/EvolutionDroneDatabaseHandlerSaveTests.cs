@@ -28,8 +28,8 @@ public class EvolutionDroneDatabaseHandlerSaveTests
                 WinnersFromEachGeneration = 7,
                 MatchConfig = new MatchConfig
                 {
-                    InSphereRandomisationRadius = 43,
-                    OnSphereRandomisationRadius = 44,
+                    MinimumLocationRandomisation = 43,
+                    MaximumLocationRandomisation = 44,
                 },
                 MutationConfig = new MutationConfig
                 {
@@ -109,8 +109,8 @@ public class EvolutionDroneDatabaseHandlerSaveTests
     {
         var config = DefaultEvolutionConfig;
 
-        config.MatchConfig.InSphereRandomisationRadius = 91;
-        config.MatchConfig.OnSphereRandomisationRadius = 92;
+        config.MatchConfig.MinimumLocationRandomisation = 91;
+        config.MatchConfig.MaximumLocationRandomisation = 92;
         config.EvolutionDroneConfig.DronesInSphereRandomRadius = 93;
         config.EvolutionDroneConfig.DronesOnSphereRandomRadius = 94;
 
@@ -126,8 +126,8 @@ public class EvolutionDroneDatabaseHandlerSaveTests
 
         Assert.AreEqual(expectedId, retrieved.DatabaseId);
         Assert.AreEqual("SaveConfigTest", retrieved.RunName);
-        Assert.AreEqual(91, retrieved.MatchConfig.InSphereRandomisationRadius);
-        Assert.AreEqual(92, retrieved.MatchConfig.OnSphereRandomisationRadius);
+        Assert.AreEqual(91, retrieved.MatchConfig.MinimumLocationRandomisation);
+        Assert.AreEqual(92, retrieved.MatchConfig.MaximumLocationRandomisation);
         Assert.AreEqual(93, retrieved.EvolutionDroneConfig.DronesInSphereRandomRadius);
         Assert.AreEqual(94, retrieved.EvolutionDroneConfig.DronesOnSphereRandomRadius);
 
@@ -169,8 +169,8 @@ public class EvolutionDroneDatabaseHandlerSaveTests
         config.MatchConfig.InitialRange++;
         config.MatchConfig.Budget++;
         config.MutationConfig.GenomeLength++;
-        config.MatchConfig.InSphereRandomisationRadius++;
-        config.MatchConfig.OnSphereRandomisationRadius++;
+        config.MatchConfig.MinimumLocationRandomisation++;
+        config.MatchConfig.MaximumLocationRandomisation++;
         config.EvolutionDroneConfig.DronesInSphereRandomRadius++;
         config.EvolutionDroneConfig.DronesOnSphereRandomRadius++;
 
@@ -180,8 +180,8 @@ public class EvolutionDroneDatabaseHandlerSaveTests
 
         Assert.AreEqual(config.RunName, updated.RunName);
         Assert.AreEqual("Altered", updated.RunName);
-        Assert.AreEqual(config.MatchConfig.InSphereRandomisationRadius, updated.MatchConfig.InSphereRandomisationRadius);
-        Assert.AreEqual(config.MatchConfig.OnSphereRandomisationRadius, updated.MatchConfig.OnSphereRandomisationRadius);
+        Assert.AreEqual(config.MatchConfig.MinimumLocationRandomisation, updated.MatchConfig.MinimumLocationRandomisation);
+        Assert.AreEqual(config.MatchConfig.MaximumLocationRandomisation, updated.MatchConfig.MaximumLocationRandomisation);
         Assert.AreEqual(config.EvolutionDroneConfig.DronesInSphereRandomRadius, updated.EvolutionDroneConfig.DronesInSphereRandomRadius);
         Assert.AreEqual(config.EvolutionDroneConfig.DronesOnSphereRandomRadius, updated.EvolutionDroneConfig.DronesOnSphereRandomRadius);
 

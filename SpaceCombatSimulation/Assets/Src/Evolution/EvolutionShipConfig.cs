@@ -33,21 +33,21 @@ namespace Assets.Src.Evolution
         /// Spawns a ship with the given genome.
         /// </summary>
         /// <param name="genome"></param>
-        /// <param name="index"></param>
-        /// <param name="stepsTowardsCentre"></param>
+        /// <param name="spawnPointNumber"></param>
+        /// <param name="totalNumberOfSpawnPoints"></param>
         /// <returns>Returns the GenomeWrapper for that ship.</returns>
-        public GenomeWrapper SpawnShip(string genome, int index, float stepsTowardsCentre, float inSphereRandomisationRadius, float onSphereRandomisationRadius)
+        public GenomeWrapper SpawnShip(string genome, int spawnPointNumber, int totalNumberOfSpawnPoints)
         {
             if (Config == null)
             {
                 throw new Exception("EvolutionShipConfig needs to have its Config set to a valid MatchConfig");
             }
 
-            var location = Config.PositionForCompetitor(index, stepsTowardsCentre, inSphereRandomisationRadius, onSphereRandomisationRadius);
+            var location = Config.PositionForCompetitor(spawnPointNumber, totalNumberOfSpawnPoints);
             var orientation = Config.OrientationForStartLocation(location);
             var velocity = Config.VelocityForStartLocation(location);
 
-            var ownTag = GetTag(index);
+            var ownTag = GetTag(spawnPointNumber);
 
             var ship = Instantiate(ShipToEvolve, location, orientation);
             ship.tag = ownTag;
@@ -73,7 +73,8 @@ namespace Assets.Src.Evolution
 
             var genomeWrapper = new GenomeWrapper(genome)
             {
-                Budget = Config.Budget
+                Budget = Config.Budget,
+                Tag = ownTag
             };
             ship.GetComponent<Rigidbody>().velocity = velocity;
 

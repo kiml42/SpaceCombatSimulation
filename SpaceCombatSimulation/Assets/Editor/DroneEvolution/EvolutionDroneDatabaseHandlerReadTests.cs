@@ -230,14 +230,14 @@ public class EvolutionDroneDatabaseHandlerReadTests
     public void ReadConfig_MatchControl_ShipInSphereRandomRadius()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(102, config.MatchConfig.InSphereRandomisationRadius);
+        Assert.AreEqual(102, config.MatchConfig.MinimumLocationRandomisation);
     }
 
     [Test]
     public void ReadConfig_MatchControl_ShipOnSphereRandomRadius()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(103, config.MatchConfig.OnSphereRandomisationRadius);
+        Assert.AreEqual(103, config.MatchConfig.MaximumLocationRandomisation);
     }
 
     [Test]
