@@ -10,7 +10,7 @@ namespace Assets.Src.Graph
             var summaries = generations
                 .ToDictionary(
                     i => i.Key,
-                    i => i.Value.Summaries.ToList()
+                    i => i.Value.Summaries
                 );
 
             //var speciesOverGens = new Dictionary<int, IDictionary<string,int>>();
