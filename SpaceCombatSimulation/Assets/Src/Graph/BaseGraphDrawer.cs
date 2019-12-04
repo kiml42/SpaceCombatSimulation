@@ -37,6 +37,11 @@ namespace Assets.Src.Graph
         {
             if (Input.GetKeyUp(DrawGraphKey) && !HasCalculatedGraph)
             {
+                if (EvolutionControler == null)
+                {
+                    Debug.LogWarning("EvolutionController not set");
+                    return;
+                }
                 PrepareGraph();
             }
             if (HasCalculatedGraph)

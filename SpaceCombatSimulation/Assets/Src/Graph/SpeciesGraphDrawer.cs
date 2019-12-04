@@ -6,7 +6,8 @@ namespace Assets.Src.Graph
     {
         internal override void PrepareGraph()
         {
-            var generations = Enumerable.Range(0, EvolutionControler.GenerationNumber)
+            var genNumbers = Enumerable.Range(0, EvolutionControler.GenerationNumber + 1);
+            var generations = genNumbers
                 .ToDictionary(i => i, i => EvolutionControler.DbHandler.ReadGeneration(EvolutionControler.DatabaseId, i).Summaries);
 
             //var speciesOverGens = new Dictionary<int, IDictionary<string,int>>();

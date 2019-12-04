@@ -334,7 +334,7 @@ namespace Assets.Src.Evolution
                 .Select(s => s.tag)
                 .Where(t => _extantTeams.Keys.Contains(t))
                 .Distinct();
-            Debug.Log($"{tags.Count()} teams still exist: {string.Join(", ", tags)}");
+            //Debug.Log($"{tags.Count()} teams still exist: {string.Join(", ", tags)}");
 
             if (tags.Count() < _extantTeams.Count)
             {
