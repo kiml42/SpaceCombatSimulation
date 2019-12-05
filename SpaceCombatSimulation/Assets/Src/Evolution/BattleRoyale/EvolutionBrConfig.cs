@@ -5,7 +5,7 @@ namespace Assets.Src.Evolution.BattleRoyale
     public class EvolutionBrConfig
     {
         #region Combatants
-        public const int MAX_COMBATANTS = 6;
+        public const int MAX_COMBATANTS = 100;
         public const int MIN_COMBATANTS = 1;
 
         private int _numberOfCombatants = 2;

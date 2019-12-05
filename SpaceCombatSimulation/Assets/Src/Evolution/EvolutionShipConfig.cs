@@ -36,14 +36,14 @@ namespace Assets.Src.Evolution
         /// <param name="spawnPointNumber"></param>
         /// <param name="totalNumberOfSpawnPoints"></param>
         /// <returns>Returns the GenomeWrapper for that ship.</returns>
-        public GenomeWrapper SpawnShip(string genome, int spawnPointNumber, int totalNumberOfSpawnPoints)
+        public GenomeWrapper SpawnShip(string genome, int spawnPointNumber, int totalNumberOfSpawnPoints, float stepsForwards)
         {
             if (Config == null)
             {
                 throw new Exception("EvolutionShipConfig needs to have its Config set to a valid MatchConfig");
             }
 
-            var location = Config.PositionForCompetitor(spawnPointNumber, totalNumberOfSpawnPoints);
+            var location = Config.PositionForCompetitor(spawnPointNumber, totalNumberOfSpawnPoints, stepsForwards);
             var orientation = Config.OrientationForStartLocation(location);
             var velocity = Config.VelocityForStartLocation(location);
 

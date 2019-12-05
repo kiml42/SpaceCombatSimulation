@@ -71,8 +71,8 @@ namespace Assets.Src.Evolution
             var angle = spawnPointNumber * (2 * Mathf.PI / (totalSpawnPoints));
 
             var x = Mathf.Cos(angle) * distanceToCentre;
-            var y = Mathf.Sin(angle) * distanceToCentre;
-            var baseLocation = new Vector3(x, y);
+            var z = Mathf.Sin(angle) * distanceToCentre;
+            var baseLocation = new Vector3(x, 0, z);
 
             var randomisedLocation = baseLocation + RandomLocation();
 

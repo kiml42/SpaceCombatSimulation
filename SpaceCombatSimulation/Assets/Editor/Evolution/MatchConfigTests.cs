@@ -74,16 +74,16 @@ namespace Assets.Editor.Evolution
 
                 var expectedAngleRad = Mathf.Deg2Rad * expectedAngles[i];
                 var expectedX = Mathf.Cos(expectedAngleRad) * config.InitialRange;
-                var expectedY = Mathf.Sin(expectedAngleRad) * config.InitialRange;
+                var expectedZ = Mathf.Sin(expectedAngleRad) * config.InitialRange;
 
-                var expected = new Vector3(expectedX, expectedY);
+                var expected = new Vector3(expectedX, expectedZ);
                 Debug.Log($"actual: {position}, expected: {expected}");
 
                 Assert.LessOrEqual(expectedX - tollerance, position.x);
                 Assert.GreaterOrEqual(expectedX + tollerance, position.x);
 
-                Assert.LessOrEqual(expectedY - tollerance, position.y);
-                Assert.GreaterOrEqual(expectedY + tollerance, position.y);
+                Assert.LessOrEqual(expectedZ - tollerance, position.z);
+                Assert.GreaterOrEqual(expectedZ + tollerance, position.z);
 
                 i++;
             }

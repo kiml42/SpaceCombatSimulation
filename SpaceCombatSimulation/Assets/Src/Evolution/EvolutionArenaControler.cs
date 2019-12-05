@@ -122,7 +122,7 @@ namespace Assets.Src.Evolution
 
             var index = ShipConfig.Tags.IndexOf(ownTag);
 
-            ShipConfig.SpawnShip(genome, index, ConcurrentShips);
+            ShipConfig.SpawnShip(genome, index, ConcurrentShips, 0);
 
             RememberNewExtantGenome(ownTag, genome);
         }

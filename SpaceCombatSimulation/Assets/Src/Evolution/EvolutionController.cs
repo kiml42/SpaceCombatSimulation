@@ -213,7 +213,7 @@ namespace Assets.Src.Evolution
                 string name = "Nemo";
                 for (var j = 0; j < _matchControl.Config.CompetitorsPerTeam; j++)
                 {
-                    var gw = ShipConfig.SpawnShip(g, i, EvolutionConfig.BrConfig.NumberOfCombatants);
+                    var gw = ShipConfig.SpawnShip(g, i, EvolutionConfig.BrConfig.NumberOfCombatants, j);
                     wrappers.Add(gw);
 
                     Debug.Log($"{gw.Name} enters the arena on team {gw.Tag}!");
