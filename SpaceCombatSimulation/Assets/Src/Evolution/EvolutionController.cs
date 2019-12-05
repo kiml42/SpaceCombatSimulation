@@ -45,7 +45,6 @@ namespace Assets.Src.Evolution
 
         private int _previousDroneCount;
         public RigidbodyList DroneList;
-        private const int DRONES_INDEX = 1;
         private readonly List<Transform> _liveDrones = new List<Transform>();
         #endregion
 
@@ -256,7 +255,7 @@ namespace Assets.Src.Evolution
                 var dronePrefab = SelectDrone(i);
                 //Debug.Log("spawning drone " + genome);
 
-                var randomPlacement = MatchConfig.RandomLocation(EvolutionConfig.EvolutionDroneConfig.DronesInSphereRandomRadius, EvolutionConfig.EvolutionDroneConfig.DronesOnSphereRandomRadius);
+                var randomPlacement = EvolutionConfig.MatchConfig.RandomLocation(EvolutionConfig.EvolutionDroneConfig.DronesInSphereRandomRadius, EvolutionConfig.EvolutionDroneConfig.DronesOnSphereRandomRadius);
                 var orientation = EvolutionConfig.MatchConfig.OrientationForStartLocation(randomPlacement);
                 var drone = Instantiate(dronePrefab, randomPlacement, orientation);
                 drone.tag = droneTag;

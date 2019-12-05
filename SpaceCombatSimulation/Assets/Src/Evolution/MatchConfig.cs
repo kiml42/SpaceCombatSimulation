@@ -62,14 +62,13 @@ namespace Assets.Src.Evolution
         /// </summary>
         /// <param name="spawnPointNumber"></param>
         /// <param name="totalSpawnPoints"></param>
+        /// <param name="stepsForwards">Power to raise the StepForwardProportion to</param>
         /// <returns></returns>
-        public Vector3 PositionForCompetitor(int spawnPointNumber, int totalSpawnPoints)
+        public Vector3 PositionForCompetitor(int spawnPointNumber, int totalSpawnPoints, float stepsForwards = 0)
         {
-            var stepForwards = (spawnPointNumber / totalSpawnPoints) * StepForwardProportion * InitialRange;
+            var distanceToCentre = Mathf.Pow(StepForwardProportion, stepsForwards) * InitialRange;
 
-            var distanceToCentre = InitialRange - stepForwards;
-
-            var angle = spawnPointNumber * (2 * Mathf.PI / (totalSpawnPoints + 1));
+            var angle = spawnPointNumber * (2 * Mathf.PI / (totalSpawnPoints));
 
             var x = Mathf.Cos(angle) * distanceToCentre;
             var y = Mathf.Sin(angle) * distanceToCentre;
@@ -85,17 +84,27 @@ namespace Assets.Src.Evolution
         /// Values will be evenly distributed in distance and in angle from the centre, not volumetrically.
         /// </summary>
         /// <returns></returns>
-        public Vector3 RandomLocation(float? MinimumLocationRandomisationOverride = null, float? MaximumLocationRandomisationOverride = null)
+        public Vector3 RandomLocation()
+        {
+            return RandomLocation(MinimumLocationRandomisation, MaximumLocationRandomisation);
+        }
+        
+        /// <summary>
+        /// Returns a random location between the spheres at max and min distance.
+        /// Values will be evenly distributed in distance and in angle from the centre, not volumetrically.
+        /// </summary>
+        /// <returns></returns>
+        public Vector3 RandomLocation(float minimumRadius, float MaximumRadius = 0)
         {
             var randomMagnitude = Random.Range(
-                    MinimumLocationRandomisationOverride ?? MinimumLocationRandomisation,
-                    MaximumLocationRandomisationOverride ?? MaximumLocationRandomisation
+                    minimumRadius,
+                    MaximumRadius
                 );
             var orientation = Random.onUnitSphere;
 
             return randomMagnitude * orientation;
         }
-        
+
         /// <summary>
         /// Returns the appropriate orientation for a ship starting at the given location.
         /// This orientation will be pointing at the centre, unless RandomiseRotation is true.

@@ -24,7 +24,9 @@ public class EvolutionDroneDatabaseHandlerIndividualsTests
         {
             DatabasePath = _dbPath
         };
-        
+
+        _initialiser.EnsureDatabaseExists();
+
         _handler = new EvolutionDatabaseHandler(_dbPath, _createCommandPath);
     }
 

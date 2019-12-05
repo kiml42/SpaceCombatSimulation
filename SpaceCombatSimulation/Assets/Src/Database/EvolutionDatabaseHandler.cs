@@ -32,7 +32,7 @@ namespace Assets.Src.Database
         private const string MUTATION_CONFIG_TABLE = "MutationConfig";
         private const string MATCH_CONFIG_TABLE = "MatchConfig";
 
-        private DatabaseInitialiser _initialiser;
+        private readonly DatabaseInitialiser _initialiser;
         private readonly string _dbCreationCommandPath;
 
         public EvolutionDatabaseHandler(string databasePath = DEFAULT_DB_PATH, string dbCreationCommandPath = DEFAULT_CREATE_DB_COMMAND_PATH)

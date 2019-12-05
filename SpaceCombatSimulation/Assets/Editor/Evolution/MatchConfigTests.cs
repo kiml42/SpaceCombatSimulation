@@ -31,38 +31,16 @@ namespace Assets.Editor.Evolution
             var config = new MatchConfig
             {
                 InitialRange = 100,
-                StepForwardProportion = 0.5f
+                StepForwardProportion = 0.5f,
+                MaximumLocationRandomisation = 0,
+                MinimumLocationRandomisation = 0
             };
 
             var numberOfShips = 10;
             var positions = Enumerable.Range(0, numberOfShips * 2);
 
-            var results = positions.Select(p => config.PositionForCompetitor(p, numberOfShips));
-
-            var expectedMagnitudes = new float[]
-            {
-                config.InitialRange,
-                config.InitialRange,
-                config.InitialRange,
-                config.InitialRange,
-                config.InitialRange,
-                config.InitialRange,
-                config.InitialRange,
-                config.InitialRange,
-                config.InitialRange,
-                config.InitialRange,
-                config.InitialRange * config.StepForwardProportion,
-                config.InitialRange * config.StepForwardProportion,
-                config.InitialRange * config.StepForwardProportion,
-                config.InitialRange * config.StepForwardProportion,
-                config.InitialRange * config.StepForwardProportion,
-                config.InitialRange * config.StepForwardProportion,
-                config.InitialRange * config.StepForwardProportion,
-                config.InitialRange * config.StepForwardProportion,
-                config.InitialRange * config.StepForwardProportion,
-                config.InitialRange * config.StepForwardProportion,
-            };
-            
+            var results = positions.Select(p => config.PositionForCompetitor(p, numberOfShips, 0));
+   
             var expectedAngles = new float[]
              {
                 0,
@@ -86,17 +64,53 @@ namespace Assets.Editor.Evolution
                 288,
                 324
              };
+            var tollerance = 0.001f;
 
             var i = 0;
             foreach (var position in results)
             {
-                var countOfThisPosition = results.Count(p => p == position);
-                Assert.Equals(1, countOfThisPosition);
+                Assert.LessOrEqual(config.InitialRange - tollerance, position.magnitude);
+                Assert.GreaterOrEqual(config.InitialRange + tollerance, position.magnitude);
 
-                Assert.Equals(expectedMagnitudes[i], position.magnitude);
+                var angle = Vector3.SignedAngle(Vector3.right, position, Vector3.up);
+                Debug.Log(angle);
+                Assert.LessOrEqual(expectedAngles[i] - tollerance, angle);
+                Assert.GreaterOrEqual(expectedAngles[i] + tollerance, angle);
 
-                var angle = Vector3.SignedAngle(Vector3.back, position, Vector3.up);
-                Assert.Equals(expectedAngles[i], angle);
+                i++;
+            }
+        }
+
+        [Test]
+        public void PositionForCompetitor_StepForwardGivesExpectedLocations()
+        {
+            var config = new MatchConfig
+            {
+                InitialRange = 100,
+                StepForwardProportion = 0.5f,
+                MaximumLocationRandomisation = 0,
+                MinimumLocationRandomisation = 0
+            };
+
+            var steps = Enumerable.Range(-3, 3);
+
+            var results = steps.Select(p => config.PositionForCompetitor(1, 1, p));
+
+            var expectedXLocations = new float[]
+             {
+                config.InitialRange * 8,
+                config.InitialRange * 4,
+                config.InitialRange * 2,
+                config.InitialRange,
+                config.InitialRange / 2,
+                config.InitialRange / 4,
+                config.InitialRange / 8
+             };
+
+            var i = 0;
+            foreach (var position in results)
+            {
+                Assert.AreEqual(expectedXLocations[i], position.magnitude);
 
                 i++;
             }
