@@ -72,10 +72,18 @@ namespace Assets.Editor.Evolution
                 Assert.LessOrEqual(config.InitialRange - tollerance, position.magnitude);
                 Assert.GreaterOrEqual(config.InitialRange + tollerance, position.magnitude);
 
-                var angle = Vector3.SignedAngle(Vector3.right, position, Vector3.up);
-                Debug.Log(angle);
-                Assert.LessOrEqual(expectedAngles[i] - tollerance, angle);
-                Assert.GreaterOrEqual(expectedAngles[i] + tollerance, angle);
+                var expectedAngleRad = Mathf.Deg2Rad * expectedAngles[i];
+                var expectedX = Mathf.Cos(expectedAngleRad) * config.InitialRange;
+                var expectedY = Mathf.Sin(expectedAngleRad) * config.InitialRange;
+
+                var expected = new Vector3(expectedX, expectedY);
+                Debug.Log($"actual: {position}, expected: {expected}");
+
+                Assert.LessOrEqual(expectedX - tollerance, position.x);
+                Assert.GreaterOrEqual(expectedX + tollerance, position.x);
+
+                Assert.LessOrEqual(expectedY - tollerance, position.y);
+                Assert.GreaterOrEqual(expectedY + tollerance, position.y);
 
                 i++;
             }
