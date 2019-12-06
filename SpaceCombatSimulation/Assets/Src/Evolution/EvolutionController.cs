@@ -427,10 +427,10 @@ namespace Assets.Src.Evolution
 
         private void AddScore(string teamTag, float extraScore, string reason = "")
         {
-            if(extraScore!=0 && !string.IsNullOrEmpty(reason))
-            {
-                Debug.Log($"{reason}: Adding {extraScore} to {teamTag}");
-            }
+            //if(extraScore!=0 && !string.IsNullOrEmpty(reason))
+            //{
+            //    Debug.Log($"{reason}: Adding {extraScore} to {teamTag}");
+            //}
             _teamScores[teamTag] += extraScore;
         }
         #endregion
