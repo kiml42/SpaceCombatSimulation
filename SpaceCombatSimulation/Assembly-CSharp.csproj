@@ -135,6 +135,7 @@
     <Compile Include="Assets\Src\Interfaces\IModuleTypeKnower.cs" />
     <Compile Include="Assets\Src\Interfaces\IPilot.cs" />
     <Compile Include="Assets\Src\Interfaces\IRocketRunner.cs" />
+    <Compile Include="Assets\Src\Interfaces\ITarget.cs" />
     <Compile Include="Assets\Src\Interfaces\ITargetDetector.cs" />
     <Compile Include="Assets\Src\Interfaces\ITargetPicker.cs" />
     <Compile Include="Assets\Src\Interfaces\ITorqueApplier.cs" />
