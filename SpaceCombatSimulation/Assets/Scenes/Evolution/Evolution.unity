@@ -264,59 +264,17 @@ PrefabInstance:
       propertyPath: m_RootOrder
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 114162882494618574, guid: 590da46f61a57f34ba77094de519068c,
-        type: 3}
-      propertyPath: TagsForAll.Array.size
-      value: 2
+    - target: {fileID: 4589377682424178, guid: 590da46f61a57f34ba77094de519068c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 114162882494618574, guid: 590da46f61a57f34ba77094de519068c,
-        type: 3}
-      propertyPath: TagsForAll.Array.data[1]
-      value: Enemy
+    - target: {fileID: 4589377682424178, guid: 590da46f61a57f34ba77094de519068c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 114333731870391954, guid: 590da46f61a57f34ba77094de519068c, type: 3}
+    - target: {fileID: 4589377682424178, guid: 590da46f61a57f34ba77094de519068c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 590da46f61a57f34ba77094de519068c, type: 3}
---- !u!1 &1881077184 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1406041262789598, guid: 590da46f61a57f34ba77094de519068c,
-    type: 3}
-  m_PrefabInstance: {fileID: 1881077183}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1881077185
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1881077184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: da0773851669cd448b68af04c29ba13b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  DatabaseId: 1
-  ShipConfig: {fileID: 1881077186}
-  RaceGoals: {fileID: 114737211958639058, guid: ca698eb3a6516b148a347994e01953a9,
-    type: 3}
-  DroneList: {fileID: 114605218179096368, guid: e2dbee6a48a444f4aab01257450a7363,
-    type: 3}
-  SummaryBox:
-    serializedVersion: 2
-    x: 800
-    y: 10
-    width: 430
-    height: 100
-  MainMenu: MainMenu
---- !u!114 &1881077186 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 114162882494618574, guid: 590da46f61a57f34ba77094de519068c,
-    type: 3}
-  m_PrefabInstance: {fileID: 1881077183}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1881077184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ea828848f7240543aecf81d98f88a46, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 

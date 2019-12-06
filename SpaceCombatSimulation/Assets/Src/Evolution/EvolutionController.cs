@@ -452,9 +452,16 @@ namespace Assets.Src.Evolution
 
             text += Environment.NewLine + Math.Round(remaining) + " seconds remaining";
 
-            foreach (var score in _teamScores.OrderByDescending(t => t.Value))
+            if(_teamScores != null)
             {
-                text += $"{Environment.NewLine} {score.Key} : {score.Value}";
+                foreach (var score in _teamScores.OrderByDescending(t => t.Value))
+                {
+                    text += $"{Environment.NewLine} {score.Key} : {score.Value}";
+                }
+            }
+            else
+            {
+                Debug.LogWarning("Team scores is null!");
             }
 
             return text;

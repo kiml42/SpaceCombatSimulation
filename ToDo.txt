@@ -25,6 +25,11 @@ Bugs:
 
 TODO:
     In Progress:
+        Evolution:
+            Use a generated Id for individuals in the individuals table instead of the genome.
+                This should go for everything referring to a genome at the moment (previous combatants, lists in controller etc.)
+        TagsOverhaul:
+            Consider moving away from unity tags for target selection, the repository should be enough.
         Race evolution
             Include new settings in editBrConfig.
         Player ship

@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 4693606527515572}
   - component: {fileID: 20548040994231582}
   - component: {fileID: 124985169905346740}
-  - component: {fileID: 92292614981362642}
   - component: {fileID: 81298821971934674}
   m_Layer: 0
   m_Name: Camera
@@ -85,14 +84,6 @@ Behaviour:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1079687856316354}
   m_Enabled: 1
---- !u!92 &92292614981362642
-Behaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1079687856316354}
-  m_Enabled: 1
 --- !u!81 &81298821971934674
 AudioListener:
   m_ObjectHideFlags: 0
@@ -141,8 +132,9 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1094858416378132}
   m_Enabled: 1
-  serializedVersion: 9
+  serializedVersion: 10
   m_Type: 1
+  m_Shape: 0
   m_Color: {r: 0.54498273, g: 0.6686998, b: 0.77205884, a: 1}
   m_Intensity: 1
   m_Range: 10
@@ -235,7 +227,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4722274738710944}
   - component: {fileID: 20364342587574670}
-  - component: {fileID: 92728356698078274}
   - component: {fileID: 124861379170882136}
   - component: {fileID: 81543514253485798}
   m_Layer: 0
@@ -302,14 +293,6 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!92 &92728356698078274
-Behaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1176022573534654}
-  m_Enabled: 1
 --- !u!124 &124861379170882136
 Behaviour:
   m_ObjectHideFlags: 0
@@ -366,8 +349,9 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1207551762454902}
   m_Enabled: 1
-  serializedVersion: 9
+  serializedVersion: 10
   m_Type: 1
+  m_Shape: 0
   m_Color: {r: 1, g: 1, b: 0.868, a: 1}
   m_Intensity: 1
   m_Range: 10
@@ -487,6 +471,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -535,10 +520,10 @@ GameObject:
   m_Component:
   - component: {fileID: 4589377682424178}
   - component: {fileID: 114162882494618574}
-  - component: {fileID: 114333731870391954}
   - component: {fileID: 114761333346593936}
   - component: {fileID: 114606847447414282}
   - component: {fileID: 114523557761115726}
+  - component: {fileID: 1881077185}
   m_Layer: 0
   m_Name: EvolvingWorldController
   m_TagString: Untagged
@@ -553,7 +538,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1406041262789598}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_Children:
@@ -588,37 +573,29 @@ MonoBehaviour:
   - Team4
   - Team5
   - Team6
+  - Team7
+  - Team8
+  - Team9
+  - Team10
+  - Team6
+  - Team6
+  - Team6
+  - Team6
+  - Team6
+  - Team6
+  - Team6
+  - Team6
+  - Team6
+  - Team6
   TagsForAll:
   - RaceGoal
+  - Enemy
   TestCube: {fileID: 114199586557456632, guid: 707fc8e5798cbe942b08466c21529de3, type: 3}
   SpaceShipTag: SpaceShip
   ModuleList: {fileID: 114308483193444260, guid: 3eec9692ee34ef24ea03193f94768bd8,
     type: 3}
   MaxTurrets: 5
   MaxModules: 20
---- !u!114 &114333731870391954
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1406041262789598}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e20f4975f49970149b880a5cac4c48a1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  DatabaseId: 14
-  ShipConfig: {fileID: 114162882494618574}
-  SummaryBox:
-    serializedVersion: 2
-    x: 800
-    y: 10
-    width: 430
-    height: 100
-  MainMenu: MainMenu
-  RaceGoals: {fileID: 114737211958639058, guid: ca698eb3a6516b148a347994e01953a9,
-    type: 3}
 --- !u!114 &114761333346593936
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -640,7 +617,7 @@ MonoBehaviour:
     y: 10
     width: 900
     height: 200
-  EvolutionControler: {fileID: 114333731870391954}
+  EvolutionControler: {fileID: 0}
   DrawGraphKey: 103
 --- !u!114 &114606847447414282
 MonoBehaviour:
@@ -663,7 +640,7 @@ MonoBehaviour:
     y: 240
     width: 900
     height: 300
-  EvolutionControler: {fileID: 114333731870391954}
+  EvolutionControler: {fileID: 0}
   DrawGraphKey: 103
 --- !u!114 &114523557761115726
 MonoBehaviour:
@@ -681,6 +658,31 @@ MonoBehaviour:
   DecelerateTimeKey: 281
   TogglePause: 32
   AutoSetTimeScale: 1
+--- !u!114 &1881077185
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1406041262789598}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da0773851669cd448b68af04c29ba13b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DatabaseId: 1
+  ShipConfig: {fileID: 114162882494618574}
+  RaceGoals: {fileID: 114737211958639058, guid: ca698eb3a6516b148a347994e01953a9,
+    type: 3}
+  DroneList: {fileID: 114605218179096368, guid: e2dbee6a48a444f4aab01257450a7363,
+    type: 3}
+  SummaryBox:
+    serializedVersion: 2
+    x: 800
+    y: 10
+    width: 430
+    height: 100
+  MainMenu: MainMenu
 --- !u!1 &1561185335588524
 GameObject:
   m_ObjectHideFlags: 0
@@ -749,6 +751,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -827,6 +830,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -919,6 +923,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -989,6 +994,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1090,6 +1096,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
