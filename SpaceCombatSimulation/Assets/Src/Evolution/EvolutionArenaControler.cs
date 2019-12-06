@@ -79,6 +79,7 @@ namespace Assets.Src.Evolution
         {
             if (ShipConfig.Tags == null || !ShipConfig.Tags.Any())
             {
+                Debug.LogError("There are no remaining unused Tags");
                 return null;
             }
             return ShipConfig.Tags.FirstOrDefault(t => _extantGenomes == null || !_extantGenomes.Any(g => g.Key == t));

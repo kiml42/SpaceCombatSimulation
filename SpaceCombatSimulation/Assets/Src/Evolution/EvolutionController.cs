@@ -452,7 +452,7 @@ namespace Assets.Src.Evolution
 
             text += Environment.NewLine + Math.Round(remaining) + " seconds remaining";
 
-            foreach (var score in _teamScores)
+            foreach (var score in _teamScores.OrderByDescending(t => t.Value))
             {
                 text += $"{Environment.NewLine} {score.Key} : {score.Value}";
             }

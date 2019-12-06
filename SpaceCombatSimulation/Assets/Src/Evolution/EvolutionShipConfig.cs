@@ -11,7 +11,7 @@ namespace Assets.Src.Evolution
     {
         public ModuleTypeKnower ShipToEvolve;
 
-        public List<string> Tags = new List<string> { "Team1", "Team2", "Team3", "Team4", "Team5", "Team6" };
+        public List<string> Tags = new List<string> { "Team1", "Team2", "Team3", "Team4", "Team5", "Team6", "Team7", "Team8", "Team9", "Team10", "Team11", "Team12", "Team13", "Team14", "Team15", "Team16", "Team17", "Team18", "Team19", "Team20" };
 
         [Tooltip("all spawned ships get these set as their enemies")]
         public List<string> TagsForAll = new List<string> { "RaceGoal", "Enemy" };
@@ -93,9 +93,12 @@ namespace Assets.Src.Evolution
             {
                 throw new Exception("The Tags list is empty");
             }
-            var tagIndex = index % Tags.Count;
+            if (Tags.Count() <= index)
+            {
+                throw new Exception("There aren't enough tags for the number of teams.");
+            }
 
-            return Tags[tagIndex];
+            return Tags[index];
         }
     }
 
