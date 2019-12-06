@@ -7,147 +7,236 @@ using Assets.src.Evolution;
 using Assets.Src.Evolution;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
+using System;
 
 namespace Assets.Editor.Evolution
 {
     public class GenerationTests
     {
-        //[Test]
-        //public void PickWinners_PicksWithAReasonableDistribution_50_23()
-        //{
-        //    var count = 50;
-        //    var winnersCount = 23;
+        private string _badGenerationCSVPath = Application.streamingAssetsPath + "/../../Test/TestDB/BadGeneration.csv";
+        #region GetCompetitors
+        [Test]
+        public void GetCompetitors_SelectsThoseWithNoMatchesFirst()
+        {
+            var count = 10;
+            var individuals = new List<Individual> {
+                new Individual("0abc1"){MatchesPlayed = 0},
+                new Individual("0abc2"){MatchesPlayed = 0},
+                new Individual("0abc3"){MatchesPlayed = 0},
+                new Individual("0abc4"){MatchesPlayed = 0},
+                new Individual("0abc5"){MatchesPlayed = 0},
 
-        //    var all = TestPickWinnersDistribution(count, winnersCount);
+                new Individual("1abc1"){MatchesPlayed = 1, PreviousCombatantsString = "1abc2"},
+                new Individual("1abc2"){MatchesPlayed = 1, PreviousCombatantsString = "1abc1"},
+                new Individual("1abc3"){MatchesPlayed = 1, PreviousCombatantsString = "1abc4"},
+                new Individual("1abc4"){MatchesPlayed = 1, PreviousCombatantsString = "1abc3"},
+                new Individual("1abc5"){MatchesPlayed = 1, PreviousCombatantsString = "1abc6"},
 
-        //    Assert.Less(Min(all), 0);
-        //    Assert.Contains(3, all);
-        //}
+                new Individual("1abc6"){MatchesPlayed = 1, PreviousCombatantsString = "1abc5"},
+                new Individual("1abc7"){MatchesPlayed = 1, PreviousCombatantsString = "1abc8"},
+                new Individual("1abc8"){MatchesPlayed = 1, PreviousCombatantsString = "1abc7"},
+                new Individual("1abc9"){MatchesPlayed = 1, PreviousCombatantsString = "1abca"},
+                new Individual("1abca"){MatchesPlayed = 1, PreviousCombatantsString = "1abc9"},
 
-        //[Test]
-        //public void PickWinners_PicksWithAReasonableDistribution_20_7()
-        //{
-        //    var count = 20;
-        //    var winnersCount = 7;
+                new Individual("1abcb"){MatchesPlayed = 1, PreviousCombatantsString = "1abcc"},
+                new Individual("1abcc"){MatchesPlayed = 1, PreviousCombatantsString = "1abcb"},
+                new Individual("1abcd"){MatchesPlayed = 1, PreviousCombatantsString = "1abce"},
+                new Individual("1abce"){MatchesPlayed = 1, PreviousCombatantsString = "1abcd"},
+                new Individual("1abcf"){MatchesPlayed = 1, PreviousCombatantsString = "1abcg"},
 
-        //    var all = TestPickWinnersDistribution(count, winnersCount);
+                new Individual("1abcg"){MatchesPlayed = 1, PreviousCombatantsString = "1abcf"},
+                new Individual("1abch"){MatchesPlayed = 1, PreviousCombatantsString = "1abci"},
+                new Individual("1abci"){MatchesPlayed = 1, PreviousCombatantsString = "1abch"},
+                new Individual("1abcj"){MatchesPlayed = 1, PreviousCombatantsString = "1abck"},
+                new Individual("1abck"){MatchesPlayed = 1, PreviousCombatantsString = "1abcj"}
+            };
+            var generation = new Generation(individuals);
 
-        //    Assert.Less(Min(all), 0);
-        //    Assert.Contains(3, all);
-        //}
+            var competitors = generation.PickCompetitors(count);
 
-        //[Test]
-        //public void PickWinners_PicksWithAReasonableDistribution_50_25()
-        //{
-        //    var count = 50;
-        //    var winnersCount = 25;
+            Assert.AreEqual(count, competitors.Count);
 
-        //    var all = TestPickWinnersDistribution(count, winnersCount);
+            Assert.Contains("0abc1", competitors);
+            Assert.Contains("0abc2", competitors);
+            Assert.Contains("0abc3", competitors);
+            Assert.Contains("0abc4", competitors);
+            Assert.Contains("0abc5", competitors);
+        }
 
-        //    Assert.Less(Min(all), 0);
-        //    Assert.Contains(3, all);
-        //}
+        [Test]
+        public void GetCompetitors_SelectsThoseWithNoMatchesFirst_fromFile()
+        {
+            var count = 10;
+            var csv = File.ReadAllLines(_badGenerationCSVPath);
 
-        //[Test]
-        //public void PickWinners_PicksWithAReasonableDistribution_20_1()
-        //{
-        //    var count = 20;
-        //    var winnersCount = 1;
+            var individuals = new List<Individual>();
 
-        //    TestPickWinnersDistribution(count, winnersCount);
-        //    //no assertion here because it won't nessersarily come up with a negative.
-        //}
+            for (var i = 1; i< csv.Length; i++)
+            {
+                individuals.Add(FromCsvLine(csv[i]));
+            }
 
-        //[Test]
-        //public void PickWinners_PicksWithAReasonableDistribution_20_10()
-        //{
-        //    var count = 20;
-        //    var winnersCount = 10;
+            var generation = new Generation(individuals);
 
-        //    var all = TestPickWinnersDistribution(count, winnersCount);
+            var competitors = generation.PickCompetitors(count);
 
-        //    Assert.Less(Min(all), 0);
-        //    Assert.Contains(3, all);
-        //}
+            Assert.AreEqual(count, competitors.Count);
 
-        //[Test]
-        //public void PickWinners_PicksWithAReasonableDistribution_20_5()
-        //{
-        //    var count = 20;
-        //    var winnersCount = 5;
+            Assert.Contains("00006", competitors);
+            Assert.Contains("00008", competitors);
+            Assert.Contains("00012", competitors);
+            Assert.Contains("00024", competitors);
+        }
 
-        //    var all = TestPickWinnersDistribution(count, winnersCount);
+        private Individual FromCsvLine(string line)
+        {
+            var parts = line.Split('|');
+            return new Individual(parts[2])
+            {
+                MatchesPlayed = int.Parse(parts[14]),
+                PreviousCombatantsString = parts[19]
+            };
+        }
+        #endregion
 
-        //    Assert.Less(Min(all), 0);
-        //    Assert.Contains(3, all);
-        //}
+        #region PickWinnersTests
+        [Test]
+        public void Pickwinners_pickswithareasonabledistribution_50_23()
+        {
+            var count = 50;
+            var winnerscount = 23;
 
-        //[Test]
-        //public void PickWinners_PicksWithAReasonableDistribution_50_23_moreRandom()
-        //{
-        //    var count = 50;
-        //    var winnersCount = 23;
+            var all = Testpickwinnersdistribution(count, winnerscount);
 
-        //    var all = TestPickWinnersDistribution_MoreRandom(count, winnersCount);
+            Assert.Less(Min(all), 0);
+            Assert.Contains(3, all);
+        }
 
-        //    Assert.Less(all.Min(), 0);
-        //}
+        [Test]
+        public void Pickwinners_pickswithareasonabledistribution_20_7()
+        {
+            var count = 20;
+            var winnerscount = 7;
 
-        //[Test]
-        //public void PickWinners_PicksWithAReasonableDistribution_20_7_moreRandom()
-        //{
-        //    var count = 20;
-        //    var winnersCount = 7;
+            var all = Testpickwinnersdistribution(count, winnerscount);
 
-        //    var all = TestPickWinnersDistribution_MoreRandom(count, winnersCount);
+            Assert.Less(Min(all), 0);
+            Assert.Contains(3, all);
+        }
 
-        //    Assert.Less(all.Min(), 0);
-        //}
+        [Test]
+        public void Pickwinners_pickswithareasonabledistribution_50_25()
+        {
+            var count = 50;
+            var winnerscount = 25;
 
-        //[Test]
-        //public void PickWinners_PicksWithAReasonableDistribution_50_25_moreRandom()
-        //{
-        //    var count = 50;
-        //    var winnersCount = 25;
+            var all = Testpickwinnersdistribution(count, winnerscount);
 
-        //    var all = TestPickWinnersDistribution_MoreRandom(count, winnersCount);
+            Assert.Less(Min(all), 0);
+            Assert.Contains(3, all);
+        }
 
-        //    Assert.Less(all.Min(), 0);
-        //}
+        [Test]
+        public void Pickwinners_pickswithareasonabledistribution_20_1()
+        {
+            var count = 20;
+            var winnerscount = 1;
 
-        //[Test]
-        //public void PickWinners_PicksWithAReasonableDistribution_20_1_moreRandom()
-        //{
-        //    var count = 20;
-        //    var winnersCount = 1;
+            Testpickwinnersdistribution(count, winnerscount);
+            //no assertion here because it won't nessersarily come up with a negative.
+        }
 
-        //    TestPickWinnersDistribution_MoreRandom(count, winnersCount);
-        //    //no assertion here because it won't nessersarily come up with a negative.
-        //}
+        [Test]
+        public void Pickwinners_pickswithareasonabledistribution_20_10()
+        {
+            var count = 20;
+            var winnerscount = 10;
 
-        //[Test]
-        //public void PickWinners_PicksWithAReasonableDistribution_20_10_moreRandom()
-        //{
-        //    var count = 20;
-        //    var winnersCount = 10;
+            var all = Testpickwinnersdistribution(count, winnerscount);
 
-        //    var all = TestPickWinnersDistribution_MoreRandom(count, winnersCount);
+            Assert.Less(Min(all), 0);
+            Assert.Contains(3, all);
+        }
 
-        //    Assert.Less(all.Min(), 0);
-        //}
+        [Test]
+        public void Pickwinners_pickswithareasonabledistribution_20_5()
+        {
+            var count = 20;
+            var winnerscount = 5;
 
-        //[Test]
-        //public void PickWinners_PicksWithAReasonableDistribution_20_5_moreRandom()
-        //{
-        //    var count = 20;
-        //    var winnersCount = 5;
+            var all = Testpickwinnersdistribution(count, winnerscount);
 
-        //    var all = TestPickWinnersDistribution_MoreRandom(count, winnersCount);
+            Assert.Less(Min(all), 0);
+            Assert.Contains(3, all);
+        }
 
-        //    Assert.Less(all.Min(), 0);
-        //}
+        [Test]
+        public void Pickwinners_pickswithareasonabledistribution_50_23_morerandom()
+        {
+            var count = 50;
+            var winnerscount = 23;
 
-        private List<int> TestPickWinnersDistribution(int generationSize, int winnersCount, int runs = 1000)
+            var all = Testpickwinnersdistribution_MoreRandom(count, winnerscount);
+
+            Assert.Less(all.Min(), 0);
+        }
+
+        [Test]
+        public void Pickwinners_pickswithareasonabledistribution_20_7_morerandom()
+        {
+            var count = 20;
+            var winnerscount = 7;
+
+            var all = Testpickwinnersdistribution_MoreRandom(count, winnerscount);
+
+            Assert.Less(all.Min(), 0);
+        }
+
+        [Test]
+        public void Pickwinners_pickswithareasonabledistribution_50_25_morerandom()
+        {
+            var count = 50;
+            var winnerscount = 25;
+
+            var all = Testpickwinnersdistribution_MoreRandom(count, winnerscount);
+
+            Assert.Less(all.Min(), 0);
+        }
+
+        [Test]
+        public void Pickwinners_pickswithareasonabledistribution_20_1_morerandom()
+        {
+            var count = 20;
+            var winnerscount = 1;
+
+            Testpickwinnersdistribution_MoreRandom(count, winnerscount);
+            //no assertion here because it won't nessersarily come up with a negative.
+        }
+
+        [Test]
+        public void Pickwinners_pickswithareasonabledistribution_20_10_morerandom()
+        {
+            var count = 20;
+            var winnerscount = 10;
+
+            var all = Testpickwinnersdistribution_MoreRandom(count, winnerscount);
+
+            Assert.Less(all.Min(), 0);
+        }
+
+        [Test]
+        public void Pickwinners_pickswithareasonabledistribution_20_5_morerandom()
+        {
+            var count = 20;
+            var winnerscount = 5;
+
+            var all = Testpickwinnersdistribution_MoreRandom(count, winnerscount);
+
+            Assert.Less(all.Min(), 0);
+        }
+
+        private List<int> Testpickwinnersdistribution(int generationSize, int winnersCount, int runs = 1000)
         {
             Debug.Log(runs + "runs, " + generationSize + " individuals, " + winnersCount + " winners");
             var all = new List<int>();
@@ -193,7 +282,7 @@ namespace Assets.Editor.Evolution
             return all;
         }
 
-        private List<float> TestPickWinnersDistribution_MoreRandom(int generationSize, int winnersCount, int runs = 1000)
+        private List<float> Testpickwinnersdistribution_MoreRandom(int generationSize, int winnersCount, int runs = 1000)
         {
             Debug.Log(runs + "runs, " + generationSize + " individuals, " + winnersCount + " winners");
             var all = new List<float>();
@@ -247,5 +336,6 @@ namespace Assets.Editor.Evolution
         {
             return ints.Min();
         }
+        #endregion
     }
 }

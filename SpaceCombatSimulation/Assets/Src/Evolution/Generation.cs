@@ -110,6 +110,7 @@ namespace Assets.Src.Evolution
         /// <param name="lastSurvivor">True if this contestant was the only one left at the end.</param>
         public void RecordMatch(GenomeWrapper contestant, float finalScore, bool survived, bool killedAllDrones, int killedDrones, List<string> allCompetitors, bool lastSurvivor)
         {
+            allCompetitors = allCompetitors ?? new List<string>();
             var individual = Individuals.First(i => i.Genome == contestant.Genome);
             individual.Finalise(contestant);
             individual.RecordMatch(finalScore, survived, killedAllDrones, killedDrones, allCompetitors, lastSurvivor);
