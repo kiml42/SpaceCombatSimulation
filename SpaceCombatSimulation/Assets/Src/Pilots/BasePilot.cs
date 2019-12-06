@@ -74,7 +74,7 @@ namespace Assets.Src.Pilots
             return hasStarted;
         }
 
-        protected Vector3 ReletiveLocationInWorldSpace(Target target)
+        protected Vector3 ReletiveLocationInWorldSpace(ITarget target)
         {
             if (_pilotObject != null && target != null && target.Transform.IsValid())
             {
@@ -93,7 +93,7 @@ namespace Assets.Src.Pilots
             return Vector3.zero;
         }
 
-        protected Vector3 VectorToCancelLateralVelocityInWorldSpace(Target target)
+        protected Vector3 VectorToCancelLateralVelocityInWorldSpace(ITarget target)
         {
             var vectorTowardsTarget = ReletiveLocationInWorldSpace(target);
             var targetReletiveVelocity = WorldSpaceReletiveVelocityOfTarget(target);
@@ -101,7 +101,7 @@ namespace Assets.Src.Pilots
             return targetReletiveVelocity.ComponentPerpendicularTo(vectorTowardsTarget);
         }
 
-        protected Vector3 WorldSpaceReletiveVelocityOfTarget(Target target)
+        protected Vector3 WorldSpaceReletiveVelocityOfTarget(ITarget target)
         {
             if (target == null)
             {
@@ -167,6 +167,6 @@ namespace Assets.Src.Pilots
             _engines.Add(engine);
         }
 
-        public abstract void Fly(Target target);
+        public abstract void Fly(ITarget target);
     }
 }

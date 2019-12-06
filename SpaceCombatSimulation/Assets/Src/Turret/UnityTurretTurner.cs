@@ -1,10 +1,6 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
-using Assets.Src.Turret;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.Targeting
@@ -45,11 +41,11 @@ namespace Assets.Src.Targeting
         {
             if(_restTarget != null)
             {
-                TurnToTarget(_restTarget);
+                TurnToTarget(_restTarget.Target);
             }
         }
 
-        public void TurnToTarget(Target target)
+        public void TurnToTarget(ITarget target)
         {
             if (target != null && target.Transform.IsValid() && _turnTableHinge != null && _elevationHubHinge != null)
             {

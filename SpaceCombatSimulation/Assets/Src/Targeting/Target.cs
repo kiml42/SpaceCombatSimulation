@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Assets.Src.Interfaces;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Assets.Src.Targeting
@@ -6,7 +7,7 @@ namespace Assets.Src.Targeting
     /// <summary>
     /// Class for wrapping target rigidbody and transform
     /// </summary>
-    public class Target
+    public class Target : ITarget
     {
         public Transform Transform { get; private set; }
         public Rigidbody Rigidbody { get; private set; }
@@ -53,13 +54,13 @@ namespace Assets.Src.Targeting
             Rigidbody = target.GetComponent<Rigidbody>();
         }
 
-        public Target(Target target)
+        public Target(ITarget target)
         {
             Transform = target.Transform;
             Rigidbody = target.Rigidbody;
         }
 
-        public bool Equals(Target other)
+        public bool Equals(ITarget other)
         {
             Debug.Log("Using my equals");
             return Transform == other.Transform;
@@ -71,9 +72,9 @@ namespace Assets.Src.Targeting
         }
     }
 
-    sealed class CompareTargetsByTransform : IEqualityComparer<Target>
+    sealed class CompareTargetsByTransform : IEqualityComparer<ITarget>
     {
-        public bool Equals(Target x, Target y)
+        public bool Equals(ITarget x, ITarget y)
         {
             Debug.Log("MyEquals");
             if (x == null)
@@ -84,7 +85,7 @@ namespace Assets.Src.Targeting
                 return x.Transform == y.Transform;
         }
 
-        public int GetHashCode(Target obj)
+        public int GetHashCode(ITarget obj)
         {
             return obj.Transform.GetHashCode();
         }

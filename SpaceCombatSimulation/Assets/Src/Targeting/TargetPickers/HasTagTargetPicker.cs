@@ -27,7 +27,7 @@ namespace Assets.Src.Targeting.TargetPickers
             if(FlatBoost != 0 && !string.IsNullOrEmpty(Tag))
             {
                 return potentialTargets.Select(t => {
-                    if(t.Transform.IsValid() && t.Transform.tag == Tag)
+                    if(t.Target.Transform.IsValid() && t.Target.Transform.tag == Tag)
                     {
                         //Debug.Log(t.Transform + " score += " + AdditionalScore);
                         

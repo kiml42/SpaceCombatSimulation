@@ -16,11 +16,11 @@ namespace Assets.Src.Targeting.TargetPickers
 
         private PotentialTarget AddScoreForDifference(PotentialTarget target)
         {
-            var targetVelocity = target.Rigidbody == null ? Vector3.zero : target.Rigidbody.velocity;
+            var targetVelocity = target.Target.Rigidbody == null ? Vector3.zero : target.Target.Rigidbody.velocity;
 
             var relativeVelocity = SourceObject.velocity - targetVelocity;
 
-            var reletiveLocation = target.Transform.position - SourceObject.position;
+            var reletiveLocation = target.Target.Transform.position - SourceObject.position;
 
             var approachAngle = Vector3.Angle(relativeVelocity, reletiveLocation);
 

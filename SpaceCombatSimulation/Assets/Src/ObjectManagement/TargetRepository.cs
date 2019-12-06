@@ -1,4 +1,5 @@
 ﻿using Assets.Src.Controllers;
+using Assets.Src.Interfaces;
 using Assets.Src.Targeting;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,15 +9,15 @@ namespace Assets.Src.ObjectManagement
 {
     public static class TargetRepository
     {
-        private static readonly Dictionary<string, List<Target>> _targets = new Dictionary<string, List<Target>>();
-        private static readonly Dictionary<string, List<Target>> _navigationTargets = new Dictionary<string, List<Target>>();
+        private static readonly Dictionary<string, List<ITarget>> _targets = new Dictionary<string, List<ITarget>>();
+        private static readonly Dictionary<string, List<ITarget>> _navigationTargets = new Dictionary<string, List<ITarget>>();
 
-        public static void RegisterTarget(Target target)
+        public static void RegisterTarget(ITarget target)
         {
             RegisterTargetToDictionary(target, _targets);
         }
 
-        public static void RegisterNavigationTarget(Target target)
+        public static void RegisterNavigationTarget(ITarget target)
         {
             RegisterTargetToDictionary(target, _navigationTargets);
         }
@@ -32,13 +33,13 @@ namespace Assets.Src.ObjectManagement
             DeregisterTarget(new Target(target), tag);
         }
 
-        public static void DeregisterTarget(Target target)
+        public static void DeregisterTarget(ITarget target)
         {
             var tag = target.Transform.tag;
             DeregisterTarget(target, tag);
         }
 
-        public static void DeregisterTarget(Target target, string tag)
+        public static void DeregisterTarget(ITarget target, string tag)
         {
             //Debug.Log($"deregistering target {target} with tag {tag}");
             if (!_targets.ContainsKey(tag))
@@ -57,9 +58,9 @@ namespace Assets.Src.ObjectManagement
             list.Remove(targetFromList);
         }
 
-        public static List<Target> ListTargetsForTags(IEnumerable<string> tags, bool includeNavigationTargets = false)
+        public static List<ITarget> ListTargetsForTags(IEnumerable<string> tags, bool includeNavigationTargets = false)
         {
-            var list = new List<Target>();
+            var list = new List<ITarget>();
             foreach (var tag in tags)
             {
                 if (_targets.ContainsKey(tag))
@@ -74,26 +75,26 @@ namespace Assets.Src.ObjectManagement
             return list.Distinct().ToList();
         }
 
-        private static List<Target> CleanList(List<Target> list)
+        private static List<ITarget> CleanList(List<ITarget> list)
         {
             if(list == null)
             {
-                return new List<Target>();
+                return new List<ITarget>();
             }
             return  list
-                .Where(target => target != null && target.Transform != null && target.Transform.IsValid())
+                .Where(target => target != null && target?.Transform != null && target.Transform.IsValid())
                 .Distinct(new CompareTargetsByTransform())  //Specify the comparer to use 
                 .ToList();
         }
 
-        private static void RegisterTargetToDictionary(Target target, Dictionary<string, List<Target>> _targets)
+        private static void RegisterTargetToDictionary(ITarget target, Dictionary<string, List<ITarget>> _targets)
         {
             if (target != null && target.Transform != null && target.Transform.IsValid())
             {
                 var tag = target.Transform.tag;
-                if (!_targets.TryGetValue(tag, out List<Target> list) || list == null)
+                if (!_targets.TryGetValue(tag, out List<ITarget> list) || list == null)
                 {
-                    list = new List<Target>();
+                    list = new List<ITarget>();
                     _targets[tag] = list;
                 }
                 else

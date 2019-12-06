@@ -89,7 +89,7 @@ namespace Assets.Src.ShipCamera
         private void DrawSingleLable(PotentialTarget target)
         {
             // Find the 2D position of the object using the main camera
-            Vector3 boxPosition = Camera.main.WorldToScreenPoint(target.Transform.position);
+            Vector3 boxPosition = Camera.main.WorldToScreenPoint(target.Target.Transform.position);
             if (boxPosition.z > 0)
             {
                 Vector3 baseLocation;
@@ -100,15 +100,15 @@ namespace Assets.Src.ShipCamera
                 {
                     baseLocation = Camera.transform.position;
                 }
-                var distance = Vector3.Distance(baseLocation, target.Transform.position);
+                var distance = Vector3.Distance(baseLocation, target.Target.Transform.position);
 
                 // "Flip" it into screen coordinates
                 boxPosition.y = Screen.height - boxPosition.y;
 
-                if (target.Transform.parent == null)
+                if (target.Target.Transform.parent == null)
                 { 
                     //only draw for root objects (with no parents)
-                    GUI.Label(new Rect(boxPosition.x - 20, boxPosition.y - 35, 50, 20), target.Transform.tag);
+                    GUI.Label(new Rect(boxPosition.x - 20, boxPosition.y - 35, 50, 20), target.Target.Transform.tag);
                     if (distance > MinShowDistanceDistance)
                     {
                         //Draw the distance from the followed object to this object - only if it's suitably distant.
@@ -117,9 +117,9 @@ namespace Assets.Src.ShipCamera
                 }
 
                 var rect = new Rect(boxPosition.x - 50, boxPosition.y - 50, 100, 100);
-                DrawSingleReticle(target.Transform, rect);
+                DrawSingleReticle(target.Target.Transform, rect);
 
-                var healthControler = target.Transform.GetComponent<HealthControler>();
+                var healthControler = target.Target.Transform.GetComponent<HealthControler>();
                 if (healthControler != null && healthControler.IsDamaged)
                 {
                     if (HealthBGTexture != null)

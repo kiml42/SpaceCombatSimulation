@@ -25,14 +25,13 @@ public class AngleTrigger : GeneticConfigurableMonobehaviour, IFireControl
         _projectileSpeed = speedKnower != null ? speedKnower.KnownProjectileSpeed : null;
     }
 
-    public bool ShouldShoot(Target target)
+    public bool ShouldShoot(ITarget target)
     {
         if (AvoidFriendlyFire)
         {
             //Debug.Log("looking for friendlies");
-            RaycastHit hit;
             var ray = new Ray(AimingObject.position + (AimingObject.transform.forward * MinFriendlyDetectionDistance), AimingObject.transform.forward);
-            if (Physics.Raycast(ray, out hit, FriendlyDetectionDistance, -1, QueryTriggerInteraction.Ignore))
+            if (Physics.Raycast(ray, out RaycastHit hit, FriendlyDetectionDistance, -1, QueryTriggerInteraction.Ignore))
             {
                 //Debug.Log(hit.transform);
                 //is a hit

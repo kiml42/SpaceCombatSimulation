@@ -23,8 +23,8 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
     private float _pollCountdonwn = 0;
 
     #region knowsCurrentTarget
-    public Target CurrentTarget { get; private set; }
-    public IEnumerable<Target> FilteredTargets { get; private set; }
+    public ITarget CurrentTarget { get; private set; }
+    public IEnumerable<ITarget> FilteredTargets { get; private set; }
     #endregion
 
     public IKnowsEnemyTags EnemyTagKnower;
@@ -52,7 +52,7 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
                 Detector = new RepositoryTargetDetector(EnemyTagKnower);
             }
         }
-        FilteredTargets = new List<Target>();//ensure that this isn't null.
+        FilteredTargets = new List<ITarget>();//ensure that this isn't null.
     }
 	
 	// Update is called once per frame
@@ -72,7 +72,7 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
                 //Debug.Log(name + " aquiring new target");
                 var allTargets = Detector.DetectTargets(IncludeNavigationTargets);
                 var allTargetsList = allTargets.ToList();
-                FilteredTargets = TargetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).Select(t => t as Target);
+                FilteredTargets = TargetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).Select(t => t.Target);
                 var filteredTargetsList = FilteredTargets.ToList();
                 var bestTarget = FilteredTargets.FirstOrDefault();
                 if(TargetHasChanged(bestTarget, CurrentTarget))
@@ -94,7 +94,7 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
         }
     }
 
-    private bool TargetHasChanged(Target old, Target newTarget)
+    private bool TargetHasChanged(ITarget old, ITarget newTarget)
     {
         if(old == newTarget)
         {

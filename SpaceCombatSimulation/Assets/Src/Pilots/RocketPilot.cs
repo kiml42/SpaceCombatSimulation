@@ -44,7 +44,7 @@ namespace Assets.Src.Pilots
             }
         }
 
-        public override void Fly(Target target)
+        public override void Fly(ITarget target)
         {
             RemoveNullEngines();
             if (HasActivated() && HasStarted())

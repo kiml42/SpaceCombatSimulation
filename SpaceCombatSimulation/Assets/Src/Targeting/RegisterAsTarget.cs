@@ -1,8 +1,9 @@
-﻿using Assets.Src.ObjectManagement;
+﻿using Assets.Src.Interfaces;
+using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
 using UnityEngine;
 
-public class RegisterAsTarget : MonoBehaviour
+public class RegisterAsTarget : MonoBehaviour, ITarget
 {
     [Tooltip("Register as a target to be flown towards or shot at.")]
     public bool Shooting = true;
@@ -10,16 +11,31 @@ public class RegisterAsTarget : MonoBehaviour
     [Tooltip("Register as a target to be flown towards but not shot at.")]
     public bool Navigation = false;
 
+    public Transform Transform => this == null ? null : transform;
+
+    public Rigidbody Rigidbody { get; private set; }
+
+    private TypeKnower typeKnower;
+    public ShipType Type => typeKnower.Type;
+
     // Use this for initialization
     void Start () {
-        var target = new Target(transform);
+        Rigidbody = GetComponent<Rigidbody>();
+        typeKnower = GetComponent<TypeKnower>();
+        if(typeKnower == null)
+        {
+            Debug.LogWarning($"{Transform} has no type knower - assuming it's a frigate");
+            typeKnower = gameObject.AddComponent<TypeKnower>();
+            typeKnower.Type = ShipType.Frigate;
+        }
+
         if (Navigation)
         {
-            TargetRepository.RegisterNavigationTarget(target);
+            TargetRepository.RegisterNavigationTarget(this);
         }
         if (Shooting)
         {
-            TargetRepository.RegisterTarget(target);
+            TargetRepository.RegisterTarget(this);
         }
 	}
 
