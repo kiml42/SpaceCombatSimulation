@@ -105,10 +105,15 @@ namespace Assets.Src.ShipCamera
                 // "Flip" it into screen coordinates
                 boxPosition.y = Screen.height - boxPosition.y;
 
-                //Draw the distance from the followed object to this object - only if it's suitably distant, and has no parent.
-                if (distance > MinShowDistanceDistance && target.Transform.parent == null)
-                {
-                    GUI.Box(new Rect(boxPosition.x - 20, boxPosition.y + 25, 40, 40), Math.Round(distance).ToString());
+                if (target.Transform.parent == null)
+                { 
+                    //only draw for root objects (with no parents)
+                    GUI.Label(new Rect(boxPosition.x - 20, boxPosition.y - 35, 50, 20), target.Transform.tag);
+                    if (distance > MinShowDistanceDistance)
+                    {
+                        //Draw the distance from the followed object to this object - only if it's suitably distant.
+                        GUI.Label(new Rect(boxPosition.x - 20, boxPosition.y + 25, 40, 40), Math.Round(distance).ToString());
+                    }
                 }
 
                 var rect = new Rect(boxPosition.x - 50, boxPosition.y - 50, 100, 100);
