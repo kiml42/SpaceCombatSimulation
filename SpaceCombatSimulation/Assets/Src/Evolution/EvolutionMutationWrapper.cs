@@ -28,17 +28,25 @@ namespace Assets.Src.Evolution
             _mutator = new StringMutator(Config);
         }
 
-
-        public List<string> CreateGenerationOfMutants(List<string> baseGenomes)
+        /// <summary>
+        /// Generates a new generation of mutated individuals
+        /// </summary>
+        /// <param name="baseGenomes">The genomes to base the mustants off</param>
+        /// <param name="persistentGenomes">Genomes to include unaltered</param>
+        /// <returns></returns>
+        public List<string> CreateGenerationOfMutants(List<string> baseGenomes, List<string> persistentGenomes = null)
         {
+            persistentGenomes = persistentGenomes ?? new List<string>();
             var numberOfNewIndividuals = (int)Math.Ceiling(Config.GenerationSize * NewStartersProportion);
 
-            var mutants = _mutator.CreateGenerationOfMutants(baseGenomes, Config.GenerationSize - numberOfNewIndividuals);
+            var mutants = _mutator.CreateGenerationOfMutants(baseGenomes, Config.GenerationSize - numberOfNewIndividuals - persistentGenomes.Count);
             var newIndividuals = CreateNewIndividuals(numberOfNewIndividuals);
 
             Debug.Log("Creating new generation. New individuals: " + numberOfNewIndividuals + ", derrived individuals: " + mutants.Count);
 
             mutants.AddRange(newIndividuals);
+
+            mutants.AddRange(persistentGenomes);
 
             return mutants;
         }

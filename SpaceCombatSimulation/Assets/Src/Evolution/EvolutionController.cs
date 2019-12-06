@@ -171,10 +171,11 @@ namespace Assets.Src.Evolution
             {
                 //the current generation is finished - create a new generation
                 var winners = _currentGeneration.PickWinners(EvolutionConfig.WinnersFromEachGeneration);
+                var persistants = _currentGeneration.PickWinners(EvolutionConfig.WinnersFromEachGeneration/2);  //todo define this proportion somewhere better.
 
                 EvolutionConfig.GenerationNumber++;
 
-                CreateNewGeneration(winners);
+                CreateNewGeneration(winners, persistants);
             }
             //Debug.Log("_currentGeneration: " + _currentGeneration);
         }
@@ -279,11 +280,11 @@ namespace Assets.Src.Evolution
         /// The current generation is set to the generation that is created.
         /// </summary>
         /// <param name="winners"></param>
-        private Generation CreateNewGeneration(IEnumerable<string> winners)
+        private Generation CreateNewGeneration(IEnumerable<string> winners, IEnumerable<string> persistentGenomes = null)
         {
             if (winners != null && winners.Any())
             {
-                _currentGeneration = new Generation(_mutationControl.CreateGenerationOfMutants(winners.ToList()));
+                _currentGeneration = new Generation(_mutationControl.CreateGenerationOfMutants(winners.ToList(), persistentGenomes.ToList()));
             }
             else
             {
