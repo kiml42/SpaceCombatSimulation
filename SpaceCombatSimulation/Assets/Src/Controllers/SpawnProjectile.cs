@@ -8,6 +8,7 @@ public class SpawnProjectile : AbstractDeactivatableController
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
     private IKnowsEnemyTags _enemyTagKnower;
+    private ITarget _thisTarget;
     public bool TagChildren = false;
     public Rigidbody Projectile;
     public Transform Emitter;
@@ -37,6 +38,7 @@ public class SpawnProjectile : AbstractDeactivatableController
         _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
         _enemyTagKnower = GetComponent<IKnowsEnemyTags>();
         _spawner = GetComponent<Rigidbody>();
+        _thisTarget = GetComponent<ITarget>();
     }
 
     // Update is called once per frame
@@ -67,7 +69,11 @@ public class SpawnProjectile : AbstractDeactivatableController
                     tagKnower.KnownEnemyTags = _enemyTagKnower.KnownEnemyTags;
                 }
                 
-                if (TagChildren) { projectile.tag = tag; }
+                if (TagChildren)
+                {
+                    var target = projectile.GetComponent<ITarget>();
+                    target.Team = _thisTarget.Team;
+                }
 
                 if (_colerer != null)
                 {

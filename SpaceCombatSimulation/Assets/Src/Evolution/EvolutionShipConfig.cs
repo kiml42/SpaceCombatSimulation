@@ -11,7 +11,7 @@ namespace Assets.Src.Evolution
     {
         public ModuleTypeKnower ShipToEvolve;
 
-        public List<string> Tags = new List<string> { "Team1", "Team2", "Team3", "Team4", "Team5", "Team6", "Team7", "Team8", "Team9", "Team10", "Team11", "Team12", "Team13", "Team14", "Team15", "Team16", "Team17", "Team18", "Team19", "Team20" };
+        public List<string> Teams = new List<string> { "Team1", "Team2", "Team3", "Team4", "Team5", "Team6", "Team7", "Team8", "Team9", "Team10", "Team11", "Team12", "Team13", "Team14", "Team15", "Team16", "Team17", "Team18", "Team19", "Team20" };
 
         [Tooltip("all spawned ships get these set as their enemies")]
         public List<string> TagsForAll = new List<string> { "RaceGoal", "Enemy" };
@@ -47,10 +47,10 @@ namespace Assets.Src.Evolution
             var orientation = Config.OrientationForStartLocation(location);
             var velocity = Config.VelocityForStartLocation(location);
 
-            var ownTag = GetTag(spawnPointNumber);
+            var ownTeam = $"Team{spawnPointNumber}";
 
             var ship = Instantiate(ShipToEvolve, location, orientation);
-            ship.tag = ownTag;
+            ship.GetComponent<ITarget>().Team = ownTeam;
 
             var hub = ship.GetComponent<ModuleHub>();
             if (hub != null)
@@ -59,7 +59,7 @@ namespace Assets.Src.Evolution
             }
 
             var tagShource = ship.GetComponent<IKnowsEnemyTags>();
-            var enemyTags = Tags.Where(t => t != ownTag).ToList();
+            var enemyTags = Teams.Where(t => t != ownTeam).ToList();
             enemyTags.AddRange(TagsForAll);
 
             if (tagShource != null)
@@ -74,7 +74,7 @@ namespace Assets.Src.Evolution
             var genomeWrapper = new GenomeWrapper(genome)
             {
                 Budget = Config.Budget,
-                Tag = ownTag
+                Team = ownTeam
             };
             ship.GetComponent<Rigidbody>().velocity = velocity;
 
@@ -82,23 +82,9 @@ namespace Assets.Src.Evolution
 
             ship.name = genomeWrapper.Name;
 
-            ShipTeamMapping[ship.transform] = ownTag;
+            ShipTeamMapping[ship.transform] = ownTeam;
 
             return genomeWrapper;
-        }
-
-        public string GetTag(int index)
-        {
-            if (!Tags.Any())
-            {
-                throw new Exception("The Tags list is empty");
-            }
-            if (Tags.Count() <= index)
-            {
-                throw new Exception("There aren't enough tags for the number of teams.");
-            }
-
-            return Tags[index];
         }
     }
 

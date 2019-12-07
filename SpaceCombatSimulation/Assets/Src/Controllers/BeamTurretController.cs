@@ -47,6 +47,7 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     {
         var emitterCount = BeamsParent.childCount;
         _beams = new List<Beam>();
+        var target = GetComponent<ITarget>();
         for (int i = 0; i < emitterCount; i++)
         {
             var beam = BeamsParent.GetChild(i);
@@ -55,7 +56,7 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
                 BeamForce = BeamForce,
                 EffectRepeatTime = EffectRepeatTime,
                 BeamDamage = BeamDamage,
-                FriendlyTag = tag,
+                FriendlyTeam = target.Team,
                 InitialRadius = InitialRadius,
                 Divergence = Divergence
             });
@@ -132,8 +133,5 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
         }
         //scrub the list now they've all been turned off.
         _beams = new List<Beam>();
-
-        //Debug.Log("Deactivating " + name);
-        tag = InactiveTag;
     }
 }

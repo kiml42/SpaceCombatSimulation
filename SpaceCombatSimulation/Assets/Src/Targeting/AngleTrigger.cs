@@ -15,6 +15,7 @@ public class AngleTrigger : GeneticConfigurableMonobehaviour, IFireControl
     public float MinFriendlyDetectionDistance = 0.5f;
 
     private IKnowsCurrentTarget _targetChoosingMechanism;
+    private ITarget _thisTarget;
     private float? _projectileSpeed;
 
     // Use this for initialization
@@ -22,6 +23,7 @@ public class AngleTrigger : GeneticConfigurableMonobehaviour, IFireControl
     {
         var speedKnower = GetComponent<IKnowsProjectileSpeed>();
         _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
+        _thisTarget = GetComponent<ITarget>();
         _projectileSpeed = speedKnower != null ? speedKnower.KnownProjectileSpeed : null;
     }
 
@@ -35,7 +37,7 @@ public class AngleTrigger : GeneticConfigurableMonobehaviour, IFireControl
             {
                 //Debug.Log(hit.transform);
                 //is a hit
-                if (hit.transform.tag == tag)
+                if (hit.transform.GetComponent<ITarget>().Team == _thisTarget.Team)
                 {
                     //Debug.Log("Is friendly, so don't shoot.");
                     //is aimed at a friendly

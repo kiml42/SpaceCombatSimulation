@@ -1,4 +1,5 @@
 ﻿using System;
+using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using UnityEngine;
 
@@ -19,7 +20,7 @@ namespace Assets.Src.Turret
         /// </summary>
         public float OffTime;
         public float BeamForce = 0;
-        public string FriendlyTag = null;
+        public string FriendlyTeam = null;
 
         public float RemainingOnTime =0;
         public float RemainingOffTime =0;
@@ -97,7 +98,7 @@ namespace Assets.Src.Turret
             if (Physics.Raycast(ray, out RaycastHit hit, MaxDistance, -1, QueryTriggerInteraction.Ignore))
             {
                 //is a hit
-                if (!string.IsNullOrEmpty(FriendlyTag) && hit.transform.tag == FriendlyTag)
+                if (!string.IsNullOrEmpty(FriendlyTeam) && hit.transform.GetComponent<ITarget>().Team == FriendlyTeam)
                 {
                     //turn off if aimed at a friend
                     TurnOff();

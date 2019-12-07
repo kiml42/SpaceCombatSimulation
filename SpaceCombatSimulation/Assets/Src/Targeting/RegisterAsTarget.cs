@@ -48,6 +48,6 @@ public class RegisterAsTarget : MonoBehaviour, ITarget
 
     public void Deactivate()
     {
-        TargetRepository.DeregisterTarget(transform);
+        TargetRepository.DeregisterTarget(this);
     }
 }

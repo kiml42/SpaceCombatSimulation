@@ -22,46 +22,30 @@ namespace Assets.Src.ObjectManagement
             RegisterTargetToDictionary(target, _navigationTargets);
         }
 
-        public static void DeregisterTarget(Transform target)
-        {
-            var tag = target.tag;
-            DeregisterTarget(target, tag);
-        }
-
-        public static void DeregisterTarget(Transform target, string tag)
-        {
-            DeregisterTarget(new Target(target), tag);
-        }
-
         public static void DeregisterTarget(ITarget target)
         {
-            var tag = target.Team;
-            DeregisterTarget(target, tag);
-        }
-
-        public static void DeregisterTarget(ITarget target, string tag)
-        {
+            var team = target.Team;
             //Debug.Log($"deregistering target {target} with tag {tag}");
-            if (!_targets.ContainsKey(tag))
+            if (!_targets.ContainsKey(team))
             {
-                if (tag != AbstractDeactivatableController.InactiveTag)
-                    Debug.LogWarning($"Cannot deregister target {target} with tag {tag} - there is no list for this tag.");
+                if (!string.IsNullOrEmpty(team))
+                    Debug.LogWarning($"Cannot deregister target {target} with tag {team} - there is no list for this tag.");
                 return;
             }
-            var list = _targets[tag];
+            var list = _targets[team];
             var targetFromList = list.SingleOrDefault(t => t.Transform == target.Transform);
             if (targetFromList == null)
             {
-                Debug.LogWarning($"Cannot deregister target {target} with tag {tag} - it is not in the list for that tag.");
+                Debug.LogWarning($"Cannot deregister target {target} with tag {team} - it is not in the list for that tag.");
                 return;
             }
             list.Remove(targetFromList);
         }
 
-        public static List<ITarget> ListTargetsForTags(IEnumerable<string> tags, bool includeNavigationTargets = false)
+        public static List<ITarget> ListTargetsOnTeams(IEnumerable<string> teams, bool includeNavigationTargets = false)
         {
             var list = new List<ITarget>();
-            foreach (var tag in tags)
+            foreach (var tag in teams)
             {
                 if (_targets.ContainsKey(tag))
                 {

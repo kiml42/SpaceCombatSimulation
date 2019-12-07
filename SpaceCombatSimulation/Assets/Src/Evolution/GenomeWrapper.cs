@@ -70,7 +70,7 @@ namespace Assets.Src.Evolution
         private readonly Stack<ModuleRecord> _previousModuleRecords = new Stack<ModuleRecord>();
         private ModuleRecord _currentModuleRecord;
 
-        public string Tag { get; set; }
+        public string Team { get; set; }
 
         public GenomeWrapper(string genome, float budget = DEFAULT_BUDGET, int geneLength = DEFAULT_GENE_LENGTH)
         {

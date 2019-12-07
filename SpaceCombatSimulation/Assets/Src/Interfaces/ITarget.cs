@@ -5,7 +5,7 @@ namespace Assets.Src.Interfaces
 {
     public interface ITarget
     {
-        string Team { get; }
+        string Team { get; set; }
         Transform Transform { get; }
         Rigidbody Rigidbody { get; }
         ShipType Type { get; }

@@ -56,6 +56,20 @@ namespace Assets.Src.Pilots
 
         protected Rigidbody _pilotObject;
 
+        private ITarget _pilotTarget;
+        public ITarget PilotTarget
+        {
+            get
+            {
+                if (_pilotTarget == null)
+                {
+                    _pilotTarget = _pilotObject.GetComponent<ITarget>();
+                }
+                return _pilotTarget;
+            }
+        }
+
+
         protected bool HasStarted()
         {
             //Debug.Log("StartDelay: " + StartDelay);

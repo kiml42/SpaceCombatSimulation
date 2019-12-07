@@ -16,7 +16,7 @@ namespace Assets.Src.Targeting
 
         public IEnumerable<PotentialTarget> DetectTargets(bool includeNavigationTarets = false)
         {
-            return TargetRepository.ListTargetsForTags(_enemyTagKnower.KnownEnemyTags, includeNavigationTarets).Select(t => new PotentialTarget(t));
+            return TargetRepository.ListTargetsOnTeams(_enemyTagKnower.KnownEnemyTags, includeNavigationTarets).Select(t => new PotentialTarget(t));
         }
     }
 }

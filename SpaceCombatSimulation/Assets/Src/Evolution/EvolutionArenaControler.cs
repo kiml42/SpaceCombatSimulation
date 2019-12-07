@@ -71,18 +71,18 @@ namespace Assets.Src.Evolution
             var randomPlacement = ShipConfig.Config.PositionForCompetitor((int)Random.value, ConcurrentShips);
             var death = Instantiate(SuddenDeathObject, randomPlacement, orientation);
 
-            death.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = ShipConfig.Tags;
+            death.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = ShipConfig.Teams;
             MatchCountdown = SuddenDeathObjectReloadTime;
         }
 
         private string GetUnusedTag()
         {
-            if (ShipConfig.Tags == null || !ShipConfig.Tags.Any())
+            if (ShipConfig.Teams == null || !ShipConfig.Teams.Any())
             {
                 Debug.LogError("There are no remaining unused Tags");
                 return null;
             }
-            return ShipConfig.Tags.FirstOrDefault(t => _extantGenomes == null || !_extantGenomes.Any(g => g.Key == t));
+            return ShipConfig.Teams.FirstOrDefault(t => _extantGenomes == null || !_extantGenomes.Any(g => g.Key == t));
         }
 
         private string PickRandomSurvivorGenome()
@@ -121,7 +121,7 @@ namespace Assets.Src.Evolution
             Debug.Log("Spawning \"" + genome + "\"");
             var ownTag = GetUnusedTag();
 
-            var index = ShipConfig.Tags.IndexOf(ownTag);
+            var index = ShipConfig.Teams.IndexOf(ownTag);
 
             ShipConfig.SpawnShip(genome, index, ConcurrentShips, 0);
 
@@ -140,15 +140,15 @@ namespace Assets.Src.Evolution
 
         private void DetectSurvivingAndDeadTeams()
         {
-            var livingShips = GameObject.FindGameObjectsWithTag(ShipConfig.SpaceShipTag)
+            var livingTeams = GameObject.FindGameObjectsWithTag(ShipConfig.SpaceShipTag)
                 .Where(s =>
                     s.transform.parent != null &&
                     s.transform.parent.GetComponent<Rigidbody>() != null
                 )
-                .Select(s => s.transform.parent.tag)
+                .Select(s => s.transform.parent.GetComponent<ITarget>().Team)
                 .Distinct();
 
-            _extantGenomes = _extantGenomes.Where(g => livingShips.Contains(g.Key)).ToDictionary(g => g.Key, g => g.Value);
+            _extantGenomes = _extantGenomes.Where(g => livingTeams.Contains(g.Key)).ToDictionary(g => g.Key, g => g.Value);
         }
 
         private IEnumerable<string> GetGenomesFromHistory()

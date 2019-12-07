@@ -32,7 +32,12 @@ namespace Assets.Src.Targeting
             }
         }
 
-        public string Team => Transform.tag;
+        public string Team
+        {
+            get { return Transform.tag; }
+            set { Transform.tag = value; }
+        }
+
 
         public Target(Rigidbody target)
         {

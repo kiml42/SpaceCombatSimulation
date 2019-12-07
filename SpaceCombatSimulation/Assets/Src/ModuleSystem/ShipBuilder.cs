@@ -62,6 +62,7 @@ namespace Assets.src.Evolution
         private GenomeWrapper SpawnModules()
         {
             var spawnPoints = _rootHub.SpawnPoints;
+            var _rootTarget = _rootHub.GetComponent<ITarget>();
 
             foreach (var spawnPoint in spawnPoints)
             {
@@ -86,7 +87,7 @@ namespace Assets.src.Evolution
                                 hub.AllowedModuleIndicies = _rootHub.AllowedModuleIndicies;
                             }
 
-                            addedModule.tag = _rootHub.tag;
+                            addedModule.GetComponent<ITarget>().Team = _rootTarget.Team;
 
                             addedModule.transform.SetColor(_colour);
                             addedModule.GetComponent<Rigidbody>().velocity = _rootHub.Velocity;

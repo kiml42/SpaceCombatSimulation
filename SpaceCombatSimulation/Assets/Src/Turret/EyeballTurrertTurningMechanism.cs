@@ -52,11 +52,6 @@ public class EyeballTurrertTurningMechanism : GeneticConfigurableMonobehaviour
     {
         //Debug.Log("Deactivating " + name);
         _active = false;
-        tag = InactiveTag;
-        if(Ball != null)
-        {
-            Ball.tag = InactiveTag;
-        }
     }
 
     public void DieNow()

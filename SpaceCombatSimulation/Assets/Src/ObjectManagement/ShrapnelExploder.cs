@@ -55,7 +55,7 @@ namespace Assets.Src.ObjectManagement
 
                     if (TagShrapnel)
                     {
-                        fragment.tag = _exploder.tag;
+                        fragment.GetComponent<ITarget>().Team = _exploder.GetComponent<ITarget>().Team;
                     }
                 }
             }
