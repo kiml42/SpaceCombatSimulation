@@ -73,7 +73,6 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
                 var allTargets = Detector.DetectTargets(IncludeNavigationTargets);
                 var allTargetsList = allTargets.ToList();
                 FilteredTargets = TargetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).Select(t => t.Target);
-                var filteredTargetsList = FilteredTargets.ToList();
                 var bestTarget = FilteredTargets.FirstOrDefault();
                 if(TargetHasChanged(bestTarget, CurrentTarget))
                 {

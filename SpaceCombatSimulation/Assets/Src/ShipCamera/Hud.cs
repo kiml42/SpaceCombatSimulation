@@ -108,7 +108,7 @@ namespace Assets.Src.ShipCamera
                 if (target.Target.Transform.parent == null)
                 { 
                     //only draw for root objects (with no parents)
-                    GUI.Label(new Rect(boxPosition.x - 20, boxPosition.y - 35, 50, 20), target.Target.Transform.tag);
+                    GUI.Label(new Rect(boxPosition.x - 20, boxPosition.y - 35, 50, 20), target.Target.Team);
                     if (distance > MinShowDistanceDistance)
                     {
                         //Draw the distance from the followed object to this object - only if it's suitably distant.

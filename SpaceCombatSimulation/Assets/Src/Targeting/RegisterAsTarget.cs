@@ -16,7 +16,10 @@ public class RegisterAsTarget : MonoBehaviour, ITarget
     public Rigidbody Rigidbody { get; private set; }
 
     private TypeKnower typeKnower;
+
     public ShipType Type => typeKnower.Type;
+
+    public string Team { get; set; }
 
     // Use this for initialization
     void Start () {
@@ -27,6 +30,10 @@ public class RegisterAsTarget : MonoBehaviour, ITarget
             Debug.LogWarning($"{Transform} has no type knower - assuming it's a frigate");
             typeKnower = gameObject.AddComponent<TypeKnower>();
             typeKnower.Type = ShipType.Frigate;
+        }
+        if (string.IsNullOrEmpty(Team))
+        {
+            Team = Transform.tag;
         }
 
         if (Navigation)

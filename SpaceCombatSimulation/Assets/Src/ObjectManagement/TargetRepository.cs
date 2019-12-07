@@ -35,7 +35,7 @@ namespace Assets.Src.ObjectManagement
 
         public static void DeregisterTarget(ITarget target)
         {
-            var tag = target.Transform.tag;
+            var tag = target.Team;
             DeregisterTarget(target, tag);
         }
 
@@ -91,7 +91,7 @@ namespace Assets.Src.ObjectManagement
         {
             if (target != null && target.Transform != null && target.Transform.IsValid())
             {
-                var tag = target.Transform.tag;
+                var tag = target.Team;
                 if (!_targets.TryGetValue(tag, out List<ITarget> list) || list == null)
                 {
                     list = new List<ITarget>();

@@ -31,7 +31,9 @@ namespace Assets.Src.Targeting
                 return _type.Value;
             }
         }
-        
+
+        public string Team => Transform.tag;
+
         public Target(Rigidbody target)
         {
             Rigidbody = target;
