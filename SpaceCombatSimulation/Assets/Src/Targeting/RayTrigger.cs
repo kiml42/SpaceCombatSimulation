@@ -37,7 +37,7 @@ public class RayTrigger : MonoBehaviour, IFireControl
                     return TargetChoosingMechanism
                         .EnemyTagKnower
                         .KnownEnemyTags
-                        .Contains(hit.transform.GetComponent<ITarget>().Team);
+                        .Contains(hit.transform.GetComponent<ITarget>()?.Team);
                 }
                 if(target != null)
                 {

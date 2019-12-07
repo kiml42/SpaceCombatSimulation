@@ -98,7 +98,7 @@ namespace Assets.Src.Turret
             if (Physics.Raycast(ray, out RaycastHit hit, MaxDistance, -1, QueryTriggerInteraction.Ignore))
             {
                 //is a hit
-                if (!string.IsNullOrEmpty(FriendlyTeam) && hit.transform.GetComponent<ITarget>().Team == FriendlyTeam)
+                if (!string.IsNullOrEmpty(FriendlyTeam) && hit.transform.GetComponent<ITarget>()?.Team == FriendlyTeam)
                 {
                     //turn off if aimed at a friend
                     TurnOff();
