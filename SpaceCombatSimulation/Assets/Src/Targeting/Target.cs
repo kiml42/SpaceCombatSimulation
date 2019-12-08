@@ -1,5 +1,5 @@
 ﻿using Assets.Src.Interfaces;
-using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 namespace Assets.Src.Targeting
@@ -7,6 +7,7 @@ namespace Assets.Src.Targeting
     /// <summary>
     /// Class for wrapping target rigidbody and transform
     /// </summary>
+    [Obsolete("Should not be instanciating targets like this")]
     public class Target : ITarget
     {
         public Transform Transform { get; private set; }
@@ -76,25 +77,6 @@ namespace Assets.Src.Targeting
         public override string ToString()
         {
             return Transform.name + base.ToString();
-        }
-    }
-
-    sealed class CompareTargetsByTransform : IEqualityComparer<ITarget>
-    {
-        public bool Equals(ITarget x, ITarget y)
-        {
-            Debug.Log("MyEquals");
-            if (x == null)
-                return y == null;
-            else if (y == null)
-                return false;
-            else
-                return x.Transform == y.Transform;
-        }
-
-        public int GetHashCode(ITarget obj)
-        {
-            return obj.Transform.GetHashCode();
         }
     }
 }

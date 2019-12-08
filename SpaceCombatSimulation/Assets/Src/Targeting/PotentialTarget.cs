@@ -13,12 +13,14 @@ namespace Assets.Src.Targeting
 
         public ITarget Target { get; private set; }
 
-        public PotentialTarget(Rigidbody target) : this(new Target(target))
+        public PotentialTarget(Rigidbody target)
         {
+            Target = target.GetComponent<ITarget>();
         }
 
-        public PotentialTarget(Transform target) : this(new Target(target))
+        public PotentialTarget(Transform target)
         {
+            Target = target.GetComponent<ITarget>();
         }
 
         public PotentialTarget(ITarget target)

@@ -1,6 +1,5 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
-using Assets.Src.Targeting;
 using UnityEngine;
 
 public class RayTrigger : MonoBehaviour, IFireControl
@@ -27,9 +26,8 @@ public class RayTrigger : MonoBehaviour, IFireControl
     {
         if (AimingObject.IsValid())
         {
-            RaycastHit hit;
             var ray = new Ray(AimingObject.position + (AimingObject.forward * MinDistance), AimingObject.forward);
-            if (Physics.Raycast(ray, out hit, MaxDistance, -1, QueryTriggerInteraction.Ignore))
+            if (Physics.Raycast(ray, out RaycastHit hit, MaxDistance, -1, QueryTriggerInteraction.Ignore))
             {
                 //is a hit
                 if (ShootAnyEnemy && TargetChoosingMechanism != null && TargetChoosingMechanism.EnemyTagKnower != null)

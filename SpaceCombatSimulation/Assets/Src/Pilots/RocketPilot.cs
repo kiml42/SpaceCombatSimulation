@@ -145,7 +145,8 @@ namespace Assets.Src.Pilots
                 {
                     Debug.LogError(_pilotObject + " is detecting itself as a possible collision. Distance: " + hit.distance + ", MinDetection distance: " + MinimumFriendlyDetectionDistance);
                 }
-                if (hit.transform.GetComponent<ITarget>().Team == PilotTarget.Team)
+                var hitTarget = hit.transform.GetComponent<ITarget>();
+                if (hitTarget?.Team == PilotTarget.Team)
                 {
                     //isFriendly
                     var relativeVelocity = WorldSpaceReletiveVelocityOfTarget(hit.rigidbody);
@@ -155,7 +156,7 @@ namespace Assets.Src.Pilots
                     //var minShrapnelApproachSpeed = approachVelocity.magnitude - _shrapnelSpeed;
                     var distance = hit.distance;
                     
-                    _friendlyAvoidenceVector = - VectorToCancelLateralVelocityInWorldSpace(new Target(hit.transform));
+                    _friendlyAvoidenceVector = - VectorToCancelLateralVelocityInWorldSpace(hitTarget);
                     _vectorAwayFromFriendly = _pilotObject.position - hit.transform.position;
                     float timeToImpact;
                     if(approachSpeed != 0)

@@ -1,6 +1,4 @@
-﻿using Assets.Src.Controllers;
-using Assets.Src.Interfaces;
-using Assets.Src.Targeting;
+﻿using Assets.Src.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -10,16 +8,25 @@ namespace Assets.Src.ObjectManagement
     public static class TargetRepository
     {
         private static readonly Dictionary<string, List<ITarget>> _targets = new Dictionary<string, List<ITarget>>();
-        private static readonly Dictionary<string, List<ITarget>> _navigationTargets = new Dictionary<string, List<ITarget>>();
 
         public static void RegisterTarget(ITarget target)
         {
-            RegisterTargetToDictionary(target, _targets);
-        }
+            if (target != null && target.Transform != null && target.Transform.IsValid())
+            {
+                var tag = target.Team;
+                if (!_targets.TryGetValue(tag, out List<ITarget> list) || list == null)
+                {
+                    list = new List<ITarget>();
+                    _targets[tag] = list;
+                }
+                else
+                {
+                    list = _targets[tag];
+                }
+                list.Add(target);
 
-        public static void RegisterNavigationTarget(ITarget target)
-        {
-            RegisterTargetToDictionary(target, _navigationTargets);
+                _targets[tag] = CleanList(list);
+            }
         }
 
         public static void DeregisterTarget(ITarget target)
@@ -42,8 +49,14 @@ namespace Assets.Src.ObjectManagement
             list.Remove(targetFromList);
         }
 
-        public static List<ITarget> ListTargetsOnTeams(IEnumerable<string> teams, bool includeNavigationTargets = false)
+        public static IEnumerable<ITarget> ListTargetsOnTeams(IEnumerable<string> teams, bool includeNavigationTargets = false, bool includeAtackTargets = true)
         {
+            if(!includeAtackTargets && !includeNavigationTargets)
+            {
+                Debug.LogWarning("Must include navigational targets, attack targets or both to get any targets returned.");
+                return Enumerable.Empty<ITarget>();
+            }
+
             var list = new List<ITarget>();
             foreach (var tag in teams)
             {
@@ -51,12 +64,11 @@ namespace Assets.Src.ObjectManagement
                 {
                     list.AddRange(CleanList(_targets[tag]));
                 }
-                if (includeNavigationTargets && _navigationTargets.ContainsKey(tag))
-                {
-                    list.AddRange(CleanList(_navigationTargets[tag]));
-                }
             }
-            return list.Distinct().ToList();
+            var distinctList = list.Distinct();
+            distinctList = distinctList.Where(t => t.NavigationalTarget && includeNavigationTargets || t.AtackTarget && includeAtackTargets);
+
+            return distinctList;
         }
 
         private static List<ITarget> CleanList(List<ITarget> list)
@@ -69,26 +81,6 @@ namespace Assets.Src.ObjectManagement
                 .Where(target => target != null && target?.Transform != null && target.Transform.IsValid())
                 .Distinct(new CompareTargetsByTransform())  //Specify the comparer to use 
                 .ToList();
-        }
-
-        private static void RegisterTargetToDictionary(ITarget target, Dictionary<string, List<ITarget>> _targets)
-        {
-            if (target != null && target.Transform != null && target.Transform.IsValid())
-            {
-                var tag = target.Team;
-                if (!_targets.TryGetValue(tag, out List<ITarget> list) || list == null)
-                {
-                    list = new List<ITarget>();
-                    _targets[tag] = list;
-                }
-                else
-                {
-                    list = _targets[tag];
-                }
-                list.Add(target);
-
-                _targets[tag] = CleanList(list);
-            }
         }
     }
 }

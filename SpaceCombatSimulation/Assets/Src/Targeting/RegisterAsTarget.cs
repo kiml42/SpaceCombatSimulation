@@ -1,6 +1,7 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class RegisterAsTarget : MonoBehaviour, ITarget
@@ -49,5 +50,24 @@ public class RegisterAsTarget : MonoBehaviour, ITarget
     public void Deactivate()
     {
         TargetRepository.DeregisterTarget(this);
+    }
+
+    sealed class CompareTargetsByTransform : IEqualityComparer<ITarget>
+    {
+        public bool Equals(ITarget x, ITarget y)
+        {
+            Debug.Log("MyEquals");
+            if (x == null)
+                return y == null;
+            else if (y == null)
+                return false;
+            else
+                return x.Transform == y.Transform;
+        }
+
+        public int GetHashCode(ITarget obj)
+        {
+            return obj.Transform.GetHashCode();
+        }
     }
 }
