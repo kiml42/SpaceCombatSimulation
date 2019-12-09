@@ -1,4 +1,5 @@
 ﻿using Assets.Src.Interfaces;
+using Assets.Src.Targeting;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -32,13 +33,18 @@ namespace Assets.Src.ObjectManagement
         public static void DeregisterTarget(ITarget target)
         {
             var team = target.Team;
+            if (string.IsNullOrEmpty(team))
+            {
+                Debug.LogWarning($"Cannot remove \"{target}\" from \"{team}\", it is null or empty.");
+                return;
+            }
             //Debug.Log($"deregistering target {target} with tag {tag}");
             if (!_targets.ContainsKey(team))
             {
-                if (!string.IsNullOrEmpty(team))
-                    Debug.LogWarning($"Cannot deregister target {target} with tag {team} - there is no list for this tag.");
+                Debug.LogWarning($"Cannot deregister target {target} with tag {team} - there is no list for this tag.");
                 return;
             }
+
             var list = _targets[team];
             var targetFromList = list.SingleOrDefault(t => t.Transform == target.Transform);
             if (targetFromList == null)

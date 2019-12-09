@@ -17,8 +17,6 @@ public class TurrertTurningMechanism : GeneticConfigurableMonobehaviour
 
     private ITurretTurner _turner;
 
-    private string InactiveTag = "Untagged";
-
     private ITurretRunner _runner;
 
     public float TurnTableMotorFoce = 30;
@@ -34,7 +32,7 @@ public class TurrertTurningMechanism : GeneticConfigurableMonobehaviour
     {
         _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
         var speedKnower = GetComponent<IKnowsProjectileSpeed>();
-        var projectileSpeed = speedKnower != null ? speedKnower.KnownProjectileSpeed : null;
+        var projectileSpeed = speedKnower?.KnownProjectileSpeed;
         var rigidbody = GetComponent<Rigidbody>();
 
         _turner = new UnityTurretTurner(rigidbody, TurnTable, ElevationHub, RestTarget, projectileSpeed)

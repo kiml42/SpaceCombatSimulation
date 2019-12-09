@@ -8,8 +8,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <RootNamespace>
-    </RootNamespace>
+    <RootNamespace></RootNamespace>
     <ProjectGuid>{975AB409-05C3-15C3-D7DD-0D0DAF22C92D}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -158,7 +157,6 @@
     <Compile Include="Assets\Src\ModuleSystem\ShipBuilder.cs" />
     <Compile Include="Assets\Src\ModuleSystem\TestCubeChecker.cs" />
     <Compile Include="Assets\Src\ObjectManagement\ColourSetter.cs" />
-    <Compile Include="Assets\Src\ObjectManagement\CompareTargetsByTransform.cs" />
     <Compile Include="Assets\Src\ObjectManagement\DestroyAfterTimeout.cs" />
     <Compile Include="Assets\Src\ObjectManagement\GroupUnder.cs" />
     <Compile Include="Assets\Src\ObjectManagement\ShrapnelExploder.cs" />
@@ -192,9 +190,9 @@
     <Compile Include="Assets\Src\SpaceShip\TorquerController.cs" />
     <Compile Include="Assets\Src\Targeting\AngleTrigger.cs" />
     <Compile Include="Assets\Src\Targeting\ChildTagTargetDetector.cs" />
+    <Compile Include="Assets\Src\Targeting\CompareTargetsByTransform.cs" />
     <Compile Include="Assets\Src\Targeting\EnemyTagSource.cs" />
     <Compile Include="Assets\Src\Targeting\ImpactDetonator.cs" />
-    <Compile Include="Assets\Src\Targeting\ITargt.cs" />
     <Compile Include="Assets\Src\Targeting\PotentialTarget.cs" />
     <Compile Include="Assets\Src\Targeting\ProximityApproachDetonator.cs" />
     <Compile Include="Assets\Src\Targeting\ProximityDetonator.cs" />

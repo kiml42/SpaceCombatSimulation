@@ -2,49 +2,53 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemyTagSource : MonoBehaviour, IKnowsEnemyTags
+
+namespace Assets.Src.Targeting
 {
-    [Tooltip("If this can find an EnemyTagSource in its parents it will use those enemy tags instead of its own.")]
-    public bool DeferToParent = true;
-    
-    public List<string> KnownEnemyTags
+    public class EnemyTagSource : MonoBehaviour, IKnowsEnemyTags
     {
-        get
+        [Tooltip("If this can find an EnemyTagSource in its parents it will use those enemy tags instead of its own.")]
+        public bool DeferToParent = true;
+
+        public List<string> KnownEnemyTags
         {
-            LoadTagsFromParent();
-            return EnemyTags;
+            get
+            {
+                LoadTagsFromParent();
+                return EnemyTags;
+            }
+            set
+            {
+                if (DeferToParent && _parentTagSource != null)
+                {
+                    Debug.LogWarning("Cannot set enemy tags for deffered tag knower.");
+                }
+                else
+                {
+                    EnemyTags = value;
+                }
+            }
         }
-        set
+
+        public List<string> EnemyTags;
+
+        private IKnowsEnemyTags _parentTagSource;
+
+        public void Start()
+        {
+            if (DeferToParent && transform.parent != null)
+            {
+                _parentTagSource = transform.parent.GetComponentInParent<IKnowsEnemyTags>();
+            }
+        }
+
+        private void LoadTagsFromParent()
         {
             if (DeferToParent && _parentTagSource != null)
             {
-                Debug.LogWarning("Cannot set enemy tags for deffered tag knower.");
-            }
-            else
-            {
-                EnemyTags = value;
+                EnemyTags = _parentTagSource.KnownEnemyTags;
             }
         }
-    }
-    
-    public List<string> EnemyTags;
 
-    private IKnowsEnemyTags _parentTagSource;
-
-    public void Start()
-    {
-        if (DeferToParent && transform.parent != null)
-        {
-            _parentTagSource = transform.parent.GetComponentInParent<IKnowsEnemyTags>();
-        }
     }
-
-    private void LoadTagsFromParent()
-    {
-        if(DeferToParent && _parentTagSource != null)
-        {
-            EnemyTags = _parentTagSource.KnownEnemyTags;
-        }
-    }
-    
 }

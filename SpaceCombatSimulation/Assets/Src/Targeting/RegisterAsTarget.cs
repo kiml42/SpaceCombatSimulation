@@ -6,11 +6,13 @@ using UnityEngine;
 
 public class RegisterAsTarget : MonoBehaviour, ITarget
 {
-    [Tooltip("Register as a target to be flown towards or shot at.")]
+    [Tooltip("True of turrets and missiles should try to kill this if it's an enemy.")]
     public bool Shooting = true;
+    public bool AtackTarget => Shooting;
 
-    [Tooltip("Register as a target to be flown towards but not shot at.")]
+    [Tooltip("True if ships should manuvre towards or away from this (or go round and round it if they want to).")]
     public bool Navigation = false;
+    public bool NavigationalTarget => Navigation;
 
     public Transform Transform => this == null ? null : transform;
 
@@ -21,7 +23,7 @@ public class RegisterAsTarget : MonoBehaviour, ITarget
     public ShipType Type => typeKnower.Type;
 
     public string Team { get; set; }
-
+    
     // Use this for initialization
     void Start () {
         Rigidbody = GetComponent<Rigidbody>();
@@ -37,37 +39,11 @@ public class RegisterAsTarget : MonoBehaviour, ITarget
             Team = Transform.tag;
         }
 
-        if (Navigation)
-        {
-            TargetRepository.RegisterNavigationTarget(this);
-        }
-        if (Shooting)
-        {
-            TargetRepository.RegisterTarget(this);
-        }
+        TargetRepository.RegisterTarget(this);
 	}
 
     public void Deactivate()
     {
         TargetRepository.DeregisterTarget(this);
-    }
-
-    sealed class CompareTargetsByTransform : IEqualityComparer<ITarget>
-    {
-        public bool Equals(ITarget x, ITarget y)
-        {
-            Debug.Log("MyEquals");
-            if (x == null)
-                return y == null;
-            else if (y == null)
-                return false;
-            else
-                return x.Transform == y.Transform;
-        }
-
-        public int GetHashCode(ITarget obj)
-        {
-            return obj.Transform.GetHashCode();
-        }
     }
 }

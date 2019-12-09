@@ -39,6 +39,9 @@ namespace Assets.Src.Targeting
             set { Transform.tag = value; }
         }
 
+        public bool NavigationalTarget => throw new NotImplementedException();
+
+        public bool AtackTarget => throw new NotImplementedException();
 
         public Target(Rigidbody target)
         {
