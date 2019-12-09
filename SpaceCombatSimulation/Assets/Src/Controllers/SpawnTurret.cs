@@ -48,7 +48,15 @@ public class SpawnTurret : MonoBehaviour
                 }
 
                 turret.parent = ParentForTurret;
-                turret.GetComponent<FixedJoint>().connectedBody = parentRigidbody;
+                var turretFixedJoint = turret.GetComponent<FixedJoint>();
+                if(turretFixedJoint != null)
+                {
+                    turret.GetComponent<FixedJoint>().connectedBody = parentRigidbody;
+                }
+                else
+                {
+                    Debug.LogWarning($"turret \"{turret}\" does not have a fixed joint to connect to \"{ParentForTurret}\" with.");
+                }
 
                 var renderer = ParentForTurret.GetComponentInChildren<Renderer>();
 

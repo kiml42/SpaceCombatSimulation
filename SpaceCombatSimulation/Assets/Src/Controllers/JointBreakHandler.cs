@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class JointBreakHandler : MonoBehaviour {
     public bool DeactivateParent = false;
@@ -25,11 +23,11 @@ public class JointBreakHandler : MonoBehaviour {
         }
         if (DeactivateOnBreak)
         {
-            Deactivate();
+            DeactivateJointObjects();
         }
     }
 
-    public void Deactivate()
+    private void DeactivateJointObjects()
     {
         if (_active)
         {

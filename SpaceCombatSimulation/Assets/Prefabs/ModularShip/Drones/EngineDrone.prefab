@@ -155,7 +155,8 @@ MonoBehaviour:
   TagChildren: 1
   ParentForTurret: {fileID: 4990815474253720}
   EnemyTags: []
-  TurretPrefab: {fileID: 4990815474253720}
+  TurretPrefab: {fileID: 4245982871522996, guid: 08efacbbb059a534586d7c97183f30e6,
+    type: 3}
 --- !u!1 &1359926598233186
 GameObject:
   m_ObjectHideFlags: 0

@@ -69,8 +69,7 @@ namespace Assets.src.Evolution
                 var newUsedLocation = Vector3.zero;
                 if (CanSpawnHere(spawnPoint, out newUsedLocation))
                 {
-                    int? moduleIndex;
-                    var moduleToAdd = SelectModule(out moduleIndex);
+                    var moduleToAdd = SelectModule(out var moduleIndex);
 
                     if (moduleToAdd != null)
                     {
