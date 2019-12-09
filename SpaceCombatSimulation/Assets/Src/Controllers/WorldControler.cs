@@ -218,7 +218,7 @@ namespace Assets.Src.Controllers
                         drone.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = new List<string> { TarGetTag };
                     }
 
-                    if (!string.IsNullOrEmpty(TeamForDrones)) { droneTarget.Team = TeamForDrones; }
+                    if (!string.IsNullOrEmpty(TeamForDrones)) { droneTarget.SetTeam(TeamForDrones); }
 
                     _reload = LoadTime;
                 }

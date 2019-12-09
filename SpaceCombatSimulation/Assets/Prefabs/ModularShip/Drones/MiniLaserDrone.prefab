@@ -603,6 +603,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Shooting: 1
   Navigation: 1
+  InitialTeam: 
 --- !u!114 &114941638070839662
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1180,6 +1181,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4142644113627782}
   EnemyTags: []
   TurretPrefab: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 3}
@@ -1209,7 +1211,7 @@ Transform:
   m_GameObject: {fileID: 1934981081631096}
   m_LocalRotation: {x: 0, y: 0, z: -0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 5, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1.0000005, z: 1.0000005}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4142644113627782}
   m_RootOrder: 1
@@ -1227,6 +1229,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4142644113627782}
   EnemyTags: []
   TurretPrefab: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
     type: 3}

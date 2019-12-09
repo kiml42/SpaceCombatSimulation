@@ -5,7 +5,7 @@ namespace Assets.Src.Interfaces
 {
     public interface ITarget
     {
-        string Team { get; set; }
+        string Team { get; }
         Transform Transform { get; }
         Rigidbody Rigidbody { get; }
         ShipType Type { get; }
@@ -19,5 +19,11 @@ namespace Assets.Src.Interfaces
         /// True of turrets and missiles should try to kill this if it's an enemy.
         /// </summary>
         bool AtackTarget { get; }
+
+        /// <summary>
+        /// Sets the team to the given value and updates all required references.
+        /// </summary>
+        /// <param name="newTeam"></param>
+        void SetTeam(string newTeam);
     }
 }

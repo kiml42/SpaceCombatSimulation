@@ -184,6 +184,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4383548496987130}
   EnemyTags: []
   TurretPrefab: {fileID: 4591031957274470, guid: ecb13bd8e1b25e74c820d8d87b56d573,
     type: 3}
@@ -864,6 +865,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4383548496987130}
   EnemyTags: []
   TurretPrefab: {fileID: 4591031957274470, guid: ecb13bd8e1b25e74c820d8d87b56d573,
     type: 3}
@@ -1025,6 +1027,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Shooting: 1
   Navigation: 1
+  InitialTeam: 
 --- !u!114 &114810906937970192
 MonoBehaviour:
   m_ObjectHideFlags: 0

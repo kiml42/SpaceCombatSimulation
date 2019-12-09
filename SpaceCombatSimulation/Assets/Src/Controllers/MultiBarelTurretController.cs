@@ -104,12 +104,12 @@ public class MultiBarelTurretController : AbstractDeactivatableController, ITurr
                 }
                 if (TagChildren) {
                     var target = projectile.GetComponent<ITarget>();
-                    target.Team = _thisTarget.Team;
+                    target.SetTeam(_thisTarget.Team);
                 }
             }
             else
             {
-                _reload-=Time.fixedDeltaTime;
+                _reload -= Time.fixedDeltaTime;
             }
     }
 

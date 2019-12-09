@@ -186,7 +186,7 @@ namespace Assets.Src.Evolution
             {
                 var goalPrefab = RaceGoals.Modules[EvolutionConfig.RaceConfig.RaceGoalObject.Value];
                 _raceGoalObject = Instantiate(goalPrefab, Vector3.zero, Quaternion.identity);
-                _raceGoalObject.GetComponent<ITarget>().Team = RACE_GAOL_TEAM;
+                _raceGoalObject.GetComponent<ITarget>().SetTeam(RACE_GAOL_TEAM);
                 var health = _raceGoalObject.GetComponent<HealthControler>();
                 if (health != null)
                 {
@@ -259,7 +259,7 @@ namespace Assets.Src.Evolution
                 var randomPlacement = EvolutionConfig.MatchConfig.RandomLocation(EvolutionConfig.EvolutionDroneConfig.DronesInSphereRandomRadius, EvolutionConfig.EvolutionDroneConfig.DronesOnSphereRandomRadius);
                 var orientation = EvolutionConfig.MatchConfig.OrientationForStartLocation(randomPlacement);
                 var drone = Instantiate(dronePrefab, randomPlacement, orientation);
-                drone.GetComponent<ITarget>().Team = droneTeam;
+                drone.GetComponent<ITarget>().SetTeam(droneTeam);
 
                 drone.velocity = EvolutionConfig.MatchConfig.VelocityForStartLocation(randomPlacement);
 

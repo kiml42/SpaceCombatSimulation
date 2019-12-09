@@ -164,6 +164,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4072063251094334}
   EnemyTags: []
   TurretPrefab: {fileID: 4245982871522996, guid: 08efacbbb059a534586d7c97183f30e6,
     type: 3}
@@ -211,6 +212,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags: []
   TurretPrefab: {fileID: 4245982871522996, guid: 08efacbbb059a534586d7c97183f30e6,
     type: 3}
@@ -258,6 +260,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4022952530259898}
   EnemyTags: []
   TurretPrefab: {fileID: 4245982871522996, guid: 08efacbbb059a534586d7c97183f30e6,
     type: 3}
@@ -782,6 +785,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4055161972577100}
   EnemyTags: []
   TurretPrefab: {fileID: 4245982871522996, guid: 08efacbbb059a534586d7c97183f30e6,
     type: 3}
@@ -1199,6 +1203,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags: []
   TurretPrefab: {fileID: 4245982871522996, guid: 08efacbbb059a534586d7c97183f30e6,
     type: 3}
@@ -1400,6 +1405,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Shooting: 1
   Navigation: 0
+  InitialTeam: 
 --- !u!114 &114504340541237846
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1610,6 +1616,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Shooting: 1
   Navigation: 0
+  InitialTeam: 
 --- !u!114 &114596325587238492
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2080,6 +2087,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Shooting: 1
   Navigation: 0
+  InitialTeam: 
 --- !u!114 &114803506182142664
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2917,6 +2925,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4137582594902062}
   EnemyTags: []
   TurretPrefab: {fileID: 4245982871522996, guid: 08efacbbb059a534586d7c97183f30e6,
     type: 3}
@@ -3462,6 +3471,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags: []
   TurretPrefab: {fileID: 4245982871522996, guid: 08efacbbb059a534586d7c97183f30e6,
     type: 3}
@@ -3509,6 +3519,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4724043170184730}
   EnemyTags: []
   TurretPrefab: {fileID: 4245982871522996, guid: 08efacbbb059a534586d7c97183f30e6,
     type: 3}
@@ -3722,6 +3733,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Shooting: 1
   Navigation: 1
+  InitialTeam: 
 --- !u!114 &114604596741557380
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4296,6 +4308,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Shooting: 1
   Navigation: 0
+  InitialTeam: 
 --- !u!114 &114868291084508376
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5160,6 +5173,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Shooting: 1
   Navigation: 0
+  InitialTeam: 
 --- !u!114 &114544355019410700
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5355,6 +5369,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags: []
   TurretPrefab: {fileID: 4245982871522996, guid: 08efacbbb059a534586d7c97183f30e6,
     type: 3}
@@ -5575,6 +5590,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Shooting: 1
   Navigation: 0
+  InitialTeam: 
 --- !u!114 &114658534795054784
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6112,6 +6128,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Shooting: 1
   Navigation: 0
+  InitialTeam: 
 --- !u!114 &114064442233278650
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -13,10 +13,10 @@ namespace Assets.src.Evolution
         private GenomeWrapper _genome;
         public int GeneLength = 1;
 
-        private ModuleList _moduleList;
+        private readonly ModuleList _moduleList;
         
-        private ModuleHub _rootHub;
-        private TestCubeChecker _testCubePrefab;
+        private readonly ModuleHub _rootHub;
+        private readonly TestCubeChecker _testCubePrefab;
         
         private Color _colour;
         
@@ -87,7 +87,7 @@ namespace Assets.src.Evolution
                                 hub.AllowedModuleIndicies = _rootHub.AllowedModuleIndicies;
                             }
 
-                            addedModule.GetComponent<ITarget>().Team = _rootTarget.Team;
+                            addedModule.GetComponent<ITarget>().SetTeam(_rootTarget.Team);
 
                             addedModule.transform.SetColor(_colour);
                             addedModule.GetComponent<Rigidbody>().velocity = _rootHub.Velocity;

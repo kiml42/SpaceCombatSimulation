@@ -10,7 +10,7 @@ public class SpawnTurret : MonoBehaviour
     [Tooltip("if true, the turret will be tagged with the parent objects tag. This object's tag is used if there is no parent.")]
     public bool TagChildren = true;
 
-    public ITarget ParentForTurret;
+    public Transform ParentForTurret;
     
     [Tooltip("only used if the turret won't be able to find a deffered tag source.")]
     public List<string> EnemyTags;
@@ -33,33 +33,24 @@ public class SpawnTurret : MonoBehaviour
 
             if (ParentForTurret == null )
             {
-                Debug.LogWarning($"{name} has no parent set for its turrets...");
-                ParentForTurret = transform.GetComponent<ITarget>();
-            }
-            if (ParentForTurret == null && transform.parent != null)
-            {
-                Debug.LogWarning($"...and it couldn't find one in itself...");
-                ParentForTurret = transform.GetComponentInParent<ITarget>();
-            }
-            if (ParentForTurret == null)
-            {
-                Debug.LogError($"...or it's parent - it doesn't have one at all!");
+                Debug.LogWarning($"{name} has no parent set for its turrets, trying this object's parent");
+                ParentForTurret = transform.parent;
             }
 
-            var turret = Instantiate(TurretPrefab, transform.position, transform.rotation, ParentForTurret.Transform);
+            var turret = Instantiate(TurretPrefab, transform.position, transform.rotation, ParentForTurret);
 
             if(ParentForTurret != null)
             {
-                var parentRigidbody = ParentForTurret.Rigidbody;
+                var parentRigidbody = ParentForTurret.GetComponent<Rigidbody>();
                 if(parentRigidbody != null)
                 {
                     turret.SetVelocity(parentRigidbody.velocity);
                 }
 
-                turret.parent = ParentForTurret.Transform;
+                turret.parent = ParentForTurret;
                 turret.GetComponent<FixedJoint>().connectedBody = parentRigidbody;
 
-                var renderer = ParentForTurret.Transform.GetComponentInChildren<Renderer>();
+                var renderer = ParentForTurret.GetComponentInChildren<Renderer>();
 
                 if (renderer != null)
                 {
@@ -76,7 +67,8 @@ public class SpawnTurret : MonoBehaviour
 
             if (TagChildren)
             {
-                turret.GetComponent<ITarget>().Team = ParentForTurret != null ? ParentForTurret.Team : GetComponent<ITarget>().Team;
+                var parentTarget = ParentForTurret.GetComponent<ITarget>();
+                turret.GetComponent<ITarget>().SetTeam(parentTarget != null ? parentTarget.Team : GetComponent<ITarget>().Team);
             }
         
             Destroy(gameObject);

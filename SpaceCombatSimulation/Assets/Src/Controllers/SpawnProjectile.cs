@@ -72,7 +72,7 @@ public class SpawnProjectile : AbstractDeactivatableController
                 if (TagChildren)
                 {
                     var target = projectile.GetComponent<ITarget>();
-                    target.Team = _thisTarget.Team;
+                    target.SetTeam(_thisTarget.Team);
                 }
 
                 if (_colerer != null)

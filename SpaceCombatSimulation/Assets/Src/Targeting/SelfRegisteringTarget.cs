@@ -15,34 +15,83 @@ public class SelfRegisteringTarget : MonoBehaviour, ITarget
 
     public Transform Transform => this == null ? null : transform;
 
-    public Rigidbody Rigidbody { get; private set; }
+    private bool _hasLookedForRigidbody = false;
+    private Rigidbody _rigidbody;
+    public Rigidbody Rigidbody
+    {
+        get
+        {
+            if(! _hasLookedForRigidbody && _rigidbody == null)
+            {
+                _hasLookedForRigidbody = true;
+                _rigidbody = GetComponent<Rigidbody>();
+            }
+            return _rigidbody;
+        }
+    }
 
     private TypeKnower typeKnower;
 
-    public ShipType Type => typeKnower.Type;
+    public ShipType Type
+    {
+        get
+        {
+            if (typeKnower == null)
+            {
+                typeKnower = GetComponent<TypeKnower>();
+            }
+            if (typeKnower == null)
+            {
+                Debug.LogWarning($"{Transform} has no type knower - assuming it's a frigate");
+                typeKnower = gameObject.AddComponent<TypeKnower>();
+                typeKnower.Type = ShipType.Frigate;
+            }
+            return typeKnower.Type;
+        }
+    }
 
-    public string Team { get; set; }
-    
+    [Tooltip("The team to initially set this target to, if null or empty, the target will need its team set later. This value is for display purposes only in play mode.")]
+    public string InitialTeam;
+
+    public string Team { get; private set; }
+
     // Use this for initialization
-    void Start () {
-        Rigidbody = GetComponent<Rigidbody>();
-        typeKnower = GetComponent<TypeKnower>();
-        if(typeKnower == null)
+    void Start() {        
+        if (!string.IsNullOrEmpty(InitialTeam))
         {
-            Debug.LogWarning($"{Transform} has no type knower - assuming it's a frigate");
-            typeKnower = gameObject.AddComponent<TypeKnower>();
-            typeKnower.Type = ShipType.Frigate;
+            Team = InitialTeam;
+            TargetRepository.RegisterTarget(this);
         }
-        if (string.IsNullOrEmpty(Team))
-        {
-            Team = Transform.tag;
-        }
-
-        TargetRepository.RegisterTarget(this);
-	}
+    }
 
     public void Deactivate()
     {
         TargetRepository.DeregisterTarget(this);
+    }
+
+    /// <summary>
+    /// Sets the team to the given value and updates all required references.
+    /// </summary>
+    /// <param name="newTeam"></param>
+    public void SetTeam(string newTeam)
+    {
+        InitialTeam = newTeam;
+        if(newTeam == Team)
+        {
+            //no change required.
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(Team))
+        {
+            TargetRepository.DeregisterTarget(this);
+        }
+
+        Team = newTeam;
+
+        if (!string.IsNullOrEmpty(newTeam))
+        {
+            TargetRepository.RegisterTarget(this);
+        }
     }
 }

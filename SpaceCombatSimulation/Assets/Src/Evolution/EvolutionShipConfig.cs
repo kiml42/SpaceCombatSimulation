@@ -50,7 +50,7 @@ namespace Assets.Src.Evolution
             var ownTeam = $"Team{spawnPointNumber}";
 
             var ship = Instantiate(ShipToEvolve, location, orientation);
-            ship.GetComponent<ITarget>().Team = ownTeam;
+            ship.GetComponent<ITarget>().SetTeam(ownTeam);
 
             var hub = ship.GetComponent<ModuleHub>();
             if (hub != null)
