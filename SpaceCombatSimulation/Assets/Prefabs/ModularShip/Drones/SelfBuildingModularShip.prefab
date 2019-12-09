@@ -44,7 +44,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 4029539552692930}
   EnemyTags: []
   TurretPrefab: {fileID: 4072753465873458, guid: b6e297582f25e22439032bba93cfe02a,
     type: 3}
@@ -92,7 +91,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 4029539552692930}
   EnemyTags: []
   TurretPrefab: {fileID: 4072753465873458, guid: b6e297582f25e22439032bba93cfe02a,
     type: 3}
@@ -150,6 +148,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -244,6 +243,7 @@ MonoBehaviour:
   NeverRetarget: 0
   PollInterval: 1
   TargetPicker: {fileID: 114329991437901330}
+  IncludeNavigationTargets: 0
 --- !u!114 &114653372539300572
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -304,7 +304,7 @@ MonoBehaviour:
   - Team3ForceField
   - Team4ForceField
   - Team5ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!54 &54333284254749140
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -333,6 +333,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Shooting: 1
+  Navigation: 1
 --- !u!114 &114216243942593572
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -447,6 +449,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -515,7 +518,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 4029539552692930}
   EnemyTags: []
   TurretPrefab: {fileID: 4072753465873458, guid: b6e297582f25e22439032bba93cfe02a,
     type: 3}
@@ -593,7 +595,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 4029539552692930}
   EnemyTags: []
   TurretPrefab: {fileID: 4072753465873458, guid: b6e297582f25e22439032bba93cfe02a,
     type: 3}
@@ -608,7 +609,6 @@ GameObject:
   - component: {fileID: 4037922490648216}
   - component: {fileID: 20120436873708620}
   - component: {fileID: 124494842586584462}
-  - component: {fileID: 92276818245250548}
   - component: {fileID: 81920273135300748}
   m_Layer: 0
   m_Name: Camera
@@ -682,14 +682,6 @@ Behaviour:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1349697125708028}
   m_Enabled: 1
---- !u!92 &92276818245250548
-Behaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1349697125708028}
-  m_Enabled: 1
 --- !u!81 &81920273135300748
 AudioListener:
   m_ObjectHideFlags: 0
@@ -752,6 +744,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -878,6 +871,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -956,6 +950,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1024,7 +1019,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 4029539552692930}
   EnemyTags: []
   TurretPrefab: {fileID: 4072753465873458, guid: b6e297582f25e22439032bba93cfe02a,
     type: 3}
@@ -1201,6 +1195,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1269,7 +1264,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 4029539552692930}
   EnemyTags: []
   TurretPrefab: {fileID: 4072753465873458, guid: b6e297582f25e22439032bba93cfe02a,
     type: 3}
@@ -1319,6 +1313,7 @@ LineRenderer:
   m_MotionVectors: 0
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
+  m_RayTracingMode: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:

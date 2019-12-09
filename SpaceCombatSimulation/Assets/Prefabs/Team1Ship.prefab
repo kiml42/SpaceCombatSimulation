@@ -44,7 +44,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team2
   - Team3
@@ -95,7 +94,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team2
   - Team3
@@ -170,6 +168,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -238,7 +237,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team2
   - Team3
@@ -289,7 +287,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
   EnemyTags: []
   TurretPrefab: {fileID: 0}
 --- !u!1 &1151259579637064
@@ -423,7 +420,7 @@ MonoBehaviour:
   DamageDelegate: {fileID: 0}
   IgnoredTags:
   - ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!114 &114361333263954078
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -465,6 +462,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Shooting: 1
+  Navigation: 1
 --- !u!114 &114292686112436968
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -489,7 +488,6 @@ GameObject:
   - component: {fileID: 4505807159750710}
   - component: {fileID: 20797790757653000}
   - component: {fileID: 124467320686027972}
-  - component: {fileID: 92551524770003934}
   - component: {fileID: 81478068556006836}
   m_Layer: 0
   m_Name: CameraTeam1ShipCam (1)
@@ -563,14 +561,6 @@ Behaviour:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1229538825179298}
   m_Enabled: 1
---- !u!92 &92551524770003934
-Behaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1229538825179298}
-  m_Enabled: 1
 --- !u!81 &81478068556006836
 AudioListener:
   m_ObjectHideFlags: 0
@@ -623,7 +613,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team2
   - Team3
@@ -674,7 +663,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team2
   - Team3
@@ -735,6 +723,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -803,7 +792,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
   EnemyTags: []
   TurretPrefab: {fileID: 0}
 --- !u!1 &1432967253278914
@@ -850,7 +838,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team2
   - Team3
@@ -901,7 +888,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team2
   - Team3
@@ -952,7 +938,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team2
   - Team3
@@ -1028,6 +1013,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1096,7 +1082,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
   EnemyTags: []
   TurretPrefab: {fileID: 0}
 --- !u!1 &1681480731534768
@@ -1168,6 +1153,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -5897,6 +5883,7 @@ ParticleSystemRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
+  m_RayTracingMode: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -6051,7 +6038,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team2
   - Team3
@@ -6149,7 +6135,7 @@ MonoBehaviour:
   DamageDelegate: {fileID: 0}
   IgnoredTags:
   - ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!114 &114668481676445708
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6232,6 +6218,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -6300,7 +6287,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
   EnemyTags: []
   TurretPrefab: {fileID: 0}
 --- !u!1 &1896938122998286
@@ -6371,6 +6357,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -6406,7 +6393,6 @@ GameObject:
   - component: {fileID: 4357906264733498}
   - component: {fileID: 20636585114872592}
   - component: {fileID: 124544593481065432}
-  - component: {fileID: 92209810015696422}
   - component: {fileID: 81208707134959616}
   m_Layer: 0
   m_Name: CameraTeam1ShipCam
@@ -6480,14 +6466,6 @@ Behaviour:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1926539632406834}
   m_Enabled: 1
---- !u!92 &92209810015696422
-Behaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1926539632406834}
-  m_Enabled: 1
 --- !u!81 &81208707134959616
 AudioListener:
   m_ObjectHideFlags: 0
@@ -6540,7 +6518,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team3
   - Team2
@@ -6593,6 +6570,7 @@ LineRenderer:
   m_MotionVectors: 0
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
+  m_RayTracingMode: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:

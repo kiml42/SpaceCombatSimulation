@@ -1,10 +1,9 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class RegisterAsTarget : MonoBehaviour, ITarget
+public class SelfRegisteringTarget : MonoBehaviour, ITarget
 {
     [Tooltip("True of turrets and missiles should try to kill this if it's an enemy.")]
     public bool Shooting = true;

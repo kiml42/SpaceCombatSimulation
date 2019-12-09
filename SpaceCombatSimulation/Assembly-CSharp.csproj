@@ -197,8 +197,8 @@
     <Compile Include="Assets\Src\Targeting\ProximityApproachDetonator.cs" />
     <Compile Include="Assets\Src\Targeting\ProximityDetonator.cs" />
     <Compile Include="Assets\Src\Targeting\RayTrigger.cs" />
-    <Compile Include="Assets\Src\Targeting\RegisterAsTarget.cs" />
     <Compile Include="Assets\Src\Targeting\RepositoryTargetDetector.cs" />
+    <Compile Include="Assets\Src\Targeting\SelfRegisteringTarget.cs" />
     <Compile Include="Assets\Src\Targeting\ShipType.cs" />
     <Compile Include="Assets\Src\Targeting\Target.cs" />
     <Compile Include="Assets\Src\Targeting\TargetChoosingMechanism.cs" />
