@@ -45,10 +45,7 @@ namespace Assets.Src.Evolution
             var orientation = Config.OrientationForStartLocation(location);
             var velocity = Config.VelocityForStartLocation(location);
 
-            var ownTeam = $"Team{spawnPointNumber}";
-
             var ship = Instantiate(ShipToEvolve, location, orientation);
-            ship.GetComponent<ITarget>().SetTeam(ownTeam);
 
             var hub = ship.GetComponent<ModuleHub>();
             if (hub != null)
@@ -58,16 +55,16 @@ namespace Assets.Src.Evolution
 
             var genomeWrapper = new GenomeWrapper(genome)
             {
-                Budget = Config.Budget,
-                Team = ownTeam
+                Budget = Config.Budget
             };
             ship.GetComponent<Rigidbody>().velocity = velocity;
 
             genomeWrapper = ship.Configure(genomeWrapper);
 
+            genomeWrapper.Team = $"T{spawnPointNumber}-{genomeWrapper.Name.Substring(0, Math.Min(genomeWrapper.Name.Length, 42))}";
+            ship.GetComponent<ITarget>().SetTeam(genomeWrapper.Team);
             ship.name = genomeWrapper.Name;
-
-            ShipTeamMapping[ship.transform] = ownTeam;
+            ShipTeamMapping[ship.transform] = genomeWrapper.Team;
 
             return genomeWrapper;
         }
