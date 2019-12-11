@@ -234,6 +234,24 @@ namespace Assets.Src.Evolution
             _extantTeams = _currentGenomes;
             _teamScores = _currentGenomes.ToDictionary(kv => kv.Key, kv => 0f);
 
+            foreach (var teamTransform in ShipConfig.ShipTeamMapping)
+            {
+                var ship = teamTransform.Key;
+                var team = teamTransform.Value;
+
+                var tagSource = ship.GetComponent<IKnowsEnemyTags>();
+                if (tagSource != null)
+                {
+                    var enemyTags = ShipConfig.ShipTeamMapping.Values.Where(t => t != team).ToList();
+                    enemyTags.AddRange(ShipConfig.TagsForAll);
+                    tagSource.KnownEnemyTags = enemyTags;
+                }
+                else
+                {
+                    Debug.LogError(ship.name + " Has no IKnowsEnemyTags available.");
+                }
+            }
+
             Debug.Log("\"" + string.Join("\" vs \"", names.Distinct().ToArray()) + "\"");
 
             return wrappers.Any(w => w.ModulesAdded > 0);
@@ -249,7 +267,7 @@ namespace Assets.Src.Evolution
             Debug.Log(DroneCount + " drones this match");
 
             var droneTeam = EvolutionConfig.EvolutionDroneConfig.DroneTeam;
-            var enemyTags = ShipConfig.Teams.Where(t => t != droneTeam).ToList();
+            var enemyTags = ShipConfig.ShipTeamMapping.Values.Distinct().Where(t => t != droneTeam).ToList();
 
             for (int i = 0; i < DroneCount; i++)
             {

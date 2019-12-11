@@ -10,9 +10,7 @@ namespace Assets.Src.Evolution
     public class EvolutionShipConfig : MonoBehaviour
     {
         public ModuleTypeKnower ShipToEvolve;
-
-        public List<string> Teams = new List<string> { "Team1", "Team2", "Team3", "Team4", "Team5", "Team6", "Team7", "Team8", "Team9", "Team10", "Team11", "Team12", "Team13", "Team14", "Team15", "Team16", "Team17", "Team18", "Team19", "Team20" };
-
+        
         [Tooltip("all spawned ships get these set as their enemies")]
         public List<string> TagsForAll = new List<string> { "RaceGoal", "Enemy" };
 
@@ -56,19 +54,6 @@ namespace Assets.Src.Evolution
             if (hub != null)
             {
                 hub.AllowedModuleIndicies = Config.AllowedModuleIndicies;
-            }
-
-            var tagShource = ship.GetComponent<IKnowsEnemyTags>();
-            var enemyTags = Teams.Where(t => t != ownTeam).ToList();
-            enemyTags.AddRange(TagsForAll);
-
-            if (tagShource != null)
-            {
-                tagShource.KnownEnemyTags = enemyTags;
-            }
-            else
-            {
-                Debug.LogError(ship.name + " Has no IKnowsEnemyTags available.");
             }
 
             var genomeWrapper = new GenomeWrapper(genome)

@@ -14,9 +14,9 @@ namespace Assets.Src.Targeting
             _enemyTagKnower = enemyTagKnower;
         }
 
-        public IEnumerable<PotentialTarget> DetectTargets(bool includeNavigationTarets = false)
+        public IEnumerable<PotentialTarget> DetectTargets(bool includeNavigationTarets = false, bool includeShootingTargets = true)
         {
-            return TargetRepository.ListTargetsOnTeams(_enemyTagKnower.KnownEnemyTags, includeNavigationTarets).Select(t => new PotentialTarget(t));
+            return TargetRepository.ListTargetsOnTeams(_enemyTagKnower.KnownEnemyTags, includeNavigationTarets, includeShootingTargets).Select(t => new PotentialTarget(t));
         }
     }
 }

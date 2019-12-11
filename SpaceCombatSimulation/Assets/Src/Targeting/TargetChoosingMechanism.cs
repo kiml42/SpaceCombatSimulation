@@ -31,6 +31,7 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
     public CombinedTargetPicker TargetPicker;
 
     public bool IncludeNavigationTargets = false;
+    public bool IncludeAtackTargets = true;
 
     // Use this for initialization
     void Start ()
@@ -70,7 +71,7 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
                     return;
                 }
                 //Debug.Log(name + " aquiring new target");
-                var allTargets = Detector.DetectTargets(IncludeNavigationTargets);
+                var allTargets = Detector.DetectTargets(IncludeNavigationTargets, IncludeAtackTargets);
                 var allTargetsList = allTargets.ToList();
                 FilteredTargets = TargetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).Select(t => t.Target);
                 var bestTarget = FilteredTargets.FirstOrDefault();

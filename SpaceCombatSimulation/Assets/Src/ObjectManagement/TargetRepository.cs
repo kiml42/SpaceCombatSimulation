@@ -64,15 +64,15 @@ namespace Assets.Src.ObjectManagement
             }
 
             var list = new List<ITarget>();
-            foreach (var tag in teams)
+            foreach (var team in teams)
             {
-                if (_targets.ContainsKey(tag))
+                if (_targets.ContainsKey(team))
                 {
-                    list.AddRange(CleanList(_targets[tag]));
+                    var onTeam = CleanList(_targets[team]).Where(t => t.NavigationalTarget && includeNavigationTargets || t.AtackTarget && includeAtackTargets);
+                    list.AddRange(onTeam);
                 }
             }
             var distinctList = list.Distinct();
-            distinctList = distinctList.Where(t => t.NavigationalTarget && includeNavigationTargets || t.AtackTarget && includeAtackTargets);
 
             return distinctList;
         }
@@ -83,7 +83,7 @@ namespace Assets.Src.ObjectManagement
             {
                 return new List<ITarget>();
             }
-            return  list
+            return  list = list
                 .Where(target => target != null && target?.Transform != null && target.Transform.IsValid())
                 .Distinct(new CompareTargetsByTransform())  //Specify the comparer to use 
                 .ToList();
