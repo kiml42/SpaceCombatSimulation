@@ -211,6 +211,7 @@ namespace Assets.Src.Evolution
 
             var names = new List<string>();
 
+            Debug.Log($"Picking {EvolutionConfig.BrConfig.NumberOfCombatants} competitors for match. Aiming for {EvolutionConfig.MinMatchesPerIndividual} matches each.");
             var i = 0;
             foreach (var g in genomes)
             {

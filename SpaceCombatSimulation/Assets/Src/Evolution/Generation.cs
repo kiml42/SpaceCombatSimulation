@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace Assets.Src.Evolution
 {
@@ -136,7 +137,7 @@ namespace Assets.Src.Evolution
 
 
             var best = validCompetitors.FirstOrDefault();
-            //Debug.Log("Picked Individual has played " + best.MatchesPlayed);
+            Debug.Log($"Picked Individual has played {best.MatchesPlayed}");
             if (best != null)
             {
                 return best.Genome;
