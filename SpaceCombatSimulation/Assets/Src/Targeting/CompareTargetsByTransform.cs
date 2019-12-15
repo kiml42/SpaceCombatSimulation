@@ -8,7 +8,7 @@ namespace Assets.Src.Targeting
     {
         public bool Equals(ITarget x, ITarget y)
         {
-            Debug.Log("MyEquals");
+            //Debug.Log("MyEquals");
             if (x == null)
                 return y == null;
             else if (y == null)

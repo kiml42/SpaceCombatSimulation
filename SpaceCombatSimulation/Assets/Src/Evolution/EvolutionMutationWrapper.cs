@@ -8,7 +8,7 @@ namespace Assets.Src.Evolution
     {
         private MutationConfig _config = new MutationConfig();
         private readonly StringMutator _mutator;
-        public float NewStartersProportion = 0.06f;
+        public float NewStartersProportion = 0;
 
         public MutationConfig Config
         {
@@ -42,11 +42,16 @@ namespace Assets.Src.Evolution
             var mutants = _mutator.CreateGenerationOfMutants(baseGenomes, Config.GenerationSize - numberOfNewIndividuals - persistentGenomes.Count);
             var newIndividuals = CreateNewIndividuals(numberOfNewIndividuals);
 
-            Debug.Log("Creating new generation. New individuals: " + numberOfNewIndividuals + ", derrived individuals: " + mutants.Count);
+            Debug.Log($"Creating new generation. New individuals: {numberOfNewIndividuals} , Derrived individuals:  {mutants.Count}, PersistentGenomes: {persistentGenomes.Count}");
 
             mutants.AddRange(newIndividuals);
 
             mutants.AddRange(persistentGenomes);
+
+            if(mutants.Count != Config.GenerationSize)
+            {
+                Debug.LogWarning($"Generation hhas {mutants.Count}, expected {Config.GenerationSize}");
+            }
 
             return mutants;
         }
