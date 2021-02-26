@@ -8,7 +8,7 @@ namespace Assets.Src.Evolution
     public class Generation
     {
         #region General
-        private readonly Random _rng = new Random();
+        private readonly System.Random _rng = new System.Random();
 
         public List<Individual> Individuals { get; } = new List<Individual>();
 

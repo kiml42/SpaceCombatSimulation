@@ -44,6 +44,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -127,6 +128,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -178,6 +180,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -229,6 +232,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -253,6 +257,7 @@ GameObject:
   - component: {fileID: 114588122642984816}
   - component: {fileID: 114288527176595656}
   - component: {fileID: 114389676085485550}
+  - component: {fileID: 2472788891102059413}
   m_Layer: 0
   m_Name: Team2Ship
   m_TagString: Team2
@@ -299,6 +304,7 @@ Transform:
   - {fileID: 4055083103871718}
   - {fileID: 4485696577621294}
   - {fileID: 9207139142922393155}
+  - {fileID: 1747634259799342371}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -336,8 +342,9 @@ MonoBehaviour:
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   PollInterval: 1
-  TargetPicker: {fileID: 0}
+  TargetPicker: {fileID: 1857249633968063133}
   IncludeNavigationTargets: 0
+  IncludeAtackTargets: 1
 --- !u!114 &114747107200871312
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -437,6 +444,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Shooting: 1
   Navigation: 1
+  InitialTeam: 
 --- !u!114 &114389676085485550
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -449,7 +457,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c55bcee375774e43b0e150b11ca6c29, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Type: 5
+  Type: 4
+--- !u!114 &2472788891102059413
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1249936944491648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0f7c7a2b22a34548847247f5e09bad8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeferToParent: 1
+  EnemyTags:
+  - Team1
 --- !u!1 &1290851290803298
 GameObject:
   m_ObjectHideFlags: 0
@@ -5155,7 +5178,6 @@ ParticleSystemRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
-  m_RayTracingMode: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -5273,7 +5295,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -5342,6 +5363,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -5393,6 +5415,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -5536,6 +5559,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -5587,6 +5611,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -5638,6 +5663,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -5689,6 +5715,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -5764,7 +5791,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -5833,6 +5859,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -5884,6 +5911,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -5935,6 +5963,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -6016,6 +6045,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -6092,7 +6122,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -6171,7 +6200,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -6264,7 +6292,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -6333,6 +6360,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -6514,7 +6542,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -6583,6 +6610,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -6634,6 +6662,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -6685,6 +6714,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -6736,6 +6766,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -6787,6 +6818,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -6840,7 +6872,6 @@ LineRenderer:
   m_MotionVectors: 0
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
-  m_RayTracingMode: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -6937,3 +6968,83 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SourceObject: {fileID: 0}
   TargetingLine: {fileID: 3897323187583897751}
+--- !u!1001 &1752083207342360477
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 4007074019723936}
+    m_Modifications:
+    - target: {fileID: 1297094850424896, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_Name
+      value: ShipTargetPickerConfig
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_RootOrder
+      value: 28
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 114440540239129238, guid: 3759a9863abe94848a943553ae1116b2,
+        type: 3}
+      propertyPath: CurrentTargetKnower
+      value: 
+      objectReference: {fileID: 114443668600227482}
+    m_RemovedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+--- !u!4 &1747634259799342371 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2,
+    type: 3}
+  m_PrefabInstance: {fileID: 1752083207342360477}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1857249633968063133 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 114526056000881920, guid: 3759a9863abe94848a943553ae1116b2,
+    type: 3}
+  m_PrefabInstance: {fileID: 1752083207342360477}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
