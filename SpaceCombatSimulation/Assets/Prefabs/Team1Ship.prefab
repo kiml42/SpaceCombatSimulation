@@ -6212,7 +6212,7 @@ MonoBehaviour:
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54996993457620460}
   Plume: {fileID: 198387038657943950}
-  EngineForce2: 5000
+  EngineForce2: 50000
   TranslateFireAngle: 45
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
