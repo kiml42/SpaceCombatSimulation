@@ -474,6 +474,7 @@ MonoBehaviour:
   Shooting: 1
   Navigation: 1
   InitialTeam: Team1
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &114292686112436968
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1026,13 +1027,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1591637745402296}
-  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -20}
   m_LocalScale: {x: 10, y: 2, z: 10}
   m_Children: []
   m_Father: {fileID: 4632310518447138}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &33162763079418404
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -1258,13 +1259,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1717905620137370}
-  m_LocalRotation: {x: -0, y: 1, z: -0, w: 0}
-  m_LocalPosition: {x: 0, y: 0, z: -17.200005}
+  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: -20}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4632310518447138}
   m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
+  m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!198 &198387038657943950
 ParticleSystem:
   m_ObjectHideFlags: 0
@@ -6127,15 +6128,15 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1833914359827252}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 20, z: -20}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4935400415658938}
   - {fileID: 4904317147759306}
   m_Father: {fileID: 4960682451978958}
   m_RootOrder: 17
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!54 &54996993457620460
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -6211,7 +6212,7 @@ MonoBehaviour:
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54996993457620460}
   Plume: {fileID: 198387038657943950}
-  EngineForce2: 0
+  EngineForce2: 5000
   TranslateFireAngle: 45
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
@@ -6219,6 +6220,7 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 1
+  DebugMode: 1
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1864701884255960
 GameObject:

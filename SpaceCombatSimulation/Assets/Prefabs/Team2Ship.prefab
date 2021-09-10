@@ -445,6 +445,7 @@ MonoBehaviour:
   Shooting: 1
   Navigation: 1
   InitialTeam: Team2
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &114389676085485550
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6479,7 +6480,7 @@ MonoBehaviour:
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54279884852327786}
   Plume: {fileID: 198919546160319070}
-  EngineForce2: 0
+  EngineForce2: 5000
   TranslateFireAngle: 45
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
