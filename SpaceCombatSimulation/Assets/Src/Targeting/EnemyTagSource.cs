@@ -5,6 +5,9 @@ using UnityEngine;
 
 namespace Assets.Src.Targeting
 {
+    /// <summary>
+    /// Defines the tags that this object should consider enemies.
+    /// </summary>
     public class EnemyTagSource : MonoBehaviour, IKnowsEnemyTags
     {
         [Tooltip("If this can find an EnemyTagSource in its parents it will use those enemy tags instead of its own.")]

@@ -84,6 +84,10 @@ namespace Assets.Src.Turret
 
         public void Redraw()
         {
+            if (Line == null)
+            {
+                return;
+            }
             Line.enabled = _isShooting;
             Line.SetPosition(1, Vector3.forward * _hitDistance);
         }

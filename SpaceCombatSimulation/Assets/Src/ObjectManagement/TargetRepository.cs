@@ -69,7 +69,12 @@ namespace Assets.Src.ObjectManagement
                 if (_targets.ContainsKey(team))
                 {
                     var onTeam = CleanList(_targets[team]).Where(t => t.NavigationalTarget && includeNavigationTargets || t.AtackTarget && includeAtackTargets);
+                    //Debug.Log($"team {team} has {_targets[team].Count()} targets, of which {onTeam.Count()} are valid. Nav: {includeNavigationTargets}, Attack: {includeAtackTargets}");
                     list.AddRange(onTeam);
+                }
+                else
+                {
+                    Debug.LogWarning($"No target list for team {team}");
                 }
             }
             var distinctList = list.Distinct();

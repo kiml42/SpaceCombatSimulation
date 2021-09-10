@@ -30,6 +30,7 @@ namespace Assets.Src.Targeting
 
         public bool ShouldShoot(ITarget target)
         {
+            if (AimingObject == null) return false;
             if (AvoidFriendlyFire)
             {
                 //Debug.Log("looking for friendlies");
@@ -38,7 +39,7 @@ namespace Assets.Src.Targeting
                 {
                     //Debug.Log(hit.transform);
                     //is a hit
-                    if (hit.transform.GetComponent<ITarget>().Team == _thisTarget.Team)
+                    if (hit.transform.GetComponent<ITarget>()?.Team == _thisTarget.Team)    //TODO have this only shoot enemies, rather than only not shooting same team.
                     {
                         //Debug.Log("Is friendly, so don't shoot.");
                         //is aimed at a friendly

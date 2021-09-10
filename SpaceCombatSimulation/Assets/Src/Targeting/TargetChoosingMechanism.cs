@@ -70,13 +70,13 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
                     Debug.LogWarning(name + " Target Choosing mechanism has no detector.");
                     return;
                 }
-                Debug.Log(name + " aquiring new target");
+                //Debug.Log(name + " aquiring new target");
                 var allTargets = Detector.DetectTargets(IncludeNavigationTargets, IncludeAtackTargets);
                 var allTargetsList = allTargets.ToList();
                 var filteredPotentialTargets = TargetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score);
                 FilteredTargets = filteredPotentialTargets.Select(t => t.Target);
                 var bestTarget = FilteredTargets.FirstOrDefault();
-                Debug.Log(allTargets.Count());  //TODO get these to find targets again.
+                //Debug.Log("Count of targets: " + allTargets.Count());
                 if(TargetHasChanged(bestTarget, CurrentTarget))
                 {
                     LogTargetChange(CurrentTarget, filteredPotentialTargets.FirstOrDefault(), targetIsInvalid);
@@ -129,7 +129,6 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
             Debug.Log(log); //log only retargets.
             return;
         }
-        Debug.Log(log);
     }
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
