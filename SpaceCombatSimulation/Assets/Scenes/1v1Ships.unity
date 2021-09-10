@@ -120,18 +120,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!114 &603687928 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1857249633968063133, guid: 3a84186e8b326a04483727b0cfc0ec2e,
-    type: 3}
-  m_PrefabInstance: {fileID: 1611825024}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1001 &771541987
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -262,7 +250,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 3
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
 --- !u!1001 &1611825024
 PrefabInstance:
@@ -424,33 +412,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 193b600cd417a3d46aecfab46e61236a, type: 3}
---- !u!1 &1969124672 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1249936944491648, guid: 3a84186e8b326a04483727b0cfc0ec2e,
-    type: 3}
-  m_PrefabInstance: {fileID: 1611825024}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1969124673
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1969124672}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  GetConfigFromGenome: 1
-  ConfigIndex: -1
-  HasBeenConfiguredByGenome: 0
-  ContinuallyCheckForTargets: 0
-  NeverRetarget: 0
-  PollInterval: 0
-  TargetPicker: {fileID: 603687928}
-  IncludeNavigationTargets: 0
-  IncludeAtackTargets: 1
 --- !u!1001 &1998298793
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -496,37 +457,12 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4266094281893150, guid: 8ad76c9d2e309504e9eaf8abb8d91e63, type: 3}
       propertyPath: m_RootOrder
-      value: 4
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 20313391970375138, guid: 8ad76c9d2e309504e9eaf8abb8d91e63,
         type: 3}
       propertyPath: m_Enabled
       value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114805640114796924, guid: 8ad76c9d2e309504e9eaf8abb8d91e63,
-        type: 3}
-      propertyPath: EnemyTags.Array.size
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 114805640114796924, guid: 8ad76c9d2e309504e9eaf8abb8d91e63,
-        type: 3}
-      propertyPath: ShouldSpawnDrones
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114805640114796924, guid: 8ad76c9d2e309504e9eaf8abb8d91e63,
-        type: 3}
-      propertyPath: ShouldSetEnemyTag
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114805640114796924, guid: 8ad76c9d2e309504e9eaf8abb8d91e63,
-        type: 3}
-      propertyPath: EnemyTags.Array.data[0]
-      value: Team1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114805640114796924, guid: 8ad76c9d2e309504e9eaf8abb8d91e63,
-        type: 3}
-      propertyPath: EnemyTags.Array.data[1]
-      value: Team2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8ad76c9d2e309504e9eaf8abb8d91e63, type: 3}
