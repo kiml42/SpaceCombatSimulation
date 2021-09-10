@@ -458,6 +458,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1447846962877396, guid: 8ad76c9d2e309504e9eaf8abb8d91e63, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1656967638311644, guid: 8ad76c9d2e309504e9eaf8abb8d91e63, type: 3}
       propertyPath: m_Name
       value: WorldController (1)
@@ -498,6 +502,31 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Enabled
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 114805640114796924, guid: 8ad76c9d2e309504e9eaf8abb8d91e63,
+        type: 3}
+      propertyPath: EnemyTags.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 114805640114796924, guid: 8ad76c9d2e309504e9eaf8abb8d91e63,
+        type: 3}
+      propertyPath: ShouldSpawnDrones
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 114805640114796924, guid: 8ad76c9d2e309504e9eaf8abb8d91e63,
+        type: 3}
+      propertyPath: ShouldSetEnemyTag
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 114805640114796924, guid: 8ad76c9d2e309504e9eaf8abb8d91e63,
+        type: 3}
+      propertyPath: EnemyTags.Array.data[0]
+      value: Team1
+      objectReference: {fileID: 0}
+    - target: {fileID: 114805640114796924, guid: 8ad76c9d2e309504e9eaf8abb8d91e63,
+        type: 3}
+      propertyPath: EnemyTags.Array.data[1]
+      value: Team2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8ad76c9d2e309504e9eaf8abb8d91e63, type: 3}

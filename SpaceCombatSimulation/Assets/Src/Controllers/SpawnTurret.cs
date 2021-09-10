@@ -76,7 +76,7 @@ public class SpawnTurret : MonoBehaviour
             if (TagChildren)
             {
                 var parentTarget = ParentForTurret.GetComponent<ITarget>();
-                turret.GetComponent<ITarget>().SetTeam(parentTarget != null ? parentTarget.Team : GetComponent<ITarget>().Team);
+                turret.GetComponent<ITarget>().SetTeamSource(parentTarget ?? GetComponent<ITarget>());
             }
         
             Destroy(gameObject);

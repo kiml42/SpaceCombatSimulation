@@ -25,5 +25,11 @@ namespace Assets.Src.Interfaces
         /// </summary>
         /// <param name="newTeam"></param>
         void SetTeam(string newTeam);
+
+        /// <summary>
+        /// Sets the targetable object that should be used as the source for this object's team.
+        /// </summary>
+        /// <param name="teamSource"></param>
+        void SetTeamSource(ITarget teamSource);
     }
 }

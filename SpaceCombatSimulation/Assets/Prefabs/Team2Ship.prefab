@@ -371,7 +371,7 @@ MonoBehaviour:
   MaxTangentialVelocity: 50
   MinTangentialVelocity: 0
   TangentialSpeedWeighting: 10
-  Engine: {fileID: 0}
+  Engine: {fileID: 114647878159316806}
   Torquer: {fileID: 54276188861948588}
   AngularDragForTorquers: 20
   VectorArrow: {fileID: 4485696577621294}

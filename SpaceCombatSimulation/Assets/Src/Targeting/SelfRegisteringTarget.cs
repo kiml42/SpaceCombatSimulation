@@ -55,12 +55,25 @@ public class SelfRegisteringTarget : MonoBehaviour, ITarget
 
     public string Team { get; private set; }
 
+    private ITarget _teamSource;
+
+    public int GetTeamFromSourceTriesRemaining = 10;
+
     // Use this for initialization
     void Start() {        
         if (!string.IsNullOrEmpty(InitialTeam))
         {
             Team = InitialTeam;
             TargetRepository.RegisterTarget(this);
+        }
+    }
+
+    void FixedUpdate()
+    {
+        if(GetTeamFromSourceTriesRemaining > 0 && _teamSource != null && string.IsNullOrEmpty(Team))
+        {
+            SetTeam(_teamSource.Team);
+            GetTeamFromSourceTriesRemaining--;
         }
     }
 
@@ -93,5 +106,10 @@ public class SelfRegisteringTarget : MonoBehaviour, ITarget
         {
             TargetRepository.RegisterTarget(this);
         }
+    }
+
+    public void SetTeamSource(ITarget teamSource)
+    {
+        _teamSource = teamSource;
     }
 }

@@ -86,7 +86,7 @@ namespace Assets.src.Evolution
                                 hub.AllowedModuleIndicies = _rootHub.AllowedModuleIndicies;
                             }
 
-                            addedModule.GetComponent<ITarget>().SetTeam(_rootTarget.Team);
+                            addedModule.GetComponent<ITarget>().SetTeamSource(_rootTarget);
 
                             addedModule.transform.SetColor(_colour);
                             addedModule.GetComponent<Rigidbody>().velocity = _rootHub.Velocity;
