@@ -258,7 +258,6 @@ GameObject:
   - component: {fileID: 114288527176595656}
   - component: {fileID: 114389676085485550}
   - component: {fileID: 2472788891102059413}
-  - component: {fileID: 206744678874533019}
   m_Layer: 0
   m_Name: Team2Ship
   m_TagString: Team2
@@ -445,7 +444,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Shooting: 1
   Navigation: 1
-  InitialTeam: 
+  InitialTeam: Team2
 --- !u!114 &114389676085485550
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -474,21 +473,6 @@ MonoBehaviour:
   DeferToParent: 1
   EnemyTags:
   - Team1
---- !u!114 &206744678874533019
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1249936944491648}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Shooting: 1
-  Navigation: 0
-  InitialTeam: Team2
 --- !u!1 &1290851290803298
 GameObject:
   m_ObjectHideFlags: 0
