@@ -1,31 +1,23 @@
 ﻿using Assets.src.Evolution;
-using Assets.Src.Interfaces;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
 using Assets.Src.Evolution;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace Assets.Src.ModuleSystem
 {
-    public class ModuleHub : MonoBehaviour, IGeneticConfigurable
+    public class ModuleHub : GeneticConfigurableMonobehaviour
     {
         public TestCubeChecker TestCube;
         public ModuleList ModuleList;
         public List<Transform> SpawnPoints;
         public int[] AllowedModuleIndicies = null;
 
-        public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
-        {
-            var shipToEvolve = GetComponent<Rigidbody>();
-            var velocity = shipToEvolve.velocity;
+        public Vector3 Velocity { get { return GetComponent<Rigidbody>().velocity; } }
 
-            genomeWrapper = new ShipBuilder(genomeWrapper, this)
-            {
-                InitialVelocity = velocity,
-                AllowedModuleIndicies = AllowedModuleIndicies
-            }.BuildShip(true);
-            
+        protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
+        {
+            genomeWrapper = new ShipBuilder(genomeWrapper, this).BuildShip(true);
+
             return genomeWrapper;
         }
     }

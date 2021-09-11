@@ -7,16 +7,17 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{229CE127-35D9-669D-8BB8-727A9EB179EC}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <AssemblyName>Assembly-CSharp.dll</AssemblyName>
+    <AssemblyName>Assembly-CSharp</AssemblyName>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{E097FAD1-6243-4DAD-9C02-E9B9EFC3FFC1};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Full v3.5</TargetFrameworkProfile>
     <CompilerResponseFile></CompilerResponseFile>
+    <UnityProjectGenerator>VSTU</UnityProjectGenerator>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>StandaloneWindows64:19</UnityBuildTarget>
-    <UnityVersion>2017.3.0f3</UnityVersion>
+    <UnityVersion>2017.3.1f1</UnityVersion>
     <RootNamespace></RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
@@ -27,7 +28,7 @@
     <IntermediateOutputPath>Temp\UnityVS_obj\Debug\</IntermediateOutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DefineConstants>DEBUG;TRACE;UNITY_5_3_OR_NEWER;UNITY_5_4_OR_NEWER;UNITY_5_5_OR_NEWER;UNITY_5_6_OR_NEWER;UNITY_2017_1_OR_NEWER;UNITY_2017_2_OR_NEWER;UNITY_2017_3_OR_NEWER;UNITY_2017_3_0;UNITY_2017_3;UNITY_2017;PLATFORM_ARCH_64;UNITY_64;UNITY_ANALYTICS;ENABLE_AUDIO;ENABLE_CACHING;ENABLE_CLOTH;ENABLE_DUCK_TYPING;ENABLE_GENERICS;ENABLE_PVR_GI;ENABLE_MICROPHONE;ENABLE_MULTIPLE_DISPLAYS;ENABLE_PHYSICS;ENABLE_SPRITERENDERER_FLIPPING;ENABLE_SPRITES;ENABLE_GRID;ENABLE_TILEMAP;ENABLE_TERRAIN;ENABLE_RAKNET;ENABLE_DIRECTOR;ENABLE_UNET;ENABLE_LZMA;ENABLE_UNITYEVENTS;ENABLE_WEBCAM;ENABLE_WWW;ENABLE_CLOUD_SERVICES_COLLAB;ENABLE_CLOUD_SERVICES_COLLAB_SOFTLOCKS;ENABLE_CLOUD_SERVICES_ADS;ENABLE_CLOUD_HUB;ENABLE_CLOUD_PROJECT_ID;ENABLE_CLOUD_SERVICES_USE_WEBREQUEST;ENABLE_CLOUD_SERVICES_UNET;ENABLE_CLOUD_SERVICES_BUILD;ENABLE_CLOUD_LICENSE;ENABLE_EDITOR_HUB;ENABLE_EDITOR_HUB_LICENSE;ENABLE_WEBSOCKET_CLIENT;ENABLE_DIRECTOR_AUDIO;ENABLE_DIRECTOR_TEXTURE;ENABLE_TIMELINE;ENABLE_EDITOR_METRICS;ENABLE_EDITOR_METRICS_CACHING;ENABLE_NATIVE_ARRAY;ENABLE_SPRITE_MASKING;INCLUDE_DYNAMIC_GI;INCLUDE_GI;ENABLE_MONO_BDWGC;PLATFORM_SUPPORTS_MONO;RENDER_SOFTWARE_CURSOR;INCLUDE_PUBNUB;ENABLE_PLAYMODE_TESTS_RUNNER;ENABLE_VIDEO;ENABLE_RMGUI;ENABLE_PACKMAN;ENABLE_CUSTOM_RENDER_TEXTURE;ENABLE_STYLE_SHEETS;ENABLE_LOCALIZATION;PLATFORM_STANDALONE_WIN;PLATFORM_STANDALONE;UNITY_STANDALONE_WIN;UNITY_STANDALONE;ENABLE_SUBSTANCE;ENABLE_RUNTIME_GI;ENABLE_MOVIES;ENABLE_NETWORK;ENABLE_CRUNCH_TEXTURE_COMPRESSION;ENABLE_UNITYWEBREQUEST;ENABLE_CLOUD_SERVICES;ENABLE_CLOUD_SERVICES_ANALYTICS;ENABLE_CLOUD_SERVICES_PURCHASING;ENABLE_CLOUD_SERVICES_CRASH_REPORTING;ENABLE_EVENT_QUEUE;ENABLE_CLUSTERINPUT;ENABLE_VR;ENABLE_AR;ENABLE_WEBSOCKET_HOST;ENABLE_MONO;NET_2_0;ENABLE_PROFILER;DEBUG;TRACE;UNITY_ASSERTIONS;UNITY_EDITOR;UNITY_EDITOR_64;UNITY_EDITOR_WIN;ENABLE_NATIVE_ARRAY_CHECKS;UNITY_TEAM_LICENSE;ENABLE_VSTU</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;UNITY_5_3_OR_NEWER;UNITY_5_4_OR_NEWER;UNITY_5_5_OR_NEWER;UNITY_5_6_OR_NEWER;UNITY_2017_1_OR_NEWER;UNITY_2017_2_OR_NEWER;UNITY_2017_3_OR_NEWER;UNITY_2017_3_1;UNITY_2017_3;UNITY_2017;PLATFORM_ARCH_64;UNITY_64;UNITY_ANALYTICS;ENABLE_AUDIO;ENABLE_CACHING;ENABLE_CLOTH;ENABLE_DUCK_TYPING;ENABLE_GENERICS;ENABLE_PVR_GI;ENABLE_MICROPHONE;ENABLE_MULTIPLE_DISPLAYS;ENABLE_PHYSICS;ENABLE_SPRITERENDERER_FLIPPING;ENABLE_SPRITES;ENABLE_GRID;ENABLE_TILEMAP;ENABLE_TERRAIN;ENABLE_RAKNET;ENABLE_DIRECTOR;ENABLE_UNET;ENABLE_LZMA;ENABLE_UNITYEVENTS;ENABLE_WEBCAM;ENABLE_WWW;ENABLE_CLOUD_SERVICES_COLLAB;ENABLE_CLOUD_SERVICES_COLLAB_SOFTLOCKS;ENABLE_CLOUD_SERVICES_ADS;ENABLE_CLOUD_HUB;ENABLE_CLOUD_PROJECT_ID;ENABLE_CLOUD_SERVICES_USE_WEBREQUEST;ENABLE_CLOUD_SERVICES_UNET;ENABLE_CLOUD_SERVICES_BUILD;ENABLE_CLOUD_LICENSE;ENABLE_EDITOR_HUB;ENABLE_EDITOR_HUB_LICENSE;ENABLE_WEBSOCKET_CLIENT;ENABLE_DIRECTOR_AUDIO;ENABLE_DIRECTOR_TEXTURE;ENABLE_TIMELINE;ENABLE_EDITOR_METRICS;ENABLE_EDITOR_METRICS_CACHING;ENABLE_NATIVE_ARRAY;ENABLE_SPRITE_MASKING;INCLUDE_DYNAMIC_GI;INCLUDE_GI;ENABLE_MONO_BDWGC;PLATFORM_SUPPORTS_MONO;RENDER_SOFTWARE_CURSOR;INCLUDE_PUBNUB;ENABLE_PLAYMODE_TESTS_RUNNER;ENABLE_VIDEO;ENABLE_RMGUI;ENABLE_PACKMAN;ENABLE_CUSTOM_RENDER_TEXTURE;ENABLE_STYLE_SHEETS;ENABLE_LOCALIZATION;PLATFORM_STANDALONE_WIN;PLATFORM_STANDALONE;UNITY_STANDALONE_WIN;UNITY_STANDALONE;ENABLE_SUBSTANCE;ENABLE_RUNTIME_GI;ENABLE_MOVIES;ENABLE_NETWORK;ENABLE_CRUNCH_TEXTURE_COMPRESSION;ENABLE_UNITYWEBREQUEST;ENABLE_CLOUD_SERVICES;ENABLE_CLOUD_SERVICES_ANALYTICS;ENABLE_CLOUD_SERVICES_PURCHASING;ENABLE_CLOUD_SERVICES_CRASH_REPORTING;ENABLE_EVENT_QUEUE;ENABLE_CLUSTERINPUT;ENABLE_VR;ENABLE_AR;ENABLE_WEBSOCKET_HOST;ENABLE_MONO;NET_2_0;ENABLE_PROFILER;DEBUG;TRACE;UNITY_ASSERTIONS;UNITY_EDITOR;UNITY_EDITOR_64;UNITY_EDITOR_WIN;ENABLE_NATIVE_ARRAY_CHECKS;UNITY_TEAM_LICENSE;ENABLE_VSTU</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -37,7 +38,7 @@
     <IntermediateOutputPath>Temp\UnityVS_obj\Release\</IntermediateOutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DefineConstants>TRACE;UNITY_5_3_OR_NEWER;UNITY_5_4_OR_NEWER;UNITY_5_5_OR_NEWER;UNITY_5_6_OR_NEWER;UNITY_2017_1_OR_NEWER;UNITY_2017_2_OR_NEWER;UNITY_2017_3_OR_NEWER;UNITY_2017_3_0;UNITY_2017_3;UNITY_2017;PLATFORM_ARCH_64;UNITY_64;UNITY_ANALYTICS;ENABLE_AUDIO;ENABLE_CACHING;ENABLE_CLOTH;ENABLE_DUCK_TYPING;ENABLE_GENERICS;ENABLE_PVR_GI;ENABLE_MICROPHONE;ENABLE_MULTIPLE_DISPLAYS;ENABLE_PHYSICS;ENABLE_SPRITERENDERER_FLIPPING;ENABLE_SPRITES;ENABLE_GRID;ENABLE_TILEMAP;ENABLE_TERRAIN;ENABLE_RAKNET;ENABLE_DIRECTOR;ENABLE_UNET;ENABLE_LZMA;ENABLE_UNITYEVENTS;ENABLE_WEBCAM;ENABLE_WWW;ENABLE_CLOUD_SERVICES_COLLAB;ENABLE_CLOUD_SERVICES_COLLAB_SOFTLOCKS;ENABLE_CLOUD_SERVICES_ADS;ENABLE_CLOUD_HUB;ENABLE_CLOUD_PROJECT_ID;ENABLE_CLOUD_SERVICES_USE_WEBREQUEST;ENABLE_CLOUD_SERVICES_UNET;ENABLE_CLOUD_SERVICES_BUILD;ENABLE_CLOUD_LICENSE;ENABLE_EDITOR_HUB;ENABLE_EDITOR_HUB_LICENSE;ENABLE_WEBSOCKET_CLIENT;ENABLE_DIRECTOR_AUDIO;ENABLE_DIRECTOR_TEXTURE;ENABLE_TIMELINE;ENABLE_EDITOR_METRICS;ENABLE_EDITOR_METRICS_CACHING;ENABLE_NATIVE_ARRAY;ENABLE_SPRITE_MASKING;INCLUDE_DYNAMIC_GI;INCLUDE_GI;ENABLE_MONO_BDWGC;PLATFORM_SUPPORTS_MONO;RENDER_SOFTWARE_CURSOR;INCLUDE_PUBNUB;ENABLE_PLAYMODE_TESTS_RUNNER;ENABLE_VIDEO;ENABLE_RMGUI;ENABLE_PACKMAN;ENABLE_CUSTOM_RENDER_TEXTURE;ENABLE_STYLE_SHEETS;ENABLE_LOCALIZATION;PLATFORM_STANDALONE_WIN;PLATFORM_STANDALONE;UNITY_STANDALONE_WIN;UNITY_STANDALONE;ENABLE_SUBSTANCE;ENABLE_RUNTIME_GI;ENABLE_MOVIES;ENABLE_NETWORK;ENABLE_CRUNCH_TEXTURE_COMPRESSION;ENABLE_UNITYWEBREQUEST;ENABLE_CLOUD_SERVICES;ENABLE_CLOUD_SERVICES_ANALYTICS;ENABLE_CLOUD_SERVICES_PURCHASING;ENABLE_CLOUD_SERVICES_CRASH_REPORTING;ENABLE_EVENT_QUEUE;ENABLE_CLUSTERINPUT;ENABLE_VR;ENABLE_AR;ENABLE_WEBSOCKET_HOST;ENABLE_MONO;NET_2_0;ENABLE_PROFILER;DEBUG;TRACE;UNITY_ASSERTIONS;UNITY_EDITOR;UNITY_EDITOR_64;UNITY_EDITOR_WIN;ENABLE_NATIVE_ARRAY_CHECKS;UNITY_TEAM_LICENSE;ENABLE_VSTU</DefineConstants>
+    <DefineConstants>TRACE;UNITY_5_3_OR_NEWER;UNITY_5_4_OR_NEWER;UNITY_5_5_OR_NEWER;UNITY_5_6_OR_NEWER;UNITY_2017_1_OR_NEWER;UNITY_2017_2_OR_NEWER;UNITY_2017_3_OR_NEWER;UNITY_2017_3_1;UNITY_2017_3;UNITY_2017;PLATFORM_ARCH_64;UNITY_64;UNITY_ANALYTICS;ENABLE_AUDIO;ENABLE_CACHING;ENABLE_CLOTH;ENABLE_DUCK_TYPING;ENABLE_GENERICS;ENABLE_PVR_GI;ENABLE_MICROPHONE;ENABLE_MULTIPLE_DISPLAYS;ENABLE_PHYSICS;ENABLE_SPRITERENDERER_FLIPPING;ENABLE_SPRITES;ENABLE_GRID;ENABLE_TILEMAP;ENABLE_TERRAIN;ENABLE_RAKNET;ENABLE_DIRECTOR;ENABLE_UNET;ENABLE_LZMA;ENABLE_UNITYEVENTS;ENABLE_WEBCAM;ENABLE_WWW;ENABLE_CLOUD_SERVICES_COLLAB;ENABLE_CLOUD_SERVICES_COLLAB_SOFTLOCKS;ENABLE_CLOUD_SERVICES_ADS;ENABLE_CLOUD_HUB;ENABLE_CLOUD_PROJECT_ID;ENABLE_CLOUD_SERVICES_USE_WEBREQUEST;ENABLE_CLOUD_SERVICES_UNET;ENABLE_CLOUD_SERVICES_BUILD;ENABLE_CLOUD_LICENSE;ENABLE_EDITOR_HUB;ENABLE_EDITOR_HUB_LICENSE;ENABLE_WEBSOCKET_CLIENT;ENABLE_DIRECTOR_AUDIO;ENABLE_DIRECTOR_TEXTURE;ENABLE_TIMELINE;ENABLE_EDITOR_METRICS;ENABLE_EDITOR_METRICS_CACHING;ENABLE_NATIVE_ARRAY;ENABLE_SPRITE_MASKING;INCLUDE_DYNAMIC_GI;INCLUDE_GI;ENABLE_MONO_BDWGC;PLATFORM_SUPPORTS_MONO;RENDER_SOFTWARE_CURSOR;INCLUDE_PUBNUB;ENABLE_PLAYMODE_TESTS_RUNNER;ENABLE_VIDEO;ENABLE_RMGUI;ENABLE_PACKMAN;ENABLE_CUSTOM_RENDER_TEXTURE;ENABLE_STYLE_SHEETS;ENABLE_LOCALIZATION;PLATFORM_STANDALONE_WIN;PLATFORM_STANDALONE;UNITY_STANDALONE_WIN;UNITY_STANDALONE;ENABLE_SUBSTANCE;ENABLE_RUNTIME_GI;ENABLE_MOVIES;ENABLE_NETWORK;ENABLE_CRUNCH_TEXTURE_COMPRESSION;ENABLE_UNITYWEBREQUEST;ENABLE_CLOUD_SERVICES;ENABLE_CLOUD_SERVICES_ANALYTICS;ENABLE_CLOUD_SERVICES_PURCHASING;ENABLE_CLOUD_SERVICES_CRASH_REPORTING;ENABLE_EVENT_QUEUE;ENABLE_CLUSTERINPUT;ENABLE_VR;ENABLE_AR;ENABLE_WEBSOCKET_HOST;ENABLE_MONO;NET_2_0;ENABLE_PROFILER;DEBUG;TRACE;UNITY_ASSERTIONS;UNITY_EDITOR;UNITY_EDITOR_64;UNITY_EDITOR_WIN;ENABLE_NATIVE_ARRAY_CHECKS;UNITY_TEAM_LICENSE;ENABLE_VSTU</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
@@ -256,9 +257,6 @@
     <Reference Include="UnityEditor.Android.Extensions">
       <HintPath>C:/Program Files/Unity/Editor/Data/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll</HintPath>
     </Reference>
-    <Reference Include="UnityEditor.LinuxStandalone.Extensions">
-      <HintPath>C:/Program Files/Unity/Editor/Data/PlaybackEngines/LinuxStandaloneSupport/UnityEditor.LinuxStandalone.Extensions.dll</HintPath>
-    </Reference>
     <Reference Include="UnityEditor.WindowsStandalone.Extensions">
       <HintPath>C:/Program Files/Unity/Editor/Data/PlaybackEngines/windowsstandalonesupport/UnityEditor.WindowsStandalone.Extensions.dll</HintPath>
     </Reference>
@@ -272,25 +270,25 @@
       <HintPath>Assets/Plugins/System.Data.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.Advertisements">
-      <HintPath>C:/Users/richa/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.ads@2.0.3/UnityEngine.Advertisements.dll</HintPath>
+      <HintPath>C:/Users/kiml4/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.ads@2.0.3/UnityEngine.Advertisements.dll</HintPath>
     </Reference>
     <Reference Include="UnityEditor.Advertisements">
-      <HintPath>C:/Users/richa/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.ads@2.0.3/Editor/UnityEditor.Advertisements.dll</HintPath>
+      <HintPath>C:/Users/kiml4/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.ads@2.0.3/Editor/UnityEditor.Advertisements.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.Analytics">
-      <HintPath>C:/Users/richa/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.analytics@2.0.13/UnityEngine.Analytics.dll</HintPath>
+      <HintPath>C:/Users/kiml4/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.analytics@2.0.13/UnityEngine.Analytics.dll</HintPath>
     </Reference>
     <Reference Include="UnityEditor.Analytics">
-      <HintPath>C:/Users/richa/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.analytics@2.0.13/Editor/UnityEditor.Analytics.dll</HintPath>
+      <HintPath>C:/Users/kiml4/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.analytics@2.0.13/Editor/UnityEditor.Analytics.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.Purchasing">
-      <HintPath>C:/Users/richa/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.purchasing@0.0.19/UnityEngine.Purchasing.dll</HintPath>
+      <HintPath>C:/Users/kiml4/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.purchasing@0.0.19/UnityEngine.Purchasing.dll</HintPath>
     </Reference>
     <Reference Include="UnityEditor.Purchasing">
-      <HintPath>C:/Users/richa/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.purchasing@0.0.19/Editor/UnityEditor.Purchasing.dll</HintPath>
+      <HintPath>C:/Users/kiml4/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.purchasing@0.0.19/Editor/UnityEditor.Purchasing.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.StandardEvents">
-      <HintPath>C:/Users/richa/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.standardevents@1.0.10/UnityEngine.StandardEvents.dll</HintPath>
+      <HintPath>C:/Users/kiml4/AppData/LocalLow/Unity/cache/packages/packages.unity.com/com.unity.standardevents@1.0.10/UnityEngine.StandardEvents.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -298,48 +296,65 @@
     <Compile Include="Assets\Src\Controllers\GenericJointFriction.cs" />
     <Compile Include="Assets\Src\Controllers\HealthControler.cs" />
     <Compile Include="Assets\Src\Controllers\HighSpeedProjectile.cs" />
+    <Compile Include="Assets\Src\Controllers\ICameraOrientator.cs" />
     <Compile Include="Assets\Src\Controllers\JointBreakHandler.cs" />
     <Compile Include="Assets\Src\Controllers\JointFriction.cs" />
     <Compile Include="Assets\Src\Controllers\LampAndParticlesEffectController.cs" />
     <Compile Include="Assets\Src\Controllers\MultiBarelTurretController.cs" />
-    <Compile Include="Assets\Src\Controllers\ShipCam.cs" />
     <Compile Include="Assets\Src\Controllers\ShipTester.cs" />
     <Compile Include="Assets\Src\Controllers\SpawnProjectile.cs" />
     <Compile Include="Assets\Src\Controllers\SpawnTurret.cs" />
     <Compile Include="Assets\Src\Controllers\SphereExplosion.cs" />
+    <Compile Include="Assets\Src\Controllers\TimeDialationControler.cs" />
     <Compile Include="Assets\Src\Controllers\WorldControler.cs" />
     <Compile Include="Assets\Src\Database\DatabaseInitialiser.cs" />
-    <Compile Include="Assets\Src\Database\Evolution1v1DatabaseHandler.cs" />
-    <Compile Include="Assets\Src\Database\EvolutionTargetShootingDatabaseHandler.cs" />
+    <Compile Include="Assets\Src\Database\EvolutionBrDatabaseHandler.cs" />
+    <Compile Include="Assets\Src\Database\EvolutionDroneDatabaseHandler.cs" />
     <Compile Include="Assets\Src\Database\GeneralDatabaseHandler.cs" />
     <Compile Include="Assets\Src\Evolution\ArenaRecord.cs" />
+    <Compile Include="Assets\Src\Evolution\BaseEvolutionConfig.cs" />
     <Compile Include="Assets\Src\Evolution\BaseEvolutionController.cs" />
-    <Compile Include="Assets\Src\Evolution\Edit1v1Config.cs" />
-    <Compile Include="Assets\Src\Evolution\EditDroneConfig.cs" />
+    <Compile Include="Assets\Src\Evolution\BaseIndividual.cs" />
+    <Compile Include="Assets\Src\Evolution\BasseGeneration.cs" />
+    <Compile Include="Assets\Src\Evolution\BattleRoyale\EditBrConfig.cs" />
+    <Compile Include="Assets\Src\Evolution\BattleRoyale\EvolutionBrConfig.cs" />
+    <Compile Include="Assets\Src\Evolution\BattleRoyale\EvolutionBrControler.cs" />
+    <Compile Include="Assets\Src\Evolution\BattleRoyale\GenerationBr.cs" />
+    <Compile Include="Assets\Src\Evolution\BattleRoyale\IndividualBr.cs" />
+    <Compile Include="Assets\Src\Evolution\Drone\EditDroneConfig.cs" />
+    <Compile Include="Assets\Src\Evolution\Drone\EvolutionDroneConfig.cs" />
+    <Compile Include="Assets\Src\Evolution\Drone\EvolutionDroneControler.cs" />
+    <Compile Include="Assets\Src\Evolution\Drone\GenerationDrone.cs" />
+    <Compile Include="Assets\Src\Evolution\Drone\IndividualDrone.cs" />
+    <Compile Include="Assets\Src\Evolution\EditBaseConfig.cs" />
     <Compile Include="Assets\Src\Evolution\EditMatchConfig.cs" />
     <Compile Include="Assets\Src\Evolution\EditMutationConfig.cs" />
-    <Compile Include="Assets\Src\Evolution\Evolution1v1Config.cs" />
-    <Compile Include="Assets\Src\Evolution\Evolution1v1Controler.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionArenaControler.cs" />
-    <Compile Include="Assets\Src\Evolution\EvolutionFileManager.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionMatchController.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionMutationWrapper.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionShipConfig.cs" />
-    <Compile Include="Assets\Src\Evolution\EvolutionTargetShootingConfig.cs" />
-    <Compile Include="Assets\Src\Evolution\EvolutionTargetShootingControler.cs" />
-    <Compile Include="Assets\Src\Evolution\Generation.cs" />
-    <Compile Include="Assets\Src\Evolution\Generation1V1.cs" />
-    <Compile Include="Assets\Src\Evolution\GenerationTargetShooting.cs" />
     <Compile Include="Assets\Src\Evolution\GenomeWrapper.cs" />
-    <Compile Include="Assets\Src\Evolution\Individual1v1.cs" />
-    <Compile Include="Assets\Src\Evolution\IndividualTargetShooting.cs" />
     <Compile Include="Assets\Src\Evolution\MatchConfig.cs" />
+    <Compile Include="Assets\Src\Evolution\MatchOutcome.cs" />
     <Compile Include="Assets\Src\Evolution\MatchRecord.cs" />
     <Compile Include="Assets\Src\Evolution\MutationConfig.cs" />
+    <Compile Include="Assets\Src\Evolution\SeciesSummary.cs" />
     <Compile Include="Assets\Src\Evolution\StringMutator.cs" />
+    <Compile Include="Assets\Src\Graph\BaseGraph.cs" />
+    <Compile Include="Assets\Src\Graph\BaseGraphDrawer.cs" />
+    <Compile Include="Assets\Src\Graph\Bounds2D.cs" />
+    <Compile Include="Assets\Src\Graph\GraphLine.cs" />
+    <Compile Include="Assets\Src\Graph\GraphPoint.cs" />
+    <Compile Include="Assets\Src\Graph\GraphUtils.cs" />
+    <Compile Include="Assets\Src\Graph\I2DBounded.cs" />
+    <Compile Include="Assets\Src\Graph\IGraph.cs" />
+    <Compile Include="Assets\Src\Graph\LineGraph.cs" />
+    <Compile Include="Assets\Src\Graph\ScoreGraphDrawer.cs" />
+    <Compile Include="Assets\Src\Graph\SpeciesGraphDrawer.cs" />
+    <Compile Include="Assets\Src\Graph\StackedBarGraph.cs" />
     <Compile Include="Assets\Src\Health\DamagePacket.cs" />
     <Compile Include="Assets\Src\Interfaces\IDeactivatable.cs" />
-    <Compile Include="Assets\Src\Interfaces\IDeactivateableTargetPicker.cs" />
+    <Compile Include="Assets\Src\Interfaces\IDeactivateableTargetKnower.cs" />
     <Compile Include="Assets\Src\Interfaces\IDestinationChooser.cs" />
     <Compile Include="Assets\Src\Interfaces\IDestroyer.cs" />
     <Compile Include="Assets\Src\Interfaces\IDetonator.cs" />
@@ -348,7 +363,6 @@
     <Compile Include="Assets\Src\Interfaces\IGeneticConfigurable.cs" />
     <Compile Include="Assets\Src\Interfaces\IKnowsCurrentTarget.cs" />
     <Compile Include="Assets\Src\Interfaces\IKnowsEnemyTag.cs" />
-    <Compile Include="Assets\Src\Interfaces\IKnowsEnemyTagsAndCurrentTarget.cs" />
     <Compile Include="Assets\Src\Interfaces\IKnowsProjectileSpeed.cs" />
     <Compile Include="Assets\Src\Interfaces\IModuleTypeKnower.cs" />
     <Compile Include="Assets\Src\Interfaces\IPilot.cs" />
@@ -365,13 +379,14 @@
     <Compile Include="Assets\Src\Menus\GenericEvolutionLoadList.cs" />
     <Compile Include="Assets\Src\Menus\MainMenuController.cs" />
     <Compile Include="Assets\Src\Menus\MenuItem.cs" />
+    <Compile Include="Assets\Src\ModuleSystem\GeneticConfigurableMonobehaviour.cs" />
     <Compile Include="Assets\Src\ModuleSystem\ModuleHub.cs" />
     <Compile Include="Assets\Src\ModuleSystem\ModuleList.cs" />
+    <Compile Include="Assets\Src\ModuleSystem\ModuleRecord.cs" />
     <Compile Include="Assets\Src\ModuleSystem\ModuleType.cs" />
     <Compile Include="Assets\Src\ModuleSystem\ModuleTypeKnower.cs" />
     <Compile Include="Assets\Src\ModuleSystem\RigidbodyList.cs" />
     <Compile Include="Assets\Src\ModuleSystem\RocketTypeKnower.cs" />
-    <Compile Include="Assets\Src\ModuleSystem\SelfBuildingShip.cs" />
     <Compile Include="Assets\Src\ModuleSystem\ShipBuilder.cs" />
     <Compile Include="Assets\Src\ModuleSystem\TestCubeChecker.cs" />
     <Compile Include="Assets\Src\ObjectManagement\ColourSetter.cs" />
@@ -379,21 +394,36 @@
     <Compile Include="Assets\Src\ObjectManagement\GroupUnder.cs" />
     <Compile Include="Assets\Src\ObjectManagement\ShrapnelExploder.cs" />
     <Compile Include="Assets\Src\ObjectManagement\TargetRepository.cs" />
+    <Compile Include="Assets\Src\ObjectManagement\TimeDialationDevice.cs" />
     <Compile Include="Assets\Src\ObjectManagement\TransformExtensions.cs" />
     <Compile Include="Assets\Src\ObjectManagement\WithChildrenDestroyer.cs" />
     <Compile Include="Assets\Src\Pilots\BasePilot.cs" />
+    <Compile Include="Assets\Src\Pilots\ManualSpaceshipPilot.cs" />
     <Compile Include="Assets\Src\Pilots\MultiTorquerTorqueAplier.cs" />
     <Compile Include="Assets\Src\Pilots\RocketPilot.cs" />
     <Compile Include="Assets\Src\Pilots\SpaceshipPilot.cs" />
     <Compile Include="Assets\Src\Rocket\RocketController.cs" />
     <Compile Include="Assets\Src\Rocket\RocketRunner.cs" />
+    <Compile Include="Assets\Src\ShipCamera\BaseCameraOrientator.cs" />
+    <Compile Include="Assets\Src\ShipCamera\CyclingCameraOrientator.cs" />
+    <Compile Include="Assets\Src\ShipCamera\Hud.cs" />
+    <Compile Include="Assets\Src\ShipCamera\IdleRotationCameraOrientator.cs" />
+    <Compile Include="Assets\Src\ShipCamera\ManualCameraOrientator.cs" />
+    <Compile Include="Assets\Src\ShipCamera\OverShoulderCameraOrientator.cs" />
+    <Compile Include="Assets\Src\ShipCamera\PriorityCameraOrientator.cs" />
+    <Compile Include="Assets\Src\ShipCamera\ShipCam.cs" />
+    <Compile Include="Assets\Src\ShipCamera\ShipCamTargetValues.cs" />
+    <Compile Include="Assets\Src\ShipCamera\SideViewCameraOrientator.cs" />
+    <Compile Include="Assets\Src\ShipCamera\WeightedCameraOrientator.cs" />
     <Compile Include="Assets\Src\SpaceShip\AverageTargetLocationDestinationChooser.cs" />
     <Compile Include="Assets\Src\SpaceShip\EngineControler.cs" />
     <Compile Include="Assets\Src\SpaceShip\FuelTank.cs" />
+    <Compile Include="Assets\Src\SpaceShip\ManualSpaceShipControler.cs" />
     <Compile Include="Assets\Src\SpaceShip\SpaceShipControler.cs" />
     <Compile Include="Assets\Src\SpaceShip\TorquerController.cs" />
     <Compile Include="Assets\Src\Targeting\AngleTrigger.cs" />
     <Compile Include="Assets\Src\Targeting\ChildTagTargetDetector.cs" />
+    <Compile Include="Assets\Src\Targeting\EnemyTagSource.cs" />
     <Compile Include="Assets\Src\Targeting\ImpactDetonator.cs" />
     <Compile Include="Assets\Src\Targeting\PotentialTarget.cs" />
     <Compile Include="Assets\Src\Targeting\ProximityApproachDetonator.cs" />
@@ -407,11 +437,12 @@
     <Compile Include="Assets\Src\Targeting\TargetingExtensions.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\ApproachingTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\CombinedTargetPicker.cs" />
+    <Compile Include="Assets\Src\Targeting\TargetPickers\GeneticallyConfigurableTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\HasTagTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\InCorrectHemisphereTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\LineOfSightTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\LookingAtTargetPicker.cs" />
-    <Compile Include="Assets\Src\Targeting\TargetPickers\MinimumMassTargetPicker.cs" />
+    <Compile Include="Assets\Src\Targeting\TargetPickers\MassTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\PreviousTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\ProximityTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\ShipTypeTagetPicker.cs" />

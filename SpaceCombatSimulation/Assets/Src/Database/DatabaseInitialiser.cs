@@ -1,35 +1,31 @@
 ﻿using Mono.Data.Sqlite;
 using System;
-using System.Collections.Generic;
-using System.Data;
 using System.IO;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.Database
 {
     public class DatabaseInitialiser
     {
-        private string _connectionString
+        private string ConnectionString
         {
             get
             {
-                var connection = "URI=file:" + _databaseFullPath;
+                var connection = "URI=file:" + DatabaseFullPath + "; foreign keys=true;";
                 //Debug.Log("connection string: " + connection);
                 return connection;
             }
         }
-        public string DatabasePath = "/SpaceCombatSimulationDB.s3db"; //Path to database.
-        private string _databaseFullPath { get { return Application.dataPath + DatabasePath; } }
+        public string DatabasePath = "/Database/SpaceCombatSimulationDB.s3db"; //Path to database.
+        private string DatabaseFullPath { get { return Application.dataPath + DatabasePath; } }
         
         /// <summary>
         /// Creates teh database if it doesn't exist, if it does exist, this does nothing.
         /// </summary>
         /// <param name="creationCommandFilePath"></param>
-        public void EnsureDatabaseExists(string creationCommandFilePath)
+        public void EnsureDatabaseExists(string creationCommandFilePath = EvolutionDatabaseHandler.DEFAULT_CREATE_DB_COMMAND_PATH)
         {
-            if(!File.Exists(_databaseFullPath))
+            if(!File.Exists(DatabaseFullPath))
                 CreateDatabase(creationCommandFilePath);
         }
 
@@ -50,57 +46,47 @@ namespace Assets.Src.Database
         /// </summary>
         public void DropDatabase()
         {
-            if (File.Exists(_databaseFullPath))
+            if (File.Exists(DatabaseFullPath))
             {
                 //Debug.Log("Dropping database " + _databaseFullPath);
-                File.Delete(_databaseFullPath);
+                File.Delete(DatabaseFullPath);
                 //Debug.Log("database deleted");
                 return;
             }
-            Debug.Log("cannot drop database because it does not exist: " + _databaseFullPath);
+            Debug.Log("cannot drop database because it does not exist: " + DatabaseFullPath);
         }
 
         private void CreateDatabase(string creationCommandFilePath)
         {
-            var folder = Path.GetDirectoryName(_databaseFullPath);
+            var folder = Path.GetDirectoryName(DatabaseFullPath);
             if (!Directory.Exists(folder))
             {
                 Debug.Log("Creating dir: " + folder);
                 Directory.CreateDirectory(folder);
             }
 
-            Debug.Log("Creating database '" + _databaseFullPath + "' using command file '" + creationCommandFilePath + "'");
-            SqliteConnection.CreateFile(_databaseFullPath);
-
-
-            IDbCommand dbcmd = null;
-
-            using (var sql_con = new SqliteConnection(_connectionString))
+            Debug.Log("Creating database '" + DatabaseFullPath + "' using command file '" + creationCommandFilePath + "'");
+            SqliteConnection.CreateFile(DatabaseFullPath);
+            
+            using (var sql_con = new SqliteConnection(ConnectionString))
             {
                 try
                 {
                     sql_con.Open();
 
-                    var sql = File.ReadAllText(Application.dataPath + creationCommandFilePath);
+                    var sql = File.ReadAllText(Application.streamingAssetsPath + creationCommandFilePath);
 
                     //Debug.Log("create sql: " + sql);
 
-                    dbcmd = new SqliteCommand(sql, sql_con);
-                    dbcmd.ExecuteNonQuery();
+                    using (var dbcmd = new SqliteCommand(sql, sql_con))
+                    {
+                        dbcmd.ExecuteNonQuery();
+                    }
                 }
                 catch (Exception e)
                 {
                     Debug.LogWarning("Caught exception: " + e + ", message: " + e.Message);
-                    throw e;
-                }
-                finally
-                {
-                    //Debug.Log("Disconnecting");
-                    if (dbcmd != null)
-                        dbcmd.Dispose();
-                    dbcmd = null;
-                    if (sql_con != null)
-                        sql_con.Close();
+                    throw;
                 }
             }
         }

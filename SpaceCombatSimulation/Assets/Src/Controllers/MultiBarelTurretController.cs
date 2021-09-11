@@ -1,16 +1,16 @@
-﻿using Assets.Src.Interfaces;
+﻿using Assets.Src.Controllers;
+using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
+using Assets.Src.ModuleSystem;
 using Assets.Src.ObjectManagement;
-using Assets.Src.Targeting;
-using Assets.Src.Targeting.TargetPickers;
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
-public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDeactivatable, IKnowsProjectileSpeed
+public class MultiBarelTurretController : AbstractDeactivatableController, ITurretController, IKnowsProjectileSpeed
 {
-    private IKnowsEnemyTagsAndCurrentTarget _targetChoosingMechanism;
+    private IKnowsCurrentTarget _targetChoosingMechanism;
+    private IKnowsEnemyTags _enemyTagKnower;
+    private ITarget _thisTarget;
     public Rigidbody Projectile;
     public Rigidbody MuzzleFlash;
     public float LoadTime = 200;
@@ -21,13 +21,10 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
     public Transform EmitterParent;
     private List<Transform> _emitters;
     private int _nextEmitterToShoot = 0;
-    private bool _active = true;
     
     public bool TagChildren = false;
     
     private IFireControl _fireControl;
-
-    private string InactiveTag = "Untagged";
     
     private float _reload = 0;
 
@@ -36,7 +33,7 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
 
     private ColourSetter _colerer;
     
-    float? IKnowsProjectileSpeed.ProjectileSpeed
+    public float? KnownProjectileSpeed
     {
         get
         {
@@ -48,7 +45,10 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
     void Start()
     {
         _colerer = GetComponent<ColourSetter>();
-        _targetChoosingMechanism = GetComponent<IKnowsEnemyTagsAndCurrentTarget>();
+        _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
+        _enemyTagKnower = GetComponent<IKnowsEnemyTags>();
+        _thisTarget = GetComponent<ITarget>();
+
         var emitterCount = EmitterParent.childCount;
 
         _emitters = new List<Transform>();
@@ -71,7 +71,6 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
         }
     }
 
-
     public void Shoot(bool shouldShoot)
     {
         if(_active && ElevationHub != null)
@@ -79,7 +78,7 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
             {
                 var emitter = _emitters[_nextEmitterToShoot];
                 _nextEmitterToShoot++;
-                _nextEmitterToShoot = _nextEmitterToShoot % (_emitters.Count);
+                _nextEmitterToShoot %= (_emitters.Count);
                 var projectile = Instantiate(Projectile, emitter.transform.position, emitter.transform.rotation);
                 projectile.velocity = (projectile.transform.forward * ProjectileSpeed) +
                     ElevationHub.velocity +
@@ -96,25 +95,29 @@ public class MultiBarelTurretController : MonoBehaviour, ITurretController, IDea
 
                 if (SetChildrensEnemy && _targetChoosingMechanism != null)
                 {
-                    projectile.GetComponent<IKnowsEnemyTags>().EnemyTags = _targetChoosingMechanism.EnemyTags;
+                    projectile.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = _enemyTagKnower.KnownEnemyTags;
                 }
                 if (_colerer != null)
                 {
                     //Debug.Log("has renderer");
                     projectile.transform.SetColor(_colerer.Colour);
                 }
-                if (TagChildren) { projectile.tag = tag; }
+                if (TagChildren) {
+                    var target = projectile.GetComponent<ITarget>();
+                    target.SetTeamSource(_thisTarget);
+                }
             }
             else
             {
-                _reload-=Time.deltaTime;
+                _reload -= Time.fixedDeltaTime;
             }
     }
 
-    public void Deactivate()
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        //Debug.Log("Deactivating " + name);
-        _active = false;
-        tag = InactiveTag;
+        ProjectileSpeed = genomeWrapper.GetScaledNumber(ProjectileSpeed);
+        RandomSpeed = genomeWrapper.GetScaledNumber(ProjectileSpeed * 0.25f, RandomSpeed);
+        LoadTime = genomeWrapper.GetScaledNumber(LoadTime * 10, LoadTime, 0.1f);
+        return genomeWrapper;
     }
 }

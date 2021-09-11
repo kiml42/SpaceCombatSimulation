@@ -1,16 +1,14 @@
-﻿using Assets.Src.Interfaces;
-using Assets.Src.ObjectManagement;
-using Assets.Src.Targeting;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
+﻿using Assets.Src.Controllers;
 using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
+using Assets.Src.ObjectManagement;
+using UnityEngine;
 
-public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurable
+public class SpawnProjectile : AbstractDeactivatableController
 {
-    private IKnowsEnemyTagsAndCurrentTarget _targetChoosingMechanism;
+    private IKnowsCurrentTarget _targetChoosingMechanism;
+    private IKnowsEnemyTags _enemyTagKnower;
+    private ITarget _thisTarget;
     public bool TagChildren = false;
     public Rigidbody Projectile;
     public Transform Emitter;
@@ -18,7 +16,6 @@ public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurab
     
     public float RandomStartTime = 30;
     public float MinStartTime = 30;
-    private bool _active = true;
 
     public int BurstCount = 1;
     private int _projectilesThisBurst = 0;
@@ -30,18 +27,18 @@ public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurab
     private float _reload = 0;
     public float LoadTime = 200;
 
-    private string InactiveTag = "Untagged";
     private ColourSetter _colerer;
 
     // Use this for initialization
     void Start()
     {
         _colerer = GetComponent<ColourSetter>();
-        _reload = UnityEngine.Random.value * RandomStartTime + MinStartTime;
-        Emitter = Emitter ?? transform;
-        _targetChoosingMechanism = GetComponent<IKnowsEnemyTagsAndCurrentTarget>();
-
+        _reload = Random.value * RandomStartTime + MinStartTime;
+        Emitter = Emitter != null ? Emitter : transform;
+        _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
+        _enemyTagKnower = GetComponent<IKnowsEnemyTags>();
         _spawner = GetComponent<Rigidbody>();
+        _thisTarget = GetComponent<ITarget>();
     }
 
     // Update is called once per frame
@@ -59,7 +56,7 @@ public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurab
 
                 if (_spawner != null)
                 {
-                    velocity = velocity + _spawner.velocity;
+                    velocity += _spawner.velocity;
                 }
 
                 velocity += RandomSpeed * UnityEngine.Random.insideUnitSphere;
@@ -69,10 +66,14 @@ public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurab
                 var tagKnower = projectile.GetComponent<IKnowsEnemyTags>();
                 if(tagKnower != null && _targetChoosingMechanism != null)
                 {
-                    tagKnower.EnemyTags = _targetChoosingMechanism.EnemyTags;
+                    tagKnower.KnownEnemyTags = _enemyTagKnower.KnownEnemyTags;
                 }
                 
-                if (TagChildren) { projectile.tag = tag; }
+                if (TagChildren)
+                {
+                    var target = projectile.GetComponent<ITarget>();
+                    target.SetTeamSource(_thisTarget);
+                }
 
                 if (_colerer != null)
                 {
@@ -85,7 +86,7 @@ public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurab
                     var typeKnower = projectile.GetComponent<IModuleTypeKnower>();
                     if(typeKnower != null)
                     {
-                        typeKnower.Configure(new GenomeWrapper(RocketGenome, _targetChoosingMechanism.EnemyTags));
+                        typeKnower.Configure(new GenomeWrapper(RocketGenome));
                     }
                 }
 
@@ -97,7 +98,7 @@ public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurab
             }
             else
             {
-                _reload-=Time.deltaTime;
+                _reload-=Time.fixedDeltaTime;
             }
     }
 
@@ -109,24 +110,17 @@ public class SpawnProjectile : MonoBehaviour, IDeactivatable, IGeneticConfigurab
         }
         return true;
     }
-
-    public void Deactivate()
-    {
-        //Debug.Log("Deactivating " + name);
-        _active = false;
-        tag = InactiveTag;
-    }
-
-
-    public bool GetConfigFromGenome = true;
+    
     private string RocketGenome;
 
-    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
-            RocketGenome = genomeWrapper.Genome.Substring(genomeWrapper.GetGeneAsInt() ?? 0);
-        }
+        RocketGenome = genomeWrapper.Genome.Substring(genomeWrapper.GetGeneAsInt() ?? 0);
+        Velocity *= genomeWrapper.GetScaledNumber(1);
+        RandomStartTime = genomeWrapper.GetScaledNumber(RandomStartTime * 2);
+        MinStartTime = genomeWrapper.GetScaledNumber(MinStartTime * 2);
+        RandomSpeed = genomeWrapper.GetScaledNumber(RandomSpeed * 2, RandomSpeed, 0.1f);
+        LoadTime = genomeWrapper.GetScaledNumber(LoadTime * 2, LoadTime, 0.1f);
         return genomeWrapper;
     }
 }

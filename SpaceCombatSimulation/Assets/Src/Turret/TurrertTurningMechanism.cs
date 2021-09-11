@@ -1,11 +1,12 @@
 ﻿using Assets.Src.Evolution;
 using Assets.Src.Interfaces;
+using Assets.Src.ModuleSystem;
 using Assets.Src.Targeting;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TurrertTurningMechanism : MonoBehaviour, IGeneticConfigurable
+public class TurrertTurningMechanism : GeneticConfigurableMonobehaviour
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
     public Transform RestTarget;
@@ -15,8 +16,6 @@ public class TurrertTurningMechanism : MonoBehaviour, IGeneticConfigurable
     private bool _active = true;
 
     private ITurretTurner _turner;
-
-    private string InactiveTag = "Untagged";
 
     private ITurretRunner _runner;
 
@@ -33,7 +32,7 @@ public class TurrertTurningMechanism : MonoBehaviour, IGeneticConfigurable
     {
         _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
         var speedKnower = GetComponent<IKnowsProjectileSpeed>();
-        var projectileSpeed = speedKnower != null ? speedKnower.ProjectileSpeed : null;
+        var projectileSpeed = speedKnower?.KnownProjectileSpeed;
         var rigidbody = GetComponent<Rigidbody>();
 
         _turner = new UnityTurretTurner(rigidbody, TurnTable, ElevationHub, RestTarget, projectileSpeed)
@@ -60,15 +59,6 @@ public class TurrertTurningMechanism : MonoBehaviour, IGeneticConfigurable
     {
         //Debug.Log("Deactivating " + name);
         _active = false;
-        tag = InactiveTag;
-        if(ElevationHub != null)
-        {
-            ElevationHub.tag = InactiveTag;
-        }
-        if (TurnTable != null)
-        {
-            TurnTable.tag = InactiveTag;
-        }
     }
 
     public void DieNow()
@@ -91,21 +81,16 @@ public class TurrertTurningMechanism : MonoBehaviour, IGeneticConfigurable
             jointedObject.transform.parent = null;
         }
     }
-
-    public bool GetConfigFromGenome = true;
-
-    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
-            TurnTableMotorFoce = genomeWrapper.GetScaledNumber(600);
-            TurnTableMotorSpeedMultiplier = genomeWrapper.GetScaledNumber(300);
-            TurnTableMotorSpeedCap = genomeWrapper.GetScaledNumber(100);
-            ElevationHubMotorFoce = genomeWrapper.GetScaledNumber(600);
-            ElevationHubMotorSpeedMultiplier = genomeWrapper.GetScaledNumber(300);
-            ElevationHubMotorSpeedCap = genomeWrapper.GetScaledNumber(100);
-        }
-
+        TurnTableMotorFoce = genomeWrapper.GetScaledNumber(TurnTableMotorFoce);
+        TurnTableMotorSpeedMultiplier = genomeWrapper.GetScaledNumber(TurnTableMotorSpeedMultiplier * 2);
+        TurnTableMotorSpeedCap = genomeWrapper.GetScaledNumber(TurnTableMotorSpeedCap * 2);
+        ElevationHubMotorFoce = genomeWrapper.GetScaledNumber(ElevationHubMotorFoce);
+        ElevationHubMotorSpeedMultiplier = genomeWrapper.GetScaledNumber(ElevationHubMotorSpeedMultiplier * 2);
+        ElevationHubMotorSpeedCap = genomeWrapper.GetScaledNumber(ElevationHubMotorSpeedCap * 2);
+        
         return genomeWrapper;
     }
 }

@@ -1,8 +1,6 @@
-﻿using Assets.Src.Interfaces;
-using System;
+﻿using Assets.Src.Evolution;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
@@ -14,7 +12,7 @@ namespace Assets.Src.Targeting.TargetPickers
     ///     S = S + InRangeBonus
     /// as well.
     /// </summary>
-    class ShipTypeTagetPicker : ITargetPicker
+    class ShipTypeTagetPicker : GeneticallyConfigurableTargetPicker
     {
         /// <summary>
         /// Ship Types to always ignore
@@ -34,17 +32,16 @@ namespace Assets.Src.Targeting.TargetPickers
             ShipType.Corvette,
             ShipType.Turret,
             ShipType.Capital,
-            ShipType.SuperCapital
+            ShipType.SuperCapital,
+            ShipType.Engine
         };
-
-        public float PreferedTypeBonus = 100;
 
         /// <summary>
         /// Remove targets outside the preferred range if there are any in the preferred range
         /// </summary>
         public bool KullInvalidTargets = false;
         
-        public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
+        public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             potentialTargets = potentialTargets
                 .Where(t => IsAllowed(t))                
@@ -60,15 +57,15 @@ namespace Assets.Src.Targeting.TargetPickers
 
         private bool IsAllowed(PotentialTarget t)
         {
-            return !DisalowedTypes.Contains(t.Type);
+            return !DisalowedTypes.Contains(t.Target.Type);
         }
 
         private PotentialTarget AddScoreForPrefered(PotentialTarget target)
         {
-            target.IsValidForCurrentPicker = PreferdTypes.Contains(target.Type);
+            target.IsValidForCurrentPicker = PreferdTypes.Contains(target.Target.Type);
             if(target.IsValidForCurrentPicker)
             {
-                target.Score += PreferedTypeBonus;
+                target.Score += FlatBoost;
             }
             return target;
         }

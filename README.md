@@ -7,9 +7,12 @@ Anyone is welcome to contribute to this project,. I would prefer that any change
 Controls (such as they are):
 Z - make the ship cam follow a different object.
 R - cycle reticle state
+O - Cycle camera mode
+
+use buldname.exe -batchmode -nographics to run a build without using a GUI
 
 Filter and sort individuals in DB:
-    runConfigId = 2 ORDER BY generation DESC, score DESC;
+    runConfigId = 2 ORDER BY generation DESC, score DESC LIMIT 200;
 
 Limerick;
 There once was a man from Toronto

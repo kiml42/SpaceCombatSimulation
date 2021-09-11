@@ -1,8 +1,10 @@
 ﻿using Assets.Src.Evolution;
 using Assets.Src.Interfaces;
+using Assets.Src.ModuleSystem;
 using UnityEngine;
 
-public class JointFriction : MonoBehaviour, IGeneticConfigurable {
+public class JointFriction : GeneticConfigurableMonobehaviour
+{
 
     [Tooltip("mulitiplier for the angular velocity for the torque to apply.")]
     public float Friction = 0.4f;
@@ -43,15 +45,10 @@ public class JointFriction : MonoBehaviour, IGeneticConfigurable {
                 _connectedBody.AddTorque(worldTorque);
         }
     }
-    public bool GetConfigFromGenome = true;
 
-    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
-            Friction = genomeWrapper.GetScaledNumber(3);
-        }
-
+        Friction = genomeWrapper.GetScaledNumber(Friction*2);
         return genomeWrapper;
     }
 }

@@ -1,11 +1,8 @@
-﻿using Assets.Src.Targeting;
+﻿using Assets.Src.Health;
 using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System;
-using Assets.Src.Health;
 
 public class HealthControler : MonoBehaviour
 {
@@ -44,13 +41,15 @@ public class HealthControler : MonoBehaviour
     };
 
     [Tooltip("set this to make this heatlth controller immune to <tag><TeamTagForceFieldSuffix> as well.")]
-    public string TeamTagForceFieldSuffix = "FoceField";
+    public string TeamForceFieldSuffix = "FoceField";
 
     // Use this for initialization
     void Start()
     {
         OriginalHealth = Health;
         _rigidbody = GetComponent<Rigidbody>();
+
+        var target = GetComponent<ITarget>();
 
         var exploder = new ShrapnelExploder(_rigidbody, Shrapnel, DeathExplosion, ShrapnelCount2)
         {
@@ -63,18 +62,17 @@ public class HealthControler : MonoBehaviour
             UntagChildren = false
         };
 
-        if (!string.IsNullOrEmpty(TeamTagForceFieldSuffix))
+        if (!string.IsNullOrEmpty(TeamForceFieldSuffix) && target != null)
         {
-            IgnoredTags.Add(tag + TeamTagForceFieldSuffix);
+            IgnoredTags.Add(target.Team + TeamForceFieldSuffix);
         }
     }
 
-    // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if(SecondsOfInvulnerability > 0)
         {
-            SecondsOfInvulnerability -= Time.deltaTime;
+            SecondsOfInvulnerability -= Time.fixedDeltaTime;
             return;
         }
         if (Health <= 0)

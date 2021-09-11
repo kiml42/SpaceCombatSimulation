@@ -1,13 +1,12 @@
-﻿using Assets.Src.Interfaces;
-using System.Collections;
+﻿using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
 using System.Collections.Generic;
-using UnityEngine;
-using Assets.Src.Evolution;
 using System.Linq;
+using UnityEngine;
 
 namespace Assets.Src.ModuleSystem
 {
-    public class ModuleTypeKnower : MonoBehaviour, IModuleTypeKnower
+    public class ModuleTypeKnower : GeneticConfigurableMonobehaviour, IModuleTypeKnower
     {
         [Tooltip("the list of types that this module can act as.")]
         public List<ModuleType> Types;
@@ -15,7 +14,7 @@ namespace Assets.Src.ModuleSystem
         [Tooltip("the cost for this module when evolving ships.")]
         public float Cost = 100;
 
-        float IModuleTypeKnower.Cost
+        public float ModuleCost
         {
             get
             {
@@ -26,7 +25,7 @@ namespace Assets.Src.ModuleSystem
         [Tooltip("Configurable modules on other objects")]
         public List<IModuleTypeKnower> ExtraConfigurables = new List<IModuleTypeKnower>();
 
-        List<ModuleType> IModuleTypeKnower.Types
+        public List<ModuleType> ModuleTypes
         {
             get
             {
@@ -34,25 +33,31 @@ namespace Assets.Src.ModuleSystem
             }
         }
 
+        public string Name
+        {
+            get
+            {
+                return name;
+            }
+        }
+
 
         //[Tooltip("These components will be configured in order by this behaviour when Configure is called on it.")]
         //public List<IGeneticConfigurable> ComponentsToConfigure = new List<IGeneticConfigurable>();
 
-        public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+        protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
         {
-            var componentsToConfigure = GetComponents<IGeneticConfigurable>().ToList();
+            var componentsToConfigure = GetComponentsInChildren<IGeneticConfigurable>().ToList();
 
             componentsToConfigure.AddRange(ExtraConfigurables.Where(c => c != null).Select(c => c as IGeneticConfigurable));
 
-            componentsToConfigure = componentsToConfigure.Distinct().Where(c => c != null && c != this).ToList();
-
-
-            if (componentsToConfigure.Any())   //if length == 1 then this has only found itself.
+            componentsToConfigure = componentsToConfigure.Distinct().Where(c => c != null && c.GetType() != GetType()).ToList();
+            
+            foreach (var c in componentsToConfigure)
             {
-                foreach (var c in componentsToConfigure)
-                {
-                    genomeWrapper = c.Configure(genomeWrapper);
-                }
+                genomeWrapper.Jump();
+                genomeWrapper = c.Configure(genomeWrapper);
+                genomeWrapper.JumpBack();
             }
 
             return genomeWrapper;

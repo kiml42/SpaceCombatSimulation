@@ -1,11 +1,10 @@
 ﻿using Assets.Src.Evolution;
 using Assets.Src.Interfaces;
+using Assets.Src.ModuleSystem;
 using Assets.Src.Targeting;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class EyeballTurrertTurningMechanism : MonoBehaviour, IGeneticConfigurable
+public class EyeballTurrertTurningMechanism : GeneticConfigurableMonobehaviour
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
     public Transform RestTarget;
@@ -14,8 +13,6 @@ public class EyeballTurrertTurningMechanism : MonoBehaviour, IGeneticConfigurabl
     private bool _active = true;
 
     private ITurretTurner _turner;
-
-    private string InactiveTag = "Untagged";
 
     private ITurretRunner _runner;
 
@@ -28,7 +25,7 @@ public class EyeballTurrertTurningMechanism : MonoBehaviour, IGeneticConfigurabl
     {
         _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
         var speedKnower = GetComponent<IKnowsProjectileSpeed>();
-        var projectileSpeed = speedKnower != null ? speedKnower.ProjectileSpeed : null;
+        var projectileSpeed = speedKnower?.KnownProjectileSpeed;
         var rigidbody = GetComponent<Rigidbody>();
 
         _turner = new EyeballTurretTurner(rigidbody, Ball, RestTarget, projectileSpeed)
@@ -51,11 +48,6 @@ public class EyeballTurrertTurningMechanism : MonoBehaviour, IGeneticConfigurabl
     {
         //Debug.Log("Deactivating " + name);
         _active = false;
-        tag = InactiveTag;
-        if(Ball != null)
-        {
-            Ball.tag = InactiveTag;
-        }
     }
 
     public void DieNow()
@@ -78,15 +70,9 @@ public class EyeballTurrertTurningMechanism : MonoBehaviour, IGeneticConfigurabl
         }
     }
 
-    public bool GetConfigFromGenome = true;
-
-    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
-            MotorForce = genomeWrapper.GetScaledNumber(600);
-        }
-
+        MotorForce = genomeWrapper.GetScaledNumber(MotorForce * 2);
         return genomeWrapper;
     }
 }

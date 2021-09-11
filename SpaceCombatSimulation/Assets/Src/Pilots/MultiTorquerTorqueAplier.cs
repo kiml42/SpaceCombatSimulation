@@ -13,7 +13,7 @@ namespace Assets.Src.Pilots
         private List<Rigidbody> _torquers = new List<Rigidbody>();
         public float TorqueMultiplier;
         public float AngularDragWhenActive;
-        Rigidbody _pilot;
+        private readonly Rigidbody _pilot;
         private Dictionary<Transform, Vector3> _engineTorquers = new Dictionary<Transform, Vector3>();
 
         public MultiTorquerTorqueAplier(Rigidbody pilot, Rigidbody torquer, float torqueMultiplier, float angularDragWhenActive)

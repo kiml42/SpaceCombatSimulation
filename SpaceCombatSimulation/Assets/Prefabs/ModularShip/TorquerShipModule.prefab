@@ -20,7 +20,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4566250146401542}
   - component: {fileID: 33739119022001090}
-  - component: {fileID: 136212592145329114}
   - component: {fileID: 23037869325573456}
   m_Layer: 0
   m_Name: Cylinder (1)
@@ -129,7 +128,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4757502912796866}
   - component: {fileID: 33230604493552972}
-  - component: {fileID: 136774891016323246}
   - component: {fileID: 23960919389227256}
   m_Layer: 0
   m_Name: Cylinder (2)
@@ -147,7 +145,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4572825276768500}
   - component: {fileID: 33711489542314810}
-  - component: {fileID: 136615754322068636}
   - component: {fileID: 23527985864678498}
   m_Layer: 0
   m_Name: Cylinder
@@ -337,7 +334,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1888937440451516}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 106.03796, y: 34.48194, z: 223.45961}
+  m_LocalPosition: {x: 2394.664, y: 2.859796, z: -56.04318}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4754598600454086}
@@ -586,7 +583,7 @@ MonoBehaviour:
   Resilience: 15
   Armour: 0
   Health: 600
-  DeathExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
+  DeathExplosion: {fileID: 54676907005264760, guid: 3e50e2f9c5112064a98f27cc456a46fb,
     type: 2}
   Shrapnel: {fileID: 54986314514754160, guid: c6010b8d72cd4df429d7ce1fdb0d894e, type: 2}
   ShrapnelCount2: 30
@@ -642,45 +639,6 @@ MonoBehaviour:
   DisconectFromParent: 1
   BreakExplosion: {fileID: 54600725210186288, guid: 7d421c2db1a6dc544a16cca33d286523,
     type: 2}
---- !u!136 &136212592145329114
-CapsuleCollider:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1066119621373670}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 0.5
-  m_Height: 2
-  m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!136 &136615754322068636
-CapsuleCollider:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1674966045501528}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 0.5
-  m_Height: 2
-  m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!136 &136774891016323246
-CapsuleCollider:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1607878982000534}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 0.5
-  m_Height: 2
-  m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!138 &138709177004830894
 FixedJoint:
   m_ObjectHideFlags: 1

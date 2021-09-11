@@ -1,8 +1,6 @@
 ﻿using Assets.Src.Interfaces;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.ObjectManagement
@@ -10,13 +8,14 @@ namespace Assets.Src.ObjectManagement
     public class ShrapnelExploder : IExploder
     {
         private Rigidbody _exploder;
-        private int _shrapnelCount;
-        private Rigidbody _shrapnel;
+        private readonly int _shrapnelCount;
+        private readonly Rigidbody _shrapnel;
         public float ShrapnelSpeed = 100;
         public List<string> EnemyTags;
         public bool SetEnemyTagOnShrapnel = false;
         public bool TagShrapnel = false;
         private readonly Rigidbody _explosionEffect;
+        public bool RandomiseShrapnelOrientation = true;
 
         public ShrapnelExploder(Rigidbody explodingRigidbody, Rigidbody shrapnel, Rigidbody explosionEffect, int shrapnelCount = 50)
         {
@@ -26,13 +25,13 @@ namespace Assets.Src.ObjectManagement
             _explosionEffect = explosionEffect;
         }
 
-        public void ExplodeNow()
+        public void ExplodeNow(Vector3? velocityOverride = null)
         {
             //Debug.Log(_exploder + " is exploding");
             if (_explosionEffect != null)
             {
-                var explosion = UnityEngine.Object.Instantiate(_explosionEffect, _exploder.position, _exploder.rotation);
-                explosion.velocity = _exploder.velocity;
+                var explosion = Object.Instantiate(_explosionEffect, _exploder.position, _exploder.rotation);
+                explosion.velocity = velocityOverride ?? _exploder.velocity;
             }
 
             //add shrapnel to be exploded
@@ -40,19 +39,23 @@ namespace Assets.Src.ObjectManagement
             {
                 for (int i = 0; i < _shrapnelCount; i++)
                 {
-                    var location = UnityEngine.Random.insideUnitSphere;
-                    var fragment = UnityEngine.Object.Instantiate(_shrapnel, _exploder.position + location, _exploder.transform.rotation);
-                    fragment.velocity = _exploder.velocity + (ShrapnelSpeed * location);
+                    var location = Random.insideUnitSphere;
+                    var fragment = Object.Instantiate(_shrapnel, _exploder.position + location, _exploder.transform.rotation);
+                    fragment.velocity = (velocityOverride ?? _exploder.velocity) + (ShrapnelSpeed * location);
                     //gameObjects.Add(fragment);
-                
+                    if (RandomiseShrapnelOrientation)
+                    {
+                        fragment.angularVelocity = Random.insideUnitSphere * Random.Range(0, 1000);
+                    }
+
                     if (SetEnemyTagOnShrapnel && EnemyTags != null && EnemyTags.Any())
                     {
-                        fragment.GetComponent<IKnowsEnemyTags>().EnemyTags = EnemyTags;
+                        fragment.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = EnemyTags;
                     }
 
                     if (TagShrapnel)
                     {
-                        fragment.tag = _exploder.tag;
+                        fragment.GetComponent<ITarget>().SetTeamSource(_exploder.GetComponent<ITarget>());
                     }
                 }
             }

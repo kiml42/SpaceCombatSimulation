@@ -18,6 +18,6 @@ namespace Assets.Src.Interfaces
         /// </summary>
         float TurningStartDelay { get; set; }
         
-        void Fly(Target target);
+        void Fly(ITarget target);
     }
 }

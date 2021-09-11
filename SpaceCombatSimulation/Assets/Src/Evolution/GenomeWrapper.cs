@@ -8,14 +8,12 @@ using UnityEngine;
 
 namespace Assets.Src.Evolution
 {
-    public class GenomeWrapper : IKnowsEnemyTags
+    public class GenomeWrapper
     {
-        private int _geneLength;
-        private string _genome;
-        private const int DEFAULT_NAME_LENGTH = 50;
+        private readonly int _geneLength;
+        private readonly string _genome;
         private const int DEFAULT_GENE_LENGTH = 3;
-
-        public int NameLength { get; set; }
+        private const float DEFAULT_BUDGET = 1000;
 
         public string Genome { get
             {
@@ -25,7 +23,8 @@ namespace Assets.Src.Evolution
         public float Cost { get; private set; }
         public float? Budget { get; set; }
         private int _position;
-        private Stack<int> _previousPositions = new Stack<int>();
+        public int Position { get { return _position; } }
+        private readonly Stack<int> _previousPositions = new Stack<int>();
 
         public Dictionary<ModuleType, int> ModuleTypeCounts { get; private set; }
         public int ModulesAdded { get; private set; }
@@ -34,26 +33,54 @@ namespace Assets.Src.Evolution
 
         public bool UseJump = true;
 
-        #region EnemyTags
-        public void AddEnemyTag(string newTag)
+        private readonly ModuleRecord _topModuleRecord;
+
+        public string Species
         {
-            var tags = EnemyTags.ToList();
-            tags.Add(newTag);
-            EnemyTags = tags.Distinct().ToList();
+            get
+            {
+                return _topModuleRecord.ToSimpleString();
+            }
         }
 
-        public List<string> EnemyTags { get; set; }
-        #endregion
+        public string VerboseSpecies
+        {
+            get
+            {
+                return _topModuleRecord.ToSimpleStringWithFullNames();
+            }
+        }
 
-        public GenomeWrapper(string genome, List<string> enemyTags, int geneLength = DEFAULT_GENE_LENGTH)
+        public string Subspecies
+        {
+            get
+            {
+                return _topModuleRecord.ToString();
+            }
+        }
+
+        public string VerboseSubspecies
+        {
+            get
+            {
+                return _topModuleRecord.ToStringWithFullNames();
+            }
+        }
+
+        private readonly Stack<ModuleRecord> _previousModuleRecords = new Stack<ModuleRecord>();
+        private ModuleRecord _currentModuleRecord;
+
+        public string Team { get; set; }
+
+        public GenomeWrapper(string genome, float budget = DEFAULT_BUDGET, int geneLength = DEFAULT_GENE_LENGTH)
         {
             _genome = genome;
             _geneLength = geneLength;
-            NameLength = DEFAULT_NAME_LENGTH;
-            Budget = null; //default the budget to null, can be set later.
+            Budget = budget;
             UsedLocations = new List<Vector3>();
-            EnemyTags = enemyTags;
             ModuleTypeCounts = new Dictionary<ModuleType, int>();
+            _topModuleRecord = new ModuleRecord();
+            _currentModuleRecord = _topModuleRecord;
         }
 
 
@@ -62,31 +89,66 @@ namespace Assets.Src.Evolution
         /// </summary>
         /// <param name="types">List of types that this module should be treated as.</param>
         /// <returns>boolean indicating if any more can be added</returns>
-        public bool ModuleAdded(IModuleTypeKnower knower, Vector3 usedLocation)
+        public bool ConfigureAddedModule(IModuleTypeKnower knower, Vector3 usedLocation, int? moduleNumber)
         {
-            //TODO expand to all types.
-            foreach (var type in knower.Types.Distinct())
+            if (knower != null)
             {
-                if (ModuleTypeCounts.ContainsKey(type))
+                foreach (var type in knower.ModuleTypes.Distinct())
                 {
-                    ModuleTypeCounts[type]++;
-                } else
-                {
-                    ModuleTypeCounts[type] = 1;
+                    if (ModuleTypeCounts.ContainsKey(type))
+                    {
+                        ModuleTypeCounts[type]++;
+                    } else
+                    {
+                        ModuleTypeCounts[type] = 1;
+                    }
                 }
+                ModulesAdded++;
+
+                Cost += knower.ModuleCost;
+
+                UsedLocations.Add(usedLocation);
+
+                var nextMR = new ModuleRecord(knower, moduleNumber);
+                _currentModuleRecord.AddModule(nextMR);
+                _previousModuleRecords.Push(_currentModuleRecord);
+                _currentModuleRecord = nextMR;
+
+                //must be before module is configured, so the cost is updated before more modules are added.
+                Jump();
+                knower.Configure(this);
+                ModuleFinished();
+                JumpBack();
             }
-            ModulesAdded++;
-
-            Cost += knower.Cost;
-
-            UsedLocations.Add(usedLocation);
-
+            else
+            {
+                NoModuleAddedHere();
+            }
             return CanSpawn();
         }
 
-        public string GetName()
+        /// <summary>
+        /// Register that a spawn point was present, but no module was added there.
+        /// </summary>
+        public void NoModuleAddedHere()
         {
-            return _genome.Substring(0, NameLength);
+            _currentModuleRecord.AddModule(null);
+        }
+
+        /// <summary>
+        /// Tells the genomeWrapper that a module has been finished.
+        /// </summary>
+        private void ModuleFinished()
+        {
+            _currentModuleRecord = _previousModuleRecords.Pop();
+        }
+
+        public string Name
+        {
+            get
+            {
+                return _topModuleRecord.ToString();
+            }
         }
 
         public bool CanSpawn()
@@ -173,8 +235,7 @@ namespace Assets.Src.Evolution
                 return null;
             }
 
-            int number;
-            if (int.TryParse(simplified, out number))
+            if (int.TryParse(simplified, out int number))
             {
                 return number;
             }

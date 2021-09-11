@@ -1,11 +1,9 @@
-﻿using Assets.Src.Evolution;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
-namespace Assets.src.Evolution
+namespace Assets.Src.Evolution
 {
     public class StringMutator
     {
@@ -17,7 +15,7 @@ namespace Assets.src.Evolution
         /// Characters that can be used in a genome.
         /// Some are duplicated to make them more likely to come up.
         /// </summary>
-        private string AllowedCharacters = " 0123456789  ";
+        private const string AllowedCharacters = " 0123456789  ";
 
         public MutationConfig Config {
             set
@@ -52,22 +50,19 @@ namespace Assets.src.Evolution
             //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());
             while (generation.Count() < generationSize)
             {
-                string baseGenome;
                 string mutant;
                 if (baseGenomes != null && baseGenomes.Any())
                 {
-                    baseGenome = baseGenomes[i];
-                    mutant = Mutate(baseGenome);
+                    mutant = Mutate(baseGenomes[i]);
                     i++;
                     i = i % baseGenomes.Count;
                 }
                 else
                 {
-                    baseGenome = "Primordial Ooze";
                     mutant = GenerateCompletelyRandomGenome();
                 }
 
-                Debug.Log(mutant + " spawn of " + baseGenome + " is born");
+                //Debug.Log(mutant + " spawn of " + baseGenome + " is born");
                 generation.Add(mutant);
                 generation = generation.Distinct().ToList();
                 //Debug.Log("IndinvidualsCount = " + genration.CountIndividuals());

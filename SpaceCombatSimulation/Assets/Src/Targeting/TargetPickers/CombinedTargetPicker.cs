@@ -1,21 +1,41 @@
 ﻿using Assets.Src.Interfaces;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using UnityEngine;
 
 namespace Assets.Src.Targeting
 {
-    public class CombinedTargetPicker : ITargetPicker
+    public class CombinedTargetPicker : MonoBehaviour, ITargetPicker
     {
-        private IEnumerable<ITargetPicker> _targeters;
-        public CombinedTargetPicker(IEnumerable<ITargetPicker> targeters)
+        private IOrderedEnumerable<ITargetPicker> _targeters;
+
+        void Start()
         {
-            _targeters = targeters;
+            var pickers = GetComponents<ITargetPicker>();
+            _targeters = pickers.Where(p => p.GetType() != GetType()).OrderBy(p => p.TargetPickerPriority);
+            if (!_targeters.Any()) Debug.LogWarning(name + " has no target pickers!");
+        }
+
+        public float TargetPickerPriority
+        {
+            get
+            {
+                return _targeters.First().TargetPickerPriority;
+            }
         }
 
         public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
+            if (_targeters == null || !_targeters.Any())
+            {
+                Debug.Log(name + " has no target pickers! (might just not be initialised yet, attempting reinitialisation...)");
+                Start();
+
+                if (_targeters == null || !_targeters.Any())
+                {
+                    Debug.LogError(name + " still has no target pickers!");
+                }
+            }
             foreach (var targeter in _targeters)
             {
                 potentialTargets = targeter.FilterTargets(potentialTargets);

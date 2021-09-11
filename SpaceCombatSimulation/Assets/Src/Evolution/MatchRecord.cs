@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Assets.src.Evolution
+﻿namespace Assets.Src.Evolution
 {
     public class MatchRecord
     {

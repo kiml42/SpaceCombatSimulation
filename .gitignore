@@ -1,13 +1,14 @@
 # ============================== #
 # SpaceCombatSimulation Specific #
 # ============================== #
-SpaceCombatSimulation/Assets/tmp/
 *.ods#
 SpaceCombatSimulation/tmp/**/*
 !SpaceCombatSimulation/Assets/Plugins/*.dll
 !*.obj
-SpaceCombatSimulation/Assets/tmp/
 Temp/
+SpaceCombatSimulation/Assets/Database/SpaceCombatSimulationDB.s3db
+SpaceCombatSimulation/Assets/Database/SpaceCombatSimulationDB.s3db.meta
+SpaceCombatSimulation/Assets/Database/SpaceCombatSimulationDB.s3db-journal
 
 
 # =============== #
@@ -56,3 +57,4 @@ ehthumbs.db
 SpaceCombatSimulation/Corridor/Library/ShaderCache/
 SpaceCombatSimulation/Corridor/Library/metadata/
 SpaceCombatSimulation/packages/
+*.s3db

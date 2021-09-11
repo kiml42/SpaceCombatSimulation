@@ -1,20 +1,22 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using UnityEngine;
 
 namespace Assets.Src.Targeting
 {
     public class RepositoryTargetDetector : ITargetDetector
     {
-        public IEnumerable<string> EnemyTags = new List<string> { "Enemy" };
+        private readonly IKnowsEnemyTags _enemyTagKnower;
 
-        public IEnumerable<PotentialTarget> DetectTargets()
+        public RepositoryTargetDetector(IKnowsEnemyTags enemyTagKnower)
         {
-            return TargetRepository.ListTargetsForTags(EnemyTags).Select(t => new PotentialTarget(t));
+            _enemyTagKnower = enemyTagKnower;
+        }
+
+        public IEnumerable<PotentialTarget> DetectTargets(bool includeNavigationTarets = false, bool includeShootingTargets = true)
+        {
+            return TargetRepository.ListTargetsOnTeams(_enemyTagKnower.KnownEnemyTags, includeNavigationTarets, includeShootingTargets).Select(t => new PotentialTarget(t));
         }
     }
 }

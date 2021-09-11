@@ -1,42 +1,21 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace Assets.Src.Controllers
 {
-    class WorldControler : MonoBehaviour, IKnowsEnemyTags
+    class WorldControler : MonoBehaviour
     {
         public bool FollowShips = true;
         public string TarGetTag = "Enemy";
-        public bool TagChildren = false;
+        public string TeamForDrones;
         public bool ShouldSpawnDrones = true;
         public bool ShouldSetEnemyTag = false;
-
-        #region EnemyTags
-        void IKnowsEnemyTags.AddEnemyTag(string newTag)
-        {
-            var tags = EnemyTags.ToList();
-            tags.Add(newTag);
-            EnemyTags = tags.Distinct().ToList();
-        }
-
-        List<string> IKnowsEnemyTags.EnemyTags { get
-            {
-                return EnemyTags;
-            }
-            set
-            {
-                EnemyTags = value;
-            }
-        }
-
+        
         public List<string> EnemyTags;
-        #endregion
 
         public Rigidbody Drone;
 
@@ -68,27 +47,27 @@ namespace Assets.Src.Controllers
             //DetectActiveCamera();
         }
 
-        private void DetectActiveCamera()
-        {
-            var cameras = GameObject.FindGameObjectsWithTag("MainCamera")
-                .Where(c => c.GetComponent<Camera>() != null)
-                .Select(c => c.GetComponent<Camera>()).ToList();
+        //private void DetectActiveCamera()
+        //{
+        //    var cameras = GameObject.FindGameObjectsWithTag("MainCamera")
+        //        .Where(c => c.GetComponent<Camera>() != null)
+        //        .Select(c => c.GetComponent<Camera>()).ToList();
 
-            for (int i = 0; i < cameras.Count(); i++)
-            {
-                var cam = cameras[i];
-                if (_activeCamera != null)
-                {
-                    //if we already know the active camera, deactivate all others
-                    cam.enabled = false;
-                }
-                else if (cam.enabled)
-                {
-                    _activeCamera = cam;
-                    _activeCameraIndex = i;
-                }
-            }
-        }
+        //    for (int i = 0; i < cameras.Count(); i++)
+        //    {
+        //        var cam = cameras[i];
+        //        if (_activeCamera != null)
+        //        {
+        //            //if we already know the active camera, deactivate all others
+        //            cam.enabled = false;
+        //        }
+        //        else if (cam.enabled)
+        //        {
+        //            _activeCamera = cam;
+        //            _activeCameraIndex = i;
+        //        }
+        //    }
+        //}
 
         // Update is called once per frame
         void Update()
@@ -206,7 +185,7 @@ namespace Assets.Src.Controllers
                 _activeCameraIndex = _activeCameraIndex < 0 ? cameras.Count - 1 : _activeCameraIndex;
             }
 
-            _activeCameraIndex = _activeCameraIndex % cameras.Count();
+            _activeCameraIndex %= cameras.Count();
 
             _activeCamera = cameras[_activeCameraIndex];
             if (_activeCamera == null)
@@ -227,18 +206,19 @@ namespace Assets.Src.Controllers
             {
                 if (_reload <= 0)
                 {
-                    var bearing = UnityEngine.Random.rotation;
-                    var location = (bearing * new Vector3(0, 0, UnityEngine.Random.value * Radius)) + transform.position;
+                    var bearing = Random.rotation;
+                    var location = (bearing * new Vector3(0, 0, Random.value * Radius)) + transform.position;
                     var drone = Instantiate(Drone, location, transform.rotation);
+                    var droneTarget = drone.GetComponent<ITarget>();
 
-                    var velocity = SpeedScaler * UnityEngine.Random.insideUnitSphere;
+                    var velocity = SpeedScaler * Random.insideUnitSphere;
                     drone.velocity = velocity;
                     
                     if (ShouldSetEnemyTag) {
-                        drone.GetComponent<IKnowsEnemyTags>().EnemyTags = new List<string> { TarGetTag };
+                        drone.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = new List<string> { TarGetTag };
                     }
 
-                    if (TagChildren) { drone.tag = tag; }
+                    if (!string.IsNullOrEmpty(TeamForDrones)) { droneTarget.SetTeam(TeamForDrones); }
 
                     _reload = LoadTime;
                 }

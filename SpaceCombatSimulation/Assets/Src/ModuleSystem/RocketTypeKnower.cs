@@ -1,21 +1,19 @@
-﻿using Assets.Src.Interfaces;
-using System;
+﻿using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Assets.Src.Evolution;
 using UnityEngine;
 
 namespace Assets.Src.ModuleSystem
 {
-    public class RocketTypeKnower : MonoBehaviour, IModuleTypeKnower
+    public class RocketTypeKnower : GeneticConfigurableMonobehaviour, IModuleTypeKnower
     {
         private static readonly List<ModuleType> _types = new List<ModuleType>
         {
             ModuleType.Projectile
         };
 
-        public List<ModuleType> Types
+        public List<ModuleType> ModuleTypes
         {
             get
             {
@@ -31,7 +29,9 @@ namespace Assets.Src.ModuleSystem
         public FuelTank FuelTank;
         public List<EngineControler> Engines;
 
-        float IModuleTypeKnower.Cost
+        //public List<IGeneticConfigurable> GeneticConfigurables;
+
+        public float ModuleCost
         {
             get
             {
@@ -39,16 +39,22 @@ namespace Assets.Src.ModuleSystem
             }
         }
 
-        public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+        public string Name
         {
-            foreach (var engine in Engines)
+            get
             {
-                genomeWrapper =  engine.Configure(genomeWrapper);
+                return name;
             }
+        }
 
-            genomeWrapper = TargetChoosingMechanism.Configure(genomeWrapper);
-            genomeWrapper = RocketController.Configure(genomeWrapper);
-            genomeWrapper = FuelTank.Configure(genomeWrapper);
+        protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
+        {
+            var configurables = GetComponentsInChildren<IGeneticConfigurable>().Where(c => c.GetType() != GetType());
+
+            foreach (var configurable in configurables)
+            {
+                genomeWrapper =  configurable.Configure(genomeWrapper);
+            }
 
             return genomeWrapper;
         }

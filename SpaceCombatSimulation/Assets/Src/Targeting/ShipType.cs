@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Assets.Src.Targeting
+﻿namespace Assets.Src.Targeting
 {
     public enum ShipType
     {
@@ -15,6 +10,7 @@ namespace Assets.Src.Targeting
         Turret = 5,
         Frigate = 6,
         Capital = 7,
-        SuperCapital = 8
+        SuperCapital = 8,
+        Engine = 9
     }
 }

@@ -1,11 +1,9 @@
 ﻿using Assets.Src.Evolution;
-using Assets.Src.Interfaces;
+using Assets.Src.ModuleSystem;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class FuelTank : MonoBehaviour, IGeneticConfigurable
+public class FuelTank : GeneticConfigurableMonobehaviour
 {
     public float Fuel;
 
@@ -54,19 +52,10 @@ public class FuelTank : MonoBehaviour, IGeneticConfigurable
     {
         _rigidbody.mass = _originalMass + Fuel * FuelDensity;
     }
-
-    public bool GetConfigFromGenome = false;
-
-    public float MaxFuel = 180;
-    public float MinFuel = 0;
-
-    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
-            Fuel = genomeWrapper.GetScaledNumber(MaxFuel, MinFuel);
-        }
-
+        Fuel = genomeWrapper.GetScaledNumber(Fuel, 0, 0.9f);
         return genomeWrapper;
     }
 }

@@ -1,8 +1,5 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
-using Assets.Src.Targeting;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class RayTrigger : MonoBehaviour, IFireControl
@@ -19,25 +16,31 @@ public class RayTrigger : MonoBehaviour, IFireControl
     // Use this for initialization
     void Start()
     {
-        TargetChoosingMechanism = TargetChoosingMechanism ?? GetComponent<TargetChoosingMechanism>();
+        if(TargetChoosingMechanism == null)
+        {
+            TargetChoosingMechanism = GetComponent<TargetChoosingMechanism>();
+        }
     }
 
-    public bool ShouldShoot(Target target)
+    public bool ShouldShoot(ITarget target)
     {
         if (AimingObject.IsValid())
         {
-            RaycastHit hit;
             var ray = new Ray(AimingObject.position + (AimingObject.forward * MinDistance), AimingObject.forward);
-            if (Physics.Raycast(ray, out hit, MaxDistance, -1, QueryTriggerInteraction.Ignore))
+            if (Physics.Raycast(ray, out RaycastHit hit, MaxDistance, -1, QueryTriggerInteraction.Ignore))
             {
                 //is a hit
-                if (ShootAnyEnemy)
+                if (ShootAnyEnemy && TargetChoosingMechanism != null && TargetChoosingMechanism.EnemyTagKnower != null)
                 {
-                    var tags = TargetChoosingMechanism.EnemyTags;
-                    return tags.Contains(hit.transform.tag);
+                    return TargetChoosingMechanism
+                        .EnemyTagKnower
+                        .KnownEnemyTags
+                        .Contains(hit.transform.GetComponent<ITarget>()?.Team);
                 }
-
-                return hit.transform == target.Transform;
+                if(target != null)
+                {
+                    return hit.transform == target.Transform;
+                }
             }
         } else
         {

@@ -1,35 +1,26 @@
-﻿using Assets.Src.Interfaces;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
 {
-    class ApproachingTargetPicker : ITargetPicker
+    public class ApproachingTargetPicker : GeneticallyConfigurableTargetPicker
     {
-        private Rigidbody _sourceObject;
-        private readonly float _weighting;
-
-        public ApproachingTargetPicker(Rigidbody sourceObject, float weighting = 1)
-        {
-            _sourceObject = sourceObject;
-            _weighting = weighting;
-        }
-
-        public IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
+        public Rigidbody SourceObject;
+        
+        public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
             return potentialTargets.Select(t => AddScoreForDifference(t));
         }
 
         private PotentialTarget AddScoreForDifference(PotentialTarget target)
         {
-            Vector3 targetVelocity = target.Rigidbody == null ? Vector3.zero : target.Rigidbody.velocity;
+            var targetVelocity = target.Target.Rigidbody == null ? Vector3.zero : target.Target.Rigidbody.velocity;
 
-            var relativeVelocity = _sourceObject.velocity - targetVelocity;
+            var relativeVelocity = SourceObject.velocity - targetVelocity;
 
-            var reletiveLocation = target.Transform.position - _sourceObject.position;
+            var reletiveLocation = target.Target.Transform.position - SourceObject.position;
 
             var approachAngle = Vector3.Angle(relativeVelocity, reletiveLocation);
 
@@ -37,7 +28,7 @@ namespace Assets.Src.Targeting.TargetPickers
 
             angleComponent = (float)Math.Pow(angleComponent, 3); //decrease influence near 90degrees
 
-            var score = angleComponent * relativeVelocity.magnitude * _weighting;
+            var score = angleComponent * relativeVelocity.magnitude * Multiplier;
 
             target.Score += score;
 

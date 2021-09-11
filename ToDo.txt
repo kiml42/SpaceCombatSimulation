@@ -1,19 +1,78 @@
 Bugs:
     Priority:
+        Autotime doesn't work with batchmode.
+        Drones extra modules don't get their team tags set.
+        Graphs don't show current generation
+        Zoom causes errors in over-shoulder mode.
+        Read and resave unaltered species names - they are all getting nulled.
+        TargetChoosingMechanisms of root ship hubs are always configured starting at index 0.
         DB doesn't work in built project.
+        Can't read locationRandomisationRadiai if they could be parsed as a number
         ElevationHubs on some drones are disappearing.
         "Can't remove Rigidbody because HingeJoint depends on it"
         rocket engines carry on regardless if the rocket has no target.
         Duplicate match controler in drone evolution
     Graphical - Beams don't turn off when the turret dies. - haven't seen this one in a while.
+        Torpedoes aren't picking up paren't's colour.
     Rocket engine plumes start on
     Accounting for speed fails for spinning targets.
     Leting the DB default locationRandomisationRadiai makes it unreadable.
     Severed components remain targetable. - not sure if this is actually a problem.
+    Prevent turrets locking by trying to go round the back of the turret
+        Get current turn table forwards vector and vector to Target in rest target space
+            If they are on different sides of the rest target, turn towards the rest target (with the speed set for the actual angle to turn for the location of the target)
     
 
 TODO:
     In Progress:
+        Evolution:
+            Use a generated Id for individuals in the individuals table instead of the genome.
+                This should go for everything referring to a genome at the moment (previous combatants, lists in controller etc.)
+        TagsOverhaul:
+            Consider moving away from unity tags for target selection, the repository should be enough.
+        Race evolution
+            Include new settings in editBrConfig.
+        Player ship
+            pick target by clicking on it
+            cycle ships with key press
+            Switch modes with tab
+                Flight mode:
+                    KSP(RCS) controls for ship orientation/location - done
+                        Enable roll controller
+                    Turrets pick their own targets
+                Cam relative flight mode:
+                    WASD shift and control tells ship to turn and move in a direction reletive to the camera.
+                    Needs to set camera modes to use global up.
+                Turret mode
+                    Flight left on automatic
+                    show reticle for aiming
+                    cast ray from camera through reticle
+                    turrets are given the target hit by the ray as very high priority (probably lower bonus than in hemisphere so that the ones that can't aim don't try)
+                    turrets fire on click
+            Add a target picker for NPC ships that boosts the score for player ships
+
+
+    Priority:
+        Angle Spawning:
+            Set total angle to use for spawning ships.
+            Ships spawn in a ring around the centre such that the n+1th ship would be at this angle.
+        Non-navigable targets
+            Make it possible to register as a target that can be shot at, but ships won't consider it for navigation (e.g torpedoes).
+        Merge evolution modes
+            Set multipliers for kills, drones and race scores
+            Option to not make ships each other's enemy
+            Choose angle between ships around the middle, so ships can start next to each other.
+        Camera
+            Rigidbody for shipcam, use forces to move to desired location
+                "Friction" with "referenceVelocity" given by the orientator.
+            Manual orientator
+                Scroll to zoom
+            Click to chose followed and watched target.
+            Move camera relative to parent (localRotation)
+            Make camera location target and orientation target nullable so that they don't have t be specified. (does no rotation/moving if null)
+        Parent target picker 
+            adds bonus to the pilot's target
+            use GetComponentInParent
         Menus
             keyboard navigation
             Scrollable lists
@@ -21,14 +80,23 @@ TODO:
             Proper inputs for numbers and bools
         Eyeball turret
             Account for parent angularV
-    Priority:
+        Analysis
+            Improve graphs
+                Add graph for number of each type of module present in a generation.
+        Async
+        Use whole mass of object
+            Consider the mass of all connected objects for mass target picker
+        Have ship cam look at the center of mass, not the root of the object.
+        Find an easy way to delete individuals.
+        Better defaults for evolution configs in the menus.
+        Master targeting controller on spaceships with which other targeters can register to have a list of everything being targeted by that ship.
+            this list could be used ba a targeter to apply an extra score for each time a target is in that list - either promoting or avoiding all guns targeting the same thing.
         Torpedoes detonate at closest approach isf out of fuel.
         Lightsabers!
         score -= genome.Cost (final cost)
         score -= genome.Length (for use with variable length genomes)
         investigate use of entity framework.
         Randomise target choosing mechanism periods so they don't come up at the same time.
-        Some tool to show graphs of genomes over time.
         Cardboard support
         Test on phone
         Add to Play store?
@@ -50,12 +118,26 @@ TODO:
         limited power
             Hubs have batteries to store energy
             Hubs have generators to recharge batteries.
+        Gimballed engines
+            Use basic turret turning setup - will need to be given a method that takes a pointing vector instead of a Target
+        Modular turrets
+            Turret body can be eyeball, normal or just fixed
+            business ends will be different sorts of firing mechanisms.
+            Turret turning mechanism looks for an orientation source in itself or its children.
+        
+    
+    Graphs:
+        Option to export a CSV of a graph.
+        Graph of total counts of modules
+        Fix line alignment
 
-
+    Weighted camera orientator using poll targets, ignores rotation targets (must be calculated with look rotations)
+        Implemented - works rather badly, different vectors would need different weights to make it work right.
+        Might be nice to have user prioritisation in this too.
+    TractorbeamTurret
+    Add a small cheap engine module - meant for manuvring.
     Avoid GetComponent and sendMessage in update methods.
     Limit throttle change speeds.
-    Velocity override option for exploder - to prevent the flyaway explosions in very high speed collisions.
-        Possibly go by the average momentum of the colliding bodies.
     option for spaceships that don't break up   
         Turrets can be destroyed, but otherwise the whole thing has one lot of health - probably using pass damage up.
     allow components in the same cubic volume if they wouldn't intersect.
@@ -67,6 +149,7 @@ TODO:
     FuelTank option to balance fuel with parent.
     Add more max and min settings for genetic configurables, as is done in the fuel tank. Use this for things like projectile speed.
     Track what parts of the genome get used for assembly and config.
+    HUD merges reticles for related objects instead of only showing the parent reticle.
 
     Repulsive shield- repels objects in trigger
 
@@ -76,8 +159,6 @@ TODO:
         only watch torpedoes instead of other ships when they are close.
         Continue tracking a dead object a while to see it explode and any subsequent effects.
 
-    Camera controller should allow panning also - moot for ship cam
-    Camera controller to handle zoom - active when camera is active - moot for shipcam
     Make mini type 2 actually manage to hit torpedoes.
 
     From Endarren:

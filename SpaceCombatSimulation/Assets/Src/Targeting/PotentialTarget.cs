@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using Assets.Src.Interfaces;
 using UnityEngine;
 
 namespace Assets.Src.Targeting
@@ -9,22 +6,26 @@ namespace Assets.Src.Targeting
     /// <summary>
     /// Class for keeping a score for a potential target
     /// </summary>
-    public class PotentialTarget : Target
+    public class PotentialTarget
     {
         public float Score { get; set; }
         public bool IsValidForCurrentPicker { get; set; }
-                
-        public PotentialTarget(Rigidbody target) : base (target)
+
+        public ITarget Target { get; private set; }
+
+        public PotentialTarget(Rigidbody target)
         {
+            Target = target.GetComponent<ITarget>();
         }
 
-        public PotentialTarget(Transform target) : base(target)
+        public PotentialTarget(Transform target)
         {
+            Target = target.GetComponent<ITarget>();
         }
 
-        public PotentialTarget(Target target) : base(target)
+        public PotentialTarget(ITarget target)
         {
-
+            Target = target;
         }
     }
 }

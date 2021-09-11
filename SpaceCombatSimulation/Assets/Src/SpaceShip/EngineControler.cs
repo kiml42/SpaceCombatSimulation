@@ -1,29 +1,36 @@
-﻿using Assets.Src.Evolution;
-using Assets.Src.Interfaces;
+﻿using Assets.Src.Controllers;
+using Assets.Src.Evolution;
 using Assets.Src.ObjectManagement;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 //TODO neaten up fields and methods.
-public class EngineControler : MonoBehaviour, IGeneticConfigurable
+public class EngineControler : AbstractDeactivatableController
 {
-    /// <summary>
-    /// The force the engine applys at this transform's position in this transfornm's -up direction
-    /// </summary>
-    public float EngineForce2;
-
     public Transform Pilot;
     public FuelTank FuelTank;
     public Rigidbody ForceApplier;
     public ParticleSystem Plume;
 
-    [Tooltip("angle error at which the engine starts to turn on. \n" + 
-        "Its throttle will be 0 at this angle, and go up towards 1 as the angle decreases to 0. \n" +
+    /// <summary>
+    /// The force the engine applies at this transform's position in this transfornm's -up direction
+    /// </summary>
+    [Tooltip("The force the engine applies at this transform's position in this transfornm's -up direction")]
+    public float EngineForce2;
+    
+    [Tooltip("angle error at which the engine starts to turn on. \n" +
+        "Its throttle will be 0 at this angle, and go up towards 1 as the angle decreases to FullThrottleTranslateFireAngle. \n" +
         "0 will disable this engine for translation")]
-    public float TranslateFireAngle = 45;
-    public float TorqueFireAngle = 90;
+    public float TranslateFireAngle = 90;
+
+    [Tooltip("Engine will apply full throttle for translation if the angle error is less than this.")]
+    public float FullThrottleTranslateFireAngle = 45;
+
+    [Tooltip("Will be used for torque if the angle between this engine's torque vector and the desired torque vector is less than this.")]
+    public float TorqueFireAngle = 45;
+
+    [Tooltip("throttle for torquing will be set to angle to turn / TorquerFullThrottleAngle capped at 1.")]
+    public float TorquerFullThrottleAngle = 10;
 
     public bool UseAsTorquer = true;
     public bool UseAsTranslator = true;
@@ -59,7 +66,7 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
     }
     private Vector3? _secondaryTranslateVector;
 
-    //public bool DebugMode;
+    public bool DebugMode;
     //public Vector3 TV1;
     //public Vector3 TV2;
 
@@ -81,15 +88,7 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
     /// Calculated if not set (default)
     /// </summary>
     public Vector3? TorqueVector = null;
-
-    /// <summary>
-    /// throttle for torquing will be set to angle to turn / TorquerFullThrottleAngle capped at 1.
-    /// </summary>
-    public float TorquerFullThrottleAngle = 10;
-
-    private bool _active = true;
-    private string InactiveTag = "Untagged";
-
+    
     public float _fullTrhrottlePlumeRate;
 
     // Use this for initialization
@@ -99,16 +98,16 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
             _fullTrhrottlePlumeRate = Plume.emission.rateOverTime.constant;
         }
 
-        Pilot = FindOtherComponents(transform);
+        FindOtherComponents(transform);
         
         if(Pilot != transform)
         {
             NotifyPilot();
         }
-        if (FuelTank == null)
-        {
-            Debug.LogWarning(transform.name + " found no fuel tank - INFINITE FUEL!");
-        }
+        //if (FuelTank == null)
+        //{
+        //    Debug.Log(transform.name + " found no fuel tank - INFINITE FUEL!");
+        //}
         if(ForceApplier == null)
         {
             Debug.LogError("Engine found no rigidbody to apply forces to");
@@ -126,37 +125,50 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
         //    TV1 = PrimaryTranslateVector ?? Vector3.zero;
         //}
 
-        //Debug.Log(transform + ":");
+        if (DebugMode) Debug.Log($"{name} on {transform.parent.name}. IsActive: {_active}, HasFuel: {HasFuel()}, UseAsTranslator: {UseAsTranslator}, UseAsTorquer: {UseAsTorquer}");
         if (_active && HasFuel())
         {
             float throttle = 0;
 
             if (UseAsTranslator)
             {
-                throttle = TranslateThrotleSetting();
+                throttle = TranslateThrottleSetting();
             }
 
-            if (UseAsTorquer && throttle < 1 && ApplysCorrectTorque())
+            if (DebugMode)
             {
-                var angle = Vector3.Angle(Pilot.forward, OrientationVector.Value);
-                float additionalThrottle;
-                if(TorquerFullThrottleAngle != 0)
-                {
-                    additionalThrottle = angle / TorquerFullThrottleAngle;
-                }
-                else
-                {
-                    Debug.LogWarning("avoided div0 error");
-                    additionalThrottle = 0;
-                }
-                throttle = Math.Min(throttle + additionalThrottle, 1);
+                Debug.Log($"{name} on {transform.parent.name} translate throttle {throttle}");
             }
 
+            if (UseAsTorquer)
+            {
+                float additionalThrottle = RotateThrottleSetting();
+
+                if (DebugMode)
+                {
+                    Debug.Log($"{name} on {transform.parent.name} torque throttle {additionalThrottle}");
+                }
+
+                throttle += additionalThrottle;  //add the additional throttle.
+            }
+
+            if (DebugMode)
+            {
+                Debug.Log($"{name} on {transform.parent.name} net throttle {throttle}");
+            }
+
+            throttle = Math.Min(1, throttle);  //cut the throttle whole thing down to the proper range.
+            
             if(throttle > 0)
             {
                 throttle = AdjustThrottleForFuel(throttle);
+                var force = -transform.up * EngineForce2 * throttle * Time.fixedDeltaTime;
+                if (DebugMode)
+                {
+                    Debug.Log($"{name} on {transform.parent.name} applying force {force}");
+                }
 
-                ForceApplier.AddForceAtPosition(-transform.up * EngineForce2 * throttle * Time.deltaTime, transform.position, ForceMode.Force);
+                ForceApplier.AddForceAtPosition(force, transform.position, ForceMode.Force);
                 //ForceApplier.AddRelativeForce(EngineForce * throttle);
                 SetPlumeState(throttle);
                 return;
@@ -179,7 +191,8 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
         float actualThrottle;
         if (FuelTank != null)
         {
-            var singleFrameConsumption = Math.Max(FullThrottleFuelConsumption * Time.deltaTime, 0.0001f);
+            //TODO check why this is capped.
+            var singleFrameConsumption = Math.Max(FullThrottleFuelConsumption * Time.fixedDeltaTime, 0.0001f);
             var desiredFuel = throttle * singleFrameConsumption;
             var fuel = FuelTank.DrainFuel(desiredFuel);
             actualThrottle = fuel / singleFrameConsumption;
@@ -209,31 +222,25 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
         }
     }
 
-    public void Deactivate()
+    public override void Deactivate()
     {
-        //Debug.Log("Deactivating " + name);
-        _active = false;
+        base.Deactivate();
         SetPlumeState(0);
-        tag = InactiveTag;
     }
+    
+    private const float MaxShootAngle = 180;
 
-    public bool GetConfigFromGenome = true;
-
-    private float MaxShootAngle = 180;
-    private float DefaultShootAngleProportion = 0.5f;
-
-    public GenomeWrapper Configure(GenomeWrapper genomeWrapper)
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        if (GetConfigFromGenome)
-        {
-            TranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
-            TorqueFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
-        }
+        TranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle);
+        TorqueFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle);
+        FullThrottleTranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle);
+        EngineForce2 = genomeWrapper.GetScaledNumber(EngineForce2);
 
         return genomeWrapper;
     }
 
-    private bool ApplysCorrectTorque()
+    private int TorqueThrustDirectionMultiplier()
     {
         if (Pilot != null && Pilot.IsValid() && OrientationVector.HasValue && OrientationVector.Value.magnitude > 0 && TorqueVector.HasValue && TorqueVector.Value.magnitude > 0.5)
         {
@@ -245,22 +252,54 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
 
             //Debug.Log("torquer to vector angle: " + angle);
             //Debug.Log(_torqueVector + " - " + FlightVector.Value);
-            return angle < TorqueFireAngle;
+            if(angle < TorqueFireAngle)
+            {
+                return 1;
+            }
+            if(angle > 180 - TorqueFireAngle)
+            {
+                return -1;
+            }
         }
         //Debug.Log("vectors not set");
-        return false;
+        return 0;
     }
 
-    private float TranslateThrotleSetting()
+    /// <summary>
+    /// Gets the throttle setting appropriate for this engine to apply torqu towards the desired pilot orientation.
+    /// </summary>
+    /// <returns></returns>
+    private float RotateThrottleSetting()
+    {
+        var thrustDirectionMultiplier = TorqueThrustDirectionMultiplier();
+        if (TorquerFullThrottleAngle != 0 && thrustDirectionMultiplier != 0)
+        {
+            var pilotorientationErrorAngle = Vector3.Angle(Pilot.forward, OrientationVector.Value);
+
+            float additionalThrottle = thrustDirectionMultiplier * (pilotorientationErrorAngle / TorquerFullThrottleAngle);
+
+            return Clamp(additionalThrottle, -1, 1);
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// Returns the unclamped translate throttle calculated from the angle between this engine's line of action and the desired translate vector.
+    /// If this is < 0 that implies that this would push away from the intended translate vector, so any additional torquer throttle should be reduced.
+    /// If this is > 1 the angle is so close to correct that the torquer angle has to be a strong negative to counter this.
+    /// </summary>
+    /// <returns></returns>
+    private float TranslateThrottleSetting()
     {
         if(TranslateFireAngle > 0 && VectorIsUseful(PrimaryTranslateVector))
         {
-            float throttle;
+            float throttle = 0;
             //the enemy's gate is down
             var primaryAngleError = Vector3.Angle(-transform.up, PrimaryTranslateVector.Value);
-            //Debug.Log("fire angle = " + angle);
+            if(DebugMode)
+                Debug.Log("fire angle = " + primaryAngleError);
 
-            if(SecondaryTranslateVector != PrimaryTranslateVector && VectorIsUseful(SecondaryTranslateVector))
+            if (SecondaryTranslateVector != PrimaryTranslateVector && VectorIsUseful(SecondaryTranslateVector))
             {
                 var secondaryAngle = Vector3.Angle(-transform.up, SecondaryTranslateVector.Value);
                 var pToSAngle = Vector3.Angle(PrimaryTranslateVector.Value, SecondaryTranslateVector.Value);
@@ -270,51 +309,68 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
                 primaryAngleError = (angleSum - pToSAngle)/2;   //set the primaryAngleError to the distance from being on the ark(ish)
                 //the maths here isn't quite right, but it'll probably do, it's qualatatively correct. (I hope)
             }
-            throttle = Math.Max(0, 1 - (primaryAngleError / TranslateFireAngle));
-           
-            //Debug.Log("TranslateThrotleSetting=" + throttle);
-            return throttle;
+            if(primaryAngleError < TranslateFireAngle)
+            {
+                throttle = 1 - (primaryAngleError - FullThrottleTranslateFireAngle / TranslateFireAngle - FullThrottleTranslateFireAngle);
+            }
+
+            if(primaryAngleError > 180 - FullThrottleTranslateFireAngle)
+            {
+                throttle = -1;
+            }
+
+            if (DebugMode)
+                Debug.Log("TranslateThrotleSetting=" + throttle);
+            return Clamp(throttle, -1, 1);
         }
-        //Debug.Log("No FlightVector set Defaulting To False");
+
+        if (DebugMode)
+            Debug.Log("Thrust vector is not currently useful. ");
         return 0;
     }
 
-    private Transform FindOtherComponents(Transform transform)
+    private void FindOtherComponents(Transform transform)
     {
+        //TODO replace this with getComponentInParent() method if possible.
         if(Pilot != null && FuelTank != null && ForceApplier != null)
         {
             //everyhting's set already, so stop looking.
-            return Pilot;
+            return;
         }
-        if (FuelTank == null)
+        if(transform != null)
         {
-            //first object found with a fuel tank
-            FuelTank = transform.GetComponent<FuelTank>();
+            if (FuelTank == null)
+            {
+                //first object found with a fuel tank
+                FuelTank = transform.GetComponent<FuelTank>();
+            }
+            if(ForceApplier == null)
+            {
+                //firstComponent with a rigidbody
+                ForceApplier = transform.GetComponent<Rigidbody>();
+            }
+            var parent = transform.parent;
+            if (parent == null && Pilot == null)
+            {
+                //pilot is highest in hierarchy
+                Pilot = transform;
+            }
+            if(parent != null) FindOtherComponents(parent);
         }
-        if(ForceApplier == null)
-        {
-            //firstComponent with a rigidbody
-            ForceApplier = transform.GetComponent<Rigidbody>();
-        }
-        var parent = transform.parent;
-        if (parent == null && Pilot == null)
-        {
-            //pilot is highest in hierarchy
-            Pilot = transform;
-            return transform;
-        }
-        return FindOtherComponents(parent);
     }
 
     private void NotifyPilot()
     {
-        //Debug.Log("Registering engine with " + parent);
-        Pilot.SendMessage("RegisterEngine", this, SendMessageOptions.DontRequireReceiver);
+        if(Pilot != null)
+        {
+            //Debug.Log("Registering engine with " + parent);
+            Pilot.SendMessage("RegisterEngine", this, SendMessageOptions.DontRequireReceiver);
+        }
     }
 
     private Vector3? CalculateEngineTorqueVector()
     {
-        if (!TorqueVector.HasValue)
+        if (Pilot != null && !TorqueVector.HasValue)
         {
             var pilotSpaceVector = Pilot.InverseTransformVector(-transform.up);
             var pilotSpaceEngineLocation = Pilot.InverseTransformPoint(transform.position);
@@ -334,5 +390,10 @@ public class EngineControler : MonoBehaviour, IGeneticConfigurable
     private bool VectorIsUseful(Vector3? vector)
     {
         return vector.HasValue && vector.Value.magnitude > 0;
+    }
+
+    public static float Clamp(float value, float min, float max)
+    {
+        return (value < min) ? min : (value > max) ? max : value;
     }
 }
