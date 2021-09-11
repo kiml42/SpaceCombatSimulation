@@ -42,12 +42,17 @@ namespace Assets.Src.ObjectManagement
                 {
                     var location = Random.insideUnitSphere * ShrapnelStartRadius;
                     var fragment = Object.Instantiate(_shrapnel, _exploder.position + location, RandomiseShrapnelOrientation ? Random.rotation : _exploder.transform.rotation);
+
                     fragment.velocity = (velocityOverride ?? _exploder.velocity) + (ShrapnelSpeed * location);
                     if (RandomiseShrapnelOrientation)
                     {
                         fragment.angularVelocity = Random.insideUnitSphere * Random.Range(0, 1000);
                     }
                     //gameObjects.Add(fragment);
+                    if (RandomiseShrapnelOrientation)
+                    {
+                        fragment.angularVelocity = Random.insideUnitSphere * Random.Range(0, 1000);
+                    }
 
                     if (SetEnemyTagOnShrapnel && EnemyTags != null && EnemyTags.Any())
                     {
@@ -56,7 +61,7 @@ namespace Assets.Src.ObjectManagement
 
                     if (TagShrapnel)
                     {
-                        fragment.tag = _exploder.tag;
+                        fragment.GetComponent<ITarget>().SetTeamSource(_exploder.GetComponent<ITarget>());
                     }
                 }
             }

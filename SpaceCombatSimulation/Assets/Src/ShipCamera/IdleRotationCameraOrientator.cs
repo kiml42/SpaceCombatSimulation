@@ -41,9 +41,10 @@ namespace Assets.Src.ShipCamera
             var currentDistance = vectorToTargetLocation.magnitude;
 
             var automaticParentPollTarget = currentDistance < StartRotatingDistance
-                ? Quaternion.AngleAxis(Time.deltaTime * IdleRotationSpeed, transform.up) * transform.forward 
+                ? Quaternion.AngleAxis(Time.unscaledDeltaTime * IdleRotationSpeed, transform.up) * transform.forward 
                 : vectorToTargetLocation;
 
+            //Debug.Log($"IdleRotationCameraOrientator");
             return new ShipCamTargetValues(parentLocationTarget, automaticParentPollTarget, parentLocationTarget - (transform.forward * SetBack), automaticParentPollTarget, FieldOfView, referenceVelocity, UpVector);
         }
     }

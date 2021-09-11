@@ -2,9 +2,9 @@
 using System.Linq;
 using UnityEngine;
 
-namespace Assets.Src.Evolution
+namespace Assets.Src.Evolution.Drone
 {
-    public class EvolutionDroneConfig : BaseEvolutionConfig
+    public class EvolutionDroneConfig
     {
         #region "Drones
         public List<int> Drones = new List<int>();
@@ -16,8 +16,6 @@ namespace Assets.Src.Evolution
         public float ExtraDromnesPerGeneration = 0.2f;
         public int MaxDronesToSpawn = 100;
         
-        public float ShipInSphereRandomRadius = 0;
-        public float ShipOnSphereRandomRadius = 0;
         public float DronesInSphereRandomRadius = 0;
         public float DronesOnSphereRandomRadius = 0;
 
@@ -41,6 +39,8 @@ namespace Assets.Src.Evolution
                     
             }
         }
+
+        public string DroneTeam = "Enemy";
         #endregion
 
         #region score
@@ -53,9 +53,6 @@ namespace Assets.Src.Evolution
 
         [Tooltip("Bonus Score for killing everything, timesd by remaining frames")]
         public float CompletionBonus = 100;
-
-        [Tooltip("penalty for dieing, multiplied by remining frames")]
-        public float DeathPenalty = 70;
         #endregion
     }
 }

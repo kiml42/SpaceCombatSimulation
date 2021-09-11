@@ -26,7 +26,7 @@ namespace Assets.Src.ShipCamera
 
         public ShipCamTargetValues CalculateTargets()
         {
-            _userPriorityCountdown -= Time.deltaTime;
+            _userPriorityCountdown -= Time.unscaledDeltaTime;
 
             if (Input.GetKeyUp(KeyCode.O))
             {

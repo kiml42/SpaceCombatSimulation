@@ -24,11 +24,11 @@ public class JointBreakHandler : MonoBehaviour
         }
         if (DeactivateOnBreak)
         {
-            Deactivate();
+            DeactivateJointObjects();
         }
     }
 
-    public void Deactivate()
+    private void DeactivateJointObjects()
     {
         if (_active)
         {

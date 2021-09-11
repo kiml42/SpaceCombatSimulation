@@ -11,7 +11,7 @@ namespace Assets.Src.Controllers
     {
         public bool FollowShips = true;
         public string TarGetTag = "Enemy";
-        public bool TagChildren = false;
+        public string TeamForDrones;
         public bool ShouldSpawnDrones = true;
         public bool ShouldSetEnemyTag = false;
         
@@ -209,6 +209,7 @@ namespace Assets.Src.Controllers
                     var bearing = Random.rotation;
                     var location = (bearing * new Vector3(0, 0, Random.value * Radius)) + transform.position;
                     var drone = Instantiate(Drone, location, transform.rotation);
+                    var droneTarget = drone.GetComponent<ITarget>();
 
                     var velocity = SpeedScaler * Random.insideUnitSphere;
                     drone.velocity = velocity;
@@ -217,7 +218,7 @@ namespace Assets.Src.Controllers
                         drone.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = new List<string> { TarGetTag };
                     }
 
-                    if (TagChildren) { drone.tag = tag; }
+                    if (!string.IsNullOrEmpty(TeamForDrones)) { droneTarget.SetTeam(TeamForDrones); }
 
                     _reload = LoadTime;
                 }

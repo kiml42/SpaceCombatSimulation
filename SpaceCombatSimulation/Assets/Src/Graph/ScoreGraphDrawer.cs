@@ -7,8 +7,7 @@ namespace Assets.Src.Graph
     {
         internal override void PrepareGraph()
         {
-            var generations = Enumerable.Range(0, EvolutionController.GenerationNumber)
-                .ToDictionary(i => i, i => EvolutionController.DbHandler.ReadBaseGeneration(EvolutionController.DatabaseId, i));
+            var generations = ReadGenerations();
 
             var minScore = new GraphLine(PointTexture, LineTexture) { Colour = Color.red, Name = "Min Score" };
             var avgScore = new GraphLine(PointTexture, LineTexture) { Colour = Color.magenta, Name = "Average Score" };

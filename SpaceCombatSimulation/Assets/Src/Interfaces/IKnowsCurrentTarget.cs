@@ -5,7 +5,7 @@ namespace Assets.Src.Interfaces
 {
     public interface IKnowsCurrentTarget
     {
-        Target CurrentTarget { get; }
-        IEnumerable<Target> FilteredTargets { get; }
+        ITarget CurrentTarget { get; }
+        IEnumerable<ITarget> FilteredTargets { get; }
     }
 }

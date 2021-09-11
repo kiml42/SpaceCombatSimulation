@@ -9,6 +9,6 @@ namespace Assets.Src.Interfaces
     public interface IDetonator
     {
         void DetonateNow();
-        void AutoDetonate(Target target);
+        void AutoDetonate(ITarget target);
     }
 }

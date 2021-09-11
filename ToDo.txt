@@ -13,6 +13,7 @@ Bugs:
         rocket engines carry on regardless if the rocket has no target.
         Duplicate match Controller in drone evolution
 		Engines of dead ships cary on trying to fly. - I think I've fixed this.
+        Duplicate match controler in drone evolution
     Graphical - Beams don't turn off when the turret dies. - haven't seen this one in a while.
         Torpedoes aren't picking up paren't's colour.
     Rocket engine plumes start on
@@ -26,6 +27,11 @@ Bugs:
 
 TODO:
     In Progress:
+        Evolution:
+            Use a generated Id for individuals in the individuals table instead of the genome.
+                This should go for everything referring to a genome at the moment (previous combatants, lists in controller etc.)
+        TagsOverhaul:
+            Consider moving away from unity tags for target selection, the repository should be enough.
         Race evolution
             Include new settings in editBrConfig.
         Player ship
@@ -49,12 +55,15 @@ TODO:
 
 
     Priority:
+        Angle Spawning:
+            Set total angle to use for spawning ships.
+            Ships spawn in a ring around the centre such that the n+1th ship would be at this angle.
+        Non-navigable targets
+            Make it possible to register as a target that can be shot at, but ships won't consider it for navigation (e.g torpedoes).
         Merge evolution modes
-            Add drones into BR
             Set multipliers for kills, drones and race scores
-            All (living) ships get socre when drones die
-            Put drones in the middle, ships at set radius
             Option to not make ships each other's enemy
+            Choose angle between ships around the middle, so ships can start next to each other.
         Camera
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.

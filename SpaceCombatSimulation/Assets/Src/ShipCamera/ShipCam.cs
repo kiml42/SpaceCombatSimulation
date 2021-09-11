@@ -134,9 +134,6 @@ namespace Assets.Src.ShipCamera
                     Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, targets.CameraOrientationTarget, Time.unscaledDeltaTime * RotationSpeed * 0.3f);
                     Camera.fieldOfView = Mathf.LerpAngle(Camera.fieldOfView, targets.CameraFieldOfView, Time.unscaledDeltaTime * ZoomSpeed * 0.3f);
                     Camera.transform.position = Vector3.Slerp(Camera.transform.position, targets.CameraLocationTarget, Time.unscaledDeltaTime * totalTranslateSpeed);
-
-
-
                 }
             }
         }
@@ -155,11 +152,8 @@ namespace Assets.Src.ShipCamera
         private void PickTargetToWatch()
         {
             //Debug.Log("to watch");
-            var targets = WatchPicker.FilteredTargets.Where(t => t.Transform.IsValid() && t.Transform.parent == null);
-            //foreach (var item in targets)
-            //{
-            //    Debug.Log(item.Transform.name + ": " + item.Score);
-            //}
+            var targets = WatchPicker.FilteredTargets.Where(t => t != null && t.Transform.IsValid() && t.Transform.parent == null).ToList();
+            
             WatchedRigidbodies = new List<Rigidbody>();
             if (targets.Any())
             {

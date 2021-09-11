@@ -1,19 +1,15 @@
-﻿using UnityEngine;
-using UnityEditor;
-using UnityEngine.TestTools;
+﻿using Assets.Src.Database;
 using NUnit.Framework;
-using System.Collections;
-using Assets.src.Evolution;
-using Assets.Src.Database;
 using System;
+using UnityEngine;
 
 public class EvolutionDroneDatabaseHandlerReadTests
 {
-    private string _dbPathStart = "/../tmp/TestDB/";
-    private string _dbPathExtension = ".s3db";
+    private const string _dbPathStart = "/../tmp/TestDB/";
+    private const string _dbPathExtension = ".s3db";
     private string _dbPath;
-    private string _createCommandPath = "/../../Test/TestDB/CreateTestDB.sql";
-    EvolutionDroneDatabaseHandler _handler;
+    private const string _createCommandPath = "/../../Test/TestDB/CreateTestDB.sql";
+    EvolutionDatabaseHandler _handler;
     DatabaseInitialiser _initialiser;
 
     [SetUp]
@@ -26,7 +22,9 @@ public class EvolutionDroneDatabaseHandlerReadTests
             DatabasePath = _dbPath
         };
 
-        _handler = new EvolutionDroneDatabaseHandler(_dbPath, _createCommandPath);
+        _initialiser.EnsureDatabaseExists();
+
+        _handler = new EvolutionDatabaseHandler(_dbPath, _createCommandPath);
     }
 
     [TearDown]
@@ -109,56 +107,49 @@ public class EvolutionDroneDatabaseHandlerReadTests
     public void ReadDroneConfig_MinDronesToSpawn()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(10, config.MinDronesToSpawn);
+        Assert.AreEqual(10, config.EvolutionDroneConfig.MinDronesToSpawn);
     }
 
     [Test]
     public void ReadDroneConfig_ExtraDromnesPerGeneration()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(3, config.ExtraDromnesPerGeneration);
+        Assert.AreEqual(3, config.EvolutionDroneConfig.ExtraDromnesPerGeneration);
     }
 
     [Test]
     public void ReadDroneConfig_MaxDronesToSpawn()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(15, config.MaxDronesToSpawn);
+        Assert.AreEqual(15, config.EvolutionDroneConfig.MaxDronesToSpawn);
     }
 
     [Test]
     public void ReadDroneConfig_KillScoreMultiplier()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(-4, config.KillScoreMultiplier);
+        Assert.AreEqual(-4, config.EvolutionDroneConfig.KillScoreMultiplier);
     }
 
     [Test]
     public void ReadDroneConfig_FlatKillBonus()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(-6, config.FlatKillBonus);
+        Assert.AreEqual(-6, config.EvolutionDroneConfig.FlatKillBonus);
     }
 
     [Test]
     public void ReadDroneConfig_CompletionBonus()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(-8, config.CompletionBonus);
-    }
-
-    [Test]
-    public void ReadDroneConfig_DeathPenalty()
-    {
-        var config = _handler.ReadConfig(0);
-        Assert.AreEqual(-20, config.DeathPenalty);
+        Assert.AreEqual(-8, config.EvolutionDroneConfig.CompletionBonus);
     }
 
     [Test]
     public void ReadDroneConfig_Drones()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual("0,2,1,3,1,1,3,1,5,1,1,1,6,1,1", config.DronesString);
+        Assert.AreEqual("0,2,1,3,1,1,3,1,5,1,1,1,6,1,1", config.EvolutionDroneConfig.DronesString);
     }
 
     [Test]
@@ -241,28 +232,28 @@ public class EvolutionDroneDatabaseHandlerReadTests
     public void ReadConfig_MatchControl_ShipInSphereRandomRadius()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(100, config.ShipInSphereRandomRadius);
+        Assert.AreEqual(102, config.MatchConfig.MinimumLocationRandomisation);
     }
 
     [Test]
     public void ReadConfig_MatchControl_ShipOnSphereRandomRadius()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(101, config.ShipOnSphereRandomRadius);
+        Assert.AreEqual(103, config.MatchConfig.MaximumLocationRandomisation);
     }
 
     [Test]
     public void ReadConfig_MatchControl_DronesInSphereRandomRadius()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(102, config.DronesInSphereRandomRadius);
+        Assert.AreEqual(102, config.EvolutionDroneConfig.DronesInSphereRandomRadius);
     }
 
     [Test]
     public void ReadConfig_MatchControl_DronesOnSphereRandomRadius()
     {
         var config = _handler.ReadConfig(0);
-        Assert.AreEqual(103, config.DronesOnSphereRandomRadius);
+        Assert.AreEqual(103, config.EvolutionDroneConfig.DronesOnSphereRandomRadius);
     }
 
     [Test]

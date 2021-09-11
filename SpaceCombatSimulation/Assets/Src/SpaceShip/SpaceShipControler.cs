@@ -37,7 +37,7 @@ public class SpaceShipControler : AbstractDeactivatableController
     public Transform VectorArrow;
 
     // Use this for initialization
-    private void Start()
+    public void Start()
     {
         _thisSpaceship = GetComponent<Rigidbody>();
         _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
@@ -76,7 +76,7 @@ public class SpaceShipControler : AbstractDeactivatableController
     }
 
     // Update is called once per frame
-    private void FixedUpdate()
+    public void FixedUpdate()
     {
         if (_active && _pilot != null)
             _pilot.Fly(_targetChoosingMechanism.CurrentTarget);

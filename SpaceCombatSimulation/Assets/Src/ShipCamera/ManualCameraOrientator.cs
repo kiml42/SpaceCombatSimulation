@@ -46,6 +46,7 @@ namespace Assets.Src.ShipCamera
 
             targets = targets ?? ShipCamTargetValues.Zero;
 
+            //Debug.Log($"ManualCameraOrientator");
             return new ShipCamTargetValues(targets.ParentLocationTarget, GetParentPollTarget(targets), GetCameraLocationTarget(targets), targets.CameraPollTarget, targets.CameraFieldOfView, targets.ReferenceVelocity, GetUpTarget(targets));
         }
 
@@ -73,7 +74,7 @@ namespace Assets.Src.ShipCamera
                 //Debug.Log(_pollTarget);
                 return;
             }
-            _manualPanTimeRemaining -= Time.deltaTime;
+            _manualPanTimeRemaining -= Time.unscaledDeltaTime;
         }
 
         private void ProcessManualZoom()
@@ -94,7 +95,7 @@ namespace Assets.Src.ShipCamera
 
                 return;
             }
-            _manualZoomTimeRemaining -= Time.deltaTime;
+            _manualZoomTimeRemaining -= Time.unscaledDeltaTime;
         }
 
         private Vector3 GetParentPollTarget(ShipCamTargetValues automaticTargets)
