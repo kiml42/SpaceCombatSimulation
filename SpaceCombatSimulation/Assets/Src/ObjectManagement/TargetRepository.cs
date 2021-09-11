@@ -1,4 +1,4 @@
-﻿using Assets.Src.Controllers;
+﻿using Assets.Src.Interfaces;
 using Assets.Src.Targeting;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,92 +8,16 @@ namespace Assets.Src.ObjectManagement
 {
     public static class TargetRepository
     {
-        private static readonly Dictionary<string, List<Target>> _targets = new Dictionary<string, List<Target>>();
-        private static readonly Dictionary<string, List<Target>> _navigationTargets = new Dictionary<string, List<Target>>();
+        private static readonly Dictionary<string, List<ITarget>> _targets = new Dictionary<string, List<ITarget>>();
 
-        public static void RegisterTarget(Target target)
-        {
-            RegisterTargetToDictionary(target, _targets);
-        }
-
-        public static void RegisterNavigationTarget(Target target)
-        {
-            RegisterTargetToDictionary(target, _navigationTargets);
-        }
-
-        public static void DeregisterTarget(Transform target)
-        {
-            var tag = target.tag;
-            DeregisterTarget(target, tag);
-        }
-
-        public static void DeregisterTarget(Transform target, string tag)
-        {
-            DeregisterTarget(new Target(target), tag);
-        }
-
-        public static void DeregisterTarget(Target target)
-        {
-            var tag = target.Transform.tag;
-            DeregisterTarget(target, tag);
-        }
-
-        public static void DeregisterTarget(Target target, string tag)
-        {
-            //Debug.Log($"deregistering target {target} with tag {tag}");
-            if (!_targets.ContainsKey(tag))
-            {
-                if (tag != AbstractDeactivatableController.InactiveTag)
-                    Debug.LogWarning($"Cannot deregister target {target} with tag {tag} - there is no list for this tag.");
-                return;
-            }
-            var list = _targets[tag];
-            var targetFromList = list.SingleOrDefault(t => t.Transform == target.Transform);
-            if (targetFromList == null)
-            {
-                Debug.LogWarning($"Cannot deregister target {target} with tag {tag} - it is not in the list for that tag.");
-                return;
-            }
-            list.Remove(targetFromList);
-        }
-
-        public static List<Target> ListTargetsForTags(IEnumerable<string> tags, bool includeNavigationTargets = false)
-        {
-            var list = new List<Target>();
-            foreach (var tag in tags)
-            {
-                if (_targets.ContainsKey(tag))
-                {
-                    list.AddRange(CleanList(_targets[tag]));
-                }
-                if (includeNavigationTargets && _navigationTargets.ContainsKey(tag))
-                {
-                    list.AddRange(CleanList(_navigationTargets[tag]));
-                }
-            }
-            return list.Distinct().ToList();
-        }
-
-        private static List<Target> CleanList(List<Target> list)
-        {
-            if(list == null)
-            {
-                return new List<Target>();
-            }
-            return  list
-                .Where(target => target != null && target.Transform != null && target.Transform.IsValid())
-                .Distinct(new CompareTargetsByTransform())  //Specify the comparer to use 
-                .ToList();
-        }
-
-        private static void RegisterTargetToDictionary(Target target, Dictionary<string, List<Target>> _targets)
+        public static void RegisterTarget(ITarget target)
         {
             if (target != null && target.Transform != null && target.Transform.IsValid())
             {
-                var tag = target.Transform.tag;
-                if (!_targets.TryGetValue(tag, out List<Target> list) || list == null)
+                var tag = target.Team;
+                if (!_targets.TryGetValue(tag, out List<ITarget> list) || list == null)
                 {
-                    list = new List<Target>();
+                    list = new List<ITarget>();
                     _targets[tag] = list;
                 }
                 else
@@ -104,6 +28,70 @@ namespace Assets.Src.ObjectManagement
 
                 _targets[tag] = CleanList(list);
             }
+        }
+
+        public static void DeregisterTarget(ITarget target)
+        {
+            var team = target.Team;
+            if (string.IsNullOrEmpty(team))
+            {
+                Debug.LogWarning($"Cannot remove \"{target}\" from \"{team}\", it is null or empty.");
+                return;
+            }
+            //Debug.Log($"deregistering target {target} with tag {tag}");
+            if (!_targets.ContainsKey(team))
+            {
+                Debug.LogWarning($"Cannot deregister target {target} with tag {team} - there is no list for this tag.");
+                return;
+            }
+
+            var list = _targets[team];
+            var targetFromList = list.SingleOrDefault(t => t.Transform == target.Transform);
+            if (targetFromList == null)
+            {
+                Debug.LogWarning($"Cannot deregister target {target} with tag {team} - it is not in the list for that tag.");
+                return;
+            }
+            list.Remove(targetFromList);
+        }
+
+        public static IEnumerable<ITarget> ListTargetsOnTeams(IEnumerable<string> teams, bool includeNavigationTargets = false, bool includeAtackTargets = true)
+        {
+            if(!includeAtackTargets && !includeNavigationTargets)
+            {
+                Debug.LogWarning("Must include navigational targets, attack targets or both to get any targets returned.");
+                return Enumerable.Empty<ITarget>();
+            }
+
+            var list = new List<ITarget>();
+            foreach (var team in teams)
+            {
+                if (_targets.ContainsKey(team))
+                {
+                    var onTeam = CleanList(_targets[team]).Where(t => t.NavigationalTarget && includeNavigationTargets || t.AtackTarget && includeAtackTargets);
+                    //Debug.Log($"team {team} has {_targets[team].Count()} targets, of which {onTeam.Count()} are valid. Nav: {includeNavigationTargets}, Attack: {includeAtackTargets}");
+                    list.AddRange(onTeam);
+                }
+                else
+                {
+                    Debug.LogWarning($"No target list for team {team}");
+                }
+            }
+            var distinctList = list.Distinct();
+
+            return distinctList;
+        }
+
+        private static List<ITarget> CleanList(List<ITarget> list)
+        {
+            if(list == null)
+            {
+                return new List<ITarget>();
+            }
+            return  list = list
+                .Where(target => target != null && target?.Transform != null && target.Transform.IsValid())
+                .Distinct(new CompareTargetsByTransform())  //Specify the comparer to use 
+                .ToList();
         }
     }
 }

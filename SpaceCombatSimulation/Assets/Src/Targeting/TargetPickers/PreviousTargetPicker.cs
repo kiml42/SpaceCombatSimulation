@@ -23,7 +23,7 @@ namespace Assets.Src.Targeting.TargetPickers
             }
 
             return potentialTargets.Select(t => {
-                if(t.Transform == CurrentTargetKnower.CurrentTarget.Transform)
+                if(t.Target.Transform == CurrentTargetKnower.CurrentTarget.Transform)
                 {
                     //Debug.Log(t.Transform.name + " gets the previous target bonus of " + BonusScore + " on top of its " + t.Score);
                     t.Score += FlatBoost;

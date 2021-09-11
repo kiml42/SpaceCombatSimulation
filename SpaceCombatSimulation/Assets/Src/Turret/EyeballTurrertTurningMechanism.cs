@@ -2,8 +2,6 @@
 using Assets.Src.Interfaces;
 using Assets.Src.ModuleSystem;
 using Assets.Src.Targeting;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class EyeballTurrertTurningMechanism : GeneticConfigurableMonobehaviour
@@ -16,8 +14,6 @@ public class EyeballTurrertTurningMechanism : GeneticConfigurableMonobehaviour
 
     private ITurretTurner _turner;
 
-    private string InactiveTag = "Untagged";
-
     private ITurretRunner _runner;
 
     public float MotorForce = 30;
@@ -29,7 +25,7 @@ public class EyeballTurrertTurningMechanism : GeneticConfigurableMonobehaviour
     {
         _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
         var speedKnower = GetComponent<IKnowsProjectileSpeed>();
-        var projectileSpeed = speedKnower != null ? speedKnower.KnownProjectileSpeed : null;
+        var projectileSpeed = speedKnower?.KnownProjectileSpeed;
         var rigidbody = GetComponent<Rigidbody>();
 
         _turner = new EyeballTurretTurner(rigidbody, Ball, RestTarget, projectileSpeed)
@@ -52,11 +48,6 @@ public class EyeballTurrertTurningMechanism : GeneticConfigurableMonobehaviour
     {
         //Debug.Log("Deactivating " + name);
         _active = false;
-        tag = InactiveTag;
-        if(Ball != null)
-        {
-            Ball.tag = InactiveTag;
-        }
     }
 
     public void DieNow()

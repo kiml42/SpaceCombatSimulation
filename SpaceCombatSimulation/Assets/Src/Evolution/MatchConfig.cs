@@ -37,7 +37,7 @@ namespace Assets.Src.Evolution
         /// </summary>
         public float StepForwardProportion = 0.5f;
         
-        public bool RandomiseRotation = true;
+        public bool RandomiseRotation = false;
 
         public int[] AllowedModuleIndicies = null;
         public string AllowedModulesString {

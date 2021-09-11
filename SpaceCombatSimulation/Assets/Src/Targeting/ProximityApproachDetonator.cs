@@ -21,7 +21,7 @@ namespace Assets.Src.Targeting
             _exploder = exploder;
         }
 
-        public void AutoDetonate(Target target)
+        public void AutoDetonate(ITarget target)
         {
             if (ShouldDetonate(target))
             {
@@ -30,7 +30,7 @@ namespace Assets.Src.Targeting
             }
         }
 
-        private bool ShouldDetonate(Target target)
+        private bool ShouldDetonate(ITarget target)
         {
             if(target == null)
             {

@@ -129,8 +129,9 @@ MonoBehaviour:
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   PollInterval: 1
-  IncludeNavigationTargets: 1
   TargetPicker: {fileID: 114421613989307258}
+  IncludeNavigationTargets: 1
+  IncludeAtackTargets: 0
 --- !u!114 &114477379494518138
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -191,7 +192,7 @@ MonoBehaviour:
   - Team3ForceField
   - Team4ForceField
   - Team5ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!54 &54288706851983332
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -221,7 +222,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Shooting: 1
-  Navigation: 0
+  Navigation: 1
+  InitialTeam: 
 --- !u!114 &114449226440654026
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1099,7 +1101,6 @@ GameObject:
   - component: {fileID: 4294130673084586}
   - component: {fileID: 20109115125314748}
   - component: {fileID: 124958046666288838}
-  - component: {fileID: 92545205052652872}
   - component: {fileID: 81958719930174362}
   m_Layer: 0
   m_Name: Camera
@@ -1166,14 +1167,6 @@ Camera:
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
 --- !u!124 &124958046666288838
-Behaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1961404212981668}
-  m_Enabled: 1
---- !u!92 &92545205052652872
 Behaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

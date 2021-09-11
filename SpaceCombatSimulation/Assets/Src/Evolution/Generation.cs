@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace Assets.Src.Evolution
 {
     public class Generation
     {
         #region General
-        private readonly Random _rng = new Random();
+        private readonly System.Random _rng = new System.Random();
 
         public List<Individual> Individuals { get; } = new List<Individual>();
 
@@ -136,7 +137,7 @@ namespace Assets.Src.Evolution
 
 
             var best = validCompetitors.FirstOrDefault();
-            //Debug.Log("Picked Individual has played " + best.MatchesPlayed);
+            Debug.Log($"Picked Individual has played {best.MatchesPlayed}");
             if (best != null)
             {
                 return best.Genome;

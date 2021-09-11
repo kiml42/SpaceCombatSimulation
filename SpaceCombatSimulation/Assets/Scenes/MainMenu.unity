@@ -380,6 +380,26 @@ PrefabInstance:
       propertyPath: m_RootOrder
       value: 8
       objectReference: {fileID: 0}
+    - target: {fileID: 114586677989920972, guid: 84e2d42e546cba64fbae18cbb36d3a84,
+        type: 3}
+      propertyPath: ParentForTurret
+      value: 
+      objectReference: {fileID: 1814465716}
+    - target: {fileID: 114644466767482336, guid: 84e2d42e546cba64fbae18cbb36d3a84,
+        type: 3}
+      propertyPath: ParentForTurret
+      value: 
+      objectReference: {fileID: 1814465716}
+    - target: {fileID: 114713855429240486, guid: 84e2d42e546cba64fbae18cbb36d3a84,
+        type: 3}
+      propertyPath: ParentForTurret
+      value: 
+      objectReference: {fileID: 1814465716}
+    - target: {fileID: 114979811176173502, guid: 84e2d42e546cba64fbae18cbb36d3a84,
+        type: 3}
+      propertyPath: ParentForTurret
+      value: 
+      objectReference: {fileID: 1814465716}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 84e2d42e546cba64fbae18cbb36d3a84, type: 3}
 --- !u!4 &92206296 stripped
@@ -2639,6 +2659,12 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
+--- !u!4 &1814465716 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4374753860669550, guid: 84e2d42e546cba64fbae18cbb36d3a84,
+    type: 3}
+  m_PrefabInstance: {fileID: 92206295}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1881323626
 GameObject:
   m_ObjectHideFlags: 0

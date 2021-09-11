@@ -1,4 +1,5 @@
 ﻿using Assets.Src.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -67,29 +68,30 @@ namespace Assets.Src.Evolution
         private void ActivateSuddenDeath()
         {
             Debug.Log("Sudden Death!");
-            var orientation = Random.rotation;
-            var randomPlacement = ShipConfig.Config.PositionForCompetitor((int)Random.value, ConcurrentShips);
+            var orientation = UnityEngine.Random.rotation;
+            var randomPlacement = ShipConfig.Config.PositionForCompetitor((int)UnityEngine.Random.value, ConcurrentShips);
             var death = Instantiate(SuddenDeathObject, randomPlacement, orientation);
 
-            death.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = ShipConfig.Tags;
+            death.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = ShipConfig.ShipTeamMapping.Values.ToList();
             MatchCountdown = SuddenDeathObjectReloadTime;
         }
 
+        [Obsolete("this doesn't make sense with the new way teams are created by the ShipConfig as needed.")]
         private string GetUnusedTag()
         {
-            if (ShipConfig.Tags == null || !ShipConfig.Tags.Any())
+            if (ShipConfig.ShipTeamMapping == null || !ShipConfig.ShipTeamMapping.Any())
             {
                 Debug.LogError("There are no remaining unused Tags");
                 return null;
             }
-            return ShipConfig.Tags.FirstOrDefault(t => _extantGenomes == null || !_extantGenomes.Any(g => g.Key == t));
+            return ShipConfig.ShipTeamMapping.Values.FirstOrDefault(t => _extantGenomes == null || !_extantGenomes.Any(g => g.Key == t));
         }
 
         private string PickRandomSurvivorGenome()
         {
             if (_extantGenomes.Any())
             {
-                var skip = (int)Random.value * _extantGenomes.Count();
+                var skip = (int)UnityEngine.Random.value * _extantGenomes.Count();
                 return _extantGenomes.Skip(skip).First().Value;
             }
             return DefaultGenome;
@@ -121,9 +123,9 @@ namespace Assets.Src.Evolution
             Debug.Log("Spawning \"" + genome + "\"");
             var ownTag = GetUnusedTag();
 
-            var index = ShipConfig.Tags.IndexOf(ownTag);
+            var index = ShipConfig.ShipTeamMapping.Values.ToList().IndexOf(ownTag);
 
-            ShipConfig.SpawnShip(genome, index, ConcurrentShips, 0);
+            var result = ShipConfig.SpawnShip(genome, index, ConcurrentShips, 0);
 
             RememberNewExtantGenome(ownTag, genome);
         }
@@ -140,15 +142,15 @@ namespace Assets.Src.Evolution
 
         private void DetectSurvivingAndDeadTeams()
         {
-            var livingShips = GameObject.FindGameObjectsWithTag(ShipConfig.SpaceShipTag)
+            var livingTeams = GameObject.FindGameObjectsWithTag(ShipConfig.SpaceShipTag)
                 .Where(s =>
                     s.transform.parent != null &&
                     s.transform.parent.GetComponent<Rigidbody>() != null
                 )
-                .Select(s => s.transform.parent.tag)
+                .Select(s => s.transform.parent.GetComponent<ITarget>().Team)
                 .Distinct();
 
-            _extantGenomes = _extantGenomes.Where(g => livingShips.Contains(g.Key)).ToDictionary(g => g.Key, g => g.Value);
+            _extantGenomes = _extantGenomes.Where(g => livingTeams.Contains(g.Key)).ToDictionary(g => g.Key, g => g.Value);
         }
 
         private IEnumerable<string> GetGenomesFromHistory()

@@ -10,6 +10,7 @@ public class MultiBarelTurretController : AbstractDeactivatableController, ITurr
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
     private IKnowsEnemyTags _enemyTagKnower;
+    private ITarget _thisTarget;
     public Rigidbody Projectile;
     public Rigidbody MuzzleFlash;
     public float LoadTime = 200;
@@ -46,6 +47,8 @@ public class MultiBarelTurretController : AbstractDeactivatableController, ITurr
         _colerer = GetComponent<ColourSetter>();
         _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
         _enemyTagKnower = GetComponent<IKnowsEnemyTags>();
+        _thisTarget = GetComponent<ITarget>();
+
         var emitterCount = EmitterParent.childCount;
 
         _emitters = new List<Transform>();
@@ -99,11 +102,14 @@ public class MultiBarelTurretController : AbstractDeactivatableController, ITurr
                     //Debug.Log("has renderer");
                     projectile.transform.SetColor(_colerer.Colour);
                 }
-                if (TagChildren) { projectile.tag = tag; }
+                if (TagChildren) {
+                    var target = projectile.GetComponent<ITarget>();
+                    target.SetTeamSource(_thisTarget);
+                }
             }
             else
             {
-                _reload-=Time.fixedDeltaTime;
+                _reload -= Time.fixedDeltaTime;
             }
     }
 

@@ -5,6 +5,6 @@ namespace Assets.Src.Interfaces
 {
     public interface ITargetDetector
     {
-        IEnumerable<PotentialTarget> DetectTargets(bool includeNavigationTarets = false);
+        IEnumerable<PotentialTarget> DetectTargets(bool includeNavigationTarets = false, bool includeShootingTargets = true);
     }
 }

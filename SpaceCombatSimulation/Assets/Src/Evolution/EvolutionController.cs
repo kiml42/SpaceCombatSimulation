@@ -26,16 +26,19 @@ namespace Assets.Src.Evolution
         #endregion
 
         #region BR
-        private Dictionary<string, GenomeWrapper> _currentGenomes;
+        /// <summary>
+        /// list of the genomes that were spawned at the start of this match keyed by the team they are on.
+        /// </summary>
+        private Dictionary<string, GenomeWrapper> _genomesInThisMatch;
         
         private Dictionary<string, GenomeWrapper> _extantTeams;
         private Dictionary<string, float> _teamScores;
 
-        List<string> AllCompetetrs { get { return _currentGenomes.Select(kv => kv.Value.Genome).ToList(); } }
+        List<string> AllCompetetrs { get { return _genomesInThisMatch.Select(kv => kv.Value.Genome).ToList(); } }
 
         public RigidbodyList RaceGoals;
         private Rigidbody _raceGoalObject = null;
-        private const string RACE_GAOL_TAG = "RaceGoal";
+        private const string RACE_GAOL_TEAM = "RaceGoal";
         #endregion
 
         #region Drone
@@ -136,7 +139,7 @@ namespace Assets.Src.Evolution
                     Debug.Log("Match over!");
                     foreach (var team in _teamScores)
                     {
-                        var competitor = _currentGenomes[team.Key];
+                        var competitor = _genomesInThisMatch[team.Key];
 
                         var score = team.Value;
                                                 
@@ -186,7 +189,7 @@ namespace Assets.Src.Evolution
             {
                 var goalPrefab = RaceGoals.Modules[EvolutionConfig.RaceConfig.RaceGoalObject.Value];
                 _raceGoalObject = Instantiate(goalPrefab, Vector3.zero, Quaternion.identity);
-                _raceGoalObject.tag = RACE_GAOL_TAG;
+                _raceGoalObject.GetComponent<ITarget>().SetTeam(RACE_GAOL_TEAM);
                 var health = _raceGoalObject.GetComponent<HealthControler>();
                 if (health != null)
                 {
@@ -204,10 +207,11 @@ namespace Assets.Src.Evolution
             var genomes = _currentGeneration.PickCompetitors(EvolutionConfig.BrConfig.NumberOfCombatants);
 
             var wrappers = new List<GenomeWrapper>();
-            _currentGenomes = new Dictionary<string, GenomeWrapper>();
+            _genomesInThisMatch = new Dictionary<string, GenomeWrapper>();
 
             var names = new List<string>();
 
+            Debug.Log($"Picking {EvolutionConfig.BrConfig.NumberOfCombatants} competitors for match. Aiming for {EvolutionConfig.MinMatchesPerIndividual} matches each.");
             var i = 0;
             foreach (var g in genomes)
             {
@@ -217,13 +221,13 @@ namespace Assets.Src.Evolution
                     var gw = ShipConfig.SpawnShip(g, i, EvolutionConfig.BrConfig.NumberOfCombatants, j);
                     wrappers.Add(gw);
 
-                    Debug.Log($"{gw.Name} enters the arena on team {gw.Tag}!");
+                    Debug.Log($"{gw.Name} enters the arena on team {gw.Team}!");
                     Debug.Log("Ship cost = " + gw.Cost);
 
                     name = gw.Name;
                     var hasModules = gw.ModulesAdded > 0;
 
-                    _currentGenomes[gw.Tag] = gw; //This will only save the last gw, but they should be functionally identical.
+                    _genomesInThisMatch[gw.Team] = gw; //This will only save the last gw, but they should be functionally identical.
                 }
 
                 names.Add(name);
@@ -231,8 +235,26 @@ namespace Assets.Src.Evolution
                 i++;
             }
 
-            _extantTeams = _currentGenomes;
-            _teamScores = _currentGenomes.ToDictionary(kv => kv.Key, kv => 0f);
+            _extantTeams = _genomesInThisMatch;
+            _teamScores = _genomesInThisMatch.ToDictionary(kv => kv.Key, kv => 0f);
+
+            foreach (var teamTransform in ShipConfig.ShipTeamMapping)
+            {
+                var ship = teamTransform.Key;
+                var team = teamTransform.Value;
+
+                var tagSource = ship.GetComponent<IKnowsEnemyTags>();
+                if (tagSource != null)
+                {
+                    var enemyTags = ShipConfig.ShipTeamMapping.Values.Where(t => t != team).ToList();
+                    enemyTags.AddRange(ShipConfig.TagsForAll);
+                    tagSource.KnownEnemyTags = enemyTags;
+                }
+                else
+                {
+                    Debug.LogError(ship.name + " Has no IKnowsEnemyTags available.");
+                }
+            }
 
             Debug.Log("\"" + string.Join("\" vs \"", names.Distinct().ToArray()) + "\"");
 
@@ -248,8 +270,8 @@ namespace Assets.Src.Evolution
             int DroneCount = (int)(EvolutionConfig.EvolutionDroneConfig.MinDronesToSpawn + Math.Floor((double)completeKillers * EvolutionConfig.EvolutionDroneConfig.ExtraDromnesPerGeneration));
             Debug.Log(DroneCount + " drones this match");
 
-            var droneTag = EvolutionConfig.EvolutionDroneConfig.DroneTag;
-            var enemyTags = ShipConfig.Tags.Where(t => t != droneTag).ToList();
+            var droneTeam = EvolutionConfig.EvolutionDroneConfig.DroneTeam;
+            var enemyTags = ShipConfig.ShipTeamMapping.Values.Distinct().Where(t => t != droneTeam).ToList();
 
             for (int i = 0; i < DroneCount; i++)
             {
@@ -259,7 +281,7 @@ namespace Assets.Src.Evolution
                 var randomPlacement = EvolutionConfig.MatchConfig.RandomLocation(EvolutionConfig.EvolutionDroneConfig.DronesInSphereRandomRadius, EvolutionConfig.EvolutionDroneConfig.DronesOnSphereRandomRadius);
                 var orientation = EvolutionConfig.MatchConfig.OrientationForStartLocation(randomPlacement);
                 var drone = Instantiate(dronePrefab, randomPlacement, orientation);
-                drone.tag = droneTag;
+                drone.GetComponent<ITarget>().SetTeam(droneTeam);
 
                 drone.velocity = EvolutionConfig.MatchConfig.VelocityForStartLocation(randomPlacement);
 
@@ -330,22 +352,21 @@ namespace Assets.Src.Evolution
         /// </summary>
         private void ProcessDefeatedShips()
         {
-            var tags = ListShips()
-                .Select(s => s.tag)
-                .Where(t => _extantTeams.Keys.Contains(t))
-                .Distinct();
+            var liveTeams = ListTeamsWithLiveShips();
+            var liveCompetitorTeams = liveTeams
+                .Where(t => _extantTeams.Keys.Contains(t));
             //Debug.Log($"{tags.Count()} teams still exist: {string.Join(", ", tags)}");
 
-            if (tags.Count() < _extantTeams.Count)
+            if (liveCompetitorTeams.Count() < _extantTeams.Count)
             {
                 //Something's died.
-                var deadGenomes = _extantTeams.Where(kv => !tags.Contains(kv.Key));
+                var deadGenomes = _extantTeams.Where(kv => !liveCompetitorTeams.Contains(kv.Key));
                 foreach (var dead in deadGenomes)
                 {
                     AddScoreForDefeatedIndividual(dead);
                 }
 
-                _extantTeams = _currentGenomes.Where(kv => tags.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
+                _extantTeams = _genomesInThisMatch.Where(kv => liveCompetitorTeams.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
             }
         }
 
@@ -410,13 +431,14 @@ namespace Assets.Src.Evolution
             }
         }
 
-        protected IEnumerable<Transform> ListShips()
+        protected IEnumerable<string> ListTeamsWithLiveShips()
         {
             return GameObject.FindGameObjectsWithTag(ShipConfig.SpaceShipTag)
-                    .Where(s =>
-                        s.transform.parent != null &&
-                        s.transform.parent.GetComponent<Rigidbody>() != null
-                    ).Select(s => s.transform.parent);
+                .Select(s => s.transform.GetComponentInParent<ITarget>())
+                .Where(t => t != null)
+                .Select(t => t.Team)
+                .Where(t => t != null)
+                .Distinct();
         }
 
         private void AddScoreForDefeatedIndividual(KeyValuePair<string, GenomeWrapper> deadIndividual)
@@ -445,7 +467,7 @@ namespace Assets.Src.Evolution
                 return "No config loaded!";
             }
             var text = "ID: " + DatabaseId + ", Name: " + EvolutionConfig.RunName + ", Generation: " + EvolutionConfig.GenerationNumber + Environment.NewLine +
-                "Combatants: " + string.Join(" vs ", _currentGenomes.Values.Select(g => g.Name));
+                "Combatants: " + string.Join(" vs ", _genomesInThisMatch.Values.Select(g => g.Name));
 
             var runTimeing = _matchControl.MatchRunTime;
             var matchLength = _matchControl.Config.MatchTimeout;

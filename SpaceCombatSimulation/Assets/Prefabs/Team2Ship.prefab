@@ -44,7 +44,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -128,7 +128,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -180,7 +180,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -232,7 +232,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -257,6 +257,7 @@ GameObject:
   - component: {fileID: 114588122642984816}
   - component: {fileID: 114288527176595656}
   - component: {fileID: 114389676085485550}
+  - component: {fileID: 2472788891102059413}
   m_Layer: 0
   m_Name: Team2Ship
   m_TagString: Team2
@@ -303,6 +304,7 @@ Transform:
   - {fileID: 4055083103871718}
   - {fileID: 4485696577621294}
   - {fileID: 9207139142922393155}
+  - {fileID: 1747634259799342371}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -340,7 +342,9 @@ MonoBehaviour:
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   PollInterval: 1
-  TargetPicker: {fileID: 0}
+  TargetPicker: {fileID: 1857249633968063133}
+  IncludeNavigationTargets: 0
+  IncludeAtackTargets: 1
 --- !u!114 &114747107200871312
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -367,7 +371,7 @@ MonoBehaviour:
   MaxTangentialVelocity: 50
   MinTangentialVelocity: 0
   TangentialSpeedWeighting: 10
-  Engine: {fileID: 0}
+  Engine: {fileID: 114647878159316806}
   Torquer: {fileID: 54276188861948588}
   AngularDragForTorquers: 20
   VectorArrow: {fileID: 4485696577621294}
@@ -396,7 +400,7 @@ MonoBehaviour:
   DamageDelegate: {fileID: 0}
   IgnoredTags:
   - ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!114 &114317863401166388
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -438,6 +442,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Shooting: 1
+  Navigation: 1
+  InitialTeam: Team2
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &114389676085485550
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -450,7 +458,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c55bcee375774e43b0e150b11ca6c29, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Type: 5
+  Type: 4
+--- !u!114 &2472788891102059413
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1249936944491648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0f7c7a2b22a34548847247f5e09bad8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeferToParent: 1
+  EnemyTags:
+  - Team1
 --- !u!1 &1290851290803298
 GameObject:
   m_ObjectHideFlags: 0
@@ -476,13 +499,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1290851290803298}
-  m_LocalRotation: {x: -0, y: 1, z: -0, w: 0}
-  m_LocalPosition: {x: 0, y: 0, z: -17.200005}
+  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: -20}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4055083103871718}
   m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
+  m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!198 &198919546160319070
 ParticleSystem:
   m_ObjectHideFlags: 0
@@ -5341,7 +5364,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -5393,7 +5416,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -5412,7 +5435,6 @@ GameObject:
   - component: {fileID: 4532619145614536}
   - component: {fileID: 20789388659179538}
   - component: {fileID: 124240570874645640}
-  - component: {fileID: 92656361368343754}
   - component: {fileID: 81095472798387212}
   m_Layer: 0
   m_Name: Team2ShipCam
@@ -5486,14 +5508,6 @@ Behaviour:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1350332181452872}
   m_Enabled: 1
---- !u!92 &92656361368343754
-Behaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1350332181452872}
-  m_Enabled: 1
 --- !u!81 &81095472798387212
 AudioListener:
   m_ObjectHideFlags: 0
@@ -5546,7 +5560,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -5598,7 +5612,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -5650,7 +5664,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -5702,7 +5716,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -5846,7 +5860,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -5898,7 +5912,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -5950,7 +5964,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -6032,7 +6046,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -6066,13 +6080,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1596608975965222}
-  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -20}
   m_LocalScale: {x: 10, y: 2, z: 10}
   m_Children: []
   m_Father: {fileID: 4055083103871718}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &33769642843918968
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -6347,7 +6361,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -6382,15 +6396,15 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1687864637847832}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 20, z: -20}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4684104558960820}
   - {fileID: 4805895687100684}
   m_Father: {fileID: 4007074019723936}
   m_RootOrder: 25
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!54 &54279884852327786
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -6446,7 +6460,7 @@ MonoBehaviour:
   DamageDelegate: {fileID: 0}
   IgnoredTags:
   - ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!114 &114647878159316806
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6466,7 +6480,7 @@ MonoBehaviour:
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54279884852327786}
   Plume: {fileID: 198919546160319070}
-  EngineForce2: 0
+  EngineForce2: 100000
   TranslateFireAngle: 45
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
@@ -6474,6 +6488,7 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 1
+  DebugMode: 0
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1731107862749142
 GameObject:
@@ -6597,7 +6612,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -6649,7 +6664,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -6701,7 +6716,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -6753,7 +6768,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -6805,7 +6820,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4007074019723936}
   EnemyTags:
   - Team1
   - Team3
@@ -6955,3 +6970,93 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SourceObject: {fileID: 0}
   TargetingLine: {fileID: 3897323187583897751}
+--- !u!1001 &1752083207342360477
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 4007074019723936}
+    m_Modifications:
+    - target: {fileID: 1297094850424896, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_Name
+      value: ShipTargetPickerConfig
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_RootOrder
+      value: 28
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 114426725637745988, guid: 3759a9863abe94848a943553ae1116b2,
+        type: 3}
+      propertyPath: SourceObject
+      value: 
+      objectReference: {fileID: 4007074019723936}
+    - target: {fileID: 114440540239129238, guid: 3759a9863abe94848a943553ae1116b2,
+        type: 3}
+      propertyPath: CurrentTargetKnower
+      value: 
+      objectReference: {fileID: 114443668600227482}
+    - target: {fileID: 114984434384308452, guid: 3759a9863abe94848a943553ae1116b2,
+        type: 3}
+      propertyPath: SourceObject
+      value: 
+      objectReference: {fileID: 54276188861948588}
+    m_RemovedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+--- !u!4 &1747634259799342371 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2,
+    type: 3}
+  m_PrefabInstance: {fileID: 1752083207342360477}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1857249633968063133 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 114526056000881920, guid: 3759a9863abe94848a943553ae1116b2,
+    type: 3}
+  m_PrefabInstance: {fileID: 1752083207342360477}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

@@ -44,13 +44,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
   - Team3
   - Team4
   - Team5
-  TurretPrefab: {fileID: 0}
+  TurretPrefab: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
+    type: 3}
 --- !u!1 &1070622640541494
 GameObject:
   m_ObjectHideFlags: 0
@@ -95,13 +96,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
   - Team3
   - Team4
   - Team5
-  TurretPrefab: {fileID: 0}
+  TurretPrefab: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
+    type: 3}
 --- !u!1 &1103655294172326
 GameObject:
   m_ObjectHideFlags: 0
@@ -238,13 +240,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
   - Team3
   - Team4
   - Team5
-  TurretPrefab: {fileID: 0}
+  TurretPrefab: {fileID: 4047970151895330, guid: 2cf111255dce5d94ca7b02db1dcffd57,
+    type: 3}
 --- !u!1 &1135456747107746
 GameObject:
   m_ObjectHideFlags: 0
@@ -308,6 +311,8 @@ GameObject:
   - component: {fileID: 114558417272495310}
   - component: {fileID: 114538699749200336}
   - component: {fileID: 114292686112436968}
+  - component: {fileID: 7519955007448620083}
+  - component: {fileID: 9018730813375844968}
   m_Layer: 0
   m_Name: Team1Ship
   m_TagString: Team1
@@ -349,6 +354,7 @@ Transform:
   - {fileID: 4308434202928032}
   - {fileID: 4455403608566486}
   - {fileID: 3768243147662961272}
+  - {fileID: 7044610330623850767}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -394,7 +400,7 @@ MonoBehaviour:
   MaxTangentialVelocity: 10
   MinTangentialVelocity: 0
   TangentialSpeedWeighting: 50
-  Engine: {fileID: 0}
+  Engine: {fileID: 114668481676445708}
   Torquer: {fileID: 54348881928324954}
   AngularDragForTorquers: 10
   VectorArrow: {fileID: 4455403608566486}
@@ -423,7 +429,7 @@ MonoBehaviour:
   DamageDelegate: {fileID: 0}
   IgnoredTags:
   - ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!114 &114361333263954078
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -465,6 +471,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Shooting: 1
+  Navigation: 1
+  InitialTeam: Team1
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &114292686112436968
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -477,7 +487,43 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c55bcee375774e43b0e150b11ca6c29, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Type: 5
+  Type: 4
+--- !u!114 &7519955007448620083
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1151259579637064}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  ContinuallyCheckForTargets: 0
+  NeverRetarget: 0
+  PollInterval: 0
+  TargetPicker: {fileID: 6937203069002303153}
+  IncludeNavigationTargets: 0
+  IncludeAtackTargets: 1
+--- !u!114 &9018730813375844968
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1151259579637064}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0f7c7a2b22a34548847247f5e09bad8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DeferToParent: 0
+  EnemyTags:
+  - Team2
 --- !u!1 &1229538825179298
 GameObject:
   m_ObjectHideFlags: 0
@@ -489,7 +535,6 @@ GameObject:
   - component: {fileID: 4505807159750710}
   - component: {fileID: 20797790757653000}
   - component: {fileID: 124467320686027972}
-  - component: {fileID: 92551524770003934}
   - component: {fileID: 81478068556006836}
   m_Layer: 0
   m_Name: CameraTeam1ShipCam (1)
@@ -563,14 +608,6 @@ Behaviour:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1229538825179298}
   m_Enabled: 1
---- !u!92 &92551524770003934
-Behaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1229538825179298}
-  m_Enabled: 1
 --- !u!81 &81478068556006836
 AudioListener:
   m_ObjectHideFlags: 0
@@ -623,13 +660,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
   - Team3
   - Team4
   - Team5
-  TurretPrefab: {fileID: 0}
+  TurretPrefab: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5,
+    type: 3}
 --- !u!1 &1306110181185424
 GameObject:
   m_ObjectHideFlags: 0
@@ -674,13 +712,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
   - Team3
   - Team4
   - Team5
-  TurretPrefab: {fileID: 0}
+  TurretPrefab: {fileID: 4251610165924678, guid: 7a6fbabb0bc555d40912d26e6bc4beb5,
+    type: 3}
 --- !u!1 &1310216353147168
 GameObject:
   m_ObjectHideFlags: 0
@@ -850,13 +889,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
   - Team3
   - Team4
   - Team5
-  TurretPrefab: {fileID: 0}
+  TurretPrefab: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
+    type: 3}
 --- !u!1 &1484085735037016
 GameObject:
   m_ObjectHideFlags: 0
@@ -901,13 +941,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
   - Team3
   - Team4
   - Team5
-  TurretPrefab: {fileID: 0}
+  TurretPrefab: {fileID: 4047970151895330, guid: 2cf111255dce5d94ca7b02db1dcffd57,
+    type: 3}
 --- !u!1 &1564488160701332
 GameObject:
   m_ObjectHideFlags: 0
@@ -952,13 +993,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
   - Team3
   - Team4
   - Team5
-  TurretPrefab: {fileID: 0}
+  TurretPrefab: {fileID: 4541375484301278, guid: fb971bf036914224882cb762d5469d0a,
+    type: 3}
 --- !u!1 &1591637745402296
 GameObject:
   m_ObjectHideFlags: 0
@@ -985,13 +1027,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1591637745402296}
-  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -20}
   m_LocalScale: {x: 10, y: 2, z: 10}
   m_Children: []
   m_Father: {fileID: 4632310518447138}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &33162763079418404
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -1217,13 +1259,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1717905620137370}
-  m_LocalRotation: {x: -0, y: 1, z: -0, w: 0}
-  m_LocalPosition: {x: 0, y: 0, z: -17.200005}
+  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: -20}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4632310518447138}
   m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
+  m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!198 &198387038657943950
 ParticleSystem:
   m_ObjectHideFlags: 0
@@ -6051,13 +6093,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
   - Team3
   - Team4
   - Team5
-  TurretPrefab: {fileID: 0}
+  TurretPrefab: {fileID: 4541375484301278, guid: fb971bf036914224882cb762d5469d0a,
+    type: 3}
 --- !u!1 &1833914359827252
 GameObject:
   m_ObjectHideFlags: 0
@@ -6085,15 +6128,15 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1833914359827252}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 20, z: -20}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4935400415658938}
   - {fileID: 4904317147759306}
   m_Father: {fileID: 4960682451978958}
   m_RootOrder: 17
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!54 &54996993457620460
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -6149,7 +6192,7 @@ MonoBehaviour:
   DamageDelegate: {fileID: 0}
   IgnoredTags:
   - ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!114 &114668481676445708
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6169,7 +6212,7 @@ MonoBehaviour:
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54996993457620460}
   Plume: {fileID: 198387038657943950}
-  EngineForce2: 0
+  EngineForce2: 100000
   TranslateFireAngle: 45
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
@@ -6177,6 +6220,7 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 1
+  DebugMode: 1
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1864701884255960
 GameObject:
@@ -6406,7 +6450,6 @@ GameObject:
   - component: {fileID: 4357906264733498}
   - component: {fileID: 20636585114872592}
   - component: {fileID: 124544593481065432}
-  - component: {fileID: 92209810015696422}
   - component: {fileID: 81208707134959616}
   m_Layer: 0
   m_Name: CameraTeam1ShipCam
@@ -6480,14 +6523,6 @@ Behaviour:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1926539632406834}
   m_Enabled: 1
---- !u!92 &92209810015696422
-Behaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1926539632406834}
-  m_Enabled: 1
 --- !u!81 &81208707134959616
 AudioListener:
   m_ObjectHideFlags: 0
@@ -6540,13 +6575,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
-  ParentForTurret: {fileID: 0}
+  ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team3
   - Team2
   - Team4
   - Team5
-  TurretPrefab: {fileID: 0}
+  TurretPrefab: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
+    type: 3}
 --- !u!1 &8489612882036951514
 GameObject:
   m_ObjectHideFlags: 0
@@ -6689,3 +6725,93 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SourceObject: {fileID: 0}
   TargetingLine: {fileID: 9161154790189603289}
+--- !u!1001 &7048984133419418545
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 4960682451978958}
+    m_Modifications:
+    - target: {fileID: 1297094850424896, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_Name
+      value: ShipTargetPickerConfig
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_RootOrder
+      value: 23
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 114426725637745988, guid: 3759a9863abe94848a943553ae1116b2,
+        type: 3}
+      propertyPath: SourceObject
+      value: 
+      objectReference: {fileID: 4960682451978958}
+    - target: {fileID: 114440540239129238, guid: 3759a9863abe94848a943553ae1116b2,
+        type: 3}
+      propertyPath: CurrentTargetKnower
+      value: 
+      objectReference: {fileID: 7519955007448620083}
+    - target: {fileID: 114984434384308452, guid: 3759a9863abe94848a943553ae1116b2,
+        type: 3}
+      propertyPath: SourceObject
+      value: 
+      objectReference: {fileID: 54348881928324954}
+    m_RemovedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
+--- !u!4 &7044610330623850767 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2,
+    type: 3}
+  m_PrefabInstance: {fileID: 7048984133419418545}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6937203069002303153 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 114526056000881920, guid: 3759a9863abe94848a943553ae1116b2,
+    type: 3}
+  m_PrefabInstance: {fileID: 7048984133419418545}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

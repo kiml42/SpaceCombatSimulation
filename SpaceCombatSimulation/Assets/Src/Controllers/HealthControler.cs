@@ -41,13 +41,15 @@ public class HealthControler : MonoBehaviour
     };
 
     [Tooltip("set this to make this heatlth controller immune to <tag><TeamTagForceFieldSuffix> as well.")]
-    public string TeamTagForceFieldSuffix = "FoceField";
+    public string TeamForceFieldSuffix = "FoceField";
 
     // Use this for initialization
     void Start()
     {
         OriginalHealth = Health;
         _rigidbody = GetComponent<Rigidbody>();
+
+        var target = GetComponent<ITarget>();
 
         var exploder = new ShrapnelExploder(_rigidbody, Shrapnel, DeathExplosion, ShrapnelCount2)
         {
@@ -60,9 +62,9 @@ public class HealthControler : MonoBehaviour
             UntagChildren = false
         };
 
-        if (!string.IsNullOrEmpty(TeamTagForceFieldSuffix))
+        if (!string.IsNullOrEmpty(TeamForceFieldSuffix) && target != null)
         {
-            IgnoredTags.Add(tag + TeamTagForceFieldSuffix);
+            IgnoredTags.Add(target.Team + TeamForceFieldSuffix);
         }
     }
 

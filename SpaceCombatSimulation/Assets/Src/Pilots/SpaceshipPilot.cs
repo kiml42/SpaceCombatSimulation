@@ -46,7 +46,7 @@ namespace Assets.Src.Pilots
             }
         }
 
-        public override void Fly(Target target)
+        public override void Fly(ITarget target)
         {
             RemoveNullEngines();
             if (HasActivated())
@@ -125,16 +125,19 @@ namespace Assets.Src.Pilots
 
                 if (completelyHappy)
                 {
+                    Debug.Log($"Completely happy: Pilot setting vector for engines to {null}");
                     SetFlightVectorOnEngines(null);
                 }
                 else
                 {
                     //try firing the main engine even with no fuel to turn it off if there is no fuel.
+                    Debug.Log($"Pilot setting vector for engines to turningVector: {turningVector}");
                     SetFlightVectorOnEngines(turningVector);
                 }
             }
             else
             {
+                Debug.Log($"Has not acivated: Pilot setting vector for engines to {null}");
                 SetFlightVectorOnEngines(null);  //turn off the engine
             }
         }

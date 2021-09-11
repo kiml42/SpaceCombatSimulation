@@ -40,7 +40,7 @@ namespace Assets.Src.Evolution.Drone
             }
         }
 
-        public string DroneTag = "Enemy";
+        public string DroneTeam = "Enemy";
         #endregion
 
         #region score
