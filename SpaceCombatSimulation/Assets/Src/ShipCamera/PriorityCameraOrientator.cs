@@ -7,7 +7,7 @@ namespace Assets.Src.ShipCamera
 {
     public class PriorityCameraOrientator : ICameraOrientator
     {
-        private List<BaseCameraOrientator> _orientators;
+        private readonly List<BaseCameraOrientator> _orientators;
 
         public PriorityCameraOrientator(List<BaseCameraOrientator> orientators, float maxUserPriorityBonus)
         {
@@ -26,7 +26,7 @@ namespace Assets.Src.ShipCamera
 
         public ShipCamTargetValues CalculateTargets()
         {
-            _userPriorityCountdown -= Time.deltaTime;
+            _userPriorityCountdown -= Time.unscaledDeltaTime;
 
             if (Input.GetKeyUp(KeyCode.O))
             {

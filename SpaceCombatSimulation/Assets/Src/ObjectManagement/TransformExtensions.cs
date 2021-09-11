@@ -1,18 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Assets.Src.ObjectManagement
 {
     public static class TransformExtensions
     {
+        /// <summary>
+        /// True if the transform is null, or if the transform is no longer connected to a game object.
+        /// </summary>
+        /// <param name="transform"></param>
+        /// <returns></returns>
         public static bool IsInvalid(this Transform transform)
         {
             return transform == null || transform.gameObject == null;
         }
 
+        /// <summary>
+        /// true if the transform is not null, and is still connected to a game object.
+        /// </summary>
+        /// <param name="transform"></param>
+        /// <returns></returns>
         public static bool IsValid(this Transform transform)
         {
             return !IsInvalid(transform);

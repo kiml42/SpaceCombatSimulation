@@ -1,12 +1,13 @@
 ﻿using Assets.Src.Interfaces;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.Targeting
 {
+    /// <summary>
+    /// Detects all targets that have a child object with any of the given tags.
+    /// </summary>
     public class ChildTagTargetDetector : ITargetDetector
     {
         public List<string> Tags = new List<string> { "SpaceShip" };
@@ -17,7 +18,7 @@ namespace Assets.Src.Targeting
 
         }
 
-        public IEnumerable<PotentialTarget> DetectTargets()
+        public IEnumerable<PotentialTarget> DetectTargets(bool includeNavigationTarets = false, bool includeAtackTargets = true)
         {
             var targets = new List<PotentialTarget>();
             foreach (var tag in Tags)

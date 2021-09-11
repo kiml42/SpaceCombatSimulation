@@ -47,14 +47,28 @@ namespace Assets.Src.Pilots
         protected bool HasActivated()
         {
             //Debug.Log("TurningStartDelay:" + TurningStartDelay);
-            TurningStartDelay -= Time.deltaTime;
-            StartDelay -= Time.deltaTime;
+            TurningStartDelay -= Time.fixedDeltaTime;
+            StartDelay -= Time.fixedDeltaTime;
             return TurningStartDelay <= 0;
         }
 
         protected ITorqueApplier _torqueApplier;
 
         protected Rigidbody _pilotObject;
+
+        private ITarget _pilotTarget;
+        public ITarget PilotTarget
+        {
+            get
+            {
+                if (_pilotTarget == null)
+                {
+                    _pilotTarget = _pilotObject.GetComponent<ITarget>();
+                }
+                return _pilotTarget;
+            }
+        }
+
 
         protected bool HasStarted()
         {
@@ -74,7 +88,7 @@ namespace Assets.Src.Pilots
             return hasStarted;
         }
 
-        protected Vector3 ReletiveLocationInWorldSpace(Target target)
+        protected Vector3 ReletiveLocationInWorldSpace(ITarget target)
         {
             if (_pilotObject != null && target != null && target.Transform.IsValid())
             {
@@ -93,7 +107,7 @@ namespace Assets.Src.Pilots
             return Vector3.zero;
         }
 
-        protected Vector3 VectorToCancelLateralVelocityInWorldSpace(Target target)
+        protected Vector3 VectorToCancelLateralVelocityInWorldSpace(ITarget target)
         {
             var vectorTowardsTarget = ReletiveLocationInWorldSpace(target);
             var targetReletiveVelocity = WorldSpaceReletiveVelocityOfTarget(target);
@@ -101,7 +115,7 @@ namespace Assets.Src.Pilots
             return targetReletiveVelocity.ComponentPerpendicularTo(vectorTowardsTarget);
         }
 
-        protected Vector3 WorldSpaceReletiveVelocityOfTarget(Target target)
+        protected Vector3 WorldSpaceReletiveVelocityOfTarget(ITarget target)
         {
             if (target == null)
             {
@@ -167,6 +181,6 @@ namespace Assets.Src.Pilots
             _engines.Add(engine);
         }
 
-        public abstract void Fly(Target target);
+        public abstract void Fly(ITarget target);
     }
 }

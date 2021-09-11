@@ -13,7 +13,7 @@ namespace Assets.Src.ShipCamera
         /// </summary>
         public List<string> MainTags = new List<string> { "SpaceShip" };
         public List<string> SecondaryTags = new List<string> { "Projectile" };
-        private List<string> _tags
+        private List<string> Tags
         {
             get
             {
@@ -54,7 +54,7 @@ namespace Assets.Src.ShipCamera
         {
             _detector = new ChildTagTargetDetector
             {
-                Tags = _tags
+                Tags = Tags
             };
             _shipCam = GetComponent<ShipCam>();
         }
@@ -89,7 +89,7 @@ namespace Assets.Src.ShipCamera
         private void DrawSingleLable(PotentialTarget target)
         {
             // Find the 2D position of the object using the main camera
-            Vector3 boxPosition = Camera.main.WorldToScreenPoint(target.Transform.position);
+            Vector3 boxPosition = Camera.main.WorldToScreenPoint(target.Target.Transform.position);
             if (boxPosition.z > 0)
             {
                 Vector3 baseLocation;
@@ -100,21 +100,26 @@ namespace Assets.Src.ShipCamera
                 {
                     baseLocation = Camera.transform.position;
                 }
-                var distance = Vector3.Distance(baseLocation, target.Transform.position);
+                var distance = Vector3.Distance(baseLocation, target.Target.Transform.position);
 
                 // "Flip" it into screen coordinates
                 boxPosition.y = Screen.height - boxPosition.y;
 
-                //Draw the distance from the followed object to this object - only if it's suitably distant, and has no parent.
-                if (distance > MinShowDistanceDistance && target.Transform.parent == null)
-                {
-                    GUI.Box(new Rect(boxPosition.x - 20, boxPosition.y + 25, 40, 40), Math.Round(distance).ToString());
+                if (target.Target.Transform.parent == null)
+                { 
+                    //only draw for root objects (with no parents)
+                    GUI.Label(new Rect(boxPosition.x - 20, boxPosition.y - 35, 50, 20), target.Target.Team);
+                    if (distance > MinShowDistanceDistance)
+                    {
+                        //Draw the distance from the followed object to this object - only if it's suitably distant.
+                        GUI.Label(new Rect(boxPosition.x - 20, boxPosition.y + 25, 40, 40), Math.Round(distance).ToString());
+                    }
                 }
 
                 var rect = new Rect(boxPosition.x - 50, boxPosition.y - 50, 100, 100);
-                DrawSingleReticle(target.Transform, rect);
+                DrawSingleReticle(target.Target.Transform, rect);
 
-                var healthControler = target.Transform.GetComponent<HealthControler>();
+                var healthControler = target.Target.Transform.GetComponent<HealthControler>();
                 if (healthControler != null && healthControler.IsDamaged)
                 {
                     if (HealthBGTexture != null)
@@ -160,14 +165,14 @@ namespace Assets.Src.ShipCamera
                     ShowReticles = ReticleState.ALL;
                     _detector = new ChildTagTargetDetector
                     {
-                        Tags = _tags
+                        Tags = Tags
                     };
                     break;
                 case ReticleState.ALL:
                     ShowReticles = ReticleState.MAIN;
                     _detector = new ChildTagTargetDetector
                     {
-                        Tags = _tags
+                        Tags = Tags
                     };
                     break;
                 case ReticleState.MAIN:

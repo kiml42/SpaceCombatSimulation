@@ -20,6 +20,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4586521362793152}
   - component: {fileID: 114126090025695006}
+  - component: {fileID: 114947530965053072}
   - component: {fileID: 114563560428503462}
   - component: {fileID: 114851351027291432}
   - component: {fileID: 114957129424041390}
@@ -336,6 +337,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Types: 01000000
   Cost: 200
 --- !u!114 &114267718403293904
@@ -377,6 +379,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: 0
+  HasBeenConfiguredByGenome: 0
   Threshold: 0
   FlatBoost: 0
   Multiplier: 20
@@ -409,7 +412,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Colour: {r: 0.42647058, g: 0.42647058, b: 0.458, a: 0}
-  Depth: 3
   SetInStart: 0
 --- !u!114 &114832711448336296
 MonoBehaviour:
@@ -424,6 +426,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 0
   FlatBoost: 10000
   Multiplier: 1
@@ -482,6 +485,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: -1
   FlatBoost: 1000
   Multiplier: -1
@@ -501,6 +505,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 0
   FlatBoost: 500
   Multiplier: 0
@@ -519,6 +524,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: -1
   FlatBoost: 100
   Multiplier: -1
@@ -526,6 +532,27 @@ MonoBehaviour:
   DisalowedTypes: 00000000
   PreferdTypes: 020000000300000004000000050000000700000008000000
   KullInvalidTargets: 1
+--- !u!114 &114947530965053072
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1001047486928152}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f4ce3c9f57b8c6478b0b9cd0cd9e584, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  Threshold: 500
+  FlatBoost: -2000
+  Multiplier: 1000
+  Priority: 0
+  Tag: RaceGoal
+  KullInvalidTargets: 1
+  TargetsWithTagAreValid: 0
 --- !u!114 &114957129424041390
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -539,6 +566,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 5
   FlatBoost: 0
   Multiplier: 100
@@ -559,6 +587,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   TagChildren: 1
   Projectile: {fileID: 54991379400455944, guid: 8bf03007d4e417c4087307829906f7d6,
     type: 2}
@@ -583,6 +612,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GetConfigFromGenome: 1
   ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   Threshold: 500
   FlatBoost: 0
   Multiplier: 1

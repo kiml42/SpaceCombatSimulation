@@ -13,10 +13,10 @@ namespace Assets.src.Evolution
         private GenomeWrapper _genome;
         public int GeneLength = 1;
 
-        private ModuleList _moduleList;
+        private readonly ModuleList _moduleList;
         
-        private ModuleHub _rootHub;
-        private TestCubeChecker _testCubePrefab;
+        private readonly ModuleHub _rootHub;
+        private readonly TestCubeChecker _testCubePrefab;
         
         private Color _colour;
         
@@ -62,14 +62,14 @@ namespace Assets.src.Evolution
         private GenomeWrapper SpawnModules()
         {
             var spawnPoints = _rootHub.SpawnPoints;
+            var _rootTarget = _rootHub.GetComponent<ITarget>();
 
             foreach (var spawnPoint in spawnPoints)
             {
                 var newUsedLocation = Vector3.zero;
                 if (CanSpawnHere(spawnPoint, out newUsedLocation))
                 {
-                    int? moduleIndex;
-                    var moduleToAdd = SelectModule(out moduleIndex);
+                    var moduleToAdd = SelectModule(out var moduleIndex);
 
                     if (moduleToAdd != null)
                     {
@@ -86,7 +86,7 @@ namespace Assets.src.Evolution
                                 hub.AllowedModuleIndicies = _rootHub.AllowedModuleIndicies;
                             }
 
-                            addedModule.tag = _rootHub.tag;
+                            addedModule.GetComponent<ITarget>().SetTeamSource(_rootTarget);
 
                             addedModule.transform.SetColor(_colour);
                             addedModule.GetComponent<Rigidbody>().velocity = _rootHub.Velocity;

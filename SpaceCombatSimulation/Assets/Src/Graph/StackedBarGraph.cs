@@ -54,8 +54,8 @@ namespace Assets.Src.Graph
                     yLoc -= barHeight;
                     Color colour = GetColourForKey(segment.Key, allKeys);
                     var position = new Rect(xLoc, yLoc, barWidth, barHeight);
-
-                    var mouseover = position.Contains(Event.current.mousePosition);
+                    
+                    var mouseover = position.Contains(Event.current?.mousePosition ?? Vector2.zero);
                     //var content = new GUIContent(segment.Key) { tooltip = segment.Key };
                     //GUI.Button(position, content);
                     GUI.DrawTexture(position, _pointTexture, ScaleMode.StretchToFill, true, 0.5f, colour, 0, 0);

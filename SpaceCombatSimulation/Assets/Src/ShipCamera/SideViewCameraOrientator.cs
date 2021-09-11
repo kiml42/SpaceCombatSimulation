@@ -17,7 +17,7 @@ namespace Assets.Src.ShipCamera
         {
             get
             {
-                return (ZeroScoreDistance - _watchDistance) * PriorityMultiplier;
+                return (ZeroScoreDistance - WatchDistance) * PriorityMultiplier;
             }
         }
 
@@ -35,9 +35,9 @@ namespace Assets.Src.ShipCamera
         public float MaximumSetBackDistance = 5000;
 
         public Transform CameraLocationOrientation;
-        private float _lookAtDistanceProportion = 0.7f;
+        private readonly float _lookAtDistanceProportion = 0.7f;
 
-        private float _watchDistance
+        private float WatchDistance
         {
             get
             {
@@ -54,7 +54,7 @@ namespace Assets.Src.ShipCamera
         [Tooltip("Angle between the furthest out watched point and the edge of the field of view.")]
         public float ExtraAngle = 10;
 
-        private List<Rigidbody> _filteredTargets
+        private List<Rigidbody> FilteredTargets
         {
             get
             {
@@ -73,13 +73,11 @@ namespace Assets.Src.ShipCamera
             }
         }
 
-        private ShipCamTargetValues _previousTargets = ShipCamTargetValues.Zero;
-
         protected override ShipCamTargetValues CalculateAutomaticTargets()
         {
             if (HasTargets)
             {
-                var targets = _filteredTargets;
+                var targets = FilteredTargets;
                 //Debug.Log("SideView: " + string.Join(",", targets.Select(t=>t.name).ToArray()));
 
                 var minX = targets.Min(t => t.position.x);
@@ -100,13 +98,12 @@ namespace Assets.Src.ShipCamera
                 
                 var automaticParentPollTarget = PickPollTarget(parentLocationTarget, targets);
                 
-                var setBack = Clamp(_watchDistance * 3, MinimumSetBackDistance, MaximumSetBackDistance);
+                var setBack = Clamp(WatchDistance * 3, MinimumSetBackDistance, MaximumSetBackDistance);
 
                 //TODO stop using this transform because it works from the current orientation of the parent, not it's desired orientation.
                 var cameraLocationTarget = CameraLocationOrientation.transform.position - CameraLocationOrientation.transform.forward * setBack;
 
                 var vectorToParent = CameraLocationOrientation.transform.forward;
-
                 var baseAngle = targets.Select(t =>
                 {
                     var vectorToCamera = t.position - cameraLocationTarget;
@@ -116,12 +113,12 @@ namespace Assets.Src.ShipCamera
                 }).Max();
 
                 var desiredAngle = baseAngle * AngleProportion + ExtraAngle;
+                var FieldOfView = Clamp(desiredAngle, 1, 90);
 
-                var fieldOfView = Clamp(desiredAngle, 1, 90);
-                
-                _previousTargets = new ShipCamTargetValues(parentLocationTarget, automaticParentPollTarget, cameraLocationTarget, CameraLocationOrientation.forward, fieldOfView, referenceVelocity, UpVector);
+                //Debug.Log($"SideViewCameraOrientator");
+                return new ShipCamTargetValues(parentLocationTarget, automaticParentPollTarget, cameraLocationTarget, CameraLocationOrientation.forward, FieldOfView, referenceVelocity, UpVector);
             }
-            return _previousTargets;
+            return null;
         }
 
         private Vector3 PickPollTarget(Vector3 parentTargetLocation, List<Rigidbody> targets)

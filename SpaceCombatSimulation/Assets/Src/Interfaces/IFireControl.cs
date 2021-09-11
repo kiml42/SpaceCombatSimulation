@@ -13,7 +13,7 @@ namespace Assets.Src.Interfaces
         /// </summary>
         /// <param name="target"></param>
         /// <returns></returns>
-        bool ShouldShoot(Target target);
+        bool ShouldShoot(ITarget target);
 
         /// <summary>
         /// Shouldshoot at the target given by some other means.

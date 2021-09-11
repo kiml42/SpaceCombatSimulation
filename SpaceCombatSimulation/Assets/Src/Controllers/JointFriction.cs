@@ -48,7 +48,7 @@ public class JointFriction : GeneticConfigurableMonobehaviour
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        Friction = genomeWrapper.GetScaledNumber(3);
+        Friction = genomeWrapper.GetScaledNumber(Friction*2);
         return genomeWrapper;
     }
 }

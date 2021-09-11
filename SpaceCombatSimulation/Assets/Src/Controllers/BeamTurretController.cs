@@ -1,13 +1,7 @@
-﻿using Assets.Src.Evolution;
-using Assets.Src.Interfaces;
+﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
-using Assets.Src.Targeting;
-using Assets.Src.Targeting.TargetPickers;
 using Assets.Src.Turret;
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivatable, IKnowsProjectileSpeed
@@ -18,7 +12,7 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     public float BeamForce = 0;
     public float BeamDamage = 10;
     public LampAndParticlesEffectController HitEffectPrefab;
-    private float EffectRepeatTime = 0.1f;
+    private readonly float EffectRepeatTime = 0.1f;
 
     public Rigidbody ElevationHub;
     public Transform BeamsParent;
@@ -29,7 +23,7 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     private bool _onInPrevFrame = false;
     private bool _active = true;
 
-    private string InactiveTag = "Untagged";
+    private const string InactiveTag = "Untagged";
     
     public float InitialRadius = 1;
     public float Divergence = 0.0005f;
@@ -37,7 +31,7 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     public Color BeamColour;
 
     [Tooltip("extra seconds to keep shooting after trigger says to stop - emulates slower control mechanism")]
-    public float KeepShootingSeconds = 2;
+    public float KeepShootingSeconds = 1;
     private float _shootingTime = 0;
 
     public float? KnownProjectileSpeed
@@ -52,20 +46,17 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
     void Start()
     {
         var emitterCount = BeamsParent.childCount;
-
         _beams = new List<Beam>();
+        var target = GetComponent<ITarget>();
         for (int i = 0; i < emitterCount; i++)
         {
             var beam = BeamsParent.GetChild(i);
-            beam.localScale = Vector3.zero;
-            //Debug.Log("beam colour: " + BeamColour);
-            beam.SetColor(BeamColour);
-            _beams.Add(new Beam(beam, ShootTime, LoadTime, HitEffectPrefab)
+            _beams.Add(new Beam(beam, ShootTime, LoadTime, BeamColour, HitEffectPrefab)
             {
                 BeamForce = BeamForce,
                 EffectRepeatTime = EffectRepeatTime,
                 BeamDamage = BeamDamage,
-                FriendlyTag = tag,
+                FriendlyTeam = target.Team,
                 InitialRadius = InitialRadius,
                 Divergence = Divergence
             });
@@ -74,12 +65,12 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
         _fireControl = GetComponent<IFireControl>();
     }
 
-    // Update is called once per frame
+    // FixedUpdate is called once per phisics time step
     void FixedUpdate()
     {
         if (_active && _fireControl != null && _beams != null)
         {
-            _shootingTime = _fireControl.ShouldShoot() ? KeepShootingSeconds : _shootingTime -= Time.deltaTime;
+            _shootingTime = _fireControl.ShouldShoot() ? KeepShootingSeconds : _shootingTime -= Time.fixedDeltaTime;
             Shoot(_shootingTime >= 0);
         }
         else
@@ -90,6 +81,15 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
             }
             //scrub the list now they've all been turned off.
             _beams = new List<Beam>();
+        }
+    }
+
+    //Update is run once per graphics frame
+    void Update()
+    {
+        foreach (var beam in _beams)
+        {
+            beam.Redraw();
         }
     }
 
@@ -127,14 +127,11 @@ public class BeamTurretController : MonoBehaviour, ITurretController, IDeactivat
             foreach (var beam in _beams)
             {
                 beam.TurnOff();
-                if(beam.Transform.IsValid())
-                    Destroy(beam.Transform.gameObject);
+                if(beam.RayCaster.IsValid())
+                    Destroy(beam.RayCaster.gameObject);
             }
         }
         //scrub the list now they've all been turned off.
         _beams = new List<Beam>();
-
-        //Debug.Log("Deactivating " + name);
-        tag = InactiveTag;
     }
 }

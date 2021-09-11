@@ -31,8 +31,9 @@ public class SpawnTurret : MonoBehaviour
                 EnemyTags = EnemyTagSource.KnownEnemyTags;
             }
 
-            if(ParentForTurret == null && transform.parent != null)
+            if (ParentForTurret == null )
             {
+                Debug.LogWarning($"{name} has no parent set for its turrets, trying this object's parent");
                 ParentForTurret = transform.parent;
             }
 
@@ -47,7 +48,15 @@ public class SpawnTurret : MonoBehaviour
                 }
 
                 turret.parent = ParentForTurret;
-                turret.GetComponent<FixedJoint>().connectedBody = parentRigidbody;
+                var turretFixedJoint = turret.GetComponent<FixedJoint>();
+                if(turretFixedJoint != null)
+                {
+                    turret.GetComponent<FixedJoint>().connectedBody = parentRigidbody;
+                }
+                else
+                {
+                    Debug.LogWarning($"turret \"{turret}\" does not have a fixed joint to connect to \"{ParentForTurret}\" with.");
+                }
 
                 var renderer = ParentForTurret.GetComponentInChildren<Renderer>();
 
@@ -66,7 +75,8 @@ public class SpawnTurret : MonoBehaviour
 
             if (TagChildren)
             {
-                turret.tag = ParentForTurret != null ? ParentForTurret.tag : tag;
+                var parentTarget = ParentForTurret.GetComponent<ITarget>();
+                turret.GetComponent<ITarget>().SetTeamSource(parentTarget ?? GetComponent<ITarget>());
             }
         
             Destroy(gameObject);

@@ -1,21 +1,57 @@
-﻿using UnityEngine;
-using UnityEditor;
-using UnityEngine.TestTools;
-using NUnit.Framework;
-using System.Collections;
-using Assets.src.Evolution;
-using Assets.Src.Database;
-using System;
+﻿using Assets.Src.Database;
 using Assets.Src.Evolution;
+using Assets.Src.Evolution.BattleRoyale;
+using Assets.Src.Evolution.Race;
+using NUnit.Framework;
+using System;
+using UnityEngine;
 
 public class EvolutionBRDatabaseHandlerSaveTests
 {
-    private string _dbPathStart = "/../tmp/TestDB/";
-    private string _dbPathExtension = ".s3db";
+    private const string _dbPathStart = "/../tmp/TestDB/";
+    private const string _dbPathExtension = ".s3db";
     private string _dbPath;
-    private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
-    EvolutionBrDatabaseHandler _handler;
+    private const string _createCommandPath = "/../../Test/TestDB/CreateTestDB.sql";
+    EvolutionDatabaseHandler _handler;
     DatabaseInitialiser _initialiser;
+
+    private EvolutionConfig DefaultEvolutionConfig {
+        get
+        {
+            var config = new EvolutionConfig
+            {
+                RunName = "SaveConfigTest",
+                GenerationNumber = 42,
+                MinMatchesPerIndividual = 6,
+                WinnersFromEachGeneration = 7,
+                MatchConfig = new MatchConfig
+                {
+                    MinimumLocationRandomisation = 43,
+                    MaximumLocationRandomisation = 44,
+                },
+                MutationConfig = new MutationConfig
+                {
+                    DefaultGenome = "SaveConfigTest_DefaultGenome"
+                }
+            };
+
+            config.BrConfig = new EvolutionBrConfig
+            {
+                NumberOfCombatants = 3,
+                DeathScoreMultiplier = 123,
+                SurvivalBonus = 432,
+            };
+
+            config.RaceConfig = new EvolutionRaceConfig
+            {
+                RaceMaxDistance = 2342,
+                RaceScoreMultiplier = 1234,
+                RaceGoalObject = 4
+            };
+
+            return config;
+        } 
+    }
 
     [SetUp]
     public void Setup()
@@ -27,7 +63,9 @@ public class EvolutionBRDatabaseHandlerSaveTests
             DatabasePath = _dbPath
         };
 
-        _handler = new EvolutionBrDatabaseHandler(_dbPath, _createCommandPath);
+        _initialiser.EnsureDatabaseExists();
+
+        _handler = new EvolutionDatabaseHandler(_dbPath, _createCommandPath);
     }
 
     [TearDown]
@@ -65,25 +103,11 @@ public class EvolutionBRDatabaseHandlerSaveTests
     [Test]
     public void SaveConfig_savesWholeThingAndReturnsId()
     {
-        var config = new EvolutionBrConfig
-        {
-            RunName = "SaveConfigTest",
-            NumberOfCombatants = 3,
-            GenerationNumber = 42,
-            MinMatchesPerIndividual = 6,
-            WinnersFromEachGeneration = 7,
-            InSphereRandomisationRadius = 43,
-            OnSphereRandomisationRadius = 44,
-            MatchConfig = new MatchConfig(),
-            MutationConfig = new MutationConfig
-            {
-                DefaultGenome = "SaveConfigTest_DefaultGenome"
-            }
-        };
+        var config = DefaultEvolutionConfig;
 
         config.DatabaseId = -13; //set id to something really obvious to show if it hasn't been set correctly.
 
-        int result = _handler.SaveNewConfig(config);
+        int result = _handler.SaveNewEvolutionConfig(config);
 
         var expectedId = 4;
 
@@ -93,9 +117,32 @@ public class EvolutionBRDatabaseHandlerSaveTests
 
         Assert.AreEqual(expectedId, retrieved.DatabaseId);
         Assert.AreEqual("SaveConfigTest", retrieved.RunName);
-        Assert.AreEqual(3, retrieved.NumberOfCombatants);
-        Assert.AreEqual(43, retrieved.InSphereRandomisationRadius);
-        Assert.AreEqual(44, retrieved.OnSphereRandomisationRadius);
+        Assert.AreEqual(3, retrieved.BrConfig.NumberOfCombatants);
+        Assert.AreEqual(43, retrieved.MatchConfig.MinimumLocationRandomisation);
+        Assert.AreEqual(44, retrieved.MatchConfig.MaximumLocationRandomisation);
+        Assert.AreEqual(123, retrieved.BrConfig.DeathScoreMultiplier);
+        Assert.AreEqual(2342, retrieved.RaceConfig.RaceMaxDistance);
+        Assert.AreEqual(1234, retrieved.RaceConfig.RaceScoreMultiplier);
+        Assert.AreEqual(432, retrieved.BrConfig.SurvivalBonus);
+        Assert.AreEqual(4, retrieved.RaceConfig.RaceGoalObject);
+    }
+
+    [Test]
+    public void SaveConfig_savesNullGoal()
+    {
+        var config = DefaultEvolutionConfig;
+
+        config.RaceConfig.RaceGoalObject = null;
+
+        int result = _handler.SaveNewEvolutionConfig(config);
+
+        var expectedId = 4;
+
+        Assert.AreEqual(expectedId, result);
+
+        var retrieved = _handler.ReadConfig(expectedId);
+        
+        Assert.IsNull(retrieved.RaceConfig.RaceGoalObject);
     }
 
     [Test]
@@ -106,11 +153,16 @@ public class EvolutionBRDatabaseHandlerSaveTests
         config.RunName = "Altered";
         config.MatchConfig.InitialRange++;
         config.MutationConfig.GenomeLength++;
-        config.NumberOfCombatants++;
-        config.InSphereRandomisationRadius++;
-        config.OnSphereRandomisationRadius++;
+        config.BrConfig.NumberOfCombatants++;
+        config.MatchConfig.MinimumLocationRandomisation++;
+        config.MatchConfig.MaximumLocationRandomisation++;
+        config.BrConfig.SurvivalBonus++;
+        config.RaceConfig.RaceMaxDistance++;
+        config.RaceConfig.RaceScoreMultiplier++;
+        config.BrConfig.DeathScoreMultiplier++;
+        config.RaceConfig.RaceGoalObject++;
 
-        _handler.UpdateExistingConfig(config);
+        _handler.UpdateExistingEvolutionConfig(config);
 
         var updated = _handler.ReadConfig(2);
 
@@ -118,9 +170,28 @@ public class EvolutionBRDatabaseHandlerSaveTests
         Assert.AreEqual("Altered", updated.RunName);
         Assert.AreEqual(config.MatchConfig.InitialRange, updated.MatchConfig.InitialRange);
         Assert.AreEqual(config.MutationConfig.GenomeLength, updated.MutationConfig.GenomeLength);
-        Assert.AreEqual(config.NumberOfCombatants, updated.NumberOfCombatants);
-        Assert.AreEqual(config.InSphereRandomisationRadius, updated.InSphereRandomisationRadius);
-        Assert.AreEqual(config.OnSphereRandomisationRadius, updated.OnSphereRandomisationRadius);
+        Assert.AreEqual(config.BrConfig.NumberOfCombatants, updated.BrConfig.NumberOfCombatants);
+        Assert.AreEqual(config.MatchConfig.MinimumLocationRandomisation, updated.MatchConfig.MinimumLocationRandomisation);
+        Assert.AreEqual(config.MatchConfig.MaximumLocationRandomisation, updated.MatchConfig.MaximumLocationRandomisation);
+        Assert.AreEqual(config.BrConfig.SurvivalBonus, updated.BrConfig.SurvivalBonus);
+        Assert.AreEqual(config.RaceConfig.RaceMaxDistance, updated.RaceConfig.RaceMaxDistance);
+        Assert.AreEqual(config.RaceConfig.RaceScoreMultiplier, updated.RaceConfig.RaceScoreMultiplier);
+        Assert.AreEqual(config.BrConfig.DeathScoreMultiplier, updated.BrConfig.DeathScoreMultiplier);
+        Assert.AreEqual(config.RaceConfig.RaceGoalObject, updated.RaceConfig.RaceGoalObject);
+    }
+
+    [Test]
+    public void UpdateTest_setGoalToNull()
+    {
+        var config = _handler.ReadConfig(2);
+        
+        config.RaceConfig.RaceGoalObject = null;
+
+        _handler.UpdateExistingEvolutionConfig(config);
+
+        var updated = _handler.ReadConfig(2);
+        
+        Assert.IsNull(updated.RaceConfig.RaceGoalObject);
     }
     #endregion
 }

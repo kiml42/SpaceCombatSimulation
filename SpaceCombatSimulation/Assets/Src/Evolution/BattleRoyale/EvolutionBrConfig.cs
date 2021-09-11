@@ -1,18 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
-namespace Assets.Src.Evolution
+namespace Assets.Src.Evolution.BattleRoyale
 {
-    public class EvolutionBrConfig : BaseEvolutionConfig
+    public class EvolutionBrConfig
     {
-        public const int MAX_COMBATANTS = 6;
-        public const int MIN_COMBATANTS = 2;
+        #region Combatants
+        public const int MAX_COMBATANTS = 100;
+        public const int MIN_COMBATANTS = 1;
 
         private int _numberOfCombatants = 2;
-        public int NumberOfCombatants {
-            get {
+        public int NumberOfCombatants
+        {
+            get
+            {
                 return Math.Max(
                     MIN_COMBATANTS,
                     Math.Min(
@@ -25,8 +25,11 @@ namespace Assets.Src.Evolution
                 _numberOfCombatants = value;
             }
         }
+        #endregion
 
-        public float OnSphereRandomisationRadius = 50;
-        public float InSphereRandomisationRadius = 0;
+        #region Combat Scores
+        public float SurvivalBonus = 400;
+        public float DeathScoreMultiplier = 1;
+        #endregion
     }
 }

@@ -1,13 +1,12 @@
 ﻿using Assets.Src.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 
 namespace Assets.Src.ShipCamera
 {
     public class WeightedCameraOrientator : ICameraOrientator
     {
-        private List<BaseCameraOrientator> _orientators;
+        private readonly List<BaseCameraOrientator> _orientators;
         private IEnumerable<BaseCameraOrientator> _active = new List<BaseCameraOrientator>();
 
         public WeightedCameraOrientator(List<BaseCameraOrientator> orientators)
@@ -17,7 +16,7 @@ namespace Assets.Src.ShipCamera
 
         public bool HasTargets { get { return _orientators.Any(o => o.HasTargets && o.Priority > 0); } }
 
-        private float _totalWeight {
+        private float TotalWeight {
             get
             {
                 return _active.Sum(o => o.Priority);
@@ -38,7 +37,7 @@ namespace Assets.Src.ShipCamera
                 sum = sum.AddTo(v);
             }
 
-            return sum.DivideBy(_totalWeight);
+            return sum.DivideBy(TotalWeight);
         }
     }
 }

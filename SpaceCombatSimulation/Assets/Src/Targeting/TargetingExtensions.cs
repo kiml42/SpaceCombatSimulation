@@ -1,9 +1,5 @@
-﻿using Assets.Src.ObjectManagement;
-using Assets.Src.Targeting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using Assets.Src.Interfaces;
+using Assets.Src.ObjectManagement;
 using UnityEngine;
 
 namespace Assets.Src.Targeting
@@ -19,35 +15,35 @@ namespace Assets.Src.Targeting
         /// <param name="origin"></param>
         /// <param name="projectileSpeed"></param>
         /// <returns></returns>
-        public static Vector3 LocationInOthersSpace(this Target target, Rigidbody origin, float? projectileSpeed)
+        public static Vector3 LocationInOthersSpace(this ITarget target, Rigidbody origin, float? projectileSpeed)
         {
             return target.Rigidbody != null ?
                 target.Rigidbody.LocationInOthersSpace(origin, projectileSpeed) :
                 target.Transform.LocationInOthersSpace(origin);
         }
 
-        public static Vector3 LocationInOthersSpace(this Target target, Transform origin, float? projectileSpeed)
+        public static Vector3 LocationInOthersSpace(this ITarget target, Transform origin, float? projectileSpeed)
         {
             return target.Rigidbody != null ?
                 target.Rigidbody.LocationInOthersSpace(origin, projectileSpeed) :
                 target.Transform.LocationInOthersSpace(origin);
         }
 
-        public static Vector3 LocationInElevationHubSpaceAfterTurnTableTurn(this Target target, Rigidbody thisTurret, Transform turnTable, Rigidbody elevationHub, float? projectileSpeed)
+        public static Vector3 LocationInElevationHubSpaceAfterTurnTableTurn(this ITarget target, Rigidbody thisTurret, Transform turnTable, Rigidbody elevationHub, float? projectileSpeed)
         {
             return target.Rigidbody != null ?
                 target.Rigidbody.LocationInElevationHubSpaceAfterTurnTableTurn(thisTurret, turnTable, elevationHub, projectileSpeed):
                 target.Transform.LocationInElevationHubSpaceAfterTurnTableTurn(thisTurret, turnTable, elevationHub);
         }
         
-        public static Vector3 LocationInAimedSpace(this Target target, Rigidbody aimingObject, float? projectileSpeed)
+        public static Vector3 LocationInAimedSpace(this ITarget target, Rigidbody aimingObject, float? projectileSpeed)
         {
             return target.Rigidbody != null ?
                 target.Rigidbody.LocationInOthersSpace(aimingObject, projectileSpeed):
                 target.Transform.LocationInOthersSpace(aimingObject);
         }
         
-        public static Vector3 CorrectForVelocity(this Target target, Rigidbody baseObject, float? projectileSpeed)
+        public static Vector3 CorrectForVelocity(this ITarget target, Rigidbody baseObject, float? projectileSpeed)
         {
             return target.Rigidbody != null ?
                 target.Rigidbody.CorrectForVelocity(baseObject, projectileSpeed):
@@ -62,7 +58,7 @@ namespace Assets.Src.Targeting
         /// <param name="thisTurret"></param>
         /// <param name="projectileSpeed"></param>
         /// <returns></returns>
-        public static float DistanceToTurret(this Target target, Rigidbody thisTurret, float? projectileSpeed)
+        public static float DistanceToTurret(this ITarget target, Rigidbody thisTurret, float? projectileSpeed)
         {
             return target.Rigidbody != null ?
                  target.Rigidbody.DistanceToTurret(thisTurret, projectileSpeed):
@@ -77,9 +73,70 @@ namespace Assets.Src.Targeting
         /// <param name="thisTurret"></param>
         /// <param name="projectileSpeed"></param>
         /// <returns></returns>
-        public static float DistanceToTurret(this Target target, Transform thisTurret)
+        public static float DistanceToTurret(this ITarget target, Transform thisTurret)
         {
             return target.Transform.DistanceToTurret(thisTurret);
+        }
+        #endregion
+
+        #region PotentialTargetVersions
+        /// <summary>
+        /// Returns the location of the target in the origin's space
+        /// Offsets for projectile speed if provided.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="origin"></param>
+        /// <param name="projectileSpeed"></param>
+        /// <returns></returns>
+        public static Vector3 LocationInOthersSpace(this PotentialTarget target, Rigidbody origin, float? projectileSpeed)
+        {
+            return target.Target.LocationInOthersSpace(origin, projectileSpeed);
+        }
+
+        public static Vector3 LocationInOthersSpace(this PotentialTarget target, Transform origin, float? projectileSpeed)
+        {
+            return target.Target.LocationInOthersSpace(origin, projectileSpeed);
+        }
+
+        public static Vector3 LocationInElevationHubSpaceAfterTurnTableTurn(this PotentialTarget target, Rigidbody thisTurret, Transform turnTable, Rigidbody elevationHub, float? projectileSpeed)
+        {
+            return target.Target.LocationInElevationHubSpaceAfterTurnTableTurn(thisTurret, turnTable, elevationHub, projectileSpeed);
+        }
+
+        public static Vector3 LocationInAimedSpace(this PotentialTarget target, Rigidbody aimingObject, float? projectileSpeed)
+        {
+            return target.Target.LocationInAimedSpace(aimingObject, projectileSpeed);
+        }
+
+        public static Vector3 CorrectForVelocity(this PotentialTarget target, Rigidbody baseObject, float? projectileSpeed)
+        {
+            return target.Target.CorrectForVelocity(baseObject, projectileSpeed);
+        }
+
+        /// <summary>
+        /// Returns the distance to the target from the given Rigidbody.
+        /// Returns float.MaxValue if the target or turret Rigidbody is null.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="thisTurret"></param>
+        /// <param name="projectileSpeed"></param>
+        /// <returns></returns>
+        public static float DistanceToTurret(this PotentialTarget target, Rigidbody thisTurret, float? projectileSpeed)
+        {
+            return target.Target.DistanceToTurret(thisTurret, projectileSpeed);
+        }
+
+        /// <summary>
+        /// Returns the distance to the target from the given Rigidbody.
+        /// Returns float.MaxValue if the target or turret Rigidbody is null.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="thisTurret"></param>
+        /// <param name="projectileSpeed"></param>
+        /// <returns></returns>
+        public static float DistanceToTurret(this PotentialTarget target, Transform thisTurret)
+        {
+            return target.Target.DistanceToTurret(thisTurret);
         }
         #endregion
 

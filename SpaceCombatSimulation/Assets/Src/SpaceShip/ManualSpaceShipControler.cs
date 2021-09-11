@@ -1,11 +1,11 @@
-﻿using Assets.Src.Evolution;
+﻿using Assets.Src.Controllers;
+using Assets.Src.Evolution;
 using Assets.Src.Interfaces;
-using Assets.Src.ModuleSystem;
 using Assets.Src.Pilots;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ManualSpaceShipControler : GeneticConfigurableMonobehaviour, IDeactivatable
+public class ManualSpaceShipControler : AbstractDeactivatableController
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
 
@@ -24,18 +24,16 @@ public class ManualSpaceShipControler : GeneticConfigurableMonobehaviour, IDeact
     
     public Rigidbody Torquer;
     public List<EngineControler> Engines = new List<EngineControler>();
-    private List<Rigidbody> _torquers = new List<Rigidbody>();
+    private readonly List<Rigidbody> _torquers = new List<Rigidbody>();
 
     public float AngularDragForTorquers = 20;
 
     private const float Fuel = Mathf.Infinity;
     private Rigidbody _thisSpaceship;
-    private bool _active = true;
 
-    private IPilot _autoPilot;
+    //private IPilot _autoPilot;
     private IPilot _manualPilot;
 
-    private string InactiveTag = "Untagged";
     public Transform VectorArrow;
 
     // Use this for initialization
@@ -58,19 +56,19 @@ public class ManualSpaceShipControler : GeneticConfigurableMonobehaviour, IDeact
         //ensure this starts active.
         torqueApplier.Activate();
 
-        _autoPilot = new SpaceshipPilot(torqueApplier, _thisSpaceship, Engines, ShootAngle, Fuel)
-        {
-            StartDelay = StartDelay,
-            SlowdownWeighting = SlowdownWeighting,
-            TangentialSpeedWeighting = TangentialSpeedWeighting,
-            LocationAimWeighting = LocationAimWeighting,
-            VectorArrow = VectorArrow,
-            MaxRange = MaxRange,
-            MinRange = MinRange,
-            MaxTangentialSpeed = MaxTangentialVelocity,
-            MinTangentialSpeed = MinTangentialVelocity,
-            RadialSpeedThreshold = RadialSpeedThreshold
-        };
+        //_autoPilot = new SpaceshipPilot(torqueApplier, _thisSpaceship, Engines, ShootAngle, Fuel)
+        //{
+        //    StartDelay = StartDelay,
+        //    SlowdownWeighting = SlowdownWeighting,
+        //    TangentialSpeedWeighting = TangentialSpeedWeighting,
+        //    LocationAimWeighting = LocationAimWeighting,
+        //    VectorArrow = VectorArrow,
+        //    MaxRange = MaxRange,
+        //    MinRange = MinRange,
+        //    MaxTangentialSpeed = MaxTangentialVelocity,
+        //    MinTangentialSpeed = MinTangentialVelocity,
+        //    RadialSpeedThreshold = RadialSpeedThreshold
+        //};
 
         _manualPilot = new ManualSpaceshipPilot(torqueApplier, _thisSpaceship, Engines, Fuel);
     }
@@ -80,13 +78,6 @@ public class ManualSpaceShipControler : GeneticConfigurableMonobehaviour, IDeact
     {
         if (_active && _manualPilot != null)
             _manualPilot.Fly(_targetChoosingMechanism.CurrentTarget);
-    }
-    
-    public void Deactivate()
-    {
-        //Debug.Log("Deactivating " + name);
-        _active = false;
-        tag = InactiveTag;
     }
 
     public void RegisterEngine(EngineControler engine)
@@ -105,23 +96,24 @@ public class ManualSpaceShipControler : GeneticConfigurableMonobehaviour, IDeact
         //_engineControl.SetEngine(Engine);
     }
    
-    private float MaxShootAngle = 180;
-    private float DefaultShootAngleProportion = 0.5f;
-    private float MaxLocationAimWeighting = 2;
-    private float DefaultLocationAimWeightingProportion = 0.5f;
-    private float MaxSlowdownWeighting = 70;
-    private float DefaultSlowdownWeightingProportion = 0.5f;
-    private float MaxTangentialVelosityWeighting = 70;
-    private float DefaultTangentialVelosityWeightingProportion = 0.5f;
-    private float MaxMaxAndMinRange = 1000;
-    private float DefaultMaxAndMinRangeProportion = 0.1f;
-    private float MaxVelociyTollerance = 100;
-    private float DefaultVelociyTolleranceProportion = 0.1f;
-    private float MaxAngularDragForTorquers = 2;
-    private float DefaultAngularDragForTorquersProportion = 0.2f;
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
+        const float MaxShootAngle = 180;
+        const float DefaultShootAngleProportion = 0.5f;
+        const float MaxLocationAimWeighting = 2;
+        const float DefaultLocationAimWeightingProportion = 0.5f;
+        const float MaxSlowdownWeighting = 70;
+        const float DefaultSlowdownWeightingProportion = 0.5f;
+        const float MaxTangentialVelosityWeighting = 70;
+        const float DefaultTangentialVelosityWeightingProportion = 0.5f;
+        const float MaxMaxAndMinRange = 1000;
+        const float DefaultMaxAndMinRangeProportion = 0.1f;
+        const float MaxVelociyTollerance = 100;
+        const float DefaultVelociyTolleranceProportion = 0.1f;
+        const float MaxAngularDragForTorquers = 2;
+        const float DefaultAngularDragForTorquersProportion = 0.2f;
+
         ShootAngle =
                 genomeWrapper.GetScaledNumber(MaxShootAngle, 0, DefaultShootAngleProportion);
         LocationAimWeighting =

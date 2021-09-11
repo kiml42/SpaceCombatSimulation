@@ -1,13 +1,14 @@
-﻿using Assets.Src.Evolution;
+﻿using Assets.Src.Controllers;
+using Assets.Src.Evolution;
 using Assets.Src.Interfaces;
-using Assets.Src.ModuleSystem;
 using Assets.Src.ObjectManagement;
 using UnityEngine;
 
-public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
+public class SpawnProjectile : AbstractDeactivatableController
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
     private IKnowsEnemyTags _enemyTagKnower;
+    private ITarget _thisTarget;
     public bool TagChildren = false;
     public Rigidbody Projectile;
     public Transform Emitter;
@@ -15,7 +16,6 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
     
     public float RandomStartTime = 30;
     public float MinStartTime = 30;
-    private bool _active = true;
 
     public int BurstCount = 1;
     private int _projectilesThisBurst = 0;
@@ -27,7 +27,6 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
     private float _reload = 0;
     public float LoadTime = 200;
 
-    private string InactiveTag = "Untagged";
     private ColourSetter _colerer;
 
     // Use this for initialization
@@ -35,10 +34,11 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
     {
         _colerer = GetComponent<ColourSetter>();
         _reload = Random.value * RandomStartTime + MinStartTime;
-        Emitter = Emitter ?? transform;
+        Emitter = Emitter != null ? Emitter : transform;
         _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
         _enemyTagKnower = GetComponent<IKnowsEnemyTags>();
         _spawner = GetComponent<Rigidbody>();
+        _thisTarget = GetComponent<ITarget>();
     }
 
     // Update is called once per frame
@@ -56,7 +56,7 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
 
                 if (_spawner != null)
                 {
-                    velocity = velocity + _spawner.velocity;
+                    velocity += _spawner.velocity;
                 }
 
                 velocity += RandomSpeed * UnityEngine.Random.insideUnitSphere;
@@ -69,7 +69,11 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
                     tagKnower.KnownEnemyTags = _enemyTagKnower.KnownEnemyTags;
                 }
                 
-                if (TagChildren) { projectile.tag = tag; }
+                if (TagChildren)
+                {
+                    var target = projectile.GetComponent<ITarget>();
+                    target.SetTeamSource(_thisTarget);
+                }
 
                 if (_colerer != null)
                 {
@@ -94,7 +98,7 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
             }
             else
             {
-                _reload-=Time.deltaTime;
+                _reload-=Time.fixedDeltaTime;
             }
     }
 
@@ -106,19 +110,17 @@ public class SpawnProjectile : GeneticConfigurableMonobehaviour, IDeactivatable
         }
         return true;
     }
-
-    public void Deactivate()
-    {
-        //Debug.Log("Deactivating " + name);
-        _active = false;
-        tag = InactiveTag;
-    }
     
     private string RocketGenome;
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
         RocketGenome = genomeWrapper.Genome.Substring(genomeWrapper.GetGeneAsInt() ?? 0);
+        Velocity *= genomeWrapper.GetScaledNumber(1);
+        RandomStartTime = genomeWrapper.GetScaledNumber(RandomStartTime * 2);
+        MinStartTime = genomeWrapper.GetScaledNumber(MinStartTime * 2);
+        RandomSpeed = genomeWrapper.GetScaledNumber(RandomSpeed * 2, RandomSpeed, 0.1f);
+        LoadTime = genomeWrapper.GetScaledNumber(LoadTime * 2, LoadTime, 0.1f);
         return genomeWrapper;
     }
 }

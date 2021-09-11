@@ -1,11 +1,13 @@
-﻿using Assets.Src.Interfaces;
+﻿using Assets.Src.Controllers;
+using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnower
+public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactivateableTargetKnower
 {
     public ITargetDetector Detector;
 
@@ -19,20 +21,27 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
     [Tooltip("time to wait between polling for better targets (seconds).")]
     public float PollInterval = 0;
     private float _pollCountdonwn = 0;
-    
+
     #region knowsCurrentTarget
-    public Target CurrentTarget { get; private set; }
-    public IEnumerable<Target> FilteredTargets { get; private set; }
+    public ITarget CurrentTarget { get; private set; }
+    public IEnumerable<ITarget> FilteredTargets { get; private set; }
     #endregion
 
     public IKnowsEnemyTags EnemyTagKnower;
     public CombinedTargetPicker TargetPicker;
-    
-    private bool _active = true;
+
+    public bool IncludeNavigationTargets = false;
+    public bool IncludeAtackTargets = true;
 
     // Use this for initialization
-    void Start ()
+    public void Start ()
     {
+        if(TargetPicker == null)
+        {
+            Debug.LogError(name + " Has no target picker");
+            _active = false;
+            return;
+        }
         if(Detector == null)
         {
             EnemyTagKnower = EnemyTagKnower ?? GetComponentInParent<IKnowsEnemyTags>();
@@ -44,11 +53,11 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
                 Detector = new RepositoryTargetDetector(EnemyTagKnower);
             }
         }
-        FilteredTargets = new List<Target>();//ensure that this isn't null.
+        FilteredTargets = new List<ITarget>();//ensure that this isn't null.
     }
 	
-	// Update is called once per frame
-	void Update () {
+	void FixedUpdate () {
+        //Debug.Log("TCM.FixedUpdate - active: " + _active);
         if (_active)
         {
             var targetIsInvalid = CurrentTarget == null || CurrentTarget.Transform.IsInvalid();
@@ -58,19 +67,20 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
                 //either the target is invalid, or the poll interval has elapsed and the ContinuallyCheckForTargets boolean is true, so a new poll should be made.
                 if (Detector == null)
                 {
-                    Debug.LogWarning(name + " has no detector.");
+                    Debug.LogWarning(name + " Target Choosing mechanism has no detector.");
                     return;
                 }
                 //Debug.Log(name + " aquiring new target");
-                var allTargets = Detector.DetectTargets();
+                var allTargets = Detector.DetectTargets(IncludeNavigationTargets, IncludeAtackTargets);
                 var allTargetsList = allTargets.ToList();
-                FilteredTargets = TargetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score).Select(t => t as Target);
-                var filteredTargetsList = FilteredTargets.ToList();
+                var filteredPotentialTargets = TargetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score);
+                FilteredTargets = filteredPotentialTargets.Select(t => t.Target);
                 var bestTarget = FilteredTargets.FirstOrDefault();
+                //Debug.Log("Count of targets: " + allTargets.Count());
                 if(TargetHasChanged(bestTarget, CurrentTarget))
                 {
-                    //LogTargetChange(CurrentTarget, bestTarget, targetIsInvalid);
-                    
+                    LogTargetChange(CurrentTarget, filteredPotentialTargets.FirstOrDefault(), targetIsInvalid);
+
                     CurrentTarget = bestTarget;
                 }
                 if (CurrentTarget != null && NeverRetarget)
@@ -81,12 +91,12 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
             } else
             {
                 //there was no poll this frame, so decrement the countdown.
-                _pollCountdonwn -= Time.deltaTime;
+                _pollCountdonwn -= Time.fixedDeltaTime;
             }
         }
     }
 
-    private bool TargetHasChanged(Target old, Target newTarget)
+    private bool TargetHasChanged(ITarget old, ITarget newTarget)
     {
         if(old == newTarget)
         {
@@ -100,12 +110,12 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
         return old.Transform != newTarget.Transform;
     }
 
-    private void LogTargetChange(Target old, PotentialTarget newTarget, bool oldWasInvalid)
+    private void LogTargetChange(ITarget old, PotentialTarget newTarget, bool oldWasInvalid)
     {
         var log = transform.name + " has started targeting ";
         if (newTarget != null)
         {
-            log += newTarget.Transform.name + " (score=" + newTarget.Score + ") at " + newTarget.Transform.position;
+            log += newTarget.Target.Transform.name + " (score=" + newTarget.Score + ") at " + newTarget.Target.Transform.position;
         } else
         {
             log += "nothing";
@@ -119,11 +129,12 @@ public class TargetChoosingMechanism : MonoBehaviour, IDeactivateableTargetKnowe
             Debug.Log(log); //log only retargets.
             return;
         }
-        //Debug.Log(log);
     }
 
-    public void Deactivate()
+    protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        _active = false;
+        PollInterval = genomeWrapper.GetScaledNumber(10, 1);
+
+        return genomeWrapper;
     }
 }

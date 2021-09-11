@@ -1,8 +1,6 @@
 ﻿using Assets.Src.Interfaces;
-using System;
+using Assets.Src.Targeting;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.ObjectManagement
@@ -23,6 +21,7 @@ namespace Assets.Src.ObjectManagement
         {
             //Debug.Log("Destroy called for " + toDestroy.name + ", useExplosion = " + useExplosion);
             toDestroy = FindNextParentRigidbody(toDestroy);
+            toDestroy.SendMessage("Deactivate", SendMessageOptions.DontRequireReceiver);
             //Debug.Log("Parent to destroy: " + toDestroy.name);
             DestroyWithoutLookingForParent(toDestroy, useExplosion, velocityOverride);
         }
@@ -32,19 +31,14 @@ namespace Assets.Src.ObjectManagement
             var allChilldren = FindImediateChildren(toDestroy);
             foreach (var child in allChilldren)
             {
+                child.SendMessage("Deactivate", SendMessageOptions.DontRequireReceiver);
                 if (KillCompletely)
                 {
                     DestroyWithoutLookingForParent(child.gameObject, false, velocityOverride);
                 } else
                 {
-                    child.SendMessage("Deactivate", SendMessageOptions.DontRequireReceiver);
                     var rigidbody = child.GetComponent<Rigidbody>();
                     child.parent = null;
-                    if (UntagChildren)
-                    {
-                        //Debug.Log("untagging " + child);
-                        child.tag = DeadObjectTag;
-                    }
 
                     if (rigidbody != null)
                     {
@@ -53,12 +47,12 @@ namespace Assets.Src.ObjectManagement
                         var fixedJoint = child.GetComponent<FixedJoint>();
                         if (fixedJoint != null)
                         {
-                            UnityEngine.Object.Destroy(fixedJoint);
+                            Object.Destroy(fixedJoint);
                         }
                         var hingeJoint = child.GetComponent<HingeJoint>();
                         if (hingeJoint != null)
                         {
-                            UnityEngine.Object.Destroy(fixedJoint);
+                            Object.Destroy(fixedJoint);
                         }
                         if(fixedJoint==null && hingeJoint == null)
                         {

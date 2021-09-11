@@ -9,6 +9,8 @@ Z - make the ship cam follow a different object.
 R - cycle reticle state
 O - Cycle camera mode
 
+use buldname.exe -batchmode -nographics to run a build without using a GUI
+
 Filter and sort individuals in DB:
     runConfigId = 2 ORDER BY generation DESC, score DESC LIMIT 200;
 

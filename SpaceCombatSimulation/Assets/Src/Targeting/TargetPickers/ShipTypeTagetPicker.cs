@@ -32,7 +32,8 @@ namespace Assets.Src.Targeting.TargetPickers
             ShipType.Corvette,
             ShipType.Turret,
             ShipType.Capital,
-            ShipType.SuperCapital
+            ShipType.SuperCapital,
+            ShipType.Engine
         };
 
         /// <summary>
@@ -56,12 +57,12 @@ namespace Assets.Src.Targeting.TargetPickers
 
         private bool IsAllowed(PotentialTarget t)
         {
-            return !DisalowedTypes.Contains(t.Type);
+            return !DisalowedTypes.Contains(t.Target.Type);
         }
 
         private PotentialTarget AddScoreForPrefered(PotentialTarget target)
         {
-            target.IsValidForCurrentPicker = PreferdTypes.Contains(target.Type);
+            target.IsValidForCurrentPicker = PreferdTypes.Contains(target.Target.Type);
             if(target.IsValidForCurrentPicker)
             {
                 target.Score += FlatBoost;

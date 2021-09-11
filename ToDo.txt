@@ -1,5 +1,8 @@
 Bugs:
     Priority:
+        Autotime doesn't work with batchmode.
+        Drones extra modules don't get their team tags set.
+        Graphs don't show current generation
         Zoom causes errors in over-shoulder mode.
         Read and resave unaltered species names - they are all getting nulled.
         TargetChoosingMechanisms of root ship hubs are always configured starting at index 0.
@@ -15,10 +18,20 @@ Bugs:
     Accounting for speed fails for spinning targets.
     Leting the DB default locationRandomisationRadiai makes it unreadable.
     Severed components remain targetable. - not sure if this is actually a problem.
+    Prevent turrets locking by trying to go round the back of the turret
+        Get current turn table forwards vector and vector to Target in rest target space
+            If they are on different sides of the rest target, turn towards the rest target (with the speed set for the actual angle to turn for the location of the target)
     
 
 TODO:
     In Progress:
+        Evolution:
+            Use a generated Id for individuals in the individuals table instead of the genome.
+                This should go for everything referring to a genome at the moment (previous combatants, lists in controller etc.)
+        TagsOverhaul:
+            Consider moving away from unity tags for target selection, the repository should be enough.
+        Race evolution
+            Include new settings in editBrConfig.
         Player ship
             Vs evolved ships using battle royal mode
                 Started - need to make game end when the player ship is defeated.
@@ -38,9 +51,19 @@ TODO:
                     cast ray from camera through reticle
                     turrets are given the target hit by the ray as very high priority (probably lower bonus than in hemisphere so that the ones that can't aim don't try)
                     turrets fire on click
+            Add a target picker for NPC ships that boosts the score for player ships
 
 
     Priority:
+        Angle Spawning:
+            Set total angle to use for spawning ships.
+            Ships spawn in a ring around the centre such that the n+1th ship would be at this angle.
+        Non-navigable targets
+            Make it possible to register as a target that can be shot at, but ships won't consider it for navigation (e.g torpedoes).
+        Merge evolution modes
+            Set multipliers for kills, drones and race scores
+            Option to not make ships each other's enemy
+            Choose angle between ships around the middle, so ships can start next to each other.
         Camera
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.
@@ -60,11 +83,12 @@ TODO:
         Eyeball turret
             Account for parent angularV
         Analysis
-            Record the modules used to make a species and subspecies of a genome
-                This would ideally be recorded in the genome as the ship is built (species can be derived from subspecies) and stored in the DB, could also be calculated after by building the ship and then destroying it (could only run analysis of species in unity).
-                Graphs of both against generations, possibly moving sums/averages.
-                    Mouse-overs reveal the species/subspecies (possibly include creating a model of one to show what it looked like.)
+            Improve graphs
+                Add graph for number of each type of module present in a generation.
         Async
+        Use whole mass of object
+            Consider the mass of all connected objects for mass target picker
+        Have ship cam look at the center of mass, not the root of the object.
         Find an easy way to delete individuals.
         Better defaults for evolution configs in the menus.
         Master targeting controller on spaceships with which other targeters can register to have a list of everything being targeted by that ship.
@@ -75,7 +99,6 @@ TODO:
         score -= genome.Length (for use with variable length genomes)
         investigate use of entity framework.
         Randomise target choosing mechanism periods so they don't come up at the same time.
-        Some tool to show graphs of genomes over time.
         Cardboard support
         Test on phone
         Add to Play store?
@@ -98,14 +121,12 @@ TODO:
             Hubs have batteries to store energy
             Hubs have generators to recharge batteries.
         Gimballed engines
-            Use basic turret turning setup - will need to be given a method that takes an pointing vector instead of a Target
+            Use basic turret turning setup - will need to be given a method that takes a pointing vector instead of a Target
         Modular turrets
             Turret body can be eyeball, normal or just fixed
             business ends will be different sorts of firing mechanisms.
             Turret turning mechanism looks for an orientation source in itself or its children.
-        Prevent turrets locking by trying to go round the back of the turret
-            Get current turn table forwards vector and vector to Target in rest target space
-                If they are on different sides of the rest target, turn towards the rest target (with the speed set for the actual angle to turn for the location of the target)
+        
     
     Graphs:
         Option to export a CSV of a graph.
@@ -115,10 +136,6 @@ TODO:
     Weighted camera orientator using poll targets, ignores rotation targets (must be calculated with look rotations)
         Implemented - works rather badly, different vectors would need different weights to make it work right.
         Might be nice to have user prioritisation in this too.
-    Race evolution
-        Periodically check distance to target and add more score for closer (nonlinear?)
-        Target could be fixed, moveable, or a scardeybot.
-        Have as an option for an additional scoring mechanism for BR evolution.
     TractorbeamTurret
     Add a small cheap engine module - meant for manuvring.
     Avoid GetComponent and sendMessage in update methods.

@@ -86,7 +86,7 @@ namespace Assets.Src.ShipCamera
         }
         
         // Update is called once per frame
-        void FixedUpdate()
+        void Update()
         {
             if (Input.GetKeyUp(KeyCode.Z))
             {
@@ -99,7 +99,9 @@ namespace Assets.Src.ShipCamera
 
             if(Input.GetMouseButtonUp(SelectTargetButtonIndex))
             {
-                var clicked = BodyUnderPointer() ?? WatchedRigidbody;
+                var clicked = BodyUnderPointer();
+                clicked = clicked != null ? clicked : WatchedRigidbody;
+
                 if (clicked != null && clicked != FollowedTarget)
                 {
                     WatchedRigidbody = BodyUnderPointer();
@@ -119,34 +121,34 @@ namespace Assets.Src.ShipCamera
 
                 if (_calls < 10)
                 {
+                    //Debug.Log("moving camera to desired position instantly");
                     transform.position = targets.ParentLocationTarget;
 
                     transform.rotation = targets.ParentOrientationTarget;
                     Camera.transform.rotation = targets.CameraOrientationTarget;
                     Camera.fieldOfView = targets.CameraFieldOfView;
                     Camera.transform.position = targets.CameraLocationTarget;
+                    _calls++;
                 } else
                 {
-                    transform.position += FollowedObjectTranslateSpeedMultiplier * Time.deltaTime * targets.ReferenceVelocity;
-                    transform.position = Vector3.Slerp(transform.position, targets.ParentLocationTarget, Time.deltaTime * TranslateSpeed);
+                    //Debug.Log("moving camera to desired position incrementally");
 
-                    transform.rotation = Quaternion.Slerp(transform.rotation, targets.ParentOrientationTarget, Time.deltaTime * RotationSpeed);
-                    Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, targets.CameraOrientationTarget, Time.deltaTime * RotationSpeed * 0.3f);
-                    Camera.fieldOfView = Mathf.LerpAngle(Camera.fieldOfView, targets.CameraFieldOfView, Time.deltaTime * ZoomSpeed * 0.3f);
-                    Camera.transform.position = Vector3.Slerp(Camera.transform.position, targets.CameraLocationTarget, Time.deltaTime * totalTranslateSpeed);
+                    transform.position += FollowedObjectTranslateSpeedMultiplier * Time.unscaledDeltaTime * targets.ReferenceVelocity;
+                    transform.position = Vector3.Slerp(transform.position, targets.ParentLocationTarget, Time.unscaledDeltaTime * TranslateSpeed);
+
+                    transform.rotation = Quaternion.Slerp(transform.rotation, targets.ParentOrientationTarget, Time.unscaledDeltaTime * RotationSpeed);
+                    Camera.transform.rotation = Quaternion.Slerp(Camera.transform.rotation, targets.CameraOrientationTarget, Time.unscaledDeltaTime * RotationSpeed * 0.3f);
+                    Camera.fieldOfView = Mathf.LerpAngle(Camera.fieldOfView, targets.CameraFieldOfView, Time.unscaledDeltaTime * ZoomSpeed * 0.3f);
+                    Camera.transform.position = Vector3.Slerp(Camera.transform.position, targets.CameraLocationTarget, Time.unscaledDeltaTime * totalTranslateSpeed);
                 }
-
-                _calls++;
             }
         }
 
         private Rigidbody BodyUnderPointer()
         {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-            RaycastHit hit;
-
-            if (Physics.Raycast(ray, out hit))
+            if (Physics.Raycast(ray, out RaycastHit hit))
             {
                 return hit.transform.GetComponent<Rigidbody>();
             }
@@ -156,15 +158,8 @@ namespace Assets.Src.ShipCamera
         private void PickTargetToWatch()
         {
             //Debug.Log("to watch");
-            var targets = WatchPicker.FilteredTargets.Where(t => t.Transform.IsValid() && t.Transform.parent == null);
-            if(TeamTagsToWatch != null && TeamTagsToWatch.Any(tag => targets.Any(target => target.Transform.tag == tag)))
-            {
-                targets = targets.Where(target => TeamTagsToWatch.Contains(target.Transform.tag));
-            }
-            //foreach (var item in targets)
-            //{
-            //    Debug.Log(item.Transform.name + ": " + item.Score);
-            //}
+            var targets = WatchPicker.FilteredTargets.Where(t => t != null && t.Transform.IsValid() && t.Transform.parent == null).ToList();
+            
             WatchedRigidbodies = new List<Rigidbody>();
             if (targets.Any())
             {
@@ -194,11 +189,7 @@ namespace Assets.Src.ShipCamera
         private void PickBestTargetToFollow()
         {
             //Debug.Log("To Follow");
-            var targets = FollowPicker.FilteredTargets.Where(t => t.Transform.parent == null);  //Don't follow anything that still has a parent.
-            if (TeamTagsToFollow != null && TeamTagsToFollow.Any())
-            {
-                targets = targets.Where(target => TeamTagsToFollow.Contains(target.Transform.tag));
-            }
+            var targets = FollowPicker.FilteredTargets.Where(t => t != null && t.Transform != null && t.Transform.parent == null);  //Don't follow anything that still has a parent.
             //foreach (var item in targets)
             //{
             //    Debug.Log(item.Transform.name + ": " + item.Score);

@@ -1,14 +1,11 @@
-﻿using Assets.Src.Evolution;
-using Assets.Src.Interfaces;
-using Assets.Src.ModuleSystem;
+﻿using Assets.Src.Controllers;
+using Assets.Src.Evolution;
 using Assets.Src.ObjectManagement;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 //TODO neaten up fields and methods.
-public class EngineControler : GeneticConfigurableMonobehaviour
+public class EngineControler : AbstractDeactivatableController
 {
     public Transform Pilot;
     public FuelTank FuelTank;
@@ -16,8 +13,9 @@ public class EngineControler : GeneticConfigurableMonobehaviour
     public ParticleSystem Plume;
 
     /// <summary>
-    /// The force the engine applys at this transform's position in this transfornm's -up direction
+    /// The force the engine applies at this transform's position in this transfornm's -up direction
     /// </summary>
+    [Tooltip("The force the engine applies at this transform's position in this transfornm's -up direction")]
     public float EngineForce2;
     
     [Tooltip("angle error at which the engine starts to turn on. \n" +
@@ -68,7 +66,7 @@ public class EngineControler : GeneticConfigurableMonobehaviour
     }
     private Vector3? _secondaryTranslateVector;
 
-    //public bool DebugMode;
+    public bool DebugMode;
     //public Vector3 TV1;
     //public Vector3 TV2;
 
@@ -90,11 +88,7 @@ public class EngineControler : GeneticConfigurableMonobehaviour
     /// Calculated if not set (default)
     /// </summary>
     public Vector3? TorqueVector = null;
-
-
-    private bool _active = true;
-    private string InactiveTag = "Untagged";
-
+    
     public float _fullTrhrottlePlumeRate;
 
     // Use this for initialization
@@ -131,39 +125,50 @@ public class EngineControler : GeneticConfigurableMonobehaviour
         //    TV1 = PrimaryTranslateVector ?? Vector3.zero;
         //}
 
-        //Debug.Log(transform + ":");
+        if (DebugMode) Debug.Log($"{name} on {transform.parent.name}. IsActive: {_active}, HasFuel: {HasFuel()}, UseAsTranslator: {UseAsTranslator}, UseAsTorquer: {UseAsTorquer}");
         if (_active && HasFuel())
         {
             float throttle = 0;
 
             if (UseAsTranslator)
             {
-                throttle = TranslateThrotleSetting();
+                throttle = TranslateThrottleSetting();
             }
 
-            //if(throttle != 0)
-            //{
-            //    Debug.Log(name + " translate throttle " + throttle);
-            //}
+            if (DebugMode)
+            {
+                Debug.Log($"{name} on {transform.parent.name} translate throttle {throttle}");
+            }
 
             if (UseAsTorquer)
             {
                 float additionalThrottle = RotateThrottleSetting();
 
-                //if (additionalThrottle != 0)
-                //{
-                //    Debug.Log(name + " torque throttle " + additionalThrottle);
-                //}
+                if (DebugMode)
+                {
+                    Debug.Log($"{name} on {transform.parent.name} torque throttle {additionalThrottle}");
+                }
 
-                throttle = throttle + additionalThrottle;  //add the additional throttle.
+                throttle += additionalThrottle;  //add the additional throttle.
             }
-            throttle = Math.Min(1, throttle);  //cut the throttle whole thing down to the propper range.
+
+            if (DebugMode)
+            {
+                Debug.Log($"{name} on {transform.parent.name} net throttle {throttle}");
+            }
+
+            throttle = Math.Min(1, throttle);  //cut the throttle whole thing down to the proper range.
             
             if(throttle > 0)
             {
                 throttle = AdjustThrottleForFuel(throttle);
+                var force = -transform.up * EngineForce2 * throttle * Time.fixedDeltaTime;
+                if (DebugMode)
+                {
+                    Debug.Log($"{name} on {transform.parent.name} applying force {force}");
+                }
 
-                ForceApplier.AddForceAtPosition(-transform.up * EngineForce2 * throttle * Time.deltaTime, transform.position, ForceMode.Force);
+                ForceApplier.AddForceAtPosition(force, transform.position, ForceMode.Force);
                 //ForceApplier.AddRelativeForce(EngineForce * throttle);
                 SetPlumeState(throttle);
                 return;
@@ -187,7 +192,7 @@ public class EngineControler : GeneticConfigurableMonobehaviour
         if (FuelTank != null)
         {
             //TODO check why this is capped.
-            var singleFrameConsumption = Math.Max(FullThrottleFuelConsumption * Time.deltaTime, 0.0001f);
+            var singleFrameConsumption = Math.Max(FullThrottleFuelConsumption * Time.fixedDeltaTime, 0.0001f);
             var desiredFuel = throttle * singleFrameConsumption;
             var fuel = FuelTank.DrainFuel(desiredFuel);
             actualThrottle = fuel / singleFrameConsumption;
@@ -217,23 +222,21 @@ public class EngineControler : GeneticConfigurableMonobehaviour
         }
     }
 
-    public void Deactivate()
+    public override void Deactivate()
     {
-        //Debug.Log("Deactivating " + name);
-        _active = false;
+        base.Deactivate();
         SetPlumeState(0);
-        tag = InactiveTag;
     }
     
-    private float MaxShootAngle = 180;
-    private float DefaultShootAngleProportion = 0.5f;
+    private const float MaxShootAngle = 180;
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        TranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
-        TorqueFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0,  DefaultShootAngleProportion);
-        FullThrottleTranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle, 0, DefaultShootAngleProportion);
-        
+        TranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle);
+        TorqueFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle);
+        FullThrottleTranslateFireAngle = genomeWrapper.GetScaledNumber(MaxShootAngle);
+        EngineForce2 = genomeWrapper.GetScaledNumber(EngineForce2);
+
         return genomeWrapper;
     }
 
@@ -286,16 +289,17 @@ public class EngineControler : GeneticConfigurableMonobehaviour
     /// If this is > 1 the angle is so close to correct that the torquer angle has to be a strong negative to counter this.
     /// </summary>
     /// <returns></returns>
-    private float TranslateThrotleSetting()
+    private float TranslateThrottleSetting()
     {
         if(TranslateFireAngle > 0 && VectorIsUseful(PrimaryTranslateVector))
         {
             float throttle = 0;
             //the enemy's gate is down
             var primaryAngleError = Vector3.Angle(-transform.up, PrimaryTranslateVector.Value);
-            //Debug.Log("fire angle = " + angle);
+            if(DebugMode)
+                Debug.Log("fire angle = " + primaryAngleError);
 
-            if(SecondaryTranslateVector != PrimaryTranslateVector && VectorIsUseful(SecondaryTranslateVector))
+            if (SecondaryTranslateVector != PrimaryTranslateVector && VectorIsUseful(SecondaryTranslateVector))
             {
                 var secondaryAngle = Vector3.Angle(-transform.up, SecondaryTranslateVector.Value);
                 var pToSAngle = Vector3.Angle(PrimaryTranslateVector.Value, SecondaryTranslateVector.Value);
@@ -315,10 +319,13 @@ public class EngineControler : GeneticConfigurableMonobehaviour
                 throttle = -1;
             }
 
-            //Debug.Log("TranslateThrotleSetting=" + throttle);
+            if (DebugMode)
+                Debug.Log("TranslateThrotleSetting=" + throttle);
             return Clamp(throttle, -1, 1);
         }
-        //Debug.Log("No FlightVector set Defaulting To False");
+
+        if (DebugMode)
+            Debug.Log("Thrust vector is not currently useful. ");
         return 0;
     }
 

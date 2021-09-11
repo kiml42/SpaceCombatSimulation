@@ -57,3 +57,4 @@ ehthumbs.db
 SpaceCombatSimulation/Corridor/Library/ShaderCache/
 SpaceCombatSimulation/Corridor/Library/metadata/
 SpaceCombatSimulation/packages/
+*.s3db

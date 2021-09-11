@@ -42,8 +42,11 @@ namespace Assets.Src.ShipCamera
         {
             var targets = CalculateAutomaticTargets();
             ProcessManualPanning(targets);
-            ProcessManualZoom(targets);
-            
+            ProcessManualZoom();
+
+            targets = targets ?? ShipCamTargetValues.Zero;
+
+            //Debug.Log($"ManualCameraOrientator");
             return new ShipCamTargetValues(targets.ParentLocationTarget, GetParentPollTarget(targets), GetCameraLocationTarget(targets), targets.CameraPollTarget, targets.CameraFieldOfView, targets.ReferenceVelocity, GetUpTarget(targets));
         }
 
@@ -71,10 +74,10 @@ namespace Assets.Src.ShipCamera
                 //Debug.Log(_pollTarget);
                 return;
             }
-            _manualPanTimeRemaining -= Time.deltaTime;
+            _manualPanTimeRemaining -= Time.unscaledDeltaTime;
         }
 
-        private void ProcessManualZoom(ShipCamTargetValues targets)
+        private void ProcessManualZoom()
         {
             var scroll = Input.GetAxis("Mouse ScrollWheel");
 
@@ -85,14 +88,14 @@ namespace Assets.Src.ShipCamera
                     _manualCameraLocOffset = 0;
                 }
                 //_manualFieldOfView = _shipCam.Camera.fieldOfView + scroll * 100;
-                _manualCameraLocOffset = _manualCameraLocOffset + (scroll * ZoomSpeed);
+                _manualCameraLocOffset += (scroll * ZoomSpeed);
                 //Debug.Log(" _manualCameraLocOffset: " + _manualCameraLocOffset + " scroll: " + scroll);
 
                 _manualZoomTimeRemaining = ManualTime;
 
                 return;
             }
-            _manualZoomTimeRemaining -= Time.deltaTime;
+            _manualZoomTimeRemaining -= Time.unscaledDeltaTime;
         }
 
         private Vector3 GetParentPollTarget(ShipCamTargetValues automaticTargets)

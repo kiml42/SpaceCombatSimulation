@@ -18,7 +18,7 @@ namespace Assets.Src.Targeting.TargetPickers
         {
             //Debug.Log(potentialTargets.Count());
             potentialTargets = potentialTargets.Select(t => {
-                var rigidbody = t.Rigidbody;
+                var rigidbody = t.Target.Rigidbody;
                 if(rigidbody != null)
                 {
                     t.Score += Multiplier * rigidbody.mass;

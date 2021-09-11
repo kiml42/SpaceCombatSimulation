@@ -37,11 +37,11 @@ namespace Assets.Src.Targeting
         {
             if(_restTarget != null)
             {
-                TurnToTarget(_restTarget);
+                TurnToTarget(_restTarget.Target);
             }
         }
 
-        public void TurnToTarget(Target target)
+        public void TurnToTarget(ITarget target)
         {
             if (target != null && target.Transform.IsValid())
             {

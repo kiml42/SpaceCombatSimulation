@@ -6,12 +6,16 @@ namespace Assets.Src.Graph
     {
         internal override void PrepareGraph()
         {
-            var generations = Enumerable.Range(0, EvolutionControler.GenerationNumber)
-                .ToDictionary(i => i, i => EvolutionControler.DbHandler.ReadBaseGeneration(EvolutionControler.DatabaseId, i).Summaries);
+            var generations = ReadGenerations();
+            var summaries = generations
+                .ToDictionary(
+                    i => i.Key,
+                    i => i.Value.Summaries
+                );
 
             //var speciesOverGens = new Dictionary<int, IDictionary<string,int>>();
             ////var subspeciesOverGens = new Dictionary<int, IDictionary<string,int>>();
-            
+
             //foreach(var kv in generations)
             //{
             //    var species = kv.Value.GroupBy(s => s.Species).ToDictionary(grp => grp.Key, grp => grp.Count());
@@ -21,9 +25,10 @@ namespace Assets.Src.Graph
             //    //subspeciesOverGens[kv.Key] = subspecies;
             //}
 
-            var speciesOverGens = generations.ToDictionary(
+            var speciesOverGens = summaries.ToDictionary(
                     keyedGen => keyedGen.Key,
                     keyedGen => keyedGen.Value
+                        .Where(s => !string.IsNullOrEmpty(s.Species))
                         .GroupBy(s => s.Species)
                         .ToDictionary(grp => grp.Key, grp => grp.Count())
                 );

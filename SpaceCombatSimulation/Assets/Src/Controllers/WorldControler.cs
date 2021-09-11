@@ -11,7 +11,7 @@ namespace Assets.Src.Controllers
     {
         public bool FollowShips = true;
         public string TarGetTag = "Enemy";
-        public bool TagChildren = false;
+        public string TeamForDrones;
         public bool ShouldSpawnDrones = true;
         public bool ShouldSetEnemyTag = false;
         
@@ -47,27 +47,27 @@ namespace Assets.Src.Controllers
             //DetectActiveCamera();
         }
 
-        private void DetectActiveCamera()
-        {
-            var cameras = GameObject.FindGameObjectsWithTag("MainCamera")
-                .Where(c => c.GetComponent<Camera>() != null)
-                .Select(c => c.GetComponent<Camera>()).ToList();
+        //private void DetectActiveCamera()
+        //{
+        //    var cameras = GameObject.FindGameObjectsWithTag("MainCamera")
+        //        .Where(c => c.GetComponent<Camera>() != null)
+        //        .Select(c => c.GetComponent<Camera>()).ToList();
 
-            for (int i = 0; i < cameras.Count(); i++)
-            {
-                var cam = cameras[i];
-                if (_activeCamera != null)
-                {
-                    //if we already know the active camera, deactivate all others
-                    cam.enabled = false;
-                }
-                else if (cam.enabled)
-                {
-                    _activeCamera = cam;
-                    _activeCameraIndex = i;
-                }
-            }
-        }
+        //    for (int i = 0; i < cameras.Count(); i++)
+        //    {
+        //        var cam = cameras[i];
+        //        if (_activeCamera != null)
+        //        {
+        //            //if we already know the active camera, deactivate all others
+        //            cam.enabled = false;
+        //        }
+        //        else if (cam.enabled)
+        //        {
+        //            _activeCamera = cam;
+        //            _activeCameraIndex = i;
+        //        }
+        //    }
+        //}
 
         // Update is called once per frame
         void Update()
@@ -185,7 +185,7 @@ namespace Assets.Src.Controllers
                 _activeCameraIndex = _activeCameraIndex < 0 ? cameras.Count - 1 : _activeCameraIndex;
             }
 
-            _activeCameraIndex = _activeCameraIndex % cameras.Count();
+            _activeCameraIndex %= cameras.Count();
 
             _activeCamera = cameras[_activeCameraIndex];
             if (_activeCamera == null)
@@ -209,6 +209,7 @@ namespace Assets.Src.Controllers
                     var bearing = Random.rotation;
                     var location = (bearing * new Vector3(0, 0, Random.value * Radius)) + transform.position;
                     var drone = Instantiate(Drone, location, transform.rotation);
+                    var droneTarget = drone.GetComponent<ITarget>();
 
                     var velocity = SpeedScaler * Random.insideUnitSphere;
                     drone.velocity = velocity;
@@ -217,7 +218,7 @@ namespace Assets.Src.Controllers
                         drone.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = new List<string> { TarGetTag };
                     }
 
-                    if (TagChildren) { drone.tag = tag; }
+                    if (!string.IsNullOrEmpty(TeamForDrones)) { droneTarget.SetTeam(TeamForDrones); }
 
                     _reload = LoadTime;
                 }

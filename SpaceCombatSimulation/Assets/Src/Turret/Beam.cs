@@ -1,16 +1,14 @@
-﻿using Assets.Src.ObjectManagement;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System;
+using Assets.Src.Interfaces;
+using Assets.Src.ObjectManagement;
 using UnityEngine;
 
 namespace Assets.Src.Turret
 {
     public class Beam
     {
-        public Transform Transform { get; internal set; }
         public Transform RayCaster { get; internal set; }
+        public LineRenderer Line { get; internal set; }
 
         /// <summary>
         /// In Seconds
@@ -22,7 +20,7 @@ namespace Assets.Src.Turret
         /// </summary>
         public float OffTime;
         public float BeamForce = 0;
-        public string FriendlyTag = null;
+        public string FriendlyTeam = null;
 
         public float RemainingOnTime =0;
         public float RemainingOffTime =0;
@@ -32,20 +30,28 @@ namespace Assets.Src.Turret
         public float Divergence = 0.0005f;
         
         public float EffectRepeatTime = 0.1f;
-        private LampAndParticlesEffectController _hitEffect;
+        private readonly LampAndParticlesEffectController _hitEffect;
 
-        public Beam(Transform beam, float runTime, float offTime, LampAndParticlesEffectController hitEffectPrefab = null)
+        private bool _isShooting = false;
+        private float _hitDistance = 0;
+
+        public Beam(Transform beam, float runTime, float offTime, Color BeamColour, LampAndParticlesEffectController hitEffectPrefab = null)
         {
-            Transform = beam;
+            RayCaster = beam;
             OnTime = runTime;
             OffTime = offTime;
-            RayCaster = Transform;
             RemainingOnTime = OnTime;
+
+            Line = beam.GetComponent<LineRenderer>();
+            Line.SetPosition(0, Vector3.zero);
             
+            //Debug.Log("beam colour: " + BeamColour);
+            beam.SetColor(BeamColour);
+
             if (hitEffectPrefab != null)
             {
                 _hitEffect = GameObject.Instantiate(hitEffectPrefab, RayCaster.position, RayCaster.rotation);
-                _hitEffect.transform.parent = RayCaster.parent;
+                _hitEffect.transform.parent = RayCaster;
             }
         }
 
@@ -53,15 +59,14 @@ namespace Assets.Src.Turret
         {
             //Debug.Log(Transform + ": remainingOffTime: " + RemainingOffTime +
             //    ", remainingOnTime" + RemainingOnTime);
-            var length = 0f;
             if (RemainingOffTime <= 0)
             {
                 if(RemainingOnTime > 0)
                 {
                     //Debug.Log("shooting");
                     //is running
-                    length = FireNow();
-                    RemainingOnTime -= Time.deltaTime;
+                    FireNow();
+                    RemainingOnTime -= Time.fixedDeltaTime;
                 } else
                 {
                     //Debug.Log("Needs Reloading");
@@ -72,24 +77,36 @@ namespace Assets.Src.Turret
             {
                 //is reloading
                 //Debug.Log("reloading");
-                RemainingOffTime -= Time.deltaTime;
+                RemainingOffTime -= Time.fixedDeltaTime;
                 RemainingOnTime = OnTime;
             }
-            Transform.localScale = new Vector3(1, 1, length);
         }
 
-        private float FireNow()
+        public void Redraw()
         {
-            RaycastHit hit;
+            if (Line == null)
+            {
+                return;
+            }
+            Line.enabled = _isShooting;
+            Line.SetPosition(1, Vector3.forward * _hitDistance);
+        }
+
+        /// <summary>
+        /// Finds if the beam is hitting anything.
+        /// </summary>
+        /// <returns>The length the laser should be drawn as</returns>
+        private void FireNow()
+        {
             var ray = new Ray(RayCaster.position, RayCaster.forward);
-            if (Physics.Raycast(ray, out hit, MaxDistance, -1, QueryTriggerInteraction.Ignore))
+            if (Physics.Raycast(ray, out RaycastHit hit, MaxDistance, -1, QueryTriggerInteraction.Ignore))
             {
                 //is a hit
-                if (!string.IsNullOrEmpty(FriendlyTag) && hit.transform.tag == FriendlyTag)
+                if (!string.IsNullOrEmpty(FriendlyTeam) && hit.transform.GetComponent<ITarget>()?.Team == FriendlyTeam)
                 {
-                    //turn off if not aimed at a friend
+                    //turn off if aimed at a friend
                     TurnOff();
-                    return 0;
+                    return;
                 }
                 if (hit.rigidbody != null)
                 {
@@ -102,14 +119,18 @@ namespace Assets.Src.Turret
                     _hitEffect.TurnOn();
                 }
                 hit.transform.SendMessage("ApplyDamage", ReduceForDistance(BeamDamage, hit.distance), SendMessageOptions.DontRequireReceiver);
-                return hit.distance;
-            }
-            //is a miss
-            if (_hitEffect != null)
+                
+                _hitDistance = hit.distance;
+            } else
             {
-                _hitEffect.TurnOff();
+                //is a miss
+                if (_hitEffect != null)
+                {
+                    _hitEffect.TurnOff();
+                }
+                _hitDistance = MaxDistance;
             }
-            return MaxDistance;
+            _isShooting = true;
         }
 
         private float ReduceForDistance(float baseDamage, float distance)
@@ -117,18 +138,17 @@ namespace Assets.Src.Turret
             var radius = InitialRadius + (Divergence * distance);
             if(radius != 0)
             {
-                var reduced = baseDamage * Time.deltaTime / (radius * radius);
+                var reduced = baseDamage * Time.fixedDeltaTime / (radius * radius);
                 return reduced;
             }
             Debug.LogWarning("avoided div0 error");
-            return baseDamage * Time.deltaTime;
+            return baseDamage * Time.fixedDeltaTime;
         }
 
         public void TurnOff()
         {
-            RemainingOffTime -= Time.deltaTime;
-            if(Transform.IsValid())
-                Transform.localScale = Vector3.zero;
+            RemainingOffTime -= Time.fixedDeltaTime;
+            _isShooting = false;
             if (_hitEffect != null)
             {
                 _hitEffect.TurnOff();
@@ -141,7 +161,7 @@ namespace Assets.Src.Turret
         /// <param name="timeToReload">use null (default) for the normal reload time.</param>
         public void ForceReload(float? timeToReload = null)
         {
-            timeToReload = timeToReload ?? OffTime;
+            timeToReload = timeToReload != null ? timeToReload : OffTime;
             RemainingOffTime = timeToReload.Value;
             RemainingOnTime = OnTime;
         }

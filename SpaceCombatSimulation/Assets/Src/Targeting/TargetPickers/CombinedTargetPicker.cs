@@ -28,8 +28,13 @@ namespace Assets.Src.Targeting
         {
             if (_targeters == null || !_targeters.Any())
             {
-                Debug.LogWarning(name + " has no target pickers! (might just not be initialised yet, attempting reinitialisation...)");
+                Debug.Log(name + " has no target pickers! (might just not be initialised yet, attempting reinitialisation...)");
                 Start();
+
+                if (_targeters == null || !_targeters.Any())
+                {
+                    Debug.LogError(name + " still has no target pickers!");
+                }
             }
             foreach (var targeter in _targeters)
             {

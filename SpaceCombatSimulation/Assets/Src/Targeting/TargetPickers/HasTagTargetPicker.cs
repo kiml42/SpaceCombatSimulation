@@ -1,6 +1,7 @@
 ﻿using Assets.Src.ObjectManagement;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace Assets.Src.Targeting.TargetPickers
 {
@@ -10,14 +11,14 @@ namespace Assets.Src.Targeting.TargetPickers
     /// </summary>
     public class HasTagTargetPicker : GeneticallyConfigurableTargetPicker
     {
+        [Tooltip("targets on this team are given the FlatBoost added to their score.")]
         public string Tag;
         public bool KullInvalidTargets = false;
 
-        /// <summary>
-        /// Set to false (default) to consider targets with the tag bad,
-        /// set to true to consider targets with the tag good.
-        /// Only relavent if KullInalidTargets is true.
-        /// </summary>
+        ///Should this allow the FlatBoost and multiplier to have their signs flipped when configuring genetically.
+        public override bool AllowNegative { get { return true; } }
+        
+        [Tooltip("Only applies if KullInvalidTargets is set to true. If true, targets on the prefered team are considered valid and others are considered invalid. If false, the oposite is true.")]
         public bool TargetsWithTagAreValid = false;
 
         public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
@@ -25,7 +26,7 @@ namespace Assets.Src.Targeting.TargetPickers
             if(FlatBoost != 0 && !string.IsNullOrEmpty(Tag))
             {
                 return potentialTargets.Select(t => {
-                    if(t.Transform.IsValid() && t.Transform.tag == Tag)
+                    if(t.Target.Transform.IsValid() && t.Target.Team == Tag)
                     {
                         //Debug.Log(t.Transform + " score += " + AdditionalScore);
                         

@@ -1,22 +1,60 @@
-﻿using UnityEngine;
-using UnityEditor;
-using UnityEngine.TestTools;
-using NUnit.Framework;
-using System.Collections;
-using Assets.src.Evolution;
-using Assets.Src.Database;
-using System;
+﻿using Assets.Src.Database;
 using Assets.Src.Evolution;
+using Assets.Src.Evolution.BattleRoyale;
+using Assets.Src.Evolution.Drone;
+using Assets.Src.Evolution.Race;
+using NUnit.Framework;
+using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class EvolutionDroneDatabaseHandlerSaveTests
 {
-    private string _dbPathStart = "/../tmp/TestDB/";
-    private string _dbPathExtension = ".s3db";
+    private const string _dbPathStart = "/../tmp/TestDB/";
+    private const string _dbPathExtension = ".s3db";
     private string _dbPath;
-    private string _createCommandPath = "/../Test/TestDB/CreateTestDB.sql";
-    EvolutionDroneDatabaseHandler _handler;
+    private const string _createCommandPath = "/../../Test/TestDB/CreateTestDB.sql";
+    EvolutionDatabaseHandler _handler;
     DatabaseInitialiser _initialiser;
+    private EvolutionConfig DefaultEvolutionConfig
+    {
+        get
+        {
+            var config = new EvolutionConfig
+            {
+                RunName = "SaveConfigTest",
+                GenerationNumber = 42,
+                MinMatchesPerIndividual = 6,
+                WinnersFromEachGeneration = 7,
+                MatchConfig = new MatchConfig
+                {
+                    MinimumLocationRandomisation = 43,
+                    MaximumLocationRandomisation = 44,
+                },
+                MutationConfig = new MutationConfig
+                {
+                    DefaultGenome = "SaveConfigTest_DefaultGenome"
+                }
+            };
+
+            config.BrConfig = new EvolutionBrConfig
+            {
+                NumberOfCombatants = 3,
+                DeathScoreMultiplier = 123,
+                SurvivalBonus = 432,
+            };
+
+            config.RaceConfig = new EvolutionRaceConfig
+            {
+                RaceMaxDistance = 2342,
+                RaceScoreMultiplier = 1234,
+                RaceGoalObject = 4
+            };
+
+            return config;
+        }
+    }
+
 
     [SetUp]
     public void Setup()
@@ -28,7 +66,9 @@ public class EvolutionDroneDatabaseHandlerSaveTests
             DatabasePath = _dbPath
         };
 
-        _handler = new EvolutionDroneDatabaseHandler(_dbPath, _createCommandPath);
+        _initialiser.EnsureDatabaseExists();
+
+        _handler = new EvolutionDatabaseHandler(_dbPath, _createCommandPath);
     }
 
     [TearDown]
@@ -69,40 +109,16 @@ public class EvolutionDroneDatabaseHandlerSaveTests
     [Test]
     public void SaveConfig_savesWholeThingAndReturnsId()
     {
-        var config = new EvolutionDroneConfig
-        {
-            RunName = "SaveConfigTest",
-            GenerationNumber = 42,
-            MinMatchesPerIndividual = 6,
-            CompletionBonus = 5,
-            DeathPenalty = 4,
-            Drones = new List<int>
-            {
-                1,2
-            },
-            ExtraDromnesPerGeneration = 0.03f,
-            FlatKillBonus = 56,
-            KillScoreMultiplier = 32,
-            MaxDronesToSpawn = 123,
-            MinDronesToSpawn = 7,
-            WinnersFromEachGeneration = 7,
-            ShipInSphereRandomRadius = 91,
-            ShipOnSphereRandomRadius = 92,
-            DronesInSphereRandomRadius = 93,
-            DronesOnSphereRandomRadius = 94,
-            MatchConfig = new MatchConfig
-            {
-                Budget = 1235
-            },
-            MutationConfig = new MutationConfig
-            {
-                DefaultGenome = "SaveConfigTest_DefaultGenome"
-            }
-        };
+        var config = DefaultEvolutionConfig;
+
+        config.MatchConfig.MinimumLocationRandomisation = 91;
+        config.MatchConfig.MaximumLocationRandomisation = 92;
+        config.EvolutionDroneConfig.DronesInSphereRandomRadius = 93;
+        config.EvolutionDroneConfig.DronesOnSphereRandomRadius = 94;
 
         config.DatabaseId = -13; //set id to something really obvious to show if it hasn't been set correctly.
 
-        int result = _handler.SaveNewConfig(config);
+        int result = _handler.SaveNewEvolutionConfig(config);
 
         var expectedId = 4;
 
@@ -112,10 +128,10 @@ public class EvolutionDroneDatabaseHandlerSaveTests
 
         Assert.AreEqual(expectedId, retrieved.DatabaseId);
         Assert.AreEqual("SaveConfigTest", retrieved.RunName);
-        Assert.AreEqual(91, retrieved.ShipInSphereRandomRadius);
-        Assert.AreEqual(92, retrieved.ShipOnSphereRandomRadius);
-        Assert.AreEqual(93, retrieved.DronesInSphereRandomRadius);
-        Assert.AreEqual(94, retrieved.DronesOnSphereRandomRadius);
+        Assert.AreEqual(91, retrieved.MatchConfig.MinimumLocationRandomisation);
+        Assert.AreEqual(92, retrieved.MatchConfig.MaximumLocationRandomisation);
+        Assert.AreEqual(93, retrieved.EvolutionDroneConfig.DronesInSphereRandomRadius);
+        Assert.AreEqual(94, retrieved.EvolutionDroneConfig.DronesOnSphereRandomRadius);
 
         Assert.AreEqual(config.MatchConfig.Budget, retrieved.MatchConfig.Budget);
     }
@@ -123,19 +139,22 @@ public class EvolutionDroneDatabaseHandlerSaveTests
     [Test]
     public void SaveConfig_savesNullBudget()
     {
-        var config = new EvolutionDroneConfig
+        var config = new EvolutionConfig
         {
             MatchConfig = new MatchConfig
             {
                 Budget = null
             },
-            Drones = new List<int>
+            EvolutionDroneConfig = new EvolutionDroneConfig
             {
-                0,1,3,4,4
+                Drones = new List<int>
+                {
+                    0,1,3,4,4
+                }
             }
         };
 
-        int result = _handler.SaveNewConfig(config);
+        int result = _handler.SaveNewEvolutionConfig(config);
 
         var retrieved = _handler.ReadConfig(result);
 
@@ -152,21 +171,21 @@ public class EvolutionDroneDatabaseHandlerSaveTests
         config.MatchConfig.InitialRange++;
         config.MatchConfig.Budget++;
         config.MutationConfig.GenomeLength++;
-        config.ShipInSphereRandomRadius++;
-        config.ShipOnSphereRandomRadius++;
-        config.DronesInSphereRandomRadius++;
-        config.DronesOnSphereRandomRadius++;
+        config.MatchConfig.MinimumLocationRandomisation++;
+        config.MatchConfig.MaximumLocationRandomisation++;
+        config.EvolutionDroneConfig.DronesInSphereRandomRadius++;
+        config.EvolutionDroneConfig.DronesOnSphereRandomRadius++;
 
-        _handler.UpdateExistingConfig(config);
+        _handler.UpdateExistingEvolutionConfig(config);
 
         var updated = _handler.ReadConfig(0);
 
         Assert.AreEqual(config.RunName, updated.RunName);
         Assert.AreEqual("Altered", updated.RunName);
-        Assert.AreEqual(config.ShipInSphereRandomRadius, updated.ShipInSphereRandomRadius);
-        Assert.AreEqual(config.ShipOnSphereRandomRadius, updated.ShipOnSphereRandomRadius);
-        Assert.AreEqual(config.DronesInSphereRandomRadius, updated.DronesInSphereRandomRadius);
-        Assert.AreEqual(config.DronesOnSphereRandomRadius, updated.DronesOnSphereRandomRadius);
+        Assert.AreEqual(config.MatchConfig.MinimumLocationRandomisation, updated.MatchConfig.MinimumLocationRandomisation);
+        Assert.AreEqual(config.MatchConfig.MaximumLocationRandomisation, updated.MatchConfig.MaximumLocationRandomisation);
+        Assert.AreEqual(config.EvolutionDroneConfig.DronesInSphereRandomRadius, updated.EvolutionDroneConfig.DronesInSphereRandomRadius);
+        Assert.AreEqual(config.EvolutionDroneConfig.DronesOnSphereRandomRadius, updated.EvolutionDroneConfig.DronesOnSphereRandomRadius);
 
         Assert.AreEqual("1,3,5", updated.MatchConfig.AllowedModulesString);
         Assert.AreEqual(config.MatchConfig.Budget, updated.MatchConfig.Budget);
@@ -181,7 +200,7 @@ public class EvolutionDroneDatabaseHandlerSaveTests
 
         config.MatchConfig.Budget = null;
 
-        _handler.UpdateExistingConfig(config);
+        _handler.UpdateExistingEvolutionConfig(config);
 
         var updated = _handler.ReadConfig(0);
         

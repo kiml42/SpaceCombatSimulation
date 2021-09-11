@@ -44,7 +44,7 @@ namespace Assets.Src.Pilots
             }
         }
 
-        public override void Fly(Target target)
+        public override void Fly(ITarget target)
         {
             RemoveNullEngines();
             if (HasActivated() && HasStarted())
@@ -133,20 +133,20 @@ namespace Assets.Src.Pilots
             var positionOffset = _pilotObject.velocity.normalized * MinimumFriendlyDetectionDistance;
             var ray = new Ray(_pilotObject.position + positionOffset, _pilotObject.velocity);
 
-            RaycastHit hit;
 
             //this assumes stationary targets, but it's only for minimal evasion, so that should be okay
             //also, rockets should be going faster thatn the things they might hit.
             var collisionDetectionDistance = _pilotObject.velocity.magnitude * TimeThresholdForMinimalEvasion;
 
-            if (Physics.Raycast(ray, out hit, collisionDetectionDistance, -1, QueryTriggerInteraction.Ignore))
+            if (Physics.Raycast(ray, out RaycastHit hit, collisionDetectionDistance, -1, QueryTriggerInteraction.Ignore))
             {
                 //Debug.Log(_pilotObject + " is flying at " + hit.transform);
                 if(hit.rigidbody == _pilotObject)
                 {
                     Debug.LogError(_pilotObject + " is detecting itself as a possible collision. Distance: " + hit.distance + ", MinDetection distance: " + MinimumFriendlyDetectionDistance);
                 }
-                if (hit.transform.tag == _pilotObject.tag)
+                var hitTarget = hit.transform.GetComponent<ITarget>();
+                if (hitTarget?.Team == PilotTarget.Team)
                 {
                     //isFriendly
                     var relativeVelocity = WorldSpaceReletiveVelocityOfTarget(hit.rigidbody);
@@ -156,7 +156,7 @@ namespace Assets.Src.Pilots
                     //var minShrapnelApproachSpeed = approachVelocity.magnitude - _shrapnelSpeed;
                     var distance = hit.distance;
                     
-                    _friendlyAvoidenceVector = - VectorToCancelLateralVelocityInWorldSpace(new Target(hit.transform));
+                    _friendlyAvoidenceVector = - VectorToCancelLateralVelocityInWorldSpace(hitTarget);
                     _vectorAwayFromFriendly = _pilotObject.position - hit.transform.position;
                     float timeToImpact;
                     if(approachSpeed != 0)
@@ -191,7 +191,7 @@ namespace Assets.Src.Pilots
                 }
             }
 
-            _evasionModeTimeout -= Time.deltaTime;
+            _evasionModeTimeout -= Time.fixedDeltaTime;
             return _evasionLevel;
         }
 
