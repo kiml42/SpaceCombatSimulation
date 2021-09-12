@@ -74,11 +74,14 @@ public class SpawnTurret : MonoBehaviour
                 turret.GetComponent<ITarget>()?.SetTeamSource(parentTarget ?? GetComponent<ITarget>());
             }
 
-            if (RecolourChild && turret.GetComponent<ColourSetter>() == null)
+            if (RecolourChild && turret.GetComponent<ColourSetter>() == null && ParentForTurret != null)
             {
                 //set the colour on the child, unless it's got its own colour setter, in which case, let that decide.
                 var parentColour = ParentForTurret.GetComponentInParent<ColourSetter>();
-                turret.SetColor(parentColour.Colour);
+                if(parentColour != null)
+                {
+                    turret.SetColor(parentColour.Colour);
+                }
             }
         
             Destroy(gameObject);
