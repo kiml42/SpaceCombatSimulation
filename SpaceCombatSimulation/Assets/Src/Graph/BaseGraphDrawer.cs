@@ -42,11 +42,11 @@ namespace Assets.Src.Graph
         {
             if (EvolutionController == null)
             {
-                Debug.Log("EvolutionController not set - trying to get it from this gameObject.");
+                Debug.Log($"EvolutionController not set - trying to get it from {this}.");
                 EvolutionController = GetComponent<EvolutionController>();
                 if (EvolutionController == null)
                 {
-                    Debug.LogError("EvolutionController still not set! Disableing.");
+                    Debug.LogError($"EvolutionController was not set initially, and couldn't be found in {this}.");
                     enabled = false;
                     return;
                 }

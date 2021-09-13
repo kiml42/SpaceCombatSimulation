@@ -45,6 +45,7 @@ namespace Assets.Src.Database
                 {
                     DatabasePath = _databasePath
                 };
+                _initialiser.EnsureDatabaseExists();
                 _dbCreationCommandPath = dbCreationCommandPath;
             }
             else

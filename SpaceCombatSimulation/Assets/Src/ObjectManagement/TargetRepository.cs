@@ -69,7 +69,8 @@ namespace Assets.Src.ObjectManagement
                 }
                 else
                 {
-                    Debug.LogWarning($"No target list for team {team}");
+                    Debug.LogWarning($"target list for team {team}, creating one to suppress warning.");
+                    _targets[team] = new List<ITarget>();
                 }
             }
             var distinctList = list.Distinct();
