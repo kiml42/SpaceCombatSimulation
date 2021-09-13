@@ -13,7 +13,7 @@ namespace Assets.Src.Graph
 
         public Rect GraphRect = new Rect(50, 50, 450, 150);
 
-        public BaseEvolutionController EvolutionController;
+        public EvolutionController EvolutionController;
 
         public KeyCode DrawGraphKey = KeyCode.G;
 

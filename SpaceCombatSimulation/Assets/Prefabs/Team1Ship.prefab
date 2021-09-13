@@ -44,6 +44,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
@@ -96,6 +97,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
@@ -240,6 +242,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
@@ -292,6 +295,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 0}
   EnemyTags: []
   TurretPrefab: {fileID: 0}
@@ -442,6 +446,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetColourFromParent: 1
   Colour: {r: 0.059848964, g: 0.617, b: 0.43128303, a: 1}
 --- !u!114 &114558417272495310
 MonoBehaviour:
@@ -523,6 +528,7 @@ MonoBehaviour:
   DeferToParent: 0
   EnemyTags:
   - Team2
+  - Team3
 --- !u!1 &1229538825179298
 GameObject:
   m_ObjectHideFlags: 0
@@ -659,6 +665,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
@@ -711,6 +718,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
@@ -841,6 +849,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 0}
   EnemyTags: []
   TurretPrefab: {fileID: 0}
@@ -888,6 +897,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
@@ -940,6 +950,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
@@ -992,6 +1003,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
@@ -1137,6 +1149,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 0}
   EnemyTags: []
   TurretPrefab: {fileID: 0}
@@ -6092,6 +6105,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team2
@@ -6343,6 +6357,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 0}
   EnemyTags: []
   TurretPrefab: {fileID: 0}
@@ -6574,6 +6589,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 4960682451978958}
   EnemyTags:
   - Team3

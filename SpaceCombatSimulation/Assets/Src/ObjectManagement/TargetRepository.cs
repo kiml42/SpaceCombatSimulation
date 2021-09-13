@@ -14,11 +14,15 @@ namespace Assets.Src.ObjectManagement
         {
             if (target != null && target.Transform != null && target.Transform.IsValid())
             {
-                var tag = target.Transform.tag;
-                var exists = _targets.TryGetValue(tag, out var list);
-                if (!exists)
+                var tag = target.Team;
+                if (!_targets.TryGetValue(tag, out List<ITarget> list) || list == null)
                 {
-                    list = new List<Target>();
+                    list = new List<ITarget>();
+                    _targets[tag] = list;
+                }
+                else
+                {
+                    list = _targets[tag];
                 }
                 list.Add(target);
 
@@ -35,12 +39,8 @@ namespace Assets.Src.ObjectManagement
                 return;
             }
             //Debug.Log($"deregistering target {target} with tag {tag}");
-            var exists = _targets.TryGetValue(tag, out var list);
-            if (!exists)
-            {
-                Debug.LogWarning($"Cannot deregister target {target} with tag {team} - there is no list for this tag.");
-                return;
-            }
+
+            var list = _targets[team];
             var targetFromList = list.SingleOrDefault(t => t.Transform == target.Transform);
             if (targetFromList == null)
             {

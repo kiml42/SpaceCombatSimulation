@@ -20,7 +20,7 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
     
     [Tooltip("time to wait between polling for better targets (seconds).")]
     public float PollInterval = 0;
-    private float _pollCountdonwn = 0;
+    private float _pollCountdown = 0;
 
     #region knowsCurrentTarget
     public ITarget CurrentTarget { get; private set; }
