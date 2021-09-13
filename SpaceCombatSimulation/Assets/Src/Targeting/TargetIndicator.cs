@@ -6,7 +6,7 @@ public class TargetIndicator : MonoBehaviour, IDeactivatable
     public Transform SourceObject;
     public LineRenderer TargetingLine;
     public IKnowsCurrentTarget TargetKnower;
-    private bool _isActive = false;
+    private bool _isActive = true;
 
     public void Deactivate()
     {

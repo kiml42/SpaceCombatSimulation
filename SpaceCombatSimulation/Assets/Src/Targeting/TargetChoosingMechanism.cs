@@ -33,6 +33,8 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
     public bool IncludeNavigationTargets = false;
     public bool IncludeAtackTargets = true;
 
+    public bool Log = false;
+
     // Use this for initialization
     public void Start ()
     {
@@ -79,7 +81,8 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
                 //Debug.Log("Count of targets: " + allTargets.Count());
                 if(TargetHasChanged(bestTarget, CurrentTarget))
                 {
-                    LogTargetChange(CurrentTarget, filteredPotentialTargets.FirstOrDefault(), targetIsInvalid);
+                    if(Log)
+                        LogTargetChange(CurrentTarget, filteredPotentialTargets.FirstOrDefault(), targetIsInvalid);
 
                     CurrentTarget = bestTarget;
                 }
@@ -122,13 +125,13 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
         }
         if (oldWasInvalid)
         {
-            log += " because the previous target was invalid";
+            log += $" because the previous target {old} was invalid";
         } else if (old != null)
         {
             log += ". Previously " + old.Transform.name + " at " + old.Transform.position;
-            Debug.Log(log); //log only retargets.
             return;
         }
+        Debug.Log(log);
     }
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
