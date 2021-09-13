@@ -24,29 +24,18 @@ namespace Assets.Src.ObjectManagement
             return !IsInvalid(transform);
         }
 
-        public static void SetColor(this Transform transform, float R, float G, float B, float A = 10)
+        public static void SetColor(this Transform transform, float R, float G, float B, float A = 1)
         {
             var colour = new Color(R, G, B, A);
-            //Debug.Log("setting " + transform.name + "'s colour to " + colour);
-            //Debug.Log(transform);
             transform.SetColor(colour);
         }
 
-        /// <summary>
-        /// Sets the colour of this transform and all its children.
-        /// </summary>
-        /// <param name="transform"></param>
-        /// <param name="colour"></param>
         public static void SetColor(this Transform transform, Color colour)
         {
             var renderers = transform.GetComponentsInChildren<Renderer>();
-            foreach (var renderer in renderers)
+            foreach(var r in renderers)
             {
-                if (renderer != null)
-                {
-                    //Debug.Log("has renderer");
-                    renderer.material.color = colour;
-                }
+                r.material.color = colour;
             }
         }
 

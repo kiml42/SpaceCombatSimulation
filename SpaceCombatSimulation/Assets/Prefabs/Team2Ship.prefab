@@ -413,8 +413,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Colour: {r: 0, g: 0, b: 0, a: 0}
-  SetInStart: 0
+  Colour: {r: 0.75686276, g: 0.105882354, b: 0.09019608, a: 1}
 --- !u!114 &114588122642984816
 MonoBehaviour:
   m_ObjectHideFlags: 0
