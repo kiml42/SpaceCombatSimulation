@@ -2,8 +2,6 @@
 using Assets.Src.Interfaces;
 using Assets.Src.ModuleSystem;
 using Assets.Src.Targeting;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class TurrertTurningMechanism : GeneticConfigurableMonobehaviour

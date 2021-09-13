@@ -96,7 +96,7 @@ public class RocketController : GeneticConfigurableMonobehaviour
 
         var exploder = new ShrapnelExploder(_rigidbody, Shrapnel, ExplosionEffect, ShrapnelCount)
         {
-            EnemyTags = TargetChoosingMechanism.EnemyTagKnower.KnownEnemyTags,
+            EnemyTags = TargetChoosingMechanism.EnemyTagKnower?.KnownEnemyTags,
             TagShrapnel = TagShrapnel,
             SetEnemyTagOnShrapnel = SetEnemyTagOnShrapnel,
             ShrapnelSpeed = ShrapnelSpeed

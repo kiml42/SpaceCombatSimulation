@@ -39,9 +39,11 @@ namespace Assets.Src.Targeting
 
         public void ReturnToRest()
         {
+            Debug.Log($"{_thisTurret} turning to rest target {_restTarget}");
             if(_restTarget != null)
             {
-                TurnToTarget(_restTarget.Target);
+                var target = _restTarget.Target;
+                TurnToTarget(target);
             }
         }
 

@@ -117,7 +117,7 @@ MonoBehaviour:
   - Team3ForceField
   - Team4ForceField
   - Team5ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!114 &114904709351601692
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -657,6 +657,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4507754672032468}
   - component: {fileID: 65545141285351500}
+  - component: {fileID: 1786389600445900260}
   m_Layer: 8
   m_Name: RestTarget
   m_TagString: Untagged
@@ -691,6 +692,18 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1786389600445900260
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1753906455245136}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 063a842e9f8aee04fbded9a7abbdd3a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1851867619676866
 GameObject:
   m_ObjectHideFlags: 0
@@ -872,7 +885,7 @@ MonoBehaviour:
   - Team3ForceField
   - Team4ForceField
   - Team5ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!114 &114902381399359470
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -989,6 +1002,9 @@ MonoBehaviour:
   NeverRetarget: 0
   PollInterval: 2
   TargetPicker: {fileID: 0}
+  IncludeNavigationTargets: 0
+  IncludeAtackTargets: 1
+  Log: 0
 --- !u!114 &114269210039907450
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1093,7 +1109,7 @@ MonoBehaviour:
   - Team3ForceField
   - Team4ForceField
   - Team5ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!114 &114714754333530302
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1133,6 +1149,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Shooting: 1
+  Navigation: 0
+  InitialTeam: 
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &114078591662564136
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1161,8 +1181,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetColourFromParent: 1
   Colour: {r: 0.42647058, g: 0.42647058, b: 0.458, a: 0}
-  SetInStart: 0
 --- !u!114 &114328088543714880
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -563,7 +563,7 @@ MonoBehaviour:
   - Team3ForceField
   - Team4ForceField
   - Team5ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!114 &114398933050543940
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1321,6 +1321,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4922111931230516}
   - component: {fileID: 65697081095498244}
+  - component: {fileID: 5637919967549356079}
   m_Layer: 8
   m_Name: RestTarget
   m_TagString: Untagged
@@ -1355,6 +1356,18 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &5637919967549356079
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1590596263405474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 063a842e9f8aee04fbded9a7abbdd3a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1645618371982510
 GameObject:
   m_ObjectHideFlags: 0
@@ -1804,6 +1817,9 @@ MonoBehaviour:
   NeverRetarget: 0
   PollInterval: 1
   TargetPicker: {fileID: 114588047309576130}
+  IncludeNavigationTargets: 0
+  IncludeAtackTargets: 1
+  Log: 0
 --- !u!114 &114115062143682100
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1925,7 +1941,7 @@ MonoBehaviour:
   - Team3ForceField
   - Team4ForceField
   - Team5ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!114 &114320370351520358
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1938,6 +1954,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Shooting: 1
+  Navigation: 0
+  InitialTeam: 
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &114815730426248504
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1966,8 +1986,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetColourFromParent: 1
   Colour: {r: 0.42647058, g: 0.42647058, b: 0.458, a: 0}
-  SetInStart: 0
 --- !u!114 &114000378633040010
 MonoBehaviour:
   m_ObjectHideFlags: 0

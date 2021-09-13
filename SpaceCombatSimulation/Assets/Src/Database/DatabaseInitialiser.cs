@@ -20,7 +20,7 @@ namespace Assets.Src.Database
         private string DatabaseFullPath { get { return Application.dataPath + DatabasePath; } }
         
         /// <summary>
-        /// Creates teh database if it doesn't exist, if it does exist, this does nothing.
+        /// Creates the database if it doesn't exist, if it does exist, this does nothing.
         /// </summary>
         /// <param name="creationCommandFilePath"></param>
         public void EnsureDatabaseExists(string creationCommandFilePath = EvolutionDatabaseHandler.DEFAULT_CREATE_DB_COMMAND_PATH)

@@ -11,7 +11,7 @@ namespace Assets.Src.Interfaces
         ShipType Type { get; }
 
         /// <summary>
-        /// True if ships should manuvre towards or away from this (or go round and round it if they want to).
+        /// True if ships should maneuverer towards or away from this (or go round and round it if they want to).
         /// </summary>
         bool NavigationalTarget { get; }
 

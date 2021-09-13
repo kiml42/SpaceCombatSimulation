@@ -13,7 +13,7 @@ namespace Assets.Src.Graph
 
         public Rect GraphRect = new Rect(50, 50, 450, 150);
 
-        public EvolutionController EvolutionControler;
+        public EvolutionController EvolutionController;
 
         public KeyCode DrawGraphKey = KeyCode.G;
 
@@ -40,12 +40,13 @@ namespace Assets.Src.Graph
 
         public void Start()
         {
-            if (EvolutionControler == null)
+            if (EvolutionController == null)
             {
-                Debug.Log("EvolutionController not set - trying to get it from this gameObject.");
-                EvolutionControler = GetComponent<EvolutionController>(); if (EvolutionControler == null)
+                Debug.Log($"EvolutionController not set - trying to get it from {this}.");
+                EvolutionController = GetComponent<EvolutionController>();
+                if (EvolutionController == null)
                 {
-                    Debug.LogError("EvolutionController still not set! Disableing.");
+                    Debug.LogError($"EvolutionController was not set initially, and couldn't be found in {this}.");
                     enabled = false;
                     return;
                 }
@@ -77,8 +78,8 @@ namespace Assets.Src.Graph
 
         protected Dictionary<int, Generation> ReadGenerations()
         {
-            var generations = Enumerable.Range(0, EvolutionControler.GenerationNumber + 1)
-                   .ToDictionary(i => i, i => EvolutionControler.DbHandler.ReadGeneration(EvolutionControler.DatabaseId, i));
+            var generations = Enumerable.Range(0, EvolutionController.GenerationNumber + 1)
+                   .ToDictionary(i => i, i => EvolutionController.DbHandler.ReadGeneration(EvolutionController.DatabaseId, i));
             return generations;
         }
     }

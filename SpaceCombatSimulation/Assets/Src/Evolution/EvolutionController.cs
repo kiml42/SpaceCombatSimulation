@@ -32,7 +32,7 @@ namespace Assets.Src.Evolution
         private Dictionary<string, GenomeWrapper> _genomesInThisMatch;
         
         private Dictionary<string, GenomeWrapper> _extantTeams;
-        private Dictionary<string, float> _teamScores;
+        private Dictionary<string, Score> _teamScores;
 
         List<string> AllCompetetrs { get { return _genomesInThisMatch.Select(kv => kv.Value.Genome).ToList(); } }
 
@@ -145,7 +145,7 @@ namespace Assets.Src.Evolution
                                                 
                         var alive = _extantTeams.ContainsKey(team.Key);
 
-                        _currentGeneration.RecordMatch(competitor, score, alive, !_dronesRemain, _droneKillsSoFar, AllCompetetrs, alive && _extantTeams.Count == 1);
+                        _currentGeneration.RecordMatch(competitor, score.Total, alive, !_dronesRemain, _droneKillsSoFar, AllCompetetrs, alive && _extantTeams.Count == 1);
                     }
 
                     DbHandler.UpdateGeneration(_currentGeneration, DatabaseId, EvolutionConfig.GenerationNumber);
@@ -221,8 +221,7 @@ namespace Assets.Src.Evolution
                     var gw = ShipConfig.SpawnShip(g, i, EvolutionConfig.BrConfig.NumberOfCombatants, j);
                     wrappers.Add(gw);
 
-                    Debug.Log($"{gw.Name} enters the arena on team {gw.Team}!");
-                    Debug.Log("Ship cost = " + gw.Cost);
+                    Debug.Log($"{gw.Name} enters the arena on team {gw.Team}! Ship cost = " + gw.Cost);
 
                     name = gw.Name;
                     var hasModules = gw.ModulesAdded > 0;
@@ -236,7 +235,7 @@ namespace Assets.Src.Evolution
             }
 
             _extantTeams = _genomesInThisMatch;
-            _teamScores = _genomesInThisMatch.ToDictionary(kv => kv.Key, kv => 0f);
+            _teamScores = _genomesInThisMatch.ToDictionary(kv => kv.Key, _ => new Score());
 
             foreach (var teamTransform in ShipConfig.ShipTeamMapping)
             {
@@ -384,7 +383,7 @@ namespace Assets.Src.Evolution
                     var extraScore = (float)Math.Max(0, unscaledScore * EvolutionConfig.RaceConfig.RaceScoreMultiplier);
                     if (extraScore != 0)
                     {
-                        AddScore(shipTeam.Value, extraScore, "race");
+                        AddScore(shipTeam.Value, ScoreType.Race, extraScore);
                     }
                 }
             }
@@ -416,7 +415,7 @@ namespace Assets.Src.Evolution
                 var scoreForDroneKills = killedDrones * scorePerKill;
                 foreach (var teamTag in _extantTeams.Keys)
                 {
-                    AddScore(teamTag, scoreForDroneKills, "drones");
+                    AddScore(teamTag, ScoreType.Drone, scoreForDroneKills);
                 }
             }
         }
@@ -427,7 +426,7 @@ namespace Assets.Src.Evolution
             var score = EvolutionConfig.BrConfig.SurvivalBonus / _extantTeams.Count;
             foreach (var team in _extantTeams.Keys)
             {
-                AddScore(team, score, "survivor");
+                AddScore(team, ScoreType.Survival, score);
             }
         }
 
@@ -443,18 +442,18 @@ namespace Assets.Src.Evolution
 
         private void AddScoreForDefeatedIndividual(KeyValuePair<string, GenomeWrapper> deadIndividual)
         {
-            Debug.Log($"{deadIndividual.Value.Name} has died");
+            Debug.Log($"{deadIndividual.Key} has died");
             var score = -EvolutionConfig.BrConfig.DeathScoreMultiplier * _extantTeams.Count * _matchControl.RemainingTime();
-            AddScore(deadIndividual.Key, score, "died");
+            AddScore(deadIndividual.Key, ScoreType.Death, score);
         }
 
-        private void AddScore(string teamTag, float extraScore, string reason = "")
+        private void AddScore(string teamTag, ScoreType type, float extraScore)
         {
-            //if(extraScore!=0 && !string.IsNullOrEmpty(reason))
+            //if (extraScore != 0)
             //{
-            //    Debug.Log($"{reason}: Adding {extraScore} to {teamTag}");
+            //    Debug.Log($"{type}: Adding {extraScore} to {teamTag}");
             //}
-            _teamScores[teamTag] += extraScore;
+            _teamScores[teamTag].AddScore(type, extraScore);
         }
         #endregion
 
@@ -466,29 +465,66 @@ namespace Assets.Src.Evolution
                 Debug.LogError($"No config loaded! DatabaseId: {DatabaseId}");
                 return "No config loaded!";
             }
-            var text = "ID: " + DatabaseId + ", Name: " + EvolutionConfig.RunName + ", Generation: " + EvolutionConfig.GenerationNumber + Environment.NewLine +
-                "Combatants: " + string.Join(" vs ", _genomesInThisMatch.Values.Select(g => g.Name));
+            var text = $"ID: {DatabaseId}, Name: {EvolutionConfig.RunName}, Generation: {EvolutionConfig.GenerationNumber}{Environment.NewLine}";
 
             var runTimeing = _matchControl.MatchRunTime;
             var matchLength = _matchControl.Config.MatchTimeout;
             var remaining = matchLength - runTimeing;
 
-            text += Environment.NewLine + Math.Round(remaining) + " seconds remaining";
+            text += Environment.NewLine + Math.Round(remaining) + " seconds remaining" ;
+            text += $"{Environment.NewLine} Time Scale : {Time.timeScale}{Environment.NewLine}{Environment.NewLine}";
 
             if(_teamScores != null)
             {
-                foreach (var score in _teamScores.OrderByDescending(t => t.Value))
-                {
-                    text += $"{Environment.NewLine} {score.Key} : {score.Value}";
-                }
+                text += string.Join(
+                    Environment.NewLine,
+                    _teamScores.OrderByDescending(t => t.Value).Select(s => $"{s.Key} : {s.Value}")
+                    );
             }
             else
             {
                 Debug.LogWarning("Team scores is null!");
             }
 
+
             return text;
         }
         #endregion
+
+        private class Score : IComparable
+        {
+            private readonly Dictionary<ScoreType, float> _scoreByType = new Dictionary<ScoreType, float>();
+
+            public float Total => _scoreByType.Sum(kv => kv.Value);
+
+            public void AddScore(ScoreType type, float score)
+            {
+                if (!_scoreByType.ContainsKey(type))
+                {
+                    _scoreByType[type] = 0;
+                }
+                _scoreByType[type] += score;
+            }
+
+            public int CompareTo(object obj)
+            {
+                if (obj is Score otherScore)
+                    return this.Total.CompareTo(otherScore.Total);
+                return this.Total.CompareTo(obj);
+            }
+
+            public override string ToString()
+            {
+                return Total + " - (" + string.Join(", ", _scoreByType.OrderBy(kv => (int)kv.Key).Select(kv => kv.Key + ":" + Math.Round(kv.Value))) + ")";
+            }
+        }
+
+        private enum ScoreType : int
+        {
+            Death,
+            Survival,
+            Race,
+            Drone
+        }
     }
 }

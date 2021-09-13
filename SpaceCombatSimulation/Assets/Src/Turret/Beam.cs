@@ -9,6 +9,7 @@ namespace Assets.Src.Turret
     {
         public Transform RayCaster { get; internal set; }
         public LineRenderer Line { get; internal set; }
+        public Color BeamColour { get; }
 
         /// <summary>
         /// In Seconds
@@ -35,7 +36,7 @@ namespace Assets.Src.Turret
         private bool _isShooting = false;
         private float _hitDistance = 0;
 
-        public Beam(Transform beam, float runTime, float offTime, Color BeamColour, LampAndParticlesEffectController hitEffectPrefab = null)
+        public Beam(Transform beam, float runTime, float offTime, Color beamColour, LampAndParticlesEffectController hitEffectPrefab = null)
         {
             RayCaster = beam;
             OnTime = runTime;
@@ -44,7 +45,8 @@ namespace Assets.Src.Turret
 
             Line = beam.GetComponent<LineRenderer>();
             Line.SetPosition(0, Vector3.zero);
-            
+
+            BeamColour = beamColour;
             //Debug.Log("beam colour: " + BeamColour);
             beam.SetColor(BeamColour);
 
@@ -98,6 +100,7 @@ namespace Assets.Src.Turret
         /// <returns>The length the laser should be drawn as</returns>
         private void FireNow()
         {
+            RayCaster.SetColor(BeamColour); //TODO avoid this being overwritten later to prevent needing to set it repeatedly.
             var ray = new Ray(RayCaster.position, RayCaster.forward);
             if (Physics.Raycast(ray, out RaycastHit hit, MaxDistance, -1, QueryTriggerInteraction.Ignore))
             {

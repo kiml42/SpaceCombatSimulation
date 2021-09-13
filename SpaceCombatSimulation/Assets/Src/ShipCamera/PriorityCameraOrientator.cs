@@ -37,7 +37,7 @@ namespace Assets.Src.ShipCamera
             var active = _orientators.Where(o => o.HasTargets);
             active = active.Any() ? active : _orientators;
 
-            //Debug.Log(string.Join(", ", active.OrderByDescending(o => o.Priority).Select(o => o.Description + o.Priority).ToArray()));
+            //Debug.Log(string.Join(", ", active.OrderByDescending(o => o.Priority).Select(o => o.Description + ":" + o.Priority).ToArray()));
 
             _bestOrientator = _userPriorityCountdown > 0
                 ? _userPriorityOrientator

@@ -16,6 +16,7 @@ namespace Assets.Src.ObjectManagement
         public bool TagShrapnel = false;
         private readonly Rigidbody _explosionEffect;
         public bool RandomiseShrapnelOrientation = true;
+        public float ShrapnelStartRadius => ShrapnelSpeed/2;
 
         public ShrapnelExploder(Rigidbody explodingRigidbody, Rigidbody shrapnel, Rigidbody explosionEffect, int shrapnelCount = 50)
         {
@@ -37,11 +38,16 @@ namespace Assets.Src.ObjectManagement
             //add shrapnel to be exploded
             if (_shrapnelCount > 0 && _shrapnel != null)
             {
-                for (int i = 0; i < _shrapnelCount; i++)
+                for (var i = 0; i < _shrapnelCount; i++)
                 {
-                    var location = Random.insideUnitSphere;
-                    var fragment = Object.Instantiate(_shrapnel, _exploder.position + location, _exploder.transform.rotation);
+                    var location = Random.insideUnitSphere * ShrapnelStartRadius;
+                    var fragment = Object.Instantiate(_shrapnel, _exploder.position + location, RandomiseShrapnelOrientation ? Random.rotation : _exploder.transform.rotation);
+
                     fragment.velocity = (velocityOverride ?? _exploder.velocity) + (ShrapnelSpeed * location);
+                    if (RandomiseShrapnelOrientation)
+                    {
+                        fragment.angularVelocity = Random.insideUnitSphere * Random.Range(0, 1000);
+                    }
                     //gameObjects.Add(fragment);
                     if (RandomiseShrapnelOrientation)
                     {
@@ -53,9 +59,9 @@ namespace Assets.Src.ObjectManagement
                         fragment.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = EnemyTags;
                     }
 
-                    if (TagShrapnel)
+                    if (TagShrapnel && _exploder != null)
                     {
-                        fragment.GetComponent<ITarget>().SetTeamSource(_exploder.GetComponent<ITarget>());
+                        fragment.GetComponent<ITarget>()?.SetTeamSource(_exploder.GetComponent<ITarget>());
                     }
                 }
             }

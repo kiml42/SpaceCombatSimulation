@@ -39,11 +39,6 @@ namespace Assets.Src.ObjectManagement
                 return;
             }
             //Debug.Log($"deregistering target {target} with tag {tag}");
-            if (!_targets.ContainsKey(team))
-            {
-                Debug.LogWarning($"Cannot deregister target {target} with tag {team} - there is no list for this tag.");
-                return;
-            }
 
             var list = _targets[team];
             var targetFromList = list.SingleOrDefault(t => t.Transform == target.Transform);
@@ -74,7 +69,8 @@ namespace Assets.Src.ObjectManagement
                 }
                 else
                 {
-                    Debug.LogWarning($"No target list for team {team}");
+                    Debug.LogWarning($"target list for team {team}, creating one to suppress warning.");
+                    _targets[team] = new List<ITarget>();
                 }
             }
             var distinctList = list.Distinct();
@@ -84,12 +80,12 @@ namespace Assets.Src.ObjectManagement
 
         private static List<ITarget> CleanList(List<ITarget> list)
         {
-            if(list == null)
+            if (list == null)
             {
                 return new List<ITarget>();
             }
-            return  list = list
-                .Where(target => target != null && target?.Transform != null && target.Transform.IsValid())
+            return list
+                .Where(target => target != null && target.Transform != null && target.Transform.IsValid())
                 .Distinct(new CompareTargetsByTransform())  //Specify the comparer to use 
                 .ToList();
         }
