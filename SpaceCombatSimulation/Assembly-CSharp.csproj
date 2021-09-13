@@ -216,6 +216,7 @@
     <Compile Include="Assets\Src\Targeting\TargetPickers\ProximityTargetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TargetPickers\ShipTypeTagetPicker.cs" />
     <Compile Include="Assets\Src\Targeting\TypeKnower.cs" />
+    <Compile Include="Assets\Src\Targeting\VirtualTarget.cs" />
     <Compile Include="Assets\Src\Turret\Beam.cs" />
     <Compile Include="Assets\Src\Turret\EyeballTurrertTurningMechanism.cs" />
     <Compile Include="Assets\Src\Turret\EyeballTurretTurner.cs" />
