@@ -40,10 +40,11 @@ namespace Assets.Src.Graph
 
         public void Start()
         {
-            if (EvolutionControler == null)
+            if (EvolutionController == null)
             {
                 Debug.Log("EvolutionController not set - trying to get it from this gameObject.");
-                EvolutionControler = GetComponent<EvolutionController>(); if (EvolutionControler == null)
+                EvolutionController = GetComponent<EvolutionController>();
+                if (EvolutionController == null)
                 {
                     Debug.LogError("EvolutionController still not set! Disableing.");
                     enabled = false;
@@ -77,8 +78,8 @@ namespace Assets.Src.Graph
 
         protected Dictionary<int, Generation> ReadGenerations()
         {
-            var generations = Enumerable.Range(0, EvolutionControler.GenerationNumber + 1)
-                   .ToDictionary(i => i, i => EvolutionControler.DbHandler.ReadGeneration(EvolutionControler.DatabaseId, i));
+            var generations = Enumerable.Range(0, EvolutionController.GenerationNumber + 1)
+                   .ToDictionary(i => i, i => EvolutionController.DbHandler.ReadGeneration(EvolutionController.DatabaseId, i));
             return generations;
         }
     }
