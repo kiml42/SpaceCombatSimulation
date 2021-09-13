@@ -32,7 +32,7 @@ namespace Assets.Src.Targeting
 
         private bool ShouldDetonate(ITarget target)
         {
-            if(target == null)
+            if (target == null)
             {
                 return false;
             }
@@ -44,7 +44,7 @@ namespace Assets.Src.Targeting
             var reletiveLocation = target.Transform.position - _exploderRigidbody.position;
 
             var approachAngle = Vector3.Angle(relativeVelocity, reletiveLocation);
-            
+
             var approachVelocity = relativeVelocity.ComponentParalellTo(reletiveLocation);
             //var TangentialVelocity = velocity.ComponentPerpendicularTo(reletiveLocation);
 
@@ -52,11 +52,12 @@ namespace Assets.Src.Targeting
 
             float shrapnelConeAngel;
             float timeToTaget;
-            if(approachVelocity.magnitude != 0)
+            if (approachVelocity.magnitude != 0)
             {
                 shrapnelConeAngel = (float)Math.Atan(_shrapnelSpeed / approachVelocity.magnitude);
                 timeToTaget = distance / approachVelocity.magnitude;
-            } else
+            }
+            else
             {
                 Debug.LogWarning("Avoided div0 error");
                 shrapnelConeAngel = 0;

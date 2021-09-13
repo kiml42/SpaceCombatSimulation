@@ -14,13 +14,13 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
     [Tooltip("Check for best targets every frame if true, otherwise only on target loss")]
     public bool ContinuallyCheckForTargets = false;
 
-    [Tooltip("If set to true a target will be aquired once only, once lost the rocket will deactivate." +
+    [Tooltip("If set to true a target will be acquired once only, once lost the rocket will deactivate." +
         " Emulates rockets being told their target by their launcher at launch.")]
     public bool NeverRetarget = false;
     
     [Tooltip("time to wait between polling for better targets (seconds).")]
     public float PollInterval = 0;
-    private float _pollCountdonwn = 0;
+    private float _pollCountdown = 0;
 
     #region knowsCurrentTarget
     public ITarget CurrentTarget { get; private set; }
@@ -32,6 +32,8 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
 
     public bool IncludeNavigationTargets = false;
     public bool IncludeAtackTargets = true;
+
+    public bool Log = false;
 
     // Use this for initialization
     public void Start ()
@@ -62,7 +64,7 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
         {
             var targetIsInvalid = CurrentTarget == null || CurrentTarget.Transform.IsInvalid();
 
-            if (targetIsInvalid || (ContinuallyCheckForTargets && _pollCountdonwn <= 0))
+            if (targetIsInvalid || (ContinuallyCheckForTargets && _pollCountdown <= 0))
             {
                 //either the target is invalid, or the poll interval has elapsed and the ContinuallyCheckForTargets boolean is true, so a new poll should be made.
                 if (Detector == null)
@@ -79,7 +81,8 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
                 //Debug.Log("Count of targets: " + allTargets.Count());
                 if(TargetHasChanged(bestTarget, CurrentTarget))
                 {
-                    LogTargetChange(CurrentTarget, filteredPotentialTargets.FirstOrDefault(), targetIsInvalid);
+                    if(Log)
+                        LogTargetChange(CurrentTarget, filteredPotentialTargets.FirstOrDefault(), targetIsInvalid);
 
                     CurrentTarget = bestTarget;
                 }
@@ -87,11 +90,11 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
                 {
                     Deactivate();   //never try to find a new target, so deactivate
                 }
-                _pollCountdonwn = PollInterval;
+                _pollCountdown = PollInterval;
             } else
             {
                 //there was no poll this frame, so decrement the countdown.
-                _pollCountdonwn -= Time.fixedDeltaTime;
+                _pollCountdown -= Time.fixedDeltaTime;
             }
         }
     }
@@ -122,13 +125,13 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
         }
         if (oldWasInvalid)
         {
-            log += " because the previous target was invalid";
+            log += $" because the previous target {old} was invalid";
         } else if (old != null)
         {
             log += ". Previously " + old.Transform.name + " at " + old.Transform.position;
-            Debug.Log(log); //log only retargets.
             return;
         }
+        Debug.Log(log);
     }
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)

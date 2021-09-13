@@ -33,11 +33,12 @@ namespace Assets.Src.Evolution
         public string EvolutionSceneToLoad = "Evolution";
         public string MainMenuSceneToLoad = "MainMenu";
 
-        private readonly EvolutionDatabaseHandler _handler = new EvolutionDatabaseHandler();
+        private EvolutionDatabaseHandler _handler;
 
         // Use this for initialization
         void Start()
         {
+            _handler = new EvolutionDatabaseHandler();
             _handler.InitialiseConnection();
             LoadConfigFromDB();
 

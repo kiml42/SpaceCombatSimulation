@@ -137,7 +137,7 @@ namespace Assets.Src.Evolution
 
 
             var best = validCompetitors.FirstOrDefault();
-            Debug.Log($"Picked Individual has played {best.MatchesPlayed}");
+            Debug.Log($"Picked Individual ({best.Summary}) has played {best.MatchesPlayed}");
             if (best != null)
             {
                 return best.Genome;

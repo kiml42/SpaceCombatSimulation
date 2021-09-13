@@ -92,7 +92,7 @@ public class EngineControler : AbstractDeactivatableController
     public float _fullTrhrottlePlumeRate;
 
     // Use this for initialization
-    void Start () { 
+    public void Start () { 
         if(Plume != null)
         {
             _fullTrhrottlePlumeRate = Plume.emission.rateOverTime.constant;

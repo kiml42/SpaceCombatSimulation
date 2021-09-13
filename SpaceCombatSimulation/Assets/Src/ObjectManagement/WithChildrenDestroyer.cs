@@ -9,7 +9,7 @@ namespace Assets.Src.ObjectManagement
     {
         public bool UntagChildren = true;
         public string DeadObjectTag = "Untagged";
-        
+
         public IExploder Exploder;
 
         /// <summary>
@@ -28,14 +28,15 @@ namespace Assets.Src.ObjectManagement
 
         private void DestroyWithoutLookingForParent(GameObject toDestroy, bool useExplosion, Vector3? velocityOverride)
         {
-            var allChilldren = FindImediateChildren(toDestroy);
-            foreach (var child in allChilldren)
+            var allChildren = FindImmediateChildren(toDestroy);
+            foreach (var child in allChildren)
             {
                 child.SendMessage("Deactivate", SendMessageOptions.DontRequireReceiver);
                 if (KillCompletely)
                 {
                     DestroyWithoutLookingForParent(child.gameObject, false, velocityOverride);
-                } else
+                }
+                else
                 {
                     var rigidbody = child.GetComponent<Rigidbody>();
                     child.parent = null;
@@ -54,9 +55,9 @@ namespace Assets.Src.ObjectManagement
                         {
                             Object.Destroy(fixedJoint);
                         }
-                        if(fixedJoint==null && hingeJoint == null)
+                        if (fixedJoint == null && hingeJoint == null)
                         {
-                            //destroy anything that wasnt jointed to this object.
+                            //destroy anything that wasn't jointed to this object.
                             DestroyWithoutLookingForParent(child.gameObject, false, velocityOverride);
                         }
                     }
@@ -79,13 +80,13 @@ namespace Assets.Src.ObjectManagement
             GameObject.Destroy(toDestroy);
         }
 
-        private IEnumerable<Transform> FindImediateChildren(GameObject parent)
+        private IEnumerable<Transform> FindImmediateChildren(GameObject parent)
         {
             var children = new List<Transform>();
             var childCount = parent.transform.childCount;
-            if(childCount > 0)
+            if (childCount > 0)
             {
-            for(int i =0; i<childCount; i++)
+                for (var i = 0; i < childCount; i++)
                 {
                     var child = parent.transform.GetChild(i);
                     children.Add(child);
@@ -100,7 +101,7 @@ namespace Assets.Src.ObjectManagement
         {
             var rb = thing.GetComponent<Rigidbody>();
 
-            if(rb != null || thing.transform.parent == null)
+            if (rb != null || thing.transform.parent == null)
             {
                 //this thing has a rigidbody or has no parent, so should be treated as the highest level thing to be destroyed.
                 return thing;

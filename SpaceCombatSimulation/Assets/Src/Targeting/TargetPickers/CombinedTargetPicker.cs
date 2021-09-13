@@ -13,7 +13,7 @@ namespace Assets.Src.Targeting
         {
             var pickers = GetComponents<ITargetPicker>();
             _targeters = pickers.Where(p => p.GetType() != GetType()).OrderBy(p => p.TargetPickerPriority);
-            if (!_targeters.Any()) Debug.LogWarning(name + " has no target pickers!");
+            if (!_targeters.Any()) Debug.LogWarning(this + " has no target pickers!");
         }
 
         public float TargetPickerPriority
@@ -28,7 +28,7 @@ namespace Assets.Src.Targeting
         {
             if (_targeters == null || !_targeters.Any())
             {
-                Debug.Log(name + " has no target pickers! (might just not be initialised yet, attempting reinitialisation...)");
+                //Debug.Log(this + " has no target pickers! (might just not be initialised yet, attempting reinitialisation...)");
                 Start();
 
                 if (_targeters == null || !_targeters.Any())

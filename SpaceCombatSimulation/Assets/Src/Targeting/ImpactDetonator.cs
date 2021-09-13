@@ -37,12 +37,14 @@ namespace Assets.Src.Targeting
                 UntagChildren = false
             };
 
-            //if (_destroyer == null)
-            //{
-            //    Debug.LogWarning(gameObject + " has null destroyer");
-            //    Start();
-            //}
-        }
+        //_startTime = Time.time;
+
+        //if (_destroyer == null)
+        //{
+        //    Debug.LogWarning(gameObject + " has null destroyer");
+        //    Start();
+        //}
+    }
 
         void OnCollisionEnter(Collision collision)
         {

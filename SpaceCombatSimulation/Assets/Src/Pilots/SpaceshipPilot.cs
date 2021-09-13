@@ -1,6 +1,5 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.Targeting;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -54,12 +53,12 @@ namespace Assets.Src.Pilots
                 var reletiveLocation = target == null
                     ? -_pilotObject.position     //Return to the centre if there is no target
                     : ReletiveLocationInWorldSpace(target);
-                
+
                 var distance = reletiveLocation.magnitude;
-                
+
                 var isTooFar = distance > MaxRange;
                 var isTooClose = distance < MinRange;
-                
+
                 var targetsVelosity = target == null
                     ? -_pilotObject.velocity    //if there's no target, go to stationary target at centre.
                     : WorldSpaceReletiveVelocityOfTarget(target);
@@ -78,7 +77,7 @@ namespace Assets.Src.Pilots
                 var tangentialTooSlow = tanSpeed < MinTangentialSpeed;
 
                 var needsSlowdown = targetsApproachVelocity.magnitude > RadialSpeedThreshold;
-                
+
                 var happyWithSpeed = !tangentialTooFast && !tangentialTooSlow && targetsVelosity.magnitude < MaxTangentialSpeed && !needsSlowdown;
                 var happyWithLocation = !isTooClose && !isTooFar;
 
@@ -117,7 +116,8 @@ namespace Assets.Src.Pilots
                     {
                         VectorArrow.rotation = Quaternion.LookRotation(turningVector);
                         VectorArrow.localScale = Vector3.one;
-                    } else
+                    }
+                    else
                     {
                         VectorArrow.localScale = Vector3.zero;
                     }
@@ -125,19 +125,19 @@ namespace Assets.Src.Pilots
 
                 if (completelyHappy)
                 {
-                    Debug.Log($"Completely happy: Pilot setting vector for engines to {null}");
+                    //Debug.Log($"Completely happy: Pilot setting vector for engines to {null}");
                     SetFlightVectorOnEngines(null);
                 }
                 else
                 {
                     //try firing the main engine even with no fuel to turn it off if there is no fuel.
-                    Debug.Log($"Pilot setting vector for engines to turningVector: {turningVector}");
+                    //Debug.Log($"Pilot setting vector for engines to turningVector: {turningVector}");
                     SetFlightVectorOnEngines(turningVector);
                 }
             }
             else
             {
-                Debug.Log($"Has not acivated: Pilot setting vector for engines to {null}");
+                //Debug.Log($"Has not acivated: Pilot setting vector for engines to {null}");
                 SetFlightVectorOnEngines(null);  //turn off the engine
             }
         }
@@ -167,15 +167,17 @@ namespace Assets.Src.Pilots
             if (tangentialTooFast)
             {
                 correctTangentialSpeedVector = targetsTangentialVelocity.normalized;
-            } else if (tangentialTooSlow)
+            }
+            else if (tangentialTooSlow)
             {
-                if(targetsTangentialVelocity.magnitude < MinTangentialSpeed * 0.1)
+                if (targetsTangentialVelocity.magnitude < MinTangentialSpeed * 0.1)
                 {
                     //use the forward orientation of the ship because Vt is way too slow, and wil yield unstable results.
                     correctTangentialSpeedVector = (_pilotObject.transform.forward.ComponentPerpendicularTo(reletiveLocationOfTarget)).normalized;
-                } else
+                }
+                else
                 {
-                    correctTangentialSpeedVector =  - targetsTangentialVelocity.normalized;
+                    correctTangentialSpeedVector = -targetsTangentialVelocity.normalized;
                 }
             }
 

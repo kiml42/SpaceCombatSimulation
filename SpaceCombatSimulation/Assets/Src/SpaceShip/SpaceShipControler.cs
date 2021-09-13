@@ -99,19 +99,19 @@ public class SpaceShipControler : AbstractDeactivatableController
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
-        const float MaxVelociyTollerance = 100;
-        const float DefaultVelociyTolleranceProportion = 0.1f;
+        const float MaxVelocityTolerance = 100;
+        const float DefaultVelocityToleranceProportion = 0.1f;
 
         ShootAngle = genomeWrapper.GetScaledNumber(180);
         LocationAimWeighting = genomeWrapper.GetScaledNumber(2);
         SlowdownWeighting = genomeWrapper.GetScaledNumber(70);
         MaxRange = genomeWrapper.GetScaledNumber(5000, 0, 0.1f);
         MinRange = genomeWrapper.GetScaledNumber(1000, 0, 0.1f);
-        MaxTangentialVelocity = genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
-        MinTangentialVelocity = genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
+        MaxTangentialVelocity = genomeWrapper.GetScaledNumber(MaxVelocityTolerance, 0, DefaultVelocityToleranceProportion);
+        MinTangentialVelocity = genomeWrapper.GetScaledNumber(MaxVelocityTolerance, 0, DefaultVelocityToleranceProportion);
         TangentialSpeedWeighting = genomeWrapper.GetScaledNumber(70);
         AngularDragForTorquers = genomeWrapper.GetScaledNumber(2, 0, 0.2f);
-        RadialSpeedThreshold = genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
+        RadialSpeedThreshold = genomeWrapper.GetScaledNumber(MaxVelocityTolerance, 0, DefaultVelocityToleranceProportion);
 
         return genomeWrapper;
     }

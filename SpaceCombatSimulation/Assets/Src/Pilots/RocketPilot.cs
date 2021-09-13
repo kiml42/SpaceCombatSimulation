@@ -146,7 +146,7 @@ namespace Assets.Src.Pilots
                     Debug.LogError(_pilotObject + " is detecting itself as a possible collision. Distance: " + hit.distance + ", MinDetection distance: " + MinimumFriendlyDetectionDistance);
                 }
                 var hitTarget = hit.transform.GetComponent<ITarget>();
-                if (hitTarget?.Team == PilotTarget.Team)
+                if (PilotTarget?.Team != null  && hitTarget?.Team == PilotTarget.Team)
                 {
                     //isFriendly
                     var relativeVelocity = WorldSpaceReletiveVelocityOfTarget(hit.rigidbody);
