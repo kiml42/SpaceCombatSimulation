@@ -10,6 +10,9 @@ public class SpawnTurret : MonoBehaviour
     [Tooltip("if true, the turret will be tagged with the parent objects tag. This object's tag is used if there is no parent.")]
     public bool TagChildren = true;
 
+    [Tooltip("if true, the turret have it's colour set to the colour from the first colour setter in this or its parents.")]
+    public bool RecolourChild = true;
+
     public Transform ParentForTurret;
     
     [Tooltip("only used if the turret won't be able to find a deffered tag source.")]
@@ -57,14 +60,6 @@ public class SpawnTurret : MonoBehaviour
                 {
                     Debug.LogWarning($"turret \"{turret}\" does not have a fixed joint to connect to \"{ParentForTurret}\" with.");
                 }
-
-                var renderer = ParentForTurret.GetComponentInChildren<Renderer>();
-
-                if (renderer != null)
-                {
-                    //Debug.Log("has renderer");
-                    turret.transform.SetColor(renderer.material.color);
-                }
             }
 
             var tagKnower = turret.GetComponent<IKnowsEnemyTags>();
@@ -76,7 +71,17 @@ public class SpawnTurret : MonoBehaviour
             if (TagChildren)
             {
                 var parentTarget = ParentForTurret.GetComponent<ITarget>();
-                turret.GetComponent<ITarget>().SetTeamSource(parentTarget ?? GetComponent<ITarget>());
+                turret.GetComponent<ITarget>()?.SetTeamSource(parentTarget ?? GetComponent<ITarget>());
+            }
+
+            if (RecolourChild && turret.GetComponent<ColourSetter>() == null && ParentForTurret != null)
+            {
+                //set the colour on the child, unless it's got its own colour setter, in which case, let that decide.
+                var parentColour = ParentForTurret.GetComponentInParent<ColourSetter>();
+                if(parentColour != null)
+                {
+                    turret.SetColor(parentColour.Colour);
+                }
             }
         
             Destroy(gameObject);
