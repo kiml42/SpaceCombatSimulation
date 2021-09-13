@@ -37,6 +37,11 @@ namespace Assets.Src.ObjectManagement
             {
                 r.material.color = colour;
             }
+            var colourSetters = transform.GetComponentsInChildren<ColourSetter>();
+            foreach (var c in colourSetters)
+            {
+                c.Colour = colour;
+            }
         }
 
         public static void SetVelocity(this Transform transform, Vector3 velocity)
