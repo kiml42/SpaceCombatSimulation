@@ -59,9 +59,9 @@ namespace Assets.Src.ObjectManagement
                         fragment.GetComponent<IKnowsEnemyTags>().KnownEnemyTags = EnemyTags;
                     }
 
-                    if (TagShrapnel)
+                    if (TagShrapnel && _exploder != null)
                     {
-                        fragment.GetComponent<ITarget>().SetTeamSource(_exploder.GetComponent<ITarget>());
+                        fragment.GetComponent<ITarget>()?.SetTeamSource(_exploder.GetComponent<ITarget>());
                     }
                 }
             }

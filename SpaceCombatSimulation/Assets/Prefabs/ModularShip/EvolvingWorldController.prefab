@@ -610,10 +610,10 @@ MonoBehaviour:
     type: 3}
   SummaryBox:
     serializedVersion: 2
-    x: 800
+    x: 700
     y: 10
     width: 430
-    height: 100
+    height: 200
   MainMenu: MainMenu
 --- !u!114 &114761333346593936
 MonoBehaviour:
@@ -677,6 +677,7 @@ MonoBehaviour:
   DecelerateTimeKey: 281
   TogglePause: 32
   AutoSetTimeScale: 1
+  TimeScale: 0
 --- !u!114 &6821077443773605079
 MonoBehaviour:
   m_ObjectHideFlags: 0

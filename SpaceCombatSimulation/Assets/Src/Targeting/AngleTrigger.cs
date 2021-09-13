@@ -31,7 +31,7 @@ namespace Assets.Src.Targeting
         public bool ShouldShoot(ITarget target)
         {
             if (AimingObject == null) return false;
-            if (AvoidFriendlyFire)
+            if (AvoidFriendlyFire && _thisTarget?.Team != null)
             {
                 //Debug.Log("looking for friendlies");
                 var ray = new Ray(AimingObject.position + (AimingObject.transform.forward * MinFriendlyDetectionDistance), AimingObject.transform.forward);
