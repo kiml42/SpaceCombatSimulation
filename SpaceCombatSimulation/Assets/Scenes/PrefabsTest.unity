@@ -849,6 +849,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Rocket
       objectReference: {fileID: 0}
+    - target: {fileID: 1844183048995594, guid: 8bf03007d4e417c4087307829906f7d6, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4469671951430032, guid: 8bf03007d4e417c4087307829906f7d6, type: 3}
       propertyPath: m_LocalPosition.x
       value: -14.752618
@@ -1696,6 +1700,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: ArmouredShip
+      objectReference: {fileID: 0}
+    - target: {fileID: 4064186139689205048, guid: 78bd05db71bf35942a4b39c4f2816a91,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 78bd05db71bf35942a4b39c4f2816a91, type: 3}
