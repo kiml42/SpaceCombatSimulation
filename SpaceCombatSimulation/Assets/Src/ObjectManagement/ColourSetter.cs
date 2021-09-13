@@ -21,9 +21,4 @@ public class ColourSetter : MonoBehaviour
         }
         transform.SetColor(Colour);
     }
-
-    //private void Update()
-    //{
-    //    transform.SetColor(Colour);
-    //}
 }

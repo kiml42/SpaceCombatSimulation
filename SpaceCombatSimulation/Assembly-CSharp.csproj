@@ -8,7 +8,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <ProjectGuid>{975AB409-05C3-15C3-D7DD-0D0DAF22C92D}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -155,7 +156,6 @@
     <Compile Include="Assets\Src\ModuleSystem\ModuleTypeKnower.cs" />
     <Compile Include="Assets\Src\ModuleSystem\RigidbodyList.cs" />
     <Compile Include="Assets\Src\ModuleSystem\RocketTypeKnower.cs" />
-    <Compile Include="Assets\Src\ModuleSystem\SelfBuildingShip.cs" />
     <Compile Include="Assets\Src\ModuleSystem\ShipBuilder.cs" />
     <Compile Include="Assets\Src\ModuleSystem\TestCubeChecker.cs" />
     <Compile Include="Assets\Src\ObjectManagement\ColourSetter.cs" />
