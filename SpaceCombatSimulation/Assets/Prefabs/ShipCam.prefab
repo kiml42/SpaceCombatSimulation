@@ -318,6 +318,7 @@ MonoBehaviour:
   TargetPicker: {fileID: 114682732991779878}
   IncludeNavigationTargets: 0
   IncludeAtackTargets: 1
+  Log: 0
 --- !u!114 &114049083187195046
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -402,7 +403,7 @@ MonoBehaviour:
   FollowPicker: {fileID: 114072112260931388}
   TagPicker: {fileID: 114317625934294130}
   ZoomSpeed: 3
-  UseFollowedTargetsTarget: 0
+  UseFollowedTargetsTarget: 1
   cameraPickerMode: 0
   CameraModeCyclePeriod: Infinity
   UserPriorityTime: 30
@@ -471,7 +472,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c8f0086f47de8f548a710085861e5a0a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  PriorityMultiplier: 1
+  PriorityMultiplier: 0.1
   UseFollowedShipUpVector: 0
   RotationSpeed: 10
   ManualTime: 20
@@ -1063,6 +1064,7 @@ MonoBehaviour:
   TargetPicker: {fileID: 114068390980648662}
   IncludeNavigationTargets: 0
   IncludeAtackTargets: 1
+  Log: 0
 --- !u!114 &114930942505021238
 MonoBehaviour:
   m_ObjectHideFlags: 0
