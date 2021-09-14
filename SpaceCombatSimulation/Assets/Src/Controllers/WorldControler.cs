@@ -11,13 +11,13 @@ namespace Assets.Src.Controllers
     {
         public bool FollowShips = true;
         public string TarGetTag = "Enemy";
-        public string TeamForDrones;
+        public string TeamForDrones = null;
         public bool ShouldSpawnDrones = true;
         public bool ShouldSetEnemyTag = false;
         
-        public List<string> EnemyTags;
+        public List<string> EnemyTagsForDrone = null;
 
-        public Rigidbody Drone;
+        public Rigidbody Drone = null;
 
         public float Radius = 100;
 
