@@ -86,7 +86,6 @@
     <Compile Include="Assets\Src\Evolution\BaseEvolutionController.cs" />
     <Compile Include="Assets\Src\Evolution\BattleRoyale\EditBrConfigController.cs" />
     <Compile Include="Assets\Src\Evolution\BattleRoyale\EvolutionBrConfig.cs" />
-    <Compile Include="Assets\Src\Evolution\BattleRoyale\EvolutionBrControler.cs" />
     <Compile Include="Assets\Src\Evolution\Drone\EditDroneConfigController.cs" />
     <Compile Include="Assets\Src\Evolution\Drone\EvolutionDroneConfig.cs" />
     <Compile Include="Assets\Src\Evolution\EditBaseConfigControler.cs" />

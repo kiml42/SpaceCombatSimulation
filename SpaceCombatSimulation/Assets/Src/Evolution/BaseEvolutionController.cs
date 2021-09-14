@@ -30,9 +30,9 @@ namespace Assets.Src.Evolution
             return ships;
         }
 
-        public abstract GeneralDatabaseHandler DbHandler { get; }
+        public abstract EvolutionDatabaseHandler DbHandler { get; }
 
-        protected abstract BaseEvolutionConfig _baseConfig { get; }
+        protected abstract EvolutionConfig _baseConfig { get; }
 
         public int GenerationNumber { get { return _baseConfig.GenerationNumber; } }
 
