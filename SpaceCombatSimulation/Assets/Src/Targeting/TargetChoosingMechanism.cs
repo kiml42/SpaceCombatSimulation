@@ -74,9 +74,11 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
                 }
                 //Debug.Log(name + " aquiring new target");
                 var allTargets = Detector.DetectTargets(IncludeNavigationTargets, IncludeAtackTargets);
-                var allTargetsList = allTargets.ToList();
                 var filteredPotentialTargets = TargetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score);
                 FilteredTargets = filteredPotentialTargets.Select(t => t.Target);
+                if (Log)
+                    Debug.Log($"Valid Targets: {string.Join(",", FilteredTargets)}");
+
                 var bestTarget = FilteredTargets.FirstOrDefault();
                 //Debug.Log("Count of targets: " + allTargets.Count());
                 if(TargetHasChanged(bestTarget, CurrentTarget))
@@ -129,7 +131,6 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
         } else if (old != null)
         {
             log += ". Previously " + old.Transform.name + " at " + old.Transform.position;
-            return;
         }
         Debug.Log(log);
     }

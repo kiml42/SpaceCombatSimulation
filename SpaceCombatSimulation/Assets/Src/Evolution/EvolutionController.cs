@@ -23,6 +23,8 @@ namespace Assets.Src.Evolution
         protected EvolutionMatchController _matchControl;
 
         private Generation _currentGeneration;
+
+        public EvolutionDatabaseHandler DbHandler { get; private set; }
         #endregion
 
         #region BR
@@ -50,8 +52,6 @@ namespace Assets.Src.Evolution
         public RigidbodyList DroneList;
         private readonly List<Transform> _liveDrones = new List<Transform>();
         #endregion
-
-        public EvolutionDatabaseHandler DbHandler { get; private set; }
 
         public int GenerationNumber { get { return EvolutionConfig.GenerationNumber; } }
 
@@ -202,7 +202,7 @@ namespace Assets.Src.Evolution
         /// Chooses the individuals to compete this match and spawns them.
         /// </summary>
         /// <returns>Boolean indecating that something has at least one module</returns>
-        private bool SpawnShips()
+        protected virtual bool SpawnShips()
         {
             var genomes = _currentGeneration.PickCompetitors(EvolutionConfig.BrConfig.NumberOfCombatants);
 
@@ -491,6 +491,7 @@ namespace Assets.Src.Evolution
         }
         #endregion
 
+        //TODO make this protected when the player evolution is fitted into a hierarchy
         private class Score : IComparable
         {
             private readonly Dictionary<ScoreType, float> _scoreByType = new Dictionary<ScoreType, float>();

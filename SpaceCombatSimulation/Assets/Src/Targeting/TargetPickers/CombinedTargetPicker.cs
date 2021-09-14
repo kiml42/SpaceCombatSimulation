@@ -7,6 +7,8 @@ namespace Assets.Src.Targeting
 {
     public class CombinedTargetPicker : MonoBehaviour, ITargetPicker
     {
+        public bool Log = false;
+
         private IOrderedEnumerable<ITargetPicker> _targeters;
 
         void Start()
@@ -36,10 +38,16 @@ namespace Assets.Src.Targeting
                     Debug.LogError(name + " still has no target pickers!");
                 }
             }
+            if(Log)
+                Debug.Log($"Original targets: {string.Join(",", potentialTargets)}");
             foreach (var targeter in _targeters)
             {
                 potentialTargets = targeter.FilterTargets(potentialTargets);
+                if(Log)
+                    Debug.Log($"After {targeter}: {string.Join(",", potentialTargets)}");
             }
+            if(Log)
+                Debug.Log($"Final: {string.Join(",", potentialTargets)}");
             return potentialTargets;
         }
     }

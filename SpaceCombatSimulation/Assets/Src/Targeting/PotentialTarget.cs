@@ -27,5 +27,10 @@ namespace Assets.Src.Targeting
         {
             Target = target;
         }
+
+        public override string ToString()
+        {
+            return base.ToString() + "("+ Target + ":" + Score + ")";
+        }
     }
 }
