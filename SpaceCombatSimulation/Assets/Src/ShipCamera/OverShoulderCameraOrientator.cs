@@ -16,13 +16,13 @@ namespace Assets.Src.ShipCamera
         public float SetBackMultiplier = 0.5f;
         
         /// <summary>
-        /// when the parent is within this angle of looking at the watched object, the camera tself starts tracking.
+        /// when the parent is within this angle of looking at the watched object, the camera self starts tracking.
         /// </summary>
         public float NearlyAimedAngle = 3;
         
         public Transform DefaultCamLocation;
 
-        public override bool HasTargets { get { return _shipCam?.FollowedTarget != null; } }
+        public override bool HasTargets => _shipCam != null && _shipCam.FollowedTarget != null;
 
         public Vector3 LookAtLocation => _shipCam.WatchedRigidbody != null && _shipCam.WatchedRigidbody != _shipCam.FollowedTarget
                 ? _shipCam.WatchedRigidbody.position
