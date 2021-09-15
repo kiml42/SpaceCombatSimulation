@@ -195,11 +195,9 @@ namespace Assets.Src.ShipCamera
             //    Debug.Log(item.Transform.name + ": " + item.Score);
             //}
 
-            FollowedTarget = targets.Any()
-                ? targets
-                .First()
-                .Rigidbody
-                : null;
+            FollowedTarget = targets
+                .FirstOrDefault()?
+                .Rigidbody;
 
             FollowedTarget = GetActualTarget(FollowedTarget);
 

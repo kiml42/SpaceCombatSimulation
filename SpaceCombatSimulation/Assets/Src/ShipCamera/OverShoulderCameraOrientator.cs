@@ -22,8 +22,12 @@ namespace Assets.Src.ShipCamera
         
         public Transform DefaultCamLocation;
 
-        public override bool HasTargets { get { return _shipCam != null && _shipCam.FollowedTarget != null && _shipCam.WatchedRigidbody != null && _shipCam.FollowedTarget != _shipCam.WatchedRigidbody; } }
-        
+        public override bool HasTargets { get { return _shipCam?.FollowedTarget != null; } }
+
+        public Vector3 LookAtLocation => _shipCam.WatchedRigidbody != null && _shipCam.WatchedRigidbody != _shipCam.FollowedTarget
+                ? _shipCam.WatchedRigidbody.position
+                : _shipCam.FollowedTarget.position + (_shipCam.FollowedTarget.transform.forward * 1000);
+
         public override float Priority
         {
             get
@@ -34,8 +38,9 @@ namespace Assets.Src.ShipCamera
         
         private float GetWatchDistance()
         {
-            return Vector3.Distance(transform.position, _shipCam.WatchedRigidbody.position);
+            return Vector3.Distance(transform.position, LookAtLocation);
         }
+
         public override string Description
         {
             get
@@ -48,31 +53,42 @@ namespace Assets.Src.ShipCamera
         {
             if (HasTargets)
             {
-                //Debug.Log("Following " + _followedTarget.Transform.name + ", Watching " + _targetToWatch.Transform.name);
-                //rotate enpty parent
-                
-                var automaticParentPollTarget = (_shipCam.WatchedRigidbody.position - _shipCam.FollowedTarget.position);
-                var cameraPollTarget = DefaultCamLocation.forward;
-                if (!ManualPanMode && Vector3.Angle(automaticParentPollTarget, transform.forward) < NearlyAimedAngle)
-                {
-                    //rotate the camera itself - only if the parent is looking in vaguely the right direction.
-                    cameraPollTarget = (_shipCam.WatchedRigidbody.position - _shipCam.Camera.transform.position);
-                }
+                //Debug.Log("Following " + _shipCam.FollowedTarget + ", Watching target: " + _shipCam.WatchedRigidbody + " Actual watch location: " + LookAtLocation);
+                //rotate empty parent
+
+                Vector3 automaticParentPoleTarget = GetParentPoleTarget();
+
+                Vector3 cameraPoleTarget = GetCameraPoleTarget(automaticParentPoleTarget);
 
                 var referenceVelocity = _shipCam.FollowedTarget.velocity;
 
                 //move the focus
-                var focusDistance =  GetWatchDistance();
+                var focusDistance = GetWatchDistance();
 
                 var automaticFieldOfView = Clamp((float)(FocusAngleMultiplier * Math.Pow(focusDistance, FocusAnglePower)), 1, 90);
 
                 var setBack = SetbackIntercept - focusDistance * SetBackMultiplier;
                 var cameraLocationTarget = DefaultCamLocation.position + (DefaultCamLocation.forward * setBack);
 
-                //Debug.Log($"OverShoulderCameraOrientator");
-                return new ShipCamTargetValues(_shipCam.FollowedTarget.position, automaticParentPollTarget, cameraLocationTarget, cameraPollTarget, automaticFieldOfView, referenceVelocity, UpVector);
+                return new ShipCamTargetValues(_shipCam.FollowedTarget.position, automaticParentPoleTarget, cameraLocationTarget, cameraPoleTarget, automaticFieldOfView, referenceVelocity, UpVector);
             }
             return null;
+        }
+
+        private Vector3 GetCameraPoleTarget(Vector3 automaticParentPoleTarget)
+        {
+            if (!ManualPanMode && Vector3.Angle(automaticParentPoleTarget, transform.forward) < NearlyAimedAngle)
+            {
+                //rotate the camera itself - only if the parent is looking in vaguely the right direction.
+                return LookAtLocation - _shipCam.Camera.transform.position;
+            }
+
+            return DefaultCamLocation.forward;
+        }
+
+        private Vector3 GetParentPoleTarget()
+        {
+            return LookAtLocation - _shipCam.FollowedTarget.position;
         }
     }
 }

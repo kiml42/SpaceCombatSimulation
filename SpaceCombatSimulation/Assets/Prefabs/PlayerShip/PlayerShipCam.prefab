@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 114997458111832710}
   - component: {fileID: 114518429968922778}
   - component: {fileID: 114128993056398336}
-  - component: {fileID: 114235068680481366}
   - component: {fileID: 114141294806049706}
   m_Layer: 0
   m_Name: PlayerShipCam
@@ -124,28 +123,6 @@ MonoBehaviour:
   TargetFilterDistance: 2000
   AssumedTargetRadius: 15
   ExtraAngle: 10
---- !u!114 &114235068680481366
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1071523614404600}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c8f0086f47de8f548a710085861e5a0a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  PriorityMultiplier: 0.1
-  UseFollowedShipUpVector: 1
-  RotationSpeed: 10
-  ManualTime: 20
-  MouseButtonIndex: 1
-  ZoomSpeed: 10
-  SetBack: 50
-  IdleRotationSpeed: -500
-  FieldOfView: 80
-  StartRotatingDistance: 60
 --- !u!114 &114141294806049706
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -924,7 +901,7 @@ MonoBehaviour:
   TargetPicker: {fileID: 2833566221923246806}
   IncludeNavigationTargets: 0
   IncludeAtackTargets: 1
-  Log: 0
+  Log: 1
 --- !u!114 &440688097701306426
 MonoBehaviour:
   m_ObjectHideFlags: 0
