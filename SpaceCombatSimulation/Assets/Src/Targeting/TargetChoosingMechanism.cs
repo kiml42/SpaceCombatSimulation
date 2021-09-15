@@ -52,6 +52,8 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
                 Debug.LogWarning(name + " Could not find enemy tag source for target picker while configuring the detector.");
             } else
             {
+                if (Log)
+                    Debug.Log($"{this} is setting up a target detector. Tag source: {EnemyTagKnower}");
                 Detector = new RepositoryTargetDetector(EnemyTagKnower);
             }
         }
@@ -74,6 +76,8 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
                 }
                 //Debug.Log(name + " aquiring new target");
                 var allTargets = Detector.DetectTargets(IncludeNavigationTargets, IncludeAtackTargets);
+                if (Log)
+                    Debug.Log($"All Detected Targets: {string.Join(",", allTargets)}");
                 var filteredPotentialTargets = TargetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score);
                 FilteredTargets = filteredPotentialTargets.Select(t => t.Target);
                 if (Log)

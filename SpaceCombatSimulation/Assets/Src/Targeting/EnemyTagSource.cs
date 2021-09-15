@@ -53,5 +53,10 @@ namespace Assets.Src.Targeting
             }
         }
 
+        public override string ToString()
+        {
+            return base.ToString() + $" Tags: {string.Join(",", KnownEnemyTags)}";
+        }
+
     }
 }

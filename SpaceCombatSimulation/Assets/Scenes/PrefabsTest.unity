@@ -1504,6 +1504,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerShipCam
       objectReference: {fileID: 0}
+    - target: {fileID: 1071523614404600, guid: 497cffc532bbe024095aaa58b237929d, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4876481435528312, guid: 497cffc532bbe024095aaa58b237929d, type: 3}
       propertyPath: m_LocalPosition.x
       value: 21
@@ -1546,6 +1550,16 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4876481435528312, guid: 497cffc532bbe024095aaa58b237929d, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5989362555163417320, guid: 497cffc532bbe024095aaa58b237929d,
+        type: 3}
+      propertyPath: Log
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8023142954475806109, guid: 497cffc532bbe024095aaa58b237929d,
+        type: 3}
+      propertyPath: Log
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -2200,7 +2214,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1962436955
 Transform:
   m_ObjectHideFlags: 0

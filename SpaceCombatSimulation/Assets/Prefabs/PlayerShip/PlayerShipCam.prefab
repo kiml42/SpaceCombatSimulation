@@ -901,7 +901,7 @@ MonoBehaviour:
   TargetPicker: {fileID: 2833566221923246806}
   IncludeNavigationTargets: 0
   IncludeAtackTargets: 1
-  Log: 1
+  Log: 0
 --- !u!114 &440688097701306426
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1035,7 +1035,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Log: 1
+  Log: 0
 --- !u!114 &5989362555163417320
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1057,7 +1057,7 @@ MonoBehaviour:
   TargetPicker: {fileID: 4266217833513857400}
   IncludeNavigationTargets: 1
   IncludeAtackTargets: 1
-  Log: 1
+  Log: 0
 --- !u!114 &8893163357699416283
 MonoBehaviour:
   m_ObjectHideFlags: 0

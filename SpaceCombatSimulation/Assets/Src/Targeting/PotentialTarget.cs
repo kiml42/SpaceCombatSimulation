@@ -9,7 +9,7 @@ namespace Assets.Src.Targeting
     public class PotentialTarget
     {
         public float Score { get; set; }
-        public bool IsValidForCurrentPicker { get; set; }
+        public bool IsValidForCurrentPicker { get; set; } = true;
 
         public ITarget Target { get; private set; }
 
