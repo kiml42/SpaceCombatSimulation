@@ -1,4 +1,6 @@
 ﻿using Assets.Src.Interfaces;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Assets.Src.Evolution.Player
@@ -16,7 +18,11 @@ namespace Assets.Src.Evolution.Player
         #region Initial Setup
         protected override bool SpawnShips()
         {
-            //ShipConfig.SetEnemyTagsForEachOther = SetEnemyTagsForEachOther;   // TODO 
+            base.SpawnShips();
+
+            var teams = ShipConfig.ShipTeamMapping.Values.ToList();
+            teams.AddRange(ShipConfig.TagsForAll.Where(t => t != "RaceGoal"));
+
             for (int i = 0; i < PlayerCount; i++)
             {
                 var location = PlayerStartLocation +
@@ -29,11 +35,18 @@ namespace Assets.Src.Evolution.Player
 
                 foreach (var tk in tagKnowers)
                 {
-                    tk.KnownEnemyTags = ShipConfig.TagsForAll;
+                    tk.KnownEnemyTags = teams;
                 }
             }
 
-            base.SpawnShips();
+            foreach (var aiShip in ShipConfig.ShipTeamMapping.Keys)
+            {
+                var tagKnowers = aiShip.GetComponentsInChildren<IKnowsEnemyTags>();
+                foreach (var t in tagKnowers)
+                {
+                    t.KnownEnemyTags.Add("Player1");
+                }
+            }
 
             return true;
         }

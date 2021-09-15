@@ -169,18 +169,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4b859b23543de9c4fa4e8d2403b1dcd6, type: 3}
---- !u!114 &564119877 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2871894815219391090, guid: 497cffc532bbe024095aaa58b237929d,
-    type: 3}
-  m_PrefabInstance: {fileID: 590267428}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2f4ce3c9f57b8c6478b0b9cd0cd9e584, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1001 &590267428
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -236,11 +224,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 114997458111832710, guid: 497cffc532bbe024095aaa58b237929d,
-        type: 3}
-      propertyPath: TagPicker
-      value: 
-      objectReference: {fileID: 564119877}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 497cffc532bbe024095aaa58b237929d, type: 3}
 --- !u!108 &953302730 stripped
@@ -384,7 +367,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f3301a6dc1b33d946995ff7752dba279, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DatabaseId: 1
+  DatabaseId: 2
   ShipConfig: {fileID: 1972193897}
   RaceGoals: {fileID: 114737211958639058, guid: ca698eb3a6516b148a347994e01953a9,
     type: 3}

@@ -109,7 +109,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 656e578ec6ab3634fbfe9c8183a0b871, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  PriorityMultiplier: 1
+  PriorityMultiplier: 0
   UseFollowedShipUpVector: 1
   RotationSpeed: 10
   ManualTime: 20
