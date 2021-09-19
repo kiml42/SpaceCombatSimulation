@@ -64,7 +64,7 @@ namespace Assets.Src.Evolution
         public string MainMenu = "MainMenu";
 
         #region Player Ship
-        public bool AddPlayerShip;
+        public bool AddPlayerShip;  // TODO get/set in DB
 
         public Rigidbody PlayerShip; 
         #endregion
@@ -212,7 +212,7 @@ namespace Assets.Src.Evolution
         /// Chooses the individuals to compete this match and spawns them.
         /// </summary>
         /// <returns>Boolean indicating that something has at least one module</returns>
-        protected virtual bool SpawnShips()
+        private bool SpawnShips()
         {
             var genomes = _currentGeneration.PickCompetitors(EvolutionConfig.BrConfig.NumberOfCombatants);
 
@@ -552,7 +552,6 @@ namespace Assets.Src.Evolution
         }
         #endregion
 
-        //TODO make this protected when the player evolution is fitted into a hierarchy
         private class Score : IComparable
         {
             private readonly Dictionary<ScoreType, float> _scoreByType = new Dictionary<ScoreType, float>();
