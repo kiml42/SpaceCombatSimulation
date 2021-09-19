@@ -67,11 +67,6 @@ namespace Assets.Src.ObjectManagement
                     //Debug.Log($"team {team} has {_targets[team].Count()} targets, of which {onTeam.Count()} are valid. Nav: {includeNavigationTargets}, Attack: {includeAtackTargets}");
                     list.AddRange(onTeam);
                 }
-                else
-                {
-                    Debug.LogWarning($"target list for team {team}, creating one to suppress warning.");
-                    _targets[team] = new List<ITarget>();
-                }
             }
             var distinctList = list.Distinct();
 

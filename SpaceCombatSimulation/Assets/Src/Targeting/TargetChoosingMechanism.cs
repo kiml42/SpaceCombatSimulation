@@ -52,6 +52,8 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
                 Debug.LogWarning(name + " Could not find enemy tag source for target picker while configuring the detector.");
             } else
             {
+                if (Log)
+                    Debug.Log($"{this} is setting up a target detector. Tag source: {EnemyTagKnower}");
                 Detector = new RepositoryTargetDetector(EnemyTagKnower);
             }
         }
@@ -74,9 +76,13 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
                 }
                 //Debug.Log(name + " aquiring new target");
                 var allTargets = Detector.DetectTargets(IncludeNavigationTargets, IncludeAtackTargets);
-                var allTargetsList = allTargets.ToList();
+                if (Log)
+                    Debug.Log($"All Detected Targets: {string.Join(",", allTargets)}");
                 var filteredPotentialTargets = TargetPicker.FilterTargets(allTargets).OrderByDescending(t => t.Score);
                 FilteredTargets = filteredPotentialTargets.Select(t => t.Target);
+                if (Log)
+                    Debug.Log($"Valid Targets: {string.Join(",", FilteredTargets)}");
+
                 var bestTarget = FilteredTargets.FirstOrDefault();
                 //Debug.Log("Count of targets: " + allTargets.Count());
                 if(TargetHasChanged(bestTarget, CurrentTarget))
@@ -129,7 +135,6 @@ public class TargetChoosingMechanism : AbstractDeactivatableController, IDeactiv
         } else if (old != null)
         {
             log += ". Previously " + old.Transform.name + " at " + old.Transform.position;
-            return;
         }
         Debug.Log(log);
     }

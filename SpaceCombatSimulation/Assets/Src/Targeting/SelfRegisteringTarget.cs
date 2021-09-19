@@ -50,7 +50,7 @@ public class SelfRegisteringTarget : MonoBehaviour, ITarget
         }
     }
 
-    [Tooltip("The team to initially set this target to, if null or empty, the target will need its team set later. This value is for display purposes only in play mode.")]
+    [Tooltip("The team to initially set this target to, if null or empty, the target will need its team set later.")]
     public string InitialTeam;
 
     public string Team { get; private set; }
@@ -70,10 +70,23 @@ public class SelfRegisteringTarget : MonoBehaviour, ITarget
 
     void FixedUpdate()
     {
-        if(GetTeamFromSourceTriesRemaining > 0 && _teamSource != null && string.IsNullOrEmpty(Team))
+        if (string.IsNullOrEmpty(Team) && GetTeamFromSourceTriesRemaining >= 0)
         {
-            SetTeam(_teamSource.Team);
-            GetTeamFromSourceTriesRemaining--;
+            if(_teamSource == null)
+            {
+                Debug.LogWarning($"{this} has no Team, or source to get a team from.");
+                GetTeamFromSourceTriesRemaining = -1;
+            }
+            else if(GetTeamFromSourceTriesRemaining > 0)
+            {
+                SetTeam(_teamSource.Team);
+                GetTeamFromSourceTriesRemaining--;
+            }
+            else if(GetTeamFromSourceTriesRemaining == 0)
+            {
+                Debug.LogWarning($"{this} has no Team, and ran out of tries to get it from {_teamSource}.");
+                GetTeamFromSourceTriesRemaining = -1;
+            }
         }
     }
 

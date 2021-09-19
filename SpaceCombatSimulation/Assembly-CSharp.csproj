@@ -92,7 +92,6 @@
     <Compile Include="Assets\Src\Evolution\EditGeneralEvolutionConfigController.cs" />
     <Compile Include="Assets\Src\Evolution\EditMatchConfigController.cs" />
     <Compile Include="Assets\Src\Evolution\EditMutationConfigController.cs" />
-    <Compile Include="Assets\Src\Evolution\EvolutionArenaControler.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionConfig.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionController.cs" />
     <Compile Include="Assets\Src\Evolution\EvolutionMatchController.cs" />

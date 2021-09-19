@@ -114,7 +114,7 @@ namespace Assets.Src.ShipCamera
 
         public static ShipCamTargetValues Zero {
             get {
-                return new ShipCamTargetValues(Vector3.zero, Vector3.zero, Vector3.zero, Vector3.zero, 0, Vector3.zero, Vector3.zero);
+                return new ShipCamTargetValues(Vector3.zero, Vector3.forward, Vector3.zero, Vector3.forward, 0, Vector3.zero);
                 }
         }
     }

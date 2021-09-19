@@ -58,7 +58,7 @@ namespace Assets.Src.Targeting
         /// <param name="thisTurret"></param>
         /// <param name="projectileSpeed"></param>
         /// <returns></returns>
-        public static float DistanceToTurret(this ITarget target, Rigidbody thisTurret, float? projectileSpeed)
+        public static float? DistanceToTurret(this ITarget target, Rigidbody thisTurret, float? projectileSpeed)
         {
             return target.Rigidbody != null ?
                  target.Rigidbody.DistanceToTurret(thisTurret, projectileSpeed):
@@ -73,7 +73,7 @@ namespace Assets.Src.Targeting
         /// <param name="thisTurret"></param>
         /// <param name="projectileSpeed"></param>
         /// <returns></returns>
-        public static float DistanceToTurret(this ITarget target, Transform thisTurret)
+        public static float? DistanceToTurret(this ITarget target, Transform thisTurret)
         {
             return target.Transform.DistanceToTurret(thisTurret);
         }
@@ -121,7 +121,7 @@ namespace Assets.Src.Targeting
         /// <param name="thisTurret"></param>
         /// <param name="projectileSpeed"></param>
         /// <returns></returns>
-        public static float DistanceToTurret(this PotentialTarget target, Rigidbody thisTurret, float? projectileSpeed)
+        public static float? DistanceToTurret(this PotentialTarget target, Rigidbody thisTurret, float? projectileSpeed)
         {
             return target.Target.DistanceToTurret(thisTurret, projectileSpeed);
         }
@@ -134,7 +134,7 @@ namespace Assets.Src.Targeting
         /// <param name="thisTurret"></param>
         /// <param name="projectileSpeed"></param>
         /// <returns></returns>
-        public static float DistanceToTurret(this PotentialTarget target, Transform thisTurret)
+        public static float? DistanceToTurret(this PotentialTarget target, Transform thisTurret)
         {
             return target.Target.DistanceToTurret(thisTurret);
         }
@@ -261,8 +261,9 @@ namespace Assets.Src.Targeting
 
         public static Vector3 LocationInOthersSpace(this Transform target, Transform origin)
         {
-            if (origin == null)
+            if (origin == null || target == null)
             {
+                Debug.LogWarning($"Cannot get {target}'s location in {origin}'s space");
                 return Vector3.zero;
             }
             var location = target.position;
@@ -308,11 +309,12 @@ namespace Assets.Src.Targeting
         /// <param name="thisTurret"></param>
         /// <param name="projectileSpeed"></param>
         /// <returns></returns>
-        public static float DistanceToTurret(this Transform target, Transform thisTurret)
+        public static float? DistanceToTurret(this Transform target, Transform thisTurret)
         {
             if (target == null || thisTurret.IsInvalid())
             {
-                return float.MaxValue;
+                Debug.LogWarning($"Cannot measure between {thisTurret} and {target}");
+                return null;
             }
             var location = target.position;
             var dist = Vector3.Distance(location, thisTurret.position);

@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Assets.Src.Targeting.TargetPickers
 {
     /// <summary>
-    /// Target's score is alered by this function:
+    /// Target's score is altered by this function:
     ///     S = S -(distance * DistanceMultiplier)
     /// if distance < Range:
     ///     S = S + InRangeBonus
@@ -33,7 +33,12 @@ namespace Assets.Src.Targeting.TargetPickers
         private PotentialTarget AddScoreForDifference(PotentialTarget target)
         {
             var dist = target.DistanceToTurret(SourceObject);
-            target.Score = target.Score - (dist * Multiplier);
+            if (!dist.HasValue)
+            {
+                target.IsValidForCurrentPicker = false;
+                return target;
+            }
+            target.Score = target.Score - (dist.Value * Multiplier);
             if(dist < Threshold)
             {
                 target.IsValidForCurrentPicker = true;

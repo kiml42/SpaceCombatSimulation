@@ -11,11 +11,7 @@ Bugs:
         ElevationHubs on some drones are disappearing.
         "Can't remove Rigidbody because HingeJoint depends on it"
         rocket engines carry on regardless if the rocket has no target.
-        Duplicate match Controller in drone evolution
 		Engines of dead ships cary on trying to fly. - I think I've fixed this.
-        Duplicate match controler in drone evolution
-    Graphical - Beams don't turn off when the turret dies. - haven't seen this one in a while.
-        Torpedoes aren't picking up paren't's colour.
     Rocket engine plumes start on
     Accounting for speed fails for spinning targets.
     Leting the DB default locationRandomisationRadiai makes it unreadable.
@@ -30,10 +26,6 @@ TODO:
         Evolution:
             Use a generated Id for individuals in the individuals table instead of the genome.
                 This should go for everything referring to a genome at the moment (previous combatants, lists in controller etc.)
-        TagsOverhaul:
-            Consider moving away from unity tags for target selection, the repository should be enough.
-        Race evolution
-            Include new settings in editBrConfig.
         Player ship
             pick target by clicking on it
             cycle ships with key press
@@ -42,9 +34,6 @@ TODO:
                     KSP(RCS) controls for ship orientation/location - done
                         Enable roll controller
                     Turrets pick their own targets
-                Cam relative flight mode:
-                    WASD shift and control tells ship to turn and move in a direction reletive to the camera.
-                    Needs to set camera modes to use global up.
                 Turret mode
                     Flight left on automatic
                     show reticle for aiming
@@ -55,23 +44,21 @@ TODO:
 
 
     Priority:
-        Angle Spawning:
+        Some way to set the roll of ships to have a direction that should be pointed at the enemy where possible.
+            Have two objects on a ship, one to indicate the front of teh ship for navigational perposes, the other to indicate teh side to face to the target to attack.
+            Separate navigate and attack targeting for ships to allow for using different targets for each. E.g. may be navigating around afriendly/ race goal, but attacking an enemy.
+        Evolution - Angle Spawning:
             Set total angle to use for spawning ships.
             Ships spawn in a ring around the centre such that the n+1th ship would be at this angle.
-        Non-navigable targets
-            Make it possible to register as a target that can be shot at, but ships won't consider it for navigation (e.g torpedoes).
         Merge evolution modes
-            Set multipliers for kills, drones and race scores
-            Option to not make ships each other's enemy
+            Option to not make ships each other's enemy - Added to controler, but not UI, or DB.
             Choose angle between ships around the middle, so ships can start next to each other.
         Camera
             Rigidbody for shipcam, use forces to move to desired location
                 "Friction" with "referenceVelocity" given by the orientator.
             Manual orientator
-                Scroll to zoom
+                Scroll to zoom - Implemented, but buggy.
             Click to chose followed and watched target.
-            Move camera relative to parent (localRotation)
-            Make camera location target and orientation target nullable so that they don't have t be specified. (does no rotation/moving if null)
         Parent target picker 
             adds bonus to the pilot's target
             use GetComponentInParent
@@ -80,6 +67,7 @@ TODO:
             Scrollable lists
             Delete config option (takes all individuals and match and mutation configs too)
             Proper inputs for numbers and bools
+            UI for items from lists
         Eyeball turret
             Account for parent angularV
         Analysis
@@ -109,7 +97,6 @@ TODO:
         Use torquers(including engines) to halt rotation (instead of relying on angular drag hack).
         Refactor rocket controller's start delay feature.
         Rockets stop running anything but their trigger when they run out of fuel.
-        Some way to set the roll of ships to have a direction that should be pointed at the enemy where possible.
         Spherical trigger around missiles that puts them into max evasion mode regardless of velocity
         Destruction only leaves objects with a rigibdbody and a health controller
         TargetPickers have option to kull all but the best x.
@@ -120,6 +107,10 @@ TODO:
         limited power
             Hubs have batteries to store energy
             Hubs have generators to recharge batteries.
+        Thermal management
+            Laser hits, firing engines/ weapons, general power generation etc. add heat to modules.
+            heat difuses to connected modules.
+            All modules disipate some heat, radiators disipate more, but absorb more from lasers.
         Gimballed engines
             Use basic turret turning setup - will need to be given a method that takes a pointing vector instead of a Target
         Modular turrets
@@ -145,9 +136,9 @@ TODO:
     allow components in the same cubic volume if they wouldn't intersect.
     Turrets should know the ways they cannot turn.
     Draws should be penalised less if the ships killed each other simultaneously. probably give them the win score - some constant.
-    Sexual reproduction
+    evolution -  Sexual reproduction
     projectiles apply force to cancel lateral V. Target set on projectile when fired.
-    Spherical modules with two angles given for where to spawn the sub modules and something to specify termination of that module's spawning (going back up to the previous)
+    Evolution - Spherical modules with two angles given for where to spawn the sub modules and something to specify termination of that module's spawning (going back up to the previous)
     FuelTank option to balance fuel with parent.
     Add more max and min settings for genetic configurables, as is done in the fuel tank. Use this for things like projectile speed.
     Track what parts of the genome get used for assembly and config.
@@ -174,3 +165,4 @@ TODO:
 Balance:
     Cluster torpedoes do practically no damage, even when some of the submunitions hit, which happens quite rarely.
     Big lasers should be capable at a bit of a longer range, and a little less up close.
+        Possibly just remove the range dependance of damage, and reduce teh damage in general

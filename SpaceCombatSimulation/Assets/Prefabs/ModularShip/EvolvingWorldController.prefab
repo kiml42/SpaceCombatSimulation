@@ -590,6 +590,7 @@ MonoBehaviour:
     type: 3}
   MaxTurrets: 5
   MaxModules: 20
+  SetEnemies: 1
 --- !u!114 &114333731870391954
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -604,6 +605,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DatabaseId: 0
   ShipConfig: {fileID: 114162882494618574}
+  DefaultCamera: {fileID: 114217615723430598, guid: 4b859b23543de9c4fa4e8d2403b1dcd6,
+    type: 3}
+  PlayerCamera: {fileID: 114997458111832710, guid: 497cffc532bbe024095aaa58b237929d,
+    type: 3}
   RaceGoals: {fileID: 114737211958639058, guid: ca698eb3a6516b148a347994e01953a9,
     type: 3}
   DroneList: {fileID: 114605218179096368, guid: e2dbee6a48a444f4aab01257450a7363,
@@ -615,6 +620,9 @@ MonoBehaviour:
     width: 430
     height: 200
   MainMenu: MainMenu
+  AddPlayerShip: 0
+  PlayerShip: {fileID: 54223287168143756, guid: 09fcfc6eb1b6a56489963320ffe334b4,
+    type: 3}
 --- !u!114 &114761333346593936
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -677,7 +685,6 @@ MonoBehaviour:
   DecelerateTimeKey: 281
   TogglePause: 32
   AutoSetTimeScale: 1
-  TimeScale: 0
 --- !u!114 &6821077443773605079
 MonoBehaviour:
   m_ObjectHideFlags: 0

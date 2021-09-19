@@ -2,7 +2,6 @@
 using Assets.Src.ModuleSystem;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace Assets.Src.Evolution
@@ -15,7 +14,7 @@ namespace Assets.Src.Evolution
         public List<string> TagsForAll = new List<string> { "RaceGoal", "Enemy" };
 
         public TestCubeChecker TestCube;
-        [Tooltip("Randomise the rotation of all spawned ships")]
+
         public string SpaceShipTag = "SpaceShip";
 
         public ModuleList ModuleList;
@@ -26,6 +25,9 @@ namespace Assets.Src.Evolution
         public MatchConfig Config;
 
         public Dictionary<Transform, string> ShipTeamMapping = new Dictionary<Transform, string>();
+
+        [Tooltip("Should spawned ships be each other's enemies?")]
+        public bool SetEnemies = true;
 
         /// <summary>
         /// Spawns a ship with the given genome.

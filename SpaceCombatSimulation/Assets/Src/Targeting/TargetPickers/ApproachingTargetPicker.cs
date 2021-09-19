@@ -11,12 +11,24 @@ namespace Assets.Src.Targeting.TargetPickers
         
         public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
-            return potentialTargets.Select(t => AddScoreForDifference(t));
+            return potentialTargets
+                .Select(t => AddScoreForDifference(t))
+                .Where(t => t.IsValidForCurrentPicker);
         }
 
         private PotentialTarget AddScoreForDifference(PotentialTarget target)
         {
-            var targetVelocity = target.Target.Rigidbody == null ? Vector3.zero : target.Target.Rigidbody.velocity;
+            if(SourceObject == null)
+            {
+                Debug.LogError($"{this} does not have a SourceObject");
+            }
+            if(target.Target == null || target.Target.Transform == null)
+            {
+                Debug.LogWarning($"{this} has been asked to score a null target. {target}");
+                target.IsValidForCurrentPicker = false;
+                return target;
+            }
+            var targetVelocity = target?.Target?.Rigidbody == null ? Vector3.zero : target.Target.Rigidbody.velocity;
 
             var relativeVelocity = SourceObject.velocity - targetVelocity;
 

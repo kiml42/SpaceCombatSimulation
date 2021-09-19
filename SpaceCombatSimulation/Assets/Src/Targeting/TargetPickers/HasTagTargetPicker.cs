@@ -18,18 +18,18 @@ namespace Assets.Src.Targeting.TargetPickers
         ///Should this allow the FlatBoost and multiplier to have their signs flipped when configuring genetically.
         public override bool AllowNegative { get { return true; } }
         
-        [Tooltip("Only applies if KullInvalidTargets is set to true. If true, targets on the prefered team are considered valid and others are considered invalid. If false, the oposite is true.")]
+        [Tooltip("Only applies if KullInvalidTargets is set to true. If true, targets on the preferred team are considered valid and others are considered invalid. If false, the opposite is true.")]
         public bool TargetsWithTagAreValid = false;
 
         public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
-            if(FlatBoost != 0 && !string.IsNullOrEmpty(Tag))
+            if((FlatBoost != 0 || KullInvalidTargets) && !string.IsNullOrEmpty(Tag))
             {
-                return potentialTargets.Select(t => {
+                potentialTargets =  potentialTargets.Select(t => {
                     if(t.Target.Transform.IsValid() && t.Target.Team == Tag)
                     {
-                        //Debug.Log(t.Transform + " score += " + AdditionalScore);
-                        
+                        //Debug.Log(t.Target + " score += " + FlatBoost);
+
                         t.IsValidForCurrentPicker = TargetsWithTagAreValid;
                         t.Score += FlatBoost;
                     } else

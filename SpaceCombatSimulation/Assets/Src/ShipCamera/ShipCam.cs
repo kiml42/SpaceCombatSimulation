@@ -14,6 +14,12 @@ namespace Assets.Src.ShipCamera
         
         [Tooltip("Watch or follow objects with children with one of these tags.")]
         public List<string> Tags = new List<string> { "SpaceShip", "Projectile" };
+
+        [Tooltip("Teams to allow this camera to follow - null or empty for any")]
+        public List<string> TeamTagsToFollow = null;
+
+        [Tooltip("Teams to allow this camera to watch - null or empty for any")]
+        public List<string> TeamTagsToWatch = null;
         
         [Tooltip("Rotation speed multiplier")]
         public float RotationSpeed = 5;
@@ -189,11 +195,9 @@ namespace Assets.Src.ShipCamera
             //    Debug.Log(item.Transform.name + ": " + item.Score);
             //}
 
-            FollowedTarget = targets.Any()
-                ? targets
-                .First()
-                .Rigidbody
-                : null;
+            FollowedTarget = targets
+                .FirstOrDefault()?
+                .Rigidbody;
 
             FollowedTarget = GetActualTarget(FollowedTarget);
 
@@ -219,8 +223,13 @@ namespace Assets.Src.ShipCamera
 
         private void PickRandomToFollow()
         {
-            var tagrgetToFollow = FollowPicker.FilteredTargets
-                .Where(s => s.Transform != null && s.Transform.parent == null && s.Rigidbody != FollowedTarget)
+            var targets = FollowPicker.FilteredTargets
+                .Where(s => s.Transform != null && s.Transform.parent == null && s.Rigidbody != FollowedTarget);
+            if (TeamTagsToFollow != null && TeamTagsToFollow.Any())
+            {
+                targets = targets.Where(target => TeamTagsToFollow.Contains(target.Transform.tag));
+            }
+            var tagrgetToFollow = targets
                 .OrderBy(s => Random.value)
                 .FirstOrDefault();
 
