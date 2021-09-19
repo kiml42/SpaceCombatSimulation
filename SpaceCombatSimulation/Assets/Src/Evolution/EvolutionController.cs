@@ -296,6 +296,9 @@ namespace Assets.Src.Evolution
                     t.KnownEnemyTags.Add("Player1");
                 }
             }
+
+            var timeDialation = GetComponent<TimeDialationControler>();
+            timeDialation.AutoSetTimeScale = false;
         }
 
         /// <summary>
