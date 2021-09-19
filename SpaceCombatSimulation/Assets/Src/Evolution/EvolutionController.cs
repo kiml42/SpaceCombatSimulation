@@ -53,11 +53,18 @@ namespace Assets.Src.Evolution
         private readonly List<Transform> _liveDrones = new List<Transform>();
         #endregion
 
+
         public int GenerationNumber { get { return EvolutionConfig.GenerationNumber; } }
 
         public Rect SummaryBox = new Rect(800, 10, 430, 100);
         
         public string MainMenu = "MainMenu";
+
+        #region Player Ship
+        public bool AddPlayerShip;
+
+        public Rigidbody PlayerShip; 
+        #endregion
 
         public void Start()
         {
@@ -257,7 +264,38 @@ namespace Assets.Src.Evolution
 
             Debug.Log("\"" + string.Join("\" vs \"", names.Distinct().ToArray()) + "\"");
 
+            if (AddPlayerShip)
+            {
+                SpawnPlayerShip();
+            }
+
             return wrappers.Any(w => w.ModulesAdded > 0);
+        }
+
+        protected void SpawnPlayerShip()
+        {
+            var teams = ShipConfig.ShipTeamMapping.Values.ToList();
+            teams.AddRange(ShipConfig.TagsForAll.Where(t => t != "RaceGoal"));
+
+            var location = EvolutionConfig.MatchConfig.RandomLocation(EvolutionConfig.EvolutionDroneConfig.DronesInSphereRandomRadius, EvolutionConfig.EvolutionDroneConfig.DronesOnSphereRandomRadius);
+            var ship = Instantiate(PlayerShip, location, Quaternion.identity);
+            var playerTagKnowers = ship.GetComponentsInChildren<IKnowsEnemyTags>();
+            var shipTarget = ship.GetComponentInChildren<ITarget>();
+            shipTarget.SetTeam("Player1");
+
+            foreach (var tk in playerTagKnowers)
+            {
+                tk.KnownEnemyTags = teams;
+            }
+
+            foreach (var aiShip in ShipConfig.ShipTeamMapping.Keys)
+            {
+                var EnemyTagKnowers = aiShip.GetComponentsInChildren<IKnowsEnemyTags>();
+                foreach (var t in EnemyTagKnowers)
+                {
+                    t.KnownEnemyTags.Add("Player1");
+                }
+            }
         }
 
         /// <summary>

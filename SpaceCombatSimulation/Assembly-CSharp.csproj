@@ -104,7 +104,6 @@
     <Compile Include="Assets\Src\Evolution\MatchOutcome.cs" />
     <Compile Include="Assets\Src\Evolution\MatchRecord.cs" />
     <Compile Include="Assets\Src\Evolution\MutationConfig.cs" />
-    <Compile Include="Assets\Src\Evolution\Player\EvolutionPlayerControler.cs" />
     <Compile Include="Assets\Src\Evolution\Race\EditRaceConfigController.cs" />
     <Compile Include="Assets\Src\Evolution\Race\EvolutionRaceConfig.cs" />
     <Compile Include="Assets\Src\Evolution\SeciesSummary.cs" />
