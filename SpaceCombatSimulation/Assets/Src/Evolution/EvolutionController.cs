@@ -3,6 +3,7 @@ using Assets.Src.Interfaces;
 using Assets.Src.Menus;
 using Assets.Src.ModuleSystem;
 using Assets.Src.ObjectManagement;
+using Assets.Src.ShipCamera;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,6 +26,9 @@ namespace Assets.Src.Evolution
         private Generation _currentGeneration;
 
         public EvolutionDatabaseHandler DbHandler { get; private set; }
+
+        public ShipCam DefaultCamera;
+        public ShipCam PlayerCamera;
         #endregion
 
         #region BR
@@ -52,7 +56,6 @@ namespace Assets.Src.Evolution
         public RigidbodyList DroneList;
         private readonly List<Transform> _liveDrones = new List<Transform>();
         #endregion
-
 
         public int GenerationNumber { get { return EvolutionConfig.GenerationNumber; } }
 
@@ -208,7 +211,7 @@ namespace Assets.Src.Evolution
         /// <summary>
         /// Chooses the individuals to compete this match and spawns them.
         /// </summary>
-        /// <returns>Boolean indecating that something has at least one module</returns>
+        /// <returns>Boolean indicating that something has at least one module</returns>
         protected virtual bool SpawnShips()
         {
             var genomes = _currentGeneration.PickCompetitors(EvolutionConfig.BrConfig.NumberOfCombatants);
@@ -266,27 +269,28 @@ namespace Assets.Src.Evolution
 
             if (AddPlayerShip)
             {
-                SpawnPlayerShip();
+                var playerShip = SpawnPlayerShip();
+                Instantiate(PlayerCamera, playerShip.transform.position, playerShip.transform.rotation);
+            } else
+            {
+                var firstShip = ShipConfig.ShipTeamMapping.Keys.First();
+                var cam = Instantiate(DefaultCamera, firstShip.position, firstShip.rotation);
+                SetAllEvolvedShipsAsEnemies(cam);
             }
+
 
             return wrappers.Any(w => w.ModulesAdded > 0);
         }
 
-        protected void SpawnPlayerShip()
+        protected Rigidbody SpawnPlayerShip()
         {
-            var teams = ShipConfig.ShipTeamMapping.Values.ToList();
-            teams.AddRange(ShipConfig.TagsForAll.Where(t => t != "RaceGoal"));
 
             var location = EvolutionConfig.MatchConfig.RandomLocation(EvolutionConfig.EvolutionDroneConfig.DronesInSphereRandomRadius, EvolutionConfig.EvolutionDroneConfig.DronesOnSphereRandomRadius);
             var ship = Instantiate(PlayerShip, location, Quaternion.identity);
-            var playerTagKnowers = ship.GetComponentsInChildren<IKnowsEnemyTags>();
             var shipTarget = ship.GetComponentInChildren<ITarget>();
             shipTarget.SetTeam("Player1");
 
-            foreach (var tk in playerTagKnowers)
-            {
-                tk.KnownEnemyTags = teams;
-            }
+            SetAllEvolvedShipsAsEnemies(ship, ShipConfig.TagsForAll.Where(t => t != "RaceGoal"));
 
             foreach (var aiShip in ShipConfig.ShipTeamMapping.Keys)
             {
@@ -299,6 +303,22 @@ namespace Assets.Src.Evolution
 
             var timeDialation = GetComponent<TimeDialationControler>();
             timeDialation.AutoSetTimeScale = false;
+
+            return ship;
+        }
+
+        private void SetAllEvolvedShipsAsEnemies(Component ship, IEnumerable<string> additionalTags = null)
+        {
+            var teams = ShipConfig.ShipTeamMapping.Values.ToList();
+
+            if(additionalTags != null)
+                teams.AddRange(additionalTags);
+
+            var tagKnowers = ship.GetComponentsInChildren<IKnowsEnemyTags>();
+            foreach (var tk in tagKnowers)
+            {
+                tk.KnownEnemyTags = teams;
+            }
         }
 
         /// <summary>
