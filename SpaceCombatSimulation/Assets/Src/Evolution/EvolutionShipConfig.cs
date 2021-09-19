@@ -27,7 +27,7 @@ namespace Assets.Src.Evolution
         public Dictionary<Transform, string> ShipTeamMapping = new Dictionary<Transform, string>();
 
         [Tooltip("Should spawned ships be each other's enemies?")]
-        public bool SetEnemies = true;
+        public bool SetEnemies = true;  //TODO get/set in DB.
 
         /// <summary>
         /// Spawns a ship with the given genome.
