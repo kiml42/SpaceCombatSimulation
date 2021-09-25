@@ -9,8 +9,8 @@ public class SpaceShipControler : AbstractDeactivatableController
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
 
-    [Tooltip("Angel tolerance")]
-    public float ShootAngle = 30;
+    public bool Log = false;
+
     public float TorqueMultiplier = 9;
     public int StartDelay = 2;
 
@@ -71,7 +71,8 @@ public class SpaceShipControler : AbstractDeactivatableController
             MinRange = MinRange,
             MaxTangentialSpeed = MaxTangentialVelocity,
             MinTangentialSpeed = MinTangentialVelocity,
-            RadialSpeedThreshold = RadialSpeedThreshold
+            RadialSpeedThreshold = RadialSpeedThreshold,
+            Log = Log
         };
     }
 
@@ -79,7 +80,11 @@ public class SpaceShipControler : AbstractDeactivatableController
     public void FixedUpdate()
     {
         if (_active && _pilot != null)
+        {
+            if (Log)
+                Debug.Log($"*** Fixed Update  *** {this} is targeting {_targetChoosingMechanism.CurrentTarget}");
             _pilot.Fly(_targetChoosingMechanism.CurrentTarget);
+        }
     }
 
     public void RegisterEngine(EngineControler engine)

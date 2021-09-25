@@ -530,6 +530,7 @@ MonoBehaviour:
   EnemyTags:
   - Team2
   - Team3
+  - Enemy
 --- !u!1 &1229538825179298
 GameObject:
   m_ObjectHideFlags: 0
