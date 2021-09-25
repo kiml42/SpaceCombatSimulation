@@ -281,13 +281,13 @@ MonoBehaviour:
   GetConfigFromGenome: 1
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
-  ShootAngle: 30
-  TorqueMultiplier: 8000000
+  Log: 0
+  TorqueMultiplier: 6000000
   StartDelay: 0
   SlowdownWeighting: 50
   RadialSpeedThreshold: 10
-  MaxRange: 100
-  MinRange: 50
+  MaxRange: 500
+  MinRange: 120
   LocationAimWeighting: 1
   MaxTangentialVelocity: 100
   MinTangentialVelocity: 0
@@ -6019,7 +6019,7 @@ MonoBehaviour:
   FuelTank: {fileID: 0}
   ForceApplier: {fileID: 54996993457620460}
   Plume: {fileID: 198387038657943950}
-  EngineForce2: 100000
+  EngineForce2: 500000
   TranslateFireAngle: 45
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90

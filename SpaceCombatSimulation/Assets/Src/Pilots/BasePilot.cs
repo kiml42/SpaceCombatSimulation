@@ -1,16 +1,15 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using Assets.Src.Targeting;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.Pilots
 {
     public abstract class BasePilot : IPilot
     {
+        public bool Log = false;
         public float CloseEnoughAngle = 0;
 
         public float LocationAimWeighting { get; set; }

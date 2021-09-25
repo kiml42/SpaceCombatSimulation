@@ -1,5 +1,6 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.Targeting;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -31,8 +32,8 @@ namespace Assets.Src.Pilots
         public float MinRange = 20;
 
         private bool _slowdownMode;
-        tolerance
-        public SpaceshipPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<EngineControler> engines, float angleTolerance, float fuel = Mathf.Infinity)
+
+        public SpaceshipPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<EngineControler> engines)
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
@@ -50,23 +51,27 @@ namespace Assets.Src.Pilots
             RemoveNullEngines();
             if (HasActivated())
             {
+
                 var reletiveLocation = target == null
                     ? -_pilotObject.position     //Return to the centre if there is no target
                     : ReletiveLocationInWorldSpace(target);
+
 
                 var distance = reletiveLocation.magnitude;
 
                 var isTooFar = distance > MaxRange;
                 var isTooClose = distance < MinRange;
 
+
                 var targetsVelosity = target == null
-                    ? -_pilotObject.velocity    //if there's no target, go to stationary target at centre.
+                    ? -_pilotObject.velocity    //if there's no target, go to stationary target at center.
                     : WorldSpaceReletiveVelocityOfTarget(target);
                 var targetsTangentialVelocity = targetsVelosity.ComponentPerpendicularTo(reletiveLocation);
 
                 var tanSpeed = targetsTangentialVelocity.magnitude;
 
                 var targetsApproachVelocity = targetsVelosity.ComponentParalellTo(reletiveLocation);
+
 
                 //var isApproaching = Vector3.Angle(targetsApproachVelocity, reletiveLocation) > 90;
                 //var approachSpeed = isApproaching
@@ -76,12 +81,13 @@ namespace Assets.Src.Pilots
                 var tangentialTooFast = tanSpeed > MaxTangentialSpeed;
                 var tangentialTooSlow = tanSpeed < MinTangentialSpeed;
 
+
                 var needsSlowdown = targetsApproachVelocity.magnitude > RadialSpeedThreshold;
 
                 var happyWithSpeed = !tangentialTooFast && !tangentialTooSlow && targetsVelosity.magnitude < MaxTangentialSpeed && !needsSlowdown;
                 var happyWithLocation = !isTooClose && !isTooFar;
 
-                var completelyHappy = happyWithSpeed && happyWithLocation;
+                var happyWithSpeedAndLocation = happyWithSpeed && happyWithLocation;
 
                 var approachVector = CalculateWeightedApproachVector(reletiveLocation, isTooClose, isTooFar);
                 var tanSpeedVector = CalculateWeightedTanSpeedVector(targetsTangentialVelocity, reletiveLocation, tangentialTooSlow, tangentialTooFast);
@@ -89,30 +95,41 @@ namespace Assets.Src.Pilots
 
                 _slowdownMode = slowdownVector.magnitude > approachVector.magnitude;
 
-                var turningVector = completelyHappy
+                var turningVector = happyWithSpeedAndLocation
                     ? reletiveLocation
                     : tanSpeedVector + (_slowdownMode
                         ? slowdownVector
                         : approachVector);
 
-                //Debug.Log(
-                //    "slowdownMode: " + _slowdownMode +
-                //    ", distance: " + Math.Round(distance, 1) +
-                //    ", approachVector: " + approachVector +
-                //    ", tanSpeed: " + Math.Round(tanSpeed, 3) +
-                //    ", tanSpeedVector: " + tanSpeedVector +
-                //    ", VApproach: " + Math.Round(targetsApproachVelocity.magnitude, 3) +
-                //    ", slowdownVector: " + slowdownVector +
-                //    ", turningVector: " + turningVector);
+                if (Log)
+                {
+                    Debug.Log($"SpaceShipPilot.Fly: Pilot object: {_pilotObject}.");
+                    Debug.Log($"reletiveLocation = {reletiveLocation}");
+                    Debug.Log($"distance = {distance}, isTooFar={isTooFar}, isTooClose={isTooClose},  MaxRange={MaxRange},  MinRange={MinRange}");
+                    Debug.Log($"targetsVelosity = {targetsVelosity}, targetsTangentialVelocity={targetsTangentialVelocity}, targetsApproachVelocity={targetsApproachVelocity}");
+                    Debug.Log($"tanSpeed = {tanSpeed}, tangentialTooFast={tangentialTooFast}, tangentialTooFast={tangentialTooFast}");
+                    Debug.Log(
+                        "slowdownMode: " + _slowdownMode +
+                        ", distance: " + Math.Round(distance, 1) +
+                        ", approachVector: " + approachVector +
+                        ", tanSpeed: " + Math.Round(tanSpeed, 3) +
+                        ", tanSpeedVector: " + tanSpeedVector +
+                        ", VApproach: " + Math.Round(targetsApproachVelocity.magnitude, 3) +
+                        ", slowdownVector: " + slowdownVector +
+                        ", turningVector: " + turningVector);
+                }
+
 
                 if (Vector3.Angle(turningVector, _pilotObject.transform.forward) > CloseEnoughAngle)
                 {
+                    if (Log)
+                        Debug.Log($"Turning to {turningVector}");
                     _torqueApplier.TurnToVectorInWorldSpace(turningVector);
                 }
 
                 if (VectorArrow != null)
                 {
-                    if (!completelyHappy && turningVector.magnitude > 0)
+                    if (!happyWithSpeedAndLocation && turningVector.magnitude > 0)
                     {
                         VectorArrow.rotation = Quaternion.LookRotation(turningVector);
                         VectorArrow.localScale = Vector3.one;
@@ -123,21 +140,24 @@ namespace Assets.Src.Pilots
                     }
                 }
 
-                if (completelyHappy)
+                if (happyWithSpeedAndLocation)
                 {
-                    //Debug.Log($"Completely happy: Pilot setting vector for engines to {null}");
+                    if (Log)
+                        Debug.Log($"Completely happy: Pilot setting vector for engines to {null}");
                     SetFlightVectorOnEngines(null);
                 }
                 else
                 {
                     //try firing the main engine even with no fuel to turn it off if there is no fuel.
-                    //Debug.Log($"Pilot setting vector for engines to turningVector: {turningVector}");
+                    if (Log)
+                        Debug.Log($"Pilot setting vector for engines to turningVector: {turningVector}");
                     SetFlightVectorOnEngines(turningVector);
                 }
             }
             else
             {
-                //Debug.Log($"Has not acivated: Pilot setting vector for engines to {null}");
+                if (Log)
+                    Debug.Log($"Has not acivated: Pilot setting vector for engines to {null}");
                 SetFlightVectorOnEngines(null);  //turn off the engine
             }
         }
