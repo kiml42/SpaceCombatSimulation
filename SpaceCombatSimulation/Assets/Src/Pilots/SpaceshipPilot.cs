@@ -94,12 +94,13 @@ namespace Assets.Src.Pilots
                 var slowdownVector = CalculateWeightedSlowdownVector(targetsApproachVelocity, needsSlowdown);
 
                 _slowdownMode = slowdownVector.magnitude > approachVector.magnitude;
-
-                var turningVector = happyWithSpeedAndLocation
-                    ? reletiveLocation
-                    : tanSpeedVector + (_slowdownMode
+                var accelerationVector = tanSpeedVector + (_slowdownMode
                         ? slowdownVector
                         : approachVector);
+
+                var orientationVector = happyWithSpeedAndLocation
+                    ? reletiveLocation
+                    : accelerationVector;
 
                 if (Log)
                 {
@@ -116,22 +117,22 @@ namespace Assets.Src.Pilots
                         ", tanSpeedVector: " + tanSpeedVector +
                         ", VApproach: " + Math.Round(targetsApproachVelocity.magnitude, 3) +
                         ", slowdownVector: " + slowdownVector +
-                        ", turningVector: " + turningVector);
+                        ", turningVector: " + orientationVector);
                 }
 
 
-                if (Vector3.Angle(turningVector, _pilotObject.transform.forward) > CloseEnoughAngle)
+                if (Vector3.Angle(orientationVector, _pilotObject.transform.forward) > CloseEnoughAngle)
                 {
                     if (Log)
-                        Debug.Log($"Turning to {turningVector}");
-                    _torqueApplier.TurnToVectorInWorldSpace(turningVector);
+                        Debug.Log($"Turning to {orientationVector}");
+                    _torqueApplier.TurnToVectorInWorldSpace(orientationVector);
                 }
 
                 if (VectorArrow != null)
                 {
-                    if (!happyWithSpeedAndLocation && turningVector.magnitude > 0)
+                    if (!happyWithSpeedAndLocation && orientationVector.magnitude > 0)
                     {
-                        VectorArrow.rotation = Quaternion.LookRotation(turningVector);
+                        VectorArrow.rotation = Quaternion.LookRotation(orientationVector);
                         VectorArrow.localScale = Vector3.one;
                     }
                     else
@@ -144,14 +145,14 @@ namespace Assets.Src.Pilots
                 {
                     if (Log)
                         Debug.Log($"Completely happy: Pilot setting vector for engines to {null}");
-                    SetFlightVectorOnEngines(null);
+                    SetTurningVectorOnEngines(null);
+                    SetPrimaryTranslationVectorOnEngines(accelerationVector);
                 }
                 else
                 {
-                    //try firing the main engine even with no fuel to turn it off if there is no fuel.
                     if (Log)
-                        Debug.Log($"Pilot setting vector for engines to turningVector: {turningVector}");
-                    SetFlightVectorOnEngines(turningVector);
+                        Debug.Log($"Pilot setting vector for engines to turningVector: {orientationVector}");
+                    SetFlightVectorOnEngines(orientationVector);
                 }
             }
             else

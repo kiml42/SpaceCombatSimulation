@@ -123,7 +123,7 @@ Transform:
   m_LocalScale: {x: 1.0000005, y: 1, z: 1.0000005}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 7
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 90.00001, y: 0, z: -90.00001}
 --- !u!114 &114027521169237442
 MonoBehaviour:
@@ -236,8 +236,6 @@ Transform:
   - {fileID: 4646324096394930}
   - {fileID: 4045434369916728}
   - {fileID: 4720593928362980}
-  - {fileID: 4073061318776794}
-  - {fileID: 4168467053122610}
   - {fileID: 4257204165306108}
   - {fileID: 4338518138702830}
   - {fileID: 4632310518447138}
@@ -247,6 +245,10 @@ Transform:
   - {fileID: 4455403608566486}
   - {fileID: 3768243147662961272}
   - {fileID: 7044610330623850767}
+  - {fileID: 216192697408365041}
+  - {fileID: 1869050201505381278}
+  - {fileID: 6595336883105759548}
+  - {fileID: 6367194127242196209}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -450,7 +452,7 @@ Transform:
   m_LocalScale: {x: 1.0000005, y: 1, z: 1.0000005}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 11
+  m_RootOrder: 9
   m_LocalEulerAnglesHint: {x: 0, y: 111.93301, z: 0}
 --- !u!20 &20797790757653000
 Camera:
@@ -719,7 +721,7 @@ Transform:
   m_LocalScale: {x: 1.0000008, y: 1.000001, z: 1.0000008}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 8
+  m_RootOrder: 6
   m_LocalEulerAnglesHint: {x: 90.00001, y: 0, z: 90.00001}
 --- !u!114 &114037596953828216
 MonoBehaviour:
@@ -742,59 +744,6 @@ MonoBehaviour:
   - Team4
   - Team5
   TurretPrefab: {fileID: 4047970151895330, guid: 2cf111255dce5d94ca7b02db1dcffd57,
-    type: 3}
---- !u!1 &1564488160701332
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 4168467053122610}
-  - component: {fileID: 114890280787510212}
-  m_Layer: 0
-  m_Name: TurretSpawner (nose) (1)
-  m_TagString: Team1
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &4168467053122610
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1564488160701332}
-  m_LocalRotation: {x: 0.2988364, y: 0.2988361, z: 0.6408563, w: 0.64085644}
-  m_LocalPosition: {x: -6.729999, y: 0, z: 61.1}
-  m_LocalScale: {x: 1.0000006, y: 1.0000012, z: 1.000001}
-  m_Children: []
-  m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 6
-  m_LocalEulerAnglesHint: {x: 0, y: 50.000004, z: 90.00001}
---- !u!114 &114890280787510212
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1564488160701332}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  TagChildren: 1
-  RecolourChild: 1
-  ParentForTurret: {fileID: 4960682451978958}
-  EnemyTags:
-  - Team2
-  - Team3
-  - Team4
-  - Team5
-  TurretPrefab: {fileID: 4541375484301278, guid: fb971bf036914224882cb762d5469d0a,
     type: 3}
 --- !u!1 &1591637745402296
 GameObject:
@@ -5821,7 +5770,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 12
+  m_RootOrder: 10
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1759355907659506
 GameObject:
@@ -5853,7 +5802,7 @@ Transform:
   - {fileID: 4024047085532852}
   - {fileID: 4201979970373414}
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 13
+  m_RootOrder: 11
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1761312844494828
 GameObject:
@@ -5866,7 +5815,7 @@ GameObject:
   - component: {fileID: 4073061318776794}
   - component: {fileID: 114814983627995166}
   m_Layer: 0
-  m_Name: TurretSpawner (nose)
+  m_Name: TurretSpawner (Mini)
   m_TagString: Team1
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5879,13 +5828,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1761312844494828}
-  m_LocalRotation: {x: -0.29883572, y: 0.29883692, z: 0.6408568, w: -0.64085585}
-  m_LocalPosition: {x: 6.73, y: 0, z: 61.099983}
-  m_LocalScale: {x: 1.0000005, y: 1.0000005, z: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0.7071065, w: 0.7071071}
+  m_LocalPosition: {x: 5, y: 12, z: 50}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
-  m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 5
-  m_LocalEulerAnglesHint: {x: 360, y: -50.000004, z: -90.00001}
+  m_Father: {fileID: 216192697408365041}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90.00001}
 --- !u!114 &114814983627995166
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5942,7 +5891,7 @@ Transform:
   - {fileID: 4935400415658938}
   - {fileID: 4904317147759306}
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 9
+  m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!54 &54996993457620460
 Rigidbody:
@@ -6186,7 +6135,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 10
+  m_RootOrder: 8
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!20 &20636585114872592
 Camera:
@@ -6299,6 +6248,112 @@ MonoBehaviour:
   - Team4
   - Team5
   TurretPrefab: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
+    type: 3}
+--- !u!1 &513823220306113824
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 427567288857683277}
+  - component: {fileID: 2118506584071871610}
+  m_Layer: 0
+  m_Name: TurretSpawner (Mini) (1)
+  m_TagString: Team1
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &427567288857683277
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 513823220306113824}
+  m_LocalRotation: {x: -0, y: -0, z: -0.7071065, w: 0.7071071}
+  m_LocalPosition: {x: 5, y: 12, z: 6}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 1869050201505381278}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90.00001}
+--- !u!114 &2118506584071871610
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 513823220306113824}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 4960682451978958}
+  EnemyTags:
+  - Team2
+  - Team3
+  - Team4
+  - Team5
+  TurretPrefab: {fileID: 4541375484301278, guid: fb971bf036914224882cb762d5469d0a,
+    type: 3}
+--- !u!1 &545806520883102005
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7640206998822283140}
+  - component: {fileID: 3462195329458406034}
+  m_Layer: 0
+  m_Name: TurretSpawner (Mini) (1)
+  m_TagString: Team1
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7640206998822283140
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 545806520883102005}
+  m_LocalRotation: {x: -0, y: -0, z: -0.7071065, w: 0.7071071}
+  m_LocalPosition: {x: 5, y: 12, z: 6}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 6595336883105759548}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90.00001}
+--- !u!114 &3462195329458406034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 545806520883102005}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 4960682451978958}
+  EnemyTags:
+  - Team2
+  - Team3
+  - Team4
+  - Team5
+  TurretPrefab: {fileID: 4541375484301278, guid: fb971bf036914224882cb762d5469d0a,
     type: 3}
 --- !u!1 &626067683603468793
 GameObject:
@@ -6673,6 +6728,178 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+--- !u!1 &1553696144873669063
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6506696751934103095}
+  - component: {fileID: 4318924314225475716}
+  m_Layer: 0
+  m_Name: TurretSpawner (Mini) (2)
+  m_TagString: Team1
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6506696751934103095
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1553696144873669063}
+  m_LocalRotation: {x: -0, y: -0, z: -0.7071065, w: 0.7071071}
+  m_LocalPosition: {x: 5, y: 12, z: -38}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 6367194127242196209}
+  m_RootOrder: 2
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90.00001}
+--- !u!114 &4318924314225475716
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1553696144873669063}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 4960682451978958}
+  EnemyTags:
+  - Team2
+  - Team3
+  - Team4
+  - Team5
+  TurretPrefab: {fileID: 4541375484301278, guid: fb971bf036914224882cb762d5469d0a,
+    type: 3}
+--- !u!1 &1728792149076994692
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5243775431789585973}
+  - component: {fileID: 973472726046920887}
+  m_Layer: 0
+  m_Name: TurretSpawner (Mini)
+  m_TagString: Team1
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5243775431789585973
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1728792149076994692}
+  m_LocalRotation: {x: -0, y: -0, z: -0.7071065, w: 0.7071071}
+  m_LocalPosition: {x: 5, y: 12, z: 50}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 1869050201505381278}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90.00001}
+--- !u!114 &973472726046920887
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1728792149076994692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 4960682451978958}
+  EnemyTags:
+  - Team2
+  - Team3
+  - Team4
+  - Team5
+  TurretPrefab: {fileID: 4541375484301278, guid: fb971bf036914224882cb762d5469d0a,
+    type: 3}
+--- !u!1 &1965779622234883463
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 216192697408365041}
+  m_Layer: 0
+  m_Name: CIWS
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &216192697408365041
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1965779622234883463}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 4073061318776794}
+  - {fileID: 7930561699260446672}
+  - {fileID: 5860840085414488267}
+  m_Father: {fileID: 4960682451978958}
+  m_RootOrder: 14
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2158297799071097693
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6367194127242196209}
+  m_Layer: 0
+  m_Name: CIWS (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6367194127242196209
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2158297799071097693}
+  m_LocalRotation: {x: 0.99999994, y: -0, z: -0.00045293942, w: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 12}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 668010343137172731}
+  - {fileID: 4418766002323680610}
+  - {fileID: 6506696751934103095}
+  m_Father: {fileID: 4960682451978958}
+  m_RootOrder: 17
+  m_LocalEulerAnglesHint: {x: 0, y: 180.05199, z: 179.99998}
 --- !u!1 &2323620742814282010
 GameObject:
   m_ObjectHideFlags: 0
@@ -6726,6 +6953,39 @@ MonoBehaviour:
   - Team5
   TurretPrefab: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
     type: 3}
+--- !u!1 &3572103413138800619
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6595336883105759548}
+  m_Layer: 0
+  m_Name: CIWS
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6595336883105759548
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3572103413138800619}
+  m_LocalRotation: {x: -0, y: 0.99999994, z: -0, w: -0.00045293942}
+  m_LocalPosition: {x: -0, y: 0, z: 12}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 8531246430228215932}
+  - {fileID: 7640206998822283140}
+  - {fileID: 2813901249885084710}
+  m_Father: {fileID: 4960682451978958}
+  m_RootOrder: 16
+  m_LocalEulerAnglesHint: {x: 0, y: 180.05199, z: 0}
 --- !u!1 &3640989226570341989
 GameObject:
   m_ObjectHideFlags: 0
@@ -6832,6 +7092,39 @@ MonoBehaviour:
   - Team5
   TurretPrefab: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
     type: 3}
+--- !u!1 &4110608883412412981
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1869050201505381278}
+  m_Layer: 0
+  m_Name: CIWS (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1869050201505381278
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4110608883412412981}
+  m_LocalRotation: {x: 0, y: 0, z: 1, w: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 5243775431789585973}
+  - {fileID: 427567288857683277}
+  - {fileID: 5537721609397811291}
+  m_Father: {fileID: 4960682451978958}
+  m_RootOrder: 15
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 180}
 --- !u!1 &4325611362897363795
 GameObject:
   m_ObjectHideFlags: 0
@@ -6926,6 +7219,59 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+--- !u!1 &4526676926466209220
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7930561699260446672}
+  - component: {fileID: 5204209286519315347}
+  m_Layer: 0
+  m_Name: TurretSpawner (Mini) (1)
+  m_TagString: Team1
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7930561699260446672
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4526676926466209220}
+  m_LocalRotation: {x: -0, y: -0, z: -0.7071065, w: 0.7071071}
+  m_LocalPosition: {x: 5, y: 12, z: 6}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 216192697408365041}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90.00001}
+--- !u!114 &5204209286519315347
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4526676926466209220}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 4960682451978958}
+  EnemyTags:
+  - Team2
+  - Team3
+  - Team4
+  - Team5
+  TurretPrefab: {fileID: 4541375484301278, guid: fb971bf036914224882cb762d5469d0a,
+    type: 3}
 --- !u!1 &4532076276988348740
 GameObject:
   m_ObjectHideFlags: 0
@@ -6978,6 +7324,59 @@ MonoBehaviour:
   - Team4
   - Team5
   TurretPrefab: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
+    type: 3}
+--- !u!1 &4571822969210074790
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8531246430228215932}
+  - component: {fileID: 2975292049092478483}
+  m_Layer: 0
+  m_Name: TurretSpawner (Mini)
+  m_TagString: Team1
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8531246430228215932
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4571822969210074790}
+  m_LocalRotation: {x: -0, y: -0, z: -0.7071065, w: 0.7071071}
+  m_LocalPosition: {x: 5, y: 12, z: 50}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 6595336883105759548}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90.00001}
+--- !u!114 &2975292049092478483
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4571822969210074790}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 4960682451978958}
+  EnemyTags:
+  - Team2
+  - Team3
+  - Team4
+  - Team5
+  TurretPrefab: {fileID: 4541375484301278, guid: fb971bf036914224882cb762d5469d0a,
     type: 3}
 --- !u!1 &4848291286766011916
 GameObject:
@@ -7220,6 +7619,112 @@ MonoBehaviour:
   - Team5
   TurretPrefab: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
     type: 3}
+--- !u!1 &5947570692295963802
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2813901249885084710}
+  - component: {fileID: 3658458261752766785}
+  m_Layer: 0
+  m_Name: TurretSpawner (Mini) (2)
+  m_TagString: Team1
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2813901249885084710
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5947570692295963802}
+  m_LocalRotation: {x: -0, y: -0, z: -0.7071065, w: 0.7071071}
+  m_LocalPosition: {x: 5, y: 12, z: -38}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 6595336883105759548}
+  m_RootOrder: 2
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90.00001}
+--- !u!114 &3658458261752766785
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5947570692295963802}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 4960682451978958}
+  EnemyTags:
+  - Team2
+  - Team3
+  - Team4
+  - Team5
+  TurretPrefab: {fileID: 4541375484301278, guid: fb971bf036914224882cb762d5469d0a,
+    type: 3}
+--- !u!1 &6401589349951008110
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5860840085414488267}
+  - component: {fileID: 1201104854370880102}
+  m_Layer: 0
+  m_Name: TurretSpawner (Mini) (2)
+  m_TagString: Team1
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5860840085414488267
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6401589349951008110}
+  m_LocalRotation: {x: -0, y: -0, z: -0.7071065, w: 0.7071071}
+  m_LocalPosition: {x: 5, y: 12, z: -38}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 216192697408365041}
+  m_RootOrder: 2
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90.00001}
+--- !u!114 &1201104854370880102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6401589349951008110}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 4960682451978958}
+  EnemyTags:
+  - Team2
+  - Team3
+  - Team4
+  - Team5
+  TurretPrefab: {fileID: 4541375484301278, guid: fb971bf036914224882cb762d5469d0a,
+    type: 3}
 --- !u!1 &6947509246352859947
 GameObject:
   m_ObjectHideFlags: 0
@@ -7325,6 +7830,59 @@ MonoBehaviour:
   - Team4
   - Team5
   TurretPrefab: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
+    type: 3}
+--- !u!1 &7587018665135812152
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 668010343137172731}
+  - component: {fileID: 1515355836644393196}
+  m_Layer: 0
+  m_Name: TurretSpawner (Mini)
+  m_TagString: Team1
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &668010343137172731
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7587018665135812152}
+  m_LocalRotation: {x: -0, y: -0, z: -0.7071065, w: 0.7071071}
+  m_LocalPosition: {x: 5, y: 12, z: 50}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 6367194127242196209}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90.00001}
+--- !u!114 &1515355836644393196
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7587018665135812152}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 4960682451978958}
+  EnemyTags:
+  - Team2
+  - Team3
+  - Team4
+  - Team5
+  TurretPrefab: {fileID: 4541375484301278, guid: fb971bf036914224882cb762d5469d0a,
     type: 3}
 --- !u!1 &7753272622251445341
 GameObject:
@@ -7432,6 +7990,59 @@ MonoBehaviour:
   - Team5
   TurretPrefab: {fileID: 4087408875352314, guid: c19e2a0e8fe94a2458f1f5141511d791,
     type: 3}
+--- !u!1 &8005831190575442321
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4418766002323680610}
+  - component: {fileID: 5070232020187532563}
+  m_Layer: 0
+  m_Name: TurretSpawner (Mini) (1)
+  m_TagString: Team1
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4418766002323680610
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8005831190575442321}
+  m_LocalRotation: {x: -0, y: -0, z: -0.7071065, w: 0.7071071}
+  m_LocalPosition: {x: 5, y: 12, z: 6}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 6367194127242196209}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90.00001}
+--- !u!114 &5070232020187532563
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8005831190575442321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 4960682451978958}
+  EnemyTags:
+  - Team2
+  - Team3
+  - Team4
+  - Team5
+  TurretPrefab: {fileID: 4541375484301278, guid: fb971bf036914224882cb762d5469d0a,
+    type: 3}
 --- !u!1 &8068568457306247652
 GameObject:
   m_ObjectHideFlags: 0
@@ -7526,6 +8137,59 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+--- !u!1 &8092314966855869663
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5537721609397811291}
+  - component: {fileID: 3212494754386257956}
+  m_Layer: 0
+  m_Name: TurretSpawner (Mini) (2)
+  m_TagString: Team1
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5537721609397811291
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8092314966855869663}
+  m_LocalRotation: {x: -0, y: -0, z: -0.7071065, w: 0.7071071}
+  m_LocalPosition: {x: 5, y: 12, z: -38}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 1869050201505381278}
+  m_RootOrder: 2
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90.00001}
+--- !u!114 &3212494754386257956
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8092314966855869663}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eadda0a4d9cf744ca108b4f139d4658, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 4960682451978958}
+  EnemyTags:
+  - Team2
+  - Team3
+  - Team4
+  - Team5
+  TurretPrefab: {fileID: 4541375484301278, guid: fb971bf036914224882cb762d5469d0a,
+    type: 3}
 --- !u!1 &8140403329418786263
 GameObject:
   m_ObjectHideFlags: 0
@@ -7705,7 +8369,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4960682451978958}
-  m_RootOrder: 14
+  m_RootOrder: 12
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!120 &9161154790189603289
 LineRenderer:
@@ -9066,7 +9730,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
       propertyPath: m_RootOrder
-      value: 15
+      value: 13
       objectReference: {fileID: 0}
     - target: {fileID: 4642676879522494, guid: 3759a9863abe94848a943553ae1116b2, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
