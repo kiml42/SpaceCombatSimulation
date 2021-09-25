@@ -49,7 +49,7 @@ public class EngineControler : AbstractDeactivatableController
     public Vector3? PrimaryTranslateVector;
 
     /// <summary>
-    /// Secondarry Vector the engine should apply forces towards.
+    /// Secondary Vector the engine should apply forces towards.
     /// Engine will fire if it is pointed near the arc between these two vectors.
     /// </summary>
     public Vector3? SecondaryTranslateVector
@@ -71,7 +71,7 @@ public class EngineControler : AbstractDeactivatableController
     //public Vector3 TV2;
 
     /// <summary>
-    /// The world space vector the engine should try to fly towards.
+    /// The world space vector the engine should try to point the ship towards, and accelerate towards.
     /// Use null or zero for no force
     /// </summary>
     public Vector3? FlightVector
