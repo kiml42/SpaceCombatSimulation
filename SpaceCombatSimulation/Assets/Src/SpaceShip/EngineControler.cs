@@ -39,9 +39,31 @@ public class EngineControler : AbstractDeactivatableController
     public float FullThrottleFuelConsumption = 1;
 
     /// <summary>
-    /// vector the engine should try to make the pilot turn to face
+    /// vector the engine should try to make the pilot turn to face in world space
     /// </summary>
-    public Vector3? OrientationVector;
+    private Vector3? _orientationVector;
+
+    /// <summary>
+    /// Vector to try to get the pilot's up axis to face in world space.
+    /// </summary>
+    private Vector3? _upVector;
+
+    /// <summary>
+    /// Target world space orientation for the pilot object
+    /// </summary>
+    private Quaternion? _orientationTarget;
+    private float? _orientationWeight;
+
+    public void SetOrientationTargetForPilot(Vector3? forward, Vector3? upwards)
+    {
+        _orientationVector = forward;
+        _upVector = upwards;
+
+        _orientationTarget = forward.HasValue
+            ? Quaternion.LookRotation(forward.Value, upwards ?? Vector3.up)
+            : (Quaternion?)null;
+        _orientationWeight = forward?.magnitude;
+    }
 
     /// <summary>
     /// Vector the engine should apply forces towards.
@@ -67,22 +89,7 @@ public class EngineControler : AbstractDeactivatableController
     private Vector3? _secondaryTranslateVector;
 
     public bool DebugMode;
-    //public Vector3 TV1;
-    //public Vector3 TV2;
-
-    /// <summary>
-    /// The world space vector the engine should try to point the ship towards, and accelerate towards.
-    /// Use null or zero for no force
-    /// </summary>
-    public Vector3? FlightVector
-    {
-        set
-        {
-            OrientationVector = value;
-            PrimaryTranslateVector = value;
-        }
-    }
-    
+        
     /// <summary>
     /// Vector of the torque applied to the pilot y this engine.
     /// Calculated if not set (default)
@@ -242,9 +249,15 @@ public class EngineControler : AbstractDeactivatableController
 
     private int TorqueThrustDirectionMultiplier()
     {
-        if (Pilot != null && Pilot.IsValid() && OrientationVector.HasValue && OrientationVector.Value.magnitude > 0 && TorqueVector.HasValue && TorqueVector.Value.magnitude > 0.5)
+        //if (Pilot != null && Pilot.IsValid() && _orientationTarget.HasValue && _orientationWeight.HasValue && _orientationWeight.Value > 0 && TorqueVector.HasValue && TorqueVector.Value.magnitude > 0.5)
+        if (Pilot != null && Pilot.IsValid() && _orientationVector.HasValue && _orientationVector.Value.magnitude > 0 && TorqueVector.HasValue && TorqueVector.Value.magnitude > 0.5)
         {
-            var pilotSpaceVector = Pilot.InverseTransformVector(OrientationVector.Value);
+            var pilotSpaceVector = Pilot.InverseTransformVector(_orientationVector.Value);
+            var pilotSpaceVector2 = Pilot.InverseTransformVector(_orientationTarget.Value.eulerAngles);
+            if(pilotSpaceVector != pilotSpaceVector2)
+            {
+                Debug.LogWarning($"TorqueThrustDirectionMultiplier: OldMethod: {pilotSpaceVector}, NewMethod:{pilotSpaceVector2};");
+            }
 
             var rotationVector = new Vector3(-pilotSpaceVector.y, pilotSpaceVector.x, 0);   //set z to 0 to not add spin
 
@@ -266,7 +279,7 @@ public class EngineControler : AbstractDeactivatableController
     }
 
     /// <summary>
-    /// Gets the throttle setting appropriate for this engine to apply torqu towards the desired pilot orientation.
+    /// Gets the throttle setting appropriate for this engine to apply torque towards the desired pilot orientation.
     /// </summary>
     /// <returns></returns>
     private float RotateThrottleSetting()
@@ -274,7 +287,14 @@ public class EngineControler : AbstractDeactivatableController
         var thrustDirectionMultiplier = TorqueThrustDirectionMultiplier();
         if (TorquerFullThrottleAngle != 0 && thrustDirectionMultiplier != 0)
         {
-            var pilotorientationErrorAngle = Vector3.Angle(Pilot.forward, OrientationVector.Value);
+            var pilotorientationErrorAngle = Vector3.Angle(Pilot.forward, _orientationVector.Value);
+
+            var pilotorientationErrorAngle2 = Quaternion.Angle(Pilot.rotation, _orientationTarget.Value);
+
+            if(Math.Abs(pilotorientationErrorAngle - pilotorientationErrorAngle2) > 0.5)
+            {
+                Debug.LogWarning($"RotateThrottleSetting: Old method: {pilotorientationErrorAngle}, New method: {pilotorientationErrorAngle2}");
+            }
 
             float additionalThrottle = thrustDirectionMultiplier * (pilotorientationErrorAngle / TorquerFullThrottleAngle);
 
