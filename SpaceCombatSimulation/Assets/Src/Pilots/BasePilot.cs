@@ -131,12 +131,12 @@ namespace Assets.Src.Pilots
         }
 
         /// <summary>
-        /// Sets both the turning and translation vecor on all the engines.
+        /// Sets both the turning and translation vector on all the engines.
         /// </summary>
         /// <param name="flightVector"></param>
-        protected void SetFlightVectorOnEngines(Vector3? flightVector)
+        protected void SetFlightVectorOnEngines(Vector3? flightVector, Vector3? upVector = null)
         {
-            SetTurningVectorOnEngines(flightVector);
+            SetTurningVectorOnEngines(flightVector, upVector);
             SetPrimaryTranslationVectorOnEngines(flightVector);
         }
 
@@ -144,12 +144,11 @@ namespace Assets.Src.Pilots
         /// sets just the turning vector on all engines.
         /// </summary>
         /// <param name="torqueVector"></param>
-        protected void SetTurningVectorOnEngines(Vector3? torqueVector)
+        protected void SetTurningVectorOnEngines(Vector3? torqueVector, Vector3? upVector = null)
         {
-            var orientation = torqueVector.HasValue ? Quaternion.LookRotation(torqueVector.Value) : (Quaternion?)null;
             foreach (var engine in _engines)
             {
-                engine.SetOrientationTargetForPilot(torqueVector, null);
+                engine.SetOrientationTargetForPilot(torqueVector, upVector);
             }
         }
 
