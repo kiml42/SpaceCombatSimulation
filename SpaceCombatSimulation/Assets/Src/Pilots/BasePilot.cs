@@ -136,10 +136,8 @@ namespace Assets.Src.Pilots
         /// <param name="flightVector"></param>
         protected void SetFlightVectorOnEngines(Vector3? flightVector)
         {
-            foreach (var engine in _engines)
-            {
-                engine.FlightVector = flightVector;
-            }
+            SetTurningVectorOnEngines(flightVector);
+            SetPrimaryTranslationVectorOnEngines(flightVector);
         }
 
         /// <summary>
@@ -148,9 +146,10 @@ namespace Assets.Src.Pilots
         /// <param name="torqueVector"></param>
         protected void SetTurningVectorOnEngines(Vector3? torqueVector)
         {
+            var orientation = torqueVector.HasValue ? Quaternion.LookRotation(torqueVector.Value) : (Quaternion?)null;
             foreach (var engine in _engines)
             {
-                engine.OrientationVector = torqueVector;
+                engine.SetOrientationTargetForPilot(torqueVector, null);
             }
         }
 
