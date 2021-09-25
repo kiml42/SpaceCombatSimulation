@@ -252,14 +252,15 @@ public class EngineControler : AbstractDeactivatableController
         //if (Pilot != null && Pilot.IsValid() && _orientationTarget.HasValue && _orientationWeight.HasValue && _orientationWeight.Value > 0 && TorqueVector.HasValue && TorqueVector.Value.magnitude > 0.5)
         if (Pilot != null && Pilot.IsValid() && _orientationVector.HasValue && _orientationVector.Value.magnitude > 0 && TorqueVector.HasValue && TorqueVector.Value.magnitude > 0.5)
         {
-            var pilotSpaceVector = Pilot.InverseTransformVector(_orientationVector.Value);
-            var pilotSpaceVector2 = Pilot.InverseTransformVector(_orientationTarget.Value.eulerAngles);
-            if(pilotSpaceVector != pilotSpaceVector2)
+            var pilotSpaceLookVector = Pilot.InverseTransformVector(_orientationVector.Value);
+            float zRotation = 0;
+            if (_upVector.HasValue) //TODO check this actually works.
             {
-                Debug.LogWarning($"TorqueThrustDirectionMultiplier: OldMethod: {pilotSpaceVector}, NewMethod:{pilotSpaceVector2};");
+                var upVectorInPilotSpace = Pilot.InverseTransformVector(_upVector.Value);
+                zRotation = -upVectorInPilotSpace.x;
             }
 
-            var rotationVector = new Vector3(-pilotSpaceVector.y, pilotSpaceVector.x, 0);   //set z to 0 to not add spin
+            var rotationVector = new Vector3(-pilotSpaceLookVector.y, pilotSpaceLookVector.x, zRotation);
 
             var angle = Vector3.Angle(TorqueVector.Value, rotationVector);
 

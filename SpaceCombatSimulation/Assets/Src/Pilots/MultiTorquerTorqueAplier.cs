@@ -40,19 +40,25 @@ namespace Assets.Src.Pilots
             AngularDragWhenActive = angularDragWhenActive;
         }
 
-        public void TurnToVectorInWorldSpace(Vector3 vector)
+        public void TurnToVectorInWorldSpace(Vector3 lookVector, Vector3? upVector = null)
         {
             RemoveNullTorquers();
             RemoveDeadEngines();
             //Debug.Log("vector" + vector);
-            var vectorInPilotSpace =  _pilot.transform.InverseTransformVector(vector);
+            var lookVectorInPilotSpace =  _pilot.transform.InverseTransformVector(lookVector);
+            float zRotation = 0;
+            if (upVector.HasValue)
+            {
+                var upVectorInPilotSpace =  _pilot.transform.InverseTransformVector(upVector.Value);
+                zRotation = -upVectorInPilotSpace.x;
+            }
             //Debug.Log(_pilot + " vectorInPilotSpace " + vectorInPilotSpace);
-            var rotationVector = new Vector3(-vectorInPilotSpace.y, vectorInPilotSpace.x, 0);   //set z to 0 to not add spin
-            if(rotationVector.magnitude < 0.1 && vectorInPilotSpace.z < 0)
+            var rotationVector = new Vector3(-lookVectorInPilotSpace.y, lookVectorInPilotSpace.x, zRotation);   //set z to 0 to not add spin
+            if(lookVectorInPilotSpace.y < 0.1 && lookVectorInPilotSpace.x < 0.1 && lookVectorInPilotSpace.z < 0)
             {
                 //The target is exactly behind, turning in any direction will do.
                 //Debug.Log("Target is exactly behind");
-                rotationVector = new Vector3(1, 0, 0);
+                rotationVector = new Vector3(1, 0, zRotation);
             }
             //Debug.Log("rotationVector" + rotationVector);
 

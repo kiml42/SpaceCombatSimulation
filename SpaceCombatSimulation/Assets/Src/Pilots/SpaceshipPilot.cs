@@ -100,16 +100,20 @@ namespace Assets.Src.Pilots
 
                 EmitLog(distance, tanSpeed, targetsApproachVelocity, accelerationVector, orientationVector);
 
+                var upVector = GetUpVector();
+
                 if (Vector3.Angle(orientationVector, _pilotObject.transform.forward) > CloseEnoughAngle)
                 {
-                    _torqueApplier.TurnToVectorInWorldSpace(orientationVector);
+                    _torqueApplier.TurnToVectorInWorldSpace(orientationVector, upVector);
                 }
+                // TODO use torquer to orient if the up or the look rotations are too far off.
+                // TODO calculate the up rotation from a known direction to try to point to the target.
 
                 if (VectorArrow != null)
                 {
                     if (!happyWithSpeedAndLocation && orientationVector.magnitude > 0)
                     {
-                        VectorArrow.rotation = Quaternion.LookRotation(orientationVector);
+                        VectorArrow.rotation = Quaternion.LookRotation(orientationVector, upVector);
                         VectorArrow.localScale = Vector3.one;
                     }
                     else
@@ -120,18 +124,23 @@ namespace Assets.Src.Pilots
 
                 if (happyWithSpeedAndLocation)
                 {
-                    SetTurningVectorOnEngines(null);
+                    SetTurningVectorOnEngines(null, upVector);
                     SetPrimaryTranslationVectorOnEngines(accelerationVector);
                 }
                 else
                 {
-                    SetFlightVectorOnEngines(orientationVector);
+                    SetFlightVectorOnEngines(orientationVector, upVector);
                 }
             }
             else
             {
                 SetFlightVectorOnEngines(null);  //turn off the engine
             }
+        }
+
+        private Vector3 GetUpVector()
+        {
+            return Vector3.up; // ToDo set up to get the correct side of the ship pointing in the right direction.
         }
 
         private void EmitLog(float distance, float tanSpeed, Vector3 targetsApproachVelocity, Vector3 accelerationVector, Vector3 orientationVector)
