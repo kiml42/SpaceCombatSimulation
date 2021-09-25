@@ -291,8 +291,8 @@ MonoBehaviour:
   MaxRange: 500
   MinRange: 120
   LocationAimWeighting: 1
-  MaxTangentialVelocity: 100
-  MinTangentialVelocity: 0
+  MaxTangentialVelocity: 200
+  MinTangentialVelocity: 10
   TangentialSpeedWeighting: 50
   Engine: {fileID: 114668481676445708}
   Torquer: {fileID: 54348881928324954}
@@ -5976,7 +5976,7 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 1
-  DebugMode: 1
+  DebugMode: 0
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1864701884255960
 GameObject:

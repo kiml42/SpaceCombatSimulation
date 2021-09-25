@@ -81,8 +81,6 @@ public class SpaceShipControler : AbstractDeactivatableController
     {
         if (_active && _pilot != null)
         {
-            if (Log)
-                Debug.Log($"*** Fixed Update  *** {this} is targeting {_targetChoosingMechanism.CurrentTarget}");
             _pilot.Fly(_targetChoosingMechanism.CurrentTarget);
         }
     }
