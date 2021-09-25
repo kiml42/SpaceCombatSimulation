@@ -31,8 +31,8 @@ namespace Assets.Src.Pilots
         public float MinRange = 20;
 
         private bool _slowdownMode;
-
-        public SpaceshipPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<EngineControler> engines, float angleTollerance, float fuel = Mathf.Infinity)
+        tolerance
+        public SpaceshipPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<EngineControler> engines, float angleTolerance, float fuel = Mathf.Infinity)
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;

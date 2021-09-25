@@ -9,6 +9,7 @@ public class SpaceShipControler : AbstractDeactivatableController
 {
     private IKnowsCurrentTarget _targetChoosingMechanism;
 
+    [Tooltip("Angel tolerance")]
     public float ShootAngle = 30;
     public float TorqueMultiplier = 9;
     public int StartDelay = 2;
@@ -29,7 +30,6 @@ public class SpaceShipControler : AbstractDeactivatableController
 
     public float AngularDragForTorquers = 20;
 
-    private const float Fuel = Mathf.Infinity;
     private Rigidbody _thisSpaceship;
 
     private IPilot _pilot;
@@ -60,7 +60,7 @@ public class SpaceShipControler : AbstractDeactivatableController
         //ensure this starts active.
         torqueApplier.Activate();
 
-        _pilot = new SpaceshipPilot(torqueApplier, _thisSpaceship, _engines, ShootAngle, Fuel)
+        _pilot = new SpaceshipPilot(torqueApplier, _thisSpaceship, _engines)
         {
             StartDelay = StartDelay,
             SlowdownWeighting = SlowdownWeighting,
@@ -102,7 +102,6 @@ public class SpaceShipControler : AbstractDeactivatableController
         const float MaxVelocityTolerance = 100;
         const float DefaultVelocityToleranceProportion = 0.1f;
 
-        ShootAngle = genomeWrapper.GetScaledNumber(180);
         LocationAimWeighting = genomeWrapper.GetScaledNumber(2);
         SlowdownWeighting = genomeWrapper.GetScaledNumber(70);
         MaxRange = genomeWrapper.GetScaledNumber(5000, 0, 0.1f);
