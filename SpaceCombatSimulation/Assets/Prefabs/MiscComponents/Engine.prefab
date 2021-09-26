@@ -4717,6 +4717,7 @@ ParticleSystemRenderer:
   m_ProbeAnchor: {fileID: 0}
   m_LightProbeVolumeOverride: {fileID: 0}
   m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
   m_PreserveUVs: 0
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
@@ -4810,7 +4811,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 30de26c7cd61da843adfd314ec84d4e9, type: 3}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -4818,6 +4819,7 @@ MeshRenderer:
   m_ProbeAnchor: {fileID: 0}
   m_LightProbeVolumeOverride: {fileID: 0}
   m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
   m_PreserveUVs: 1
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
@@ -4901,7 +4903,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 30de26c7cd61da843adfd314ec84d4e9, type: 3}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -4909,6 +4911,7 @@ MeshRenderer:
   m_ProbeAnchor: {fileID: 0}
   m_LightProbeVolumeOverride: {fileID: 0}
   m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
   m_PreserveUVs: 1
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
@@ -5030,7 +5033,7 @@ MonoBehaviour:
   DamageDelegate: {fileID: 0}
   IgnoredTags:
   - ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!114 &114161418504762722
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5058,6 +5061,7 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 10
+  DebugMode: 0
   _fullTrhrottlePlumeRate: 0
 --- !u!114 &114198735893420614
 MonoBehaviour:
@@ -5071,7 +5075,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DeregisterOnDeactivate: 1
+  Shooting: 1
+  Navigation: 0
+  InitialTeam: 
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &114378008843930622
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -706,11 +706,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4960682451978958, guid: af8783d568b3ea34e84d5e64237749b5, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: 0.38268343
       objectReference: {fileID: 0}
     - target: {fileID: 4960682451978958, guid: af8783d568b3ea34e84d5e64237749b5, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.92387956
       objectReference: {fileID: 0}
     - target: {fileID: 4960682451978958, guid: af8783d568b3ea34e84d5e64237749b5, type: 3}
       propertyPath: m_RootOrder
@@ -726,11 +726,26 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4960682451978958, guid: af8783d568b3ea34e84d5e64237749b5, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
+      value: 45
       objectReference: {fileID: 0}
     - target: {fileID: 114005634925885068, guid: af8783d568b3ea34e84d5e64237749b5,
         type: 3}
       propertyPath: Log
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 114005634925885068, guid: af8783d568b3ea34e84d5e64237749b5,
+        type: 3}
+      propertyPath: MinTangentialVelocity
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 114005634925885068, guid: af8783d568b3ea34e84d5e64237749b5,
+        type: 3}
+      propertyPath: HasBeenConfiguredByGenome
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7978208878840526141, guid: af8783d568b3ea34e84d5e64237749b5,
+        type: 3}
+      propertyPath: DebugMode
       value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -2265,6 +2280,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Team2Ship
       objectReference: {fileID: 0}
+    - target: {fileID: 1249936944491648, guid: 3a84186e8b326a04483727b0cfc0ec2e, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4007074019723936, guid: 3a84186e8b326a04483727b0cfc0ec2e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -1004
@@ -2322,7 +2341,7 @@ PrefabInstance:
     - target: {fileID: 114418977453750346, guid: 3a84186e8b326a04483727b0cfc0ec2e,
         type: 3}
       propertyPath: Health
-      value: 1000000
+      value: 99000000
       objectReference: {fileID: 0}
     - target: {fileID: 2472788891102059413, guid: 3a84186e8b326a04483727b0cfc0ec2e,
         type: 3}
