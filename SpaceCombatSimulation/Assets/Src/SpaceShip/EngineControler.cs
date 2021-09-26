@@ -123,7 +123,8 @@ public class EngineControler : AbstractDeactivatableController
     }
     
     // Update is called once per frame
-    void FixedUpdate () {
+    void FixedUpdate ()
+    {
 
         //if (DebugMode)
         //{
@@ -132,7 +133,7 @@ public class EngineControler : AbstractDeactivatableController
         //    TV1 = PrimaryTranslateVector ?? Vector3.zero;
         //}
 
-        if (DebugMode) Debug.Log($"{name} on {transform.parent.name}. IsActive: {_active}, HasFuel: {HasFuel()}, UseAsTranslator: {UseAsTranslator}, UseAsTorquer: {UseAsTorquer}");
+        Log($"IsActive: {_active}, HasFuel: {HasFuel()}, UseAsTranslator: {UseAsTranslator}, UseAsTorquer: {UseAsTorquer}");
         if (_active && HasFuel())
         {
             float throttle = 0;
@@ -140,40 +141,28 @@ public class EngineControler : AbstractDeactivatableController
             if (UseAsTranslator)
             {
                 throttle = TranslateThrottleSetting();
-            }
-
-            if (DebugMode)
-            {
-                Debug.Log($"{name} on {transform.parent.name} translate throttle {throttle}");
+                Log($"translate throttle {throttle}");
             }
 
             if (UseAsTorquer)
             {
                 float additionalThrottle = RotateThrottleSetting();
 
-                if (DebugMode)
-                {
-                    Debug.Log($"{name} on {transform.parent.name} torque throttle {additionalThrottle}");
-                }
+                Log($"torque throttle {additionalThrottle}");
 
                 throttle += additionalThrottle;  //add the additional throttle.
             }
 
-            if (DebugMode)
-            {
-                Debug.Log($"{name} on {transform.parent.name} net throttle {throttle}");
-            }
+            Log($"net throttle {throttle}");
 
             throttle = Math.Min(1, throttle);  //cut the throttle whole thing down to the proper range.
-            
-            if(throttle > 0)
+
+            if (throttle > 0)
             {
                 throttle = AdjustThrottleForFuel(throttle);
                 var force = -transform.up * EngineForce2 * throttle * Time.fixedDeltaTime;
-                if (DebugMode)
-                {
-                    Debug.Log($"{name} on {transform.parent.name} applying force {force}");
-                }
+
+                Log($"applying force {force}");
 
                 ForceApplier.AddForceAtPosition(force, transform.position, ForceMode.Force);
                 //ForceApplier.AddRelativeForce(EngineForce * throttle);
@@ -182,6 +171,12 @@ public class EngineControler : AbstractDeactivatableController
             }
         }
         SetPlumeState(0);
+    }
+
+    private void Log(string text)
+    {
+        if (DebugMode)
+            Debug.Log($"{name} on {Pilot}. {text}");
     }
 
     private bool HasFuel()
@@ -249,7 +244,6 @@ public class EngineControler : AbstractDeactivatableController
 
     private int TorqueThrustDirectionMultiplier()
     {
-        //if (Pilot != null && Pilot.IsValid() && _orientationTarget.HasValue && _orientationWeight.HasValue && _orientationWeight.Value > 0 && TorqueVector.HasValue && TorqueVector.Value.magnitude > 0.5)
         if (Pilot != null && Pilot.IsValid() && _orientationVector.HasValue && _orientationVector.Value.magnitude > 0 && TorqueVector.HasValue && TorqueVector.Value.magnitude > 0.5)
         {
             var pilotSpaceLookVector = Pilot.InverseTransformVector(_orientationVector.Value);
@@ -285,16 +279,24 @@ public class EngineControler : AbstractDeactivatableController
     /// <returns></returns>
     private float RotateThrottleSetting()
     {
+        var targetOrientation = Quaternion.LookRotation(_orientationVector.Value, _upVector.Value);
+        var currentOrientation = Pilot.rotation;
+        var pilotSpaceOrientationTarget = Quaternion.Inverse(currentOrientation) * targetOrientation;
+        pilotSpaceOrientationTarget.ToAngleAxis(out var angle, out var axis);
+
+        Log($"pilotSpaceOrientationTarget:{pilotSpaceOrientationTarget}, axis:{axis}, angle:{angle}");
+
         var thrustDirectionMultiplier = TorqueThrustDirectionMultiplier();
         if (TorquerFullThrottleAngle != 0 && thrustDirectionMultiplier != 0)
         {
             var pilotorientationErrorAngle = Vector3.Angle(Pilot.forward, _orientationVector.Value);
 
-            var pilotorientationErrorAngle2 = Quaternion.Angle(Pilot.rotation, _orientationTarget.Value);
-
-            if(Math.Abs(pilotorientationErrorAngle - pilotorientationErrorAngle2) > 0.5)
+            float zRotation = 0;
+            if (_upVector.HasValue)
             {
-                Debug.LogWarning($"RotateThrottleSetting: Old method: {pilotorientationErrorAngle}, New method: {pilotorientationErrorAngle2}");
+                //var upErorAngle
+                var upVectorInPilotSpace = Pilot.InverseTransformVector(_upVector.Value);
+                zRotation = -upVectorInPilotSpace.x;
             }
 
             float additionalThrottle = thrustDirectionMultiplier * (pilotorientationErrorAngle / TorquerFullThrottleAngle);
@@ -317,8 +319,6 @@ public class EngineControler : AbstractDeactivatableController
             float throttle = 0;
             //the enemy's gate is down
             var primaryAngleError = Vector3.Angle(-transform.up, PrimaryTranslateVector.Value);
-            if(DebugMode)
-                Debug.Log("fire angle = " + primaryAngleError);
 
             if (SecondaryTranslateVector != PrimaryTranslateVector && VectorIsUseful(SecondaryTranslateVector))
             {
@@ -340,13 +340,8 @@ public class EngineControler : AbstractDeactivatableController
                 throttle = -1;
             }
 
-            if (DebugMode)
-                Debug.Log("TranslateThrotleSetting=" + throttle);
             return Clamp(throttle, -1, 1);
         }
-
-        if (DebugMode)
-            Debug.Log("Thrust vector is not currently useful. ");
         return 0;
     }
 
