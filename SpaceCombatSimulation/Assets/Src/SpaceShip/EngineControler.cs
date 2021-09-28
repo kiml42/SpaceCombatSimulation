@@ -279,12 +279,15 @@ public class EngineControler : AbstractDeactivatableController
     /// <returns></returns>
     private float RotateThrottleSetting()
     {
-        var targetOrientation = Quaternion.LookRotation(_orientationVector.Value, _upVector.Value);
-        var currentOrientation = Pilot.rotation;
-        var pilotSpaceOrientationTarget = Quaternion.Inverse(currentOrientation) * targetOrientation;
-        pilotSpaceOrientationTarget.ToAngleAxis(out var angle, out var axis);
+        if (_orientationVector.HasValue)
+        {
+            var targetOrientation = Quaternion.LookRotation(_orientationVector.Value, _upVector ?? Pilot.up);
+            var currentOrientation = Pilot.rotation;
+            var pilotSpaceOrientationTarget = Quaternion.Inverse(currentOrientation) * targetOrientation;
+            pilotSpaceOrientationTarget.ToAngleAxis(out var angle, out var axis);
 
-        Log($"pilotSpaceOrientationTarget:{pilotSpaceOrientationTarget}, axis:{axis}, angle:{angle}");
+            Log($"pilotSpaceOrientationTarget:{pilotSpaceOrientationTarget}, axis:{axis}, angle:{angle}");
+        }
 
         var thrustDirectionMultiplier = TorqueThrustDirectionMultiplier();
         if (TorquerFullThrottleAngle != 0 && thrustDirectionMultiplier != 0)
