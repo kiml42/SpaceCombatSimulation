@@ -86,7 +86,7 @@ public class RocketController : GeneticConfigurableMonobehaviour
         {
             LocationAimWeighting = LocationAimWeighting,
             TurningStartDelay = TurningStartDelay,
-            VectorArrow = VectorArrow,
+            OrientationVectorArrow = VectorArrow,
             TimeThresholdForMaximumEvasion = TimeThresholdForMaximumEvasion,
             TimeThresholdForMediumEvasion = TimeThresholdForMediumEvasion,
             TimeThresholdForMinimalEvasion = TimeThresholdForMinimalEvasion,

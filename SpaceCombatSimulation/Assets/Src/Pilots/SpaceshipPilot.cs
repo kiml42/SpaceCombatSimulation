@@ -50,6 +50,17 @@ namespace Assets.Src.Pilots
             }
         }
 
+        private bool _isTooFar;
+        private bool _isTooClose;
+        private bool _tangentialTooFast;
+        private bool _tangentialTooSlow;
+
+        private float MaxRangeWithHysteresis => _isTooFar ? MaxRange : MaxRange * 1.1f;
+        private float MinRangeWithHysteresis => _isTooClose ? MinRange : MinRange * 0.9f;
+
+        private float MaxTanVWithHysteresis => _tangentialTooFast ? MaxTangentialSpeed : MaxTangentialSpeed * 1.1f;
+        private float MinTanVWithHysteresis => _tangentialTooSlow ? MinTangentialSpeed : MinTangentialSpeed * 0.9f;
+
         public override void Fly(ITarget target)
         {
             RemoveNullEngines();
@@ -61,8 +72,8 @@ namespace Assets.Src.Pilots
 
                 var distance = reletiveLocation.magnitude;
 
-                var isTooFar = distance > MaxRange;
-                var isTooClose = distance < MinRange;
+                _isTooFar = distance > MaxRangeWithHysteresis;
+                _isTooClose = distance < MinRangeWithHysteresis;
 
 
                 var targetsVelosity = target == null
@@ -74,20 +85,23 @@ namespace Assets.Src.Pilots
 
                 var targetsApproachVelocity = targetsVelosity.ComponentParalellTo(reletiveLocation);
 
-                var tangentialTooFast = tanSpeed > MaxTangentialSpeed;
-                var tangentialTooSlow = tanSpeed < MinTangentialSpeed;
-
+                _tangentialTooFast = tanSpeed > MaxTanVWithHysteresis;
+                _tangentialTooSlow = target == null
+                    ? false //Happy to be stationary when there is no target
+                    : tanSpeed < MinTanVWithHysteresis;
 
                 var isGoingTooFast = targetsApproachVelocity.magnitude > RadialSpeedThreshold;
 
-                var happyWithSpeed = !tangentialTooFast && !tangentialTooSlow && targetsVelosity.magnitude < MaxTangentialSpeed && !isGoingTooFast;
-                var happyWithLocation = !isTooClose && !isTooFar;
+                var happyWithSpeed = !_tangentialTooFast && !_tangentialTooSlow && !isGoingTooFast;
+                var happyWithLocation = !_isTooClose && !_isTooFar;
 
                 var happyWithSpeedAndLocation = happyWithSpeed && happyWithLocation;
 
-                var approachVector = CalculateWeightedApproachVector(reletiveLocation, isTooClose, isTooFar);
-                var tanSpeedVector = CalculateWeightedTanSpeedVector(targetsTangentialVelocity, reletiveLocation, tangentialTooSlow, tangentialTooFast);
+                var approachVector = CalculateWeightedApproachVector(reletiveLocation, _isTooClose, _isTooFar);
+                var tanSpeedVector = CalculateWeightedTanSpeedVector(targetsTangentialVelocity, reletiveLocation, _tangentialTooSlow, _tangentialTooFast);
                 var slowdownVector = CalculateWeightedSlowdownVector(targetsApproachVelocity, isGoingTooFast);
+                if (Log)
+                    Debug.Log($"approachVector: {approachVector}, tanSpeedVector: {tanSpeedVector}, slowdownVector: {slowdownVector}");
                 _slowdownMode = slowdownVector.magnitude > approachVector.magnitude;
 
                 var accelerationVector = tanSpeedVector + (_slowdownMode
@@ -98,7 +112,6 @@ namespace Assets.Src.Pilots
                     ? reletiveLocation
                     : accelerationVector;
 
-                EmitLog(distance, tanSpeed, targetsApproachVelocity, accelerationVector, orientationVector);
 
                 var upVector = GetUpVector();
 
@@ -106,35 +119,50 @@ namespace Assets.Src.Pilots
                 {
                     _torqueApplier.TurnToVectorInWorldSpace(orientationVector, upVector);
                 }
+                EmitLog(distance, tanSpeed, targetsApproachVelocity, accelerationVector, orientationVector);
                 // TODO use torquer to orient if the up or the look rotations are too far off.
                 // TODO calculate the up rotation from a known direction to try to point to the target.
 
-                if (VectorArrow != null)
-                {
-                    if (!happyWithSpeedAndLocation && orientationVector.magnitude > 0)
-                    {
-                        VectorArrow.rotation = Quaternion.LookRotation(orientationVector, upVector);
-                        VectorArrow.localScale = Vector3.one;
-                    }
-                    else
-                    {
-                        VectorArrow.localScale = Vector3.zero;
-                    }
-                }
+                SetVectorArrows(accelerationVector, orientationVector, upVector);
 
-                if (happyWithSpeedAndLocation)
-                {
-                    SetTurningVectorOnEngines(null, upVector);
-                    SetPrimaryTranslationVectorOnEngines(accelerationVector);
-                }
-                else
-                {
-                    SetFlightVectorOnEngines(orientationVector, upVector);
-                }
+                //TODO work out the torque axis and pass it to the engines.
+                //SetTurningVectorOnEngines(orientationVector, upVector);
+
+                //TODO tell engines how high to set throttle based on speed error.
+                SetPrimaryTranslationVectorOnEngines(accelerationVector);
             }
             else
             {
                 SetFlightVectorOnEngines(null);  //turn off the engine
+            }
+        }
+
+        private void SetVectorArrows(Vector3 accelerationVector, Vector3 orientationVector, Vector3 upVector)
+        {
+            if (OrientationVectorArrow != null)
+            {
+                if (orientationVector.magnitude > 0)
+                {
+                    OrientationVectorArrow.rotation = Quaternion.LookRotation(orientationVector, upVector);
+                    OrientationVectorArrow.localScale = Vector3.one;
+                }
+                else
+                {
+                    OrientationVectorArrow.localScale = Vector3.zero;
+                }
+            }
+
+            if (AccelerationVectorArrow != null)
+            {
+                if (accelerationVector.magnitude > 0)
+                {
+                    AccelerationVectorArrow.rotation = Quaternion.LookRotation(accelerationVector);
+                    AccelerationVectorArrow.localScale = Vector3.one;
+                }
+                else
+                {
+                    AccelerationVectorArrow.localScale = Vector3.zero;
+                }
             }
         }
 
@@ -148,8 +176,8 @@ namespace Assets.Src.Pilots
             if (Log)
             {
                 var log = new StringBuilder();
-                log.Append(GetLogLineForRange("Distance", distance, MinRange, MaxRange, 1));
-                log.AppendLine(", " + GetLogLineForRange("TanV", tanSpeed, MinTangentialSpeed, MaxTangentialSpeed, 3));
+                log.Append(GetLogLineForRange("Distance", distance, MinRangeWithHysteresis, MaxRangeWithHysteresis, 1));
+                log.AppendLine(", " + GetLogLineForRange("TanV", tanSpeed, MinTanVWithHysteresis, MaxTanVWithHysteresis, 3));
                 log.AppendLine($"_slowdownMode={_slowdownMode}, radialSpeed={Math.Round(targetsApproachVelocity.magnitude, 3)}, accelerationVector = {accelerationVector}, orientationVector = {orientationVector}");
                 Debug.Log(log);
             }
@@ -169,9 +197,9 @@ namespace Assets.Src.Pilots
         private Vector3 CalculateWeightedApproachVector(Vector3 reletiveLocation, bool isTooClose, bool isTooFar)
         {
             var locationError = isTooClose
-                ? MinRange - reletiveLocation.magnitude
+                ? (MinRange - reletiveLocation.magnitude)/MinRange
                 : isTooFar
-                    ? reletiveLocation.magnitude - MaxRange
+                    ? (reletiveLocation.magnitude - MaxRange)/MaxRange
                     : 0;
 
             var correvctRadialLocationVector = isTooFar
@@ -194,9 +222,9 @@ namespace Assets.Src.Pilots
             }
             else if (tangentialTooSlow)
             {
-                if (targetsTangentialVelocity.magnitude < MinTangentialSpeed * 0.1)
+                if (targetsTangentialVelocity.magnitude < MinTangentialSpeed * 0.2)
                 {
-                    //use the forward orientation of the ship because Vt is way too slow, and wil yield unstable results.
+                    //use the forward orientation of the ship because Vt is way too slow, and will yield unstable results.
                     correctTangentialSpeedVector = (_pilotObject.transform.forward.ComponentPerpendicularTo(reletiveLocationOfTarget)).normalized;
                 }
                 else
@@ -206,9 +234,9 @@ namespace Assets.Src.Pilots
             }
 
             var tanSpeedError = tangentialTooSlow
-                ? MinTangentialSpeed - targetsTangentialVelocity.magnitude
+                ? (MinTangentialSpeed - targetsTangentialVelocity.magnitude)/MinTangentialSpeed
                 : tangentialTooFast
-                    ? targetsTangentialVelocity.magnitude - MaxTangentialSpeed
+                    ? (targetsTangentialVelocity.magnitude - MaxTangentialSpeed)/MaxTangentialSpeed
                     : 0;
 
             var weightedTangentialSpeedVector = correctTangentialSpeedVector * tanSpeedError * TangentialSpeedWeighting;
@@ -221,7 +249,7 @@ namespace Assets.Src.Pilots
             {
                 return Vector3.zero;
             }
-            var weightedSlowdownVector = targetsApproachVelocity * SlowdownWeighting;
+            var weightedSlowdownVector = (targetsApproachVelocity/RadialSpeedThreshold) * SlowdownWeighting;
             if (_slowdownMode)
             {
                 //10% extra weight when in slowdown mode, to prevent flip-flopping

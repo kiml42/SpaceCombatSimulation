@@ -317,6 +317,9 @@ public class EngineControler : AbstractDeactivatableController
     /// <returns></returns>
     private float TranslateThrottleSetting()
     {
+        Log($"TranslateFireAngle: {TranslateFireAngle}");
+        Log($"PrimaryTranslateVector: {PrimaryTranslateVector}");
+        Log($"SecondaryTranslateVector: {SecondaryTranslateVector}");
         if(TranslateFireAngle > 0 && VectorIsUseful(PrimaryTranslateVector))
         {
             float throttle = 0;

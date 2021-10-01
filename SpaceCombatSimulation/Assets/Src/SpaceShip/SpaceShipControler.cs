@@ -34,7 +34,8 @@ public class SpaceShipControler : AbstractDeactivatableController
 
     private IPilot _pilot;
 
-    public Transform VectorArrow;
+    public Transform OrientationVectorArrow;
+    public Transform AccelerationVectorArrow;
 
     // Use this for initialization
     public void Start()
@@ -66,7 +67,8 @@ public class SpaceShipControler : AbstractDeactivatableController
             SlowdownWeighting = SlowdownWeighting,
             TangentialSpeedWeighting = TangentialSpeedWeighting,
             LocationAimWeighting = LocationAimWeighting,
-            VectorArrow = VectorArrow,
+            OrientationVectorArrow = OrientationVectorArrow,
+            AccelerationVectorArrow = AccelerationVectorArrow,
             MaxRange = MaxRange,
             MinRange = MinRange,
             MaxTangentialSpeed = MaxTangentialVelocity,

@@ -13,7 +13,8 @@ namespace Assets.Src.Pilots
         public float CloseEnoughAngle = 0;
 
         public float LocationAimWeighting { get; set; }
-        public Transform VectorArrow;
+        public Transform OrientationVectorArrow;
+        public Transform AccelerationVectorArrow;
 
         public float StartDelay
         {
@@ -146,6 +147,7 @@ namespace Assets.Src.Pilots
         /// <param name="torqueVector"></param>
         protected void SetTurningVectorOnEngines(Vector3? torqueVector, Vector3? upVector = null)
         {
+            if (!torqueVector.HasValue || torqueVector.Value == Vector3.zero) return;
             foreach (var engine in _engines)
             {
                 engine.SetOrientationTargetForPilot(torqueVector, upVector);
