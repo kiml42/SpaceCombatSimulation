@@ -39,15 +39,15 @@ namespace Assets.Src.Pilots
                 _torqueApplier.TurnToVectorInWorldSpace(worldTurningVector);
                 SetTurningVectorOnEngines(worldTurningVector);
 
-                if (VectorArrow != null)
+                if (OrientationVectorArrow != null)
                 {
                     if (worldTurningVector.magnitude > 0)
                     {
-                        VectorArrow.rotation = Quaternion.LookRotation(worldTurningVector);
-                        VectorArrow.localScale = Vector3.one;
+                        OrientationVectorArrow.rotation = Quaternion.LookRotation(worldTurningVector);
+                        OrientationVectorArrow.localScale = Vector3.one;
                     } else
                     {
-                        VectorArrow.localScale = Vector3.zero;
+                        OrientationVectorArrow.localScale = Vector3.zero;
                     }
                 }
 

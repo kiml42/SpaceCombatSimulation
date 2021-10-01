@@ -108,17 +108,17 @@ namespace Assets.Src.Pilots
 
         private void UpdateArrow(Vector3? turningVector)
         {
-            if(VectorArrow != null)
+            if(OrientationVectorArrow != null)
             {
                 if (turningVector.HasValue && turningVector.Value.magnitude > 0)
                 {
                     //Debug.Log("Arrow on");
-                    VectorArrow.rotation = Quaternion.LookRotation(turningVector.Value);
-                    VectorArrow.localScale = Vector3.one;
+                    OrientationVectorArrow.rotation = Quaternion.LookRotation(turningVector.Value);
+                    OrientationVectorArrow.localScale = Vector3.one;
                     return;
                 }
                 //Debug.Log("Arrow off");
-                VectorArrow.localScale = Vector3.zero;
+                OrientationVectorArrow.localScale = Vector3.zero;
             }
         }
 
