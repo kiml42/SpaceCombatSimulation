@@ -138,7 +138,7 @@
     <Compile Include="Assets\Src\Interfaces\ITarget.cs" />
     <Compile Include="Assets\Src\Interfaces\ITargetDetector.cs" />
     <Compile Include="Assets\Src\Interfaces\ITargetPicker.cs" />
-    <Compile Include="Assets\Src\Interfaces\ITorqueApplier.cs" />
+    <Compile Include="Assets\Src\Interfaces\ITorquerManager.cs" />
     <Compile Include="Assets\Src\Interfaces\ITurretController.cs" />
     <Compile Include="Assets\Src\Interfaces\ITurretRunner.cs" />
     <Compile Include="Assets\Src\Interfaces\ITurretTurner.cs" />

@@ -52,7 +52,7 @@ namespace Assets.Src.Pilots
             return TurningStartDelay <= 0;
         }
 
-        protected ITorqueApplier _torqueApplier;
+        protected ITorquerManager _torqueApplier;
 
         protected Rigidbody _pilotObject;
 

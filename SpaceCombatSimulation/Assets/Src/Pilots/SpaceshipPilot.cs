@@ -37,7 +37,7 @@ namespace Assets.Src.Pilots
         /// </summary>
         private bool _slowdownMode;
 
-        public SpaceshipPilot(ITorqueApplier torqueApplier, Rigidbody pilotObject, List<EngineControler> engines)
+        public SpaceshipPilot(ITorquerManager torqueApplier, Rigidbody pilotObject, List<EngineControler> engines)
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;

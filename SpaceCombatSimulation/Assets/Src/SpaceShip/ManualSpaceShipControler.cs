@@ -10,7 +10,6 @@ public class ManualSpaceShipControler : AbstractDeactivatableController
     private IKnowsCurrentTarget _targetChoosingMechanism;
 
     public float ShootAngle = 30;
-    public float TorqueMultiplier = 9;
     public int StartDelay = 2;
 
     public float SlowdownWeighting = 10;
@@ -22,11 +21,7 @@ public class ManualSpaceShipControler : AbstractDeactivatableController
     public float MinTangentialVelocity = 0;
     public float TangentialSpeedWeighting = 1;
     
-    public Rigidbody Torquer;
     public List<EngineControler> Engines = new List<EngineControler>();
-    private readonly List<Rigidbody> _torquers = new List<Rigidbody>();
-
-    public float AngularDragForTorquers = 20;
 
     private const float Fuel = Mathf.Infinity;
     private Rigidbody _thisSpaceship;
@@ -40,18 +35,18 @@ public class ManualSpaceShipControler : AbstractDeactivatableController
     void Start()
     {
         _thisSpaceship = GetComponent<Rigidbody>();
+        if (_thisSpaceship == null)
+        {
+            Debug.LogError($"{this} doesn't have a rigidbody.");
+        }
         _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
         
-        if (Torquer != null)
-        {
-            _torquers.Add(Torquer);
-        }
         Initialise();
     }
 
     private void Initialise()
     {
-        var torqueApplier = new MultiTorquerTorqueAplier(_thisSpaceship, _torquers, TorqueMultiplier, AngularDragForTorquers);
+        var torqueApplier = new MultiTorquerTorqueAplier(_thisSpaceship);
 
         //ensure this starts active.
         torqueApplier.Activate();
@@ -88,13 +83,6 @@ public class ManualSpaceShipControler : AbstractDeactivatableController
         //_engineControl.SetEngine(Engine);
 
     }
-
-    public void RegisterTorquer(Transform torquer)
-    {
-        _torquers.Add(torquer.GetComponent<Rigidbody>());
-        Initialise();
-        //_engineControl.SetEngine(Engine);
-    }
    
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
@@ -111,8 +99,6 @@ public class ManualSpaceShipControler : AbstractDeactivatableController
         const float DefaultMaxAndMinRangeProportion = 0.1f;
         const float MaxVelociyTollerance = 100;
         const float DefaultVelociyTolleranceProportion = 0.1f;
-        const float MaxAngularDragForTorquers = 2;
-        const float DefaultAngularDragForTorquersProportion = 0.2f;
 
         ShootAngle =
                 genomeWrapper.GetScaledNumber(MaxShootAngle, 0, DefaultShootAngleProportion);
@@ -130,8 +116,6 @@ public class ManualSpaceShipControler : AbstractDeactivatableController
             genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
         TangentialSpeedWeighting =
             genomeWrapper.GetScaledNumber(MaxTangentialVelosityWeighting, 0, DefaultTangentialVelosityWeightingProportion);
-        AngularDragForTorquers =
-            genomeWrapper.GetScaledNumber(MaxAngularDragForTorquers, 0, DefaultAngularDragForTorquersProportion);
         RadialSpeedThreshold =
             genomeWrapper.GetScaledNumber(MaxVelociyTollerance, 0, DefaultVelociyTolleranceProportion);
        

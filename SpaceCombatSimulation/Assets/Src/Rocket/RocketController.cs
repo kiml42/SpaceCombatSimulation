@@ -78,9 +78,12 @@ public class RocketController : GeneticConfigurableMonobehaviour
     void Start()
     {
         _rigidbody = GetComponent<Rigidbody>();
-        
-        var initialAngularDrag = _rigidbody.angularDrag;
-        var torqueApplier = new MultiTorquerTorqueAplier(_rigidbody, TorqueMultiplier, initialAngularDrag);
+        if (_rigidbody == null)
+        {
+            Debug.LogError($"{this} doesn't have a rigidbody.");
+        }
+
+        var torqueApplier = new MultiTorquerTorqueAplier(_rigidbody);
 
         _pilot = new RocketPilot(torqueApplier, _rigidbody, Engines, StartDelay)
         {
