@@ -11,7 +11,6 @@ public class SpaceShipControler : AbstractDeactivatableController
 
     public bool Log = false;
 
-    public float TorqueMultiplier = 9;
     public int StartDelay = 2;
 
     public float SlowdownWeighting = 10;
@@ -24,11 +23,7 @@ public class SpaceShipControler : AbstractDeactivatableController
     public float TangentialSpeedWeighting = 1;
 
     public EngineControler Engine;
-    public Rigidbody Torquer;
     private readonly List<EngineControler> _engines = new List<EngineControler>();
-    private readonly List<Rigidbody> _torquers = new List<Rigidbody>();
-
-    public float AngularDragForTorquers = 20;
 
     private Rigidbody _thisSpaceship;
 
@@ -41,22 +36,26 @@ public class SpaceShipControler : AbstractDeactivatableController
     public void Start()
     {
         _thisSpaceship = GetComponent<Rigidbody>();
+        if (_thisSpaceship == null)
+        {
+            Debug.LogError($"{this} doesn't have a rigidbody.");
+        }
         _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
 
         if (Engine != null)
         {
             _engines.Add(Engine);
         }
-        if (Torquer != null)
-        {
-            _torquers.Add(Torquer);
-        }
         Initialise();
     }
 
     private void Initialise()
     {
-        var torqueApplier = new MultiTorquerTorqueAplier(_thisSpaceship, _torquers, TorqueMultiplier, AngularDragForTorquers);
+        if (_thisSpaceship == null)
+        {
+            Debug.LogError($"{this} doesn't have a rigidbody.");
+        }
+        var torqueApplier = new MultiTorquerTorqueAplier(_thisSpaceship);
 
         //ensure this starts active.
         torqueApplier.Activate();
@@ -95,13 +94,6 @@ public class SpaceShipControler : AbstractDeactivatableController
         //_engineControl.SetEngine(Engine);
     }
 
-    public void RegisterTorquer(Transform torquer)
-    {
-        _torquers.Add(torquer.GetComponent<Rigidbody>());
-        Initialise();
-        //_engineControl.SetEngine(Engine);
-    }
-
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
         const float MaxVelocityTolerance = 100;
@@ -114,7 +106,6 @@ public class SpaceShipControler : AbstractDeactivatableController
         MaxTangentialVelocity = genomeWrapper.GetScaledNumber(MaxVelocityTolerance, 0, DefaultVelocityToleranceProportion);
         MinTangentialVelocity = genomeWrapper.GetScaledNumber(MaxVelocityTolerance, 0, DefaultVelocityToleranceProportion);
         TangentialSpeedWeighting = genomeWrapper.GetScaledNumber(70);
-        AngularDragForTorquers = genomeWrapper.GetScaledNumber(2, 0, 0.2f);
         RadialSpeedThreshold = genomeWrapper.GetScaledNumber(MaxVelocityTolerance, 0, DefaultVelocityToleranceProportion);
 
         return genomeWrapper;

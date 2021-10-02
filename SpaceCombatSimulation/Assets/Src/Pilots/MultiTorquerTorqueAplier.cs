@@ -1,49 +1,37 @@
 ﻿using Assets.Src.Interfaces;
-using Assets.Src.ObjectManagement;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Src.Pilots
 {
-    public class MultiTorquerTorqueAplier : ITorqueApplier, IDeactivatable
+    public class MultiTorquerTorqueAplier : ITorquerManager
     {
-        private List<Rigidbody> _torquers = new List<Rigidbody>();
-        public float TorqueMultiplier;
-        public float AngularDragWhenActive;
+        private readonly List<ITorquer> _torquers;
         private readonly Rigidbody _pilot;
-        private Dictionary<Transform, Vector3> _engineTorquers = new Dictionary<Transform, Vector3>();
 
-        public MultiTorquerTorqueAplier(Rigidbody pilot, Rigidbody torquer, float torqueMultiplier, float angularDragWhenActive)
+        public MultiTorquerTorqueAplier(Rigidbody pilot)
         {
             _pilot = pilot;
-            _torquers = new List<Rigidbody> { torquer };
-            TorqueMultiplier = torqueMultiplier;
-            AngularDragWhenActive = angularDragWhenActive;
-        }
-
-        public MultiTorquerTorqueAplier(Rigidbody pilotAndTorquer, float torqueMultiplier, float angularDragWhenActive)
-        {
-            _pilot = pilotAndTorquer;
-            _torquers = new List<Rigidbody> { pilotAndTorquer };
-            TorqueMultiplier = torqueMultiplier;
-            AngularDragWhenActive = angularDragWhenActive;
-        }
-
-        public MultiTorquerTorqueAplier(Rigidbody pilot, List<Rigidbody> torquers, float torqueMultiplier, float angularDragWhenActive)
-        {
-            _pilot = pilot;
-            _torquers = torquers;
-            TorqueMultiplier = torqueMultiplier;
-            AngularDragWhenActive = angularDragWhenActive;
+            if(_pilot == null)
+            {
+                Debug.LogError($"{this} doesn't have a rigidbody set as a pilot.");
+            }
+            var torquers = _pilot.GetComponentsInChildren<ITorquer>();
+            if((torquers?.Length ?? 0) < 1)
+            {
+                Debug.LogWarning($"{this} doesn't have any torquers");
+                _torquers = new List<ITorquer>();
+            }
+            else
+            {
+                _torquers = torquers.ToList();
+            }
         }
 
         public void TurnToVectorInWorldSpace(Vector3 lookVector, Vector3? upVector = null)
         {
             RemoveNullTorquers();
-            RemoveDeadEngines();
             //Debug.Log("vector" + vector);
             var lookVectorInPilotSpace =  _pilot.transform.InverseTransformVector(lookVector);
             float zRotation = 0;
@@ -65,15 +53,8 @@ namespace Assets.Src.Pilots
             var worldTorque = _pilot.transform.TransformVector(rotationVector).normalized;
             foreach (var torquer in _torquers)
             {
-                var localSpaceVector = torquer.transform.InverseTransformVector(worldTorque).normalized;    //transform vector to torquer space
-                torquer.AddRelativeTorque(TorqueMultiplier * localSpaceVector); //apply torque to torquer
+                torquer.SetTorque(worldTorque);
             }
-        }
-
-        public void AddTorquer(Rigidbody torquer)
-        {
-            _torquers.Add(torquer);
-            RemoveNullTorquers();
         }
 
         public void Activate()
@@ -81,7 +62,7 @@ namespace Assets.Src.Pilots
             RemoveNullTorquers();
             foreach (var torquer in _torquers)
             {
-                torquer.angularDrag = AngularDragWhenActive;
+                torquer.Activate();
             }
         }
 
@@ -90,18 +71,13 @@ namespace Assets.Src.Pilots
             RemoveNullTorquers();
             foreach (var torquer in _torquers)
             {
-                torquer.angularDrag = 0;
+                torquer.Deactivate();
             }
         }
 
         private void RemoveNullTorquers()
         {
-            _torquers = _torquers.Where(t => t != null).Distinct().ToList();
-        }
-
-        private void RemoveDeadEngines()
-        {
-            _engineTorquers = _engineTorquers.Where(p => p.Key.IsValid()).ToDictionary(p => p.Key, p => p.Value);
+            _torquers.RemoveAll(t => t == null);
         }
     }
 }
