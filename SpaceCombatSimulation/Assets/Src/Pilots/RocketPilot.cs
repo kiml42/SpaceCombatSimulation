@@ -36,7 +36,7 @@ namespace Assets.Src.Pilots
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
             StartDelay = startDelay;
-            LocationAimWeighting = 1;
+            AccelerateTowardsTargetWeighting = 1;
 
             foreach (var engine in engines.ToList())
             {
@@ -65,7 +65,7 @@ namespace Assets.Src.Pilots
 
                 var targetReletiveVelocity = WorldSpaceReletiveVelocityOfTarget(target);
 
-                var turningVector = (targetReletiveVelocity.magnitude * targetReletiveVelocity.magnitude * cancelationVector) + (reletiveLocation * LocationAimWeighting);
+                var turningVector = (targetReletiveVelocity.magnitude * targetReletiveVelocity.magnitude * cancelationVector) + (reletiveLocation * AccelerateTowardsTargetWeighting);
                 
                 var primaryVector = _evasionLevel == FriendlyAvoidencelevel.MED
                     ? _friendlyAvoidenceVector 

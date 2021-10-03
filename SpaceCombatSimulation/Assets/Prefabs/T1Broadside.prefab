@@ -285,19 +285,16 @@ MonoBehaviour:
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
   Log: 1
-  TorqueMultiplier: 6000000
   StartDelay: 0
-  SlowdownWeighting: 50
+  SlowdownWeighting: 1
   RadialSpeedThreshold: 10
   MaxRange: 800
   MinRange: 120
-  LocationAimWeighting: 1
+  AccelerateTowardsTargetWeighting: 1
   MaxTangentialVelocity: 50
   MinTangentialVelocity: 5
-  TangentialSpeedWeighting: 50
+  TangentialSpeedWeighting: 1
   Engine: {fileID: 114668481676445708}
-  Torquer: {fileID: 54348881928324954}
-  AngularDragForTorquers: 10
   OrientationVectorArrow: {fileID: 4455403608566486}
   AccelerationVectorArrow: {fileID: 6831150294630963159}
 --- !u!114 &114726184140751052
@@ -355,6 +352,7 @@ MonoBehaviour:
   GetConfigFromGenome: 1
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
+  MaxTorque: 40000
 --- !u!114 &114538699749200336
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10650,6 +10648,11 @@ PrefabInstance:
       propertyPath: CurrentTargetKnower
       value: 
       objectReference: {fileID: 7519955007448620083}
+    - target: {fileID: 114894907719496410, guid: 3759a9863abe94848a943553ae1116b2,
+        type: 3}
+      propertyPath: SourceObject
+      value: 
+      objectReference: {fileID: 4960682451978958}
     - target: {fileID: 114984434384308452, guid: 3759a9863abe94848a943553ae1116b2,
         type: 3}
       propertyPath: SourceObject

@@ -131,6 +131,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Team2Ship (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 1249936944491648, guid: 3a84186e8b326a04483727b0cfc0ec2e, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4007074019723936, guid: 3a84186e8b326a04483727b0cfc0ec2e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -3
@@ -173,6 +177,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4007074019723936, guid: 3a84186e8b326a04483727b0cfc0ec2e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 114747107200871312, guid: 3a84186e8b326a04483727b0cfc0ec2e,
+        type: 3}
+      propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -545,6 +554,16 @@ PrefabInstance:
     - target: {fileID: 4960682451978958, guid: af8783d568b3ea34e84d5e64237749b5, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 54348881928324954, guid: af8783d568b3ea34e84d5e64237749b5,
+        type: 3}
+      propertyPath: m_AngularDrag
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 114005634925885068, guid: af8783d568b3ea34e84d5e64237749b5,
+        type: 3}
+      propertyPath: MaxRange
+      value: 300
       objectReference: {fileID: 0}
     - target: {fileID: 114726184140751052, guid: af8783d568b3ea34e84d5e64237749b5,
         type: 3}

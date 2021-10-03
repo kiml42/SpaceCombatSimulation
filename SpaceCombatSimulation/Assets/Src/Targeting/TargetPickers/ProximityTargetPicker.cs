@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Assets.Src.ObjectManagement;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -20,9 +21,21 @@ namespace Assets.Src.Targeting.TargetPickers
         /// </summary>
         public bool KullInvalidTargets = true;
 
+        public void Start()
+        {
+            SourceObject = SourceObject != null ? SourceObject : transform.root;
+        }
+
         public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
-            potentialTargets = potentialTargets.Select(t => AddScoreForDifference(t));
+            if(SourceObject == null)
+            {
+                Debug.LogError($"{this} has no source object");
+                return potentialTargets;
+            }
+            potentialTargets = potentialTargets
+                .Where(t => t?.Target?.Transform?.IsValid() == true)
+                .Select(t => AddScoreForDifference(t));
             if (KullInvalidTargets && potentialTargets.Any(t => t.IsValidForCurrentPicker))
             {
                 return potentialTargets.Where(t => t.IsValidForCurrentPicker);
@@ -32,7 +45,7 @@ namespace Assets.Src.Targeting.TargetPickers
 
         private PotentialTarget AddScoreForDifference(PotentialTarget target)
         {
-            var dist = target.DistanceToTurret(SourceObject);
+            var dist = target?.DistanceToTurret(SourceObject);
             if (!dist.HasValue)
             {
                 target.IsValidForCurrentPicker = false;
