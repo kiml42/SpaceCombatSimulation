@@ -12,7 +12,7 @@ namespace Assets.Src.Pilots
         public bool Log = false;
         public float CloseEnoughAngle = 0;
 
-        public float AccelerateTowardsTargetWeighting { get; set; }
+        public float RadialSpeedWeighting { get; set; }
         public Transform OrientationVectorArrow;
         public Transform AccelerationVectorArrow;
 
