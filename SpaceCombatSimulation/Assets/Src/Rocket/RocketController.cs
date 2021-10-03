@@ -87,7 +87,7 @@ public class RocketController : GeneticConfigurableMonobehaviour
 
         _pilot = new RocketPilot(torqueApplier, _rigidbody, Engines, StartDelay)
         {
-            AccelerateTowardsTargetWeighting = AccelerateTowardsTargetWeighting,
+            RadialSpeedWeighting = AccelerateTowardsTargetWeighting,
             TurningStartDelay = TurningStartDelay,
             OrientationVectorArrow = VectorArrow,
             TimeThresholdForMaximumEvasion = TimeThresholdForMaximumEvasion,

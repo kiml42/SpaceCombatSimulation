@@ -13,11 +13,10 @@ public class SpaceShipControler : AbstractDeactivatableController
 
     public int StartDelay = 2;
 
-    public float SlowdownWeighting = 10;
-    public float RadialSpeedThreshold = 10;
     public float MaxRange = 100;
     public float MinRange = 20;
-    public float AccelerateTowardsTargetWeighting = 1;
+    public float SpeedMultiplier = 20;
+    public float RadialSpeedWeighting = 1;
     public float MaxTangentialVelocity = 10;
     public float MinTangentialVelocity = 0;
     public float TangentialSpeedWeighting = 1;
@@ -62,16 +61,15 @@ public class SpaceShipControler : AbstractDeactivatableController
         _pilot = new SpaceshipPilot(torqueApplier, _thisSpaceship, _engines)
         {
             StartDelay = StartDelay,
-            SlowdownWeighting = SlowdownWeighting,
             TangentialSpeedWeighting = TangentialSpeedWeighting,
-            AccelerateTowardsTargetWeighting = AccelerateTowardsTargetWeighting,
+            RadialSpeedWeighting = RadialSpeedWeighting,
             OrientationVectorArrow = OrientationVectorArrow,
             AccelerationVectorArrow = AccelerationVectorArrow,
             MaxRange = MaxRange,
             MinRange = MinRange,
+            SpeedMultiplier = SpeedMultiplier,
             MaxTangentialSpeed = MaxTangentialVelocity,
             MinTangentialSpeed = MinTangentialVelocity,
-            RadialSpeedThreshold = RadialSpeedThreshold,
             Log = Log
         };
     }
@@ -98,14 +96,13 @@ public class SpaceShipControler : AbstractDeactivatableController
         const float MaxVelocityTolerance = 100;
         const float DefaultVelocityToleranceProportion = 0.1f;
 
-        AccelerateTowardsTargetWeighting = genomeWrapper.GetScaledNumber(2);
-        SlowdownWeighting = genomeWrapper.GetScaledNumber(70);
+        RadialSpeedWeighting = genomeWrapper.GetScaledNumber(70);
+        TangentialSpeedWeighting = genomeWrapper.GetScaledNumber(70);
+        SpeedMultiplier = genomeWrapper.GetScaledNumber(70);
         MaxRange = genomeWrapper.GetScaledNumber(5000, 0, 0.1f);
         MinRange = genomeWrapper.GetScaledNumber(1000, 0, 0.1f);
         MaxTangentialVelocity = genomeWrapper.GetScaledNumber(MaxVelocityTolerance, 0, DefaultVelocityToleranceProportion);
         MinTangentialVelocity = genomeWrapper.GetScaledNumber(MaxVelocityTolerance, 0, DefaultVelocityToleranceProportion);
-        TangentialSpeedWeighting = genomeWrapper.GetScaledNumber(70);
-        RadialSpeedThreshold = genomeWrapper.GetScaledNumber(MaxVelocityTolerance, 0, DefaultVelocityToleranceProportion);
 
         return genomeWrapper;
     }
