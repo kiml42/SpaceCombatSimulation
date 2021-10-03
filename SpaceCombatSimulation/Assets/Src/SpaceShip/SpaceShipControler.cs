@@ -17,7 +17,7 @@ public class SpaceShipControler : AbstractDeactivatableController
     public float RadialSpeedThreshold = 10;
     public float MaxRange = 100;
     public float MinRange = 20;
-    public float LocationAimWeighting = 1;
+    public float AccelerateTowardsTargetWeighting = 1;
     public float MaxTangentialVelocity = 10;
     public float MinTangentialVelocity = 0;
     public float TangentialSpeedWeighting = 1;
@@ -35,25 +35,24 @@ public class SpaceShipControler : AbstractDeactivatableController
     // Use this for initialization
     public void Start()
     {
-        _thisSpaceship = GetComponent<Rigidbody>();
-        if (_thisSpaceship == null)
-        {
-            Debug.LogError($"{this} doesn't have a rigidbody.");
-        }
-        _targetChoosingMechanism = GetComponent<IKnowsCurrentTarget>();
 
-        if (Engine != null)
-        {
-            _engines.Add(Engine);
-        }
         Initialise();
     }
 
     private void Initialise()
     {
+        _thisSpaceship = _thisSpaceship ?? GetComponent<Rigidbody>();
         if (_thisSpaceship == null)
         {
             Debug.LogError($"{this} doesn't have a rigidbody.");
+            Deactivate();
+            return;
+        }
+        _targetChoosingMechanism = _targetChoosingMechanism ?? GetComponent<IKnowsCurrentTarget>();
+
+        if (Engine != null)
+        {
+            _engines.Add(Engine);
         }
         var torqueApplier = new MultiTorquerTorqueAplier(_thisSpaceship);
 
@@ -65,7 +64,7 @@ public class SpaceShipControler : AbstractDeactivatableController
             StartDelay = StartDelay,
             SlowdownWeighting = SlowdownWeighting,
             TangentialSpeedWeighting = TangentialSpeedWeighting,
-            LocationAimWeighting = LocationAimWeighting,
+            AccelerateTowardsTargetWeighting = AccelerateTowardsTargetWeighting,
             OrientationVectorArrow = OrientationVectorArrow,
             AccelerationVectorArrow = AccelerationVectorArrow,
             MaxRange = MaxRange,
@@ -90,7 +89,7 @@ public class SpaceShipControler : AbstractDeactivatableController
     {
         //Debug.Log("Registering engine");
         _engines.Add(engine);
-        Initialise();
+        Initialise();   //TODO - this sometimes fires before this has hit Start.
         //_engineControl.SetEngine(Engine);
     }
 
@@ -99,7 +98,7 @@ public class SpaceShipControler : AbstractDeactivatableController
         const float MaxVelocityTolerance = 100;
         const float DefaultVelocityToleranceProportion = 0.1f;
 
-        LocationAimWeighting = genomeWrapper.GetScaledNumber(2);
+        AccelerateTowardsTargetWeighting = genomeWrapper.GetScaledNumber(2);
         SlowdownWeighting = genomeWrapper.GetScaledNumber(70);
         MaxRange = genomeWrapper.GetScaledNumber(5000, 0, 0.1f);
         MinRange = genomeWrapper.GetScaledNumber(1000, 0, 0.1f);

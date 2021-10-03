@@ -16,7 +16,7 @@ public class RocketController : GeneticConfigurableMonobehaviour
     public TargetChoosingMechanism TargetChoosingMechanism;
     public float ShootAngle = 10;
     public float TorqueMultiplier = 1f;
-    public float LocationAimWeighting = 3f;
+    public float AccelerateTowardsTargetWeighting = 3f;
 
     [Tooltip("Delay until engines (including RCS) will start and warhead will arm")]
     public float StartDelay = 0.2f;
@@ -87,7 +87,7 @@ public class RocketController : GeneticConfigurableMonobehaviour
 
         _pilot = new RocketPilot(torqueApplier, _rigidbody, Engines, StartDelay)
         {
-            LocationAimWeighting = LocationAimWeighting,
+            AccelerateTowardsTargetWeighting = AccelerateTowardsTargetWeighting,
             TurningStartDelay = TurningStartDelay,
             OrientationVectorArrow = VectorArrow,
             TimeThresholdForMaximumEvasion = TimeThresholdForMaximumEvasion,
@@ -135,7 +135,7 @@ public class RocketController : GeneticConfigurableMonobehaviour
     {
         ShootAngle = genomeWrapper.GetScaledNumber(180);
         TorqueMultiplier = genomeWrapper.GetScaledNumber(TorqueMultiplier);
-        LocationAimWeighting = genomeWrapper.GetScaledNumber(16);
+        AccelerateTowardsTargetWeighting = genomeWrapper.GetScaledNumber(16);
         TimeToTargetForDetonation = genomeWrapper.GetScaledNumber(2, 0 , 0.1f);
          return genomeWrapper;
     }

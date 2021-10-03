@@ -42,7 +42,7 @@ namespace Assets.Src.Pilots
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
             SlowdownWeighting = 10;
-            LocationAimWeighting = 1;
+            AccelerateTowardsTargetWeighting = 1;
 
             foreach (var engine in engines.ToList())
             {
@@ -70,47 +70,37 @@ namespace Assets.Src.Pilots
                     ? -_pilotObject.position     //Return to the centre if there is no target
                     : ReletiveLocationInWorldSpace(target);
 
-                var distance = reletiveLocation.magnitude;
-
-                _isTooFar = distance > MaxRangeWithHysteresis;
-                _isTooClose = distance < MinRangeWithHysteresis;
-
-
                 var targetsVelosity = target == null
                     ? -_pilotObject.velocity    //if there's no target, go to stationary target at center.
                     : WorldSpaceReletiveVelocityOfTarget(target);
-                var targetsTangentialVelocity = targetsVelosity.ComponentPerpendicularTo(reletiveLocation);
 
-                var tanSpeed = targetsTangentialVelocity.magnitude;
-
+                //TODO work out the desired radial speed from distance and set the acceleration vector accordingly.
+                var distance = reletiveLocation.magnitude;
                 var targetsApproachVelocity = targetsVelosity.ComponentParalellTo(reletiveLocation);
+                _isTooFar = distance > MaxRangeWithHysteresis;
+                _isTooClose = distance < MinRangeWithHysteresis;
+                var approachVector = CalculateWeightedApproachVector(reletiveLocation);
+                var slowdownVector = CalculateWeightedSlowdownVector(targetsApproachVelocity);
 
+                var targetsTangentialVelocity = targetsVelosity.ComponentPerpendicularTo(reletiveLocation);
+                var tanSpeed = targetsTangentialVelocity.magnitude;
                 _tangentialTooFast = tanSpeed > MaxTanVWithHysteresis;
-                _tangentialTooSlow = target == null
-                    ? false //Happy to be stationary when there is no target
-                    : tanSpeed < MinTanVWithHysteresis;
-
-                var isGoingTooFast = targetsApproachVelocity.magnitude > RadialSpeedThreshold;
-
-                var happyWithSpeed = !_tangentialTooFast && !_tangentialTooSlow && !isGoingTooFast;
-                var happyWithLocation = !_isTooClose && !_isTooFar;
-
-                var happyWithSpeedAndLocation = happyWithSpeed && happyWithLocation;
-
-                var approachVector = CalculateWeightedApproachVector(reletiveLocation, _isTooClose, _isTooFar);
+                _tangentialTooSlow = target != null && tanSpeed < MinTanVWithHysteresis;
                 var tanSpeedVector = CalculateWeightedTanSpeedVector(targetsTangentialVelocity, reletiveLocation, _tangentialTooSlow, _tangentialTooFast);
-                var slowdownVector = CalculateWeightedSlowdownVector(targetsApproachVelocity, isGoingTooFast);
-                if (Log)
-                    Debug.Log($"approachVector: {approachVector}, tanSpeedVector: {tanSpeedVector}, slowdownVector: {slowdownVector}");
-                _slowdownMode = slowdownVector.magnitude > approachVector.magnitude;
 
-                var accelerationVector = tanSpeedVector + (_slowdownMode
-                        ? slowdownVector
-                        : approachVector);
+                _slowdownMode = slowdownVector.magnitude > 0 && slowdownVector.magnitude > approachVector.magnitude;
 
-                var orientationVector = happyWithSpeedAndLocation
+                var accelerationVector = tanSpeedVector + slowdownVector + approachVector;
+
+                var orientationVector = (accelerationVector.magnitude > 10)
                     ? reletiveLocation
                     : accelerationVector;
+
+                if (Log)
+                {
+                    Debug.Log($"targetsApproachVelocity: {targetsApproachVelocity}");
+                    Debug.Log($"approachVector: {approachVector}, tanSpeedVector: {tanSpeedVector}, slowdownVector: {slowdownVector}");
+                }
 
 
                 var upVector = GetUpVector();
@@ -194,67 +184,77 @@ namespace Assets.Src.Pilots
             return $"{parameter}: {min}|{Math.Round(actual, precision)}|{max} = {description}";
         }
 
-        private Vector3 CalculateWeightedApproachVector(Vector3 reletiveLocation, bool isTooClose, bool isTooFar)
+        private Vector3 CalculateWeightedApproachVector(Vector3 reletiveLocation)
         {
-            var locationError = isTooClose
-                ? (MinRange - reletiveLocation.magnitude)/MinRange
-                : isTooFar
-                    ? (reletiveLocation.magnitude - MaxRange)/MaxRange
-                    : 0;
+            if (!_isTooClose && !_isTooFar) return Vector3.zero;
 
-            var correvctRadialLocationVector = isTooFar
-                ? reletiveLocation.normalized
-                : isTooClose
-                    ? -reletiveLocation.normalized
-                    : Vector3.zero;
+            // Distance over MaxRange, normalised to Max Range
+            var maxRangeError = (reletiveLocation.magnitude - MaxRange) / MaxRange;
+            // Distance under MinRange, normalised to Min Range
+            var minRangeError = (MinRange - reletiveLocation.magnitude) / MinRange;
 
-            var weightedRadialLocationVector = correvctRadialLocationVector * locationError * LocationAimWeighting;
+            var locationError = _isTooClose
+                ? minRangeError
+                : maxRangeError;
+
+            var vectorToCorrectRadialSpeed = _isTooClose
+                ? -reletiveLocation.normalized
+                : reletiveLocation.normalized;
+
+            var weightedRadialLocationVector = vectorToCorrectRadialSpeed * locationError * AccelerateTowardsTargetWeighting;
             return weightedRadialLocationVector;
         }
 
         private Vector3 CalculateWeightedTanSpeedVector(Vector3 targetsTangentialVelocity, Vector3 reletiveLocationOfTarget, bool tangentialTooSlow, bool tangentialTooFast)
         {
-            var correctTangentialSpeedVector = Vector3.zero;
+            if (!tangentialTooFast && !tangentialTooSlow)
+            {
+                return Vector3.zero;
+            }
+            var VectorToGetTangentialSpeedInRange = Vector3.zero;
 
             if (tangentialTooFast)
             {
-                correctTangentialSpeedVector = targetsTangentialVelocity.normalized;
+                VectorToGetTangentialSpeedInRange = targetsTangentialVelocity.normalized;
             }
             else if (tangentialTooSlow)
             {
                 if (targetsTangentialVelocity.magnitude < MinTangentialSpeed * 0.2)
                 {
                     //use the forward orientation of the ship because Vt is way too slow, and will yield unstable results.
-                    correctTangentialSpeedVector = (_pilotObject.transform.forward.ComponentPerpendicularTo(reletiveLocationOfTarget)).normalized;
+                    VectorToGetTangentialSpeedInRange = (_pilotObject.transform.forward.ComponentPerpendicularTo(reletiveLocationOfTarget)).normalized;
                 }
                 else
                 {
-                    correctTangentialSpeedVector = -targetsTangentialVelocity.normalized;
+                    VectorToGetTangentialSpeedInRange = -targetsTangentialVelocity.normalized;
                 }
             }
 
             var tanSpeedError = tangentialTooSlow
-                ? (MinTangentialSpeed - targetsTangentialVelocity.magnitude)/MinTangentialSpeed
+                ? (MinTangentialSpeed - targetsTangentialVelocity.magnitude) / MinTangentialSpeed
                 : tangentialTooFast
-                    ? (targetsTangentialVelocity.magnitude - MaxTangentialSpeed)/MaxTangentialSpeed
+                    ? (targetsTangentialVelocity.magnitude - MaxTangentialSpeed) / MaxTangentialSpeed
                     : 0;
 
-            var weightedTangentialSpeedVector = correctTangentialSpeedVector * tanSpeedError * TangentialSpeedWeighting;
+            var weightedTangentialSpeedVector = VectorToGetTangentialSpeedInRange * tanSpeedError * TangentialSpeedWeighting;
             return weightedTangentialSpeedVector;
         }
 
-        private Vector3 CalculateWeightedSlowdownVector(Vector3 targetsApproachVelocity, bool needsSlowdown)
+        private Vector3 CalculateWeightedSlowdownVector(Vector3 targetsApproachVelocity)
         {
-            if (!needsSlowdown)
+            var tangentialSpeed = targetsApproachVelocity.magnitude;
+            var RadialSpeedIsTooFast = tangentialSpeed > RadialSpeedThreshold;
+            if (!RadialSpeedIsTooFast)
             {
                 return Vector3.zero;
             }
-            var weightedSlowdownVector = (targetsApproachVelocity/RadialSpeedThreshold) * SlowdownWeighting;
-            if (_slowdownMode)
-            {
-                //10% extra weight when in slowdown mode, to prevent flip-flopping
-                weightedSlowdownVector *= 1.1f;
-            }
+            var speedWeighting = (tangentialSpeed - RadialSpeedThreshold) / RadialSpeedThreshold;
+            var weightedSlowdownVector = targetsApproachVelocity.normalized * speedWeighting * SlowdownWeighting;
+            //if (_slowdownMode)
+            //{
+            //    //10% extra weight when in slowdown mode, to prevent flip-flopping
+            //    weightedSlowdownVector *= 1.1f;
+            //}
             return weightedSlowdownVector;
         }
     }

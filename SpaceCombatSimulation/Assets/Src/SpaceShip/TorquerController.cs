@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class TorquerController : AbstractDeactivatableController, ITorquer
 {
-    public float MaxTorque;
+    public float MaxTorque = 1000;
     private float initialAngularDrag;
 
     private Rigidbody _rigidbody;
@@ -43,12 +43,14 @@ public class TorquerController : AbstractDeactivatableController, ITorquer
 
     public void Activate()
     {
+        if (_rigidbody == null) return;
         _rigidbody.angularDrag = initialAngularDrag;
     }
 
     public override void Deactivate()
     {
         base.Deactivate();
+        if (_rigidbody == null) return;
         _rigidbody.angularDrag = 0;
     }
 }

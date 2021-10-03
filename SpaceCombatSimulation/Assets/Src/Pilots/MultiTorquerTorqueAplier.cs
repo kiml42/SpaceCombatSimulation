@@ -20,7 +20,7 @@ namespace Assets.Src.Pilots
             var torquers = _pilot.GetComponentsInChildren<ITorquer>();
             if((torquers?.Length ?? 0) < 1)
             {
-                Debug.LogWarning($"{this} doesn't have any torquers");
+                Debug.LogWarning($"{this} on {_pilot} doesn't have any torquers");
                 _torquers = new List<ITorquer>();
             }
             else
