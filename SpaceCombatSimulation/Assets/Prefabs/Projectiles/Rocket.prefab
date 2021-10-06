@@ -447,6 +447,7 @@ MonoBehaviour:
   UseAsTorquer: 0
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
+  DebugMode: 0
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1484804539543094
 GameObject:
@@ -5417,6 +5418,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Log: 0
 --- !u!114 &114643918867183298
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5606,6 +5608,7 @@ GameObject:
   - component: {fileID: 114497169605843674}
   - component: {fileID: 114100636965721236}
   - component: {fileID: 114758873324587046}
+  - component: {fileID: 2094533357390880632}
   m_Layer: 0
   m_Name: Rocket
   m_TagString: Untagged
@@ -5652,6 +5655,9 @@ MonoBehaviour:
   NeverRetarget: 0
   PollInterval: 1
   TargetPicker: {fileID: 114183521107888810}
+  IncludeNavigationTargets: 0
+  IncludeAtackTargets: 1
+  Log: 0
 --- !u!114 &114136396789891348
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5670,7 +5676,7 @@ MonoBehaviour:
   TargetChoosingMechanism: {fileID: 114954702964643402}
   ShootAngle: 10
   TorqueMultiplier: 90
-  LocationAimWeighting: 8
+  AccelerateTowardsTargetWeighting: 3
   StartDelay: 0.3
   TurningStartDelay: 0.15
   TimeToTargetForDetonation: 0.2
@@ -5723,7 +5729,7 @@ MonoBehaviour:
   - Team3ForceField
   - Team4ForceField
   - Team5ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!54 &54991379400455944
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -5911,6 +5917,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Shooting: 1
+  Navigation: 0
+  InitialTeam: 
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &114497169605843674
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5961,6 +5971,22 @@ MonoBehaviour:
   EnemyTags:
   - Enemy
   - Team2
+--- !u!114 &2094533357390880632
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1844183048995594}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a124bb2bf147381439ad8c81fc59a1eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  MaxTorque: 100
 --- !u!1 &3967192684528487392
 GameObject:
   m_ObjectHideFlags: 0

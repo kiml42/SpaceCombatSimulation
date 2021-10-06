@@ -5,12 +5,12 @@ using UnityEngine;
 
 namespace Assets.Src.Pilots
 {
-    public class MultiTorquerTorqueAplier : ITorquerManager
+    public class TorquerManager : ITorquerManager
     {
         private readonly List<ITorquer> _torquers;
         private readonly Rigidbody _pilot;
 
-        public MultiTorquerTorqueAplier(Rigidbody pilot)
+        public TorquerManager(Rigidbody pilot)
         {
             _pilot = pilot;
             if(_pilot == null)

@@ -284,13 +284,12 @@ MonoBehaviour:
   GetConfigFromGenome: 1
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
-  Log: 1
+  Log: 0
   StartDelay: 0
-  SlowdownWeighting: 1
-  RadialSpeedThreshold: 10
   MaxRange: 800
   MinRange: 120
-  AccelerateTowardsTargetWeighting: 1
+  SpeedMultiplier: 20
+  RadialSpeedWeighting: 1
   MaxTangentialVelocity: 50
   MinTangentialVelocity: 5
   TangentialSpeedWeighting: 1

@@ -53,7 +53,7 @@ public class SpaceShipControler : AbstractDeactivatableController
         {
             _engines.Add(Engine);
         }
-        var torqueApplier = new MultiTorquerTorqueAplier(_thisSpaceship);
+        var torqueApplier = new TorquerManager(_thisSpaceship);
 
         //ensure this starts active.
         torqueApplier.Activate();
