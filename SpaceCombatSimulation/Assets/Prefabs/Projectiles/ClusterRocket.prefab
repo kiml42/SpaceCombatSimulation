@@ -5246,6 +5246,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Log: 0
 --- !u!114 &114214808225391840
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5466,6 +5467,7 @@ GameObject:
   - component: {fileID: 114249161889169034}
   - component: {fileID: 114514755861448430}
   - component: {fileID: 114316670950375688}
+  - component: {fileID: 6083231163787785173}
   m_Layer: 0
   m_Name: ClusterRocket
   m_TagString: Untagged
@@ -5512,6 +5514,9 @@ MonoBehaviour:
   NeverRetarget: 1
   PollInterval: 0
   TargetPicker: {fileID: 114690007143497914}
+  IncludeNavigationTargets: 0
+  IncludeAtackTargets: 1
+  Log: 0
 --- !u!114 &114634549180162652
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5530,7 +5535,7 @@ MonoBehaviour:
   TargetChoosingMechanism: {fileID: 114958396777747442}
   ShootAngle: 10
   TorqueMultiplier: 90
-  LocationAimWeighting: 8
+  AccelerateTowardsTargetWeighting: 3
   StartDelay: 0.1
   TurningStartDelay: 0
   TimeToTargetForDetonation: 0.2
@@ -5552,7 +5557,7 @@ MonoBehaviour:
   TimeThresholdForMinimalEvasion: 4
   EvasionModeTime: 0.3
   MinimumFriendlyDetectionDistance: 1.5
-  Tank: {fileID: 0}
+  Tank: {fileID: 114087177041280492}
 --- !u!114 &114315273727274886
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5583,7 +5588,7 @@ MonoBehaviour:
   - Team3ForceField
   - Team4ForceField
   - Team5ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!54 &54172732429601216
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -5809,6 +5814,22 @@ MonoBehaviour:
   EnemyTags:
   - Enemy
   - Team2
+--- !u!114 &6083231163787785173
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1923394915539256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a124bb2bf147381439ad8c81fc59a1eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  MaxTorque: 50
 --- !u!1 &1948943214812786
 GameObject:
   m_ObjectHideFlags: 0
@@ -5869,6 +5890,7 @@ MonoBehaviour:
   UseAsTorquer: 0
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 8
+  DebugMode: 0
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1952057695838298
 GameObject:

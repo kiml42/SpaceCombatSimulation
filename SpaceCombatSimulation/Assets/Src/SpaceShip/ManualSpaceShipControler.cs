@@ -46,7 +46,7 @@ public class ManualSpaceShipControler : AbstractDeactivatableController
 
     private void Initialise()
     {
-        var torqueApplier = new MultiTorquerTorqueAplier(_thisSpaceship);
+        var torqueApplier = new TorquerManager(_thisSpaceship);
 
         //ensure this starts active.
         torqueApplier.Activate();

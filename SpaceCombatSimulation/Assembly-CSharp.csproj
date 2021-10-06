@@ -166,9 +166,9 @@
     <Compile Include="Assets\Src\ObjectManagement\WithChildrenDestroyer.cs" />
     <Compile Include="Assets\Src\Pilots\BasePilot.cs" />
     <Compile Include="Assets\Src\Pilots\ManualSpaceshipPilot.cs" />
-    <Compile Include="Assets\Src\Pilots\MultiTorquerTorqueAplier.cs" />
     <Compile Include="Assets\Src\Pilots\RocketPilot.cs" />
     <Compile Include="Assets\Src\Pilots\SpaceshipPilot.cs" />
+    <Compile Include="Assets\Src\Pilots\TorquerManager.cs" />
     <Compile Include="Assets\Src\Rocket\RocketController.cs" />
     <Compile Include="Assets\Src\Rocket\RocketRunner.cs" />
     <Compile Include="Assets\Src\ShipCamera\BaseCameraOrientator.cs" />

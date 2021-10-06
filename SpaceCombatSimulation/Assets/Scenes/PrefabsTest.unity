@@ -728,26 +728,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 45
       objectReference: {fileID: 0}
-    - target: {fileID: 114005634925885068, guid: af8783d568b3ea34e84d5e64237749b5,
-        type: 3}
-      propertyPath: Log
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114005634925885068, guid: af8783d568b3ea34e84d5e64237749b5,
-        type: 3}
-      propertyPath: MinTangentialVelocity
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 114005634925885068, guid: af8783d568b3ea34e84d5e64237749b5,
-        type: 3}
-      propertyPath: HasBeenConfiguredByGenome
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7978208878840526141, guid: af8783d568b3ea34e84d5e64237749b5,
-        type: 3}
-      propertyPath: DebugMode
-      value: 1
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: af8783d568b3ea34e84d5e64237749b5, type: 3}
 --- !u!1001 &698805793
@@ -2280,10 +2260,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: Team2Ship
       objectReference: {fileID: 0}
-    - target: {fileID: 1249936944491648, guid: 3a84186e8b326a04483727b0cfc0ec2e, type: 3}
-      propertyPath: m_IsActive
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 4007074019723936, guid: 3a84186e8b326a04483727b0cfc0ec2e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -1004
@@ -2328,26 +2304,18 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 54276188861948588, guid: 3a84186e8b326a04483727b0cfc0ec2e,
+    - target: {fileID: 114313480017677072, guid: 3a84186e8b326a04483727b0cfc0ec2e,
         type: 3}
-      propertyPath: m_Mass
-      value: 300000
-      objectReference: {fileID: 0}
-    - target: {fileID: 54276188861948588, guid: 3a84186e8b326a04483727b0cfc0ec2e,
+      propertyPath: TurretPrefab
+      value: 
+      objectReference: {fileID: 4121223800764556, guid: 6ab6feab40aaa5d4d8d3e711a86dd712,
         type: 3}
-      propertyPath: m_Constraints
-      value: 14
-      objectReference: {fileID: 0}
-    - target: {fileID: 114418977453750346, guid: 3a84186e8b326a04483727b0cfc0ec2e,
+    - target: {fileID: 114431514535820162, guid: 3a84186e8b326a04483727b0cfc0ec2e,
         type: 3}
-      propertyPath: Health
-      value: 99000000
-      objectReference: {fileID: 0}
-    - target: {fileID: 2472788891102059413, guid: 3a84186e8b326a04483727b0cfc0ec2e,
+      propertyPath: TurretPrefab
+      value: 
+      objectReference: {fileID: 5603789410826864709, guid: 8d2374d4e4cb7d54fb967c10ce14f598,
         type: 3}
-      propertyPath: EnemyTags.Array.size
-      value: 0
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3a84186e8b326a04483727b0cfc0ec2e, type: 3}
 --- !u!1001 &1892947093

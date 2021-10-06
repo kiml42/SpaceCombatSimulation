@@ -30,11 +30,7 @@ public class RocketController : GeneticConfigurableMonobehaviour
     public int ShrapnelCount = 10;
     
     public float ShrapnelSpeed = 100;
-    
-    private IPilot _pilot;
-
-    private Rigidbody _rigidbody;
-    
+        
     private IRocketRunner _runner;
     private IDetonator _detonator;
     public bool TagShrapnel = false;
@@ -72,20 +68,18 @@ public class RocketController : GeneticConfigurableMonobehaviour
     [Tooltip("Distance in front of the rocket to start looking for friendlies on a collision cource - useful to avoid detecting itself.")]
     public float MinimumFriendlyDetectionDistance = 4;
 
-    public FuelTank Tank;
-
     // Use this for initialization
     void Start()
     {
-        _rigidbody = GetComponent<Rigidbody>();
-        if (_rigidbody == null)
+        var rigidbody = GetComponent<Rigidbody>();
+        if (rigidbody == null)
         {
             Debug.LogError($"{this} doesn't have a rigidbody.");
         }
 
-        var torqueApplier = new MultiTorquerTorqueAplier(_rigidbody);
+        var torqueApplier = new TorquerManager(rigidbody);
 
-        _pilot = new RocketPilot(torqueApplier, _rigidbody, Engines, StartDelay)
+        var pilot = new RocketPilot(torqueApplier, rigidbody, Engines, StartDelay)
         {
             RadialSpeedWeighting = AccelerateTowardsTargetWeighting,
             TurningStartDelay = TurningStartDelay,
@@ -97,7 +91,7 @@ public class RocketController : GeneticConfigurableMonobehaviour
             MinimumFriendlyDetectionDistance = MinimumFriendlyDetectionDistance
         };
 
-        var exploder = new ShrapnelExploder(_rigidbody, Shrapnel, ExplosionEffect, ShrapnelCount)
+        var exploder = new ShrapnelExploder(rigidbody, Shrapnel, ExplosionEffect, ShrapnelCount)
         {
             EnemyTags = TargetChoosingMechanism.EnemyTagKnower?.KnownEnemyTags,
             TagShrapnel = TagShrapnel,
@@ -105,9 +99,11 @@ public class RocketController : GeneticConfigurableMonobehaviour
             ShrapnelSpeed = ShrapnelSpeed
         };
 
-        _detonator = new ProximityApproachDetonator(exploder, _rigidbody, TimeToTargetForDetonation, ShrapnelSpeed);
+        _detonator = new ProximityApproachDetonator(exploder, rigidbody, TimeToTargetForDetonation, ShrapnelSpeed);
 
-        _runner = new RocketRunner(TargetChoosingMechanism, _pilot, _detonator, Tank)
+        var tank = GetComponentInChildren<FuelTank>();
+
+        _runner = new RocketRunner(TargetChoosingMechanism, pilot, _detonator, tank)
         {
             name = transform.name
         };

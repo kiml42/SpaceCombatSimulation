@@ -14938,6 +14938,7 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
+  DebugMode: 0
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1237647232151416
 GameObject:
@@ -15029,6 +15030,7 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
+  DebugMode: 0
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1249870059255414
 GameObject:
@@ -19967,6 +19969,7 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
+  DebugMode: 0
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1282607307847364
 GameObject:
@@ -20175,6 +20178,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Log: 0
 --- !u!114 &114834616455876336
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -25889,6 +25893,7 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
+  DebugMode: 0
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1468707065402006
 GameObject:
@@ -31248,6 +31253,7 @@ MonoBehaviour:
   UseAsTorquer: 0
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 50
+  DebugMode: 0
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1580011972693616
 GameObject:
@@ -36091,6 +36097,7 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
+  DebugMode: 0
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1617078882188322
 GameObject:
@@ -36711,6 +36718,7 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
+  DebugMode: 0
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1740323336806174
 GameObject:
@@ -36771,6 +36779,7 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
+  DebugMode: 0
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1800713377524536
 GameObject:
@@ -46921,6 +46930,7 @@ MonoBehaviour:
   UseAsTorquer: 1
   UseAsTranslator: 1
   FullThrottleFuelConsumption: 15
+  DebugMode: 0
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1929749109845514
 GameObject:
@@ -47327,6 +47337,7 @@ GameObject:
   - component: {fileID: 114048012371370762}
   - component: {fileID: 114675082619606438}
   - component: {fileID: 114148340841657986}
+  - component: {fileID: 2797154161351639590}
   m_Layer: 0
   m_Name: ClusterTorpedo
   m_TagString: Team2
@@ -47381,6 +47392,9 @@ MonoBehaviour:
   NeverRetarget: 0
   PollInterval: 1.5
   TargetPicker: {fileID: 114545927458800066}
+  IncludeNavigationTargets: 0
+  IncludeAtackTargets: 1
+  Log: 0
 --- !u!114 &114116952395043294
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -47399,7 +47413,7 @@ MonoBehaviour:
   TargetChoosingMechanism: {fileID: 114344996389248322}
   ShootAngle: 5
   TorqueMultiplier: 0
-  LocationAimWeighting: 50
+  AccelerateTowardsTargetWeighting: 3
   StartDelay: 0.6
   TurningStartDelay: 0.15
   TimeToTargetForDetonation: 4
@@ -47490,7 +47504,7 @@ MonoBehaviour:
   - Team3ForceField
   - Team4ForceField
   - Team5ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!114 &114766246677591618
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -47534,6 +47548,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Shooting: 1
+  Navigation: 0
+  InitialTeam: 
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &114048012371370762
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -47592,6 +47610,22 @@ MonoBehaviour:
   EnemyTags:
   - Enemy
   - Team2
+--- !u!114 &2797154161351639590
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1977664886136184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a124bb2bf147381439ad8c81fc59a1eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  MaxTorque: 100
 --- !u!1 &1991854161281758
 GameObject:
   m_ObjectHideFlags: 0
