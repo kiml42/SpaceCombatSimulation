@@ -6,6 +6,7 @@ using UnityEngine;
 public class TorquerController : AbstractDeactivatableController, ITorquer
 {
     public float MaxTorque = 1000;
+    public bool Log;
     private float initialAngularDrag;
 
     private Rigidbody _rigidbody;
@@ -25,7 +26,11 @@ public class TorquerController : AbstractDeactivatableController, ITorquer
     void FixedUpdate()
     {
         if(_torque.HasValue)
+        {
+            if (Log)
+                Debug.Log($"{this} Torquing at {_torque}");
             _rigidbody.AddTorque(_torque.Value);
+        }
     }
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)

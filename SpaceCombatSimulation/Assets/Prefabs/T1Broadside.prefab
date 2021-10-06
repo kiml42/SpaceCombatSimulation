@@ -261,9 +261,9 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1151259579637064}
   serializedVersion: 2
-  m_Mass: 3000
+  m_Mass: 6000
   m_Drag: 0
-  m_AngularDrag: 0
+  m_AngularDrag: 1
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -352,6 +352,7 @@ MonoBehaviour:
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
   MaxTorque: 40000
+  Log: 0
 --- !u!114 &114538699749200336
 MonoBehaviour:
   m_ObjectHideFlags: 0
