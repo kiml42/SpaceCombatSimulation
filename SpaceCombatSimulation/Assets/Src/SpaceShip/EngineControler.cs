@@ -1,11 +1,12 @@
 ﻿using Assets.Src.Controllers;
 using Assets.Src.Evolution;
+using Assets.Src.Interfaces;
 using Assets.Src.ObjectManagement;
 using System;
 using UnityEngine;
 
 //TODO neaten up fields and methods.
-public class EngineControler : AbstractDeactivatableController
+public class EngineControler : AbstractDeactivatableController, ITorquer
 {
     public Transform Pilot;
     public FuelTank FuelTank;
@@ -15,7 +16,7 @@ public class EngineControler : AbstractDeactivatableController
     /// <summary>
     /// The force the engine applies at this transform's position in this transfornm's -up direction
     /// </summary>
-    [Tooltip("The force the engine applies at this transform's position in this transfornm's -up direction")]
+    [Tooltip("The force the engine applies at this transform's position in this transform's -up direction")]
     public float EngineForce2;
     
     [Tooltip("angle error at which the engine starts to turn on. \n" +
@@ -32,8 +33,9 @@ public class EngineControler : AbstractDeactivatableController
     [Tooltip("throttle for torquing will be set to angle to turn / TorquerFullThrottleAngle capped at 1.")]
     public float TorquerFullThrottleAngle = 10;
 
-    public bool UseAsTorquer = true;
     public bool UseAsTranslator = true;
+    public bool UseAsTorquer = true;
+    public bool IsActiveTorquer => UseAsTorquer;
 
     [Tooltip("Fuel used per second at full throttle.")]
     public float FullThrottleFuelConsumption = 1;
@@ -41,29 +43,13 @@ public class EngineControler : AbstractDeactivatableController
     /// <summary>
     /// vector the engine should try to make the pilot turn to face in world space
     /// </summary>
-    private Vector3? _orientationVector;
+    private Vector3? _desiredTorque;
 
     /// <summary>
     /// Vector to try to get the pilot's up axis to face in world space.
     /// </summary>
-    private Vector3? _upVector;
+    private float? _torqueWeight;
 
-    /// <summary>
-    /// Target world space orientation for the pilot object
-    /// </summary>
-    private Quaternion? _orientationTarget;
-    private float? _orientationWeight;
-
-    public void SetOrientationTargetForPilot(Vector3? forward, Vector3? upwards)
-    {
-        _orientationVector = forward;
-        _upVector = upwards;
-
-        _orientationTarget = forward.HasValue
-            ? Quaternion.LookRotation(forward.Value, upwards ?? Vector3.up)
-            : (Quaternion?)null;
-        _orientationWeight = forward?.magnitude;
-    }
 
     /// <summary>
     /// Vector the engine should apply forces towards.
@@ -91,10 +77,9 @@ public class EngineControler : AbstractDeactivatableController
     public bool DebugMode;
         
     /// <summary>
-    /// Vector of the torque applied to the pilot y this engine.
-    /// Calculated if not set (default)
+    /// Vector of the torque applied to the pilot by this engine.
     /// </summary>
-    public Vector3? TorqueVector = null;
+    private Vector3? _torqueVector = null;
     
     public float _fullTrhrottlePlumeRate;
 
@@ -107,10 +92,6 @@ public class EngineControler : AbstractDeactivatableController
 
         FindOtherComponents(transform);
         
-        if(Pilot != transform)
-        {
-            NotifyPilot();
-        }
         //if (FuelTank == null)
         //{
         //    Debug.Log(transform.name + " found no fuel tank - INFINITE FUEL!");
@@ -146,7 +127,7 @@ public class EngineControler : AbstractDeactivatableController
 
             if (UseAsTorquer)
             {
-                float additionalThrottle = RotateThrottleSetting();
+                float additionalThrottle = TorqueThrottleSetting();
 
                 Log($"torque throttle {additionalThrottle}");
 
@@ -173,55 +154,15 @@ public class EngineControler : AbstractDeactivatableController
         SetPlumeState(0);
     }
 
-    private void Log(string text)
+    public void SetTorque(Vector3? torque)
     {
-        if (DebugMode)
-            Debug.Log($"{name} on {Pilot}. {text}");
+        _desiredTorque = torque;
+        _torqueWeight = torque?.magnitude;
     }
 
-    private bool HasFuel()
+    public void Activate()
     {
-        if(FuelTank != null)
-        {
-            return FuelTank.Fuel > 0;
-        }
-        return true;
-    }
-
-    private float AdjustThrottleForFuel(float throttle)
-    {
-        float actualThrottle;
-        if (FuelTank != null)
-        {
-            //TODO check why this is capped.
-            var singleFrameConsumption = Math.Max(FullThrottleFuelConsumption * Time.fixedDeltaTime, 0.0001f);
-            var desiredFuel = throttle * singleFrameConsumption;
-            var fuel = FuelTank.DrainFuel(desiredFuel);
-            actualThrottle = fuel / singleFrameConsumption;
-            //Debug.Log("Desired Throttle = " + throttle + ", actualThrottle: " + actualThrottle + ", DesiredFuel: " + desiredFuel + ", actual fuel: " + fuel);
-        } else {
-            actualThrottle = throttle;
-        }
-        return actualThrottle;
-    }
-
-    private void SetPlumeState(float throttle)
-    {
-        if (throttle > 0)
-        {
-            //Debug.Log("turning plume on");
-            Plume.Play();
-
-            //reduce rate for throttle.
-            var emission = Plume.emission;
-            var rate = emission.rateOverTime;
-            rate.constant = _fullTrhrottlePlumeRate * throttle;
-            emission.rateOverTime = rate;
-        } else
-        {
-            //Debug.Log("turning plume off");
-            Plume.Stop();
-        }
+        //TODO
     }
 
     public override void Deactivate()
@@ -242,69 +183,84 @@ public class EngineControler : AbstractDeactivatableController
         return genomeWrapper;
     }
 
-    private int TorqueThrustDirectionMultiplier()
+    private void Log(string text)
     {
-        if (Pilot != null && Pilot.IsValid() && _orientationVector.HasValue && _orientationVector.Value.magnitude > 0 && TorqueVector.HasValue && TorqueVector.Value.magnitude > 0.5)
+        if (DebugMode)
+            Debug.Log($"{name} on {Pilot}. {text}");
+    }
+
+    private bool HasFuel()
+    {
+        if (FuelTank != null)
         {
-            var pilotSpaceLookVector = Pilot.InverseTransformVector(_orientationVector.Value);
-            float zRotation = 0;
-            if (_upVector.HasValue) //TODO check this actually works.
-            {
-                var upVectorInPilotSpace = Pilot.InverseTransformVector(_upVector.Value);
-                zRotation = -upVectorInPilotSpace.x;
-            }
-
-            var rotationVector = new Vector3(-pilotSpaceLookVector.y, pilotSpaceLookVector.x, zRotation);
-
-            var angle = Vector3.Angle(TorqueVector.Value, rotationVector);
-
-            //Debug.Log("torquer to vector angle: " + angle);
-            //Debug.Log(_torqueVector + " - " + FlightVector.Value);
-            if(angle < TorqueFireAngle)
-            {
-                return 1;
-            }
-            if(angle > 180 - TorqueFireAngle)
-            {
-                return -1;
-            }
+            return FuelTank.Fuel > 0;
         }
-        //Debug.Log("vectors not set");
-        return 0;
+        return true;
+    }
+
+    private float AdjustThrottleForFuel(float throttle)
+    {
+        float actualThrottle;
+        if (FuelTank != null)
+        {
+            //TODO check why this is capped.
+            var singleFrameConsumption = Math.Max(FullThrottleFuelConsumption * Time.fixedDeltaTime, 0.0001f);
+            var desiredFuel = throttle * singleFrameConsumption;
+            var fuel = FuelTank.DrainFuel(desiredFuel);
+            actualThrottle = fuel / singleFrameConsumption;
+            //Debug.Log("Desired Throttle = " + throttle + ", actualThrottle: " + actualThrottle + ", DesiredFuel: " + desiredFuel + ", actual fuel: " + fuel);
+        }
+        else
+        {
+            actualThrottle = throttle;
+        }
+        return actualThrottle;
+    }
+
+    private void SetPlumeState(float throttle)
+    {
+        if (throttle > 0)
+        {
+            //Debug.Log("turning plume on");
+            Plume.Play();
+
+            //reduce rate for throttle.
+            var emission = Plume.emission;
+            var rate = emission.rateOverTime;
+            rate.constant = _fullTrhrottlePlumeRate * throttle;
+            emission.rateOverTime = rate;
+        }
+        else
+        {
+            //Debug.Log("turning plume off");
+            Plume.Stop();
+        }
     }
 
     /// <summary>
     /// Gets the throttle setting appropriate for this engine to apply torque towards the desired pilot orientation.
     /// </summary>
     /// <returns></returns>
-    private float RotateThrottleSetting()
+    private float TorqueThrottleSetting()
     {
-        if (_orientationVector.HasValue)
+        if (_desiredTorque.HasValue && _torqueVector.HasValue)
         {
-            var targetOrientation = Quaternion.LookRotation(_orientationVector.Value, _upVector ?? Pilot.up);
-            var currentOrientation = Pilot.rotation;
-            var pilotSpaceOrientationTarget = Quaternion.Inverse(currentOrientation) * targetOrientation;
-            pilotSpaceOrientationTarget.ToAngleAxis(out var angle, out var axis);
+            var angle = Vector3.Angle(_desiredTorque.Value, _torqueVector.Value);
 
-            Log($"pilotSpaceOrientationTarget:{pilotSpaceOrientationTarget}, axis:{axis}, angle:{angle}");
-        }
+            Log($"_desiredTorque:{_desiredTorque}, _torqueVector:{_torqueVector}, angle:{angle}");
 
-        var thrustDirectionMultiplier = TorqueThrustDirectionMultiplier();
-        if (TorquerFullThrottleAngle != 0 && thrustDirectionMultiplier != 0)
-        {
-            var pilotorientationErrorAngle = Vector3.Angle(Pilot.forward, _orientationVector.Value);
-
-            float zRotation = 0;
-            if (_upVector.HasValue)
+            if(angle <= TorqueFireAngle)
             {
-                //var upErorAngle
-                var upVectorInPilotSpace = Pilot.InverseTransformVector(_upVector.Value);
-                zRotation = -upVectorInPilotSpace.x;
+                if(angle < TorquerFullThrottleAngle)
+                {
+                    Log($"Torque throttle: full throttle!");
+                    return 1;
+                }
+
+                var throttle = 1 - (angle - TorquerFullThrottleAngle / TorqueFireAngle - TorquerFullThrottleAngle);
+                Log($"Torque throttle:{throttle}");
+                return Clamp(throttle, -1, 1);
             }
-
-            float additionalThrottle = thrustDirectionMultiplier * (pilotorientationErrorAngle / TorquerFullThrottleAngle);
-
-            return Clamp(additionalThrottle, -1, 1);
         }
         return 0;
     }
@@ -354,54 +310,43 @@ public class EngineControler : AbstractDeactivatableController
     private void FindOtherComponents(Transform transform)
     {
         //TODO replace this with getComponentInParent() method if possible.
-        if(Pilot != null && FuelTank != null && ForceApplier != null)
+        if ((transform == null) || (Pilot != null && FuelTank != null && ForceApplier != null))
         {
-            //everyhting's set already, so stop looking.
+            // either the given transform is null or everything's set already, so stop looking.
             return;
         }
-        if(transform != null)
-        {
-            if (FuelTank == null)
-            {
-                //first object found with a fuel tank
-                FuelTank = transform.GetComponent<FuelTank>();
-            }
-            if(ForceApplier == null)
-            {
-                //firstComponent with a rigidbody
-                ForceApplier = transform.GetComponent<Rigidbody>();
-            }
-            var parent = transform.parent;
-            if (parent == null && Pilot == null)
-            {
-                //pilot is highest in hierarchy
-                Pilot = transform;
-            }
-            if(parent != null) FindOtherComponents(parent);
-        }
-    }
 
-    private void NotifyPilot()
-    {
-        if(Pilot != null)
+        if (FuelTank == null)
         {
-            //Debug.Log("Registering engine with " + parent);
-            Pilot.SendMessage("RegisterEngine", this, SendMessageOptions.DontRequireReceiver);
+            //first object found with a fuel tank
+            FuelTank = transform.GetComponent<FuelTank>();
         }
+        if (ForceApplier == null)
+        {
+            //firstComponent with a rigidbody
+            ForceApplier = transform.GetComponent<Rigidbody>();
+        }
+        var parent = transform.parent;
+        if (parent == null && Pilot == null)
+        {
+            //pilot is highest in hierarchy
+            Pilot = transform;
+        }
+        if (parent != null) FindOtherComponents(parent);
     }
 
     private Vector3? CalculateEngineTorqueVector()
     {
-        if (Pilot != null && !TorqueVector.HasValue)
+        if (Pilot != null && !_torqueVector.HasValue)
         {
             var pilotSpaceVector = Pilot.InverseTransformVector(-transform.up);
             var pilotSpaceEngineLocation = Pilot.InverseTransformPoint(transform.position);
             var xTorque = (pilotSpaceEngineLocation.y * pilotSpaceVector.z) - (pilotSpaceEngineLocation.z * pilotSpaceVector.y);
             var yTorque = (pilotSpaceEngineLocation.x * pilotSpaceVector.z) + (pilotSpaceEngineLocation.z * pilotSpaceVector.x);
             var zTorque = (pilotSpaceEngineLocation.y * pilotSpaceVector.x) + (pilotSpaceEngineLocation.x * pilotSpaceVector.y);
-            TorqueVector = new Vector3(xTorque, yTorque, zTorque);
+            _torqueVector = new Vector3(xTorque, yTorque, zTorque);
         }
-        return TorqueVector;
+        return _torqueVector;
     }
 
     /// <summary>
@@ -414,7 +359,7 @@ public class EngineControler : AbstractDeactivatableController
         return vector.HasValue && vector.Value.magnitude > 0;
     }
 
-    public static float Clamp(float value, float min, float max)
+    private static float Clamp(float value, float min, float max)
     {
         return (value < min) ? min : (value > max) ? max : value;
     }

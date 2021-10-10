@@ -10,6 +10,8 @@ namespace Assets.Src.Interfaces
 
     public interface ITorquer : IDeactivatable
     {
+        bool IsActiveTorquer { get; }
+
         /// <summary>
         /// Applies the given worlds space torque.
         /// </summary>

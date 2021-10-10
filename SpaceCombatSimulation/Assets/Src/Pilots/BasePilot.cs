@@ -131,29 +131,6 @@ namespace Assets.Src.Pilots
             return targetsVelocity - ownVelocity;
         }
 
-        /// <summary>
-        /// Sets both the turning and translation vector on all the engines.
-        /// </summary>
-        /// <param name="flightVector"></param>
-        protected void SetFlightVectorOnEngines(Vector3? flightVector, Vector3? upVector = null)
-        {
-            SetTurningVectorOnEngines(flightVector, upVector);
-            SetPrimaryTranslationVectorOnEngines(flightVector);
-        }
-
-        /// <summary>
-        /// sets just the turning vector on all engines.
-        /// </summary>
-        /// <param name="torqueVector"></param>
-        protected void SetTurningVectorOnEngines(Vector3? torqueVector, Vector3? upVector = null)
-        {
-            if (!torqueVector.HasValue || torqueVector.Value == Vector3.zero) return;
-            foreach (var engine in _engines)
-            {
-                engine.SetOrientationTargetForPilot(torqueVector, upVector);
-            }
-        }
-
         protected void SetPrimaryTranslationVectorOnEngines(Vector3? primaryTranslateVector)
         {
             foreach (var engine in _engines)
