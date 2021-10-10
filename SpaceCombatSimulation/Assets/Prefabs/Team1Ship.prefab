@@ -461,7 +461,7 @@ MonoBehaviour:
   GetConfigFromGenome: 1
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
-  MaxTorque: 1000
+  MaxTorque: 50000
   Log: 0
 --- !u!114 &114538699749200336
 MonoBehaviour:
