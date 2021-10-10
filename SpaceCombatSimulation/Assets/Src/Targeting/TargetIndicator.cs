@@ -7,6 +7,7 @@ public class TargetIndicator : MonoBehaviour, IDeactivatable
     public LineRenderer TargetingLine;
     public IKnowsCurrentTarget TargetKnower;
     private bool _isActive = false;
+    private static bool emitDeactivatedWarning = true;
 
     public void Deactivate()
     {
@@ -47,9 +48,11 @@ public class TargetIndicator : MonoBehaviour, IDeactivatable
             {
                 TargetingLine.enabled = false;
             }
-        } else
+        } else 
         {
-            Debug.Log("Destroying disabled target line");
+            if(emitDeactivatedWarning)
+                Debug.Log("Destroying disabled target line");
+            emitDeactivatedWarning = false;
             Object.Destroy(transform.gameObject);
         }
     }
