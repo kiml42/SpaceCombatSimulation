@@ -80,6 +80,7 @@ public class EngineControler : AbstractDeactivatableController, ITorquer
     /// Vector of the torque applied to the pilot by this engine.
     /// </summary>
     private Vector3? _torqueVector = null;
+    public Transform TorqueVectorIndicator;
     
     public float _fullTrhrottlePlumeRate;
 
@@ -100,7 +101,7 @@ public class EngineControler : AbstractDeactivatableController, ITorquer
         {
             Debug.LogError("Engine found no rigidbody to apply forces to");
         }
-        CalculateEngineTorqueVector();
+        InitialiseEngineTorqueVector();
     }
     
     // Update is called once per frame
@@ -154,10 +155,10 @@ public class EngineControler : AbstractDeactivatableController, ITorquer
         SetPlumeState(0);
     }
 
-    public void SetTorque(Vector3? torque)
+    public void SetTorque(Vector3? pilotSpaceTorque)
     {
-        _desiredTorque = torque;
-        _torqueWeight = torque?.magnitude;
+        _desiredTorque = pilotSpaceTorque;
+        _torqueWeight = pilotSpaceTorque?.magnitude;
     }
 
     public void Activate()
@@ -335,18 +336,30 @@ public class EngineControler : AbstractDeactivatableController, ITorquer
         if (parent != null) FindOtherComponents(parent);
     }
 
-    private Vector3? CalculateEngineTorqueVector()
+    private void InitialiseEngineTorqueVector()
     {
-        if (Pilot != null && !_torqueVector.HasValue)
+        if (Pilot != null && UseAsTorquer)
         {
             var pilotSpaceVector = Pilot.InverseTransformVector(-transform.up);
             var pilotSpaceEngineLocation = Pilot.InverseTransformPoint(transform.position);
-            var xTorque = (pilotSpaceEngineLocation.y * pilotSpaceVector.z) - (pilotSpaceEngineLocation.z * pilotSpaceVector.y);
-            var yTorque = (pilotSpaceEngineLocation.x * pilotSpaceVector.z) + (pilotSpaceEngineLocation.z * pilotSpaceVector.x);
-            var zTorque = (pilotSpaceEngineLocation.y * pilotSpaceVector.x) + (pilotSpaceEngineLocation.x * pilotSpaceVector.y);
+            var xTorque = (pilotSpaceEngineLocation.z * pilotSpaceVector.y) - (pilotSpaceEngineLocation.y * pilotSpaceVector.z);
+            var yTorque = (pilotSpaceEngineLocation.x * pilotSpaceVector.z) - (pilotSpaceEngineLocation.z * pilotSpaceVector.x);
+            var zTorque = (pilotSpaceEngineLocation.y * pilotSpaceVector.x) - (pilotSpaceEngineLocation.x * pilotSpaceVector.y);
             _torqueVector = new Vector3(xTorque, yTorque, zTorque);
+            //_torqueVector = new Vector3(0, 0, zTorque);
+            if(TorqueVectorIndicator != null)
+            {
+                var worldTorque = Pilot.TransformVector(_torqueVector.Value);
+                TorqueVectorIndicator.rotation = Quaternion.LookRotation(worldTorque);
+                var scale = worldTorque.magnitude / 30;
+                TorqueVectorIndicator.localScale = new Vector3(scale, scale, scale);
+            }
         }
-        return _torqueVector;
+        else
+        {
+            if (TorqueVectorIndicator != null)
+                TorqueVectorIndicator.localScale = Vector3.zero;
+        }
     }
 
     /// <summary>

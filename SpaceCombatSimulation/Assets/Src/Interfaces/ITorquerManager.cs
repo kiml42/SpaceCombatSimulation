@@ -13,10 +13,10 @@ namespace Assets.Src.Interfaces
         bool IsActiveTorquer { get; }
 
         /// <summary>
-        /// Applies the given worlds space torque.
+        /// Applies the given pilot space torque.
         /// </summary>
-        /// <param name="torque"></param>
-        void SetTorque(Vector3? torque);
+        /// <param name="pilotSpaceTorque"></param>
+        void SetTorque(Vector3? pilotSpaceTorque);
 
         void Activate();
     }

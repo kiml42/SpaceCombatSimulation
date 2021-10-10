@@ -10,8 +10,10 @@ namespace Assets.Src.Pilots
         private readonly List<ITorquer> _torquers;
         private readonly Rigidbody _pilot;
         private bool _isActive = true;
+        private readonly Transform _torqueVectorArrow;
+        public bool Log { get; set; } = false;
 
-        public TorquerManager(Rigidbody pilot)
+        public TorquerManager(Rigidbody pilot, Transform torqueVectorArrow = null)
         {
             _pilot = pilot;
             if(_pilot == null)
@@ -28,6 +30,7 @@ namespace Assets.Src.Pilots
             }
             else
             {
+                _torqueVectorArrow = torqueVectorArrow;
                 _torquers = torquers.ToList();
             }
         }
@@ -37,28 +40,50 @@ namespace Assets.Src.Pilots
             if (!_isActive) return;
             RemoveNullTorquers();
             //Debug.Log("vector" + vector);
-            var lookVectorInPilotSpace =  _pilot.transform.InverseTransformVector(lookVector);
+            var lookVectorInPilotSpace = _pilot.transform.InverseTransformVector(lookVector.normalized);
             float zRotation = 0;
             if (upVector.HasValue)
             {
-                var upVectorInPilotSpace =  _pilot.transform.InverseTransformVector(upVector.Value);
+                var upVectorInPilotSpace = _pilot.transform.InverseTransformVector(upVector.Value);
                 zRotation = -upVectorInPilotSpace.x;
             }
             //Debug.Log(_pilot + " vectorInPilotSpace " + vectorInPilotSpace);
-            var rotationVector = new Vector3(-lookVectorInPilotSpace.y, lookVectorInPilotSpace.x, zRotation);   //set z to 0 to not add spin
-            if(lookVectorInPilotSpace.y < 0.1 && lookVectorInPilotSpace.x < 0.1 && lookVectorInPilotSpace.z < 0)
+            var pilotSpaceTorqueVector = new Vector3(lookVectorInPilotSpace.y, -lookVectorInPilotSpace.x, zRotation);
+            if (NeedsToTurnRightArround(lookVectorInPilotSpace))
             {
                 //The target is exactly behind, turning in any direction will do.
-                //Debug.Log("Target is exactly behind");
-                rotationVector = new Vector3(1, 0, zRotation);
+                if (Log)
+                    Debug.Log("Target is exactly behind");
+                pilotSpaceTorqueVector = new Vector3(1, 0, zRotation);
             }
             //Debug.Log("rotationVector" + rotationVector);
 
-            var worldTorque = _pilot.transform.TransformVector(rotationVector).normalized;
+            if (Log)
+            {
+                Debug.Log($"{_pilot} - lookVector = {lookVector}, lookVectorInPilotSpace = {lookVectorInPilotSpace}, pilotSpaceTorqueVector = {pilotSpaceTorqueVector}");
+            }
+            if (_torqueVectorArrow != null)
+            {
+                var worldTorque = _pilot.transform.TransformVector(pilotSpaceTorqueVector);
+                _torqueVectorArrow.rotation = Quaternion.LookRotation(worldTorque);
+                var scale = worldTorque.magnitude;
+                _torqueVectorArrow.localScale = new Vector3(scale, scale, scale);
+            }
             foreach (var torquer in _torquers)
             {
-                torquer.SetTorque(worldTorque);
+                torquer.SetTorque(pilotSpaceTorqueVector);
             }
+        }
+
+        private static bool NeedsToTurnRightArround(Vector3 lookVectorInPilotSpace)
+        {
+            var z = lookVectorInPilotSpace.z; // +ve if somewhere in front, -ve if somewhere behind
+            var magnitude = lookVectorInPilotSpace.magnitude;   // +ve
+            // if the absolute value of z is nearly as big as the magnitude of the vector, x and y must have small magnitudes.
+            // If z is negative, the vector points backwards.
+            // if z is -ve and nearly as big as the magnitude, must be pointing almost exactly backwards.
+
+            return z <= -magnitude * 0.9;
         }
 
         public void Activate()

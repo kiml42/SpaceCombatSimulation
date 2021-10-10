@@ -23,6 +23,9 @@ Bugs:
 
 TODO:
     In Progress:
+        Torquer overhaul:
+            Add a third debugging vector arrow (to ships) to show the torque vector.
+            Add a debugging vector arrow to engines to show the torque vector they apply.
         Evolution:
             Use a generated Id for individuals in the individuals table instead of the genome.
                 This should go for everything referring to a genome at the moment (previous combatants, lists in controller etc.)
