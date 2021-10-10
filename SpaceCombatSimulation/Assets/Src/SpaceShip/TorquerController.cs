@@ -12,6 +12,8 @@ public class TorquerController : AbstractDeactivatableController, ITorquer
     private Rigidbody _rigidbody;
     private Vector3? _torque;
 
+    public bool IsActiveTorquer => true;
+
     // Use this for initialization
     void Start()
     {

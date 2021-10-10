@@ -46,7 +46,7 @@ namespace Assets.Src.Pilots
             RemoveNullEngines();
             if (!HasActivated())
             {
-                SetFlightVectorOnEngines(null);  //turn off the engines
+                SetPrimaryTranslationVectorOnEngines(null);  //turn off the engines
                 return;
             }
 

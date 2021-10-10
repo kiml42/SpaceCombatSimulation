@@ -100,7 +100,6 @@ namespace Assets.Src.Pilots
             }
 
             UpdateArrow(turningVector);
-            SetTurningVectorOnEngines(turningVector);
 
             SetPrimaryTranslationVectorOnEngines(primaryTranslationVector);
             SetSecondaryTranslateVectorOnEngines(secondaryTranslatonVector);

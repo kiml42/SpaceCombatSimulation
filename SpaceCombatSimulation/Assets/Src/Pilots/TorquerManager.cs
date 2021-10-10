@@ -89,7 +89,7 @@ namespace Assets.Src.Pilots
 
         private void RemoveNullTorquers()
         {
-            _torquers.RemoveAll(t => t == null);
+            _torquers.RemoveAll(t => t?.IsActiveTorquer != true);
         }
     }
 }
