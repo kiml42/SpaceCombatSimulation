@@ -9,6 +9,7 @@ namespace Assets.Src.Pilots
     {
         private readonly List<ITorquer> _torquers;
         private readonly Rigidbody _pilot;
+        private bool _isActive = true;
 
         public TorquerManager(Rigidbody pilot)
         {
@@ -16,12 +17,14 @@ namespace Assets.Src.Pilots
             if(_pilot == null)
             {
                 Debug.LogError($"{this} doesn't have a rigidbody set as a pilot.");
+                _isActive = false;
             }
             var torquers = _pilot.GetComponentsInChildren<ITorquer>();
             if((torquers?.Length ?? 0) < 1)
             {
                 Debug.LogWarning($"{this} on {_pilot} doesn't have any torquers");
                 _torquers = new List<ITorquer>();
+                _isActive = false;
             }
             else
             {
@@ -31,6 +34,7 @@ namespace Assets.Src.Pilots
 
         public void TurnToVectorInWorldSpace(Vector3 lookVector, Vector3? upVector = null)
         {
+            if (!_isActive) return;
             RemoveNullTorquers();
             //Debug.Log("vector" + vector);
             var lookVectorInPilotSpace =  _pilot.transform.InverseTransformVector(lookVector);
@@ -59,19 +63,27 @@ namespace Assets.Src.Pilots
 
         public void Activate()
         {
-            RemoveNullTorquers();
-            foreach (var torquer in _torquers)
+            if (_torquers.Any())
             {
-                torquer.Activate();
+                _isActive = true;
+                RemoveNullTorquers();
+                foreach (var torquer in _torquers)
+                {
+                    torquer.Activate();
+                }
             }
         }
 
         public void Deactivate()
         {
-            RemoveNullTorquers();
-            foreach (var torquer in _torquers)
+            _isActive = false;
+            if (_torquers.Any())
             {
-                torquer.Deactivate();
+                RemoveNullTorquers();
+                foreach (var torquer in _torquers)
+                {
+                    torquer.Deactivate();
+                }
             }
         }
 
