@@ -30,6 +30,7 @@ public class SpaceShipControler : AbstractDeactivatableController
 
     public Transform OrientationVectorArrow;
     public Transform AccelerationVectorArrow;
+    public Transform TorqueVectorArrow;
 
     // Use this for initialization
     public void Start()
@@ -53,7 +54,10 @@ public class SpaceShipControler : AbstractDeactivatableController
         {
             _engines.Add(Engine);
         }
-        var torqueApplier = new TorquerManager(_thisSpaceship);
+        var torqueApplier = new TorquerManager(_thisSpaceship, TorqueVectorArrow)
+        {
+            Log = Log
+        };
 
         //ensure this starts active.
         torqueApplier.Activate();

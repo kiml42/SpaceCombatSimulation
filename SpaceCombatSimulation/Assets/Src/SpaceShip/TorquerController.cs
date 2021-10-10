@@ -10,7 +10,7 @@ public class TorquerController : AbstractDeactivatableController, ITorquer
     private float initialAngularDrag;
 
     private Rigidbody _rigidbody;
-    private Vector3? _torque;
+    private Vector3? _pilotSpaceTorque;
 
     public bool IsActiveTorquer => true;
 
@@ -27,11 +27,11 @@ public class TorquerController : AbstractDeactivatableController, ITorquer
 
     void FixedUpdate()
     {
-        if(_torque.HasValue)
+        if(_pilotSpaceTorque.HasValue)
         {
             if (Log)
-                Debug.Log($"{this} Torquing at {_torque}");
-            _rigidbody.AddTorque(_torque.Value);
+                Debug.Log($"{this} Torquing at {_pilotSpaceTorque}");
+            _rigidbody.AddRelativeTorque(_pilotSpaceTorque.Value);
         }
     }
 
@@ -42,10 +42,10 @@ public class TorquerController : AbstractDeactivatableController, ITorquer
         return genomeWrapper;
     }
 
-    public void SetTorque(Vector3? torque)
+    public void SetTorque(Vector3? pilotSpaceTorque)
     {
         //TODO don't always go at max torque.
-        this._torque = torque?.normalized * MaxTorque;
+        this._pilotSpaceTorque = pilotSpaceTorque?.normalized * MaxTorque;
     }
 
     public void Activate()
