@@ -20,7 +20,10 @@ public class ManualSpaceShipControler : AbstractDeactivatableController
     public float MaxTangentialVelocity = 10;
     public float MinTangentialVelocity = 0;
     public float TangentialSpeedWeighting = 1;
-    
+
+    [Tooltip("Weighting for canceling out the objects current angular velocity instead of torquing towards the target orientation.")]
+    public float CancelRotationWeight = 5;
+
     public List<EngineControler> Engines = new List<EngineControler>();
 
     private const float Fuel = Mathf.Infinity;
@@ -46,7 +49,7 @@ public class ManualSpaceShipControler : AbstractDeactivatableController
 
     private void Initialise()
     {
-        var torqueApplier = new TorquerManager(_thisSpaceship);
+        var torqueApplier = new TorquerManager(_thisSpaceship, CancelRotationWeight);
 
         //ensure this starts active.
         torqueApplier.Activate();

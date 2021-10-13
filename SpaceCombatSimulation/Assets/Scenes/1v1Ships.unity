@@ -593,6 +593,26 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 121.57
       objectReference: {fileID: 0}
+    - target: {fileID: 54348881928324954, guid: af8783d568b3ea34e84d5e64237749b5,
+        type: 3}
+      propertyPath: m_AngularDrag
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 114005634925885068, guid: af8783d568b3ea34e84d5e64237749b5,
+        type: 3}
+      propertyPath: Log
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 114005634925885068, guid: af8783d568b3ea34e84d5e64237749b5,
+        type: 3}
+      propertyPath: CancelRotationWeight
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 114558417272495310, guid: af8783d568b3ea34e84d5e64237749b5,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: af8783d568b3ea34e84d5e64237749b5, type: 3}
 --- !u!1001 &1998298793

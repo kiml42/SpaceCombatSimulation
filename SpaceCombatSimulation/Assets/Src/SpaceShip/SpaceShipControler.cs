@@ -21,6 +21,9 @@ public class SpaceShipControler : AbstractDeactivatableController
     public float MinTangentialVelocity = 0;
     public float TangentialSpeedWeighting = 1;
 
+    [Tooltip("Weighting for canceling out the objects current angular velocity instead of torquing towards the target orientation.")]
+    public float CancelRotationWeight = 5;
+
     private Rigidbody _thisSpaceship;
 
     private IPilot _pilot;
@@ -46,7 +49,7 @@ public class SpaceShipControler : AbstractDeactivatableController
         }
         _targetChoosingMechanism = _targetChoosingMechanism ?? GetComponent<IKnowsCurrentTarget>();
 
-        var torqueApplier = new TorquerManager(_thisSpaceship, TorqueVectorArrow)
+        var torqueApplier = new TorquerManager(_thisSpaceship, CancelRotationWeight, TorqueVectorArrow)
         {
             Log = Log
         };

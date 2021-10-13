@@ -68,6 +68,9 @@ public class RocketController : GeneticConfigurableMonobehaviour
     [Tooltip("Distance in front of the rocket to start looking for friendlies on a collision cource - useful to avoid detecting itself.")]
     public float MinimumFriendlyDetectionDistance = 4;
 
+    [Tooltip("Weighting for canceling out the objects current angular velocity instead of torquing towards the target orientation.")]
+    public float CancelRotationWeight = 5;
+
     // Use this for initialization
     void Start()
     {
@@ -77,7 +80,7 @@ public class RocketController : GeneticConfigurableMonobehaviour
             Debug.LogError($"{this} doesn't have a rigidbody.");
         }
 
-        var torqueApplier = new TorquerManager(rigidbody);
+        var torqueApplier = new TorquerManager(rigidbody, CancelRotationWeight);
 
         var pilot = new RocketPilot(torqueApplier, rigidbody, Engines, StartDelay)
         {
