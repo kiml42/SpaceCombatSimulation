@@ -10,10 +10,11 @@ namespace Assets.Src.Pilots
         private readonly List<ITorquer> _torquers;
         private readonly Rigidbody _pilot;
         private bool _isActive = true;
+        private float _cancelRotationWeight;
         private readonly Transform _torqueVectorArrow;
         public bool Log { get; set; } = false;
 
-        public TorquerManager(Rigidbody pilot, Transform torqueVectorArrow = null)
+        public TorquerManager(Rigidbody pilot, float cancelRotationWeight, Transform torqueVectorArrow = null)
         {
             _pilot = pilot;
             if(_pilot == null)
@@ -33,6 +34,7 @@ namespace Assets.Src.Pilots
                 _torqueVectorArrow = torqueVectorArrow;
                 _torquers = torquers.ToList();
             }
+            _cancelRotationWeight = cancelRotationWeight;
         }
 
         public void TurnToVectorInWorldSpace(Vector3 lookVector, Vector3? upVector = null)
@@ -40,6 +42,28 @@ namespace Assets.Src.Pilots
             if (!_isActive) return;
             RemoveNullTorquers();
             //Debug.Log("vector" + vector);
+            var pilotSpaceTorqueTowardsLookVectorVector = GetTorqueVectorToPushTowardsTarget(lookVector, upVector);
+            var torqueVectorToCancelOutRotation = GetTorqueVectorToCancelOutRotation();
+            var netTorqueVector = pilotSpaceTorqueTowardsLookVectorVector + (torqueVectorToCancelOutRotation * _cancelRotationWeight);
+
+            if (Log)
+                Debug.Log($"torque towards target: {pilotSpaceTorqueTowardsLookVectorVector}, torqueVectorToCancelOutRotation: {torqueVectorToCancelOutRotation} * {_cancelRotationWeight}, netTorqueVector: {netTorqueVector}");
+
+            if (_torqueVectorArrow != null)
+            {
+                var worldTorque = _pilot.transform.TransformVector(netTorqueVector);
+                _torqueVectorArrow.rotation = Quaternion.LookRotation(worldTorque);
+                var scale = worldTorque.magnitude;
+                _torqueVectorArrow.localScale = new Vector3(scale, scale, scale);
+            }
+            foreach (var torquer in _torquers)
+            {
+                torquer.SetTorque(netTorqueVector);
+            }
+        }
+
+        private Vector3 GetTorqueVectorToPushTowardsTarget(Vector3 lookVector, Vector3? upVector)
+        {
             var lookVectorInPilotSpace = _pilot.transform.InverseTransformVector(lookVector.normalized);
             float zRotation = 0;
             if (upVector.HasValue)
@@ -48,31 +72,29 @@ namespace Assets.Src.Pilots
                 zRotation = -upVectorInPilotSpace.x;
             }
             //Debug.Log(_pilot + " vectorInPilotSpace " + vectorInPilotSpace);
-            var pilotSpaceTorqueVector = new Vector3(lookVectorInPilotSpace.y, -lookVectorInPilotSpace.x, zRotation);
+            var pilotSpaceTorqueTowardsLookVectorVector = new Vector3(lookVectorInPilotSpace.y, -lookVectorInPilotSpace.x, zRotation);
             if (NeedsToTurnRightArround(lookVectorInPilotSpace))
             {
                 //The target is exactly behind, turning in any direction will do.
                 if (Log)
                     Debug.Log("Target is exactly behind");
-                pilotSpaceTorqueVector = new Vector3(1, 0, zRotation);
+                pilotSpaceTorqueTowardsLookVectorVector = new Vector3(1, 0, zRotation);
             }
-            //Debug.Log("rotationVector" + rotationVector);
 
             if (Log)
             {
-                Debug.Log($"{_pilot} - lookVector = {lookVector}, lookVectorInPilotSpace = {lookVectorInPilotSpace}, pilotSpaceTorqueVector = {pilotSpaceTorqueVector}");
+                Debug.Log($"{_pilot} - lookVector = {lookVector}, lookVectorInPilotSpace = {lookVectorInPilotSpace}, pilotSpaceTorqueVector = {pilotSpaceTorqueTowardsLookVectorVector}");
             }
-            if (_torqueVectorArrow != null)
-            {
-                var worldTorque = _pilot.transform.TransformVector(pilotSpaceTorqueVector);
-                _torqueVectorArrow.rotation = Quaternion.LookRotation(worldTorque);
-                var scale = worldTorque.magnitude;
-                _torqueVectorArrow.localScale = new Vector3(scale, scale, scale);
-            }
-            foreach (var torquer in _torquers)
-            {
-                torquer.SetTorque(pilotSpaceTorqueVector);
-            }
+
+            return pilotSpaceTorqueTowardsLookVectorVector;
+        }
+
+        private Vector3 GetTorqueVectorToCancelOutRotation()
+        {
+            var pilotSpaceAngularV = _pilot.transform.InverseTransformVector(_pilot.angularVelocity);
+            if (Log)
+                Debug.Log($"pilotSpaceAngularV: {pilotSpaceAngularV} ({pilotSpaceAngularV.magnitude})");
+            return pilotSpaceAngularV;
         }
 
         private static bool NeedsToTurnRightArround(Vector3 lookVectorInPilotSpace)
