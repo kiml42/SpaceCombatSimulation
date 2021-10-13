@@ -57,6 +57,7 @@ TrailRenderer:
   m_ProbeAnchor: {fileID: 0}
   m_LightProbeVolumeOverride: {fileID: 0}
   m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
   m_PreserveUVs: 0
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
@@ -201,6 +202,7 @@ MeshRenderer:
   m_ProbeAnchor: {fileID: 0}
   m_LightProbeVolumeOverride: {fileID: 0}
   m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
   m_PreserveUVs: 0
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
@@ -279,6 +281,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 2194032656596238456}
   EnemyTags:
   - Team1
@@ -340,6 +343,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 2194032656596238456}
   EnemyTags:
   - Team1
@@ -517,7 +521,7 @@ Rigidbody:
   serializedVersion: 2
   m_Mass: 3000
   m_Drag: 0
-  m_AngularDrag: 10
+  m_AngularDrag: 0
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -535,10 +539,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   PollInterval: 1
   TargetPicker: {fileID: 1000887222132120434}
+  IncludeNavigationTargets: 0
+  IncludeAtackTargets: 1
+  Log: 0
 --- !u!114 &6206105781491359431
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -554,21 +564,19 @@ MonoBehaviour:
   GetConfigFromGenome: 1
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
-  ShootAngle: 30
-  TorqueMultiplier: 1000000
+  Log: 0
   StartDelay: 0
-  SlowdownWeighting: 50
-  RadialSpeedThreshold: 10
   MaxRange: 500
   MinRange: 200
-  LocationAimWeighting: 1
+  SpeedMultiplier: 20
+  RadialSpeedWeighting: 1
   MaxTangentialVelocity: 50
   MinTangentialVelocity: 0
   TangentialSpeedWeighting: 10
-  Engine: {fileID: 0}
-  Torquer: {fileID: 4750742997120054697}
-  AngularDragForTorquers: 20
-  VectorArrow: {fileID: 8459057375770869342}
+  CancelRotationWeight: 5
+  OrientationVectorArrow: {fileID: 0}
+  AccelerationVectorArrow: {fileID: 0}
+  TorqueVectorArrow: {fileID: 0}
 --- !u!114 &1575062298923251489
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -594,7 +602,7 @@ MonoBehaviour:
   DamageDelegate: {fileID: 0}
   IgnoredTags:
   - ForceField
-  TeamTagForceFieldSuffix: FoceField
+  TeamForceFieldSuffix: FoceField
 --- !u!114 &7251123875499388878
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -607,8 +615,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetColourFromParent: 1
   Colour: {r: 0, g: 0, b: 0, a: 0}
-  SetInStart: 0
 --- !u!114 &109388296734968697
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -621,7 +629,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a124bb2bf147381439ad8c81fc59a1eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  InactiveTag: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
+  MaxTorque: 1000
+  Log: 0
 --- !u!114 &648277175265311213
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -634,7 +646,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d4f4356979ce7f4cb6769e4f4484bf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DeregisterOnDeactivate: 1
+  Shooting: 1
+  Navigation: 0
+  InitialTeam: 
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &3715753571958109859
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -660,10 +675,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ffbeb493de3b9468e3e85f70bd7489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetConfigFromGenome: 1
+  ConfigIndex: -1
+  HasBeenConfiguredByGenome: 0
   ContinuallyCheckForTargets: 1
   NeverRetarget: 0
   PollInterval: 5
   TargetPicker: {fileID: 1000887222132120434}
+  IncludeNavigationTargets: 0
+  IncludeAtackTargets: 1
+  Log: 0
 --- !u!114 &3930928577469893422
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -747,6 +768,7 @@ MeshRenderer:
   m_ProbeAnchor: {fileID: 0}
   m_LightProbeVolumeOverride: {fileID: 0}
   m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
   m_PreserveUVs: 1
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
@@ -812,6 +834,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 2194032656596238456}
   EnemyTags:
   - Team1
@@ -873,6 +896,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 2194032656596238456}
   EnemyTags:
   - Team1
@@ -978,6 +1002,7 @@ MeshRenderer:
   m_ProbeAnchor: {fileID: 0}
   m_LightProbeVolumeOverride: {fileID: 0}
   m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
   m_PreserveUVs: 1
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
@@ -1060,6 +1085,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Log: 0
 --- !u!114 &4422789877191514919
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1470,7 +1496,12 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 2194032656596238456}
     m_Modifications:
-    - target: {fileID: 8960751780115279697, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
+    - target: {fileID: 1986507108707355468, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
+        type: 3}
+      propertyPath: ParentForTurret
+      value: 
+      objectReference: {fileID: 2194032656596238456}
+    - target: {fileID: 2823613994172014985, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
         type: 3}
       propertyPath: ParentForTurret
       value: 
@@ -1480,6 +1511,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TurretBlock
       objectReference: {fileID: 0}
+    - target: {fileID: 5686364942228033003, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
+        type: 3}
+      propertyPath: ParentForTurret
+      value: 
+      objectReference: {fileID: 2194032656596238456}
+    - target: {fileID: 7132425793048603554, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
+        type: 3}
+      propertyPath: ParentForTurret
+      value: 
+      objectReference: {fileID: 2194032656596238456}
     - target: {fileID: 8625974496640839922, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -1535,22 +1576,7 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 1986507108707355468, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
-        type: 3}
-      propertyPath: ParentForTurret
-      value: 
-      objectReference: {fileID: 2194032656596238456}
-    - target: {fileID: 5686364942228033003, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
-        type: 3}
-      propertyPath: ParentForTurret
-      value: 
-      objectReference: {fileID: 2194032656596238456}
-    - target: {fileID: 7132425793048603554, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
-        type: 3}
-      propertyPath: ParentForTurret
-      value: 
-      objectReference: {fileID: 2194032656596238456}
-    - target: {fileID: 2823613994172014985, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
+    - target: {fileID: 8960751780115279697, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
         type: 3}
       propertyPath: ParentForTurret
       value: 
@@ -1730,7 +1756,12 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 2194032656596238456}
     m_Modifications:
-    - target: {fileID: 8960751780115279697, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
+    - target: {fileID: 1986507108707355468, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
+        type: 3}
+      propertyPath: ParentForTurret
+      value: 
+      objectReference: {fileID: 2194032656596238456}
+    - target: {fileID: 2823613994172014985, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
         type: 3}
       propertyPath: ParentForTurret
       value: 
@@ -1740,6 +1771,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TurretBlock (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 5686364942228033003, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
+        type: 3}
+      propertyPath: ParentForTurret
+      value: 
+      objectReference: {fileID: 2194032656596238456}
+    - target: {fileID: 7132425793048603554, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
+        type: 3}
+      propertyPath: ParentForTurret
+      value: 
+      objectReference: {fileID: 2194032656596238456}
     - target: {fileID: 8625974496640839922, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -1795,22 +1836,7 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 180
       objectReference: {fileID: 0}
-    - target: {fileID: 1986507108707355468, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
-        type: 3}
-      propertyPath: ParentForTurret
-      value: 
-      objectReference: {fileID: 2194032656596238456}
-    - target: {fileID: 5686364942228033003, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
-        type: 3}
-      propertyPath: ParentForTurret
-      value: 
-      objectReference: {fileID: 2194032656596238456}
-    - target: {fileID: 7132425793048603554, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
-        type: 3}
-      propertyPath: ParentForTurret
-      value: 
-      objectReference: {fileID: 2194032656596238456}
-    - target: {fileID: 2823613994172014985, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
+    - target: {fileID: 8960751780115279697, guid: 752ec22c6d7c3b14692dfc926a27d7b1,
         type: 3}
       propertyPath: ParentForTurret
       value: 

@@ -148,21 +148,19 @@ MonoBehaviour:
   GetConfigFromGenome: 1
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
-  ShootAngle: 30
-  TorqueMultiplier: 2000
+  Log: 0
   StartDelay: 0
-  SlowdownWeighting: 50
-  RadialSpeedThreshold: 10
   MaxRange: 100
   MinRange: 20
-  LocationAimWeighting: 1
+  SpeedMultiplier: 20
+  RadialSpeedWeighting: 1
   MaxTangentialVelocity: 50
   MinTangentialVelocity: 0
   TangentialSpeedWeighting: 10
-  Engine: {fileID: 0}
-  Torquer: {fileID: 54288706851983332}
-  AngularDragForTorquers: 1
-  VectorArrow: {fileID: 4644144218678962}
+  CancelRotationWeight: 5
+  OrientationVectorArrow: {fileID: 0}
+  AccelerationVectorArrow: {fileID: 0}
+  TorqueVectorArrow: {fileID: 0}
 --- !u!114 &114169913862654500
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -204,7 +202,7 @@ Rigidbody:
   serializedVersion: 2
   m_Mass: 800
   m_Drag: 0
-  m_AngularDrag: 6.987
+  m_AngularDrag: 0
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -865,6 +863,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Log: 0
 --- !u!114 &114803365807962662
 MonoBehaviour:
   m_ObjectHideFlags: 0

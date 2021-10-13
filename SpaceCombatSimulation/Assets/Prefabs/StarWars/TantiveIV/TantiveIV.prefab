@@ -54,7 +54,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -147,7 +146,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -226,7 +224,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -305,7 +302,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -384,7 +380,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -463,7 +458,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -533,6 +527,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -617,6 +613,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -669,6 +667,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -721,6 +721,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -773,6 +775,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -856,6 +860,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -917,7 +923,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -996,7 +1001,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -1075,7 +1079,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -1145,6 +1148,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1197,6 +1202,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1258,7 +1265,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -1337,7 +1343,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -1443,6 +1448,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1525,6 +1532,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1577,6 +1586,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1638,7 +1649,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -1708,6 +1718,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -1812,7 +1824,7 @@ Rigidbody:
   serializedVersion: 2
   m_Mass: 3000
   m_Drag: 0
-  m_AngularDrag: 10
+  m_AngularDrag: 0
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -1853,6 +1865,8 @@ MonoBehaviour:
   PollInterval: 1
   TargetPicker: {fileID: 0}
   IncludeNavigationTargets: 0
+  IncludeAtackTargets: 1
+  Log: 0
 --- !u!114 &114854302672846074
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1868,21 +1882,19 @@ MonoBehaviour:
   GetConfigFromGenome: 1
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
-  ShootAngle: 30
-  TorqueMultiplier: 1000000
+  Log: 0
   StartDelay: 0
-  SlowdownWeighting: 50
-  RadialSpeedThreshold: 10
   MaxRange: 500
   MinRange: 200
-  LocationAimWeighting: 1
+  SpeedMultiplier: 20
+  RadialSpeedWeighting: 1
   MaxTangentialVelocity: 50
   MinTangentialVelocity: 0
   TangentialSpeedWeighting: 10
-  Engine: {fileID: 0}
-  Torquer: {fileID: 54573031860785586}
-  AngularDragForTorquers: 20
-  VectorArrow: {fileID: 4947271631806278}
+  CancelRotationWeight: 5
+  OrientationVectorArrow: {fileID: 0}
+  AccelerationVectorArrow: {fileID: 0}
+  TorqueVectorArrow: {fileID: 0}
 --- !u!114 &114934692665220786
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1921,8 +1933,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetColourFromParent: 1
   Colour: {r: 1, g: 1, b: 1, a: 1}
-  SetInStart: 1
 --- !u!114 &114235746704277110
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1938,6 +1950,8 @@ MonoBehaviour:
   GetConfigFromGenome: 1
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
+  MaxTorque: 1000
+  Log: 0
 --- !u!114 &114256698061105688
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1952,6 +1966,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Shooting: 1
   Navigation: 1
+  InitialTeam: 
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &114034852389591522
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2019,7 +2035,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -2098,7 +2113,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -2177,7 +2191,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -2247,6 +2260,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -2308,7 +2323,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -2387,7 +2401,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -2466,7 +2479,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -2536,6 +2548,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -2588,6 +2602,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -2670,6 +2686,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -2731,7 +2749,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -2801,6 +2818,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
+  ParentForTurret: {fileID: 0}
   EnemyTags:
   - Team1
   - Team3
@@ -2892,7 +2911,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:

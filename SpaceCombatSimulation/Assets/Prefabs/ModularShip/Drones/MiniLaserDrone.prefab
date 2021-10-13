@@ -86,7 +86,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -255,6 +254,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Log: 0
 --- !u!114 &114773535294058686
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -512,6 +512,8 @@ MonoBehaviour:
   PollInterval: 1
   TargetPicker: {fileID: 114906174189323298}
   IncludeNavigationTargets: 0
+  IncludeAtackTargets: 1
+  Log: 0
 --- !u!114 &114892433267228952
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -527,21 +529,19 @@ MonoBehaviour:
   GetConfigFromGenome: 0
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
-  ShootAngle: 30
-  TorqueMultiplier: 2000
+  Log: 0
   StartDelay: 0
-  SlowdownWeighting: 50
-  RadialSpeedThreshold: 10
   MaxRange: 100
   MinRange: 20
-  LocationAimWeighting: 1
+  SpeedMultiplier: 20
+  RadialSpeedWeighting: 1
   MaxTangentialVelocity: 50
   MinTangentialVelocity: 0
   TangentialSpeedWeighting: 10
-  Engine: {fileID: 0}
-  Torquer: {fileID: 54937077967875234}
-  AngularDragForTorquers: 1
-  VectorArrow: {fileID: 4408631218593940}
+  CancelRotationWeight: 5
+  OrientationVectorArrow: {fileID: 0}
+  AccelerationVectorArrow: {fileID: 0}
+  TorqueVectorArrow: {fileID: 0}
 --- !u!114 &114598197760867616
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -583,7 +583,7 @@ Rigidbody:
   serializedVersion: 2
   m_Mass: 800
   m_Drag: 0
-  m_AngularDrag: 6.987
+  m_AngularDrag: 0
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -604,6 +604,7 @@ MonoBehaviour:
   Shooting: 1
   Navigation: 1
   InitialTeam: 
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &114941638070839662
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -662,8 +663,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetColourFromParent: 1
   Colour: {r: 0.76695836, g: 0.17149654, b: 0.89705884, a: 0}
-  SetInStart: 1
 --- !u!1 &1303136259919820
 GameObject:
   m_ObjectHideFlags: 0
@@ -796,7 +797,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -875,7 +875,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -954,7 +953,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1033,7 +1031,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1112,7 +1109,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1181,6 +1177,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 4142644113627782}
   EnemyTags: []
   TurretPrefab: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
@@ -1229,6 +1226,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 4142644113627782}
   EnemyTags: []
   TurretPrefab: {fileID: 4302048105835624, guid: a5aecdf99e8c0d540a795c7a769bf0f7,
@@ -1279,7 +1277,6 @@ LineRenderer:
   m_MotionVectors: 0
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
-  m_RayTracingMode: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
