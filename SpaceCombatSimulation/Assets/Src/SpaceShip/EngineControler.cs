@@ -249,13 +249,17 @@ public class EngineControler : AbstractDeactivatableController, ITorquer
             var angle = Vector3.Angle(_desiredTorque.Value, _torqueVector.Value);
 
             Log($"_desiredTorque:{_desiredTorque}, _torqueVector:{_torqueVector}, angle:{angle}");
-
-            var throttleForAngle = (angle - TorqueFireAngle) / -TorquerFullThrottleAngle;
+            float throttleForAngle = ThrottleForAngle(angle, TorqueFireAngle, TorquerFullThrottleAngle);
             var throttle = throttleForAngle * _desiredTorque.Value.magnitude;
             Log($"Torque throttle:{throttle}");
             return Clamp(throttle, -1, 1);
         }
         return 0;
+    }
+
+    private float ThrottleForAngle(float angle, float zeroThrottleAngle, float fullThrottleAngle)
+    {
+        return (angle - zeroThrottleAngle) / -fullThrottleAngle;
     }
 
     /// <summary>
@@ -266,12 +270,9 @@ public class EngineControler : AbstractDeactivatableController, ITorquer
     /// <returns></returns>
     private float TranslateThrottleSetting()
     {
-        Log($"TranslateFireAngle: {TranslateFireAngle}");
-        Log($"PrimaryTranslateVector: {PrimaryTranslateVector}");
-        Log($"SecondaryTranslateVector: {SecondaryTranslateVector}");
+        Log($"TranslateFireAngle: {TranslateFireAngle}, PrimaryTranslateVector: {PrimaryTranslateVector}, SecondaryTranslateVector: {SecondaryTranslateVector}");
         if(TranslateFireAngle > 0 && VectorIsUseful(PrimaryTranslateVector))
         {
-            float throttle = 0;
             //the enemy's gate is down
             var primaryAngleError = Vector3.Angle(-transform.up, PrimaryTranslateVector.Value);
 
@@ -285,15 +286,8 @@ public class EngineControler : AbstractDeactivatableController, ITorquer
                 primaryAngleError = (angleSum - pToSAngle)/2;   //set the primaryAngleError to the distance from being on the ark(ish)
                 //the maths here isn't quite right, but it'll probably do, it's qualatatively correct. (I hope)
             }
-            if(primaryAngleError < TranslateFireAngle)
-            {
-                throttle = 1 - (primaryAngleError - FullThrottleTranslateFireAngle / TranslateFireAngle - FullThrottleTranslateFireAngle);
-            }
 
-            if(primaryAngleError > 180 - FullThrottleTranslateFireAngle)
-            {
-                throttle = -1;
-            }
+            float throttle = ThrottleForAngle(primaryAngleError, TorqueFireAngle, TorquerFullThrottleAngle);
 
             return Clamp(throttle, -1, 1);
         }

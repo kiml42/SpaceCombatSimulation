@@ -23,16 +23,13 @@ namespace Assets.Src.Pilots
 
         public float SpeedMultiplier = 50;
 
-        public SpaceshipPilot(ITorquerManager torqueApplier, Rigidbody pilotObject, List<EngineControler> engines)
+        public SpaceshipPilot(ITorquerManager torqueApplier, Rigidbody pilotObject)
         {
             _pilotObject = pilotObject;
             _torqueApplier = torqueApplier;
             RadialSpeedWeighting = 1;
 
-            foreach (var engine in engines.ToList())
-            {
-                AddEngine(engine);
-            }
+            _engines = _pilotObject.GetComponentsInChildren<EngineControler>().ToList();
         }
 
         private bool _tangentialTooFast;

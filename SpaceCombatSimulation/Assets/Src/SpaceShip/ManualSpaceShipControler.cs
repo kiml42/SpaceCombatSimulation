@@ -75,16 +75,6 @@ public class ManualSpaceShipControler : AbstractDeactivatableController
             _manualPilot.Fly(_targetChoosingMechanism.CurrentTarget);
     }
 
-    public void RegisterEngine(EngineControler engine)
-    {
-        //Debug.Log("Registering engine");
-        Engines.Add(engine);
-        Initialise();
-        //_engineControl.SetEngine(Engine);
-
-    }
-   
-
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
         const float MaxShootAngle = 180;
