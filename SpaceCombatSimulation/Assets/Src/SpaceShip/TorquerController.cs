@@ -7,7 +7,6 @@ public class TorquerController : AbstractDeactivatableController, ITorquer
 {
     public float MaxTorque = 1000;
     public bool Log;
-    private float initialAngularDrag;
 
     private Rigidbody _rigidbody;
     private Vector3? _pilotSpaceTorque;
@@ -22,7 +21,7 @@ public class TorquerController : AbstractDeactivatableController, ITorquer
         {
             Debug.LogError($"{this} hasn't got a rigidbody to apply torque to.");
         }
-        initialAngularDrag = _rigidbody.angularDrag;
+        _rigidbody.angularDrag = 0;
     }
 
     void FixedUpdate()
@@ -53,13 +52,11 @@ public class TorquerController : AbstractDeactivatableController, ITorquer
     public void Activate()
     {
         if (_rigidbody == null) return;
-        _rigidbody.angularDrag = initialAngularDrag;
     }
 
     public override void Deactivate()
     {
         base.Deactivate();
         if (_rigidbody == null) return;
-        _rigidbody.angularDrag = 0;
     }
 }

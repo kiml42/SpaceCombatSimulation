@@ -54,7 +54,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -163,7 +162,7 @@ Rigidbody:
   serializedVersion: 2
   m_Mass: 200
   m_Drag: 0
-  m_AngularDrag: 10
+  m_AngularDrag: 0
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -184,21 +183,19 @@ MonoBehaviour:
   GetConfigFromGenome: 1
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
-  ShootAngle: 10
-  TorqueMultiplier: 800000
+  Log: 0
   StartDelay: 0
-  SlowdownWeighting: 10
-  RadialSpeedThreshold: 5
   MaxRange: 300
   MinRange: 60
-  LocationAimWeighting: 1
+  SpeedMultiplier: 20
+  RadialSpeedWeighting: 1
   MaxTangentialVelocity: 200
   MinTangentialVelocity: 20
   TangentialSpeedWeighting: 2
-  Engine: {fileID: 0}
-  Torquer: {fileID: 54382497699916626}
-  AngularDragForTorquers: 10
-  VectorArrow: {fileID: 4385743314986304}
+  CancelRotationWeight: 5
+  OrientationVectorArrow: {fileID: 0}
+  AccelerationVectorArrow: {fileID: 0}
+  TorqueVectorArrow: {fileID: 0}
 --- !u!114 &114270581982482088
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -237,8 +234,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetColourFromParent: 1
   Colour: {r: 0, g: 0, b: 0, a: 0}
-  SetInStart: 0
 --- !u!114 &114304355064623444
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -254,6 +251,8 @@ MonoBehaviour:
   GetConfigFromGenome: 1
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
+  MaxTorque: 1000
+  Log: 0
 --- !u!114 &114383310399634466
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -268,6 +267,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Shooting: 1
   Navigation: 1
+  InitialTeam: 
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &114736985224496746
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -397,9 +398,11 @@ MonoBehaviour:
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
   TorquerFullThrottleAngle: 10
-  UseAsTorquer: 1
   UseAsTranslator: 1
+  UseAsTorquer: 1
   FullThrottleFuelConsumption: 1
+  DebugMode: 0
+  TorqueVectorIndicator: {fileID: 0}
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1817672352430822
 GameObject:
@@ -485,7 +488,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -5215,7 +5217,6 @@ ParticleSystemRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
-  m_RayTracingMode: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -5333,7 +5334,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -5427,7 +5427,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -5498,7 +5497,6 @@ LineRenderer:
   m_MotionVectors: 0
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
-  m_RayTracingMode: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:

@@ -56,10 +56,11 @@ MonoBehaviour:
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
   TorquerFullThrottleAngle: 20
-  UseAsTorquer: 1
   UseAsTranslator: 1
+  UseAsTorquer: 1
   FullThrottleFuelConsumption: 15
   DebugMode: 0
+  TorqueVectorIndicator: {fileID: 0}
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &437393954696061654
 GameObject:
@@ -14971,7 +14972,7 @@ MonoBehaviour:
   TimeThresholdForMinimalEvasion: 200
   EvasionModeTime: 0.5
   MinimumFriendlyDetectionDistance: 5
-  Tank: {fileID: 0}
+  CancelRotationWeight: 5
 --- !u!54 &1505600269459936649
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -14982,7 +14983,7 @@ Rigidbody:
   serializedVersion: 2
   m_Mass: 50
   m_Drag: 0
-  m_AngularDrag: 0.8
+  m_AngularDrag: 0
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -15154,6 +15155,7 @@ MonoBehaviour:
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
   MaxTorque: 100
+  Log: 0
 --- !u!1 &2375207387677884495
 GameObject:
   m_ObjectHideFlags: 0
@@ -15210,10 +15212,11 @@ MonoBehaviour:
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
   TorquerFullThrottleAngle: 20
-  UseAsTorquer: 1
   UseAsTranslator: 1
+  UseAsTorquer: 1
   FullThrottleFuelConsumption: 15
   DebugMode: 0
+  TorqueVectorIndicator: {fileID: 0}
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &2793006110647779316
 GameObject:
@@ -15271,10 +15274,11 @@ MonoBehaviour:
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
   TorquerFullThrottleAngle: 20
-  UseAsTorquer: 1
   UseAsTranslator: 1
+  UseAsTorquer: 1
   FullThrottleFuelConsumption: 15
   DebugMode: 0
+  TorqueVectorIndicator: {fileID: 0}
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &2868261154733506333
 GameObject:
@@ -15410,10 +15414,11 @@ MonoBehaviour:
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
   TorquerFullThrottleAngle: 20
-  UseAsTorquer: 1
   UseAsTranslator: 1
+  UseAsTorquer: 1
   FullThrottleFuelConsumption: 15
   DebugMode: 0
+  TorqueVectorIndicator: {fileID: 0}
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &3325792736687525605
 GameObject:
@@ -40335,10 +40340,11 @@ MonoBehaviour:
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
   TorquerFullThrottleAngle: 10
-  UseAsTorquer: 0
   UseAsTranslator: 1
+  UseAsTorquer: 0
   FullThrottleFuelConsumption: 50
   DebugMode: 0
+  TorqueVectorIndicator: {fileID: 0}
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &5903605591321451501
 GameObject:
@@ -40582,10 +40588,11 @@ MonoBehaviour:
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
   TorquerFullThrottleAngle: 20
-  UseAsTorquer: 1
   UseAsTranslator: 1
+  UseAsTorquer: 1
   FullThrottleFuelConsumption: 15
   DebugMode: 0
+  TorqueVectorIndicator: {fileID: 0}
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &6597310351208194158
 GameObject:
@@ -41063,10 +41070,11 @@ MonoBehaviour:
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
   TorquerFullThrottleAngle: 20
-  UseAsTorquer: 1
   UseAsTranslator: 1
+  UseAsTorquer: 1
   FullThrottleFuelConsumption: 15
   DebugMode: 0
+  TorqueVectorIndicator: {fileID: 0}
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &8970322065573193925
 GameObject:
@@ -45877,10 +45885,11 @@ MonoBehaviour:
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
   TorquerFullThrottleAngle: 20
-  UseAsTorquer: 1
   UseAsTranslator: 1
+  UseAsTorquer: 1
   FullThrottleFuelConsumption: 15
   DebugMode: 0
+  TorqueVectorIndicator: {fileID: 0}
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &9191821803470854736
 GameObject:
@@ -45938,8 +45947,9 @@ MonoBehaviour:
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
   TorquerFullThrottleAngle: 20
-  UseAsTorquer: 1
   UseAsTranslator: 1
+  UseAsTorquer: 1
   FullThrottleFuelConsumption: 15
   DebugMode: 0
+  TorqueVectorIndicator: {fileID: 0}
   _fullTrhrottlePlumeRate: 0

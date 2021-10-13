@@ -161,7 +161,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -240,7 +239,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -441,7 +439,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -520,7 +517,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -599,7 +595,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -930,6 +925,8 @@ MonoBehaviour:
   GetConfigFromGenome: 1
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
+  MaxTorque: 1000
+  Log: 0
 --- !u!114 &114102850085364780
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -945,6 +942,7 @@ MonoBehaviour:
   Shooting: 1
   Navigation: 0
   InitialTeam: 
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &114257200241306460
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1171,6 +1169,8 @@ MonoBehaviour:
   GetConfigFromGenome: 1
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
+  MaxTorque: 1000
+  Log: 0
 --- !u!114 &114714242016168140
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1186,6 +1186,7 @@ MonoBehaviour:
   Shooting: 1
   Navigation: 0
   InitialTeam: 
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &114124418175183348
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1336,6 +1337,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7d26eab650d9f54aa998b7871e8bb20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Log: 0
 --- !u!114 &114025743562679966
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1555,6 +1557,8 @@ MonoBehaviour:
   PollInterval: 1
   TargetPicker: {fileID: 114312162468457396}
   IncludeNavigationTargets: 0
+  IncludeAtackTargets: 1
+  Log: 0
 --- !u!114 &114727425230370864
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1570,21 +1574,19 @@ MonoBehaviour:
   GetConfigFromGenome: 0
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
-  ShootAngle: 90
-  TorqueMultiplier: 3000
+  Log: 0
   StartDelay: 0
-  SlowdownWeighting: 50
-  RadialSpeedThreshold: 8
   MaxRange: 10000
   MinRange: 8000
-  LocationAimWeighting: 1
+  SpeedMultiplier: 20
+  RadialSpeedWeighting: 1
   MaxTangentialVelocity: 200
   MinTangentialVelocity: 50
   TangentialSpeedWeighting: 35
-  Engine: {fileID: 0}
-  Torquer: {fileID: 54564561303838756}
-  AngularDragForTorquers: 2
-  VectorArrow: {fileID: 4464256057473960}
+  CancelRotationWeight: 5
+  OrientationVectorArrow: {fileID: 0}
+  AccelerationVectorArrow: {fileID: 0}
+  TorqueVectorArrow: {fileID: 0}
 --- !u!114 &114297067167645948
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1626,7 +1628,7 @@ Rigidbody:
   serializedVersion: 2
   m_Mass: 800
   m_Drag: 0
-  m_AngularDrag: 6.987
+  m_AngularDrag: 0
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -1647,6 +1649,7 @@ MonoBehaviour:
   Shooting: 1
   Navigation: 1
   InitialTeam: 
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &114151030207520200
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1705,8 +1708,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8091629018d66664f9db11d722ac0d27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GetColourFromParent: 1
   Colour: {r: 0.76695836, g: 0.17149654, b: 0.89705884, a: 0}
-  SetInStart: 1
 --- !u!1 &1574786604237240
 GameObject:
   m_ObjectHideFlags: 0
@@ -1821,7 +1824,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1920,6 +1922,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TagChildren: 1
+  RecolourChild: 1
   ParentForTurret: {fileID: 4642084428604556}
   EnemyTags: []
   TurretPrefab: {fileID: 4245982871522996, guid: 08efacbbb059a534586d7c97183f30e6,
@@ -1978,7 +1981,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -2057,7 +2059,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -2196,7 +2197,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -2344,6 +2344,8 @@ MonoBehaviour:
   GetConfigFromGenome: 1
   ConfigIndex: -1
   HasBeenConfiguredByGenome: 0
+  MaxTorque: 1000
+  Log: 0
 --- !u!114 &114480204006635388
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2359,6 +2361,7 @@ MonoBehaviour:
   Shooting: 1
   Navigation: 0
   InitialTeam: 
+  GetTeamFromSourceTriesRemaining: 10
 --- !u!114 &114242353651469146
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2515,7 +2518,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -2654,7 +2656,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -2840,7 +2841,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -2949,7 +2949,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -3028,7 +3027,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -3185,7 +3183,6 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -3256,7 +3253,6 @@ LineRenderer:
   m_MotionVectors: 0
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
-  m_RayTracingMode: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:

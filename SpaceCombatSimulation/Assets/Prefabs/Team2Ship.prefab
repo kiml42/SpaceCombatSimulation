@@ -291,7 +291,7 @@ Rigidbody:
   serializedVersion: 2
   m_Mass: 3000
   m_Drag: 0
-  m_AngularDrag: 1
+  m_AngularDrag: 0
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -343,9 +343,10 @@ MonoBehaviour:
   MaxTangentialVelocity: 50
   MinTangentialVelocity: 0
   TangentialSpeedWeighting: 10
-  Engine: {fileID: 114647878159316806}
+  CancelRotationWeight: 5
   OrientationVectorArrow: {fileID: 2259246388534739887}
   AccelerationVectorArrow: {fileID: 8942605269026588405}
+  TorqueVectorArrow: {fileID: 0}
 --- !u!114 &114418977453750346
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6391,10 +6392,11 @@ MonoBehaviour:
   FullThrottleTranslateFireAngle: 45
   TorqueFireAngle: 90
   TorquerFullThrottleAngle: 10
-  UseAsTorquer: 1
   UseAsTranslator: 1
+  UseAsTorquer: 1
   FullThrottleFuelConsumption: 1
   DebugMode: 0
+  TorqueVectorIndicator: {fileID: 0}
   _fullTrhrottlePlumeRate: 0
 --- !u!1 &1734553111329566
 GameObject:
