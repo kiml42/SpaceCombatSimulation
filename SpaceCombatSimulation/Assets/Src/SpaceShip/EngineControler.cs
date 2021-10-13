@@ -250,18 +250,10 @@ public class EngineControler : AbstractDeactivatableController, ITorquer
 
             Log($"_desiredTorque:{_desiredTorque}, _torqueVector:{_torqueVector}, angle:{angle}");
 
-            if(angle <= TorqueFireAngle)
-            {
-                if(angle < TorquerFullThrottleAngle)
-                {
-                    Log($"Torque throttle: full throttle!");
-                    return 1;
-                }
-
-                var throttle = 1 - (angle - TorquerFullThrottleAngle / TorqueFireAngle - TorquerFullThrottleAngle);
-                Log($"Torque throttle:{throttle}");
-                return Clamp(throttle, -1, 1);
-            }
+            var throttleForAngle = (angle - TorqueFireAngle) / -TorquerFullThrottleAngle;
+            var throttle = throttleForAngle * _desiredTorque.Value.magnitude;
+            Log($"Torque throttle:{throttle}");
+            return Clamp(throttle, -1, 1);
         }
         return 0;
     }
