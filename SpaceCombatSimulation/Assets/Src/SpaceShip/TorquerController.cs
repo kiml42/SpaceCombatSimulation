@@ -31,7 +31,7 @@ public class TorquerController : AbstractDeactivatableController, ITorquer
         {
             if (Log)
                 Debug.Log($"{this} Torquing at {_pilotSpaceTorque}");
-            _rigidbody.AddRelativeTorque(_pilotSpaceTorque.Value);
+            _rigidbody.AddRelativeTorque(-_pilotSpaceTorque.Value);
         }
     }
 
@@ -45,7 +45,9 @@ public class TorquerController : AbstractDeactivatableController, ITorquer
     public void SetTorque(Vector3? pilotSpaceTorque)
     {
         //TODO don't always go at max torque.
-        this._pilotSpaceTorque = pilotSpaceTorque?.normalized * MaxTorque;
+        _pilotSpaceTorque = pilotSpaceTorque?.normalized * MaxTorque;
+        if (Log)
+            Debug.Log($"{this} Setting torque to {pilotSpaceTorque} => {pilotSpaceTorque?.normalized} * {MaxTorque} => {_pilotSpaceTorque}");
     }
 
     public void Activate()
