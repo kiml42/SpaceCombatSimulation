@@ -21,9 +21,6 @@ public class SpaceShipControler : AbstractDeactivatableController
     public float MinTangentialVelocity = 0;
     public float TangentialSpeedWeighting = 1;
 
-    public EngineControler Engine;
-    private readonly List<EngineControler> _engines = new List<EngineControler>();
-
     private Rigidbody _thisSpaceship;
 
     private IPilot _pilot;
@@ -35,7 +32,6 @@ public class SpaceShipControler : AbstractDeactivatableController
     // Use this for initialization
     public void Start()
     {
-
         Initialise();
     }
 
@@ -50,10 +46,6 @@ public class SpaceShipControler : AbstractDeactivatableController
         }
         _targetChoosingMechanism = _targetChoosingMechanism ?? GetComponent<IKnowsCurrentTarget>();
 
-        if (Engine != null)
-        {
-            _engines.Add(Engine);
-        }
         var torqueApplier = new TorquerManager(_thisSpaceship, TorqueVectorArrow)
         {
             Log = Log
@@ -62,7 +54,7 @@ public class SpaceShipControler : AbstractDeactivatableController
         //ensure this starts active.
         torqueApplier.Activate();
 
-        _pilot = new SpaceshipPilot(torqueApplier, _thisSpaceship, _engines)
+        _pilot = new SpaceshipPilot(torqueApplier, _thisSpaceship)
         {
             StartDelay = StartDelay,
             TangentialSpeedWeighting = TangentialSpeedWeighting,
@@ -85,14 +77,6 @@ public class SpaceShipControler : AbstractDeactivatableController
         {
             _pilot.Fly(_targetChoosingMechanism.CurrentTarget);
         }
-    }
-
-    public void RegisterEngine(EngineControler engine)
-    {
-        //Debug.Log("Registering engine");
-        _engines.Add(engine);
-        Initialise();   //TODO - this sometimes fires before this has hit Start.
-        //_engineControl.SetEngine(Engine);
     }
 
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
