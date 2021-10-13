@@ -5088,8 +5088,8 @@ MonoBehaviour:
   EngineForce2: 500000
   TranslateFireAngle: 90
   FullThrottleTranslateFireAngle: 45
-  TorqueFireAngle: 45
-  TorquerFullThrottleAngle: 20
+  TorqueFireAngle: 90
+  TorquerFullThrottleAngle: 45
   UseAsTranslator: 1
   UseAsTorquer: 1
   FullThrottleFuelConsumption: 15
