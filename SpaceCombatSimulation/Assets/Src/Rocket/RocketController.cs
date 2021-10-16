@@ -35,7 +35,8 @@ public class RocketController : GeneticConfigurableMonobehaviour
     public bool TagShrapnel = false;
     public bool SetEnemyTagOnShrapnel = false;
     public Transform VectorArrow;
-    
+    public Transform TorqueVectorArrow;
+
     public List<EngineControler> Engines;
 
     [Tooltip("Check for best targets every frame if true, otherwise only on target loss")]
@@ -81,7 +82,7 @@ public class RocketController : GeneticConfigurableMonobehaviour
             Debug.LogError($"{this} doesn't have a rigidbody.");
         }
 
-        var torqueApplier = new TorquerManager(rigidbody, CancelRotationWeight)
+        var torqueApplier = new TorquerManager(rigidbody, CancelRotationWeight, TorqueVectorArrow)
         {
             Log = Log
         };
