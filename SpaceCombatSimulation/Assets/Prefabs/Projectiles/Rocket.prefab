@@ -186,7 +186,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &4346285404244058
 Transform:
   m_ObjectHideFlags: 0
@@ -5524,7 +5524,7 @@ MonoBehaviour:
   FlatBoost: 10000
   Multiplier: 1
   Priority: 0
-  KullInvalidTargets: 1
+  KullInvalidTargets: 0
 --- !u!114 &114417825068674288
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5565,7 +5565,7 @@ MonoBehaviour:
   Multiplier: 1
   Priority: 0
   SourceObject: {fileID: 4469671951430032}
-  KullInvalidTargets: 1
+  KullInvalidTargets: 0
 --- !u!114 &114969477576830868
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5676,7 +5676,6 @@ MonoBehaviour:
   HasBeenConfiguredByGenome: 0
   TargetChoosingMechanism: {fileID: 114954702964643402}
   ShootAngle: 10
-  TorqueMultiplier: 90
   AccelerateTowardsTargetWeighting: 3
   StartDelay: 0.3
   TurningStartDelay: 0.15
@@ -5698,8 +5697,9 @@ MonoBehaviour:
   TimeThresholdForMediumEvasion: 30
   TimeThresholdForMinimalEvasion: 200
   EvasionModeTime: 0.5
-  MinimumFriendlyDetectionDistance: 1.5
-  CancelRotationWeight: 10
+  MinimumFriendlyDetectionDistance: 2
+  CancelRotationWeight: 0.5
+  Log: 0
 --- !u!114 &114210379376876750
 MonoBehaviour:
   m_ObjectHideFlags: 0

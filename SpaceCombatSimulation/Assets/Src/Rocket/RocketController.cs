@@ -15,7 +15,6 @@ public class RocketController : GeneticConfigurableMonobehaviour
 {
     public TargetChoosingMechanism TargetChoosingMechanism;
     public float ShootAngle = 10;
-    public float TorqueMultiplier = 1f;
     public float AccelerateTowardsTargetWeighting = 3f;
 
     [Tooltip("Delay until engines (including RCS) will start and warhead will arm")]
@@ -71,6 +70,8 @@ public class RocketController : GeneticConfigurableMonobehaviour
     [Tooltip("Weighting for canceling out the objects current angular velocity instead of torquing towards the target orientation.")]
     public float CancelRotationWeight = 5;
 
+    public bool Log = false;
+
     // Use this for initialization
     void Start()
     {
@@ -80,8 +81,12 @@ public class RocketController : GeneticConfigurableMonobehaviour
             Debug.LogError($"{this} doesn't have a rigidbody.");
         }
 
-        var torqueApplier = new TorquerManager(rigidbody, CancelRotationWeight);
+        var torqueApplier = new TorquerManager(rigidbody, CancelRotationWeight)
+        {
+            Log = Log
+        };
 
+        //TODO make this work again!
         var pilot = new RocketPilot(torqueApplier, rigidbody, Engines, StartDelay)
         {
             RadialSpeedWeighting = AccelerateTowardsTargetWeighting,
@@ -133,7 +138,6 @@ public class RocketController : GeneticConfigurableMonobehaviour
     protected override GenomeWrapper SubConfigure(GenomeWrapper genomeWrapper)
     {
         ShootAngle = genomeWrapper.GetScaledNumber(180);
-        TorqueMultiplier = genomeWrapper.GetScaledNumber(TorqueMultiplier);
         AccelerateTowardsTargetWeighting = genomeWrapper.GetScaledNumber(16);
         TimeToTargetForDetonation = genomeWrapper.GetScaledNumber(2, 0 , 0.1f);
          return genomeWrapper;
