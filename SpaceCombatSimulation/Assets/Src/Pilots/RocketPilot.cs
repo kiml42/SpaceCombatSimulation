@@ -54,7 +54,7 @@ namespace Assets.Src.Pilots
                 
                 if(_evasionLevel == FriendlyAvoidencelevel.MAX)
                 {
-                    //Impact is imanent, push and turn away.
+                    //Impact is immanent, push and turn away. Don't bother trying to move towards the target.
                     //Debug.Log("maximum evasion !");
                     SetFlightVectors(_friendlyAvoidenceVector, _friendlyAvoidenceVector, _vectorAwayFromFriendly);
                     return;
@@ -65,7 +65,7 @@ namespace Assets.Src.Pilots
 
                 var targetReletiveVelocity = WorldSpaceReletiveVelocityOfTarget(target);
 
-                var turningVector = (targetReletiveVelocity.magnitude * targetReletiveVelocity.magnitude * cancelationVector) + (reletiveLocation * RadialSpeedWeighting);
+                var turningVector = (targetReletiveVelocity.magnitude * cancelationVector) + (reletiveLocation * RadialSpeedWeighting);
                 
                 var primaryVector = _evasionLevel == FriendlyAvoidencelevel.MED
                     ? _friendlyAvoidenceVector 
