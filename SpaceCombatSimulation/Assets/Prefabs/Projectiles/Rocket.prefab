@@ -186,7 +186,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &4346285404244058
 Transform:
   m_ObjectHideFlags: 0
@@ -5674,6 +5674,7 @@ MonoBehaviour:
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 0
   VectorArrow: {fileID: 4346285404244058}
+  TorqueVectorArrow: {fileID: 0}
   Engines:
   - {fileID: 114647872415290320}
   ContinuallyCheckForTargets: 0

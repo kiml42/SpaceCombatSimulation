@@ -1092,7 +1092,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &4175057121454258
 Transform:
   m_ObjectHideFlags: 0
@@ -7815,7 +7815,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5881759251092354880
 Transform:
   m_ObjectHideFlags: 0
@@ -8083,6 +8083,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: TorqueVectorIndicator
+      objectReference: {fileID: 0}
+    - target: {fileID: 2954779765464073694, guid: c112bc4d0ad5a924cb86c54a3e701908,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4645999875848335188, guid: c112bc4d0ad5a924cb86c54a3e701908,
         type: 3}
