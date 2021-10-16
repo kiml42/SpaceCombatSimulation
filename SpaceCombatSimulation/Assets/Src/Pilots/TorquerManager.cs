@@ -39,9 +39,16 @@ namespace Assets.Src.Pilots
 
         public void TurnToVectorInWorldSpace(Vector3 lookVector, Vector3? upVector = null)
         {
-            if (!_isActive) return;
+            if (!_isActive)
+            {
+                if (Log)
+                    Debug.Log("_isActive" + _isActive);
+                return;
+            }
+
             RemoveNullTorquers();
-            //Debug.Log("vector" + vector);
+            if(Log)
+                Debug.Log("lookVector" + lookVector);
             var pilotSpaceTorqueTowardsLookVectorVector = GetTorqueVectorToPushTowardsTarget(lookVector, upVector);
             var torqueVectorToCancelOutRotation = GetTorqueVectorToCancelOutRotation();
             var netTorqueVector = pilotSpaceTorqueTowardsLookVectorVector + (torqueVectorToCancelOutRotation * _cancelRotationWeight);

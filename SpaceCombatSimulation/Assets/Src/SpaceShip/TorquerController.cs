@@ -51,12 +51,11 @@ public class TorquerController : AbstractDeactivatableController, ITorquer
 
     public void Activate()
     {
-        if (_rigidbody == null) return;
+        _active = true;
     }
 
     public override void Deactivate()
     {
         base.Deactivate();
-        if (_rigidbody == null) return;
     }
 }
