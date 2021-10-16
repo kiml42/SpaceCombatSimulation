@@ -76,12 +76,14 @@ namespace Assets.Src.Pilots
             var hasStarted = StartDelay <= 0;
             if (!hasStarted)
             {
-                //Debug.Log("hasn't started");
+                if(Log)
+                    Debug.Log("hasn't started");
                 _torqueApplier.Deactivate();
             }
             else
             {
-                //Debug.Log("has started");
+                if (Log)
+                    Debug.Log("has started");
                 _torqueApplier.Activate();
             }
             //Debug.Log("hasStarted: " + hasStarted);

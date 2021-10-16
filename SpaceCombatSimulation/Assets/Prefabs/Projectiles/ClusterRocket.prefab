@@ -5534,7 +5534,6 @@ MonoBehaviour:
   HasBeenConfiguredByGenome: 0
   TargetChoosingMechanism: {fileID: 114958396777747442}
   ShootAngle: 10
-  TorqueMultiplier: 90
   AccelerateTowardsTargetWeighting: 3
   StartDelay: 0.1
   TurningStartDelay: 0
@@ -5547,6 +5546,7 @@ MonoBehaviour:
   TagShrapnel: 0
   SetEnemyTagOnShrapnel: 0
   VectorArrow: {fileID: 4652279574369954}
+  TorqueVectorArrow: {fileID: 0}
   Engines:
   - {fileID: 114095532759699856}
   ContinuallyCheckForTargets: 0
@@ -5557,7 +5557,8 @@ MonoBehaviour:
   TimeThresholdForMinimalEvasion: 4
   EvasionModeTime: 0.3
   MinimumFriendlyDetectionDistance: 1.5
-  CancelRotationWeight: 5
+  CancelRotationWeight: 0.5
+  Log: 0
 --- !u!114 &114315273727274886
 MonoBehaviour:
   m_ObjectHideFlags: 0

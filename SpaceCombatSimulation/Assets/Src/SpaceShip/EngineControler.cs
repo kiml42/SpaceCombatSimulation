@@ -164,10 +164,13 @@ public class EngineControler : AbstractDeactivatableController, ITorquer
     public void Activate()
     {
         //TODO
+        Log("Activated");
+        _active = true;
     }
 
     public override void Deactivate()
     {
+        Log("Deactivated");
         base.Deactivate();
         SetPlumeState(0);
     }
