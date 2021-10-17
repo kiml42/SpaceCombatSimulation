@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Assets.Src.ObjectManagement;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -17,7 +18,7 @@ namespace Assets.Src.Targeting.TargetPickers
 
         public override IEnumerable<PotentialTarget> FilterTargets(IEnumerable<PotentialTarget> potentialTargets)
         {
-            potentialTargets =  potentialTargets.Where(t => t?.Target?.Transform != null).Select(t => {
+            potentialTargets =  potentialTargets.Where(t => t?.Target?.Transform.IsValid() == true).Select(t => {
                 var direction = t.Target.Transform.position - SourceObject.position;
 
                 var ray = new Ray(SourceObject.position + (direction * MinDetectionDistance), direction);

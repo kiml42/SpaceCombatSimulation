@@ -31,6 +31,8 @@ namespace Assets.Src.Pilots
         public float EvasionModeTime = 30;
         public float MinimumFriendlyDetectionDistance = 4;
 
+        public float CloseEnoughAngle = 0;
+
         public RocketPilot(ITorquerManager torqueApplier, Rigidbody pilotObject, List<EngineControler> engines, float startDelay)
         {
             _pilotObject = pilotObject;

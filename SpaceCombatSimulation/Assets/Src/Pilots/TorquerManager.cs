@@ -37,6 +37,13 @@ namespace Assets.Src.Pilots
             _cancelRotationWeight = cancelRotationWeight;
         }
 
+        public void TurnToOrientationInWorldSpace(Quaternion targetOrientation)
+        {
+            var forwards = targetOrientation * Vector3.forward;
+            var up = targetOrientation * Vector3.up;
+            TurnToVectorInWorldSpace(forwards, up);
+        }
+
         public void TurnToVectorInWorldSpace(Vector3 lookVector, Vector3? upVector = null)
         {
             if (!_isActive)
