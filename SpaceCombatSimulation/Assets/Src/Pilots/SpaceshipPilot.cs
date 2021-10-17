@@ -11,7 +11,7 @@ namespace Assets.Src.Pilots
     public class SpaceshipPilot : BasePilot
     {
         /// <summary>
-        /// Weightning for the tangential speed correction vector, heigher values will give more priority to getting the tangential speed in range
+        /// Weighting for the tangential speed correction vector, higher values will give more priority to getting the tangential speed in range
         /// </summary>
         public float TangentialSpeedWeighting = 1;
 
@@ -38,6 +38,8 @@ namespace Assets.Src.Pilots
         private float MaxTanVWithHysteresis => _tangentialTooFast ? MaxTangentialSpeed : MaxTangentialSpeed * 1.1f;
         private float MinTanVWithHysteresis => _tangentialTooSlow ? MinTangentialSpeed : MinTangentialSpeed * 0.9f;
 
+        public Transform AttackOrientation { get; internal set; }
+
         public override void Fly(ITarget target)
         {
             RemoveNullEngines();
@@ -57,32 +59,52 @@ namespace Assets.Src.Pilots
 
             Vector3 accelerationVector = getAccelerationVector(target, reletiveLocation, targetsVelosity);
 
-            bool turnToUseMainEngines = accelerationVector.magnitude > 1;
-            var orientationVector = turnToUseMainEngines
-                ? accelerationVector
-                : reletiveLocation;
+            Quaternion targetOrientation = GetTargetOrientation(reletiveLocation, ref accelerationVector);
 
-            var upVector = GetUpVector();
+            _torqueApplier.TurnToOrientationInWorldSpace(targetOrientation);
 
-            if (Vector3.Angle(orientationVector, _pilotObject.transform.forward) > CloseEnoughAngle)
-            {
-                _torqueApplier.TurnToVectorInWorldSpace(orientationVector, upVector);
-            }
-
-            if (Log)
-            {
-                Debug.Log($"turnToUseMainEngines = {turnToUseMainEngines}, orientationVector = {orientationVector}");
-            }
-            // TODO use torquer to orient if the up or the look rotations are too far off.
-            // TODO calculate the up rotation from a known direction to try to point to the target.
-
-            SetVectorArrows(accelerationVector, orientationVector, upVector);
-
-            //TODO work out the torque axis and pass it to the engines.
-            //SetTurningVectorOnEngines(orientationVector, upVector);
+            SetVectorArrows(accelerationVector, targetOrientation * Vector3.forward, targetOrientation * Vector3.up);
 
             //TODO tell engines how high to set throttle based on speed error.
             SetPrimaryTranslationVectorOnEngines(accelerationVector);
+        }
+
+        private Quaternion GetTargetOrientation(Vector3 reletiveLocation, ref Vector3 accelerationVector)
+        {
+            bool turnToUseMainEngines = accelerationVector.magnitude > 1;
+
+            if (turnToUseMainEngines)
+            {
+                if (Log)
+                {
+                    Debug.Log($"Turning to use main engines - orientationVector = {accelerationVector}");
+                }
+                // TODO choose an up vector that will try to point the attack orientation object at the target.
+                return Quaternion.LookRotation(accelerationVector, Vector3.up);
+            }
+            if(AttackOrientation == null)
+            {
+                if (Log)
+                {
+                    Debug.Log($"Turning to point bow to the target - orientationVector = {reletiveLocation}");
+                }
+            }
+
+            var orientationVector = AttackOrientation.rotation * reletiveLocation;
+
+            // up should be perpendicular to the vector towards the target.
+            // TODO use the up vector to get the bow pointed as close to the acceleration vector as possible.
+            // TODO Fix torquers so they roll to point up up, rather than down! then remove this minus.
+            var upVector = (-_pilotObject.transform.up).ComponentPerpendicularTo(reletiveLocation);
+
+            var targetOrientation = Quaternion.LookRotation(orientationVector, upVector);
+
+            if (Log)
+            {
+                Debug.Log($"Turning to point {AttackOrientation} at the target - orientationVector = {orientationVector}");
+            }
+
+            return targetOrientation;
         }
 
         private Vector3 getAccelerationVector(ITarget target, Vector3 reletiveLocation, Vector3 targetsVelosity)
@@ -127,11 +149,6 @@ namespace Assets.Src.Pilots
                     AccelerationVectorArrow.localScale = Vector3.zero;
                 }
             }
-        }
-
-        private Vector3 GetUpVector()
-        {
-            return Vector3.up; // ToDo set up to get the correct side of the ship pointing in the right direction.
         }
 
         private Vector3 CalculateRadialSpeedCorrectionVector(Vector3 relativeLocation, Vector3 targetsVelosity, ITarget target)

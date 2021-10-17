@@ -31,6 +31,7 @@ public class SpaceShipControler : AbstractDeactivatableController
     public Transform OrientationVectorArrow;
     public Transform AccelerationVectorArrow;
     public Transform TorqueVectorArrow;
+    public Transform AttackOrientation;
 
     // Use this for initialization
     public void Start()
@@ -69,6 +70,7 @@ public class SpaceShipControler : AbstractDeactivatableController
             SpeedMultiplier = SpeedMultiplier,
             MaxTangentialSpeed = MaxTangentialVelocity,
             MinTangentialSpeed = MinTangentialVelocity,
+            AttackOrientation = AttackOrientation,
             Log = Log
         };
     }
