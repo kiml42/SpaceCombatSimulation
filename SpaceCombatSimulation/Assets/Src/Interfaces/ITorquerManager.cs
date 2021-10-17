@@ -4,6 +4,7 @@ namespace Assets.Src.Interfaces
 {
     public interface ITorquerManager : IDeactivatable
     {
+        void TurnToOrientationInWorldSpace(Quaternion targetOrientation);
         void TurnToVectorInWorldSpace(Vector3 lookVector, Vector3? upVector = null);
         void Activate();
     }

@@ -10,7 +10,6 @@ namespace Assets.Src.Pilots
     public abstract class BasePilot : IPilot
     {
         public bool Log = false;
-        public float CloseEnoughAngle = 0;
 
         public float RadialSpeedWeighting { get; set; }
         public Transform OrientationVectorArrow;
