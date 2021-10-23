@@ -37,10 +37,10 @@ namespace Assets.Src.Pilots
             _cancelRotationWeight = cancelRotationWeight;
         }
 
-        public void TurnToOrientationInWorldSpace(Quaternion targetOrientation)
+        public void TurnToOrientationInWorldSpace(Quaternion targetOrientation, float multiplier)
         {
-            var forwards = targetOrientation * Vector3.forward;
-            var up = targetOrientation * Vector3.up;
+            var forwards = targetOrientation * Vector3.forward * multiplier;
+            var up = targetOrientation * Vector3.up * multiplier;
             TurnToVectorInWorldSpace(forwards, up);
         }
 
@@ -83,9 +83,12 @@ namespace Assets.Src.Pilots
             if (upVector.HasValue)
             {
                 var upVectorInPilotSpace = _pilot.transform.InverseTransformVector(upVector.Value);
-                zRotation = -upVectorInPilotSpace.x;
+                if (Log)
+                {
+                    Debug.Log($"{_pilot} - upVectorInPilotSpace = {upVectorInPilotSpace}");
+                }
+                zRotation = upVectorInPilotSpace.x;
             }
-            //Debug.Log(_pilot + " vectorInPilotSpace " + vectorInPilotSpace);
             var pilotSpaceTorqueTowardsLookVectorVector = new Vector3(lookVectorInPilotSpace.y, -lookVectorInPilotSpace.x, zRotation);
             if (NeedsToTurnRightArround(lookVectorInPilotSpace))
             {
@@ -97,7 +100,7 @@ namespace Assets.Src.Pilots
 
             if (Log)
             {
-                Debug.Log($"{_pilot} - lookVector = {lookVector}, lookVectorInPilotSpace = {lookVectorInPilotSpace}, pilotSpaceTorqueVector = {pilotSpaceTorqueTowardsLookVectorVector}");
+                Debug.Log($"{_pilot} - lookVectorInPilotSpace = {lookVectorInPilotSpace}, pilotSpaceTorqueVector = {pilotSpaceTorqueTowardsLookVectorVector}");
             }
 
             return pilotSpaceTorqueTowardsLookVectorVector;
