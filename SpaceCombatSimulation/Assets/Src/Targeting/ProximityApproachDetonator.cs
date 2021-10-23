@@ -41,14 +41,14 @@ namespace Assets.Src.Targeting
 
             var relativeVelocity = _exploderRigidbody.velocity - targetVelocity;
 
-            var reletiveLocation = target.Transform.position - _exploderRigidbody.position;
+            var relativeLocation = target.Transform.position - _exploderRigidbody.position;
 
-            var approachAngle = Vector3.Angle(relativeVelocity, reletiveLocation);
+            var approachAngle = Vector3.Angle(relativeVelocity, relativeLocation);
 
-            var approachVelocity = relativeVelocity.ComponentParalellTo(reletiveLocation);
-            //var TangentialVelocity = velocity.ComponentPerpendicularTo(reletiveLocation);
+            var approachVelocity = relativeVelocity.ComponentParalellTo(relativeLocation);
+            //var TangentialVelocity = velocity.ComponentPerpendicularTo(relativeLocation);
 
-            var distance = reletiveLocation.magnitude;
+            var distance = relativeLocation.magnitude;
 
             float shrapnelConeAngel;
             float timeToTaget;

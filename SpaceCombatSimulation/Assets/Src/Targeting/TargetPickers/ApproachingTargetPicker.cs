@@ -32,9 +32,9 @@ namespace Assets.Src.Targeting.TargetPickers
 
             var relativeVelocity = SourceObject.velocity - targetVelocity;
 
-            var reletiveLocation = target.Target.Transform.position - SourceObject.position;
+            var relativeLocation = target.Target.Transform.position - SourceObject.position;
 
-            var approachAngle = Vector3.Angle(relativeVelocity, reletiveLocation);
+            var approachAngle = Vector3.Angle(relativeVelocity, relativeLocation);
 
             var angleComponent = (-approachAngle/90)+1; //now in range +-1 with positive being good.
 

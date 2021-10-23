@@ -39,11 +39,11 @@ namespace Assets.Src.Targeting.TargetPickers
         {
             var projectileSpeed = ProjectileSpeedKnower != null ? ProjectileSpeedKnower.KnownProjectileSpeed : 0;
             //TODO check this works.
-            var reletiveLocation = AimingObject != null
+            var relativeLocation = AimingObject != null
                 ? target.LocationInAimedSpace(AimingObject, projectileSpeed)
                 : target.LocationInOthersSpace(AimingObjectFallback, projectileSpeed);
 
-            var angle = Vector3.Angle(reletiveLocation, Vector3.forward);
+            var angle = Vector3.Angle(relativeLocation, Vector3.forward);
             
             var newScore = Multiplier * (1 - (angle/ 180));
             newScore += angle < Threshold ? FlatBoost : 0;
