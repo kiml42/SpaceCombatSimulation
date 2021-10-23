@@ -59,9 +59,9 @@ namespace Assets.Src.Pilots
 
             Vector3 accelerationVector = getAccelerationVector(target, reletiveLocation, targetsVelosity);
 
-            Quaternion targetOrientation = GetTargetOrientation(reletiveLocation, ref accelerationVector);
+            Quaternion targetOrientation = GetTargetOrientation(reletiveLocation, accelerationVector);
 
-            _torqueApplier.TurnToOrientationInWorldSpace(targetOrientation);
+            _torqueApplier.TurnToOrientationInWorldSpace(targetOrientation, 1);
 
             SetVectorArrows(accelerationVector, targetOrientation * Vector3.forward, targetOrientation * Vector3.up);
 
@@ -69,7 +69,7 @@ namespace Assets.Src.Pilots
             SetPrimaryTranslationVectorOnEngines(accelerationVector);
         }
 
-        private Quaternion GetTargetOrientation(Vector3 reletiveLocation, ref Vector3 accelerationVector)
+        private Quaternion GetTargetOrientation(Vector3 reletiveLocation, Vector3 accelerationVector)
         {
             bool turnToUseMainEngines = accelerationVector.magnitude > 1;
 
@@ -94,8 +94,7 @@ namespace Assets.Src.Pilots
 
             // up should be perpendicular to the vector towards the target.
             // TODO use the up vector to get the bow pointed as close to the acceleration vector as possible.
-            // TODO Fix torquers so they roll to point up up, rather than down! then remove this minus.
-            var upVector = (-_pilotObject.transform.up).ComponentPerpendicularTo(reletiveLocation);
+            var upVector = (_pilotObject.transform.up).ComponentPerpendicularTo(reletiveLocation);
 
             var targetOrientation = Quaternion.LookRotation(orientationVector, upVector);
 
