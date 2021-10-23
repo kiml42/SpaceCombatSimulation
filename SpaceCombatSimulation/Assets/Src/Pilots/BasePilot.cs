@@ -89,7 +89,7 @@ namespace Assets.Src.Pilots
             return hasStarted;
         }
 
-        protected Vector3 ReletiveLocationInWorldSpace(ITarget target)
+        protected Vector3 RelativeLocationInWorldSpace(ITarget target)
         {
             if (_pilotObject != null && target != null && target.Transform.IsValid())
             {
@@ -110,22 +110,22 @@ namespace Assets.Src.Pilots
 
         protected Vector3 VectorToCancelLateralVelocityInWorldSpace(ITarget target)
         {
-            var vectorTowardsTarget = ReletiveLocationInWorldSpace(target);
-            var targetReletiveVelocity = WorldSpaceReletiveVelocityOfTarget(target);
+            var vectorTowardsTarget = RelativeLocationInWorldSpace(target);
+            var targetRelativeVelocity = WorldSpaceRelativeVelocityOfTarget(target);
 
-            return targetReletiveVelocity.ComponentPerpendicularTo(vectorTowardsTarget);
+            return targetRelativeVelocity.ComponentPerpendicularTo(vectorTowardsTarget);
         }
 
-        protected Vector3 WorldSpaceReletiveVelocityOfTarget(ITarget target)
+        protected Vector3 WorldSpaceRelativeVelocityOfTarget(ITarget target)
         {
             if (target == null)
             {
                 return Vector3.zero;
             }
-            return WorldSpaceReletiveVelocityOfTarget(target.Rigidbody);
+            return WorldSpaceRelativeVelocityOfTarget(target.Rigidbody);
         }
 
-        protected Vector3 WorldSpaceReletiveVelocityOfTarget(Rigidbody target)
+        protected Vector3 WorldSpaceRelativeVelocityOfTarget(Rigidbody target)
         {
             var targetsVelocity = target == null ? Vector3.zero : target.velocity;
             var ownVelocity = _pilotObject.velocity;
