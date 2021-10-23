@@ -62,12 +62,12 @@ namespace Assets.Src.Pilots
                     return;
                 }
 
-                var reletiveLocation = ReletiveLocationInWorldSpace(target);
+                var relativeLocation = RelativeLocationInWorldSpace(target);
                 var cancelationVector = VectorToCancelLateralVelocityInWorldSpace(target);
 
-                var targetReletiveVelocity = WorldSpaceReletiveVelocityOfTarget(target);
+                var targetRelativeVelocity = WorldSpaceRelativeVelocityOfTarget(target);
 
-                var turningVector = (targetReletiveVelocity.magnitude * cancelationVector) + (reletiveLocation * RadialSpeedWeighting);
+                var turningVector = (targetRelativeVelocity.magnitude * cancelationVector) + (relativeLocation * RadialSpeedWeighting);
                 
                 var primaryVector = _evasionLevel == FriendlyAvoidencelevel.MED
                     ? _friendlyAvoidenceVector 
@@ -150,7 +150,7 @@ namespace Assets.Src.Pilots
                 if (PilotTarget?.Team != null  && hitTarget?.Team == PilotTarget.Team)
                 {
                     //isFriendly
-                    var relativeVelocity = WorldSpaceReletiveVelocityOfTarget(hit.rigidbody);
+                    var relativeVelocity = WorldSpaceRelativeVelocityOfTarget(hit.rigidbody);
 
                     var approachSpeed = relativeVelocity.magnitude;
                     

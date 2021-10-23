@@ -49,17 +49,17 @@ namespace Assets.Src.Pilots
                 return;
             }
 
-            var reletiveLocation = target == null
+            var relativeLocation = target == null
                 ? -_pilotObject.position     //Return to the centre if there is no target
-                : ReletiveLocationInWorldSpace(target);
+                : RelativeLocationInWorldSpace(target);
 
             var targetsVelosity = target == null
                 ? -_pilotObject.velocity    //if there's no target, go to stationary target at center.
-                : WorldSpaceReletiveVelocityOfTarget(target);
+                : WorldSpaceRelativeVelocityOfTarget(target);
 
-            Vector3 accelerationVector = getAccelerationVector(target, reletiveLocation, targetsVelosity);
+            Vector3 accelerationVector = getAccelerationVector(target, relativeLocation, targetsVelosity);
 
-            Quaternion targetOrientation = GetTargetOrientation(reletiveLocation, accelerationVector);
+            Quaternion targetOrientation = GetTargetOrientation(relativeLocation, accelerationVector);
 
             _torqueApplier.TurnToOrientationInWorldSpace(targetOrientation, 1);
 
@@ -69,7 +69,7 @@ namespace Assets.Src.Pilots
             SetPrimaryTranslationVectorOnEngines(accelerationVector);
         }
 
-        private Quaternion GetTargetOrientation(Vector3 reletiveLocation, Vector3 accelerationVector)
+        private Quaternion GetTargetOrientation(Vector3 relativeLocation, Vector3 accelerationVector)
         {
             bool turnToUseMainEngines = accelerationVector.magnitude > 1;
 
@@ -80,21 +80,21 @@ namespace Assets.Src.Pilots
                     Debug.Log($"Turning to use main engines - orientationVector = {accelerationVector}");
                 }
                 // TODO choose an up vector that will try to point the attack orientation object at the target.
-                return Quaternion.LookRotation(accelerationVector, Vector3.up);
+                return Quaternion.LookRotation(accelerationVector, relativeLocation);// relative Location
             }
             if(AttackOrientation == null)
             {
                 if (Log)
                 {
-                    Debug.Log($"Turning to point bow to the target - orientationVector = {reletiveLocation}");
+                    Debug.Log($"Turning to point bow to the target - orientationVector = {relativeLocation}");
                 }
             }
 
-            var orientationVector = AttackOrientation.rotation * reletiveLocation;
+            var orientationVector = AttackOrientation.rotation * relativeLocation;
 
             // up should be perpendicular to the vector towards the target.
             // TODO use the up vector to get the bow pointed as close to the acceleration vector as possible.
-            var upVector = (_pilotObject.transform.up).ComponentPerpendicularTo(reletiveLocation);
+            var upVector = (_pilotObject.transform.up).ComponentPerpendicularTo(relativeLocation);
 
             var targetOrientation = Quaternion.LookRotation(orientationVector, upVector);
 
@@ -106,11 +106,11 @@ namespace Assets.Src.Pilots
             return targetOrientation;
         }
 
-        private Vector3 getAccelerationVector(ITarget target, Vector3 reletiveLocation, Vector3 targetsVelosity)
+        private Vector3 getAccelerationVector(ITarget target, Vector3 relativeLocation, Vector3 targetsVelosity)
         {
-            var radialSpeedVector = CalculateRadialSpeedCorrectionVector(reletiveLocation, targetsVelosity, target);
+            var radialSpeedVector = CalculateRadialSpeedCorrectionVector(relativeLocation, targetsVelosity, target);
 
-            var tangentialSpeedVector = CalculateWeightedTanSpeedVector(reletiveLocation, targetsVelosity, target);
+            var tangentialSpeedVector = CalculateWeightedTanSpeedVector(relativeLocation, targetsVelosity, target);
 
             var accelerationVector = tangentialSpeedVector + radialSpeedVector;
             if (Log)
@@ -192,9 +192,9 @@ namespace Assets.Src.Pilots
             return weightedRadialLocationVector;
         }
 
-        private Vector3 CalculateWeightedTanSpeedVector(Vector3 reletiveLocation, Vector3 targetsVelosity, ITarget target)
+        private Vector3 CalculateWeightedTanSpeedVector(Vector3 relativeLocation, Vector3 targetsVelosity, ITarget target)
         {
-            var targetsTangentialVelocity = targetsVelosity.ComponentPerpendicularTo(reletiveLocation);
+            var targetsTangentialVelocity = targetsVelosity.ComponentPerpendicularTo(relativeLocation);
             var tanSpeed = targetsTangentialVelocity.magnitude;
             _tangentialTooFast = tanSpeed > MaxTanVWithHysteresis;
             _tangentialTooSlow = target != null && tanSpeed < MinTanVWithHysteresis;
@@ -218,7 +218,7 @@ namespace Assets.Src.Pilots
                 if (targetsTangentialVelocity.magnitude < MinTangentialSpeed * 0.2)
                 {
                     //use the forward orientation of the ship because Vt is way too slow, and will yield unstable results.
-                    VectorToGetTangentialSpeedInRange = (_pilotObject.transform.forward.ComponentPerpendicularTo(reletiveLocation)).normalized;
+                    VectorToGetTangentialSpeedInRange = (_pilotObject.transform.forward.ComponentPerpendicularTo(relativeLocation)).normalized;
                 }
                 else
                 {
