@@ -133,7 +133,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1249936944491648, guid: 3a84186e8b326a04483727b0cfc0ec2e, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4007074019723936, guid: 3a84186e8b326a04483727b0cfc0ec2e, type: 3}
       propertyPath: m_LocalPosition.x
@@ -374,7 +374,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1249936944491648, guid: 3a84186e8b326a04483727b0cfc0ec2e, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1249936944491648, guid: 3a84186e8b326a04483727b0cfc0ec2e, type: 3}
       propertyPath: m_Name
@@ -493,7 +493,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1151259579637064, guid: 193b600cd417a3d46aecfab46e61236a, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4960682451978958, guid: 193b600cd417a3d46aecfab46e61236a, type: 3}
       propertyPath: m_LocalPosition.x
@@ -551,11 +551,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1151259579637064, guid: af8783d568b3ea34e84d5e64237749b5, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4960682451978958, guid: af8783d568b3ea34e84d5e64237749b5, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1001
+      value: 1999
       objectReference: {fileID: 0}
     - target: {fileID: 4960682451978958, guid: af8783d568b3ea34e84d5e64237749b5, type: 3}
       propertyPath: m_LocalPosition.y
@@ -605,7 +605,17 @@ PrefabInstance:
     - target: {fileID: 114005634925885068, guid: af8783d568b3ea34e84d5e64237749b5,
         type: 3}
       propertyPath: Log
-      value: 0
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 114005634925885068, guid: af8783d568b3ea34e84d5e64237749b5,
+        type: 3}
+      propertyPath: RadialSpeedWeighting
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 114005634925885068, guid: af8783d568b3ea34e84d5e64237749b5,
+        type: 3}
+      propertyPath: TangentialSpeedWeighting
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 114558417272495310, guid: af8783d568b3ea34e84d5e64237749b5,
         type: 3}
