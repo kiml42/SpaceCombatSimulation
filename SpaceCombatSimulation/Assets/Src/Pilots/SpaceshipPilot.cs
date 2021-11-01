@@ -38,7 +38,10 @@ namespace Assets.Src.Pilots
         private float MaxTanVWithHysteresis => _tangentialTooFast ? MaxTangentialSpeed : MaxTangentialSpeed * 1.1f;
         private float MinTanVWithHysteresis => _tangentialTooSlow ? MinTangentialSpeed : MinTangentialSpeed * 0.9f;
 
-        public Transform AttackOrientation { get; internal set; }
+        /// <summary>
+        /// Angle to turn the bow away from the target when not trying to use the main engines.
+        /// </summary>
+        public float BroadsideAngle { get; internal set; }
 
         public override void Fly(ITarget target)
         {
@@ -85,30 +88,27 @@ namespace Assets.Src.Pilots
 
             var offsetAttackTargetLocation = OffsetAttackTargetLocation(relativeLocation);
 
-
-            if(AttackOrientation == null)
+            if (BroadsideAngle == 0)
             {
-                var pilotAttackOrientation = Quaternion.LookRotation(offsetAttackTargetLocation, accelerationVector);
                 // the pilot should be treated as the attack orientator, and therefore pointed at the target.
+                var pilotAttackOrientation = Quaternion.LookRotation(offsetAttackTargetLocation, accelerationVector);
                 if (Log)
                 {
                     Debug.Log($"Turning to point bow to the target - orientationForAttackOrientator = {pilotAttackOrientation}");
                 }
                 return pilotAttackOrientation;
             }
-
             // rotate the vector towards the target by the angle of the attack orientator.
             // the direction to rotate it in is the direction that turns the bow towards the bow target.
             // getting the correct side of the vessel pointing towards the enemy is handled by the pilot's up vector being the attack orientation.
-            var angle = Vector3.Angle(_pilotObject.transform.forward, AttackOrientation.transform.forward);
 
             // the bow target is somewhere between the forward direction of the ship (where it's already looking)
             // and the acceleration vector (to easily use the main engines if the acceleration vector gets bigger.)
-            var bowTarget =  accelerationVector + _pilotObject.transform.forward;
+            var bowTarget = accelerationVector + _pilotObject.transform.forward;
 
             var perpendicular = Vector3.Cross(offsetAttackTargetLocation, bowTarget);
 
-            var pilotTarget = Quaternion.AngleAxis(angle, perpendicular) * offsetAttackTargetLocation;
+            var pilotTarget = Quaternion.AngleAxis(BroadsideAngle, perpendicular) * offsetAttackTargetLocation;
 
             return Quaternion.LookRotation(pilotTarget, offsetAttackTargetLocation);
         }

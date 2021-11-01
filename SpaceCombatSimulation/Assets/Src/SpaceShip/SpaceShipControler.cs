@@ -31,7 +31,9 @@ public class SpaceShipControler : AbstractDeactivatableController
     public Transform OrientationVectorArrow;
     public Transform AccelerationVectorArrow;
     public Transform TorqueVectorArrow;
-    public Transform AttackOrientation;
+
+    [Tooltip("Angle to turn the bow away from the target when not trying to use the main engines.")]
+    public float BroadsideAngle;
 
     // Use this for initialization
     public void Start()
@@ -70,7 +72,7 @@ public class SpaceShipControler : AbstractDeactivatableController
             SpeedMultiplier = SpeedMultiplier,
             MaxTangentialSpeed = MaxTangentialVelocity,
             MinTangentialSpeed = MinTangentialVelocity,
-            AttackOrientation = AttackOrientation,
+            BroadsideAngle = BroadsideAngle,
             Log = Log
         };
     }
