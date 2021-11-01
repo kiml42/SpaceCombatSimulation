@@ -673,11 +673,6 @@ PrefabInstance:
       propertyPath: Log
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 114558417272495310, guid: af8783d568b3ea34e84d5e64237749b5,
-        type: 3}
-      propertyPath: Log
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 750990937831474696, guid: af8783d568b3ea34e84d5e64237749b5,
         type: 3}
       propertyPath: m_IsActive
@@ -727,6 +722,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_IsActive
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7825193233558023015, guid: af8783d568b3ea34e84d5e64237749b5,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7825193233558023015, guid: af8783d568b3ea34e84d5e64237749b5,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8008631309953930389, guid: af8783d568b3ea34e84d5e64237749b5,
         type: 3}
