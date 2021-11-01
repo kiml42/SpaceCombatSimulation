@@ -673,11 +673,6 @@ PrefabInstance:
       propertyPath: Log
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 114005634925885068, guid: af8783d568b3ea34e84d5e64237749b5,
-        type: 3}
-      propertyPath: BroadsideAngle
-      value: 180
-      objectReference: {fileID: 0}
     - target: {fileID: 750990937831474696, guid: af8783d568b3ea34e84d5e64237749b5,
         type: 3}
       propertyPath: m_IsActive
