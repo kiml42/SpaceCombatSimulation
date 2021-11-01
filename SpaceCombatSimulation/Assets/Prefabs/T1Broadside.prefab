@@ -249,7 +249,7 @@ MonoBehaviour:
   OrientationVectorArrow: {fileID: 4455403608566486}
   AccelerationVectorArrow: {fileID: 6831150294630963159}
   TorqueVectorArrow: {fileID: 8952478676885976824}
-  AttackOrientation: {fileID: 7825193233558023015}
+  BroadsideAngle: 90
 --- !u!114 &114726184140751052
 MonoBehaviour:
   m_ObjectHideFlags: 0
