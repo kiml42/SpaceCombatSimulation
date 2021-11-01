@@ -52,7 +52,7 @@ public class SpaceShipControler : AbstractDeactivatableController
 
         var torqueApplier = new TorquerManager(_thisSpaceship, CancelRotationWeight, TorqueVectorArrow)
         {
-            Log = Log
+            //Log = Log
         };
 
         //ensure this starts active.

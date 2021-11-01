@@ -83,30 +83,40 @@ namespace Assets.Src.Pilots
                 return Quaternion.LookRotation(accelerationVector, relativeLocation);
             }
 
-            // TODO consider projectile speed to offset the attack orientation.
-            var orientationForAttackOrientator = Quaternion.LookRotation(relativeLocation, accelerationVector);
+            var offsetAttackTargetLocation = OffsetAttackTargetLocation(relativeLocation);
+
 
             if(AttackOrientation == null)
             {
+                var pilotAttackOrientation = Quaternion.LookRotation(offsetAttackTargetLocation, accelerationVector);
                 // the pilot should be treated as the attack orientator, and therefore pointed at the target.
                 if (Log)
                 {
-                    Debug.Log($"Turning to point bow to the target - orientationForAttackOrientator = {orientationForAttackOrientator}");
+                    Debug.Log($"Turning to point bow to the target - orientationForAttackOrientator = {pilotAttackOrientation}");
                 }
-                return orientationForAttackOrientator;
-            } 
-
-            var relativeOrientationOfAttackOrientator = Quaternion.Inverse(_pilotObject.rotation) * AttackOrientation.rotation; // TODO this should be constant, so it should be calculated once, but check first.
-
-            //TODO test this!
-            var orientationForPilot = relativeOrientationOfAttackOrientator * orientationForAttackOrientator;
-            if (Log)
-            {
-                Debug.Log($"relativeOrientationOfAttackOrientator = {relativeOrientationOfAttackOrientator}");
-                Debug.Log($"Turning to point {AttackOrientation} at the target - orientationForPilot = {orientationForPilot}");
+                return pilotAttackOrientation;
             }
 
-            return orientationForPilot;
+            // rotate the vector towards the target by the angle of the attack orientator.
+            // the direction to rotate it in is the direction that turns the bow towards the bow target.
+            // getting the correct side of the vessel pointing towards the enemy is handled by the pilot's up vector being the attack orientation.
+            var angle = Vector3.Angle(_pilotObject.transform.forward, AttackOrientation.transform.forward);
+
+            // the bow target is somewhere between the forward direction of the ship (where it's already looking)
+            // and the acceleration vector (to easily use the main engines if the acceleration vector gets bigger.)
+            var bowTarget =  accelerationVector + _pilotObject.transform.forward;
+
+            var perpendicular = Vector3.Cross(offsetAttackTargetLocation, bowTarget);
+
+            var pilotTarget = Quaternion.AngleAxis(angle, perpendicular) * offsetAttackTargetLocation;
+
+            return Quaternion.LookRotation(pilotTarget, offsetAttackTargetLocation);
+        }
+
+        private Vector3 OffsetAttackTargetLocation(Vector3 relativeLocation)
+        {
+            // TODO consider projectile speed to offset the attack orientation.
+            return relativeLocation;
         }
 
         private Vector3 getAccelerationVector(ITarget target, Vector3 relativeLocation, Vector3 targetsVelosity)
