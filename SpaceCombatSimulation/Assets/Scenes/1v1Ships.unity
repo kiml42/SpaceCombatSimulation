@@ -206,20 +206,40 @@ PrefabInstance:
       propertyPath: m_Name
       value: Starfury (4)
       objectReference: {fileID: 0}
+    - target: {fileID: 5127683714423472661, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.x
+      value: -0.0000002384818
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127683714423472661, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.y
+      value: 0.0000039339066
+      objectReference: {fileID: 0}
     - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.x
-      value: -0.0000004769063
+      value: -0.0000002384511
       objectReference: {fileID: 0}
     - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.y
-      value: 0.0000042915344
+      value: 0.000002026558
+      objectReference: {fileID: 0}
+    - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.z
+      value: 0.8000002
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.x
-      value: -0.00000333786
+      value: -0.0000014305115
+      objectReference: {fileID: 0}
+    - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.y
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
@@ -295,15 +315,35 @@ PrefabInstance:
       propertyPath: m_Name
       value: Starfury (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 5127683714423472661, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.x
+      value: -0.00000023841238
+      objectReference: {fileID: 0}
     - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.x
-      value: -0.00000047683676
+      value: -0.00000023841238
+      objectReference: {fileID: 0}
+    - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.y
+      value: -0.00000035762787
+      objectReference: {fileID: 0}
+    - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.z
+      value: 0.8000002
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.x
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.y
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
@@ -555,15 +595,35 @@ PrefabInstance:
       propertyPath: m_Name
       value: Starfury (5)
       objectReference: {fileID: 0}
+    - target: {fileID: 5127683714423472661, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.x
+      value: -0.00000023841238
+      objectReference: {fileID: 0}
     - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.x
-      value: -0.00000047683676
+      value: -0.00000023841238
+      objectReference: {fileID: 0}
+    - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.y
+      value: -0.00000035762787
+      objectReference: {fileID: 0}
+    - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.z
+      value: 0.8000002
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.x
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.y
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
@@ -873,25 +933,40 @@ PrefabInstance:
       propertyPath: m_Name
       value: Starfury (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 5127683714423472661, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.x
+      value: -0.00000023841238
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127683714423472661, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.z
+      value: 0.8000021
+      objectReference: {fileID: 0}
     - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.x
-      value: -0.00000047683676
+      value: -0.00000023841238
+      objectReference: {fileID: 0}
+    - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.y
+      value: -0.00000035762787
       objectReference: {fileID: 0}
     - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.z
-      value: 1.3000021
+      value: 0.80000305
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.x
-      value: 6.82121e-13
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.y
-      value: 1.999999
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
@@ -1177,20 +1252,40 @@ PrefabInstance:
       propertyPath: m_Name
       value: Starfury (3)
       objectReference: {fileID: 0}
+    - target: {fileID: 5127683714423472661, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.x
+      value: -0.00000023835833
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127683714423472661, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.y
+      value: -0.000003695488
+      objectReference: {fileID: 0}
     - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.x
-      value: -0.0000004767826
+      value: -0.0000002384511
       objectReference: {fileID: 0}
     - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.y
-      value: -0.00000333786
+      value: 0.000002026558
+      objectReference: {fileID: 0}
+    - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.z
+      value: 0.8000002
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.x
-      value: -0.00000333786
+      value: -0.0000014305115
+      objectReference: {fileID: 0}
+    - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.y
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
@@ -1358,30 +1453,65 @@ PrefabInstance:
       propertyPath: m_Name
       value: Starfury
       objectReference: {fileID: 0}
+    - target: {fileID: 5127683714423472661, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.x
+      value: -0.00000023841238
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127683714423472661, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.z
+      value: 0.8000021
+      objectReference: {fileID: 0}
     - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.x
-      value: -0.00000047683676
+      value: -0.000012636178
+      objectReference: {fileID: 0}
+    - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_ConnectedAnchor.y
+      value: -0.00000035762787
       objectReference: {fileID: 0}
     - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.z
-      value: 1.3000021
+      value: 0.8000455
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.x
-      value: 6.82121e-13
+      value: -4.4337867e-12
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.y
-      value: 1.999999
+      value: 2.0000033
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.z
-      value: 0.00000023841858
+      value: 0.0000035762787
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798944573743077099, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_Size.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798944573743077099, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_Size.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798944573743077099, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_Size.z
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798944573743077099, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8522845253490791393, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
@@ -1406,22 +1536,22 @@ PrefabInstance:
     - target: {fileID: 8522845253490791393, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.60978454
       objectReference: {fileID: 0}
     - target: {fileID: 8522845253490791393, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 8522845253490791393, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0.79256725
       objectReference: {fileID: 0}
     - target: {fileID: 8522845253490791393, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 8522845253490791393, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
@@ -1431,7 +1561,7 @@ PrefabInstance:
     - target: {fileID: 8522845253490791393, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
+      value: -104.852
       objectReference: {fileID: 0}
     - target: {fileID: 8522845253490791393, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
