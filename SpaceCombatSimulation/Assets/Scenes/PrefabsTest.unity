@@ -2911,6 +2911,36 @@ PrefabInstance:
       propertyPath: m_Name
       value: ManualStarfury
       objectReference: {fileID: 0}
+    - target: {fileID: 1287222402047775617, guid: 7fd6ea2fbbeae0646bdc77bfc63775ee,
+        type: 3}
+      propertyPath: m_TagString
+      value: Player
+      objectReference: {fileID: 0}
+    - target: {fileID: 2779025955513648638, guid: 7fd6ea2fbbeae0646bdc77bfc63775ee,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3685625011812611536, guid: 7fd6ea2fbbeae0646bdc77bfc63775ee,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5183046681634425775, guid: 7fd6ea2fbbeae0646bdc77bfc63775ee,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5507484840942706353, guid: 7fd6ea2fbbeae0646bdc77bfc63775ee,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5693359587957582306, guid: 7fd6ea2fbbeae0646bdc77bfc63775ee,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6369421883575228816, guid: 7fd6ea2fbbeae0646bdc77bfc63775ee,
         type: 3}
       propertyPath: m_RootOrder
@@ -2970,6 +3000,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_ConnectedAnchor.z
       value: 0.7999878
+      objectReference: {fileID: 0}
+    - target: {fileID: 7488881865182185208, guid: 7fd6ea2fbbeae0646bdc77bfc63775ee,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7fd6ea2fbbeae0646bdc77bfc63775ee, type: 3}

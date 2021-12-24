@@ -65,7 +65,7 @@ PrefabInstance:
     - target: {fileID: 4611299104655612400, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_Name
-      value: ManualStarfury Variant
+      value: ManualStarfury
       objectReference: {fileID: 0}
     - target: {fileID: 4611299104655612400, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
@@ -419,7 +419,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1287222402047775617}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a124bb2bf147381439ad8c81fc59a1eb, type: 3}
   m_Name: 

@@ -324,6 +324,36 @@ Transform:
   m_Father: {fileID: 8522845253490791393}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &3743041562260999097
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7771662073689281587}
+  m_Layer: 0
+  m_Name: ShipTag
+  m_TagString: SpaceShip
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7771662073689281587
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3743041562260999097}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 8522845253490791393}
+  m_RootOrder: 11
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3939056957501003595
 GameObject:
   m_ObjectHideFlags: 0
@@ -451,6 +481,7 @@ Transform:
   - {fileID: 2890392871233721912}
   - {fileID: 5287306362539743337}
   - {fileID: 7311128072717724345}
+  - {fileID: 7771662073689281587}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1671,7 +1702,7 @@ PrefabInstance:
     - target: {fileID: 473361267234389882, guid: 6dcad45cdcf6a584ebbc6ac29e90d464,
         type: 3}
       propertyPath: m_ConnectedAnchor.x
-      value: -0.000012636178
+      value: 0.00000023842478
       objectReference: {fileID: 0}
     - target: {fileID: 473361267234389882, guid: 6dcad45cdcf6a584ebbc6ac29e90d464,
         type: 3}
@@ -1681,22 +1712,22 @@ PrefabInstance:
     - target: {fileID: 473361267234389882, guid: 6dcad45cdcf6a584ebbc6ac29e90d464,
         type: 3}
       propertyPath: m_ConnectedAnchor.z
-      value: 0.8000455
+      value: 0.8000002
       objectReference: {fileID: 0}
     - target: {fileID: 475062597417985008, guid: 6dcad45cdcf6a584ebbc6ac29e90d464,
         type: 3}
       propertyPath: m_ConnectedAnchor.x
-      value: -4.4337867e-12
+      value: 1.4210855e-13
       objectReference: {fileID: 0}
     - target: {fileID: 475062597417985008, guid: 6dcad45cdcf6a584ebbc6ac29e90d464,
         type: 3}
       propertyPath: m_ConnectedAnchor.y
-      value: 2.0000033
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 475062597417985008, guid: 6dcad45cdcf6a584ebbc6ac29e90d464,
         type: 3}
       propertyPath: m_ConnectedAnchor.z
-      value: 0.0000035762787
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 553539391366125646, guid: 6dcad45cdcf6a584ebbc6ac29e90d464,
         type: 3}
