@@ -71,7 +71,6 @@ public class ManualSpaceShipControler : AbstractDeactivatableController
         _manualPilot = new ManualSpaceshipPilot(torqueApplier, _thisSpaceship, Engines, Fuel);
     }
 
-    // Update is called once per frame
     void FixedUpdate()
     {
         if (_active && _manualPilot != null)

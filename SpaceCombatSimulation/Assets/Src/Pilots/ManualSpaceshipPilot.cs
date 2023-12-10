@@ -1,5 +1,6 @@
 ﻿using Assets.Src.Interfaces;
 using Assets.Src.Targeting;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -25,16 +26,6 @@ namespace Assets.Src.Pilots
             if (HasActivated())
             {
                 var worldTurningVector = ReadWorldTurnVectorFromControls();
-
-                //Debug.Log(
-                //    "slowdownMode: " + _slowdownMode +
-                //    ", distance: " + Math.Round(distance, 1) +
-                //    ", approachVector: " + approachVector +
-                //    ", tanSpeed: " + Math.Round(tanSpeed, 3) +
-                //    ", tanSpeedVector: " + tanSpeedVector +
-                //    ", VApproach: " + Math.Round(targetsApproachVelocity.magnitude, 3) +
-                //    ", slowdownVector: " + slowdownVector +
-                //    ", turningVector: " + turningVector);
 
                 _torqueApplier.TurnToVectorInWorldSpace(worldTurningVector);
 
@@ -84,9 +75,9 @@ namespace Assets.Src.Pilots
                 turningVector += Vector3.left;
             }
 
-            //Debug.Log("turningVector: " + turningVector);
-
-            return _pilotObject.transform.TransformDirection(turningVector);
+            var worldTurningVector = _pilotObject.transform.TransformDirection(turningVector);
+            //Debug.Log("local turningVector: " + turningVector + ", world turningVector: " + worldTurningVector);
+            return worldTurningVector;
         }
 
         private Vector3 ReadWorldForceVectorFromControls()
