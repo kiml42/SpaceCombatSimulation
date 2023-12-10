@@ -70,12 +70,22 @@ PrefabInstance:
     - target: {fileID: 4611299104655612400, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_TagString
-      value: PlayerSpaceShip
+      value: Player
       objectReference: {fileID: 0}
     - target: {fileID: 4780198101579982582, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_Enabled
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_Limits.max
+      value: 45
+      objectReference: {fileID: 0}
+    - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_Limits.min
+      value: -45
       objectReference: {fileID: 0}
     - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
@@ -85,22 +95,37 @@ PrefabInstance:
     - target: {fileID: 5267663018389073905, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.z
-      value: 0.8000002
+      value: 0.8000195
+      objectReference: {fileID: 0}
+    - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_Limits.max
+      value: 45
+      objectReference: {fileID: 0}
+    - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_Limits.min
+      value: -45
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.x
-      value: 1.4210855e-13
+      value: 2.1060487e-11
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.y
-      value: 2
+      value: 1.9999707
       objectReference: {fileID: 0}
     - target: {fileID: 5268097629044716411, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_ConnectedAnchor.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5321124952124323063, guid: 63ceb556cd8d1a44e8d5822b94435a99,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 3.22
       objectReference: {fileID: 0}
     - target: {fileID: 8522845253490791393, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
@@ -110,17 +135,17 @@ PrefabInstance:
     - target: {fileID: 8522845253490791393, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1587.5348
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8522845253490791393, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 50.42588
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8522845253490791393, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: -109.33954
+      value: 900
       objectReference: {fileID: 0}
     - target: {fileID: 8522845253490791393, guid: 63ceb556cd8d1a44e8d5822b94435a99,
         type: 3}
@@ -393,7 +418,7 @@ MonoBehaviour:
   MaxTangentialVelocity: 10
   MinTangentialVelocity: 0
   TangentialSpeedWeighting: 50
-  CancelRotationWeight: 5
+  CancelRotationWeight: 1
   Engines:
   - {fileID: 1335999575424463481}
   - {fileID: 915202769862483440}
