@@ -2,7 +2,23 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## What this is
+## Status: the Unity project is archived
+
+**Active development is in `game/`, a TypeScript rewrite. Start at [game/DESIGN.md](game/DESIGN.md) and
+[game/CLAUDE.md](game/CLAUDE.md).**
+
+The Unity project in `SpaceCombatSimulation/` is a 2017–2021 prototype, kept for reference and occasional
+tinkering. Do not modify it, do not upgrade it, and do not attempt to port it incrementally — the rewrite changes
+language, dimensionality and physics ownership, so nothing carries over as code. `game/DESIGN.md` §10 lists the
+files worth *reading* for their design, plus three specific failures recorded so they aren't repeated.
+
+**Opening it with an installed editor (6000.3.2f1 or 6000.3.9f1) converts the project in place, irreversibly** —
+it is pinned to 2022.3.15f1. To run it, install the pinned editor via Unity Hub, or convert on a branch and never
+merge.
+
+The rest of this file documents that archived project.
+
+## What it is
 
 A Unity 3D simulation of space combat with Newtonian-ish physics ("space ships are not aeroplanes"), plus a
 genetic-algorithm harness that evolves ship designs. A ship is not authored by hand: it is *grown* from a genome

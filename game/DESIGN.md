@@ -1,0 +1,451 @@
+# Space Combat Simulation — Design
+
+A planar, physics-driven fleet-tactics game with deep ship design, built in TypeScript.
+This is the successor to the Unity project in `SpaceCombatSimulation/`, which is archived
+in place and no longer developed.
+
+**This is a living document.** Amend it when decisions change, and record the change in the
+Decision Log at the bottom. Its job is to stop already-settled questions from being
+re-litigated after a gap — most entries therefore record *why*, not just *what*.
+
+---
+
+## Status
+
+- **Where I was:** design settled (this document). No code written yet.
+- **Next:** Slice 0 — scaffold `game/`, then build the pure simulation module.
+- **Blocked on:** nothing.
+- **Last updated:** 2026-09-02
+
+---
+
+## 1. Goal
+
+A game I'd enjoy playing and want to show people. Hobby scale is a success; a small
+release is the hope. The research/sandbox side that the original project grew into is
+kept as a *mode*, not as the point.
+
+**Non-goals:** empire-scale RTS, base building, resource-management-as-main-verb, real-time
+competitive multiplayer, photorealistic art, mobile phones.
+
+---
+
+## 2. Game shape
+
+Real-time with pause. Homeworld-structured: a mothership plus a small fleet. Depth lives in
+**ship design, target prioritisation and manoeuvre doctrine** — all configurable while paused,
+so decisions are never under time pressure.
+
+| Aspect | Decision |
+| --- | --- |
+| Capitals | ≤ 10, including the mothership. Each one precious; losing one always hurts. |
+| Strike craft | Up to ~100. No hard distinction between fighter and guided torpedo — one has a gun, the other a warhead. |
+| Production | Edit a blueprint and *future* production uses it. Fleets transition gradually, so design changes are visible as a shifting mix rather than a step change. |
+| Doctrine | Editable per craft, with "propagate to all identical craft" as a tactical verb — flip a whole swarm from defensive to aggressive mid-battle. |
+| Scarcity | Ammunition and propellant are limited. This is what makes engagement-range and manoeuvre doctrine matter rather than being sliders nobody touches. |
+| Orders | Every order is *(target object, allowed distance range, allowed approach-angle range)*, mostly defaulted from doctrine — so issuing one collapses to picking a target. Fixed points in space rarely make sense; orders are relative to objects. |
+| Scale rationale | Small numbers are a design requirement, not a technical limit: you must be able to attribute a battle outcome to a design change. |
+
+---
+
+## 3. World model
+
+**Planar simulation, deck-plan projection.** The plane is a deck plan viewed from above —
+hull has unmodelled thickness — *not* a cross-section slice.
+
+**Two layers:**
+
+- **Hull layer** — capital structural hull and internals (power, magazines, fuel, computer cores).
+- **Weapons layer** — all weapons, all strike craft, all ordnance, all projectiles.
+
+Implemented as **one physics simulation plus a per-capital internals data structure**, not as two
+simulations. Penetrating ordnance walks the internals along its ray. There is no moment where a
+projectile changes layer, so no discontinuity to reason about.
+
+Rules:
+
+- Guns fire over friendly and enemy decks alike. Per-mount **firing arcs**, derived from the ship's
+  own layout, are what constrain them — which is how naval gunnery actually works.
+- **Guns mission-kill; ordnance destroys.** Guns strip mounts, sensors and engines and leave a
+  drifting hulk. HE shells give small guns light hull damage (lasers cannot), so the asymmetry is a
+  *loadout choice* rather than a hard immunity — hard immunities frustrate players.
+- A **turret module includes the bit of hull it mounts to**, so the blueprint editor stays a single
+  2D view and "is this shootable by guns" is a property of the module you picked.
+- Large modules may be flagged as **protruding** into the weapons layer: useful, but gun-vulnerable.
+- **Strike craft live wholly in the weapons layer.** They therefore carry edge-mounted weapons only,
+  overfly capital decks freely, and collide with turrets but not hull — so dense turret coverage
+  physically obstructs strafing runs. Fighters do not get special occlusion rules; a fighter that
+  crosses a firing line eats the round, which is a feature.
+- Docks on capital surfaces let strike craft land, rearm and recharge.
+
+### Why not 3D
+
+- Player-facing modular ship design is a hard, unsolved UI problem in 3D and a pleasant, solved one
+  in a plane. The current project dodges this entirely because ships are *grown from a genome* and
+  never authored by a human. Making design a player verb inherits the problem.
+- RTS control in 3D space remains unsolved 25 years after Homeworld's move-disc.
+- Legibility: occlusion and depth ambiguity hide exactly the information needed to judge a design —
+  range bands, arcs, who is shooting whom.
+- Thruster allocation is 3 constraint equations instead of 6, with a scalar moment of inertia
+  instead of a tensor. See §4.
+- **Accepted loss:** strike craft have one lateral evasion axis instead of two, and the
+  three-dimensional shell of fighters around a capital is gone. Mitigated by nested range bands,
+  per-squadron approach angles and orbit directions, and by fast-pass attack profiles (approach,
+  fire at closest approach, retreat) which suit a plane well. A fully 3D sequel is a possible
+  long-term outcome, not a near-term option.
+
+---
+
+## 4. Simulation model
+
+**One planar rigid body per ship. Modules are data, not physics bodies.**
+
+- **Connectivity graph** per hull. When damage disconnects a subgraph, spawn a new body for the
+  detached chunk inheriting `v + ω × r`, and recompute mass properties on both sides. This gives
+  ships breaking in half, losing engines and tumbling, and wrecks to salvage — the good part of the
+  old jointed-assembly model — without a constraint solver.
+- **No joints anywhere.** The joint solver was the cost centre, the main obstacle to determinism,
+  and the direct cause of the turret-control problems in the old project.
+- **Turrets are kinematic**: slew toward the lead-corrected bearing under rate and acceleration
+  limits; apply reaction torque to the parent analytically. Three bodies per turret become zero.
+- **Projectiles are not bodies.** A projectile is `(position, velocity, payload)` in a flat array,
+  resolved by testing the swept segment `p → p + v·dt` against the broadphase. Tunnelling is
+  structurally impossible rather than patched, it is cheaper than a body per bullet, and it is
+  the natural formulation for penetration through internals.
+- **Collision:** impulse-based, single pass. Stacking and resting contact are artefacts of a
+  persistent force pressing bodies together; in space there isn't one, so the hard case never arises.
+- **Weld on slow contact:** two bodies touching below a relative-velocity threshold (and, where
+  relevant, within an alignment tolerance) merge into one compound body with recomputed mass
+  properties. One rule covers debris clumping into larger salvage, ship-to-ship docking,
+  tractor-beam harvesting terminating cleanly, and strike craft landing on docks — and every case
+  *removes* bodies rather than adding sustained contacts. A tractor beam stops pulling at contact
+  and welds instead.
+- **Thruster allocation** is solved **once per blueprint**, not per tick: given desired body-frame
+  force and torque, find non-negative throttles minimising propellant, subject to
+  `Σ uᵢTᵢdᵢ = F` and `Σ uᵢTᵢ(rᵢ × dᵢ) = τ`. Three constraints in a plane. Per-tick control is then
+  a matrix multiply; recompute only when modules are lost. This is what makes 100 strike craft cheap.
+  - **The achievable (Fx, Fy, τ) set is a 3D polytope that can be drawn for the player.** For a game
+    whose depth is ship design, showing what a thruster layout actually bought is a headline feature.
+    In 3D the envelope is 6-dimensional and undisplayable.
+  - This is the exact problem ("RCS engines") that stalled the old project.
+- **Integrator:** symplectic (velocity Verlet / leapfrog), fixed timestep, with substepping near
+  deep gravity wells. Semi-implicit Euler visibly precesses and spirals orbits.
+- **Trajectory prediction** by running the integrator forward on a copy of the state — one sim, not
+  a second predictor that disagrees with it.
+
+### Parametric modules
+
+A small set of archetypes with continuous parameters rather than a catalogue of discrete parts:
+size, aspect ratio, constant wall thickness (so scale reads honestly), reinforcement level.
+Mass from wall volume, capacity from interior area, strength from thickness and reinforcement.
+
+- Balancing becomes **designing scaling laws**, not tuning a table of hundreds of part stats.
+- The existing genome already emits continuous scaled numbers, so evolution can search *shape*
+  rather than a discrete part index.
+- **Watch for degenerate optima.** If capacity scales as r² and mass as r, bigger is always better and
+  everyone builds one enormous tank. Counter-pressures: structural stress rising with span, damage
+  locality (one big tank means one hit loses everything), and protruding large modules becoming
+  gun-vulnerable.
+- **The GA is an automated exploit-finder** for these scaling laws — any mispricing gets discovered
+  in your own game within a few generations. This is a strong argument for building headless
+  evolution early.
+
+### Determinism
+
+Target: **bit-exact on the same machine and build**; code shaped so cross-platform is a swap, not a
+rewrite.
+
+- Fixed timestep. Seeded PRNG threaded explicitly — never a global random.
+- No `Date.now()`, `performance.now()`, `Math.random()` or wall-clock anything inside the sim.
+- **Write our own `sin`, `cos`, `tan`, `atan2`, `exp`, `pow`, `log`, `hypot`** from `+ - * /`
+  (~200 lines of polynomial approximation) from day one. These are *explicitly
+  implementation-defined* in the ECMAScript spec and differ between V8, SpiderMonkey and
+  JavaScriptCore, and V8 has changed its own between versions. `Math.sqrt` and basic arithmetic
+  are exactly specified and safe. This is cheap and it buys portable replays and async PvP.
+- Determinism pays for: replay and scrubbing ("why did my design lose?"), reproducible evolution
+  (otherwise a real fitness gain is indistinguishable from noise), and golden regression tests.
+
+**Deferred:** light structural stress simulation for plastic buckling under load. Cheap to add later
+— the connectivity graph is already the right substrate (nodes and beams, static load solve, sever
+or flag on yield). Deferred because long thin hulls are already punished by being easy to sever.
+
+---
+
+## 5. Technical architecture
+
+TypeScript throughout. Four layers, one contract: **commands in, snapshots out.**
+
+```
+game/
+  sim/      pure TS. No DOM, no renderer, no timers, no engine types.
+            Typed arrays, allocation-free hot loops, deterministic.
+            Runs unchanged in the browser and in Node.
+  render/   WebGL. Consumes state snapshots. Knows nothing about game rules.
+  ui/       React. UI state only. Sends commands, samples telemetry.
+  host/     Window and worker lifecycle, tab/window management.
+  scenarios/  Data files.
+```
+
+- **The sim runs in a `SharedWorker`.** Not only to enable multi-window: browsers throttle
+  background tabs to roughly 1 Hz and stop `requestAnimationFrame`, so a main-thread sim freezes
+  when its tab is minimised. In a worker it keeps running.
+- **Multi-window is nearly free** given that boundary — every window is a view subscribing to
+  snapshots. Blueprint editor on one monitor, battle on another, evolution graphs on a third.
+  (Fall back to a dedicated worker plus leader election if `SharedWorker` support is a problem.)
+- **`SharedArrayBuffer` requires cross-origin isolation** (`COOP: same-origin`,
+  `COEP: require-corp`). **GitHub Pages cannot set those headers**; Netlify, Cloudflare Pages and
+  Vercel can. Otherwise use `postMessage` with transferable `ArrayBuffer`s, which works anywhere.
+- **React holds UI state only** — which panel is open, which ship is selected, editor values.
+  Never per-frame sim state: a 60 Hz re-render over hundreds of entities is a performance
+  catastrophe. The battle view is a `<canvas>` React mounts and then ignores. Sample selected-ship
+  telemetry at ~10 Hz. (React StrictMode double-invokes effects in dev — expect to accidentally
+  start two simulations at least once.)
+- **Rendering:** procedural 2D vector art generated from each module's shape data, colour and
+  metadata. **Triangulate a blueprint once, instance per ship** — the same precompute pattern as the
+  thruster matrix. WebGL, because ~4,000 filled paths per frame is beyond Canvas2D.
+  - **Exception:** the Slice 0 debug viewer uses Canvas2D. At twenty bodies it's fine and it's a
+    tenth of the code. Keep the renderer behind an interface so the swap is contained.
+  - Procedural art means **adding a module type costs zero art**, and module variety *is* the
+    content. It also guarantees the picture matches the simulation, which matters when the picture
+    is the instrument you read design failures from.
+  - Later polish is *better procedural* — bevels, panel lines, greebles, decals and logos derived
+    from module metadata, damage states from hit points — not hand-made assets bolted alongside,
+    which would look inconsistent. Procedural 3D remains possible later as a skin; the sim boundary
+    is what keeps that option open.
+
+### Why TypeScript rather than Godot or Unity
+
+- The dominant cost in this game is **application UI** — blueprint editor, internals view, order
+  layer, doctrine config, fleet management, evolution graphs — with a real-time canvas in the
+  middle. The web platform is the best UI toolchain available.
+- Distribution by URL. Sharing a link matters for a project whose goal includes showing people.
+- Owning the physics is required for the integrator choice, trajectory prediction, regional physics
+  and determinism; no engine allows that. See §4.
+- Learning TypeScript, React and WebGL has direct professional value, which on a long-timeline
+  hobby project may matter more than any technical factor.
+- **Accepted cost:** currently productive in Unity 6 on another project; that productivity is being
+  given up deliberately. Also: allocation-free typed-array code is less pleasant than C# structs,
+  and this is the main technical tax being accepted.
+
+---
+
+## 6. Data and persistence
+
+- **SQLite via `wa-sqlite` on OPFS**, inside the worker, for evolution and analysis data. SQL is
+  genuinely the right tool for "filter individuals by run, order by generation and score" — those
+  queries already exist in `DebuggingScripts.sql`. The result is a real SQLite file, openable in any
+  SQLite tool.
+- **Files on disk** for saves and blueprints. Blueprint sharing as a file or URL-encoded string is
+  a cheap and strong social mechanic, and it doubles as the import path for async PvP fleets.
+- **Browser storage can be evicted** — by storage pressure, privacy settings, or the user clearing
+  site data. Call `navigator.storage.persist()`, keep an "export database" action prominent, and
+  prompt after long runs. Anything you'd be upset to lose must end up as a file on disk.
+- **No server** until there's a concrete reason. A static site never rots and costs nothing to keep
+  alive through dormant periods.
+
+---
+
+## 7. Evolution
+
+Tiered, because the two tiers have completely different sample economics.
+
+**Strike craft — in-battle, continuous.** Craft carry variant configurations; the mothership
+produces mutated copies of high scorers during the battle.
+
+Fitness must be **cohort-relative and exposure-normalised**, or it selects for luck, not design:
+
+- Normalise by exposure — damage per second under fire, or per shot fired, not absolute totals.
+- Compare only within cohorts: craft that spawned in the same window with the same order type.
+- Require a minimum sample count before a variant may reproduce.
+- Keep concurrent variants few (4–8) so each accumulates meaningful samples.
+
+*Rationale: a craft's damage dealt and received depends far more on when it spawned and what it was
+sent at than on its configuration. Naive scoring selects for soft assignments.*
+
+**Capitals — between-battle, directed search** over doctrine parameters. Small population,
+expensive evaluation.
+
+**Campaign enemy: constrained search space, not free-form.** Legible axes only — standoff range,
+armour fraction, point-defence fraction, aggression, weapon-type mix — with **bounded edit
+distance** per generation (at most K parameters changed, each by at most X%, at most one module
+added or removed). Variants arrive **named**, using the existing species/subspecies taxonomy
+generated from the module tree. The target is TIE-fighter-variant family resemblance: obviously the
+same lineage, obviously specialised differently.
+
+*Rationale: unconstrained evolution produces inventive, illegible ships — delightful in a sandbox,
+useless as an antagonist. If the enemy gets quietly 5% better nobody notices, and the headline
+feature becomes invisible.*
+
+**Free-form genome search** — the circular genome, jumps, emergent species — is retained for the
+**sandbox mode**, where weirdness is the entertainment.
+
+**Scheduling and fairness:**
+
+- Run the next enemy generation in **workers during the current battle**, not in a loading screen.
+  A browser game with procedural art has nothing to load; a fabricated progress bar would be worse
+  than free.
+- **Evolve against a distribution**, not a point: the current fleet plus perturbations plus the last
+  few missions' fleets, so counters generalise rather than snipe.
+- **Select for "better than last generation"**, not "optimal against the player".
+- **Lag by a mission**, so a new idea gets a window in which it works.
+- **Surface it as intel** — "the enemy is fielding more armour". Adaptive opposition is fun exactly
+  when it is visible and anticipatable; invisible adaptation reads as cheating.
+- Let the player inspect captured enemy designs, including a **diff against the previous variant**.
+
+---
+
+## 8. Build order
+
+**Slice 0 — "two ships fight, and I can prove it's deterministic."**
+Pure sim module: fixed timestep, planar bodies, symplectic integrator, uniform-grid broadphase,
+swept-segment projectiles, kinematic turrets, per-blueprint thruster allocation, hit points,
+connectivity severing, weld-on-slow-contact, seeded PRNG, own transcendentals. Two blueprints
+hard-coded. One target-picker stack (proximity, line-of-sight, correct-hemisphere) ported in design
+from the old project. Crude Canvas2D viewer with pause and time scaling. A Node test running a fixed
+battle and asserting the outcome bit-for-bit.
+
+*Why first: it attacks the real risks (does planar Newtonian combat feel good? do the scaling laws
+hold?) rather than the known ones; it keeps the sim boundary pure by construction, because there is
+no DOM to leak; and it puts something on screen within days, which is what buys the next session.*
+
+Then, in order:
+
+1. **Blueprint editor** — parametric modules; ships stop being hard-coded.
+2. **Doctrine and orders** — make configuration visibly change behaviour.
+3. **Headless evolution and analysis** — balance testing plus sandbox mode.
+4. **v1: skirmish** — fixed fleet budget, designed scenarios, shareable by URL. *This is the first
+   thing worth giving people to play.*
+5. **Salvage and in-battle construction** — wrecks from the current battle as the resource. The
+   natural bridge to an economy: no map features needed, and it ties income directly to combat.
+6. **Mining and the two-resource economy** — metals for hulls, volatiles for propellant, so maps can
+   have economic character and scarcity changes behaviour. *Note: this is a re-balance, not an
+   addition — it lengthens battles and replaces "did I spend 500 points well?" with "did I manage
+   income well?". Scenarios will need revisiting.*
+7. **Campaign** — Homeworld-shaped, with the adaptive enemy. Last, because it's mostly *authoring*
+   (scripted missions, pacing, narrative), which is the largest volume of work in the least-proven
+   discipline.
+
+**Scenario packs** are the cheapest way to make it a game with goals rather than a sandbox, and they
+teach the mechanics. Each scenario is a data file, not code.
+
+### Multiplayer
+
+- **Async fleet-vs-fleet is nearly free** and stays open: a fleet file (blueprints + doctrine +
+  build priorities) plus a seed, run deterministically, produces a replay both sides can watch.
+  No server, no netcode, no rollback. The variant where the budget arrives as *starting resources on
+  a mothership with build priorities* is better than a pre-built fleet, because build doctrine
+  becomes part of what's being competed on. Requires portable determinism — hence own transcendentals.
+- **Real-time PvP is ruled out**: it is incompatible with pause-to-think, which is core.
+- **Co-op** is the only sensible real-time shape, and it's also the easiest — everyone pauses together.
+- Nothing is being built for multiplayer now, but nothing forecloses it: the pure sim, fixed
+  timestep, explicit seeding and commands-in/snapshots-out contract *are* the lockstep architecture.
+
+---
+
+## 9. Practices
+
+Five things, and deliberately nothing more:
+
+1. **Golden battle tests from Slice 0.** Fixed scenarios with bit-exact pinned outcomes. This is the
+   entire return on buying determinism: after a gap, one command tells you the sim is intact.
+   Without it you'll be afraid to touch the physics, which is where the interesting work is.
+2. **This document, kept current**, with the Status section at the top actually updated.
+3. **CI running tests on push**, so the repo reports its own state without an environment setup.
+4. **Single-command headless runs** — `npm run battle -- scenarios/duel.json`. Re-entry from a cold
+   checkout should be one command.
+5. **A `CLAUDE.md`** for this project.
+
+**Anti-recommendation:** no elaborate tooling before the doctrine/orders slice. Editor
+infrastructure, asset pipelines and clever abstractions are the most seductive form of
+procrastination available to a programmer and they feel like progress.
+
+---
+
+## 10. The old Unity project
+
+Left in `SpaceCombatSimulation/`, pinned at Unity 2022.3.15f1, **not** upgraded and not maintained.
+Installed editors on this machine are 6000.3.2f1 and 6000.3.9f1 — **opening it with either converts
+the project in place, irreversibly**. To tinker, either install the pinned editor via Unity Hub or
+do the conversion on a branch and never merge it.
+
+Nothing ports as code: 12,685 lines across 158 files, 120 of which reference `UnityEngine`, plus 106
+prefabs and 12 scenes that could only be re-authored. What ports is the **design**. Worth reading
+rather than reinventing (paths relative to repo root):
+
+| What | Where |
+| --- | --- |
+| Circular-genome-with-jumps encoding | `SpaceCombatSimulation/Assets/Src/Evolution/GenomeWrapper.cs` |
+| Competitor selection (fewest matches first, avoid repeat pairings) | `SpaceCombatSimulation/Assets/Src/Evolution/Generation.cs` |
+| Species/subspecies naming from the module tree | `SpaceCombatSimulation/Assets/Src/ModuleSystem/ModuleRecord.cs` |
+| The *taxonomy* of target pickers — proximity, approaching, hemisphere, line-of-sight, mass, previous-target, looking-at, ship-type, has-tag | `SpaceCombatSimulation/Assets/Src/Targeting/TargetPickers/` |
+| Priority-ordered picker stack (ascending priority; a low-priority discard hides targets from higher ones) | `SpaceCombatSimulation/Assets/Src/Targeting/TargetPickers/CombinedTargetPicker.cs` |
+| Spawn positioning, orientation, velocity | `SpaceCombatSimulation/Assets/Src/Evolution/MatchConfig.cs` |
+| Evolution schema and analysis SQL | `SpaceCombatSimulation/Assets/StreamingAssets/CreateBlankDatabase.sql`, `DebuggingScripts.sql` |
+| Roadmap and known-issue history | `ToDo.txt` |
+
+Specific failures worth not repeating:
+
+- `Turret/UnityTurretTurner.cs` drives a `HingeJoint` motor with a pure proportional controller on
+  velocity, and `Turret/TurrertTurningMechanism.cs` hands the gains to the **genetic algorithm** to
+  search. Asking a GA to find stable PD gains for a jointed chain through a physics solver produces
+  exactly the huge torques and damping forces observed. Turrets are kinematic now.
+- `Controllers/HighSpeedProjectile.cs` lets Unity move a rigidbody clean through its target, then
+  raycasts the swept segment afterwards and teleports back to the hit point. Right algorithm, wrong
+  layer. Projectiles are swept segments now.
+- `ObjectManagement/TimeDialationDevice.cs` drives the *global* `Time.timeScale` and auto-scales from
+  render frame time, which is why "Autotime doesn't work with batchmode" is in `ToDo.txt`. Sim speed
+  is now "how many fixed steps per rendered frame", identical headless and at 100×.
+
+**Deletion trigger:** delete the Unity tree once the new sim runs an evolution generation headlessly
+and the old files have stopped being opened. Otherwise it lingers as a guilty artefact.
+
+---
+
+## 11. Rejected alternatives
+
+Recorded so they aren't reopened without new information.
+
+| Rejected | Why |
+| --- | --- |
+| Modernise the Unity project | Nothing ports; the RTS is ~100% new work regardless; the 2022.3 → 6.3 upgrade is an unrewarding slog paid for a codebase being replaced. |
+| Stay 3D | Player-facing 3D modular ship design is unsolved; 3D RTS control is unsolved; occlusion hides the information needed to judge designs; 6-DOF thruster allocation and an undisplayable envelope. |
+| Strict single plane, perimeter weapons only | Weapon frontage grows as r while internal area grows as r², so big ships end up worse-armed per tonne — directly attacking the "another capital is a big deal" fantasy. |
+| Two genuinely separate physics planes | Collapses to one sim plus an internals structure with identical expressive power and a fraction of the machinery. |
+| Keep jointed module assemblies | The joint solver is the cost centre, the determinism obstacle, and the cause of the turret problems. Connectivity-graph severing gives the good part without it. |
+| Engine physics (Box2D via Unity or Godot) | Deterministic only for an identical binary on an identical platform, and not across engine versions — one editor upgrade silently invalidates every replay and regression test. Also no choice of integrator, no trajectory prediction, no regional physics. |
+| Godot 4 with C# | Genuinely close second, and MIT solves the licensing concern. Lost on UI toolchain, distribution by URL, and professional learning value. |
+| MonoGame / Silk.NET + Dear ImGui | ImGui is excellent for tools and will make a game you want to show people look like a debug build. |
+| Raster sprites | Rotating ships carry baked highlights around under a directional star; fixing it means normal maps, which is 3D work in disguise. |
+| 3D meshes | Art cost per module gates content, and module variety *is* the content. There were only ever 3 mesh files in the old project; there is nothing to preserve. |
+| Canvas2D for the real renderer | ~4,000 filled paths per frame is past where Canvas2D falls over. (Kept for the Slice 0 debug viewer.) |
+| Hand-modelled hero ships alongside procedural ones | Looks inconsistent, not aspirational. Polish is *better procedural*. |
+| Evolution in a loading screen | Procedural art means there is nothing to load; a fabricated progress bar is worse than free. Run it in workers during the current battle. |
+| Free-form evolution for the campaign enemy | Produces illegible weirdness. Kept for the sandbox. |
+| Real-time PvP | Incompatible with pause-to-think. |
+| A backend server | Hosting, auth and sync are ongoing work and cost for a project that goes quiet; a static site never rots. |
+| Campaign first | Mostly authoring — scripted missions, pacing, narrative — in the least-proven discipline. Skirmish is a complete loop and a better environment for the adaptive enemy anyway (hundreds of battles, not fifteen). |
+
+---
+
+## 12. Open questions
+
+Deliberately unresolved; decide when they block something.
+
+- Exact scaling laws for parametric modules (mass, capacity, strength) and the counter-pressures
+  that stop "one enormous tank" being optimal.
+- How severed chunks divide fuel, ammunition and power.
+- Whether fighter-vs-fighter collision matters at swarm density, or whether only capitals and
+  turrets are solid.
+- Ammunition model granularity — per-mount magazines, shared bunkerage, or both.
+- Whether the mothership's build priorities are a doctrine blob (so async PvP competes on them) or
+  a player-driven queue.
+- Concrete numbers everywhere: budgets, ranges, timestep, weld thresholds, edit-distance bounds.
+- Project name.
+
+---
+
+## Decision Log
+
+| Date | Change |
+| --- | --- |
+| 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
