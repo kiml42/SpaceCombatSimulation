@@ -23,4 +23,5 @@ export {
 } from './bodies.js';
 export { World, type ForceProvider, type WorldOptions } from './world.js';
 export { gravityWell, wellPotentialEnergy, type WellSpec } from './gravity.js';
+export { SpatialGrid, IndexBuffer, RayHit, segmentCircleT } from './spatialGrid.js';
 export { checksumWorld, formatChecksum } from './checksum.js';

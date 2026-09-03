@@ -12,19 +12,19 @@ re-litigated after a gap — most entries therefore record *why*, not just *what
 
 ## Status
 
-- **Where I was:** Slice 0, first half. The bottom of the simulation is built and
-  tested on branch `slice-0-sim-foundation`: deterministic maths (own
-  transcendentals), seeded RNG, structure-of-arrays body store with generational
-  handles, kick-drift-kick leapfrog integrator, gravity wells, state checksums.
-  66 tests green, both TypeScript projects clean.
-- **Next:** uniform-grid broadphase, then swept-segment projectiles. After that
-  per-blueprint thruster allocation and kinematic turrets, then the two
-  hard-coded blueprints and the Canvas2D debug viewer.
+- **Built and tested:** deterministic maths (own transcendentals), seeded RNG,
+  structure-of-arrays body store with generational handles, kick-drift-kick leapfrog
+  integrator, gravity wells, state checksums, and a uniform-grid spatial index with
+  segment and circle queries.
+- **Next:** swept-segment projectiles on top of the grid. Then per-blueprint thruster
+  allocation and kinematic turrets, then the two hard-coded blueprints and the
+  Canvas2D debug viewer, which completes Slice 0.
 - **Blocked on:** nothing.
-- **Measured so far:** ~0.19 microseconds per body-step (8 bodies, two force
-  providers, Node 24). At the design's ~140 bodies that is roughly 27
-  microseconds per step, against a 16,667 microsecond budget at 60 Hz. Integration
-  is not going to be the bottleneck; the broadphase and projectile queries will be.
+- **Measured:** integration costs ~0.19 microseconds per body-step. Ray queries
+  against 140 bodies at 2,000 casts per step cost 0.16 ms through the grid versus
+  0.79 ms brute-force — 5x, and about 1% of a 16,667 microsecond frame budget at
+  60 Hz. Neither is the bottleneck at this scale; the gap widens with projectile
+  count, which is the direction of travel.
 - **Last updated:** 2026-09-03
 
 ---
@@ -124,6 +124,12 @@ Rules:
   the natural formulation for penetration through internals.
 - **Collision:** impulse-based, single pass. Stacking and resting contact are artefacts of a
   persistent force pressing bodies together; in space there isn't one, so the hard case never arises.
+- **The spatial index is for queries, not collision pairing.** At a few hundred bodies, testing every body
+  against every other is cheaper than building an index to avoid it. What is expensive is thousands of
+  projectiles, turret line-of-sight checks and blast radii each interrogating a small region every step —
+  body count multiplied by query count. A uniform grid (rather than a tree) because everything moves every
+  step, so the index is rebuilt in one linear pass with no hierarchy to rebalance, and cell traversal is
+  plain ascending order, which keeps damage application order reproducible.
 - **Weld on slow contact:** two bodies touching below a relative-velocity threshold (and, where
   relevant, within an alignment tolerance) merge into one compound body with recomputed mass
   properties. One rule covers debris clumping into larger salvage, ship-to-ship docking,
@@ -498,4 +504,5 @@ Deliberately unresolved; decide when they block something.
 | --- | --- |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
 | 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |
+| 2026-09-03 | Uniform-grid spatial index added. Recorded in §4 that it is a *query* structure, not collision pairing: at a few hundred bodies all-pairs is cheaper than indexing, and the grid earns its place against thousands of ray and radius queries per step. |
 | 2026-09-03 | CI added, and it moved a §4 assumption: golden checksums hold bit-identically across x64 Linux, x64 Windows and ARM64 macOS on Node 20/22/24. Cross-platform determinism was filed as a deferred upgrade needing fixed-point arithmetic; it appears already true with doubles. Target left conservative, evidence recorded. |
