@@ -83,10 +83,29 @@ Rules:
 - A **turret module includes the bit of hull it mounts to**, so the blueprint editor stays a single
   2D view and "is this shootable by guns" is a property of the module you picked.
 - Large modules may be flagged as **protruding** into the weapons layer: useful, but gun-vulnerable.
-- **Strike craft live wholly in the weapons layer.** They therefore carry edge-mounted weapons only,
-  overfly capital decks freely, and collide with turrets but not hull — so dense turret coverage
-  physically obstructs strafing runs. Fighters do not get special occlusion rules; a fighter that
-  crosses a firing line eats the round, which is a feature.
+- **Strike craft fly in the weapons layer, but their *impacts* reach the hull.** Under a deck-plan
+  projection the weapons layer is *above the deck* and the hull layer is *the deck and below*, so a
+  strafing run skims the deck — its gunfire stays in the weapons layer and can only strip mounts and
+  protruding modules — while a craft that commits to a terminal dive strikes the deck itself, and that
+  impact is a hull-layer event.
+
+  **The layer transition is therefore an event, not a state.** Nothing migrates between layers and
+  nothing carries a layer flag; a *collision* with a hull is a hull-layer event and *projectile fire*
+  is a weapons-layer event, and that is the whole rule.
+
+  - This is what makes "a torpedo is a fighter that crashes into things" literal — **the crash is the
+    layer transition** — so a pure kinetic-kill vehicle works with no warhead at all. It does not reach
+    the hull layer by damaging both layers; it reaches it by arriving there.
+  - **Whether a craft overflies or commits is a doctrine choice**, not a property of the layer.
+    Overflying keeps the strafing mechanic: dense turret coverage physically obstructs the run, and a
+    craft that crosses a firing line eats the round. Committing trades that away — a diving craft has
+    given up its evasion, so point defence gets a far better shot at it. The ram is powerful and close
+    to suicidal, which is the right price for reaching a hull without ordnance.
+  - **Ram versus dock needs no new mechanism**: the weld-on-slow-contact threshold in §4 already decides
+    it. A craft closing slowly welds — it has landed. One closing fast delivers an impulse — it has
+    rammed. Same rule.
+- Strike craft carry **edge-mounted weapons**, because a craft is small enough that its own hull is in
+  the way of anything else.
 - Docks on capital surfaces let strike craft land, rearm and recharge.
 
 ### Why not 3D
@@ -546,6 +565,16 @@ Deliberately unresolved; decide when they block something.
   that stop "one enormous tank" being optimal.
 - How severed chunks divide fuel, ammunition and power.
 - Whether module destruction is a discrete state or simply the bottom of a continuous damage scale (§4).
+- **Whether capitals may mount hull-layer guns.** Not needed for torpedoes — §3 settles those — but it is
+  an appealing separate axis. Deck turrets are **area**-limited: many of them, arcs unconstrained, but they
+  can only strip mounts. Edge-mounted hull-layer guns would be **perimeter**-limited: few, narrow arcs, but
+  able to hole a hull directly. Big ships would then have to *specialise* rather than simply scale, and the
+  "guns mission-kill, ordnance destroys" line in §3 would become "deck turrets mission-kill; edge guns and
+  ordnance destroy", with edge guns paying for it in coverage. The cost is a second mounting concept in the
+  blueprint editor, so decide it when building the editor rather than before.
+- **Whether a downed craft's wreck falls onto the deck it was attacking.** Physically it should, and debris
+  raining on a capital is evocative; it may also be an irritation. Cheap either way, so leave it until
+  there is something to watch.
 - Whether fighter-vs-fighter collision matters at swarm density, or whether only capitals and
   turrets are solid.
 - Ammunition model granularity — per-mount magazines, shared bunkerage, or both.
@@ -563,6 +592,7 @@ Deliberately unresolved; decide when they block something.
 | --- | --- |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
 | 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |
+| 2026-09-03 | Resolved how a torpedo reaches a hull (§3). The layer transition is an *event, not a state*: a collision with a hull is a hull-layer event, projectile fire is a weapons-layer event, and nothing migrates between layers. A strafing run skims the deck; a terminal dive strikes it. So a kinetic-kill vehicle needs no warhead, "a torpedo is a fighter that crashes into things" becomes literal, and overfly-versus-commit becomes a doctrine choice priced in evasion. Ram versus dock needed no new mechanism — the §4 weld threshold already decides it. Capital hull-layer edge guns were kept as a separate open question, since torpedoes do not need them. |
 | 2026-09-03 | Units locked to SI (§4), removing the open question. Terminal ballistics and the damage model became build-order step 2 (§8), positioned after the blueprint editor because armour properties only exist once modules are parametric. And destruction became a *state change rather than a removal*: a wrecked module keeps its mass and still stops shells, so matter is conserved, damage never edits the connectivity graph, and wreckage is free armour — which also answers the two-rounds-one-step question physically rather than by phase ordering. |
 | 2026-09-03 | Impact resolution split out of ballistics (§4). A round that hits is parked and marked pending rather than consumed, so terminal ballistics — penetrate/embed/deflect, a pure function of local surface properties — can live outside the projectile step and the damage model can stay out of the inner loop. Required adding projectile mass, and `t` plus the surface normal to the hit record. Found and fixed the exactly-on-surface case that would have made every deflection re-hit its own hull. |
 | 2026-09-03 | Swept-segment projectiles added. Impacts are *reported*, not applied: ballistics fills a hit buffer and the damage model drains it, so what a hit does to a hull is decided elsewhere. Projectiles get plain indices rather than generational handles, because nothing holds a reference to a round across steps. Scenario fixtures became a step/checksum pair so a golden scenario can pin more than a world; the `orbit` and `tumble` checksums were unchanged by that refactor, which is what confirmed it was behaviour-neutral. |
