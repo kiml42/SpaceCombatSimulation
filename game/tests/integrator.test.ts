@@ -4,10 +4,10 @@ import { length } from '../sim/math.js';
 import { ORBIT_GM, ORBIT_RADIUS, orbitScenario, orbitWell } from './fixtures/scenarios.js';
 
 /**
- * The integrator is kick-drift-kick leapfrog, chosen because gravity wells are
- * in scope and orbital behaviour is the thing most likely to expose a bad
+ * The integrator is kick-drift-kick leapfrog, chosen because the simulation has
+ * gravity wells and orbital behaviour is the thing most likely to expose a bad
  * scheme. These tests are what justify that choice — and what will catch it if
- * someone later "simplifies" the step function.
+ * someone "simplifies" the step function.
  */
 
 function radiusOf(world: World): number {

@@ -77,11 +77,11 @@ jobs:
       # macos-latest is the only GitHub-hosted runner on a different CPU
       # architecture (ARM64, since Apple Silicon). IEEE-754 guarantees that
       # + - * / and sqrt are correctly rounded on any conforming hardware, and
-      # the simulation is built from nothing else — so this row is the evidence
-      # that the arithmetic is genuinely platform-independent, rather than
-      # merely consistent across x64. If the golden checksums hold here, the
-      # cross-platform replay that DESIGN.md §4 files as a "later, if needed"
-      # upgrade is in fact already true, and we will know rather than assume.
+      # the simulation is built from nothing else — so this row is the standing
+      # evidence that the arithmetic is genuinely platform-independent rather
+      # than merely consistent across x64. Portable replays and async
+      # fleet-vs-fleet rest on that, so this row keeps it a verified property
+      # instead of an assumed one.
       matrix:
         include:
           - os: ubuntu-latest
