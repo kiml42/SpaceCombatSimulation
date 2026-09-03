@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checksumWorld, formatChecksum } from '../sim/checksum.js';
+import { formatChecksum } from '../sim/checksum.js';
 import { SCENARIOS, type ScenarioName } from './fixtures/scenarios.js';
 
 /**
@@ -25,6 +25,7 @@ import { SCENARIOS, type ScenarioName } from './fixtures/scenarios.js';
 const GOLDEN: Record<ScenarioName, string> = {
   orbit: '0441a895',
   tumble: '52118178',
+  gunnery: '041ed17f',
 };
 
 describe('golden scenarios', () => {
@@ -32,9 +33,9 @@ describe('golden scenarios', () => {
     const scenario = SCENARIOS[name];
 
     it(`${name} matches its recorded checksum after ${scenario.steps} steps`, () => {
-      const world = scenario.build();
-      world.run(scenario.steps);
-      expect(formatChecksum(checksumWorld(world))).toBe(GOLDEN[name]);
+      const run = scenario.build();
+      for (let i = 0; i < scenario.steps; i++) run.step();
+      expect(formatChecksum(run.checksum())).toBe(GOLDEN[name]);
     });
   }
 

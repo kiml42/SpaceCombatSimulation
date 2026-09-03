@@ -22,6 +22,12 @@ export {
   type BodySpec,
 } from './bodies.js';
 export { World, type ForceProvider, type WorldOptions } from './world.js';
-export { gravityWell, wellPotentialEnergy, type WellSpec } from './gravity.js';
+export { gravityWell, wellPull, wellPotentialEnergy, type WellSpec } from './gravity.js';
 export { SpatialGrid, IndexBuffer, RayHit, segmentCircleT } from './spatialGrid.js';
-export { checksumWorld, formatChecksum } from './checksum.js';
+export {
+  Projectiles,
+  ProjectileHits,
+  NO_OWNER,
+  type ProjectileSpec,
+} from './projectiles.js';
+export { checksumWorld, checksumProjectiles, formatChecksum } from './checksum.js';

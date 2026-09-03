@@ -14,17 +14,18 @@ re-litigated after a gap — most entries therefore record *why*, not just *what
 
 - **Built and tested:** deterministic maths (own transcendentals), seeded RNG,
   structure-of-arrays body store with generational handles, kick-drift-kick leapfrog
-  integrator, gravity wells, state checksums, and a uniform-grid spatial index with
-  segment and circle queries.
-- **Next:** swept-segment projectiles on top of the grid. Then per-blueprint thruster
-  allocation and kinematic turrets, then the two hard-coded blueprints and the
-  Canvas2D debug viewer, which completes Slice 0.
+  integrator, gravity wells, state checksums, a uniform-grid spatial index with segment
+  and circle queries, and swept-segment projectiles with impact reporting.
+- **Next:** per-blueprint thruster allocation and kinematic turrets. Then the two
+  hard-coded blueprints and the Canvas2D debug viewer, which completes Slice 0.
 - **Blocked on:** nothing.
 - **Measured:** integration costs ~0.19 microseconds per body-step. Ray queries
   against 140 bodies at 2,000 casts per step cost 0.16 ms through the grid versus
   0.79 ms brute-force — 5x, and about 1% of a 16,667 microsecond frame budget at
   60 Hz. Neither is the bottleneck at this scale; the gap widens with projectile
-  count, which is the direction of travel.
+  count, which is the direction of travel. A whole gunnery step — bodies, index
+  rebuild, and projectiles under gravity — costs ~7 microseconds with 9 bodies and
+  ~65 rounds in the air.
 - **Last updated:** 2026-09-03
 
 ---
@@ -504,5 +505,6 @@ Deliberately unresolved; decide when they block something.
 | --- | --- |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
 | 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |
+| 2026-09-03 | Swept-segment projectiles added. Impacts are *reported*, not applied: ballistics fills a hit buffer and the damage model drains it, so what a hit does to a hull is decided elsewhere. Projectiles get plain indices rather than generational handles, because nothing holds a reference to a round across steps. Scenario fixtures became a step/checksum pair so a golden scenario can pin more than a world; the `orbit` and `tumble` checksums were unchanged by that refactor, which is what confirmed it was behaviour-neutral. |
 | 2026-09-03 | Uniform-grid spatial index added. Recorded in §4 that it is a *query* structure, not collision pairing: at a few hundred bodies all-pairs is cheaper than indexing, and the grid earns its place against thousands of ray and radius queries per step. |
 | 2026-09-03 | CI added, and it moved a §4 assumption: golden checksums hold bit-identically across x64 Linux, x64 Windows and ARM64 macOS on Node 20/22/24. Cross-platform determinism was filed as a deferred upgrade needing fixed-point arithmetic; it appears already true with doubles. Target left conservative, evidence recorded. |

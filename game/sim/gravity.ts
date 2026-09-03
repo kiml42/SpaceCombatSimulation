@@ -32,6 +32,27 @@ export interface WellSpec {
 }
 
 /**
+ * The acceleration a well imposes, as a scale factor: multiply the offset
+ * *towards* the well by this to get the acceleration vector.
+ *
+ *     ax = (well.x - x) * wellPull(well, x, y)
+ *
+ * Returned as a scalar because returning a vector would mean allocating one.
+ *
+ * This is acceleration, which is mass-independent — the right quantity for a
+ * projectile, which has no mass in the simulation. `gravityWell` needs a
+ * *force* instead, and folds the body's mass into the same expression.
+ */
+export function wellPull(well: WellSpec, x: number, y: number): number {
+  const dx = well.x - x;
+  const dy = well.y - y;
+  const soft = well.softening ?? 0;
+  const r2 = dx * dx + dy * dy + soft * soft;
+  if (r2 <= 0) return 0;
+  return well.gm / (r2 * sqrt(r2));
+}
+
+/**
  * A force provider for a well at a fixed point. Fixed rather than attached to
  * a body because a planet is not meaningfully perturbed by a frigate, and
  * pinning it keeps the well's own motion out of the reproducibility surface.
