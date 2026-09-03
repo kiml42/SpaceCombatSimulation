@@ -83,27 +83,49 @@ Rules:
 - A **turret module includes the bit of hull it mounts to**, so the blueprint editor stays a single
   2D view and "is this shootable by guns" is a property of the module you picked.
 - Large modules may be flagged as **protruding** into the weapons layer: useful, but gun-vulnerable.
-- **Strike craft fly in the weapons layer, but their *impacts* reach the hull.** Under a deck-plan
-  projection the weapons layer is *above the deck* and the hull layer is *the deck and below*, so a
-  strafing run skims the deck — its gunfire stays in the weapons layer and can only strip mounts and
-  protruding modules — while a craft that commits to a terminal dive strikes the deck itself, and that
-  impact is a hull-layer event.
+- **Strike craft fly in the weapons layer; a committed craft occupies both.** Under a deck-plan
+  projection the weapons layer is *above the deck* and the hull layer is *the deck and below*. A
+  strafing run skims the deck, so its gunfire stays in the weapons layer and can only strip mounts and
+  protruding modules.
 
-  **The layer transition is therefore an event, not a state.** Nothing migrates between layers and
-  nothing carries a layer flag; a *collision* with a hull is a hull-layer event and *projectile fire*
-  is a weapons-layer event, and that is the whole rule.
+  A craft that **commits** drops to deck height and occupies *both* layers, so it can strike hull.
+  Whether to commit is a doctrine choice.
 
-  - This is what makes "a torpedo is a fighter that crashes into things" literal — **the crash is the
-    layer transition** — so a pure kinetic-kill vehicle works with no warhead at all. It does not reach
-    the hull layer by damaging both layers; it reaches it by arriving there.
-  - **Whether a craft overflies or commits is a doctrine choice**, not a property of the layer.
-    Overflying keeps the strafing mechanic: dense turret coverage physically obstructs the run, and a
-    craft that crosses a firing line eats the round. Committing trades that away — a diving craft has
-    given up its evasion, so point defence gets a far better shot at it. The ram is powerful and close
-    to suicidal, which is the right price for reaching a hull without ordnance.
-  - **Ram versus dock needs no new mechanism**: the weld-on-slow-contact threshold in §4 already decides
-    it. A craft closing slowly welds — it has landed. One closing fast delivers an impulse — it has
-    rammed. Same rule.
+  **Occupancy is added, never swapped.** A committed craft does not leave the weapons layer, so
+  everything that could shoot at it still can — every weapon in the game is weapons-layer, and a craft
+  that dropped *out* of that layer would become untouchable by CIWS and lasers exactly when it ought to
+  be most exposed.
+
+  **Occupancy may only change while clear of every hull**, in either direction. This one rule does a
+  great deal of work:
+
+  - It stops a craft committing while already over a capital's interior and striking the citadel
+    without ever meeting the armoured edge. An attacker has to come in from outside, so the perimeter
+    is always the first thing it reaches.
+  - Being symmetric, it governs waving off too: a craft cannot abort while overlapping a hull, and so
+    cannot slip back out of one it has already struck.
+  - It supplies the fiction for nothing: **commit is arming.** A torpedo leaving a bay cannot commit
+    until it is clear of its own mothership, so a launching ship is never endangered by its own
+    ordnance, with no special case for it.
+
+  What committing costs is worth stating precisely, because it is *not* extra incoming fire:
+
+  - The craft flies a **predictable terminal course** with its evasion given up, so it is far easier to
+    hit. That is a consequence of the doctrine, not of the layer.
+  - It can now **collide with turrets** it would previously have overflown, so dense mount coverage
+    obstructs a dive just as it obstructs a strafing run.
+  - Reaching a hull without ordnance therefore usually costs the craft, which is the right price.
+
+  This is what makes "a torpedo is a fighter that crashes into things" literal — the crash is how a
+  craft reaches the hull layer — so a pure kinetic-kill vehicle needs no warhead at all.
+
+  **Ram versus dock needs no new mechanism**: the weld-on-slow-contact threshold in §4 already decides
+  it. A craft closing slowly welds — it has landed. One closing fast delivers an impulse — it has
+  rammed. Same rule.
+
+  In implementation this is one bit per body — *hull collision enabled* — read by the collision filter,
+  plus a guard on changing it. **Projectiles carry no such state**: they are weapons-layer without
+  exception, and which layer an impact lands in is pure geometry.
 - Strike craft carry **edge-mounted weapons**, because a craft is small enough that its own hull is in
   the way of anything else.
 - Docks on capital surfaces let strike craft land, rearm and recharge.
@@ -592,7 +614,8 @@ Deliberately unresolved; decide when they block something.
 | --- | --- |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
 | 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |
-| 2026-09-03 | Resolved how a torpedo reaches a hull (§3). The layer transition is an *event, not a state*: a collision with a hull is a hull-layer event, projectile fire is a weapons-layer event, and nothing migrates between layers. A strafing run skims the deck; a terminal dive strikes it. So a kinetic-kill vehicle needs no warhead, "a torpedo is a fighter that crashes into things" becomes literal, and overfly-versus-commit becomes a doctrine choice priced in evasion. Ram versus dock needed no new mechanism — the §4 weld threshold already decides it. Capital hull-layer edge guns were kept as a separate open question, since torpedoes do not need them. |
+| 2026-09-03 | Tightened the commit model (§3), which had two holes. A craft could commit while already over a capital's interior and strike the citadel without meeting the armoured edge; and a craft that *moved* to the hull layer would stop being hittable by CIWS and lasers exactly when it should be most exposed. Fixed by making occupancy *added, never swapped* — a committed craft is in both layers — and by allowing occupancy to change only while clear of every hull, in either direction, which also governs waving off and gives "commit is arming" for free. Corrected the earlier claim that the transition is an event rather than a state: true of projectiles, false once commit exists, which is one bit per craft. Also corrected the unearned claim that committing draws more fire — every weapon is weapons-layer, so the real costs are a predictable terminal course and being collidable with turrets. |
+| 2026-09-03 | Resolved how a torpedo reaches a hull (§3). A collision with a hull is a hull-layer event, projectile fire is a weapons-layer event, and nothing migrates between layers. A strafing run skims the deck; a terminal dive strikes it. So a kinetic-kill vehicle needs no warhead, "a torpedo is a fighter that crashes into things" becomes literal, and overfly-versus-commit becomes a doctrine choice priced in evasion. Ram versus dock needed no new mechanism — the §4 weld threshold already decides it. Capital hull-layer edge guns were kept as a separate open question, since torpedoes do not need them. |
 | 2026-09-03 | Units locked to SI (§4), removing the open question. Terminal ballistics and the damage model became build-order step 2 (§8), positioned after the blueprint editor because armour properties only exist once modules are parametric. And destruction became a *state change rather than a removal*: a wrecked module keeps its mass and still stops shells, so matter is conserved, damage never edits the connectivity graph, and wreckage is free armour — which also answers the two-rounds-one-step question physically rather than by phase ordering. |
 | 2026-09-03 | Impact resolution split out of ballistics (§4). A round that hits is parked and marked pending rather than consumed, so terminal ballistics — penetrate/embed/deflect, a pure function of local surface properties — can live outside the projectile step and the damage model can stay out of the inner loop. Required adding projectile mass, and `t` plus the surface normal to the hit record. Found and fixed the exactly-on-surface case that would have made every deflection re-hit its own hull. |
 | 2026-09-03 | Swept-segment projectiles added. Impacts are *reported*, not applied: ballistics fills a hit buffer and the damage model drains it, so what a hit does to a hull is decided elsewhere. Projectiles get plain indices rather than generational handles, because nothing holds a reference to a round across steps. Scenario fixtures became a step/checksum pair so a golden scenario can pin more than a world; the `orbit` and `tumble` checksums were unchanged by that refactor, which is what confirmed it was behaviour-neutral. |
