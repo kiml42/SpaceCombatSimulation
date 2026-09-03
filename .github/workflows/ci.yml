@@ -51,19 +51,41 @@ jobs:
       - run: npm run typecheck
 
   test:
-    name: Test (Node ${{ matrix.node }})
-    runs-on: ubuntu-latest
+    name: Test (${{ matrix.os }}, Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      # A deliberately sparse matrix: full coverage of the Node axis on Linux,
+      # one Windows row for a bit of coverage in the other direction. Matrix
+      # rows run in parallel, so extra rows cost concurrency rather than
+      # wall-clock, and this is a public repository so runner minutes are free.
+      #
+      # Why several Node versions: the golden tests pin exact checksums, so
+      # passing them on three V8 versions is what actually verifies the
+      # hand-written transcendental functions are doing their job. A row that
+      # passes on one Node and fails on another means determinism has broken
+      # across engine versions — the failure mode that ruled out an engine's
+      # built-in physics in DESIGN.md §11.
+      #
+      # Why Windows, given it is x64 like Linux and so adds little on the
+      # determinism axis: development happens on Windows, and the test and
+      # tooling code is OS-sensitive (node:path separators in
+      # architecture.test.ts, git line-ending conversion). This row catches a
+      # break in one direction or the other.
+      #
+      # Not covered: ARM. macos-latest is the only GitHub-hosted runner on a
+      # different CPU architecture, so it is the strongest available check that
+      # the arithmetic is truly platform-independent. Left out for now.
       matrix:
-        # More than one version on purpose. The simulation is meant to produce
-        # bit-identical results, and the golden tests pin exact checksums — so
-        # running them across three V8 versions is what actually verifies that
-        # the hand-written transcendental functions do their job. If a golden
-        # test passes on one row and fails on another, determinism is broken
-        # across engine versions, which is precisely the failure the design set
-        # out to avoid.
-        node: [20, 22, 24]
+        include:
+          - os: ubuntu-latest
+            node: 20
+          - os: ubuntu-latest
+            node: 22
+          - os: ubuntu-latest
+            node: 24
+          - os: windows-latest
+            node: 24
     steps:
       - uses: actions/checkout@v4
 
