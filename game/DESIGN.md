@@ -152,6 +152,12 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   resolved by testing the swept segment `p → p + v·dt` against the broadphase. Tunnelling is
   structurally impossible rather than patched, it is cheaper than a body per bullet, and it is
   the natural formulation for penetration through internals.
+  - **But a torpedo is a body, not a projectile.** Per §2 a torpedo is a strike craft with a warhead in
+    place of a gun, so it thrusts, steers, picks targets, obeys doctrine and collides — none of which a
+    swept segment can do. The discriminator is **propulsion and guidance, not lethality or size**: a
+    one-tonne kinetic penetrator is a projectile, a small guided munition is not. Projectiles are launched
+    and thereafter only fall. Beams are neither — a laser is an instantaneous cast with no store and no
+    flight time.
 - **Impacts are resolved outside ballistics.** A round that hits is parked at the point of contact and
   marked *pending*. A separate **terminal ballistics** model — a pure function of (round, surface,
   incidence) — decides *penetrate*, *embed* or *deflect* and returns a residual; only then does the damage

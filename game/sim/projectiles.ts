@@ -5,7 +5,20 @@ import { sqrt } from './math.js';
 import { RayHit, type SpatialGrid } from './spatialGrid.js';
 
 /**
- * Projectiles: shells, slugs, torpedoes and warheads in flight.
+ * Projectiles: shells, slugs and other ballistic rounds in flight.
+ *
+ * **A torpedo is not a projectile.** DESIGN.md §2 settles that a torpedo is a
+ * strike craft carrying a warhead in place of a gun — so it thrusts, steers,
+ * picks its own targets, obeys doctrine and collides, none of which a swept
+ * segment can do. It is a *body*, and it belongs with the fighters.
+ *
+ * The discriminator is **propulsion and guidance, not lethality or size**. What
+ * belongs here is anything launched that thereafter merely *falls*, with nothing
+ * but physics acting on it. A one-tonne kinetic penetrator is a projectile; a
+ * tiny guided munition is not.
+ *
+ * Beams are neither. A laser is an instantaneous cast against the index with no
+ * store and no flight time at all.
  *
  * A projectile is **not a rigid body**. It is a position, a velocity and a
  * payload in a flat array, and a step of its flight is a *swept segment* tested
