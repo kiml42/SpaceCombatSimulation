@@ -1,0 +1,13 @@
+{
+  // The simulation is a pure module (DESIGN.md non-negotiable 1). This config
+  // enforces that structurally: `lib` omits DOM and `types` is empty, so
+  // `window`, `document`, `console`, `process`, `setTimeout` and every Node API
+  // are compile errors in here. Do not add types to make an import work —
+  // the import is the problem.
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": []
+  },
+  "include": ["."]
+}

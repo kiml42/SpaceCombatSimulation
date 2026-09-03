@@ -12,10 +12,20 @@ re-litigated after a gap — most entries therefore record *why*, not just *what
 
 ## Status
 
-- **Where I was:** design settled (this document). No code written yet.
-- **Next:** Slice 0 — scaffold `game/`, then build the pure simulation module.
+- **Where I was:** Slice 0, first half. The bottom of the simulation is built and
+  tested on branch `slice-0-sim-foundation`: deterministic maths (own
+  transcendentals), seeded RNG, structure-of-arrays body store with generational
+  handles, kick-drift-kick leapfrog integrator, gravity wells, state checksums.
+  66 tests green, both TypeScript projects clean.
+- **Next:** uniform-grid broadphase, then swept-segment projectiles. After that
+  per-blueprint thruster allocation and kinematic turrets, then the two
+  hard-coded blueprints and the Canvas2D debug viewer.
 - **Blocked on:** nothing.
-- **Last updated:** 2026-09-02
+- **Measured so far:** ~0.19 microseconds per body-step (8 bodies, two force
+  providers, Node 24). At the design's ~140 bodies that is roughly 27
+  microseconds per step, against a 16,667 microsecond budget at 60 Hz. Integration
+  is not going to be the bottleneck; the broadphase and projectile queries will be.
+- **Last updated:** 2026-09-03
 
 ---
 
@@ -355,6 +365,15 @@ Five things, and deliberately nothing more:
    checkout should be one command.
 5. **A `CLAUDE.md`** for this project.
 
+Two mechanisms enforce the non-negotiables automatically, so they do not depend on remembering them:
+
+- **`sim/tsconfig.json` gives the simulation no ambient types** (`lib` omits DOM, `types` is empty), so
+  `window`, `document`, `console`, `process` and every Node API are compile errors inside `sim/`.
+- **`tests/architecture.test.ts` scans the simulation's source** and fails on any reference to `Math.` outside
+  `sim/math.ts`, on the implementation-defined `Math` functions anywhere, on host globals, and on imports that
+  escape `sim/`. Comments are stripped first, so documentation may discuss a forbidden API. This catches the
+  class of violation the compiler cannot: `Math.sin` type-checks perfectly and silently destroys replay.
+
 **Anti-recommendation:** no elaborate tooling before the doctrine/orders slice. Editor
 infrastructure, asset pipelines and clever abstractions are the most seductive form of
 procrastination available to a programmer and they feel like progress.
@@ -449,3 +468,4 @@ Deliberately unresolved; decide when they block something.
 | Date | Change |
 | --- | --- |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
+| 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |
