@@ -175,6 +175,19 @@ rewrite.
 - Determinism pays for: replay and scrubbing ("why did my design lose?"), reproducible evolution
   (otherwise a real fitness gain is indistinguishable from noise), and golden regression tests.
 
+**Cross-platform determinism appears to be already achieved, without fixed-point arithmetic.** As of
+2026-09-03 the golden checksums hold bit-identically on x64 Linux, x64 Windows and **ARM64 macOS**, across
+Node 20, 22 and 24 — see the CI matrix in §9. That is the expected outcome rather than luck: IEEE-754 mandates
+correct rounding for `+ - * /` and `sqrt` on any conforming hardware, and the simulation is built from nothing
+else, with the implementation-defined functions replaced by our own.
+
+The practical consequence is that the target above is conservative: portable replays and async fleet-vs-fleet
+work today, and the fixed-point option may never need to be exercised.
+
+Treat this as strong evidence, not proof. CI verifies the *current* fixture scenarios, which do not yet exercise
+`atan2`, collisions or the thruster solver. The claim gets stronger as scenarios are added — which is a reason to
+add a golden scenario alongside each new subsystem rather than at the end.
+
 **Deferred:** light structural stress simulation for plastic buckling under load. Cheap to add later
 — the connectivity graph is already the right substrate (nodes and beams, static load solve, sever
 or flag on yield). Deferred because long thin hulls are already punished by being easy to sever.
@@ -485,3 +498,4 @@ Deliberately unresolved; decide when they block something.
 | --- | --- |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
 | 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |
+| 2026-09-03 | CI added, and it moved a §4 assumption: golden checksums hold bit-identically across x64 Linux, x64 Windows and ARM64 macOS on Node 20/22/24. Cross-platform determinism was filed as a deferred upgrade needing fixed-point arithmetic; it appears already true with doubles. Target left conservative, evidence recorded. |
