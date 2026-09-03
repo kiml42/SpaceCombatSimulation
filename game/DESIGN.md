@@ -123,6 +123,22 @@ Rules:
   resolved by testing the swept segment `p → p + v·dt` against the broadphase. Tunnelling is
   structurally impossible rather than patched, it is cheaper than a body per bullet, and it is
   the natural formulation for penetration through internals.
+- **Impacts are resolved outside ballistics.** A round that hits is parked at the point of contact and
+  marked *pending*. A separate **terminal ballistics** model — a pure function of (round, surface,
+  incidence) — decides *penetrate*, *embed* or *deflect* and returns a residual; only then does the damage
+  model spend that residual walking the internals. Ballistics reports the impact and nothing more, because
+  consuming a round is itself an outcome. The split works because the decision needs only *local* surface
+  properties (armour thickness, hardness, incidence angle) and none of the damage model's bookkeeping.
+  - **Deflections take effect from the following step**, not as a within-step substep, so the projectile
+    phase stays one pass and the damage model stays out of the inner loop. Carrying the remaining
+    `(1 − t)·dt` as a substep is the richer option if deflection ever needs to chain inside one step; it
+    would need a cap on deflections per step, and each re-cast would have to ignore the body just struck.
+  - **A round parked exactly on a surface must not re-hit it.** `segmentCircleT` therefore treats only
+    *strictly* inside as an immediate hit, and settles the exactly-on-surface case by direction of travel.
+    Otherwise a deflected round strikes the same hull again on its very next step, forever.
+  - **Two rounds hitting the same module in one step** are both recorded against a module that was intact
+    when they were cast, even if the first destroyed it. They arrived within 16 ms, and this is what keeps
+    the phases decoupled — a deliberate choice, not an accident of ordering.
 - **Collision:** impulse-based, single pass. Stacking and resting contact are artefacts of a
   persistent force pressing bodies together; in space there isn't one, so the hard case never arises.
 - **The spatial index is for queries, not collision pairing.** At a few hundred bodies, testing every body
@@ -494,6 +510,14 @@ Deliberately unresolved; decide when they block something.
 - Ammunition model granularity — per-mount magazines, shared bunkerage, or both.
 - Whether the mothership's build priorities are a doctrine blob (so async PvP competes on them) or
   a player-driven queue.
+- **The unit system.** The simulation is currently scale-free apart from `gm` (length³/time²), well
+  softening (a length), and the grid's cell size (which only needs to be *commensurate* with body sizes,
+  so it is a ratio rather than a commitment). Nothing forces a choice yet, but two things arriving next do:
+  thruster allocation introduces thrust, mass and acceleration together, and the manoeuvring envelope drawn
+  for the player needs real numbers on its axes; and the parametric module scaling laws above cannot be
+  sanity-checked without units. The recommendation on the table is **metres, kilograms, seconds, newtons** —
+  so thrust, delta-v and propellant fractions can be checked against real spacecraft — with battle
+  coordinates kept in the 10³–10⁴ range, where double precision is a non-issue.
 - Concrete numbers everywhere: budgets, ranges, timestep, weld thresholds, edit-distance bounds.
 - Project name.
 
@@ -505,6 +529,7 @@ Deliberately unresolved; decide when they block something.
 | --- | --- |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
 | 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |
+| 2026-09-03 | Impact resolution split out of ballistics (§4). A round that hits is parked and marked pending rather than consumed, so terminal ballistics — penetrate/embed/deflect, a pure function of local surface properties — can live outside the projectile step and the damage model can stay out of the inner loop. Required adding projectile mass, and `t` plus the surface normal to the hit record. Found and fixed the exactly-on-surface case that would have made every deflection re-hit its own hull. |
 | 2026-09-03 | Swept-segment projectiles added. Impacts are *reported*, not applied: ballistics fills a hit buffer and the damage model drains it, so what a hit does to a hull is decided elsewhere. Projectiles get plain indices rather than generational handles, because nothing holds a reference to a round across steps. Scenario fixtures became a step/checksum pair so a golden scenario can pin more than a world; the `orbit` and `tumble` checksums were unchanged by that refactor, which is what confirmed it was behaviour-neutral. |
 | 2026-09-03 | Uniform-grid spatial index added. Recorded in §4 that it is a *query* structure, not collision pairing: at a few hundred bodies all-pairs is cheaper than indexing, and the grid earns its place against thousands of ray and radius queries per step. |
 | 2026-09-03 | CI added, and it moved a §4 assumption: golden checksums hold bit-identically across x64 Linux, x64 Windows and ARM64 macOS on Node 20/22/24. Cross-platform determinism was filed as a deferred upgrade needing fixed-point arithmetic; it appears already true with doubles. Target left conservative, evidence recorded. |

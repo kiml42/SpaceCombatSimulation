@@ -92,8 +92,10 @@ export function checksumProjectiles(projectiles: Projectiles, seed = FNV_OFFSET)
     h = mixF64(h, projectiles.vx[i]!);
     h = mixF64(h, projectiles.vy[i]!);
     h = mixF64(h, projectiles.ttl[i]!);
+    h = mixF64(h, projectiles.mass[i]!);
     h = mixU32(h, projectiles.owner[i]!);
     h = mixU32(h, projectiles.kind[i]!);
+    h = mixU32(h, projectiles.pending[i]!);
   }
 
   return h >>> 0;

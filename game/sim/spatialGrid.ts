@@ -384,8 +384,15 @@ export function segmentCircleT(
   const fx = x0 - cx;
   const fy = y0 - cy;
   const c = fx * fx + fy * fy - r * r;
-  // Starting inside counts as an immediate hit.
-  if (c <= 0) return 0;
+  // Starting strictly inside counts as an immediate hit.
+  //
+  // Strictly, because starting *exactly* on the surface has to be settled by
+  // which way the segment is pointing, not by position. A deflected round is
+  // parked precisely on the surface it bounced off, and treating that as
+  // "inside" would have it re-hit the same hull on its very next step, forever.
+  // Falling through to the quadratic gets it right either way: the near root is
+  // negative for a segment leaving the circle, and zero for one entering it.
+  if (c < 0) return 0;
 
   const a = dx * dx + dy * dy;
   if (a === 0) return -1;

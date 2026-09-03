@@ -202,6 +202,7 @@ export function gunneryScenario(seed = 777): GunneryRun {
             (dx / len) * speed,
             (dy / len) * speed,
             3,
+            5,
             10,
             2,
             1,
@@ -211,6 +212,11 @@ export function gunneryScenario(seed = 777): GunneryRun {
 
       projectiles.step(dt, world.bodies, grid, hits, wells);
       run.totalHits += hits.count;
+
+      // Stands in for terminal ballistics: every round penetrates and is
+      // absorbed. Impacts have to be resolved or the rounds stay parked at the
+      // point of contact indefinitely, which is part of what this scenario pins.
+      for (let i = 0; i < hits.count; i++) projectiles.kill(hits.projectile[i]!);
     },
 
     checksum(): number {
@@ -218,7 +224,10 @@ export function gunneryScenario(seed = 777): GunneryRun {
     },
 
     describe(): string {
-      return `bodies=${world.bodies.count} inFlight=${projectiles.count} hits=${run.totalHits}`;
+      return (
+        `bodies=${world.bodies.count} inFlight=${projectiles.count} ` +
+        `pending=${projectiles.pendingCount} hits=${run.totalHits}`
+      );
     },
   };
 

@@ -24,10 +24,22 @@ import { RayHit, type SpatialGrid } from './spatialGrid.js';
  * flies, and is consumed on impact or expiry, all inside the system that owns
  * it. Handles exist to catch stale references, and there are none to catch.
  *
- * Impacts are *reported*, not applied. `step` fills a `ProjectileHits` buffer
- * that the caller drains, so deciding what a hit does to a hull — which module
- * it strips, how far it penetrates, whether it detonates — belongs to the
- * damage model rather than to ballistics.
+ * Impacts are *reported*, not applied — and that includes not deciding whether
+ * the round survives. On impact a round is parked at the point of contact and
+ * marked **pending**: it stops moving and stops being cast, and waits for
+ * something else to say what became of it.
+ *
+ * That is what lets terminal ballistics live outside this file. A round that
+ * penetrates is consumed with `kill`; one that embeds in the hull is consumed
+ * after its mass and momentum are transferred; one that deflects has its
+ * velocity rewritten and is returned to flight with `resume`. Ballistics does
+ * not need to know which, and consuming a round unilaterally would already be
+ * applying an outcome.
+ *
+ * Because the round is still alive when its hit is reported, the hit record
+ * carries only what the *cast* discovered — which body, where, when in the step
+ * and the surface normal. Mass, velocity, remaining flight time and payload are
+ * read straight from the store by index, so there is no second copy to diverge.
  */
 
 /** A projectile with no firing ship to pass through. */
@@ -40,6 +52,8 @@ export interface ProjectileSpec {
   vy: number;
   /** Seconds of flight before the round expires. */
   ttl: number;
+  /** Used for imparted momentum, and for the mass gained if the round embeds. */
+  mass?: number;
   damage?: number;
   /** How deeply the round reaches into a hull's internals. */
   penetration?: number;
@@ -57,29 +71,38 @@ export interface ProjectileSpec {
  * reporting hits allocates nothing.
  */
 export class ProjectileHits {
+  /** Index of the round, which is still alive and pending resolution. */
   projectile: Int32Array;
   /** Body index struck. */
   body: Int32Array;
+  /**
+   * Where in the step the impact happened, 0 to 1. A deflected round has
+   * `(1 - t) * dt` of its step left, and the remainder is what a substep would
+   * carry forward.
+   */
+  t: Float64Array;
   x: Float64Array;
   y: Float64Array;
-  /** Unit direction of travel at impact — the ray the internals walk follows. */
-  dirX: Float64Array;
-  dirY: Float64Array;
-  damage: Float64Array;
-  penetration: Float64Array;
-  kind: Int32Array;
+  /**
+   * Outward unit surface normal at the impact point — what decides incidence
+   * angle, and therefore whether an oblique hit skids off armour.
+   *
+   * Exact for the bounding circles the broad phase tests. Once hulls are
+   * polygons this becomes the narrow phase's to supply, which is why it is
+   * reported rather than left for the caller to infer.
+   */
+  nx: Float64Array;
+  ny: Float64Array;
   count = 0;
 
   constructor(capacity = 256) {
     this.projectile = new Int32Array(capacity);
     this.body = new Int32Array(capacity);
+    this.t = new Float64Array(capacity);
     this.x = new Float64Array(capacity);
     this.y = new Float64Array(capacity);
-    this.dirX = new Float64Array(capacity);
-    this.dirY = new Float64Array(capacity);
-    this.damage = new Float64Array(capacity);
-    this.penetration = new Float64Array(capacity);
-    this.kind = new Int32Array(capacity);
+    this.nx = new Float64Array(capacity);
+    this.ny = new Float64Array(capacity);
   }
 
   clear(): void {
@@ -100,38 +123,32 @@ export class ProjectileHits {
     };
     this.projectile = i32(this.projectile);
     this.body = i32(this.body);
-    this.kind = i32(this.kind);
+    this.t = f64(this.t);
     this.x = f64(this.x);
     this.y = f64(this.y);
-    this.dirX = f64(this.dirX);
-    this.dirY = f64(this.dirY);
-    this.damage = f64(this.damage);
-    this.penetration = f64(this.penetration);
+    this.nx = f64(this.nx);
+    this.ny = f64(this.ny);
   }
 
   /** Append an impact. Called by `Projectiles.step`. */
   push(
     projectile: number,
     body: number,
+    t: number,
     x: number,
     y: number,
-    dirX: number,
-    dirY: number,
-    damage: number,
-    penetration: number,
-    kind: number,
+    nx: number,
+    ny: number,
   ): void {
     if (this.count === this.projectile.length) this.grow();
     const i = this.count++;
     this.projectile[i] = projectile;
     this.body[i] = body;
+    this.t[i] = t;
     this.x[i] = x;
     this.y[i] = y;
-    this.dirX[i] = dirX;
-    this.dirY[i] = dirY;
-    this.damage[i] = damage;
-    this.penetration[i] = penetration;
-    this.kind[i] = kind;
+    this.nx[i] = nx;
+    this.ny[i] = ny;
   }
 }
 
@@ -141,15 +158,24 @@ export class Projectiles {
   vx!: Float64Array;
   vy!: Float64Array;
   ttl!: Float64Array;
+  mass!: Float64Array;
   damage!: Float64Array;
   penetration!: Float64Array;
   owner!: Int32Array;
   kind!: Int32Array;
   alive!: Uint8Array;
+  /**
+   * Set on impact. A pending round is stopped at the point of contact and is
+   * not cast again until something resolves it — see the note at the top of
+   * this file.
+   */
+  pending!: Uint8Array;
 
   capacity = 0;
-  /** Rounds currently in flight. */
+  /** Rounds currently in flight, including those awaiting resolution. */
   count = 0;
+  /** Rounds stopped at an impact, awaiting resolution. */
+  pendingCount = 0;
   /** One past the highest slot ever used; loops may stop here. */
   highWater = 0;
 
@@ -176,6 +202,7 @@ export class Projectiles {
     this.vx = f64(this.vx);
     this.vy = f64(this.vy);
     this.ttl = f64(this.ttl);
+    this.mass = f64(this.mass);
     this.damage = f64(this.damage);
     this.penetration = f64(this.penetration);
     this.owner = i32(this.owner);
@@ -184,6 +211,10 @@ export class Projectiles {
     const alive = new Uint8Array(capacity);
     if (this.alive) alive.set(this.alive);
     this.alive = alive;
+
+    const pending = new Uint8Array(capacity);
+    if (this.pending) pending.set(this.pending);
+    this.pending = pending;
 
     this.capacity = capacity;
   }
@@ -200,6 +231,7 @@ export class Projectiles {
     vx: number,
     vy: number,
     ttl: number,
+    mass: number,
     damage: number,
     penetration: number,
     owner: number,
@@ -219,11 +251,13 @@ export class Projectiles {
     this.vx[i] = vx;
     this.vy[i] = vy;
     this.ttl[i] = ttl;
+    this.mass[i] = mass;
     this.damage[i] = damage;
     this.penetration[i] = penetration;
     this.owner[i] = owner;
     this.kind[i] = kind;
     this.alive[i] = 1;
+    this.pending[i] = 0;
     this.count++;
     return i;
   }
@@ -236,6 +270,7 @@ export class Projectiles {
       spec.vx,
       spec.vy,
       spec.ttl,
+      spec.mass ?? 1,
       spec.damage ?? 0,
       spec.penetration ?? 0,
       spec.owner ?? NO_OWNER,
@@ -243,19 +278,45 @@ export class Projectiles {
     );
   }
 
-  /** Remove a round from flight. Safe to call on an already-dead slot. */
+  /**
+   * Remove a round from flight — it penetrated, embedded, detonated or expired.
+   * Safe to call on an already-dead slot.
+   */
   kill(i: number): void {
     if (i < 0 || i >= this.highWater || this.alive[i] === 0) return;
+    if (this.pending[i] === 1) {
+      this.pending[i] = 0;
+      this.pendingCount--;
+    }
     this.alive[i] = 0;
     this.free.push(i);
     this.count--;
   }
 
+  /**
+   * Return a pending round to flight, after a deflection has rewritten its
+   * velocity. The round resumes from the impact point on the next step.
+   *
+   * A caller that neither kills nor resumes a pending round leaves it stopped
+   * in space indefinitely — visible in `pendingCount`, rather than silently
+   * re-reporting the same impact every step.
+   */
+  resume(i: number): void {
+    if (i < 0 || i >= this.highWater || this.alive[i] === 0) return;
+    if (this.pending[i] === 0) return;
+    this.pending[i] = 0;
+    this.pendingCount--;
+  }
+
   /** Remove every round. */
   clear(): void {
-    for (let i = 0; i < this.highWater; i++) this.alive[i] = 0;
+    for (let i = 0; i < this.highWater; i++) {
+      this.alive[i] = 0;
+      this.pending[i] = 0;
+    }
     this.free.length = 0;
     this.count = 0;
+    this.pendingCount = 0;
     this.highWater = 0;
   }
 
@@ -284,7 +345,7 @@ export class Projectiles {
     const hit = this.hit;
 
     for (let i = 0; i < this.highWater; i++) {
-      if (this.alive[i] === 0) continue;
+      if (this.alive[i] === 0 || this.pending[i] === 1) continue;
 
       if (wells !== undefined) {
         let ax = 0;
@@ -305,21 +366,27 @@ export class Projectiles {
       const dy = this.vy[i] * dt;
 
       if (grid.raycast(bodies, x0, y0, x0 + dx, y0 + dy, hit, this.owner[i])) {
-        // Direction of travel, for the internals walk and impact effects.
-        const len = sqrt(dx * dx + dy * dy);
-        const inv = len > 0 ? 1 / len : 0;
-        hits.push(
-          i,
-          hit.bodyIndex,
-          hit.x,
-          hit.y,
-          dx * inv,
-          dy * inv,
-          this.damage[i],
-          this.penetration[i],
-          this.kind[i],
-        );
-        this.kill(i);
+        // Outward surface normal. Exact for a bounding circle; a polygon narrow
+        // phase would supply the struck edge's normal instead.
+        const bi = hit.bodyIndex;
+        const ox = hit.x - bodies.x[bi];
+        const oy = hit.y - bodies.y[bi];
+        const olen = sqrt(ox * ox + oy * oy);
+        // A round starting exactly at the centre has no meaningful normal;
+        // oppose its travel, which is the only defensible answer.
+        const oinv = olen > 0 ? 1 / olen : 0;
+        const seglen = sqrt(dx * dx + dy * dy);
+        const sinv = seglen > 0 ? 1 / seglen : 0;
+        const nx = olen > 0 ? ox * oinv : -dx * sinv;
+        const ny = olen > 0 ? oy * oinv : -dy * sinv;
+
+        // Stop at the point of contact and wait to be resolved. The round is
+        // deliberately left alive: see the note at the top of this file.
+        this.x[i] = hit.x;
+        this.y[i] = hit.y;
+        this.pending[i] = 1;
+        this.pendingCount++;
+        hits.push(i, bi, hit.t, hit.x, hit.y, nx, ny);
         continue;
       }
 
@@ -345,6 +412,7 @@ export class Projectiles {
     muzzleVx: number,
     muzzleVy: number,
     ttl: number,
+    mass: number,
     damage: number,
     penetration: number,
     kind: number,
@@ -355,6 +423,7 @@ export class Projectiles {
       bodies.vx[bodyIndex] + muzzleVx,
       bodies.vy[bodyIndex] + muzzleVy,
       ttl,
+      mass,
       damage,
       penetration,
       bodyIndex,
