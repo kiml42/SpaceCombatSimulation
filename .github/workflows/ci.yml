@@ -73,9 +73,15 @@ jobs:
       # architecture.test.ts, git line-ending conversion). This row catches a
       # break in one direction or the other.
       #
-      # Not covered: ARM. macos-latest is the only GitHub-hosted runner on a
-      # different CPU architecture, so it is the strongest available check that
-      # the arithmetic is truly platform-independent. Left out for now.
+      # Why macOS, and why it is arguably the most valuable single row here:
+      # macos-latest is the only GitHub-hosted runner on a different CPU
+      # architecture (ARM64, since Apple Silicon). IEEE-754 guarantees that
+      # + - * / and sqrt are correctly rounded on any conforming hardware, and
+      # the simulation is built from nothing else — so this row is the evidence
+      # that the arithmetic is genuinely platform-independent, rather than
+      # merely consistent across x64. If the golden checksums hold here, the
+      # cross-platform replay that DESIGN.md §4 files as a "later, if needed"
+      # upgrade is in fact already true, and we will know rather than assume.
       matrix:
         include:
           - os: ubuntu-latest
@@ -85,6 +91,8 @@ jobs:
           - os: ubuntu-latest
             node: 24
           - os: windows-latest
+            node: 24
+          - os: macos-latest
             node: 24
     steps:
       - uses: actions/checkout@v4

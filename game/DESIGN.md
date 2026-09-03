@@ -361,7 +361,8 @@ Five things, and deliberately nothing more:
    Without it you'll be afraid to touch the physics, which is where the interesting work is.
 2. **This document, kept current**, with the Status section at the top actually updated.
 3. **CI running tests on push**, so the repo reports its own state without an environment setup.
-   `.github/workflows/ci.yml` runs the suite on **Linux across Node 20, 22 and 24, plus Windows on Node 24**.
+   `.github/workflows/ci.yml` runs the suite on **Linux across Node 20, 22 and 24, plus Windows and macOS on
+   Node 24**.
    The Node axis is not redundancy: the golden tests pin exact checksums, so passing them on three V8 versions is
    what actually verifies the hand-written transcendentals are doing their job. A row that passes on one Node and
    fails on another means determinism has broken across engine versions — the failure mode that ruled out an
@@ -370,9 +371,12 @@ Five things, and deliberately nothing more:
    direction. Rows run in parallel and the repository is public, so extra rows cost neither time nor money.
    Path-filtered to `game/**`, so tinkering with the archived Unity tree queues nothing.
 
-   **Not covered: ARM.** `macos-latest` is the only GitHub-hosted runner on a different CPU architecture, and so
-   the strongest available evidence that the arithmetic is genuinely platform-independent rather than merely
-   consistent across x64. Worth adding if cross-platform replay ever becomes a requirement (see §4 determinism).
+   **The macOS row is the ARM one, and the most valuable of the five.** It is the only GitHub-hosted runner on a
+   different CPU architecture, so it is the evidence that the arithmetic is genuinely platform-independent rather
+   than merely consistent across x64. Its consequence is recorded in §4: the golden checksums holding there means
+   cross-platform determinism is *already* true in practice, not just a possible later upgrade. Do not delete
+   this row to save time — the five run in parallel and cost nothing, and losing it would quietly downgrade a
+   verified property to an assumed one.
 4. **Single-command headless runs** — `npm run battle -- scenarios/duel.json`. Re-entry from a cold
    checkout should be one command.
 5. **A `CLAUDE.md`** for this project.
