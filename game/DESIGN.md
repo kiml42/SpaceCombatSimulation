@@ -587,6 +587,43 @@ Deliberately unresolved; decide when they block something.
   that stop "one enormous tank" being optimal.
 - How severed chunks divide fuel, ammunition and power.
 - Whether module destruction is a discrete state or simply the bottom of a continuous damage scale (§4).
+- **Gimballed thrusters** fit, with one change of variable. A gimbal makes the thrust *direction* an
+  unknown, and the wrench then depends on sin and cos — nonlinear, and fatal to fixed columns and normal
+  equations. The fix is to solve for the thrust **vector** `(Fx, Fy)` rather than a scalar throttle: the
+  force is that vector and the torque is `px·Fy − py·Fx`, both linear again. The nonlinearity moves out of
+  the objective and into the constraint set, where `u ∈ [0,1]` becomes `F ∈ sector` — a circular wedge,
+  convex for any real gimbal arc. The active-set structure survives: clamping a scalar to an interval
+  becomes projecting a vector onto a sector, which is "clamp the angle to the arc, clamp the magnitude".
+  - **Slew rate makes this easier, not harder.** A gimbal angle is a *state* that slews toward a target,
+    like a turret bearing, so the sector reachable in one step is a degree or two wide and linearising
+    about the current angle (`d(θ+Δ) ≈ d(θ) + Δ·d⊥(θ)`) is very accurate. The unknowns become `(u, Δ)`
+    with box bounds, which the existing solver already handles.
+  - **Cost:** gimballed columns move, so they cannot be precomputed per blueprint. Keep the fixed
+    thrusters precomputed and treat gimbals as a small dynamic addendum — ships have a few gimbals and
+    many fixed thrusters, not the reverse.
+  - **The envelope survives exactly.** The achievable set stops being a zonotope, but support functions
+    add under Minkowski sum whatever the summands are, and a sector's support function is trivial. So
+    `support`, `maxThrustAlong` and `hasFullAuthority` keep working unchanged.
+  - It is a good design axis too: one large gimballed engine against many small fixed thrusters trades
+    mass and module count for slower response and a torque coupling that cannot be switched off.
+- **Throttle response is currently instantaneous**, which suits small RCS thrusters and badly misrepresents
+  a large main engine. Rate limits belong **inside** the solve as per-thruster bounds —
+  `uᵢ ∈ [uᵢ⁻ − rᵢ·dt, uᵢ⁻ + rᵢ·dt]` intersected with `[0,1]` — not as a post-processing step. Limiting
+  afterwards would break the wrench: fast thrusters would reach their targets while a slow one lagged,
+  leaving a net torque nobody asked for. As bounds it stays a box constraint, so the active set is
+  structurally unchanged; generalising means shifting by the lower bound (`u = lo + v`) and subtracting
+  `A·lo` from the demand up front, after which the solver is identical.
+  - **This constrains one thing now:** the `throttles` array is *per ship*, not per blueprint, and must
+    persist between steps for any of this to be possible. `ThrusterLayout` is shared between every ship of
+    a blueprint, so throttle state cannot live there. Do not turn `throttles` into a shared scratch buffer.
+- **Binary (on/off) thrusters** should be handled *after* allocation, not inside it. As a constraint they
+  would make the problem mixed-integer — 2ⁿ combinations, non-convex, inexpressible in least squares — which
+  is far harder than the continuous version rather than simpler. Instead allocate continuously and let each
+  binary thruster interpret its throttle as a **duty cycle**, ideally with delta-sigma modulation so the
+  rounding error accumulates and is corrected on the following step; that tracks the demanded average much
+  more closely than plain pulse-width modulation and stays deterministic. The allocator needs no change, and
+  the envelope stays valid as a statement about *average* capability, which is the honest thing to show a
+  player anyway.
 - **Whether thruster allocation needs to be exact.** It currently minimises Σuᵢ² by clamped least squares
   with redistribution, which is smooth and fast but neither propellant-optimal nor exact: measured mean
   shortfall 0.016% and worst 5.4% against randomised, near-adversarial geometry. Two separate upgrades are
@@ -623,6 +660,7 @@ Deliberately unresolved; decide when they block something.
 | --- | --- |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
 | 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |
+| 2026-09-04 | Recorded in §12 how thruster allocation extends, so it need not be re-derived: **gimbals** work by solving for the thrust vector rather than a scalar throttle, which keeps the wrench linear and turns the bound into a sector projection; **throttle rate limits** belong inside the solve as per-thruster bounds, never as post-processing, which would break the wrench; and **binary thrusters** belong after it as a duty cycle with delta-sigma modulation, since as a constraint they would make the problem mixed-integer and far harder rather than simpler. Also noted the one thing this constrains today: the throttles array is per ship and must persist between steps, so it cannot become shared scratch. |
 | 2026-09-04 | Thruster allocation built. Three findings worth keeping: the torque row must be **preconditioned** (mount arms are metres, so torque outweighs force by ~10⁴ in the normal equations, and once thrusters pin the solve quietly fits torque and ignores force — 75% shortfall on achievable demands); the normal equations must **switch form** with the number of free thrusters, `A Aᵀ` when underdetermined and `Aᵀ A` when fewer than three remain, since the 3×3 form is singular there; and only the **worst violator** may be pinned per pass, because pinning all of them collapses a nine-thruster layout to two and never reconsiders. Together these took the worst-case shortfall from >100% to 5.4%, mean 0.016%. |
 | 2026-09-03 | Tightened the commit model (§3), which had two holes. A craft could commit while already over a capital's interior and strike the citadel without meeting the armoured edge; and a craft that *moved* to the hull layer would stop being hittable by CIWS and lasers exactly when it should be most exposed. Fixed by making occupancy *added, never swapped* — a committed craft is in both layers — and by allowing occupancy to change only while clear of every hull, in either direction, which also governs waving off and gives "commit is arming" for free. Corrected the earlier claim that the transition is an event rather than a state: true of projectiles, false once commit exists, which is one bit per craft. Also corrected the unearned claim that committing draws more fire — every weapon is weapons-layer, so the real costs are a predictable terminal course and being collidable with turrets. |
 | 2026-09-03 | Resolved how a torpedo reaches a hull (§3). A collision with a hull is a hull-layer event, projectile fire is a weapons-layer event, and nothing migrates between layers. A strafing run skims the deck; a terminal dive strikes it. So a kinetic-kill vehicle needs no warhead, "a torpedo is a fighter that crashes into things" becomes literal, and overfly-versus-commit becomes a doctrine choice priced in evasion. Ram versus dock needed no new mechanism — the §4 weld threshold already decides it. Capital hull-layer edge guns were kept as a separate open question, since torpedoes do not need them. |
