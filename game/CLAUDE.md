@@ -69,6 +69,12 @@ failures worth avoiding.
 
 ## Conventions
 
+- **Comments must be timeless.** Explain what a file is and why it exists *in general* — never why it was
+  built at a particular point in the project. "Present in the foundation for two reasons…", "not needed yet",
+  "for now", "at this stage" are all stale the moment the next thing lands, and a comment that has quietly
+  expired is worse than no comment. Stage and sequencing information belongs in DESIGN.md, which has a Status
+  block and a Decision Log for exactly that purpose. Write as though the reader has no idea which parts were
+  built first — because in six months, neither will you.
 - British English in prose and comments, matching the existing project.
 - Suggestions in DESIGN.md marked as suggestions are not decisions — flag them as open rather than
   implementing them silently.

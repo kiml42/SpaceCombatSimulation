@@ -27,8 +27,8 @@ export interface WorldOptions {
  * old acceleration, positions take a full step, forces are re-evaluated, and
  * velocities take a half step on the new acceleration.
  *
- * This is second-order and symplectic, which matters because gravity wells are
- * in scope. Explicit Euler gains energy without bound and would spiral orbits
+ * This is second-order and symplectic, which matters because the simulation has
+ * gravity wells. Explicit Euler gains energy without bound and would spiral orbits
  * outward; symplectic Euler is stable but only first-order, so orbits visibly
  * precess. Leapfrog keeps both the orbital energy and the apsides where they
  * should be for the cost of retaining one acceleration per body.

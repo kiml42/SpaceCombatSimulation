@@ -5,10 +5,15 @@ import type { ForceProvider, World } from './world.js';
 /**
  * Gravity wells.
  *
- * Present in the foundation for two reasons: they are in scope for the game
- * (planets, black holes, wells that shape a battlefield), and a two-body orbit
- * is the sharpest available test of the integrator — an orbit that decays or
- * precesses is visible within a few hundred steps.
+ * Wells give a battlefield its character. A planet, moon or black hole turns
+ * manoeuvre into an arithmetic problem, makes propellant spent against a
+ * gradient cost something, and gives a map a shape that doctrine has to
+ * account for.
+ *
+ * They are also the demanding case for the integrator. A two-body orbit is
+ * unforgiving: a scheme that leaks energy decays the orbit, and a first-order
+ * one precesses it, both visibly within a few hundred steps. The choice of
+ * integrator in `world.ts` exists to satisfy this file.
  */
 
 export interface WellSpec {
