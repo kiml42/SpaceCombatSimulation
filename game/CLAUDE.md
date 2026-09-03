@@ -11,12 +11,11 @@ Before proposing a change that reverses a design decision, check **DESIGN.md §1
 Those were settled deliberately with reasons recorded. Reopen one only with new information, and if it is
 reopened, update §11 and the Decision Log.
 
-## Current state
+## Where things stand
 
-**Pre-scaffold. No code yet.** The next step is Slice 0 (DESIGN.md §8): the pure simulation module, two
-hard-coded blueprints, a Canvas2D debug viewer, and a bit-exact golden test.
-
-Update the **Status** block at the top of DESIGN.md as work proceeds — it is the re-entry point after a gap.
+**DESIGN.md's Status block is the single source of truth** for what exists and what comes next. Read it first,
+and update it as work proceeds — it is the re-entry point after a gap. Deliberately not duplicated here: two
+places recording progress means one of them is quietly wrong.
 
 ## Non-negotiables
 
@@ -48,11 +47,11 @@ host/       worker and window lifecycle
 scenarios/  data files
 ```
 
-Planned commands, once scaffolded — keep them working, they are the cold-start re-entry path:
+Keep these working — they are the cold-start re-entry path:
 
-- `npm test` — unit tests plus the golden battle tests
-- `npm run battle -- scenarios/<name>.json` — headless run, no browser
-- `npm run dev` — browser dev server
+- `npm test` — unit tests, determinism tests and the golden scenario checksums
+- `npm run typecheck` — both TS projects (`sim/` is checked with no ambient types)
+- `npm run golden` — re-derive golden checksums after a *deliberate* behaviour change
 
 ## Testing
 

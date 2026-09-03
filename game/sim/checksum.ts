@@ -1,4 +1,5 @@
 import { imul } from './math.js';
+import type { Projectiles } from './projectiles.js';
 import type { World } from './world.js';
 
 /**
@@ -67,6 +68,32 @@ export function checksumWorld(world: World): number {
     h = mixF64(h, b.angularVel[i]!);
     h = mixF64(h, b.mass[i]!);
     h = mixF64(h, b.inertia[i]!);
+  }
+
+  return h >>> 0;
+}
+
+/**
+ * Checksum every round in flight. Pass a previous checksum as `seed` to chain
+ * it after another — `checksumProjectiles(p, checksumWorld(w))` covers both.
+ *
+ * Slot indices are included, so recycling a slot in a different order shows up.
+ * That is deliberate: the free list is part of what has to be reproducible.
+ */
+export function checksumProjectiles(projectiles: Projectiles, seed = FNV_OFFSET): number {
+  let h = seed;
+  h = mixU32(h, projectiles.count);
+
+  for (let i = 0; i < projectiles.highWater; i++) {
+    if (projectiles.alive[i] === 0) continue;
+    h = mixU32(h, i);
+    h = mixF64(h, projectiles.x[i]!);
+    h = mixF64(h, projectiles.y[i]!);
+    h = mixF64(h, projectiles.vx[i]!);
+    h = mixF64(h, projectiles.vy[i]!);
+    h = mixF64(h, projectiles.ttl[i]!);
+    h = mixU32(h, projectiles.owner[i]!);
+    h = mixU32(h, projectiles.kind[i]!);
   }
 
   return h >>> 0;

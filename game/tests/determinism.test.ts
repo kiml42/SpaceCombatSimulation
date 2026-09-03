@@ -3,6 +3,12 @@ import { checksumWorld } from '../sim/checksum.js';
 import { World } from '../sim/index.js';
 import { orbitScenario, SCENARIOS, tumbleScenario } from './fixtures/scenarios.js';
 
+function runSteps(scenario: (typeof SCENARIOS)[keyof typeof SCENARIOS], steps: number): number {
+  const run = scenario.build();
+  for (let i = 0; i < steps; i++) run.step();
+  return run.checksum();
+}
+
 /**
  * Self-checking determinism: these need no baked constants, so they cannot be
  * silently "fixed" by re-recording an expected value. They assert only that
@@ -15,23 +21,22 @@ import { orbitScenario, SCENARIOS, tumbleScenario } from './fixtures/scenarios.j
 describe('determinism', () => {
   for (const [name, scenario] of Object.entries(SCENARIOS)) {
     it(`${name} produces an identical result on a rerun`, () => {
-      const a = scenario.build();
-      const b = scenario.build();
-      a.run(scenario.steps);
-      b.run(scenario.steps);
-      expect(checksumWorld(a)).toBe(checksumWorld(b));
+      expect(runSteps(scenario, scenario.steps)).toBe(runSteps(scenario, scenario.steps));
     });
 
-    it(`${name} is unaffected by how the steps are grouped`, () => {
-      const a = scenario.build();
-      const b = scenario.build();
-      a.run(scenario.steps);
-      // Same total, different batching: the step must not depend on how many
-      // of them a caller asks for at a time.
-      for (let i = 0; i < scenario.steps; i++) b.run(1);
-      expect(checksumWorld(a)).toBe(checksumWorld(b));
+    it(`${name} reaches the same state part way through, twice`, () => {
+      const half = Math.floor(scenario.steps / 2);
+      expect(runSteps(scenario, half)).toBe(runSteps(scenario, half));
     });
   }
+
+  it('the gunnery scenario actually fires and connects', () => {
+    // A determinism suite over a scenario that silently does nothing would
+    // pass forever while testing nothing.
+    const run = SCENARIOS.gunnery.build();
+    for (let i = 0; i < SCENARIOS.gunnery.steps; i++) run.step();
+    expect(run.totalHits).toBeGreaterThan(10);
+  });
 
   it('diverges when the seed changes', () => {
     const a = tumbleScenario(1);

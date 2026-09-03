@@ -9,22 +9,22 @@
  *   npm run golden
  */
 
-import { checksumWorld, formatChecksum } from '../sim/checksum.js';
+import { formatChecksum } from '../sim/checksum.js';
 import { SCENARIOS } from '../tests/fixtures/scenarios.js';
 
 for (const [name, scenario] of Object.entries(SCENARIOS)) {
-  const world = scenario.build();
+  const run = scenario.build();
   const started = process.hrtime.bigint();
-  world.run(scenario.steps);
+  for (let i = 0; i < scenario.steps; i++) run.step();
   const elapsedMs = Number(process.hrtime.bigint() - started) / 1e6;
 
-  const checksum = formatChecksum(checksumWorld(world));
+  const checksum = formatChecksum(run.checksum());
   const perStepUs = (elapsedMs * 1000) / scenario.steps;
 
   console.log(
-    `${name.padEnd(8)} bodies=${String(world.bodies.count).padStart(3)} ` +
-      `steps=${String(scenario.steps).padStart(6)} ` +
+    `${name.padEnd(8)} steps=${String(scenario.steps).padStart(6)} ` +
       `checksum=0x${checksum} ` +
-      `${elapsedMs.toFixed(1)}ms (${perStepUs.toFixed(2)}us/step)`,
+      `${elapsedMs.toFixed(1)}ms (${perStepUs.toFixed(2)}us/step)  ` +
+      run.describe(),
   );
 }
