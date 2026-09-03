@@ -109,12 +109,41 @@ Rules:
 
 ## 4. Simulation model
 
+**Units are SI: metres, kilograms, seconds.** Forces in newtons, impulses in newton-seconds, densities in
+kg/m³, accelerations in m/s². Chosen so that thrust figures, delta-v and propellant fractions can be
+sanity-checked against real spacecraft — which matters a great deal when the scaling laws below are being
+invented rather than measured. Keep battle coordinates in the 10³–10⁴ range (ships 50–200 m, arenas a few
+kilometres) where double precision is a non-issue; it only degrades past about 10¹².
+
 **One planar rigid body per ship. Modules are data, not physics bodies.**
 
 - **Connectivity graph** per hull. When damage disconnects a subgraph, spawn a new body for the
   detached chunk inheriting `v + ω × r`, and recompute mass properties on both sides. This gives
   ships breaking in half, losing engines and tumbling, and wrecks to salvage — the good part of the
   old jointed-assembly model — without a constraint solver.
+- **Destruction is a state change, not a removal. Matter is conserved.** A "destroyed" module becomes
+  *non-functional* — an engine gives no thrust, a magazine holds no rounds, a turret does not fire — but it
+  keeps its mass, its place in the layout, and its ability to stop a shell. Mass leaves a ship only by being
+  **severed** (the connectivity graph above), never by being shot to nothing.
+
+  This is worth more than its realism:
+
+  - **Wrecked structure is free armour**, which is exactly right. A mission-killed capital is a drifting
+    hulk that still soaks rounds, so the mission-kill/kill distinction in §3 gets teeth: stripping a ship's
+    function does not make it easier to finish off.
+  - **Damage never changes topology.** The connectivity graph is only edited by severing, so it cannot be
+    invalidated by a hit — and mass properties, which are expensive to recompute, change only when a chunk
+    actually detaches.
+  - **The thruster allocation matrix does still need recomputing** when a thruster is destroyed, since the
+    geometry of what can push is what changed. Mass properties do not. Two different triggers.
+  - **A battered ship gets sluggish rather than lighter**, because it is carrying its own wreckage. That is
+    both correct and a better feel than a ship growing nimbler as it loses modules.
+  - It gives salvage something to be: the matter is all still accounted for somewhere.
+
+  The open question is whether "destroyed" is even a distinct state, or just the bottom of a continuous
+  damage scale — a heavily damaged engine at 10% thrust, a magazine that cooks off, armour that is still
+  there but no longer resists as well. Continuous is the more interesting design; it is deferred with the
+  damage model rather than decided here.
 - **No joints anywhere.** The joint solver was the cost centre, the main obstacle to determinism,
   and the direct cause of the turret-control problems in the old project.
 - **Turrets are kinematic**: slew toward the lead-corrected bearing under rate and acceleration
@@ -136,9 +165,9 @@ Rules:
   - **A round parked exactly on a surface must not re-hit it.** `segmentCircleT` therefore treats only
     *strictly* inside as an immediate hit, and settles the exactly-on-surface case by direction of travel.
     Otherwise a deflected round strikes the same hull again on its very next step, forever.
-  - **Two rounds hitting the same module in one step** are both recorded against a module that was intact
-    when they were cast, even if the first destroyed it. They arrived within 16 ms, and this is what keeps
-    the phases decoupled — a deliberate choice, not an accident of ordering.
+  - **Two rounds hitting the same module in one step** are both stopped by it, even if the first destroyed
+    it. Not a phase-ordering compromise but the physical answer: a wrecked module's matter is still there,
+    so it still stops a shell. This falls out for free from the rule below.
 - **Collision:** impulse-based, single pass. Stacking and resting contact are artefacts of a
   persistent force pressing bodies together; in space there isn't one, so the hard case never arises.
 - **The spatial index is for queries, not collision pairing.** At a few hundred bodies, testing every body
@@ -357,17 +386,22 @@ no DOM to leak; and it puts something on screen within days, which is what buys 
 Then, in order:
 
 1. **Blueprint editor** — parametric modules; ships stop being hard-coded.
-2. **Doctrine and orders** — make configuration visibly change behaviour.
-3. **Headless evolution and analysis** — balance testing plus sandbox mode.
-4. **v1: skirmish** — fixed fleet budget, designed scenarios, shareable by URL. *This is the first
+2. **Terminal ballistics and the damage model** — armour properties exist once modules are parametric, so
+   this is the first point at which a real answer is possible. Terminal ballistics decides
+   penetrate/embed/deflect from local surface properties and returns a residual; the damage model spends
+   that residual walking the internals. Until then, Slice 0 stands in with a flat "everything penetrates
+   and is absorbed", which is enough to watch ships come apart but tells you nothing about armour design.
+3. **Doctrine and orders** — make configuration visibly change behaviour.
+4. **Headless evolution and analysis** — balance testing plus sandbox mode.
+5. **v1: skirmish** — fixed fleet budget, designed scenarios, shareable by URL. *This is the first
    thing worth giving people to play.*
-5. **Salvage and in-battle construction** — wrecks from the current battle as the resource. The
+6. **Salvage and in-battle construction** — wrecks from the current battle as the resource. The
    natural bridge to an economy: no map features needed, and it ties income directly to combat.
-6. **Mining and the two-resource economy** — metals for hulls, volatiles for propellant, so maps can
+7. **Mining and the two-resource economy** — metals for hulls, volatiles for propellant, so maps can
    have economic character and scarcity changes behaviour. *Note: this is a re-balance, not an
    addition — it lengthens battles and replaces "did I spend 500 points well?" with "did I manage
    income well?". Scenarios will need revisiting.*
-7. **Campaign** — Homeworld-shaped, with the adaptive enemy. Last, because it's mostly *authoring*
+8. **Campaign** — Homeworld-shaped, with the adaptive enemy. Last, because it's mostly *authoring*
    (scripted missions, pacing, narrative), which is the largest volume of work in the least-proven
    discipline.
 
@@ -505,20 +539,14 @@ Deliberately unresolved; decide when they block something.
 - Exact scaling laws for parametric modules (mass, capacity, strength) and the counter-pressures
   that stop "one enormous tank" being optimal.
 - How severed chunks divide fuel, ammunition and power.
+- Whether module destruction is a discrete state or simply the bottom of a continuous damage scale (§4).
 - Whether fighter-vs-fighter collision matters at swarm density, or whether only capitals and
   turrets are solid.
 - Ammunition model granularity — per-mount magazines, shared bunkerage, or both.
 - Whether the mothership's build priorities are a doctrine blob (so async PvP competes on them) or
   a player-driven queue.
-- **The unit system.** The simulation is currently scale-free apart from `gm` (length³/time²), well
-  softening (a length), and the grid's cell size (which only needs to be *commensurate* with body sizes,
-  so it is a ratio rather than a commitment). Nothing forces a choice yet, but two things arriving next do:
-  thruster allocation introduces thrust, mass and acceleration together, and the manoeuvring envelope drawn
-  for the player needs real numbers on its axes; and the parametric module scaling laws above cannot be
-  sanity-checked without units. The recommendation on the table is **metres, kilograms, seconds, newtons** —
-  so thrust, delta-v and propellant fractions can be checked against real spacecraft — with battle
-  coordinates kept in the 10³–10⁴ range, where double precision is a non-issue.
-- Concrete numbers everywhere: budgets, ranges, timestep, weld thresholds, edit-distance bounds.
+- Concrete values, now that the units are settled: budgets, engagement ranges, timestep, weld
+  velocity threshold, edit-distance bounds, muzzle velocities, armour densities.
 - Project name.
 
 ---
@@ -529,6 +557,7 @@ Deliberately unresolved; decide when they block something.
 | --- | --- |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
 | 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |
+| 2026-09-03 | Units locked to SI (§4), removing the open question. Terminal ballistics and the damage model became build-order step 2 (§8), positioned after the blueprint editor because armour properties only exist once modules are parametric. And destruction became a *state change rather than a removal*: a wrecked module keeps its mass and still stops shells, so matter is conserved, damage never edits the connectivity graph, and wreckage is free armour — which also answers the two-rounds-one-step question physically rather than by phase ordering. |
 | 2026-09-03 | Impact resolution split out of ballistics (§4). A round that hits is parked and marked pending rather than consumed, so terminal ballistics — penetrate/embed/deflect, a pure function of local surface properties — can live outside the projectile step and the damage model can stay out of the inner loop. Required adding projectile mass, and `t` plus the surface normal to the hit record. Found and fixed the exactly-on-surface case that would have made every deflection re-hit its own hull. |
 | 2026-09-03 | Swept-segment projectiles added. Impacts are *reported*, not applied: ballistics fills a hit buffer and the damage model drains it, so what a hit does to a hull is decided elsewhere. Projectiles get plain indices rather than generational handles, because nothing holds a reference to a round across steps. Scenario fixtures became a step/checksum pair so a golden scenario can pin more than a world; the `orbit` and `tumble` checksums were unchanged by that refactor, which is what confirmed it was behaviour-neutral. |
 | 2026-09-03 | Uniform-grid spatial index added. Recorded in §4 that it is a *query* structure, not collision pairing: at a few hundred bodies all-pairs is cheaper than indexing, and the grid earns its place against thousands of ray and radius queries per step. |
