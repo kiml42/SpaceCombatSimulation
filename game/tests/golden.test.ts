@@ -25,7 +25,7 @@ import { SCENARIOS, type ScenarioName } from './fixtures/scenarios.js';
 const GOLDEN: Record<ScenarioName, string> = {
   orbit: '0441a895',
   tumble: '52118178',
-  gunnery: '041ed17f',
+  gunnery: 'c3e9551c',
 };
 
 describe('golden scenarios', () => {

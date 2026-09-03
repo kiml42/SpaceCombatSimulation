@@ -58,18 +58,37 @@ describe('flight', () => {
     const bodies = new Bodies();
     const ship = bodies.create({ x: 0, y: 0, vx: 50, vy: 10, mass: 1, inertia: 1, radius: 5 });
     const projectiles = new Projectiles();
-    const p = projectiles.fireFrom(bodies, bodies.indexOf(ship), 10, 0, 800, 0, 3, 10, 1, 0);
+    const p = projectiles.fireFrom(bodies, bodies.indexOf(ship), 10, 0, 800, 0, 3, 5, 10, 1, 0);
 
     expect(projectiles.vx[p]).toBe(850);
     expect(projectiles.vy[p]).toBe(10);
+    expect(projectiles.mass[p]).toBe(5);
     expect(projectiles.owner[p]).toBe(bodies.indexOf(ship));
+  });
+
+  it('defaults to unit mass rather than none', () => {
+    // A massless round would impart no momentum, which is a silently wrong
+    // default rather than an obviously wrong one.
+    const r = range();
+    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 1, vy: 0, ttl: 1 });
+    expect(r.projectiles.mass[p]).toBe(1);
   });
 });
 
 describe('impacts', () => {
-  it('reports a hit and consumes the round', () => {
+  it('reports a hit and leaves the round pending, not consumed', () => {
     const r = range({ x: 200, y: 0, radius: 20 });
-    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 600, vy: 0, ttl: 5, damage: 7, penetration: 3, kind: 2 });
+    const p = r.projectiles.spawn({
+      x: 0,
+      y: 0,
+      vx: 600,
+      vy: 0,
+      ttl: 5,
+      mass: 4,
+      damage: 7,
+      penetration: 3,
+      kind: 2,
+    });
 
     let hitStep = -1;
     for (let i = 0; i < 60 && hitStep < 0; i++) {
@@ -81,16 +100,98 @@ describe('impacts', () => {
     expect(r.hits.count).toBe(1);
     expect(r.hits.projectile[0]).toBe(p);
     expect(r.hits.body[0]).toBe(r.bodies.indexOf(r.ids[0]!));
-    expect(r.hits.damage[0]).toBe(7);
-    expect(r.hits.penetration[0]).toBe(3);
-    expect(r.hits.kind[0]).toBe(2);
-    // Struck the near edge, travelling along +x.
+
+    // Struck the near edge, so the outward normal points back along -x.
     expect(r.hits.x[0]).toBeCloseTo(180, 6);
-    expect(r.hits.dirX[0]).toBeCloseTo(1, 12);
-    expect(r.hits.dirY[0]).toBeCloseTo(0, 12);
-    // Consumed.
-    expect(r.projectiles.alive[p]).toBe(0);
+    expect(r.hits.nx[0]).toBeCloseTo(-1, 9);
+    expect(r.hits.ny[0]).toBeCloseTo(0, 9);
+    expect(r.hits.t[0]).toBeGreaterThanOrEqual(0);
+    expect(r.hits.t[0]).toBeLessThanOrEqual(1);
+
+    // Alive and parked at the impact, awaiting resolution.
+    expect(r.projectiles.alive[p]).toBe(1);
+    expect(r.projectiles.pending[p]).toBe(1);
+    expect(r.projectiles.pendingCount).toBe(1);
+    expect(r.projectiles.x[p]).toBe(r.hits.x[0]);
+
+    // Everything about the round itself is read from the store rather than
+    // copied into the hit record, so there is no second copy to diverge.
+    expect(r.projectiles.mass[p]).toBe(4);
+    expect(r.projectiles.damage[p]).toBe(7);
+    expect(r.projectiles.penetration[p]).toBe(3);
+    expect(r.projectiles.kind[p]).toBe(2);
+    expect(r.projectiles.vx[p]).toBe(600);
+  });
+
+  it('does not cast a pending round again, or re-report its impact', () => {
+    const r = range({ x: 100, y: 0, radius: 10 });
+    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, ttl: 5 });
+    r.projectiles.step(DT, r.bodies, r.grid, r.hits);
+    expect(r.hits.count).toBe(1);
+
+    const restingX = r.projectiles.x[p];
+    const restingTtl = r.projectiles.ttl[p];
+    for (let i = 0; i < 10; i++) {
+      r.projectiles.step(DT, r.bodies, r.grid, r.hits);
+      expect(r.hits.count).toBe(0);
+    }
+    // Stopped dead, with its flight time not ticking away either.
+    expect(r.projectiles.x[p]).toBe(restingX);
+    expect(r.projectiles.ttl[p]).toBe(restingTtl);
+    expect(r.projectiles.pendingCount).toBe(1);
+  });
+
+  it('resume returns a deflected round to flight on its new heading', () => {
+    const r = range({ x: 100, y: 0, radius: 10 });
+    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, ttl: 5 });
+    r.projectiles.step(DT, r.bodies, r.grid, r.hits);
+    expect(r.hits.count).toBe(1);
+
+    // Mirror the velocity about the surface normal, as a deflection would.
+    const nx = r.hits.nx[0]!;
+    const ny = r.hits.ny[0]!;
+    const vx = r.projectiles.vx[p]!;
+    const vy = r.projectiles.vy[p]!;
+    const dot = vx * nx + vy * ny;
+    r.projectiles.vx[p] = vx - 2 * dot * nx;
+    r.projectiles.vy[p] = vy - 2 * dot * ny;
+    r.projectiles.resume(p);
+
+    expect(r.projectiles.pendingCount).toBe(0);
+    // Reflected off a face whose normal is -x, so it now travels -x.
+    expect(r.projectiles.vx[p]).toBeCloseTo(-6000, 6);
+
+    const before = r.projectiles.x[p]!;
+    r.projectiles.step(DT, r.bodies, r.grid, r.hits);
+    expect(r.projectiles.x[p]!).toBeLessThan(before);
+  });
+
+  it('kill clears the pending state', () => {
+    const r = range({ x: 100, y: 0, radius: 10 });
+    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, ttl: 5 });
+    r.projectiles.step(DT, r.bodies, r.grid, r.hits);
+    expect(r.projectiles.pendingCount).toBe(1);
+
+    r.projectiles.kill(r.hits.projectile[0]!);
+    expect(r.projectiles.pendingCount).toBe(0);
     expect(r.projectiles.count).toBe(0);
+    expect(r.projectiles.alive[p]).toBe(0);
+  });
+
+  it('reports an outward normal for an oblique hit', () => {
+    // Arriving from below and to the left of a circle centred on (200, 0), so
+    // it strikes the lower-left arc and the outward normal there must point
+    // both down and to the left. Entry works out at about (174, -43).
+    const r = range({ x: 200, y: 0, radius: 50 });
+    r.projectiles.spawn({ x: 120, y: -70, vx: 6000, vy: 3000, ttl: 5 });
+    r.projectiles.step(DT, r.bodies, r.grid, r.hits);
+
+    expect(r.hits.count).toBe(1);
+    const nx = r.hits.nx[0]!;
+    const ny = r.hits.ny[0]!;
+    expect(Math.sqrt(nx * nx + ny * ny)).toBeCloseTo(1, 12);
+    expect(nx).toBeLessThan(0);
+    expect(ny).toBeLessThan(0);
   });
 
   it('clears the hit buffer each step', () => {
@@ -162,11 +263,14 @@ describe('impacts', () => {
     for (let i = 0; i < 60; i++) r.projectiles.step(DT, r.bodies, r.grid, r.hits);
     expect(r.hits.count).toBe(0);
     expect(r.projectiles.alive[p]).toBe(1);
+    expect(r.projectiles.pendingCount).toBe(0);
   });
 
   it('grows the hit buffer past its initial capacity', () => {
     const bodies = new Bodies(64);
-    for (let i = 0; i < 40; i++) bodies.create({ x: 100, y: i * 100, radius: 30, mass: 1, inertia: 1 });
+    for (let i = 0; i < 40; i++) {
+      bodies.create({ x: 100, y: i * 100, radius: 30, mass: 1, inertia: 1 });
+    }
     const grid = new SpatialGrid(64);
     grid.rebuild(bodies);
 
@@ -177,7 +281,7 @@ describe('impacts', () => {
     const hits = new ProjectileHits(4);
     projectiles.step(DT, bodies, grid, hits);
     expect(hits.count).toBe(40);
-    // Every entry survived the reallocation.
+    // Every entry survived the reallocations.
     for (let i = 0; i < 40; i++) expect(hits.body[i]).toBeGreaterThanOrEqual(0);
   });
 });
@@ -221,6 +325,7 @@ describe('determinism', () => {
           vx: 500 + i * 3,
           vy: 40 - i,
           ttl: 4,
+          mass: 1 + i * 0.5,
           damage: i,
         });
       }
@@ -234,12 +339,21 @@ describe('determinism', () => {
     for (let step = 0; step < 200; step++) {
       a.projectiles.step(DT, a.bodies, a.grid, a.hits, wells);
       b.projectiles.step(DT, b.bodies, b.grid, b.hits, wells);
+
       expect(b.hits.count).toBe(a.hits.count);
       for (let i = 0; i < a.hits.count; i++) {
         expect(b.hits.projectile[i]).toBe(a.hits.projectile[i]);
         expect(b.hits.body[i]).toBe(a.hits.body[i]);
+        expect(b.hits.t[i]).toBe(a.hits.t[i]);
         expect(b.hits.x[i]).toBe(a.hits.x[i]);
         expect(b.hits.y[i]).toBe(a.hits.y[i]);
+        expect(b.hits.nx[i]).toBe(a.hits.nx[i]);
+        expect(b.hits.ny[i]).toBe(a.hits.ny[i]);
+      }
+      // Resolve identically on both sides so the runs stay in lockstep.
+      for (let i = 0; i < a.hits.count; i++) {
+        a.projectiles.kill(a.hits.projectile[i]!);
+        b.projectiles.kill(b.hits.projectile[i]!);
       }
       for (let i = 0; i < a.projectiles.highWater; i++) {
         expect(b.projectiles.x[i]).toBe(a.projectiles.x[i]);
@@ -263,11 +377,27 @@ describe('store housekeeping', () => {
     expect(r.projectiles.count).toBe(0);
   });
 
-  it('clear empties the store', () => {
+  it('resume ignores rounds that are not pending', () => {
     const r = range();
-    for (let i = 0; i < 10; i++) r.projectiles.spawn({ x: i, y: 0, vx: 1, vy: 0, ttl: 1 });
+    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 1, vy: 0, ttl: 1 });
+    expect(() => {
+      r.projectiles.resume(p);
+      r.projectiles.resume(-1);
+      r.projectiles.resume(9999);
+    }).not.toThrow();
+    expect(r.projectiles.pendingCount).toBe(0);
+  });
+
+  it('clear empties the store, pending rounds included', () => {
+    const r = range({ x: 100, y: 0, radius: 10 });
+    r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, ttl: 5 });
+    for (let i = 0; i < 9; i++) r.projectiles.spawn({ x: i, y: 900, vx: 1, vy: 0, ttl: 1 });
+    r.projectiles.step(DT, r.bodies, r.grid, r.hits);
+    expect(r.projectiles.pendingCount).toBe(1);
+
     r.projectiles.clear();
     expect(r.projectiles.count).toBe(0);
+    expect(r.projectiles.pendingCount).toBe(0);
     expect(r.projectiles.highWater).toBe(0);
   });
 

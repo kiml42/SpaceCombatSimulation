@@ -377,6 +377,18 @@ describe('segmentCircleT', () => {
     // Tangent: the segment just touches the top of the circle.
     expect(segmentCircleT(0, 2, 20, 0, 10, 0, 2)).toBeCloseTo(0.5, 9);
   });
+
+  it('settles a start exactly on the surface by direction, not position', () => {
+    // A round deflected off a hull is parked precisely on its surface. Treating
+    // that as "inside" would have it strike the same hull again immediately, so
+    // the direction of travel has to decide.
+    const r = 10;
+    // Circle at (100, 0). Start exactly on its near edge, at (90, 0).
+    expect(segmentCircleT(90, 0, -100, 0, 100, 0, r)).toBe(-1); // leaving: miss
+    expect(segmentCircleT(90, 0, 100, 0, 100, 0, r)).toBe(0); // entering: hit
+    // Strictly inside still reports an immediate hit.
+    expect(segmentCircleT(95, 0, 100, 0, 100, 0, r)).toBe(0);
+  });
 });
 
 // ---- buffers ----
