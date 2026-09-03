@@ -1,0 +1,19 @@
+{
+  "name": "space-combat-sim",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Planar, physics-driven fleet-tactics game. See DESIGN.md.",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p sim && tsc -p .",
+    "golden": "tsx scripts/golden.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  }
+}
