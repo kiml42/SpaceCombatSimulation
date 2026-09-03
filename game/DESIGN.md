@@ -361,6 +361,11 @@ Five things, and deliberately nothing more:
    Without it you'll be afraid to touch the physics, which is where the interesting work is.
 2. **This document, kept current**, with the Status section at the top actually updated.
 3. **CI running tests on push**, so the repo reports its own state without an environment setup.
+   `.github/workflows/ci.yml` runs the suite across **Node 20, 22 and 24**, which is not redundancy: the golden
+   tests pin exact checksums, so passing them on three V8 versions is what actually verifies the hand-written
+   transcendentals are doing their job. A row that passes on one Node and fails on another means determinism has
+   broken across engine versions — the exact failure mode that ruled out an engine's built-in physics in §11.
+   Path-filtered to `game/**`, so tinkering with the archived Unity tree queues nothing.
 4. **Single-command headless runs** — `npm run battle -- scenarios/duel.json`. Re-entry from a cold
    checkout should be one command.
 5. **A `CLAUDE.md`** for this project.

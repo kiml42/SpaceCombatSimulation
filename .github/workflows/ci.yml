@@ -1,0 +1,78 @@
+# CI for the TypeScript game in game/.
+#
+# The archived Unity project in SpaceCombatSimulation/ is deliberately not
+# built or tested here: it is pinned to an editor version that is not installed
+# on any runner, running its tests would need a Unity licence, and it is not
+# under development. See CLAUDE.md.
+#
+# Path filters mean tinkering with the Unity tree never queues a run.
+
+name: CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'game/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'game/**'
+      - '.github/workflows/ci.yml'
+  workflow_dispatch:
+
+# A new push supersedes the previous run on the same branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: game
+
+jobs:
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: game/package-lock.json
+
+      - run: npm ci
+
+      # Two projects: sim/ (no ambient types, so host globals are errors there)
+      # and the root (tests and scripts, which may use Node).
+      - run: npm run typecheck
+
+  test:
+    name: Test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # More than one version on purpose. The simulation is meant to produce
+        # bit-identical results, and the golden tests pin exact checksums — so
+        # running them across three V8 versions is what actually verifies that
+        # the hand-written transcendental functions do their job. If a golden
+        # test passes on one row and fails on another, determinism is broken
+        # across engine versions, which is precisely the failure the design set
+        # out to avoid.
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: game/package-lock.json
+
+      - run: npm ci
+
+      - run: npm test
