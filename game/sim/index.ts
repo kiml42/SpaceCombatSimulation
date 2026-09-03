@@ -30,4 +30,11 @@ export {
   NO_OWNER,
   type ProjectileSpec,
 } from './projectiles.js';
+export {
+  ThrusterLayout,
+  Allocation,
+  applyAllocation,
+  shortfall,
+  type ThrusterSpec,
+} from './thrusters.js';
 export { checksumWorld, checksumProjectiles, formatChecksum } from './checksum.js';

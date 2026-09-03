@@ -258,6 +258,22 @@ export class Bodies {
     this.torque[i] += localPx * localFy - localPy * localFx;
   }
 
+  /**
+   * A body-frame force through the centre of mass plus a torque, applied
+   * together — the output of thruster allocation, which has already summed the
+   * whole layout. Doing it as one call takes a single sine and cosine for the
+   * ship instead of one per thruster.
+   */
+  applyLocalWrench(id: BodyId, localFx: number, localFy: number, torque: number): void {
+    const i = this.indexOf(id);
+    if (i < 0) return;
+    const c = cos(this.angle[i]);
+    const s = sin(this.angle[i]);
+    this.fx[i] += localFx * c - localFy * s;
+    this.fy[i] += localFx * s + localFy * c;
+    this.torque[i] += torque;
+  }
+
   applyTorque(id: BodyId, t: number): void {
     const i = this.indexOf(id);
     if (i < 0) return;

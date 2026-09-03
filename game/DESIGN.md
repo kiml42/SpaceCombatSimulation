@@ -12,12 +12,12 @@ re-litigated after a gap — most entries therefore record *why*, not just *what
 
 ## Status
 
-- **Built and tested:** deterministic maths (own transcendentals), seeded RNG,
+- **Built and tested:** per-blueprint thruster allocation, deterministic maths (own transcendentals), seeded RNG,
   structure-of-arrays body store with generational handles, kick-drift-kick leapfrog
   integrator, gravity wells, state checksums, a uniform-grid spatial index with segment
   and circle queries, and swept-segment projectiles with impact reporting.
-- **Next:** per-blueprint thruster allocation and kinematic turrets. Then the two
-  hard-coded blueprints and the Canvas2D debug viewer, which completes Slice 0.
+- **Next:** kinematic turrets. Then the two hard-coded blueprints and the Canvas2D
+  debug viewer, which completes Slice 0.
 - **Blocked on:** nothing.
 - **Measured:** integration costs ~0.19 microseconds per body-step. Ray queries
   against 140 bodies at 2,000 casts per step cost 0.16 ms through the grid versus
@@ -587,6 +587,15 @@ Deliberately unresolved; decide when they block something.
   that stop "one enormous tank" being optimal.
 - How severed chunks divide fuel, ammunition and power.
 - Whether module destruction is a discrete state or simply the bottom of a continuous damage scale (§4).
+- **Whether thruster allocation needs to be exact.** It currently minimises Σuᵢ² by clamped least squares
+  with redistribution, which is smooth and fast but neither propellant-optimal nor exact: measured mean
+  shortfall 0.016% and worst 5.4% against randomised, near-adversarial geometry. Two separate upgrades are
+  available if either ever matters. Propellant-optimal allocation is a linear program, but its solutions sit
+  on vertices, so it burns fewer thrusters harder and switches abruptly as the demand rotates — cheaper in
+  fuel, worse to fly. Exactness means bounded-variable least squares, releasing pinned thrusters when the
+  gradient says they would help *with a line search to guarantee progress*; releasing without the line
+  search was tried and made the worst case far worse, because the active set oscillates. Neither is worth
+  doing until a ship visibly misbehaves or propellant accounting proves too generous.
 - **Whether capitals may mount hull-layer guns.** Not needed for torpedoes — §3 settles those — but it is
   an appealing separate axis. Deck turrets are **area**-limited: many of them, arcs unconstrained, but they
   can only strip mounts. Edge-mounted hull-layer guns would be **perimeter**-limited: few, narrow arcs, but
@@ -614,6 +623,7 @@ Deliberately unresolved; decide when they block something.
 | --- | --- |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
 | 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |
+| 2026-09-04 | Thruster allocation built. Three findings worth keeping: the torque row must be **preconditioned** (mount arms are metres, so torque outweighs force by ~10⁴ in the normal equations, and once thrusters pin the solve quietly fits torque and ignores force — 75% shortfall on achievable demands); the normal equations must **switch form** with the number of free thrusters, `A Aᵀ` when underdetermined and `Aᵀ A` when fewer than three remain, since the 3×3 form is singular there; and only the **worst violator** may be pinned per pass, because pinning all of them collapses a nine-thruster layout to two and never reconsiders. Together these took the worst-case shortfall from >100% to 5.4%, mean 0.016%. |
 | 2026-09-03 | Tightened the commit model (§3), which had two holes. A craft could commit while already over a capital's interior and strike the citadel without meeting the armoured edge; and a craft that *moved* to the hull layer would stop being hittable by CIWS and lasers exactly when it should be most exposed. Fixed by making occupancy *added, never swapped* — a committed craft is in both layers — and by allowing occupancy to change only while clear of every hull, in either direction, which also governs waving off and gives "commit is arming" for free. Corrected the earlier claim that the transition is an event rather than a state: true of projectiles, false once commit exists, which is one bit per craft. Also corrected the unearned claim that committing draws more fire — every weapon is weapons-layer, so the real costs are a predictable terminal course and being collidable with turrets. |
 | 2026-09-03 | Resolved how a torpedo reaches a hull (§3). A collision with a hull is a hull-layer event, projectile fire is a weapons-layer event, and nothing migrates between layers. A strafing run skims the deck; a terminal dive strikes it. So a kinetic-kill vehicle needs no warhead, "a torpedo is a fighter that crashes into things" becomes literal, and overfly-versus-commit becomes a doctrine choice priced in evasion. Ram versus dock needed no new mechanism — the §4 weld threshold already decides it. Capital hull-layer edge guns were kept as a separate open question, since torpedoes do not need them. |
 | 2026-09-03 | Units locked to SI (§4), removing the open question. Terminal ballistics and the damage model became build-order step 2 (§8), positioned after the blueprint editor because armour properties only exist once modules are parametric. And destruction became a *state change rather than a removal*: a wrecked module keeps its mass and still stops shells, so matter is conserved, damage never edits the connectivity graph, and wreckage is free armour — which also answers the two-rounds-one-step question physically rather than by phase ordering. |
