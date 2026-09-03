@@ -69,6 +69,9 @@ failures worth avoiding.
 
 ## Conventions
 
+- **Never write about the *current* branch, anywhere — including DESIGN.md.** "X was implemented on branch Y"
+  is fine: a historical fact that stays true. "The work is on branch Y" is wrong the moment it merges, and the
+  Status block is the one place most likely to be believed. Describe *what exists*, not where it lives.
 - **Comments must be timeless.** Explain what a file is and why it exists *in general* — never why it was
   built at a particular point in the project. "Present in the foundation for two reasons…", "not needed yet",
   "for now", "at this stage" are all stale the moment the next thing lands, and a comment that has quietly
