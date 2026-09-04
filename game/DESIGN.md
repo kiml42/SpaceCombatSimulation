@@ -191,15 +191,22 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
 - **Turrets are kinematic**: slew toward the lead-corrected bearing under rate and acceleration
   limits; apply reaction torque to the parent analytically as `−I·β̈`. Three bodies per turret become
   zero, and there are no gains to tune.
-  - The slew is **braking-limited**: each step the turret takes the fastest rate from which it could
-    still stop on target, `sqrt(2·a·|error|)`, capped by its rate limit — less half a step of
-    acceleration, because braking exactly on the continuous limit overshoots once time is discrete, and
-    clamping the rate at the last moment to prevent that would violate the acceleration limit, which is
-    a property of the mount rather than a guideline.
-  - That leaves a dead band of `a·dt²/8`, so **the on-target tolerance is per turret**, widened where a
-    mount's acceleration outruns the timestep. A fixed tolerance would leave a violent mount parked just
-    outside it, never reporting ready, and never firing — a turret that silently refuses to shoot is a
-    far worse failure than one that points a fraction of a milliradian less well than advertised.
+  - The slew is **braking-limited**, using the *discrete* safe rate
+    `sqrt(2·a·|e| + (a·dt/2)²) − a·dt/2` rather than the continuous `sqrt(2·a·|e|)`, capped at the rate
+    that lands exactly in one step. Three properties have to hold together and each obvious fix breaks
+    one of the others: no overshoot (the continuous rate is slightly too fast once time is discrete);
+    no violation of the acceleration limit (clamping the rate at the last moment to stop overshoot
+    breaks it, and that limit is a property of the mount rather than a guideline); and no dead band
+    (subtracting `a·dt/2` from the continuous rate stops correcting below `a·dt²/8`, which leaves a
+    brisk mount parked short and unable to close a tracking error). The discrete form is zero at zero
+    error and strictly positive elsewhere, so it satisfies all three.
+  - Tracking uses **velocity feed-forward**: a command carries the rate its bearing is sweeping at, and
+    the hull's own angular velocity is subtracted, so holding a world bearing on a turning ship needs
+    no separate correction. Without it a turret trails a moving target by about one step of the target's
+    angular motion — metres of miss at gunnery range.
+  - **Command turrets before advancing the world.** The feed-forward cancels the hull's rotation over
+    the coming step, so the slew and the rotation must cover the same interval. Command from a hull that
+    has already turned and the turret holds its bearing exactly one step of rotation behind.
   - Firing needs **both** `onTarget` and not `blocked`: a turret whose target lies outside its traverse
     arc slews as close as it can and sits there, on target with respect to its command but not aimed at
     anything.
@@ -674,7 +681,7 @@ Deliberately unresolved; decide when they block something.
 | --- | --- |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
 | 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |
-| 2026-09-04 | Kinematic turrets built, replacing the archive's worst mechanism (GA-searched PD gains driving hinge motors, DESIGN.md §10). Braking-limited slew, no gains. Two findings recorded in §4: braking must start half a step early, because doing it on the continuous limit overshoots under discrete time while clamping the rate to prevent that breaks the acceleration limit; and the on-target tolerance must then be *per turret*, widened where acceleration outruns the timestep, or a brisk mount parks inside the dead band and never reports ready to fire. |
+| 2026-09-04 | Kinematic turrets built, replacing the archive's worst mechanism (GA-searched PD gains driving hinge motors, §10). Braking-limited slew with velocity feed-forward, no gains. Three findings recorded in §4, each of which cost an attempt: the braking rate must be the *discrete* safe rate, since the continuous one overshoots, clamping the rate to stop that breaks the acceleration limit, and subtracting half a step leaves a dead band that a brisk mount parks inside; tracking needs feed-forward, without which a turret trails a moving target by a step of its angular motion and lags a rotating hull entirely; and turrets must be commanded *before* the world advances, or the slew and the hull's rotation cover different intervals. |
 | 2026-09-04 | Recorded in §12 how thruster allocation extends, so it need not be re-derived: **gimbals** work by solving for the thrust vector rather than a scalar throttle, which keeps the wrench linear and turns the bound into a sector projection; **throttle rate limits** belong inside the solve as per-thruster bounds, never as post-processing, which would break the wrench; and **binary thrusters** belong after it as a duty cycle with delta-sigma modulation, since as a constraint they would make the problem mixed-integer and far harder rather than simpler. Also noted the one thing this constrains today: the throttles array is per ship and must persist between steps, so it cannot become shared scratch. |
 | 2026-09-04 | Thruster allocation built. Three findings worth keeping: the torque row must be **preconditioned** (mount arms are metres, so torque outweighs force by ~10⁴ in the normal equations, and once thrusters pin the solve quietly fits torque and ignores force — 75% shortfall on achievable demands); the normal equations must **switch form** with the number of free thrusters, `A Aᵀ` when underdetermined and `Aᵀ A` when fewer than three remain, since the 3×3 form is singular there; and only the **worst violator** may be pinned per pass, because pinning all of them collapses a nine-thruster layout to two and never reconsiders. Together these took the worst-case shortfall from >100% to 5.4%, mean 0.016%. |
 | 2026-09-03 | Tightened the commit model (§3), which had two holes. A craft could commit while already over a capital's interior and strike the citadel without meeting the armoured edge; and a craft that *moved* to the hull layer would stop being hittable by CIWS and lasers exactly when it should be most exposed. Fixed by making occupancy *added, never swapped* — a committed craft is in both layers — and by allowing occupancy to change only while clear of every hull, in either direction, which also governs waving off and gives "commit is arming" for free. Corrected the earlier claim that the transition is an event rather than a state: true of projectiles, false once commit exists, which is one bit per craft. Also corrected the unearned claim that committing draws more fire — every weapon is weapons-layer, so the real costs are a predictable terminal course and being collidable with turrets. |

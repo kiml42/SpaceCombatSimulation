@@ -1,5 +1,5 @@
 import type { Bodies } from './bodies.js';
-import { abs, angleDelta, atan2, clamp, cos, max, min, normalizeAngle, PI, sin, sqrt } from './math.js';
+import { abs, angleDelta, atan2, clamp, cos, normalizeAngle, PI, sin, sqrt } from './math.js';
 
 /**
  * Turrets: mounts that slew to a bearing and report when they are on target.
@@ -18,13 +18,23 @@ import { abs, angleDelta, atan2, clamp, cos, max, min, normalizeAngle, PI, sin, 
  * and turrets that lock up trying to traverse the long way round. See
  * DESIGN.md §10.
  *
+ * Tracking uses **velocity feed-forward**: a command carries the rate the
+ * bearing is changing at, not just where it is. Without that a turret derives
+ * its rate from the present error alone, and against a target with angular rate
+ * ω it settles into a standing lag of `ω²/(2a) + ω·dt/2 + a·dt²/8` — a
+ * hundredth of a radian for a brisk mount at modest crossing rates, which is
+ * metres of miss at gunnery range. Worse, a turret on a *rotating hull* would
+ * simply lag the rotation, since holding a fixed world bearing means
+ * counter-rotating at −ω_body. Feed-forward removes both: the error term is
+ * left with nothing to do but correct, so the lag falls to discretisation.
+ *
  * What replaces it is a **braking-limited slew**. Each step the turret works
  * out the fastest rate from which it could still stop exactly on target —
- * `sqrt(2·a·|error|)` — takes the lesser of that and its rate limit, and moves
- * its actual rate toward that figure under its acceleration limit. No gains, no
- * tuning, no overshoot, and it arrives in the shortest time the limits allow.
- * The behaviour is a property of the mount's specification rather than of a
- * search over coefficients.
+ * `sqrt(2·a·|error|)` — caps that at the rate which would land exactly in one
+ * step, adds the feed-forward rate, and moves its actual rate toward the result
+ * under its acceleration limit. No gains, no tuning, no overshoot, and it
+ * arrives in the shortest time the limits allow. The behaviour is a property of
+ * the mount's specification rather than of a search over coefficients.
  *
  * The reaction torque on the hull is `−I·β̈`: the internal torque pair between
  * turret and hull. So a heavy turret slewing hard visibly yaws a small ship,
@@ -32,14 +42,10 @@ import { abs, angleDelta, atan2, clamp, cos, max, min, normalizeAngle, PI, sin, 
  */
 
 /**
- * Floor on the bearing error below which a turret counts as on target. About
- * 0.06°, and finer than any gunnery cares about.
- *
- * It is only a floor. Braking half a step early leaves the turret parked within
- * `a·dt²/8` of its target, so a mount with violent acceleration cannot point
- * more finely than its own discretisation — claiming otherwise would leave it
- * stopped just outside tolerance, never reporting ready, and never firing. The
- * effective tolerance is therefore widened per turret to suit its acceleration.
+ * Bearing error below which a turret counts as on target. About 0.06°, finer
+ * than any gunnery cares about, and reachable by every mount because the
+ * correction rate is capped at what lands exactly rather than braking early —
+ * so there is no dead band to sit outside of.
  */
 const ON_TARGET_FLOOR = 0.001;
 
@@ -145,6 +151,12 @@ export class Turrets {
   rate!: Float64Array;
   /** Bearing being slewed toward, body frame, already clamped to the arc. */
   commanded!: Float64Array;
+  /**
+   * Rate that bearing is itself changing at, body frame — the feed-forward
+   * term. Includes the hull's own rotation, negated, so holding a world bearing
+   * on a turning ship needs no separate correction.
+   */
+  commandedRate!: Float64Array;
 
   /** 1 when the bearing is within tolerance of `commanded`. */
   onTarget!: Uint8Array;
@@ -202,6 +214,7 @@ export class Turrets {
     this.bearing = f64(this.bearing);
     this.rate = f64(this.rate);
     this.commanded = f64(this.commanded);
+    this.commandedRate = f64(this.commandedRate);
     this.onTarget = u8(this.onTarget);
     this.tolerance = f64(this.tolerance);
     this.blocked = u8(this.blocked);
@@ -234,6 +247,7 @@ export class Turrets {
     this.bearing[i] = rest;
     this.rate[i] = 0;
     this.commanded[i] = rest;
+    this.commandedRate[i] = 0;
     this.onTarget[i] = 1;
     this.tolerance[i] = ON_TARGET_FLOOR;
     this.blocked[i] = 0;
@@ -264,23 +278,40 @@ export class Turrets {
    * `onTarget` straight after commanding a new bearing would be told the turret
    * was already there.
    */
-  private setCommand(i: number, allowed: number): void {
+  private setCommand(i: number, allowed: number, rate: number): void {
     this.commanded[i] = allowed;
+    this.commandedRate[i] = clamp(rate, -this.maxRate[i]!, this.maxRate[i]!);
     this.onTarget[i] = abs(angleDelta(this.bearing[i]!, allowed)) <= this.tolerance[i]! ? 1 : 0;
   }
 
-  /** Point at a world bearing, clamped to the arc. Sets `blocked` if it had to clamp. */
-  commandWorldBearing(bodies: Bodies, i: number, worldBearing: number): void {
+  /**
+   * Point at a world bearing, clamped to the arc. Sets `blocked` if it had to
+   * clamp.
+   *
+   * `worldBearingRate` is how fast that bearing is sweeping, in world terms —
+   * pass it whenever it is known, because it is what removes the tracking lag.
+   * The hull's own rotation is subtracted here, so a turret holding a fixed
+   * world bearing on a turning ship counter-rotates without being told to.
+   */
+  commandWorldBearing(
+    bodies: Bodies,
+    i: number,
+    worldBearing: number,
+    worldBearingRate = 0,
+  ): void {
     const b = this.owner[i];
     const wanted = normalizeAngle(worldBearing - bodies.angle[b]!);
     const allowed = this.clampToArc(i, wanted);
-    this.setCommand(i, allowed);
-    this.blocked[i] = abs(angleDelta(allowed, wanted)) > this.tolerance[i]! ? 1 : 0;
+    // A turret pinned against the edge of its arc is not tracking anything, so
+    // it should hold that bearing rather than keep sweeping past it.
+    const clamped = abs(angleDelta(allowed, wanted)) > this.tolerance[i]!;
+    this.setCommand(i, allowed, clamped ? 0 : worldBearingRate - bodies.angularVel[b]!);
+    this.blocked[i] = clamped ? 1 : 0;
   }
 
-  /** Give up and return to the idle bearing. */
+  /** Give up and return to the idle bearing, and stop tracking. */
   returnToRest(i: number): void {
-    this.setCommand(i, this.restBearing[i]!);
+    this.setCommand(i, this.restBearing[i]!, 0);
     this.blocked[i] = 0;
   }
 
@@ -326,17 +357,32 @@ export class Turrets {
       }
     }
 
-    this.commandWorldBearing(bodies, i, atan2(aimY, aimX));
+    // Angular rate of the aim point about the mount: the transverse component
+    // of relative velocity over range. This is the feed-forward term, and it is
+    // what lets a turret hold a crossing target rather than trail behind it.
+    const rvx = targetVx - bodies.vx[b]!;
+    const rvy = targetVy - bodies.vy[b]!;
+    const rangeSq = aimX * aimX + aimY * aimY;
+    const bearingRate = rangeSq > 0 ? (aimX * rvy - aimY * rvx) / rangeSq : 0;
+
+    this.commandWorldBearing(bodies, i, atan2(aimY, aimX), bearingRate);
     return t;
   }
 
   /**
    * Slew every turret one step and apply the reaction to its hull.
    *
-   * The rate chosen is the fastest that can still stop exactly on target,
-   * `sqrt(2·a·|error|)`, capped by the rate limit — then the actual rate moves
-   * toward it under the acceleration limit. That is what makes this arrive
-   * without overshoot and without any gain to tune.
+   * **Command turrets before advancing the world, not after.** The feed-forward
+   * rate cancels the hull's rotation over the coming step, so the turret's slew
+   * and the hull's rotation have to cover the same interval. Command a turret
+   * from a hull that has *already* turned and it will hold its bearing exactly
+   * — one full step of rotation behind where it was asked to point.
+   *
+   * The rate chosen is the commanded feed-forward rate plus the fastest rate
+   * that could still brake out the remaining error, capped by the rate limit —
+   * then the actual rate moves toward that under the acceleration limit. The
+   * feed-forward term holds a moving target; the braking term corrects error;
+   * neither needs a gain.
    */
   step(dt: number, bodies: Bodies): void {
     for (let i = 0; i < this.highWater; i++) {
@@ -346,20 +392,36 @@ export class Turrets {
       const accel = this.maxAccel[i]!;
       const rateLimit = this.maxRate[i]!;
 
-      // The dead band left by braking early is `accel·dt²/8`; the tolerance has
-      // to sit outside it or the turret parks just short and never reports
-      // ready. A factor of two above gives margin without being generous.
-      const tolerance = max(ON_TARGET_FLOOR, (accel * dt * dt) / 4);
+      const tolerance = ON_TARGET_FLOOR;
       this.tolerance[i] = tolerance;
 
-      // Fastest rate from which the remaining error can still be braked out,
-      // less half a step's worth of acceleration. Braking exactly on the
-      // continuous limit `sqrt(2·a·|e|)` overshoots slightly once time is
-      // discrete, and correcting that by clamping the rate at the last moment
-      // would break the acceleration limit — which is a property of the mount,
-      // not a guideline. Starting to brake half a step early keeps both.
-      const brakingRate = max(0, sqrt(2 * accel * abs(error)) - 0.5 * accel * dt);
-      const desired = (error >= 0 ? 1 : -1) * min(brakingRate, rateLimit);
+      // Correction rate. Two things have to hold at once, and getting either
+      // alone is easy while getting both took three attempts.
+      //
+      // No overshoot: the rate must be one the turret can still brake out of
+      // within the remaining error, in *discrete* steps of `a·dt`. The
+      // continuous answer `sqrt(2·a·|e|)` is slightly too fast for that; the
+      // discrete one is `sqrt(2·a·|e| + (a·dt/2)²) − a·dt/2`.
+      //
+      // No dead band: that expression is exactly zero at zero error and
+      // strictly positive everywhere else, so every error gets corrected however
+      // small. Subtracting `a·dt/2` from the continuous rate instead — the
+      // obvious fix — stops correcting below `a·dt²/8`, which leaves a brisk
+      // mount parked short of its target and unable to close the standing error
+      // that tracking leaves behind.
+      //
+      // The landing cap `|e|/dt` then stops a single step stepping past the
+      // target when the error is smaller than one step of travel.
+      const magnitude = abs(error);
+      const half = 0.5 * accel * dt;
+      const braking = sqrt(2 * accel * magnitude + half * half) - half;
+      const landing = dt > 0 ? magnitude / dt : 0;
+      const correction = braking < landing ? braking : landing;
+      const desired = clamp(
+        this.commandedRate[i]! + (error >= 0 ? correction : -correction),
+        -rateLimit,
+        rateLimit,
+      );
 
       const previousRate = this.rate[i]!;
       const maxChange = accel * dt;

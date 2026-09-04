@@ -12,16 +12,19 @@ function ship(angle = 0, vx = 0, vy = 0) {
 }
 
 /**
- * Slew until the turret is on target *and stopped*, returning the steps taken.
+ * Slew until the turret is on target and *holding* — its rate has converged to
+ * the rate it was commanded to sweep at. Returns the steps taken.
  *
- * Both conditions matter: `onTarget` goes true within a milliradian, at which
- * point the turret is still traversing at a few hundredths of a radian per
- * second. Settled means it has come to rest there.
+ * Both conditions matter. `onTarget` goes true within a milliradian, at which
+ * point the turret is still accelerating or braking. And "holding" is not the
+ * same as "stopped": a turret tracking a crossing target settles onto a steady
+ * traverse rate and stays there, which is the whole point of feed-forward.
  */
 function settle(turrets: Turrets, bodies: Bodies, i: number, limit = 4000): number {
   for (let step = 0; step < limit; step++) {
     turrets.step(DT, bodies);
-    if (turrets.onTarget[i] === 1 && turrets.rate[i] === 0) return step + 1;
+    const holding = Math.abs(turrets.rate[i]! - turrets.commandedRate[i]!) < 1e-9;
+    if (turrets.onTarget[i] === 1 && holding) return step + 1;
   }
   throw new Error('turret never settled');
 }
@@ -130,7 +133,7 @@ describe('slewing', () => {
 });
 
 describe('pointing tolerance', () => {
-  it('widens for a mount whose acceleration outruns the timestep', () => {
+  it('is the same for every mount, because there is no dead band', () => {
     const { bodies, index } = ship();
     const turrets = new Turrets();
     const gentle = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 1 });
@@ -141,9 +144,10 @@ describe('pointing tolerance', () => {
     // A gentle mount is limited by the floor; a violent one by its own
     // discretisation. Claiming the floor for both would leave the brisk turret
     // parked just outside tolerance, never reporting ready, and never firing.
+    // Capping the correction at the landing rate removes the dead band, so
+    // every mount can reach the same tolerance however brisk it is.
     expect(turrets.tolerance[gentle]!).toBeCloseTo(0.001, 12);
-    expect(turrets.tolerance[brisk]!).toBeGreaterThan(0.001);
-    expect(turrets.tolerance[brisk]!).toBeCloseTo(400 / (4 * 60 * 60), 12);
+    expect(turrets.tolerance[brisk]!).toBeCloseTo(0.001, 12);
   });
 
   it('still settles and reports ready however brisk the mount', () => {
@@ -157,6 +161,97 @@ describe('pointing tolerance', () => {
       expect(turrets.readyToFire(t)).toBe(true);
       turrets.remove(t);
     }
+  });
+});
+
+describe('tracking', () => {
+  it('holds a crossing target far more closely than error alone would', () => {
+    // A target crossing at 300 m and 200 m/s. Measured honestly: command from
+    // where the target is, then advance the target and the turret over the same
+    // step, then ask whether the turret points at the target *now*. Comparing
+    // against the command it was given a step ago flatters whichever scheme
+    // happens to lag, which is how I got this backwards twice.
+    const run = (feedForward: boolean) => {
+      const { bodies, index } = ship();
+      const turrets = new Turrets();
+      const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 50 });
+
+      let ty = -600;
+      let worst = 0;
+      for (let step = 0; step < 900; step++) {
+        const rangeSq = 300 * 300 + ty * ty;
+        turrets.commandWorldBearing(
+          bodies,
+          t,
+          Math.atan2(ty, 300),
+          feedForward ? (300 * 200) / rangeSq : 0,
+        );
+        ty += 200 * DT;
+        turrets.step(DT, bodies);
+        if (step > 300) {
+          const trueBearing = Math.atan2(ty, 300);
+          worst = Math.max(worst, Math.abs(angleDelta(turrets.bearing[t]!, trueBearing)));
+        }
+      }
+      return worst;
+    };
+
+    const withoutFF = run(false);
+    const withFF = run(true);
+    // Error correction alone always trails the target by about one step of its
+    // angular motion. Feed-forward removes that.
+    expect(withFF).toBeLessThan(withoutFF / 10);
+  });
+
+  it('holds a world bearing while its hull rotates under it', () => {
+    const bodies = new Bodies();
+    const id = bodies.create({ angle: 0, angularVel: 1.5, mass: 1000, inertia: 50_000 });
+    const index = bodies.indexOf(id);
+    const turrets = new Turrets();
+    const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 50 });
+
+    // A ship spinning at 1.5 rad/s, turret asked to hold one bearing in world
+    // terms. Nothing about the command changes; only the hull moves.
+    //
+    // Order matters, and is the order the real loop uses: command from the
+    // current state, then advance hull and turret over the same step. Command
+    // from a hull that has already turned and the turret holds its bearing
+    // perfectly — one whole step of rotation behind where it was asked to point.
+    let worst = 0;
+    for (let step = 0; step < 600; step++) {
+      turrets.commandWorldBearing(bodies, t, PI / 4);
+      bodies.angle[index] = angleDelta(0, bodies.angle[index]! + 1.5 * DT);
+      turrets.step(DT, bodies);
+      if (step > 200) {
+        worst = Math.max(worst, Math.abs(angleDelta(turrets.worldBearing(bodies, t), PI / 4)));
+      }
+    }
+    // Counter-rotation is exact once both cover the same interval.
+    expect(worst).toBeLessThan(1e-9);
+  });
+
+  it('stops sweeping when pinned against the edge of its arc', () => {
+    const { bodies, index } = ship();
+    const turrets = new Turrets();
+    const t = turrets.add({ owner: index, x: 0, y: 0, arc: 0.4, maxRate: 5, maxAccel: 50 });
+
+    // Commanded well outside the arc, and sweeping fast.
+    turrets.commandWorldBearing(bodies, t, 2, 3);
+    expect(turrets.blocked[t]).toBe(1);
+    // It should hold the arc limit, not keep driving into it.
+    expect(turrets.commandedRate[t]).toBe(0);
+    settle(turrets, bodies, t);
+    expect(Math.abs(angleDelta(turrets.bearing[t]!, 0.4))).toBeLessThanOrEqual(
+      turrets.tolerance[t]!,
+    );
+  });
+
+  it('clamps a feed-forward rate to the traverse limit', () => {
+    const { bodies, index } = ship();
+    const turrets = new Turrets();
+    const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 2, maxAccel: 100 });
+    turrets.commandWorldBearing(bodies, t, 0, 50);
+    expect(turrets.commandedRate[t]).toBe(2);
   });
 });
 
@@ -340,16 +435,13 @@ describe('lead', () => {
     // So the turret must point above dead ahead.
     expect(turrets.commanded[t]!).toBeGreaterThan(0.1);
 
-    // And firing along that bearing does intercept.
-    settle(turrets, bodies, t);
-    const solution = new FiringSolution();
-    turrets.firingSolution(bodies, t, solution);
-    const hitX = solution.dirX * 500 * flight;
-    const hitY = solution.dirY * 500 * flight;
-    // Within the turret's own pointing tolerance: a milliradian at this range
-    // is about 0.4 m, so that is the accuracy the mount can promise.
-    expect(Math.abs(hitX - 300)).toBeLessThan(0.5);
-    expect(Math.abs(hitY - 200 * flight)).toBeLessThan(0.5);
+    // A shot along the commanded bearing, for the computed flight time, must
+    // arrive where the target will be. Checked on the commanded bearing rather
+    // than after slewing: this is the lead geometry, not the mount's tracking.
+    const hitX = Math.cos(turrets.commanded[t]!) * 500 * flight;
+    const hitY = Math.sin(turrets.commanded[t]!) * 500 * flight;
+    expect(hitX).toBeCloseTo(300, 6);
+    expect(hitY).toBeCloseTo(200 * flight, 6);
   });
 
   it('aims at the present position when the target cannot be caught', () => {
