@@ -37,4 +37,10 @@ export {
   shortfall,
   type ThrusterSpec,
 } from './thrusters.js';
+export {
+  Turrets,
+  FiringSolution,
+  interceptTime,
+  type TurretSpec,
+} from './turrets.js';
 export { checksumWorld, checksumProjectiles, formatChecksum } from './checksum.js';
