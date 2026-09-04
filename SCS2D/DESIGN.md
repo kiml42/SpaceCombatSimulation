@@ -319,7 +319,7 @@ or flag on yield). Deferred because long thin hulls are already punished by bein
 TypeScript throughout. Four layers, one contract: **commands in, snapshots out.**
 
 ```
-game/
+SCS2D/
   sim/      pure TS. No DOM, no renderer, no timers, no engine types.
             Typed arrays, allocation-free hot loops, deterministic.
             Runs unchanged in the browser and in Node.
@@ -507,7 +507,7 @@ Five things, and deliberately nothing more:
    engine's built-in physics in §11. The Windows row is there for a different reason: development happens on
    Windows and the *tooling* is OS-sensitive (path separators, line endings), so it catches a break in either
    direction. Rows run in parallel and the repository is public, so extra rows cost neither time nor money.
-   Path-filtered to `game/**`, so tinkering with the archived Unity tree queues nothing.
+   Path-filtered to `SCS2D/**`, so tinkering with the archived Unity tree queues nothing.
 
    **The macOS row is the ARM one, and the most valuable of the five.** It is the only GitHub-hosted runner on a
    different CPU architecture, so it is the evidence that the arithmetic is genuinely platform-independent rather
