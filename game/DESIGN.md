@@ -12,10 +12,11 @@ re-litigated after a gap — most entries therefore record *why*, not just *what
 
 ## Status
 
-- **Built and tested:** per-blueprint thruster allocation, kinematic turrets with lead and traverse arcs, deterministic maths (own transcendentals), seeded RNG,
+- **Built and tested:** deterministic maths (own transcendentals), seeded RNG,
   structure-of-arrays body store with generational handles, kick-drift-kick leapfrog
   integrator, gravity wells, state checksums, a uniform-grid spatial index with segment
-  and circle queries, and swept-segment projectiles with impact reporting.
+  and circle queries, swept-segment projectiles with impact reporting, per-blueprint
+  thruster allocation, and kinematic turrets with lead and traverse arcs.
 - **Next:** the two hard-coded blueprints and the Canvas2D debug viewer, which
   completes Slice 0.
 - **Blocked on:** nothing.
@@ -26,7 +27,7 @@ re-litigated after a gap — most entries therefore record *why*, not just *what
   count, which is the direction of travel. A whole gunnery step — bodies, index
   rebuild, and projectiles under gravity — costs ~7 microseconds with 9 bodies and
   ~65 rounds in the air.
-- **Last updated:** 2026-09-03
+- **Last updated:** 2026-09-04
 
 ---
 
