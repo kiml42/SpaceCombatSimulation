@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status: the Unity project is archived
 
-**Active development is in `game/`, a TypeScript rewrite. Start at [game/DESIGN.md](game/DESIGN.md) and
-[game/CLAUDE.md](game/CLAUDE.md).**
+**Active development is in `SCS2D/`, a TypeScript rewrite. Start at [SCS2D/DESIGN.md](SCS2D/DESIGN.md) and
+[SCS2D/CLAUDE.md](SCS2D/CLAUDE.md).**
 
 The Unity project in `SpaceCombatSimulation/` is a 2017–2021 prototype, kept for reference and occasional
 tinkering. Do not modify it, do not upgrade it, and do not attempt to port it incrementally — the rewrite changes
-language, dimensionality and physics ownership, so nothing carries over as code. `game/DESIGN.md` §10 lists the
+language, dimensionality and physics ownership, so nothing carries over as code. `SCS2D/DESIGN.md` §10 lists the
 files worth *reading* for their design, plus three specific failures recorded so they aren't repeated.
 
 **Opening it with an installed editor (6000.3.2f1 or 6000.3.9f1) converts the project in place, irreversibly** —

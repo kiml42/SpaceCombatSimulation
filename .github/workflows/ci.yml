@@ -1,4 +1,4 @@
-# CI for the TypeScript game in game/.
+# CI for the TypeScript game in SCS2D/.
 #
 # The archived Unity project in SpaceCombatSimulation/ is deliberately not
 # built or tested here: it is pinned to an editor version that is not installed
@@ -13,12 +13,12 @@ on:
   push:
     branches: [master]
     paths:
-      - 'game/**'
+      - 'SCS2D/**'
       - '.github/workflows/ci.yml'
   pull_request:
     branches: [master]
     paths:
-      - 'game/**'
+      - 'SCS2D/**'
       - '.github/workflows/ci.yml'
   workflow_dispatch:
 
@@ -29,7 +29,7 @@ concurrency:
 
 defaults:
   run:
-    working-directory: game
+    working-directory: SCS2D
 
 jobs:
   typecheck:
@@ -42,7 +42,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: game/package-lock.json
+          cache-dependency-path: SCS2D/package-lock.json
 
       - run: npm ci
 
@@ -101,7 +101,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
-          cache-dependency-path: game/package-lock.json
+          cache-dependency-path: SCS2D/package-lock.json
 
       - run: npm ci
 
