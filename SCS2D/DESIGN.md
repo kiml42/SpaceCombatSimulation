@@ -20,6 +20,11 @@ re-litigated after a gap — most entries therefore record *why*, not just *what
 - **Next:** the two hard-coded blueprints and the Canvas2D debug viewer, which
   completes Slice 0.
 - **Blocked on:** nothing.
+- **Owed:** golden scenarios for thruster allocation and for turrets. §9 asks for one alongside each
+  new subsystem; the three that exist cover bodies, gravity and projectiles only, so neither of the
+  last two subsystems is pinned against unintended change. The natural home is a scenario with a ship
+  that actually uses thrusters and turrets together, which is the next slice — but it is a debt until
+  then, not a decision to skip them.
 - **Measured:** integration costs ~0.19 microseconds per body-step. Ray queries
   against 140 bodies at 2,000 casts per step cost 0.16 ms through the grid versus
   0.79 ms brute-force — 5x, and about 1% of a 16,667 microsecond frame budget at
@@ -36,6 +41,11 @@ re-litigated after a gap — most entries therefore record *why*, not just *what
 A game I'd enjoy playing and want to show people. Hobby scale is a success; a small
 release is the hope. The research/sandbox side that the original project grew into is
 kept as a *mode*, not as the point.
+
+**A second goal, and a real one: this should stay useful for work.** The stack was picked partly to
+learn TypeScript, React and WebGL — the day job is moving that way and this project gets there first
+(see §5). So where a technical choice is otherwise balanced, the one that teaches something
+transferable wins, and running *ahead* of the work toolchain is a feature rather than a risk.
 
 **Non-goals:** empire-scale RTS, base building, resource-management-as-main-verb, real-time
 competitive multiplayer, photorealistic art, mobile phones.
@@ -366,6 +376,11 @@ SCS2D/
   and determinism; no engine allows that. See §4.
 - Learning TypeScript, React and WebGL has direct professional value, which on a long-timeline
   hobby project may matter more than any technical factor.
+- **Deliberately a major ahead of the work toolchain.** `VEL.Wordwall4A` pins TypeScript 5.6; this
+  pins 7, which is a larger jump than a usual bump because the compiler itself was rewritten. That is
+  the point rather than an oversight: work will reach it eventually, and meeting its rough edges here
+  first is exactly the transferable value §1 asks for. The same holds for React and WebGL, which the
+  work repo does not use at all yet — so this project is the proving ground for both.
 - **Accepted cost:** currently productive in Unity 6 on another project; that productivity is being
   given up deliberately. Also: allocation-free typed-array code is less pleasant than C# structs,
   and this is the main technical tax being accepted.
@@ -689,6 +704,7 @@ Deliberately unresolved; decide when they block something.
 | --- | --- |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
 | 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |
+| 2026-09-04 | Recorded two things that had only ever been said aloud: that keeping this project useful for *work* is a second goal in its own right (§1), which is what makes running a TypeScript major ahead of the work repo a deliberate choice rather than an accident (§5); and that golden coverage is owed for thrusters and turrets, tracked in Status so the §9 practice is not quietly abandoned. |
 | 2026-09-04 | Kinematic turrets built, replacing the archive's worst mechanism (GA-searched PD gains driving hinge motors, §10). Braking-limited slew with velocity feed-forward, no gains. Three findings recorded in §4, each of which cost an attempt: the braking rate must be the *discrete* safe rate, since the continuous one overshoots, clamping the rate to stop that breaks the acceleration limit, and subtracting half a step leaves a dead band that a brisk mount parks inside; tracking needs feed-forward, without which a turret trails a moving target by a step of its angular motion and lags a rotating hull entirely; and turrets must be commanded *before* the world advances, or the slew and the hull's rotation cover different intervals. |
 | 2026-09-04 | Recorded in §12 how thruster allocation extends, so it need not be re-derived: **gimbals** work by solving for the thrust vector rather than a scalar throttle, which keeps the wrench linear and turns the bound into a sector projection; **throttle rate limits** belong inside the solve as per-thruster bounds, never as post-processing, which would break the wrench; and **binary thrusters** belong after it as a duty cycle with delta-sigma modulation, since as a constraint they would make the problem mixed-integer and far harder rather than simpler. Also noted the one thing this constrains today: the throttles array is per ship and must persist between steps, so it cannot become shared scratch. |
 | 2026-09-04 | Thruster allocation built. Three findings worth keeping: the torque row must be **preconditioned** (mount arms are metres, so torque outweighs force by ~10⁴ in the normal equations, and once thrusters pin the solve quietly fits torque and ignores force — 75% shortfall on achievable demands); the normal equations must **switch form** with the number of free thrusters, `A Aᵀ` when underdetermined and `Aᵀ A` when fewer than three remain, since the 3×3 form is singular there; and only the **worst violator** may be pinned per pass, because pinning all of them collapses a nine-thruster layout to two and never reconsiders. Together these took the worst-case shortfall from >100% to 5.4%, mean 0.016%. |
