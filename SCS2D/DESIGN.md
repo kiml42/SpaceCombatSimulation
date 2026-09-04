@@ -16,15 +16,20 @@ re-litigated after a gap — most entries therefore record *why*, not just *what
   structure-of-arrays body store with generational handles, kick-drift-kick leapfrog
   integrator, gravity wells, state checksums, a uniform-grid spatial index with segment
   and circle queries, swept-segment projectiles with impact reporting, per-blueprint
-  thruster allocation, and kinematic turrets with lead and traverse arcs.
-- **Next:** the two hard-coded blueprints and the Canvas2D debug viewer, which
-  completes Slice 0.
+  thruster allocation, kinematic turrets with lead and traverse arcs, parametric modules
+  with their scaling laws, and blueprint compilation — mass properties, thruster layout
+  and firing arcs all derived from a layout, with two ships authored to it.
+- **Next:** ships built from those blueprints actually fighting — flying their thruster
+  layouts, tracking with their turrets and firing their guns — then the Canvas2D debug
+  viewer, which completes Slice 0.
 - **Blocked on:** nothing.
 - **Owed:** golden scenarios for thruster allocation and for turrets. §9 asks for one alongside each
   new subsystem; the three that exist cover bodies, gravity and projectiles only, so neither of the
   last two subsystems is pinned against unintended change. The natural home is a scenario with a ship
-  that actually uses thrusters and turrets together, which is the next slice — but it is a debt until
-  then, not a decision to skip them.
+  that actually uses thrusters and turrets together, which is the next thing to be built — but it is
+  a debt until then, not a decision to skip them. Blueprint compilation is not owed one: it is pure
+  derivation with no state to drift, and is pinned by unit tests against independently worked
+  values.
 - **Measured:** integration costs ~0.19 microseconds per body-step. Ray queries
   against 140 bodies at 2,000 casts per step cost 0.16 ms through the grid versus
   0.79 ms brute-force — 5x, and about 1% of a 16,667 microsecond frame budget at
@@ -627,8 +632,16 @@ Recorded so they aren't reopened without new information.
 
 Deliberately unresolved; decide when they block something.
 
-- Exact scaling laws for parametric modules (mass, capacity, strength) and the counter-pressures
-  that stop "one enormous tank" being optimal.
+- **Exact scaling laws for parametric modules.** A first cut exists in `sim/modules.ts`, with each
+  constant calibrated against real hardware — an RS-25's thrust per unit of exit area, a 16"/50's
+  muzzle energy per unit of bore volume — so the figures a ship compiles to can be argued with rather
+  than merely preferred. What is *not* settled is whether they make a good game. Two are known soft
+  spots: rate of fire, which one constant cannot make plausible for both a battleship rifle and a
+  light mount, and the counter-pressures against scale. Enclosed area grows faster than the wall that
+  encloses it, so bigger is cheaper per cubic metre, and at present the only pushback is that
+  stretching a module costs wall. Damage locality and gun vulnerability are the two intended
+  counter-pressures and neither exists yet, so "one enormous module" is currently under-punished.
+  Expect the GA to say so.
 - How severed chunks divide fuel, ammunition and power.
 - Whether module destruction is a discrete state or simply the bottom of a continuous damage scale (§4).
 - **Gimballed thrusters** fit, with one change of variable. A gimbal makes the thrust *direction* an
@@ -684,6 +697,12 @@ Deliberately unresolved; decide when they block something.
   "guns mission-kill, ordnance destroys" line in §3 would become "deck turrets mission-kill; edge guns and
   ordnance destroy", with edge guns paying for it in coverage. The cost is a second mounting concept in the
   blueprint editor, so decide it when building the editor rather than before.
+- **Whether a turret's traverse limit should be asymmetric.** Firing arcs are derived from the layout,
+  but a mount carries one half-width about its rest bearing, so an obstruction on one beam costs the
+  clear sector on the other too. Every ship authored so far is symmetric, which hides it. Asymmetric
+  limits are a small change — two bounds instead of one in the turret store, and a clamp between them
+  — and the reason to wait is that it is worth doing once the blueprint editor exists to show a player
+  what their layout bought, rather than before.
 - **Whether a downed craft's wreck falls onto the deck it was attacking.** Physically it should, and debris
   raining on a capital is evocative; it may also be an irritation. Cheap either way, so leave it until
   there is something to watch.
@@ -704,6 +723,7 @@ Deliberately unresolved; decide when they block something.
 | --- | --- |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
 | 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |
+| 2026-09-04 | Parametric modules and blueprint compilation built. Two decisions the design left open were settled in the process: the scaling laws are calibrated against real hardware rather than chosen for feel, so that a figure can be argued with (§12); and firing arcs are *derived* from the layout as §3 asks, rather than authored per mount, which makes a fouled gun a consequence of where it was put. The symmetric-traverse limitation that falls out of that is recorded in §12 rather than worked around. |
 | 2026-09-04 | Recorded two things that had only ever been said aloud: that keeping this project useful for *work* is a second goal in its own right (§1), which is what makes running a TypeScript major ahead of the work repo a deliberate choice rather than an accident (§5); and that golden coverage is owed for thrusters and turrets, tracked in Status so the §9 practice is not quietly abandoned. |
 | 2026-09-04 | Kinematic turrets built, replacing the archive's worst mechanism (GA-searched PD gains driving hinge motors, §10). Braking-limited slew with velocity feed-forward, no gains. Three findings recorded in §4, each of which cost an attempt: the braking rate must be the *discrete* safe rate, since the continuous one overshoots, clamping the rate to stop that breaks the acceleration limit, and subtracting half a step leaves a dead band that a brisk mount parks inside; tracking needs feed-forward, without which a turret trails a moving target by a step of its angular motion and lags a rotating hull entirely; and turrets must be commanded *before* the world advances, or the slew and the hull's rotation cover different intervals. |
 | 2026-09-04 | Recorded in §12 how thruster allocation extends, so it need not be re-derived: **gimbals** work by solving for the thrust vector rather than a scalar throttle, which keeps the wrench linear and turns the bound into a sector projection; **throttle rate limits** belong inside the solve as per-thruster bounds, never as post-processing, which would break the wrench; and **binary thrusters** belong after it as a duty cycle with delta-sigma modulation, since as a constraint they would make the problem mixed-integer and far harder rather than simpler. Also noted the one thing this constrains today: the throttles array is per ship and must persist between steps, so it cannot become shared scratch. |

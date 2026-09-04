@@ -38,6 +38,28 @@ export {
   type ThrusterSpec,
 } from './thrusters.js';
 export {
+  DECK_HEIGHT,
+  gunStats,
+  moduleProblem,
+  moduleStats,
+  traverseAccel,
+  traverseRate,
+  type GunStats,
+  type ModuleKind,
+  type ModuleSpec,
+  type ModuleStats,
+} from './modules.js';
+export {
+  blueprintProblem,
+  compileBlueprint,
+  firingArc,
+  modulesOverlap,
+  type Blueprint,
+  type DesignModule,
+  type DesignTurret,
+  type ShipDesign,
+} from './blueprint.js';
+export {
   Turrets,
   FiringSolution,
   interceptTime,
