@@ -12,12 +12,12 @@ re-litigated after a gap — most entries therefore record *why*, not just *what
 
 ## Status
 
-- **Built and tested:** per-blueprint thruster allocation, deterministic maths (own transcendentals), seeded RNG,
+- **Built and tested:** per-blueprint thruster allocation, kinematic turrets with lead and traverse arcs, deterministic maths (own transcendentals), seeded RNG,
   structure-of-arrays body store with generational handles, kick-drift-kick leapfrog
   integrator, gravity wells, state checksums, a uniform-grid spatial index with segment
   and circle queries, and swept-segment projectiles with impact reporting.
-- **Next:** kinematic turrets. Then the two hard-coded blueprints and the Canvas2D
-  debug viewer, which completes Slice 0.
+- **Next:** the two hard-coded blueprints and the Canvas2D debug viewer, which
+  completes Slice 0.
 - **Blocked on:** nothing.
 - **Measured:** integration costs ~0.19 microseconds per body-step. Ray queries
   against 140 bodies at 2,000 casts per step cost 0.16 ms through the grid versus
@@ -188,7 +188,20 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
 - **No joints anywhere.** The joint solver was the cost centre, the main obstacle to determinism,
   and the direct cause of the turret-control problems in the old project.
 - **Turrets are kinematic**: slew toward the lead-corrected bearing under rate and acceleration
-  limits; apply reaction torque to the parent analytically. Three bodies per turret become zero.
+  limits; apply reaction torque to the parent analytically as `−I·β̈`. Three bodies per turret become
+  zero, and there are no gains to tune.
+  - The slew is **braking-limited**: each step the turret takes the fastest rate from which it could
+    still stop on target, `sqrt(2·a·|error|)`, capped by its rate limit — less half a step of
+    acceleration, because braking exactly on the continuous limit overshoots once time is discrete, and
+    clamping the rate at the last moment to prevent that would violate the acceleration limit, which is
+    a property of the mount rather than a guideline.
+  - That leaves a dead band of `a·dt²/8`, so **the on-target tolerance is per turret**, widened where a
+    mount's acceleration outruns the timestep. A fixed tolerance would leave a violent mount parked just
+    outside it, never reporting ready, and never firing — a turret that silently refuses to shoot is a
+    far worse failure than one that points a fraction of a milliradian less well than advertised.
+  - Firing needs **both** `onTarget` and not `blocked`: a turret whose target lies outside its traverse
+    arc slews as close as it can and sits there, on target with respect to its command but not aimed at
+    anything.
 - **Projectiles are not bodies.** A projectile is `(position, velocity, payload)` in a flat array,
   resolved by testing the swept segment `p → p + v·dt` against the broadphase. Tunnelling is
   structurally impossible rather than patched, it is cheaper than a body per bullet, and it is
@@ -660,6 +673,7 @@ Deliberately unresolved; decide when they block something.
 | --- | --- |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
 | 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |
+| 2026-09-04 | Kinematic turrets built, replacing the archive's worst mechanism (GA-searched PD gains driving hinge motors, DESIGN.md §10). Braking-limited slew, no gains. Two findings recorded in §4: braking must start half a step early, because doing it on the continuous limit overshoots under discrete time while clamping the rate to prevent that breaks the acceleration limit; and the on-target tolerance must then be *per turret*, widened where acceleration outruns the timestep, or a brisk mount parks inside the dead band and never reports ready to fire. |
 | 2026-09-04 | Recorded in §12 how thruster allocation extends, so it need not be re-derived: **gimbals** work by solving for the thrust vector rather than a scalar throttle, which keeps the wrench linear and turns the bound into a sector projection; **throttle rate limits** belong inside the solve as per-thruster bounds, never as post-processing, which would break the wrench; and **binary thrusters** belong after it as a duty cycle with delta-sigma modulation, since as a constraint they would make the problem mixed-integer and far harder rather than simpler. Also noted the one thing this constrains today: the throttles array is per ship and must persist between steps, so it cannot become shared scratch. |
 | 2026-09-04 | Thruster allocation built. Three findings worth keeping: the torque row must be **preconditioned** (mount arms are metres, so torque outweighs force by ~10⁴ in the normal equations, and once thrusters pin the solve quietly fits torque and ignores force — 75% shortfall on achievable demands); the normal equations must **switch form** with the number of free thrusters, `A Aᵀ` when underdetermined and `Aᵀ A` when fewer than three remain, since the 3×3 form is singular there; and only the **worst violator** may be pinned per pass, because pinning all of them collapses a nine-thruster layout to two and never reconsiders. Together these took the worst-case shortfall from >100% to 5.4%, mean 0.016%. |
 | 2026-09-03 | Tightened the commit model (§3), which had two holes. A craft could commit while already over a capital's interior and strike the citadel without meeting the armoured edge; and a craft that *moved* to the hull layer would stop being hittable by CIWS and lasers exactly when it should be most exposed. Fixed by making occupancy *added, never swapped* — a committed craft is in both layers — and by allowing occupancy to change only while clear of every hull, in either direction, which also governs waving off and gives "commit is arming" for free. Corrected the earlier claim that the transition is an event rather than a state: true of projectiles, false once commit exists, which is one bit per craft. Also corrected the unearned claim that committing draws more fire — every weapon is weapons-layer, so the real costs are a predictable terminal course and being collidable with turrets. |
