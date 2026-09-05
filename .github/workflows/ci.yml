@@ -106,3 +106,27 @@ jobs:
       - run: npm ci
 
       - run: npm test
+
+  viewer:
+    name: Viewer (browser)
+    runs-on: ubuntu-latest
+    # One row only. These drive a real browser to check the page loads, draws
+    # and responds to its controls — none of which varies by OS or Node
+    # version, so the matrix the test job needs would buy nothing here and
+    # would pay for a browser download five times over.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: SCS2D/package-lock.json
+
+      - run: npm ci
+
+      # Chromium only: the viewer is a canvas and a handful of controls, and a
+      # second engine would double the install for no coverage worth having.
+      - run: npx playwright install --with-deps chromium
+
+      - run: npm run test:browser

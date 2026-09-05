@@ -470,7 +470,7 @@ feature becomes invisible.*
 
 ## 9. Practices
 
-Five things, and deliberately nothing more — plus a sixth held back until there is something to show:
+Six things, and deliberately nothing more — plus a seventh held back until there is something to show:
 
 1. **Golden battle tests from Slice 0.** Fixed scenarios with bit-exact pinned outcomes. This is the
    entire return on buying determinism: after a gap, one command tells you the sim is intact.
@@ -493,10 +493,15 @@ Five things, and deliberately nothing more — plus a sixth held back until ther
    cross-platform determinism is *already* true in practice, not just a possible later upgrade. Do not delete
    this row to save time — the five run in parallel and cost nothing, and losing it would quietly downgrade a
    verified property to an assumed one.
-4. **Single-command headless runs** — `npm run battle -- scenarios/duel.json`. Re-entry from a cold
+4. **The viewer driven in a real browser**, in `tests/browser/`, on one CI row. A renderer typechecks
+   perfectly while drawing a black rectangle, and a control can be wired to nothing; neither shows up in a
+   unit test or a checksum. These deliberately do not re-check the physics — the viewer and the golden
+   `duel` run the same code — so they stay quick, a few seconds including the build. Kept out of `npm test`
+   because that has to run from a cold checkout without a browser.
+5. **Single-command headless runs** — `npm run battle -- scenarios/duel.json`. Re-entry from a cold
    checkout should be one command.
-5. **A `CLAUDE.md`** for this project.
-6. **A GitHub Pages preview deploy — to be added as soon as there is something worth showing off.**
+6. **A `CLAUDE.md`** for this project.
+7. **A GitHub Pages preview deploy — to be added as soon as there is something worth showing off.**
    Not yet: there is no viewer to load. Once Slice 0's viewer draws a battle, add a job to `ci.yml` that
    builds `SCS2D/` and publishes it to Pages on green master. The repository is public, so Pages costs
    nothing, and the point of it is the URL: the game becomes something to open on a phone or hand to
