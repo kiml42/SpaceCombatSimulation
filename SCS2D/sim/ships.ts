@@ -328,8 +328,8 @@ export class Ships {
           bodyIdx,
           this.solution.x,
           this.solution.y,
-          this.solution.dirX * gun.muzzleSpeed,
-          this.solution.dirY * gun.muzzleSpeed,
+          this.solution.dirX * gun.muzzleSpeed + this.solution.vx,
+          this.solution.dirY * gun.muzzleSpeed + this.solution.vy,
           ROUND_FLIGHT_TIME,
           gun.roundMass,
           gun.muzzleEnergy,
@@ -341,6 +341,11 @@ export class Ships {
         // there is no interval to spread it over. A beam mount firing off the
         // centreline also yaws its own hull, which is part of what an outrigger
         // costs.
+        //
+        // Only the muzzle velocity recoils. The round also leaves carrying the
+        // tangential velocity of the mount it sat on, but that is momentum it
+        // already had while attached rather than anything the gun gave it, so
+        // the charge does not push back for it.
         //
         // Total momentum is not conserved across a shot, and cannot be while
         // ammunition has no mass aboard (§12): a round is created carrying the
