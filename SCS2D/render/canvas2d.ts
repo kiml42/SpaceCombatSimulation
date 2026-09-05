@@ -91,7 +91,7 @@ const PLUME_CORE = '#fff4e0';
  * length at full throttle. That is what it should look like — they share an
  * exhaust velocity, and a bigger engine is a wider flame, not a longer one.
  */
-const PLUME_THRUST_PER_AREA = 1.5e4;
+const PLUME_THRUST_PER_AREA = 0.5e4;
 
 function shipColours(team: number): (typeof TEAM_COLOURS)[number] {
   return TEAM_COLOURS[team] ?? NEUTRAL;
