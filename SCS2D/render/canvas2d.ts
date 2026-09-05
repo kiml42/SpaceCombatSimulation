@@ -1,7 +1,7 @@
 import { math, type ShipView, type Snapshot } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
 
-const { cos, sin, max, sqrt, TAU } = math;
+const { cos, sin, max, min, PI, sqrt, TAU } = math;
 
 /**
  * A Canvas2D view of a snapshot.
@@ -19,11 +19,43 @@ const { cos, sin, max, sqrt, TAU } = math;
  */
 
 /** Colours by team, plus the furniture. Deliberately few. */
+/**
+ * Colours by team, chosen so the three layers of a turret always separate.
+ *
+ * A mount is drawn as its module box, then the sector it can traverse through,
+ * then the barrel. Each has to read against what is under it *and* against the
+ * background where it overhangs the hull, which is what decides the values:
+ * the box is the lightest thing on the ship, the sweep darkens whatever it
+ * covers, and the barrel is light again — so it shows against the dark sweep
+ * within the arc and against the dark field beyond it. Picking three colours
+ * that merely differ is not enough; they have to alternate.
+ */
 const TEAM_COLOURS = [
-  { hull: '#5b8dd6', trim: '#a8c8f0', ready: '#ffd166' },
-  { hull: '#d65b5b', trim: '#f0a8a8', ready: '#ffd166' },
+  {
+    hull: '#5b8dd6',
+    trim: '#a8c8f0',
+    sweep: 'rgba(8, 14, 24, 0.5)',
+    pivot: '#2c4a72',
+    barrel: '#eaf1fc',
+    ready: '#ffd166',
+  },
+  {
+    hull: '#d65b5b',
+    trim: '#f0a8a8',
+    sweep: 'rgba(24, 8, 8, 0.5)',
+    pivot: '#722c2c',
+    barrel: '#fceaea',
+    ready: '#ffd166',
+  },
 ];
-const NEUTRAL = { hull: '#8a8a8a', trim: '#c4c4c4', ready: '#ffd166' };
+const NEUTRAL = {
+  hull: '#8a8a8a',
+  trim: '#c4c4c4',
+  sweep: 'rgba(14, 14, 14, 0.5)',
+  pivot: '#4a4a4a',
+  barrel: '#f0f0f0',
+  ready: '#ffd166',
+};
 const BACKGROUND = '#0b0f16';
 const GRID = '#161d29';
 const TRACER = '#ffe6a8';
@@ -56,10 +88,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   ctx.translate(ship.x, ship.y);
   ctx.rotate(ship.angle);
 
-  // Module boxes, in the body frame the design already put them in. Thrusters
-  // are counted as they are met, because a design lists its thrusters in the
-  // order its modules appear.
-  let thruster = 0;
+  // Module boxes, in the body frame the design already put them in.
   for (let i = 0; i < design.modules.length; i++) {
     const m = design.modules[i]!;
     const spec = m.spec;
@@ -68,59 +97,124 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     ctx.rotate(m.angle);
     ctx.fillStyle = spec.kind === 'structure' ? colours.hull : colours.trim;
     ctx.fillRect(-spec.length / 2, -spec.width / 2, spec.length, spec.width);
-    if (spec.kind === 'thruster') {
-      // Exhaust leaves the way the thruster does not push, so the plume is
-      // drawn along -x in the module's own frame.
-      const throttle = ship.throttles[thruster] ?? 0;
-      const force = throttle * (design.thrusters[thruster]?.maxThrust ?? 0);
-      thruster++;
-      if (force > 0) {
-        const root = -spec.length / 2;
-        const reach = force / (spec.width * PLUME_THRUST_PER_AREA);
-        ctx.fillStyle = PLUME;
-        ctx.globalAlpha = 0.55;
-        ctx.beginPath();
-        ctx.moveTo(root, -spec.width / 2);
-        ctx.lineTo(root, spec.width / 2);
-        ctx.lineTo(root - reach, 0);
-        ctx.closePath();
-        ctx.fill();
-        // A brighter core, a third the width, so a hard burn reads as hotter
-        // rather than merely longer.
-        ctx.fillStyle = PLUME_CORE;
-        ctx.globalAlpha = 0.8;
-        ctx.beginPath();
-        ctx.moveTo(root, -spec.width / 6);
-        ctx.lineTo(root, spec.width / 6);
-        ctx.lineTo(root - reach * 0.55, 0);
-        ctx.closePath();
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      }
-    }
     ctx.restore();
   }
   ctx.restore();
 
-  // Barrels are drawn in world space: a turret's bearing is a world bearing,
-  // so rotating into the hull frame first would apply the hull's angle twice.
+  // Turrets are drawn in world space: a turret's bearing is a world bearing, so
+  // rotating into the hull frame first would apply the hull's angle twice.
   const lineWidth = max(0.6, 1.5 / metresToPx);
+  const c = cos(ship.angle);
+  const s = sin(ship.angle);
+
   for (let t = 0; t < design.turrets.length; t++) {
     const mount = design.turrets[t]!.mount;
-    const bearing = ship.turretBearings[t] ?? 0;
-    const c = cos(ship.angle);
-    const s = sin(ship.angle);
     const mx = ship.x + mount.x * c - mount.y * s;
     const my = ship.y + mount.x * s + mount.y * c;
     const reach = mount.muzzleOffset ?? 0;
+    const half = mount.arc ?? PI;
+    const rest = ship.angle + (mount.restBearing ?? 0);
 
-    ctx.strokeStyle = ship.turretReady[t] === true ? colours.ready : colours.trim;
-    ctx.lineWidth = lineWidth * (ship.turretReady[t] === true ? 2 : 1.2);
+    // The sector the barrel can sweep, at the radius it sweeps it — so a mount
+    // fouled by its own ship shows a narrow wedge, and one with clear sky shows
+    // a full disc. This is the layout's cost made visible: DESIGN.md §3 has
+    // arcs derived from where a gun was put rather than authored, and this is
+    // what that decision bought or cost, per mount.
+    //
+    // It is drawn symmetric about the rest bearing because the *model* is
+    // symmetric, not because the ship is: an obstruction on one beam currently
+    // costs the clear sector on the other too. ROADMAP.md §12 has the shape of
+    // the fix, and this wedge is where it will show.
+    if (reach > 0) {
+      ctx.fillStyle = colours.sweep;
+      ctx.beginPath();
+      if (half >= PI) {
+        ctx.arc(mx, my, reach, 0, TAU);
+      } else {
+        ctx.moveTo(mx, my);
+        ctx.arc(mx, my, reach, rest - half, rest + half);
+        ctx.closePath();
+      }
+      ctx.fill();
+    }
+
+    // The rotating part itself: a disc at the mount, sized to the module it
+    // sits in so a heavy mount looks heavy.
+    const spec = design.modules[design.turrets[t]!.module]!.spec;
+    const pivot = min(spec.length, spec.width) * 0.5;
+    ctx.fillStyle = colours.pivot;
+    ctx.beginPath();
+    ctx.arc(mx, my, pivot, 0, TAU);
+    ctx.fill();
+
+    const ready = ship.turretReady[t] === true;
+    const bearing = ship.turretBearings[t] ?? 0;
+    ctx.strokeStyle = ready ? colours.ready : colours.barrel;
+    ctx.lineWidth = lineWidth * (ready ? 2.4 : 1.6);
     ctx.beginPath();
     ctx.moveTo(mx, my);
     ctx.lineTo(mx + cos(bearing) * reach, my + sin(bearing) * reach);
     ctx.stroke();
   }
+
+  drawPlumes(ctx, ship);
+}
+
+/**
+ * Exhaust, in a pass of its own after the turrets.
+ *
+ * Drawn last of the ship's parts because a plume is in front of the hull, not
+ * part of it: sharing the module pass put it *under* the sector a nearby
+ * turret sweeps, which dimmed a burning engine to the colour of a shadow.
+ */
+function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
+  const design = ship.design;
+  // Thrusters are counted as they are met, because a design lists its
+  // thrusters in the order its modules appear.
+  let thruster = 0;
+
+  ctx.save();
+  ctx.translate(ship.x, ship.y);
+  ctx.rotate(ship.angle);
+  for (let i = 0; i < design.modules.length; i++) {
+    const m = design.modules[i]!;
+    const spec = m.spec;
+    if (spec.kind !== 'thruster') continue;
+    ctx.save();
+    ctx.translate(m.x, m.y);
+    ctx.rotate(m.angle);
+
+    // Exhaust leaves the way the thruster does not push, so the plume is
+    // drawn along -x in the module's own frame.
+    const throttle = ship.throttles[thruster] ?? 0;
+    const force = throttle * (design.thrusters[thruster]?.maxThrust ?? 0);
+    thruster++;
+    if (force > 0) {
+      const root = -spec.length / 2;
+      const reach = force / (spec.width * PLUME_THRUST_PER_AREA);
+      ctx.fillStyle = PLUME;
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      ctx.moveTo(root, -spec.width / 2);
+      ctx.lineTo(root, spec.width / 2);
+      ctx.lineTo(root - reach, 0);
+      ctx.closePath();
+      ctx.fill();
+      // A brighter core, a third the width, so a hard burn reads as hotter
+      // rather than merely longer.
+      ctx.fillStyle = PLUME_CORE;
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(root, -spec.width / 6);
+      ctx.lineTo(root, spec.width / 6);
+      ctx.lineTo(root - reach * 0.55, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
+  ctx.restore();
 }
 
 /** Draw one snapshot. The canvas is cleared first; nothing persists between frames. */
