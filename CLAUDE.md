@@ -16,6 +16,20 @@ files worth *reading* for their design, plus three specific failures recorded so
 it is pinned to 2022.3.15f1. To run it, install the pinned editor via Unity Hub, or convert on a branch and never
 merge.
 
+## How changes land
+
+**Open a pull request against `master`. That is the default for any piece of work, in either tree.** It applies
+to code, and to documentation that carries a decision — a DESIGN.md open question, a Decision Log entry, a
+changed convention — because those are the things worth reading before they land, not after.
+
+Pushing straight to `master` is the exception, not a shortcut to reach for when a change feels small. It is for
+non-code changes with nothing to review: a typo, a broken link, a note the author has just dictated and asked to
+be recorded. A change being documentation-only does not by itself qualify it; a change being *uncontentious*
+does. When unsure, open the PR — an unnecessary PR costs a click, and an unwanted push to `master` costs a
+revert.
+
+Ask before pushing directly, unless the author has already said to for that particular change.
+
 The rest of this file documents that archived project.
 
 ## What it is
@@ -179,4 +193,3 @@ Any new persisted config field needs to be added in four places: the config clas
 - Every asset has a `.meta` sibling; add, move and delete them together with their asset.
 - Many components carry a `public bool Log` for targeted `Debug.Log` tracing instead of a logging framework.
 - Physics logic belongs in `FixedUpdate`; input and UI in `Update`/`OnGUI`.
-- The author prefers changes to arrive as a pull request against `master` rather than direct pushes.
