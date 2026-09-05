@@ -177,11 +177,16 @@ function distanceToModule(m: ModuleSpec, px: number, py: number): number {
  *
  * What blocks is any module the barrel would sweep into: near enough to be
  * within reach, and subtending bearings the gun would otherwise train through.
- * The half-width returned is symmetric about the mount's rest bearing, which
- * is what the traverse limit means, so a mount fouled on one side loses the
- * matching sector on the other. That is pessimistic, and deliberately so —
- * the honest fix is an asymmetric arc, which needs the turret store to carry
- * two limits rather than one.
+ * The half-width returned is symmetric about the mount's rest bearing, and is
+ * the narrowest such width over every obstruction, so a mount fouled on one
+ * side loses the matching sector on the other, and one near neighbour hides
+ * whatever clear sky lies past it. That is pessimistic, and deliberately so.
+ * The honest model is two quantities rather than one — a traverse bound saying
+ * where the barrel may physically go, and a *set* of permitted firing
+ * intervals, since a gun may sweep past superstructure it must not shoot
+ * through, and a mount ringed by neighbours has several such gaps. DESIGN.md
+ * §12 records the shape of that change; it waits on the blueprint editor,
+ * which is what would make a layout's field of fire legible to a player.
  *
  * The test is bearing-only: a module is treated as blocking the whole sector
  * it subtends, without regard for the barrel being able to pass over a low
