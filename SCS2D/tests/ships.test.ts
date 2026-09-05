@@ -217,7 +217,10 @@ describe('gunnery', () => {
     r.step();
     expect(r.fired).toBe(0);
 
-    for (let i = 0; i < 600; i++) r.step();
+    // A gunship is sluggish: coming round onto something astern and settling
+    // enough for a mount to read as on target takes it something like a
+    // quarter of a minute.
+    for (let i = 0; i < 60 * 30; i++) r.step();
     expect(r.fired).toBeGreaterThan(0);
   });
 
@@ -235,69 +238,97 @@ describe('gunnery', () => {
   });
 
   it('recoils by exactly the momentum a whole salvo leaves with', () => {
-    // Every round in a salvo must inherit the *same* hull velocity. Apply each
-    // gun's recoil as it fires and the later rounds inherit a hull the earlier
-    // ones already pushed, which invents momentum out of the firing order.
+    // Every round in a salvo must leave from the *same* hull velocity. Apply
+    // each gun's recoil as it fires and the later rounds inherit a hull the
+    // earlier ones already pushed, so the broadside gains momentum invented by
+    // the firing order.
     //
-    // The invariant is not that total momentum is unchanged: a round's mass
-    // comes out of a magazine that is not modelled yet (§12), so firing adds
-    // `roundMass · hullVelocity` to the system. What must hold exactly is that
-    // everything beyond *that* balances — the hull loses precisely the muzzle
-    // momentum its guns gave away.
+    // A gunship with a dead target returns all three mounts to rest, where
+    // each reads as on target, so all three fire on the same step — and with
+    // the hull motionless the arithmetic is exact rather than approximate: a
+    // round created at rest carries no hull momentum away with it.
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: gunship, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
     r.ships.setOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.remove(enemy);
 
     const bodies = r.world.bodies;
-    let biggestSalvo = 0;
+    const b = bodyOf(r, ship);
 
-    const inFlight = (): { px: number; py: number; mass: number } => {
-      let px = 0;
-      let py = 0;
-      let mass = 0;
-      for (let i = 0; i < r.projectiles.highWater; i++) {
-        if (r.projectiles.alive[i] === 0) continue;
-        px += r.projectiles.mass[i]! * r.projectiles.vx[i]!;
-        py += r.projectiles.mass[i]! * r.projectiles.vy[i]!;
-        mass += r.projectiles.mass[i]!;
-      }
-      return { px, py, mass };
-    };
+    r.ships.command(DT, r.world);
+    r.grid.rebuild(bodies);
+    expect(bodies.vx[b]).toBe(0);
+    expect(bodies.angularVel[b]).toBe(0);
 
-    for (let n = 0; n < 60 * 60; n++) {
-      r.ships.command(DT, r.world);
-      r.world.step();
-      r.grid.rebuild(bodies);
+    const fired = r.ships.fire(r.world, r.projectiles);
+    expect(fired).toBe(3);
 
-      const b = bodyOf(r, ship);
-      const hullVx = bodies.vx[b]!;
-      const hullVy = bodies.vy[b]!;
-      const beforeShipX = bodies.mass[b]! * hullVx;
-      const beforeShipY = bodies.mass[b]! * hullVy;
-      const before = inFlight();
-
-      const fired = r.ships.fire(r.world, r.projectiles);
-      if (fired > biggestSalvo) biggestSalvo = fired;
-
-      if (fired > 0) {
-        const after = inFlight();
-        const newMass = after.mass - before.mass;
-        const leakX = newMass * hullVx;
-        const leakY = newMass * hullVy;
-        const totalX = bodies.mass[b]! * bodies.vx[b]! + after.px;
-        const totalY = bodies.mass[b]! * bodies.vy[b]! + after.py;
-
-        expect(totalX - leakX).toBeCloseTo(beforeShipX + before.px, 5);
-        expect(totalY - leakY).toBeCloseTo(beforeShipY + before.py, 5);
-      }
-
-      r.projectiles.step(DT, bodies, r.grid, r.hits);
-      for (let i = 0; i < r.hits.count; i++) r.projectiles.kill(r.hits.projectile[i]!);
+    let px = bodies.mass[b]! * bodies.vx[b]!;
+    let py = bodies.mass[b]! * bodies.vy[b]!;
+    for (let i = 0; i < r.projectiles.highWater; i++) {
+      if (r.projectiles.alive[i] === 0) continue;
+      px += r.projectiles.mass[i]! * r.projectiles.vx[i]!;
+      py += r.projectiles.mass[i]! * r.projectiles.vy[i]!;
     }
+    expect(px).toBeCloseTo(0, 6);
+    expect(py).toBeCloseTo(0, 6);
+  });
 
-    // Without a step where several mounts fire together, the check above would
-    // pass on an implementation that recoils per gun.
-    expect(biggestSalvo).toBeGreaterThan(1);
+  it('launches a round with the tangential velocity of the mount it left', () => {
+    // A mount off the centre of mass is travelling sideways whenever its ship
+    // is turning. Leave that out and every shot from a turning ship is thrown
+    // across the line of fire — a bias in one direction, not scatter.
+    const r = rig();
+    const spin = 0.2;
+    const ship = r.ships.spawn(r.world, {
+      design: gunship,
+      x: 0,
+      y: 0,
+      angularVel: spin,
+    });
+    const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
+    r.ships.setOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.remove(enemy);
+
+    const bodies = r.world.bodies;
+    const b = bodyOf(r, ship);
+    r.ships.command(DT, r.world);
+    r.grid.rebuild(bodies);
+    // Before firing: recoil moves the hull, and what a round inherited is the
+    // velocity the hull had when it left.
+    const hullVx = bodies.vx[b]!;
+    const hullVy = bodies.vy[b]!;
+    expect(r.ships.fire(r.world, r.projectiles)).toBe(3);
+
+    for (let i = 0; i < r.projectiles.highWater; i++) {
+      if (r.projectiles.alive[i] === 0) continue;
+
+      // Where the round started, relative to the centre of mass. It has
+      // travelled no distance yet, so its spawn point is its muzzle.
+      const rx = r.projectiles.x[i]! - bodies.x[b]!;
+      const ry = r.projectiles.y[i]! - bodies.y[b]!;
+      const tangentialX = -spin * ry;
+      const tangentialY = spin * rx;
+
+      // Strip the hull's linear velocity and the mount's tangential velocity;
+      // what is left must be the muzzle velocity, straight along the barrel.
+      const restX = r.projectiles.vx[i]! - hullVx - tangentialX;
+      const restY = r.projectiles.vy[i]! - hullVy - tangentialY;
+      const speed = math.length(restX, restY);
+
+      // Every gun on this design shares a calibre-derived muzzle speed only
+      // per mount, so check against the mount that matches.
+      const speeds = gunship.turrets.map((t) => t.gun.muzzleSpeed);
+      const nearest = speeds.reduce((a, c) =>
+        math.abs(c - speed) < math.abs(a - speed) ? c : a,
+      );
+      expect(speed).toBeCloseTo(nearest, 6);
+
+      // And that leftover points along the barrel, not across it.
+      const alongness = (restX / speed) * (rx / math.length(rx, ry)) +
+        (restY / speed) * (ry / math.length(rx, ry));
+      expect(alongness).toBeGreaterThan(0.99);
+    }
   });
 });

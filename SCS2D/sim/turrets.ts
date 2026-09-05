@@ -95,6 +95,14 @@ export class FiringSolution {
   dirY = 0;
   /** World bearing of the barrel, radians. */
   bearing = 0;
+  /**
+   * Velocity of the muzzle *relative to the hull's centre of mass*, from the
+   * hull's rotation: `ω × r`. A mount out on a beam is travelling sideways
+   * whenever its ship is turning, and a round leaving it inherits that on top
+   * of the hull's own velocity.
+   */
+  vx = 0;
+  vy = 0;
 }
 
 /**
@@ -357,22 +365,40 @@ export class Turrets {
     const dy = targetY - my;
     const speed = this.muzzleSpeed[i]!;
 
+    // What the shot is fired *from* is the muzzle, and on a turning ship the
+    // muzzle is moving: the hull's velocity plus `ω × r` about the centre of
+    // mass. Solving the lead from the hull's velocity instead biases every
+    // shot the same way rather than scattering them, because the mount's
+    // tangential motion is the same on every trigger pull.
+    //
+    // The muzzle is placed from the bearing the barrel holds *now* rather than
+    // the one being solved for, which would be circular. That is stale by at
+    // most one step of slew — far smaller than the term it is correcting, and
+    // it keeps the barrel's own length in the answer, which using the mount
+    // alone would drop.
+    const w = bodies.angularVel[b]!;
+    const barrel = normalizeAngle(this.bearing[i]! + angle);
+    const muzzleX = mx + cos(barrel) * this.muzzleOffset[i]!;
+    const muzzleY = my + sin(barrel) * this.muzzleOffset[i]!;
+    const shooterVx = bodies.vx[b]! - w * (muzzleY - bodies.y[b]!);
+    const shooterVy = bodies.vy[b]! + w * (muzzleX - bodies.x[b]!);
+
     let aimX = dx;
     let aimY = dy;
     let t = -1;
     if (speed > 0) {
-      t = interceptTime(dx, dy, targetVx - bodies.vx[b]!, targetVy - bodies.vy[b]!, speed);
+      t = interceptTime(dx, dy, targetVx - shooterVx, targetVy - shooterVy, speed);
       if (t > 0) {
-        aimX = dx + (targetVx - bodies.vx[b]!) * t;
-        aimY = dy + (targetVy - bodies.vy[b]!) * t;
+        aimX = dx + (targetVx - shooterVx) * t;
+        aimY = dy + (targetVy - shooterVy) * t;
       }
     }
 
     // Angular rate of the aim point about the mount: the transverse component
     // of relative velocity over range. This is the feed-forward term, and it is
     // what lets a turret hold a crossing target rather than trail behind it.
-    const rvx = targetVx - bodies.vx[b]!;
-    const rvy = targetVy - bodies.vy[b]!;
+    const rvx = targetVx - shooterVx;
+    const rvy = targetVy - shooterVy;
     const rangeSq = aimX * aimX + aimY * aimY;
     const bearingRate = rangeSq > 0 ? (aimX * rvy - aimY * rvx) / rangeSq : 0;
 
@@ -476,6 +502,14 @@ export class Turrets {
     out.dirY = dirY;
     out.x = mx + dirX * offset;
     out.y = my + dirY * offset;
+
+    // The muzzle's own velocity, `ω × r` about the centre of mass. Leave this
+    // out and a round from a yawing ship is launched with only the hull's
+    // linear velocity, which throws the shot off across the line of fire by
+    // the tangential speed the muzzle actually had.
+    const w = bodies.angularVel[b]!;
+    out.vx = -w * (out.y - bodies.y[b]!);
+    out.vy = w * (out.x - bodies.x[b]!);
   }
 
   /** Whether this turret may shoot: on target, and the target within its arc. */
