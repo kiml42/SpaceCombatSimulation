@@ -761,6 +761,35 @@ Deliberately unresolved; decide when they block something.
   Earliest sensible point is §8 step 2, terminal ballistics and the damage model: hardness, density and
   thickness are what it decides penetration against, so that is where per-material properties stop being
   decoration and start deciding outcomes.
+- **Where a hull's connectivity graph comes from.** §4 requires one per hull — severing is how mass leaves a
+  ship, and it is the entire return on not having a joint solver — but nothing in a blueprint expresses it.
+  `ModuleSpec` is a position and a size, `DesignModule` adds the body-frame transform, and neither says which
+  modules hold which. `compileBlueprint` derives mass, inertia, thrust and firing arcs from the layout;
+  connectivity is the one structural property it does not derive.
+  Derive it rather than author it, for the reason firing arcs are derived: a layout should not be able to claim
+  an attachment its shape does not support. Two modules are joined when their boundaries touch — which is the
+  near-miss of the check `blueprintProblem` already has, since modules may not *overlap*. Contact is therefore
+  exact abutment, a knife-edge no floating-point layout lands on reliably: the corvette and gunship manage it
+  only because they are hand-drawn on round numbers, and nothing from the editor or from a mutation will. So
+  the rule needs a tolerance, and that tolerance is a game parameter — how close counts as welded — rather than
+  an implementation detail.
+  What it has to be, beyond a set of edges:
+  - **A graph, not a tree.** A ring of structure has two load paths to every part of it, and surviving a cut is
+    exactly what makes that layout worth its mass. Parent pointers would make severing trivial and delete the
+    design decision.
+  - **Edges carry strength**, derived from the contact between the two modules. Without it the graph says which
+    joints exist but not which one gives way, and severing has nothing to choose with.
+  - **Components are recomputed only on a sever event**, never per step — which is what §4's "damage never
+    changes topology" is worth. A flood fill or union-find over a static array is enough, and it must be
+    order-deterministic like everything else in `sim/`.
+
+  Two loose ends this exposes. `blueprintProblem` does not currently require a layout to be connected *at all*:
+  a module floating clear of the ship compiles, contributes its mass and flies along in formation, and nothing
+  will notice until severing exists. That check cannot be written until "joined" is defined, which is this
+  question. And when a hull does split, something must decide which component keeps being the ship — its
+  controller, its identity, its orders — which is the sibling of the existing question above about how severed
+  chunks divide fuel, ammunition and power.
+  Do it with the damage model (§8 step 2), the first thing that can sever anything.
 - **Whether a downed craft's wreck falls onto the deck it was attacking.** Physically it should, and debris
   raining on a capital is evocative; it may also be an irritation. Cheap either way, so leave it until
   there is something to watch.
@@ -779,7 +808,7 @@ Deliberately unresolved; decide when they block something.
 
 | Date | Change |
 | --- | --- |
-| 2026-09-05 | Three things recorded in §12 rather than built. **Turret arcs**: traverse limit and firing permission are different quantities — a gun can sweep past superstructure it must not shoot through — so firing permission is a *set* of bearing intervals, not a half-width, and `firingArc`'s `min` over obstructions is pessimistic twice over. **Authored data**: blueprints and fixtures move to files with the blueprint editor, because the editor's save format is the file format; the move needs a validator and a loader outside `sim/`, and costs the prose that explains each layout's trade. **Materials**: the scaling laws' *form* is a law but their *coefficients* are steel and a chemical propellant, so coefficients belong to a per-module material, while a genuinely different technology (a railgun) is a new archetype rather than a new material — with the caveat that materials must be priced or evolution simply takes the best one. |
+| 2026-09-05 | Four things recorded in §12 rather than built. **Turret arcs**: traverse limit and firing permission are different quantities — a gun can sweep past superstructure it must not shoot through — so firing permission is a *set* of bearing intervals, not a half-width, and `firingArc`'s `min` over obstructions is pessimistic twice over. **Authored data**: blueprints and fixtures move to files with the blueprint editor, because the editor's save format is the file format; the move needs a validator and a loader outside `sim/`, and costs the prose that explains each layout's trade. **Materials**: the scaling laws' *form* is a law but their *coefficients* are steel and a chemical propellant, so coefficients belong to a per-module material, while a genuinely different technology (a railgun) is a new archetype rather than a new material — with the caveat that materials must be priced or evolution simply takes the best one. **Connectivity**: §4 requires a graph per hull but a blueprint expresses none, so it should be *derived* from which module boundaries touch — as a graph rather than a tree, with per-edge strength, recomputed only on a sever — and the abutment tolerance is a game parameter rather than an implementation detail. That one also exposed that `blueprintProblem` never requires a layout to be connected at all. |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
 | 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |
 | 2026-09-04 | Parametric modules and blueprint compilation built. Two decisions the design left open were settled in the process: the scaling laws are calibrated against real hardware rather than chosen for feel, so that a figure can be argued with (§12); and firing arcs are *derived* from the layout as §3 asks, rather than authored per mount, which makes a fouled gun a consequence of where it was put. The symmetric-traverse limitation that falls out of that is recorded in §12 rather than worked around. |

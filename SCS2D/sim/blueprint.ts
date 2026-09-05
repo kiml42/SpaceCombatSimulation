@@ -236,7 +236,16 @@ export function firingArc(
   return halfWidth;
 }
 
-/** Why a blueprint could not be built, or null if it can. */
+/**
+ * Why a blueprint could not be built, or null if it can.
+ *
+ * Note what this does *not* ask: that the layout hold together. A module
+ * floating clear of every other one passes, contributes its mass, and flies
+ * along in formation with the ship it is not attached to. Requiring
+ * connectedness means first defining what joins two modules, which §4's
+ * connectivity graph needs and no blueprint currently expresses — DESIGN.md
+ * §12 records the shape of that answer.
+ */
 export function blueprintProblem(blueprint: Blueprint): string | null {
   const modules = blueprint.modules;
   if (modules.length === 0) return `${blueprint.name}: a ship needs at least one module`;
