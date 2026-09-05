@@ -23,43 +23,48 @@ const { cos, sin, max, min, PI, sqrt, TAU } = math;
  * Colours by team, chosen so the three layers of a turret always separate.
  *
  * A mount is drawn as its module box, then the sector it can traverse through,
- * then the barrel. Each has to read against what is under it *and* against the
- * background where it overhangs the hull, which is what decides the values:
- * the box is the lightest thing on the ship, the sweep darkens whatever it
- * covers, and the barrel is light again — so it shows against the dark sweep
- * within the arc and against the dark field beyond it. Picking three colours
- * that merely differ is not enough; they have to alternate.
+ * then the barrel — and the ordering of *values* is what makes all three
+ * legible rather than the ordering of hues. The sweep is a pale wash, so it
+ * shows over the dark field as well as over the hull; the barrel is dark, so
+ * it shows against that wash. A barrel never leaves its own sector — the two
+ * share a radius — so it only ever has to contrast with the sweep, which is
+ * why it can afford to be the darkest thing on the ship.
+ *
+ * The sweep is deliberately not team-tinted. It marks where a gun *could*
+ * point rather than anything belonging to the ship, and colouring it by team
+ * made it read as hull.
  */
 const TEAM_COLOURS = [
   {
     hull: '#5b8dd6',
     trim: '#a8c8f0',
-    sweep: 'rgba(8, 14, 24, 0.5)',
     pivot: '#2c4a72',
-    barrel: '#eaf1fc',
     ready: '#ffd166',
   },
   {
     hull: '#d65b5b',
     trim: '#f0a8a8',
-    sweep: 'rgba(24, 8, 8, 0.5)',
     pivot: '#722c2c',
-    barrel: '#fceaea',
     ready: '#ffd166',
   },
 ];
 const NEUTRAL = {
   hull: '#8a8a8a',
   trim: '#c4c4c4',
-  sweep: 'rgba(14, 14, 14, 0.5)',
   pivot: '#4a4a4a',
-  barrel: '#f0f0f0',
   ready: '#ffd166',
 };
 const BACKGROUND = '#0b0f16';
 const GRID = '#161d29';
 const TRACER = '#ffe6a8';
 const WELL = '#3a4e7a';
+
+/** The traverse sector: a pale wash with a slightly firmer edge to define it. */
+const SWEEP = 'rgba(196, 210, 232, 0.13)';
+const SWEEP_EDGE = 'rgba(196, 210, 232, 0.3)';
+
+/** A barrel that is not clear to fire. Dark, because it sits on the pale sweep. */
+const BARREL = '#131c28';
 const PLUME = '#ffd9a0';
 const PLUME_CORE = '#fff4e0';
 
@@ -126,7 +131,9 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     // costs the clear sector on the other too. ROADMAP.md §12 has the shape of
     // the fix, and this wedge is where it will show.
     if (reach > 0) {
-      ctx.fillStyle = colours.sweep;
+      ctx.fillStyle = SWEEP;
+      ctx.strokeStyle = SWEEP_EDGE;
+      ctx.lineWidth = lineWidth * 0.8;
       ctx.beginPath();
       if (half >= PI) {
         ctx.arc(mx, my, reach, 0, TAU);
@@ -136,6 +143,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         ctx.closePath();
       }
       ctx.fill();
+      ctx.stroke();
     }
 
     // The rotating part itself: a disc at the mount, sized to the module it
@@ -149,7 +157,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
 
     const ready = ship.turretReady[t] === true;
     const bearing = ship.turretBearings[t] ?? 0;
-    ctx.strokeStyle = ready ? colours.ready : colours.barrel;
+    ctx.strokeStyle = ready ? colours.ready : BARREL;
     ctx.lineWidth = lineWidth * (ready ? 2.4 : 1.6);
     ctx.beginPath();
     ctx.moveTo(mx, my);
