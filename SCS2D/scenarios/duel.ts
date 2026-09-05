@@ -9,7 +9,7 @@ import {
   World,
   type WellSpec,
 } from '../sim/index.js';
-import { CORVETTE, GUNSHIP } from './blueprints.js';
+import { CORVETTE, DAMAGED_CORVETTE, GUNSHIP } from './blueprints.js';
 
 /**
  * A corvette and a gunship closing on each other and opening fire.
@@ -69,6 +69,7 @@ export function duel(seed = 20260905): Duel {
   world.addForceProvider(ships.forceProvider());
 
   const corvette = compileBlueprint(CORVETTE);
+  const damagedCorvette = compileBlueprint(DAMAGED_CORVETTE);
   const gunship = compileBlueprint(GUNSHIP);
 
   // Offset across the line of approach as well as along it, so neither ship
@@ -86,7 +87,7 @@ export function duel(seed = 20260905): Duel {
     team: 0,
   });
    const c = ships.spawn(world, {
-    design: corvette,
+    design: damagedCorvette,
     x: 2000,
     y: -740,
     angle: math.HALF_PI/2,
@@ -104,13 +105,15 @@ export function duel(seed = 20260905): Duel {
     team: 1,
   });
 
-  // The corvette wants to be inside the gunship's reach; the gunship would
+  // The corvettes want to be inside the gunship's reach; the gunship would
   // rather hold it off. Neither gets what it wants, which is the interesting
   // part.
+
+  // these two start at quite short range tying to fight each other
   ships.setOrder(a, b, 300, 500, 120);
   ships.setOrder(c, b, 300, 500, 120);
 
-  ships.setOrder(b, a, 900, 1200, 60);
+  // this one starts far away and comes in later to help.
   ships.setOrder(b, c, 900, 1200, 60);
 
   const grid = new SpatialGrid(64);
