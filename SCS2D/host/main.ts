@@ -34,12 +34,13 @@ export function start(): void {
   const playButton = el<HTMLButtonElement>('play');
   const stepButton = el<HTMLButtonElement>('step');
   const resetButton = el<HTMLButtonElement>('reset');
+  const switchSceneButton = el<HTMLButtonElement>('switchScene');
   const speedInput = el<HTMLInputElement>('speed');
   const speedLabel = el<HTMLElement>('speedLabel');
   const fitButton = el<HTMLButtonElement>('fit');
-
-  // let state: Duel = duel(SEED);
-  let state: Duel = swarm(SEED);
+  let state: Duel = duel(SEED);
+  var isSwarm = false;
+  // let state: Duel = swarm(SEED);
   let snapshot = new Snapshot();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
   // Auto-framing keeps everything in shot, which is what you want until you
@@ -79,7 +80,15 @@ export function start(): void {
     state.step();
   });
   resetButton.addEventListener('click', () => {
-    state = duel(SEED);
+    isSwarm = false;
+    state = isSwarm ? swarm(SEED) : duel(SEED);
+    framed = false;
+    autoFrame = true;
+    setRunning(true);
+  });
+  switchSceneButton.addEventListener('click', () => {
+    isSwarm = !isSwarm;
+    state = isSwarm ? swarm(SEED) : duel(SEED);
     framed = false;
     autoFrame = true;
     setRunning(true);

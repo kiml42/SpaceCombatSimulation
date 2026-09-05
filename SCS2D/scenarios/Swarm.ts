@@ -21,12 +21,7 @@ export function swarm(seed = 20260905): Duel {
   const dt = 1 / 60;
   const world = new World({ dt, seed });
 
-  // Off to one side rather than between the ships, so nothing passes close
-  // enough for the softening to matter and the pull stays a steady bias rather
-  // than a slingshot. At the ranges fought here it is about 1.1 m/s² — half
-  // the gunship's own acceleration, so it shapes every trajectory without ever
-  // leaving a ship unable to resist it.
-  const wells: WellSpec[] = [{ x: 0, y: -1500, gm: 2.5e6, softening: 200 }];
+  const wells: WellSpec[] = [];
   for (const well of wells) world.addForceProvider(gravityWell(well));
 
   const ships = new Ships();
