@@ -40,6 +40,8 @@ export interface ShipView {
   turretBearings: number[];
   /** Which of those turrets are on target and clear to shoot. */
   turretReady: boolean[];
+  /** Throttle held by each thruster, 0 to 1, in the design's thruster order. */
+  throttles: number[];
 }
 
 export class Snapshot {
@@ -103,6 +105,7 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
     vy: 0,
     turretBearings: [],
     turretReady: [],
+    throttles: [],
   };
   snapshot.ships[i] = created;
   return created;
@@ -150,6 +153,11 @@ export function capture(
       const ti = ships.turretIndexOf(i, t);
       view.turretBearings[t] = turrets.worldBearing(bodies, ti);
       view.turretReady[t] = turrets.readyToFire(ti);
+    }
+
+    view.throttles.length = design.thrusters.length;
+    for (let t = 0; t < design.thrusters.length; t++) {
+      view.throttles[t] = ships.throttleOf(i, t);
     }
 
     const r = design.radius;
