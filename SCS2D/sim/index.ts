@@ -65,4 +65,10 @@ export {
   interceptTime,
   type TurretSpec,
 } from './turrets.js';
+export {
+  Ships,
+  NO_TARGET,
+  type Order,
+  type ShipSpec,
+} from './ships.js';
 export { checksumWorld, checksumProjectiles, formatChecksum } from './checksum.js';

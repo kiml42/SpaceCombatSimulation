@@ -265,3 +265,30 @@ export function approach(current: number, target: number, maxStep: number): numb
   if (d < -maxStep) return current - maxStep;
   return target;
 }
+
+/**
+ * The fastest rate that can still be braked out over `error`, in discrete
+ * steps of `accel · dt`.
+ *
+ * The continuous answer, `sqrt(2·a·|e|)`, is slightly too fast: a step taken at
+ * that rate leaves an error the next step cannot brake out of, so the quantity
+ * overshoots and hunts. The discrete form below is exactly zero at zero error
+ * and strictly positive everywhere else, so every error gets corrected however
+ * small — where the obvious fix of subtracting `a·dt/2` from the continuous
+ * rate stops correcting below `a·dt²/8` and parks a brisk mount short of where
+ * it was asked to be.
+ *
+ * The `|e|/dt` cap is what stops a single step travelling past the target when
+ * the remaining error is smaller than one step of travel.
+ *
+ * Always positive; the caller applies the sign of the error. Used for turret
+ * slew and for a pilot's heading hold, which are the same problem at different
+ * scales.
+ */
+export function brakingRate(error: number, accel: number, dt: number): number {
+  const magnitude = abs(error);
+  const half = 0.5 * accel * dt;
+  const braking = sqrt(2 * accel * magnitude + half * half) - half;
+  const landing = dt > 0 ? magnitude / dt : 0;
+  return braking < landing ? braking : landing;
+}
