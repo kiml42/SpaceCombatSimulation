@@ -16,6 +16,11 @@ const { HALF_PI, PI } = math;
  * it faces — which way a thruster pushes the ship, and where a turret's gun
  * rests.
  *
+ * A thruster's exhaust leaves the *opposite* way to its push, so a mount out on
+ * a wing has to push inboard: a port-side thruster pushing to port would be
+ * firing into the wing it is bolted to. Nothing in the simulation stops that
+ * today (§12), so it is a matter of drawing the layout honestly.
+ *
  * Nothing about how these ships *perform* is written down here. Mass, moment
  * of inertia, thrust, gun ballistics and firing arcs are all derived from this
  * geometry by `compileBlueprint`, so a layout cannot claim a figure its shape
@@ -69,10 +74,10 @@ export const CORVETTE: Blueprint = {
     structure(-4, 4.5, 4, 3),
     structure(-4, -4.5, 4, 3),
 
-    thruster(4, 7, HALF_PI, 2, 3),
-    thruster(4, -7, -HALF_PI, 2, 3),
-    thruster(-4, 7, HALF_PI, 2, 3),
-    thruster(-4, -7, -HALF_PI, 2, 3),
+    thruster(4, 7, -HALF_PI, 2, 3),
+    thruster(4, -7, HALF_PI, 2, 3),
+    thruster(-4, 7, -HALF_PI, 2, 3),
+    thruster(-4, -7, HALF_PI, 2, 3),
 
     thruster(7, 4.5, PI, 2, 3),
     thruster(7, -4.5, PI, 2, 3),
@@ -106,10 +111,10 @@ export const GUNSHIP: Blueprint = {
     structure(-12, 7, 6, 4),
     structure(-12, -7, 6, 4),
 
-    thruster(12, 10, HALF_PI, 2, 4),
-    thruster(12, -10, -HALF_PI, 2, 4),
-    thruster(-12, 10, HALF_PI, 2, 4),
-    thruster(-12, -10, -HALF_PI, 2, 4),
+    thruster(12, 10, -HALF_PI, 2, 4),
+    thruster(12, -10, HALF_PI, 2, 4),
+    thruster(-12, 10, -HALF_PI, 2, 4),
+    thruster(-12, -10, HALF_PI, 2, 4),
 
     thruster(16.5, 7, PI, 3, 4),
     thruster(16.5, -7, PI, 3, 4),
