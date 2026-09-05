@@ -39,20 +39,20 @@ const TEAM_COLOURS = [
     hull: '#5b8dd6',
     trim: '#a8c8f0',
     pivot: '#2c4a72',
-    ready: '#ffd166',
+    ready: '#e9c05f',
   },
   {
     hull: '#d65b5b',
     trim: '#f0a8a8',
     pivot: '#722c2c',
-    ready: '#ffd166',
+    ready: '#e9c05f',
   },
 ];
 const NEUTRAL = {
   hull: '#8a8a8a',
   trim: '#c4c4c4',
   pivot: '#4a4a4a',
-  ready: '#ffd166',
+  ready: '#e9c05f',
 };
 const BACKGROUND = '#0b0f16';
 const GRID = '#161d29';
@@ -76,7 +76,7 @@ const SWEEP_EDGE = 'rgba(196, 210, 232, 0.26)';
 const ARC_RADIUS_SCALE = 3;
 
 /** A barrel that is not clear to fire. Dark, because it sits on the pale sweep. */
-const BARREL = '#131c28';
+const BARREL = '#8f6f25';
 const PLUME = '#ffd9a0';
 const PLUME_CORE = '#fff4e0';
 
@@ -170,7 +170,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     const ready = ship.turretReady[t] === true;
     const bearing = ship.turretBearings[t] ?? 0;
     ctx.strokeStyle = ready ? colours.ready : BARREL;
-    ctx.lineWidth = lineWidth * (ready ? 2.4 : 1.6);
+    ctx.lineWidth = lineWidth * 1.6;
     ctx.beginPath();
     ctx.moveTo(mx, my);
     ctx.lineTo(mx + cos(bearing) * reach, my + sin(bearing) * reach);
