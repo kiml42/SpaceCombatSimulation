@@ -40,12 +40,20 @@ export interface Camera {
 }
 
 /**
- * A camera that frames everything in the snapshot, easing rather than snapping.
+ * A camera that keeps the snapshot's bounds in shot, easing rather than
+ * snapping — except when easing would crop.
  *
- * A camera that tracked the bounding box exactly would jitter every time a
- * round expired at the edge of the field, so the target is approached at a
- * fixed fraction per frame. That is a smoothing constant, not physics — it is
- * outside `sim/` for exactly that reason.
+ * Tracking the bounds exactly makes the view twitch at every small change, so
+ * the target is approached at a fixed fraction per frame. But easing alone
+ * loses the race whenever the scene expands faster than the camera follows,
+ * which at eight times speed it does, and something ends up cut off at the
+ * edge. So the two directions are not symmetric: **zoom out at once, zoom in
+ * gently**, and after easing, pull the centre back far enough that the bounds
+ * are inside the view. The result settles smoothly and never crops, which the
+ * simpler version could not promise.
+ *
+ * These are smoothing constants, not physics, which is why they live out here
+ * rather than in `sim/`.
  */
 export function frame(
   camera: Camera,
@@ -63,9 +71,38 @@ export function frame(
 
   camera.x += (wantX - camera.x) * ease;
   camera.y += (wantY - camera.y) * ease;
-  // Scale eases geometrically: a fixed fraction of a ratio, so zooming out
-  // from 10 m/px and in from 0.1 m/px feel the same.
-  camera.scale *= (wantScale / camera.scale) ** ease;
+  // Scale eases geometrically when closing in — a fixed fraction of a ratio,
+  // so zooming in from 10 m/px and from 0.1 m/px feel the same — and snaps
+  // when it has to widen, because a frame that has already cropped is worse
+  // than a frame that moved abruptly.
+  camera.scale =
+    wantScale < camera.scale ? wantScale : camera.scale * (wantScale / camera.scale) ** ease;
+
+  contain(camera, snapshot, widthPx, heightPx);
+}
+
+/**
+ * Nudge the centre until the bounds fit inside the view. A no-op once the
+ * camera has caught up, which is most of the time.
+ */
+function contain(
+  camera: Camera,
+  snapshot: Snapshot,
+  widthPx: number,
+  heightPx: number,
+): void {
+  const halfW = widthPx / 2 / camera.scale;
+  const halfH = heightPx / 2 / camera.scale;
+
+  const overX = snapshot.maxX - snapshot.minX > halfW * 2;
+  if (overX) camera.x = (snapshot.minX + snapshot.maxX) * 0.5;
+  else if (snapshot.minX < camera.x - halfW) camera.x = snapshot.minX + halfW;
+  else if (snapshot.maxX > camera.x + halfW) camera.x = snapshot.maxX - halfW;
+
+  const overY = snapshot.maxY - snapshot.minY > halfH * 2;
+  if (overY) camera.y = (snapshot.minY + snapshot.maxY) * 0.5;
+  else if (snapshot.minY < camera.y - halfH) camera.y = snapshot.minY + halfH;
+  else if (snapshot.maxY > camera.y + halfH) camera.y = snapshot.maxY - halfH;
 }
 
 function shipColours(team: number): (typeof TEAM_COLOURS)[number] {

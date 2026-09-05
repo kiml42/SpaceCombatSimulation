@@ -65,16 +65,15 @@ export class Snapshot {
   projectileCount = 0;
 
   /**
-   * Bounding box of the ships and the wells, for a camera to frame.
+   * Bounding box of the *ships*, for a camera to frame.
    *
-   * The wells are in it because a well is a fixed feature of the arena and the
-   * reason everything curves; framed out of shot, its ring reads as a stray
-   * line rather than an explanation.
-   *
-   * Projectiles are deliberately *not* in it. A round that misses flies on
-   * until it expires, kilometres past anything anyone is looking at, and a
-   * camera that followed it would zoom out for a shot nobody cares about —
-   * shrinking the battle to a few pixels exactly when it got interesting.
+   * Only the ships. Wells are drawn but not framed: a well matters to the eye
+   * while the ships are on opposite sides of it, and once they are past it,
+   * holding it in shot only pushes the fight away. Projectiles are excluded
+   * for a harder reason — a round that misses flies on until it expires,
+   * kilometres past anything anyone is looking at, and a camera that followed
+   * it would zoom out for a shot nobody cares about, shrinking the battle to a
+   * few pixels exactly when it got interesting.
    */
   minX = 0;
   minY = 0;
@@ -173,15 +172,7 @@ export function capture(
   }
   out.projectileCount = p;
 
-  for (let i = 0; i < wells.length; i++) {
-    const well = wells[i]!;
-    if (well.x < minX) minX = well.x;
-    if (well.y < minY) minY = well.y;
-    if (well.x > maxX) maxX = well.x;
-    if (well.y > maxY) maxY = well.y;
-  }
-
-  if (n === 0 && wells.length === 0) {
+  if (n === 0) {
     minX = minY = maxX = maxY = 0;
   }
   out.minX = minX;
