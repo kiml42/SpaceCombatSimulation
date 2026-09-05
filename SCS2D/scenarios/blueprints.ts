@@ -85,6 +85,31 @@ export const CORVETTE: Blueprint = {
 };
 
 /**
+ * A damaged version of the corvette to test asymmetric mass distribution and thrust.
+ */
+export const DAMAGED_CORVETTE: Blueprint = {
+  name: 'DamagedCorvette',
+  modules: [
+    structure(0, 0, 16, 6),
+    turret(10.5, 0, 0, 5, 4),
+    thruster(-10, 0, 0, 4, 6),
+
+    structure(4, 4.5, 4, 3),
+    structure(4, -4.5, 4, 3),
+    structure(-4, 4.5, 4, 3),
+    structure(-4, -4.5, 4, 3),
+
+    thruster(4, 7, -HALF_PI, 2, 3),
+    thruster(4, -7, HALF_PI, 2, 3),
+    thruster(-4, 7, -HALF_PI, 2, 3),
+    thruster(-4, -7, HALF_PI, 2, 3),
+
+    thruster(7, 4.5, PI, 2, 3),
+    thruster(7, -4.5, PI, 2, 3),
+  ],
+};
+
+/**
  * A heavy gunship: a bow gun that fires a shell an order of magnitude heavier
  * than the corvette's, and a broadside turret on each beam for anything that
  * gets inside it.
