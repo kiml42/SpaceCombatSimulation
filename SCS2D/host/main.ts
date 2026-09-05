@@ -1,5 +1,6 @@
 import { capture, math, Snapshot } from '../sim/index.js';
 import { duel, type Duel } from '../scenarios/duel.js';
+import { swarm } from '../scenarios/Swarm.js';
 import { draw } from '../render/canvas2d.js';
 import { frame, gridStep, type Camera } from '../render/camera.js';
 
@@ -37,7 +38,8 @@ export function start(): void {
   const speedLabel = el<HTMLElement>('speedLabel');
   const fitButton = el<HTMLButtonElement>('fit');
 
-  let state: Duel = duel(SEED);
+  // let state: Duel = duel(SEED);
+  let state: Duel = swarm(SEED);
   let snapshot = new Snapshot();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
   // Auto-framing keeps everything in shot, which is what you want until you
