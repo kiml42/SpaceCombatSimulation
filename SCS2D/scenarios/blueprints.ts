@@ -94,17 +94,17 @@ export const DAMAGED_CORVETTE: Blueprint = {
     turret(10.5, 0, 0, 5, 4),
     thruster(-10, 0, 0, 4, 6),
 
-    structure(4, 4.5, 4, 3),
+    // structure(4, 4.5, 4, 3),
     structure(4, -4.5, 4, 3),
-    structure(-4, 4.5, 4, 3),
+    // structure(-4, 4.5, 4, 3),
     structure(-4, -4.5, 4, 3),
 
-    thruster(4, 7, -HALF_PI, 2, 3),
+    // thruster(4, 7, -HALF_PI, 2, 3),
     thruster(4, -7, HALF_PI, 2, 3),
-    thruster(-4, 7, -HALF_PI, 2, 3),
+    // thruster(-4, 7, -HALF_PI, 2, 3),
     thruster(-4, -7, HALF_PI, 2, 3),
 
-    thruster(7, 4.5, PI, 2, 3),
+    // thruster(7, 4.5, PI, 2, 3),
     thruster(7, -4.5, PI, 2, 3),
   ],
 };
