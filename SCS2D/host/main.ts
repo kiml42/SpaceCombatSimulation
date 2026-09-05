@@ -38,8 +38,13 @@ export function start(): void {
   const speedInput = el<HTMLInputElement>('speed');
   const speedLabel = el<HTMLElement>('speedLabel');
   const fitButton = el<HTMLButtonElement>('fit');
-  let state: Duel = duel(SEED);
-  var isSwarm = false;
+  const scenes = [
+    { name: 'Duel', create: () => duel(SEED) },
+    { name: 'Swarm', create: () => swarm(SEED) }
+  ];
+  let sceneIndex = 0;
+  const nextSceneIndex = () => (sceneIndex + 1) % scenes.length;
+  let state: Duel = scenes[sceneIndex].create();
   // let state: Duel = swarm(SEED);
   let snapshot = new Snapshot();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
@@ -56,6 +61,12 @@ export function start(): void {
   // have travelled since it last looked — which is not how much wall time
   // passed, once the speed control is off 1x.
   let lastSimTime = 0;
+
+  const updateSwitchSceneButton = () => {
+    const nextIndex = nextSceneIndex();
+    switchSceneButton.textContent = `Play ${scenes[nextIndex].name}`;
+  }
+  updateSwitchSceneButton();
 
   const resize = (): void => {
     const ratio = window.devicePixelRatio || 1;
@@ -80,15 +91,16 @@ export function start(): void {
     state.step();
   });
   resetButton.addEventListener('click', () => {
-    isSwarm = false;
-    state = isSwarm ? swarm(SEED) : duel(SEED);
+    sceneIndex = 0;
+    state = scenes[sceneIndex].create();
     framed = false;
     autoFrame = true;
     setRunning(true);
   });
   switchSceneButton.addEventListener('click', () => {
-    isSwarm = !isSwarm;
-    state = isSwarm ? swarm(SEED) : duel(SEED);
+    sceneIndex = nextSceneIndex();
+    updateSwitchSceneButton();
+    state = scenes[sceneIndex].create();
     framed = false;
     autoFrame = true;
     setRunning(true);
