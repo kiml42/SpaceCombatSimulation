@@ -274,6 +274,22 @@ Deliberately unresolved; decide when they block something.
   non-negotiable 6 turning out to be load-bearing for something other than what it was written for, and it
   is also exactly what a replay file needs (§8's async fleet-vs-fleet), so the two features want the same
   mechanism built once.
+- **What a thruster firing into its own hull should cost.** Nothing, currently: thrust is produced whatever
+  the nozzle is buried in, so a layout with its manoeuvring thrusters mounted backwards flies exactly as well
+  as one drawn correctly and merely looks absurd. Both authored ships were drawn that way and nobody noticed
+  until the viewer started drawing plumes — which is the argument for the viewer in miniature, and the reason
+  the authored layouts now have a test.
+  It matters more than tidiness once §7's evolution is running. A buried nozzle is thrust with no penalty
+  attached, which is precisely the shape of exploit `modules.ts` warns about: the search will find it, and
+  every evolved ship will end up with its engines pointing into itself because that packs a layout tighter
+  for free.
+  Three ways to price it, in rising order of honesty. **Reject the layout** at compile time, as a blocked
+  firing arc already does — cheapest, and consistent with arcs being derived rather than authored, but it
+  makes a continuous quantity a hard edge that a mutation cannot cross. **Scale the thrust down** by how much
+  of the exhaust is blocked — continuous, so the search feels a gradient instead of a wall. **Model
+  impingement properly**, as force and heat on whatever is in the way, which is the only version that makes a
+  plume something a designer can aim deliberately. The middle one is probably right, and this is worth
+  settling before evolution runs rather than after it has exploited the gap.
 - **Whether a downed craft's wreck falls onto the deck it was attacking.** Physically it should, and debris
   raining on a capital is evocative; it may also be an irritation. Cheap either way, so leave it until
   there is something to watch.

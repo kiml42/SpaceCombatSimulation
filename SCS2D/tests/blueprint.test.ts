@@ -236,6 +236,46 @@ describe('the authored blueprints', () => {
     });
   }
 
+  it('points every thruster so its exhaust leaves clear air', () => {
+    // A thruster pushes along its facing and exhausts the other way, so a
+    // mount out on a wing has to push *inboard* or it fires into the wing it
+    // is bolted to. Nothing in the simulation stops that — thrust is produced
+    // whatever the nozzle is buried in — so a layout drawn the wrong way round
+    // flies perfectly well and only looks absurd, which is exactly how it goes
+    // unnoticed.
+    for (const blueprint of [BLUEPRINTS.corvette, BLUEPRINTS.gunship]) {
+      const design = compileBlueprint(blueprint);
+      const thrusters = design.modules.filter((m) => m.spec.kind === 'thruster');
+
+      for (const t of thrusters) {
+        const dx = -Math.cos(t.angle);
+        const dy = -Math.sin(t.angle);
+        const startX = t.x + dx * (t.spec.length / 2);
+        const startY = t.y + dy * (t.spec.length / 2);
+
+        for (const other of design.modules) {
+          if (other === t) continue;
+          for (let d = 0.05; d < design.radius * 2; d += 0.25) {
+            const px = startX + dx * d - other.x;
+            const py = startY + dy * d - other.y;
+            const c = Math.cos(-other.angle);
+            const s = Math.sin(-other.angle);
+            const localX = px * c - py * s;
+            const localY = px * s + py * c;
+            const inside =
+              Math.abs(localX) <= other.spec.length / 2 &&
+              Math.abs(localY) <= other.spec.width / 2;
+            expect(
+              inside,
+              `${blueprint.name}: thruster at (${t.spec.x}, ${t.spec.y}) exhausts into ` +
+                `${other.spec.kind} at (${other.spec.x}, ${other.spec.y})`,
+            ).toBe(false);
+          }
+        }
+      }
+    }
+  });
+
   it('lists thrusters and turrets in the order their modules appear', () => {
     // Anything holding per-thruster or per-turret state alongside a design —
     // throttles, gun timers, a renderer drawing exhaust — indexes these arrays
