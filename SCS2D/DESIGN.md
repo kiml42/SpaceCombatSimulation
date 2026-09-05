@@ -697,12 +697,32 @@ Deliberately unresolved; decide when they block something.
   "guns mission-kill, ordnance destroys" line in §3 would become "deck turrets mission-kill; edge guns and
   ordnance destroy", with edge guns paying for it in coverage. The cost is a second mounting concept in the
   blueprint editor, so decide it when building the editor rather than before.
-- **Whether a turret's traverse limit should be asymmetric.** Firing arcs are derived from the layout,
-  but a mount carries one half-width about its rest bearing, so an obstruction on one beam costs the
-  clear sector on the other too. Every ship authored so far is symmetric, which hides it. Asymmetric
-  limits are a small change — two bounds instead of one in the turret store, and a clamp between them
-  — and the reason to wait is that it is worth doing once the blueprint editor exists to show a player
-  what their layout bought, rather than before.
+- **Whether a turret's traverse limit and its firing permission are the same thing.** Today they are:
+  `firingArc` returns one half-width about the rest bearing, and a mount may fire wherever it may point.
+  Two separate things will break that, and they are worth keeping apart.
+  - **Asymmetry.** A single half-width means an obstruction on one beam costs the clear sector on the
+    other too. Every ship authored so far is symmetric, which hides it. Small fix: two bounds in the
+    turret store instead of one, and a clamp between them.
+  - **Traversing through what you may not fire through.** A barrel can usually sweep *past*
+    superstructure or a neighbouring mount and reach clear bearings beyond it — it simply must not shoot
+    while crossing them. So these are two different quantities. The **traverse limit** is mechanical:
+    where the barrel can go before it fouls something. **Firing permission** is a *set* of allowed
+    bearing intervals — one gap per obstruction, so a mount ringed by neighbours has several. That is a
+    mask, not a half-width, and it is why the `min` over obstructions in `firingArc` can only ever be
+    pessimistic: it collapses the set to its narrowest member and throws away every clear sector past
+    the first blockage.
+
+  Shape of the fix when it comes: each mount compiles a short sorted list of blocked intervals from the
+  layout, alongside its two traverse bounds. §4's `blocked` test becomes an interval lookup rather than a
+  comparison against one arc, and target selection has to prefer a target lying in a *permitted* interval
+  over merely the nearest reachable bearing. Slew is untouched, and it stays compile-time work — the mask
+  is a property of the layout, so it costs a build step, not a per-step one.
+
+  Waiting is still right, for the reason the symmetric version gave: this is the mechanism that makes a
+  layout's field of fire legible, and it wants the blueprint editor there to show a player what their
+  arrangement bought. The bearing-only assumption is worth revisiting in the same pass — whether a barrel
+  clears a low module is the same question asked about height, and both turn on what the barrel actually
+  sweeps.
 - **Whether a downed craft's wreck falls onto the deck it was attacking.** Physically it should, and debris
   raining on a capital is evocative; it may also be an irritation. Cheap either way, so leave it until
   there is something to watch.
