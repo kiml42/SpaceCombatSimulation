@@ -37,7 +37,8 @@
       label { display: flex; align-items: center; gap: 0.4rem; color: #8fa2b8; }
       input[type='range'] { width: 130px; }
       #readout { margin-left: auto; color: #7f93aa; }
-      #view { flex: 1; width: 100%; display: block; }
+      #view { flex: 1; width: 100%; display: block; touch-action: none; cursor: grab; }
+      #view:active { cursor: grabbing; }
       footer { padding: 0.4rem 0.9rem; color: #5d6f85; border-top: 1px solid #1c2533; }
       @media (max-width: 720px) { #readout { margin-left: 0; width: 100%; } }
     </style>
@@ -48,10 +49,11 @@
       <button id="play">Pause</button>
       <button id="step">Step</button>
       <button id="reset">Reset</button>
+      <button id="fit">Fit</button>
       <label>speed <input id="speed" type="range" min="0.25" max="8" step="0.25" value="1" /><span id="speedLabel">1x</span></label>
       <span id="readout"></span>
     </header>
     <canvas id="view"></canvas>
-    <footer>Space to pause, full stop to single-step. Blue is the corvette, red the gunship; a barrel goes amber when it is on target and clear to fire.</footer>
+    <footer>Space to pause, full stop to single-step, F to re-fit. Scroll to zoom, drag to pan. Blue is the corvette, red the gunship; a barrel goes amber when it is on target and clear to fire. The ring marks where the gravity well pulls at 1 m/s².</footer>
   </body>
 </html>

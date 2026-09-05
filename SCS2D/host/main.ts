@@ -34,10 +34,15 @@ export function start(): void {
   const resetButton = el<HTMLButtonElement>('reset');
   const speedInput = el<HTMLInputElement>('speed');
   const speedLabel = el<HTMLElement>('speedLabel');
+  const fitButton = el<HTMLButtonElement>('fit');
 
   let state: Duel = duel(SEED);
   let snapshot = new Snapshot();
-  let camera: Camera = { x: 0, y: 0, scale: 0.1 };
+  const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+  // Auto-framing keeps everything in shot, which is what you want until you
+  // want to look at something. Any manual zoom or pan hands control over;
+  // "Fit" gives it back.
+  let autoFrame = true;
   let running = true;
   let speed = 1;
   let accumulator = 0;
@@ -69,8 +74,45 @@ export function start(): void {
   resetButton.addEventListener('click', () => {
     state = duel(SEED);
     framed = false;
+    autoFrame = true;
     setRunning(true);
   });
+  fitButton.addEventListener('click', () => {
+    autoFrame = true;
+  });
+
+  // Zoom about the pointer, so the thing under the cursor stays under it.
+  canvas.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    autoFrame = false;
+    const rect = canvas.getBoundingClientRect();
+    const ratio = canvas.width / rect.width;
+    const px = (event.clientX - rect.left) * ratio - canvas.width / 2;
+    const py = (event.clientY - rect.top) * ratio - canvas.height / 2;
+    const before = { x: camera.x + px / camera.scale, y: camera.y - py / camera.scale };
+    camera.scale *= Math.exp(-event.deltaY * 0.0015);
+    camera.x = before.x - px / camera.scale;
+    camera.y = before.y + py / camera.scale;
+  }, { passive: false });
+
+  let dragging: { x: number; y: number } | null = null;
+  canvas.addEventListener('pointerdown', (event) => {
+    dragging = { x: event.clientX, y: event.clientY };
+    canvas.setPointerCapture(event.pointerId);
+  });
+  canvas.addEventListener('pointermove', (event) => {
+    if (dragging === null) return;
+    autoFrame = false;
+    const ratio = canvas.width / canvas.getBoundingClientRect().width;
+    camera.x -= ((event.clientX - dragging.x) * ratio) / camera.scale;
+    camera.y += ((event.clientY - dragging.y) * ratio) / camera.scale;
+    dragging = { x: event.clientX, y: event.clientY };
+  });
+  const endDrag = (): void => {
+    dragging = null;
+  };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
   speedInput.addEventListener('input', () => {
     speed = Number(speedInput.value);
     speedLabel.textContent = `${speed}x`;
@@ -82,6 +124,8 @@ export function start(): void {
     } else if (event.key === '.') {
       setRunning(false);
       state.step();
+    } else if (event.key === 'f' || event.key === 'F') {
+      autoFrame = true;
     }
   });
 
@@ -103,13 +147,15 @@ export function start(): void {
       if (steps === MAX_STEPS_PER_FRAME) accumulator = 0;
     }
 
-    const view = capture(snapshot, state.world, state.ships, state.projectiles);
-    if (!framed) {
-      // Snap to the opening positions rather than easing in from nowhere.
-      frame(camera, view, canvas.width, canvas.height, 1);
-      framed = true;
+    const view = capture(snapshot, state.world, state.ships, state.projectiles, state.wells);
+    if (autoFrame) {
+      if (!framed) {
+        // Snap to the opening positions rather than easing in from nowhere.
+        frame(camera, view, canvas.width, canvas.height, 1);
+        framed = true;
+      }
+      frame(camera, view, canvas.width, canvas.height);
     }
-    frame(camera, view, canvas.width, canvas.height);
     draw(ctx, view, camera, canvas.width, canvas.height);
 
     const range =

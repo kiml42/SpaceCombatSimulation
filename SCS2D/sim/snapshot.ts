@@ -1,5 +1,6 @@
 import type { Bodies } from './bodies.js';
 import type { ShipDesign } from './blueprint.js';
+import type { WellSpec } from './gravity.js';
 import type { Projectiles } from './projectiles.js';
 import type { Ships } from './ships.js';
 import type { Turrets } from './turrets.js';
@@ -46,6 +47,13 @@ export class Snapshot {
   tick = 0;
   time = 0;
 
+  /**
+   * Wells acting on the battle. Held by reference rather than copied: a well
+   * does not move, and a renderer that cannot show why trajectories bend is
+   * showing a bug rather than a battle.
+   */
+  wells: readonly WellSpec[] = [];
+
   ships: ShipView[] = [];
   shipCount = 0;
 
@@ -56,7 +64,18 @@ export class Snapshot {
   projectileVy = new Float64Array(0);
   projectileCount = 0;
 
-  /** Bounding box of everything in the snapshot, for a camera to frame. */
+  /**
+   * Bounding box of the ships and the wells, for a camera to frame.
+   *
+   * The wells are in it because a well is a fixed feature of the arena and the
+   * reason everything curves; framed out of shot, its ring reads as a stray
+   * line rather than an explanation.
+   *
+   * Projectiles are deliberately *not* in it. A round that misses flies on
+   * until it expires, kilometres past anything anyone is looking at, and a
+   * camera that followed it would zoom out for a shot nobody cares about —
+   * shrinking the battle to a few pixels exactly when it got interesting.
+   */
   minX = 0;
   minY = 0;
   maxX = 0;
@@ -96,12 +115,14 @@ export function capture(
   world: World,
   ships: Ships,
   projectiles: Projectiles,
+  wells: readonly WellSpec[] = [],
 ): Snapshot {
   const bodies: Bodies = world.bodies;
   const turrets: Turrets = ships.turrets;
 
   out.tick = world.tick;
   out.time = world.tick * world.dt;
+  out.wells = wells;
 
   let minX = Infinity;
   let minY = Infinity;
@@ -144,21 +165,23 @@ export function capture(
   let p = 0;
   for (let i = 0; i < projectiles.highWater; i++) {
     if (projectiles.alive[i] === 0) continue;
-    const x = projectiles.x[i]!;
-    const y = projectiles.y[i]!;
-    out.projectileX[p] = x;
-    out.projectileY[p] = y;
+    out.projectileX[p] = projectiles.x[i]!;
+    out.projectileY[p] = projectiles.y[i]!;
     out.projectileVx[p] = projectiles.vx[i]!;
     out.projectileVy[p] = projectiles.vy[i]!;
     p++;
-    if (x < minX) minX = x;
-    if (y < minY) minY = y;
-    if (x > maxX) maxX = x;
-    if (y > maxY) maxY = y;
   }
   out.projectileCount = p;
 
-  if (n === 0 && p === 0) {
+  for (let i = 0; i < wells.length; i++) {
+    const well = wells[i]!;
+    if (well.x < minX) minX = well.x;
+    if (well.y < minY) minY = well.y;
+    if (well.x > maxX) maxX = well.x;
+    if (well.y > maxY) maxY = well.y;
+  }
+
+  if (n === 0 && wells.length === 0) {
     minX = minY = maxX = maxY = 0;
   }
   out.minX = minX;
