@@ -30,6 +30,15 @@ import { PI, sqrt } from './math.js';
  * game good will differ, and moving them is expected — but they start
  * somewhere defensible and every derived figure can be sanity-checked against
  * a real ship or gun.
+ *
+ * Note what they are, though: a *law* here is the functional form, while a
+ * constant is a choice of material or technology. `HULL_DENSITY` is steel and
+ * `CHARGE_ENERGY_PER_BORE_VOLUME` is a chemical propellant, neither of which
+ * is a fact about the universe. Better materials belong to a module rather
+ * than to this file, and a genuinely different technology — a railgun, whose
+ * energy comes from a power supply and not a charge — is a new archetype
+ * rather than a new number. DESIGN.md §12 records how that separation works
+ * when it is made.
  */
 
 /**
