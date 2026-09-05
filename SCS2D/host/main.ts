@@ -1,6 +1,7 @@
 import { capture, math, Snapshot } from '../sim/index.js';
 import { duel, type Duel } from '../scenarios/duel.js';
-import { draw, frame, gridStep, type Camera } from '../render/canvas2d.js';
+import { draw } from '../render/canvas2d.js';
+import { frame, gridStep, type Camera } from '../render/camera.js';
 
 /**
  * The browser host: owns the clock, the canvas and the controls, and nothing else.
@@ -48,6 +49,10 @@ export function start(): void {
   let accumulator = 0;
   let last = 0;
   let framed = false;
+  // Simulated time at the last frame, so the camera knows how far the ships
+  // have travelled since it last looked — which is not how much wall time
+  // passed, once the speed control is off 1x.
+  let lastSimTime = 0;
 
   const resize = (): void => {
     const ratio = window.devicePixelRatio || 1;
@@ -148,13 +153,17 @@ export function start(): void {
     }
 
     const view = capture(snapshot, state.world, state.ships, state.projectiles, state.wells);
+    // Negative when the battle has just been reset, which is not elapsed time.
+    const simDt = view.time > lastSimTime ? view.time - lastSimTime : 0;
+    lastSimTime = view.time;
+
     if (autoFrame) {
       if (!framed) {
         // Snap to the opening positions rather than easing in from nowhere.
-        frame(camera, view, canvas.width, canvas.height, 1);
+        frame(camera, view, canvas.width, canvas.height, 0, 1);
         framed = true;
       }
-      frame(camera, view, canvas.width, canvas.height);
+      frame(camera, view, canvas.width, canvas.height, simDt);
     }
     draw(ctx, view, camera, canvas.width, canvas.height);
 
