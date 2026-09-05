@@ -85,6 +85,15 @@ export function duel(seed = 20260905): Duel {
     vy: 90,
     team: 0,
   });
+   const c = ships.spawn(world, {
+    design: corvette,
+    x: -1800,
+    y: -140,
+    angle: math.HALF_PI/2,
+    vx: 0,
+    vy: 90,
+    team: 0,
+  });
   const b = ships.spawn(world, {
     design: gunship,
     x: 1800,
@@ -99,7 +108,10 @@ export function duel(seed = 20260905): Duel {
   // rather hold it off. Neither gets what it wants, which is the interesting
   // part.
   ships.setOrder(a, b, 300, 500, 120);
+  ships.setOrder(c, b, 300, 500, 120);
+
   ships.setOrder(b, a, 900, 1200, 60);
+  ships.setOrder(b, c, 900, 1200, 60);
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);
