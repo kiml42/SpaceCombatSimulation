@@ -87,8 +87,8 @@ export function duel(seed = 20260905): Duel {
   });
    const c = ships.spawn(world, {
     design: corvette,
-    x: -1800,
-    y: -140,
+    x: 2000,
+    y: -740,
     angle: math.HALF_PI/2,
     vx: 0,
     vy: 90,
