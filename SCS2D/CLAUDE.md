@@ -63,6 +63,7 @@ Keep these working — they are the cold-start re-entry path:
 - `npm run typecheck` — all three TS projects (`sim/` has no ambient types, `render/`+`host/` have the DOM)
 - `npm run golden` — re-derive golden checksums after a *deliberate* behaviour change
 - `npm run build` — bundle the viewer to `dist/index.html`, one file with nothing external
+- `npm run dev` — the same build on every save, for tinkering; refresh the page to see it
 - `npm run test:browser` — drive that bundle in Chromium; needs `npx playwright install chromium` first
 
 ## Testing
