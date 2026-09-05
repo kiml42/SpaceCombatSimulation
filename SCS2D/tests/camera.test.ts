@@ -20,6 +20,7 @@ function ship(x: number, y: number, vx = 0, vy = 0): ShipView {
     team: 0,
     x,
     y,
+    angle: 0,
     vx,
     vy,
     turretBearings: [],
