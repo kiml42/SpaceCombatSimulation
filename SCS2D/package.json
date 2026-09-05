@@ -10,7 +10,8 @@
     "test:browser": "vitest run --config vitest.browser.config.ts",
     "typecheck": "tsc -p sim && tsc -p . && tsc -p tsconfig.web.json",
     "golden": "tsx scripts/golden.ts",
-    "build": "tsx scripts/build.ts"
+    "build": "tsx scripts/build.ts",
+    "dev": "tsx scripts/build.ts --watch"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
