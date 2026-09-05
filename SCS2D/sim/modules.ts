@@ -37,7 +37,7 @@ import { PI, sqrt } from './math.js';
  * is a fact about the universe. Better materials belong to a module rather
  * than to this file, and a genuinely different technology — a railgun, whose
  * energy comes from a power supply and not a charge — is a new archetype
- * rather than a new number. DESIGN.md §12 records how that separation works
+ * rather than a new number. ROADMAP.md §12 records how that separation works
  * when it is made.
  */
 

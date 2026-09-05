@@ -7,9 +7,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **[DESIGN.md](DESIGN.md) is authoritative** for what this game is, how it works and why. This file covers
 only how to *work* in the codebase. If the two disagree, DESIGN.md wins — and fix this file.
 
+The design is three documents, split by why you would read them. Section numbers are global and stable across
+all three, so "§12" means the same section wherever it is written:
+
+| File | Holds | Read it when |
+| --- | --- | --- |
+| **[DESIGN.md](DESIGN.md)** | Status, §§1–7 and 9–11 | Deciding how something should behave |
+| **[ROADMAP.md](ROADMAP.md)** | §8 build order, §12 open questions | Picking up work, or deferring a decision |
+| **[DECISIONS.md](DECISIONS.md)** | The Decision Log | Asking why something ended up the way it is |
+
 Before proposing a change that reverses a design decision, check **DESIGN.md §11 Rejected alternatives**.
 Those were settled deliberately with reasons recorded. Reopen one only with new information, and if it is
-reopened, update §11 and the Decision Log.
+reopened, update §11 and add an entry to [DECISIONS.md](DECISIONS.md).
 
 ## Where things stand
 
@@ -75,7 +84,7 @@ failures worth avoiding.
   why it exists *in general*, not why it was built at a particular point in the project. "Present in the
   foundation for two reasons…", "not needed yet", "at this stage" are stale the moment the next thing lands,
   and a comment that has quietly expired is worse than no comment. Stage and sequencing information belongs
-  in DESIGN.md, which has a Status block and a Decision Log for exactly that purpose. Write as though the
+  in DESIGN.md's Status block, ROADMAP.md and DECISIONS.md, which exist for exactly that purpose. Write as though the
   reader has no idea which parts were built first — because in six months, neither will you.
 
   **Temporary code is the exception, and saying so is the most useful thing a comment can do there.** "A

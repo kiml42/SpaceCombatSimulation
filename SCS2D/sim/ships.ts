@@ -385,7 +385,7 @@ export class Ships {
    * and points the bow at whatever it is fighting. That is enough to make two
    * ships fight and to drive every number a blueprint derives.
    *
-   * **A stop-gap until doctrine and orders (DESIGN.md §8 step 3), which
+   * **A stop-gap until doctrine and orders (ROADMAP.md §8 step 3), which
    * replace it.** There is no evasion here, no approach angle, no propellant
    * budget and no formation keeping — all of which are per-craft configuration
    * (§2) rather than anything a pilot should decide for itself. What survives
