@@ -62,8 +62,15 @@ Keep these working — they are the cold-start re-entry path:
 - `npm run typecheck` — all three TS projects (`sim/` has no ambient types, `render/`+`host/` have the DOM)
 - `npm run golden` — re-derive golden checksums after a *deliberate* behaviour change
 - `npm run build` — bundle the viewer to `dist/index.html`, one file with nothing external
+- `npm run test:browser` — drive that bundle in Chromium; needs `npx playwright install chromium` first
 
 ## Testing
+
+**Two suites, deliberately.** `npm test` must run from a cold checkout with nothing but `npm ci`, so it
+never needs a browser; the browser tests live in `tests/browser/` and run separately. They check what types
+and unit tests cannot — that the page loads without throwing, that the renderer puts pixels on the canvas,
+and that the controls do what they say — and deliberately *not* that the simulation is right, which the
+golden checksums already cover through the same `scenarios/duel.ts` the viewer runs.
 
 **Golden battle tests are load-bearing.** Fixed scenarios with bit-exact pinned outcomes are the only thing
 that tells you the simulation is intact after time away. Add one whenever simulation behaviour changes
