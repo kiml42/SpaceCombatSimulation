@@ -31,9 +31,11 @@ inside any one file is not contiguous.
   with their scaling laws, blueprint compilation — mass properties, thruster layout
   and firing arcs all derived from a layout, with two ships authored to it — and ships
   built from those blueprints fighting: flying their layouts to hold an ordered range
-  band, training their turrets with lead, and firing salvoes that recoil.
-- **Next:** the Canvas2D debug viewer, which completes Slice 0 — the first point at which
-  the thing can be watched rather than only checksummed.
+  band, training their turrets with lead, and firing salvoes that recoil. A Canvas2D
+  viewer draws snapshots of all of it, with pause, single-step and time scaling, and
+  builds to one self-contained HTML file.
+- **Next:** Slice 0 is complete. §8 step 1, the blueprint editor, is what follows: ships stop
+  being hard-coded and a layout becomes something a player draws.
 - **Blocked on:** nothing.
 - **Owed:** nothing outstanding. The `duel` golden scenario discharges the coverage that was owed
   for thruster allocation and turrets: it drives both through the same loop the game uses, so a

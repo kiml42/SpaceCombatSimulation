@@ -50,17 +50,18 @@ amendment.
 
 ```
 sim/        pure TS simulation (see non-negotiables 1–4)
-render/     WebGL renderer; consumes snapshots, knows no game rules
+render/     the view; consumes snapshots, knows no game rules
 ui/         React; UI state only
-host/       worker and window lifecycle
+host/       window lifecycle, the wall clock, and the controls
 scenarios/  data files
 ```
 
 Keep these working — they are the cold-start re-entry path:
 
 - `npm test` — unit tests, determinism tests and the golden scenario checksums
-- `npm run typecheck` — both TS projects (`sim/` is checked with no ambient types)
+- `npm run typecheck` — all three TS projects (`sim/` has no ambient types, `render/`+`host/` have the DOM)
 - `npm run golden` — re-derive golden checksums after a *deliberate* behaviour change
+- `npm run build` — bundle the viewer to `dist/index.html`, one file with nothing external
 
 ## Testing
 

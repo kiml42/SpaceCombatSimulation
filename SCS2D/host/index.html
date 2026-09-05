@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Space Combat Simulation — Slice 0</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        background: #0b0f16;
+        color: #c8d3e0;
+        font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        display: flex;
+        flex-direction: column;
+      }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+        padding: 0.6rem 0.9rem;
+        border-bottom: 1px solid #1c2533;
+      }
+      h1 { font-size: 13px; font-weight: 600; margin: 0 0.5rem 0 0; color: #e6edf5; }
+      button, input[type='range'] { font: inherit; }
+      button {
+        background: #1a2434;
+        color: #dbe6f2;
+        border: 1px solid #2b3a50;
+        border-radius: 4px;
+        padding: 0.25rem 0.7rem;
+        cursor: pointer;
+      }
+      button:hover { background: #22304400; background-color: #223044; }
+      label { display: flex; align-items: center; gap: 0.4rem; color: #8fa2b8; }
+      input[type='range'] { width: 130px; }
+      #readout { margin-left: auto; color: #7f93aa; }
+      #view { flex: 1; width: 100%; display: block; }
+      footer { padding: 0.4rem 0.9rem; color: #5d6f85; border-top: 1px solid #1c2533; }
+      @media (max-width: 720px) { #readout { margin-left: 0; width: 100%; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Slice 0 — corvette vs gunship</h1>
+      <button id="play">Pause</button>
+      <button id="step">Step</button>
+      <button id="reset">Reset</button>
+      <label>speed <input id="speed" type="range" min="0.25" max="8" step="0.25" value="1" /><span id="speedLabel">1x</span></label>
+      <span id="readout"></span>
+    </header>
+    <canvas id="view"></canvas>
+    <footer>Space to pause, full stop to single-step. Blue is the corvette, red the gunship; a barrel goes amber when it is on target and clear to fire.</footer>
+  </body>
+</html>

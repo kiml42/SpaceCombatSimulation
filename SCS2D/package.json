@@ -7,8 +7,9 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc -p sim && tsc -p .",
-    "golden": "tsx scripts/golden.ts"
+    "typecheck": "tsc -p sim && tsc -p . && tsc -p tsconfig.web.json",
+    "golden": "tsx scripts/golden.ts",
+    "build": "tsx scripts/build.ts"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",

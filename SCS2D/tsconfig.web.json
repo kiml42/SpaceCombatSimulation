@@ -1,0 +1,12 @@
+{
+  // The browser half: renderer and host, which may use the DOM. The simulation
+  // may not — see sim/tsconfig.json, which is what actually enforces that.
+  // Kept a separate project so that adding DOM here can never widen what is
+  // visible inside sim/.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "types": []
+  },
+  "include": ["render", "host"]
+}
