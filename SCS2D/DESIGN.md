@@ -17,19 +17,17 @@ re-litigated after a gap — most entries therefore record *why*, not just *what
   integrator, gravity wells, state checksums, a uniform-grid spatial index with segment
   and circle queries, swept-segment projectiles with impact reporting, per-blueprint
   thruster allocation, kinematic turrets with lead and traverse arcs, parametric modules
-  with their scaling laws, and blueprint compilation — mass properties, thruster layout
-  and firing arcs all derived from a layout, with two ships authored to it.
-- **Next:** ships built from those blueprints actually fighting — flying their thruster
-  layouts, tracking with their turrets and firing their guns — then the Canvas2D debug
-  viewer, which completes Slice 0.
+  with their scaling laws, blueprint compilation — mass properties, thruster layout
+  and firing arcs all derived from a layout, with two ships authored to it — and ships
+  built from those blueprints fighting: flying their layouts to hold an ordered range
+  band, training their turrets with lead, and firing salvoes that recoil.
+- **Next:** the Canvas2D debug viewer, which completes Slice 0 — the first point at which
+  the thing can be watched rather than only checksummed.
 - **Blocked on:** nothing.
-- **Owed:** golden scenarios for thruster allocation and for turrets. §9 asks for one alongside each
-  new subsystem; the three that exist cover bodies, gravity and projectiles only, so neither of the
-  last two subsystems is pinned against unintended change. The natural home is a scenario with a ship
-  that actually uses thrusters and turrets together, which is the next thing to be built — but it is
-  a debt until then, not a decision to skip them. Blueprint compilation is not owed one: it is pure
-  derivation with no state to drift, and is pinned by unit tests against independently worked
-  values.
+- **Owed:** nothing outstanding. The `duel` golden scenario discharges the coverage that was owed
+  for thruster allocation and turrets: it drives both through the same loop the game uses, so a
+  change in either moves its checksum. Blueprint compilation is not owed one — it is pure derivation
+  with no state to drift, and is pinned by unit tests against independently worked values.
 - **Measured:** integration costs ~0.19 microseconds per body-step. Ray queries
   against 140 bodies at 2,000 casts per step cost 0.16 ms through the grid versus
   0.79 ms brute-force — 5x, and about 1% of a 16,667 microsecond frame budget at
@@ -808,6 +806,7 @@ Deliberately unresolved; decide when they block something.
 
 | Date | Change |
 | --- | --- |
+| 2026-09-05 | Ships built and fighting, which closes Slice 0's simulation half. Four things worth keeping. A ship's wrench is decided before the world advances but **applied from a force provider**, because `World` clears forces at every evaluation and evaluates twice on a primed step — so the provider replays a stored value and is idempotent by construction, and `Turrets.step` grew an optional buffer to collect its hull reaction the same way rather than writing into forces about to be cleared. **A salvo recoils once, not once per gun**: `fireFrom` gives a round the hull's velocity, so applying each gun's recoil as it fires lets the later rounds inherit a hull the earlier ones already pushed, and the broadside gains momentum invented by the firing order — caught by a test, which also pinned what *is* exact, since a round's mass comes from a magazine outside the mass budget (§12 ammunition). The pilot's range-band law had to **taper its closing speed** rather than run at full approach speed to the edge of the band, which produced a limit cycle across it instead of a settled station. And the turret braking law moved to `math.brakingRate`, since a pilot holding a heading is the same problem at hull scale; the turret suite passing unchanged is what says the extraction was behaviour-neutral. |
 | 2026-09-05 | Four things recorded in §12 rather than built. **Turret arcs**: traverse limit and firing permission are different quantities — a gun can sweep past superstructure it must not shoot through — so firing permission is a *set* of bearing intervals, not a half-width, and `firingArc`'s `min` over obstructions is pessimistic twice over. **Authored data**: blueprints and fixtures move to files with the blueprint editor, because the editor's save format is the file format; the move needs a validator and a loader outside `sim/`, and costs the prose that explains each layout's trade. **Materials**: the scaling laws' *form* is a law but their *coefficients* are steel and a chemical propellant, so coefficients belong to a per-module material, while a genuinely different technology (a railgun) is a new archetype rather than a new material — with the caveat that materials must be priced or evolution simply takes the best one. **Connectivity**: §4 requires a graph per hull but a blueprint expresses none, so it should be *derived* from which module boundaries touch — as a graph rather than a tree, with per-edge strength, recomputed only on a sever — and the abutment tolerance is a game parameter rather than an implementation detail. That one also exposed that `blueprintProblem` never requires a layout to be connected at all. |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
 | 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |

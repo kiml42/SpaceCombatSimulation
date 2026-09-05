@@ -1,5 +1,16 @@
 import type { Bodies } from './bodies.js';
-import { abs, angleDelta, atan2, clamp, cos, normalizeAngle, PI, sin, sqrt } from './math.js';
+import {
+  abs,
+  angleDelta,
+  atan2,
+  brakingRate,
+  clamp,
+  cos,
+  normalizeAngle,
+  PI,
+  sin,
+  sqrt,
+} from './math.js';
 
 /**
  * Turrets: mounts that slew to a bearing and report when they are on target.
@@ -384,7 +395,7 @@ export class Turrets {
    * feed-forward term holds a moving target; the braking term corrects error;
    * neither needs a gain.
    */
-  step(dt: number, bodies: Bodies): void {
+  step(dt: number, bodies: Bodies, reaction?: Float64Array): void {
     for (let i = 0; i < this.highWater; i++) {
       if (this.alive[i] === 0) continue;
 
@@ -395,28 +406,12 @@ export class Turrets {
       const tolerance = ON_TARGET_FLOOR;
       this.tolerance[i] = tolerance;
 
-      // Correction rate. Two things have to hold at once, and getting either
-      // alone is easy while getting both took three attempts.
-      //
-      // No overshoot: the rate must be one the turret can still brake out of
-      // within the remaining error, in *discrete* steps of `a·dt`. The
-      // continuous answer `sqrt(2·a·|e|)` is slightly too fast for that; the
-      // discrete one is `sqrt(2·a·|e| + (a·dt/2)²) − a·dt/2`.
-      //
-      // No dead band: that expression is exactly zero at zero error and
-      // strictly positive everywhere else, so every error gets corrected however
-      // small. Subtracting `a·dt/2` from the continuous rate instead — the
-      // obvious fix — stops correcting below `a·dt²/8`, which leaves a brisk
-      // mount parked short of its target and unable to close the standing error
-      // that tracking leaves behind.
-      //
-      // The landing cap `|e|/dt` then stops a single step stepping past the
-      // target when the error is smaller than one step of travel.
-      const magnitude = abs(error);
-      const half = 0.5 * accel * dt;
-      const braking = sqrt(2 * accel * magnitude + half * half) - half;
-      const landing = dt > 0 ? magnitude / dt : 0;
-      const correction = braking < landing ? braking : landing;
+      // Correction rate: the fastest slew this turret can still brake out of
+      // within the remaining error, with no overshoot and no dead band. Both
+      // properties at once took three attempts and the discrete form is what
+      // has them — `brakingRate` in math.ts carries the derivation, and a
+      // pilot holding a heading uses the same law.
+      const correction = brakingRate(error, accel, dt);
       const desired = clamp(
         this.commandedRate[i]! + (error >= 0 ? correction : -correction),
         -rateLimit,
@@ -440,7 +435,15 @@ export class Turrets {
       if (inertia > 0 && dt > 0) {
         const angularAccel = (next - previousRate) / dt;
         if (angularAccel !== 0) {
-          bodies.torque[this.owner[i]!] -= inertia * angularAccel;
+          const owner = this.owner[i]!;
+          const torque = -inertia * angularAccel;
+          // Into the caller's buffer when there is one. A ship decides its
+          // wrench before the world advances, and the world clears forces at
+          // every evaluation — so a reaction written into `bodies.torque` here
+          // would be erased before it did anything. Collecting it lets the
+          // caller replay it from a force provider instead.
+          if (reaction !== undefined) reaction[owner] = reaction[owner]! + torque;
+          else bodies.torque[owner] += torque;
         }
       }
     }

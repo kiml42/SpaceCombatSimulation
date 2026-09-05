@@ -1,13 +1,17 @@
 import {
   checksumProjectiles,
   checksumWorld,
+  compileBlueprint,
   gravityWell,
+  math,
   ProjectileHits,
   Projectiles,
+  Ships,
   SpatialGrid,
   World,
   type WellSpec,
 } from '../../sim/index.js';
+import { CORVETTE, GUNSHIP } from '../../scenarios/blueprints.js';
 
 /**
  * Scenarios shared by the determinism tests, the integrator tests and the
@@ -234,6 +238,94 @@ export function gunneryScenario(seed = 777): GunneryRun {
   return run;
 }
 
+// ---- duel ----
+
+export interface DuelRun extends ScenarioRun {
+  readonly world: World;
+  readonly ships: Ships;
+  readonly projectiles: Projectiles;
+  /** Cumulative, so a duel that stops shooting or stops hitting is detectable. */
+  totalFired: number;
+  totalHits: number;
+}
+
+/**
+ * A corvette and a gunship closing on each other and opening fire.
+ *
+ * This is what pins thruster allocation and turrets together. Unit tests check
+ * a subsystem in isolation and so cannot catch two of them drifting apart; a
+ * duel drives every number a blueprint derives — mass and inertia, the thruster
+ * matrix, traverse rates, firing arcs, gun ballistics — through the same loop
+ * the game uses, so its checksum moves if any of them does.
+ *
+ * Two different designs on purpose. A duel between identical ships is
+ * symmetric, and a symmetric scenario hides any error that is also symmetric.
+ */
+export function duelScenario(seed = 20260905): DuelRun {
+  const dt = 1 / 60;
+  const world = new World({ dt, seed });
+  const ships = new Ships();
+  world.addForceProvider(ships.forceProvider());
+
+  const corvette = compileBlueprint(CORVETTE);
+  const gunship = compileBlueprint(GUNSHIP);
+
+  // Offset across the line of approach as well as along it, so neither ship
+  // starts with its bow gun already bearing and both have to manoeuvre.
+  const a = ships.spawn(world, { design: corvette, x: -1800, y: -240, team: 0 });
+  const b = ships.spawn(world, {
+    design: gunship,
+    x: 1800,
+    y: 240,
+    angle: math.PI,
+    team: 1,
+  });
+
+  // The corvette wants to be inside the gunship's reach; the gunship would
+  // rather hold it off. Neither gets what it wants, which is the interesting
+  // part.
+  ships.setOrder(a, b, 300, 500, 120);
+  ships.setOrder(b, a, 900, 1200, 60);
+
+  const grid = new SpatialGrid(64);
+  const projectiles = new Projectiles(512);
+  const hits = new ProjectileHits();
+
+  const run: DuelRun = {
+    world,
+    ships,
+    projectiles,
+    totalFired: 0,
+    totalHits: 0,
+
+    step(): void {
+      ships.command(dt, world);
+      world.step();
+      grid.rebuild(world.bodies);
+      run.totalFired += ships.fire(world, projectiles);
+      projectiles.step(dt, world.bodies, grid, hits);
+      run.totalHits += hits.count;
+      // Stands in for terminal ballistics, as in `gunnery`: every round
+      // penetrates and is absorbed. Impacts have to be resolved or the rounds
+      // stay parked at the point of contact for ever.
+      for (let i = 0; i < hits.count; i++) projectiles.kill(hits.projectile[i]!);
+    },
+
+    checksum(): number {
+      return checksumProjectiles(projectiles, checksumWorld(world));
+    },
+
+    describe(): string {
+      return (
+        `ships=${ships.count} inFlight=${projectiles.count} ` +
+        `fired=${run.totalFired} hits=${run.totalHits}`
+      );
+    },
+  };
+
+  return run;
+}
+
 // ---- registry ----
 
 function worldScenario(build: () => World, steps: number): Scenario {
@@ -254,6 +346,7 @@ export const SCENARIOS = {
   orbit: worldScenario(() => orbitScenario(), 20_000),
   tumble: worldScenario(() => tumbleScenario(), 5_000),
   gunnery: { steps: 3_000, build: () => gunneryScenario() },
+  duel: { steps: 3_000, build: () => duelScenario() },
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;
