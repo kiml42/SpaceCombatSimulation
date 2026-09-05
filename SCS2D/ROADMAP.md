@@ -283,13 +283,25 @@ Deliberately unresolved; decide when they block something.
   attached, which is precisely the shape of exploit `modules.ts` warns about: the search will find it, and
   every evolved ship will end up with its engines pointing into itself because that packs a layout tighter
   for free.
-  Three ways to price it, in rising order of honesty. **Reject the layout** at compile time, as a blocked
-  firing arc already does — cheapest, and consistent with arcs being derived rather than authored, but it
-  makes a continuous quantity a hard edge that a mutation cannot cross. **Scale the thrust down** by how much
-  of the exhaust is blocked — continuous, so the search feels a gradient instead of a wall. **Model
-  impingement properly**, as force and heat on whatever is in the way, which is the only version that makes a
-  plume something a designer can aim deliberately. The middle one is probably right, and this is worth
-  settling before evolution runs rather than after it has exploited the gap.
+  **Settled in direction, open in timing:** a blocked nozzle will lose thrust in proportion to how much of
+  its exhaust is obstructed, *and* deliver damage and heat to whatever is in the way. Not rejecting the
+  layout outright, which would turn a continuous quantity into a hard edge a mutation cannot cross, and the
+  search wants a gradient. Doing both means a plume becomes something a designer can point deliberately —
+  and something an attacker can exploit — rather than merely a thing to avoid.
+  The deadline is §7's evolution rather than any particular slice: until then a buried nozzle is a drawing
+  error, and afterwards it is an exploit the search will find and build every ship around.
+- **A dead zone on the pilot's attitude hold.** A ship parked on its target bearing still twitches its
+  thrusters continually, correcting an alignment error of almost nothing. Today that is only cosmetic — the
+  ships have no fuel to waste — but it is the same behaviour that will empty a propellant tank while
+  station-keeping, and §2 makes scarcity one of the things that gives manoeuvre doctrine its teeth. The fix
+  is a dead zone taken over *both* orientation error and angular rate, since either alone lets a ship drift
+  slowly off and then correct hard, which costs more than holding.
+  Worth flagging the tension it creates, because the two look contradictory read side by side. §4 records
+  that the *turret* slew law deliberately has **no** dead band, and that the obvious way of adding one leaves
+  a brisk mount parked short of where it was asked to point. That reasoning still stands: a turret is a small
+  mass on a mount and pays nothing to hold a bearing, so it should hold it exactly. A hull burns propellant
+  to do the same thing, so it should not. The rule is that a dead zone belongs wherever holding position
+  costs something, and nowhere else.
 - **Whether a downed craft's wreck falls onto the deck it was attacking.** Physically it should, and debris
   raining on a capital is evocative; it may also be an irritation. Cheap either way, so leave it until
   there is something to watch.

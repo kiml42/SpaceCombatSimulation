@@ -51,6 +51,7 @@ amendment.
 ```
 sim/        pure TS simulation (see non-negotiables 1–4)
 render/     the view; consumes snapshots, knows no game rules
+            (camera.ts is DOM-free arithmetic, so it is unit-tested)
 ui/         React; UI state only
 host/       window lifecycle, the wall clock, and the controls
 scenarios/  data files
