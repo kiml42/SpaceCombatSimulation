@@ -16,6 +16,32 @@ inside any one file is not contiguous.
 | **[ROADMAP.md](ROADMAP.md)** | §8 build order, §12 open questions | Picking up work, or deferring a decision |
 | **[DECISIONS.md](DECISIONS.md)** | The Decision Log | Asking why something ended up the way it is |
 
+## How this document is maintained
+
+**Nothing here is ever ticked off.** No "done" markers, no strikethrough, no ✅. Status records what exists,
+and a second progress record in this file would be the one that goes stale — nobody re-reads a roadmap after
+a merge. An entry is either still doing work here or it is gone.
+
+The two sections leave by opposite rules, because they are opposite kinds of thing.
+
+**§8 is an ordering argument, not a task list.** Almost every step justifies its position by reference to the
+ones before it — armour properties only exist once modules are parametric, the campaign comes last because it
+is mostly authoring. Delete a completed step and the next step's reasoning dangles from a premise that is no
+longer written down. So a step stays while it still explains something about work *not yet done*, whether or
+not it is finished. It leaves only once that reasoning has been fully cashed: when nothing remaining depends
+on knowing why it came where it did. If the argument has lasting value beyond the sequencing — a statement
+about how this project is approached rather than about what to build next — move it to DESIGN.md §1 or §9
+rather than deleting it. Otherwise DECISIONS.md already has the record.
+
+**§12 empties on answer, and this one is strict.** An answered question is a decision. Leaving it here does
+not merely clutter, it misinforms: anything in §12 reads as still open, so a settled question left in place
+invites it to be re-litigated — which is the exact failure these documents exist to prevent. Remove it and
+put the answer in DECISIONS.md, in the same change that settles it.
+
+The division across the three files, then, is: **what is not done and not settled** here, **what exists** in
+Status, **what happened and why** in DECISIONS.md. Nothing about the past needs to live in this file once its
+reasoning is spent.
+
 ---
 
 ## 8. Build order
