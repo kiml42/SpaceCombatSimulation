@@ -236,6 +236,30 @@ describe('the authored blueprints', () => {
     });
   }
 
+  it('lists thrusters and turrets in the order their modules appear', () => {
+    // Anything holding per-thruster or per-turret state alongside a design —
+    // throttles, gun timers, a renderer drawing exhaust — indexes these arrays
+    // and walks the modules. If the two orders ever diverged, a ship would
+    // show one engine's flame on another engine's mount, and the pilot would
+    // steer with the wrong thruster.
+    for (const blueprint of [BLUEPRINTS.corvette, BLUEPRINTS.gunship]) {
+      const design = compileBlueprint(blueprint);
+
+      const thrusterModules = design.modules.filter((m) => m.spec.kind === 'thruster');
+      expect(thrusterModules.length).toBe(design.thrusters.length);
+      for (let i = 0; i < design.thrusters.length; i++) {
+        expect(design.thrusters[i]!.x).toBe(thrusterModules[i]!.x);
+        expect(design.thrusters[i]!.y).toBe(thrusterModules[i]!.y);
+      }
+
+      const turretModules = design.modules.filter((m) => m.spec.kind === 'turret');
+      expect(turretModules.length).toBe(design.turrets.length);
+      for (let i = 0; i < design.turrets.length; i++) {
+        expect(design.modules[design.turrets[i]!.module]).toBe(turretModules[i]);
+      }
+    }
+  });
+
   it('makes the corvette the nimbler of the two and the gunship the harder hitter', () => {
     const corvette = compileBlueprint(BLUEPRINTS.corvette);
     const gunship = compileBlueprint(BLUEPRINTS.gunship);

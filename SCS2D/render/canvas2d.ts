@@ -27,6 +27,21 @@ const BACKGROUND = '#0b0f16';
 const GRID = '#161d29';
 const TRACER = '#ffe6a8';
 const WELL = '#3a4e7a';
+const PLUME = '#ffd9a0';
+const PLUME_CORE = '#fff4e0';
+
+/**
+ * Newtons of thrust per square metre of drawn plume.
+ *
+ * The plume is a triangle as wide as the engine's exit, stretching with
+ * throttle — so its *area* is proportional to the force being produced, which
+ * is the quantity worth reading off a picture. It falls out of that: a
+ * thruster's thrust scales with its exit area, so thrust per unit width is the
+ * same for every engine, and every engine therefore reaches the same plume
+ * length at full throttle. That is what it should look like — they share an
+ * exhaust velocity, and a bigger engine is a wider flame, not a longer one.
+ */
+const PLUME_THRUST_PER_AREA = 1.5e4;
 
 /** Roughly how far apart grid lines should sit on screen, pixels. */
 const TARGET_GRID_PX = 90;
@@ -117,7 +132,10 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   ctx.translate(ship.x, ship.y);
   ctx.rotate(ship.angle);
 
-  // Module boxes, in the body frame the design already put them in.
+  // Module boxes, in the body frame the design already put them in. Thrusters
+  // are counted as they are met, because a design lists its thrusters in the
+  // order its modules appear.
+  let thruster = 0;
   for (let i = 0; i < design.modules.length; i++) {
     const m = design.modules[i]!;
     const spec = m.spec;
@@ -127,12 +145,34 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     ctx.fillStyle = spec.kind === 'structure' ? colours.hull : colours.trim;
     ctx.fillRect(-spec.length / 2, -spec.width / 2, spec.length, spec.width);
     if (spec.kind === 'thruster') {
-      // A short spur the other way, so which way a thruster pushes is visible
-      // without having to know the convention.
-      ctx.fillStyle = colours.trim;
-      ctx.globalAlpha = 0.35;
-      ctx.fillRect(-spec.length / 2 - spec.length * 0.4, -spec.width / 4, spec.length * 0.4, spec.width / 2);
-      ctx.globalAlpha = 1;
+      // Exhaust leaves the way the thruster does not push, so the plume is
+      // drawn along -x in the module's own frame.
+      const throttle = ship.throttles[thruster] ?? 0;
+      const force = throttle * (design.thrusters[thruster]?.maxThrust ?? 0);
+      thruster++;
+      if (force > 0) {
+        const root = -spec.length / 2;
+        const reach = force / (spec.width * PLUME_THRUST_PER_AREA);
+        ctx.fillStyle = PLUME;
+        ctx.globalAlpha = 0.55;
+        ctx.beginPath();
+        ctx.moveTo(root, -spec.width / 2);
+        ctx.lineTo(root, spec.width / 2);
+        ctx.lineTo(root - reach, 0);
+        ctx.closePath();
+        ctx.fill();
+        // A brighter core, a third the width, so a hard burn reads as hotter
+        // rather than merely longer.
+        ctx.fillStyle = PLUME_CORE;
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(root, -spec.width / 6);
+        ctx.lineTo(root, spec.width / 6);
+        ctx.lineTo(root - reach * 0.55, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
     }
     ctx.restore();
   }
