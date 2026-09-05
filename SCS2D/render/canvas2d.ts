@@ -59,9 +59,21 @@ const GRID = '#161d29';
 const TRACER = '#ffe6a8';
 const WELL = '#3a4e7a';
 
-/** The traverse sector: a pale wash with a slightly firmer edge to define it. */
-const SWEEP = 'rgba(196, 210, 232, 0.13)';
-const SWEEP_EDGE = 'rgba(196, 210, 232, 0.3)';
+/** The firing arc: a pale wash with a slightly firmer edge to define it. */
+const SWEEP = 'rgba(196, 210, 232, 0.1)';
+const SWEEP_EDGE = 'rgba(196, 210, 232, 0.26)';
+
+/**
+ * How far the arc indicator reaches, as a multiple of the barrel's length.
+ *
+ * The quantity being shown is an *angle* — where the gun may shoot — and the
+ * radius is only there to make that angle readable. Drawn at the barrel's own
+ * length the wedge is too small to judge, and reads as the volume the barrel
+ * sweeps rather than the sky it covers. Three times is enough to see the span
+ * at a glance while staying well short of the gun's actual reach, which is
+ * measured in kilometres and would swallow the battle.
+ */
+const ARC_RADIUS_SCALE = 3;
 
 /** A barrel that is not clear to fire. Dark, because it sits on the pale sweep. */
 const BARREL = '#131c28';
@@ -120,26 +132,26 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     const half = mount.arc ?? PI;
     const rest = ship.angle + (mount.restBearing ?? 0);
 
-    // The sector the barrel can sweep, at the radius it sweeps it — so a mount
-    // fouled by its own ship shows a narrow wedge, and one with clear sky shows
-    // a full disc. This is the layout's cost made visible: DESIGN.md §3 has
-    // arcs derived from where a gun was put rather than authored, and this is
-    // what that decision bought or cost, per mount.
+    // Where the gun may shoot: a mount fouled by its own ship shows a narrow
+    // wedge, one with clear sky a full disc. This is the layout's cost made
+    // visible — DESIGN.md §3 has arcs derived from where a gun was put rather
+    // than authored, and this is what that decision bought or cost, per mount.
     //
     // It is drawn symmetric about the rest bearing because the *model* is
     // symmetric, not because the ship is: an obstruction on one beam currently
     // costs the clear sector on the other too. ROADMAP.md §12 has the shape of
     // the fix, and this wedge is where it will show.
     if (reach > 0) {
+      const span = reach * ARC_RADIUS_SCALE;
       ctx.fillStyle = SWEEP;
       ctx.strokeStyle = SWEEP_EDGE;
       ctx.lineWidth = lineWidth * 0.8;
       ctx.beginPath();
       if (half >= PI) {
-        ctx.arc(mx, my, reach, 0, TAU);
+        ctx.arc(mx, my, span, 0, TAU);
       } else {
         ctx.moveTo(mx, my);
-        ctx.arc(mx, my, reach, rest - half, rest + half);
+        ctx.arc(mx, my, span, rest - half, rest + half);
         ctx.closePath();
       }
       ctx.fill();
