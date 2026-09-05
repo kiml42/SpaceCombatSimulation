@@ -1,11 +1,13 @@
 import {
   compileBlueprint,
+  gravityWell,
   math,
   ProjectileHits,
   Projectiles,
   Ships,
   SpatialGrid,
   World,
+  type WellSpec,
 } from '../sim/index.js';
 import { CORVETTE, GUNSHIP } from './blueprints.js';
 
@@ -23,6 +25,15 @@ import { CORVETTE, GUNSHIP } from './blueprints.js';
  * Two different designs on purpose. A duel between identical ships is
  * symmetric, and a symmetric scenario hides any error that is also symmetric.
  *
+ * The opening conditions are chosen to *exercise* things rather than to be
+ * tidy. Both ships start facing across the engagement rather than at each
+ * other, so each has to turn before it can shoot; both carry velocity that is
+ * mostly across the closing line, so holding a range band means cancelling it
+ * rather than flying straight down the bearing; and a gravity well sits off to
+ * one side, bending both the ships and their rounds. A head-on duel between
+ * two ships at rest in empty space exercises almost none of that, and flatters
+ * the gunnery besides — every shot hits when nothing is crossing.
+ *
  * Plain TypeScript, no DOM and no Node: it has to run in a browser, in a test
  * and in a worker alike.
  */
@@ -30,6 +41,8 @@ import { CORVETTE, GUNSHIP } from './blueprints.js';
 export interface Duel {
   readonly dt: number;
   readonly world: World;
+  /** Wells acting on the battle. Rounds curve through them as the ships do. */
+  readonly wells: readonly WellSpec[];
   readonly ships: Ships;
   readonly projectiles: Projectiles;
   readonly grid: SpatialGrid;
@@ -43,6 +56,15 @@ export interface Duel {
 export function duel(seed = 20260905): Duel {
   const dt = 1 / 60;
   const world = new World({ dt, seed });
+
+  // Off to one side rather than between the ships, so nothing passes close
+  // enough for the softening to matter and the pull stays a steady bias rather
+  // than a slingshot. At the ranges fought here it is about 1.1 m/s² — half
+  // the gunship's own acceleration, so it shapes every trajectory without ever
+  // leaving a ship unable to resist it.
+  const wells: WellSpec[] = [{ x: 0, y: -1500, gm: 2.5e6, softening: 200 }];
+  for (const well of wells) world.addForceProvider(gravityWell(well));
+
   const ships = new Ships();
   world.addForceProvider(ships.forceProvider());
 
@@ -51,12 +73,25 @@ export function duel(seed = 20260905): Duel {
 
   // Offset across the line of approach as well as along it, so neither ship
   // starts with its bow gun already bearing and both have to manoeuvre.
-  const a = ships.spawn(world, { design: corvette, x: -1800, y: -240, team: 0 });
+  // Facing across the engagement, not along it: both have to come round before
+  // a gun bears. Their velocity is mostly crossing too, so closing means
+  // killing that first — which is what a range band actually asks of a pilot.
+  const a = ships.spawn(world, {
+    design: corvette,
+    x: -1800,
+    y: -240,
+    angle: math.HALF_PI,
+    vx: 0,
+    vy: 90,
+    team: 0,
+  });
   const b = ships.spawn(world, {
     design: gunship,
     x: 1800,
     y: 240,
-    angle: math.PI,
+    angle: -math.HALF_PI,
+    vx: 0,
+    vy: -60,
     team: 1,
   });
 
@@ -73,6 +108,7 @@ export function duel(seed = 20260905): Duel {
   const run: Duel = {
     dt,
     world,
+    wells,
     ships,
     projectiles,
     grid,
@@ -85,7 +121,7 @@ export function duel(seed = 20260905): Duel {
       world.step();
       grid.rebuild(world.bodies);
       run.totalFired += ships.fire(world, projectiles);
-      projectiles.step(dt, world.bodies, grid, hits);
+      projectiles.step(dt, world.bodies, grid, hits, wells);
       run.totalHits += hits.count;
       // A stop-gap until terminal ballistics and the damage model (§8 step 2),
       // which decide what a hit does: every round penetrates and is absorbed.

@@ -259,6 +259,21 @@ Deliberately unresolved; decide when they block something.
   controller, its identity, its orders — which is the sibling of the existing question above about how severed
   chunks divide fuel, ammunition and power.
   Do it with the damage model (§8 step 2), the first thing that can sever anything.
+- **How time travel in the viewer works — and it needs no stored state.** Determinism pays for this one
+  outright: rewinding to any earlier step is *re-simulating* from the seed, not restoring a snapshot. At the
+  measured cost of roughly 15 µs per step, winding a 3,000-step battle back to its start is about 50 ms, which
+  is interactive, and a ten-minute battle is under a second. So a scrub bar wants no ring buffer of world
+  states, and nothing needs to be serialisable for time travel to work. Worth recording because the obvious
+  implementation — keep the last N states — is the one that shapes the architecture badly and would be hard to
+  undo. If re-simulation ever does become slow, occasional checkpoints are a later optimisation rather than a
+  starting design.
+  The real consequence is on the other half of the contract. Re-simulation reproduces a battle only if the
+  battle is a pure function of its seed and its opening conditions — which stops being true the moment a player
+  issues an order mid-fight. So **the command intake has to be recorded as a timestamped log**, and replay
+  means feeding those commands back at the steps they arrived. That is the "commands in" half of
+  non-negotiable 6 turning out to be load-bearing for something other than what it was written for, and it
+  is also exactly what a replay file needs (§8's async fleet-vs-fleet), so the two features want the same
+  mechanism built once.
 - **Whether a downed craft's wreck falls onto the deck it was attacking.** Physically it should, and debris
   raining on a capital is evocative; it may also be an irritation. Cheap either way, so leave it until
   there is something to watch.

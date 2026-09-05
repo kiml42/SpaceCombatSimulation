@@ -32,8 +32,9 @@ inside any one file is not contiguous.
   and firing arcs all derived from a layout, with two ships authored to it — and ships
   built from those blueprints fighting: flying their layouts to hold an ordered range
   band, training their turrets with lead, and firing salvoes that recoil. A Canvas2D
-  viewer draws snapshots of all of it, with pause, single-step and time scaling, and
-  builds to one self-contained HTML file.
+  viewer draws snapshots of all of it — ships, turret bearings, tracers and the wells
+  bending them — with pause, single-step, time scaling, and zoom and pan over an
+  auto-framing camera. It builds to one self-contained HTML file.
 - **Next:** Slice 0 is complete. §8 step 1, the blueprint editor, is what follows: ships stop
   being hard-coded and a layout becomes something a player draws.
 - **Blocked on:** nothing.

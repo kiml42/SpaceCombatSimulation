@@ -1,6 +1,6 @@
 import { math, type ShipView, type Snapshot } from '../sim/index.js';
 
-const { cos, sin, max, min } = math;
+const { cos, sin, max, min, sqrt, TAU } = math;
 
 /**
  * A Canvas2D view of a snapshot.
@@ -26,6 +26,7 @@ const NEUTRAL = { hull: '#8a8a8a', trim: '#c4c4c4', ready: '#ffd166' };
 const BACKGROUND = '#0b0f16';
 const GRID = '#161d29';
 const TRACER = '#ffe6a8';
+const WELL = '#3a4e7a';
 
 /** Roughly how far apart grid lines should sit on screen, pixels. */
 const TARGET_GRID_PX = 90;
@@ -139,6 +140,7 @@ export function draw(
   ctx.translate(-camera.x, -camera.y);
 
   drawGrid(ctx, camera, widthPx, heightPx);
+  drawWells(ctx, snapshot, camera);
 
   for (let i = 0; i < snapshot.shipCount; i++) {
     drawShip(ctx, snapshot.ships[i]!, camera.scale);
@@ -156,6 +158,37 @@ export function draw(
     ctx.lineTo(x - snapshot.projectileVx[i]! * 0.03, y - snapshot.projectileVy[i]! * 0.03);
   }
   ctx.stroke();
+}
+
+/**
+ * Gravity wells, as rings at the radii where their pull reaches round values.
+ *
+ * A well has no body to draw — it is a point mass — so what is drawn is its
+ * *effect*: the distance at which it pulls at 1 m/s², and at a tenth of that.
+ * Without this, ships and rounds curve for no visible reason, which reads as a
+ * bug in the physics rather than the physics working.
+ */
+function drawWells(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera): void {
+  ctx.strokeStyle = WELL;
+  ctx.lineWidth = 1 / camera.scale;
+  for (let i = 0; i < snapshot.wells.length; i++) {
+    const well = snapshot.wells[i]!;
+    for (const pull of [1, 0.1]) {
+      // r where gm/r² is `pull`.
+      const r = sqrt(well.gm / pull);
+      ctx.beginPath();
+      ctx.arc(well.x, well.y, r, 0, TAU);
+      ctx.stroke();
+    }
+    // A cross at the centre, sized in pixels so it stays visible at any zoom.
+    const arm = 8 / camera.scale;
+    ctx.beginPath();
+    ctx.moveTo(well.x - arm, well.y);
+    ctx.lineTo(well.x + arm, well.y);
+    ctx.moveTo(well.x, well.y - arm);
+    ctx.lineTo(well.x, well.y + arm);
+    ctx.stroke();
+  }
 }
 
 /**
