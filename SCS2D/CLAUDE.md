@@ -71,12 +71,19 @@ failures worth avoiding.
 - **Never write about the *current* branch, anywhere — including DESIGN.md.** "X was implemented on branch Y"
   is fine: a historical fact that stays true. "The work is on branch Y" is wrong the moment it merges, and the
   Status block is the one place most likely to be believed. Describe *what exists*, not where it lives.
-- **Comments must be timeless.** Explain what a file is and why it exists *in general* — never why it was
-  built at a particular point in the project. "Present in the foundation for two reasons…", "not needed yet",
-  "for now", "at this stage" are all stale the moment the next thing lands, and a comment that has quietly
-  expired is worse than no comment. Stage and sequencing information belongs in DESIGN.md, which has a Status
-  block and a Decision Log for exactly that purpose. Write as though the reader has no idea which parts were
-  built first — because in six months, neither will you.
+- **A comment must either be timeless, or expire with the code it describes.** Explain what a file is and
+  why it exists *in general*, not why it was built at a particular point in the project. "Present in the
+  foundation for two reasons…", "not needed yet", "at this stage" are stale the moment the next thing lands,
+  and a comment that has quietly expired is worse than no comment. Stage and sequencing information belongs
+  in DESIGN.md, which has a Status block and a Decision Log for exactly that purpose. Write as though the
+  reader has no idea which parts were built first — because in six months, neither will you.
+
+  **Temporary code is the exception, and saying so is the most useful thing a comment can do there.** "A
+  stop-gap until the damage model lands: every round penetrates and is absorbed" earns its place, because it
+  tells the next reader that the code is meant to be replaced and what by. The test is not whether a comment
+  mentions time, but whether it can go out of date *while the code it describes stays put*: a note on a
+  stop-gap dies when the stop-gap does, whereas "for now" on code nobody plans to revisit rots silently and
+  invisibly. Name the thing that supersedes it, so the comment is a marker rather than a mood.
 - British English in prose and comments, matching the existing project.
 - Suggestions in DESIGN.md marked as suggestions are not decisions — flag them as open rather than
   implementing them silently.

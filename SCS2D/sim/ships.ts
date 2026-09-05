@@ -385,10 +385,12 @@ export class Ships {
    * and points the bow at whatever it is fighting. That is enough to make two
    * ships fight and to drive every number a blueprint derives.
    *
-   * It is deliberately not doctrine. There is no evasion, no approach angle,
-   * no propellant budget and no formation keeping here: those are per-craft
-   * configuration (DESIGN.md §2), and a pilot that hard-coded them would make
-   * them impossible to configure.
+   * **A stop-gap until doctrine and orders (DESIGN.md §8 step 3), which
+   * replace it.** There is no evasion here, no approach angle, no propellant
+   * budget and no formation keeping — all of which are per-craft configuration
+   * (§2) rather than anything a pilot should decide for itself. What survives
+   * that replacement is the shape of the thing: a demand wrench handed to the
+   * allocator, and a target handed to the turrets.
    */
   private flyOne(dt: number, bodies: Bodies, i: number): void {
     const design = this.designs[i]!;
