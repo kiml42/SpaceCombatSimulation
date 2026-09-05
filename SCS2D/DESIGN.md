@@ -723,6 +723,44 @@ Deliberately unresolved; decide when they block something.
   arrangement bought. The bearing-only assumption is worth revisiting in the same pass — whether a barrel
   clears a low module is the same question asked about height, and both turn on what the barrel actually
   sweeps.
+- **Whether blueprints and other authored data live in files rather than in code.**
+  `scenarios/blueprints.ts` and `tests/fixtures/scenarios.ts` are hand-written TypeScript. §9 already promises
+  `npm run battle -- scenarios/duel.json`, so the intent is settled; what is open is when, and what the format
+  is. `ModuleSpec` is plain numbers and a kind string, so the conversion stays mechanical however long it waits,
+  which is the reason there is no hurry.
+  Do it **with the blueprint editor** (§8 step 1). An editor has to serialise what it produces, so its save
+  format *is* the file format; designing one before the other means designing it twice. Two pieces of work come
+  with the move and do not exist yet: a **validator**, since today a malformed blueprint is a compile error and
+  parsed JSON needs shape checking that `blueprintProblem` does not do, and a **loader outside `sim/`**, which
+  has no ambient types and cannot read a file. One format decision belongs to that moment rather than this one:
+  angles are `HALF_PI`/`PI` expressions today, and a hand-edited file wants degrees converted at load.
+  What the move costs is the prose. `blueprints.ts` explains that the corvette's wings hold its manoeuvring
+  thrusters out where the moment arm is worth having *and* foul the bow gun, which is the trade that layout is
+  making. JSON has no comments, so that reasoning needs somewhere to go — a design note field in the file, or a
+  sidecar beside it — and losing it would leave a set of numbers nobody can argue with.
+- **Whether a module's properties come from its material rather than from a universal constant.** `modules.ts`
+  currently fixes both halves of every scaling law: the *form* (structure mass is wall volume times density) and
+  the *coefficient* (`HULL_DENSITY = 7800`, which is steel; `CHARGE_ENERGY_PER_BORE_VOLUME = 1.4e8`, which is a
+  chemical propellant). Only the form is a law. Freezing the coefficients quietly forecloses better technology
+  and materials — a composite hull, a denser shell, an alloy that trades hardness for toughness — which is a
+  whole axis of ship design and the natural spine of a campaign's progression. Three tiers, and the test for
+  which one a change belongs in is whether the *formula* survives it:
+  - **The functional form stays code.** Mass scales with wall volume; cycle time scales with calibre. This is
+    what an archetype *is*.
+  - **The coefficients become a material**, referenced per module (`{ kind: 'structure', material: 'steel' }`)
+    with the properties themselves in a data file. Same archetype, different numbers.
+  - **A new technology is a new archetype, not a new material.** A railgun is not a chemical gun with better
+    coefficients: its muzzle energy comes from stored electrical energy and rail length, and it drags a power
+    supply into the mass budget. Different formula, so new code, with its own material-shaped data beside it.
+
+  Two consequences to settle before building it. Materials must be **priced, not merely better**, or §7's
+  evolution picks the best one every time and material choice stops being a decision — the same failure mode as
+  the mispriced exponent `modules.ts` warns about, arriving through a different door. And a material file is an
+  **input to the golden checksums** exactly as a scenario is, so editing one moves pinned results and needs the
+  discipline §9 asks for.
+  Earliest sensible point is §8 step 2, terminal ballistics and the damage model: hardness, density and
+  thickness are what it decides penetration against, so that is where per-material properties stop being
+  decoration and start deciding outcomes.
 - **Whether a downed craft's wreck falls onto the deck it was attacking.** Physically it should, and debris
   raining on a capital is evocative; it may also be an irritation. Cheap either way, so leave it until
   there is something to watch.
@@ -741,6 +779,7 @@ Deliberately unresolved; decide when they block something.
 
 | Date | Change |
 | --- | --- |
+| 2026-09-05 | Three things recorded in §12 rather than built. **Turret arcs**: traverse limit and firing permission are different quantities — a gun can sweep past superstructure it must not shoot through — so firing permission is a *set* of bearing intervals, not a half-width, and `firingArc`'s `min` over obstructions is pessimistic twice over. **Authored data**: blueprints and fixtures move to files with the blueprint editor, because the editor's save format is the file format; the move needs a validator and a loader outside `sim/`, and costs the prose that explains each layout's trade. **Materials**: the scaling laws' *form* is a law but their *coefficients* are steel and a chemical propellant, so coefficients belong to a per-module material, while a genuinely different technology (a railgun) is a new archetype rather than a new material — with the caveat that materials must be priced or evolution simply takes the best one. |
 | 2026-09-02 | Initial version. All decisions in §§1–11 settled in a single design session, superseding the 2017–2021 Unity project. |
 | 2026-09-03 | Slice 0 foundation built. Added the two automatic enforcement mechanisms to §9 (empty `types` in `sim/tsconfig.json`, and the source-scanning architecture test) — the design called for the purity boundary but not for how it would be held. |
 | 2026-09-04 | Parametric modules and blueprint compilation built. Two decisions the design left open were settled in the process: the scaling laws are calibrated against real hardware rather than chosen for feel, so that a figure can be argued with (§12); and firing arcs are *derived* from the layout as §3 asks, rather than authored per mount, which makes a fouled gun a consequence of where it was put. The symmetric-traverse limitation that falls out of that is recorded in §12 rather than worked around. |
