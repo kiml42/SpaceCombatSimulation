@@ -9,6 +9,7 @@ import {
   type WellSpec,
 } from '../../sim/index.js';
 import { duel } from '../../scenarios/duel.js';
+import { swarm } from '../../scenarios/Swarm.js';
 
 /**
  * Scenarios shared by the determinism tests, the integrator tests and the
@@ -259,6 +260,17 @@ export function duelScenario(seed = 20260905): ScenarioRun {
   };
 }
 
+export function swarmScenario(seed = 20260905): ScenarioRun {
+  const run = swarm(seed);
+  return {
+    step: () => run.step(),
+    checksum: () => checksumProjectiles(run.projectiles, checksumWorld(run.world)),
+    describe: () =>
+      `ships=${run.ships.count} inFlight=${run.projectiles.count} ` +
+      `fired=${run.totalFired} hits=${run.totalHits}`,
+  };
+}
+
 // ---- registry ----
 
 function worldScenario(build: () => World, steps: number): Scenario {
@@ -280,6 +292,7 @@ export const SCENARIOS = {
   tumble: worldScenario(() => tumbleScenario(), 5_000),
   gunnery: { steps: 3_000, build: () => gunneryScenario() },
   duel: { steps: 3_000, build: () => duelScenario() },
+  swarm: { steps: 3_000, build: () => swarmScenario() },
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;
