@@ -71,4 +71,5 @@ export {
   type Order,
   type ShipSpec,
 } from './ships.js';
+export { capture, Snapshot, type ShipView } from './snapshot.js';
 export { checksumWorld, checksumProjectiles, formatChecksum } from './checksum.js';

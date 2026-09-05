@@ -521,6 +521,14 @@ export class Ships {
     this.demandTorque[i] = 0;
   }
 
+  /**
+   * Index in the shared turret store of one of a ship's mounts, in the order
+   * its design lists them. What a snapshot needs to read a bearing back out.
+   */
+  turretIndexOf(i: number, turret: number): number {
+    return this.turretIndex[i]![turret]!;
+  }
+
   /** Throttle actually held by one of a ship's thrusters, 0 to 1. Diagnostic. */
   throttleOf(i: number, thruster: number): number {
     return this.throttles[i]![thruster]!;
