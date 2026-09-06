@@ -91,7 +91,6 @@ export function start(): void {
     state.step();
   });
   resetButton.addEventListener('click', () => {
-    sceneIndex = 0;
     state = scenes[sceneIndex].create();
     framed = false;
     autoFrame = true;

@@ -77,7 +77,7 @@ export function duel(seed = 20260905): Duel {
   // Facing across the engagement, not along it: both have to come round before
   // a gun bears. Their velocity is mostly crossing too, so closing means
   // killing that first — which is what a range band actually asks of a pilot.
-  const a = ships.spawn(world, {
+  const distantCorvette = ships.spawn(world, {
     design: corvette,
     x: -1800,
     y: -240,
@@ -86,7 +86,7 @@ export function duel(seed = 20260905): Duel {
     vy: 90,
     team: 0,
   });
-   const c = ships.spawn(world, {
+   const closeCorvette = ships.spawn(world, {
     design: damagedCorvette,
     x: 2000,
     y: -740,
@@ -109,12 +109,14 @@ export function duel(seed = 20260905): Duel {
   // rather hold it off. Neither gets what it wants, which is the interesting
   // part.
 
-  // these two start at quite short range tying to fight each other
-  ships.setOrder(a, b, 300, 500, 120);
-  ships.setOrder(c, b, 300, 500, 120);
+  // the gunship starts off attacking the closer corvette.
+  ships.setOrder(closeCorvette, b, 300, 500, 120);
 
   // this one starts far away and comes in later to help.
-  ships.setOrder(b, c, 900, 1200, 60);
+  ships.setOrder(distantCorvette, b, 300, 500, 120);
+  
+  // these two start at quite short range tying to fight each other
+  ships.setOrder(b, closeCorvette, 900, 1200, 60);
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);
