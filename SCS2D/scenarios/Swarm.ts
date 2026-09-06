@@ -9,7 +9,7 @@ import {
   World,
   type WellSpec,
 } from '../sim/index.js';
-import { type Duel } from './duel.js';
+import { type Battle } from './Battle.js';
 import { CORVETTE, GUNSHIP } from './blueprints.js';
 import { Rng } from '../sim/rng.js';
 
@@ -17,7 +17,7 @@ import { Rng } from '../sim/rng.js';
  * Many corvette and one gunship closing on each other and opening fire.
  */
 
-export function swarm(seed = 20260905): Duel {
+export function swarm(seed = 20260905): Battle {
   const dt = 1 / 60;
   const world = new World({ dt, seed });
 
@@ -71,7 +71,7 @@ export function swarm(seed = 20260905): Duel {
   const projectiles = new Projectiles(512);
   const hits = new ProjectileHits();
 
-  const run: Duel = {
+  const run: Battle = {
     dt,
     world,
     wells,
