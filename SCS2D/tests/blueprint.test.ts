@@ -197,6 +197,14 @@ describe('firing arcs', () => {
   });
 });
 
+/**
+ * Layouts that are deliberately not symmetric, listed by identity rather than
+ * matched on a name: a substring test would silently exempt a future
+ * "Undamaged Mk II", and the point of a wreck is that its asymmetry is the
+ * feature.
+ */
+const ASYMMETRIC: readonly Blueprint[] = [BLUEPRINTS.damagedCorvette];
+
 describe('the authored blueprints', () => {
   for (const [name, blueprint] of Object.entries(BLUEPRINTS)) {
     describe(name, () => {
@@ -225,15 +233,29 @@ describe('the authored blueprints', () => {
         }
       });
 
-      it('is symmetric about its own axis', () => {
-        // Every layout here is drawn symmetrically, so the centre of mass must
-        // land on the axis. An asymmetric ship would translate when it meant to
-        // rotate, which is very hard to spot by eye and easy to author by
-        // accident.
-        if(blueprint.name.toLowerCase().includes('damaged')) return; // asymmetric by design
-        const design = compileBlueprint(blueprint);
-        expect(design.centreOfMassY).toBeCloseTo(0, 12);
-      });
+      const deliberatelyAsymmetric = ASYMMETRIC.includes(blueprint);
+
+      it(
+        deliberatelyAsymmetric
+          ? 'is asymmetric about its own axis, as a wreck should be'
+          : 'is symmetric about its own axis',
+        () => {
+          // A symmetric layout must put its centre of mass on the axis, or the
+          // ship translates when it meant to rotate — very hard to spot by eye
+          // and easy to author by accident.
+          //
+          // The asymmetric ones are *asserted* to be asymmetric rather than
+          // skipped. A skipped check reports as a pass, which overstates the
+          // coverage; this way a wreck that quietly became symmetric again —
+          // by restoring a module, say — is a failure rather than a silence.
+          const design = compileBlueprint(blueprint);
+          if (deliberatelyAsymmetric) {
+            expect(Math.abs(design.centreOfMassY)).toBeGreaterThan(0.01);
+          } else {
+            expect(design.centreOfMassY).toBeCloseTo(0, 12);
+          }
+        },
+      );
     });
   }
 
@@ -244,7 +266,7 @@ describe('the authored blueprints', () => {
     // whatever the nozzle is buried in — so a layout drawn the wrong way round
     // flies perfectly well and only looks absurd, which is exactly how it goes
     // unnoticed.
-    for (const blueprint of [BLUEPRINTS.corvette, BLUEPRINTS.gunship]) {
+    for (const blueprint of Object.values(BLUEPRINTS)) {
       const design = compileBlueprint(blueprint);
       const thrusters = design.modules.filter((m) => m.spec.kind === 'thruster');
 
@@ -283,7 +305,7 @@ describe('the authored blueprints', () => {
     // and walks the modules. If the two orders ever diverged, a ship would
     // show one engine's flame on another engine's mount, and the pilot would
     // steer with the wrong thruster.
-    for (const blueprint of [BLUEPRINTS.corvette, BLUEPRINTS.gunship]) {
+    for (const blueprint of Object.values(BLUEPRINTS)) {
       const design = compileBlueprint(blueprint);
 
       const thrusterModules = design.modules.filter((m) => m.spec.kind === 'thruster');

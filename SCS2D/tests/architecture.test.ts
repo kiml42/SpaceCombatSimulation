@@ -15,22 +15,32 @@ import { describe, expect, it } from 'vitest';
  * the rule to make it pass.
  */
 
-const simDir = fileURLToPath(new URL('../sim', import.meta.url));
-const scenarioDir = fileURLToPath(new URL('../scenarios', import.meta.url));
+/**
+ * The trees these rules cover. `scenarios/` is in because a scenario feeds a
+ * golden checksum, so it is bound by determinism exactly as `sim/` is — but it
+ * is a separate root because one rule, the import rule, applies only to `sim/`.
+ *
+ * Each file carries the root it came from rather than being matched against
+ * its path. Path matching is how this went wrong before: `path.includes('/sim/')`
+ * is false for every file on Windows, where `join` produces backslashes, so the
+ * rule quietly covered nothing on the one platform nobody would think to check.
+ */
+const ROOTS = [
+  { label: 'sim', dir: fileURLToPath(new URL('../sim', import.meta.url)) },
+  { label: 'scenarios', dir: fileURLToPath(new URL('../scenarios', import.meta.url)) },
+] as const;
 
 /** The one file allowed to touch `Math`, because its job is to replace it. */
-const MATH_MODULE = 'math.ts';
+const MATH_MODULE = 'sim/math.ts';
 
-function sourceFiles(dirs: string[]): string[] {
+function sourceFiles(dir: string): string[] {
   const out: string[] = [];
-  for (const dir of dirs) {
-    for (const entry of readdirSync(dir)) {
-      const full = join(dir, entry);
-      if (statSync(full).isDirectory()) {
-        out.push(...sourceFiles([full]));
-      } else if (entry.endsWith('.ts')) {
-        out.push(full);
-      }
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) {
+      out.push(...sourceFiles(full));
+    } else if (entry.endsWith('.ts')) {
+      out.push(full);
     }
   }
   return out;
@@ -46,16 +56,26 @@ function stripComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 }
 
-const files = sourceFiles([simDir, scenarioDir]).map((path) => ({
-  path,
-  name: relative(simDir, path).replace(/\\/g, '/'),
-  code: stripComments(readFileSync(path, 'utf8')),
-}));
+const files = ROOTS.flatMap(({ label, dir }) =>
+  sourceFiles(dir).map((path) => ({
+    path,
+    root: label,
+    // Named relative to its own root, so a scenario reads as
+    // `scenarios/duel.ts` rather than as a path climbing out of sim/.
+    name: `${label}/${relative(dir, path).replace(/\\/g, '/')}`,
+    code: stripComments(readFileSync(path, 'utf8')),
+  })),
+);
 
 describe('simulation purity', () => {
-  it('finds the simulation sources', () => {
+  it('finds sources under every root it is meant to cover', () => {
+    // Every rule below is a filter over `files`, so an empty list passes them
+    // all. This is the test that stops the rest going quietly vacuous.
     expect(files.length).toBeGreaterThan(4);
     expect(files.map((f) => f.name)).toContain(MATH_MODULE);
+    for (const { label } of ROOTS) {
+      expect(files.filter((f) => f.root === label).length).toBeGreaterThan(0);
+    }
   });
 
   it('does not reference Math outside the maths module', () => {
@@ -109,7 +129,9 @@ describe('simulation purity', () => {
   it('imports nothing from outside sim/', () => {
     const offenders: string[] = [];
     for (const f of files) {
-      if(!f.path.includes('/sim/')) continue; // skip anything outside sim
+      // Only `sim/` is sealed. A scenario is *meant* to import from sim/ —
+      // composing the simulation into a battle is its entire job.
+      if (f.root !== 'sim') continue;
       const imports = f.code.match(/from\s+['"]([^'"]+)['"]/g) ?? [];
       for (const raw of imports) {
         const spec = raw.replace(/^from\s+['"]/, '').replace(/['"]$/, '');

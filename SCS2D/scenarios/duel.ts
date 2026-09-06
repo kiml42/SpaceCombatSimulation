@@ -9,7 +9,7 @@ import {
   World,
   type WellSpec,
 } from '../sim/index.js';
-import type { Battle } from './Battle.js';
+import type { Battle } from './battle.js';
 import { CORVETTE, DAMAGED_CORVETTE, GUNSHIP } from './blueprints.js';
 
 /**
@@ -99,7 +99,7 @@ export function duel(seed = 20260905): Battle {
 
   // this one starts far away and comes in later to help.
   ships.setOrder(distantCorvette, b, 300, 500, 120);
-  
+
   // these two start at quite short range tying to fight each other
   ships.setOrder(b, closeCorvette, 900, 1200, 60);
 

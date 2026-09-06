@@ -132,7 +132,7 @@ export const GUNSHIP: Blueprint = {
 
     thruster(-24, 3, 0, 8, 4),
     thruster(-24, -3, 0, 8, 4),
-    
+
     structure(12, 7, 6, 4),
     structure(12, -7, 6, 4),
     structure(-12, 7, 6, 4),
