@@ -9,7 +9,7 @@ import {
   World,
   type WellSpec,
 } from '../sim/index.js';
-import type { Battle } from './battle.js';
+import type { Battle } from './types.js';
 import { CORVETTE, DAMAGED_CORVETTE, GUNSHIP } from './blueprints.js';
 
 /**
