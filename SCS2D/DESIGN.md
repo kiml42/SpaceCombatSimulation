@@ -471,7 +471,7 @@ feature becomes invisible.*
 
 ## 9. Practices
 
-Six things, and deliberately nothing more — plus a seventh held back until there is something to show:
+Seven things, and deliberately nothing more:
 
 1. **Golden battle tests from Slice 0.** Fixed scenarios with bit-exact pinned outcomes. This is the
    entire return on buying determinism: after a gap, one command tells you the sim is intact.
@@ -502,14 +502,14 @@ Six things, and deliberately nothing more — plus a seventh held back until the
 5. **Single-command headless runs** — `npm run battle -- scenarios/duel.json`. Re-entry from a cold
    checkout should be one command.
 6. **A `CLAUDE.md`** for this project.
-7. **A GitHub Pages preview deploy — to be added as soon as there is something worth showing off.**
-   Not yet: there is no viewer to load. Once Slice 0's viewer draws a battle, add a job to `ci.yml` that
-   builds `SCS2D/` and publishes it to Pages on green master. The repository is public, so Pages costs
-   nothing, and the point of it is the URL: the game becomes something to open on a phone or hand to
-   someone, instead of something that needs a checkout and a toolchain. It is also the only honest way to
-   try the real thing — worker boundary, host lifecycle, touch input — on a device that is not the
-   development machine. A cloud dev container has no inbound route to its dev server, and a single-file
-   bundle would drop exactly the worker boundary §5 is built around, so neither substitutes for this.
+7. **A GitHub Pages deploy of the viewer**, published from `ci.yml` on green master. The point of it is
+   the URL: the game is something to open on a phone or hand to someone, rather than something that needs a
+   checkout and a toolchain. It is also the only honest way to try the real thing — worker boundary, host
+   lifecycle, touch input — on a device that is not the development machine.
+   Built in the job rather than committed. A bundle in the tree conflicts on every branch that touches a
+   source file, and nothing would guarantee it matched the source it claims to come from, so it goes stale
+   silently. It publishes only after the typecheck, test and browser jobs pass, because the published page
+   is the one people are handed.
 
 Two mechanisms enforce the non-negotiables automatically, so they do not depend on remembering them:
 

@@ -130,3 +130,57 @@ jobs:
       - run: npx playwright install --with-deps chromium
 
       - run: npm run test:browser
+
+  pages:
+    name: Publish to Pages
+    # Only master, and only once everything else is green: the published page
+    # is the one people are handed, so it must never be a build that failed its
+    # own tests. A pull request builds the viewer through the browser job
+    # already, so there is nothing to publish from one.
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    needs: [typecheck, test, viewer]
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Naming any scope sets every unnamed one to `none`, so `contents: read`
+      # has to be here or the checkout cannot read the repository.
+      contents: read
+      pages: write
+      id-token: write
+
+    # Deployments are serialised rather than superseded: cancelling one
+    # half-way can leave the site on the previous build with no run left to
+    # correct it.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: SCS2D/package-lock.json
+
+      - run: npm ci
+
+      # Built here rather than committed. A bundle in the tree conflicts on
+      # every branch that touches a source file, and nothing would guarantee it
+      # matched the source it claims to come from — so it goes stale silently
+      # and someone eventually demonstrates a build from last month.
+      - run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: SCS2D/dist
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

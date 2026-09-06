@@ -8,6 +8,12 @@ file is only about getting it running.
 
 The Unity project in `../SpaceCombatSimulation/` is a 2017–2021 prototype, archived and not developed.
 
+## Playing it without a checkout
+
+Every green build of `master` publishes the viewer to GitHub Pages, so the current battle is one link away —
+no clone, no toolchain, and it works on a phone. The URL is on the repository's Pages settings, and under the
+`Publish to Pages` job of any CI run on master.
+
 ## Running it
 
 Needs Node 20 or newer; CI's typecheck row runs 24.
