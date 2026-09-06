@@ -230,6 +230,7 @@ describe('the authored blueprints', () => {
         // land on the axis. An asymmetric ship would translate when it meant to
         // rotate, which is very hard to spot by eye and easy to author by
         // accident.
+        if(blueprint.name.toLowerCase().includes('damaged')) return; // asymmetric by design
         const design = compileBlueprint(blueprint);
         expect(design.centreOfMassY).toBeCloseTo(0, 12);
       });
