@@ -1,4 +1,4 @@
-import type { World, WellSpec, Ships, Projectiles, SpatialGrid, ProjectileHits } from '../sim';
+import type { World, WellSpec, Ships, Projectiles, SpatialGrid, ProjectileHits } from '../sim/index.js';
 
 /**
  * A corvette and a gunship closing on each other and opening fire.
