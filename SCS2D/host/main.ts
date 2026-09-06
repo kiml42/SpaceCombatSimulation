@@ -1,6 +1,6 @@
 import { capture, math, Snapshot } from '../sim/index.js';
 import { duel, type Battle } from '../scenarios/duel.js';
-import { swarm } from '../scenarios/xswarm.js';
+import { swarm } from '../scenarios/swarm.js';
 import { draw } from '../render/canvas2d.js';
 import { frame, gridStep, type Camera } from '../render/camera.js';
 

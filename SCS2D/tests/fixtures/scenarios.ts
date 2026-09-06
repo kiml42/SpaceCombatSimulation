@@ -9,7 +9,7 @@ import {
   type WellSpec,
 } from '../../sim/index.js';
 import { duel } from '../../scenarios/duel.js';
-import { swarm } from '../../scenarios/xswarm.js';
+import { swarm } from '../../scenarios/swarm.js';
 
 /**
  * Scenarios shared by the determinism tests, the integrator tests and the
