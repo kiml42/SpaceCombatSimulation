@@ -1,6 +1,6 @@
 import { capture, math, Snapshot } from '../sim/index.js';
 import { duel } from '../scenarios/duel.js';
-import type { Battle } from '../scenarios/Battle.js';
+import type { Battle } from '../scenarios/battle.js';
 import { swarm } from '../scenarios/swarm.js';
 import { draw } from '../render/canvas2d.js';
 import { frame, gridStep, type Camera } from '../render/camera.js';
@@ -44,7 +44,7 @@ export function start(): void {
     { name: 'Swarm', create: () => swarm(SEED) }
   ];
   let sceneIndex = 0;
-  const nextSceneIndex = () => (sceneIndex + 1) % scenes.length;
+  const nextSceneIndex = (): number => (sceneIndex + 1) % scenes.length;
   let state: Battle = scenes[sceneIndex].create();
   let snapshot = new Snapshot();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
@@ -62,7 +62,7 @@ export function start(): void {
   // passed, once the speed control is off 1x.
   let lastSimTime = 0;
 
-  const updateSwitchSceneButton = () => {
+  const updateSwitchSceneButton = (): void => {
     const nextIndex = nextSceneIndex();
     switchSceneButton.textContent = `Play ${scenes[nextIndex].name}`;
   }

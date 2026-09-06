@@ -8,12 +8,12 @@ import {
   World,
   type WellSpec,
 } from '../sim/index.js';
-import { type Battle } from './Battle.js';
+import { type Battle } from './battle.js';
 import { CORVETTE, GUNSHIP } from './blueprints.js';
 import { Rng } from '../sim/rng.js';
 
 /**
- * Many corvette and one gunship closing on each other and opening fire.
+ * Many corvettes and one gunship closing on each other and opening fire.
  */
 
 export function swarm(seed = 20260905): Battle {
@@ -40,7 +40,7 @@ export function swarm(seed = 20260905): Battle {
 
   const rng = new Rng(seed);
   const randomRadius = 1000;
-  let corvettes = [];
+  const corvettes: number[] = [];
 
   for (let i = 0; i < 20; i++) {
     const angle = rng.nextRange(0, 2 * math.PI);
