@@ -27,7 +27,7 @@ function sourceFiles(dirs: string[]): string[] {
     for (const entry of readdirSync(dir)) {
       const full = join(dir, entry);
       if (statSync(full).isDirectory()) {
-        out.push(...sourceFiles(full));
+        out.push(...sourceFiles([full]));
       } else if (entry.endsWith('.ts')) {
         out.push(full);
       }
