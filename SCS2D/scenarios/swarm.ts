@@ -8,7 +8,7 @@ import {
   World,
   type WellSpec,
 } from '../sim/index.js';
-import { type Battle } from './battle.js';
+import { type Battle } from './types.js';
 import { CORVETTE, GUNSHIP } from './blueprints.js';
 import { Rng } from '../sim/rng.js';
 
