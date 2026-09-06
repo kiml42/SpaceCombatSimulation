@@ -16,18 +16,21 @@ import { describe, expect, it } from 'vitest';
  */
 
 const simDir = fileURLToPath(new URL('../sim', import.meta.url));
+const scenarioDir = fileURLToPath(new URL('../scenarios', import.meta.url));
 
 /** The one file allowed to touch `Math`, because its job is to replace it. */
 const MATH_MODULE = 'math.ts';
 
-function sourceFiles(dir: string): string[] {
+function sourceFiles(dirs: string[]): string[] {
   const out: string[] = [];
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) {
-      out.push(...sourceFiles(full));
-    } else if (entry.endsWith('.ts')) {
-      out.push(full);
+  for (const dir of dirs) {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) {
+        out.push(...sourceFiles(full));
+      } else if (entry.endsWith('.ts')) {
+        out.push(full);
+      }
     }
   }
   return out;
@@ -43,7 +46,7 @@ function stripComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 }
 
-const files = sourceFiles(simDir).map((path) => ({
+const files = sourceFiles([simDir, scenarioDir]).map((path) => ({
   path,
   name: relative(simDir, path).replace(/\\/g, '/'),
   code: stripComments(readFileSync(path, 'utf8')),
@@ -106,6 +109,7 @@ describe('simulation purity', () => {
   it('imports nothing from outside sim/', () => {
     const offenders: string[] = [];
     for (const f of files) {
+      if(!f.path.includes('/sim/')) continue; // skip anything outside sim
       const imports = f.code.match(/from\s+['"]([^'"]+)['"]/g) ?? [];
       for (const raw of imports) {
         const spec = raw.replace(/^from\s+['"]/, '').replace(/['"]$/, '');
