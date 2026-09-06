@@ -1,5 +1,5 @@
 import { capture, math, Snapshot } from '../sim/index.js';
-import { duel, type Duel } from '../scenarios/duel.js';
+import { duel, type Battle } from '../scenarios/duel.js';
 import { swarm } from '../scenarios/Swarm.js';
 import { draw } from '../render/canvas2d.js';
 import { frame, gridStep, type Camera } from '../render/camera.js';
@@ -44,7 +44,7 @@ export function start(): void {
   ];
   let sceneIndex = 0;
   const nextSceneIndex = () => (sceneIndex + 1) % scenes.length;
-  let state: Duel = scenes[sceneIndex].create();
+  let state: Battle = scenes[sceneIndex].create();
   let snapshot = new Snapshot();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
   // Auto-framing keeps everything in shot, which is what you want until you
