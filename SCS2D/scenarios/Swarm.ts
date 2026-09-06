@@ -44,16 +44,16 @@ export function swarm(seed = 20260905): Duel {
   const randomRadius = 1000;
 
   for (let i = 0; i < 20; i++) {
-    const angle = rng.nextRange(0, 2 * Math.PI);
+    const angle = rng.nextRange(0, 2 * math.PI);
     const radius = rng.nextRange(0, randomRadius);
-    const x = -1800 + radius * Math.cos(angle);
-    const y = -240 + radius * Math.sin(angle);
+    const x = -1800 + radius * math.cos(angle);
+    const y = -240 + radius * math.sin(angle);
 
     const a = ships.spawn(world, {
       design: corvette,
       x: x + rng.nextRange(-100, 100),
       y: y + rng.nextRange(-100, 100),
-      angle: rng.nextRange(0, 2 * Math.PI),
+      angle: rng.nextRange(0, 2 * math.PI),
       vx: 0,
       vy: 90,
       team: 0,
