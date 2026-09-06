@@ -148,6 +148,6 @@ export const GUNSHIP: Blueprint = {
   ],
 };
 
-export const BLUEPRINTS = { corvette: CORVETTE, gunship: GUNSHIP } as const;
+export const BLUEPRINTS = { corvette: CORVETTE, gunship: GUNSHIP, damagedCorvette: DAMAGED_CORVETTE } as const;
 
 export type BlueprintName = keyof typeof BLUEPRINTS;

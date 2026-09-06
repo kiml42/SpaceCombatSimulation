@@ -42,17 +42,18 @@ export function swarm(seed = 20260905): Duel {
 
   const rng = new Rng(seed);
   const randomRadius = 1000;
+  let corvettes = [];
 
   for (let i = 0; i < 20; i++) {
     const angle = rng.nextRange(0, 2 * math.PI);
-    const radius = rng.nextRange(0, randomRadius);
+    const radius = math.sqrt(rng.nextRange(0, 1)) * randomRadius;
     const x = -1800 + radius * math.cos(angle);
     const y = -240 + radius * math.sin(angle);
 
     const a = ships.spawn(world, {
       design: corvette,
-      x: x + rng.nextRange(-100, 100),
-      y: y + rng.nextRange(-100, 100),
+      x: x,
+      y: y,
       angle: rng.nextRange(0, 2 * math.PI),
       vx: 0,
       vy: 90,
@@ -60,8 +61,10 @@ export function swarm(seed = 20260905): Duel {
     });
     ships.setOrder(a, b, 300, 500, 120);
 
-    ships.setOrder(b, a, 900, 1200, 60);
+    corvettes.push(a);
   }
+
+  ships.setOrder(b, corvettes[0], 900, 1200, 60);
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);
