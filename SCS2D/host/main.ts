@@ -45,7 +45,6 @@ export function start(): void {
   let sceneIndex = 0;
   const nextSceneIndex = () => (sceneIndex + 1) % scenes.length;
   let state: Duel = scenes[sceneIndex].create();
-  // let state: Duel = swarm(SEED);
   let snapshot = new Snapshot();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
   // Auto-framing keeps everything in shot, which is what you want until you

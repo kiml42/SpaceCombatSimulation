@@ -22,7 +22,6 @@ export function swarm(seed = 20260905): Duel {
   const world = new World({ dt, seed });
 
   const wells: WellSpec[] = [];
-  for (const well of wells) world.addForceProvider(gravityWell(well));
 
   const ships = new Ships();
   world.addForceProvider(ships.forceProvider());
@@ -49,14 +48,16 @@ export function swarm(seed = 20260905): Duel {
     const radius = math.sqrt(rng.nextRange(0, 1)) * randomRadius;
     const x = -1800 + radius * math.cos(angle);
     const y = -240 + radius * math.sin(angle);
+    const dvx = rng.nextRange(-20, 20);
+    const dvy = rng.nextRange(-20, 20);
 
     const a = ships.spawn(world, {
       design: corvette,
       x: x,
       y: y,
       angle: rng.nextRange(0, 2 * math.PI),
-      vx: 0,
-      vy: 90,
+      vx: dvx,
+      vy: 90 + dvy,
       team: 0,
     });
     ships.setOrder(a, b, 300, 500, 120);
