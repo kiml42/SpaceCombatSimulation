@@ -162,6 +162,8 @@ export interface GunStats {
   calibre: number;
   /** Muzzle to breech, metres. */
   barrelLength: number;
+  /** Number of barrels. */
+  barrelCount: number;
   /** Mass of one round, kg. */
   roundMass: number;
   /** Muzzle velocity, m/s. */
@@ -275,7 +277,7 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     const outerDiameter = 2 * gun.calibre;
     const barrelSection =
       PI * 0.25 * (outerDiameter * outerDiameter - gun.calibre * gun.calibre);
-    fittingMass = barrelSection * gun.barrelLength * HULL_DENSITY;
+    fittingMass = barrelSection * gun.barrelLength * HULL_DENSITY * gun.barrelCount;
   }
 
   const mass = structureMass + fittingMass;
@@ -311,8 +313,8 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
  * it buys velocity — flatter trajectory, shorter flight time, less lead to
  * misjudge — at the cost of a longer barrel that traverses more sluggishly.
  */
-export function gunStats(mountLength: number, mountWidth: number): GunStats {
-  const calibre = mountWidth * CALIBRE_FRACTION;
+export function gunStats(mountLength: number, mountWidth: number, barrelCount: number = 1): GunStats {
+  const calibre = mountWidth * CALIBRE_FRACTION / barrelCount;
   // The barrel wants to be as long as its calibre allows, but a mount cannot
   // carry a gun longer than itself without fouling the rest of the ship.
   const wanted = calibre * BARREL_CALIBRES;
@@ -326,10 +328,11 @@ export function gunStats(mountLength: number, mountWidth: number): GunStats {
   return {
     calibre,
     barrelLength,
+    barrelCount,
     roundMass,
     muzzleSpeed,
     muzzleEnergy,
-    cycleTime: CYCLE_TIME_PER_CALIBRE * calibre,
+    cycleTime: CYCLE_TIME_PER_CALIBRE * calibre / barrelCount,
   };
 }
 
