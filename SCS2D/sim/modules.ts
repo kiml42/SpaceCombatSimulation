@@ -320,6 +320,7 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
  * misjudge — at the cost of a longer barrel that traverses more sluggishly.
  */
 export function gunStats(mountLength: number, mountWidth: number, barrelCount: number = 1): GunStats {
+  if(barrelCount < 1) throw new Error(`Turret must have at least one barrel, got ${barrelCount}`);
   const calibre = mountWidth * CALIBRE_FRACTION / barrelCount;
   // The barrel wants to be as long as its calibre allows, but a mount cannot
   // carry a gun longer than itself without fouling the rest of the ship.
