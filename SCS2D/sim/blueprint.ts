@@ -256,6 +256,10 @@ export function blueprintProblem(blueprint: Blueprint): string | null {
   }
 
   for (let i = 0; i < modules.length; i++) {
+    const module = modules[i]!;
+    if (module.kind === 'turret' && (module.barrels === undefined || module.barrels < 1)) {
+      return `${blueprint.name}, module ${i} — a turret must have a positive number of barrels, had ${module.barrels}`;
+    }
     for (let k = i + 1; k < modules.length; k++) {
       if (modulesOverlap(modules[i]!, modules[k]!)) {
         return `${blueprint.name}: modules ${i} and ${k} overlap`;
