@@ -154,6 +154,12 @@ export interface ModuleSpec {
    * the armour trade-off.
    */
   reinforcement?: number;
+
+  /**
+   * Variant of the archetype, if the archetype has more than one.
+   * e.g specifies the number of barrels for a turret.
+   */
+  variant?: number;
 }
 
 /** What a gun derived from a turret module's geometry can do. */
@@ -270,7 +276,7 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     thrust = THRUST_PER_EXIT_AREA * spec.width * DECK_HEIGHT;
     fittingMass = thrust * ENGINE_MASS_PER_NEWTON;
   } else if (spec.kind === 'turret') {
-    gun = gunStats(spec.length, spec.width);
+    gun = gunStats(spec.length, spec.width, spec.variant);
     // The gun itself: a barrel is a thick-walled tube, taken here as steel
     // filling the annulus between the bore and an outside diameter of twice
     // the calibre.
