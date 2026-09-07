@@ -124,7 +124,7 @@ export const GUNSHIP: Blueprint = {
   name: 'Gunship',
   modules: [
     structure(0, 0, 40, 10),
-    turret(26, 0, 0, 12, 8),
+    turret(26, 0, 0, 12, 8, 1),
 
     // outriggers with small, fast firing, multi-barrelled guns
     structure(0, 9, 8, 8),
