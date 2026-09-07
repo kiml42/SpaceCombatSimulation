@@ -50,9 +50,9 @@ function turret(
   angle: number,
   length: number,
   width: number,
-  variant?: number
+  barrels: number
 ): ModuleSpec {
-  return { kind: 'turret', x, y, angle, length, width, ...(variant !== undefined ? { variant } : {}) };
+  return { kind: 'turret', x, y, angle, length, width, barrels: barrels };
 }
 
 /**
@@ -67,7 +67,7 @@ export const CORVETTE: Blueprint = {
   name: 'Corvette',
   modules: [
     structure(0, 0, 16, 6),
-    turret(10.5, 0, 0, 5, 4),
+    turret(10.5, 0, 0, 5, 4, 1),
     thruster(-10, 0, 0, 4, 6),
 
     structure(4, 4.5, 4, 3),
@@ -92,7 +92,7 @@ export const DAMAGED_CORVETTE: Blueprint = {
   name: 'DamagedCorvette',
   modules: [
     structure(0, 0, 16, 6),
-    turret(10.5, 0, 0, 5, 4),
+    turret(10.5, 0, 0, 5, 4, 1),
     thruster(-10, 0, 0, 4, 6),
 
     // structure(4, 4.5, 4, 3),
