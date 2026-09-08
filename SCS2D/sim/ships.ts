@@ -121,6 +121,7 @@ export class Ships {
   /** Turret store indices owned by each ship, and their gun timers. */
   private readonly turretIndex: Int32Array[] = [];
   private readonly cooldown: Float64Array[] = [];
+  private readonly nextBarrelToFire: Int32Array[] = [];
 
   private readonly team: number[] = [];
   private readonly orders: Order[] = [];
@@ -207,6 +208,7 @@ export class Ships {
     this.throttles.push(new Float64Array(design.thrusters.length));
     this.turretIndex.push(indices);
     this.cooldown.push(new Float64Array(mounts.length));
+    this.nextBarrelToFire.push(new Int32Array(mounts.length));
     this.team.push(spec.team ?? 0);
     this.orders.push({
       target: NO_TARGET,
@@ -270,6 +272,11 @@ export class Ships {
       for (let t = 0; t < timers.length; t++) {
         if (timers[t]! > 0) timers[t] = timers[t]! - dt;
       }
+      const barrels = this.nextBarrelToFire[i]!;
+      for (let t = 0; t < barrels.length; t++) {
+        const gun = this.designs[i]!.turrets[t]!.gun;
+        if (barrels[t]! >= gun.barrelCount) barrels[t] = 0;
+      }
     }
 
     // Slew every turret, collecting the hull reaction rather than letting it
@@ -303,6 +310,7 @@ export class Ships {
       const design = this.designs[i]!;
       const indices = this.turretIndex[i]!;
       const timers = this.cooldown[i]!;
+      const barrels = this.nextBarrelToFire[i]!;
       const bodyIdx = bodies.indexOf(this.bodyIds[i]!);
       if (bodyIdx < 0) continue;
 
@@ -322,7 +330,13 @@ export class Ships {
         if (!this.turrets.readyToFire(ti)) continue;
 
         const gun = design.turrets[t]!.gun;
-        this.turrets.firingSolution(bodies, ti, this.solution);
+        const barrel = barrels[t]!;
+        const lateralOffset =
+          gun.barrelCount > 1
+            ? (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing
+            : 0;
+
+        this.turrets.firingSolution(bodies, ti, this.solution, lateralOffset);
         projectiles.fireFrom(
           bodies,
           bodyIdx,
@@ -361,6 +375,7 @@ export class Ships {
           (this.solution.y - bodies.y[bodyIdx]!) * jx;
 
         timers[t] = gun.cycleTime;
+        barrels[t] = (barrel + 1) % gun.barrelCount;
         fired++;
       }
 
