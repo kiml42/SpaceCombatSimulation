@@ -203,6 +203,7 @@ export function gunneryScenario(seed = 777): GunneryRun {
             world.bodies.y[bi] + (dy / len) * 35,
             (dx / len) * speed,
             (dy / len) * speed,
+            0.5,
             3,
             5,
             10,

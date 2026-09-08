@@ -18,7 +18,7 @@ function range(...specs: { x: number; y: number; radius: number }[]) {
 describe('flight', () => {
   it('travels in a straight line at constant velocity', () => {
     const r = range();
-    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 600, vy: -300, ttl: 10 });
+    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 600, vy: -300, width: 0.5, ttl: 10 });
 
     for (let i = 0; i < 60; i++) r.projectiles.step(DT, r.bodies, r.grid, r.hits);
 
@@ -30,7 +30,7 @@ describe('flight', () => {
 
   it('expires when its flight time runs out', () => {
     const r = range();
-    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 100, vy: 0, ttl: 0.5 });
+    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 100, vy: 0, width: 0.5, ttl: 0.5 });
     expect(r.projectiles.count).toBe(1);
 
     for (let i = 0; i < 29; i++) r.projectiles.step(DT, r.bodies, r.grid, r.hits);
@@ -43,13 +43,13 @@ describe('flight', () => {
 
   it('recycles the slots of spent rounds', () => {
     const r = range();
-    r.projectiles.spawn({ x: 0, y: 0, vx: 1, vy: 0, ttl: DT });
+    r.projectiles.spawn({ x: 0, y: 0, vx: 1, vy: 0, width: 0.5, ttl: DT });
     r.projectiles.step(DT, r.bodies, r.grid, r.hits);
     expect(r.projectiles.count).toBe(0);
     expect(r.projectiles.highWater).toBe(1);
 
     // The next round takes the vacated slot rather than growing the store.
-    r.projectiles.spawn({ x: 0, y: 0, vx: 1, vy: 0, ttl: 1 });
+    r.projectiles.spawn({ x: 0, y: 0, vx: 1, vy: 0, width: 0.5, ttl: 1 });
     expect(r.projectiles.highWater).toBe(1);
     expect(r.projectiles.count).toBe(1);
   });
@@ -58,7 +58,7 @@ describe('flight', () => {
     const bodies = new Bodies();
     const ship = bodies.create({ x: 0, y: 0, vx: 50, vy: 10, mass: 1, inertia: 1, radius: 5 });
     const projectiles = new Projectiles();
-    const p = projectiles.fireFrom(bodies, bodies.indexOf(ship), 10, 0, 800, 0, 3, 5, 10, 1, 0);
+    const p = projectiles.fireFrom(bodies, bodies.indexOf(ship), 10, 0, 800, 0, 0.5, 3, 5, 10, 1, 0);
 
     expect(projectiles.vx[p]).toBe(850);
     expect(projectiles.vy[p]).toBe(10);
@@ -70,7 +70,7 @@ describe('flight', () => {
     // A massless round would impart no momentum, which is a silently wrong
     // default rather than an obviously wrong one.
     const r = range();
-    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 1, vy: 0, ttl: 1 });
+    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 1, vy: 0, width: 0.5, ttl: 1 });
     expect(r.projectiles.mass[p]).toBe(1);
   });
 });
@@ -83,6 +83,7 @@ describe('impacts', () => {
       y: 0,
       vx: 600,
       vy: 0,
+      width: 0.5,
       ttl: 5,
       mass: 4,
       damage: 7,
@@ -125,7 +126,7 @@ describe('impacts', () => {
 
   it('does not cast a pending round again, or re-report its impact', () => {
     const r = range({ x: 100, y: 0, radius: 10 });
-    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, ttl: 5 });
+    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, width: 0.5, ttl: 5 });
     r.projectiles.step(DT, r.bodies, r.grid, r.hits);
     expect(r.hits.count).toBe(1);
 
@@ -143,7 +144,7 @@ describe('impacts', () => {
 
   it('resume returns a deflected round to flight on its new heading', () => {
     const r = range({ x: 100, y: 0, radius: 10 });
-    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, ttl: 5 });
+    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, width: 0.5, ttl: 5 });
     r.projectiles.step(DT, r.bodies, r.grid, r.hits);
     expect(r.hits.count).toBe(1);
 
@@ -168,7 +169,7 @@ describe('impacts', () => {
 
   it('kill clears the pending state', () => {
     const r = range({ x: 100, y: 0, radius: 10 });
-    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, ttl: 5 });
+    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, width: 0.5, ttl: 5 });
     r.projectiles.step(DT, r.bodies, r.grid, r.hits);
     expect(r.projectiles.pendingCount).toBe(1);
 
@@ -183,7 +184,7 @@ describe('impacts', () => {
     // it strikes the lower-left arc and the outward normal there must point
     // both down and to the left. Entry works out at about (174, -43).
     const r = range({ x: 200, y: 0, radius: 50 });
-    r.projectiles.spawn({ x: 120, y: -70, vx: 6000, vy: 3000, ttl: 5 });
+    r.projectiles.spawn({ x: 120, y: -70, vx: 6000, vy: 3000, width: 0.5, ttl: 5 });
     r.projectiles.step(DT, r.bodies, r.grid, r.hits);
 
     expect(r.hits.count).toBe(1);
@@ -196,7 +197,7 @@ describe('impacts', () => {
 
   it('clears the hit buffer each step', () => {
     const r = range({ x: 100, y: 0, radius: 10 });
-    r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, ttl: 5 });
+    r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, width: 0.5, ttl: 5 });
     r.projectiles.step(DT, r.bodies, r.grid, r.hits);
     expect(r.hits.count).toBe(1);
     r.projectiles.step(DT, r.bodies, r.grid, r.hits);
@@ -207,7 +208,7 @@ describe('impacts', () => {
     // 3,000,000 units per second is 50,000 units in one step, against a target
     // 20 units across. A body moved and then tested would sail straight past.
     const r = range({ x: 10_000, y: 0, radius: 10 });
-    r.projectiles.spawn({ x: 0, y: 0, vx: 3_000_000, vy: 0, ttl: 5 });
+    r.projectiles.spawn({ x: 0, y: 0, vx: 3_000_000, vy: 0, width: 0.5, ttl: 5 });
 
     r.projectiles.step(DT, r.bodies, r.grid, r.hits);
 
@@ -222,7 +223,7 @@ describe('impacts', () => {
 
     // Fired from inside its own hull, slowly enough that it spends several
     // steps still inside the shooter — every one of which must not register.
-    r.projectiles.spawn({ x: 0, y: 0, vx: 600, vy: 0, ttl: 5, owner: shooter });
+    r.projectiles.spawn({ x: 0, y: 0, vx: 600, vy: 0, width: 0.5, ttl: 5, owner: shooter });
 
     let count = 0;
     let struck = -1;
@@ -239,7 +240,7 @@ describe('impacts', () => {
 
   it('hits its own hull when no owner is set', () => {
     const r = range({ x: 0, y: 0, radius: 40 });
-    r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, ttl: 5, owner: NO_OWNER });
+    r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, width: 0.5, ttl: 5, owner: NO_OWNER });
     r.projectiles.step(DT, r.bodies, r.grid, r.hits);
     expect(r.hits.count).toBe(1);
     expect(r.hits.x[0]).toBe(0);
@@ -247,8 +248,8 @@ describe('impacts', () => {
 
   it('reports several impacts in projectile order', () => {
     const r = range({ x: 100, y: 0, radius: 10 }, { x: 100, y: 200, radius: 10 });
-    const a = r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, ttl: 5 });
-    const b = r.projectiles.spawn({ x: 0, y: 200, vx: 6000, vy: 0, ttl: 5 });
+    const a = r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, width: 0.5, ttl: 5 });
+    const b = r.projectiles.spawn({ x: 0, y: 200, vx: 6000, vy: 0, width: 0.5, ttl: 5 });
 
     r.projectiles.step(DT, r.bodies, r.grid, r.hits);
 
@@ -259,7 +260,7 @@ describe('impacts', () => {
 
   it('misses cleanly and keeps flying', () => {
     const r = range({ x: 200, y: 500, radius: 10 });
-    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 600, vy: 0, ttl: 5 });
+    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 600, vy: 0, width: 0.5, ttl: 5 });
     for (let i = 0; i < 60; i++) r.projectiles.step(DT, r.bodies, r.grid, r.hits);
     expect(r.hits.count).toBe(0);
     expect(r.projectiles.alive[p]).toBe(1);
@@ -276,7 +277,7 @@ describe('impacts', () => {
 
     const projectiles = new Projectiles();
     for (let i = 0; i < 40; i++) {
-      projectiles.spawn({ x: 0, y: i * 100, vx: 6000, vy: 0, ttl: 5 });
+      projectiles.spawn({ x: 0, y: i * 100, vx: 6000, vy: 0, width: 0.5, ttl: 5 });
     }
     const hits = new ProjectileHits(4);
     projectiles.step(DT, bodies, grid, hits);
@@ -291,12 +292,12 @@ describe('gravity', () => {
 
   it('curves a round towards a well', () => {
     const r = range();
-    const straight = r.projectiles.spawn({ x: -500, y: 0, vx: 400, vy: 0, ttl: 10 });
+    const straight = r.projectiles.spawn({ x: -500, y: 0, vx: 400, vy: 0, width: 0.5, ttl: 10 });
     for (let i = 0; i < 120; i++) r.projectiles.step(DT, r.bodies, r.grid, r.hits);
     const withoutGravity = r.projectiles.y[straight];
 
     const g = range();
-    const curved = g.projectiles.spawn({ x: -500, y: 0, vx: 400, vy: 0, ttl: 10 });
+    const curved = g.projectiles.spawn({ x: -500, y: 0, vx: 400, vy: 0, width: 0.5, ttl: 10 });
     for (let i = 0; i < 120; i++) g.projectiles.step(DT, g.bodies, g.grid, g.hits, well);
     const withGravity = g.projectiles.y[curved];
 
@@ -307,7 +308,7 @@ describe('gravity', () => {
 
   it('leaves rounds straight when given no wells', () => {
     const r = range();
-    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 0, vy: 500, ttl: 10 });
+    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 0, vy: 500, width: 0.5, ttl: 10 });
     for (let i = 0; i < 60; i++) r.projectiles.step(DT, r.bodies, r.grid, r.hits, []);
     expect(r.projectiles.x[p]).toBeCloseTo(0, 9);
     expect(r.projectiles.y[p]).toBeCloseTo(500, 6);
@@ -324,6 +325,7 @@ describe('determinism', () => {
           y: i * 7,
           vx: 500 + i * 3,
           vy: 40 - i,
+          width: 0.5,
           ttl: 4,
           mass: 1 + i * 0.5,
           damage: i,
@@ -366,7 +368,7 @@ describe('determinism', () => {
 describe('store housekeeping', () => {
   it('kill is idempotent and ignores nonsense indices', () => {
     const r = range();
-    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 1, vy: 0, ttl: 1 });
+    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 1, vy: 0, width: 0.5, ttl: 1 });
     r.projectiles.kill(p);
     expect(r.projectiles.count).toBe(0);
     expect(() => {
@@ -379,7 +381,7 @@ describe('store housekeeping', () => {
 
   it('resume ignores rounds that are not pending', () => {
     const r = range();
-    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 1, vy: 0, ttl: 1 });
+    const p = r.projectiles.spawn({ x: 0, y: 0, vx: 1, vy: 0, width: 0.5, ttl: 1 });
     expect(() => {
       r.projectiles.resume(p);
       r.projectiles.resume(-1);
@@ -390,8 +392,8 @@ describe('store housekeeping', () => {
 
   it('clear empties the store, pending rounds included', () => {
     const r = range({ x: 100, y: 0, radius: 10 });
-    r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, ttl: 5 });
-    for (let i = 0; i < 9; i++) r.projectiles.spawn({ x: i, y: 900, vx: 1, vy: 0, ttl: 1 });
+    r.projectiles.spawn({ x: 0, y: 0, vx: 6000, vy: 0, width: 0.5, ttl: 5 });
+    for (let i = 0; i < 9; i++) r.projectiles.spawn({ x: i, y: 900, vx: 1, vy: 0, width: 0.5, ttl: 1 });
     r.projectiles.step(DT, r.bodies, r.grid, r.hits);
     expect(r.projectiles.pendingCount).toBe(1);
 
@@ -403,7 +405,7 @@ describe('store housekeeping', () => {
 
   it('grows past its initial capacity', () => {
     const projectiles = new Projectiles(2);
-    for (let i = 0; i < 100; i++) projectiles.spawn({ x: i, y: 0, vx: 1, vy: 0, ttl: 1 });
+    for (let i = 0; i < 100; i++) projectiles.spawn({ x: i, y: 0, vx: 1, vy: 0, width: 0.5, ttl: 1 });
     expect(projectiles.count).toBe(100);
     for (let i = 0; i < 100; i++) expect(projectiles.x[i]).toBe(i);
   });

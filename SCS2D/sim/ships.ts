@@ -344,6 +344,7 @@ export class Ships {
           this.solution.y,
           this.solution.dirX * gun.muzzleSpeed + this.solution.vx,
           this.solution.dirY * gun.muzzleSpeed + this.solution.vy,
+          gun.calibre,
           ROUND_FLIGHT_TIME,
           gun.roundMass,
           gun.muzzleEnergy,
