@@ -283,16 +283,17 @@ export function draw(
   // Tracers, drawn along a fixed slice of each round's own velocity, so a
   // faster round draws a longer streak.
   ctx.strokeStyle = TRACER;
-  ctx.beginPath();
+  // ctx.lineWidth = max(0.5, 1.5 / camera.scale);
   for (let i = 0; i < snapshot.projectileCount; i++) {
+    ctx.beginPath();
     const x = snapshot.projectileX[i]!;
     const y = snapshot.projectileY[i]!;
-    // ctx.lineWidth = max(0.5, 1.5 / camera.scale);
-    ctx.lineWidth = snapshot.projectileWidth[i]!;
+    ctx.lineWidth = (snapshot.projectileWidth[i] ?? 1.5) * 10 / camera.scale;
+    // ctx.lineWidth = (snapshot.projectileWidth[i] ?? 1.5) * 200;
     ctx.moveTo(x, y);
     ctx.lineTo(x - snapshot.projectileVx[i]! * 0.03, y - snapshot.projectileVy[i]! * 0.03);
+    ctx.stroke();
   }
-  ctx.stroke();
 }
 
 /**
