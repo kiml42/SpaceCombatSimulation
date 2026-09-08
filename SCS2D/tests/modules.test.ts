@@ -150,12 +150,14 @@ describe('gun scaling', () => {
 
   it('more barrels fire quicker but are smaller', () => {
     const single = gunStats(100, 4, 1);
-    const multi = gunStats(100, 4, 8);
+    const barrelCount = 8;
+    const multi = gunStats(100, 4, barrelCount);
     expect(multi.calibre).toBeLessThan(single.calibre);
     expect(multi.cycleTime).toBeLessThan(single.cycleTime);
+    expect(multi.cycleTime).toBeCloseTo(single.cycleTime / (barrelCount * barrelCount), 6);
     expect(multi.barrelLength).toBeLessThan(single.barrelLength);
     expect(multi.roundMass).toBeLessThan(single.roundMass);
-    expect(multi.muzzleSpeed).toBeCloseTo(single.muzzleSpeed, 6);
+    expect(multi.muzzleSpeed).toBeGreaterThan(single.muzzleSpeed);
     expect(multi.muzzleEnergy).toBeLessThan(single.muzzleEnergy);
   });
 
