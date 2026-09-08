@@ -128,9 +128,9 @@ export const GUNSHIP: Blueprint = {
 
     // outriggers with small, fast firing, multi-barrelled guns
     structure(0, 9, 8, 8),
-    turret(0, 16, HALF_PI, 6, 6, 6),
+    turret(0, 17, HALF_PI, 8, 6, 6),
     structure(0, -9, 8, 8),
-    turret(0, -16, -HALF_PI, 6, 6, 6),
+    turret(0, -17, -HALF_PI, 8, 6, 6),
 
     thruster(-24, 3, 0, 8, 4),
     thruster(-24, -3, 0, 8, 4),
