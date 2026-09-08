@@ -317,12 +317,16 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
  * shell that hits harder but flies slower and reloads less often; lengthening
  * it buys velocity — flatter trajectory, shorter flight time, less lead to
  * misjudge — at the cost of a longer barrel that traverses more sluggishly.
+ * 
+ * Having multiple barrels gives one turret a line of barrels, each of which is essentially an independent gun.
+ * This gives the turret a higher rate of fire as each barrel can fire sequentially.
+ * The barrels are made narrower to accommodate the increased number, which further increases the fire rate as narrower barrels fire faster.
+ * The barrels are a bit longer than a single barrel would be, as they can reinforce each other and therefore be longer than a single barrel could be.
  */
 export function gunStats(mountLength: number, mountWidth: number, barrelCount: number = 1): GunStats {
   const calibre = mountWidth * CALIBRE_FRACTION / barrelCount;
   // The barrel wants to be as long as its calibre allows, but a mount cannot
   // carry a gun longer than itself without fouling the rest of the ship.
-  // (barrel count is multiplied on the assumption that multiple barrels can reinforce each other and therefore be longer than a single barrel could be.)
   const wanted = calibre * BARREL_CALIBRES * Math.sqrt(barrelCount);
   const barrelLength = wanted < mountLength ? wanted : mountLength;
 
