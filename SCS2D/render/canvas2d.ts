@@ -176,7 +176,15 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     const spacing = gun.barrelSpacing;
 
     ctx.strokeStyle = ready ? colours.ready : BARREL;
-    ctx.lineWidth = lineWidth * (count > 1 ? 1.2 : 1.6);
+    // An honest width for the barrel: outer diameter is twice the calibre
+    // (sim/modules.ts). For multi-barrel mounts, cap the line width below the
+    // centre-to-centre spacing so adjacent barrels never blur together.
+    const physicalWidth = 2 * gun.calibre;
+    const barrelWidth =
+      count > 1
+        ? min(max(physicalWidth, 0.5 / metresToPx), spacing * 0.7)
+        : max(physicalWidth, 0.5 / metresToPx);
+    ctx.lineWidth = barrelWidth;
     ctx.beginPath();
     for (let k = 0; k < count; k++) {
       const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
