@@ -169,6 +169,8 @@ export interface GunStats {
   barrelLength: number;
   /** Number of barrels. */
   barrelCount: number;
+  /** Centre-to-centre distance between adjacent barrels across the mount, metres. */
+  barrelSpacing: number;
   /** Mass of one round, kg. */
   roundMass: number;
   /** Muzzle velocity, m/s. */
@@ -324,25 +326,27 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
  * The barrels are a bit longer than a single barrel would be, as they can reinforce each other and therefore be longer than a single barrel could be.
  */
 export function gunStats(mountLength: number, mountWidth: number, barrelCount: number = 1): GunStats {
-  const calibre = mountWidth * CALIBRE_FRACTION / barrelCount;
+  const calibre = (mountWidth * CALIBRE_FRACTION) / barrelCount;
   // The barrel wants to be as long as its calibre allows, but a mount cannot
   // carry a gun longer than itself without fouling the rest of the ship.
-  const wanted = calibre * BARREL_CALIBRES * Math.sqrt(barrelCount);
+  const wanted = calibre * BARREL_CALIBRES * sqrt(barrelCount);
   const barrelLength = wanted < mountLength ? wanted : mountLength;
 
   const boreArea = PI * 0.25 * calibre * calibre;
   const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
   const muzzleEnergy = CHARGE_ENERGY_PER_BORE_VOLUME * boreArea * barrelLength;
   const muzzleSpeed = sqrt((2 * muzzleEnergy) / roundMass);
+  const barrelSpacing = barrelCount > 1 ? 3 * calibre : 0;
 
   return {
     calibre,
     barrelLength,
     barrelCount,
+    barrelSpacing,
     roundMass,
     muzzleSpeed,
     muzzleEnergy,
-    cycleTime: CYCLE_TIME_PER_CALIBRE * calibre / barrelCount,
+    cycleTime: (CYCLE_TIME_PER_CALIBRE * calibre) / barrelCount,
   };
 }
 

@@ -483,8 +483,12 @@ export class Turrets {
   /**
    * Where a shot from this turret starts and which way it travels, filled into
    * `out`. One rotation for the mount and one for the barrel, no allocation.
+   *
+   * An optional `lateralOffset` (metres across the mount face, perpendicular
+   * to the barrel) places the muzzle for an off-centre barrel in a multi-barrel
+   * mount.
    */
-  firingSolution(bodies: Bodies, i: number, out: FiringSolution): void {
+  firingSolution(bodies: Bodies, i: number, out: FiringSolution, lateralOffset = 0): void {
     const b = this.owner[i]!;
     const angle = bodies.angle[b]!;
     const c = cos(angle);
@@ -500,8 +504,8 @@ export class Turrets {
     out.bearing = world;
     out.dirX = dirX;
     out.dirY = dirY;
-    out.x = mx + dirX * offset;
-    out.y = my + dirY * offset;
+    out.x = mx + dirX * offset - dirY * lateralOffset;
+    out.y = my + dirY * offset + dirX * lateralOffset;
 
     // The muzzle's own velocity, `ω × r` about the centre of mass. Leave this
     // out and a round from a yawing ship is launched with only the hull's

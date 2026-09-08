@@ -159,6 +159,8 @@ describe('gun scaling', () => {
     expect(multi.roundMass).toBeLessThan(single.roundMass);
     expect(multi.muzzleSpeed).toBeGreaterThan(single.muzzleSpeed);
     expect(multi.muzzleEnergy).toBeLessThan(single.muzzleEnergy);
+    expect(single.barrelSpacing).toBe(0);
+    expect(multi.barrelSpacing).toBeGreaterThan(0);
   });
 
   it('buys velocity with barrel length when the mount is what limits it', () => {

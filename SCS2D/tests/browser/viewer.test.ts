@@ -81,7 +81,11 @@ async function distinctColours(p: Page): Promise<number> {
 beforeAll(async () => {
   // Build first, so these test what `npm run build` actually produces rather
   // than a stale artefact someone forgot to regenerate.
-  await promisify(execFile)('npx', ['tsx', join(root, 'scripts', 'build.ts')], { cwd: root });
+  if (process.platform === 'win32') {
+    await promisify(execFile)('cmd.exe', ['/c', 'npx', 'tsx', join(root, 'scripts', 'build.ts')], { cwd: root });
+  } else {
+    await promisify(execFile)('npx', ['tsx', join(root, 'scripts', 'build.ts')], { cwd: root });
+  }
   expect(existsSync(page404)).toBe(true);
 
   browser = await launchChromium();

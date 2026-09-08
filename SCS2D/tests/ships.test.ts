@@ -228,11 +228,12 @@ describe('gunnery', () => {
     const r = duel(gunship, 1200);
     for (let i = 0; i < 60 * 30; i++) r.step();
 
-    const cycle = gunship.turrets[0]!.gun.cycleTime;
     const seconds = 30;
-    const guns = gunship.turrets.length;
     // Two ships, each with every gun bearing at most all of the time.
-    const ceiling = 2 * guns * (seconds / cycle + 1);
+    let ceiling = 0;
+    for (const t of gunship.turrets) {
+      ceiling += 2 * (seconds / t.gun.cycleTime + 1);
+    }
     expect(r.fired).toBeGreaterThan(0);
     expect(r.fired).toBeLessThanOrEqual(ceiling);
   });
@@ -330,5 +331,41 @@ describe('gunnery', () => {
         (restY / speed) * (ry / math.length(rx, ry));
       expect(alongness).toBeGreaterThan(0.99);
     }
+  });
+
+  it('cycles through barrels sequentially with transverse offsets', () => {
+    const twin = compileBlueprint({
+      name: 'Twin',
+      modules: [
+        { kind: 'structure', x: 0, y: 0, length: 10, width: 4 },
+        { kind: 'turret', x: 8, y: 0, length: 6, width: 4, barrels: 2 },
+      ],
+    });
+    const r = rig();
+    const ship = r.ships.spawn(r.world, { design: twin, x: 0, y: 0 });
+    const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
+    r.ships.setOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.remove(enemy);
+
+    // Fire 1st round (barrel 0): should be at -0.5 * spacing in y
+    r.ships.command(DT, r.world);
+    r.grid.rebuild(r.world.bodies);
+    expect(r.ships.fire(r.world, r.projectiles)).toBe(1);
+    const spacing = twin.turrets[0]!.gun.barrelSpacing;
+    expect(spacing).toBeGreaterThan(0);
+    const y0 = r.projectiles.y[0]!;
+    expect(y0).toBeCloseTo(-0.5 * spacing, 6);
+
+    // Advance cooldown until next shot can fire
+    const cycle = twin.turrets[0]!.gun.cycleTime;
+    const stepsToReload = Math.ceil(cycle / DT) + 1;
+    for (let s = 0; s < stepsToReload; s++) {
+      r.ships.command(DT, r.world);
+      r.grid.rebuild(r.world.bodies);
+    }
+    // Fire 2nd round (barrel 1): should be at +0.5 * spacing in y
+    expect(r.ships.fire(r.world, r.projectiles)).toBe(1);
+    const y1 = r.projectiles.y[1]!;
+    expect(y1).toBeCloseTo(+0.5 * spacing, 6);
   });
 });

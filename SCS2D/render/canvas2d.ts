@@ -169,11 +169,22 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
 
     const ready = ship.turretReady[t] === true;
     const bearing = ship.turretBearings[t] ?? 0;
+    const dirX = cos(bearing);
+    const dirY = sin(bearing);
+    const gun = design.turrets[t]!.gun;
+    const count = gun.barrelCount;
+    const spacing = gun.barrelSpacing;
+
     ctx.strokeStyle = ready ? colours.ready : BARREL;
-    ctx.lineWidth = lineWidth * 1.6;
+    ctx.lineWidth = lineWidth * (count > 1 ? 1.2 : 1.6);
     ctx.beginPath();
-    ctx.moveTo(mx, my);
-    ctx.lineTo(mx + cos(bearing) * reach, my + sin(bearing) * reach);
+    for (let k = 0; k < count; k++) {
+      const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
+      const bx = mx - dirY * lat;
+      const by = my + dirX * lat;
+      ctx.moveTo(bx, by);
+      ctx.lineTo(bx + dirX * reach, by + dirY * reach);
+    }
     ctx.stroke();
   }
 
