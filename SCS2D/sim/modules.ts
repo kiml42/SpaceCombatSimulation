@@ -323,7 +323,7 @@ export function gunStats(mountLength: number, mountWidth: number, barrelCount: n
   // The barrel wants to be as long as its calibre allows, but a mount cannot
   // carry a gun longer than itself without fouling the rest of the ship.
   // (barrel count is multiplied on the assumption that multiple barrels can reinforce each other and therefore be longer than a single barrel could be.)
-  const wanted = calibre * BARREL_CALIBRES * barrelCount;
+  const wanted = calibre * BARREL_CALIBRES * Math.sqrt(barrelCount);
   const barrelLength = wanted < mountLength ? wanted : mountLength;
 
   const boreArea = PI * 0.25 * calibre * calibre;
