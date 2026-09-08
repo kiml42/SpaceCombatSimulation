@@ -336,7 +336,7 @@ export function gunStats(mountLength: number, mountWidth: number, barrelCount: n
   const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
   const muzzleEnergy = CHARGE_ENERGY_PER_BORE_VOLUME * boreArea * barrelLength;
   const muzzleSpeed = sqrt((2 * muzzleEnergy) / roundMass);
-  const barrelSpacing = barrelCount > 1 ? 3 * calibre : 0;
+  const barrelSpacing = barrelCount > 1 ? 5 * calibre : 0;
 
   return {
     calibre,
