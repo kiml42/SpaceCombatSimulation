@@ -64,6 +64,7 @@ export class Snapshot {
   projectileY = new Float64Array(0);
   projectileVx = new Float64Array(0);
   projectileVy = new Float64Array(0);
+  projectileWidth = new Float64Array(0);
   projectileCount = 0;
 
   /**
@@ -90,6 +91,7 @@ function growProjectiles(snapshot: Snapshot, needed: number): void {
   snapshot.projectileY = new Float64Array(size);
   snapshot.projectileVx = new Float64Array(size);
   snapshot.projectileVy = new Float64Array(size);
+  snapshot.projectileWidth = new Float64Array(size);
 }
 
 function shipView(snapshot: Snapshot, i: number): ShipView {
@@ -176,6 +178,7 @@ export function capture(
     out.projectileY[p] = projectiles.y[i]!;
     out.projectileVx[p] = projectiles.vx[i]!;
     out.projectileVy[p] = projectiles.vy[i]!;
+    out.projectileWidth[p] = projectiles.width[i]!;
     p++;
   }
   out.projectileCount = p;

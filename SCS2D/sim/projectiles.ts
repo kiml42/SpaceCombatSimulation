@@ -63,6 +63,7 @@ export interface ProjectileSpec {
   y: number;
   vx: number;
   vy: number;
+  width: number;
   /** Seconds of flight before the round expires. */
   ttl: number;
   /** Used for imparted momentum, and for the mass gained if the round embeds. */
@@ -170,6 +171,7 @@ export class Projectiles {
   y!: Float64Array;
   vx!: Float64Array;
   vy!: Float64Array;
+  width!: Float64Array;
   ttl!: Float64Array;
   mass!: Float64Array;
   damage!: Float64Array;
@@ -214,6 +216,7 @@ export class Projectiles {
     this.y = f64(this.y);
     this.vx = f64(this.vx);
     this.vy = f64(this.vy);
+    this.width = f64(this.width);
     this.ttl = f64(this.ttl);
     this.mass = f64(this.mass);
     this.damage = f64(this.damage);
@@ -243,6 +246,7 @@ export class Projectiles {
     y: number,
     vx: number,
     vy: number,
+    width: number,
     ttl: number,
     mass: number,
     damage: number,
@@ -263,6 +267,7 @@ export class Projectiles {
     this.y[i] = y;
     this.vx[i] = vx;
     this.vy[i] = vy;
+    this.width[i] = width;
     this.ttl[i] = ttl;
     this.mass[i] = mass;
     this.damage[i] = damage;
@@ -282,6 +287,7 @@ export class Projectiles {
       spec.y,
       spec.vx,
       spec.vy,
+      spec.width,
       spec.ttl,
       spec.mass ?? 1,
       spec.damage ?? 0,
@@ -424,6 +430,7 @@ export class Projectiles {
     muzzleY: number,
     muzzleVx: number,
     muzzleVy: number,
+    width: number,
     ttl: number,
     mass: number,
     damage: number,
@@ -435,6 +442,7 @@ export class Projectiles {
       muzzleY,
       bodies.vx[bodyIndex] + muzzleVx,
       bodies.vy[bodyIndex] + muzzleVy,
+      width,
       ttl,
       mass,
       damage,
