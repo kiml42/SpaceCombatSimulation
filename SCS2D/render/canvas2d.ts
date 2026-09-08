@@ -57,6 +57,7 @@ const NEUTRAL = {
 const BACKGROUND = '#0b0f16';
 const GRID = '#161d29';
 const TRACER = '#ffe6a8';
+const TRACER_GLOW = '#ffb2a888';
 const WELL = '#3a4e7a';
 
 /** The firing arc: a pale wash with a slightly firmer edge to define it. */
@@ -282,18 +283,33 @@ export function draw(
 
   // Tracers, drawn along a fixed slice of each round's own velocity, so a
   // faster round draws a longer streak.
+
+
+  // First an outer line of fixed width to make the streaks more visible at any zoom level
+  ctx.strokeStyle = TRACER_GLOW;
+  ctx.lineWidth = max(1, 1.5 / camera.scale);
+  ctx.beginPath();
+  for (let i = 0; i < snapshot.projectileCount; i++) {
+    const x = snapshot.projectileX[i]! + snapshot.projectileVx[i]! * 0.025 * snapshot.projectileWidth[i];
+    const y = snapshot.projectileY[i]! + snapshot.projectileVy[i]! * 0.025 * snapshot.projectileWidth[i];
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - snapshot.projectileVx[i]! * 0.35 * snapshot.projectileWidth[i], y - snapshot.projectileVy[i]! * 0.35 * snapshot.projectileWidth[i]);
+  }
+  ctx.stroke();
+
+  // then the inner line proportional to the width of the actual projectile
   ctx.strokeStyle = TRACER;
   // ctx.lineWidth = max(0.5, 1.5 / camera.scale);
   for (let i = 0; i < snapshot.projectileCount; i++) {
     ctx.beginPath();
     const x = snapshot.projectileX[i]!;
     const y = snapshot.projectileY[i]!;
-    ctx.lineWidth = (snapshot.projectileWidth[i] ?? 1.5) * 10 / camera.scale;
-    // ctx.lineWidth = (snapshot.projectileWidth[i] ?? 1.5) * 200;
+    ctx.lineWidth = (snapshot.projectileWidth[i] ?? 1.5) * 2;
     ctx.moveTo(x, y);
-    ctx.lineTo(x - snapshot.projectileVx[i]! * 0.03, y - snapshot.projectileVy[i]! * 0.03);
+    ctx.lineTo(x - snapshot.projectileVx[i]! * 0.3 * snapshot.projectileWidth[i], y - snapshot.projectileVy[i]! * 0.3 * snapshot.projectileWidth[i]);
     ctx.stroke();
   }
+
 }
 
 /**
