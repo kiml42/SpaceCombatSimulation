@@ -89,9 +89,6 @@ export const BARREL_CALIBRES = 50;
 /** Shell length in calibres. A real armour-piercing shell is 4–5. */
 export const SHELL_CALIBRES = 4.5;
 
-/** Space between barrels calibres. Based on what looks good. This will need adjustment for realism and balance later. */
-export const BARREL_SPACING_CALIBRES = 5;
-
 /**
  * Mean shell density, kg/m³. Below the density of steel because a shell is
  * ogive-nosed and part hollow, so it does not fill its own bounding cylinder.
@@ -365,11 +362,42 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
  * shell that hits harder but flies slower and reloads less often; lengthening
  * it buys velocity — flatter trajectory, shorter flight time, less lead to
  * misjudge — at the cost of a longer barrel that traverses more sluggishly.
- * 
- * Having multiple barrels gives one turret a line of barrels, each of which is essentially an independent gun.
- * This gives the turret a higher rate of fire as each barrel can fire sequentially.
- * The barrels are made narrower to accommodate the increased number, which further increases the fire rate as narrower barrels fire faster.
- * The barrels are a bit longer than a single barrel would be, as they can reinforce each other and therefore be longer than a single barrel could be.
+ *
+ * **Multiple barrels** put a row of what are essentially independent guns on
+ * one mount, firing in turn, so the mount's rate of fire rises — twice over,
+ * since each barrel is narrower than a single gun would be and a narrower gun
+ * cycles faster. They are a little longer than one gun could be, since a row
+ * of tubes braces itself.
+ *
+ * Two rules shape that row, and they are independent of each other. Saying so
+ * is worth the space, because they look related and are not:
+ *
+ * - **How much bore.** A mount of a given width is allowed a fixed total bore,
+ *   `width * CALIBRE_FRACTION`, and `n` barrels divide it — so calibre falls as
+ *   `1/n`. This is a *budget*, not a packing constraint: the barrels never come
+ *   close to filling the face, and there would be room for far more of them.
+ *   What it says is that a mount of a given size is worth the same weight of
+ *   metal downrange however it is arranged, and the interesting choice is
+ *   whether to spend it on one heavy shell or many light ones.
+ * - **Where the barrels go.** They spread evenly right across the mount face
+ *   with `n + 1` equal gaps, so there is one whole gap outboard of each end
+ *   barrel and the row is as wide as the mount can make it. Nothing is chosen
+ *   here — the face and the barrel count between them fix the spacing, which
+ *   is why there is no constant. It cannot overhang, either: the row spans
+ *   `(n-1)/(n+1)` of the face and that is under 1 for every `n`.
+ *
+ * The face in question is the *smaller* of the mount's two dimensions, because
+ * a turret traverses. At rest the row lies across the width; ninety degrees
+ * round it lies along the length, and a mount wider than it is long would
+ * otherwise sweep a row of barrels through whatever is beside it. Taking the
+ * lesser makes the mount's footprint the circle inscribed in it, which is what
+ * a barbette is.
+ *
+ * Note what this does *not* model: the barrels fire parallel, never converged,
+ * so a barrel `d` off the mount's centreline misses the aim point by `d` at
+ * every range. That is a real effect and currently a small one, ships being
+ * far wider than the row; against small targets it would bite, and harmonising
+ * the barrels to converge at a chosen range is the natural answer when it does.
  */
 export function gunStats(mountLength: number, mountWidth: number, barrelCount: number = 1): GunStats {
   const calibre = (mountWidth * CALIBRE_FRACTION) / barrelCount;
@@ -382,7 +410,11 @@ export function gunStats(mountLength: number, mountWidth: number, barrelCount: n
   const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
   const muzzleEnergy = CHARGE_ENERGY_PER_BORE_VOLUME * boreArea * barrelLength;
   const muzzleSpeed = sqrt((2 * muzzleEnergy) / roundMass);
-  const barrelSpacing = barrelCount > 1 ? BARREL_SPACING_CALIBRES * calibre : 0;
+  // One whole gap outboard of each end barrel, so `n` barrels make `n + 1`
+  // gaps. Zero rather than a notional half-face for a single barrel, which has
+  // nothing to be spaced from.
+  const mountFace = mountWidth < mountLength ? mountWidth : mountLength;
+  const barrelSpacing = barrelCount > 1 ? mountFace / (barrelCount + 1) : 0;
 
   return {
     calibre,

@@ -164,6 +164,47 @@ describe('gun scaling', () => {
     expect(multi.barrelSpacing).toBeGreaterThan(0);
   });
 
+  it('spreads the barrels right across the mount face, with a gap at each end', () => {
+    // n barrels make n + 1 equal gaps, so the outermost barrel sits one whole
+    // gap in from the edge and the row is as wide as the mount can make it.
+    for (const n of [2, 3, 8, 17]) {
+      const gun = gunStats(12, 8, n);
+      const span = (n - 1) * gun.barrelSpacing;
+      const margin = (8 - span) / 2;
+      expect(margin).toBeCloseTo(gun.barrelSpacing, 12);
+      expect(span).toBeLessThan(8);
+    }
+  });
+
+  it('cannot overhang the mount, however many barrels are asked for', () => {
+    // The whole point of deriving the spacing from the face rather than from
+    // the calibre: the row spans (n-1)/(n+1) of the face, which is under one
+    // for every n, so no barrel count can push a barrel past the edge.
+    for (const n of [2, 8, 50, 1000]) {
+      const gun = gunStats(12, 8, n);
+      const outerEdge = ((n - 1) * gun.barrelSpacing) / 2 + gun.calibre / 2;
+      expect(outerEdge).toBeLessThan(8 / 2);
+    }
+  });
+
+  it('measures the face across the smaller dimension, because a turret traverses', () => {
+    // A mount wider than it is long presents its length to the row once it has
+    // traversed ninety degrees, so the lesser of the two is what the row has to
+    // fit inside.
+    const wide = gunStats(3, 10, 8);
+    expect((wide.barrelCount - 1) * wide.barrelSpacing).toBeLessThan(3);
+    // Square-on mounts are unaffected: every turret in the scenarios is longer
+    // than it is wide, so this is a guard and not a change to them.
+    const normal = gunStats(12, 8, 8);
+    expect(normal.barrelSpacing).toBeCloseTo(8 / 9, 12);
+  });
+
+  it('leaves a single barrel unspaced', () => {
+    // There is nothing to be spaced from, and reporting half a mount face as
+    // the gap would be a lie the renderer could act on.
+    expect(gunStats(12, 8, 1).barrelSpacing).toBe(0);
+  });
+
   it('buys velocity with barrel length when the mount is what limits it', () => {
     const stubby = gunStats(4, 8);
     const long = gunStats(12, 8);
