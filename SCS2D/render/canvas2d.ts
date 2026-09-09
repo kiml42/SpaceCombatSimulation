@@ -68,6 +68,41 @@ const TRACER_GLOW = '#ffb2a888';
 const GLOW_LEAD = 0.025;
 const GLOW_STREAK = 0.35;
 const TRACER_STREAK = 0.3;
+
+/**
+ * Width of the tracer's halo, in calibres. Proportional to the round rather
+ * than a fixed size, so that close up a light round is a small bright thing
+ * and a heavy one is a large one — a fixed halo makes every round look the
+ * same size at the zoom where its true size is finally legible.
+ */
+const GLOW_CALIBRES = 3;
+
+/**
+ * Smallest widths anything is drawn at on screen, in pixels.
+ *
+ * Zoomed out, honest widths go to a fraction of a pixel and detail that
+ * carries meaning stops being drawn at all: a round's two colours collapse
+ * into one, and a barrel — a few centimetres of steel — disappears, taking
+ * with it the only indication of where a turret is pointing. Below these
+ * floors a stroke is therefore drawn wider than life. Above them the true
+ * width wins and what is on screen is to scale, which is the point of having
+ * derived it from the mount in the first place.
+ *
+ * The glow's floor is the widest because it has to stay visible *around* the
+ * tracer rather than merely be present. That ordering holds at every zoom, and
+ * not by luck: where the tracer is at its floor the glow's larger floor wins,
+ * and where the tracer is at its true width the glow is three times it, which
+ * clears the glow's floor on its own.
+ */
+const MIN_GLOW_PX = 5;
+const MIN_TRACER_PX = 2;
+const MIN_BARREL_PX = 2;
+
+/** A stroke at its true width, but never thinner than `minPx` on screen. */
+function legibleWidth(physical: number, minPx: number, metresToPx: number): number {
+  const floor = minPx / metresToPx;
+  return physical > floor ? physical : floor;
+}
 const WELL = '#3a4e7a';
 
 /** The firing arc: a pale wash with a slightly firmer edge to define it. */
@@ -187,15 +222,16 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     const spacing = gun.barrelSpacing;
 
     ctx.strokeStyle = ready ? colours.ready : BARREL;
-    // An honest width for the barrel: outer diameter is twice the calibre
-    // (sim/modules.ts). For multi-barrel mounts, cap the line width below the
-    // centre-to-centre spacing so adjacent barrels never blur together.
+    // The barrel's outer diameter, twice the calibre, which is the tube the
+    // annulus in `moduleStats` charges steel for — not the bore.
     const physicalWidth = 2 * gun.calibre;
-    const barrelWidth =
-      count > 1
-        ? min(max(physicalWidth, 0.5 / metresToPx), spacing * 0.7)
-        : max(physicalWidth, 0.5 / metresToPx);
-    ctx.lineWidth = barrelWidth;
+    // Barrels are allowed to overlap once the floor has widened them past their
+    // own gaps, which happens only when the whole ship is a hundred-odd pixels
+    // across. A row that closes into one solid bar still says where the turret
+    // is pointing, where holding each barrel inside its gap would shrink them
+    // back below the floor and say nothing. Overlap is free: the barrel colours
+    // are opaque, so a bar drawn twice looks like a bar.
+    ctx.lineWidth = legibleWidth(physicalWidth, MIN_BARREL_PX, metresToPx);
     ctx.beginPath();
     for (let k = 0; k < count; k++) {
       const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
@@ -291,25 +327,31 @@ export function draw(
     drawShip(ctx, snapshot.ships[i]!, camera.scale);
   }
 
-  // Tracers, in two passes. The outer glow is a fixed width on screen, so a
-  // round stays visible however far the camera has zoomed out; the inner
-  // streak is drawn at the round's own calibre, so its size is honest at any
-  // zoom. Streak length scales with calibre too, which makes a heavy shell
-  // read as a slower, fatter round than a light one.
+  // Tracers, in two passes so that every glow sits under every streak. Both
+  // are sized from the round's calibre and floored on screen, so a round is
+  // true to size close up and legible from far out. Streak length scales with
+  // calibre too, which makes a heavy shell read as a slower, fatter round than
+  // a light one.
+  //
+  // A stroke per round rather than one path for all of them, which the glow's
+  // translucency notices: two rounds whose glows cross now brighten where they
+  // meet, where a single stroke over one path would have composited once.
+  // Worth it for a halo that is the round's own size, and rare enough not to
+  // read as anything but two tracers crossing.
   ctx.strokeStyle = TRACER_GLOW;
-  ctx.lineWidth = max(1, 1.5 / camera.scale);
-  ctx.beginPath();
   for (let i = 0; i < snapshot.projectileCount; i++) {
     const calibre = snapshot.projectileWidth[i]!;
     const x = snapshot.projectileX[i]! + snapshot.projectileVx[i]! * GLOW_LEAD * calibre;
     const y = snapshot.projectileY[i]! + snapshot.projectileVy[i]! * GLOW_LEAD * calibre;
+    ctx.lineWidth = legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale);
+    ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(
       x - snapshot.projectileVx[i]! * GLOW_STREAK * calibre,
       y - snapshot.projectileVy[i]! * GLOW_STREAK * calibre,
     );
+    ctx.stroke();
   }
-  ctx.stroke();
 
   // A pass per round, because each carries its own width. Cheap at the round
   // counts a battle reaches; if that ever stops being true, bucket by width
@@ -321,7 +363,7 @@ export function draw(
     const y = snapshot.projectileY[i]!;
     // The round *is* its calibre wide. Twice the calibre is the barrel's outer
     // diameter — right for the tube, wrong for what comes out of it.
-    ctx.lineWidth = max(calibre, 0.5 / camera.scale);
+    ctx.lineWidth = legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(
