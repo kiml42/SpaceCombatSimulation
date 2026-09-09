@@ -170,6 +170,14 @@ describe('gun scaling', () => {
     expect(long.roundMass).toBeCloseTo(stubby.roundMass, 12);
   });
 
+  it('rejects a barrel count that is not a whole number of barrels', () => {
+    const turret = (barrels: number): ModuleSpec => ({ kind: 'turret', x: 0, y: 0, length: 12, width: 8, barrels });
+    expect(moduleProblem(turret(0))).toMatch(/whole number/);
+    expect(moduleProblem(turret(-2))).toMatch(/whole number/);
+    expect(moduleProblem(turret(2.5))).toMatch(/whole number/);
+    expect(moduleProblem(turret(3))).toBeNull();
+  });
+
   it('carries the mass of the barrel on the mount', () => {
     const stats = moduleStats(box('turret', 12, 8));
     expect(stats.gun).not.toBeNull();

@@ -229,6 +229,16 @@ export function moduleProblem(spec: ModuleSpec): string | null {
   if (!(reinforcement >= 1)) {
     return `${spec.kind}: reinforcement must be at least 1, got ${reinforcement}`;
   }
+  if (spec.barrels !== undefined) {
+    // Whole barrels only. A fractional count divides the calibre and the cycle
+    // time perfectly happily, so nothing downstream complains — but the firing
+    // order steps through it modulo the count, landing on positions between
+    // barrels, while a renderer counting whole barrels draws a different number
+    // from the one the gun fires out of.
+    if (!(spec.barrels >= 1) || !Number.isInteger(spec.barrels)) {
+      return `${spec.kind}: barrels must be a whole number of at least 1, got ${spec.barrels}`;
+    }
+  }
   const thickness = BASE_WALL_THICKNESS * reinforcement;
   const smallest = spec.length < spec.width ? spec.length : spec.width;
   const limiting = smallest < DECK_HEIGHT ? smallest : DECK_HEIGHT;
