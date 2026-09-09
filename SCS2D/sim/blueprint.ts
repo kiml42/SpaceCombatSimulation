@@ -40,6 +40,8 @@ const TOUCH_TOLERANCE = 1e-9;
 export interface Blueprint {
   name: string;
   modules: readonly ModuleSpec[];
+  /** Why the ship is shaped this way. See `ModuleSpec.notes`. */
+  notes?: string;
 }
 
 /** A module in a compiled design: what was authored, plus what it works out to. */

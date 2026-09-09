@@ -188,6 +188,16 @@ export interface ModuleSpec {
    * specifies the number of barrels for a turret.
    */
   barrels?: number;
+
+  /**
+   * Why this module is here, in the author's own words. Carried through the
+   * file format and the editor, and ignored by every scaling law.
+   *
+   * It exists because the alternative is losing the reasoning: a layout's
+   * numbers say what a ship is and never why it was drawn that way, and a
+   * comment in a source file does not survive being edited by a tool.
+   */
+  notes?: string;
 }
 
 /** What a gun derived from a turret module's geometry can do. */
