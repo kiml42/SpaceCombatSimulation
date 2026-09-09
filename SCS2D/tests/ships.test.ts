@@ -326,10 +326,21 @@ describe('gunnery', () => {
       );
       expect(speed).toBeCloseTo(nearest, 6);
 
-      // And that leftover points along the barrel, not across it.
-      const alongness = (restX / speed) * (rx / math.length(rx, ry)) +
-        (restY / speed) * (ry / math.length(rx, ry));
-      expect(alongness).toBeGreaterThan(0.99);
+      // And that leftover points along a barrel. Note that it is the *barrel*
+      // bearing and not the direction out from the centre of mass: a beam
+      // mount's muzzle is offset from the axis it fires along, so the two only
+      // agree when the centre of mass happens to sit on that axis, and any
+      // change to a module's mass moves it off.
+      const bearings = gunship.turrets.map((_, t) => {
+        const ti = r.ships.turretIndexOf(0, t);
+        return bodies.angle[b]! + r.ships.turrets.bearing[ti]!;
+      });
+      const alongness = bearings.reduce(
+        (best, bearing) =>
+          math.max(best, (restX / speed) * math.cos(bearing) + (restY / speed) * math.sin(bearing)),
+        -1,
+      );
+      expect(alongness).toBeCloseTo(1, 9);
     }
   });
 
