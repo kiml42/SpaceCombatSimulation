@@ -58,6 +58,16 @@ const BACKGROUND = '#0b0f16';
 const GRID = '#161d29';
 const TRACER = '#ffe6a8';
 const TRACER_GLOW = '#ffb2a888';
+
+/**
+ * Tracer geometry, in seconds of flight per metre of calibre — so a round's
+ * streak is as long as a bigger round's is, scaled by how big it is. The glow
+ * leads slightly ahead of the round so its nose is visible against whatever it
+ * is about to hit.
+ */
+const GLOW_LEAD = 0.025;
+const GLOW_STREAK = 0.35;
+const TRACER_STREAK = 0.3;
 const WELL = '#3a4e7a';
 
 /** The firing arc: a pale wash with a slightly firmer edge to define it. */
@@ -281,35 +291,45 @@ export function draw(
     drawShip(ctx, snapshot.ships[i]!, camera.scale);
   }
 
-  // Tracers, drawn along a fixed slice of each round's own velocity, so a
-  // faster round draws a longer streak.
-
-
-  // First an outer line of fixed width to make the streaks more visible at any zoom level
+  // Tracers, in two passes. The outer glow is a fixed width on screen, so a
+  // round stays visible however far the camera has zoomed out; the inner
+  // streak is drawn at the round's own calibre, so its size is honest at any
+  // zoom. Streak length scales with calibre too, which makes a heavy shell
+  // read as a slower, fatter round than a light one.
   ctx.strokeStyle = TRACER_GLOW;
   ctx.lineWidth = max(1, 1.5 / camera.scale);
   ctx.beginPath();
   for (let i = 0; i < snapshot.projectileCount; i++) {
-    const x = snapshot.projectileX[i]! + snapshot.projectileVx[i]! * 0.025 * snapshot.projectileWidth[i];
-    const y = snapshot.projectileY[i]! + snapshot.projectileVy[i]! * 0.025 * snapshot.projectileWidth[i];
+    const calibre = snapshot.projectileWidth[i]!;
+    const x = snapshot.projectileX[i]! + snapshot.projectileVx[i]! * GLOW_LEAD * calibre;
+    const y = snapshot.projectileY[i]! + snapshot.projectileVy[i]! * GLOW_LEAD * calibre;
     ctx.moveTo(x, y);
-    ctx.lineTo(x - snapshot.projectileVx[i]! * 0.35 * snapshot.projectileWidth[i], y - snapshot.projectileVy[i]! * 0.35 * snapshot.projectileWidth[i]);
+    ctx.lineTo(
+      x - snapshot.projectileVx[i]! * GLOW_STREAK * calibre,
+      y - snapshot.projectileVy[i]! * GLOW_STREAK * calibre,
+    );
   }
   ctx.stroke();
 
-  // then the inner line proportional to the width of the actual projectile
+  // A pass per round, because each carries its own width. Cheap at the round
+  // counts a battle reaches; if that ever stops being true, bucket by width
+  // rather than reaching for a single average.
   ctx.strokeStyle = TRACER;
-  // ctx.lineWidth = max(0.5, 1.5 / camera.scale);
   for (let i = 0; i < snapshot.projectileCount; i++) {
-    ctx.beginPath();
+    const calibre = snapshot.projectileWidth[i]!;
     const x = snapshot.projectileX[i]!;
     const y = snapshot.projectileY[i]!;
-    ctx.lineWidth = (snapshot.projectileWidth[i] ?? 1.5) * 2;
+    // The round *is* its calibre wide. Twice the calibre is the barrel's outer
+    // diameter — right for the tube, wrong for what comes out of it.
+    ctx.lineWidth = max(calibre, 0.5 / camera.scale);
+    ctx.beginPath();
     ctx.moveTo(x, y);
-    ctx.lineTo(x - snapshot.projectileVx[i]! * 0.3 * snapshot.projectileWidth[i], y - snapshot.projectileVy[i]! * 0.3 * snapshot.projectileWidth[i]);
+    ctx.lineTo(
+      x - snapshot.projectileVx[i]! * TRACER_STREAK * calibre,
+      y - snapshot.projectileVy[i]! * TRACER_STREAK * calibre,
+    );
     ctx.stroke();
   }
-
 }
 
 /**

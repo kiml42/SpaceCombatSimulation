@@ -52,7 +52,7 @@ function turret(
   width: number,
   barrels: number
 ): ModuleSpec {
-  return { kind: 'turret', x, y, angle, length, width, barrels: barrels };
+  return { kind: 'turret', x, y, angle, length, width, barrels };
 }
 
 /**

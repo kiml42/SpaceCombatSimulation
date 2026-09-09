@@ -26,8 +26,8 @@ const GOLDEN: Record<ScenarioName, string> = {
   orbit: '0441a895',
   tumble: '52118178',
   gunnery: 'c3e9551c',
-  duel: '698e2b37',
-  swarm: '9e7d53f3',
+  duel: '11085e47',
+  swarm: '4e765fed',
 };
 
 describe('golden scenarios', () => {

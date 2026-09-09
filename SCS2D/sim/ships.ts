@@ -272,11 +272,6 @@ export class Ships {
       for (let t = 0; t < timers.length; t++) {
         if (timers[t]! > 0) timers[t] = timers[t]! - dt;
       }
-      const barrels = this.nextBarrelToFire[i]!;
-      for (let t = 0; t < barrels.length; t++) {
-        const gun = this.designs[i]!.turrets[t]!.gun;
-        if (barrels[t]! >= gun.barrelCount) barrels[t] = 0;
-      }
     }
 
     // Slew every turret, collecting the hull reaction rather than letting it
