@@ -112,6 +112,35 @@ export const CHARGE_ENERGY_PER_BORE_VOLUME = 1.4e8;
 export const CYCLE_TIME_PER_CALIBRE = 40;
 
 /**
+ * Loading machinery mass per metre of calibre, kg/m. Every barrel needs its
+ * own hoist, rammer and breech, and what those are sized by is the round they
+ * move rather than the gun that fires it.
+ *
+ * Calibrated on the Mk 45 5"/54: a 22 t mount whose barrel is about 2 t by the
+ * annulus below, leaving several tonnes of loader drum and hoist for a 0.127 m
+ * bore. At the other end of the range it gives a 16"/50 sixteen tonnes of
+ * loading gear per gun, against a rotating structure of some 1700 t — plausible
+ * at both ends, which is the most that can be said for it.
+ *
+ * Linear in calibre and not in the cube of it, deliberately: a rammer is a
+ * machine sized by the round's diameter and stroke, and it does not shrink to
+ * a scale model of itself the way a mass of steel would.
+ *
+ * Note what linearity does to a multi-barrel mount, because it is exact rather
+ * than approximate. Splitting a mount's bore across `n` barrels divides the
+ * calibre by `n`, so `n` mechanisms each linear in calibre come to
+ * `MECHANISM_MASS_PER_CALIBRE * width * CALIBRE_FRACTION` however many barrels
+ * there are: the loading machinery is sized by the mount's bore *budget* and
+ * not by how it is divided up. That is coherent, and it puts a floor under a
+ * multi-barrel mount that the tubes alone do not — barrel steel falls away as
+ * `n^-3/2` — but it is a floor and not a penalty. If barrels are to cost mass
+ * rather than merely stop being free, this exponent is the dial: below linear
+ * the total rises with `n`, above it the total falls. ROADMAP.md §12 holds the
+ * open question.
+ */
+export const MECHANISM_MASS_PER_CALIBRE = 4e4;
+
+/**
  * Traverse torque the mount ring can deliver per kilogram of turret, N·m/kg.
  * Set so that a heavy turret reaches its rate limit in a couple of seconds.
  */
@@ -294,7 +323,11 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     const outerDiameter = 2 * gun.calibre;
     const barrelSection =
       PI * 0.25 * (outerDiameter * outerDiameter - gun.calibre * gun.calibre);
-    fittingMass = barrelSection * gun.barrelLength * HULL_DENSITY * gun.barrelCount;
+    const barrelMass = barrelSection * gun.barrelLength * HULL_DENSITY;
+    // Plus the machinery behind each barrel, which every barrel needs its own
+    // of and which does not scale down as steeply as the tube does.
+    const mechanismMass = MECHANISM_MASS_PER_CALIBRE * gun.calibre;
+    fittingMass = (barrelMass + mechanismMass) * gun.barrelCount;
   }
 
   const mass = structureMass + fittingMass;

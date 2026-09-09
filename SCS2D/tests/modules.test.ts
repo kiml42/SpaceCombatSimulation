@@ -6,6 +6,7 @@ import {
   DECK_HEIGHT,
   gunStats,
   HULL_DENSITY,
+  MECHANISM_MASS_PER_CALIBRE,
   moduleProblem,
   moduleStats,
   traverseAccel,
@@ -168,6 +169,46 @@ describe('gun scaling', () => {
     const long = gunStats(12, 8);
     expect(long.muzzleSpeed).toBeGreaterThan(stubby.muzzleSpeed);
     expect(long.roundMass).toBeCloseTo(stubby.roundMass, 12);
+  });
+
+  it('carries loading machinery for every barrel, sized by the round it moves', () => {
+    const light = moduleStats(box('turret', 12, 4));
+    const heavy = moduleStats(box('turret', 12, 16));
+    const barrelSteel = (s: ReturnType<typeof moduleStats>) =>
+      s.fittingMass - MECHANISM_MASS_PER_CALIBRE * s.gun!.calibre * s.gun!.barrelCount;
+
+    expect(barrelSteel(light)).toBeGreaterThan(0);
+    expect(barrelSteel(heavy)).toBeGreaterThan(0);
+    // Linear in calibre, so a mount of four times the bore carries four times
+    // the machinery — where its barrel steel, being a volume, is up sixty-four
+    // fold. Machinery is what a light mount's mass is mostly made of.
+    expect(heavy.fittingMass - barrelSteel(heavy)).toBeCloseTo(
+      4 * (light.fittingMass - barrelSteel(light)),
+      6,
+    );
+    expect(barrelSteel(light)).toBeLessThan(light.fittingMass - barrelSteel(light));
+  });
+
+  it('sizes the loading machinery by the mount bore budget, not the barrel count', () => {
+    // The consequence of a law linear in calibre, and exact rather than
+    // approximate: splitting the bore across n barrels divides the calibre by
+    // n, so n mechanisms come to the same total. It puts a floor under a
+    // multi-barrel mount without making barrels cost anything — ROADMAP.md §12
+    // records that as an open balance question, so pin it rather than let it
+    // drift unnoticed.
+    const mechanism = (barrels: number) => {
+      const gun = gunStats(12, 8, barrels);
+      return MECHANISM_MASS_PER_CALIBRE * gun.calibre * gun.barrelCount;
+    };
+    expect(mechanism(8)).toBeCloseTo(mechanism(1), 6);
+    expect(mechanism(1)).toBeCloseTo(MECHANISM_MASS_PER_CALIBRE * 8 * CALIBRE_FRACTION, 6);
+
+    // And the whole mount is still lighter for having more barrels, because
+    // the tubes' steel falls away and nothing yet pushes back.
+    const single = moduleStats({ kind: 'turret', x: 0, y: 0, length: 12, width: 8, barrels: 1 });
+    const multi = moduleStats({ kind: 'turret', x: 0, y: 0, length: 12, width: 8, barrels: 8 });
+    expect(multi.mass).toBeLessThan(single.mass);
+    expect(multi.fittingMass).toBeGreaterThan(mechanism(8));
   });
 
   it('rejects a barrel count that is not a whole number of barrels', () => {

@@ -111,6 +111,17 @@ Deliberately unresolved; decide when they block something.
   stretching a module costs wall. Damage locality and gun vulnerability are the two intended
   counter-pressures and neither exists yet, so "one enormous module" is currently under-punished.
   Expect the GA to say so.
+- **What a barrel should cost.** Splitting a turret's bore across `n` barrels trades weight of shell
+  for rate of fire, and at present it does so at a discount: the tubes' steel falls away as `n^-3/2`
+  while `MECHANISM_MASS_PER_CALIBRE`, being linear in calibre, holds the loading machinery exactly
+  invariant — the mount's bore budget sizes it, not how the budget is divided. So a multi-barrel mount
+  has a mass floor but no penalty, and it is lighter than the single-barrel mount of the same size.
+  Whether that is right is a balance question rather than a physical one, and the exponent on calibre
+  is the dial: below linear the machinery total rises with `n`, above it it falls. Two other things
+  about the multi-barrel model are unsettled with it — `BARREL_CALIBRES * sqrt(n)` currently permits a
+  141-calibre barrel, and the calibre rule is documented as face packing when the arithmetic makes it a
+  bore budget, the barrel row being some 4.4x wider than the tubes it holds. Settle them together, and
+  let the GA weigh in.
 - How severed chunks divide fuel, ammunition and power.
 - Whether module destruction is a discrete state or simply the bottom of a continuous damage scale (§4).
 - **Gimballed thrusters** fit, with one change of variable. A gimbal makes the thrust *direction* an
