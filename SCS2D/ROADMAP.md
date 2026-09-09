@@ -68,8 +68,8 @@ Then, in order:
    and is absorbed", which is enough to watch ships come apart but tells you nothing about armour design.
 3. **Doctrine and orders** — make configuration visibly change behaviour.
 4. **Headless evolution and analysis** — balance testing plus sandbox mode.
-5. **v1: skirmish** — fixed fleet budget, designed scenarios, shareable by URL. *This is the first
-   thing worth giving people to play.*
+5. **v1: skirmish** — a fixed budget of *materials* rather than of points (§12), designed scenarios,
+   shareable by URL. *This is the first thing worth giving people to play.*
 6. **Salvage and in-battle construction** — wrecks from the current battle as the resource. The
    natural bridge to an economy: no map features needed, and it ties income directly to combat.
 7. **Mining and the two-resource economy** — metals for hulls, volatiles for propellant, so maps can
@@ -179,12 +179,17 @@ or another person.
 #### Deliberately not in this iteration
 
 Test flight (the editor can have its own throwaway sim later — it does not need the battle page's).
-Fleets, cost or budget, since no cost model exists and mass is currently the only currency. The real
-connectivity graph. Asymmetric or interval-based firing arcs. Any of §12's open scaling questions.
+Fleets and budgets. The real connectivity graph. Asymmetric or interval-based firing arcs. Any of §12's
+open scaling questions.
+
+**No cost line, now or ever** — see §12. Dry mass is not standing in for a cost until a cost model turns
+up; dry mass *is* the materials a ship is made of, which is one of the three things a ship actually costs.
+The other two are build time, which needs a complexity metric nobody has pinned down, and the propellant
+and raw materials it consumes running, which needs a fuel model. Both are absent, so mass is the whole of
+what the editor can honestly show, and it is not a placeholder.
 
 #### Still open
 
-- Whether the readout needs a **cost** at all, or whether mass is the honest currency until §8 step 5.
 - What a **new** ship starts as: genuinely blank, or one structure module to drag from.
 - How the **library** handles name collisions, and whether a ship's identity is its name or an id.
 
@@ -344,7 +349,9 @@ Deliberately unresolved; decide when they block something.
 
   Two consequences to settle before building it. Materials must be **priced, not merely better**, or §7's
   evolution picks the best one every time and material choice stops being a decision — the same failure mode as
-  the mispriced exponent `modules.ts` warns about, arriving through a different door. And a material file is an
+  the mispriced exponent `modules.ts` warns about, arriving through a different door. Priced in the three real
+  currencies, though, not given a points value: a better material is scarcer, or slower to work, or heavier.
+  There is no abstract cost number anywhere in this game. And a material file is an
   **input to the golden checksums** exactly as a scenario is, so editing one moves pinned results and needs the
   discipline §9 asks for.
   Earliest sensible point is §8 step 2, terminal ballistics and the damage model: hardness, density and
