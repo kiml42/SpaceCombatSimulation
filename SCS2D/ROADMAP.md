@@ -155,7 +155,10 @@ An editor has to serialise what it produces, so this settles the format question
   exactly as `blueprints.ts` does today. So `compileBlueprint` needs no expansion step, a mirrored pair is
   indistinguishable from two hand-placed modules, and asymmetric designs — which the GA will certainly
   produce — cost nothing. The editor re-detects pairs on load by matching `y` against `-y`.
-- **A version field**, since the library lives in browser storage and will outlive a format change.
+- **A `formatVersion` field**, since the library lives in browser storage and will outlive a format change.
+  Named that way and not `version` deliberately: a campaign will eventually need a *blueprint* revision, so
+  that existing ships keep flying the layout they were built to while new production uses the upgraded one.
+  Two different quantities, and letting them share a word now would be expensive to unpick later.
 - **Parsing splits from loading.** `parseBlueprint(unknown)` is pure shape-checking and unit conversion, so
   it belongs in `sim/` alongside `blueprintProblem`; reading a file or `localStorage` is the host's job.
   This is the distinction behind §12's "a loader outside `sim/`" — the *loader* is outside, the *parser*
@@ -163,6 +166,25 @@ An editor has to serialise what it produces, so this settles the format question
 - The built-in ships are **imported as JSON rather than read at runtime** (`resolveJsonModule`, which
   `tsconfig.base.json` does not yet set), so esbuild inlines them into the bundle and Node resolves them in
   tests. No asynchronous loading, no fetch, no divergence between the two environments.
+
+**A ship is identified by its name**, not by an index or a generated id. Indexes collide across players
+immediately — everyone has a ship at index 0 — and an opaque id, while collision-free, would be a second
+identity nobody uses: the file stops being readable and diffable, and a shared ship's identity really is
+"here's my Corvette". This matches the same instinct as degrees-in-the-file.
+
+The cost is worth stating plainly, because it comes due later rather than now: **renaming is
+re-identifying**. Once a campaign fleet references blueprints, changing a ship's name orphans every ship
+flying one, which is the exact problem generated ids exist to solve. A rename will have to be forbidden,
+propagated, or treated as a fork; that is a campaign-slice decision, not this one, but it is a bill this
+choice runs up.
+
+Names therefore collide, and importing a friend's ship is where it happens. Import **asks** — rename,
+replace, or cancel, with the rename box pre-filled — rather than deciding for the player. Auto-renaming
+quietly turns a re-import of a friend's updated ship into a fourth copy, and replacing destroys an
+afternoon's work on a name match, which "Corvette" guarantees.
+
+**A new ship starts blank.** No seed module: the first thing you do is choose what the ship is built around,
+and starting you with a structure module quietly makes that choice for you.
 
 **Saving** goes to `localStorage` so that iterating has no friction, with explicit Export and Import moving
 a `.json` in and out. The browser cannot write to a checkout, so export is how a ship reaches the repository
@@ -187,11 +209,6 @@ up; dry mass *is* the materials a ship is made of, which is one of the three thi
 The other two are build time, which needs a complexity metric nobody has pinned down, and the propellant
 and raw materials it consumes running, which needs a fuel model. Both are absent, so mass is the whole of
 what the editor can honestly show, and it is not a placeholder.
-
-#### Still open
-
-- What a **new** ship starts as: genuinely blank, or one structure module to drag from.
-- How the **library** handles name collisions, and whether a ship's identity is its name or an id.
 
 ### Multiplayer
 
@@ -236,6 +253,17 @@ Deliberately unresolved; decide when they block something.
   being far wider than the row, but it is a real effect against small targets, and converging the
   barrels at a chosen range (paying for it at every other range) is a genuine design axis rather than
   a correction.
+- **How a blueprint is versioned, once there is a campaign.** Editing a design must not silently re-equip
+  ships already built to it: §2's Production rule is that a fleet transitions gradually, so existing ships
+  keep flying the layout they were built to and only new production uses the revision. That makes a ship in
+  the world reference an immutable *revision* rather than a mutable library entry, and the editor's Save
+  becomes "publish a revision" rather than "overwrite". The file format leaves room for it — the schema
+  field is `formatVersion` precisely so `revision` stays free — but nothing else is decided: whether
+  revisions are a linear history or a tree, whether an old revision with no ships left is garbage, and
+  whether a refit is a distinct operation from building new.
+  Entangled with it: **identity is a ship's name**, so renaming re-identifies. Once revisions are
+  referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
+  together, at the campaign slice.
 - How severed chunks divide fuel, ammunition and power.
 - Whether module destruction is a discrete state or simply the bottom of a continuous damage scale (§4).
 - **Gimballed thrusters** fit, with one change of variable. A gimbal makes the thrust *direction* an
