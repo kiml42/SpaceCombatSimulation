@@ -62,8 +62,7 @@
       "y": 7,
       "angle": -90,
       "length": 2,
-      "width": 3,
-      "notes": "A thruster's exhaust leaves the opposite way to its push, so a mount out on a wing has to push inboard — pushing to port here would fire into the wing it is bolted to. Nothing in the simulation stops that today (ROADMAP.md §12), so the layout has to be drawn honestly."
+      "width": 3
     },
     {
       "kind": "thruster",
