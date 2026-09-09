@@ -1,0 +1,149 @@
+{
+  "formatVersion": 1,
+  "name": "Gunship",
+  "notes": "A heavy gunship: a bow gun firing a shell an order of magnitude heavier than the corvette's, and a broadside turret on each beam for anything that gets inside it. Twice the corvette's engines move four times its mass, so it is markedly more sluggish — which is the point of having two ships to compare.",
+  "modules": [
+    {
+      "kind": "structure",
+      "x": 0,
+      "y": 0,
+      "length": 40,
+      "width": 10
+    },
+    {
+      "kind": "turret",
+      "x": 26,
+      "y": 0,
+      "angle": 0,
+      "length": 12,
+      "width": 8,
+      "barrels": 1
+    },
+    {
+      "kind": "structure",
+      "x": 0,
+      "y": 9,
+      "length": 8,
+      "width": 8,
+      "notes": "An outrigger, holding a small fast-firing multi-barrelled gun clear of the spine. A gun flat against the hull has almost no traverse worth the mass it costs."
+    },
+    {
+      "kind": "turret",
+      "x": 0,
+      "y": 17,
+      "angle": 90,
+      "length": 8,
+      "width": 6,
+      "barrels": 8,
+      "notes": "Many narrow barrels rather than one wide one: the same bore budget spent on rate of fire instead of weight of shell."
+    },
+    {
+      "kind": "structure",
+      "x": 0,
+      "y": -9,
+      "length": 8,
+      "width": 8
+    },
+    {
+      "kind": "turret",
+      "x": 0,
+      "y": -17,
+      "angle": -90,
+      "length": 8,
+      "width": 6,
+      "barrels": 8
+    },
+    {
+      "kind": "thruster",
+      "x": -24,
+      "y": 3,
+      "angle": 0,
+      "length": 8,
+      "width": 4
+    },
+    {
+      "kind": "thruster",
+      "x": -24,
+      "y": -3,
+      "angle": 0,
+      "length": 8,
+      "width": 4
+    },
+    {
+      "kind": "structure",
+      "x": 12,
+      "y": 7,
+      "length": 6,
+      "width": 4
+    },
+    {
+      "kind": "structure",
+      "x": 12,
+      "y": -7,
+      "length": 6,
+      "width": 4
+    },
+    {
+      "kind": "structure",
+      "x": -12,
+      "y": 7,
+      "length": 6,
+      "width": 4
+    },
+    {
+      "kind": "structure",
+      "x": -12,
+      "y": -7,
+      "length": 6,
+      "width": 4
+    },
+    {
+      "kind": "thruster",
+      "x": 12,
+      "y": 10,
+      "angle": -90,
+      "length": 2,
+      "width": 4
+    },
+    {
+      "kind": "thruster",
+      "x": 12,
+      "y": -10,
+      "angle": 90,
+      "length": 2,
+      "width": 4
+    },
+    {
+      "kind": "thruster",
+      "x": -12,
+      "y": 10,
+      "angle": -90,
+      "length": 2,
+      "width": 4
+    },
+    {
+      "kind": "thruster",
+      "x": -12,
+      "y": -10,
+      "angle": 90,
+      "length": 2,
+      "width": 4
+    },
+    {
+      "kind": "thruster",
+      "x": 16.5,
+      "y": 7,
+      "angle": 180,
+      "length": 3,
+      "width": 4
+    },
+    {
+      "kind": "thruster",
+      "x": 16.5,
+      "y": -7,
+      "angle": 180,
+      "length": 3,
+      "width": 4
+    }
+  ]
+}

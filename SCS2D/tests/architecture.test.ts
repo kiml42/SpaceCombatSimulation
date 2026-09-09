@@ -145,12 +145,23 @@ describe('simulation purity', () => {
   });
 
   it('uses extensioned relative imports so the ESM resolves unbundled', () => {
+    // Node will not guess an extension, so an unbundled run needs one written
+    // out. `.json` qualifies as well as `.js` — but only with an import
+    // attribute, which Node also requires and without which the same import
+    // throws at run time while type-checking and bundling perfectly happily.
     const offenders: string[] = [];
     for (const f of files) {
-      const imports = f.code.match(/from\s+['"](\.[^'"]+)['"]/g) ?? [];
+      const imports = f.code.match(/from\s+['"](\.[^'"]+)['"][^;\n]*/g) ?? [];
       for (const raw of imports) {
-        const spec = raw.replace(/^from\s+['"]/, '').replace(/['"]$/, '');
-        if (!spec.endsWith('.js')) offenders.push(`${f.name}: ${spec}`);
+        const spec = raw.replace(/^from\s+['"]/, '').replace(/['"].*$/s, '');
+        if (spec.endsWith('.js')) continue;
+        if (spec.endsWith('.json')) {
+          if (!/with\s*\{\s*type:\s*['"]json['"]\s*\}/.test(raw)) {
+            offenders.push(`${f.name}: ${spec} (needs with { type: 'json' })`);
+          }
+          continue;
+        }
+        offenders.push(`${f.name}: ${spec}`);
       }
     }
     expect(offenders).toEqual([]);

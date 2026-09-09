@@ -60,6 +60,14 @@ export {
   type ShipDesign,
 } from './blueprint.js';
 export {
+  BLUEPRINT_FORMAT_VERSION,
+  blueprintFileProblem,
+  degreesToRadians,
+  parseBlueprint,
+  radiansToDegrees,
+  serialiseBlueprint,
+} from './blueprintFile.js';
+export {
   Turrets,
   FiringSolution,
   interceptTime,

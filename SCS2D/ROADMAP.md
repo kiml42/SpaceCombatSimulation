@@ -345,21 +345,12 @@ Deliberately unresolved; decide when they block something.
   arrangement bought. The bearing-only assumption is worth revisiting in the same pass — whether a barrel
   clears a low module is the same question asked about height, and both turn on what the barrel actually
   sweeps.
-- **Whether blueprints and other authored data live in files rather than in code.**
-  `scenarios/blueprints.ts` and `tests/fixtures/scenarios.ts` are hand-written TypeScript. §9 already promises
-  `npm run battle -- scenarios/duel.json`, so the intent is settled; what is open is when, and what the format
-  is. `ModuleSpec` is plain numbers and a kind string, so the conversion stays mechanical however long it waits,
-  which is the reason there is no hurry.
-  Do it **with the blueprint editor** (§8 step 1). An editor has to serialise what it produces, so its save
-  format *is* the file format; designing one before the other means designing it twice. Two pieces of work come
-  with the move and do not exist yet: a **validator**, since today a malformed blueprint is a compile error and
-  parsed JSON needs shape checking that `blueprintProblem` does not do, and a **loader outside `sim/`**, which
-  has no ambient types and cannot read a file. One format decision belongs to that moment rather than this one:
-  angles are `HALF_PI`/`PI` expressions today, and a hand-edited file wants degrees converted at load.
-  What the move costs is the prose. `blueprints.ts` explains that the corvette's wings hold its manoeuvring
-  thrusters out where the moment arm is worth having *and* foul the bow gun, which is the trade that layout is
-  making. JSON has no comments, so that reasoning needs somewhere to go — a design note field in the file, or a
-  sidecar beside it — and losing it would leave a set of numbers nobody can argue with.
+- **Whether the remaining authored data lives in files rather than in code.** Blueprints do: they are JSON,
+  parsed by `sim/blueprintFile.ts`, and the shipped ships go through exactly the validation a stranger's file
+  does. What has not moved is `tests/fixtures/scenarios.ts`, and §9's promise of
+  `npm run battle -- scenarios/duel.json` — a *scenario* is more than a list of modules, since it also carries
+  spawn poses, teams, wells and a seed, so it needs a format of its own rather than a reuse of this one.
+  No hurry: a fixture that is a compile error when malformed is not costing anything.
 - **Whether a module's properties come from its material rather than from a universal constant.** `modules.ts`
   currently fixes both halves of every scaling law: the *form* (structure mass is wall volume times density) and
   the *coefficient* (`HULL_DENSITY = 7800`, which is steel; `CHARGE_ENERGY_PER_BORE_VOLUME = 1.4e8`, which is a

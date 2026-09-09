@@ -1,0 +1,109 @@
+{
+  "formatVersion": 1,
+  "name": "Corvette",
+  "notes": "A light escort: one main engine, one gun, and enough manoeuvring thrust to turn faster than anything can track it. Drawn as a deck plan on round numbers, +x the bow and +y to port, with modules abutting exactly.",
+  "modules": [
+    {
+      "kind": "structure",
+      "x": 0,
+      "y": 0,
+      "length": 16,
+      "width": 6
+    },
+    {
+      "kind": "turret",
+      "x": 10.5,
+      "y": 0,
+      "angle": 0,
+      "length": 5,
+      "width": 4,
+      "barrels": 1
+    },
+    {
+      "kind": "thruster",
+      "x": -10,
+      "y": 0,
+      "angle": 0,
+      "length": 4,
+      "width": 6
+    },
+    {
+      "kind": "structure",
+      "x": 4,
+      "y": 4.5,
+      "length": 4,
+      "width": 3,
+      "notes": "The wings exist to hold the manoeuvring thrusters out where their moment arm is worth having. That they also foul the bow gun's traverse is the trade this layout makes, and it is visible in the arc the design compiles to."
+    },
+    {
+      "kind": "structure",
+      "x": 4,
+      "y": -4.5,
+      "length": 4,
+      "width": 3
+    },
+    {
+      "kind": "structure",
+      "x": -4,
+      "y": 4.5,
+      "length": 4,
+      "width": 3
+    },
+    {
+      "kind": "structure",
+      "x": -4,
+      "y": -4.5,
+      "length": 4,
+      "width": 3
+    },
+    {
+      "kind": "thruster",
+      "x": 4,
+      "y": 7,
+      "angle": -90,
+      "length": 2,
+      "width": 3,
+      "notes": "A thruster's exhaust leaves the opposite way to its push, so a mount out on a wing has to push inboard — pushing to port here would fire into the wing it is bolted to. Nothing in the simulation stops that today (ROADMAP.md §12), so the layout has to be drawn honestly."
+    },
+    {
+      "kind": "thruster",
+      "x": 4,
+      "y": -7,
+      "angle": 90,
+      "length": 2,
+      "width": 3
+    },
+    {
+      "kind": "thruster",
+      "x": -4,
+      "y": 7,
+      "angle": -90,
+      "length": 2,
+      "width": 3
+    },
+    {
+      "kind": "thruster",
+      "x": -4,
+      "y": -7,
+      "angle": 90,
+      "length": 2,
+      "width": 3
+    },
+    {
+      "kind": "thruster",
+      "x": 7,
+      "y": 4.5,
+      "angle": 180,
+      "length": 2,
+      "width": 3
+    },
+    {
+      "kind": "thruster",
+      "x": 7,
+      "y": -4.5,
+      "angle": 180,
+      "length": 2,
+      "width": 3
+    }
+  ]
+}

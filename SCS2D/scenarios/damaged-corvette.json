@@ -1,0 +1,69 @@
+{
+  "formatVersion": 1,
+  "name": "DamagedCorvette",
+  "notes": "The corvette with its port wing and several thrusters missing, to exercise asymmetric mass distribution and thrust. Not a ship anyone would design; a ship someone would be left with.",
+  "modules": [
+    {
+      "kind": "structure",
+      "x": 0,
+      "y": 0,
+      "length": 16,
+      "width": 6
+    },
+    {
+      "kind": "turret",
+      "x": 10.5,
+      "y": 0,
+      "angle": 0,
+      "length": 5,
+      "width": 4,
+      "barrels": 1
+    },
+    {
+      "kind": "thruster",
+      "x": -10,
+      "y": 0,
+      "angle": 0,
+      "length": 4,
+      "width": 6
+    },
+    {
+      "kind": "structure",
+      "x": 4,
+      "y": -4.5,
+      "length": 4,
+      "width": 3
+    },
+    {
+      "kind": "structure",
+      "x": -4,
+      "y": -4.5,
+      "length": 4,
+      "width": 3
+    },
+    {
+      "kind": "thruster",
+      "x": 4,
+      "y": -7,
+      "angle": 90,
+      "length": 2,
+      "width": 3
+    },
+    {
+      "kind": "thruster",
+      "x": -4,
+      "y": -7,
+      "angle": 90,
+      "length": 2,
+      "width": 3
+    },
+    {
+      "kind": "thruster",
+      "x": 7,
+      "y": -4.5,
+      "angle": 180,
+      "length": 2,
+      "width": 3
+    }
+  ]
+}
