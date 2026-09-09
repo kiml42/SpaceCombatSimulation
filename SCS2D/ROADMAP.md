@@ -83,6 +83,111 @@ Then, in order:
 **Scenario packs** are the cheapest way to make it a game with goals rather than a sandbox, and they
 teach the mechanics. Each scenario is a data file, not code.
 
+### Slice 1 — blueprint editor, first iteration
+
+Specified but not built. §8 step 1, scoped down to one iteration: **lay out a ship, see what the layout
+bought, save it, get it into a file.** Flying what you built is deliberately the *second* iteration.
+
+**What the player does.** Opens a separate page, picks a ship from a library or starts a new one, drags
+modules around a canvas, and watches the numbers change. Modules are placed and sized by direct
+manipulation — drag to move, corner handles to resize, a handle to rotate — while the values that are not
+spatial (reinforcement, barrel count, notes) are typed into a panel for the selected module. Position snaps
+to a grid and rotation to 15°, with a modifier held to escape both. Undo and redo throughout.
+
+**Mirrored editing** is a mode, because every ship authored so far is symmetric and placing eight lateral
+thrusters twice is the kind of tedium that stops people iterating. While it is on, an edit applies to a
+module and its opposite number at once. A module straddling the centreline is its own mirror and edits
+alone; dragging it off the axis splits it into a pair, which is what mirror mode means, and is worth
+saying out loud because one drag then creates a second module.
+
+**What it tells you** is the point of the whole thing: total mass and inertia, the manoeuvring envelope
+(`ThrusterLayout.support` already exists to draw it — §4 anticipated this), linear acceleration and turn
+rate available in each direction, and per turret its calibre, rate of fire, muzzle speed and round mass.
+Firing arcs are drawn on the canvas, which is the mechanism §12 wants a player to be able to read.
+
+**Validity is shown, not enforced.** A layout may be invalid while it is being worked on — you often have
+to move one module through another to get it past — so `blueprintProblem`'s complaints appear as a problems
+list, and only export and save-to-library are blocked. A crude connectivity warning rides along with it:
+modules that touch nothing else are flagged using the snap grid. That is deliberately *not* the graph with
+per-edge strengths that §12 describes; it catches the obvious mistake without answering an open question
+inside a UI task.
+
+#### Where it lives
+
+**Its own page and its own bundle**, `dist/editor.html` beside `dist/index.html`, linked both ways.
+
+The reasoning is worth recording because it is stronger than it first appears. The editor's inputs and
+outputs are both blueprints, so it needs to know nothing about a battle in progress: no shared clock, no
+snapshots, no `SharedWorker` — which means this slice does not have to build the worker architecture §5
+describes, and the question of whether views subscribe to a shared sim stays open until something actually
+needs it.
+
+But the claim has an exact boundary, and stating it loosely invites the failure it is meant to prevent.
+**The editor is independent of the running simulation and tightly coupled to the simulation's laws.** Mass,
+inertia, thrust, traverse rate, gun statistics and firing arcs all come from `moduleStats`, `gunStats`,
+`compileBlueprint` and `firingArc`. If the editor ever computes one of those itself, the editor and the
+battle disagree about the same ship, which is the worst thing this tool can do — its entire value is that
+the picture and the numbers are true.
+
+The same argument applies to drawing. The editor **builds a one-ship `Snapshot` at rest and hands it to the
+existing `render/canvas2d.ts`**, adding only selection handles, the grid and the problems overlay on top.
+`Snapshot` is a plain class with a no-arg constructor, so this costs nothing. A second renderer would drift
+from the first exactly the way a second copy of the duel would have drifted from the golden one, which is
+why `scenarios/duel.ts` exists.
+
+**Plain DOM, no React**, for a canvas and a properties panel. This is a decision with a known expiry rather
+than a position: §5 says application UI is the dominant cost of this game and assumes React for it, and the
+second or third iteration of this editor is probably where that stops being deferrable.
+
+#### The file format
+
+An editor has to serialise what it produces, so this settles the format question §12 has been holding.
+
+- **JSON, one file per blueprint**, and the two authored ships convert. The conversion must not move the
+  golden checksums — if it does, it is wrong, and that is the test worth writing first.
+- **`notes` on the blueprint and on each module**, optional free text, round-tripped by the editor. Without
+  it the conversion silently destroys the only record of *why* each ship is shaped as it is, which is a
+  worse loss than it sounds: "outriggers with small, fast firing, multi-barrelled guns" is not recoverable
+  from the numbers.
+- **Angles in degrees in the file**, radians everywhere inside `sim/`, converted by the parser. A file
+  people hand-edit should not contain `1.5707963267948966`.
+- **Mirroring is not in the file.** It is an editing convenience; the file lists every module explicitly,
+  exactly as `blueprints.ts` does today. So `compileBlueprint` needs no expansion step, a mirrored pair is
+  indistinguishable from two hand-placed modules, and asymmetric designs — which the GA will certainly
+  produce — cost nothing. The editor re-detects pairs on load by matching `y` against `-y`.
+- **A version field**, since the library lives in browser storage and will outlive a format change.
+- **Parsing splits from loading.** `parseBlueprint(unknown)` is pure shape-checking and unit conversion, so
+  it belongs in `sim/` alongside `blueprintProblem`; reading a file or `localStorage` is the host's job.
+  This is the distinction behind §12's "a loader outside `sim/`" — the *loader* is outside, the *parser*
+  need not be.
+- The built-in ships are **imported as JSON rather than read at runtime** (`resolveJsonModule`, which
+  `tsconfig.base.json` does not yet set), so esbuild inlines them into the bundle and Node resolves them in
+  tests. No asynchronous loading, no fetch, no divergence between the two environments.
+
+**Saving** goes to `localStorage` so that iterating has no friction, with explicit Export and Import moving
+a `.json` in and out. The browser cannot write to a checkout, so export is how a ship reaches the repository
+or another person.
+
+#### What has to change outside the editor
+
+- `scripts/build.ts` grows a second entry point and shell; the Pages job publishes both pages.
+- `tsconfig.base.json` gains `resolveJsonModule`.
+- `ModuleSpec` and `Blueprint` gain optional `notes`.
+- `scenarios/blueprints.ts` becomes JSON plus a thin module re-exporting the parsed ships, so `duel.ts`,
+  `swarm.ts` and the golden tests keep importing a `Blueprint` and do not notice.
+
+#### Deliberately not in this iteration
+
+Test flight (the editor can have its own throwaway sim later — it does not need the battle page's).
+Fleets, cost or budget, since no cost model exists and mass is currently the only currency. The real
+connectivity graph. Asymmetric or interval-based firing arcs. Any of §12's open scaling questions.
+
+#### Still open
+
+- Whether the readout needs a **cost** at all, or whether mass is the honest currency until §8 step 5.
+- What a **new** ship starts as: genuinely blank, or one structure module to drag from.
+- How the **library** handles name collisions, and whether a ship's identity is its name or an id.
+
 ### Multiplayer
 
 - **Async fleet-vs-fleet is nearly free** and stays open: a fleet file (blueprints + doctrine +
