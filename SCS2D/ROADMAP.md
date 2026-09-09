@@ -387,7 +387,9 @@ Deliberately unresolved; decide when they block something.
   exact abutment, a knife-edge no floating-point layout lands on reliably: the corvette and gunship manage it
   only because they are hand-drawn on round numbers, and nothing from the editor or from a mutation will. So
   the rule needs a tolerance, and that tolerance is a game parameter — how close counts as welded — rather than
-  an implementation detail.
+  an implementation detail. One now exists: `ATTACHMENT_TOLERANCE` in `sim/blueprint.ts`, a centimetre, added
+  for the thruster-attachment rule. Connectivity should use that same constant rather than introducing a
+  second, and if a centimetre turns out to be the wrong answer it is the wrong answer for both.
   What it has to be, beyond a set of edges:
   - **A graph, not a tree.** A ring of structure has two load paths to every part of it, and surviving a cut is
     exactly what makes that layout worth its mass. Parent pointers would make severing trivial and delete the
@@ -420,11 +422,17 @@ Deliberately unresolved; decide when they block something.
   non-negotiable 6 turning out to be load-bearing for something other than what it was written for, and it
   is also exactly what a replay file needs (§8's async fleet-vs-fleet), so the two features want the same
   mechanism built once.
-- **What a thruster firing into its own hull should cost.** Nothing, currently: thrust is produced whatever
-  the nozzle is buried in, so a layout with its manoeuvring thrusters mounted backwards flies exactly as well
-  as one drawn correctly and merely looks absurd. Both authored ships were drawn that way and nobody noticed
-  until the viewer started drawing plumes — which is the argument for the viewer in miniature, and the reason
-  the authored layouts now have a test.
+- **What a thruster firing into its own hull should cost.** Narrowed, not closed. A thruster mounted *back to
+  front* is now a rejected layout: `blueprintProblem` requires the face opposite the nozzle to be against a
+  structure module, because an engine held on by its nozzle is not an assembly question about how well the
+  ship runs but about whether it is a ship. That is the same kind of rule as modules not overlapping, and it
+  is discrete for the same reason.
+  What stays open is the continuous case, and it is the one this question was really about: a *correctly
+  mounted* engine whose plume runs into something further aft. Thrust is still produced whatever the exhaust
+  hits, so such a layout flies exactly as well as a clear one and merely looks absurd. Both authored ships
+  were drawn wrong and nobody noticed until the viewer started drawing plumes — which is the argument for the
+  viewer in miniature, and the reason the authored layouts also have a ray-cast test that the attachment rule
+  does not replace.
   It matters more than tidiness once §7's evolution is running. A buried nozzle is thrust with no penalty
   attached, which is precisely the shape of exploit `modules.ts` warns about: the search will find it, and
   every evolved ship will end up with its engines pointing into itself because that packs a layout tighter
@@ -432,7 +440,9 @@ Deliberately unresolved; decide when they block something.
   **Settled in direction, open in timing:** a blocked nozzle will lose thrust in proportion to how much of
   its exhaust is obstructed, *and* deliver damage and heat to whatever is in the way. Not rejecting the
   layout outright, which would turn a continuous quantity into a hard edge a mutation cannot cross, and the
-  search wants a gradient. Doing both means a plume becomes something a designer can point deliberately —
+  search wants a gradient. That argument is about *obstruction* and does not reach the attachment rule above,
+  which is discrete however it is modelled: a mount is on the hull or it is not, and there is no gradient
+  between. Doing both means a plume becomes something a designer can point deliberately —
   and something an attacker can exploit — rather than merely a thing to avoid.
   The deadline is §7's evolution rather than any particular slice: until then a buried nozzle is a drawing
   error, and afterwards it is an exploit the search will find and build every ship around.
