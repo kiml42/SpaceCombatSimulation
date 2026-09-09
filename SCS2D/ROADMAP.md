@@ -117,11 +117,15 @@ Deliberately unresolved; decide when they block something.
   invariant — the mount's bore budget sizes it, not how the budget is divided. So a multi-barrel mount
   has a mass floor but no penalty, and it is lighter than the single-barrel mount of the same size.
   Whether that is right is a balance question rather than a physical one, and the exponent on calibre
-  is the dial: below linear the machinery total rises with `n`, above it it falls. Two other things
-  about the multi-barrel model are unsettled with it — `BARREL_CALIBRES * sqrt(n)` currently permits a
-  141-calibre barrel, and the calibre rule is documented as face packing when the arithmetic makes it a
-  bore budget, the barrel row being some 4.4x wider than the tubes it holds. Settle them together, and
-  let the GA weigh in.
+  is the dial: below linear the machinery total rises with `n`, above it it falls. One neighbouring
+  thing is unsettled with it: `BARREL_CALIBRES * sqrt(n)` lets a barrel reach 141 calibres, which no
+  real gun approaches. Settle them together, and let the GA weigh in.
+- **Barrel harmonisation.** A multi-barrel mount fires its barrels parallel, so a barrel `d` off the
+  centreline misses the aim point by `d` at every range — spreading the barrels across the mount face
+  made that a metre or two rather than a few centimetres. It costs nothing measurable today, ships
+  being far wider than the row, but it is a real effect against small targets, and converging the
+  barrels at a chosen range (paying for it at every other range) is a genuine design axis rather than
+  a correction.
 - How severed chunks divide fuel, ammunition and power.
 - Whether module destruction is a discrete state or simply the bottom of a continuous damage scale (§4).
 - **Gimballed thrusters** fit, with one change of variable. A gimbal makes the thrust *direction* an
