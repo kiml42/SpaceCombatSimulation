@@ -89,6 +89,9 @@ export const BARREL_CALIBRES = 50;
 /** Shell length in calibres. A real armour-piercing shell is 4–5. */
 export const SHELL_CALIBRES = 4.5;
 
+/** Space between barrels calibres. Based on what looks good. This will need adjustment for realism and balance later. */
+export const BARREL_SPACING_CALIBRES = 5;
+
 /**
  * Mean shell density, kg/m³. Below the density of steel because a shell is
  * ogive-nosed and part hollow, so it does not fill its own bounding cylinder.
@@ -379,7 +382,7 @@ export function gunStats(mountLength: number, mountWidth: number, barrelCount: n
   const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
   const muzzleEnergy = CHARGE_ENERGY_PER_BORE_VOLUME * boreArea * barrelLength;
   const muzzleSpeed = sqrt((2 * muzzleEnergy) / roundMass);
-  const barrelSpacing = barrelCount > 1 ? 5 * calibre : 0;
+  const barrelSpacing = barrelCount > 1 ? BARREL_SPACING_CALIBRES * calibre : 0;
 
   return {
     calibre,
