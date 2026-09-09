@@ -72,6 +72,92 @@ describe('blueprint validation', () => {
     expect(() => compileBlueprint(bp)).toThrow(/overlap/);
   });
 
+  describe('a thruster must have something to push against', () => {
+    // An engine is bolted to the ship at the end it pushes from and exhausts
+    // out of the other. Turn one round and it is held on by its nozzle: the
+    // mounting sits in the exhaust and the thrust is delivered to nothing.
+    const hull = structure(0, 0, 10, 4);
+    /** A thruster on the hull's -x end, pushing whichever way `angle` says. */
+    const engine = (angle: number): ModuleSpec => ({
+      kind: 'thruster',
+      x: -6,
+      y: 0,
+      angle,
+      length: 2,
+      width: 4,
+    });
+
+    it('accepts one bolted on by the face opposite its nozzle', () => {
+      expect(blueprintProblem({ name: 'Right', modules: [hull, engine(0)] })).toBeNull();
+    });
+
+    it('rejects one mounted back to front', () => {
+      // Same position, same hull, turned through half a circle.
+      expect(blueprintProblem({ name: 'Backwards', modules: [hull, engine(PI)] })).toMatch(
+        /no structure to push against/,
+      );
+    });
+
+    it('rejects one that touches the hull only along its side', () => {
+      // Contact is not enough — it has to be contact in the right place, which
+      // is why this is not simply an "is it attached to anything" test.
+      const sideOn: ModuleSpec = { kind: 'thruster', x: 0, y: 3, angle: 0, length: 2, width: 2 };
+      expect(blueprintProblem({ name: 'Sideways', modules: [hull, sideOn] })).toMatch(
+        /no structure to push against/,
+      );
+    });
+
+    it('rejects one floating free of the ship', () => {
+      const adrift: ModuleSpec = { kind: 'thruster', x: -20, y: 0, angle: 0, length: 2, width: 4 };
+      expect(blueprintProblem({ name: 'Adrift', modules: [hull, adrift] })).toMatch(
+        /no structure to push against/,
+      );
+    });
+
+    it('will not let a thruster push against another thruster or a turret', () => {
+      // Engines and guns are not load paths. Bolting an engine to the back of
+      // another engine is a way of drawing a ship, not of building one.
+      const stack: ModuleSpec = { kind: 'thruster', x: -8.5, y: 0, angle: 0, length: 2, width: 4 };
+      expect(
+        blueprintProblem({ name: 'Stacked', modules: [hull, engine(0), stack] }),
+      ).toMatch(/thruster 2/);
+    });
+
+    it('forgives a gap too small to matter, and no more', () => {
+      // Exact abutment is a knife edge that only a layout drawn on round
+      // numbers lands on, so the rule has a tolerance — and a tolerance that
+      // never bites is not one.
+      const near: ModuleSpec = { kind: 'thruster', x: -6.005, y: 0, angle: 0, length: 2, width: 4 };
+      const far: ModuleSpec = { kind: 'thruster', x: -6.5, y: 0, angle: 0, length: 2, width: 4 };
+      expect(blueprintProblem({ name: 'Near', modules: [hull, near] })).toBeNull();
+      expect(blueprintProblem({ name: 'Far', modules: [hull, far] })).toMatch(
+        /no structure to push against/,
+      );
+    });
+
+    it('holds at any mounting angle, not just the axes', () => {
+      // The check nudges the module along its facing and reuses the
+      // separating-axis test, so nothing about it assumes right angles.
+      // Both boxes canted the same way, so the thruster abuts the pylon's rear
+      // face squarely and the arithmetic is a clean 3 + 1 along the facing.
+      const pylon: ModuleSpec = { kind: 'structure', x: 0, y: 0, angle: 0.4, length: 6, width: 6 };
+      const c = Math.cos(0.4);
+      const sn = Math.sin(0.4);
+      const canted: ModuleSpec = {
+        kind: 'thruster',
+        x: -(3 + 1) * c,
+        y: -(3 + 1) * sn,
+        angle: 0.4,
+        length: 2,
+        width: 2,
+      };
+      expect(blueprintProblem({ name: 'Canted', modules: [pylon, canted] })).toBeNull();
+      expect(
+        blueprintProblem({ name: 'CantedBackwards', modules: [pylon, { ...canted, angle: 0.4 + PI }] }),
+      ).toMatch(/no structure to push against/);
+    });
+  });
+
   it('rejects an empty ship and reports which module is impossible', () => {
     expect(blueprintProblem({ name: 'Nothing', modules: [] })).toMatch(/at least one module/);
     expect(
@@ -262,10 +348,15 @@ describe('the authored blueprints', () => {
   it('points every thruster so its exhaust leaves clear air', () => {
     // A thruster pushes along its facing and exhausts the other way, so a
     // mount out on a wing has to push *inboard* or it fires into the wing it
-    // is bolted to. Nothing in the simulation stops that — thrust is produced
-    // whatever the nozzle is buried in — so a layout drawn the wrong way round
-    // flies perfectly well and only looks absurd, which is exactly how it goes
-    // unnoticed.
+    // is bolted to.
+    //
+    // Not made redundant by `blueprintProblem` rejecting an unattached
+    // thruster, which is a stricter rule in one direction and a weaker one in
+    // the other: it catches a mount turned round, since that one is held on by
+    // its nozzle, but says nothing about a correctly mounted engine whose
+    // plume runs into something further aft. Thrust is still produced whatever
+    // the exhaust hits (ROADMAP.md §12), so that case flies perfectly well and
+    // merely looks absurd, which is exactly how it goes unnoticed.
     for (const blueprint of Object.values(BLUEPRINTS)) {
       const design = compileBlueprint(blueprint);
       const thrusters = design.modules.filter((m) => m.spec.kind === 'thruster');

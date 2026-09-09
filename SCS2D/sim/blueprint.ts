@@ -37,6 +37,21 @@ import type { TurretSpec } from './turrets.js';
 /** Modules closer than this count as touching rather than overlapping, metres. */
 const TOUCH_TOLERANCE = 1e-9;
 
+/**
+ * How close a module must be to another to count as bolted to it, metres.
+ *
+ * A centimetre, which is nothing at ship scale and forgiving enough that a
+ * hand-edited file off by a rounding error still describes an attached ship.
+ * Exact abutment is a knife edge: the authored layouts land on it only because
+ * they are drawn on round numbers, and a file someone typed will not.
+ *
+ * This is ROADMAP.md §12's "how close counts as welded" appearing for the
+ * first time, ahead of the connectivity graph that will also need it. It is a
+ * game parameter rather than an implementation detail, and when connectivity
+ * lands the two should be the same number rather than two that drift.
+ */
+const ATTACHMENT_TOLERANCE = 0.01;
+
 export interface Blueprint {
   name: string;
   modules: readonly ModuleSpec[];
@@ -248,6 +263,31 @@ export function firingArc(
  * connectivity graph needs and no blueprint currently expresses — DESIGN.md
  * §12 records the shape of that answer.
  */
+/**
+ * Is there structure immediately in front of this module, in its facing?
+ *
+ * Answered by nudging the module forward by the attachment tolerance and
+ * asking whether it now overlaps — which reuses the separating-axis test and
+ * so stays correct for a module mounted at any angle, rather than needing a
+ * face-contact test of its own. A neighbour merely alongside is unaffected by
+ * a forward nudge and correctly does not count, and nor does one touching only
+ * at a corner.
+ */
+function structureAhead(spec: ModuleSpec, modules: readonly ModuleSpec[]): boolean {
+  const angle = spec.angle ?? 0;
+  const probe: ModuleSpec = {
+    ...spec,
+    x: spec.x + cos(angle) * ATTACHMENT_TOLERANCE,
+    y: spec.y + sin(angle) * ATTACHMENT_TOLERANCE,
+  };
+  for (const other of modules) {
+    if (other === spec) continue;
+    if (other.kind !== 'structure') continue;
+    if (modulesOverlap(probe, other)) return true;
+  }
+  return false;
+}
+
 export function blueprintProblem(blueprint: Blueprint): string | null {
   const modules = blueprint.modules;
   if (modules.length === 0) return `${blueprint.name}: a ship needs at least one module`;
@@ -262,6 +302,27 @@ export function blueprintProblem(blueprint: Blueprint): string | null {
       if (modulesOverlap(modules[i]!, modules[k]!)) {
         return `${blueprint.name}: modules ${i} and ${k} overlap`;
       }
+    }
+  }
+
+  // An engine is bolted to the ship at the end it pushes from and exhausts out
+  // of the other, so the face opposite the nozzle has to be against structure.
+  // Turn one round and it is held on by its nozzle: the mounting is in the
+  // exhaust and the thrust is being delivered to nothing.
+  //
+  // A layout is rejected for this rather than merely penalised, because it is a
+  // question about how the ship is *assembled* and not about how well it runs —
+  // the same kind of rule as modules not overlapping. How much a *blocked* but
+  // correctly mounted nozzle should cost is a different and continuous
+  // question, and ROADMAP.md §12 keeps it that way deliberately.
+  for (let i = 0; i < modules.length; i++) {
+    const spec = modules[i]!;
+    if (spec.kind !== 'thruster') continue;
+    if (!structureAhead(spec, modules)) {
+      return (
+        `${blueprint.name}: thruster ${i} at (${spec.x}, ${spec.y}) has no structure to push ` +
+        `against — the face opposite its nozzle must be against a structure module`
+      );
     }
   }
 
