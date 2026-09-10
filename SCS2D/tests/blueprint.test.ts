@@ -311,7 +311,8 @@ describe('the authored blueprints', () => {
 
         expect(design.turrets.length).toBeGreaterThan(0);
         for (const turret of design.turrets) {
-          expect(turret.mount.arc).toBeGreaterThan(0);
+          expect(turret.mount.leftArc).toBeGreaterThan(0);
+          expect(turret.mount.rightArc).toBeGreaterThan(0);
           expect(turret.mount.maxRate).toBeGreaterThan(0);
           expect(turret.mount.maxAccel).toBeGreaterThan(0);
           expect(turret.gun.muzzleSpeed).toBeGreaterThan(0);

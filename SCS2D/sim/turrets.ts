@@ -69,11 +69,17 @@ export interface TurretSpec {
   /** Bearing it points to when idle, body frame. */
   restBearing?: number;
   /**
-   * Half-width of the traverse arc about `restBearing`, radians. At or above π
-   * the turret traverses fully — the arc is what the ship's own superstructure
-   * leaves it (DESIGN.md §3).
+   * Half-width of the traverse arc to the left of `restBearing`, radians. 
+   * Blocked by the ships superstructure (DESIGN.md §3).
+   * if leftArc + rightArc > 2π, the turret can traverse the full circle.
    */
-  arc?: number;
+  leftArc?: number;
+  /**
+   * Half-width of the traverse arc to the right of `restBearing`, radians. 
+   * Blocked by the ships superstructure (DESIGN.md §3).
+   * if leftArc + rightArc > 2π, the turret can traverse the full circle.
+   */
+  rightArc?: number;
   /** Traverse rate limit, radians per second. */
   maxRate: number;
   /** Traverse acceleration limit, radians per second squared. */
@@ -157,7 +163,8 @@ export class Turrets {
   mountX!: Float64Array;
   mountY!: Float64Array;
   restBearing!: Float64Array;
-  arc!: Float64Array;
+  leftArc!: Float64Array;
+  rightArc!: Float64Array;
   maxRate!: Float64Array;
   maxAccel!: Float64Array;
   inertia!: Float64Array;
@@ -224,7 +231,8 @@ export class Turrets {
     this.mountX = f64(this.mountX);
     this.mountY = f64(this.mountY);
     this.restBearing = f64(this.restBearing);
-    this.arc = f64(this.arc);
+    this.leftArc = f64(this.leftArc);
+    this.rightArc = f64(this.rightArc);
     this.maxRate = f64(this.maxRate);
     this.maxAccel = f64(this.maxAccel);
     this.inertia = f64(this.inertia);
@@ -257,7 +265,8 @@ export class Turrets {
     this.mountX[i] = spec.x;
     this.mountY[i] = spec.y;
     this.restBearing[i] = rest;
-    this.arc[i] = spec.arc ?? PI;
+    this.leftArc[i] = spec.leftArc ?? PI;
+    this.rightArc[i] = spec.rightArc ?? PI;
     this.maxRate[i] = spec.maxRate;
     this.maxAccel[i] = spec.maxAccel;
     this.inertia[i] = spec.inertia ?? 0;
@@ -284,11 +293,12 @@ export class Turrets {
 
   /** Clamp a body-frame bearing into this turret's traverse arc. */
   private clampToArc(i: number, bodyBearing: number): number {
-    const halfWidth = this.arc[i];
-    if (halfWidth >= PI) return normalizeAngle(bodyBearing);
+    const left = this.leftArc[i];
+    const right = this.rightArc[i];
+    if (left + right >= 2*PI) return normalizeAngle(bodyBearing);
     const rest = this.restBearing[i];
     const offset = angleDelta(rest, bodyBearing);
-    return normalizeAngle(rest + clamp(offset, -halfWidth, halfWidth));
+    return normalizeAngle(rest + clamp(offset, -left, right));
   }
 
   /**
