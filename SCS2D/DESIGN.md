@@ -110,7 +110,9 @@ Rules:
   own layout, are what constrain them — which is how naval gunnery actually works.
 - **Guns mission-kill; ordnance destroys.** Guns strip mounts, sensors and engines and leave a
   drifting hulk. HE shells give small guns light hull damage (lasers cannot), so the asymmetry is a
-  *loadout choice* rather than a hard immunity — hard immunities frustrate players.
+  *loadout choice* rather than a hard immunity — hard immunities frustrate players. The mechanism
+  under that, and the engine split that decides how thoroughly a stripped ship is disabled, are in
+  ROADMAP.md §12.
 - A **turret module includes the bit of hull it mounts to**, so the blueprint editor stays a single
   2D view and "is this shootable by guns" is a property of the module you picked.
 - Large modules may be flagged as **protruding** into the weapons layer: useful, but gun-vulnerable.
