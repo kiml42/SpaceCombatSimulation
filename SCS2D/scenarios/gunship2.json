@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
-  "name": "Gunship",
-  "notes": "A heavy gunship: a bow gun firing a shell an order of magnitude heavier than the corvette's, and a broadside turret on each beam for anything that gets inside it. Twice the corvette's engines move four times its mass, so it is markedly more sluggish — which is the point of having two ships to compare.",
+  "name": "Gunship2",
+  "notes": "A heavy gunship: a bow gun firing a shell an order of magnitude heavier than the corvette's, and a multi-barrelled turret on each beam for anything that gets inside it. Twice the corvette's engines move four times its mass, so it is markedly more sluggish — which is the point of having two ships to compare.",
   "assemblies": {
     "outrigger": {
       "notes": "An outrigger, holding a small fast-firing multi-barrelled gun clear of the spine. A gun flat against the hull has almost no traverse worth the mass it costs.",
