@@ -1,5 +1,6 @@
 import { capture, math, Snapshot } from '../sim/index.js';
 import { duel } from '../scenarios/duel.js';
+import { fractal } from '../scenarios/fractal.js';
 import type { Battle } from '../scenarios/types.js';
 import { swarm } from '../scenarios/swarm.js';
 import { draw } from '../render/canvas2d.js';
@@ -41,7 +42,8 @@ export function start(): void {
   const fitButton = el<HTMLButtonElement>('fit');
   const scenes = [
     { name: 'Duel', create: () => duel(SEED) },
-    { name: 'Swarm', create: () => swarm(SEED) }
+    { name: 'Swarm', create: () => swarm(SEED) },
+    { name: 'Fractal', create: () => fractal(SEED) }
   ];
   let sceneIndex = 0;
   const nextSceneIndex = (): number => (sceneIndex + 1) % scenes.length;
