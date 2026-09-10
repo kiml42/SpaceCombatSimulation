@@ -198,7 +198,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         ctx.arc(mx, my, span, 0, TAU);
       } else {
         ctx.moveTo(mx, my);
-        ctx.arc(mx, my, span, rest - right, rest + left);
+        ctx.arc(mx, my, span, rest - left, rest + right);
         ctx.closePath();
       }
       ctx.fill();
