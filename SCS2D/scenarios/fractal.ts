@@ -12,7 +12,7 @@ import {
 import type { Battle } from './types.js';
 import { FRACTAL, GUNSHIP } from './blueprints.js';
 
-export function duel(seed = 20260905): Battle {
+export function fractal(seed = 20260905): Battle {
   const dt = 1 / 60;
   const world = new World({ dt, seed });
 
