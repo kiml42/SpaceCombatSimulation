@@ -149,6 +149,134 @@ describe('nesting', () => {
   });
 });
 
+describe('extras: how one copy differs from another', () => {
+  // Purely additive, so an instance never overrides a value and "linked"
+  // keeps meaning "identical" about everything the assembly defines.
+
+  const wing = { modules: [{ kind: 'structure', x: 0, y: 2, length: 2, width: 4 } as const] };
+
+  it('places an extra in the same frame as the assembly’s own modules', () => {
+    const bp = ship({
+      assemblies: { wing },
+      modules: [
+        hull,
+        { use: 'wing', x: 10, y: 0, extra: [{ kind: 'structure', x: 0, y: 5, length: 2, width: 2 }] },
+      ],
+    });
+    const [, own, added] = expandBlueprint(bp);
+    expect(own).toMatchObject({ x: 10, y: 2 });
+    expect(added).toMatchObject({ x: 10, y: 5 });
+  });
+
+  it('reflects an extra along with the copy that carries it', () => {
+    // The reason an extra is not simply a module placed in the parent: its
+    // coordinates are written once, in the assembly's frame, and mean the same
+    // thing on either beam.
+    const extra = [{ kind: 'thruster', x: 0, y: 5, angle: math.HALF_PI, length: 2, width: 2 } as const];
+    const bp = ship({
+      assemblies: { wing },
+      modules: [
+        hull,
+        { use: 'wing', x: 10, y: 0, extra },
+        { use: 'wing', x: -10, y: 0, mirror: true, extra },
+      ],
+    });
+    const expanded = expandBlueprint(bp);
+    expect(expanded[2]).toMatchObject({ y: 5, angle: math.HALF_PI });
+    expect(expanded[4]).toMatchObject({ y: -5, angle: -math.HALF_PI });
+  });
+
+  it('gives one copy something the others do not have', () => {
+    // Placed clear of the hull, since the expanded modules face the overlap
+    // rule exactly as hand-placed ones do.
+    const bp = ship({
+      assemblies: { wing },
+      modules: [
+        hull,
+        { use: 'wing', x: 12, y: 0 },
+        { use: 'wing', x: -12, y: 0, extra: [{ kind: 'structure', x: 0, y: 5, length: 2, width: 2 }] },
+      ],
+    });
+    expect(expandBlueprint(bp)).toHaveLength(4);
+    expect(blueprintProblem(bp)).toBeNull();
+  });
+
+  it('lets an extra be an assembly instance of its own', () => {
+    const bp = ship({
+      assemblies: {
+        wing,
+        pod: { modules: [{ kind: 'structure', x: 0, y: 1, length: 2, width: 2 }] },
+      },
+      modules: [hull, { use: 'wing', x: 10, y: 0, extra: [{ use: 'pod', x: 0, y: 6 }] }],
+    });
+    const [, , pod] = expandBlueprint(bp);
+    expect(pod).toMatchObject({ x: 10, y: 7 });
+  });
+
+  it('places extras after what the assembly defines, which is what unlinking costs', () => {
+    // Unlinking a part hands every instance its own copy, and a copy lands at
+    // the end of the instance's block rather than where the definition had it.
+    // The geometry is untouched and the *order* is not, which for thrusters
+    // and turrets means a slightly different ship — so the editor has to say
+    // so rather than present unlinking as free.
+    const linked = ship({
+      assemblies: { pair: { modules: [
+        { kind: 'thruster', x: 0, y: 1, angle: 0, length: 2, width: 2 },
+        { kind: 'thruster', x: 0, y: -1, angle: 0, length: 2, width: 2 },
+      ] } },
+      modules: [hull, { use: 'pair', x: -11, y: 0 }],
+    });
+    // The same ship after unlinking the first of the pair.
+    const unlinked = ship({
+      assemblies: { pair: { modules: [
+        { kind: 'thruster', x: 0, y: -1, angle: 0, length: 2, width: 2 },
+      ] } },
+      modules: [
+        hull,
+        { use: 'pair', x: -11, y: 0, extra: [{ kind: 'thruster', x: 0, y: 1, angle: 0, length: 2, width: 2 }] },
+      ],
+    });
+
+    const before = expandBlueprint(linked);
+    const after = expandBlueprint(unlinked);
+    const key = (m: { y: number }) => m.y;
+    expect(after.map(key).sort()).toEqual(before.map(key).sort());
+    expect(after.map(key)).not.toEqual(before.map(key));
+  });
+
+  it('catches a dangling reference inside an extra', () => {
+    const bp = ship({
+      assemblies: { wing },
+      modules: [hull, { use: 'wing', x: 10, y: 0, extra: [{ use: 'ghost', x: 0, y: 0 }] }],
+    });
+    expect(assemblyProblem(bp)).toMatch(/no assembly named ghost/);
+  });
+
+  it('catches a cycle that runs through an extra', () => {
+    // An extra belongs to the instance, not to the assembly it places, so the
+    // cycle here is a -> b -> a by way of b's extra rather than its modules.
+    const bp = ship({
+      assemblies: {
+        a: { modules: [{ use: 'b', x: 1, y: 0, extra: [{ use: 'a', x: 1, y: 0 }] }] },
+        b: { modules: [{ kind: 'structure', x: 0, y: 0, length: 2, width: 2 }] },
+      },
+      modules: [hull, { use: 'a', x: 10, y: 0 }],
+    });
+    expect(assemblyProblem(bp)).toMatch(/contains itself/);
+  });
+
+  it('does not mistake an extra placing the assembly it sits in for a cycle', () => {
+    // `wing` carrying an extra `wing` is finite: the extra belongs to this
+    // instance, not to the definition, so it expands once and stops.
+    const bp = ship({
+      assemblies: { wing },
+      modules: [hull, { use: 'wing', x: 10, y: 0, extra: [{ use: 'wing', x: 0, y: 8 }] }],
+    });
+    expect(assemblyProblem(bp)).toBeNull();
+    expect(expandBlueprint(bp)).toHaveLength(3);
+  });
+});
+
 describe('rejecting a layout that cannot be resolved', () => {
   it('names an assembly that is referred to and not defined', () => {
     const bp = ship({ modules: [hull, { use: 'ghost', x: 0, y: 0 }] });
