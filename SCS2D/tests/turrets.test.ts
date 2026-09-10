@@ -256,6 +256,35 @@ describe('tracking', () => {
 });
 
 describe('traverse arcs', () => {
+  it('bounds the port sweep with the left arc and the starboard sweep with the right', () => {
+    // The one thing a symmetric arc cannot test, and the reason to test it: a
+    // mount fouled to port must still train freely to starboard. With the two
+    // bounds swapped this passes every symmetric case and points every gun on
+    // an asymmetric ship at the wrong side of the ship.
+    const { bodies, index } = ship();
+    const turrets = new Turrets();
+    const t = turrets.add({
+      owner: index,
+      x: 0,
+      y: 0,
+      restBearing: 0,
+      leftArc: 0.2,
+      rightArc: 1.4,
+      maxRate: 5,
+      maxAccel: 50,
+    });
+
+    // Anticlockwise is to port, and port is where the obstruction is.
+    turrets.commandWorldBearing(bodies, t, 1);
+    expect(turrets.blocked[t]).toBe(1);
+    expect(turrets.commanded[t]).toBeCloseTo(0.2, 9);
+
+    // The same angle to starboard is inside the clear sector.
+    turrets.commandWorldBearing(bodies, t, -1);
+    expect(turrets.blocked[t]).toBe(0);
+    expect(turrets.commanded[t]).toBeCloseTo(-1, 9);
+  });
+
   it('clamps a command outside the arc and reports it blocked', () => {
     const { bodies, index } = ship();
     const turrets = new Turrets();

@@ -184,10 +184,12 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     // visible — DESIGN.md §3 has arcs derived from where a gun was put rather
     // than authored, and this is what that decision bought or cost, per mount.
     //
-    // It is drawn symmetric about the rest bearing because the *model* is
-    // symmetric, not because the ship is: an obstruction on one beam currently
-    // costs the clear sector on the other too. ROADMAP.md §12 has the shape of
-    // the fix, and this wedge is where it will show.
+    // Asymmetric, because the model is: an obstruction off one beam costs the
+    // sweep that way alone. The wedge runs from `rest - rightArc` to
+    // `rest + leftArc`, since bearings increase anticlockwise and +y is to
+    // port — so the left arc is the *upper* bound. Drawing it the other way
+    // round looks perfectly plausible on a symmetric ship and mirrors every
+    // gun's arc on an asymmetric one.
     if (reach > 0) {
       const span = reach * ARC_RADIUS_SCALE;
       ctx.fillStyle = SWEEP;
@@ -198,7 +200,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         ctx.arc(mx, my, span, 0, TAU);
       } else {
         ctx.moveTo(mx, my);
-        ctx.arc(mx, my, span, rest - left, rest + right);
+        ctx.arc(mx, my, span, rest - right, rest + left);
         ctx.closePath();
       }
       ctx.fill();
