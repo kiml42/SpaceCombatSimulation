@@ -41,8 +41,24 @@ async function emit(files: readonly OutputFile[] | undefined): Promise<void> {
   const js = files?.[0]?.text;
   if (js === undefined) throw new Error('esbuild produced no output');
 
+  // A script tag cannot contain `</script>`, and the bundle is going inside
+  // one. Nothing puts that string in there today; a string literal one day
+  // would, and the browser's complaint would be about HTML rather than about
+  // the code that caused it.
+  if (js.includes('</script')) {
+    throw new Error('the bundle contains `</script`, which would close the tag it is inlined into');
+  }
+
   const html = await readFile(shell, 'utf8');
-  const page = html.replace('</body>', `  <script>${js}</script>\n  </body>`);
+  // The replacement is a *function*, and it has to be. Given a string,
+  // `replace` reads `$&`, `$\``, `$'` and `$1` in it as instructions rather
+  // than as text — so a bundle containing `$&` anywhere gets the matched
+  // `</body>` spliced into the middle of its own source. That is not
+  // hypothetical: minified code is full of `$` identifiers, so `x > $ && y`
+  // becomes `x>$&&y`, and whether it happens at all depends on which name the
+  // minifier hands out this build. A function replacement is given no such
+  // interpretation.
+  const page = html.replace('</body>', () => `  <script>${js}</script>\n  </body>`);
 
   await mkdir(dirname(out), { recursive: true });
   await writeFile(out, page, 'utf8');

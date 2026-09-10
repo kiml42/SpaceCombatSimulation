@@ -95,7 +95,19 @@ beforeAll(async () => {
     if (message.type() === 'error') problems.push(`console: ${message.text()}`);
   });
   await page.goto(pathToFileURL(page404).href);
-  await page.waitForFunction(() => /step \d+/.test(document.getElementById('readout')?.textContent ?? ''));
+  try {
+    await page.waitForFunction(() => /step \d+/.test(document.getElementById('readout')?.textContent ?? ''));
+  } catch (timeout) {
+    // A page that threw on load never writes a readout, so the wait expires
+    // and reports only that it expired. The reason was captured the moment it
+    // happened; without this, every startup failure looks the same and says
+    // nothing — which is worse than a red test, because it sends you looking
+    // in the wrong place.
+    if (problems.length > 0) {
+      throw new Error(`the page did not start:\n${problems.join('\n')}`);
+    }
+    throw timeout;
+  }
 }, 120_000);
 
 afterAll(async () => {
