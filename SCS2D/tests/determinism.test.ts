@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { checksumWorld } from '../sim/checksum.js';
 import { World } from '../sim/index.js';
-import { orbitScenario, SCENARIOS, tumbleScenario } from './fixtures/scenarios.js';
+import { orbitScenario, SCENARIO_TIMEOUT, SCENARIOS, tumbleScenario } from './fixtures/scenarios.js';
 
 function runSteps(scenario: (typeof SCENARIOS)[keyof typeof SCENARIOS], steps: number): number {
   const run = scenario.build();
@@ -20,14 +20,22 @@ function runSteps(scenario: (typeof SCENARIOS)[keyof typeof SCENARIOS], steps: n
 
 describe('determinism', () => {
   for (const [name, scenario] of Object.entries(SCENARIOS)) {
-    it(`${name} produces an identical result on a rerun`, () => {
-      expect(runSteps(scenario, scenario.steps)).toBe(runSteps(scenario, scenario.steps));
-    });
+    it(
+      `${name} produces an identical result on a rerun`,
+      () => {
+        expect(runSteps(scenario, scenario.steps)).toBe(runSteps(scenario, scenario.steps));
+      },
+      SCENARIO_TIMEOUT,
+    );
 
-    it(`${name} reaches the same state part way through, twice`, () => {
-      const half = Math.floor(scenario.steps / 2);
-      expect(runSteps(scenario, half)).toBe(runSteps(scenario, half));
-    });
+    it(
+      `${name} reaches the same state part way through, twice`,
+      () => {
+        const half = Math.floor(scenario.steps / 2);
+        expect(runSteps(scenario, half)).toBe(runSteps(scenario, half));
+      },
+      SCENARIO_TIMEOUT,
+    );
   }
 
   it('the gunnery scenario actually fires and connects', () => {

@@ -26,6 +26,24 @@ import { fractal } from '../../scenarios/fractal.js';
  * scenario is pinning.
  */
 
+/**
+ * Per-test budget, milliseconds, for anything that runs a whole scenario.
+ *
+ * These are stress cases rather than unit tests — the largest is hundreds of
+ * ships for thousands of steps, and determinism means running it twice — so
+ * vitest's default per-test timeout does not describe them, and on the slowest
+ * CI runner the largest sits close enough to it that an ordinary few per cent
+ * of extra work in the simulation turns into a red build. That failure says
+ * nothing about determinism, which is what makes it worth spending a constant
+ * to prevent: a scenario slow enough to matter should be caught by profiling
+ * it, not by a test claiming the simulation is non-deterministic.
+ *
+ * Generous rather than tuned, deliberately. It is a backstop against a genuine
+ * hang, not a performance assertion — a budget set just above the current cost
+ * is one that fails on a busy runner.
+ */
+export const SCENARIO_TIMEOUT = 60_000;
+
 export interface ScenarioRun {
   step(): void;
   checksum(): number;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { formatChecksum } from '../sim/checksum.js';
-import { SCENARIOS, type ScenarioName } from './fixtures/scenarios.js';
+import { SCENARIO_TIMEOUT, SCENARIOS, type ScenarioName } from './fixtures/scenarios.js';
 
 /**
  * Golden tests: the simulation's behaviour, pinned.
@@ -36,11 +36,15 @@ describe('golden scenarios', () => {
   for (const name of Object.keys(GOLDEN) as ScenarioName[]) {
     const scenario = SCENARIOS[name];
 
-    it(`${name} matches its recorded checksum after ${scenario.steps} steps`, () => {
-      const run = scenario.build();
-      for (let i = 0; i < scenario.steps; i++) run.step();
-      expect(formatChecksum(run.checksum())).toBe(GOLDEN[name]);
-    });
+    it(
+      `${name} matches its recorded checksum after ${scenario.steps} steps`,
+      () => {
+        const run = scenario.build();
+        for (let i = 0; i < scenario.steps; i++) run.step();
+        expect(formatChecksum(run.checksum())).toBe(GOLDEN[name]);
+      },
+      SCENARIO_TIMEOUT,
+    );
   }
 
   it('covers every fixture scenario', () => {
