@@ -8,11 +8,9 @@
       "modules": [{ "kind": "structure", "x": 0, "y": 0, "length": 4, "width": 3 }]
     },
     "lateral": {
-      "notes": "A thruster's exhaust leaves the opposite way to its push, so a mount out on a wing has to push inboard — pushing outboard here would fire into the wing it is bolted to.",
       "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": -90, "length": 2, "width": 3 }]
     },
     "retro": {
-      "notes": "Braking thrust, pushing aft.",
       "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": 180, "length": 2, "width": 3 }]
     }
   },
