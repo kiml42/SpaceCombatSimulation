@@ -101,8 +101,19 @@ of a single module is the ordinary shared-part case and deliberately not a separ
 containing other assemblies is what lets a whole wing, or a whole side of a ship, be one thing.
 
 An instance says only *where*: position, facing, and whether it is reflected. It cannot override any value
-of the assembly it places, so "linked" means identical with no exceptions to track, and wanting one copy
-different means forking it into its own assembly — an explicit act rather than a quiet divergence.
+of the assembly it places, so "linked" means identical with no exceptions to track.
+
+How copies differ is instead **additive**: an instance may carry `extra` modules of its own, placed in the
+same frame as the assembly's, so they move and reflect with it. That is the whole of the divergence
+mechanism, and two editor actions are built from it rather than from anything new in the format:
+
+- **Unlink a part** takes it out of the definition and hands every instance its own copy as an extra. The
+  ship is unchanged at the moment it happens and each copy is separately editable afterwards. The cost,
+  which the button has to state, is that the part is gone from the assembly — a *new* instance will not
+  have it — and that extras land after the assembly's own modules, so the part moves down the expansion
+  order and the ship changes very slightly even though nothing about its geometry has.
+- **Unlink a copy** replaces one instance with its expanded modules inline. That needs no format support at
+  all, and it preserves order exactly, at the cost of that copy sharing nothing thereafter.
 
 **Reflection is what replaces a mirrored editing mode.** Symmetry becomes structural rather than something
 the editor keeps in step: build a side once, place it twice with one instance mirrored, and the two cannot

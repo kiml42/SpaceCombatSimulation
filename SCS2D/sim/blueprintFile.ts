@@ -59,7 +59,7 @@ const MODULE_KEYS: readonly string[] = [
 ];
 
 /** Keys an assembly instance may carry: where it goes, and nothing else. */
-const INSTANCE_KEYS: readonly string[] = ['use', 'x', 'y', 'angle', 'mirror', 'notes'];
+const INSTANCE_KEYS: readonly string[] = ['use', 'x', 'y', 'angle', 'mirror', 'extra', 'notes'];
 
 const ASSEMBLY_KEYS: readonly string[] = ['modules', 'notes'];
 
@@ -137,6 +137,10 @@ function instanceShapeProblem(value: Record<string, unknown>, where: string): st
   const mirror = value['mirror'];
   if (mirror !== undefined && typeof mirror !== 'boolean') {
     return `${where}: mirror must be true or false, got ${JSON.stringify(mirror)}`;
+  }
+  if (value['extra'] !== undefined) {
+    const problem = placementsShapeProblem(value['extra'], `${where}: extra`);
+    if (problem !== null) return problem;
   }
 
   return (
@@ -261,6 +265,7 @@ function toPlacements(raws: unknown[]): Placement[] {
       };
       if (raw['angle'] !== undefined) instance.angle = degreesToRadians(raw['angle'] as number);
       if (raw['mirror'] !== undefined) instance.mirror = raw['mirror'] as boolean;
+      if (raw['extra'] !== undefined) instance.extra = toPlacements(raw['extra'] as unknown[]);
       if (raw['notes'] !== undefined) instance.notes = raw['notes'] as string;
       return instance;
     }
@@ -322,6 +327,7 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
     const raw: Record<string, unknown> = { use: placement.use, x: placement.x, y: placement.y };
     if (placement.angle !== undefined) raw['angle'] = radiansToDegrees(placement.angle);
     if (placement.mirror !== undefined) raw['mirror'] = placement.mirror;
+    if (placement.extra !== undefined) raw['extra'] = placement.extra.map(serialisePlacement);
     if (placement.notes !== undefined) raw['notes'] = placement.notes;
     return raw;
   }

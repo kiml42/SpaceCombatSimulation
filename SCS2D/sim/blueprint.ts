@@ -94,6 +94,21 @@ export interface AssemblyInstance {
   angle?: number;
   /** Reflect across the instance frame's own x-axis before placing it. */
   mirror?: boolean;
+  /**
+   * Modules this copy carries and the assembly does not, placed in the same
+   * frame as the assembly's own — so they move and reflect with it, which is
+   * the thing that cannot be had by placing a module in the parent instead.
+   *
+   * Purely additive, deliberately. It is how one copy differs from another
+   * without an instance ever overriding a value, so "linked" keeps meaning
+   * "identical" about everything the assembly defines, and the differences
+   * between copies are all in one place and all visible.
+   *
+   * It is also what the editor's unlink is built from: taking a part out of
+   * the definition and handing every instance its own copy leaves the ship
+   * unchanged and each copy separately editable.
+   */
+  extra?: readonly Placement[];
   /** Why this copy is here. See `ModuleSpec.notes`. */
   notes?: string;
 }
@@ -395,17 +410,17 @@ function place(
         throw new Error(`${blueprint.name}: no assembly named ${placement.use}`);
       }
       const own = placement.angle ?? 0;
+      const turned = foldAngle(rotation + (mirrored ? -own : own));
       const flipped = mirrored !== (placement.mirror ?? false);
-      place(
-        assembly.modules,
-        blueprint,
-        x,
-        y,
-        foldAngle(rotation + (mirrored ? -own : own)),
-        flipped,
-        depth + 1,
-        out,
-      );
+      place(assembly.modules, blueprint, x, y, turned, flipped, depth + 1, out);
+      // Extras come after what the assembly defines, in the same frame. The
+      // ordering is worth noticing rather than assuming harmless: module order
+      // decides thruster allocation and firing order, so moving a part out of
+      // a definition and into an instance's extras moves it down the list and
+      // changes the ship slightly, even though nothing about its geometry has.
+      if (placement.extra !== undefined) {
+        place(placement.extra, blueprint, x, y, turned, flipped, depth + 1, out);
+      }
       continue;
     }
 
@@ -450,6 +465,15 @@ export function assemblyProblem(blueprint: Blueprint): string | null {
       const problem = walk(assembly.modules);
       path.pop();
       if (problem !== null) return problem;
+
+      // Extras belong to the instance rather than to the assembly it places,
+      // so they are walked at the enclosing path — an extra referring back to
+      // the assembly that *contains* this instance is still a cycle, but one
+      // referring to the assembly being placed here is not.
+      if (placement.extra !== undefined) {
+        const inExtra = walk(placement.extra);
+        if (inExtra !== null) return inExtra;
+      }
     }
     return null;
   }
