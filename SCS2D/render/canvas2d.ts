@@ -175,7 +175,8 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     const mx = ship.x + mount.x * c - mount.y * s;
     const my = ship.y + mount.x * s + mount.y * c;
     const reach = mount.muzzleOffset ?? 0;
-    const half = mount.arc ?? PI;
+    const left = mount.leftArc ?? PI;
+    const right = mount.rightArc ?? PI;
     const rest = ship.angle + (mount.restBearing ?? 0);
 
     // Where the gun may shoot: a mount fouled by its own ship shows a narrow
@@ -193,11 +194,11 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       ctx.strokeStyle = SWEEP_EDGE;
       ctx.lineWidth = lineWidth * 0.8;
       ctx.beginPath();
-      if (half >= PI) {
+      if (left + right >= 2 * PI) {
         ctx.arc(mx, my, span, 0, TAU);
       } else {
         ctx.moveTo(mx, my);
-        ctx.arc(mx, my, span, rest - half, rest + half);
+        ctx.arc(mx, my, span, rest - left, rest + right);
         ctx.closePath();
       }
       ctx.fill();

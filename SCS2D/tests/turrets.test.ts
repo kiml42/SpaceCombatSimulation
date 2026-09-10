@@ -233,7 +233,7 @@ describe('tracking', () => {
   it('stops sweeping when pinned against the edge of its arc', () => {
     const { bodies, index } = ship();
     const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, arc: 0.4, maxRate: 5, maxAccel: 50 });
+    const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: 0.4, rightArc: 0.4, maxRate: 5, maxAccel: 50 });
 
     // Commanded well outside the arc, and sweeping fast.
     turrets.commandWorldBearing(bodies, t, 2, 3);
@@ -249,7 +249,7 @@ describe('tracking', () => {
   it('clamps a feed-forward rate to the traverse limit', () => {
     const { bodies, index } = ship();
     const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 2, maxAccel: 100 });
+    const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: 0.4, rightArc: 0.4, maxRate: 2, maxAccel: 100 });
     turrets.commandWorldBearing(bodies, t, 0, 50);
     expect(turrets.commandedRate[t]).toBe(2);
   });
@@ -264,7 +264,8 @@ describe('traverse arcs', () => {
       x: 0,
       y: 0,
       restBearing: 0,
-      arc: 0.5,
+      leftArc: 0.5,
+      rightArc: 0.5,
       maxRate: 5,
       maxAccel: 50,
     });
@@ -282,7 +283,7 @@ describe('traverse arcs', () => {
   it('accepts a command inside the arc', () => {
     const { bodies, index } = ship();
     const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, arc: 0.5, maxRate: 5, maxAccel: 50 });
+    const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: 0.5, rightArc: 0.5, maxRate: 5, maxAccel: 50 });
 
     turrets.commandWorldBearing(bodies, t, 0.3);
     expect(turrets.blocked[t]).toBe(0);
@@ -299,7 +300,8 @@ describe('traverse arcs', () => {
       x: 0,
       y: 5,
       restBearing: PI / 2,
-      arc: 0.5,
+      leftArc: 0.5,
+      rightArc: 0.5,
       maxRate: 5,
       maxAccel: 50,
     });
@@ -314,7 +316,7 @@ describe('traverse arcs', () => {
   it('traverses fully when the arc is a half turn or more', () => {
     const { bodies, index } = ship();
     const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, arc: PI, maxRate: 5, maxAccel: 50 });
+    const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: PI, rightArc: PI, maxRate: 5, maxAccel: 50 });
     for (const bearing of [0, 1, 3, -3, PI, -PI / 2]) {
       turrets.commandWorldBearing(bodies, t, bearing);
       expect(turrets.blocked[t]).toBe(0);
@@ -324,7 +326,7 @@ describe('traverse arcs', () => {
   it('follows the hull, so the arc is body-relative', () => {
     const { bodies, index } = ship(PI / 2);
     const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, arc: 0.3, maxRate: 5, maxAccel: 50 });
+    const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: 0.3, rightArc: 0.3, maxRate: 5, maxAccel: 50 });
 
     // The ship faces +y, so dead ahead in world terms is pi/2.
     turrets.commandWorldBearing(bodies, t, PI / 2);
@@ -342,6 +344,8 @@ describe('reaction on the hull', () => {
       owner: index,
       x: 0,
       y: 0,
+      leftArc: 0.5,
+      rightArc: 0.5,
       maxRate: 2,
       maxAccel: 4,
       inertia: 2000,

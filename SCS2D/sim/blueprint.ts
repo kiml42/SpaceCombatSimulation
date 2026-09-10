@@ -320,11 +320,12 @@ export function firingArc(
   modules: readonly ModuleSpec[],
   index: number,
   reach: number,
-): number {
+): { left: number; right: number } {
   const mount = modules[index]!;
   const rest = normalizeAngle(mount.angle ?? 0);
 
-  let halfWidth = PI;
+  let left = PI;
+  let right = PI;
 
   for (let i = 0; i < modules.length; i++) {
     if (i === index) continue;
@@ -351,12 +352,13 @@ export function firingArc(
 
     // The rest bearing itself is inside the blocked interval: the gun is
     // buried, and there is no arc to have.
-    if (toLo <= 0 && toHi >= 0) return 0;
+    if (toLo <= 0 && toHi >= 0) return {left: 0, right: 0};
 
-    halfWidth = min(halfWidth, min(abs(toLo), abs(toHi)));
+    left = min(left, abs(toLo));
+    right = min(right, abs(toHi));
   }
 
-  return halfWidth;
+  return {left, right};
 }
 
 /**
@@ -717,13 +719,16 @@ export function compileBlueprint(blueprint: Blueprint): ShipDesign {
       const reach = gun.barrelLength;
       radius = max(radius, sqrt(x * x + y * y) + reach);
 
+      const arc = firingArc(specs, i, reach);
+
       turrets.push({
         module: i,
         mount: {
           x,
           y,
           restBearing: angle,
-          arc: firingArc(specs, i, reach),
+          leftArc: arc.left,
+          rightArc: arc.right,
           maxRate: traverseRate(reach),
           maxAccel: traverseAccel(s.mass, s.inertia),
           inertia: s.inertia,
