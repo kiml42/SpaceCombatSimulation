@@ -252,34 +252,40 @@ describe('firing arcs', () => {
   const mount: ModuleSpec = { kind: 'turret', x: 0, y: 0, angle: 0, length: 4, width: 4 };
 
   it('gives a turret with nothing around it the full circle', () => {
-    expect(firingArc([mount], 0, 8)).toBeCloseTo(PI, 12);
+    const arc = firingArc([mount], 0, 8);
+    expect(arc.left).toBeCloseTo(PI, 12);
+    expect(arc.right).toBeCloseTo(PI, 12);
   });
 
   it('ignores a module beyond the barrel', () => {
     const far = structure(100, 0, 10, 10);
-    expect(firingArc([mount, far], 0, 8)).toBeCloseTo(PI, 12);
+    const arc = firingArc([mount, far], 0, 8);
+    expect(arc.left).toBeCloseTo(PI, 12);
+    expect(arc.right).toBeCloseTo(PI, 12);
   });
 
   it('cuts the arc back to the edge of what fouls it', () => {
     // A wall directly astern, its near corners bearing 135° off the bow: the
     // gun trains freely until it reaches them.
     const wall: ModuleSpec = { kind: 'structure', x: -8, y: 0, length: 8, width: 16 };
-    expect(firingArc([mount, wall], 0, 12)).toBeCloseTo(Math.atan2(8, -4), 9);
+    const arc = firingArc([mount, wall], 0, 12);
+    expect(arc.left).toBeCloseTo(Math.atan2(8, -4), 9);
+    expect(arc.right).toBeCloseTo(Math.atan2(8, -4), 9);
   });
 
-  it('takes the same arc from the near side when only one side is fouled', () => {
-    // A symmetric traverse limit cannot describe an obstruction on one beam
-    // only, so the clear side is given up with it. Recorded here because it is
-    // a deliberate limitation rather than a rounding artefact.
+  it('only reduces the arc on one side when only one side is fouled', () => {
     const toPort: ModuleSpec = { kind: 'structure', x: 0, y: 6, length: 4, width: 4 };
     const arc = firingArc([mount, toPort], 0, 12);
-    expect(arc).toBeLessThan(HALF_PI);
-    expect(arc).toBeGreaterThan(0);
+    expect(arc.left).toBeLessThan(HALF_PI);
+    expect(arc.left).toBeGreaterThan(0);
+    expect(arc.right).toBeCloseTo(HALF_PI, 12);
   });
 
   it('gives no arc at all to a gun buried in the hull', () => {
     const ahead = structure(6, 0, 4, 20);
-    expect(firingArc([mount, ahead], 0, 12)).toBe(0);
+    const arc = firingArc([mount, ahead], 0, 12);
+    expect(arc.left).toBe(0);
+    expect(arc.right).toBe(0);
   });
 });
 
