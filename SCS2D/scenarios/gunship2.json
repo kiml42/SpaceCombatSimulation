@@ -1,0 +1,56 @@
+{
+  "formatVersion": 1,
+  "name": "Gunship",
+  "notes": "A heavy gunship: a bow gun firing a shell an order of magnitude heavier than the corvette's, and a broadside turret on each beam for anything that gets inside it. Twice the corvette's engines move four times its mass, so it is markedly more sluggish — which is the point of having two ships to compare.",
+  "assemblies": {
+    "outrigger": {
+      "notes": "An outrigger, holding a small fast-firing multi-barrelled gun clear of the spine. A gun flat against the hull has almost no traverse worth the mass it costs.",
+      "modules": [
+        { "kind": "structure", "x": 0, "y": 0, "length": 6, "width": 10 },
+        {
+          "kind": "turret", "x": 0, "y": 8, "angle": 0, "length": 12, "width": 6, "barrels": 8,
+          "notes": "Many narrow barrels rather than one wide one: the same bore budget spent on rate of fire instead of weight of shell."
+        }
+      ]
+    },
+    "mainEngine": {
+      "notes": "One of the pair that drives the ship forward.",
+      "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": 0, "length": 8, "width": 4 }]
+    },
+    "wingBox": {
+      "notes": "A stub holding a manoeuvring thruster out where its moment arm is worth having.",
+      "modules": [{ "kind": "structure", "x": 0, "y": 0, "length": 6, "width": 4 }]
+    },
+    "lateral": {
+      "notes": "A manoeuvring thruster pushing inboard, so its exhaust leaves into clear air rather than into the stub it is bolted to.",
+      "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": -90, "length": 2, "width": 4 }]
+    },
+    "retro": {
+      "notes": "Braking thrust, pushing aft.",
+      "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": 180, "length": 3, "width": 4 }]
+    }
+  },
+  "modules": [
+    { "kind": "structure", "x": 0, "y": 0, "length": 40, "width": 10 },
+    { "kind": "turret", "x": 26, "y": 0, "angle": 0, "length": 12, "width": 8, "barrels": 1 },
+
+    { "use": "outrigger", "x": 0, "y": 10 },
+    { "use": "outrigger", "x": 0, "y": -10, "mirror": true },
+
+    { "use": "mainEngine", "x": -24, "y": 3 },
+    { "use": "mainEngine", "x": -24, "y": -3, "mirror": true },
+
+    { "use": "wingBox", "x": 12, "y": 7 },
+    { "use": "wingBox", "x": 12, "y": -7, "mirror": true },
+    { "use": "wingBox", "x": -12, "y": 7 },
+    { "use": "wingBox", "x": -12, "y": -7, "mirror": true },
+
+    { "use": "lateral", "x": 12, "y": 10 },
+    { "use": "lateral", "x": 12, "y": -10, "mirror": true },
+    { "use": "lateral", "x": -12, "y": 10 },
+    { "use": "lateral", "x": -12, "y": -10, "mirror": true },
+
+    { "use": "retro", "x": 16.5, "y": 7 },
+    { "use": "retro", "x": 16.5, "y": -7, "mirror": true }
+  ]
+}

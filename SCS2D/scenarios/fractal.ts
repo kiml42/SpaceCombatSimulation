@@ -10,7 +10,7 @@ import {
   type WellSpec,
 } from '../sim/index.js';
 import type { Battle } from './types.js';
-import { FRACTAL, GUNSHIP } from './blueprints.js';
+import { FRACTAL, GUNSHIP2 } from './blueprints.js';
 
 export function fractal(seed = 20260905): Battle {
   const dt = 1 / 60;
@@ -28,7 +28,7 @@ export function fractal(seed = 20260905): Battle {
   world.addForceProvider(ships.forceProvider());
 
   const fractal = compileBlueprint(FRACTAL);
-  const gunship = compileBlueprint(GUNSHIP);
+  const gunship = compileBlueprint(GUNSHIP2);
 
   const distantCorvette = ships.spawn(world, {
     design: fractal,
