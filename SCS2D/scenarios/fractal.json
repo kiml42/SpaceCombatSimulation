@@ -1,37 +1,34 @@
 {
   "formatVersion": 1,
   "name": "Fractal",
-  "notes": "A test of recursive assemblies",
+  "notes": "A long-winged ship built from one repeated segment, to exercise repetition. Each wing is the same segment placed several times, so lengthening a wing is a single number rather than a copy-and-paste — and because the segment carries its own braking thruster, a longer ship brakes harder as well as weighing more.",
   "assemblies": {
-    "wingBox": {
-      "notes": "The wings exist to hold the manoeuvring thrusters out where their moment arm is worth having. That they also foul the bow gun's traverse is the trade this layout makes, and it is visible in the arc the design compiles to.",
+    "wingSegment": {
+      "notes": "One bay of a wing: a box, a gun on its leading edge, thrust forward, and braking thrust outboard where it clears the gun. Repeated along the wing rather than duplicated, so every bay is the same bay.",
       "modules": [
         { "kind": "structure", "x": 0, "y": 0, "length": 4, "width": 8 },
         { "kind": "turret", "x": 4.5, "y": 0, "angle": 0, "length": 5, "width": 4, "barrels": 1 },
         { "kind": "thruster", "x": -4, "y": 0, "angle": 0, "length": 4, "width": 6 },
-        { "use": "wingBox2", "x": -1, "y": 8 }
-      ]
-    },
-    "wingBox2": {
-      "notes": "Same again",
-      "modules": [
-        { "kind": "structure", "x": 0, "y": 0, "length": 4, "width": 8 },
-        { "kind": "turret", "x": 4.5, "y": 0, "angle": 0, "length": 5, "width": 4, "barrels": 1 },
-        { "kind": "thruster", "x": -4, "y": 0, "angle": 0, "length": 4, "width": 6 }
+        {
+          "kind": "thruster", "x": 3, "y": 3, "angle": 180, "length": 2, "width": 2,
+          "notes": "Braking thrust, tucked outboard of the gun. Every bay carries one, so a longer wing stops harder — which is the point of repeating a segment that is more than structure."
+        }
       ]
     },
     "rcs": {
+      "notes": "A manoeuvring thruster on the spine.",
       "modules": [{ "kind": "thruster", "x": 0, "y": 0, "length": 2, "width": 3 }]
     }
   },
   "modules": [
     { "kind": "structure", "x": 0, "y": 0, "length": 35, "width": 6 },
 
-    { "use": "wingBox", "x": 2, "y": 7 },
-    { "use": "wingBox", "x": 2, "y": -7, "mirror": true },
-    {"use": "rcs", "x": -15, "y": 4, "angle": -90 },
-    {"use": "rcs", "x": -15, "y": -4, "angle": 90 },
-    {"use": "rcs", "x": 15, "y": 4, "angle": -90 },
-    {"use": "rcs", "x": 15, "y": -4, "angle": 90 }
+    { "use": "wingSegment", "x": 2, "y": 7, "repeat": 3, "step": { "x": -1, "y": 8 } },
+    { "use": "wingSegment", "x": 2, "y": -7, "mirror": true, "repeat": 3, "step": { "x": -1, "y": 8 } },
+
+    { "use": "rcs", "x": -15, "y": 4, "angle": -90 },
+    { "use": "rcs", "x": -15, "y": -4, "angle": 90 },
+    { "use": "rcs", "x": 15, "y": 4, "angle": -90 },
+    { "use": "rcs", "x": 15, "y": -4, "angle": 90 }
   ]
 }

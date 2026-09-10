@@ -103,6 +103,12 @@ containing other assemblies is what lets a whole wing, or a whole side of a ship
 An instance says only *where*: position, facing, and whether it is reflected. It cannot override any value
 of the assembly it places, so "linked" means identical with no exceptions to track.
 
+**A long repeated structure is a count, not a chain.** An instance may carry `repeat` and a `step`, which
+places that many copies with each one a step on from the last — so a wing of six identical bays is one bay
+and the number six, and lengthening it is one edit. The step is applied in each copy's own frame, so a step
+angle walks the copies round an arc and a ring of mounts costs the same as a row of them. Both are capped,
+per instance and again over the whole expansion, because repetition and nesting multiply.
+
 How copies differ is instead **additive**: an instance may carry `extra` modules of its own, placed in the
 same frame as the assembly's, so they move and reflect with it. That is the whole of the divergence
 mechanism, and two editor actions are built from it rather than from anything new in the format:
