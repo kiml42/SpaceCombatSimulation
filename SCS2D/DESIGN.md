@@ -245,6 +245,16 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   - Firing needs **both** `onTarget` and not `blocked`: a turret whose target lies outside its traverse
     arc slews as close as it can and sits there, on target with respect to its command but not aimed at
     anything.
+  - **Both limits come from one drive.** The mount ring delivers torque proportional to the turret's
+    mass, so acceleration is `torque / inertia`, and the rate limit is simply what that acceleration
+    reaches in a fixed spin-up time. They are one mechanism described twice, not two numbers to balance:
+    a mount cannot be sluggish off the mark and fast at the top end.
+    - What makes that discriminate between mounts is **inertia**, which counts each barrel as a rod
+      running out from the pivot rather than as part of the box the module is declared as. Mass cancels
+      out of `torque / inertia` exactly, so without the barrels a mount's agility would depend on
+      nothing but its footprint, and lengthening its gun would be free. With them, buying muzzle
+      velocity costs traverse — a point-defence mount trains at over a degree a frame and holds a
+      bearing against its own ship's manoeuvring, while a capital gun needs a steady platform.
 - **Projectiles are not bodies.** A projectile is `(position, velocity, payload)` in a flat array,
   resolved by testing the swept segment `p → p + v·dt` against the broadphase. Tunnelling is
   structurally impossible rather than patched, it is cheaper than a body per bullet, and it is

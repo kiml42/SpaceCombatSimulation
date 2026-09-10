@@ -142,17 +142,24 @@ export const MECHANISM_MASS_PER_CALIBRE = 4e4;
 
 /**
  * Traverse torque the mount ring can deliver per kilogram of turret, N·m/kg.
- * Set so that a heavy turret reaches its rate limit in a couple of seconds.
+ * A bigger turret gets a bigger ring, so the torque available grows with the
+ * mass it has to shift; what it does not grow with is how that mass is spread,
+ * which is why a long-barrelled gun is sluggish and a compact one is not.
  */
 export const TRAVERSE_TORQUE_PER_KG = 2;
 
 /**
- * Speed limit at the muzzle end of the barrel, m/s, which is what actually
- * constrains a mount: the tip of a long gun travels far further per degree
- * than a short one. A 16" turret trains at about 4°/s with a 15 m reach, or
- * roughly a metre a second.
+ * How long the traverse drive takes to wind a mount up from rest to its rate
+ * limit, seconds. It is the whole of what sets that limit: a drive that can
+ * accelerate briskly is geared to run fast, and one that cannot is not, so a
+ * mount's top speed and its acceleration are the same fact stated twice.
+ *
+ * Two seconds puts a light mount at well over a hundred degrees a second and a
+ * 16" turret at single figures — slow enough that a heavy gun needs a steady
+ * platform, quick enough that a point-defence mount can hold a bearing against
+ * a ship that is itself turning.
  */
-export const TRAVERSE_TIP_SPEED = 1.5;
+export const TRAVERSE_SPINUP_TIME = 2;
 
 export type ModuleKind = 'structure' | 'thruster' | 'turret';
 
@@ -236,8 +243,9 @@ export interface ModuleStats {
   capacity: number;
   /**
    * Moment of inertia about the module's own centre, kg·m². The box formula
-   * in the plane; the deck height does not enter a rotation about the vertical
-   * axis.
+   * in the plane for the module itself — the deck height does not enter a
+   * rotation about the vertical axis — plus each barrel as a rod running out
+   * from that centre, which is where a turret's sluggishness comes from.
    */
   inertia: number;
   /**
@@ -316,6 +324,10 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
   let fittingMass = 0;
   let thrust = 0;
   let gun: GunStats | null = null;
+  // Mass that hangs off the pivot as a rod rather than filling the box, and
+  // the inertia it accounts for. Barrels, and nothing else so far.
+  let rodMass = 0;
+  let rodInertia = 0;
 
   if (spec.kind === 'thruster') {
     // Thrust comes out of the nozzle, so it scales with the area of the face
@@ -338,11 +350,29 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     // of and which does not scale down as steeply as the tube does.
     const mechanismMass = MECHANISM_MASS_PER_CALIBRE * gun.calibre;
     fittingMass = (barrelMass + mechanismMass) * gun.barrelCount;
+
+    // The barrels are the one part of a module that is not shaped like the box
+    // it is declared as: each is a rod running outward from the pivot at the
+    // mount's centre, so it contributes `m L²/3` rather than its share of the
+    // box, plus `m d²` for sitting `d` off the centreline. This is what makes
+    // barrel length cost traverse — the box formula cannot see a barrel at all,
+    // and under it a long gun and a stubby one of the same weight came round
+    // equally fast.
+    rodMass = barrelMass * gun.barrelCount;
+    const spin = (barrelMass * gun.barrelLength * gun.barrelLength) / 3;
+    for (let barrel = 0; barrel < gun.barrelCount; barrel++) {
+      const offset = (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing;
+      rodInertia += spin + barrelMass * offset * offset;
+    }
   }
 
   const mass = structureMass + fittingMass;
+  // Everything but the barrels rotates as the box it is: walls, and machinery
+  // packed inside them.
+  const boxMass = mass - rodMass;
   const inertia =
-    (mass * (spec.length * spec.length + spec.width * spec.width)) / 12;
+    (boxMass * (spec.length * spec.length + spec.width * spec.width)) / 12 +
+    rodInertia;
 
   return {
     wallThickness,
@@ -439,18 +469,25 @@ export function gunStats(mountLength: number, mountWidth: number, barrelCount: n
 }
 
 /**
- * Traverse rate limit for a mount of this mass and reach, radians per second.
+ * Traverse rate limit, radians per second, for a mount whose drive accelerates
+ * it at `accel`.
  *
- * The limit is a speed at the muzzle rather than an angular rate, because that
- * is what the barrel's structure actually cares about — which makes a long gun
- * slower to bring round than a short one of the same weight, for a reason
- * rather than by fiat.
+ * The rate is not an independent property of the mount: it is however fast the
+ * drive gets it going in `TRAVERSE_SPINUP_TIME`. So the same thing that makes a
+ * turret slow to accelerate — a lot of mass held far from the pivot — makes it
+ * slow at the top end, and a compact mount is quick at both.
  */
-export function traverseRate(reach: number): number {
-  return TRAVERSE_TIP_SPEED / reach;
+export function traverseRate(accel: number): number {
+  return accel * TRAVERSE_SPINUP_TIME;
 }
 
-/** Traverse acceleration limit, radians per second squared. */
+/**
+ * Traverse acceleration limit, radians per second squared.
+ *
+ * Torque grows with the mount's mass and resistance with its inertia, so what
+ * survives is a ratio: mass alone does not slow a mount down, but mass spread
+ * out along a barrel does.
+ */
 export function traverseAccel(mass: number, inertia: number): number {
   return (TRAVERSE_TORQUE_PER_KG * mass) / inertia;
 }

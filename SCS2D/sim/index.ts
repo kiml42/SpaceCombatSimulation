@@ -44,6 +44,7 @@ export {
   moduleStats,
   traverseAccel,
   traverseRate,
+  TRAVERSE_SPINUP_TIME,
   type GunStats,
   type ModuleKind,
   type ModuleSpec,

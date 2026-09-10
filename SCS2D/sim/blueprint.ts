@@ -739,6 +739,10 @@ export function compileBlueprint(blueprint: Blueprint): ShipDesign {
 
       const arc = firingArc(specs, i, reach);
 
+      // One drive, so one figure: the rate limit is what this acceleration
+      // reaches in the drive's spin-up time.
+      const accel = traverseAccel(s.mass, s.inertia);
+
       turrets.push({
         module: i,
         mount: {
@@ -747,8 +751,8 @@ export function compileBlueprint(blueprint: Blueprint): ShipDesign {
           restBearing: angle,
           leftArc: arc.left,
           rightArc: arc.right,
-          maxRate: traverseRate(reach),
-          maxAccel: traverseAccel(s.mass, s.inertia),
+          maxRate: traverseRate(accel),
+          maxAccel: accel,
           inertia: s.inertia,
           muzzleSpeed: gun.muzzleSpeed,
           muzzleOffset: gun.barrelLength,
