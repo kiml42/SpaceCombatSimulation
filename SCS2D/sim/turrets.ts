@@ -10,6 +10,7 @@ import {
   PI,
   sin,
   sqrt,
+  TAU,
 } from './math.js';
 
 /**
@@ -293,17 +294,39 @@ export class Turrets {
 
   /** Clamp a body-frame bearing into this turret's traverse arc. */
   private clampToArc(i: number, bodyBearing: number): number {
-    const left = this.leftArc[i];
-    const right = this.rightArc[i];
-    if (left + right >= 2*PI) return normalizeAngle(bodyBearing);
-    const rest = this.restBearing[i];
-    // `offset` is signed the way bearings are: positive is anticlockwise, which
-    // with +y to port is the ship's *left*. So the permitted band is
-    // `[-rightArc, +leftArc]` — the left arc bounds the positive side. Getting
-    // this the other way round is invisible while every arc is symmetric, and
-    // silently points guns at the wrong sky as soon as one is not.
+    const left = this.leftArc[i]!;
+    const right = this.rightArc[i]!;
+    if (left + right >= TAU) return normalizeAngle(bodyBearing);
+    const rest = this.restBearing[i]!;
+
+    // Sweeps are signed the way bearings are: positive is anticlockwise, which
+    // with +y to port is the ship's *left*. So the permitted band runs from
+    // `-rightArc` to `+leftArc` — the left arc bounds the positive side.
+    // Getting this the other way round is invisible while every arc is
+    // symmetric, and points guns at the wrong sky as soon as one is not.
+    //
+    // `angleDelta` always takes the short way, so it can never report a sweep
+    // past half a circle. An arc wider than that on one side therefore shows
+    // up here as a delta of the *opposite* sign, and has to be recognised as
+    // such — otherwise a mount free to swing right round one way is confined
+    // to the half-circle the short way.
     const offset = angleDelta(rest, bodyBearing);
-    return normalizeAngle(rest + clamp(offset, -right, left));
+    if (offset >= -right && offset <= left) return normalizeAngle(rest + offset);
+    if (offset - TAU >= -right) return normalizeAngle(rest + offset);
+    if (offset + TAU <= left) return normalizeAngle(rest + offset);
+
+    // Out of arc: stop at whichever end is nearer to where the mount was asked
+    // to point, rather than at whichever end the sign of the offset happens to
+    // pick. The difference shows the moment an arc is lopsided — a mount
+    // tracking a target across the stern would otherwise abandon it, cross the
+    // ship, and settle with the obstruction between itself and what it was
+    // following. Stopping at the near end leaves the barrel hard up against
+    // what blocks it, which is both the truth and what it looks like.
+    const leftEnd = normalizeAngle(rest + left);
+    const rightEnd = normalizeAngle(rest - right);
+    return abs(angleDelta(bodyBearing, leftEnd)) < abs(angleDelta(bodyBearing, rightEnd))
+      ? leftEnd
+      : rightEnd;
   }
 
   /**
