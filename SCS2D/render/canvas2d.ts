@@ -105,9 +105,9 @@ function legibleWidth(physical: number, minPx: number, metresToPx: number): numb
 }
 const WELL = '#3a4e7a';
 
-/** The firing arc: a pale wash with a slightly firmer edge to define it. */
-const SWEEP = 'rgba(196, 210, 232, 0.1)';
-const SWEEP_EDGE = 'rgba(196, 210, 232, 0.26)';
+/** The firing arc: a pale wash with an optional edge to define it (currently disabled). */
+const SWEEP = 'rgba(196, 210, 232, 0.2)';
+const SWEEP_EDGE = 'rgba(196, 210, 232, 0)';
 
 /**
  * How far the arc indicator reaches, as a multiple of the barrel's length.
