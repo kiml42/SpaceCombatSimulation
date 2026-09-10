@@ -306,7 +306,7 @@ export const SCENARIOS = {
   gunnery: { steps: 3_000, build: () => gunneryScenario() },
   duel: { steps: 3_000, build: () => duelScenario() },
   swarm: { steps: 3_000, build: () => swarmScenario() },
-  superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 500) },
+  superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
   fractal: { steps: 3_000, build: () => fractalScenario() },
 } satisfies Record<string, Scenario>;
 
