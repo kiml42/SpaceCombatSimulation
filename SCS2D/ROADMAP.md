@@ -354,12 +354,17 @@ Deliberately unresolved; decide when they block something.
   "guns mission-kill, ordnance destroys" line in §3 would become "deck turrets mission-kill; edge guns and
   ordnance destroy", with edge guns paying for it in coverage. The cost is a second mounting concept in the
   blueprint editor, so decide it when building the editor rather than before.
-- **Whether a turret's traverse limit and its firing permission are the same thing.** Today they are:
-  `firingArc` returns one half-width about the rest bearing, and a mount may fire wherever it may point.
-  Two separate things will break that, and they are worth keeping apart.
-  - **Asymmetry.** A single half-width means an obstruction on one beam costs the clear sector on the
-    other too. Every ship authored so far is symmetric, which hides it. Small fix: two bounds in the
-    turret store instead of one, and a clamp between them.
+- **Whether a turret's traverse limit and its firing permission are the same thing.** Today they are: a
+  mount may fire wherever it may point. That is one of the two things this question was about; the other,
+  asymmetry, is done.
+  - ~~**Asymmetry.**~~ Settled. `firingArc` returns a bound each way and the turret store carries both, so
+    an obstruction off one beam costs the sweep that way alone. Worth recording what made it hard to get
+    right rather than just that it is: the limits have to be measured as *sweeps* — how far the mount must
+    turn to reach an edge — and not as signed bearings, because an obstruction wholly to port has both
+    edges at positive bearings while one dead astern is reached by turning either way. And every consumer
+    has to agree which bound is which. Both the clamp and the renderer had them transposed, consistently
+    with each other, so the picture and the behaviour agreed and were both wrong — which is invisible while
+    every arc is symmetric, and every arc was.
   - **Traversing through what you may not fire through.** A barrel can usually sweep *past*
     superstructure or a neighbouring mount and reach clear bearings beyond it — it simply must not shoot
     while crossing them. So these are two different quantities. The **traverse limit** is mechanical:

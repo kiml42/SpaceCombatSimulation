@@ -297,8 +297,13 @@ export class Turrets {
     const right = this.rightArc[i];
     if (left + right >= 2*PI) return normalizeAngle(bodyBearing);
     const rest = this.restBearing[i];
+    // `offset` is signed the way bearings are: positive is anticlockwise, which
+    // with +y to port is the ship's *left*. So the permitted band is
+    // `[-rightArc, +leftArc]` — the left arc bounds the positive side. Getting
+    // this the other way round is invisible while every arc is symmetric, and
+    // silently points guns at the wrong sky as soon as one is not.
     const offset = angleDelta(rest, bodyBearing);
-    return normalizeAngle(rest + clamp(offset, -left, right));
+    return normalizeAngle(rest + clamp(offset, -right, left));
   }
 
   /**
