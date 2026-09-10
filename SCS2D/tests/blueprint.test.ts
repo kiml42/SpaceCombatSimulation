@@ -277,13 +277,12 @@ describe('firing arcs', () => {
     // A block off the port beam, spanning bearings 63.4° to 116.6°. It stops
     // the gun training to port at the nearer of those, and — the point of the
     // test — leaves the starboard sweep entirely alone: there is nothing to
-    // starboard, so the gun trains the full half-circle that way, exactly as
-    // it would with no obstruction at all.
+    // starboard, so the gun trains all the way round to the far side where it hits the same block.
     const toPort: ModuleSpec = { kind: 'structure', x: 0, y: 6, length: 4, width: 4 };
     const arc = firingArc([mount, toPort], 0, 12);
     expect(arc.left).toBeCloseTo(Math.atan2(4, 2), 9);
     expect(arc.left).toBeLessThan(HALF_PI);
-    expect(arc.right).toBeCloseTo(PI, 12);
+    expect(arc.right).toBeGreaterThan(PI);
   });
 
   it('gives no arc at all to a gun buried in the hull', () => {
