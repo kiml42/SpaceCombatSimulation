@@ -285,6 +285,61 @@ describe('traverse arcs', () => {
     expect(turrets.commanded[t]).toBeCloseTo(-1, 9);
   });
 
+  it('reaches sky on the far side of what blocks it, the long way round', () => {
+    // A mount fouled on one beam has a clear sector wider than half a circle,
+    // so `firingArc` reports one bound above PI. `angleDelta` never reports a
+    // sweep that large, so such a bearing arrives here with the opposite sign
+    // and has to be recognised rather than clamped away.
+    const { bodies, index } = ship();
+    const turrets = new Turrets();
+    const t = turrets.add({
+      owner: index,
+      x: 0,
+      y: 0,
+      restBearing: 0,
+      leftArc: (63.4 * PI) / 180,
+      rightArc: (243.4 * PI) / 180,
+      maxRate: 5,
+      maxAccel: 50,
+    });
+
+    // 150° is clear — the block spans 63.4° to 116.6° — and is reached by
+    // turning right the long way rather than left the short way.
+    turrets.commandWorldBearing(bodies, t, (150 * PI) / 180);
+    expect(turrets.blocked[t]).toBe(0);
+    expect(turrets.commanded[t]! * (180 / PI)).toBeCloseTo(150, 6);
+  });
+
+  it('stops at the near end of the arc, not whichever end the sign picks', () => {
+    // The difference only shows on a lopsided arc, and it is the difference
+    // between a barrel resting against what blocks it and a barrel that has
+    // crossed the ship to sit on the far side of the obstruction from its
+    // target.
+    const { bodies, index } = ship();
+    const turrets = new Turrets();
+    const t = turrets.add({
+      owner: index,
+      x: 0,
+      y: 0,
+      restBearing: 0,
+      leftArc: (63.4 * PI) / 180,
+      rightArc: (243.4 * PI) / 180,
+      maxRate: 5,
+      maxAccel: 50,
+    });
+
+    // 100° is inside the block. The two ends are 63.4° and 116.6°; the nearer
+    // is 116.6°, which is also the one with the target beyond it.
+    turrets.commandWorldBearing(bodies, t, (100 * PI) / 180);
+    expect(turrets.blocked[t]).toBe(1);
+    expect(turrets.commanded[t]! * (180 / PI)).toBeCloseTo(116.6, 1);
+
+    // And 70°, just inside the other end, stops at 63.4° rather than swinging
+    // the whole way round to 116.6°.
+    turrets.commandWorldBearing(bodies, t, (70 * PI) / 180);
+    expect(turrets.commanded[t]! * (180 / PI)).toBeCloseTo(63.4, 1);
+  });
+
   it('clamps a command outside the arc and reports it blocked', () => {
     const { bodies, index } = ship();
     const turrets = new Turrets();
