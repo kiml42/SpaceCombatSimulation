@@ -428,6 +428,48 @@ Deliberately unresolved; decide when they block something.
   Still open beyond all of this: **hull-layer side-mounted guns**, which by their own definition are blocked
   by the whole ship rather than by its raised parts, and whose projectiles then travel in the hull layer.
   What that means for what they can hit is undecided — see the deck-versus-edge-gun question above.
+- **Engines split by layer, into two archetypes.** A single `thruster` kind cannot express the choice the
+  weapons layer creates, so it becomes two — a new *archetype* rather than a new coefficient, which is the
+  distinction the materials question above already draws.
+  - A **raised main engine**: high thrust, efficient, heavy. In the weapons layer, so guns can strip it.
+  - A **hull-layer thruster**: small, and therefore low absolute thrust. Guns cannot reach it.
+
+  **Settled in direction: the hull-layer one is lighter in absolute terms and *worse* per unit of thrust.**
+  Lighter because it is smaller; worse because a bank of them must outweigh one main engine of the same
+  total thrust. That sign is the whole point, and getting it the other way round would be the exploit
+  `modules.ts` warns about in its own words: a hull-layer engine cheaper per newton, with nothing bounding
+  how many fit, means every evolved ship is a raft of RCS units and the main engine is never built. The
+  reason to fit them is not that they are cheap. It is that gunfire cannot reach them.
+
+  Low thrust need not be stipulated — thrust is already exit area times a constant, and exit area is width
+  times deck height, so an engine that does not rise above the deck gets less exit and less thrust out of
+  the geometry. Efficiency has nowhere to live yet, since there is no propellant model, so for now the two
+  differ in thrust and mass alone.
+
+  What the split buys is a better mission kill than "disabled". A ship stripped of its main engines still
+  has manoeuvring thrusters on long moment arms, so it can still *rotate* well while barely translating: a
+  fixed battery that can bring guns to bear but cannot close, break off, or dictate range. That is a state
+  worth fighting rather than a formality, and it is the drifting hulk §3 wants and the salvage §8 step 6
+  feeds on. Worth knowing that `hasFullAuthority()` is called only from tests and never at run time, so a
+  damaged ship failing it costs nothing — it looks like it would matter and does not.
+- **How a gun reaches the hull layer at all: proximity fuses.** §3 says HE shells give small guns light hull
+  damage and lasers cannot, which is a stipulated asymmetry with no mechanism under it. A fused round has
+  one: it detonates at a point, the blast reaches down into the hull layer, and the damage disperses with
+  distance, so guns hurt hulls slowly rather than not at all — a gradient rather than the hard immunity §3
+  says frustrates players.
+  It is worth preferring for a reason beyond that. A laser has no fuse, and therefore no mechanism to reach
+  the hull layer, so §3's asymmetry stops being a rule and becomes a consequence. And self-damage stays
+  geometric rather than arbitrary: a fuse going off near a target that is close to your own hull will blast
+  your own hull, which makes point-blank defensive fire genuinely risky without any "once it is clear of its
+  own ship" rule to write.
+  Two notes for whoever builds it. The primitives exist: `segmentCircleT` already answers "at what fraction
+  along this swept segment do I come within `r` of this point", and the grid already has `queryCircle` for
+  the blast. And there is a fork worth deciding early — a **timed** fuse is nearly free, since `interceptTime`
+  already computes when the round should arrive, but it detonates in the wrong place on a miss, which is
+  exactly when a fuse was supposed to earn its keep; a true proximity fuse costs a check per round per step.
+  The cheap middle is to arm on the timer and detonate on first proximity within a short window, so the
+  check runs only while armed.
+  Belongs with §8 step 2: a fuse is a delivery mechanism, and the damage model is what it delivers into.
 - **Whether the remaining authored data lives in files rather than in code.** Blueprints do: they are JSON,
   parsed by `sim/blueprintFile.ts`, and the shipped ships go through exactly the validation a stranger's file
   does. What has not moved is `tests/fixtures/scenarios.ts`, and §9's promise of
