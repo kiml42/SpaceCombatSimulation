@@ -346,16 +346,28 @@ export function firingArc(
       hi = max(hi, d);
     }
 
-    // Where that blocked interval sits relative to where the gun rests.
-    const toLo = angleDelta(rest, centre + lo);
-    const toHi = angleDelta(rest, centre + hi);
-
     // The rest bearing itself is inside the blocked interval: the gun is
-    // buried, and there is no arc to have.
-    if (toLo <= 0 && toHi >= 0) return {left: 0, right: 0};
+    // buried, and there is no arc to have. Asked about the interval directly
+    // rather than about the signs of the two edges, since an interval that
+    // straddles dead astern has a positive edge and a negative one without
+    // containing anything near the rest bearing.
+    const restFromCentre = angleDelta(centre, rest);
+    if (restFromCentre >= lo && restFromCentre <= hi) return { left: 0, right: 0 };
 
-    left = min(left, abs(toLo));
-    right = min(right, abs(toHi));
+    // How far the mount can train each way before it reaches this obstruction,
+    // measured as a *sweep* rather than as a signed bearing.
+    //
+    // That distinction is the whole of the asymmetry. A signed bearing says
+    // where an edge is; a sweep says how far you must turn to get there, and
+    // those differ in the direction you are turning away from. An obstruction
+    // wholly off the port beam has both its edges at positive bearings, so
+    // reading one of them as the starboard limit clamps a sweep that nothing
+    // is in the way of — while an obstruction dead astern is genuinely reached
+    // by turning either way, and this reaches it in both.
+    const dLo = angleDelta(rest, centre + lo);
+    const dHi = angleDelta(rest, centre + hi);
+    left = min(left, dLo >= 0 ? dLo : dLo + TAU, dHi >= 0 ? dHi : dHi + TAU);
+    right = min(right, dLo <= 0 ? -dLo : TAU - dLo, dHi <= 0 ? -dHi : TAU - dHi);
   }
 
   return {left, right};
