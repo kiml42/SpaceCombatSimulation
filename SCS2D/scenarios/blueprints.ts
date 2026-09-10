@@ -2,6 +2,7 @@ import { parseBlueprint, type Blueprint } from '../sim/index.js';
 import corvetteFile from './corvette.json' with { type: 'json' };
 import damagedCorvetteFile from './damaged-corvette.json' with { type: 'json' };
 import gunshipFile from './gunship.json' with { type: 'json' };
+import fractalFile from './fractal.json' with { type: 'json' };
 
 /**
  * The ship layouts that ship with the game, loaded from the same files the
@@ -27,7 +28,8 @@ import gunshipFile from './gunship.json' with { type: 'json' };
 export const CORVETTE: Blueprint = parseBlueprint(corvetteFile);
 export const DAMAGED_CORVETTE: Blueprint = parseBlueprint(damagedCorvetteFile);
 export const GUNSHIP: Blueprint = parseBlueprint(gunshipFile);
+export const FRACTAL: Blueprint = parseBlueprint(fractalFile);
 
-export const BLUEPRINTS = { corvette: CORVETTE, gunship: GUNSHIP, damagedCorvette: DAMAGED_CORVETTE } as const;
+export const BLUEPRINTS = { corvette: CORVETTE, gunship: GUNSHIP, damagedCorvette: DAMAGED_CORVETTE, fractal: FRACTAL } as const;
 
 export type BlueprintName = keyof typeof BLUEPRINTS;

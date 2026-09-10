@@ -1,0 +1,27 @@
+{
+  "formatVersion": 1,
+  "name": "Fractal",
+  "notes": "A test of recursive assemblies",
+  "assemblies": {
+    "wingBox": {
+      "notes": "The wings exist to hold the manoeuvring thrusters out where their moment arm is worth having. That they also foul the bow gun's traverse is the trade this layout makes, and it is visible in the arc the design compiles to.",
+      "modules": [
+        { "kind": "structure", "x": 0, "y": 0, "length": 4, "width": 8 },
+        { "kind": "turret", "x": 10.5, "y": 0, "angle": 0, "length": 5, "width": 4, "barrels": 1 }
+      ]
+    },
+    "rcs": {
+      "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": -90, "length": 2, "width": 3 }]
+    },
+    "retro": {
+      "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": 180, "length": 2, "width": 3 }]
+    }
+  },
+  "modules": [
+    { "kind": "structure", "x": 0, "y": 0, "length": 16, "width": 6 },
+    { "kind": "thruster", "x": -10, "y": 0, "angle": 0, "length": 4, "width": 6 },
+
+    { "use": "wingBox", "x": 4, "y": 8.5 },
+    { "use": "wingBox", "x": 4, "y": -8.5, "mirror": true }
+  ]
+}

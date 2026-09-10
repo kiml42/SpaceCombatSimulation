@@ -10,6 +10,7 @@ import {
 } from '../../sim/index.js';
 import { duel } from '../../scenarios/duel.js';
 import { swarm } from '../../scenarios/swarm.js';
+import { fractal } from '../../scenarios/fractal.js';
 
 /**
  * Scenarios shared by the determinism tests, the integrator tests and the
@@ -272,6 +273,17 @@ export function swarmScenario(seed = 20260905): ScenarioRun {
   };
 }
 
+export function fractalScenario(seed = 20260905): ScenarioRun {
+  const run = fractal(seed);
+  return {
+    step: () => run.step(),
+    checksum: () => checksumProjectiles(run.projectiles, checksumWorld(run.world)),
+    describe: () =>
+      `ships=${run.ships.count} inFlight=${run.projectiles.count} ` +
+      `fired=${run.totalFired} hits=${run.totalHits}`,
+  };
+}
+
 // ---- registry ----
 
 function worldScenario(build: () => World, steps: number): Scenario {
@@ -294,6 +306,7 @@ export const SCENARIOS = {
   gunnery: { steps: 3_000, build: () => gunneryScenario() },
   duel: { steps: 3_000, build: () => duelScenario() },
   swarm: { steps: 3_000, build: () => swarmScenario() },
+  fractal: { steps: 3_000, build: () => fractalScenario() },
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;
