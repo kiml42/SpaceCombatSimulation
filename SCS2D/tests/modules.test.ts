@@ -11,6 +11,7 @@ import {
   moduleStats,
   traverseAccel,
   traverseRate,
+  TRAVERSE_SPINUP_TIME,
   type ModuleSpec,
 } from '../sim/modules.js';
 
@@ -269,9 +270,11 @@ describe('gun scaling', () => {
 });
 
 describe('traverse limits', () => {
-  it('slows a mount down as its barrel gets longer', () => {
-    expect(traverseRate(4)).toBeGreaterThan(traverseRate(12));
-    expect(traverseRate(4) * 4).toBeCloseTo(traverseRate(12) * 12, 12);
+  it('ties the rate limit to the acceleration that reaches it', () => {
+    // Not two independent numbers: whatever the drive can accelerate, it is
+    // geared to run at after TRAVERSE_SPINUP_TIME of doing so.
+    expect(traverseRate(0.5)).toBeCloseTo(0.5 * TRAVERSE_SPINUP_TIME, 12);
+    expect(traverseRate(1)).toBeGreaterThan(traverseRate(0.5));
   });
 
   it('gives a heavier mount more torque but no more agility for its inertia', () => {
@@ -281,4 +284,54 @@ describe('traverse limits', () => {
     expect(traverseAccel(2 * mass, inertia)).toBeCloseTo(2 * traverseAccel(mass, inertia), 12);
     expect(traverseAccel(mass, 2 * inertia)).toBeCloseTo(traverseAccel(mass, inertia) / 2, 12);
   });
+
+  it('counts a barrel as a rod from the pivot, not as part of the box', () => {
+    // The box formula is blind to barrel length, and mass cancels out of
+    // `traverseAccel` exactly — so under it alone a mount's agility depended
+    // on nothing but its footprint, and lengthening the gun on a mount was
+    // free. Two mounts of the same footprint, one with a barrel it can only
+    // just fit and one with a barrel cut short by the mount being stubby:
+    const long = moduleStats(box('turret', 12, 8));
+    const boxOnly = ((long.mass - barrelMass(long)) * (12 * 12 + 8 * 8)) / 12;
+    expect(long.inertia).toBeGreaterThan(boxOnly);
+
+    // And a barrel sitting off the centreline adds its offset on top, so a row
+    // of barrels is harder to swing than the same steel stacked at the centre.
+    const row = moduleStats({ kind: 'turret', x: 0, y: 0, length: 8, width: 6, barrels: 8 });
+    const spacing = row.gun!.barrelSpacing;
+    const each = barrelMass(row) / 8;
+    const offsets = [];
+    for (let i = 0; i < 8; i++) offsets.push((i - 3.5) * spacing);
+    const lateral = offsets.reduce((sum, d) => sum + each * d * d, 0);
+    expect(lateral).toBeGreaterThan(0);
+    const rodSpin = (barrelMass(row) * row.gun!.barrelLength ** 2) / 3;
+    expect(row.inertia).toBeCloseTo(
+      ((row.mass - barrelMass(row)) * (8 * 8 + 6 * 6)) / 12 + rodSpin + lateral,
+      6,
+    );
+  });
+
+  it('makes a small mount quicker than a capital one, by a wide margin', () => {
+    // The point of the whole law. A point-defence mount has to hold a bearing
+    // against its own ship's manoeuvring; a 16" turret is allowed to need a
+    // steady platform.
+    const rate = (length: number, width: number, barrels = 1) => {
+      const s = moduleStats({ kind: 'turret', x: 0, y: 0, length, width, barrels });
+      return traverseRate(traverseAccel(s.mass, s.inertia));
+    };
+    expect(rate(5, 4)).toBeGreaterThan(radians(45));
+    expect(rate(20, 14)).toBeLessThan(radians(5));
+    expect(rate(5, 4) / rate(20, 14)).toBeGreaterThan(10);
+  });
 });
+
+/** The barrel steel on a mount, kg: fittings less the loading machinery. */
+function barrelMass(stats: ReturnType<typeof moduleStats>): number {
+  const gun = stats.gun!;
+  return stats.fittingMass - MECHANISM_MASS_PER_CALIBRE * gun.calibre * gun.barrelCount;
+}
+
+/** Degrees per second as radians per second, for a legible expectation. */
+function radians(degrees: number): number {
+  return (degrees / 180) * Math.PI;
+}
