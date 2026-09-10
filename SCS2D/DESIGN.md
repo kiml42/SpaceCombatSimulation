@@ -51,7 +51,7 @@ inside any one file is not contiguous.
   count, which is the direction of travel. A whole gunnery step — bodies, index
   rebuild, and projectiles under gravity — costs ~7 microseconds with 9 bodies and
   ~65 rounds in the air.
-- **Last updated:** 2026-09-10
+- **Last updated:** 2026-09-11
 
 ---
 
@@ -114,6 +114,9 @@ Rules:
 - A **turret module includes the bit of hull it mounts to**, so the blueprint editor stays a single
   2D view and "is this shootable by guns" is a property of the module you picked.
 - Large modules may be flagged as **protruding** into the weapons layer: useful, but gun-vulnerable.
+  *Not implemented.* Firing arcs, traverse limits and projectile hits currently treat every module as
+  though it were in the weapons layer, which contradicts this section in three different ways —
+  ROADMAP.md §12 tabulates them.
 - **Strike craft fly in the weapons layer; a committed craft occupies both.** Under a deck-plan
   projection the weapons layer is *above the deck* and the hull layer is *the deck and below*. A
   strafing run skims the deck, so its gunfire stays in the weapons layer and can only strip mounts and

@@ -382,9 +382,52 @@ Deliberately unresolved; decide when they block something.
 
   Waiting is still right, for the reason the symmetric version gave: this is the mechanism that makes a
   layout's field of fire legible, and it wants the blueprint editor there to show a player what their
-  arrangement bought. The bearing-only assumption is worth revisiting in the same pass — whether a barrel
-  clears a low module is the same question asked about height, and both turn on what the barrel actually
-  sweeps.
+  arrangement bought.
+
+  **What is implemented is knowingly inconsistent, and the three parts disagree in different directions.**
+  §3 already settles the principle — the weapons layer is above the deck, guns fire over friendly and enemy
+  decks alike, and large modules may be flagged as *protruding* into the weapons layer at the cost of being
+  gun-vulnerable. Nothing implements that flag, so every module is treated as though it were raised in one
+  place and flat in another:
+
+  | | Today | Should be |
+  | --- | --- | --- |
+  | **Trigger arc** | Blocked by any module within *barrel length* | Blocked by raised modules and other turrets' domes, at **any** range down the round's path |
+  | **Traverse limit** | Blocked by any module within barrel length | Blocked by **raised** modules within barrel length |
+  | **Projectile hits** | Strike any module of any ship | Strike **raised** sections only |
+
+  Three things follow that are worth having written down.
+
+  **The trigger mask is a superset of the traverse mask**, so the traverse limit never decides whether a
+  mount may fire — anything the barrel fouls is also on the round's path, at a range shorter than the
+  barrel. Its only job is deciding which way round the mount has to turn, which is real but narrow.
+
+  **Barrel length buys no reach past an obstruction.** To point along a bearing a long barrel has to occupy
+  the space a short barrel's round would have flown through, so it fouls rather than clearing. Length
+  matters only in the other direction: an obstruction *beyond* barrel reach stops the round while leaving
+  the barrel free, which is exactly why the two masks differ in range and not in kind.
+
+  **The trigger mask can stay bearing-only rather than a ray cast per shot.** Under the fast-projectile
+  assumption it is a property of the layout, so it compiles once. That is also the more conservative
+  model, and conservative is right here: a mount should not be firing along a bearing with its own hull
+  downrange whether or not a particular round would have cleared it, because misses and penetrations both
+  come home.
+
+  **A transition that keeps today's behaviour** is to add the flag, have the trigger and traverse masks read
+  it, and mark most existing hull as raised. Worth being clear that this is deliberately vacuous rather
+  than a model: with everything raised, arcs and hits are exactly as they are now, and the flag carries no
+  information until something is *un*-raised. The two effects then arrive together and cannot be tuned
+  apart — un-raising a module both opens every arc across it and makes it immune to gunfire. That is
+  coherent, and it is what §3 intends by "guns mission-kill; ordnance destroys", but it is a large step to
+  take by accident.
+
+  One default is not free to choose: §3 has guns stripping "mounts, sensors and engines", so turrets and
+  thrusters have to be raised. Only `structure` is genuinely optional, which is also where all the arc
+  behaviour comes from.
+
+  Still open beyond all of this: **hull-layer side-mounted guns**, which by their own definition are blocked
+  by the whole ship rather than by its raised parts, and whose projectiles then travel in the hull layer.
+  What that means for what they can hit is undecided — see the deck-versus-edge-gun question above.
 - **Whether the remaining authored data lives in files rather than in code.** Blueprints do: they are JSON,
   parsed by `sim/blueprintFile.ts`, and the shipped ships go through exactly the validation a stranger's file
   does. What has not moved is `tests/fixtures/scenarios.ts`, and §9's promise of
