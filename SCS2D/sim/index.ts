@@ -50,11 +50,17 @@ export {
   type ModuleStats,
 } from './modules.js';
 export {
+  assemblyProblem,
   blueprintProblem,
   compileBlueprint,
+  expandBlueprint,
   firingArc,
+  isInstance,
   modulesOverlap,
+  type Assembly,
+  type AssemblyInstance,
   type Blueprint,
+  type Placement,
   type DesignModule,
   type DesignTurret,
   type ShipDesign,

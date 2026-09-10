@@ -2,148 +2,55 @@
   "formatVersion": 1,
   "name": "Gunship",
   "notes": "A heavy gunship: a bow gun firing a shell an order of magnitude heavier than the corvette's, and a broadside turret on each beam for anything that gets inside it. Twice the corvette's engines move four times its mass, so it is markedly more sluggish — which is the point of having two ships to compare.",
-  "modules": [
-    {
-      "kind": "structure",
-      "x": 0,
-      "y": 0,
-      "length": 40,
-      "width": 10
+  "assemblies": {
+    "outrigger": {
+      "notes": "An outrigger, holding a small fast-firing multi-barrelled gun clear of the spine. A gun flat against the hull has almost no traverse worth the mass it costs.",
+      "modules": [
+        { "kind": "structure", "x": 0, "y": 0, "length": 8, "width": 8 },
+        {
+          "kind": "turret", "x": 0, "y": 8, "angle": 90, "length": 8, "width": 6, "barrels": 8,
+          "notes": "Many narrow barrels rather than one wide one: the same bore budget spent on rate of fire instead of weight of shell."
+        }
+      ]
     },
-    {
-      "kind": "turret",
-      "x": 26,
-      "y": 0,
-      "angle": 0,
-      "length": 12,
-      "width": 8,
-      "barrels": 1
+    "mainEngine": {
+      "notes": "One of the pair that drives the ship forward.",
+      "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": 0, "length": 8, "width": 4 }]
     },
-    {
-      "kind": "structure",
-      "x": 0,
-      "y": 9,
-      "length": 8,
-      "width": 8,
-      "notes": "An outrigger, holding a small fast-firing multi-barrelled gun clear of the spine. A gun flat against the hull has almost no traverse worth the mass it costs."
+    "wingBox": {
+      "notes": "A stub holding a manoeuvring thruster out where its moment arm is worth having.",
+      "modules": [{ "kind": "structure", "x": 0, "y": 0, "length": 6, "width": 4 }]
     },
-    {
-      "kind": "turret",
-      "x": 0,
-      "y": 17,
-      "angle": 90,
-      "length": 8,
-      "width": 6,
-      "barrels": 8,
-      "notes": "Many narrow barrels rather than one wide one: the same bore budget spent on rate of fire instead of weight of shell."
+    "lateral": {
+      "notes": "A manoeuvring thruster pushing inboard, so its exhaust leaves into clear air rather than into the stub it is bolted to.",
+      "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": -90, "length": 2, "width": 4 }]
     },
-    {
-      "kind": "structure",
-      "x": 0,
-      "y": -9,
-      "length": 8,
-      "width": 8
-    },
-    {
-      "kind": "turret",
-      "x": 0,
-      "y": -17,
-      "angle": -90,
-      "length": 8,
-      "width": 6,
-      "barrels": 8
-    },
-    {
-      "kind": "thruster",
-      "x": -24,
-      "y": 3,
-      "angle": 0,
-      "length": 8,
-      "width": 4
-    },
-    {
-      "kind": "thruster",
-      "x": -24,
-      "y": -3,
-      "angle": 0,
-      "length": 8,
-      "width": 4
-    },
-    {
-      "kind": "structure",
-      "x": 12,
-      "y": 7,
-      "length": 6,
-      "width": 4
-    },
-    {
-      "kind": "structure",
-      "x": 12,
-      "y": -7,
-      "length": 6,
-      "width": 4
-    },
-    {
-      "kind": "structure",
-      "x": -12,
-      "y": 7,
-      "length": 6,
-      "width": 4
-    },
-    {
-      "kind": "structure",
-      "x": -12,
-      "y": -7,
-      "length": 6,
-      "width": 4
-    },
-    {
-      "kind": "thruster",
-      "x": 12,
-      "y": 10,
-      "angle": -90,
-      "length": 2,
-      "width": 4
-    },
-    {
-      "kind": "thruster",
-      "x": 12,
-      "y": -10,
-      "angle": 90,
-      "length": 2,
-      "width": 4
-    },
-    {
-      "kind": "thruster",
-      "x": -12,
-      "y": 10,
-      "angle": -90,
-      "length": 2,
-      "width": 4
-    },
-    {
-      "kind": "thruster",
-      "x": -12,
-      "y": -10,
-      "angle": 90,
-      "length": 2,
-      "width": 4
-    },
-    {
-      "kind": "thruster",
-      "x": 16.5,
-      "y": 7,
-      "angle": 180,
-      "length": 3,
-      "width": 4
-    },
-    {
-      "kind": "thruster",
-      "x": 16.5,
-      "y": -7,
-      "angle": 180,
-      "length": 3,
-      "width": 4
+    "retro": {
+      "notes": "Braking thrust, pushing aft.",
+      "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": 180, "length": 3, "width": 4 }]
     }
+  },
+  "modules": [
+    { "kind": "structure", "x": 0, "y": 0, "length": 40, "width": 10 },
+    { "kind": "turret", "x": 26, "y": 0, "angle": 0, "length": 12, "width": 8, "barrels": 1 },
+
+    { "use": "outrigger", "x": 0, "y": 9 },
+    { "use": "outrigger", "x": 0, "y": -9, "mirror": true },
+
+    { "use": "mainEngine", "x": -24, "y": 3 },
+    { "use": "mainEngine", "x": -24, "y": -3, "mirror": true },
+
+    { "use": "wingBox", "x": 12, "y": 7 },
+    { "use": "wingBox", "x": 12, "y": -7, "mirror": true },
+    { "use": "wingBox", "x": -12, "y": 7 },
+    { "use": "wingBox", "x": -12, "y": -7, "mirror": true },
+
+    { "use": "lateral", "x": 12, "y": 10 },
+    { "use": "lateral", "x": 12, "y": -10, "mirror": true },
+    { "use": "lateral", "x": -12, "y": 10 },
+    { "use": "lateral", "x": -12, "y": -10, "mirror": true },
+
+    { "use": "retro", "x": 16.5, "y": 7 },
+    { "use": "retro", "x": 16.5, "y": -7, "mirror": true }
   ]
 }

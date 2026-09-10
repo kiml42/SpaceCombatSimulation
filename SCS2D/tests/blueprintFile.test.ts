@@ -3,6 +3,7 @@ import {
   BLUEPRINT_FORMAT_VERSION,
   blueprintFileProblem,
   degreesToRadians,
+  expandBlueprint,
   math,
   parseBlueprint,
   radiansToDegrees,
@@ -64,9 +65,16 @@ describe('blueprint files', () => {
     // would otherwise have deleted the record of why these ships are shaped
     // as they are, and nothing would have failed.
     expect(GUNSHIP.notes).toMatch(/broadside turret on each beam/);
-    const outrigger = GUNSHIP.modules.find((m) => m.notes?.includes('outrigger'));
-    expect(outrigger).toBeDefined();
-    expect(CORVETTE.modules.some((m) => m.notes !== undefined)).toBe(true);
+    expect(GUNSHIP.assemblies?.['outrigger']?.notes).toMatch(/clear of the spine/);
+    expect(CORVETTE.assemblies?.['wingBox']?.notes).toMatch(/moment arm/);
+
+    // A module's own note has to survive expansion, or it explains nothing
+    // about the ship that actually gets built — and it must reach *both*
+    // copies, since the reason for a part does not stop applying when it is
+    // mirrored onto the far beam.
+    const beams = expandBlueprint(GUNSHIP).filter((m) => m.kind === 'turret' && m.barrels === 8);
+    expect(beams).toHaveLength(2);
+    for (const beam of beams) expect(beam.notes).toMatch(/same bore budget/);
   });
 });
 
@@ -89,10 +97,10 @@ describe('angles', () => {
   });
 
   it('puts degrees in the file and radians in the simulation', () => {
-    const beam = GUNSHIP.modules.find((m) => m.kind === 'turret' && m.y > 0);
+    const beam = expandBlueprint(GUNSHIP).find((m) => m.kind === 'turret' && m.y > 0);
     expect(beam?.angle).toBe(math.HALF_PI);
-    const raw = gunshipFile.modules.find((m) => m.kind === 'turret' && m.y > 0);
-    expect(raw?.angle).toBe(90);
+    const raw = gunshipFile.assemblies.outrigger.modules.find((m) => 'kind' in m && m.kind === 'turret');
+    expect(raw && 'angle' in raw ? raw.angle : undefined).toBe(90);
   });
 });
 
