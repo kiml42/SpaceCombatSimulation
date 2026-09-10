@@ -28,6 +28,7 @@ const GOLDEN: Record<ScenarioName, string> = {
   gunnery: 'c3e9551c',
   duel: '9ffbbfeb',
   swarm: '366a71dd',
+  superSwarm: '9f7d0013',
   fractal: '92b81aef',
 };
 

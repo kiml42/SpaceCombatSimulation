@@ -16,7 +16,7 @@ import { Rng } from '../sim/rng.js';
  * Many corvettes and one gunship closing on each other and opening fire.
  */
 
-export function swarm(seed = 20260905): Battle {
+export function swarm(seed = 20260905, corvetteCount = 20): Battle {
   const dt = 1 / 60;
   const world = new World({ dt, seed });
 
@@ -42,7 +42,7 @@ export function swarm(seed = 20260905): Battle {
   const randomRadius = 1000;
   const corvettes: number[] = [];
 
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < corvetteCount; i++) {
     const angle = rng.nextRange(0, 2 * math.PI);
     const radius = math.sqrt(rng.nextRange(0, 1)) * randomRadius;
     const x = -1800 + radius * math.cos(angle);

@@ -43,7 +43,8 @@ export function start(): void {
   const scenes = [
     { name: 'Duel', create: () => duel(SEED) },
     { name: 'Swarm', create: () => swarm(SEED) },
-    { name: 'Fractal', create: () => fractal(SEED) }
+    { name: 'Fractal', create: () => fractal(SEED) },
+    { name: 'Super Swarm', create: () => swarm(SEED, 500) }
   ];
   let sceneIndex = 0;
   const nextSceneIndex = (): number => (sceneIndex + 1) % scenes.length;
