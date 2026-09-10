@@ -262,8 +262,8 @@ export function duelScenario(seed = 20260905): ScenarioRun {
   };
 }
 
-export function swarmScenario(seed = 20260905): ScenarioRun {
-  const run = swarm(seed);
+export function swarmScenario(seed = 20260905, corvetteCount = 20): ScenarioRun {
+  const run = swarm(seed, corvetteCount);
   return {
     step: () => run.step(),
     checksum: () => checksumProjectiles(run.projectiles, checksumWorld(run.world)),
@@ -306,6 +306,7 @@ export const SCENARIOS = {
   gunnery: { steps: 3_000, build: () => gunneryScenario() },
   duel: { steps: 3_000, build: () => duelScenario() },
   swarm: { steps: 3_000, build: () => swarmScenario() },
+  superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 500) },
   fractal: { steps: 3_000, build: () => fractalScenario() },
 } satisfies Record<string, Scenario>;
 
