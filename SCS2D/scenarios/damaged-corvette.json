@@ -1,69 +1,32 @@
 {
   "formatVersion": 1,
   "name": "DamagedCorvette",
-  "notes": "The corvette with its port wing and several thrusters missing, to exercise asymmetric mass distribution and thrust. Not a ship anyone would design; a ship someone would be left with.",
-  "modules": [
-    {
-      "kind": "structure",
-      "x": 0,
-      "y": 0,
-      "length": 16,
-      "width": 6
+  "notes": "The corvette with its port wing and several thrusters missing, to exercise asymmetric mass distribution and thrust. Not a ship anyone would design; a ship someone would be left with. It shares the corvette's parts and is not symmetric, which is the point: assemblies are about parts being identical, not about a ship being mirrored.",
+  "assemblies": {
+    "wingBox": {
+      "notes": "As the corvette's: a stub holding a manoeuvring thruster out where its moment arm is worth having.",
+      "modules": [{ "kind": "structure", "x": 0, "y": 0, "length": 4, "width": 3 }]
     },
-    {
-      "kind": "turret",
-      "x": 10.5,
-      "y": 0,
-      "angle": 0,
-      "length": 5,
-      "width": 4,
-      "barrels": 1
+    "lateral": {
+      "notes": "Pushes inboard, so its exhaust leaves into clear air rather than into the stub it is bolted to.",
+      "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": -90, "length": 2, "width": 3 }]
     },
-    {
-      "kind": "thruster",
-      "x": -10,
-      "y": 0,
-      "angle": 0,
-      "length": 4,
-      "width": 6
-    },
-    {
-      "kind": "structure",
-      "x": 4,
-      "y": -4.5,
-      "length": 4,
-      "width": 3
-    },
-    {
-      "kind": "structure",
-      "x": -4,
-      "y": -4.5,
-      "length": 4,
-      "width": 3
-    },
-    {
-      "kind": "thruster",
-      "x": 4,
-      "y": -7,
-      "angle": 90,
-      "length": 2,
-      "width": 3
-    },
-    {
-      "kind": "thruster",
-      "x": -4,
-      "y": -7,
-      "angle": 90,
-      "length": 2,
-      "width": 3
-    },
-    {
-      "kind": "thruster",
-      "x": 7,
-      "y": -4.5,
-      "angle": 180,
-      "length": 2,
-      "width": 3
+    "retro": {
+      "notes": "Braking thrust, pushing aft.",
+      "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": 180, "length": 2, "width": 3 }]
     }
+  },
+  "modules": [
+    { "kind": "structure", "x": 0, "y": 0, "length": 16, "width": 6 },
+    { "kind": "turret", "x": 10.5, "y": 0, "angle": 0, "length": 5, "width": 4, "barrels": 1 },
+    { "kind": "thruster", "x": -10, "y": 0, "angle": 0, "length": 4, "width": 6 },
+
+    { "use": "wingBox", "x": 4, "y": -4.5, "mirror": true },
+    { "use": "wingBox", "x": -4, "y": -4.5, "mirror": true },
+
+    { "use": "lateral", "x": 4, "y": -7, "mirror": true },
+    { "use": "lateral", "x": -4, "y": -7, "mirror": true },
+
+    { "use": "retro", "x": 7, "y": -4.5, "mirror": true }
   ]
 }

@@ -94,11 +94,22 @@ manipulation — drag to move, corner handles to resize, a handle to rotate — 
 spatial (reinforcement, barrel count, notes) are typed into a panel for the selected module. Position snaps
 to a grid and rotation to 15°, with a modifier held to escape both. Undo and redo throughout.
 
-**Mirrored editing** is a mode, because every ship authored so far is symmetric and placing eight lateral
-thrusters twice is the kind of tedium that stops people iterating. While it is on, an edit applies to a
-module and its opposite number at once. A module straddling the centreline is its own mirror and edits
-alone; dragging it off the axis splits it into a pair, which is what mirror mode means, and is worth
-saying out loud because one drag then creates a second module.
+**Assemblies are how a ship stops being edited twice.** A blueprint holds a table of named groups of
+modules, and places them by reference — so the gunship's eight lateral thrusters are one thruster placed
+eight times, and making them all bigger is one edit with no state in which seven of them are. An assembly
+of a single module is the ordinary shared-part case and deliberately not a separate concept; an assembly
+containing other assemblies is what lets a whole wing, or a whole side of a ship, be one thing.
+
+An instance says only *where*: position, facing, and whether it is reflected. It cannot override any value
+of the assembly it places, so "linked" means identical with no exceptions to track, and wanting one copy
+different means forking it into its own assembly — an explicit act rather than a quiet divergence.
+
+**Reflection is what replaces a mirrored editing mode.** Symmetry becomes structural rather than something
+the editor keeps in step: build a side once, place it twice with one instance mirrored, and the two cannot
+disagree about anything but which side they are on. That removes a mode, its state, and the question of
+what happens to a module straddling the centreline. What the editor owes instead is making assemblies easy
+to *create* — select some modules, make them an assembly, place another copy — since the tedium moves from
+placing modules to structuring them.
 
 **What it tells you** is the point of the whole thing: total mass and inertia, the manoeuvring envelope
 (`ThrusterLayout.support` already exists to draw it — §4 anticipated this), linear acceleration and turn
@@ -151,10 +162,17 @@ An editor has to serialise what it produces, so this settles the format question
   from the numbers.
 - **Angles in degrees in the file**, radians everywhere inside `sim/`, converted by the parser. A file
   people hand-edit should not contain `1.5707963267948966`.
-- **Mirroring is not in the file.** It is an editing convenience; the file lists every module explicitly,
-  exactly as `blueprints.ts` does today. So `compileBlueprint` needs no expansion step, a mirrored pair is
-  indistinguishable from two hand-placed modules, and asymmetric designs — which the GA will certainly
-  produce — cost nothing. The editor re-detects pairs on load by matching `y` against `-y`.
+- **Assemblies and their instances are in the file**, normalised: shared values are written once and
+  referred to, rather than repeated with a link tag. Copies then cannot disagree even in a hand-edited
+  file, which a tag-and-duplicate scheme could not promise. `expandBlueprint` resolves them, and everything
+  downstream works on the flat result, so an assembly is a way of *writing* a layout rather than a property
+  a compiled ship has.
+- **Module order is part of the ship, so restructuring a layout is not free.** Thruster allocation solves
+  over the columns in order and turrets fire in order, so the same modules listed differently compile to a
+  ship that behaves differently. It is why the authored ships place symmetric *pairs* adjacently rather
+  than grouping each whole side: the tidier structure reorders the modules, and reordering the gunship
+  moved the duel checksum while leaving the expanded geometry bit-identical. Worth knowing before
+  reorganising a working ship, and worth the editor saying out loud when a restructure would reorder.
 - **A `formatVersion` field**, since the library lives in browser storage and will outlive a format change.
   Named that way and not `version` deliberately: a campaign will eventually need a *blueprint* revision, so
   that existing ships keep flying the layout they were built to while new production uses the upgraded one.

@@ -1,5 +1,12 @@
 import { PI } from './math.js';
-import { blueprintProblem, type Blueprint } from './blueprint.js';
+import {
+  blueprintProblem,
+  isInstance,
+  type Assembly,
+  type AssemblyInstance,
+  type Blueprint,
+  type Placement,
+} from './blueprint.js';
 import type { ModuleKind, ModuleSpec } from './modules.js';
 
 /**
@@ -51,7 +58,12 @@ const MODULE_KEYS: readonly string[] = [
   'notes',
 ];
 
-const FILE_KEYS: readonly string[] = ['formatVersion', 'name', 'notes', 'modules'];
+/** Keys an assembly instance may carry: where it goes, and nothing else. */
+const INSTANCE_KEYS: readonly string[] = ['use', 'x', 'y', 'angle', 'mirror', 'notes'];
+
+const ASSEMBLY_KEYS: readonly string[] = ['modules', 'notes'];
+
+const FILE_KEYS: readonly string[] = ['formatVersion', 'name', 'notes', 'assemblies', 'modules'];
 
 export function degreesToRadians(degrees: number): number {
   return (degrees / 180) * PI;
@@ -95,9 +107,7 @@ function optionalStringProblem(value: unknown, what: string): string | null {
   return null;
 }
 
-function moduleShapeProblem(value: unknown, where: string): string | null {
-  if (!isObject(value)) return `${where} must be an object, got ${JSON.stringify(value)}`;
-
+function moduleShapeProblem(value: Record<string, unknown>, where: string): string | null {
   const extra = unknownKeys(value, MODULE_KEYS);
   if (extra.length > 0) return `${where} has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
 
@@ -115,6 +125,67 @@ function moduleShapeProblem(value: unknown, where: string): string | null {
     optionalNumberProblem(value['barrels'], `${where}: barrels`) ??
     optionalStringProblem(value['notes'], `${where}: notes`)
   );
+}
+
+function instanceShapeProblem(value: Record<string, unknown>, where: string): string | null {
+  const extra = unknownKeys(value, INSTANCE_KEYS);
+  if (extra.length > 0) return `${where} has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
+
+  if (typeof value['use'] !== 'string' || value['use'] === '') {
+    return `${where}: use must be the name of an assembly, got ${JSON.stringify(value['use'])}`;
+  }
+  const mirror = value['mirror'];
+  if (mirror !== undefined && typeof mirror !== 'boolean') {
+    return `${where}: mirror must be true or false, got ${JSON.stringify(mirror)}`;
+  }
+
+  return (
+    numberProblem(value['x'], `${where}: x`) ??
+    numberProblem(value['y'], `${where}: y`) ??
+    optionalNumberProblem(value['angle'], `${where}: angle`) ??
+    optionalStringProblem(value['notes'], `${where}: notes`)
+  );
+}
+
+/**
+ * A placement is a module or a copy of an assembly, told apart by `use`.
+ *
+ * Discriminated on the key rather than on a `type` field, because the file
+ * then stays the plain list of modules it was for every layout that does not
+ * use assemblies, and reads as one thing per line either way.
+ */
+function placementShapeProblem(value: unknown, where: string): string | null {
+  if (!isObject(value)) return `${where} must be an object, got ${JSON.stringify(value)}`;
+  return 'use' in value
+    ? instanceShapeProblem(value, where)
+    : moduleShapeProblem(value, where);
+}
+
+function placementsShapeProblem(value: unknown, where: string): string | null {
+  if (!Array.isArray(value)) return `${where} must be an array, got ${JSON.stringify(value)}`;
+  for (let i = 0; i < value.length; i++) {
+    const problem = placementShapeProblem(value[i], `${where}[${i}]`);
+    if (problem !== null) return problem;
+  }
+  return null;
+}
+
+function assembliesShapeProblem(value: unknown): string | null {
+  if (value === undefined) return null;
+  if (!isObject(value)) return `assemblies must be an object, got ${JSON.stringify(value)}`;
+
+  for (const [name, assembly] of Object.entries(value)) {
+    if (!isObject(assembly)) return `assembly ${name} must be an object`;
+    const extra = unknownKeys(assembly, ASSEMBLY_KEYS);
+    if (extra.length > 0) {
+      return `assembly ${name} has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
+    }
+    const notes = optionalStringProblem(assembly['notes'], `assembly ${name}: notes`);
+    if (notes !== null) return notes;
+    const modules = placementsShapeProblem(assembly['modules'], `assembly ${name}: modules`);
+    if (modules !== null) return modules;
+  }
+  return null;
 }
 
 /**
@@ -144,20 +215,56 @@ export function blueprintFileProblem(value: unknown): string | null {
   const notesProblem = optionalStringProblem(value['notes'], 'notes');
   if (notesProblem !== null) return notesProblem;
 
-  const modules = value['modules'];
-  if (!Array.isArray(modules)) return `modules must be an array, got ${JSON.stringify(modules)}`;
+  const assemblies = assembliesShapeProblem(value['assemblies']);
+  if (assemblies !== null) return assemblies;
 
-  for (let i = 0; i < modules.length; i++) {
-    const problem = moduleShapeProblem(modules[i], `module ${i}`);
-    if (problem !== null) return problem;
-  }
+  const modules = placementsShapeProblem(value['modules'], 'modules');
+  if (modules !== null) return modules;
 
-  return blueprintProblem(toBlueprint(value, modules as Record<string, unknown>[]));
+  return blueprintProblem(toBlueprint(value));
 }
 
 /** Assemble a blueprint from a file whose shape has already been checked. */
-function toBlueprint(file: Record<string, unknown>, modules: Record<string, unknown>[]): Blueprint {
-  const specs: ModuleSpec[] = modules.map((raw) => {
+function toBlueprint(file: Record<string, unknown>): Blueprint {
+  const blueprint: Blueprint = {
+    name: file['name'] as string,
+    modules: toPlacements(file['modules'] as unknown[]),
+  };
+  if (file['notes'] !== undefined) blueprint.notes = file['notes'] as string;
+
+  const rawAssemblies = file['assemblies'] as Record<string, Record<string, unknown>> | undefined;
+  if (rawAssemblies !== undefined) {
+    const assemblies: Record<string, Assembly> = {};
+    for (const [name, raw] of Object.entries(rawAssemblies)) {
+      const assembly: Assembly = { modules: toPlacements(raw['modules'] as unknown[]) };
+      if (raw['notes'] !== undefined) assembly.notes = raw['notes'] as string;
+      assemblies[name] = assembly;
+    }
+    blueprint.assemblies = assemblies;
+  }
+
+  return blueprint;
+}
+
+function toPlacements(raws: unknown[]): Placement[] {
+  return raws.map((value) => {
+    const raw = value as Record<string, unknown>;
+    // Assigned conditionally rather than written as `angle: raw.angle`,
+    // because `exactOptionalPropertyTypes` distinguishes an absent optional
+    // field from one present and undefined, and the two must round-trip the
+    // same way.
+    if ('use' in raw) {
+      const instance: AssemblyInstance = {
+        use: raw['use'] as string,
+        x: raw['x'] as number,
+        y: raw['y'] as number,
+      };
+      if (raw['angle'] !== undefined) instance.angle = degreesToRadians(raw['angle'] as number);
+      if (raw['mirror'] !== undefined) instance.mirror = raw['mirror'] as boolean;
+      if (raw['notes'] !== undefined) instance.notes = raw['notes'] as string;
+      return instance;
+    }
+
     const spec: ModuleSpec = {
       kind: raw['kind'] as ModuleKind,
       x: raw['x'] as number,
@@ -165,19 +272,12 @@ function toBlueprint(file: Record<string, unknown>, modules: Record<string, unkn
       length: raw['length'] as number,
       width: raw['width'] as number,
     };
-    // Assigned conditionally rather than written as `angle: raw.angle`, because
-    // `exactOptionalPropertyTypes` distinguishes an absent optional field from
-    // one present and undefined, and the two must round-trip the same way.
     if (raw['angle'] !== undefined) spec.angle = degreesToRadians(raw['angle'] as number);
     if (raw['reinforcement'] !== undefined) spec.reinforcement = raw['reinforcement'] as number;
     if (raw['barrels'] !== undefined) spec.barrels = raw['barrels'] as number;
     if (raw['notes'] !== undefined) spec.notes = raw['notes'] as string;
     return spec;
   });
-
-  const blueprint: Blueprint = { name: file['name'] as string, modules: specs };
-  if (file['notes'] !== undefined) blueprint.notes = file['notes'] as string;
-  return blueprint;
 }
 
 /**
@@ -190,8 +290,7 @@ function toBlueprint(file: Record<string, unknown>, modules: Record<string, unkn
 export function parseBlueprint(value: unknown): Blueprint {
   const problem = blueprintFileProblem(value);
   if (problem !== null) throw new Error(`Invalid blueprint file — ${problem}`);
-  const file = value as Record<string, unknown>;
-  return toBlueprint(file, file['modules'] as Record<string, unknown>[]);
+  return toBlueprint(value as Record<string, unknown>);
 }
 
 /** What `parseBlueprint` reads: the inverse, for saving and for export. */
@@ -202,16 +301,37 @@ export function serialiseBlueprint(blueprint: Blueprint): Record<string, unknown
   };
   if (blueprint.notes !== undefined) file['notes'] = blueprint.notes;
 
-  file['modules'] = blueprint.modules.map((spec) => {
-    const raw: Record<string, unknown> = { kind: spec.kind, x: spec.x, y: spec.y };
-    if (spec.angle !== undefined) raw['angle'] = radiansToDegrees(spec.angle);
-    raw['length'] = spec.length;
-    raw['width'] = spec.width;
-    if (spec.reinforcement !== undefined) raw['reinforcement'] = spec.reinforcement;
-    if (spec.barrels !== undefined) raw['barrels'] = spec.barrels;
-    if (spec.notes !== undefined) raw['notes'] = spec.notes;
-    return raw;
-  });
+  if (blueprint.assemblies !== undefined) {
+    const assemblies: Record<string, unknown> = {};
+    for (const [name, assembly] of Object.entries(blueprint.assemblies)) {
+      const raw: Record<string, unknown> = {};
+      if (assembly.notes !== undefined) raw['notes'] = assembly.notes;
+      raw['modules'] = assembly.modules.map(serialisePlacement);
+      assemblies[name] = raw;
+    }
+    file['assemblies'] = assemblies;
+  }
+
+  file['modules'] = blueprint.modules.map(serialisePlacement);
 
   return file;
+}
+
+function serialisePlacement(placement: Placement): Record<string, unknown> {
+  if (isInstance(placement)) {
+    const raw: Record<string, unknown> = { use: placement.use, x: placement.x, y: placement.y };
+    if (placement.angle !== undefined) raw['angle'] = radiansToDegrees(placement.angle);
+    if (placement.mirror !== undefined) raw['mirror'] = placement.mirror;
+    if (placement.notes !== undefined) raw['notes'] = placement.notes;
+    return raw;
+  }
+
+  const raw: Record<string, unknown> = { kind: placement.kind, x: placement.x, y: placement.y };
+  if (placement.angle !== undefined) raw['angle'] = radiansToDegrees(placement.angle);
+  raw['length'] = placement.length;
+  raw['width'] = placement.width;
+  if (placement.reinforcement !== undefined) raw['reinforcement'] = placement.reinforcement;
+  if (placement.barrels !== undefined) raw['barrels'] = placement.barrels;
+  if (placement.notes !== undefined) raw['notes'] = placement.notes;
+  return raw;
 }

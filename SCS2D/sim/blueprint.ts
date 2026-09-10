@@ -1,4 +1,4 @@
-import { abs, angleDelta, atan2, cos, max, min, normalizeAngle, PI, sin, sqrt } from './math.js';
+import { abs, angleDelta, atan2, cos, max, min, normalizeAngle, PI, sin, sqrt, TAU } from './math.js';
 import {
   moduleProblem,
   moduleStats,
@@ -52,9 +52,68 @@ const TOUCH_TOLERANCE = 1e-9;
  */
 const ATTACHMENT_TOLERANCE = 0.01;
 
+/**
+ * A named group of modules placed as one thing, so that several copies of it
+ * share a single description.
+ *
+ * The point is that copies cannot drift. A ship with eight identical lateral
+ * thrusters holds one thruster and eight placements of it, so making them all
+ * bigger is one edit and there is no state in which seven of them are.
+ *
+ * An assembly of a single module is the ordinary "shared part" case, and is
+ * deliberately not a separate concept — one mechanism covers a repeated
+ * thruster and a repeated wing, and having two would mean choosing between
+ * them every time and converting between them eventually.
+ *
+ * Assemblies may contain instances of other assemblies, which is what makes a
+ * whole mirrored ship expressible: a side is an assembly containing the wing
+ * assembly, and the ship is that side placed twice.
+ */
+export interface Assembly {
+  modules: readonly Placement[];
+  /** Why this grouping exists. See `ModuleSpec.notes`. */
+  notes?: string;
+}
+
+/**
+ * One placement of an assembly: where it goes, and nothing about what it is.
+ *
+ * An instance deliberately cannot override any of the assembly's own values.
+ * "Linked" then means *identical*, with no per-field exceptions to track and
+ * no way for two copies to be almost the same. Wanting one copy different
+ * means forking it into its own assembly, which is an explicit act rather than
+ * a quiet divergence.
+ */
+export interface AssemblyInstance {
+  /** Name of the assembly in the blueprint's own table. */
+  use: string;
+  /** Where the assembly's origin lands, in the frame doing the placing. */
+  x: number;
+  y: number;
+  /** How far the assembly is turned, radians. */
+  angle?: number;
+  /** Reflect across the instance frame's own x-axis before placing it. */
+  mirror?: boolean;
+  /** Why this copy is here. See `ModuleSpec.notes`. */
+  notes?: string;
+}
+
+/** Something a layout puts somewhere: a module itself, or a copy of a group. */
+export type Placement = ModuleSpec | AssemblyInstance;
+
+export function isInstance(placement: Placement): placement is AssemblyInstance {
+  return 'use' in placement;
+}
+
 export interface Blueprint {
   name: string;
-  modules: readonly ModuleSpec[];
+  /**
+   * What the layout places. Mostly modules; an entry with a `use` is a copy of
+   * one of the `assemblies` below, and `expandBlueprint` resolves it.
+   */
+  modules: readonly Placement[];
+  /** Groups this layout places by reference. */
+  assemblies?: Readonly<Record<string, Assembly>>;
   /** Why the ship is shaped this way. See `ModuleSpec.notes`. */
   notes?: string;
 }
@@ -263,6 +322,148 @@ export function firingArc(
  * connectivity graph needs and no blueprint currently expresses — DESIGN.md
  * §12 records the shape of that answer.
  */
+/** How deep assemblies may nest. Generous for a ship, and a stop for a cycle. */
+const MAX_ASSEMBLY_DEPTH = 16;
+
+/**
+ * Fold an angle into (-pi, pi], and turn a negative zero into a positive one.
+ *
+ * Both halves matter for reasons that are entirely about floating point, and
+ * both were found by the golden checksums rather than by reasoning. Mirroring
+ * a module facing aft maps `PI` to `-PI`, and while those are the same
+ * direction, `sin(-PI)` is `-1.2e-16` where `sin(PI)` is `+1.2e-16` — so an
+ * aft thruster reflected onto the far beam would compile a hair differently
+ * from its unreflected twin. And `-0` compares equal to `0` while having
+ * different bits, which a checksum over raw doubles notices even though
+ * nothing else does.
+ */
+function foldAngle(a: number): number {
+  let r = normalizeAngle(a);
+  if (r <= -PI) r += TAU;
+  else if (r > PI) r -= TAU;
+  return r === 0 ? 0 : r;
+}
+
+/**
+ * Resolve a layout's assembly instances into the flat list of modules a ship
+ * is actually built from.
+ *
+ * Everything downstream — mass, arcs, validation, the renderer — works on the
+ * flat list, so assemblies are a way of *writing* a layout rather than a
+ * property a compiled ship has. That is the whole reason they cost so little:
+ * `ShipDesign` already is the resolved form, so this happens once, where
+ * compilation already happens.
+ *
+ * A mirrored instance reflects across its own frame's x-axis: `y` and the
+ * facing both negate. Reflecting rather than rotating is what makes a
+ * starboard wing the *same* wing as the port one, so the two can never
+ * disagree about anything but which side they are on.
+ */
+export function expandBlueprint(blueprint: Blueprint): ModuleSpec[] {
+  const out: ModuleSpec[] = [];
+  place(blueprint.modules, blueprint, 0, 0, 0, false, 0, out);
+  return out;
+}
+
+function place(
+  placements: readonly Placement[],
+  blueprint: Blueprint,
+  originX: number,
+  originY: number,
+  rotation: number,
+  mirrored: boolean,
+  depth: number,
+  out: ModuleSpec[],
+): void {
+  if (depth > MAX_ASSEMBLY_DEPTH) {
+    throw new Error(`${blueprint.name}: assemblies nested more than ${MAX_ASSEMBLY_DEPTH} deep`);
+  }
+
+  const c = cos(rotation);
+  const s = sin(rotation);
+
+  for (const placement of placements) {
+    // Reflect first, then turn, then move: the assembly is built in its own
+    // frame and that frame is what gets placed.
+    const localY = mirrored ? -placement.y : placement.y;
+    const x = originX + placement.x * c - localY * s;
+    const y = originY + placement.x * s + localY * c;
+
+    if (isInstance(placement)) {
+      const assembly = blueprint.assemblies?.[placement.use];
+      if (assembly === undefined) {
+        throw new Error(`${blueprint.name}: no assembly named ${placement.use}`);
+      }
+      const own = placement.angle ?? 0;
+      const flipped = mirrored !== (placement.mirror ?? false);
+      place(
+        assembly.modules,
+        blueprint,
+        x,
+        y,
+        foldAngle(rotation + (mirrored ? -own : own)),
+        flipped,
+        depth + 1,
+        out,
+      );
+      continue;
+    }
+
+    const spec: ModuleSpec = {
+      kind: placement.kind,
+      x,
+      y,
+      length: placement.length,
+      width: placement.width,
+    };
+    const own = placement.angle ?? 0;
+    const angle = foldAngle(rotation + (mirrored ? -own : own));
+    if (angle !== 0 || placement.angle !== undefined) spec.angle = angle;
+    if (placement.reinforcement !== undefined) spec.reinforcement = placement.reinforcement;
+    if (placement.barrels !== undefined) spec.barrels = placement.barrels;
+    if (placement.notes !== undefined) spec.notes = placement.notes;
+    out.push(spec);
+  }
+}
+
+/**
+ * Every assembly name a layout refers to but does not define, and every cycle.
+ *
+ * Separated from `expandBlueprint`, which throws, because a layout being
+ * edited passes through states where a reference dangles and the editor has to
+ * keep drawing rather than fall over.
+ */
+export function assemblyProblem(blueprint: Blueprint): string | null {
+  const path: string[] = [];
+
+  function walk(placements: readonly Placement[]): string | null {
+    for (const placement of placements) {
+      if (!isInstance(placement)) continue;
+      const assembly = blueprint.assemblies?.[placement.use];
+      if (assembly === undefined) {
+        return `${blueprint.name}: no assembly named ${placement.use}`;
+      }
+      if (path.includes(placement.use)) {
+        return `${blueprint.name}: assembly ${placement.use} contains itself (${[...path, placement.use].join(' -> ')})`;
+      }
+      path.push(placement.use);
+      const problem = walk(assembly.modules);
+      path.pop();
+      if (problem !== null) return problem;
+    }
+    return null;
+  }
+
+  const problem = walk(blueprint.modules);
+  if (problem !== null) return problem;
+
+  // A layout that places nothing is a different complaint, made elsewhere.
+  for (const [name, assembly] of Object.entries(blueprint.assemblies ?? {})) {
+    if (assembly.modules.length === 0) return `${blueprint.name}: assembly ${name} is empty`;
+  }
+  return null;
+}
+
 /**
  * Is there structure immediately in front of this module, in its facing?
  *
@@ -289,7 +490,13 @@ function structureAhead(spec: ModuleSpec, modules: readonly ModuleSpec[]): boole
 }
 
 export function blueprintProblem(blueprint: Blueprint): string | null {
-  const modules = blueprint.modules;
+  // Assemblies are resolved before anything else looks at the layout, so every
+  // rule below is stated once, about the modules a ship is actually built
+  // from — rather than once for a module and again for a copy of one.
+  const structural = assemblyProblem(blueprint);
+  if (structural !== null) return structural;
+
+  const modules = expandBlueprint(blueprint);
   if (modules.length === 0) return `${blueprint.name}: a ship needs at least one module`;
 
   for (let i = 0; i < modules.length; i++) {
@@ -334,7 +541,7 @@ export function compileBlueprint(blueprint: Blueprint): ShipDesign {
   const problem = blueprintProblem(blueprint);
   if (problem !== null) throw new Error(`Invalid blueprint — ${problem}`);
 
-  const specs = blueprint.modules;
+  const specs = expandBlueprint(blueprint);
   const stats = specs.map(moduleStats);
 
   let mass = 0;

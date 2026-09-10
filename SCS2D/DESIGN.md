@@ -51,7 +51,7 @@ inside any one file is not contiguous.
   count, which is the direction of travel. A whole gunnery step — bodies, index
   rebuild, and projectiles under gravity — costs ~7 microseconds with 9 bodies and
   ~65 rounds in the air.
-- **Last updated:** 2026-09-09
+- **Last updated:** 2026-09-10
 
 ---
 
@@ -413,6 +413,9 @@ SCS2D/
   genuinely the right tool for "filter individuals by run, order by generation and score" — those
   queries already exist in `DebuggingScripts.sql`. The result is a real SQLite file, openable in any
   SQLite tool.
+- **A blueprint places assemblies, not just modules** — named groups referred to rather than repeated, so
+  that every copy of a part is the same part and a reflected instance makes symmetry structural. Resolved by
+  `expandBlueprint` into the flat list everything downstream works on.
 - **Blueprints are JSON** (`sim/blueprintFile.ts`), with angles in degrees so a file can be hand-edited and
   nothing derived stored, so a corrected scaling law reaches old files rather than being frozen into them.
   A file arriving from elsewhere is parsed rather than trusted, and the ships that ship with the game go
