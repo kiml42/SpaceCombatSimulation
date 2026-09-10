@@ -324,8 +324,8 @@ export function firingArc(
   const mount = modules[index]!;
   const rest = normalizeAngle(mount.angle ?? 0);
 
-  let left = PI;
-  let right = PI;
+  let left = 2 * PI;
+  let right = 2 * PI;
 
   for (let i = 0; i < modules.length; i++) {
     if (i === index) continue;
@@ -368,6 +368,12 @@ export function firingArc(
     const dHi = angleDelta(rest, centre + hi);
     left = min(left, dLo >= 0 ? dLo : dLo + TAU, dHi >= 0 ? dHi : dHi + TAU);
     right = min(right, dLo <= 0 ? -dLo : TAU - dLo, dHi <= 0 ? -dHi : TAU - dHi);
+  }
+
+  if(left > PI && right > PI) {
+    // There is nothing preventing the turret from rotating freely,
+    // call that a half in each direction instead of a whole turn in each.
+    return { left: PI, right: PI };
   }
 
   return {left, right};
