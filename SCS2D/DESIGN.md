@@ -29,8 +29,8 @@ inside any one file is not contiguous.
   and circle queries, swept-segment projectiles with impact reporting, per-blueprint
   thruster allocation, kinematic turrets with lead and traverse arcs, parametric modules
   with their scaling laws, blueprint compilation — mass properties, thruster layout
-  and firing arcs all derived from a layout, with two ships authored to it as validated
-  JSON files — and ships
+  and firing arcs all derived from a layout, with four ships authored to it as validated
+  JSON files, one of them built from a repeated wing segment — and ships
   built from those blueprints fighting: flying their layouts to hold an ordered range
   band, training their turrets with lead, and firing salvoes that recoil. A Canvas2D
   viewer draws snapshots of all of it — ships, turret bearings, tracers and the wells
@@ -414,8 +414,9 @@ SCS2D/
   queries already exist in `DebuggingScripts.sql`. The result is a real SQLite file, openable in any
   SQLite tool.
 - **A blueprint places assemblies, not just modules** — named groups referred to rather than repeated, so
-  that every copy of a part is the same part and a reflected instance makes symmetry structural. Resolved by
-  `expandBlueprint` into the flat list everything downstream works on.
+  that every copy of a part is the same part, a reflected instance makes symmetry structural, and a repeat
+  count makes a long row of identical bays a single number. Resolved by `expandBlueprint` into the flat list
+  everything downstream works on.
 - **Blueprints are JSON** (`sim/blueprintFile.ts`), with angles in degrees so a file can be hand-edited and
   nothing derived stored, so a corrected scaling law reaches old files rather than being frozen into them.
   A file arriving from elsewhere is parsed rather than trusted, and the ships that ship with the game go

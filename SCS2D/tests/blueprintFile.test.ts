@@ -11,6 +11,7 @@ import {
 } from '../sim/index.js';
 import corvetteFile from '../scenarios/corvette.json' with { type: 'json' };
 import damagedCorvetteFile from '../scenarios/damaged-corvette.json' with { type: 'json' };
+import fractalFile from '../scenarios/fractal.json' with { type: 'json' };
 import gunshipFile from '../scenarios/gunship.json' with { type: 'json' };
 import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 
@@ -33,6 +34,7 @@ const FILES = [
   ['corvette', corvetteFile],
   ['damaged corvette', damagedCorvetteFile],
   ['gunship', gunshipFile],
+  ['fractal', fractalFile],
 ] as const;
 
 /** A minimal valid file, to mutate one field of per rejection test. */
@@ -164,6 +166,34 @@ describe('rejecting a file that arrived from somewhere else', () => {
         file({ modules: [{ kind: 'turret', x: 0, y: 0, length: 8, width: 6, barrels: 2.5 }] }),
       ),
     ).toMatch(/whole number/);
+  });
+
+  it('refuses a malformed repeat or step', () => {
+    const instance = (over: Record<string, unknown>) =>
+      file({
+        assemblies: { seg: { modules: [{ kind: 'structure', x: 0, y: 0, length: 4, width: 4 }] } },
+        modules: [{ kind: 'structure', x: 0, y: 0, length: 10, width: 4 }, { use: 'seg', x: 0, y: 5, ...over }],
+      });
+    expect(blueprintFileProblem(instance({ repeat: 'four' }))).toMatch(/repeat must be a finite number/);
+    expect(blueprintFileProblem(instance({ repeat: 3, step: 8 }))).toMatch(/step must be an object/);
+    expect(blueprintFileProblem(instance({ repeat: 3, step: { x: 0, y: 4, dx: 1 } }))).toMatch(
+      /step has unknown key dx/,
+    );
+    expect(blueprintFileProblem(instance({ repeat: 3, step: { x: 0 } }))).toMatch(/step y must be a finite number/);
+  });
+
+  it('puts a step angle in degrees too', () => {
+    const parsed = parseBlueprint(
+      file({
+        assemblies: { seg: { modules: [{ kind: 'structure', x: 0, y: 0, length: 4, width: 4 }] } },
+        modules: [
+          { kind: 'structure', x: 0, y: 0, length: 10, width: 4 },
+          { use: 'seg', x: 0, y: 20, repeat: 2, step: { x: 6, y: 0, angle: 90 } },
+        ],
+      }),
+    );
+    const instance = parsed.modules[1];
+    expect(instance && 'step' in instance ? instance.step?.angle : undefined).toBe(math.HALF_PI);
   });
 
   it('throws from parseBlueprint with the problem in the message', () => {

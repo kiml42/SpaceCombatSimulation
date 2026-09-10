@@ -5,6 +5,8 @@ import {
   compileBlueprint,
   expandBlueprint,
   math,
+  MAX_EXPANDED_MODULES,
+  MAX_REPEAT,
   type Blueprint,
 } from '../sim/index.js';
 import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
@@ -274,6 +276,111 @@ describe('extras: how one copy differs from another', () => {
     });
     expect(assemblyProblem(bp)).toBeNull();
     expect(expandBlueprint(bp)).toHaveLength(3);
+  });
+});
+
+describe('repeating an instance', () => {
+  // What a long repeated structure is written as. It stands in for the thing
+  // that would otherwise be reached for — an assembly containing itself,
+  // stopped by a depth limit — and says the same thing without being able to
+  // make a cycle or hide how big a ship is.
+
+  const seg = { modules: [{ kind: 'structure', x: 0, y: 0, length: 4, width: 4 } as const] };
+
+  it('places a row, each copy one step on from the last', () => {
+    const bp = ship({
+      assemblies: { seg },
+      modules: [hull, { use: 'seg', x: 0, y: 5, repeat: 4, step: { x: 0, y: 4 } }],
+    });
+    const ys = expandBlueprint(bp)
+      .slice(1)
+      .map((m) => m.y);
+    expect(ys).toEqual([5, 9, 13, 17]);
+  });
+
+  it('steps in each copy’s own frame, so a step angle walks an arc', () => {
+    // Not the instance's frame: the rotation compounds, which is what makes a
+    // ring of mounts cost the same as a row of them.
+    const bp = ship({
+      assemblies: { seg },
+      modules: [hull, { use: 'seg', x: 20, y: 0, repeat: 4, step: { x: 5, y: 0, angle: math.HALF_PI } }],
+    });
+    const angles = expandBlueprint(bp)
+      .slice(1)
+      .map((m) => m.angle ?? 0);
+    expect(angles).toEqual([0, math.HALF_PI, math.PI, -math.HALF_PI]);
+  });
+
+  it('runs a reflected row the other way, so the far wing is the same wing', () => {
+    const bp = ship({
+      assemblies: { seg },
+      modules: [
+        hull,
+        { use: 'seg', x: 0, y: 5, repeat: 3, step: { x: 1, y: 4 } },
+        { use: 'seg', x: 0, y: -5, mirror: true, repeat: 3, step: { x: 1, y: 4 } },
+      ],
+    });
+    const placed = expandBlueprint(bp).slice(1);
+    expect(placed.map((m) => m.y)).toEqual([5, 9, 13, -5, -9, -13]);
+    // The x offsets are shared, not reflected, since the step's x runs along
+    // the mirror axis rather than across it.
+    expect(placed.map((m) => m.x)).toEqual([0, 1, 2, 0, 1, 2]);
+  });
+
+  it('treats a repeat of one as no repeat at all', () => {
+    const bp = ship({ assemblies: { seg }, modules: [hull, { use: 'seg', x: 0, y: 5, repeat: 1 }] });
+    expect(blueprintProblem(bp)).toBeNull();
+    expect(expandBlueprint(bp)).toHaveLength(2);
+  });
+
+  it('insists on repeat and step together', () => {
+    // A count with no step piles the copies on one spot, which the overlap
+    // rule would reject with a complaint about geometry rather than about the
+    // mistake actually made. A step with no count does nothing whatever.
+    const noStep = ship({ assemblies: { seg }, modules: [hull, { use: 'seg', x: 0, y: 5, repeat: 3 }] });
+    expect(assemblyProblem(noStep)).toMatch(/repeat above 1 and step together/);
+
+    const noCount = ship({
+      assemblies: { seg },
+      modules: [hull, { use: 'seg', x: 0, y: 5, step: { x: 0, y: 4 } }],
+    });
+    expect(assemblyProblem(noCount)).toMatch(/repeat above 1 and step together/);
+  });
+
+  it('refuses a count that is not a whole number of copies', () => {
+    const bp = (repeat: number) =>
+      ship({ assemblies: { seg }, modules: [hull, { use: 'seg', x: 0, y: 5, repeat, step: { x: 0, y: 4 } }] });
+    expect(assemblyProblem(bp(0))).toMatch(/whole number of at least 1/);
+    expect(assemblyProblem(bp(2.5))).toMatch(/whole number of at least 1/);
+    expect(assemblyProblem(bp(-3))).toMatch(/whole number of at least 1/);
+  });
+
+  it('caps how many copies one instance may ask for', () => {
+    const bp = ship({
+      assemblies: { seg },
+      modules: [hull, { use: 'seg', x: 0, y: 5, repeat: MAX_REPEAT + 1, step: { x: 0, y: 4 } }],
+    });
+    expect(assemblyProblem(bp)).toMatch(new RegExp(`at most ${MAX_REPEAT}`));
+  });
+
+  it('caps the whole expansion, because nesting multiplies', () => {
+    // The cap that actually matters: every instance here is well inside
+    // MAX_REPEAT, and four levels of it still ask for far more modules than a
+    // ship could have. A per-instance limit cannot see what its ancestors
+    // already asked for.
+    const bp = ship({
+      assemblies: {
+        a: { modules: [{ kind: 'structure', x: 0, y: 0, length: 1, width: 1 }] },
+        b: { modules: [{ use: 'a', x: 0, y: 0, repeat: 8, step: { x: 2, y: 0 } }] },
+        c: { modules: [{ use: 'b', x: 0, y: 0, repeat: 8, step: { x: 0, y: 2 } }] },
+        d: { modules: [{ use: 'c', x: 0, y: 0, repeat: 8, step: { x: 40, y: 0 } }] },
+      },
+      modules: [{ use: 'd', x: 0, y: 0, repeat: 8, step: { x: 0, y: 40 } }],
+    });
+    // 8^4 = 4096 modules asked for, and it refuses rather than building them.
+    expect(() => expandBlueprint(bp)).toThrow(
+      new RegExp(`more than ${MAX_EXPANDED_MODULES} modules`),
+    );
   });
 });
 

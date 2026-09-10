@@ -4,6 +4,7 @@ import {
   isInstance,
   type Assembly,
   type AssemblyInstance,
+  type AssemblyStep,
   type Blueprint,
   type Placement,
 } from './blueprint.js';
@@ -59,7 +60,19 @@ const MODULE_KEYS: readonly string[] = [
 ];
 
 /** Keys an assembly instance may carry: where it goes, and nothing else. */
-const INSTANCE_KEYS: readonly string[] = ['use', 'x', 'y', 'angle', 'mirror', 'extra', 'notes'];
+const INSTANCE_KEYS: readonly string[] = [
+  'use',
+  'x',
+  'y',
+  'angle',
+  'mirror',
+  'repeat',
+  'step',
+  'extra',
+  'notes',
+];
+
+const STEP_KEYS: readonly string[] = ['x', 'y', 'angle'];
 
 const ASSEMBLY_KEYS: readonly string[] = ['modules', 'notes'];
 
@@ -142,11 +155,25 @@ function instanceShapeProblem(value: Record<string, unknown>, where: string): st
     const problem = placementsShapeProblem(value['extra'], `${where}: extra`);
     if (problem !== null) return problem;
   }
+  const step = value['step'];
+  if (step !== undefined) {
+    if (!isObject(step)) return `${where}: step must be an object, got ${JSON.stringify(step)}`;
+    const extraKeys = unknownKeys(step, STEP_KEYS);
+    if (extraKeys.length > 0) {
+      return `${where}: step has unknown ${extraKeys.length > 1 ? 'keys' : 'key'} ${extraKeys.join(', ')}`;
+    }
+    const problem =
+      numberProblem(step['x'], `${where}: step x`) ??
+      numberProblem(step['y'], `${where}: step y`) ??
+      optionalNumberProblem(step['angle'], `${where}: step angle`);
+    if (problem !== null) return problem;
+  }
 
   return (
     numberProblem(value['x'], `${where}: x`) ??
     numberProblem(value['y'], `${where}: y`) ??
     optionalNumberProblem(value['angle'], `${where}: angle`) ??
+    optionalNumberProblem(value['repeat'], `${where}: repeat`) ??
     optionalStringProblem(value['notes'], `${where}: notes`)
   );
 }
@@ -265,6 +292,13 @@ function toPlacements(raws: unknown[]): Placement[] {
       };
       if (raw['angle'] !== undefined) instance.angle = degreesToRadians(raw['angle'] as number);
       if (raw['mirror'] !== undefined) instance.mirror = raw['mirror'] as boolean;
+      if (raw['repeat'] !== undefined) instance.repeat = raw['repeat'] as number;
+      if (raw['step'] !== undefined) {
+        const rawStep = raw['step'] as Record<string, unknown>;
+        const step: AssemblyStep = { x: rawStep['x'] as number, y: rawStep['y'] as number };
+        if (rawStep['angle'] !== undefined) step.angle = degreesToRadians(rawStep['angle'] as number);
+        instance.step = step;
+      }
       if (raw['extra'] !== undefined) instance.extra = toPlacements(raw['extra'] as unknown[]);
       if (raw['notes'] !== undefined) instance.notes = raw['notes'] as string;
       return instance;
@@ -327,6 +361,12 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
     const raw: Record<string, unknown> = { use: placement.use, x: placement.x, y: placement.y };
     if (placement.angle !== undefined) raw['angle'] = radiansToDegrees(placement.angle);
     if (placement.mirror !== undefined) raw['mirror'] = placement.mirror;
+    if (placement.repeat !== undefined) raw['repeat'] = placement.repeat;
+    if (placement.step !== undefined) {
+      const step: Record<string, unknown> = { x: placement.step.x, y: placement.step.y };
+      if (placement.step.angle !== undefined) step['angle'] = radiansToDegrees(placement.step.angle);
+      raw['step'] = step;
+    }
     if (placement.extra !== undefined) raw['extra'] = placement.extra.map(serialisePlacement);
     if (placement.notes !== undefined) raw['notes'] = placement.notes;
     return raw;

@@ -109,8 +109,40 @@ export interface AssemblyInstance {
    * unchanged and each copy separately editable.
    */
   extra?: readonly Placement[];
+  /**
+   * How many copies to place in a row, each `step` on from the last.
+   *
+   * This is what a long repeated structure is written as — a wing of six
+   * identical segments is one segment and a count, so lengthening the wing is
+   * one number. It replaces what would otherwise be reached for instead: an
+   * assembly containing *itself*, stopped by a depth limit. Repetition says
+   * the same thing more plainly, cannot make a cycle, and leaves the size of a
+   * ship visible in its file rather than needing the file to be expanded to
+   * find out.
+   *
+   * `repeat` and `step` come as a pair, since a count without a step piles
+   * copies on top of one another and a step without a count does nothing.
+   * Capped at `MAX_REPEAT` per instance, with `MAX_EXPANDED_MODULES` behind it
+   * because nesting multiplies: sixteen levels of sixty-four would be a number
+   * no cap on a single instance could catch.
+   */
+  repeat?: number;
+  step?: AssemblyStep;
   /** Why this copy is here. See `ModuleSpec.notes`. */
   notes?: string;
+}
+
+/**
+ * How far along to move between the copies of a repeated instance.
+ *
+ * Applied in each copy's *own* frame rather than the instance's, so a step
+ * carrying an angle walks the copies round an arc or a spiral rather than
+ * along a line — a ring of turrets costs the same as a row of them.
+ */
+export interface AssemblyStep {
+  x: number;
+  y: number;
+  angle?: number;
 }
 
 /** Something a layout puts somewhere: a module itself, or a copy of a group. */
@@ -340,6 +372,19 @@ export function firingArc(
 /** How deep assemblies may nest. Generous for a ship, and a stop for a cycle. */
 const MAX_ASSEMBLY_DEPTH = 16;
 
+/** How many copies one instance may place. A wing, not a city. */
+export const MAX_REPEAT = 64;
+
+/**
+ * Ceiling on the modules a layout may expand to.
+ *
+ * The real defence, because `repeat` and nesting *multiply*: a per-instance cap
+ * cannot see what its ancestors already asked for. Checked as modules are
+ * produced rather than afterwards, so a runaway layout is refused rather than
+ * built first and measured second.
+ */
+export const MAX_EXPANDED_MODULES = 1024;
+
 /**
  * Fold an angle into (-pi, pi], and turn a negative zero into a positive one.
  *
@@ -412,14 +457,42 @@ function place(
       const own = placement.angle ?? 0;
       const turned = foldAngle(rotation + (mirrored ? -own : own));
       const flipped = mirrored !== (placement.mirror ?? false);
-      place(assembly.modules, blueprint, x, y, turned, flipped, depth + 1, out);
-      // Extras come after what the assembly defines, in the same frame. The
-      // ordering is worth noticing rather than assuming harmless: module order
-      // decides thruster allocation and firing order, so moving a part out of
-      // a definition and into an instance's extras moves it down the list and
-      // changes the ship slightly, even though nothing about its geometry has.
-      if (placement.extra !== undefined) {
-        place(placement.extra, blueprint, x, y, turned, flipped, depth + 1, out);
+
+      const copies = placement.repeat ?? 1;
+      if (copies > MAX_REPEAT) {
+        throw new Error(`${blueprint.name}: ${placement.use} asks for ${copies} copies, more than ${MAX_REPEAT}`);
+      }
+
+      // The step advances in the *current copy's* frame, so each copy is
+      // placed relative to the one before it rather than to the instance. With
+      // a step angle that walks the row round an arc; with none it is a
+      // straight line either way. Reflected along with everything else, so a
+      // mirrored chain runs the other way — which is what makes the far wing
+      // of a ship the same wing.
+      let cx = x;
+      let cy = y;
+      let crot = turned;
+      for (let copy = 0; copy < copies; copy++) {
+        place(assembly.modules, blueprint, cx, cy, crot, flipped, depth + 1, out);
+        // Extras come after what the assembly defines, in the same frame. The
+        // ordering is worth noticing rather than assuming harmless: module
+        // order decides thruster allocation and firing order, so moving a part
+        // out of a definition and into an instance's extras moves it down the
+        // list and changes the ship slightly, even though nothing about its
+        // geometry has.
+        if (placement.extra !== undefined) {
+          place(placement.extra, blueprint, cx, cy, crot, flipped, depth + 1, out);
+        }
+
+        const step = placement.step;
+        if (step === undefined || copy + 1 >= copies) continue;
+        const sc = cos(crot);
+        const ss = sin(crot);
+        const stepY = flipped ? -step.y : step.y;
+        const stepAngle = step.angle ?? 0;
+        cx = cx + step.x * sc - stepY * ss;
+        cy = cy + step.x * ss + stepY * sc;
+        crot = foldAngle(crot + (flipped ? -stepAngle : stepAngle));
       }
       continue;
     }
@@ -438,6 +511,11 @@ function place(
     if (placement.barrels !== undefined) spec.barrels = placement.barrels;
     if (placement.notes !== undefined) spec.notes = placement.notes;
     out.push(spec);
+    if (out.length > MAX_EXPANDED_MODULES) {
+      throw new Error(
+        `${blueprint.name}: expands to more than ${MAX_EXPANDED_MODULES} modules`,
+      );
+    }
   }
 }
 
@@ -465,6 +543,22 @@ export function assemblyProblem(blueprint: Blueprint): string | null {
       const problem = walk(assembly.modules);
       path.pop();
       if (problem !== null) return problem;
+
+      const repeat = placement.repeat;
+      const step = placement.step;
+      if (repeat !== undefined && (!Number.isInteger(repeat) || repeat < 1)) {
+        return `${blueprint.name}: ${placement.use} repeat must be a whole number of at least 1, got ${repeat}`;
+      }
+      if (repeat !== undefined && repeat > MAX_REPEAT) {
+        return `${blueprint.name}: ${placement.use} repeat must be at most ${MAX_REPEAT}, got ${repeat}`;
+      }
+      // Required together. A count with no step piles every copy on the same
+      // spot, which the overlap rule would then reject with a complaint about
+      // geometry rather than about the mistake actually made; a step with no
+      // count silently does nothing at all.
+      if ((repeat !== undefined && repeat > 1) !== (step !== undefined)) {
+        return `${blueprint.name}: ${placement.use} needs repeat above 1 and step together, or neither`;
+      }
 
       // Extras belong to the instance rather than to the assembly it places,
       // so they are walked at the enclosing path — an extra referring back to
