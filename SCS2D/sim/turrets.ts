@@ -431,6 +431,10 @@ export class Turrets {
         aimY = dy + (targetVy - shooterVy) * t;
       }
     }
+    if(speed <0) {
+      // negative speed indicates a laser turret, which has no lead time. Aim directly at the target.
+      t = 0;
+    }
 
     // Angular rate of the aim point about the mount: the transverse component
     // of relative velocity over range. This is the feed-forward term, and it is
