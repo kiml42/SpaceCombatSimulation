@@ -728,7 +728,7 @@ export function compileBlueprint(blueprint: Blueprint): ShipDesign {
         dirY: sin(angle),
         maxThrust: s.thrust,
       });
-    } else if (spec.kind === 'turret' && s.gun !== null) {
+    } else if ((spec.kind === 'turret' || spec.kind == 'laserTurret') && s.gun !== null) {
       const gun = s.gun;
       // The breech sits at the middle of the mount and the barrel reaches out
       // from there, so the muzzle traces a circle of that radius as the gun

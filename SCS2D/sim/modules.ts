@@ -161,7 +161,7 @@ export const TRAVERSE_TORQUE_PER_KG = 2;
  */
 export const TRAVERSE_SPINUP_TIME = 2;
 
-export type ModuleKind = 'structure' | 'thruster' | 'turret';
+export type ModuleKind = 'structure' | 'thruster' | 'turret' |  'laserTurret';
 
 /**
  * One module in a layout: what it is, where it sits, and how big it is.
@@ -337,7 +337,7 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     // being the answer to every propulsion problem.
     thrust = THRUST_PER_EXIT_AREA * spec.width * DECK_HEIGHT;
     fittingMass = thrust * ENGINE_MASS_PER_NEWTON;
-  } else if (spec.kind === 'turret') {
+  } else if (spec.kind === 'turret' || spec.kind === 'laserTurret') {
     gun = gunStats(spec.length, spec.width, spec.barrels);
     // The gun itself: a barrel is a thick-walled tube, taken here as steel
     // filling the annulus between the bore and an outside diameter of twice
