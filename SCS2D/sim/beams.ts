@@ -1,82 +1,29 @@
 import type { Bodies } from './bodies.js';
-import type { WellSpec } from './gravity.js';
-import { wellPull } from './gravity.js';
 import { sqrt } from './math.js';
 import { RayHit, type SpatialGrid } from './spatialGrid.js';
 
 /**
- * Projectiles: shells, slugs and other ballistic rounds in flight.
+ * Beams: lasers, particle beams anything else that's considered to go from its
+ * emitter to the target instantaneously.
  *
- * **A torpedo is not a projectile.** DESIGN.md §2 settles that a torpedo is a
- * strike craft carrying a warhead in place of a gun — so it thrusts, steers,
- * picks its own targets, obeys doctrine and collides, none of which a swept
- * segment can do. It is a *body*, and it belongs with the fighters.
- *
- * The discriminator is **propulsion and guidance, not lethality or size**. What
- * belongs here is anything launched that thereafter merely *falls*, with nothing
- * but physics acting on it. A one-tonne kinetic penetrator is a projectile; a
- * tiny guided munition is not.
- *
- * Beams are neither. A laser is an instantaneous cast against the index with no
- * store and no flight time at all.
- *
- * A projectile is **not a rigid body**. It is a position, a velocity and a
- * payload in a flat array, and a step of its flight is a *swept segment* tested
- * against the spatial index. Two consequences follow, and both are the reason
- * for the design:
- *
- *  - **Tunnelling is impossible.** A body moved forward and then tested where it
- *    landed can pass clean through a hull between one step and the next, and the
- *    usual patch is to raycast afterwards and teleport it back. Casting the
- *    whole step as one segment is that algorithm done in the right place.
- *  - **It is far cheaper.** No rigid body, no mass properties, no integration
- *    into the collision graph. Thousands of rounds in the air are an array walk.
- *
- * Unlike bodies, projectiles get plain integer indices rather than generational
- * handles. Nothing holds a reference to a round across steps: it is spawned,
- * flies, and is consumed on impact or expiry, all inside the system that owns
- * it. Handles exist to catch stale references, and there are none to catch.
- *
- * Impacts are *reported*, not applied — and that includes not deciding whether
- * the round survives. On impact a round is parked at the point of contact and
- * marked **pending**: it stops moving and stops being cast, and waits for
- * something else to say what became of it.
- *
- * That is what lets terminal ballistics live outside this file. A round that
- * penetrates is consumed with `kill`; one that embeds in the hull is consumed
- * after its mass and momentum are transferred; one that deflects has its
- * velocity rewritten and is returned to flight with `resume`. Ballistics does
- * not need to know which, and consuming a round unilaterally would already be
- * applying an outcome.
- *
- * Because the round is still alive when its hit is reported, the hit record
- * carries only what the *cast* discovered — which body, where, when in the step
- * and the surface normal. Mass, velocity, remaining flight time and payload are
- * read straight from the store by index, so there is no second copy to diverge.
+ * Hits are *reported*, not applied.
  */
 
-/** A projectile with no firing ship to pass through. */
+/** A beam with no firing ship to pass through. */
 export const NO_OWNER = -1;
 
-export interface ProjectileSpec {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
+export interface BeamSpec {
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
   width: number;
-  /** Seconds of flight before the round expires. */
-  ttl: number;
-  /** Used for imparted momentum, and for the mass gained if the round embeds. */
-  mass?: number;
-  damage?: number;
-  /** How deeply the round reaches into a hull's internals. */
-  penetration?: number;
   /**
-   * A body *index* the round passes through — the firing ship, normally, so a
-   * turret does not shoot its own hull. Temporary until we set up the two layer world model.
+   * A body *index* the beam passes through — the firing ship, normally, so a
+   * turret does not shoot its own hull. - temporary until we set up the two layer world model.
    */
   owner?: number;
-  /** Caller-defined classification (AP, HE, and so on). Uninterpreted here. */
+  /** Caller-defined classification (laser, particle beam, and so on). Uninterpreted here. */
   kind?: number;
 }
 
@@ -84,9 +31,9 @@ export interface ProjectileSpec {
  * Impacts from one step, in projectile order. Reused between steps so that
  * reporting hits allocates nothing.
  */
-export class ProjectileHits {
-  /** Index of the round, which is still alive and pending resolution. */
-  projectile: Int32Array;
+export class BeamHits {
+  /** Index of the beam, which is still alive and pending resolution. */
+  beam: Int32Array;
   /** Body index struck. */
   body: Int32Array;
   /**
@@ -110,7 +57,7 @@ export class ProjectileHits {
   count = 0;
 
   constructor(capacity = 256) {
-    this.projectile = new Int32Array(capacity);
+    this.beam = new Int32Array(capacity);
     this.body = new Int32Array(capacity);
     this.t = new Float64Array(capacity);
     this.x = new Float64Array(capacity);
@@ -124,7 +71,7 @@ export class ProjectileHits {
   }
 
   private grow(): void {
-    const size = this.projectile.length * 2;
+    const size = this.beam.length * 2;
     const i32 = (old: Int32Array): Int32Array => {
       const next = new Int32Array(size);
       next.set(old);
@@ -135,7 +82,7 @@ export class ProjectileHits {
       next.set(old);
       return next;
     };
-    this.projectile = i32(this.projectile);
+    this.beam = i32(this.beam);
     this.body = i32(this.body);
     this.t = f64(this.t);
     this.x = f64(this.x);
@@ -146,7 +93,7 @@ export class ProjectileHits {
 
   /** Append an impact. Called by `Projectiles.step`. */
   push(
-    projectile: number,
+    beam: number,
     body: number,
     t: number,
     x: number,
@@ -154,9 +101,9 @@ export class ProjectileHits {
     nx: number,
     ny: number,
   ): void {
-    if (this.count === this.projectile.length) this.grow();
+    if (this.count === this.beam.length) this.grow();
     const i = this.count++;
-    this.projectile[i] = projectile;
+    this.beam[i] = beam;
     this.body[i] = body;
     this.t[i] = t;
     this.x[i] = x;
@@ -166,16 +113,12 @@ export class ProjectileHits {
   }
 }
 
-export class Projectiles {
-  x!: Float64Array;
-  y!: Float64Array;
-  vx!: Float64Array;
-  vy!: Float64Array;
+export class Beams {
+  startX!: Float64Array;
+  startY!: Float64Array;
+  endX!: Float64Array;
+  endY!: Float64Array;
   width!: Float64Array;
-  ttl!: Float64Array;
-  mass!: Float64Array;
-  damage!: Float64Array;
-  penetration!: Float64Array;
   owner!: Int32Array;
   kind!: Int32Array;
   alive!: Uint8Array;
@@ -212,15 +155,11 @@ export class Projectiles {
       if (old) next.set(old);
       return next;
     };
-    this.x = f64(this.x);
-    this.y = f64(this.y);
-    this.vx = f64(this.vx);
-    this.vy = f64(this.vy);
+    this.startX = f64(this.startX);
+    this.startY = f64(this.startY);
+    this.endX = f64(this.endX);
+    this.endY = f64(this.endY);
     this.width = f64(this.width);
-    this.ttl = f64(this.ttl);
-    this.mass = f64(this.mass);
-    this.damage = f64(this.damage);
-    this.penetration = f64(this.penetration);
     this.owner = i32(this.owner);
     this.kind = i32(this.kind);
 
@@ -242,15 +181,11 @@ export class Projectiles {
    * gunnery code should not have to build an options object per shot.
    */
   spawnRaw(
-    x: number,
-    y: number,
-    vx: number,
-    vy: number,
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
     width: number,
-    ttl: number,
-    mass: number,
-    damage: number,
-    penetration: number,
     owner: number,
     kind: number,
   ): number {
@@ -263,15 +198,11 @@ export class Projectiles {
       i = this.highWater++;
     }
 
-    this.x[i] = x;
-    this.y[i] = y;
-    this.vx[i] = vx;
-    this.vy[i] = vy;
+    this.startX[i] = startX;
+    this.startY[i] = startY;
+    this.endX[i] = endX;
+    this.endY[i] = endY;
     this.width[i] = width;
-    this.ttl[i] = ttl;
-    this.mass[i] = mass;
-    this.damage[i] = damage;
-    this.penetration[i] = penetration;
     this.owner[i] = owner;
     this.kind[i] = kind;
     this.alive[i] = 1;
@@ -281,17 +212,13 @@ export class Projectiles {
   }
 
   /** `spawnRaw` with named fields and defaults, for setup code and tests. */
-  spawn(spec: ProjectileSpec): number {
+  spawn(spec: BeamSpec): number {
     return this.spawnRaw(
-      spec.x,
-      spec.y,
-      spec.vx,
-      spec.vy,
+      spec.startX,
+      spec.startY,
+      spec.endX,
+      spec.endY,
       spec.width,
-      spec.ttl,
-      spec.mass ?? 1,
-      spec.damage ?? 0,
-      spec.penetration ?? 0,
       spec.owner ?? NO_OWNER,
       spec.kind ?? 0,
     );
@@ -357,8 +284,7 @@ export class Projectiles {
     dt: number,
     bodies: Bodies,
     grid: SpatialGrid,
-    hits: ProjectileHits,
-    wells?: readonly WellSpec[],
+    hits: BeamHits,
   ): void {
     hits.clear();
     const hit = this.hit;
@@ -366,30 +292,19 @@ export class Projectiles {
     for (let i = 0; i < this.highWater; i++) {
       if (this.alive[i] === 0 || this.pending[i] === 1) continue;
 
-      if (wells !== undefined) {
-        let ax = 0;
-        let ay = 0;
-        for (let w = 0; w < wells.length; w++) {
-          const well = wells[w]!;
-          const pull = wellPull(well, this.x[i], this.y[i]);
-          ax += (well.x - this.x[i]) * pull;
-          ay += (well.y - this.y[i]) * pull;
-        }
-        this.vx[i] += ax * dt;
-        this.vy[i] += ay * dt;
-      }
+      const startX = this.startX[i];
+      const startY = this.startY[i];
+      const endX = this.endX[i];
+      const endY = this.endY[i];
 
-      const x0 = this.x[i];
-      const y0 = this.y[i];
-      const dx = this.vx[i] * dt;
-      const dy = this.vy[i] * dt;
-
-      if (grid.raycast(bodies, x0, y0, x0 + dx, y0 + dy, hit, this.owner[i])) {
+      if (grid.raycast(bodies, startX, startY, endX, endY, hit, this.owner[i])) {
         // Outward surface normal. Exact for a bounding circle; a polygon narrow
         // phase would supply the struck edge's normal instead.
         const bi = hit.bodyIndex;
         const ox = hit.x - bodies.x[bi];
         const oy = hit.y - bodies.y[bi];
+        const dx = endX - startX;
+        const dy = endY - startY;
         const olen = sqrt(ox * ox + oy * oy);
         // A round starting exactly at the centre has no meaningful normal;
         // oppose its travel, which is the only defensible answer.
@@ -401,18 +316,15 @@ export class Projectiles {
 
         // Stop at the point of contact and wait to be resolved. The round is
         // deliberately left alive: see the note at the top of this file.
-        this.x[i] = hit.x;
-        this.y[i] = hit.y;
+        this.endX[i] = hit.x;
+        this.endY[i] = hit.y;
         this.pending[i] = 1;
         this.pendingCount++;
         hits.push(i, bi, hit.t, hit.x, hit.y, nx, ny);
         continue;
       }
 
-      this.x[i] = x0 + dx;
-      this.y[i] = y0 + dy;
-      this.ttl[i] -= dt;
-      if (this.ttl[i] <= 0) this.kill(i);
+      // this.kill(i);
     }
   }
 
@@ -428,25 +340,18 @@ export class Projectiles {
     bodyIndex: number,
     muzzleX: number,
     muzzleY: number,
-    muzzleVx: number,
-    muzzleVy: number,
+    muzzleDirectionX: number,
+    muzzleDirectionY: number,
     width: number,
-    ttl: number,
-    mass: number,
-    damage: number,
-    penetration: number,
     kind: number,
   ): number {
+    // TODO make a sensible constant for the length of a beam.
     return this.spawnRaw(
       muzzleX,
       muzzleY,
-      bodies.vx[bodyIndex] + muzzleVx,
-      bodies.vy[bodyIndex] + muzzleVy,
+      bodies.vx[bodyIndex] + muzzleDirectionX * 1000000000,
+      bodies.vy[bodyIndex] + muzzleDirectionY * 1000000000,
       width,
-      ttl,
-      mass,
-      damage,
-      penetration,
       bodyIndex,
       kind,
     );
