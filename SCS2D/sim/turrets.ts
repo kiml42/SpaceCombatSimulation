@@ -54,12 +54,12 @@ import {
  */
 
 /**
- * Bearing error below which a turret counts as on target. About 0.06°, finer
+ * Bearing error below which a turret counts as on target. About 0.6°, finer
  * than any gunnery cares about, and reachable by every mount because the
  * correction rate is capped at what lands exactly rather than braking early —
  * so there is no dead band to sit outside of.
  */
-const ON_TARGET_FLOOR = 0.001;
+const ON_TARGET_FLOOR = 0.01;
 
 export interface TurretSpec {
   /** Body *index* this turret is mounted on. */
