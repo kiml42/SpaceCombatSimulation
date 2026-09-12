@@ -15,7 +15,7 @@ const { cos, sin, max, min, PI, sqrt, TAU } = math;
  *
  * It knows no game rules. Everything it draws, it draws because the snapshot
  * says so: module boxes from the design, barrels from turret bearings, tracers
- * from beam velocity. It never asks who is winning.
+ * from projectile velocity. It never asks who is winning.
  */
 
 /** Colours by team, plus the furniture. Deliberately few. */
