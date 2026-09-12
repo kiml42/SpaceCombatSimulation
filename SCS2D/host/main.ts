@@ -177,7 +177,7 @@ export function start(): void {
       if (steps === MAX_STEPS_PER_FRAME) accumulator = 0;
     }
 
-    const view = capture(snapshot, state.world, state.ships, state.projectiles, state.wells);
+    const view = capture(snapshot, state.world, state.ships, state.projectiles, state.beams, state.wells);
     // Negative when the battle has just been reset, which is not elapsed time.
     const simDt = view.time > lastSimTime ? view.time - lastSimTime : 0;
     lastSimTime = view.time;
