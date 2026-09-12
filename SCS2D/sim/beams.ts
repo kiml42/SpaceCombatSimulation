@@ -175,12 +175,12 @@ export class Beams {
   }
 
   /**
-   * Put a round in the air, allocating nothing. Returns its index.
+   * Create a beam for the current step, allocating nothing. Returns its index.
    *
    * The long argument list is deliberate: firing is frequent enough that the
    * gunnery code should not have to build an options object per shot.
    */
-  spawnRaw(
+  shootRaw(
     startX: number,
     startY: number,
     endX: number,
@@ -212,8 +212,8 @@ export class Beams {
   }
 
   /** `spawnRaw` with named fields and defaults, for setup code and tests. */
-  spawn(spec: BeamSpec): number {
-    return this.spawnRaw(
+  shoot(spec: BeamSpec): number {
+    return this.shootRaw(
       spec.startX,
       spec.startY,
       spec.endX,
@@ -267,20 +267,9 @@ export class Beams {
   }
 
   /**
-   * Advance every round by one step, reporting impacts into `hits`.
-   *
-   * **`grid` must have been rebuilt from `bodies` at their current positions.**
-   * Casting against a stale index is the one way to get this wrong, and it
-   * fails quietly — rounds pass through hulls that have moved. The step order
-   * is: advance bodies, rebuild the index, then advance projectiles.
-   *
-   * `wells` curves the rounds under gravity. Velocity is updated before the
-   * segment is cast, so the path within a step is treated as straight — an
-   * approximation whose error is dominated by the step length, and rounds live
-   * for seconds rather than orbits, so a first-order scheme is ample here. The
-   * scheme that has to behave over thousands of steps is the one in `world.ts`.
+   * Detect hits.
    */
-  step(
+  detectHits(
     dt: number,
     bodies: Bodies,
     grid: SpatialGrid,
@@ -346,7 +335,7 @@ export class Beams {
     kind: number,
   ): number {
     // TODO make a sensible constant for the length of a beam.
-    return this.spawnRaw(
+    return this.shootRaw(
       muzzleX,
       muzzleY,
       bodies.vx[bodyIndex] + muzzleDirectionX * 1000000000,

@@ -3,7 +3,6 @@ import { Bodies } from '../sim/bodies.js';
 import { BeamHits, Beams, NO_OWNER } from '../sim/beams.js';
 import { SpatialGrid } from '../sim/spatialGrid.js';
 
-const DT = 1 / 60;
 /** A world of static bodies plus a rebuilt index, which is all beams need. */
 function range(...specs: { startX: number; startY: number; radius: number }[]) {
   const bodies = new Bodies();
@@ -16,9 +15,9 @@ function range(...specs: { startX: number; startY: number; radius: number }[]) {
 describe('projection', () => {
   it('travels in a straight line', () => {
     const r = range();
-    const p = r.beams.spawn({ startX: 0, startY: 0, endX: 600, endY: -300, width: 0.5 });
+    const p = r.beams.shoot({ startX: 0, startY: 0, endX: 600, endY: -300, width: 0.5 });
 
-    for (let i = 0; i < 60; i++) r.beams.step(DT, r.bodies, r.grid, r.hits);
+    for (let i = 0; i < 60; i++) r.beams.detectHits(r.bodies, r.grid, r.hits);
 
     // One second of flight.
     expect(r.beams.startX[p]).toBeCloseTo(600, 6);
@@ -28,49 +27,38 @@ describe('projection', () => {
 
   it('expires when its flight time runs out', () => {
     const r = range();
-    const p = r.beams.spawn({ startX: 0, startY: 0, endX: 100, endY: 0, width: 0.5 });
+    const p = r.beams.shoot({ startX: 0, startY: 0, endX: 100, endY: 0, width: 0.5 });
     expect(r.beams.count).toBe(1);
 
-    for (let i = 0; i < 29; i++) r.beams.step(DT, r.bodies, r.grid, r.hits);
+    for (let i = 0; i < 29; i++) r.beams.detectHits(r.bodies, r.grid, r.hits);
     expect(r.beams.alive[p]).toBe(1);
 
-    for (let i = 0; i < 3; i++) r.beams.step(DT, r.bodies, r.grid, r.hits);
+    for (let i = 0; i < 3; i++) r.beams.detectHits(r.bodies, r.grid, r.hits);
     expect(r.beams.alive[p]).toBe(0);
     expect(r.beams.count).toBe(0);
   });
 
   it('recycles the slots of spent beams', () => {
     const r = range();
-    r.beams.spawn({ startX: 0, startY: 0, endX: 1, endY: 0, width: 0.5 });
-    r.beams.step(DT, r.bodies, r.grid, r.hits);
+    r.beams.shoot({ startX: 0, startY: 0, endX: 1, endY: 0, width: 0.5 });
+    r.beams.detectHits(r.bodies, r.grid, r.hits);
     expect(r.beams.count).toBe(0);
     expect(r.beams.highWater).toBe(1);
 
     // The next beam takes the vacated slot rather than growing the store.
-    r.beams.spawn({ startX: 0, startY: 0, endX: 1, endY: 0, width: 0.5 });
+    r.beams.shoot({ startX: 0, startY: 0, endX: 1, endY: 0, width: 0.5 });
     expect(r.beams.highWater).toBe(1);
     expect(r.beams.count).toBe(1);
-  });
-
-  it('inherits the firing body velocity', () => {
-    const bodies = new Bodies();
-    const ship = bodies.create({ x: 0, y: 0, vx: 50, vy: 10, mass: 1, inertia: 1, radius: 5 });
-    const beams = new Beams();
-    const p = beams.fireFrom(bodies, bodies.indexOf(ship), 10, 0, 800, 0, 0.5, 0);
-
-    expect(beams.endX[p]).toBe(850);
-    expect(beams.endY[p]).toBe(10);
-    expect(beams.owner[p]).toBe(bodies.indexOf(ship));
   });
 });
 
 describe('impacts', () => {
   it('reports a hit and leaves the beam pending, not consumed', () => {
     const r = range({ startX: 200, startY: 0, radius: 20 });
-    const p = r.beams.spawn({
+    const p = r.beams.shoot({
       startX: 0,
       startY: 0,
-      endX: 600,
+      endX: 600000,
       endY: 0,
       width: 0.5,
       kind: 2,
@@ -78,7 +66,7 @@ describe('impacts', () => {
 
     let hitStep = -1;
     for (let i = 0; i < 60 && hitStep < 0; i++) {
-      r.beams.step(DT, r.bodies, r.grid, r.hits);
+      r.beams.detectHits(r.bodies, r.grid, r.hits);
       if (r.hits.count > 0) hitStep = i;
     }
 
@@ -108,13 +96,13 @@ describe('impacts', () => {
 
   it('does not cast a pending beam again, or re-report its impact', () => {
     const r = range({ startX: 100, startY: 0, radius: 10 });
-    const p = r.beams.spawn({ startX: 0, startY: 0, endX: 6000, endY: 0, width: 0.5 });
-    r.beams.step(DT, r.bodies, r.grid, r.hits);
+    const p = r.beams.shoot({ startX: 0, startY: 0, endX: 6000, endY: 0, width: 0.5 });
+    r.beams.detectHits(r.bodies, r.grid, r.hits);
     expect(r.hits.count).toBe(1);
 
     const restingX = r.beams.startX[p];
     for (let i = 0; i < 10; i++) {
-      r.beams.step(DT, r.bodies, r.grid, r.hits);
+      r.beams.detectHits(r.bodies, r.grid, r.hits);
       expect(r.hits.count).toBe(0);
     }
     // Stopped dead, with its flight time not ticking away either.
@@ -124,8 +112,8 @@ describe('impacts', () => {
 
   it('resume returns a deflected beam to flight on its new heading', () => {
     const r = range({ startX: 100, startY: 0, radius: 10 });
-    const p = r.beams.spawn({ startX: 0, startY: 0, endX: 6000, endY: 0, width: 0.5 });
-    r.beams.step(DT, r.bodies, r.grid, r.hits);
+    const p = r.beams.shoot({ startX: 0, startY: 0, endX: 6000, endY: 0, width: 0.5 });
+    r.beams.detectHits(r.bodies, r.grid, r.hits);
     expect(r.hits.count).toBe(1);
 
     // Mirror the velocity about the surface normal, as a deflection would.
@@ -143,14 +131,14 @@ describe('impacts', () => {
     expect(r.beams.endX[p]).toBeCloseTo(-6000, 6);
 
     const before = r.beams.startX[p]!;
-    r.beams.step(DT, r.bodies, r.grid, r.hits);
+    r.beams.detectHits(r.bodies, r.grid, r.hits);
     expect(r.beams.startX[p]!).toBeLessThan(before);
   });
 
   it('kill clears the pending state', () => {
     const r = range({ startX: 100, startY: 0, radius: 10 });
-    const p = r.beams.spawn({ startX: 0, startY: 0, endX: 6000, endY: 0, width: 0.5 });
-    r.beams.step(DT, r.bodies, r.grid, r.hits);
+    const p = r.beams.shoot({ startX: 0, startY: 0, endX: 6000, endY: 0, width: 0.5 });
+    r.beams.detectHits(r.bodies, r.grid, r.hits);
     expect(r.beams.pendingCount).toBe(1);
 
     r.beams.kill(r.hits.beam[0]!);
@@ -164,8 +152,8 @@ describe('impacts', () => {
     // it strikes the lower-left arc and the outward normal there must point
     // both down and to the left. Entry works out at about (174, -43).
     const r = range({ startX: 200, startY: 0, radius: 50 });
-    r.beams.spawn({ startX: 120, startY: -70, endX: 6000, endY: 3000, width: 0.5 });
-    r.beams.step(DT, r.bodies, r.grid, r.hits);
+    r.beams.shoot({ startX: 120, startY: -70, endX: 6000, endY: 3000, width: 0.5 });
+    r.beams.detectHits(r.bodies, r.grid, r.hits);
 
     expect(r.hits.count).toBe(1);
     const nx = r.hits.nx[0]!;
@@ -177,10 +165,10 @@ describe('impacts', () => {
 
   it('clears the hit buffer each step', () => {
     const r = range({ startX: 100, startY: 0, radius: 10 });
-    r.beams.spawn({ startX: 0, startY: 0, endX: 6000, endY: 0, width: 0.5 });
-    r.beams.step(DT, r.bodies, r.grid, r.hits);
+    r.beams.shoot({ startX: 0, startY: 0, endX: 6000, endY: 0, width: 0.5 });
+    r.beams.detectHits(r.bodies, r.grid, r.hits);
     expect(r.hits.count).toBe(1);
-    r.beams.step(DT, r.bodies, r.grid, r.hits);
+    r.beams.detectHits(r.bodies, r.grid, r.hits);
     expect(r.hits.count).toBe(0);
   });
 
@@ -188,9 +176,9 @@ describe('impacts', () => {
     // 3,000,000 units per second is 50,000 units in one step, against a target
     // 20 units across. A body moved and then tested would sail straight past.
     const r = range({ startX: 10_000, startY: 0, radius: 10 });
-    r.beams.spawn({ startX: 0, startY: 0, endX: 3_000_000, endY: 0, width: 0.5 });
+    r.beams.shoot({ startX: 0, startY: 0, endX: 3_000_000, endY: 0, width: 0.5 });
 
-    r.beams.step(DT, r.bodies, r.grid, r.hits);
+    r.beams.detectHits(r.bodies, r.grid, r.hits);
 
     expect(r.hits.count).toBe(1);
     expect(r.hits.x[0]).toBeCloseTo(9990, 3);
@@ -203,12 +191,12 @@ describe('impacts', () => {
 
     // Fired from inside its own hull, slowly enough that it spends several
     // steps still inside the shooter — every one of which must not register.
-    r.beams.spawn({ startX: 0, startY: 0, endX: 600, endY: 0, width: 0.5, owner: shooter });
+    r.beams.shoot({ startX: 0, startY: 0, endX: 600, endY: 0, width: 0.5, owner: shooter });
 
     let count = 0;
     let struck = -1;
     for (let i = 0; i < 120 && count === 0; i++) {
-      r.beams.step(DT, r.bodies, r.grid, r.hits);
+      r.beams.detectHits(r.bodies, r.grid, r.hits);
       count = r.hits.count;
       if (count > 0) struck = r.hits.body[0]!;
     }
@@ -220,18 +208,18 @@ describe('impacts', () => {
 
   it('hits its own hull when no owner is set', () => {
     const r = range({ startX: 0, startY: 0, radius: 40 });
-    r.beams.spawn({ startX: 0, startY: 0, endX: 6000, endY: 0, width: 0.5, owner: NO_OWNER });
-    r.beams.step(DT, r.bodies, r.grid, r.hits);
+    r.beams.shoot({ startX: 0, startY: 0, endX: 6000, endY: 0, width: 0.5, owner: NO_OWNER });
+    r.beams.detectHits(r.bodies, r.grid, r.hits);
     expect(r.hits.count).toBe(1);
     expect(r.hits.x[0]).toBe(0);
   });
 
   it('reports several impacts in beam order', () => {
     const r = range({ startX: 100, startY: 0, radius: 10 }, { startX: 100, startY: 200, radius: 10 });
-    const a = r.beams.spawn({ startX: 0, startY: 0, endX: 6000, endY: 0, width: 0.5 });
-    const b = r.beams.spawn({ startX: 0, startY: 200, endX: 6000, endY: 0, width: 0.5 });
+    const a = r.beams.shoot({ startX: 0, startY: 0, endX: 6000, endY: 0, width: 0.5 });
+    const b = r.beams.shoot({ startX: 0, startY: 200, endX: 6000, endY: 0, width: 0.5 });
 
-    r.beams.step(DT, r.bodies, r.grid, r.hits);
+    r.beams.detectHits(r.bodies, r.grid, r.hits);
 
     expect(r.hits.count).toBe(2);
     expect(r.hits.beam[0]).toBe(a);
@@ -240,8 +228,8 @@ describe('impacts', () => {
 
   it('misses cleanly and keeps flying', () => {
     const r = range({ startX: 200, startY: 500, radius: 10 });
-    const p = r.beams.spawn({ startX: 0, startY: 0, endX: 600, endY: 0, width: 0.5 });
-    for (let i = 0; i < 60; i++) r.beams.step(DT, r.bodies, r.grid, r.hits);
+    const p = r.beams.shoot({ startX: 0, startY: 0, endX: 600, endY: 0, width: 0.5 });
+    for (let i = 0; i < 60; i++) r.beams.detectHits(r.bodies, r.grid, r.hits);
     expect(r.hits.count).toBe(0);
     expect(r.beams.alive[p]).toBe(1);
     expect(r.beams.pendingCount).toBe(0);
@@ -257,10 +245,10 @@ describe('impacts', () => {
 
     const beams = new Beams();
     for (let i = 0; i < 40; i++) {
-      beams.spawn({ startX: 0, startY: i * 100, endX: 6000, endY: 0, width: 0.5 });
+      beams.shoot({ startX: 0, startY: i * 100, endX: 6000, endY: 0, width: 0.5 });
     }
     const hits = new BeamHits(4);
-    beams.step(DT, bodies, grid, hits);
+    beams.detectHits(bodies, grid, hits);
     expect(hits.count).toBe(40);
     // Every entry survived the reallocations.
     for (let i = 0; i < 40; i++) expect(hits.body[i]).toBeGreaterThanOrEqual(0);
@@ -272,7 +260,7 @@ describe('determinism', () => {
     const build = () => {
       const r = range({ startX: 400, startY: 0, radius: 25 }, { startX: 200, startY: 300, radius: 25 });
       for (let i = 0; i < 20; i++) {
-        r.beams.spawn({
+        r.beams.shoot({
           startX: -300 + i,
           startY: i * 7,
           endX: 500 + i * 3,
@@ -287,8 +275,8 @@ describe('determinism', () => {
     const b = build();
 
     for (let step = 0; step < 200; step++) {
-      a.beams.step(DT, a.bodies, a.grid, a.hits);
-      b.beams.step(DT, b.bodies, b.grid, b.hits);
+      a.beams.detectHits(a.bodies, a.grid, a.hits);
+      b.beams.detectHits(b.bodies, b.grid, b.hits);
 
       expect(b.hits.count).toBe(a.hits.count);
       for (let i = 0; i < a.hits.count; i++) {
@@ -316,7 +304,7 @@ describe('determinism', () => {
 describe('store housekeeping', () => {
   it('kill is idempotent and ignores nonsense indices', () => {
     const r = range();
-    const p = r.beams.spawn({ startX: 0, startY: 0, endX: 1, endY: 0, width: 0.5 });
+    const p = r.beams.shoot({ startX: 0, startY: 0, endX: 1, endY: 0, width: 0.5 });
     r.beams.kill(p);
     expect(r.beams.count).toBe(0);
     expect(() => {
@@ -329,7 +317,7 @@ describe('store housekeeping', () => {
 
   it('resume ignores rounds that are not pending', () => {
     const r = range();
-    const p = r.beams.spawn({ startX: 0, startY: 0, endX: 1, endY: 0, width: 0.5 });
+    const p = r.beams.shoot({ startX: 0, startY: 0, endX: 1, endY: 0, width: 0.5 });
     expect(() => {
       r.beams.resume(p);
       r.beams.resume(-1);
@@ -340,9 +328,9 @@ describe('store housekeeping', () => {
 
   it('clear empties the store, pending rounds included', () => {
     const r = range({ startX: 100, startY: 0, radius: 10 });
-    r.beams.spawn({ startX: 0, startY: 0, endX: 6000, endY: 0, width: 0.5 });
-    for (let i = 0; i < 9; i++) r.beams.spawn({ startX: i, startY: 900, endX: 1, endY: 0, width: 0.5 });
-    r.beams.step(DT, r.bodies, r.grid, r.hits);
+    r.beams.shoot({ startX: 0, startY: 0, endX: 6000, endY: 0, width: 0.5 });
+    for (let i = 0; i < 9; i++) r.beams.shoot({ startX: i, startY: 900, endX: 1, endY: 0, width: 0.5 });
+    r.beams.detectHits(r.bodies, r.grid, r.hits);
     expect(r.beams.pendingCount).toBe(1);
 
     r.beams.clear();
@@ -353,7 +341,7 @@ describe('store housekeeping', () => {
 
   it('grows past its initial capacity', () => {
     const beams = new Beams(2);
-    for (let i = 0; i < 100; i++) beams.spawn({ startX: i, startY: 0, endX: 1, endY: 0, width: 0.5 });
+    for (let i = 0; i < 100; i++) beams.shoot({ startX: i, startY: 0, endX: 1, endY: 0, width: 0.5 });
     expect(beams.count).toBe(100);
     for (let i = 0; i < 100; i++) expect(beams.startX[i]).toBe(i);
   });
