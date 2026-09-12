@@ -60,8 +60,6 @@ export class IndexBuffer {
 export class RayHit {
   /** Body index, or -1 for a miss. Note: an index, not a `BodyId` handle. */
   bodyIndex = -1;
-  /** Position along the segment, 0 at the start and 1 at the end. */
-  t = 0;
   /** The impact point. */
   x = 0;
   y = 0;

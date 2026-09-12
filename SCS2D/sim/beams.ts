@@ -36,12 +36,6 @@ export class BeamHits {
   beam: Int32Array;
   /** Body index struck. */
   body: Int32Array;
-  /**
-   * Where in the step the impact happened, 0 to 1. A deflected round has
-   * `(1 - t) * dt` of its step left, and the remainder is what a substep would
-   * carry forward.
-   */
-  t: Float64Array;
   x: Float64Array;
   y: Float64Array;
   /**
@@ -59,7 +53,6 @@ export class BeamHits {
   constructor(capacity = 256) {
     this.beam = new Int32Array(capacity);
     this.body = new Int32Array(capacity);
-    this.t = new Float64Array(capacity);
     this.x = new Float64Array(capacity);
     this.y = new Float64Array(capacity);
     this.nx = new Float64Array(capacity);
@@ -84,7 +77,6 @@ export class BeamHits {
     };
     this.beam = i32(this.beam);
     this.body = i32(this.body);
-    this.t = f64(this.t);
     this.x = f64(this.x);
     this.y = f64(this.y);
     this.nx = f64(this.nx);
@@ -95,7 +87,6 @@ export class BeamHits {
   push(
     beam: number,
     body: number,
-    t: number,
     x: number,
     y: number,
     nx: number,
@@ -105,7 +96,6 @@ export class BeamHits {
     const i = this.count++;
     this.beam[i] = beam;
     this.body[i] = body;
-    this.t[i] = t;
     this.x[i] = x;
     this.y[i] = y;
     this.nx[i] = nx;
@@ -225,7 +215,7 @@ export class Beams {
   }
 
   /**
-   * Remove a round from flight — it penetrated, embedded, detonated or expired.
+   * Remove a beam from the world — it penetrated, embedded, detonated or expired.
    * Safe to call on an already-dead slot.
    */
   kill(i: number): void {
@@ -240,12 +230,8 @@ export class Beams {
   }
 
   /**
-   * Return a pending round to flight, after a deflection has rewritten its
-   * velocity. The round resumes from the impact point on the next step.
-   *
-   * A caller that neither kills nor resumes a pending round leaves it stopped
-   * in space indefinitely — visible in `pendingCount`, rather than silently
-   * re-reporting the same impact every step.
+   * Return a pending beam to flight, after a reflection has rewritten its
+   * direction. The beam resumes from the impact point immediately.
    */
   resume(i: number): void {
     if (i < 0 || i >= this.highWater || this.alive[i] === 0) return;
@@ -270,7 +256,6 @@ export class Beams {
    * Detect hits.
    */
   detectHits(
-    dt: number,
     bodies: Bodies,
     grid: SpatialGrid,
     hits: BeamHits,
@@ -309,7 +294,7 @@ export class Beams {
         this.endY[i] = hit.y;
         this.pending[i] = 1;
         this.pendingCount++;
-        hits.push(i, bi, hit.t, hit.x, hit.y, nx, ny);
+        hits.push(i, bi, hit.x, hit.y, nx, ny);
         continue;
       }
 
