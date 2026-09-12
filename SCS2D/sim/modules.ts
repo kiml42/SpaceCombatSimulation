@@ -1,4 +1,4 @@
-import { PI, sqrt } from './math.js';
+import { PI, sqrt, max } from './math.js';
 
 /**
  * Parametric ship modules: a few archetypes with continuous parameters, rather
@@ -539,7 +539,7 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
   const barrelSpacing = barrelCount > 1 ? mountFace / (barrelCount + 1) : 0;
 
 
-  const cycleTime = (CYCLE_TIME_PER_CALIBRE * calibre) / barrelCount;
+  const cycleTime = max(0.5, (CYCLE_TIME_PER_CALIBRE * calibre) / barrelCount);
   return {
     calibre,
     barrelLength,
