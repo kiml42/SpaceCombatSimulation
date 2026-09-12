@@ -202,19 +202,19 @@ export function capture(
     p++;
   }
   out.projectileCount = p;
-  
+
   growBeams(out, beams.count)
   let b = 0;
   for (let i = 0; i < beams.highWater; i++) {
     if (beams.alive[i] === 0) continue;
     out.beamStartX[b] = beams.startX[i]!;
     out.beamStartY[b] = beams.startY[i]!;
-    out.beamEndX[b] =   beams.endX[i]!;
-    out.beamEndY[b] =   beams.endY[i]!;
-    out.beamWidth[b] =  beams.width[i]!;
+    out.beamEndX[b] = beams.endX[i]!;
+    out.beamEndY[b] = beams.endY[i]!;
+    out.beamWidth[b] = beams.width[i]!;
     b++;
   }
-  out.beamCount = p;
+  out.beamCount = b;
 
   if (n === 0) {
     minX = minY = maxX = maxY = 0;
