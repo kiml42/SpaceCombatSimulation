@@ -161,7 +161,7 @@ export const TRAVERSE_TORQUE_PER_KG = 2;
  */
 export const TRAVERSE_SPINUP_TIME = 2;
 
-export type ModuleKind = 'structure' | 'thruster' | 'turret' |  'beamTurret';
+export type ModuleKind = 'structure' | 'thruster' | 'turret' | 'beamTurret';
 
 /**
  * One module in a layout: what it is, where it sits, and how big it is.
@@ -225,6 +225,8 @@ export interface GunStats {
   muzzleEnergy: number;
   /** Seconds between rounds. */
   cycleTime: number;
+  /** Seconds a beam stays on. */
+  beamOnTime: number;
 }
 
 /** Everything the scaling laws derive from a module's geometry. */
@@ -338,10 +340,10 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     thrust = THRUST_PER_EXIT_AREA * spec.width * DECK_HEIGHT;
     fittingMass = thrust * ENGINE_MASS_PER_NEWTON;
   } else if (spec.kind === 'turret' || spec.kind === 'beamTurret') {
-    gun = spec.kind === 'turret' 
-    ? gunStats(spec.length, spec.width, spec.barrels)
-    : beamGunStats(spec.length,spec.width, spec.barrels);
-    
+    gun = spec.kind === 'turret'
+      ? gunStats(spec.length, spec.width, spec.barrels)
+      : beamGunStats(spec.length, spec.width, spec.barrels);
+
     // The gun itself: a barrel is a thick-walled tube, taken here as steel
     // filling the annulus between the bore and an outside diameter of twice
     // the calibre.
@@ -468,6 +470,7 @@ export function gunStats(mountLength: number, mountWidth: number, barrelCount: n
     muzzleSpeed,
     muzzleEnergy,
     cycleTime: (CYCLE_TIME_PER_CALIBRE * calibre) / barrelCount,
+    beamOnTime: 0
   };
 }
 
@@ -528,24 +531,25 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
   const barrelLength = wanted < mountLength ? wanted : mountLength;
 
   const boreArea = PI * 0.25 * calibre * calibre;
-  const roundMass = 0;
   const muzzleEnergy = CHARGE_ENERGY_PER_BORE_VOLUME * boreArea * barrelLength;
-  const muzzleSpeed = -1;
   // One whole gap outboard of each end barrel, so `n` barrels make `n + 1`
   // gaps. Zero rather than a notional half-face for a single barrel, which has
   // nothing to be spaced from.
   const mountFace = mountWidth < mountLength ? mountWidth : mountLength;
   const barrelSpacing = barrelCount > 1 ? mountFace / (barrelCount + 1) : 0;
 
+
+  const cycleTime = (CYCLE_TIME_PER_CALIBRE * calibre) / barrelCount;
   return {
     calibre,
     barrelLength,
     barrelCount,
     barrelSpacing,
-    roundMass,
-    muzzleSpeed,
+    roundMass: 0,
+    muzzleSpeed: -1,
     muzzleEnergy,
-    cycleTime: (CYCLE_TIME_PER_CALIBRE * calibre) / barrelCount,
+    cycleTime: cycleTime,
+    beamOnTime: cycleTime / 2
   };
 }
 
