@@ -296,6 +296,7 @@ export class Ships {
    */
   fire(world: World, projectiles: Projectiles, beams: Beams): number {
     const bodies = world.bodies;
+    beams.clear(); // beams only last one frame, so clear them all at the start of this step.
     let fired = 0;
 
     for (let i = 0; i < this.alive.length; i++) {
