@@ -399,12 +399,12 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   for (let i = 0; i < snapshot.beamCount; i++) {
     const calibre = snapshot.beamWidth[i]!;
     ctx.lineWidth = legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale);
-    console.debug(
-      'rendering beam ' + i 
-      + ', width: ' + calibre + '(' + ctx.lineWidth + ')'
-      + ', start: ' + snapshot.beamStartX[i]! +','+ snapshot.beamStartY[i]!
-      + ', end: ' + snapshot.beamEndX[i]! +','+ snapshot.beamEndY[i]!
-    );
+    // console.debug(
+    //   'rendering beam ' + i 
+    //   + ', width: ' + calibre + '(' + ctx.lineWidth + ')'
+    //   + ', start: ' + snapshot.beamStartX[i]! +','+ snapshot.beamStartY[i]!
+    //   + ', end: ' + snapshot.beamEndX[i]! +','+ snapshot.beamEndY[i]!
+    // );
     ctx.beginPath();
     ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
     ctx.lineTo(snapshot.beamEndX[i]!, snapshot.beamEndY[i]!);
