@@ -346,6 +346,7 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
   // meet, where a single stroke over one path would have composited once.
   // Worth it for a halo that is the round's own size, and rare enough not to
   // read as anything but two tracers crossing.
+  ctx.lineCap = 'round';
   ctx.strokeStyle = TRACER_GLOW;
   for (let i = 0; i < snapshot.projectileCount; i++) {
     const calibre = snapshot.projectileWidth[i]!;
@@ -392,13 +393,21 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   // meet, where a single stroke over one path would have composited once.
   // Worth it for a halo that is the round's own size, and rare enough not to
   // read as anything but two tracers crossing.
+  ctx.lineCap = 'square';
   ctx.strokeStyle = TRACER_GLOW;
+  console.debug('beam count: ' + snapshot.beamCount);
   for (let i = 0; i < snapshot.beamCount; i++) {
     const calibre = snapshot.beamWidth[i]!;
     ctx.lineWidth = legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale);
+    console.debug(
+      'rendering beam ' + i 
+      + ', width: ' + calibre + '(' + ctx.lineWidth + ')'
+      + ', start: ' + snapshot.beamStartX[i]! +','+ snapshot.beamStartY[i]!
+      + ', end: ' + snapshot.beamEndX[i]! +','+ snapshot.beamEndY[i]!
+    );
     ctx.beginPath();
     ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
-    ctx.lineTo(snapshot.beamEndY[i]!, snapshot.beamEndY[i]!);
+    ctx.lineTo(snapshot.beamEndX[i]!, snapshot.beamEndY[i]!);
     ctx.stroke();
   }
 
