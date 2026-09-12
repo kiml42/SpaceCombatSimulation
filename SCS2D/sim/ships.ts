@@ -373,6 +373,9 @@ export class Ships {
           angularImpulse +=
             (this.solution.x - bodies.x[bodyIdx]!) * jy -
             (this.solution.y - bodies.y[bodyIdx]!) * jx;
+
+
+          timers[t] = gun.cycleTime;
         } else {
           beams.fireFrom(
             bodies,
@@ -384,9 +387,9 @@ export class Ships {
             gun.calibre,
             0
           );
+          // timers[t] = timers[t] - 0.5;
         }
 
-        timers[t] = gun.cycleTime;
         barrels[t] = (barrel + 1) % gun.barrelCount;
         fired++;
       }
