@@ -417,7 +417,7 @@ describe('the authored blueprints', () => {
         expect(design.thrusters[i]!.y).toBe(thrusterModules[i]!.y);
       }
 
-      const turretModules = design.modules.filter((m) => m.spec.kind === 'turret');
+      const turretModules = design.modules.filter((m) => m.spec.kind === 'turret' || m.spec.kind === 'beamTurret');
       expect(turretModules.length).toBe(design.turrets.length);
       for (let i = 0; i < design.turrets.length; i++) {
         expect(design.modules[design.turrets[i]!.module]).toBe(turretModules[i]);
