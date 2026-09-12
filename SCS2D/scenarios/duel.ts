@@ -4,6 +4,8 @@ import {
   math,
   ProjectileHits,
   Projectiles,
+  BeamHits,
+  Beams,
   Ships,
   SpatialGrid,
   World,
@@ -105,7 +107,9 @@ export function duel(seed = 20260905): Battle {
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);
+  const beams = new Beams(512);
   const hits = new ProjectileHits();
+  const beamHits = new BeamHits();
 
   const run: Battle = {
     dt,
@@ -113,8 +117,10 @@ export function duel(seed = 20260905): Battle {
     wells,
     ships,
     projectiles,
+    beams,
     grid,
     hits,
+    beamHits,
     totalFired: 0,
     totalHits: 0,
 
@@ -122,9 +128,10 @@ export function duel(seed = 20260905): Battle {
       ships.command(dt, world);
       world.step();
       grid.rebuild(world.bodies);
-      run.totalFired += ships.fire(world, projectiles);
+      run.totalFired += ships.fire(world, projectiles, beams);
       projectiles.step(dt, world.bodies, grid, hits, wells);
-      run.totalHits += hits.count;
+      beams.detectHits(world.bodies, grid, beamHits);
+      run.totalHits += hits.count + beamHits.count;
       // A stop-gap until terminal ballistics and the damage model (§8 step 2),
       // which decide what a hit does: every round penetrates and is absorbed.
       // Impacts have to be resolved by something, or the rounds stay parked at

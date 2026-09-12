@@ -5,10 +5,12 @@ import {
   NO_TARGET,
   ProjectileHits,
   Projectiles,
+  Beams,
   Ships,
   SpatialGrid,
   World,
   type ShipDesign,
+  BeamHits,
 } from '../sim/index.js';
 import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 
@@ -21,7 +23,9 @@ interface Rig {
   world: World;
   ships: Ships;
   projectiles: Projectiles;
+  beams: Beams;
   hits: ProjectileHits;
+  beamHits: BeamHits;
   grid: SpatialGrid;
   /** Rounds put in the air over the run, since a store recycles its slots. */
   fired: number;
@@ -33,6 +37,7 @@ function rig(): Rig {
   const ships = new Ships();
   world.addForceProvider(ships.forceProvider());
   const projectiles = new Projectiles(256);
+  const beams = new Beams(256);
   const hits = new ProjectileHits();
   const grid = new SpatialGrid(64);
   const r: Rig = {
@@ -46,7 +51,7 @@ function rig(): Rig {
       ships.command(DT, world);
       world.step();
       grid.rebuild(world.bodies);
-      r.fired += ships.fire(world, projectiles);
+      r.fired += ships.fire(world, projectiles, beams);
       projectiles.step(DT, world.bodies, grid, hits);
       for (let i = 0; i < hits.count; i++) projectiles.kill(hits.projectile[i]!);
     },
@@ -262,7 +267,7 @@ describe('gunnery', () => {
     expect(bodies.vx[b]).toBe(0);
     expect(bodies.angularVel[b]).toBe(0);
 
-    const fired = r.ships.fire(r.world, r.projectiles);
+    const fired = r.ships.fire(r.world, r.projectiles, r.beams);
     expect(fired).toBe(3);
 
     let px = bodies.mass[b]! * bodies.vx[b]!;
@@ -300,7 +305,7 @@ describe('gunnery', () => {
     // velocity the hull had when it left.
     const hullVx = bodies.vx[b]!;
     const hullVy = bodies.vy[b]!;
-    expect(r.ships.fire(r.world, r.projectiles)).toBe(3);
+    expect(r.ships.fire(r.world, r.projectiles, r.beams)).toBe(3);
 
     for (let i = 0; i < r.projectiles.highWater; i++) {
       if (r.projectiles.alive[i] === 0) continue;
@@ -361,7 +366,7 @@ describe('gunnery', () => {
     // Fire 1st round (barrel 0): should be at -0.5 * spacing in y
     r.ships.command(DT, r.world);
     r.grid.rebuild(r.world.bodies);
-    expect(r.ships.fire(r.world, r.projectiles)).toBe(1);
+    expect(r.ships.fire(r.world, r.projectiles, r.beams)).toBe(1);
     const spacing = twin.turrets[0]!.gun.barrelSpacing;
     expect(spacing).toBeGreaterThan(0);
     const y0 = r.projectiles.y[0]!;
@@ -375,7 +380,7 @@ describe('gunnery', () => {
       r.grid.rebuild(r.world.bodies);
     }
     // Fire 2nd round (barrel 1): should be at +0.5 * spacing in y
-    expect(r.ships.fire(r.world, r.projectiles)).toBe(1);
+    expect(r.ships.fire(r.world, r.projectiles, r.beams)).toBe(1);
     const y1 = r.projectiles.y[1]!;
     expect(y1).toBeCloseTo(+0.5 * spacing, 6);
   });
