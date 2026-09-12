@@ -8,7 +8,7 @@
       "modules": [
         { "kind": "structure", "x": 0, "y": 0, "length": 6, "width": 10 },
         {
-          "kind": "laserTurret", "x": 0, "y": 8, "angle": 0, "length": 12, "width": 6, "barrels": 8,
+          "kind": "beamTurret", "x": 0, "y": 8, "angle": 0, "length": 12, "width": 6, "barrels": 8,
           "notes": "Many narrow barrels rather than one wide one: the same bore budget spent on rate of fire instead of weight of shell."
         }
       ]
@@ -32,7 +32,7 @@
   },
   "modules": [
     { "kind": "structure", "x": 0, "y": 0, "length": 40, "width": 10 },
-    { "kind": "laserTurret", "x": 26, "y": 0, "angle": 0, "length": 12, "width": 8, "barrels": 1 },
+    { "kind": "beamTurret", "x": 26, "y": 0, "angle": 0, "length": 12, "width": 8, "barrels": 1 },
 
     { "use": "outrigger", "x": 0, "y": 10 },
     { "use": "outrigger", "x": 0, "y": -10, "mirror": true },

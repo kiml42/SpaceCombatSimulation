@@ -44,7 +44,7 @@ import type { ModuleKind, ModuleSpec } from './modules.js';
  */
 export const BLUEPRINT_FORMAT_VERSION = 1;
 
-const KINDS: readonly ModuleKind[] = ['structure', 'thruster', 'turret', 'laserTurret'];
+const KINDS: readonly ModuleKind[] = ['structure', 'thruster', 'turret', 'beamTurret'];
 
 /** Keys a module may carry. Anything else is a typo — see `unknownKeys`. */
 const MODULE_KEYS: readonly string[] = [
