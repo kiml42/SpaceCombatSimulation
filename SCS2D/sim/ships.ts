@@ -122,6 +122,7 @@ export class Ships {
   /** Turret store indices owned by each ship, and their gun timers. */
   private readonly turretIndex: Int32Array[] = [];
   private readonly cooldown: Float64Array[] = [];
+  private readonly beamOnTimer: Float64Array[] = [];
   private readonly nextBarrelToFire: Int32Array[] = [];
 
   private readonly team: number[] = [];
@@ -209,6 +210,7 @@ export class Ships {
     this.throttles.push(new Float64Array(design.thrusters.length));
     this.turretIndex.push(indices);
     this.cooldown.push(new Float64Array(mounts.length));
+    this.beamOnTimer.push(new Float64Array(mounts.length));
     this.nextBarrelToFire.push(new Int32Array(mounts.length));
     this.team.push(spec.team ?? 0);
     this.orders.push({
@@ -221,6 +223,13 @@ export class Ships {
     this.demandFy.push(0);
     this.demandTorque.push(0);
     this.alive.push(1);
+
+    // initilise to a large negative so the beams know they haven't been on before.
+    const beamOnTimers = this.beamOnTimer[i]!;
+    for (let t = 0; t < beamOnTimers.length; t++) {
+      beamOnTimers[t] = -10000;
+    }
+
     return i;
   }
 
@@ -273,6 +282,10 @@ export class Ships {
       for (let t = 0; t < timers.length; t++) {
         if (timers[t]! > 0) timers[t] = timers[t]! - dt;
       }
+      const beamOnTimers = this.beamOnTimer[i]!;
+      for (let t = 0; t < beamOnTimers.length; t++) {
+        beamOnTimers[t] = beamOnTimers[t]! - dt;
+      }
     }
 
     // Slew every turret, collecting the hull reaction rather than letting it
@@ -307,6 +320,7 @@ export class Ships {
       const design = this.designs[i]!;
       const indices = this.turretIndex[i]!;
       const timers = this.cooldown[i]!;
+      const beamOnTimers = this.beamOnTimer[i]!;
       const barrels = this.nextBarrelToFire[i]!;
       const bodyIdx = bodies.indexOf(this.bodyIds[i]!);
       if (bodyIdx < 0) continue;
@@ -324,7 +338,9 @@ export class Ships {
       for (let t = 0; t < indices.length; t++) {
         if (timers[t]! > 0) continue;
         const ti = indices[t]!;
-        if (!this.turrets.readyToFire(ti)) continue;
+
+        // skip if it's not ready to fire, and it's not committed to being on.
+        if (!this.turrets.readyToFire(ti) && beamOnTimers[t]! <= 0) continue;
 
         const gun = design.turrets[t]!.gun;
         const barrel = barrels[t]!;
@@ -374,7 +390,6 @@ export class Ships {
             (this.solution.x - bodies.x[bodyIdx]!) * jy -
             (this.solution.y - bodies.y[bodyIdx]!) * jx;
 
-
           timers[t] = gun.cycleTime;
         } else {
           beams.fireFrom(
@@ -387,7 +402,13 @@ export class Ships {
             gun.calibre,
             0
           );
-          // timers[t] = timers[t] - 0.5;
+          if (beamOnTimers[t] <= -gun.cycleTime) {
+            // first firing this cycle, so set the beam on timer
+            beamOnTimers[t] = gun.beamOnTime;
+          } else if (beamOnTimers[t] <= 0) {
+            // only reset the timer after the beam has been on for the correct duration.
+            timers[t] = gun.cycleTime;
+          }
         }
 
         barrels[t] = (barrel + 1) % gun.barrelCount;
@@ -567,6 +588,11 @@ export class Ships {
   /** Seconds until a gun is loaded again. Diagnostic. */
   cooldownOf(i: number, turret: number): number {
     return this.cooldown[i]![turret]!;
+  }
+
+  /** Seconds until a gun is loaded again. Diagnostic. */
+  beamOnTimerOf(i: number, turret: number): number {
+    return this.beamOnTimer[i]![turret]!;
   }
 
   /** Whether the pilot's demand exceeded what the layout can produce. */
