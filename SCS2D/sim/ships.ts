@@ -13,6 +13,7 @@ import { Projectiles } from './projectiles.js';
 import { Allocation } from './thrusters.js';
 import { FiringSolution, Turrets } from './turrets.js';
 import type { World } from './world.js';
+import type { Beams } from './index.js';
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -293,7 +294,7 @@ export class Ships {
    * Fire every gun that is loaded, on target and clear to shoot. Call after
    * the world has stepped and the index has been rebuilt.
    */
-  fire(world: World, projectiles: Projectiles): number {
+  fire(world: World, projectiles: Projectiles, beams: Beams): number {
     const bodies = world.bodies;
     let fired = 0;
 
@@ -332,43 +333,57 @@ export class Ships {
             : 0;
 
         this.turrets.firingSolution(bodies, ti, this.solution, lateralOffset);
-        projectiles.fireFrom(
-          bodies,
-          bodyIdx,
-          this.solution.x,
-          this.solution.y,
-          this.solution.dirX * gun.muzzleSpeed + this.solution.vx,
-          this.solution.dirY * gun.muzzleSpeed + this.solution.vy,
-          gun.calibre,
-          ROUND_FLIGHT_TIME,
-          gun.roundMass,
-          gun.muzzleEnergy,
-          0,
-          0,
-        );
 
-        // An impulse rather than a force: the round leaves within the step, so
-        // there is no interval to spread it over. A beam mount firing off the
-        // centreline also yaws its own hull, which is part of what an outrigger
-        // costs.
-        //
-        // Only the muzzle velocity recoils. The round also leaves carrying the
-        // tangential velocity of the mount it sat on, but that is momentum it
-        // already had while attached rather than anything the gun gave it, so
-        // the charge does not push back for it.
-        //
-        // Total momentum is not conserved across a shot, and cannot be while
-        // ammunition has no mass aboard (§12): a round is created carrying the
-        // hull's velocity, which adds `roundMass · hullVelocity` to the system.
-        // Everything beyond that balances exactly.
-        const impulse = gun.roundMass * gun.muzzleSpeed;
-        const jx = -this.solution.dirX * impulse;
-        const jy = -this.solution.dirY * impulse;
-        impulseX += jx;
-        impulseY += jy;
-        angularImpulse +=
-          (this.solution.x - bodies.x[bodyIdx]!) * jy -
-          (this.solution.y - bodies.y[bodyIdx]!) * jx;
+        if (gun.muzzleSpeed >= 0) {
+          projectiles.fireFrom(
+            bodies,
+            bodyIdx,
+            this.solution.x,
+            this.solution.y,
+            this.solution.dirX * gun.muzzleSpeed + this.solution.vx,
+            this.solution.dirY * gun.muzzleSpeed + this.solution.vy,
+            gun.calibre,
+            ROUND_FLIGHT_TIME,
+            gun.roundMass,
+            gun.muzzleEnergy,
+            0,
+            0,
+          );
+
+          // An impulse rather than a force: the round leaves within the step, so
+          // there is no interval to spread it over. A beam mount firing off the
+          // centreline also yaws its own hull, which is part of what an outrigger
+          // costs.
+          //
+          // Only the muzzle velocity recoils. The round also leaves carrying the
+          // tangential velocity of the mount it sat on, but that is momentum it
+          // already had while attached rather than anything the gun gave it, so
+          // the charge does not push back for it.
+          //
+          // Total momentum is not conserved across a shot, and cannot be while
+          // ammunition has no mass aboard (§12): a round is created carrying the
+          // hull's velocity, which adds `roundMass · hullVelocity` to the system.
+          // Everything beyond that balances exactly.
+          const impulse = gun.roundMass * gun.muzzleSpeed;
+          const jx = -this.solution.dirX * impulse;
+          const jy = -this.solution.dirY * impulse;
+          impulseX += jx;
+          impulseY += jy;
+          angularImpulse +=
+            (this.solution.x - bodies.x[bodyIdx]!) * jy -
+            (this.solution.y - bodies.y[bodyIdx]!) * jx;
+        } else {
+          beams.fireFrom(
+            bodies,
+            bodyIdx,
+            this.solution.x,
+            this.solution.y,
+            this.solution.dirX * gun.muzzleSpeed + this.solution.vx,
+            this.solution.dirY * gun.muzzleSpeed + this.solution.vy,
+            gun.calibre,
+            0
+          );
+        }
 
         timers[t] = gun.cycleTime;
         barrels[t] = (barrel + 1) % gun.barrelCount;
