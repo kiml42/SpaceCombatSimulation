@@ -20,8 +20,10 @@ describe('projection', () => {
     for (let i = 0; i < 60; i++) r.beams.detectHits(r.bodies, r.grid, r.hits);
 
     // One second of flight.
-    expect(r.beams.startX[p]).toBeCloseTo(600, 6);
-    expect(r.beams.startY[p]).toBeCloseTo(-300, 6);
+    expect(r.beams.startX[p]).toBe(600);
+    expect(r.beams.startY[p]).toBe(600);
+    expect(r.beams.endX[p]).toBe(600);
+    expect(r.beams.endY[p]).toBe(-300);
     expect(r.beams.alive[p]).toBe(1);
   });
 

@@ -31,6 +31,11 @@ export {
   type ProjectileSpec,
 } from './projectiles.js';
 export {
+  Beams,
+  BeamHits,
+  type BeamSpec,
+} from './beams.js';
+export {
   ThrusterLayout,
   Allocation,
   applyAllocation,
