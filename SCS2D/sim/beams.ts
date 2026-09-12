@@ -321,8 +321,8 @@ export class Beams {
     return this.shootRaw(
       muzzleX,
       muzzleY,
-      bodies.vx[bodyIndex] + muzzleDirectionX * 1000000000,
-      bodies.vy[bodyIndex] + muzzleDirectionY * 1000000000,
+      muzzleX + muzzleDirectionX * 1000000000,
+      muzzleY + muzzleDirectionY * 1000000000,
       width,
       bodyIndex,
       kind,

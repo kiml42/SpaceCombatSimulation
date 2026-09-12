@@ -378,8 +378,8 @@ export class Ships {
             bodyIdx,
             this.solution.x,
             this.solution.y,
-            this.solution.dirX * gun.muzzleSpeed + this.solution.vx,
-            this.solution.dirY * gun.muzzleSpeed + this.solution.vy,
+            this.solution.dirX * 100000, // TODO create a constant for this.
+            this.solution.dirY * 100000,
             gun.calibre,
             0
           );
