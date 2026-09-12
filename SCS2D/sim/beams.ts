@@ -1,6 +1,7 @@
 import type { Bodies } from './bodies.js';
 import { sqrt } from './math.js';
 import { RayHit, type SpatialGrid } from './spatialGrid.js';
+import { NO_OWNER } from './projectiles.js';
 
 /**
  * Beams: lasers, particle beams anything else that's considered to go from its
@@ -8,9 +9,6 @@ import { RayHit, type SpatialGrid } from './spatialGrid.js';
  *
  * Hits are *reported*, not applied.
  */
-
-/** A beam with no firing ship to pass through. */
-export const NO_OWNER = -1;
 
 export interface BeamSpec {
   startX: number;
