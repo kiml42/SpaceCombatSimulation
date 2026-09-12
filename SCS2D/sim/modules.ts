@@ -338,7 +338,10 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     thrust = THRUST_PER_EXIT_AREA * spec.width * DECK_HEIGHT;
     fittingMass = thrust * ENGINE_MASS_PER_NEWTON;
   } else if (spec.kind === 'turret' || spec.kind === 'beamTurret') {
-    gun = gunStats(spec.length, spec.width, spec.barrels);
+    gun = spec.kind === 'turret' 
+    ? gunStats(spec.length, spec.width, spec.barrels)
+    : beamGunStats(spec.length,spec.width, spec.barrels);
+    
     // The gun itself: a barrel is a thick-walled tube, taken here as steel
     // filling the annulus between the bore and an outside diameter of twice
     // the calibre.
@@ -450,6 +453,84 @@ export function gunStats(mountLength: number, mountWidth: number, barrelCount: n
   const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
   const muzzleEnergy = CHARGE_ENERGY_PER_BORE_VOLUME * boreArea * barrelLength;
   const muzzleSpeed = sqrt((2 * muzzleEnergy) / roundMass);
+  // One whole gap outboard of each end barrel, so `n` barrels make `n + 1`
+  // gaps. Zero rather than a notional half-face for a single barrel, which has
+  // nothing to be spaced from.
+  const mountFace = mountWidth < mountLength ? mountWidth : mountLength;
+  const barrelSpacing = barrelCount > 1 ? mountFace / (barrelCount + 1) : 0;
+
+  return {
+    calibre,
+    barrelLength,
+    barrelCount,
+    barrelSpacing,
+    roundMass,
+    muzzleSpeed,
+    muzzleEnergy,
+    cycleTime: (CYCLE_TIME_PER_CALIBRE * calibre) / barrelCount,
+  };
+}
+
+/**
+ * The gun a turret mount of this size carries.
+ *
+ * The bore is set by how wide the mount is, and the barrel by how long the
+ * gun can be for that bore — so a turret is described by the same two numbers
+ * as every other module, and its weapon falls out of them. Everything after
+ * that is physics: charge energy scales with the volume of bore it fills,
+ * shell mass with the cube of calibre, and muzzle velocity is whatever
+ * dividing one by the other leaves.
+ *
+ * The trade this produces is the real one. Widening the mount buys a higher
+ * energy beam that hits harder but reloads less often;
+ *
+ * **Multiple barrels** put a row of what are essentially independent guns on
+ * one mount, firing in turn, so the mount's rate of fire rises — twice over,
+ * since each barrel is narrower than a single gun would be and a narrower gun
+ * cycles faster. They are a little longer than one gun could be, since a row
+ * of tubes braces itself.
+ *
+ * Two rules shape that row, and they are independent of each other. Saying so
+ * is worth the space, because they look related and are not:
+ *
+ * - **How much bore.** A mount of a given width is allowed a fixed total bore,
+ *   `width * CALIBRE_FRACTION`, and `n` barrels divide it — so calibre falls as
+ *   `1/n`. This is a *budget*, not a packing constraint: the barrels never come
+ *   close to filling the face, and there would be room for far more of them.
+ *   What it says is that a mount of a given size is worth the same weight of
+ *   metal downrange however it is arranged, and the interesting choice is
+ *   whether to spend it on one heavy shell or many light ones.
+ * - **Where the barrels go.** They spread evenly right across the mount face
+ *   with `n + 1` equal gaps, so there is one whole gap outboard of each end
+ *   barrel and the row is as wide as the mount can make it. Nothing is chosen
+ *   here — the face and the barrel count between them fix the spacing, which
+ *   is why there is no constant. It cannot overhang, either: the row spans
+ *   `(n-1)/(n+1)` of the face and that is under 1 for every `n`.
+ *
+ * The face in question is the *smaller* of the mount's two dimensions, because
+ * a turret traverses. At rest the row lies across the width; ninety degrees
+ * round it lies along the length, and a mount wider than it is long would
+ * otherwise sweep a row of barrels through whatever is beside it. Taking the
+ * lesser makes the mount's footprint the circle inscribed in it, which is what
+ * a barbette is.
+ *
+ * Note what this does *not* model: the barrels fire parallel, never converged,
+ * so a barrel `d` off the mount's centreline misses the aim point by `d` at
+ * every range. That is a real effect and currently a small one, ships being
+ * far wider than the row; against small targets it would bite, and harmonising
+ * the barrels to converge at a chosen range is the natural answer when it does.
+ */
+export function beamGunStats(mountLength: number, mountWidth: number, barrelCount: number = 1): GunStats {
+  const calibre = (mountWidth * CALIBRE_FRACTION) / barrelCount;
+  // The barrel wants to be as long as its calibre allows, but a mount cannot
+  // carry a gun longer than itself without fouling the rest of the ship.
+  const wanted = calibre * BARREL_CALIBRES * sqrt(barrelCount);
+  const barrelLength = wanted < mountLength ? wanted : mountLength;
+
+  const boreArea = PI * 0.25 * calibre * calibre;
+  const roundMass = 0;
+  const muzzleEnergy = CHARGE_ENERGY_PER_BORE_VOLUME * boreArea * barrelLength;
+  const muzzleSpeed = -1;
   // One whole gap outboard of each end barrel, so `n` barrels make `n + 1`
   // gaps. Zero rather than a notional half-face for a single barrel, which has
   // nothing to be spaced from.
