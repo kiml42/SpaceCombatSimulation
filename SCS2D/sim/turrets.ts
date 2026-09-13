@@ -61,6 +61,17 @@ import {
  */
 const ON_TARGET_FLOOR = 0.01;
 
+export enum TurretState {
+  // ready to fire
+  Idle = 0,
+
+  // waiting for the reload timer to count down
+  Reloading = 1,
+
+  // currently firing, cannot stop until the timer runs down, then it reloads
+  CommittedOn = 2,
+}
+
 export interface TurretSpec {
   /** Body *index* this turret is mounted on. */
   owner: number;

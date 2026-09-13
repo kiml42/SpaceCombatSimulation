@@ -11,7 +11,7 @@ import {
 } from './math.js';
 import { Projectiles } from './projectiles.js';
 import { Allocation } from './thrusters.js';
-import { FiringSolution, Turrets } from './turrets.js';
+import { FiringSolution, Turrets, TurretState } from './turrets.js';
 import type { World } from './world.js';
 import type { Beams } from './index.js';
 
@@ -123,6 +123,7 @@ export class Ships {
   private readonly turretIndex: Int32Array[] = [];
   private readonly cooldown: Float64Array[] = [];
   private readonly beamOnTimer: Float64Array[] = [];
+  private readonly turretStates: Uint8Array[] = [];
   private readonly nextBarrelToFire: Int32Array[] = [];
 
   private readonly team: number[] = [];
@@ -211,6 +212,7 @@ export class Ships {
     this.turretIndex.push(indices);
     this.cooldown.push(new Float64Array(mounts.length));
     this.beamOnTimer.push(new Float64Array(mounts.length));
+    this.turretStates.push(new Uint8Array(mounts.length));
     this.nextBarrelToFire.push(new Int32Array(mounts.length));
     this.team.push(spec.team ?? 0);
     this.orders.push({
@@ -321,6 +323,7 @@ export class Ships {
       const indices = this.turretIndex[i]!;
       const timers = this.cooldown[i]!;
       const beamOnTimers = this.beamOnTimer[i]!;
+      const turretStates = this.turretStates[i]!;
       const barrels = this.nextBarrelToFire[i]!;
       const bodyIdx = bodies.indexOf(this.bodyIds[i]!);
       if (bodyIdx < 0) continue;
@@ -336,13 +339,29 @@ export class Ships {
       let angularImpulse = 0;
 
       for (let t = 0; t < indices.length; t++) {
-        if (timers[t]! > 0) continue;
+        var state = turretStates[i]!;
+        const gun = design.turrets[t]!.gun;
+
+        if(timers[t]! <= 0){
+          // the timer's run out, progress the state
+          if(state == TurretState.Reloading){
+            // finished reloading -> idle
+            state = turretStates[i] = TurretState.Idle;
+          }
+          if(state == TurretState.CommittedOn){
+            // finished firing -> reload
+            state = turretStates[i] = TurretState.Reloading;
+            timers[t] = gun.cycleTime;
+          }
+        }
+
+        if (state == TurretState.Reloading) continue; // Can't fire while reloading.
+
         const ti = indices[t]!;
 
         // skip if it's not ready to fire, and it's not committed to being on.
-        if (!this.turrets.readyToFire(ti) && beamOnTimers[t]! <= 0) continue;
+        if (!this.turrets.readyToFire(ti) && beamOnTimers[t]! <= 0 && state != TurretState.CommittedOn) continue;
 
-        const gun = design.turrets[t]!.gun;
         const barrel = barrels[t]!;
         const lateralOffset =
           gun.barrelCount > 1
@@ -393,6 +412,7 @@ export class Ships {
           timers[t] = gun.cycleTime;
 
           barrels[t] = (barrel + 1) % gun.barrelCount;
+          turretStates[t] = TurretState.Reloading; // Projectile guns immediately reload after firing.
         } else {
           beams.fireFrom(
             bodies,
@@ -404,6 +424,15 @@ export class Ships {
             gun.calibre,
             0
           );
+          if(state == TurretState.Idle){
+            // was idle before, now committed on for beamOnTime
+            state = turretStates[i] = TurretState.CommittedOn;
+            timers[t] = gun.beamOnTime;
+          } else if (state == TurretState.CommittedOn){
+            // carry on while the timer runs out.
+          }
+
+          // TODO, can probably get rid of all this now.
           if (beamOnTimers[t] <= -gun.cycleTime) {
             // first firing this cycle, so set the beam on timer
             beamOnTimers[t] = gun.beamOnTime;
