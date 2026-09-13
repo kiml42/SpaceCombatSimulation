@@ -5,6 +5,7 @@ import {
   CALIBRE_FRACTION,
   DECK_HEIGHT,
   gunStats,
+  beamGunStats,
   HULL_DENSITY,
   MECHANISM_MASS_PER_CALIBRE,
   moduleProblem,
@@ -263,6 +264,146 @@ describe('gun scaling', () => {
 
   it('carries the mass of the barrel on the mount', () => {
     const stats = moduleStats(box('turret', 12, 8));
+    expect(stats.gun).not.toBeNull();
+    expect(stats.fittingMass).toBeGreaterThan(0);
+    expect(stats.mass).toBeGreaterThan(stats.structureMass);
+  });
+});
+
+describe('beam gun scaling', () => {
+  it('takes its bore from the mount width and its barrel from the bore', () => {
+    const gun = beamGunStats(40, 8);
+    expect(gun.calibre).toBeCloseTo(8 * CALIBRE_FRACTION, 12);
+    expect(gun.barrelLength).toBeCloseTo(gun.calibre * BARREL_CALIBRES, 12);
+  });
+
+  it('will not fit a barrel longer than the mount that carries it', () => {
+    const cramped = beamGunStats(6, 8);
+    expect(cramped.barrelLength).toBe(6);
+    expect(cramped.barrelLength).toBeLessThan(cramped.calibre * BARREL_CALIBRES);
+  });
+
+  it('has 0 round mass and -1 muzzle speed', () => {
+    const gun = beamGunStats(100, 4);
+    expect(gun.roundMass).toBe(0);
+    expect(gun.muzzleSpeed).toBe(-1);
+  });
+
+  it('trades rate of fire and handiness for weight of shell', () => {
+    const light = beamGunStats(100, 4);
+    const heavy = beamGunStats(100, 16);
+    expect(heavy.muzzleEnergy).toBeGreaterThan(light.muzzleEnergy);
+    expect(heavy.cycleTime).toBeGreaterThan(light.cycleTime);
+  });
+
+  it('more barrels fire quicker but are smaller', () => {
+    const single = beamGunStats(100, 4, 1);
+    const barrelCount = 8;
+    const multi = beamGunStats(100, 4, barrelCount);
+    expect(multi.calibre).toBeLessThan(single.calibre);
+    expect(multi.cycleTime).toBeLessThan(single.cycleTime);
+    expect(multi.cycleTime).toBeCloseTo(single.cycleTime / (barrelCount * barrelCount), 6);
+    expect(multi.barrelLength).toBeLessThan(single.barrelLength);
+    expect(single.roundMass).toBe(0);
+    expect(multi.roundMass).toBe(0);
+    expect(single.muzzleSpeed).toBe(-1);
+    expect(multi.muzzleSpeed).toBe(-1);
+    expect(multi.muzzleEnergy).toBeLessThan(single.muzzleEnergy);
+    expect(single.barrelSpacing).toBe(0);
+    expect(multi.barrelSpacing).toBeGreaterThan(0);
+  });
+
+  it('spreads the barrels right across the mount face, with a gap at each end', () => {
+    // n barrels make n + 1 equal gaps, so the outermost barrel sits one whole
+    // gap in from the edge and the row is as wide as the mount can make it.
+    for (const n of [2, 3, 8, 17]) {
+      const gun = beamGunStats(12, 8, n);
+      const span = (n - 1) * gun.barrelSpacing;
+      const margin = (8 - span) / 2;
+      expect(margin).toBeCloseTo(gun.barrelSpacing, 12);
+      expect(span).toBeLessThan(8);
+    }
+  });
+
+  it('cannot overhang the mount, however many barrels are asked for', () => {
+    // The whole point of deriving the spacing from the face rather than from
+    // the calibre: the row spans (n-1)/(n+1) of the face, which is under one
+    // for every n, so no barrel count can push a barrel past the edge.
+    for (const n of [2, 8, 50, 1000]) {
+      const gun = beamGunStats(12, 8, n);
+      const outerEdge = ((n - 1) * gun.barrelSpacing) / 2 + gun.calibre / 2;
+      expect(outerEdge).toBeLessThan(8 / 2);
+    }
+  });
+
+  it('measures the face across the smaller dimension, because a turret traverses', () => {
+    // A mount wider than it is long presents its length to the row once it has
+    // traversed ninety degrees, so the lesser of the two is what the row has to
+    // fit inside.
+    const wide = beamGunStats(3, 10, 8);
+    expect((wide.barrelCount - 1) * wide.barrelSpacing).toBeLessThan(3);
+    // Square-on mounts are unaffected: every turret in the scenarios is longer
+    // than it is wide, so this is a guard and not a change to them.
+    const normal = beamGunStats(12, 8, 8);
+    expect(normal.barrelSpacing).toBeCloseTo(8 / 9, 12);
+  });
+
+  it('leaves a single barrel unspaced', () => {
+    // There is nothing to be spaced from, and reporting half a mount face as
+    // the gap would be a lie the renderer could act on.
+    expect(beamGunStats(12, 8, 1).barrelSpacing).toBe(0);
+  });
+
+  it('carries loading machinery for every barrel, sized by the round it moves', () => {
+    const light = moduleStats(box('beamTurret', 12, 4));
+    const heavy = moduleStats(box('beamTurret', 12, 16));
+    const barrelSteel = (s: ReturnType<typeof moduleStats>) =>
+      s.fittingMass - MECHANISM_MASS_PER_CALIBRE * s.gun!.calibre * s.gun!.barrelCount;
+
+    expect(barrelSteel(light)).toBeGreaterThan(0);
+    expect(barrelSteel(heavy)).toBeGreaterThan(0);
+    // Linear in calibre, so a mount of four times the bore carries four times
+    // the machinery — where its barrel steel, being a volume, is up sixty-four
+    // fold. Machinery is what a light mount's mass is mostly made of.
+    expect(heavy.fittingMass - barrelSteel(heavy)).toBeCloseTo(
+      4 * (light.fittingMass - barrelSteel(light)),
+      6,
+    );
+    expect(barrelSteel(light)).toBeLessThan(light.fittingMass - barrelSteel(light));
+  });
+
+  it('sizes the loading machinery by the mount bore budget, not the barrel count', () => {
+    // The consequence of a law linear in calibre, and exact rather than
+    // approximate: splitting the bore across n barrels divides the calibre by
+    // n, so n mechanisms come to the same total. It puts a floor under a
+    // multi-barrel mount without making barrels cost anything — ROADMAP.md §12
+    // records that as an open balance question, so pin it rather than let it
+    // drift unnoticed.
+    const mechanism = (barrels: number) => {
+      const gun = beamGunStats(12, 8, barrels);
+      return MECHANISM_MASS_PER_CALIBRE * gun.calibre * gun.barrelCount;
+    };
+    expect(mechanism(8)).toBeCloseTo(mechanism(1), 6);
+    expect(mechanism(1)).toBeCloseTo(MECHANISM_MASS_PER_CALIBRE * 8 * CALIBRE_FRACTION, 6);
+
+    // And the whole mount is still lighter for having more barrels, because
+    // the tubes' steel falls away and nothing yet pushes back.
+    const single = moduleStats({ kind: 'turret', x: 0, y: 0, length: 12, width: 8, barrels: 1 });
+    const multi = moduleStats({ kind: 'turret', x: 0, y: 0, length: 12, width: 8, barrels: 8 });
+    expect(multi.mass).toBeLessThan(single.mass);
+    expect(multi.fittingMass).toBeGreaterThan(mechanism(8));
+  });
+
+  it('rejects a barrel count that is not a whole number of barrels', () => {
+    const turret = (barrels: number): ModuleSpec => ({ kind: 'beamTurret', x: 0, y: 0, length: 12, width: 8, barrels });
+    expect(moduleProblem(turret(0))).toMatch(/whole number/);
+    expect(moduleProblem(turret(-2))).toMatch(/whole number/);
+    expect(moduleProblem(turret(2.5))).toMatch(/whole number/);
+    expect(moduleProblem(turret(3))).toBeNull();
+  });
+
+  it('carries the mass of the barrel on the mount', () => {
+    const stats = moduleStats(box('beamTurret', 12, 8));
     expect(stats.gun).not.toBeNull();
     expect(stats.fittingMass).toBeGreaterThan(0);
     expect(stats.mass).toBeGreaterThan(stats.structureMass);

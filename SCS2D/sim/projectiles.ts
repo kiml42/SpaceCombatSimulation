@@ -73,7 +73,7 @@ export interface ProjectileSpec {
   penetration?: number;
   /**
    * A body *index* the round passes through — the firing ship, normally, so a
-   * turret does not shoot its own hull.
+   * turret does not shoot its own hull. Temporary until we set up the two layer world model.
    */
   owner?: number;
   /** Caller-defined classification (AP, HE, and so on). Uninterpreted here. */

@@ -532,6 +532,25 @@ describe('lead', () => {
     expect(hitY).toBeCloseTo(200 * flight, 6);
   });
 
+  it('aims at a moving target with a laser turret', () => {
+    const { bodies, index } = ship();
+    const turrets = new Turrets();
+    const t = turrets.add({
+      owner: index,
+      x: 0,
+      y: 0,
+      maxRate: 10,
+      maxAccel: 100,
+      muzzleSpeed: -1,
+    });
+
+    // Target at 300, 300 (45 degrees), crossing in +y.
+    const flight = turrets.aimAt(bodies, t, 300, 300, 0, 200);
+    expect(flight).toBe(0);
+    // So the turret must is commanded to point at 45 degrees to the current position of the target.
+    expect(turrets.commanded[t]!).toBeCloseTo(0.25 * PI, 6);
+  });
+
   it('aims at the present position when the target cannot be caught', () => {
     const { bodies, index } = ship();
     const turrets = new Turrets();

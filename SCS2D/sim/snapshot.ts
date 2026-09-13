@@ -2,6 +2,7 @@ import type { Bodies } from './bodies.js';
 import type { ShipDesign } from './blueprint.js';
 import type { WellSpec } from './gravity.js';
 import type { Projectiles } from './projectiles.js';
+import type { Beams } from './beams.js';
 import type { Ships } from './ships.js';
 import type { Turrets } from './turrets.js';
 import type { World } from './world.js';
@@ -67,6 +68,14 @@ export class Snapshot {
   projectileWidth = new Float64Array(0);
   projectileCount = 0;
 
+  /** Beams in flight, as flat pairs so a renderer can loop without objects. */
+  beamStartX = new Float64Array(0);
+  beamStartY = new Float64Array(0);
+  beamEndX = new Float64Array(0);
+  beamEndY = new Float64Array(0);
+  beamWidth = new Float64Array(0);
+  beamCount = 0;
+
   /**
    * Bounding box of the *ships*, for a camera to frame.
    *
@@ -94,6 +103,16 @@ function growProjectiles(snapshot: Snapshot, needed: number): void {
   snapshot.projectileWidth = new Float64Array(size);
 }
 
+function growBeams(snapshot: Snapshot, needed: number): void {
+  if (snapshot.beamStartX.length >= needed) return;
+  const size = needed * 2;
+  snapshot.beamStartX = new Float64Array(size);
+  snapshot.beamStartY = new Float64Array(size);
+  snapshot.beamEndX = new Float64Array(size);
+  snapshot.beamEndY = new Float64Array(size);
+  snapshot.beamWidth = new Float64Array(size);
+}
+
 function shipView(snapshot: Snapshot, i: number): ShipView {
   const existing = snapshot.ships[i];
   if (existing !== undefined) return existing;
@@ -119,6 +138,7 @@ export function capture(
   world: World,
   ships: Ships,
   projectiles: Projectiles,
+  beams: Beams,
   wells: readonly WellSpec[] = [],
 ): Snapshot {
   const bodies: Bodies = world.bodies;
@@ -182,6 +202,19 @@ export function capture(
     p++;
   }
   out.projectileCount = p;
+
+  growBeams(out, beams.count)
+  let b = 0;
+  for (let i = 0; i < beams.highWater; i++) {
+    if (beams.alive[i] === 0) continue;
+    out.beamStartX[b] = beams.startX[i]!;
+    out.beamStartY[b] = beams.startY[i]!;
+    out.beamEndX[b] = beams.endX[i]!;
+    out.beamEndY[b] = beams.endY[i]!;
+    out.beamWidth[b] = beams.width[i]!;
+    b++;
+  }
+  out.beamCount = b;
 
   if (n === 0) {
     minX = minY = maxX = maxY = 0;

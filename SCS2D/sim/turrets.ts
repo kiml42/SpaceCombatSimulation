@@ -54,12 +54,23 @@ import {
  */
 
 /**
- * Bearing error below which a turret counts as on target. About 0.06°, finer
+ * Bearing error below which a turret counts as on target. About 0.6°, finer
  * than any gunnery cares about, and reachable by every mount because the
  * correction rate is capped at what lands exactly rather than braking early —
  * so there is no dead band to sit outside of.
  */
-const ON_TARGET_FLOOR = 0.001;
+const ON_TARGET_FLOOR = 0.01;
+
+export enum TurretState {
+  // ready to fire
+  Idle = 0,
+
+  // waiting for the reload timer to count down
+  Reloading = 1,
+
+  // currently firing, cannot stop until the timer runs down, then it reloads
+  CommittedOn = 2,
+}
 
 export interface TurretSpec {
   /** Body *index* this turret is mounted on. */
@@ -430,6 +441,10 @@ export class Turrets {
         aimX = dx + (targetVx - shooterVx) * t;
         aimY = dy + (targetVy - shooterVy) * t;
       }
+    }
+    if(speed <0) {
+      // negative speed indicates a laser turret, which has no lead time. Aim directly at the target.
+      t = 0;
     }
 
     // Angular rate of the aim point about the mount: the transverse component
