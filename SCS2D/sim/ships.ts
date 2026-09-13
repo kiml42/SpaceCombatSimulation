@@ -339,19 +339,21 @@ export class Ships {
       let angularImpulse = 0;
 
       for (let t = 0; t < indices.length; t++) {
-        var state = turretStates[i]!;
+        var state = turretStates[t]!;
         const gun = design.turrets[t]!.gun;
+        const barrel = barrels[t]!;
 
-        if(timers[t]! <= 0){
-          // the timer's run out, progress the state
+        if(timers[t]! <= 0 && state != TurretState.Idle){
+          // the timer's run out, progress the state (except idle, which only progresses when ready to fire)
           if(state == TurretState.Reloading){
             // finished reloading -> idle
-            state = turretStates[i] = TurretState.Idle;
+            state = turretStates[t] = TurretState.Idle;
           }
           if(state == TurretState.CommittedOn){
-            // finished firing -> reload
-            state = turretStates[i] = TurretState.Reloading;
+            // finished firing -> reload & switch to the next barrel
+            state = turretStates[t] = TurretState.Reloading;
             timers[t] = gun.cycleTime;
+            barrels[t] = (barrel + 1) % gun.barrelCount;
           }
         }
 
@@ -360,9 +362,8 @@ export class Ships {
         const ti = indices[t]!;
 
         // skip if it's not ready to fire, and it's not committed to being on.
-        if (!this.turrets.readyToFire(ti) && beamOnTimers[t]! <= 0 && state != TurretState.CommittedOn) continue;
+        if (!this.turrets.readyToFire(ti) && state != TurretState.CommittedOn) continue;
 
-        const barrel = barrels[t]!;
         const lateralOffset =
           gun.barrelCount > 1
             ? (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing
@@ -411,7 +412,6 @@ export class Ships {
 
           timers[t] = gun.cycleTime;
 
-          barrels[t] = (barrel + 1) % gun.barrelCount;
           turretStates[t] = TurretState.Reloading; // Projectile guns immediately reload after firing.
         } else {
           beams.fireFrom(
@@ -426,21 +426,8 @@ export class Ships {
           );
           if(state == TurretState.Idle){
             // was idle before, now committed on for beamOnTime
-            state = turretStates[i] = TurretState.CommittedOn;
+            state = turretStates[t] = TurretState.CommittedOn;
             timers[t] = gun.beamOnTime;
-          } else if (state == TurretState.CommittedOn){
-            // carry on while the timer runs out.
-          }
-
-          // TODO, can probably get rid of all this now.
-          if (beamOnTimers[t] <= -gun.cycleTime) {
-            // first firing this cycle, so set the beam on timer
-            beamOnTimers[t] = gun.beamOnTime;
-          } else if (beamOnTimers[t] <= 0) {
-            // only reset the timer after the beam has been on for the correct duration.
-            timers[t] = gun.cycleTime;
-
-            barrels[t] = (barrel + 1) % gun.barrelCount;
           }
         }
 
