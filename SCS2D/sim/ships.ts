@@ -391,6 +391,8 @@ export class Ships {
             (this.solution.y - bodies.y[bodyIdx]!) * jx;
 
           timers[t] = gun.cycleTime;
+
+          barrels[t] = (barrel + 1) % gun.barrelCount;
         } else {
           beams.fireFrom(
             bodies,
@@ -408,10 +410,11 @@ export class Ships {
           } else if (beamOnTimers[t] <= 0) {
             // only reset the timer after the beam has been on for the correct duration.
             timers[t] = gun.cycleTime;
+
+            barrels[t] = (barrel + 1) % gun.barrelCount;
           }
         }
 
-        barrels[t] = (barrel + 1) % gun.barrelCount;
         fired++;
       }
 
