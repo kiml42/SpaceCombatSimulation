@@ -322,6 +322,8 @@ export class Ships {
       const design = this.designs[i]!;
       const indices = this.turretIndex[i]!;
       const timers = this.cooldown[i]!;
+
+      // TODO rip this out now it's not being used.
       const beamOnTimers = this.beamOnTimer[i]!;
       const turretStates = this.turretStates[i]!;
       const barrels = this.nextBarrelToFire[i]!;
@@ -343,6 +345,7 @@ export class Ships {
         const gun = design.turrets[t]!.gun;
         const barrel = barrels[t]!;
 
+        // TODO The beam isn't staying on when it loses it's tracking.
         if(timers[t]! <= 0 && state != TurretState.Idle){
           // the timer's run out, progress the state (except idle, which only progresses when ready to fire)
           if(state == TurretState.Reloading){
