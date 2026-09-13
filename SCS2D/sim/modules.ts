@@ -539,7 +539,8 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
   const barrelSpacing = barrelCount > 1 ? mountFace / (barrelCount + 1) : 0;
 
 
-  const cycleTime = max(0.5, (CYCLE_TIME_PER_CALIBRE * calibre) / barrelCount);
+  let cycleTime = max(0.5, (CYCLE_TIME_PER_CALIBRE * calibre) / barrelCount);
+  cycleTime = 10;
   return {
     calibre,
     barrelLength,
@@ -549,7 +550,7 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
     muzzleSpeed: -1,
     muzzleEnergy,
     cycleTime: cycleTime,
-    beamOnTime: cycleTime / 2
+    beamOnTime: cycleTime * 20
   };
 }
 
