@@ -36,6 +36,12 @@
       button:hover:not(:disabled) { background: #223044; }
       button:disabled { opacity: 0.4; cursor: default; }
       .grow { flex: 1; }
+      /*
+        Fixed, because a select sizes itself to its widest option and the
+        current ship's name is one of them — so without this the whole header
+        jumps about a character at a time while the name is being typed.
+      */
+      #ship { width: 11rem; }
       a { color: #7fa8e0; }
       main { flex: 1; display: flex; min-height: 0; }
       #view { flex: 1; display: block; touch-action: none; cursor: crosshair; min-width: 0; }

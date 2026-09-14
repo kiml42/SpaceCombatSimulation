@@ -122,6 +122,35 @@ describe('the editor in a browser', () => {
     expect(Number(await page.inputValue('#propX'))).toBe(0);
   });
 
+  it('shows the module that was clicked, not the one that was left behind', async () => {
+    // Edit a field and click straight onto another module. A canvas cannot take
+    // focus, so without a deliberate blur the edited box stays focused, is held
+    // back from every refresh, and goes on showing the old module's value.
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x, centre.y);
+    expect(await page.textContent('#propKind')).toBe('structure');
+    const hull = await page.inputValue('#propLength');
+
+    await page.fill('#propLength', '18');
+    // The bow turret, off to the right of the hull along the ship's +x.
+    await page.mouse.click(centre.x + 168, centre.y);
+    expect(await page.textContent('#propKind')).toBe('turret');
+    expect(await page.inputValue('#propLength')).not.toBe('18');
+
+    await page.click('#undo');
+    await page.mouse.click(centre.x, centre.y);
+    expect(await page.inputValue('#propLength')).toBe(hull);
+  });
+
+  it('does not resize the ship picker while the name is typed', async () => {
+    const width = async (): Promise<number> => (await page.locator('#ship').boundingBox())!.width;
+    const before = await width();
+    await page.fill('#shipName', 'A name considerably longer than Corvette');
+    expect(await width()).toBe(before);
+    await page.fill('#shipName', 'Corvette');
+    expect(await width()).toBe(before);
+  });
+
   it('adds a module, and says what is now wrong with the layout', async () => {
     await page.click('[data-add="turret"]');
     // The new module lands at the middle of the view, which is inside the

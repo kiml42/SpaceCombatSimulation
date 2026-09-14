@@ -165,10 +165,39 @@ describe('compileDraft', () => {
     expect(compileDraft(CORVETTE)).toEqual(compileBlueprint(CORVETTE));
   });
 
-  it('refuses a layout it could only measure as NaN', () => {
+  it('leaves out a module it cannot measure, and keeps the rest of the ship', () => {
+    // A size typed down to zero on the way to typing a smaller one. The ship
+    // around it must go on being drawn: losing the whole layout because one
+    // field is momentarily empty is the worst moment to lose it.
+    const bp = ship({
+      modules: [hull, { kind: 'structure', x: 14, y: 0, length: 0, width: 4 }],
+    });
+    const design = compileDraft(bp);
+    expect(design.modules).toHaveLength(1);
+    expect(design.modules[0]!.spec.length).toBe(20);
+    // Still a problem, and still reported — just not a reason to stop drawing.
+    expect(blueprintProblems(bp).some((p) => /positive/.test(p))).toBe(true);
+    expect(() => compileBlueprint(bp)).toThrow();
+  });
+
+  it('keeps a turret pointing at its own module when an earlier one is left out', () => {
+    const bp = ship({
+      modules: [
+        { kind: 'structure', x: 0, y: 0, length: 0, width: 4 },
+        hull,
+        { kind: 'turret', x: 12, y: 0, length: 4, width: 4, barrels: 1 },
+      ],
+    });
+    const design = compileDraft(bp);
+    expect(design.modules).toHaveLength(2);
+    expect(design.turrets).toHaveLength(1);
+    expect(design.modules[design.turrets[0]!.module]!.spec.kind).toBe('turret');
+  });
+
+  it('refuses a layout with nothing left to measure', () => {
     expect(() => compileDraft(ship({ modules: [] }))).toThrow(/at least one module/);
     expect(() =>
       compileDraft(ship({ modules: [{ kind: 'structure', x: 0, y: 0, length: 0, width: 4 }] })),
-    ).toThrow(/positive/);
+    ).toThrow(/can be measured/);
   });
 });

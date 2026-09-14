@@ -162,8 +162,12 @@ function drawCentreOfMass(
  * an acceleration and not a distance, and overlaying it on metres would invite
  * reading it as reach.
  *
- * Bow up, since that is how the curve is read against a ship one is looking at
- * nose-right: the widget's own +y is forward.
+ * **In the ship's own orientation**: +x to the right and +y up, exactly as the
+ * deck plan beside it is drawn. The curve is read by comparing it against the
+ * ship, so any other convention makes it a puzzle — a layout that accelerates
+ * hard fore and aft draws a curve long across the same axis its hull is long
+ * on, and turning the widget by a right angle turns that agreement into an
+ * apparent contradiction.
  *
  * Both curves are *thrust*. A propellant model would make the third curve
  * possible — how much delta-v a direction costs, on which a diagonal does
@@ -192,12 +196,13 @@ function drawEnvelope(
   const trace = (values: Float64Array): void => {
     ctx.beginPath();
     for (let i = 0; i < envelope.samples; i++) {
-      // The sample is taken about the ship's +x; the widget draws that up, and
-      // screen y grows downward, so bow-forward becomes -y on the canvas.
+      // Samples run anticlockwise from the bow in the ship's frame. Screen y
+      // grows downward where the world's grows up, so only y is negated —
+      // which is the same flip `draw` applies to the deck plan.
       const angle = (TAU * i) / envelope.samples;
       const r = (values[i]! / peak) * ENVELOPE_RADIUS_PX;
-      const x = cx - sin(angle) * r;
-      const y = cy - cos(angle) * r;
+      const x = cx + cos(angle) * r;
+      const y = cy - sin(angle) * r;
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
