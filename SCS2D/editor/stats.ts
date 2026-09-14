@@ -1,6 +1,12 @@
-import { math, radiansToDegrees, type ShipDesign } from '../sim/index.js';
+import {
+  Allocation,
+  math,
+  radiansToDegrees,
+  shortfall,
+  type ShipDesign,
+} from '../sim/index.js';
 
-const { cos, sin, TAU } = math;
+const { cos, sin, max, TAU } = math;
 
 /**
  * What a layout bought, in the units the simulation works in.
@@ -41,7 +47,15 @@ export interface DesignStats {
   radius: number;
   moduleCount: number;
   thrusterCount: number;
-  /** Linear acceleration available, m/s², in each of the ship's four senses. */
+  /**
+   * Linear acceleration available while holding a heading, m/s², in each of
+   * the ship's four senses.
+   *
+   * Holding, rather than the greater figure a ship willing to spin could
+   * project, because every order carries an approach angle (DESIGN.md §2) — a
+   * ship that can only accelerate by tumbling cannot obey one. The difference
+   * between the two is `headingCost`, and the envelope draws both.
+   */
   accelFore: number;
   accelAft: number;
   accelPort: number;
@@ -55,13 +69,27 @@ export interface DesignStats {
    * error worth finding at the drawing board rather than in a battle.
    */
   fullAuthority: boolean;
+  /**
+   * The largest fraction of its thrust this layout gives up in order not to
+   * spin, over all directions. Zero on a ship whose thrust is balanced about
+   * its centre of mass in every direction it can push.
+   *
+   * This is the readable form of what KSP shows as a centre of thrust offset
+   * from the centre of mass. It has to be a cost rather than an offset because
+   * the misalignment never *becomes* a spin here: allocation is asked for zero
+   * torque and trims the imbalance with whatever thrusters have authority
+   * left. So what a badly balanced layout loses is acceleration, and it loses
+   * it hardest where the trimming thrusters are already at full throttle.
+   */
+  headingCost: number;
   turrets: TurretReadout[];
 }
 
-export function designStats(design: ShipDesign): DesignStats {
+export function designStats(design: ShipDesign, envelope: Envelopes): DesignStats {
   const layout = design.thrusterLayout;
   const mass = design.mass;
   const inertia = design.inertia;
+  const trim = trimmer(design);
 
   return {
     mass,
@@ -71,13 +99,14 @@ export function designStats(design: ShipDesign): DesignStats {
     thrusterCount: design.thrusters.length,
     // +x is the bow and +y is to port, matching the frame the layouts are
     // drawn in.
-    accelFore: layout.maxThrustAlong(1, 0) / mass,
-    accelAft: layout.maxThrustAlong(-1, 0) / mass,
-    accelPort: layout.maxThrustAlong(0, 1) / mass,
-    accelStarboard: layout.maxThrustAlong(0, -1) / mass,
+    accelFore: trim(1, 0),
+    accelAft: trim(-1, 0),
+    accelPort: trim(0, 1),
+    accelStarboard: trim(0, -1),
     turnLeft: layout.maxTorque(1) / inertia,
     turnRight: layout.maxTorque(-1) / inertia,
     fullAuthority: layout.hasFullAuthority(),
+    headingCost: headingCost(envelope),
     turrets: design.turrets.map((turret) => {
       const gun = turret.gun;
       const mount = turret.mount;
@@ -96,28 +125,110 @@ export function designStats(design: ShipDesign): DesignStats {
 }
 
 /**
- * The manoeuvring envelope: the acceleration available in each direction
- * around the ship, sampled evenly from bow and turning anticlockwise.
- *
- * This is the shape a thruster layout really has, and it is almost never a
- * circle — four numbers on a panel say a ship accelerates hard forwards and
- * poorly sideways, but only the curve shows the diagonal it is actually worst
- * in. `ThrusterLayout.support` answers it exactly rather than by search: the
- * achievable wrenches are a zonotope, and each sample is a supporting plane of
- * it.
- *
- * Pure thrust, with no torque asked for, so the figures are what the ship can
- * do while free to turn as the thrusters see fit.
+ * How many directions an envelope is sampled in. Smooth at the size the
+ * rosette is drawn, and the holding curve costs an allocation per step per
+ * direction, so this is the figure that decides what an edit costs.
  */
-export function thrustEnvelope(
-  design: ShipDesign,
-  samples: number,
-  out: Float64Array = new Float64Array(samples),
-): Float64Array {
+export const ENVELOPE_SAMPLES = 48;
+
+/**
+ * Magnitudes tried per direction when finding what a layout can hold.
+ *
+ * A **downward scan**, not a bisection, and the difference is not fussiness:
+ * allocation is a heuristic rather than an exact solver (ROADMAP.md §12), so
+ * whether a demand is met is *not* monotonic in its magnitude — the corvette's
+ * diagonal is met at 6.4 m/s² and missed at 6.0. Bisection assumes monotonic
+ * feasibility and would land wherever its first branch happened to send it.
+ * Scanning down from the ceiling asks a well-posed question instead: the
+ * largest demand this layout actually meets.
+ *
+ * The resolution that buys — a hundredth of the ceiling — is half a pixel at
+ * the size the curve is drawn, which is the only place the answer is read.
+ */
+const MAGNITUDE_STEPS = 96;
+
+/** How much of a demand may go unmet and still count as met. */
+const TOLERANCE = 1e-6;
+
+/** Both manoeuvring envelopes, sampled in the same directions. */
+export interface Envelopes {
+  /** Directions sampled, evenly around the circle from the bow, anticlockwise. */
+  readonly samples: number;
+  /**
+   * The most acceleration a direction can be given, whatever that does to the
+   * heading, m/s². Exact rather than searched: the achievable wrenches are a
+   * zonotope, so `ThrusterLayout.support` is a supporting plane of it.
+   */
+  readonly free: Float64Array;
+  /** What the ship can actually use while holding its heading, m/s². */
+  readonly holding: Float64Array;
+}
+
+/**
+ * The largest acceleration this design achieves in a direction with no net
+ * torque — measured through the allocator the ship flies with.
+ *
+ * Through the allocator rather than as a linear program, deliberately. An LP
+ * would report what an ideal ship could do; this reports what this one does,
+ * which is the more useful answer and the only one that can go wrong in the
+ * same way a battle does. It also means a dent in the curve is evidence about
+ * the allocator as well as about the layout — which is what ROADMAP.md §12
+ * says it is waiting for before replacing it.
+ */
+function trimmer(design: ShipDesign): (dirX: number, dirY: number) => number {
   const layout = design.thrusterLayout;
+  const throttles = new Float64Array(design.thrusters.length);
+  const result = new Allocation();
+
+  return (dirX, dirY) => {
+    const ceiling = layout.maxThrustAlong(dirX, dirY) / design.mass;
+    if (!(ceiling > 0)) return 0;
+    for (let step = MAGNITUDE_STEPS; step > 0; step--) {
+      const accel = (ceiling * step) / MAGNITUDE_STEPS;
+      const fx = accel * design.mass * dirX;
+      const fy = accel * design.mass * dirY;
+      layout.allocate(fx, fy, 0, throttles, result);
+      if (shortfall(fx, fy, 0, result) < TOLERANCE) return accel;
+    }
+    return 0;
+  };
+}
+
+/**
+ * Both curves: the acceleration available in every direction, and how much of
+ * it survives the requirement not to spin.
+ *
+ * Four numbers on a panel say a ship accelerates hard forwards and poorly
+ * sideways; only the curve shows which diagonal it is worst in, and whether a
+ * layout is merely weak abeam or has a direction it cannot push at all — the
+ * dent that says a thruster is missing. The gap between the two curves is the
+ * other thing a panel cannot say: where the ship's thrust is not balanced
+ * about its centre of mass, and what that costs it.
+ *
+ * Sampled from the bow and running anticlockwise, in the ship's own frame.
+ */
+export function envelopes(design: ShipDesign, samples: number = ENVELOPE_SAMPLES): Envelopes {
+  const layout = design.thrusterLayout;
+  const trim = trimmer(design);
+  const free = new Float64Array(samples);
+  const holding = new Float64Array(samples);
   for (let i = 0; i < samples; i++) {
     const angle = (TAU * i) / samples;
-    out[i] = layout.support(cos(angle), sin(angle), 0) / design.mass;
+    const dirX = cos(angle);
+    const dirY = sin(angle);
+    free[i] = layout.support(dirX, dirY, 0) / design.mass;
+    holding[i] = trim(dirX, dirY);
   }
-  return out;
+  return { samples, free, holding };
+}
+
+/** The worst fraction of its thrust a layout gives up in order not to spin. */
+export function headingCost(envelope: Envelopes): number {
+  let worst = 0;
+  for (let i = 0; i < envelope.samples; i++) {
+    const free = envelope.free[i]!;
+    if (!(free > 0)) continue;
+    worst = max(worst, 1 - envelope.holding[i]! / free);
+  }
+  return worst;
 }

@@ -21,7 +21,7 @@ import {
 } from '../editor/edit.js';
 import { emptyBlueprint, Library, toFileText, type KeyValueStore } from '../editor/library.js';
 import { previewSnapshot } from '../editor/preview.js';
-import { designStats, thrustEnvelope } from '../editor/stats.js';
+import { designStats, envelopes, headingCost } from '../editor/stats.js';
 
 /**
  * The editor's half: what an edit does to a layout, and what the page reads
@@ -306,31 +306,101 @@ describe('previewSnapshot', () => {
 describe('designStats', () => {
   it('reads the design rather than working anything out again', () => {
     const design = new EditorDocument(CORVETTE).view.design!;
-    const stats = designStats(design);
+    const stats = designStats(design, envelopes(design));
     expect(stats.mass).toBe(design.mass);
     expect(stats.inertia).toBe(design.inertia);
     expect(stats.moduleCount).toBe(design.modules.length);
-    expect(stats.accelFore).toBeCloseTo(design.thrusterLayout.maxThrustAlong(1, 0) / design.mass, 12);
     expect(stats.fullAuthority).toBe(design.thrusterLayout.hasFullAuthority());
+  });
+
+  it('reports the acceleration a ship can use, not the most it can project', () => {
+    const design = new EditorDocument(CORVETTE).view.design!;
+    const stats = designStats(design, envelopes(design));
+    // The corvette is balanced on its axes, so on the cardinals the two agree —
+    // which is what makes the diagonal gap below a statement about the layout
+    // rather than about the measurement.
+    expect(stats.accelFore).toBeCloseTo(design.thrusterLayout.maxThrustAlong(1, 0) / design.mass, 2);
+    expect(stats.accelPort).toBeCloseTo(design.thrusterLayout.maxThrustAlong(0, 1) / design.mass, 2);
   });
 
   it('reports a gun in the figures a player compares', () => {
     const design = new EditorDocument(GUNSHIP).view.design!;
-    const turret = designStats(design).turrets[0]!;
+    const turret = designStats(design, envelopes(design)).turrets[0]!;
     const gun = design.turrets[0]!.gun;
     expect(turret.calibre).toBe(gun.calibre);
     expect(turret.roundsPerMinute).toBeCloseTo(60 / gun.cycleTime, 9);
     expect(turret.arcLeft).toBeGreaterThan(0);
   });
+});
 
-  it('samples an envelope that agrees with the four cardinal figures', () => {
+describe('the manoeuvring envelopes', () => {
+  it('samples the unconstrained curve from the bow, anticlockwise', () => {
     const design = new EditorDocument(CORVETTE).view.design!;
-    const stats = designStats(design);
-    const envelope = thrustEnvelope(design, 4);
-    expect(envelope[0]).toBeCloseTo(stats.accelFore, 9);
-    expect(envelope[1]).toBeCloseTo(stats.accelPort, 9);
-    expect(envelope[2]).toBeCloseTo(stats.accelAft, 9);
-    expect(envelope[3]).toBeCloseTo(stats.accelStarboard, 9);
+    const layout = design.thrusterLayout;
+    const envelope = envelopes(design, 4);
+    expect(envelope.free[0]).toBeCloseTo(layout.maxThrustAlong(1, 0) / design.mass, 9);
+    expect(envelope.free[1]).toBeCloseTo(layout.maxThrustAlong(0, 1) / design.mass, 9);
+    expect(envelope.free[2]).toBeCloseTo(layout.maxThrustAlong(-1, 0) / design.mass, 9);
+    expect(envelope.free[3]).toBeCloseTo(layout.maxThrustAlong(0, -1) / design.mass, 9);
+  });
+
+  it('never claims a ship can hold more than it can project', () => {
+    for (const blueprint of [CORVETTE, GUNSHIP]) {
+      const design = new EditorDocument(blueprint).view.design!;
+      const envelope = envelopes(design);
+      for (let i = 0; i < envelope.samples; i++) {
+        expect(envelope.holding[i]!).toBeLessThanOrEqual(envelope.free[i]! + 1e-9);
+      }
+    }
+  });
+
+  it('costs the corvette nothing on its axes and something on the diagonal', () => {
+    const design = new EditorDocument(CORVETTE).view.design!;
+    const envelope = envelopes(design, 8);
+    // The lateral thrusters are written at x = ±4 while the centre of mass sits
+    // at x = +0.92, pulled forward by the bow turret — so pushing abeam needs
+    // trimming, and the trim runs out where the main engine is already at full
+    // throttle. That is the whole of what the two curves are drawn to show.
+    expect(envelope.holding[0]).toBeCloseTo(envelope.free[0]!, 6);
+    expect(envelope.holding[2]).toBeCloseTo(envelope.free[2]!, 6);
+    expect(envelope.holding[1]!).toBeLessThan(envelope.free[1]! * 0.95);
+    expect(headingCost(envelope)).toBeGreaterThan(0.05);
+  });
+
+  it('is zero for a layout whose thrust is balanced about its centre of mass', () => {
+    // One thruster either side of the centre of mass, pushing the same way:
+    // the torques cancel, so nothing is given up to avoid spinning.
+    const design = new EditorDocument(
+      ship({
+        modules: [
+          { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
+          { kind: 'thruster', x: 6, y: -4, angle: math.HALF_PI, length: 2, width: 3 },
+          { kind: 'thruster', x: -6, y: -4, angle: math.HALF_PI, length: 2, width: 3 },
+        ],
+      }),
+    ).view.design!;
+    // Eight samples, so index 2 is abeam to port — the direction those two
+    // thrusters push.
+    const envelope = envelopes(design, 8);
+    expect(envelope.free[2]!).toBeGreaterThan(0);
+    expect(envelope.holding[2]).toBeCloseTo(envelope.free[2]!, 6);
+  });
+
+  it('gives up everything in a direction it can only push by spinning', () => {
+    // One lateral thruster, well forward of the centre of mass, with nothing to
+    // cancel the torque it makes.
+    const design = new EditorDocument(
+      ship({
+        modules: [
+          { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
+          { kind: 'thruster', x: 6, y: -4, angle: math.HALF_PI, length: 2, width: 3 },
+        ],
+      }),
+    ).view.design!;
+    const envelope = envelopes(design, 4);
+    expect(envelope.free[1]).toBeGreaterThan(0);
+    expect(envelope.holding[1]).toBe(0);
+    expect(headingCost(envelope)).toBeCloseTo(1, 6);
   });
 });
 

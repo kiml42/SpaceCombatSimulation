@@ -37,8 +37,10 @@ inside any one file is not contiguous.
   bending them — with pause, single-step, time scaling, and zoom and pan over an
   auto-framing camera. A blueprint editor on a second page of its own draws a layout
   through that same renderer and reports what it bought: mass, inertia, the
-  acceleration available in each direction as figures and as the envelope's own
-  curve, and each turret's calibre, rate of fire, muzzle speed and arc. Modules are
+  acceleration available in each direction — as figures, and as a pair of
+  envelope curves separating what a layout can project from what it can use
+  while holding a heading — and each turret's calibre, rate of fire, muzzle
+  speed and arc. Modules are
   clicked to select and dragged to move on a snapping grid, with the rest of their
   values typed into a panel; every problem with the layout is listed rather than
   enforced, and undo and redo run throughout. Ships are opened from the built-in

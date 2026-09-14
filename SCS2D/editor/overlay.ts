@@ -1,6 +1,6 @@
 import { math, type ModuleSpec, type ShipDesign } from '../sim/index.js';
 import type { Camera } from '../render/camera.js';
-import { thrustEnvelope } from './stats.js';
+import { headingCost, type Envelopes } from './stats.js';
 
 const { cos, sin, max, TAU } = math;
 
@@ -19,20 +19,30 @@ const SELECTION = '#e9c05f';
 const SELECTION_LINKED = '#e9c05fcc';
 const CENTRE_OF_MASS = '#7fd6a0';
 const ENVELOPE = '#5b8dd6';
-const ENVELOPE_FILL = 'rgba(91, 141, 214, 0.18)';
+const ENVELOPE_FILL = 'rgba(91, 141, 214, 0.22)';
+/** The outer curve is a reference rather than a capability, so it is drawn as one. */
+const ENVELOPE_FREE = 'rgba(91, 141, 214, 0.55)';
 const ENVELOPE_LABEL = '#7f93aa';
 
-/** How many directions the envelope is sampled in. Smooth at a glance, cheap to take. */
-const ENVELOPE_SAMPLES = 96;
 /** Radius of the envelope rosette on screen, pixels. */
 const ENVELOPE_RADIUS_PX = 54;
 const ENVELOPE_MARGIN_PX = 16;
+/** Room kept below the rosette for its two caption lines, pixels. */
+const ENVELOPE_CAPTION_PX = 32;
 
 export interface OverlayView {
   design: ShipDesign | null;
   modules: readonly ModuleSpec[];
   /** Indices of the drawn modules the selection accounts for; the first is the one grabbed. */
   selected: readonly number[];
+  /**
+   * The manoeuvring envelopes, or null when there is no design to have any.
+   *
+   * Passed in rather than derived here, because the holding curve costs
+   * thousands of allocations and depends only on the layout. Panning and
+   * zooming redraw; they do not re-measure the ship.
+   */
+  envelope: Envelopes | null;
 }
 
 /**
@@ -53,7 +63,7 @@ export function drawOverlay(
   // before it is drawn — and with it the y flip, which would otherwise draw
   // every label upside down.
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  if (view.design !== null) drawEnvelope(ctx, view.design, widthPx, heightPx);
+  if (view.envelope !== null) drawEnvelope(ctx, view.envelope, widthPx, heightPx);
 }
 
 /**
@@ -132,50 +142,78 @@ function drawCentreOfMass(
 }
 
 /**
- * The acceleration available in every direction, as a closed curve.
+ * The acceleration available in every direction, as two closed curves.
  *
  * Four numbers on a panel say a ship accelerates hard forwards and poorly
  * sideways; only the curve shows which diagonal it is worst in, and whether a
  * layout is merely weak abeam or has a direction it cannot push at all — the
- * dent that says a thruster is missing. Drawn at a fixed size in the corner
- * rather than over the ship, because it is an acceleration and not a distance,
- * and overlaying it on metres would invite reading it as reach.
+ * dent that says a thruster is missing.
+ *
+ * **The filled curve is what the ship can use; the dashed one is what it could
+ * have if it did not mind spinning.** The gap between them is what KSP shows
+ * as a centre of thrust offset from the centre of mass, in the units that
+ * matter here. It has to be drawn as a gap rather than as a second marker,
+ * because the misalignment never becomes a spin: allocation is asked for zero
+ * torque and trims the imbalance away, so what a badly balanced layout loses
+ * is acceleration. Two curves make that a dent, and a dent is something the
+ * eye reads at a glance; two markers to mentally subtract is not.
+ *
+ * Drawn at a fixed size in the corner rather than over the ship, because it is
+ * an acceleration and not a distance, and overlaying it on metres would invite
+ * reading it as reach.
  *
  * Bow up, since that is how the curve is read against a ship one is looking at
  * nose-right: the widget's own +y is forward.
  *
- * The curve is *thrust* and only thrust. A propellant model would make the
- * more useful curve possible — how much delta-v a direction costs, on which a
- * diagonal does worse than either axis it splits, since thrust adds
- * vectorially and propellant adds scalar — and drawing it before that model
- * exists would be inventing an efficiency the simulation does not have.
+ * Both curves are *thrust*. A propellant model would make the third curve
+ * possible — how much delta-v a direction costs, on which a diagonal does
+ * worse than either axis it splits, since thrust adds vectorially and
+ * propellant adds scalar — and drawing it before that model exists would be
+ * inventing an efficiency the simulation does not have.
  */
 function drawEnvelope(
   ctx: CanvasRenderingContext2D,
-  design: ShipDesign,
+  envelope: Envelopes,
   widthPx: number,
   heightPx: number,
 ): void {
-  const samples = thrustEnvelope(design, ENVELOPE_SAMPLES);
   let peak = 0;
-  for (let i = 0; i < samples.length; i++) peak = max(peak, samples[i]!);
+  let held = 0;
+  for (let i = 0; i < envelope.samples; i++) {
+    peak = max(peak, envelope.free[i]!);
+    held = max(held, envelope.holding[i]!);
+  }
   if (!(peak > 0)) return;
 
   const cx = widthPx - ENVELOPE_RADIUS_PX - ENVELOPE_MARGIN_PX;
-  const cy = heightPx - ENVELOPE_RADIUS_PX - ENVELOPE_MARGIN_PX;
+  const cy = heightPx - ENVELOPE_RADIUS_PX - ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX;
 
-  ctx.beginPath();
-  for (let i = 0; i < samples.length; i++) {
-    // The sample is taken about the ship's +x; the widget draws that up, and
-    // screen y grows downward, so bow-forward becomes -y on the canvas.
-    const angle = (TAU * i) / samples.length;
-    const r = (samples[i]! / peak) * ENVELOPE_RADIUS_PX;
-    const x = cx - sin(angle) * r;
-    const y = cy - cos(angle) * r;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  ctx.closePath();
+  /** Trace one curve, scaled against the larger of the two so the gap is to scale. */
+  const trace = (values: Float64Array): void => {
+    ctx.beginPath();
+    for (let i = 0; i < envelope.samples; i++) {
+      // The sample is taken about the ship's +x; the widget draws that up, and
+      // screen y grows downward, so bow-forward becomes -y on the canvas.
+      const angle = (TAU * i) / envelope.samples;
+      const r = (values[i]! / peak) * ENVELOPE_RADIUS_PX;
+      const x = cx - sin(angle) * r;
+      const y = cy - cos(angle) * r;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+  };
+
+  // The unconstrained curve first and dashed, so the filled one sits inside it
+  // and reads as the real figure rather than as a shortfall from it.
+  trace(envelope.free);
+  ctx.strokeStyle = ENVELOPE_FREE;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  trace(envelope.holding);
   ctx.fillStyle = ENVELOPE_FILL;
   ctx.fill();
   ctx.strokeStyle = ENVELOPE;
@@ -187,9 +225,23 @@ function drawEnvelope(
   // lobed shape with no centre cannot be read as a magnitude at all.
   crosshair(ctx, cx, cy, 3.5, 1.5);
 
+  // Right-aligned to the widget's own edge rather than centred under it, so a
+  // caption naming both curves has somewhere to go.
+  //
+  // The second line is the *worst* gap between the curves and not the gap
+  // between their peaks, which would be a different and much less useful
+  // number: a ship's best direction is usually its best under both curves, so
+  // comparing peaks reports a layout as balanced however badly it is trimmed
+  // abeam. The fractal is the case — 10.0 against 10.1 at the bow, and 72% of
+  // its beam thrust spent on not spinning.
   ctx.fillStyle = ENVELOPE_LABEL;
   ctx.font = '11px ui-monospace, monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText(`${peak.toFixed(1)} m/s² max`, cx, cy + ENVELOPE_RADIUS_PX + 12);
+  ctx.textAlign = 'right';
+  const right = widthPx - ENVELOPE_MARGIN_PX;
+  ctx.fillText(`${held.toFixed(1)} m/s² holding heading`, right, cy + ENVELOPE_RADIUS_PX + 14);
+  const cost = headingCost(envelope);
+  if (cost >= 0.005) {
+    ctx.fillText(`heading cost up to ${(cost * 100).toFixed(0)}%`, right, cy + ENVELOPE_RADIUS_PX + 28);
+  }
   ctx.textAlign = 'left';
 }
