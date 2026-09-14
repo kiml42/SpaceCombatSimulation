@@ -151,7 +151,62 @@ describe('the editor in a browser', () => {
     expect(await width()).toBe(before);
   });
 
+  it('duplicates a module into a shared part, and moves one copy at a time', async () => {
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x + 168, centre.y);
+    expect(await page.textContent('#propKind')).toBe('turret');
+
+    await page.click('#propDuplicate');
+    expect(await page.textContent('#linked')).toMatch(/drawn 2 times/);
+    // The panel shows where *this copy* is, not where the shared module sits
+    // inside its assembly, which is the origin.
+    expect(await page.inputValue('#propX')).not.toBe('0');
+
+    const before = await page.inputValue('#propY');
+    await page.mouse.move(centre.x + 168, centre.y - 96);
+    await page.mouse.down();
+    await page.mouse.move(centre.x + 250, centre.y - 130, { steps: 6 });
+    await page.mouse.up();
+    expect(await page.inputValue('#propY')).not.toBe(before);
+    // Still two, still linked: moving a copy is not unlinking it.
+    expect(await page.textContent('#linked')).toMatch(/drawn 2 times/);
+  });
+
+  it('unlinks a shared part, leaving the ship as it was', async () => {
+    await page.selectOption('#ship', 'Corvette');
+    // Made shared here rather than hunting for one of the corvette's own by
+    // pixel: where a given module lands on screen depends on how the camera
+    // framed the ship, which depends on the viewport.
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x, centre.y);
+    await page.click('#propDuplicate');
+    expect(await page.textContent('#linked')).toMatch(/drawn 2 times/);
+    const mass = (await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0];
+
+    await page.click('#propUnlink');
+    // Unlinking is exact: the same modules in the same places, no longer the
+    // same part.
+    expect((await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0]).toBe(mass);
+    await page.mouse.click(centre.x, centre.y);
+    expect(await page.isVisible('#linked')).toBe(false);
+    expect(await page.isDisabled('#propUnlink')).toBe(true);
+  });
+
+  it('shows the selected module’s own figures', async () => {
+    await page.selectOption('#ship', 'Corvette');
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x + 168, centre.y);
+    const module = (await page.textContent('#moduleStats')) ?? '';
+    expect(module).toMatch(/Mass/);
+    expect(module).toMatch(/Hit points/);
+    expect(module).toMatch(/Gun/);
+    // A structure module has no gun and no thrust of its own.
+    await page.mouse.click(centre.x, centre.y);
+    expect(await page.textContent('#moduleStats')).not.toMatch(/Gun/);
+  });
+
   it('adds a module, and says what is now wrong with the layout', async () => {
+    await page.selectOption('#ship', 'Corvette');
     await page.click('[data-add="turret"]');
     // The new module lands at the middle of the view, which is inside the
     // hull — so the layout is invalid, and saving it is refused until it is not.

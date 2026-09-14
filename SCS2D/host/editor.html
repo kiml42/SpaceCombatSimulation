@@ -68,6 +68,10 @@
       .field label { flex: 0 0 6.5rem; color: #7f93aa; }
       .field input, .field textarea { flex: 1; min-width: 0; }
       .pair { display: flex; gap: 0.4rem; }
+      .buttons { display: flex; gap: 0.4rem; margin-top: 0.6rem; }
+      .buttons button { flex: 1; padding-inline: 0.3rem; }
+      #moduleStats { margin-top: 0.7rem; padding-top: 0.6rem; border-top: 1px solid #1c2533; }
+      #moduleStats td { color: #c8d3e0; }
       textarea { width: 100%; resize: vertical; min-height: 3.2rem; }
       ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
       li { color: #e6a45b; margin-bottom: 0.2rem; word-break: break-word; }
@@ -142,7 +146,12 @@
             <label for="propNotes">notes</label>
             <textarea id="propNotes" placeholder="why this module is here"></textarea>
           </div>
-          <button id="propDelete">Delete module</button>
+          <div id="moduleStats"></div>
+          <div class="buttons">
+            <button id="propDuplicate" title="Make this a shared part and place a second copy">Duplicate</button>
+            <button id="propUnlink">Unlink</button>
+            <button id="propDelete">Delete</button>
+          </div>
         </section>
         <section>
           <h2>What it works out to</h2>

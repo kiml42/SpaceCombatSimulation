@@ -2,6 +2,7 @@ import {
   degreesToRadians,
   math,
   parseBlueprint,
+  placementAt,
   radiansToDegrees,
   samePlacement,
   Snapshot,
@@ -13,11 +14,22 @@ import {
 import { draw } from '../render/canvas2d.js';
 import { frame, type Camera } from '../render/camera.js';
 import { EditorDocument } from './document.js';
-import { addModule, moduleAt, movePlacement, removePlacement, snap, updatePlacement } from './edit.js';
+import {
+  addModule,
+  duplicatePlacement,
+  moduleAt,
+  movePlacement,
+  positionHandle,
+  removePlacement,
+  snap,
+  unlinkable,
+  unlinkPlacement,
+  updatePlacement,
+} from './edit.js';
 import { emptyBlueprint, Library, toFileText } from './library.js';
 import { drawOverlay } from './overlay.js';
 import { previewSnapshot } from './preview.js';
-import { designStats, envelopes, type Envelopes } from './stats.js';
+import { designStats, envelopes, moduleReadout, type Envelopes } from './stats.js';
 
 /**
  * The blueprint editor's page: the canvas, the panels and the pointer.
@@ -90,6 +102,9 @@ export function startEditor(): void {
   const undoButton = el<HTMLButtonElement>('undo');
   const redoButton = el<HTMLButtonElement>('redo');
   const deleteShipButton = el<HTMLButtonElement>('deleteShip');
+  const moduleStats = el<HTMLElement>('moduleStats');
+  const duplicateButton = el<HTMLButtonElement>('propDuplicate');
+  const unlinkButton = el<HTMLButtonElement>('propUnlink');
   const saveButton = el<HTMLButtonElement>('saveShip');
   const exportButton = el<HTMLButtonElement>('exportShip');
 
@@ -189,6 +204,12 @@ export function startEditor(): void {
       '</ul>';
   };
 
+  /** Where the selected copy's position is written, and in what frame. */
+  const selectedPosition = (): ReturnType<typeof positionHandle> | null => {
+    const origin = doc.selectedOrigin();
+    return origin === null ? null : positionHandle(doc.blueprint, origin);
+  };
+
   const renderProperties = (): void => {
     const placement = doc.selectedPlacement;
     const copies = doc.selectedModules().length;
@@ -199,6 +220,8 @@ export function startEditor(): void {
     }
     properties.hidden = false;
     const spec = placement as ModuleSpec;
+    const handle = selectedPosition();
+    const positioned = handle === null ? null : placementAt(doc.blueprint, handle.origin.path);
     // Whether the panel is still describing the module it was describing last
     // time. Compared by placement rather than by identity, because a path
     // object is rebuilt on every edit even when the selection has not moved.
@@ -215,16 +238,49 @@ export function startEditor(): void {
       // goes on showing the values of the module that was left behind.
       if (sameModule && document.activeElement === input) continue;
       if (key === 'notes') input.value = spec.notes ?? '';
-      else if (key === 'x' || key === 'y') input.value = String(key === 'x' ? spec.x : spec.y);
+      else if (key === 'x' || key === 'y') {
+        // The position shown is the one that puts *this copy* here, which for a
+        // shared part is its instance's rather than the module's own — the
+        // module sits at its assembly's origin, and showing that would report
+        // every copy as being at (0, 0).
+        const at = positioned;
+        input.value = String(at === null ? 0 : key === 'x' ? at.x : at.y);
+      }
       else if (key === 'length' || key === 'width') input.value = String(spec[key]);
       else input.value = String(moduleField(spec, key as 'angle' | 'reinforcement' | 'barrels'));
     }
     el<HTMLElement>('barrelsRow').hidden = spec.kind !== 'turret';
+
+    const origin = doc.selectedOrigin();
+    const shared = origin === null ? 0 : unlinkable(doc.blueprint, origin);
+    unlinkButton.disabled = shared < 2;
+    unlinkButton.title =
+      shared < 2
+        ? 'Only a shared part can be unlinked'
+        : `Give each of the ${shared} copies its own module, so they stop changing together`;
+
     linked.hidden = copies < 2;
     linked.textContent =
       copies < 2
         ? ''
-        : `Shared: this placement is drawn ${copies} times. Editing it changes every copy.`;
+        : `Shared: drawn ${copies} times. Size, facing and notes change every copy; ` +
+          `position moves this one.`;
+
+    renderModuleStats(spec);
+  };
+
+  const renderModuleStats = (spec: ModuleSpec): void => {
+    const readout = moduleReadout(spec);
+    const rows = readout.rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('');
+    const gun =
+      readout.gun === null
+        ? ''
+        : `<tr><th>Gun</th><td>${numbers(readout.gun.calibre * 1000, 0)} mm` +
+          `${readout.gun.barrels > 1 ? ` ×${readout.gun.barrels}` : ''}, ` +
+          `${numbers(readout.gun.roundsPerMinute)} rpm, ${numbers(readout.gun.muzzleSpeed, 0)} m/s, ` +
+          `${numbers(readout.gun.roundMass, 1)} kg shell, trains at ` +
+          `${numbers(readout.gun.traverseRate)} °/s</td></tr>`;
+    moduleStats.innerHTML = `<table>${rows}${gun}</table>`;
   };
 
   const renderLibrary = (): void => {
@@ -324,6 +380,17 @@ export function startEditor(): void {
       }
       const value = Number(input.value);
       if (!Number.isFinite(value)) return;
+      if (key === 'x' || key === 'y') {
+        // Position is written wherever this copy's position lives, which is
+        // its instance when the module is a shared part.
+        const handle = selectedPosition();
+        if (handle === null) return;
+        change(
+          updatePlacement(doc.blueprint, handle.origin.path, (p) => ({ ...p, [key]: value })),
+          true,
+        );
+        return;
+      }
       if (key === 'angle') editSelected({ angle: degreesToRadians(value) }, true);
       else editSelected({ [key]: value } as Partial<ModuleSpec>, true);
     });
@@ -333,6 +400,28 @@ export function startEditor(): void {
     const path = doc.selection;
     if (path === null) return;
     change(removePlacement(doc.blueprint, path));
+  });
+
+  duplicateButton.addEventListener('click', () => {
+    const origin = doc.selectedOrigin();
+    if (origin === null) return;
+    const duplicated = duplicatePlacement(doc.blueprint, origin);
+    if (duplicated === null) return;
+    doc.apply(duplicated.blueprint);
+    // Select the copy that was just made rather than the one it was made from:
+    // it is the one the player is about to put somewhere, and it is last,
+    // because a new placement is appended.
+    doc.select(duplicated.path);
+    const drawn = doc.selectedModules();
+    if (drawn.length > 0) doc.selectModule(drawn[drawn.length - 1]!);
+    gesture = false;
+    refresh();
+  });
+
+  unlinkButton.addEventListener('click', () => {
+    const origin = doc.selectedOrigin();
+    if (origin === null) return;
+    change(unlinkPlacement(doc.blueprint, origin));
   });
 
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-add]')) {
@@ -498,8 +587,8 @@ export function startEditor(): void {
       render();
       return;
     }
-    const origin = doc.selectedOrigin();
-    if (origin === null) return;
+    const handle = selectedPosition();
+    if (handle === null) return;
     const world = worldAt(event);
     // The *displacement* snaps, not the position. A layout drawn on half-metre
     // offsets — which the authored ships are, since modules abut exactly —
@@ -510,7 +599,7 @@ export function startEditor(): void {
     const dx = snap(world.x - drag.startX, step);
     const dy = snap(world.y - drag.startY, step);
     if (dx === 0 && dy === 0 && !drag.moved) return;
-    const next = movePlacement(drag.from, origin, dx, dy);
+    const next = movePlacement(drag.from, handle.origin, dx, dy);
     if (next === null) return;
     if (drag.moved) doc.amend(next);
     else doc.apply(next);

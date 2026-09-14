@@ -70,6 +70,7 @@ export {
   type AssemblyStep,
   type Blueprint,
   type Expansion,
+  type Frame,
   type ModuleOrigin,
   type ModulePath,
   type PathStep,
