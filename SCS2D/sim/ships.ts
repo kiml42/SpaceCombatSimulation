@@ -122,7 +122,6 @@ export class Ships {
   /** Turret store indices owned by each ship, and their gun timers. */
   private readonly turretIndex: Int32Array[] = [];
   private readonly cooldown: Float64Array[] = [];
-  private readonly beamOnTimer: Float64Array[] = [];
   private readonly turretStates: Uint8Array[] = [];
   private readonly nextBarrelToFire: Int32Array[] = [];
 
@@ -211,7 +210,6 @@ export class Ships {
     this.throttles.push(new Float64Array(design.thrusters.length));
     this.turretIndex.push(indices);
     this.cooldown.push(new Float64Array(mounts.length));
-    this.beamOnTimer.push(new Float64Array(mounts.length));
     this.turretStates.push(new Uint8Array(mounts.length));
     this.nextBarrelToFire.push(new Int32Array(mounts.length));
     this.team.push(spec.team ?? 0);
@@ -225,12 +223,6 @@ export class Ships {
     this.demandFy.push(0);
     this.demandTorque.push(0);
     this.alive.push(1);
-
-    // initilise to a large negative so the beams know they haven't been on before.
-    const beamOnTimers = this.beamOnTimer[i]!;
-    for (let t = 0; t < beamOnTimers.length; t++) {
-      beamOnTimers[t] = -10000;
-    }
 
     return i;
   }
@@ -284,10 +276,6 @@ export class Ships {
       for (let t = 0; t < timers.length; t++) {
         if (timers[t]! > 0) timers[t] = timers[t]! - dt;
       }
-      const beamOnTimers = this.beamOnTimer[i]!;
-      for (let t = 0; t < beamOnTimers.length; t++) {
-        beamOnTimers[t] = beamOnTimers[t]! - dt;
-      }
     }
 
     // Slew every turret, collecting the hull reaction rather than letting it
@@ -323,8 +311,6 @@ export class Ships {
       const indices = this.turretIndex[i]!;
       const timers = this.cooldown[i]!;
 
-      // TODO rip this out now it's not being used.
-      const beamOnTimers = this.beamOnTimer[i]!;
       const turretStates = this.turretStates[i]!;
       const barrels = this.nextBarrelToFire[i]!;
       const bodyIdx = bodies.indexOf(this.bodyIds[i]!);
@@ -610,11 +596,6 @@ export class Ships {
   /** Seconds until a gun is loaded again. Diagnostic. */
   cooldownOf(i: number, turret: number): number {
     return this.cooldown[i]![turret]!;
-  }
-
-  /** Seconds until a gun is loaded again. Diagnostic. */
-  beamOnTimerOf(i: number, turret: number): number {
-    return this.beamOnTimer[i]![turret]!;
   }
 
   /** Whether the pilot's demand exceeded what the layout can produce. */
