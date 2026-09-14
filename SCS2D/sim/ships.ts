@@ -402,6 +402,8 @@ export class Ships {
           timers[t] = gun.cycleTime;
 
           turretStates[t] = TurretState.Reloading; // Projectile guns immediately reload after firing.
+
+          fired++;  // increment for every shot fired
         } else {
           beams.fireFrom(
             bodies,
@@ -417,10 +419,10 @@ export class Ships {
             // was idle before, now committed on for beamOnTime
             state = turretStates[t] = TurretState.CommittedOn;
             timers[t] = gun.beamOnTime;
+
+            fired++;  // only increment when going from idle to on.
           }
         }
-
-        fired++;
       }
 
       const mass = bodies.mass[bodyIdx]!;

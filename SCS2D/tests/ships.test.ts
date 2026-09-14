@@ -281,6 +281,7 @@ describe('gunnery', () => {
       px += r.projectiles.mass[i]! * r.projectiles.vx[i]!;
       py += r.projectiles.mass[i]! * r.projectiles.vy[i]!;
     }
+    // TODO the test implies the momentum should be non-zero after because of teh recoil of the shots, but it asserts that the momentum is zero.
     expect(px).toBeCloseTo(0, 6);
     expect(py).toBeCloseTo(0, 6);
   });
