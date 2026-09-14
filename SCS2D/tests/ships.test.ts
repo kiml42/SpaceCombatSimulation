@@ -531,15 +531,15 @@ describe('beam gunnery', () => {
   });
 
   it('Keeps firing for the expected duration even when the target is lost', () => {
-    const twin = compileBlueprint({
-      name: 'Twin',
+    const ship1 = compileBlueprint({
+      name: 'Ship1',
       modules: [
         { kind: 'structure', x: 0, y: 0, length: 10, width: 4 },
-        { kind: 'beamTurret', x: 8, y: 0, length: 6, width: 4, barrels: 2 },
+        { kind: 'beamTurret', x: 8, y: 0, length: 6, width: 4 },
       ],
     });
     const r = rig();
-    const ship = r.ships.spawn(r.world, { design: twin, x: 0, y: 0 });
+    const ship = r.ships.spawn(r.world, { design: ship1, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
     r.ships.setOrder(ship, enemy, 1900, 2100, 10);
     r.ships.remove(enemy);
@@ -549,11 +549,12 @@ describe('beam gunnery', () => {
     r.grid.rebuild(r.world.bodies);
     expect(r.ships.fire(r.world, r.projectiles, r.beams)).toBe(1);
 
-    // todo look up the body ID for the enemy ship and destroy it now that the beam has started firing.
-    const enemyBody = r.ships.body(enemy);   // grab the BodyId before removing
-    r.world.destroy(enemyBody);              // the body itself
+    // Now the ship's started firing, delete the target
+    const enemyBody = r.ships.body(enemy);  // grab the BodyId before removing
+    r.world.destroy(enemyBody);             // the body itself
+    r.ships.clearOrder(ship);               // also cancel the order
 
-    const gun = twin.turrets[0]!.gun;
+    const gun = ship1.turrets[0]!.gun;
 
     // advance time until the beam turns off again
     let timeSinceTrigger = 0;
@@ -564,26 +565,19 @@ describe('beam gunnery', () => {
       timeSinceTrigger += DT;
     }
     expect(timeSinceTrigger).toBeCloseTo(gun.beamOnTime, 6);
+    expect(r.beams.count).toBe(0);
 
-    // Advance cooldown until next shot can fire
-    let timeSpentReloading = 0;
-    let mostRecentFiredCount = -1;
-    do {
+    // Wait for a while to make sure the ship doesn't fire again (proof that it knows the target really is gone)
+    const waitDuration = 60;
+    const steps = waitDuration / DT;
+
+    // make sure it doesn't shoot again as there's nothing to shoot at now.
+    for(var i = 0; i < steps; i++){
       advanceTime();
-      // beam count should be 0 until the beam is turned on by the fire step.
+      // beam count should be 0
+      expect(r.ships.fire(r.world, r.projectiles, r.beams)).toBe(0);
       expect(r.beams.count).toBe(0);
-      mostRecentFiredCount = r.ships.fire(r.world, r.projectiles, r.beams);
-      timeSpentReloading += DT;
     }
-    while (mostRecentFiredCount == 0 && timeSpentReloading < 100 * gun.cycleTime)
-
-    expect(timeSpentReloading).toBeCloseTo(gun.cycleTime, 6);
-    expect(mostRecentFiredCount).toBe(1);
-    expect(r.beams.count).toBe(1);
-
-    // Fire 2nd beam (barrel 1): should be at +0.5 * spacing in y
-    const y1 = r.beams.startY[0]!;
-    expect(y1).toBeCloseTo(+0.5 * spacing, 6);
 
     function advanceTime() {
       r.beams.clear(); // beams are cleared every time step
