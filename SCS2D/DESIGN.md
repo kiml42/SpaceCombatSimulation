@@ -42,10 +42,11 @@ inside any one file is not contiguous.
   while holding a heading — and each turret's calibre, rate of fire, muzzle
   speed and arc. Modules are
   clicked to select and dragged to move on a snapping grid, with the rest of their
-  values typed into a panel beside the module's own mass, capacity, armour and gun;
-  a module can be duplicated into a shared part placed twice, and a shared part
-  unlinked back into separate modules, with position belonging to the copy and
-  everything else to all of them; every problem with the layout is listed rather
+  values typed into a panel beside the module's own mass, capacity, armour and gun,
+  and a selected engine burns and a selected gun fires at the rate its own figures
+  claim; a module can be duplicated into a shared part placed twice, and a shared
+  part unlinked back into separate modules, with position, dragging and deletion
+  belonging to the copy and everything else to all of them; every problem with the layout is listed rather
   than enforced, and undo and redo run throughout. Ships are opened from the built-in
   library or from browser storage, saved back to it, and exported and imported as
   blueprint files. Both pages build to one self-contained HTML file each.

@@ -162,7 +162,12 @@ the editor owes the player a word about it when it does.
 
 #### Deliberately not in this iteration
 
-Test flight (the editor can have its own throwaway sim later — it does not need the battle page's).
+Test flight — putting a ship in a scene and letting it fly. The editor can have its own throwaway sim
+later; it does not need the battle page's. What is there instead is an **animation**, not a start on one: a
+selected engine burns and a selected gun fires at its own rate, with rounds flying straight at the muzzle
+speed and being forgotten. Nothing is integrated, nothing collides, and the ship does not move however hard
+its engine burns — so it cannot grow into a test flight by accident, and it claims nothing the panel beside
+it does not already state.
 Fleets and budgets. The real connectivity graph. Asymmetric or interval-based firing arcs. Any of §12's
 open scaling questions.
 

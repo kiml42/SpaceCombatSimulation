@@ -157,6 +157,32 @@ export function updatePlacement(
   return copy as unknown as Blueprint;
 }
 
+/**
+ * Delete the copy that was selected, rather than the part it is a copy of.
+ *
+ * The same split as `positionHandle`, and for the same reason: when a module
+ * is the whole of an assembly, the unit on the ship is the *copy*, so deleting
+ * one should leave the others. Deleting the shared module instead made every
+ * copy vanish at once, which is never what pressing Delete on one of them
+ * meant. When the assembly holds other modules, the module is part of a group
+ * and deleting it takes it out of every copy of that group, which is what
+ * deleting part of a group has to mean.
+ *
+ * Taking the last instance takes the assembly with it, so a layout does not
+ * accumulate definitions nothing places.
+ */
+export function removeCopy(blueprint: Blueprint, origin: ModuleOrigin): Blueprint | null {
+  const handle = positionHandle(blueprint, origin);
+  const removed = removePlacement(blueprint, handle.origin.path);
+  if (removed === null || !handle.perCopy) return removed;
+
+  const name = enteredAssembly(origin.path)?.step.assembly;
+  if (name === undefined || countInstances(removed, name) > 0) return removed;
+  const copy = removed as unknown as MutableBlueprint;
+  delete copy.assemblies?.[name];
+  return copy as unknown as Blueprint;
+}
+
 /** Drop the placement a path names. Every copy of it goes with it. */
 export function removePlacement(blueprint: Blueprint, path: ModulePath): Blueprint | null {
   const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;

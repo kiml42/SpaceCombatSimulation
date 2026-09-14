@@ -9,6 +9,7 @@ import {
   serialiseBlueprint,
   type Blueprint,
   type ModuleSpec,
+  type ShipDesign,
 } from '../sim/index.js';
 import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 import { EditorDocument } from '../editor/document.js';
@@ -17,6 +18,7 @@ import {
   cloneBlueprint,
   duplicatePlacement,
   positionHandle,
+  removeCopy,
   unlinkable,
   unlinkPlacement,
   moduleAt,
@@ -27,6 +29,7 @@ import {
   updatePlacement,
 } from '../editor/edit.js';
 import { emptyBlueprint, Library, toFileText, type KeyValueStore } from '../editor/library.js';
+import { Demonstration, ROUND_LIFETIME } from '../editor/demonstrate.js';
 import { previewSnapshot } from '../editor/preview.js';
 import { designStats, envelopes, headingCost, moduleReadout } from '../editor/stats.js';
 
@@ -618,5 +621,169 @@ describe('moduleReadout', () => {
     expect(thruster.gun).toBeNull();
     const structure = moduleReadout({ kind: 'structure', x: 0, y: 0, length: 3, width: 3 });
     expect(structure.rows.some(([k]) => k === 'Thrust')).toBe(false);
+  });
+});
+
+describe('deleting a copy', () => {
+  it('takes one copy of a shared part, not the part itself', () => {
+    const bp = ship({ modules: [hull, { kind: 'turret', x: 12, y: 0, length: 4, width: 4 }] });
+    const shared = duplicatePlacement(bp, expandWithOrigins(bp).origins[1]!)!.blueprint;
+    expect(expandWithOrigins(shared).modules).toHaveLength(3);
+
+    const origins = expandWithOrigins(shared).origins;
+    const left = removeCopy(shared, origins[2]!)!;
+    // One turret goes, one stays — where deleting the shared module would have
+    // taken both.
+    expect(expandWithOrigins(left).modules.filter((m) => m.kind === 'turret')).toHaveLength(1);
+  });
+
+  it('takes the assembly with the last copy', () => {
+    const bp = ship({ modules: [hull, { kind: 'turret', x: 12, y: 0, length: 4, width: 4 }] });
+    let current = duplicatePlacement(bp, expandWithOrigins(bp).origins[1]!)!.blueprint;
+    expect(Object.keys(current.assemblies ?? {})).toHaveLength(1);
+    for (let i = 0; i < 2; i++) {
+      const origins = expandWithOrigins(current).origins;
+      current = removeCopy(current, origins[origins.length - 1]!)!;
+    }
+    expect(expandWithOrigins(current).modules).toHaveLength(1);
+    // Nothing places it any more, so it does not linger in the file.
+    expect(Object.keys(current.assemblies ?? {})).toHaveLength(0);
+  });
+
+  it('takes a module out of every copy of a group it is part of', () => {
+    const bp = ship({
+      assemblies: {
+        wing: {
+          modules: [
+            { kind: 'structure', x: 0, y: 0, length: 4, width: 3 },
+            { kind: 'structure', x: 4, y: 0, length: 4, width: 3 },
+          ],
+        },
+      },
+      modules: [hull, { use: 'wing', x: 0, y: 6 }, { use: 'wing', x: 0, y: -6 }],
+    });
+    const origins = expandWithOrigins(bp).origins;
+    const cut = removeCopy(bp, origins[1]!)!;
+    // Deleting part of a group deletes it from the group, which is both wings.
+    expect(expandWithOrigins(cut).modules).toHaveLength(3);
+  });
+});
+
+describe('a turret’s arc on the module panel', () => {
+  it('is read off what is around it', () => {
+    const modules: ModuleSpec[] = [
+      { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
+      { kind: 'turret', x: 12, y: 0, length: 4, width: 4 },
+    ];
+    const open = moduleReadout(modules[1]!, modules, 1).gun!;
+    // The same mount walled in on one beam must lose sweep that way.
+    const walled: ModuleSpec[] = [...modules, { kind: 'structure', x: 12, y: 6, length: 8, width: 6 }];
+    const blocked = moduleReadout(walled[1]!, walled, 1).gun!;
+    expect(open.arcLeft).toBeGreaterThan(blocked.arcLeft);
+  });
+
+  it('is absent without the layout around it', () => {
+    const spec: ModuleSpec = { kind: 'turret', x: 0, y: 0, length: 4, width: 4 };
+    expect(moduleReadout(spec).gun!.arcLeft).toBe(0);
+  });
+});
+
+describe('Demonstration', () => {
+  /** A light mount, whose cycle is short enough to watch several rounds of. */
+  const popgun = (): ShipDesign =>
+    new EditorDocument(
+      ship({
+        modules: [
+          { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
+          { kind: 'turret', x: 11, y: 0, length: 0.8, width: 0.8, barrels: 2 },
+          { kind: 'thruster', x: -11, y: 0, angle: 0, length: 2, width: 6 },
+        ],
+      }),
+    ).view.design!;
+
+  it('does nothing, and asks for no frames, while nothing is selected', () => {
+    const demo = new Demonstration();
+    demo.step(popgun(), [], 1 / 60);
+    expect(demo.running).toBe(false);
+  });
+
+  it('spools a selected engine up and back down', () => {
+    const design = popgun();
+    const demo = new Demonstration();
+    const thruster = design.modules.findIndex((m) => m.spec.kind === 'thruster');
+    const snapshot = previewSnapshot(design);
+
+    for (let i = 0; i < 120; i++) demo.step(design, [design.modules[thruster]!.index], 1 / 60);
+    demo.writeInto(snapshot);
+    expect(Math.max(...snapshot.ships[0]!.throttles)).toBe(1);
+
+    for (let i = 0; i < 120; i++) demo.step(design, [], 1 / 60);
+    demo.writeInto(snapshot);
+    expect(Math.max(...snapshot.ships[0]!.throttles)).toBe(0);
+    expect(demo.running).toBe(false);
+  });
+
+  it('burns only the engine that was selected', () => {
+    const design = new EditorDocument(GUNSHIP).view.design!;
+    const demo = new Demonstration();
+    const thruster = design.modules.findIndex((m) => m.spec.kind === 'thruster');
+    for (let i = 0; i < 120; i++) demo.step(design, [design.modules[thruster]!.index], 1 / 60);
+    const snapshot = previewSnapshot(design);
+    demo.writeInto(snapshot);
+    expect(snapshot.ships[0]!.throttles.filter((t) => t > 0)).toHaveLength(1);
+  });
+
+  it('fires a selected gun at the rate its own figures claim', () => {
+    const design = popgun();
+    const turret = design.turrets[0]!;
+    const cycle = turret.gun.cycleTime;
+    // The assumption the count rests on: a round outlives three cycles, so
+    // none has been forgotten by the time they are counted.
+    expect(cycle * 3.5).toBeLessThan(ROUND_LIFETIME);
+
+    const demo = new Demonstration();
+    const selected = [design.modules[turret.module]!.index];
+    for (let t = 0; t < cycle * 3.5; t += 1 / 240) demo.step(design, selected, 1 / 240);
+
+    const snapshot = previewSnapshot(design);
+    demo.writeInto(snapshot);
+    // One at the start and one per cycle since.
+    expect(snapshot.projectileCount).toBe(4);
+    expect(demo.running).toBe(true);
+  });
+
+  it('sends rounds out at the muzzle speed, and forgets them in the end', () => {
+    const design = popgun();
+    const turret = design.turrets[0]!;
+    const demo = new Demonstration();
+    demo.step(design, [design.modules[turret.module]!.index], 1 / 240);
+
+    const snapshot = previewSnapshot(design);
+    demo.writeInto(snapshot);
+    expect(snapshot.projectileCount).toBe(1);
+    const speed = Math.hypot(snapshot.projectileVx[0]!, snapshot.projectileVy[0]!);
+    expect(speed).toBeCloseTo(turret.gun.muzzleSpeed, 6);
+    expect(snapshot.projectileWidth[0]).toBe(turret.gun.calibre);
+
+    // Nothing stops a round, so it has to be forgotten or it accumulates.
+    for (let t = 0; t < ROUND_LIFETIME + 1; t += 1 / 60) demo.step(design, [], 1 / 60);
+    demo.writeInto(snapshot);
+    expect(snapshot.projectileCount).toBe(0);
+    expect(demo.running).toBe(false);
+  });
+
+  it('alternates between the barrels of a multi-barrel mount', () => {
+    const design = popgun();
+    const turret = design.turrets[0]!;
+    expect(turret.gun.barrelCount).toBe(2);
+    const demo = new Demonstration();
+    const selected = [design.modules[turret.module]!.index];
+    for (let t = 0; t < turret.gun.cycleTime * 1.5; t += 1 / 240) demo.step(design, selected, 1 / 240);
+
+    const snapshot = previewSnapshot(design);
+    demo.writeInto(snapshot);
+    expect(snapshot.projectileCount).toBe(2);
+    // Two rounds from two barrels leave from different places across the mount.
+    expect(snapshot.projectileY[0]).not.toBe(snapshot.projectileY[1]);
   });
 });

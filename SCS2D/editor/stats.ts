@@ -1,5 +1,6 @@
 import {
   Allocation,
+  firingArc,
   math,
   moduleStats,
   radiansToDegrees,
@@ -169,11 +170,18 @@ export interface ModuleReadout {
  * summed from, so a module's mass here and the change it makes to the ship's
  * mass are the same number by construction rather than by agreement.
  *
- * The arc a turret can train through is deliberately *not* here: it is a
- * property of the module's surroundings rather than of the module, so it
- * belongs to a compiled ship and appears with the ship's turret figures.
+ * The arc a turret can train through is a property of the module's
+ * *surroundings* rather than of the module, so it needs the layout the module
+ * sits in. It is worked out with `firingArc` — the same call `compileBlueprint`
+ * makes — rather than read off a compiled design, which would mean mapping a
+ * layout index onto a design that may have dropped modules it could not
+ * measure.
  */
-export function moduleReadout(spec: ModuleSpec): ModuleReadout {
+export function moduleReadout(
+  spec: ModuleSpec,
+  layout: readonly ModuleSpec[] = [],
+  index = -1,
+): ModuleReadout {
   const stats = moduleStats(spec);
   const rows: [string, string][] = [
     ['Mass', `${(stats.mass / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t`],
@@ -196,12 +204,21 @@ export function moduleReadout(spec: ModuleSpec): ModuleReadout {
             roundMass: gun.roundMass,
             muzzleSpeed: gun.muzzleSpeed,
             roundsPerMinute: gun.cycleTime > 0 ? 60 / gun.cycleTime : 0,
-            // Its surroundings decide these, and a lone module has none.
-            arcLeft: 0,
-            arcRight: 0,
+            ...arcOf(layout, index, gun.barrelLength),
             traverseRate: radiansToDegrees(traverseRate(traverseAccel(stats.mass, stats.inertia))),
           },
   };
+}
+
+/** How far a mount may train either way, in degrees, given what is around it. */
+function arcOf(
+  layout: readonly ModuleSpec[],
+  index: number,
+  reach: number,
+): { arcLeft: number; arcRight: number } {
+  if (index < 0 || layout[index] === undefined) return { arcLeft: 0, arcRight: 0 };
+  const arc = firingArc(layout, index, reach);
+  return { arcLeft: radiansToDegrees(arc.left), arcRight: radiansToDegrees(arc.right) };
 }
 
 /** Both manoeuvring envelopes, sampled in the same directions. */

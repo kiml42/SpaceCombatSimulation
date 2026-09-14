@@ -242,6 +242,17 @@ export interface Blueprint {
 export interface DesignModule {
   readonly spec: ModuleSpec;
   readonly stats: ModuleStats;
+  /**
+   * Which module of the expanded layout this was.
+   *
+   * Not always its own position in `modules`: a draft compile leaves out what
+   * it cannot measure, so the two lists part company the moment a size is
+   * typed down to zero. Anything holding an index into the layout — an editor
+   * pointing at the module under the cursor — needs this to find the module
+   * here, and re-deriving which ones were dropped would be a second copy of
+   * that rule waiting to disagree with the first.
+   */
+  readonly index: number;
   /** Centre of the module relative to the centre of mass, body frame. */
   readonly x: number;
   readonly y: number;
@@ -926,6 +937,13 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
   comX /= mass;
   comY /= mass;
 
+  // Where each kept module sat in the expansion, since a draft compile may
+  // have dropped some of it.
+  const layoutIndex: number[] = [];
+  for (let i = 0; i < expanded.length; i++) {
+    if (moduleProblem(expanded[i]!) === null) layoutIndex.push(i);
+  }
+
   const modules: DesignModule[] = [];
   const thrusters: ThrusterSpec[] = [];
   const turrets: DesignTurret[] = [];
@@ -950,7 +968,7 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
       radius = max(radius, sqrt(dx * dx + dy * dy));
     }
 
-    modules.push({ spec, stats: s, x, y, angle });
+    modules.push({ spec, stats: s, x, y, angle, index: layoutIndex[i]! });
 
     if (spec.kind === 'thruster') {
       thrusters.push({

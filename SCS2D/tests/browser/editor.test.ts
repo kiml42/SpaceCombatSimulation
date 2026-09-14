@@ -205,6 +205,43 @@ describe('the editor in a browser', () => {
     expect(await page.textContent('#moduleStats')).not.toMatch(/Gun/);
   });
 
+  it('burns a selected engine, and lets it die down again', async () => {
+    // How much warm colour is on the canvas. Exhaust is the only large warm
+    // thing the page draws — the hull and its trim are neutral greys, whose
+    // red and blue match — so counting pixels where red runs well ahead of
+    // blue measures the plume. The selection outline is warm too, which is why
+    // this is compared against itself rather than against a fixed number.
+    const warmth = async (): Promise<number> =>
+      page.evaluate(() => {
+        const canvas = document.getElementById('view') as HTMLCanvasElement;
+        const ctx = canvas.getContext('2d');
+        if (ctx === null) return 0;
+        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let warm = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i]! > 120 && data[i]! - data[i + 2]! > 35) warm++;
+        }
+        return warm;
+      });
+
+    // Added rather than hunted for by pixel: where a given module lands on
+    // screen depends on how the camera framed the ship. A new module is
+    // selected the moment it is placed, which is the state under test.
+    await page.click('#newShip');
+    await page.click('[data-add="thruster"]');
+    expect(await page.textContent('#propKind')).toBe('thruster');
+    const cold = await warmth();
+
+    await page.waitForTimeout(1200);
+    const burning = await warmth();
+    expect(burning).toBeGreaterThan(cold * 2);
+
+    // Deselecting winds it down rather than cutting it.
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(1200);
+    expect(await warmth()).toBeLessThan(burning / 2);
+  });
+
   it('adds a module, and says what is now wrong with the layout', async () => {
     await page.selectOption('#ship', 'Corvette');
     await page.click('[data-add="turret"]');

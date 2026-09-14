@@ -20,13 +20,14 @@ import {
   moduleAt,
   movePlacement,
   positionHandle,
-  removePlacement,
+  removeCopy,
   snap,
   unlinkable,
   unlinkPlacement,
   updatePlacement,
 } from './edit.js';
 import { emptyBlueprint, Library, toFileText } from './library.js';
+import { Demonstration } from './demonstrate.js';
 import { drawOverlay } from './overlay.js';
 import { previewSnapshot } from './preview.js';
 import { designStats, envelopes, moduleReadout, type Envelopes } from './stats.js';
@@ -84,7 +85,11 @@ export function startEditor(): void {
   const doc = new EditorDocument(library.load('Corvette') ?? emptyBlueprint('New ship'));
   const camera: Camera = { x: 0, y: 0, scale: 8 };
   const snapshot = new Snapshot();
+  const demonstration = new Demonstration();
   let fitPending = true;
+  /** Wall time of the last animated frame, or 0 when nothing is animating. */
+  let lastFrame = 0;
+  let frameRequested = false;
   // Measured when the layout changes, not when the view moves. The holding
   // curve costs thousands of allocations; panning must not pay for them.
   let envelope: Envelopes | null = null;
@@ -139,6 +144,7 @@ export function startEditor(): void {
     } else {
       snapshot.shipCount = 0;
     }
+    if (view.design !== null) demonstration.writeInto(snapshot);
     draw(ctx, snapshot, camera, canvas.width, canvas.height);
     drawOverlay(
       ctx,
@@ -149,8 +155,51 @@ export function startEditor(): void {
     );
   };
 
-  const numbers = (value: number, places = 1): string =>
-    value.toLocaleString('en-GB', { maximumFractionDigits: places });
+  /**
+   * A number at `places` decimals, widened until it shows at least two
+   * significant figures.
+   *
+   * Without the floor, a small gun's shell reads as "0 kg" — a figure that is
+   * not merely imprecise but wrong, since it says the round has no mass. The
+   * decimals are a floor rather than a fixed count so a heavy shell still
+   * reads 89.8 rather than being rounded to 90.
+   */
+  /**
+   * Animate for as long as there is something to animate.
+   *
+   * Frames are asked for only while an engine is spooling or a round is in the
+   * air, so a still picture costs nothing. There is no fixed step and nothing
+   * to reproduce: this is a picture of a module, not a state of the world.
+   */
+  const animate = (now: number): void => {
+    frameRequested = false;
+    const design = doc.view.design;
+    if (design === null) {
+      lastFrame = 0;
+      return;
+    }
+    const dt = lastFrame === 0 ? 0 : Math.min((now - lastFrame) / 1000, 0.1);
+    lastFrame = now;
+    demonstration.step(design, doc.selectedModules(), dt);
+    render();
+    if (demonstration.running) requestFrame();
+    else lastFrame = 0;
+  };
+
+  function requestFrame(): void {
+    if (frameRequested) return;
+    frameRequested = true;
+    window.requestAnimationFrame(animate);
+  }
+
+  const numbers = (value: number, places = 1, significant = 2): string => {
+    let decimals = places;
+    if (value !== 0 && Number.isFinite(value)) {
+      const magnitude = Math.floor(Math.log10(Math.abs(value)));
+      decimals = Math.max(places, Math.min(20, significant - 1 - magnitude));
+    }
+    return value.toLocaleString('en-GB', { maximumFractionDigits: decimals });
+  };
 
   const renderStats = (): void => {
     const design = doc.view.design;
@@ -179,17 +228,13 @@ export function startEditor(): void {
         s.headingCost < 0.005 ? 'none — thrust is balanced' : `up to ${numbers(s.headingCost * 100)}%`,
       ],
     ];
-    const turrets = s.turrets
-      .map(
-        (t, i) =>
-          `<tr><th>Turret ${i + 1}</th><td>${numbers(t.calibre * 1000, 0)} mm` +
-          `${t.barrels > 1 ? ` ×${t.barrels}` : ''}, ${numbers(t.roundsPerMinute)} rpm, ` +
-          `${numbers(t.muzzleSpeed, 0)} m/s, ${numbers(t.roundMass, 1)} kg shell, ` +
-          `arc ${numbers(t.arcRight, 0)}°R–${numbers(t.arcLeft, 0)}°L at ${numbers(t.traverseRate)} °/s</td></tr>`,
-      )
-      .join('');
+    // No turret rows: a gun's figures belong to the gun, and selecting it
+    // shows them. Repeating them here made the ship's own totals hard to find
+    // on a ship with several mounts, and said nothing the module panel does
+    // not say better.
+    rows.push(['Turrets', `${s.turrets.length}`]);
     statsPanel.innerHTML =
-      `<table>${rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}${turrets}</table>`;
+      `<table>${rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table>`;
   };
 
   const renderProblems = (): void => {
@@ -266,11 +311,14 @@ export function startEditor(): void {
         : `Shared: drawn ${copies} times. Size, facing and notes change every copy; ` +
           `position moves this one.`;
 
-    renderModuleStats(spec);
+    renderModuleStats(spec, doc.selectedModules()[0] ?? -1);
   };
 
-  const renderModuleStats = (spec: ModuleSpec): void => {
-    const readout = moduleReadout(spec);
+  const renderModuleStats = (spec: ModuleSpec, index: number): void => {
+    // Given the whole layout, so a turret's arc can be worked out from what is
+    // around it — the one figure on this panel that is not a property of the
+    // module alone.
+    const readout = moduleReadout(spec, doc.view.modules, index);
     const rows = readout.rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('');
     const gun =
       readout.gun === null
@@ -278,7 +326,9 @@ export function startEditor(): void {
         : `<tr><th>Gun</th><td>${numbers(readout.gun.calibre * 1000, 0)} mm` +
           `${readout.gun.barrels > 1 ? ` ×${readout.gun.barrels}` : ''}, ` +
           `${numbers(readout.gun.roundsPerMinute)} rpm, ${numbers(readout.gun.muzzleSpeed, 0)} m/s, ` +
-          `${numbers(readout.gun.roundMass, 1)} kg shell, trains at ` +
+          `${numbers(readout.gun.roundMass, 1)} kg shell</td></tr>` +
+          `<tr><th>Arc</th><td>${numbers(readout.gun.arcRight, 0)}°R–` +
+          `${numbers(readout.gun.arcLeft, 0)}°L, trains at ` +
           `${numbers(readout.gun.traverseRate)} °/s</td></tr>`;
     moduleStats.innerHTML = `<table>${rows}${gun}</table>`;
   };
@@ -325,6 +375,10 @@ export function startEditor(): void {
     renderStats();
     renderProblems();
     render();
+    // A newly selected engine or gun has something to show, and a deselected
+    // one has a plume to wind down, so either way a change of selection is a
+    // reason to start asking for frames again.
+    requestFrame();
   };
 
   // ---- editing ------------------------------------------------------------
@@ -396,11 +450,12 @@ export function startEditor(): void {
     });
   }
 
-  el<HTMLButtonElement>('propDelete').addEventListener('click', () => {
-    const path = doc.selection;
-    if (path === null) return;
-    change(removePlacement(doc.blueprint, path));
-  });
+  const deleteSelected = (): void => {
+    const origin = doc.selectedOrigin();
+    if (origin === null) return;
+    change(removeCopy(doc.blueprint, origin));
+  };
+  el<HTMLButtonElement>('propDelete').addEventListener('click', deleteSelected);
 
   duplicateButton.addEventListener('click', () => {
     const origin = doc.selectedOrigin();
@@ -427,11 +482,12 @@ export function startEditor(): void {
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-add]')) {
     button.addEventListener('click', () => {
       const kind = button.dataset['add'] as ModuleSpec['kind'];
-      const spec: ModuleSpec = {
-        ...DEFAULTS[kind],
-        x: snap(camera.x, SNAP_METRES),
-        y: snap(camera.y, SNAP_METRES),
-      };
+      // At the layout's own origin, not at the middle of the view. A ship is
+      // drawn about its origin — the authored ones are, and the frame the
+      // player types coordinates in is that one — so starting every module
+      // wherever the camera happened to be left builds a ship quietly off
+      // centre, and the first module of a new ship decides where the rest go.
+      const spec: ModuleSpec = { ...DEFAULTS[kind], x: 0, y: 0 };
       const added = addModule(doc.blueprint, spec);
       doc.apply(added.blueprint);
       doc.select(added.path);
@@ -476,6 +532,7 @@ export function startEditor(): void {
     const blueprint = library.load(name);
     if (blueprint === null) return;
     doc.replace(blueprint);
+    demonstration.reset();
     fitPending = true;
     gesture = false;
     refresh();
@@ -645,10 +702,9 @@ export function startEditor(): void {
       fitPending = true;
       refresh();
     } else if (event.key === 'Delete' || event.key === 'Backspace') {
-      const path = doc.selection;
-      if (path === null) return;
+      if (doc.selection === null) return;
       event.preventDefault();
-      change(removePlacement(doc.blueprint, path));
+      deleteSelected();
     } else if (event.key === 'Escape') {
       doc.select(null);
       refresh();
