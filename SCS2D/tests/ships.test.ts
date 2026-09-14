@@ -530,4 +530,66 @@ describe('beam gunnery', () => {
       r.grid.rebuild(r.world.bodies);
     }
   });
+
+  it('Keeps firing for the expected duration even when the target is lost', () => {
+    const twin = compileBlueprint({
+      name: 'Twin',
+      modules: [
+        { kind: 'structure', x: 0, y: 0, length: 10, width: 4 },
+        { kind: 'beamTurret', x: 8, y: 0, length: 6, width: 4, barrels: 2 },
+      ],
+    });
+    const r = rig();
+    const ship = r.ships.spawn(r.world, { design: twin, x: 0, y: 0 });
+    const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
+    r.ships.setOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.remove(enemy);
+
+    // Fire 1st round
+    r.ships.command(DT, r.world);
+    r.grid.rebuild(r.world.bodies);
+    expect(r.ships.fire(r.world, r.projectiles, r.beams)).toBe(1);
+
+    // todo look up the body ID for the enemy ship and destroy it now that the beam has started firing.
+    var x = r.world.bodies.destroy[enemy];
+
+    const gun = twin.turrets[0]!.gun;
+
+    // advance time until the beam turns off again
+    let timeSinceTrigger = 0;
+    while(r.beams.count > 0 && timeSinceTrigger < 100 * gun.beamOnTime)
+    {
+      advanceTime();
+      // only counts on the first frame it starts firing
+      expect(r.ships.fire(r.world, r.projectiles, r.beams)).toBe(0);
+      timeSinceTrigger += DT;
+    }
+    expect(timeSinceTrigger).toBeCloseTo(gun.beamOnTime, 6);
+
+    // Advance cooldown until next shot can fire
+    let timeSpentReloading = 0;
+    let mostRecentFiredCount = -1;
+    do {
+      advanceTime();
+      // beam count should be 0 until the beam is turned on by the fire step.
+      expect(r.beams.count).toBe(0);
+      mostRecentFiredCount = r.ships.fire(r.world, r.projectiles, r.beams);
+      timeSpentReloading += DT;
+    }
+    while(mostRecentFiredCount == 0 && timeSpentReloading < 100 * gun.cycleTime)
+
+  expect(timeSpentReloading).toBeCloseTo(gun.cycleTime, 6);
+    expect(mostRecentFiredCount).toBe(1);
+    expect(r.beams.count).toBe(1);
+
+    // Fire 2nd beam (barrel 1): should be at +0.5 * spacing in y
+    const y1 = r.beams.startY[0]!;
+    expect(y1).toBeCloseTo(+0.5 * spacing, 6);
+
+    function advanceTime() {
+      r.beams.clear(); // beams are cleared every time step
+      r.ships.command(DT, r.world);
+      r.grid.rebuild(r.world.bodies);
+    }
+  });
 });
