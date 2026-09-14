@@ -3,8 +3,10 @@ import {
   math,
   parseBlueprint,
   radiansToDegrees,
+  samePlacement,
   Snapshot,
   type Blueprint,
+  type ModulePath,
   type ModuleSpec,
   type Placement,
 } from '../sim/index.js';
@@ -192,15 +194,26 @@ export function startEditor(): void {
     const copies = doc.selectedModules().length;
     if (placement === null || isModuleSpec(placement) === false) {
       properties.hidden = true;
+      shownSelection = null;
       return;
     }
     properties.hidden = false;
     const spec = placement as ModuleSpec;
+    // Whether the panel is still describing the module it was describing last
+    // time. Compared by placement rather than by identity, because a path
+    // object is rebuilt on every edit even when the selection has not moved.
+    const path = doc.selection;
+    const sameModule =
+      shownSelection !== null && path !== null && samePlacement(shownSelection, path);
+    shownSelection = path;
     el<HTMLElement>('propKind').textContent = spec.kind;
-    // Never overwrite the box being typed into: a refresh triggered by the
-    // keystroke would otherwise reformat the number under the cursor.
     for (const [key, input] of Object.entries(propInputs)) {
-      if (document.activeElement === input) continue;
+      // Never overwrite the box being typed into: a refresh triggered by the
+      // keystroke would otherwise reformat the number under the cursor. That
+      // holds only while the panel is describing the *same* module — moving to
+      // another one has to rewrite every box, focused or not, or the panel
+      // goes on showing the values of the module that was left behind.
+      if (sameModule && document.activeElement === input) continue;
       if (key === 'notes') input.value = spec.notes ?? '';
       else if (key === 'x' || key === 'y') input.value = String(key === 'x' ? spec.x : spec.y);
       else if (key === 'length' || key === 'width') input.value = String(spec[key]);
@@ -268,6 +281,9 @@ export function startEditor(): void {
    * of a gesture takes an undo step; the rest amend it.
    */
   let gesture = false;
+
+  /** Which placement the properties panel is currently showing. */
+  let shownSelection: ModulePath | null = null;
 
   const change = (next: Blueprint | null, continues = false): void => {
     if (next === null) return;
@@ -452,6 +468,11 @@ export function startEditor(): void {
   let drag: Drag | null = null;
 
   canvas.addEventListener('pointerdown', (event) => {
+    // A canvas is not focusable, so clicking it does not move focus off a
+    // properties box on its own. Leaving focus there would keep that box out
+    // of every refresh, and would swallow Delete, Escape and F, which are all
+    // held back while something is being typed into.
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     const world = worldAt(event);
     const hit = moduleAt(doc.view.modules, world.x, world.y);
     canvas.setPointerCapture(event.pointerId);

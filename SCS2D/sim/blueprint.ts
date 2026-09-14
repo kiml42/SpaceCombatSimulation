@@ -870,16 +870,25 @@ export function compileBlueprint(blueprint: Blueprint): ShipDesign {
  * geometry has no interior, which would otherwise be measured as NaN and
  * poison every total on the panel.
  *
+ * A module whose geometry cannot be measured — a size typed down to zero on
+ * the way to typing a smaller one — is **left out rather than refused**, so
+ * the rest of the ship goes on being drawn and measured around the hole. It
+ * is left out and not substituted, because there is no size it could be given
+ * that would not be a lie about what the layout says. `blueprintProblems`
+ * names it, which is where the player finds out.
+ *
  * Nothing that spawns a ship may call this. Overlapping hull and an engine
  * mounted to nothing are real defects and compile perfectly happily; the guard
- * against them is `compileBlueprint`, which is the only door into a battle.
+ * against them is `compileBlueprint`, which is the only door into a battle —
+ * and it admits nothing this would have to leave out, since `blueprintProblem`
+ * has already refused a layout with an unmeasurable module in it.
  */
 export function compileDraft(blueprint: Blueprint): ShipDesign {
-  const specs = expandBlueprint(blueprint);
-  if (specs.length === 0) throw new Error(`${blueprint.name}: a ship needs at least one module`);
-  for (let i = 0; i < specs.length; i++) {
-    const problem = moduleProblem(specs[i]!);
-    if (problem !== null) throw new Error(`${blueprint.name}, module ${i} — ${problem}`);
+  const expanded = expandBlueprint(blueprint);
+  if (expanded.length === 0) throw new Error(`${blueprint.name}: a ship needs at least one module`);
+  const specs = expanded.filter((spec) => moduleProblem(spec) === null);
+  if (specs.length === 0) {
+    throw new Error(`${blueprint.name}: no module has geometry that can be measured`);
   }
   const stats = specs.map(moduleStats);
 
