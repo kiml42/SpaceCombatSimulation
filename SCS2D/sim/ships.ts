@@ -329,20 +329,20 @@ export class Ships {
       for (let t = 0; t < indices.length; t++) {
         var state = turretStates[t]!;
         const gun = design.turrets[t]!.gun;
-        const barrel = barrels[t]!;
+        var barrel = barrels[t]!;
 
         // TODO The beam isn't staying on when it loses it's tracking.
         if(timers[t]! <= 0 && state != TurretState.Idle){
           // the timer's run out, progress the state (except idle, which only progresses when ready to fire)
           if(state == TurretState.Reloading){
-            // finished reloading -> idle
+            // finished reloading -> idle & switch to the next barrel
             state = turretStates[t] = TurretState.Idle;
+            barrel = barrels[t] = (barrel + 1) % gun.barrelCount;
           }
           if(state == TurretState.CommittedOn){
-            // finished firing -> reload & switch to the next barrel
+            // finished firing -> reload
             state = turretStates[t] = TurretState.Reloading;
             timers[t] = gun.cycleTime;
-            barrels[t] = (barrel + 1) % gun.barrelCount;
           }
         }
 

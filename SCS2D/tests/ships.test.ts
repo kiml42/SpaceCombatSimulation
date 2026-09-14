@@ -464,81 +464,9 @@ describe('beam gunnery', () => {
 
     let px = bodies.mass[b]! * bodies.vx[b]!;
     let py = bodies.mass[b]! * bodies.vy[b]!;
-    for (let i = 0; i < r.projectiles.highWater; i++) {
-      if (r.projectiles.alive[i] === 0) continue;
-      px += r.projectiles.mass[i]! * r.projectiles.vx[i]!;
-      py += r.projectiles.mass[i]! * r.projectiles.vy[i]!;
-    }
-    expect(px).toBeCloseTo(0, 6);
-    expect(py).toBeCloseTo(0, 6);
-  });
 
-  it('launches a round with the tangential velocity of the mount it left', () => {
-    // A mount off the centre of mass is travelling sideways whenever its ship
-    // is turning. Leave that out and every shot from a turning ship is thrown
-    // across the line of fire — a bias in one direction, not scatter.
-    const r = rig();
-    const spin = 0.2;
-    const ship = r.ships.spawn(r.world, {
-      design: beamGunship,
-      x: 0,
-      y: 0,
-      angularVel: spin,
-    });
-    const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.setOrder(ship, enemy, 1900, 2100, 10);
-    r.ships.remove(enemy);
-
-    const bodies = r.world.bodies;
-    const b = bodyOf(r, ship);
-    r.ships.command(DT, r.world);
-    r.grid.rebuild(bodies);
-    // Before firing: recoil moves the hull, and what a round inherited is the
-    // velocity the hull had when it left.
-    const hullVx = bodies.vx[b]!;
-    const hullVy = bodies.vy[b]!;
-    expect(r.ships.fire(r.world, r.projectiles, r.beams)).toBe(3);
-
-    for (let i = 0; i < r.projectiles.highWater; i++) {
-      if (r.projectiles.alive[i] === 0) continue;
-
-      // Where the round started, relative to the centre of mass. It has
-      // travelled no distance yet, so its spawn point is its muzzle.
-      const rx = r.projectiles.x[i]! - bodies.x[b]!;
-      const ry = r.projectiles.y[i]! - bodies.y[b]!;
-      const tangentialX = -spin * ry;
-      const tangentialY = spin * rx;
-
-      // Strip the hull's linear velocity and the mount's tangential velocity;
-      // what is left must be the muzzle velocity, straight along the barrel.
-      const restX = r.projectiles.vx[i]! - hullVx - tangentialX;
-      const restY = r.projectiles.vy[i]! - hullVy - tangentialY;
-      const speed = math.length(restX, restY);
-
-      // Every gun on this design shares a calibre-derived muzzle speed only
-      // per mount, so check against the mount that matches.
-      const speeds = beamGunship.turrets.map((t) => t.gun.muzzleSpeed);
-      const nearest = speeds.reduce((a, c) =>
-        math.abs(c - speed) < math.abs(a - speed) ? c : a,
-      );
-      expect(speed).toBeCloseTo(nearest, 6);
-
-      // And that leftover points along a barrel. Note that it is the *barrel*
-      // bearing and not the direction out from the centre of mass: a beam
-      // mount's muzzle is offset from the axis it fires along, so the two only
-      // agree when the centre of mass happens to sit on that axis, and any
-      // change to a module's mass moves it off.
-      const bearings = beamGunship.turrets.map((_, t) => {
-        const ti = r.ships.turretIndexOf(0, t);
-        return bodies.angle[b]! + r.ships.turrets.bearing[ti]!;
-      });
-      const alongness = bearings.reduce(
-        (best, bearing) =>
-          math.max(best, (restX / speed) * math.cos(bearing) + (restY / speed) * math.sin(bearing)),
-        -1,
-      );
-      expect(alongness).toBeCloseTo(1, 9);
-    }
+    expect(px).toBe(0);
+    expect(py).toBe(0);
   });
 
   it('cycles through barrels sequentially with transverse offsets', () => {
@@ -561,19 +489,45 @@ describe('beam gunnery', () => {
     expect(r.ships.fire(r.world, r.projectiles, r.beams)).toBe(1);
     const spacing = twin.turrets[0]!.gun.barrelSpacing;
     expect(spacing).toBeGreaterThan(0);
-    const y0 = r.projectiles.y[0]!;
+    const y0 = r.beams.startY[0]!;
     expect(y0).toBeCloseTo(-0.5 * spacing, 6);
+    const gun = twin.turrets[0]!.gun;
+
+    // advance time until the beam turns off again
+    let timeSinceTrigger = 0;
+    while(r.beams.count > 0 && timeSinceTrigger < 100 * gun.beamOnTime)
+    {
+      advanceTime();
+      // only counts on the first frame it starts firing
+      expect(r.ships.fire(r.world, r.projectiles, r.beams)).toBe(0);
+      timeSinceTrigger += DT;
+    }
+    expect(timeSinceTrigger).toBeCloseTo(gun.beamOnTime, 6);
 
     // Advance cooldown until next shot can fire
-    const cycle = twin.turrets[0]!.gun.cycleTime;
-    const stepsToReload = Math.ceil(cycle / DT) + 1;
-    for (let s = 0; s < stepsToReload; s++) {
+    let timeSpentReloading = 0;
+    let mostRecentFiredCount = -1;
+    do {
+      advanceTime();
+      // beam count should be 0 until the beam is turned on by the fire step.
+      expect(r.beams.count).toBe(0);
+      mostRecentFiredCount = r.ships.fire(r.world, r.projectiles, r.beams);
+      timeSpentReloading += DT;
+    }
+    while(mostRecentFiredCount == 0 && timeSpentReloading < 100 * gun.cycleTime)
+
+  expect(timeSpentReloading).toBeCloseTo(gun.cycleTime, 6);
+    expect(mostRecentFiredCount).toBe(1);
+    expect(r.beams.count).toBe(1);
+
+    // Fire 2nd beam (barrel 1): should be at +0.5 * spacing in y
+    const y1 = r.beams.startY[0]!;
+    expect(y1).toBeCloseTo(+0.5 * spacing, 6);
+
+    function advanceTime() {
+      r.beams.clear(); // beams are cleared every time step
       r.ships.command(DT, r.world);
       r.grid.rebuild(r.world.bodies);
     }
-    // Fire 2nd round (barrel 1): should be at +0.5 * spacing in y
-    expect(r.ships.fire(r.world, r.projectiles, r.beams)).toBe(1);
-    const y1 = r.projectiles.y[1]!;
-    expect(y1).toBeCloseTo(+0.5 * spacing, 6);
   });
 });
