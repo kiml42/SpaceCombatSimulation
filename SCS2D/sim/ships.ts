@@ -304,9 +304,6 @@ export class Ships {
 
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
-      const order = this.orders[i]!;
-      if (order.target === NO_TARGET) continue;
-
       const design = this.designs[i]!;
       const indices = this.turretIndex[i]!;
       const timers = this.cooldown[i]!;
@@ -332,14 +329,14 @@ export class Ships {
         var barrel = barrels[t]!;
 
         // TODO The beam isn't staying on when it loses it's tracking.
-        if(timers[t]! <= 0 && state != TurretState.Idle){
+        if (timers[t]! <= 0 && state != TurretState.Idle) {
           // the timer's run out, progress the state (except idle, which only progresses when ready to fire)
-          if(state == TurretState.Reloading){
+          if (state == TurretState.Reloading) {
             // finished reloading -> idle & switch to the next barrel
             state = turretStates[t] = TurretState.Idle;
             barrel = barrels[t] = (barrel + 1) % gun.barrelCount;
           }
-          if(state == TurretState.CommittedOn){
+          if (state == TurretState.CommittedOn) {
             // finished firing -> reload
             state = turretStates[t] = TurretState.Reloading;
             timers[t] = gun.cycleTime;
@@ -350,8 +347,10 @@ export class Ships {
 
         const ti = indices[t]!;
 
+        const order = this.orders[i]!;
+
         // skip if it's not ready to fire, and it's not committed to being on.
-        if (!this.turrets.readyToFire(ti) && state != TurretState.CommittedOn) continue;
+        if ((order.target === NO_TARGET || !this.turrets.readyToFire(ti)) && state != TurretState.CommittedOn) continue;
 
         const lateralOffset =
           gun.barrelCount > 1
@@ -415,7 +414,7 @@ export class Ships {
             gun.calibre,
             0
           );
-          if(state == TurretState.Idle){
+          if (state == TurretState.Idle) {
             // was idle before, now committed on for beamOnTime
             state = turretStates[t] = TurretState.CommittedOn;
             timers[t] = gun.beamOnTime;
