@@ -435,7 +435,7 @@ describe('beam gunnery', () => {
     expect(r.fired).toBeLessThanOrEqual(ceiling);
   });
 
-  it('recoils by exactly the momentum a whole salvo leaves with', () => {
+  it('recoils is zero', () => {
     // Every round in a salvo must leave from the *same* hull velocity. Apply
     // each gun's recoil as it fires and the later rounds inherit a hull the
     // earlier ones already pushed, so the broadside gains momentum invented by
@@ -495,8 +495,7 @@ describe('beam gunnery', () => {
 
     // advance time until the beam turns off again
     let timeSinceTrigger = 0;
-    while(r.beams.count > 0 && timeSinceTrigger < 100 * gun.beamOnTime)
-    {
+    while (r.beams.count > 0 && timeSinceTrigger < 100 * gun.beamOnTime) {
       advanceTime();
       // only counts on the first frame it starts firing
       expect(r.ships.fire(r.world, r.projectiles, r.beams)).toBe(0);
@@ -514,9 +513,9 @@ describe('beam gunnery', () => {
       mostRecentFiredCount = r.ships.fire(r.world, r.projectiles, r.beams);
       timeSpentReloading += DT;
     }
-    while(mostRecentFiredCount == 0 && timeSpentReloading < 100 * gun.cycleTime)
+    while (mostRecentFiredCount == 0 && timeSpentReloading < 100 * gun.cycleTime)
 
-  expect(timeSpentReloading).toBeCloseTo(gun.cycleTime, 6);
+    expect(timeSpentReloading).toBeCloseTo(gun.cycleTime, 6);
     expect(mostRecentFiredCount).toBe(1);
     expect(r.beams.count).toBe(1);
 
@@ -557,8 +556,7 @@ describe('beam gunnery', () => {
 
     // advance time until the beam turns off again
     let timeSinceTrigger = 0;
-    while(r.beams.count > 0 && timeSinceTrigger < 100 * gun.beamOnTime)
-    {
+    while (r.beams.count > 0 && timeSinceTrigger < 100 * gun.beamOnTime) {
       advanceTime();
       // only counts on the first frame it starts firing
       expect(r.ships.fire(r.world, r.projectiles, r.beams)).toBe(0);
@@ -576,9 +574,9 @@ describe('beam gunnery', () => {
       mostRecentFiredCount = r.ships.fire(r.world, r.projectiles, r.beams);
       timeSpentReloading += DT;
     }
-    while(mostRecentFiredCount == 0 && timeSpentReloading < 100 * gun.cycleTime)
+    while (mostRecentFiredCount == 0 && timeSpentReloading < 100 * gun.cycleTime)
 
-  expect(timeSpentReloading).toBeCloseTo(gun.cycleTime, 6);
+    expect(timeSpentReloading).toBeCloseTo(gun.cycleTime, 6);
     expect(mostRecentFiredCount).toBe(1);
     expect(r.beams.count).toBe(1);
 
