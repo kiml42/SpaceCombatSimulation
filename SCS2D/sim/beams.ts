@@ -295,8 +295,6 @@ export class Beams {
         hits.push(i, bi, hit.x, hit.y, nx, ny);
         continue;
       }
-
-      // this.kill(i);
     }
   }
 
