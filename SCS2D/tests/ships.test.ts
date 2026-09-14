@@ -550,7 +550,8 @@ describe('beam gunnery', () => {
     expect(r.ships.fire(r.world, r.projectiles, r.beams)).toBe(1);
 
     // todo look up the body ID for the enemy ship and destroy it now that the beam has started firing.
-    var x = r.world.bodies.destroy[enemy];
+    const enemyBody = r.ships.body(enemy);   // grab the BodyId before removing
+    r.world.destroy(enemyBody);              // the body itself
 
     const gun = twin.turrets[0]!.gun;
 
