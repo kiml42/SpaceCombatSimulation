@@ -15,7 +15,7 @@ import { addModule, moduleAt, movePlacement, removePlacement, snap, updatePlacem
 import { emptyBlueprint, Library, toFileText } from './library.js';
 import { drawOverlay } from './overlay.js';
 import { previewSnapshot } from './preview.js';
-import { designStats } from './stats.js';
+import { designStats, envelopes, type Envelopes } from './stats.js';
 
 /**
  * The blueprint editor's page: the canvas, the panels and the pointer.
@@ -71,6 +71,9 @@ export function startEditor(): void {
   const camera: Camera = { x: 0, y: 0, scale: 8 };
   const snapshot = new Snapshot();
   let fitPending = true;
+  // Measured when the layout changes, not when the view moves. The holding
+  // curve costs thousands of allocations; panning must not pay for them.
+  let envelope: Envelopes | null = null;
 
   // ---- the controls -------------------------------------------------------
 
@@ -122,7 +125,7 @@ export function startEditor(): void {
     draw(ctx, snapshot, camera, canvas.width, canvas.height);
     drawOverlay(
       ctx,
-      { design: view.design, modules: view.modules, selected: doc.selectedModules() },
+      { design: view.design, modules: view.modules, selected: doc.selectedModules(), envelope },
       camera,
       canvas.width,
       canvas.height,
@@ -134,11 +137,11 @@ export function startEditor(): void {
 
   const renderStats = (): void => {
     const design = doc.view.design;
-    if (design === null) {
+    if (design === null || envelope === null) {
       statsPanel.innerHTML = `<p class="none">${doc.view.underivable ?? 'Nothing to measure yet.'}</p>`;
       return;
     }
-    const s = designStats(design);
+    const s = designStats(design, envelope);
     const rows = [
       ['Dry mass', `${numbers(s.mass / 1000, 2)} t`],
       ['Inertia', `${numbers(s.inertia / 1000, 0)} t·m²`],
@@ -151,6 +154,13 @@ export function startEditor(): void {
         `${numbers(radiansToDegrees(s.turnLeft), 2)} / ${numbers(radiansToDegrees(s.turnRight), 2)} °/s²`,
       ],
       ['Authority', s.fullAuthority ? 'full' : 'incomplete — cannot hold a heading'],
+      // What a layout pays for its thrust not being balanced about its centre
+      // of mass: the acceleration it gives up to avoid spinning. The envelope
+      // shows which directions it is paid in.
+      [
+        'Heading cost',
+        s.headingCost < 0.005 ? 'none — thrust is balanced' : `up to ${numbers(s.headingCost * 100)}%`,
+      ],
     ];
     const turrets = s.turrets
       .map(
@@ -224,6 +234,8 @@ export function startEditor(): void {
   };
 
   const refresh = (): void => {
+    const design = doc.view.design;
+    envelope = design === null ? null : envelopes(design);
     if (document.activeElement !== shipName) shipName.value = doc.blueprint.name;
     if (document.activeElement !== shipNotes) shipNotes.value = doc.blueprint.notes ?? '';
     undoButton.disabled = !doc.canUndo;

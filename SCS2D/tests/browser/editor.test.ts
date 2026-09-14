@@ -93,7 +93,11 @@ describe('the editor in a browser', () => {
   });
 
   it('shows what the layout works out to, and that it would fly', async () => {
-    expect(await page.textContent('#stats')).toMatch(/Dry mass/);
+    const stats = (await page.textContent('#stats')) ?? '';
+    expect(stats).toMatch(/Dry mass/);
+    // The holding curve is measured through the allocator, so its appearance
+    // is also the check that the allocator ran without throwing on load.
+    expect(stats).toMatch(/Heading cost/);
     expect(await page.textContent('#problems')).toMatch(/No problems/);
   });
 
