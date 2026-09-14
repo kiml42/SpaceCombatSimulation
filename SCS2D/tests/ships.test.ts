@@ -39,12 +39,15 @@ function rig(): Rig {
   const projectiles = new Projectiles(256);
   const beams = new Beams(256);
   const hits = new ProjectileHits();
+  const beamHits = new BeamHits();
   const grid = new SpatialGrid(64);
   const r: Rig = {
     world,
     ships,
     projectiles,
+    beams,
     hits,
+    beamHits,
     grid,
     fired: 0,
     step(): void {

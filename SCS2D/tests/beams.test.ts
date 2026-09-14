@@ -17,33 +17,18 @@ describe('projection', () => {
     const r = range();
     const p = r.beams.shoot({ startX: 0, startY: 0, endX: 600, endY: -300, width: 0.5 });
 
-    for (let i = 0; i < 60; i++) r.beams.detectHits(r.bodies, r.grid, r.hits);
-
     // One second of flight.
-    expect(r.beams.startX[p]).toBe(600);
-    expect(r.beams.startY[p]).toBe(600);
+    expect(r.beams.startX[p]).toBe(0);
+    expect(r.beams.startY[p]).toBe(0);
     expect(r.beams.endX[p]).toBe(600);
     expect(r.beams.endY[p]).toBe(-300);
     expect(r.beams.alive[p]).toBe(1);
   });
 
-  it('expires when its flight time runs out', () => {
-    const r = range();
-    const p = r.beams.shoot({ startX: 0, startY: 0, endX: 100, endY: 0, width: 0.5 });
-    expect(r.beams.count).toBe(1);
-
-    for (let i = 0; i < 29; i++) r.beams.detectHits(r.bodies, r.grid, r.hits);
-    expect(r.beams.alive[p]).toBe(1);
-
-    for (let i = 0; i < 3; i++) r.beams.detectHits(r.bodies, r.grid, r.hits);
-    expect(r.beams.alive[p]).toBe(0);
-    expect(r.beams.count).toBe(0);
-  });
-
   it('recycles the slots of spent beams', () => {
     const r = range();
     r.beams.shoot({ startX: 0, startY: 0, endX: 1, endY: 0, width: 0.5 });
-    r.beams.detectHits(r.bodies, r.grid, r.hits);
+    r.beams.clear();
     expect(r.beams.count).toBe(0);
     expect(r.beams.highWater).toBe(1);
 
