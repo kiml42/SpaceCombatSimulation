@@ -42,14 +42,17 @@ inside any one file is not contiguous.
   while holding a heading — and each turret's calibre, rate of fire, muzzle
   speed and arc. Modules are
   clicked to select and dragged to move on a snapping grid, with the rest of their
-  values typed into a panel; every problem with the layout is listed rather than
-  enforced, and undo and redo run throughout. Ships are opened from the built-in
+  values typed into a panel beside the module's own mass, capacity, armour and gun;
+  a module can be duplicated into a shared part placed twice, and a shared part
+  unlinked back into separate modules, with position belonging to the copy and
+  everything else to all of them; every problem with the layout is listed rather
+  than enforced, and undo and redo run throughout. Ships are opened from the built-in
   library or from browser storage, saved back to it, and exported and imported as
   blueprint files. Both pages build to one self-contained HTML file each.
-- **Next:** the second half of §8 step 1. The editor edits assemblies that already exist but
-  cannot *restructure* a layout — it never makes an assembly, places a second copy of one, or
-  reaches an instance to change its repeat, step or mirror — and size and facing are still typed
-  rather than dragged. ROADMAP.md's Slice 1 section has what remains.
+- **Next:** the second half of §8 step 1. The editor can make and unmake an assembly of a
+  *single* module, but cannot group several into one — which is what mirrored construction needs —
+  and cannot reach an instance to change its repeat, step or mirror. Size and facing are still
+  typed rather than dragged. ROADMAP.md's Slice 1 section has what remains.
 - **Blocked on:** nothing.
 - **Owed:** nothing outstanding. The `duel` golden scenario discharges the coverage that was owed
   for thruster allocation and turrets: it drives both through the same loop the game uses, so a

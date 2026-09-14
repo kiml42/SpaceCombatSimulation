@@ -102,17 +102,24 @@ of a single module is the ordinary shared-part case and deliberately not a separ
 containing other assemblies is what lets a whole wing, or a whole side of a ship, be one thing.
 
 The format has all of this and the editor reads it: selecting one copy of a shared part selects the
-*placement*, says how many copies it draws, and edits every one of them together. What the editor cannot yet
-do is **restructure** — it edits assemblies that exist and never makes, unmakes or reshapes one. Everything
-below is that gap.
+*placement*, says how many copies it draws, and edits every one of them together — except position, which
+belongs to the copy, since a shared module sits at its assembly's origin and each instance carries a pose of
+its own. Duplicate makes a shared part out of a module and unlink dissolves one, so the editor can make and
+unmake an assembly of a single module. What it cannot do is **restructure** anything larger than that.
+Everything below is that gap.
 
-**Making an assembly is the tedious half, and it is the missing half.** Reflection is what replaces a
-mirrored editing mode: symmetry becomes structural rather than something the editor keeps in step — build a
-side once, place it twice with one instance mirrored, and the two cannot disagree about anything but which
-side they are on. That removes a mode, its state, and the question of what happens to a module straddling
-the centreline. What the editor owes instead is making assemblies easy to *create* — select some modules,
-make them an assembly, place another copy — since the tedium moves from placing modules to structuring them.
-None of that exists, and until it does a new ship can only be drawn the long way.
+**Making an assembly from several modules is the missing half.** Duplicating a module makes a *one-module*
+assembly and places it twice, and unlinking reverses that, so shared parts can be created and undone one
+module at a time. What cannot be done is selecting several modules and grouping them — and that is the case
+reflection needs. Reflection is what replaces a mirrored editing mode: symmetry becomes structural rather
+than something the editor keeps in step — build a side once, place it twice with one instance mirrored, and
+the two cannot disagree about anything but which side they are on. That removes a mode, its state, and the
+question of what happens to a module straddling the centreline. Until grouping exists, none of it is
+reachable from the editor, and a symmetrical ship has to be drawn one side at a time.
+
+Two things follow from having only the one-module case, and both are worth deciding rather than inheriting.
+A duplicate cannot be **mirrored**, since an instance's `mirror` flag is not reachable; and a shared part
+cannot be given a second, differently-posed group to belong to. Both wait on the same work.
 
 **An instance is not selectable, so a repeat cannot be edited.** A long repeated structure is a count, not a
 chain: an instance may carry `repeat` and a `step`, which places that many copies with each one a step on
@@ -121,19 +128,22 @@ edit. The step is applied in each copy's own frame, so a step angle walks the co
 of mounts costs the same as a row of them. Both are capped, per instance and again over the whole expansion,
 because repetition and nesting multiply. All of that is in the format and none of it is reachable from the
 editor: clicking a drawn module selects the module inside the assembly, never the instance placing it, so
-`repeat`, `step`, `mirror` and an instance's own position can only be hand-edited in the file.
+`repeat`, `step` and `mirror` can only be hand-edited in the file. An instance's *position* is the exception
+and is reachable, because a shared module keeps none of its own — dragging one copy moves the instance,
+which is the only way moving one copy of a shared part can mean anything.
 
 How copies differ is instead **additive**: an instance may carry `extra` modules of its own, placed in the
 same frame as the assembly's, so they move and reflect with it. That is the whole of the divergence
-mechanism, and two editor actions are to be built from it rather than from anything new in the format:
+mechanism, and the editor's unlink is built from it rather than from anything new in the format. Unlink
+takes the shape the layout makes necessary: when the module is the whole of its assembly, each instance is
+replaced by what it expanded to and the assembly goes, which is exact down to module order; when the
+assembly holds other modules too, the module leaves the definition and every instance is handed its own copy
+as an `extra`. The second has a cost the button states — the part is gone from the assembly, so a *new*
+instance will not have it, and extras land after the assembly's own modules, so the part moves down the
+expansion order and the ship changes very slightly even though nothing about its geometry has.
 
-- **Unlink a part** takes it out of the definition and hands every instance its own copy as an extra. The
-  ship is unchanged at the moment it happens and each copy is separately editable afterwards. The cost,
-  which the button has to state, is that the part is gone from the assembly — a *new* instance will not
-  have it — and that extras land after the assembly's own modules, so the part moves down the expansion
-  order and the ship changes very slightly even though nothing about its geometry has.
-- **Unlink a copy** replaces one instance with its expanded modules inline. That needs no format support at
-  all, and it preserves order exactly, at the cost of that copy sharing nothing thereafter.
+What is *not* built is unlinking **one** copy while the others stay linked. Both shapes above unlink every
+copy at once, because the editor cannot yet name a single instance.
 
 **A connectivity warning is still owed.** Validity is shown rather than enforced: a layout may be invalid
 while it is being worked on — you often have to move one module through another to get it past — so the

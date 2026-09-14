@@ -200,6 +200,22 @@ export interface ModuleOrigin {
   readonly rotation: number;
   /** Whether that frame is reflected across its own x-axis. */
   readonly mirrored: boolean;
+  /**
+   * The frame the innermost instance on the path was written in, or null if
+   * the module was not placed through one.
+   *
+   * What it is for: an instance is where a *copy* of a shared part keeps its
+   * own position, and moving one copy therefore means moving the instance
+   * rather than the module. That edit has to be expressed in the frame the
+   * instance was written in, which is one level out from the module's own.
+   */
+  readonly instanceFrame: Frame | null;
+}
+
+/** A placing frame: how far it is turned, and whether it is reflected. */
+export interface Frame {
+  readonly rotation: number;
+  readonly mirrored: boolean;
 }
 
 /** A layout resolved to modules, each paired with where it was written. */
@@ -498,7 +514,7 @@ function foldAngle(a: number): number {
  */
 export function expandBlueprint(blueprint: Blueprint): ModuleSpec[] {
   const out: ModuleSpec[] = [];
-  place(blueprint.modules, blueprint, 0, 0, 0, false, 0, out, null, []);
+  place(blueprint.modules, blueprint, 0, 0, 0, false, 0, out, null, [], null);
   return out;
 }
 
@@ -515,7 +531,7 @@ export function expandBlueprint(blueprint: Blueprint): ModuleSpec[] {
 export function expandWithOrigins(blueprint: Blueprint): Expansion {
   const modules: ModuleSpec[] = [];
   const origins: ModuleOrigin[] = [];
-  place(blueprint.modules, blueprint, 0, 0, 0, false, 0, modules, origins, []);
+  place(blueprint.modules, blueprint, 0, 0, 0, false, 0, modules, origins, [], null);
   return { modules, origins };
 }
 
@@ -595,6 +611,9 @@ function place(
   // one array pushed and popped down the walk rather than a new one per level.
   origins: ModuleOrigin[] | null,
   trail: PathStep[],
+  // The frame the instance that led here was written in — one level out from
+  // this one, and null at the top, where nothing led here.
+  instanceFrame: Frame | null,
 ): void {
   if (depth > MAX_ASSEMBLY_DEPTH) {
     throw new Error(`${blueprint.name}: assemblies nested more than ${MAX_ASSEMBLY_DEPTH} deep`);
@@ -635,8 +654,11 @@ function place(
       let cy = y;
       let crot = turned;
       for (let copy = 0; copy < copies; copy++) {
+        // The instance is written in *this* list, so this level's frame is the
+        // one an edit to its position has to be expressed in.
+        const writtenIn: Frame = { rotation, mirrored };
         trail.push({ index, copy, into: 'assembly', assembly: placement.use });
-        place(assembly.modules, blueprint, cx, cy, crot, flipped, depth + 1, out, origins, trail);
+        place(assembly.modules, blueprint, cx, cy, crot, flipped, depth + 1, out, origins, trail, writtenIn);
         trail.pop();
         // Extras come after what the assembly defines, in the same frame. The
         // ordering is worth noticing rather than assuming harmless: module
@@ -646,7 +668,7 @@ function place(
         // geometry has.
         if (placement.extra !== undefined) {
           trail.push({ index, copy, into: 'extra' });
-          place(placement.extra, blueprint, cx, cy, crot, flipped, depth + 1, out, origins, trail);
+          place(placement.extra, blueprint, cx, cy, crot, flipped, depth + 1, out, origins, trail, writtenIn);
           trail.pop();
         }
 
@@ -678,7 +700,7 @@ function place(
     if (placement.notes !== undefined) spec.notes = placement.notes;
     out.push(spec);
     if (origins !== null) {
-      origins.push({ path: [...trail, { index, copy: 0 }], rotation, mirrored });
+      origins.push({ path: [...trail, { index, copy: 0 }], rotation, mirrored, instanceFrame });
     }
     if (out.length > MAX_EXPANDED_MODULES) {
       throw new Error(

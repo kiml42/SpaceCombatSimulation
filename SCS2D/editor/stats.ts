@@ -1,8 +1,12 @@
 import {
   Allocation,
   math,
+  moduleStats,
   radiansToDegrees,
   shortfall,
+  traverseAccel,
+  traverseRate,
+  type ModuleSpec,
   type ShipDesign,
 } from '../sim/index.js';
 
@@ -149,6 +153,56 @@ const MAGNITUDE_STEPS = 96;
 
 /** How much of a demand may go unmet and still count as met. */
 const TOLERANCE = 1e-6;
+
+/** What one module is, on its own, rather than what it contributes to a ship. */
+export interface ModuleReadout {
+  /** Rows to show, already worded and in units a player reads. */
+  rows: [string, string][];
+  /** The gun, when the module is a turret and its geometry makes one. */
+  gun: TurretReadout | null;
+}
+
+/**
+ * The selected module's own figures.
+ *
+ * Read from `moduleStats`, which is the same derivation the ship totals are
+ * summed from, so a module's mass here and the change it makes to the ship's
+ * mass are the same number by construction rather than by agreement.
+ *
+ * The arc a turret can train through is deliberately *not* here: it is a
+ * property of the module's surroundings rather than of the module, so it
+ * belongs to a compiled ship and appears with the ship's turret figures.
+ */
+export function moduleReadout(spec: ModuleSpec): ModuleReadout {
+  const stats = moduleStats(spec);
+  const rows: [string, string][] = [
+    ['Mass', `${(stats.mass / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t`],
+    ['Capacity', `${stats.capacity.toLocaleString('en-GB', { maximumFractionDigits: 1 })} m²`],
+    ['Armour', `${(stats.wallThickness * 1000).toLocaleString('en-GB', { maximumFractionDigits: 0 })} mm`],
+    ['Hit points', stats.hitPoints.toLocaleString('en-GB', { maximumFractionDigits: 0 })],
+  ];
+  if (stats.thrust > 0) {
+    rows.push(['Thrust', `${(stats.thrust / 1e6).toLocaleString('en-GB', { maximumFractionDigits: 2 })} MN`]);
+  }
+  const gun = stats.gun;
+  return {
+    rows,
+    gun:
+      gun === null
+        ? null
+        : {
+            calibre: gun.calibre,
+            barrels: gun.barrelCount,
+            roundMass: gun.roundMass,
+            muzzleSpeed: gun.muzzleSpeed,
+            roundsPerMinute: gun.cycleTime > 0 ? 60 / gun.cycleTime : 0,
+            // Its surroundings decide these, and a lone module has none.
+            arcLeft: 0,
+            arcRight: 0,
+            traverseRate: radiansToDegrees(traverseRate(traverseAccel(stats.mass, stats.inertia))),
+          },
+  };
+}
 
 /** Both manoeuvring envelopes, sampled in the same directions. */
 export interface Envelopes {

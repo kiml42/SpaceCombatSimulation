@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  expandBlueprint,
   expandWithOrigins,
   math,
+  moduleStats,
+  samePlacement,
   parseBlueprint,
   serialiseBlueprint,
   type Blueprint,
@@ -12,6 +15,10 @@ import { EditorDocument } from '../editor/document.js';
 import {
   addModule,
   cloneBlueprint,
+  duplicatePlacement,
+  positionHandle,
+  unlinkable,
+  unlinkPlacement,
   moduleAt,
   movePlacement,
   removePlacement,
@@ -21,7 +28,7 @@ import {
 } from '../editor/edit.js';
 import { emptyBlueprint, Library, toFileText, type KeyValueStore } from '../editor/library.js';
 import { previewSnapshot } from '../editor/preview.js';
-import { designStats, envelopes, headingCost } from '../editor/stats.js';
+import { designStats, envelopes, headingCost, moduleReadout } from '../editor/stats.js';
 
 /**
  * The editor's half: what an edit does to a layout, and what the page reads
@@ -105,11 +112,11 @@ describe('moving a module', () => {
 
 describe('toPlacementFrame', () => {
   it('is the identity in an unturned, unreflected frame', () => {
-    expect(toPlacementFrame({ path: [], rotation: 0, mirrored: false }, 2, 3)).toEqual({ dx: 2, dy: 3 });
+    expect(toPlacementFrame({ path: [], rotation: 0, mirrored: false, instanceFrame: null }, 2, 3)).toEqual({ dx: 2, dy: 3 });
   });
 
   it('undoes the rotation before the reflection', () => {
-    const local = toPlacementFrame({ path: [], rotation: math.HALF_PI, mirrored: true }, 0, 1);
+    const local = toPlacementFrame({ path: [], rotation: math.HALF_PI, mirrored: true, instanceFrame: null }, 0, 1);
     expect(local.dx).toBeCloseTo(1, 12);
     expect(local.dy).toBeCloseTo(0, 12);
   });
@@ -449,5 +456,167 @@ describe('Library', () => {
 
   it('starts a new ship blank, with no module chosen for the player', () => {
     expect(emptyBlueprint('Blank').modules).toEqual([]);
+  });
+});
+
+describe('duplicating a module', () => {
+  it('makes it a shared part and places a second copy', () => {
+    const bp = ship({ modules: [hull, { kind: 'turret', x: 12, y: 0, length: 4, width: 4 }] });
+    const before = expandWithOrigins(bp);
+    const result = duplicatePlacement(bp, before.origins[1]!)!;
+    const after = expandWithOrigins(result.blueprint);
+
+    expect(after.modules).toHaveLength(3);
+    // The ship it was made from is untouched: the first two modules are where
+    // and what they were, so only the copy is new.
+    expect(after.modules[0]).toEqual(before.modules[0]);
+    expect(after.modules[1]).toEqual(before.modules[1]);
+    // And the two turrets are now the same part.
+    expect(samePlacement(after.origins[1]!.path, after.origins[2]!.path)).toBe(true);
+  });
+
+  it('puts the copy somewhere it can be seen and grabbed', () => {
+    const bp = ship({ modules: [hull, { kind: 'turret', x: 12, y: 0, length: 4, width: 4 }] });
+    const result = duplicatePlacement(bp, expandWithOrigins(bp).origins[1]!)!;
+    const copies = expandWithOrigins(result.blueprint).modules.slice(1);
+    expect(copies[0]).toMatchObject({ x: 12, y: 0 });
+    expect(copies[1]).toMatchObject({ x: 12, y: 4 });
+  });
+
+  it('changes both copies when the shared module is edited', () => {
+    const bp = ship({ modules: [hull, { kind: 'turret', x: 12, y: 0, length: 4, width: 4 }] });
+    const doc = new EditorDocument(duplicatePlacement(bp, expandWithOrigins(bp).origins[1]!)!.blueprint);
+    doc.selectModule(1);
+    doc.apply(updatePlacement(doc.blueprint, doc.selection!, (p) => ({ ...p, length: 6 }))!);
+    const turrets = doc.view.modules.filter((m) => m.kind === 'turret');
+    expect(turrets).toHaveLength(2);
+    expect(turrets.every((m) => m.length === 6)).toBe(true);
+  });
+
+  it('places one more copy rather than nesting when pressed again', () => {
+    const bp = ship({ modules: [hull, { kind: 'turret', x: 12, y: 0, length: 4, width: 4 }] });
+    let current = duplicatePlacement(bp, expandWithOrigins(bp).origins[1]!)!.blueprint;
+    for (let i = 0; i < 2; i++) {
+      const origins = expandWithOrigins(current).origins;
+      current = duplicatePlacement(current, origins[origins.length - 1]!)!.blueprint;
+    }
+    // Three presses, three extra turrets — not the eight that wrapping an
+    // assembly inside a copy of itself would have produced.
+    expect(expandWithOrigins(current).modules.filter((m) => m.kind === 'turret')).toHaveLength(4);
+    expect(Object.keys(current.assemblies ?? {})).toHaveLength(1);
+  });
+});
+
+describe('the placement that carries a copy’s position', () => {
+  it('is the module itself when it is not shared', () => {
+    const bp = ship({ modules: [hull] });
+    const origin = expandWithOrigins(bp).origins[0]!;
+    const handle = positionHandle(bp, origin);
+    expect(handle.perCopy).toBe(false);
+    expect(handle.origin.path).toEqual(origin.path);
+  });
+
+  it('is the instance when the module is the whole of its assembly', () => {
+    const origins = expandWithOrigins(CORVETTE).origins;
+    const wing = expandWithOrigins(CORVETTE).modules.findIndex(
+      (m) => m.length === 4 && m.width === 3,
+    );
+    const handle = positionHandle(CORVETTE, origins[wing]!);
+    expect(handle.perCopy).toBe(true);
+    // Each wing box's instance is its own placement, so moving one moves one.
+    const moved = movePlacement(CORVETTE, handle.origin, 0, 2)!;
+    const before = positions(CORVETTE);
+    const after = positions(moved);
+    expect(after.filter((p, i) => p[1] !== before[i]![1])).toHaveLength(1);
+  });
+
+  it('stays with the module when the assembly holds more than it', () => {
+    const bp = ship({
+      assemblies: {
+        wing: {
+          modules: [
+            { kind: 'structure', x: 0, y: 0, length: 4, width: 3 },
+            { kind: 'structure', x: 4, y: 0, length: 4, width: 3 },
+          ],
+        },
+      },
+      modules: [hull, { use: 'wing', x: 0, y: 6 }, { use: 'wing', x: 0, y: -6 }],
+    });
+    const origins = expandWithOrigins(bp).origins;
+    // Dragging one part of a group has to move the part, not the whole group.
+    expect(positionHandle(bp, origins[1]!).perCopy).toBe(false);
+  });
+});
+
+describe('unlinking a shared module', () => {
+  it('leaves the ship bit-identical when the module was the whole assembly', () => {
+    const before = expandBlueprint(CORVETTE);
+    const wing = before.findIndex((m) => m.length === 4 && m.width === 3);
+    const origins = expandWithOrigins(CORVETTE).origins;
+    expect(unlinkable(CORVETTE, origins[wing]!)).toBe(4);
+
+    const unlinked = unlinkPlacement(CORVETTE, origins[wing]!)!;
+    // Exact, down to module order — which is part of the ship, since thruster
+    // allocation and firing both run over it.
+    expect(expandBlueprint(unlinked)).toEqual(before);
+    expect(unlinked.assemblies?.['wingBox']).toBeUndefined();
+  });
+
+  it('lets the copies be edited apart afterwards', () => {
+    const origins = expandWithOrigins(CORVETTE).origins;
+    const wing = expandWithOrigins(CORVETTE).modules.findIndex(
+      (m) => m.length === 4 && m.width === 3,
+    );
+    const doc = new EditorDocument(unlinkPlacement(CORVETTE, origins[wing]!)!);
+    doc.selectModule(wing);
+    expect(doc.selectedModules()).toHaveLength(1);
+    doc.apply(updatePlacement(doc.blueprint, doc.selection!, (p) => ({ ...p, width: 5 }))!);
+    expect(doc.view.modules.filter((m) => m.length === 4 && m.width === 5)).toHaveLength(1);
+  });
+
+  it('hands the module to each instance as an extra when the assembly holds more', () => {
+    const bp = ship({
+      assemblies: {
+        wing: {
+          modules: [
+            { kind: 'structure', x: 0, y: 0, length: 4, width: 3 },
+            { kind: 'structure', x: 4, y: 0, length: 4, width: 3 },
+          ],
+        },
+      },
+      modules: [hull, { use: 'wing', x: 0, y: 6 }, { use: 'wing', x: 0, y: -6 }],
+    });
+    const origins = expandWithOrigins(bp).origins;
+    const unlinked = unlinkPlacement(bp, origins[2]!)!;
+    expect(unlinked.assemblies?.['wing']?.modules).toHaveLength(1);
+    // Same modules in the same places, and each copy now separately editable.
+    expect(expandWithOrigins(unlinked).modules).toHaveLength(5);
+    const after = expandWithOrigins(unlinked);
+    expect(samePlacement(after.origins[2]!.path, after.origins[4]!.path)).toBe(false);
+  });
+
+  it('is offered only for a part that is actually shared', () => {
+    const bp = ship({ modules: [hull] });
+    expect(unlinkable(bp, expandWithOrigins(bp).origins[0]!)).toBe(0);
+  });
+});
+
+describe('moduleReadout', () => {
+  it('reports the module rather than the ship', () => {
+    const spec: ModuleSpec = { kind: 'turret', x: 0, y: 0, length: 6, width: 4, barrels: 2 };
+    const readout = moduleReadout(spec);
+    const stats = moduleStats(spec);
+    const mass = readout.rows.find(([k]) => k === 'Mass')![1];
+    expect(mass).toBe(`${(stats.mass / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t`);
+    expect(readout.gun!.barrels).toBe(2);
+    expect(readout.gun!.calibre).toBe(stats.gun!.calibre);
+  });
+
+  it('gives a thruster a thrust row and a structure module none', () => {
+    const thruster = moduleReadout({ kind: 'thruster', x: 0, y: 0, length: 3, width: 3 });
+    expect(thruster.rows.some(([k]) => k === 'Thrust')).toBe(true);
+    expect(thruster.gun).toBeNull();
+    const structure = moduleReadout({ kind: 'structure', x: 0, y: 0, length: 3, width: 3 });
+    expect(structure.rows.some(([k]) => k === 'Thrust')).toBe(false);
   });
 });
