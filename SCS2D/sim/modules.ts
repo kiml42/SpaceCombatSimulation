@@ -550,7 +550,7 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
     muzzleSpeed: -1,
     muzzleEnergy,
     cycleTime: cycleTime,
-    beamOnTime: cycleTime * 20
+    beamOnTime: cycleTime
   };
 }
 
