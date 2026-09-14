@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
- * Bundle the viewer into one self-contained HTML file in `dist/`.
+ * Bundle each page into one self-contained HTML file in `dist/`.
  *
  * Everything is inlined — no separate script, no imports at runtime — because
  * the two places this gets looked at both want a single file: a static host
@@ -23,21 +23,37 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
-const shell = join(root, 'host', 'index.html');
-const out = join(root, 'dist', 'index.html');
 
-const options: BuildOptions = {
-  entryPoints: [join(root, 'host', 'entry.ts')],
-  bundle: true,
-  format: 'iife',
-  target: 'es2022',
-  minify: true,
-  write: false,
-  legalComments: 'none',
-};
+/**
+ * The pages, each its own bundle.
+ *
+ * The editor is a separate page rather than a panel on the battle view
+ * because its inputs and outputs are both blueprints: it needs to know
+ * nothing about a battle in progress, so there is no shared clock and no
+ * snapshot stream to route between them. Two bundles is the cost, and it is
+ * the smaller half of the trade.
+ */
+const PAGES = [
+  { entry: 'entry.ts', shell: 'index.html', out: 'index.html' },
+  { entry: 'editorEntry.ts', shell: 'editor.html', out: 'editor.html' },
+] as const;
 
-/** Wrap the bundle in the page shell and write it out. */
-async function emit(files: readonly OutputFile[] | undefined): Promise<void> {
+type Page = (typeof PAGES)[number];
+
+function optionsFor(page: Page): BuildOptions {
+  return {
+    entryPoints: [join(root, 'host', page.entry)],
+    bundle: true,
+    format: 'iife',
+    target: 'es2022',
+    minify: true,
+    write: false,
+    legalComments: 'none',
+  };
+}
+
+/** Wrap a bundle in its page shell and write it out. */
+async function emit(page: Page, files: readonly OutputFile[] | undefined): Promise<void> {
   const js = files?.[0]?.text;
   if (js === undefined) throw new Error('esbuild produced no output');
 
@@ -49,7 +65,7 @@ async function emit(files: readonly OutputFile[] | undefined): Promise<void> {
     throw new Error('the bundle contains `</script`, which would close the tag it is inlined into');
   }
 
-  const html = await readFile(shell, 'utf8');
+  const html = await readFile(join(root, 'host', page.shell), 'utf8');
   // The replacement is a *function*, and it has to be. Given a string,
   // `replace` reads `$&`, `$\``, `$'` and `$1` in it as instructions rather
   // than as text — so a bundle containing `$&` anywhere gets the matched
@@ -58,43 +74,53 @@ async function emit(files: readonly OutputFile[] | undefined): Promise<void> {
   // becomes `x>$&&y`, and whether it happens at all depends on which name the
   // minifier hands out this build. A function replacement is given no such
   // interpretation.
-  const page = html.replace('</body>', () => `  <script>${js}</script>\n  </body>`);
+  const document = html.replace('</body>', () => `  <script>${js}</script>\n  </body>`);
 
+  const out = join(root, 'dist', page.out);
   await mkdir(dirname(out), { recursive: true });
-  await writeFile(out, page, 'utf8');
+  await writeFile(out, document, 'utf8');
 
-  const kb = (page.length / 1024).toFixed(1);
+  const kb = (document.length / 1024).toFixed(1);
   const stamp = new Date().toLocaleTimeString('en-GB');
-  console.log(`${stamp}  dist/index.html  ${kb} kB  (one file, nothing external)`);
+  console.log(`${stamp}  dist/${page.out}  ${kb} kB  (one file, nothing external)`);
 }
 
 if (process.argv.includes('--watch')) {
-  const ctx = await context({
-    ...options,
-    plugins: [
-      {
-        name: 'emit-html',
-        setup(builder) {
-          builder.onEnd(async (result) => {
-            // esbuild reports its own errors and keeps watching, so a failed
-            // build leaves the last good page in place rather than deleting it.
-            if (result.errors.length === 0) await emit(result.outputFiles);
-          });
-        },
-      },
-    ],
-  });
-  await ctx.watch();
+  const contexts = await Promise.all(
+    PAGES.map(async (page) =>
+      context({
+        ...optionsFor(page),
+        plugins: [
+          {
+            name: 'emit-html',
+            setup(builder) {
+              builder.onEnd(async (result) => {
+                // esbuild reports its own errors and keeps watching, so a failed
+                // build leaves the last good page in place rather than deleting it.
+                if (result.errors.length === 0) await emit(page, result.outputFiles);
+              });
+            },
+          },
+        ],
+      }),
+    ),
+  );
+  await Promise.all(contexts.map((ctx) => ctx.watch()));
 
-  // esbuild watches what it bundles, which is the TypeScript. The page shell is
-  // not an input to the bundle, so it needs watching separately or edits to the
-  // markup appear to do nothing.
-  watchDir(dirname(shell), (_event, file) => {
-    if (file === 'index.html') void ctx.rebuild();
+  // esbuild watches what it bundles, which is the TypeScript. The page shells
+  // are not inputs to any bundle, so they need watching separately or edits to
+  // the markup appear to do nothing. A shell is rebuilt through its own page's
+  // context, so editing one page's markup does not rewrite the other.
+  watchDir(join(root, 'host'), (_event, file) => {
+    PAGES.forEach((page, i) => {
+      if (file === page.shell) void contexts[i]!.rebuild();
+    });
   });
 
   console.log('watching — edit and save, then refresh the page. Ctrl+C to stop.');
 } else {
-  const result = await build(options);
-  await emit(result.outputFiles);
+  for (const page of PAGES) {
+    const result = await build(optionsFor(page));
+    await emit(page, result.outputFiles);
+  }
 }

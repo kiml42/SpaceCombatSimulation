@@ -152,6 +152,63 @@ export function isInstance(placement: Placement): placement is AssemblyInstance 
   return 'use' in placement;
 }
 
+/**
+ * One hop down a layout, addressing an entry of a placement list.
+ *
+ * A path of these is how the editor names a placement: the flat list a ship is
+ * built from has thrown away which assembly each module was written in, and
+ * "the eighth module" is not something a player can edit, because seven of the
+ * eight may be copies of one thruster.
+ */
+export interface PathStep {
+  /** Index into the placement list at this level. */
+  readonly index: number;
+  /** Which copy of a repeated instance this descends through; 0 otherwise. */
+  readonly copy: number;
+  /**
+   * Which of an instance's two lists the next step reads: the assembly's own
+   * modules, or the extras this copy carries. Absent on the last step, which
+   * names a placement rather than descending through one.
+   */
+  readonly into?: 'assembly' | 'extra';
+  /**
+   * The assembly this step descends into, when it descends into one.
+   *
+   * Carried because an assembly's modules are written *once* however many
+   * instances place them, so which instance a path happened to arrive through
+   * is not part of what it names. Without the name here, saying whether two
+   * paths reach the same placement would need the blueprint to hand.
+   */
+  readonly assembly?: string;
+}
+
+/** Where a placement is written, from the blueprint's own module list down. */
+export type ModulePath = readonly PathStep[];
+
+/**
+ * Where one expanded module came from: the placement that wrote it, and the
+ * frame that placement was made in.
+ *
+ * The frame is what an editor needs to turn a drag into an edit. A module
+ * inside a mirrored, turned assembly moves on screen along one axis and is
+ * *written* along another, and the transform between the two is known here —
+ * in the walk that applied it — and nowhere else.
+ */
+export interface ModuleOrigin {
+  readonly path: ModulePath;
+  /** Rotation of the placing frame, radians. */
+  readonly rotation: number;
+  /** Whether that frame is reflected across its own x-axis. */
+  readonly mirrored: boolean;
+}
+
+/** A layout resolved to modules, each paired with where it was written. */
+export interface Expansion {
+  readonly modules: ModuleSpec[];
+  /** One per module, in the same order. */
+  readonly origins: ModuleOrigin[];
+}
+
 export interface Blueprint {
   name: string;
   /**
@@ -441,8 +498,88 @@ function foldAngle(a: number): number {
  */
 export function expandBlueprint(blueprint: Blueprint): ModuleSpec[] {
   const out: ModuleSpec[] = [];
-  place(blueprint.modules, blueprint, 0, 0, 0, false, 0, out);
+  place(blueprint.modules, blueprint, 0, 0, 0, false, 0, out, null, []);
   return out;
+}
+
+/**
+ * The same expansion, with each module paired to the placement that wrote it.
+ *
+ * Separate from `expandBlueprint` because everything the simulation does works
+ * on the flat list and would only be paying for a second array; separate from
+ * a walk of its own because a second walk is a second set of rules about
+ * mirroring, repetition and extras, and the two would drift. An editor
+ * selecting a module needs to reach the *placement* — which may be one
+ * thruster drawn eight times — and it has to be this walk that says so.
+ */
+export function expandWithOrigins(blueprint: Blueprint): Expansion {
+  const modules: ModuleSpec[] = [];
+  const origins: ModuleOrigin[] = [];
+  place(blueprint.modules, blueprint, 0, 0, 0, false, 0, modules, origins, []);
+  return { modules, origins };
+}
+
+/**
+ * Where a placement is *written*: the assembly whose definition contains it,
+ * and where the path picks up inside that definition.
+ *
+ * Everything before the last hop into an assembly says how this copy was
+ * reached, not what it is. A wing placed four times is four instances of one
+ * assembly, and the modules inside it were typed once — so a path through the
+ * third instance and a path through the first name the same thing.
+ */
+function definition(path: ModulePath): { root: string; from: number } {
+  for (let i = path.length - 1; i >= 0; i--) {
+    const step = path[i]!;
+    if (step.into === 'assembly') return { root: step.assembly ?? '', from: i + 1 };
+  }
+  // No hop into an assembly: the placement is written in the layout itself,
+  // which is the one definition with no name.
+  return { root: '', from: 0 };
+}
+
+/**
+ * Whether two paths name the same placement — the same text in the file, which
+ * is the thing an edit changes.
+ *
+ * Copies of a shared part answer true, and that is the whole point: an editor
+ * that could not tell would let a player drag one wing of a mirrored pair and
+ * be surprised by the other.
+ */
+export function samePlacement(a: ModulePath, b: ModulePath): boolean {
+  const da = definition(a);
+  const db = definition(b);
+  if (da.root !== db.root) return false;
+  if (a.length - da.from !== b.length - db.from) return false;
+  for (let i = 0; i + da.from < a.length; i++) {
+    const sa = a[da.from + i]!;
+    const sb = b[db.from + i]!;
+    if (sa.index !== sb.index || sa.into !== sb.into || sa.assembly !== sb.assembly) return false;
+  }
+  return true;
+}
+
+/**
+ * The placement a path names, or null if the path does not lead anywhere —
+ * which it will not, the moment a layout is edited under a stale selection.
+ */
+export function placementAt(blueprint: Blueprint, path: ModulePath): Placement | null {
+  let list: readonly Placement[] = blueprint.modules;
+  for (let i = 0; i < path.length; i++) {
+    const step = path[i]!;
+    const entry = list[step.index];
+    if (entry === undefined) return null;
+    if (i === path.length - 1) return entry;
+    if (!isInstance(entry)) return null;
+    if (step.into === 'extra') {
+      list = entry.extra ?? [];
+    } else {
+      const assembly = blueprint.assemblies?.[entry.use];
+      if (assembly === undefined) return null;
+      list = assembly.modules;
+    }
+  }
+  return null;
 }
 
 function place(
@@ -454,6 +591,10 @@ function place(
   mirrored: boolean,
   depth: number,
   out: ModuleSpec[],
+  // Provenance is recorded only when someone asked for it, and the trail is
+  // one array pushed and popped down the walk rather than a new one per level.
+  origins: ModuleOrigin[] | null,
+  trail: PathStep[],
 ): void {
   if (depth > MAX_ASSEMBLY_DEPTH) {
     throw new Error(`${blueprint.name}: assemblies nested more than ${MAX_ASSEMBLY_DEPTH} deep`);
@@ -462,7 +603,8 @@ function place(
   const c = cos(rotation);
   const s = sin(rotation);
 
-  for (const placement of placements) {
+  for (let index = 0; index < placements.length; index++) {
+    const placement = placements[index]!;
     // Reflect first, then turn, then move: the assembly is built in its own
     // frame and that frame is what gets placed.
     const localY = mirrored ? -placement.y : placement.y;
@@ -493,7 +635,9 @@ function place(
       let cy = y;
       let crot = turned;
       for (let copy = 0; copy < copies; copy++) {
-        place(assembly.modules, blueprint, cx, cy, crot, flipped, depth + 1, out);
+        trail.push({ index, copy, into: 'assembly', assembly: placement.use });
+        place(assembly.modules, blueprint, cx, cy, crot, flipped, depth + 1, out, origins, trail);
+        trail.pop();
         // Extras come after what the assembly defines, in the same frame. The
         // ordering is worth noticing rather than assuming harmless: module
         // order decides thruster allocation and firing order, so moving a part
@@ -501,7 +645,9 @@ function place(
         // list and changes the ship slightly, even though nothing about its
         // geometry has.
         if (placement.extra !== undefined) {
-          place(placement.extra, blueprint, cx, cy, crot, flipped, depth + 1, out);
+          trail.push({ index, copy, into: 'extra' });
+          place(placement.extra, blueprint, cx, cy, crot, flipped, depth + 1, out, origins, trail);
+          trail.pop();
         }
 
         const step = placement.step;
@@ -531,6 +677,9 @@ function place(
     if (placement.barrels !== undefined) spec.barrels = placement.barrels;
     if (placement.notes !== undefined) spec.notes = placement.notes;
     out.push(spec);
+    if (origins !== null) {
+      origins.push({ path: [...trail, { index, copy: 0 }], rotation, mirrored });
+    }
     if (out.length > MAX_EXPANDED_MODULES) {
       throw new Error(
         `${blueprint.name}: expands to more than ${MAX_EXPANDED_MODULES} modules`,
@@ -627,25 +776,48 @@ function structureAhead(spec: ModuleSpec, modules: readonly ModuleSpec[]): boole
   return false;
 }
 
-export function blueprintProblem(blueprint: Blueprint): string | null {
+/**
+ * Everything wrong with a layout, rather than the first thing.
+ *
+ * An editor shows a problems list, and a list of one that grows back as each
+ * entry is fixed makes a layout feel further from valid than it is — you
+ * cannot tell whether you are one move from a working ship or ten. The
+ * simulation only ever wants to know *whether* a layout is buildable, which is
+ * what `blueprintProblem` remains for.
+ *
+ * The structural complaints are the exception and still stop everything: a
+ * layout that names a missing assembly or contains itself cannot be expanded,
+ * so there are no modules to find anything else wrong with.
+ */
+export function blueprintProblems(blueprint: Blueprint): string[] {
   // Assemblies are resolved before anything else looks at the layout, so every
   // rule below is stated once, about the modules a ship is actually built
   // from — rather than once for a module and again for a copy of one.
   const structural = assemblyProblem(blueprint);
-  if (structural !== null) return structural;
+  if (structural !== null) return [structural];
 
-  const modules = expandBlueprint(blueprint);
-  if (modules.length === 0) return `${blueprint.name}: a ship needs at least one module`;
+  let modules: ModuleSpec[];
+  try {
+    modules = expandBlueprint(blueprint);
+  } catch (error) {
+    // Depth and expansion-size limits are enforced by the walk itself, since
+    // both are about what the whole expansion comes to rather than about any
+    // one placement. Reaching one is a problem to report, not a crash.
+    return [error instanceof Error ? error.message : String(error)];
+  }
+
+  const problems: string[] = [];
+  if (modules.length === 0) problems.push(`${blueprint.name}: a ship needs at least one module`);
 
   for (let i = 0; i < modules.length; i++) {
     const problem = moduleProblem(modules[i]!);
-    if (problem !== null) return `${blueprint.name}, module ${i} — ${problem}`;
+    if (problem !== null) problems.push(`${blueprint.name}, module ${i} — ${problem}`);
   }
 
   for (let i = 0; i < modules.length; i++) {
     for (let k = i + 1; k < modules.length; k++) {
       if (modulesOverlap(modules[i]!, modules[k]!)) {
-        return `${blueprint.name}: modules ${i} and ${k} overlap`;
+        problems.push(`${blueprint.name}: modules ${i} and ${k} overlap`);
       }
     }
   }
@@ -664,22 +836,51 @@ export function blueprintProblem(blueprint: Blueprint): string | null {
     const spec = modules[i]!;
     if (spec.kind !== 'thruster') continue;
     if (!structureAhead(spec, modules)) {
-      return (
+      problems.push(
         `${blueprint.name}: thruster ${i} at (${spec.x}, ${spec.y}) has no structure to push ` +
-        `against — the face opposite its nozzle must be against a structure module`
+          `against — the face opposite its nozzle must be against a structure module`,
       );
     }
   }
 
-  return null;
+  return problems;
+}
+
+/** Why a layout cannot be built into a ship, or null if it can. */
+export function blueprintProblem(blueprint: Blueprint): string | null {
+  return blueprintProblems(blueprint)[0] ?? null;
 }
 
 /** Derive everything a ship built to this blueprint is. Throws if it could not be built. */
 export function compileBlueprint(blueprint: Blueprint): ShipDesign {
   const problem = blueprintProblem(blueprint);
   if (problem !== null) throw new Error(`Invalid blueprint — ${problem}`);
+  return compileDraft(blueprint);
+}
 
+/**
+ * Derive the same design from a layout that has *not* been accepted.
+ *
+ * A layout is routinely invalid while it is being worked on — you often have
+ * to drag one module through another to get it past — and the whole value of
+ * an editor is that the picture and the numbers it shows are the ones the
+ * battle would use. So the complaints `blueprintProblem` makes about how a
+ * ship goes together are set aside here, and only what makes a design
+ * *underivable* is refused: a layout with no modules, and a module whose
+ * geometry has no interior, which would otherwise be measured as NaN and
+ * poison every total on the panel.
+ *
+ * Nothing that spawns a ship may call this. Overlapping hull and an engine
+ * mounted to nothing are real defects and compile perfectly happily; the guard
+ * against them is `compileBlueprint`, which is the only door into a battle.
+ */
+export function compileDraft(blueprint: Blueprint): ShipDesign {
   const specs = expandBlueprint(blueprint);
+  if (specs.length === 0) throw new Error(`${blueprint.name}: a ship needs at least one module`);
+  for (let i = 0; i < specs.length; i++) {
+    const problem = moduleProblem(specs[i]!);
+    if (problem !== null) throw new Error(`${blueprint.name}, module ${i} — ${problem}`);
+  }
   const stats = specs.map(moduleStats);
 
   let mass = 0;

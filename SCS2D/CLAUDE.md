@@ -52,19 +52,30 @@ amendment.
 sim/        pure TS simulation (see non-negotiables 1–4)
 render/     the view; consumes snapshots, knows no game rules
             (camera.ts is DOM-free arithmetic, so it is unit-tested)
+editor/     the blueprint editor; only page.ts and overlay.ts touch the DOM,
+            so the edit model, the stats and the library are unit-tested
 ui/         React; UI state only
-host/       window lifecycle, the wall clock, and the controls
+host/       window lifecycle, the wall clock, and the controls — one entry
+            point and one page shell per page
 scenarios/  data files
 ```
+
+**The editor is independent of the running simulation and tightly coupled to the simulation's laws.** It
+never runs a battle — its inputs and outputs are both blueprints — but every mass, thrust, gun figure and
+firing arc it shows comes out of `compileDraft`, and it draws through `render/canvas2d.ts` rather than
+through a renderer of its own. If it ever works one of those out for itself, the editor and the battle
+disagree about the same ship, which is the worst thing the tool can do.
 
 Keep these working — they are the cold-start re-entry path:
 
 - `npm test` — unit tests, determinism tests and the golden scenario checksums
-- `npm run typecheck` — all three TS projects (`sim/` has no ambient types, `render/`+`host/` have the DOM)
+- `npm run typecheck` — all three TS projects (`sim/` has no ambient types; `render/`, `editor/` and
+  `host/` have the DOM)
 - `npm run golden` — re-derive golden checksums after a *deliberate* behaviour change
-- `npm run build` — bundle the viewer to `dist/index.html`, one file with nothing external
+- `npm run build` — bundle both pages to `dist/index.html` and `dist/editor.html`, one file each with
+  nothing external
 - `npm run dev` — the same build on every save, for tinkering; refresh the page to see it
-- `npm run test:browser` — drive that bundle in Chromium; needs `npx playwright install chromium` first
+- `npm run test:browser` — drive those bundles in Chromium; needs `npx playwright install chromium` first
 
 ## Testing
 
