@@ -35,10 +35,19 @@ inside any one file is not contiguous.
   band, training their turrets with lead, and firing salvoes that recoil. A Canvas2D
   viewer draws snapshots of all of it — ships, turret bearings, tracers and the wells
   bending them — with pause, single-step, time scaling, and zoom and pan over an
-  auto-framing camera. It builds to one self-contained HTML file.
-- **Next:** §8 step 1, the blueprint editor. Its file format exists and the authored ships are
-  already stored in it; what remains is the editor itself, so that a layout becomes something a
-  player draws rather than a file they hand-edit. ROADMAP.md's Slice 1 section specifies it.
+  auto-framing camera. A blueprint editor on a second page of its own draws a layout
+  through that same renderer and reports what it bought: mass, inertia, the
+  acceleration available in each direction as figures and as the envelope's own
+  curve, and each turret's calibre, rate of fire, muzzle speed and arc. Modules are
+  clicked to select and dragged to move on a snapping grid, with the rest of their
+  values typed into a panel; every problem with the layout is listed rather than
+  enforced, and undo and redo run throughout. Ships are opened from the built-in
+  library or from browser storage, saved back to it, and exported and imported as
+  blueprint files. Both pages build to one self-contained HTML file each.
+- **Next:** the second half of §8 step 1. The editor edits assemblies that already exist but
+  cannot *restructure* a layout — it never makes an assembly, places a second copy of one, or
+  reaches an instance to change its repeat, step or mirror — and size and facing are still typed
+  rather than dragged. ROADMAP.md's Slice 1 section has what remains.
 - **Blocked on:** nothing.
 - **Owed:** nothing outstanding. The `duel` golden scenario discharges the coverage that was owed
   for thruster allocation and turrets: it drives both through the same loop the game uses, so a
@@ -51,7 +60,7 @@ inside any one file is not contiguous.
   count, which is the direction of travel. A whole gunnery step — bodies, index
   rebuild, and projectiles under gravity — costs ~7 microseconds with 9 bodies and
   ~65 rounds in the air.
-- **Last updated:** 2026-09-11
+- **Last updated:** 2026-09-14
 
 ---
 

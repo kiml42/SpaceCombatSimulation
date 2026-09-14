@@ -110,8 +110,8 @@ jobs:
   viewer:
     name: Viewer (browser)
     runs-on: ubuntu-latest
-    # One row only. These drive a real browser to check the page loads, draws
-    # and responds to its controls — none of which varies by OS or Node
+    # One row only. These drive a real browser to check that each page loads,
+    # draws and responds to its controls — none of which varies by OS or Node
     # version, so the matrix the test job needs would buy nothing here and
     # would pay for a browser download five times over.
     steps:
@@ -125,7 +125,7 @@ jobs:
 
       - run: npm ci
 
-      # Chromium only: the viewer is a canvas and a handful of controls, and a
+      # Chromium only: the pages are a canvas and a handful of controls, and a
       # second engine would double the install for no coverage worth having.
       - run: npx playwright install --with-deps chromium
 
@@ -174,6 +174,10 @@ jobs:
       # every branch that touches a source file, and nothing would guarantee it
       # matched the source it claims to come from — so it goes stale silently
       # and someone eventually demonstrates a build from last month.
+      #
+      # Both pages come out of this one command and the whole of `dist` is
+      # uploaded, so a new page needs nothing here beyond an entry in
+      # `scripts/build.ts`.
       - run: npm run build
 
       - uses: actions/configure-pages@v5

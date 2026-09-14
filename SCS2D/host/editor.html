@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Space Combat Simulation — Ship Editor</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        background: #0b0f16;
+        color: #c8d3e0;
+        font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        display: flex;
+        flex-direction: column;
+      }
+      header, footer { padding: 0.6rem 0.9rem; }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+        border-bottom: 1px solid #1c2533;
+      }
+      h1 { font-size: 13px; font-weight: 600; margin: 0 0.5rem 0 0; color: #e6edf5; }
+      button, input, select, textarea { font: inherit; }
+      button, select, input[type='text'], input[type='number'], textarea {
+        background: #1a2434;
+        color: #dbe6f2;
+        border: 1px solid #2b3a50;
+        border-radius: 4px;
+        padding: 0.2rem 0.5rem;
+      }
+      button { cursor: pointer; padding-inline: 0.7rem; }
+      button:hover:not(:disabled) { background: #223044; }
+      button:disabled { opacity: 0.4; cursor: default; }
+      .grow { flex: 1; }
+      a { color: #7fa8e0; }
+      main { flex: 1; display: flex; min-height: 0; }
+      #view { flex: 1; display: block; touch-action: none; cursor: crosshair; min-width: 0; }
+      #panel {
+        width: 22rem;
+        max-width: 45vw;
+        border-left: 1px solid #1c2533;
+        overflow-y: auto;
+        padding: 0.7rem 0.9rem 2rem;
+      }
+      #panel h2 {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #7f93aa;
+        margin: 1.2rem 0 0.4rem;
+      }
+      #panel section:first-of-type h2 { margin-top: 0; }
+      table { width: 100%; border-collapse: collapse; }
+      th { text-align: left; font-weight: 400; color: #7f93aa; padding: 0.1rem 0.6rem 0.1rem 0; vertical-align: top; }
+      td { text-align: right; padding: 0.1rem 0; }
+      #stats td { color: #e6edf5; }
+      .field { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.3rem; }
+      .field label { flex: 0 0 6.5rem; color: #7f93aa; }
+      .field input, .field textarea { flex: 1; min-width: 0; }
+      .pair { display: flex; gap: 0.4rem; }
+      textarea { width: 100%; resize: vertical; min-height: 3.2rem; }
+      ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
+      li { color: #e6a45b; margin-bottom: 0.2rem; word-break: break-word; }
+      .ok { color: #7fd6a0; margin: 0; }
+      .warn { color: #e6a45b; margin: 0; }
+      .none { color: #7f93aa; margin: 0; }
+      #linked { color: #e9c05f; margin: 0 0 0.5rem; }
+      #kindRow { color: #7f93aa; margin: 0 0 0.5rem; }
+      #propKind { color: #e6edf5; }
+      footer { color: #5d6f85; border-top: 1px solid #1c2533; }
+      @media (max-width: 800px) {
+        main { flex-direction: column; }
+        #panel { width: auto; max-width: none; border-left: none; border-top: 1px solid #1c2533; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Ship editor</h1>
+      <select id="ship" title="Open a ship"></select>
+      <input id="shipName" type="text" size="16" title="The ship's name, which is its identity" />
+      <button id="newShip">New</button>
+      <button id="saveShip">Save</button>
+      <button id="deleteShip">Delete</button>
+      <button id="exportShip">Export</button>
+      <button id="importTrigger">Import</button>
+      <input id="importShip" type="file" accept="application/json,.json" hidden />
+      <span class="grow"></span>
+      <button id="undo">Undo</button>
+      <button id="redo">Redo</button>
+      <a href="index.html">Battle view</a>
+    </header>
+    <main>
+      <canvas id="view"></canvas>
+      <aside id="panel">
+        <section>
+          <h2>Add a module</h2>
+          <button data-add="structure">Structure</button>
+          <button data-add="thruster">Thruster</button>
+          <button data-add="turret">Turret</button>
+        </section>
+        <section id="properties" hidden>
+          <h2>Selected module</h2>
+          <p id="linked" hidden></p>
+          <p id="kindRow">kind <span id="propKind"></span></p>
+          <div class="field">
+            <label for="propX">position</label>
+            <input id="propX" type="number" step="0.5" />
+            <input id="propY" type="number" step="0.5" />
+          </div>
+          <div class="field">
+            <label for="propAngle">facing °</label>
+            <input id="propAngle" type="number" step="15" />
+          </div>
+          <div class="field">
+            <label for="propLength">length m</label>
+            <input id="propLength" type="number" step="0.5" min="0.1" />
+          </div>
+          <div class="field">
+            <label for="propWidth">width m</label>
+            <input id="propWidth" type="number" step="0.5" min="0.1" />
+          </div>
+          <div class="field">
+            <label for="propReinforcement">reinforce</label>
+            <input id="propReinforcement" type="number" step="0.5" min="1" />
+          </div>
+          <div class="field" id="barrelsRow">
+            <label for="propBarrels">barrels</label>
+            <input id="propBarrels" type="number" step="1" min="1" />
+          </div>
+          <div class="field">
+            <label for="propNotes">notes</label>
+            <textarea id="propNotes" placeholder="why this module is here"></textarea>
+          </div>
+          <button id="propDelete">Delete module</button>
+        </section>
+        <section>
+          <h2>What it works out to</h2>
+          <div id="stats"></div>
+        </section>
+        <section>
+          <h2>Problems</h2>
+          <div id="problems"></div>
+        </section>
+        <section>
+          <h2>Ship notes</h2>
+          <textarea id="shipNotes" placeholder="why the ship is shaped this way"></textarea>
+        </section>
+      </aside>
+    </main>
+    <footer id="hint"></footer>
+  </body>
+</html>
