@@ -250,6 +250,8 @@ export class Beams {
     this.highWater = 0;
   }
 
+  // TODO: Run the the detect hits code straight in the fire method instead of a separate one.
+  // Whe beams reflect, we'll need it to be all in one loop that outputs hits.
   /**
    * Detect hits.
    */
