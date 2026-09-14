@@ -82,11 +82,39 @@ function drawSelection(ctx: CanvasRenderingContext2D, view: OverlayView, camera:
 }
 
 /**
+ * The centre-of-mass mark: a ringed crosshair.
+ *
+ * Drawn by whatever needs it rather than by one caller, because the same glyph
+ * has to appear on the hull and at the centre of the envelope. The envelope's
+ * zero *is* the centre of mass — it is the point the accelerations act on —
+ * and drawing the identification rather than asserting it in a caption is the
+ * cheapest way to say so. Symmetric about both axes, so it reads the same
+ * through the renderer's y flip as it does in screen space.
+ */
+function crosshair(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  lineWidth: number,
+): void {
+  ctx.strokeStyle = CENTRE_OF_MASS;
+  ctx.lineWidth = lineWidth;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, TAU);
+  ctx.moveTo(x - r * 1.6, y);
+  ctx.lineTo(x + r * 1.6, y);
+  ctx.moveTo(x, y - r * 1.6);
+  ctx.lineTo(x, y + r * 1.6);
+  ctx.stroke();
+}
+
+/**
  * Where the ship balances, in the blueprint's own frame.
  *
  * Worth a mark of its own because it is the one derived quantity with a
  * *place*: thrust off the centre of mass turns the ship, so a layout's
- * handling is largely a statement about where this dot sits relative to the
+ * handling is largely a statement about where this mark sits relative to the
  * engines, and nothing else on the canvas says where it is.
  */
 function drawCentreOfMass(
@@ -94,16 +122,13 @@ function drawCentreOfMass(
   design: ShipDesign,
   camera: Camera,
 ): void {
-  const r = max(6 / camera.scale, design.radius * 0.02);
-  ctx.strokeStyle = CENTRE_OF_MASS;
-  ctx.lineWidth = max(1.5 / camera.scale, 0.05);
-  ctx.beginPath();
-  ctx.arc(design.centreOfMassX, design.centreOfMassY, r, 0, TAU);
-  ctx.moveTo(design.centreOfMassX - r * 1.6, design.centreOfMassY);
-  ctx.lineTo(design.centreOfMassX + r * 1.6, design.centreOfMassY);
-  ctx.moveTo(design.centreOfMassX, design.centreOfMassY - r * 1.6);
-  ctx.lineTo(design.centreOfMassX, design.centreOfMassY + r * 1.6);
-  ctx.stroke();
+  crosshair(
+    ctx,
+    design.centreOfMassX,
+    design.centreOfMassY,
+    max(6 / camera.scale, design.radius * 0.02),
+    max(1.5 / camera.scale, 0.05),
+  );
 }
 
 /**
@@ -118,6 +143,12 @@ function drawCentreOfMass(
  *
  * Bow up, since that is how the curve is read against a ship one is looking at
  * nose-right: the widget's own +y is forward.
+ *
+ * The curve is *thrust* and only thrust. A propellant model would make the
+ * more useful curve possible — how much delta-v a direction costs, on which a
+ * diagonal does worse than either axis it splits, since thrust adds
+ * vectorially and propellant adds scalar — and drawing it before that model
+ * exists would be inventing an efficiency the simulation does not have.
  */
 function drawEnvelope(
   ctx: CanvasRenderingContext2D,
@@ -150,6 +181,11 @@ function drawEnvelope(
   ctx.strokeStyle = ENVELOPE;
   ctx.lineWidth = 1.5;
   ctx.stroke();
+
+  // The origin, marked as what it is: the ship's centre of mass, with every
+  // radius an acceleration of it. Without it the curve has no zero, and a
+  // lobed shape with no centre cannot be read as a magnitude at all.
+  crosshair(ctx, cx, cy, 3.5, 1.5);
 
   ctx.fillStyle = ENVELOPE_LABEL;
   ctx.font = '11px ui-monospace, monospace';
