@@ -207,8 +207,15 @@ export interface ModuleSpec {
   notes?: string;
 }
 
+export enum GunType {
+  'Projectile' = 0,
+  'Beam' = 1
+}
+
 /** What a gun derived from a turret module's geometry can do. */
 export interface GunStats {
+  /** What type of gun is this, projectile, beam etc. */
+  type: GunType;
   /** Bore diameter, metres. */
   calibre: number;
   /** Muzzle to breech, metres. */
@@ -462,6 +469,7 @@ export function gunStats(mountLength: number, mountWidth: number, barrelCount: n
   const barrelSpacing = barrelCount > 1 ? mountFace / (barrelCount + 1) : 0;
 
   return {
+    type: GunType.Projectile,
     calibre,
     barrelLength,
     barrelCount,
@@ -542,6 +550,7 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
 
   let cycleTime = max(0.5, (CYCLE_TIME_PER_CALIBRE * calibre) / barrelCount);
   return {
+    type: GunType.Beam,
     calibre,
     barrelLength,
     barrelCount,

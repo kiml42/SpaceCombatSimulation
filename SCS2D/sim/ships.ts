@@ -14,6 +14,7 @@ import { Allocation } from './thrusters.js';
 import { FiringSolution, Turrets, TurretState } from './turrets.js';
 import type { World } from './world.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
+import { GunType } from './modules.js';
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -357,7 +358,7 @@ export class Ships {
 
         this.turrets.firingSolution(bodies, ti, this.solution, lateralOffset);
 
-        if (gun.muzzleSpeed >= 0) {
+        if (gun.type == GunType.Projectile) {
           projectiles.fireFrom(
             bodies,
             bodyIdx,
