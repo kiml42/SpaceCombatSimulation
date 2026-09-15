@@ -1,5 +1,6 @@
 import { abs, angleDelta, atan2, cos, max, min, normalizeAngle, PI, sin, sqrt, TAU } from './math.js';
 import {
+  GunType,
   moduleProblem,
   moduleStats,
   traverseAccel,
@@ -978,15 +979,30 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
         dirY: sin(angle),
         maxThrust: s.thrust,
       });
-    } else if (spec.kind === 'turret' && s.gun !== null) {
+    } else if ((spec.kind === 'turret' || spec.kind === 'beamTurret') && s.gun !== null) {
       const gun = s.gun;
       // The breech sits at the middle of the mount and the barrel reaches out
       // from there, so the muzzle traces a circle of that radius as the gun
-      // trains. Reach sets both what the barrel can foul and how fast the
-      // mount may bring it round.
-      const reach = gun.barrelLength;
-      radius = max(radius, sqrt(x * x + y * y) + reach);
+      // trains — which is what the shot leaves from, and what the hull's
+      // bounding circle has to contain.
+      radius = max(radius, sqrt(x * x + y * y) + gun.barrelLength);
 
+      // What can block the mount, which is a different question for the two
+      // archetypes and only looks like the same one because a gun's answer is
+      // also its barrel length.
+      //
+      // A gun is blocked by whatever its *barrel* would foul while training,
+      // so only what lies within a barrel's length of the mount counts. That
+      // is an approximation — ROADMAP.md §12 has the rest — and it stands in
+      // for the mask on where the gun may shoot, which is a wider thing.
+      //
+      // A beam has nothing that sweeps: the emitter housing is a stub, and on
+      // barrel length alone a beam mount would train through its own ship
+      // without noticing. What blocks a beam is structure in the path of the
+      // beam itself, at any distance, so every module on the hull is a
+      // candidate. For a beam the two masks are therefore the same thing, and
+      // this is the real one rather than a stand-in for it.
+      const reach = gun.type === GunType.Beam ? Infinity : gun.barrelLength;
       const arc = firingArc(specs, i, reach);
 
       // One drive, so one figure: the rate limit is what this acceleration

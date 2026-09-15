@@ -1,4 +1,6 @@
+import { MAX_BEAM_LENGTH } from '../sim/beams.js';
 import { math, type ShipDesign, type Snapshot } from '../sim/index.js';
+import { GunType } from '../sim/modules.js';
 
 const { cos, sin, min, max } = math;
 
@@ -45,6 +47,28 @@ interface Rounds {
   count: number;
 }
 
+/**
+ * Beams being shown, as flat arrays so the snapshot can be filled without
+ * objects.
+ *
+ * A beam is not in flight the way a round is — it exists for as long as its
+ * mount holds the trigger down and then stops — so what is stored is how much
+ * of that dwell is left rather than how far it has travelled.
+ */
+interface Beams {
+  // Typed to a plain ArrayBuffer so they can be handed straight to a snapshot,
+  // whose buffers are the same shape.
+  startX: Float64Array<ArrayBuffer>;
+  startY: Float64Array<ArrayBuffer>;
+  endX: Float64Array<ArrayBuffer>;
+  endY: Float64Array<ArrayBuffer>;
+  width: Float64Array<ArrayBuffer>;
+  power: Float64Array<ArrayBuffer>;
+  /** Seconds of dwell still to run. */
+  remaining: Float64Array<ArrayBuffer>;
+  count: number;
+}
+
 export class Demonstration {
   /** Throttle each of the design's thrusters is showing, 0 to 1. */
   private throttles = new Float64Array(0);
@@ -57,6 +81,16 @@ export class Demonstration {
     vy: new Float64Array(MAX_ROUNDS),
     width: new Float64Array(MAX_ROUNDS),
     age: new Float64Array(MAX_ROUNDS),
+    count: 0,
+  };
+  private beams: Beams = {
+    startX: new Float64Array(MAX_ROUNDS),
+    startY: new Float64Array(MAX_ROUNDS),
+    endX: new Float64Array(MAX_ROUNDS),
+    endY: new Float64Array(MAX_ROUNDS),
+    width: new Float64Array(MAX_ROUNDS),
+    power: new Float64Array(MAX_ROUNDS),
+    remaining: new Float64Array(MAX_ROUNDS),
     count: 0,
   };
   /** Which barrel of each turret fires next, so a multi-barrel mount alternates. */
@@ -89,6 +123,7 @@ export class Demonstration {
     this.cycles = new Float64Array(0);
     this.barrels = new Int32Array(0);
     this.rounds.count = 0;
+    this.beams.count = 0;
   }
 
   /**
@@ -150,7 +185,23 @@ export class Demonstration {
       rounds.age[i] = rounds.age[last]!;
     }
 
-    this.busy = busy || rounds.count > 0;
+
+    const beams = this.beams;
+    for (let i = beams.count - 1; i >= 0; i--) {
+      beams.remaining[i] = beams.remaining[i]! - dt;
+      if (beams.remaining[i]! > 0) continue;
+      // Swap the last beam into the gap rather than shifting the rest down.
+      const last = --beams.count;
+      beams.startX[i] = beams.startX[last]!;
+      beams.startY[i] = beams.startY[last]!;
+      beams.endX[i] = beams.endX[last]!;
+      beams.endY[i] = beams.endY[last]!;
+      beams.width[i] = beams.width[last]!;
+      beams.power[i] = beams.power[last]!;
+      beams.remaining[i] = beams.remaining[last]!;
+    }
+
+    this.busy = busy || rounds.count > 0 || beams.count > 0;
   }
 
   /** Write what is being shown into a snapshot the renderer already understands. */
@@ -166,6 +217,14 @@ export class Demonstration {
     snapshot.projectileVy = rounds.vy;
     snapshot.projectileWidth = rounds.width;
     snapshot.projectileCount = rounds.count;
+    const beams = this.beams;
+    snapshot.beamStartX = beams.startX;
+    snapshot.beamStartY = beams.startY;
+    snapshot.beamEndX = beams.endX;
+    snapshot.beamEndY = beams.endY;
+    snapshot.beamWidth = beams.width;
+    snapshot.beamPower = beams.power;
+    snapshot.beamCount = beams.count;
   }
 
   /** Resize the per-module state when a different design is being shown. */
@@ -193,11 +252,14 @@ export class Demonstration {
   /** Put one round in the air, leaving the next barrel at the gun's muzzle speed. */
   private fire(design: ShipDesign, t: number): void {
     const rounds = this.rounds;
-    if (rounds.count >= MAX_ROUNDS) return;
-
+    const beams = this.beams;
     const turret = design.turrets[t]!;
-    const mount = turret.mount;
     const gun = turret.gun;
+    if (gun.type === GunType.Projectile && rounds.count >= MAX_ROUNDS) return;
+
+
+    const mount = turret.mount;
+
     // Resting, since nothing here is aiming at anything. The design places its
     // modules about the centre of mass and the preview puts the body there, so
     // the ship's own frame is the world's.
@@ -210,12 +272,30 @@ export class Demonstration {
     const lateral =
       gun.barrelCount > 1 ? (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing : 0;
 
-    const i = rounds.count++;
-    rounds.x[i] = design.centreOfMassX + mount.x + dirX * gun.barrelLength - dirY * lateral;
-    rounds.y[i] = design.centreOfMassY + mount.y + dirY * gun.barrelLength + dirX * lateral;
-    rounds.vx[i] = dirX * gun.muzzleSpeed;
-    rounds.vy[i] = dirY * gun.muzzleSpeed;
-    rounds.width[i] = gun.calibre;
-    rounds.age[i] = 0;
+    if (gun.type === GunType.Projectile) {
+      const i = rounds.count++;
+      rounds.x[i] = design.centreOfMassX + mount.x + dirX * gun.barrelLength - dirY * lateral;
+      rounds.y[i] = design.centreOfMassY + mount.y + dirY * gun.barrelLength + dirX * lateral;
+      rounds.vx[i] = dirX * gun.muzzleSpeed;
+      rounds.vy[i] = dirY * gun.muzzleSpeed;
+      rounds.width[i] = gun.calibre;
+      rounds.age[i] = 0;
+    } else {
+      if (beams.count >= MAX_ROUNDS) return;
+      const i = beams.count++;
+      const startX = design.centreOfMassX + mount.x + dirX * gun.barrelLength - dirY * lateral;
+      const startY = design.centreOfMassY + mount.y + dirY * gun.barrelLength + dirX * lateral;
+      beams.startX[i] = startX;
+      beams.startY[i] = startY;
+      // Both ends are positions. Writing the heading alone here would run the
+      // beam from the muzzle to a point measured from the world origin.
+      beams.endX[i] = startX + dirX * MAX_BEAM_LENGTH;
+      beams.endY[i] = startY + dirY * MAX_BEAM_LENGTH;
+      beams.width[i] = gun.calibre;
+      beams.power[i] = gun.beamPower;
+      // Lit for as long as the mount holds it, which is the figure the panel
+      // shows — the same relationship a round's speed has to its tracer.
+      beams.remaining[i] = gun.beamOnTime;
+    }
   }
 }

@@ -4,6 +4,8 @@ import {
   math,
   ProjectileHits,
   Projectiles,
+  BeamHits,
+  Beams,
   Ships,
   SpatialGrid,
   World,
@@ -54,7 +56,9 @@ export function fractal(seed = 20260905): Battle {
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);
+  const beams = new Beams(512);
   const hits = new ProjectileHits();
+  const beamHits = new BeamHits();
 
   const run: Battle = {
     dt,
@@ -62,18 +66,27 @@ export function fractal(seed = 20260905): Battle {
     wells,
     ships,
     projectiles,
+    beams,
     grid,
     hits,
-    totalFired: 0,
-    totalHits: 0,
+    beamHits,
+    totalProjectilesFired: 0,
+    totalProjectileHits: 0,
+    totalBeamsFired: 0,
+    totalBeamHits: 0,
 
     step(): void {
       ships.command(dt, world);
       world.step();
       grid.rebuild(world.bodies);
-      run.totalFired += ships.fire(world, projectiles);
+      beams.clear();
+      beamHits.clear();
+      const fireReport = ships.fire(world, projectiles, beams, grid, beamHits);
+      run.totalProjectilesFired += fireReport.projectilesFired;
+      run.totalBeamsFired += fireReport.beamsFired;
       projectiles.step(dt, world.bodies, grid, hits, wells);
-      run.totalHits += hits.count;
+      run.totalProjectileHits += hits.count;
+      run.totalBeamHits += beamHits.count;
       // A stop-gap until terminal ballistics and the damage model (§8 step 2),
       // which decide what a hit does: every round penetrates and is absorbed.
       // Impacts have to be resolved by something, or the rounds stay parked at

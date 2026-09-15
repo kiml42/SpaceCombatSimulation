@@ -1,5 +1,6 @@
 import { capture, math, Snapshot } from '../sim/index.js';
 import { duel } from '../scenarios/duel.js';
+import { beamDuel } from '../scenarios/beamDuel.js';
 import { fractal } from '../scenarios/fractal.js';
 import type { Battle } from '../scenarios/types.js';
 import { swarm } from '../scenarios/swarm.js';
@@ -42,6 +43,7 @@ export function start(): void {
   const fitButton = el<HTMLButtonElement>('fit');
   const scenes = [
     { name: 'Duel', create: () => duel(SEED) },
+    { name: 'Beam Duel', create: () => beamDuel(SEED) },
     { name: 'Swarm', create: () => swarm(SEED) },
     { name: 'Fractal', create: () => fractal(SEED) },
     { name: 'Super Swarm', create: () => swarm(SEED, 300) }
@@ -177,7 +179,7 @@ export function start(): void {
       if (steps === MAX_STEPS_PER_FRAME) accumulator = 0;
     }
 
-    const view = capture(snapshot, state.world, state.ships, state.projectiles, state.wells);
+    const view = capture(snapshot, state.world, state.ships, state.projectiles, state.beams, state.wells);
     // Negative when the battle has just been reset, which is not elapsed time.
     const simDt = view.time > lastSimTime ? view.time - lastSimTime : 0;
     lastSimTime = view.time;
@@ -192,19 +194,20 @@ export function start(): void {
     }
     draw(ctx, view, camera, canvas.width, canvas.height);
 
+    // Between the first two ships, whatever the scenario holds — but only if
+    // there are two. A single survivor has nothing to measure against, and
+    // reading past the end of the list would take the viewer down with it.
+    const first = view.ships[0];
+    const second = view.ships[1];
     const range =
-      view.shipCount === 2
-        ? math.distance(
-            view.ships[0]!.x,
-            view.ships[0]!.y,
-            view.ships[1]!.x,
-            view.ships[1]!.y,
-          )
+      first !== undefined && second !== undefined
+        ? math.distance(first.x, first.y, second.x, second.y)
         : 0;
     readout.textContent =
       `t ${view.time.toFixed(1)} s · step ${view.tick} · ` +
       `range ${range.toFixed(0)} m · in flight ${view.projectileCount} · ` +
-      `fired ${state.totalFired} · hits ${state.totalHits} · grid ${gridStep(camera.scale)} m`;
+      `p.fired ${state.totalProjectilesFired} · p.hits ${state.totalProjectileHits} · ` +
+      `b.fired ${state.totalBeamsFired} · b.hits ${state.totalBeamHits} · grid ${gridStep(camera.scale)} m`;
 
     window.requestAnimationFrame(tick);
   };

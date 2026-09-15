@@ -2,10 +2,19 @@ import { describe, expect, it } from 'vitest';
 import {
   BARREL_CALIBRES,
   BASE_WALL_THICKNESS,
+  BEAM_APERTURE_FRACTION,
+  BEAM_DUTY_CYCLE,
+  BEAM_EMITTER_APERTURES,
+  BEAM_MASS_PER_WATT,
+  BEAM_STORED_ENERGY_PER_VOLUME,
   CALIBRE_FRACTION,
   DECK_HEIGHT,
   gunStats,
+  beamGunStats,
+  GunType,
   HULL_DENSITY,
+  OPTIC_AREAL_DENSITY,
+  OPTIC_INTENSITY_LIMIT,
   MECHANISM_MASS_PER_CALIBRE,
   moduleProblem,
   moduleStats,
@@ -266,6 +275,142 @@ describe('gun scaling', () => {
     expect(stats.gun).not.toBeNull();
     expect(stats.fittingMass).toBeGreaterThan(0);
     expect(stats.mass).toBeGreaterThan(stats.structureMass);
+  });
+});
+
+describe('beam mount scaling', () => {
+  /**
+   * A laser is not a gun with the shell removed. What it has instead is an
+   * aperture, a power limit set by that aperture, and a bank of stored energy
+   * that decides how long it can hold the trigger down — so these check a
+   * different set of things from the projectile laws above, and deliberately
+   * do not check the ones that no longer mean anything.
+   */
+
+  it('takes its aperture from the mount face, and its housing from the aperture', () => {
+    const gun = beamGunStats(40, 8);
+    expect(gun.calibre).toBeCloseTo(8 * BEAM_APERTURE_FRACTION, 12);
+    // No barrel: a housing as deep as the optic is wide, rather than fifty
+    // times. This is most of why a beam mount trains faster than a gun.
+    expect(gun.barrelLength).toBeCloseTo(gun.calibre * BEAM_EMITTER_APERTURES, 12);
+    expect(gun.barrelLength).toBeLessThan(gun.calibre * 2);
+  });
+
+  it('measures the aperture across the smaller face, because a turret traverses', () => {
+    // A single disc has to fit the inscribed circle, the same argument that
+    // sizes a gun's row of barrels.
+    expect(beamGunStats(3, 10).calibre).toBeCloseTo(3 * BEAM_APERTURE_FRACTION, 12);
+    expect(beamGunStats(10, 3).calibre).toBeCloseTo(3 * BEAM_APERTURE_FRACTION, 12);
+  });
+
+  it('never claims to fire a round', () => {
+    const gun = beamGunStats(100, 4);
+    expect(gun.type).toBe(GunType.Beam);
+    expect(gun.roundMass).toBe(0);
+    expect(gun.muzzleEnergy).toBe(0);
+    // Negative muzzle speed is how a weapon says it arrives the instant it is
+    // fired; `aimAt` reads it to know there is no lead to solve.
+    expect(gun.muzzleSpeed).toBe(-1);
+  });
+
+  it('limits its power by what the optic can pass, so power goes as the area', () => {
+    const gun = beamGunStats(40, 8);
+    const area = Math.PI * 0.25 * gun.calibre * gun.calibre;
+    expect(gun.beamPower).toBeCloseTo(OPTIC_INTENSITY_LIMIT * area, 6);
+    // Twice the face is twice the aperture and therefore four times the power.
+    expect(beamGunStats(40, 16).beamPower).toBeCloseTo(4 * gun.beamPower, 6);
+  });
+
+  it('holds the beam on for as long as the bank lasts', () => {
+    const gun = beamGunStats(12, 6);
+    const stored = BEAM_STORED_ENERGY_PER_VOLUME * 12 * 6 * DECK_HEIGHT;
+    expect(gun.beamOnTime).toBeCloseTo(stored / gun.beamPower, 6);
+    expect(gun.cycleTime).toBeCloseTo(gun.beamOnTime / BEAM_DUTY_CYCLE, 6);
+  });
+
+  it('buys power with the smaller face and endurance with the larger', () => {
+    // The trade that makes a beam mount want a different shape from a gun,
+    // where width buys weight of shell and length buys muzzle velocity. The
+    // optic is sized by whichever dimension is smaller, so it is that one that
+    // sets power, and the other only adds volume for the bank.
+    const square = beamGunStats(6, 6);
+    const stretched = beamGunStats(18, 6);
+    const thickened = beamGunStats(18, 18);
+
+    // Stretching the mount adds bank without touching the optic.
+    expect(stretched.beamPower).toBe(square.beamPower);
+    expect(stretched.beamOnTime).toBeCloseTo(3 * square.beamOnTime, 6);
+
+    // Growing the smaller face adds optic, and the extra volume cannot keep
+    // pace: power is up ninefold against three times the bank, so a third of
+    // the dwell. A mount can be strong or persistent, not both.
+    expect(thickened.beamPower).toBeCloseTo(9 * stretched.beamPower, 6);
+    expect(thickened.beamOnTime).toBeCloseTo(stretched.beamOnTime / 3, 6);
+  });
+
+  it('makes dwell an aspect ratio rather than a size', () => {
+    // So a mount cannot buy endurance by being huge — doubling both dimensions
+    // doubles the optic's diameter, quadrupling power, against four times the
+    // bank. Without this, the largest mount would simply be the best one.
+    const small = beamGunStats(8, 4);
+    const doubled = beamGunStats(16, 8);
+    expect(doubled.beamOnTime).toBeCloseTo(small.beamOnTime, 9);
+    expect(doubled.beamPower).toBeCloseTo(4 * small.beamPower, 6);
+  });
+
+  it('divides the optic between emitters rather than multiplying it', () => {
+    // `n` emitters split the optic's *area*, so the mount's total output is
+    // unchanged however it is divided — the same budget rule a gun's bore
+    // follows. What splitting costs is focus, which nothing consumes yet.
+    const single = beamGunStats(40, 8, 1);
+    const n = 4;
+    const multi = beamGunStats(40, 8, n);
+
+    expect(multi.calibre).toBeCloseTo(single.calibre / Math.sqrt(n), 12);
+    expect(multi.beamPower).toBeCloseTo(single.beamPower / n, 6);
+    expect(n * multi.beamPower).toBeCloseTo(single.beamPower, 6);
+    // Each sub-beam spreads faster, by the ratio of the apertures.
+    expect(multi.calibre).toBeLessThan(single.calibre);
+  });
+
+  it('spreads the emitters right across the mount face, with a gap at each end', () => {
+    for (const n of [2, 3, 8, 17]) {
+      const gun = beamGunStats(12, 8, n);
+      const span = (n - 1) * gun.barrelSpacing;
+      const margin = (8 - span) / 2;
+      expect(margin).toBeCloseTo(gun.barrelSpacing, 12);
+      expect(span).toBeLessThan(8);
+    }
+  });
+
+  it('leaves a single emitter unspaced', () => {
+    expect(beamGunStats(12, 8, 1).barrelSpacing).toBe(0);
+  });
+
+  it('weighs its optic and its plant, and no barrel steel at all', () => {
+    const stats = moduleStats(box('beamTurret', 12, 8));
+    const gun = stats.gun!;
+    const optic = OPTIC_AREAL_DENSITY * Math.PI * 0.25 * gun.calibre * gun.calibre;
+    const head = BEAM_MASS_PER_WATT * gun.beamPower;
+    expect(stats.fittingMass).toBeCloseTo(optic + head, 6);
+    // The plant dominates: an optic is a disc, and the thing behind it is a
+    // power station.
+    expect(head).toBeGreaterThan(optic);
+  });
+
+  it('comes out lighter and quicker than the gun on the same footprint', () => {
+    // The point of the archetype, and the one claim here that the simulation
+    // acts on today. Nothing long is held out in front of the pivot, so the
+    // rod term that makes a big gun sluggish is nearly absent.
+    for (const [length, width] of [[6, 4], [12, 8], [20, 14]] as const) {
+      const beam = moduleStats(box('beamTurret', length, width));
+      const gun = moduleStats(box('turret', length, width));
+      const rate = (s: ReturnType<typeof moduleStats>) =>
+        traverseRate(traverseAccel(s.mass, s.inertia));
+
+      expect(beam.mass, `${length}x${width}`).toBeLessThan(gun.mass);
+      expect(rate(beam), `${length}x${width}`).toBeGreaterThan(rate(gun));
+    }
   });
 });
 

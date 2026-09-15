@@ -59,6 +59,50 @@ const GRID = '#161d29';
 const TRACER = '#ffe6a8';
 const TRACER_GLOW = '#ffb2a888';
 
+const BEAM = '#3df72c';
+const BEAM_GLOW = '#a8f132';
+
+/**
+ * Beam brightness, in watta of power.
+ *
+ * A beam is drawn at its true width, exactly as a tracer is — the mount fixes
+ * how thick it is, and nothing else may. What it says about itself, it says
+ * through *opacity*: a point-defence beam is a faint thread and a capital
+ * mount's is a solid bar, at the same width they would each be if they were
+ * inert.
+ *
+ * The mapping is logarithmic because the quantity is. The mounts on one hull
+ * already span four orders of magnitude of beam power — the beam gunship
+ * carries 4e5 J on its outriggers and 1.4e8 J at the bow — and a linear ramp
+ * over that range either clips everything above a thousandth of the maximum or
+ * leaves everything below it invisible. A decade of power is therefore an
+ * equal step of brightness, which is also how the eye reads brightness.
+ *
+ * `BEAM_DIM_POWER` is where the ramp starts and `BEAM_BRIGHT_POWER` where it
+ * reaches full opacity; outside them the beam clamps. `BEAM_MIN_ALPHA` is the
+ * floor, because a beam that is being fired is a thing the player must be able
+ * to see even when it is the weakest thing on the screen — the alternative is
+ * a gun that reads as jammed.
+ */
+const BEAM_DIM_POWER = 1e5;
+const BEAM_BRIGHT_POWER = 1e8;
+const BEAM_MIN_ALPHA = 0.25;
+const BEAM_DECADES = Math.log(BEAM_BRIGHT_POWER / BEAM_DIM_POWER);
+
+/**
+ * How much of the core's opacity the glow gets. Below 1 so that the halo stays
+ * a halo at every power: at parity a full-power beam's glow is as solid as
+ * its core and the two stop being distinguishable.
+ */
+const BEAM_GLOW_ALPHA = 0.45;
+
+/** Opacity for a beam carrying `power` watts. See the constants above. */
+function beamAlpha(power: number): number {
+  if (!(power > BEAM_DIM_POWER)) return BEAM_MIN_ALPHA;
+  const t = Math.log(power / BEAM_DIM_POWER) / BEAM_DECADES;
+  return t >= 1 ? 1 : BEAM_MIN_ALPHA + (1 - BEAM_MIN_ALPHA) * t;
+}
+
 /**
  * Tracer geometry, in seconds of flight per metre of calibre — so a round's
  * streak is as long as a bigger round's is, scaled by how big it is. The glow
@@ -97,6 +141,29 @@ const GLOW_CALIBRES = 3;
 const MIN_GLOW_PX = 5;
 const MIN_TRACER_PX = 2;
 const MIN_BARREL_PX = 2;
+
+/**
+ * The bounding circle a shot is actually stopped by, drawn under the hull.
+ *
+ * **A stop-gap until the narrow phase lands.** Hits are resolved against one
+ * bounding circle per ship and nothing finer: `sim/spatialGrid.ts` is a broad
+ * phase, and there is as yet nothing behind it. So a beam arriving abeam of a
+ * long hull stops about thirty metres short of any metal, and a shell vanishes
+ * out there — which reads as a bug in the renderer rather than a gap in the
+ * simulation.
+ *
+ * Drawing the circle makes the picture honest: a shot stops where the picture
+ * says it stops. It reads as a shield bubble, which is a happy accident and
+ * not what it is. Delete it the moment shots are tested against module
+ * geometry, and the ships lose their shields.
+ *
+ * Faint, because it is not a thing in the world. It has to be visible enough
+ * to explain where a shot stopped and no more; anything bolder competes with
+ * the hull, which *is* a thing in the world.
+ */
+const HULL_SPHERE_FILL_ALPHA = 0.05;
+const HULL_SPHERE_EDGE_ALPHA = 0.16;
+const MIN_HULL_SPHERE_PX = 1;
 
 /** A stroke at its true width, but never thinner than `minPx` on screen. */
 function legibleWidth(physical: number, minPx: number, metresToPx: number): number {
@@ -168,6 +235,20 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   ctx.save();
   ctx.translate(ship.x, ship.y);
   ctx.rotate(ship.angle);
+
+  // What actually stops a shot. A stop-gap — see `HULL_SPHERE_FILL_ALPHA`.
+  // Drawn first, so it sits under the ship it is standing in for.
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(0, 0, design.radius, 0, TAU);
+  ctx.fillStyle = colours.trim;
+  ctx.globalAlpha = HULL_SPHERE_FILL_ALPHA;
+  ctx.fill();
+  ctx.strokeStyle = colours.trim;
+  ctx.globalAlpha = HULL_SPHERE_EDGE_ALPHA;
+  ctx.lineWidth = legibleWidth(0, MIN_HULL_SPHERE_PX, metresToPx);
+  ctx.stroke();
+  ctx.restore();
 
   // Module boxes, in the body frame the design already put them in.
   for (let i = 0; i < design.modules.length; i++) {
@@ -259,8 +340,12 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     const spacing = gun.barrelSpacing;
 
     ctx.strokeStyle = ready ? colours.ready : BARREL;
-    // The barrel's outer diameter, twice the calibre, which is the tube the
-    // annulus in `moduleStats` charges steel for — not the bore.
+    // Twice the calibre: for a gun that is the barrel's outer diameter, the
+    // tube the annulus in `moduleStats` charges steel for rather than the bore.
+    // For a beam mount it is the housing round the optic rather than the optic
+    // itself, which comes to the same drawn width and wants no special case —
+    // and the two read quite differently anyway, a laser's housing being about
+    // as deep as it is wide where a barrel is fifty times.
     const physicalWidth = 2 * gun.calibre;
     // Barrels are allowed to overlap once the floor has widened them past their
     // own gaps, which happens only when the whole ship is a hundred-odd pixels
@@ -364,6 +449,11 @@ export function draw(
     drawShip(ctx, snapshot.ships[i]!, camera.scale);
   }
 
+  drawProjectiles(ctx, snapshot, camera);
+  drawBeams(ctx, snapshot, camera);
+}
+
+function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera) {
   // Tracers, in two passes so that every glow sits under every streak. Both
   // are sized from the round's calibre and floored on screen, so a round is
   // true to size close up and legible from far out. Streak length scales with
@@ -375,6 +465,7 @@ export function draw(
   // meet, where a single stroke over one path would have composited once.
   // Worth it for a halo that is the round's own size, and rare enough not to
   // read as anything but two tracers crossing.
+  ctx.lineCap = 'round';
   ctx.strokeStyle = TRACER_GLOW;
   for (let i = 0; i < snapshot.projectileCount; i++) {
     const calibre = snapshot.projectileWidth[i]!;
@@ -385,7 +476,7 @@ export function draw(
     ctx.moveTo(x, y);
     ctx.lineTo(
       x - snapshot.projectileVx[i]! * GLOW_STREAK * calibre,
-      y - snapshot.projectileVy[i]! * GLOW_STREAK * calibre,
+      y - snapshot.projectileVy[i]! * GLOW_STREAK * calibre
     );
     ctx.stroke();
   }
@@ -405,10 +496,54 @@ export function draw(
     ctx.moveTo(x, y);
     ctx.lineTo(
       x - snapshot.projectileVx[i]! * TRACER_STREAK * calibre,
-      y - snapshot.projectileVy[i]! * TRACER_STREAK * calibre,
+      y - snapshot.projectileVy[i]! * TRACER_STREAK * calibre
     );
     ctx.stroke();
   }
+}
+
+function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera) {
+  // Beams, in two passes so that every glow sits under every streak. Both
+  // are sized from the beam's width and floored on screen, so a beam is
+  // true to size close up and legible from far out.
+  //
+  // A stroke per beam rather than one path for all of them, which the glow's
+  // translucency notices: two beams whose glows cross now brighten where they
+  // meet, where a single stroke over one path would have composited once.
+  // Worth it for a halo that is the round's own size, and rare enough not to
+  // read as anything but two tracers crossing.
+  ctx.lineCap = 'butt';
+  ctx.strokeStyle = BEAM_GLOW;
+  for (let i = 0; i < snapshot.beamCount; i++) {
+    const calibre = snapshot.beamWidth[i]!;
+    ctx.globalAlpha = beamAlpha(snapshot.beamPower[i]!) * BEAM_GLOW_ALPHA;
+    ctx.lineWidth = legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale);
+    ctx.beginPath();
+    ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
+    ctx.lineTo(snapshot.beamEndX[i]!, snapshot.beamEndY[i]!);
+    ctx.stroke();
+  }
+
+  // A pass per beam, because each carries its own width and its own opacity.
+  // Cheap at the beam counts a battle reaches; if that ever stops being true,
+  // bucket by width rather than reaching for a single average.
+  ctx.strokeStyle = BEAM;
+  for (let i = 0; i < snapshot.beamCount; i++) {
+    const calibre = snapshot.beamWidth[i]!;
+    ctx.globalAlpha = beamAlpha(snapshot.beamPower[i]!);
+    // The beam *is* its calibre wide. Twice the calibre is the barrel's outer
+    // diameter — right for the tube, wrong for what comes out of it.
+    ctx.lineWidth = legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
+    ctx.beginPath();
+    ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
+    ctx.lineTo(snapshot.beamEndX[i]!, snapshot.beamEndY[i]!);
+    ctx.stroke();
+  }
+
+  // Beams are drawn last, and nothing restores the context between frames:
+  // leaving the final beam's opacity set would tint the next frame's grid and
+  // wells before anything else had a chance to set it.
+  ctx.globalAlpha = 1;
 }
 
 /**

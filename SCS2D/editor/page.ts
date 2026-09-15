@@ -61,6 +61,7 @@ const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
   structure: { kind: 'structure', length: 8, width: 5 },
   thruster: { kind: 'thruster', angle: 0, length: 3, width: 3 },
   turret: { kind: 'turret', angle: 0, length: 4, width: 3, barrels: 1 },
+  beamTurret: { kind: 'beamTurret', angle: 0, length: 4, width: 3, barrels: 1 },
 };
 
 function el<T extends HTMLElement>(id: string): T {

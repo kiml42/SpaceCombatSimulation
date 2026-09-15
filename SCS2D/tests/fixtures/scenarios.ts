@@ -1,4 +1,6 @@
 import {
+  Beams,
+  checksumBeams,
   checksumProjectiles,
   checksumWorld,
   gravityWell,
@@ -9,6 +11,8 @@ import {
   type WellSpec,
 } from '../../sim/index.js';
 import { duel } from '../../scenarios/duel.js';
+import type { Battle } from '../../scenarios/types.js';
+import { beamDuel } from '../../scenarios/beamDuel.js';
 import { swarm } from '../../scenarios/swarm.js';
 import { fractal } from '../../scenarios/fractal.js';
 
@@ -141,6 +145,7 @@ export function tumbleScenario(seed = 12345): World {
 export interface GunneryRun extends ScenarioRun {
   readonly world: World;
   readonly projectiles: Projectiles;
+  readonly beams: Beams;
   readonly hits: ProjectileHits;
   /** Cumulative impacts, so a scenario that stops hitting is detectable. */
   totalHits: number;
@@ -192,11 +197,13 @@ export function gunneryScenario(seed = 777): GunneryRun {
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);
+  const beams = new Beams(512);
   const hits = new ProjectileHits();
 
   const run: GunneryRun = {
     world,
     projectiles,
+    beams,
     hits,
     totalHits: 0,
 
@@ -242,13 +249,13 @@ export function gunneryScenario(seed = 777): GunneryRun {
     },
 
     checksum(): number {
-      return checksumProjectiles(projectiles, checksumWorld(world));
+      return checksumBeams(beams, checksumProjectiles(projectiles, checksumWorld(world)));
     },
 
     describe(): string {
       return (
         `bodies=${world.bodies.count} inFlight=${projectiles.count} ` +
-        `pending=${projectiles.pendingCount} hits=${run.totalHits}`
+        `projectilesPending=${projectiles.pendingCount} projectileHits=${run.totalHits}`
       );
     },
   };
@@ -269,14 +276,39 @@ export function gunneryScenario(seed = 777): GunneryRun {
  * matrix, traverse rates, firing arcs, gun ballistics — through the loop the
  * game itself uses.
  */
+/**
+ * One report line for every battle, because any of them may carry either kind
+ * of weapon and `beamDuel` carries both — a scenario-specific line drops
+ * whichever half its author was not thinking about.
+ *
+ * The two hit counts are not in the same units and must not be added: a
+ * projectile hit is one round arriving, a beam hit is one step of a beam
+ * resting on a hull, so a beam that dwells for a second reports sixty.
+ */
+function describeBattle(run: Battle): string {
+  return (
+    `ships=${run.ships.count} inFlight=${run.projectiles.count} ` +
+    `p.fired=${run.totalProjectilesFired} p.hits=${run.totalProjectileHits} ` +
+    `b.fired=${run.totalBeamsFired} b.hits=${run.totalBeamHits}`
+  );
+}
+
 export function duelScenario(seed = 20260905): ScenarioRun {
   const run = duel(seed);
   return {
     step: () => run.step(),
-    checksum: () => checksumProjectiles(run.projectiles, checksumWorld(run.world)),
-    describe: () =>
-      `ships=${run.ships.count} inFlight=${run.projectiles.count} ` +
-      `fired=${run.totalFired} hits=${run.totalHits}`,
+    checksum: () =>
+      checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+    describe: () => describeBattle(run),
+  };
+}
+export function beamDuelScenario(seed = 20260905): ScenarioRun {
+  const run = beamDuel(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+    describe: () => describeBattle(run),
   };
 }
 
@@ -284,10 +316,9 @@ export function swarmScenario(seed = 20260905, corvetteCount = 20): ScenarioRun 
   const run = swarm(seed, corvetteCount);
   return {
     step: () => run.step(),
-    checksum: () => checksumProjectiles(run.projectiles, checksumWorld(run.world)),
-    describe: () =>
-      `ships=${run.ships.count} inFlight=${run.projectiles.count} ` +
-      `fired=${run.totalFired} hits=${run.totalHits}`,
+    checksum: () =>
+      checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+    describe: () => describeBattle(run),
   };
 }
 
@@ -295,10 +326,9 @@ export function fractalScenario(seed = 20260905): ScenarioRun {
   const run = fractal(seed);
   return {
     step: () => run.step(),
-    checksum: () => checksumProjectiles(run.projectiles, checksumWorld(run.world)),
-    describe: () =>
-      `ships=${run.ships.count} inFlight=${run.projectiles.count} ` +
-      `fired=${run.totalFired} hits=${run.totalHits}`,
+    checksum: () =>
+      checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+    describe: () => describeBattle(run),
   };
 }
 
@@ -323,6 +353,7 @@ export const SCENARIOS = {
   tumble: worldScenario(() => tumbleScenario(), 5_000),
   gunnery: { steps: 3_000, build: () => gunneryScenario() },
   duel: { steps: 3_000, build: () => duelScenario() },
+  beamDuel: { steps: 3_000, build: () => beamDuelScenario() },
   swarm: { steps: 3_000, build: () => swarmScenario() },
   superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
   fractal: { steps: 3_000, build: () => fractalScenario() },

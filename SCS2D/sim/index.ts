@@ -31,6 +31,11 @@ export {
   type ProjectileSpec,
 } from './projectiles.js';
 export {
+  Beams,
+  BeamHits,
+  type BeamSpec,
+} from './beams.js';
+export {
   ThrusterLayout,
   Allocation,
   applyAllocation,
@@ -40,6 +45,7 @@ export {
 export {
   DECK_HEIGHT,
   gunStats,
+  beamGunStats,
   moduleProblem,
   moduleStats,
   traverseAccel,
@@ -100,4 +106,4 @@ export {
   type ShipSpec,
 } from './ships.js';
 export { capture, Snapshot, type ShipView } from './snapshot.js';
-export { checksumWorld, checksumProjectiles, formatChecksum } from './checksum.js';
+export { checksumWorld, checksumProjectiles, checksumBeams, formatChecksum } from './checksum.js';

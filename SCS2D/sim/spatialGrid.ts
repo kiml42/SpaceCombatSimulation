@@ -78,7 +78,7 @@ export class RayHit {
  * Guards against a pathological cast — a segment thousands of cells long — from
  * stalling a step. A ray this long is a bug in the caller, not a case to serve.
  */
-const MAX_CELLS_PER_RAY = 4096;
+export const MAX_CELLS_PER_RAY = 4096;
 
 /** Odd primes for the cell hash. Any large odd values with no shared factors do. */
 const HASH_X = 73856093;

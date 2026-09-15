@@ -11,8 +11,10 @@ import {
 } from './math.js';
 import { Projectiles } from './projectiles.js';
 import { Allocation } from './thrusters.js';
-import { FiringSolution, Turrets } from './turrets.js';
+import { FiringSolution, Turrets, TurretState } from './turrets.js';
 import type { World } from './world.js';
+import type { BeamHits, Beams, SpatialGrid } from './index.js';
+import { GunType } from './modules.js';
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -69,6 +71,25 @@ const ROUND_FLIGHT_TIME = 30;
 const VELOCITY_RESPONSE_TIME = 2;
 
 /**
+ * How near zero a countdown has to get before it counts as finished, seconds.
+ *
+ * A timer set to a whole number of timesteps does not reach exactly zero by
+ * repeated subtraction: `dt` is not representable in binary, so the residue
+ * after the right number of steps is a few parts in 10^15 and its *sign* is
+ * arithmetic luck. A 0.8 s countdown lands just below zero and finishes on
+ * time; 1.6, 3.2 and 6.4 land just above it and run a whole extra step. That
+ * is a sixtieth of a second of reload nobody asked for, appearing and
+ * disappearing as the scaling laws move a cycle time about.
+ *
+ * Fifteen orders of magnitude above the residue and seven below a timestep, so
+ * it cannot fail to absorb the one or let a gun fire measurably early. The
+ * countdown is snapped to zero rather than the comparisons being loosened, so
+ * that a finished timer reads as zero everywhere — including anything that
+ * later shows a reload as a fraction of its cycle.
+ */
+const TIMER_SETTLE = 1e-9;
+
+/**
  * Seconds over which a pilot aims to close the distance to its ordered band.
  * With `approachSpeed` as a cap, this is what makes the approach ease in
  * rather than arrive at full speed — the same reason a turret brakes into its
@@ -110,6 +131,11 @@ export interface ShipSpec {
   team?: number;
 }
 
+export interface FireReport {
+  projectilesFired: number;
+  beamsFired: number;
+}
+
 export class Ships {
   /** Shared by every ship in the world, since a turret's owner is a body index. */
   readonly turrets: Turrets;
@@ -121,6 +147,7 @@ export class Ships {
   /** Turret store indices owned by each ship, and their gun timers. */
   private readonly turretIndex: Int32Array[] = [];
   private readonly cooldown: Float64Array[] = [];
+  private readonly turretStates: Uint8Array[] = [];
   private readonly nextBarrelToFire: Int32Array[] = [];
 
   private readonly team: number[] = [];
@@ -208,6 +235,7 @@ export class Ships {
     this.throttles.push(new Float64Array(design.thrusters.length));
     this.turretIndex.push(indices);
     this.cooldown.push(new Float64Array(mounts.length));
+    this.turretStates.push(new Uint8Array(mounts.length));
     this.nextBarrelToFire.push(new Int32Array(mounts.length));
     this.team.push(spec.team ?? 0);
     this.orders.push({
@@ -220,6 +248,7 @@ export class Ships {
     this.demandFy.push(0);
     this.demandTorque.push(0);
     this.alive.push(1);
+
     return i;
   }
 
@@ -270,7 +299,10 @@ export class Ships {
       this.trainOne(bodies, i);
       const timers = this.cooldown[i]!;
       for (let t = 0; t < timers.length; t++) {
-        if (timers[t]! > 0) timers[t] = timers[t]! - dt;
+        if (timers[t]! > 0) {
+          const remaining = timers[t]! - dt;
+          timers[t] = remaining > TIMER_SETTLE ? remaining : 0;
+        }
       }
     }
 
@@ -289,22 +321,23 @@ export class Ships {
     }
   }
 
+
   /**
    * Fire every gun that is loaded, on target and clear to shoot. Call after
    * the world has stepped and the index has been rebuilt.
    */
-  fire(world: World, projectiles: Projectiles): number {
+  fire(world: World, projectiles: Projectiles, beams: Beams, grid: SpatialGrid, beamHits: BeamHits): FireReport {
     const bodies = world.bodies;
-    let fired = 0;
+    let projectilesFired = 0;
+    let beamsFired = 0;
 
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
-      const order = this.orders[i]!;
-      if (order.target === NO_TARGET) continue;
-
       const design = this.designs[i]!;
       const indices = this.turretIndex[i]!;
       const timers = this.cooldown[i]!;
+
+      const turretStates = this.turretStates[i]!;
       const barrels = this.nextBarrelToFire[i]!;
       const bodyIdx = bodies.indexOf(this.bodyIds[i]!);
       if (bodyIdx < 0) continue;
@@ -320,59 +353,106 @@ export class Ships {
       let angularImpulse = 0;
 
       for (let t = 0; t < indices.length; t++) {
-        if (timers[t]! > 0) continue;
-        const ti = indices[t]!;
-        if (!this.turrets.readyToFire(ti)) continue;
-
+        let state = turretStates[t]!;
         const gun = design.turrets[t]!.gun;
-        const barrel = barrels[t]!;
+        let barrel = barrels[t]!;
+
+        if (timers[t]! <= 0 && state != TurretState.Idle) {
+          // the timer's run out, progress the state (except idle, which only progresses when ready to fire)
+          if (state == TurretState.Reloading) {
+            // finished reloading -> idle & switch to the next barrel
+            state = turretStates[t] = TurretState.Idle;
+            barrel = barrels[t] = (barrel + 1) % gun.barrelCount;
+          }
+          if (state == TurretState.CommittedOn) {
+            // finished firing -> reload
+            state = turretStates[t] = TurretState.Reloading;
+            timers[t] = gun.cycleTime;
+          }
+        }
+
+        if (state == TurretState.Reloading) continue; // Can't fire while reloading.
+
+        const ti = indices[t]!;
+
+        const order = this.orders[i]!;
+
+        // skip if it's not ready to fire, and it's not committed to being on.
+        if ((order.target === NO_TARGET || !this.turrets.readyToFire(ti)) && state != TurretState.CommittedOn) continue;
+
         const lateralOffset =
           gun.barrelCount > 1
             ? (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing
             : 0;
 
         this.turrets.firingSolution(bodies, ti, this.solution, lateralOffset);
-        projectiles.fireFrom(
-          bodies,
-          bodyIdx,
-          this.solution.x,
-          this.solution.y,
-          this.solution.dirX * gun.muzzleSpeed + this.solution.vx,
-          this.solution.dirY * gun.muzzleSpeed + this.solution.vy,
-          gun.calibre,
-          ROUND_FLIGHT_TIME,
-          gun.roundMass,
-          gun.muzzleEnergy,
-          0,
-          0,
-        );
 
-        // An impulse rather than a force: the round leaves within the step, so
-        // there is no interval to spread it over. A beam mount firing off the
-        // centreline also yaws its own hull, which is part of what an outrigger
-        // costs.
-        //
-        // Only the muzzle velocity recoils. The round also leaves carrying the
-        // tangential velocity of the mount it sat on, but that is momentum it
-        // already had while attached rather than anything the gun gave it, so
-        // the charge does not push back for it.
-        //
-        // Total momentum is not conserved across a shot, and cannot be while
-        // ammunition has no mass aboard (§12): a round is created carrying the
-        // hull's velocity, which adds `roundMass · hullVelocity` to the system.
-        // Everything beyond that balances exactly.
-        const impulse = gun.roundMass * gun.muzzleSpeed;
-        const jx = -this.solution.dirX * impulse;
-        const jy = -this.solution.dirY * impulse;
-        impulseX += jx;
-        impulseY += jy;
-        angularImpulse +=
-          (this.solution.x - bodies.x[bodyIdx]!) * jy -
-          (this.solution.y - bodies.y[bodyIdx]!) * jx;
+        if (gun.type == GunType.Projectile) {
+          projectiles.fireFrom(
+            bodies,
+            bodyIdx,
+            this.solution.x,
+            this.solution.y,
+            this.solution.dirX * gun.muzzleSpeed + this.solution.vx,
+            this.solution.dirY * gun.muzzleSpeed + this.solution.vy,
+            gun.calibre,
+            ROUND_FLIGHT_TIME,
+            gun.roundMass,
+            gun.muzzleEnergy,
+            0,
+            0,
+          );
 
-        timers[t] = gun.cycleTime;
-        barrels[t] = (barrel + 1) % gun.barrelCount;
-        fired++;
+          // An impulse rather than a force: the round leaves within the step, so
+          // there is no interval to spread it over. A beam mount firing off the
+          // centreline also yaws its own hull, which is part of what an outrigger
+          // costs.
+          //
+          // Only the muzzle velocity recoils. The round also leaves carrying the
+          // tangential velocity of the mount it sat on, but that is momentum it
+          // already had while attached rather than anything the gun gave it, so
+          // the charge does not push back for it.
+          //
+          // Total momentum is not conserved across a shot, and cannot be while
+          // ammunition has no mass aboard (§12): a round is created carrying the
+          // hull's velocity, which adds `roundMass · hullVelocity` to the system.
+          // Everything beyond that balances exactly.
+          const impulse = gun.roundMass * gun.muzzleSpeed;
+          const jx = -this.solution.dirX * impulse;
+          const jy = -this.solution.dirY * impulse;
+          impulseX += jx;
+          impulseY += jy;
+          angularImpulse +=
+            (this.solution.x - bodies.x[bodyIdx]!) * jy -
+            (this.solution.y - bodies.y[bodyIdx]!) * jx;
+
+          timers[t] = gun.cycleTime;
+
+          turretStates[t] = TurretState.Reloading; // Projectile guns immediately reload after firing.
+
+          projectilesFired++;  // increment for every shot fired
+        } else {
+          beams.fireFrom(
+            bodyIdx,
+            this.solution.x,
+            this.solution.y,
+            this.solution.dirX,
+            this.solution.dirY,
+            gun.calibre,
+            gun.beamPower,
+            0,
+            bodies,
+            grid,
+            beamHits
+          );
+          if (state == TurretState.Idle) {
+            // was idle before, now committed on for beamOnTime
+            state = turretStates[t] = TurretState.CommittedOn;
+            timers[t] = gun.beamOnTime;
+
+            beamsFired++;  // only increment when going from idle to on.
+          }
+        }
       }
 
       const mass = bodies.mass[bodyIdx]!;
@@ -386,7 +466,7 @@ export class Ships {
       }
     }
 
-    return fired;
+    return { projectilesFired, beamsFired };
   }
 
   /**

@@ -5,26 +5,33 @@ import {
   NO_TARGET,
   ProjectileHits,
   Projectiles,
+  Beams,
   Ships,
   SpatialGrid,
   World,
   type ShipDesign,
+  BeamHits,
 } from '../sim/index.js';
-import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
+import { CORVETTE, GUNSHIP, BEAM_GUNSHIP } from '../scenarios/blueprints.js';
 
 const DT = 1 / 60;
 
 const corvette = compileBlueprint(CORVETTE);
 const gunship = compileBlueprint(GUNSHIP);
+const beamGunship = compileBlueprint(BEAM_GUNSHIP);
 
 interface Rig {
   world: World;
   ships: Ships;
   projectiles: Projectiles;
+  beams: Beams;
   hits: ProjectileHits;
+  beamHits: BeamHits;
   grid: SpatialGrid;
   /** Rounds put in the air over the run, since a store recycles its slots. */
   fired: number;
+  /** Beams lit over the run, counted once per trigger pull rather than per step. */
+  beamsFired: number;
   step(): void;
 }
 
@@ -33,20 +40,29 @@ function rig(): Rig {
   const ships = new Ships();
   world.addForceProvider(ships.forceProvider());
   const projectiles = new Projectiles(256);
+  const beams = new Beams(256);
   const hits = new ProjectileHits();
+  const beamHits = new BeamHits();
   const grid = new SpatialGrid(64);
   const r: Rig = {
     world,
     ships,
     projectiles,
+    beams,
     hits,
+    beamHits,
     grid,
     fired: 0,
+    beamsFired: 0,
     step(): void {
       ships.command(DT, world);
       world.step();
       grid.rebuild(world.bodies);
-      r.fired += ships.fire(world, projectiles);
+      beams.clear();
+      beamHits.clear();
+      const fireReport = ships.fire(world, projectiles, beams, grid, beamHits);
+      r.fired += fireReport.projectilesFired;
+      r.beamsFired += fireReport.beamsFired;
       projectiles.step(DT, world.bodies, grid, hits);
       for (let i = 0; i < hits.count; i++) projectiles.kill(hits.projectile[i]!);
     },
@@ -262,8 +278,8 @@ describe('gunnery', () => {
     expect(bodies.vx[b]).toBe(0);
     expect(bodies.angularVel[b]).toBe(0);
 
-    const fired = r.ships.fire(r.world, r.projectiles);
-    expect(fired).toBe(3);
+    const fired = r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits);
+    expect(fired.projectilesFired).toBe(3);
 
     let px = bodies.mass[b]! * bodies.vx[b]!;
     let py = bodies.mass[b]! * bodies.vy[b]!;
@@ -272,6 +288,7 @@ describe('gunnery', () => {
       px += r.projectiles.mass[i]! * r.projectiles.vx[i]!;
       py += r.projectiles.mass[i]! * r.projectiles.vy[i]!;
     }
+    // TODO the test implies the momentum should be non-zero after because of teh recoil of the shots, but it asserts that the momentum is zero.
     expect(px).toBeCloseTo(0, 6);
     expect(py).toBeCloseTo(0, 6);
   });
@@ -300,7 +317,7 @@ describe('gunnery', () => {
     // velocity the hull had when it left.
     const hullVx = bodies.vx[b]!;
     const hullVy = bodies.vy[b]!;
-    expect(r.ships.fire(r.world, r.projectiles)).toBe(3);
+    expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).projectilesFired).toBe(3);
 
     for (let i = 0; i < r.projectiles.highWater; i++) {
       if (r.projectiles.alive[i] === 0) continue;
@@ -361,7 +378,7 @@ describe('gunnery', () => {
     // Fire 1st round (barrel 0): should be at -0.5 * spacing in y
     r.ships.command(DT, r.world);
     r.grid.rebuild(r.world.bodies);
-    expect(r.ships.fire(r.world, r.projectiles)).toBe(1);
+    expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).projectilesFired).toBe(1);
     const spacing = twin.turrets[0]!.gun.barrelSpacing;
     expect(spacing).toBeGreaterThan(0);
     const y0 = r.projectiles.y[0]!;
@@ -375,8 +392,216 @@ describe('gunnery', () => {
       r.grid.rebuild(r.world.bodies);
     }
     // Fire 2nd round (barrel 1): should be at +0.5 * spacing in y
-    expect(r.ships.fire(r.world, r.projectiles)).toBe(1);
+    expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).projectilesFired).toBe(1);
     const y1 = r.projectiles.y[1]!;
     expect(y1).toBeCloseTo(+0.5 * spacing, 6);
+  });
+});
+
+describe('beam gunnery', () => {
+  function duel(design: ShipDesign, range: number): Rig {
+    const r = rig();
+    const a = r.ships.spawn(r.world, { design, x: -range / 2, team: 0 });
+    const b = r.ships.spawn(r.world, { design, x: range / 2, angle: math.PI, team: 1 });
+    r.ships.setOrder(a, b, range * 0.9, range * 1.1, 20);
+    r.ships.setOrder(b, a, range * 0.9, range * 1.1, 20);
+    return r;
+  }
+
+  it('holds fire until its guns have trained round', () => {
+    const r = rig();
+    // The enemy is dead astern, so no mount starts bearing on it. A turret
+    // that happens to rest on its target is ready immediately and *should*
+    // fire on the first step — which is why this puts the target where none
+    // of them do.
+    const ship = r.ships.spawn(r.world, { design: beamGunship, x: 0, angle: 0 });
+    const enemy = r.ships.spawn(r.world, { design: beamGunship, x: -1500, angle: math.PI });
+    r.ships.setOrder(ship, enemy, 1400, 1600, 20);
+
+    r.step();
+    expect(r.beamsFired).toBe(0);
+
+    // A gunship is sluggish: coming round onto something astern and settling
+    // enough for a mount to read as on target takes it something like a
+    // quarter of a minute.
+    for (let i = 0; i < 60 * 30; i++) r.step();
+    expect(r.beamsFired).toBeGreaterThan(0);
+  });
+
+  it('respects the gun cycle time rather than firing every step', () => {
+    const r = duel(beamGunship, 1200);
+    for (let i = 0; i < 60 * 30; i++) r.step();
+
+    const seconds = 30;
+    // Two ships, each with every gun bearing at most all of the time.
+    let ceiling = 0;
+    for (const t of beamGunship.turrets) {
+      ceiling += 2 * (seconds / t.gun.cycleTime + 1);
+    }
+    expect(r.beamsFired).toBeGreaterThan(0);
+    expect(r.beamsFired).toBeLessThanOrEqual(ceiling);
+  });
+
+  it('recoils is zero', () => {
+    // Every round in a salvo must leave from the *same* hull velocity. Apply
+    // each gun's recoil as it fires and the later rounds inherit a hull the
+    // earlier ones already pushed, so the broadside gains momentum invented by
+    // the firing order.
+    //
+    // A gunship with a dead target returns all three mounts to rest, where
+    // each reads as on target, so all three fire on the same step — and with
+    // the hull motionless the arithmetic is exact rather than approximate: a
+    // round created at rest carries no hull momentum away with it.
+    const r = rig();
+    const ship = r.ships.spawn(r.world, { design: beamGunship, x: 0, y: 0 });
+    const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
+    r.ships.setOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.remove(enemy);
+
+    const bodies = r.world.bodies;
+    const b = bodyOf(r, ship);
+
+    r.ships.command(DT, r.world);
+    r.grid.rebuild(bodies);
+    expect(bodies.vx[b]).toBe(0);
+    expect(bodies.angularVel[b]).toBe(0);
+
+    const fired = r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits);
+    expect(fired.beamsFired).toBe(3);
+
+    let px = bodies.mass[b]! * bodies.vx[b]!;
+    let py = bodies.mass[b]! * bodies.vy[b]!;
+
+    expect(px).toBe(0);
+    expect(py).toBe(0);
+  });
+
+  it('cycles through barrels sequentially with transverse offsets', () => {
+    const twin = compileBlueprint({
+      name: 'Twin',
+      modules: [
+        { kind: 'structure', x: 0, y: 0, length: 10, width: 4 },
+        { kind: 'beamTurret', x: 8, y: 0, length: 6, width: 4, barrels: 2 },
+      ],
+    });
+    const r = rig();
+    const ship = r.ships.spawn(r.world, { design: twin, x: 0, y: 0 });
+    const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
+    r.ships.setOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.remove(enemy);
+
+    // Fire 1st round (barrel 0): should be at -0.5 * spacing in y
+    r.ships.command(DT, r.world);
+    r.grid.rebuild(r.world.bodies);
+    expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(1);
+    const spacing = twin.turrets[0]!.gun.barrelSpacing;
+    expect(spacing).toBeGreaterThan(0);
+    const y0 = r.beams.startY[0]!;
+    expect(y0).toBeCloseTo(-0.5 * spacing, 6);
+    const gun = twin.turrets[0]!.gun;
+
+    // advance time until the beam turns off again
+    let timeSinceTrigger = 0;
+    while (r.beams.count > 0 && timeSinceTrigger < 100 * gun.beamOnTime) {
+      advanceTime();
+      // only counts on the first frame it starts firing
+      expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(0);
+      timeSinceTrigger += DT;
+    }
+    // A fixed step can only resolve a dwell to within one step of itself, and
+    // the dwell is no longer a whole number of them. So: the first step at or
+    // after the dwell, and never a step later than that — the latter is the
+    // failure TIMER_SETTLE exists to prevent.
+    expect(timeSinceTrigger).toBeGreaterThanOrEqual(gun.beamOnTime);
+    expect(timeSinceTrigger).toBeLessThan(gun.beamOnTime + DT);
+
+    // Advance cooldown until next shot can fire
+    let timeSpentReloading = 0;
+    let mostRecentFiredCount = -1;
+    do {
+      advanceTime();
+      // beam count should be 0 until the beam is turned on by the fire step.
+      expect(r.beams.count).toBe(0);
+      mostRecentFiredCount = r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired;
+      timeSpentReloading += DT;
+    }
+    while (mostRecentFiredCount == 0 && timeSpentReloading < 100 * gun.cycleTime)
+
+    // The same one-step resolution, and the same guard against a second one.
+    expect(timeSpentReloading).toBeGreaterThanOrEqual(gun.cycleTime);
+    expect(timeSpentReloading).toBeLessThan(gun.cycleTime + DT);
+    expect(mostRecentFiredCount).toBe(1);
+    expect(r.beams.count).toBe(1);
+
+    // Fire 2nd beam (barrel 1): should be at +0.5 * spacing in y
+    const y1 = r.beams.startY[0]!;
+    expect(y1).toBeCloseTo(+0.5 * spacing, 6);
+
+    function advanceTime() {
+      r.beams.clear(); // beams are cleared every time step
+      r.ships.command(DT, r.world);
+      r.grid.rebuild(r.world.bodies);
+    }
+  });
+
+  it('Keeps firing for the expected duration even when the target is lost', () => {
+    const ship1 = compileBlueprint({
+      name: 'Ship1',
+      modules: [
+        { kind: 'structure', x: 0, y: 0, length: 10, width: 4 },
+        { kind: 'beamTurret', x: 8, y: 0, length: 6, width: 4 },
+      ],
+    });
+    const r = rig();
+    const ship = r.ships.spawn(r.world, { design: ship1, x: 0, y: 0 });
+    const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
+    r.ships.setOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.remove(enemy);
+
+    // Fire 1st round
+    r.ships.command(DT, r.world);
+    r.grid.rebuild(r.world.bodies);
+    expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(1);
+
+    // Now the ship's started firing, delete the target
+    const enemyBody = r.ships.body(enemy);  // grab the BodyId before removing
+    r.world.destroy(enemyBody);             // the body itself
+    r.ships.clearOrder(ship);               // also cancel the order
+
+    const gun = ship1.turrets[0]!.gun;
+
+    // advance time until the beam turns off again
+    let timeSinceTrigger = 0;
+    while (r.beams.count > 0 && timeSinceTrigger < 100 * gun.beamOnTime) {
+      advanceTime();
+      // only counts on the first frame it starts firing
+      expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(0);
+      timeSinceTrigger += DT;
+    }
+    // A fixed step can only resolve a dwell to within one step of itself, and
+    // the dwell is no longer a whole number of them. So: the first step at or
+    // after the dwell, and never a step later than that — the latter is the
+    // failure TIMER_SETTLE exists to prevent.
+    expect(timeSinceTrigger).toBeGreaterThanOrEqual(gun.beamOnTime);
+    expect(timeSinceTrigger).toBeLessThan(gun.beamOnTime + DT);
+    expect(r.beams.count).toBe(0);
+
+    // Wait for a while to make sure the ship doesn't fire again (proof that it knows the target really is gone)
+    const waitDuration = 60;
+    const steps = waitDuration / DT;
+
+    // make sure it doesn't shoot again as there's nothing to shoot at now.
+    for(var i = 0; i < steps; i++){
+      advanceTime();
+      // beam count should be 0
+      expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(0);
+      expect(r.beams.count).toBe(0);
+    }
+
+    function advanceTime() {
+      r.beams.clear(); // beams are cleared every time step
+      r.ships.command(DT, r.world);
+      r.grid.rebuild(r.world.bodies);
+    }
   });
 });

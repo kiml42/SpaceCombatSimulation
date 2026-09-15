@@ -146,8 +146,10 @@ describe('pointing tolerance', () => {
     // parked just outside tolerance, never reporting ready, and never firing.
     // Capping the correction at the landing rate removes the dead band, so
     // every mount can reach the same tolerance however brisk it is.
+    // The value tracks ON_TARGET_FLOOR; what this test is really pinning is
+    // that one figure serves both mounts.
+    expect(turrets.tolerance[gentle]!).toBe(turrets.tolerance[brisk]!);
     expect(turrets.tolerance[gentle]!).toBeCloseTo(0.001, 12);
-    expect(turrets.tolerance[brisk]!).toBeCloseTo(0.001, 12);
   });
 
   it('still settles and reports ready however brisk the mount', () => {
@@ -530,6 +532,25 @@ describe('lead', () => {
     const hitY = Math.sin(turrets.commanded[t]!) * 500 * flight;
     expect(hitX).toBeCloseTo(300, 6);
     expect(hitY).toBeCloseTo(200 * flight, 6);
+  });
+
+  it('aims at a moving target with a laser turret', () => {
+    const { bodies, index } = ship();
+    const turrets = new Turrets();
+    const t = turrets.add({
+      owner: index,
+      x: 0,
+      y: 0,
+      maxRate: 10,
+      maxAccel: 100,
+      muzzleSpeed: -1,
+    });
+
+    // Target at 300, 300 (45 degrees), crossing in +y.
+    const flight = turrets.aimAt(bodies, t, 300, 300, 0, 200);
+    expect(flight).toBe(0);
+    // So the turret must is commanded to point at 45 degrees to the current position of the target.
+    expect(turrets.commanded[t]!).toBeCloseTo(0.25 * PI, 6);
   });
 
   it('aims at the present position when the target cannot be caught', () => {
