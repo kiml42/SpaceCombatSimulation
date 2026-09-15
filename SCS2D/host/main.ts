@@ -194,19 +194,17 @@ export function start(): void {
     }
     draw(ctx, view, camera, canvas.width, canvas.height);
 
-    const range =
-      view.shipCount === 2
-        ? math.distance(
+    const range = math.distance(
             view.ships[0]!.x,
             view.ships[0]!.y,
             view.ships[1]!.x,
             view.ships[1]!.y,
-          )
-        : 0;
+          );
     readout.textContent =
       `t ${view.time.toFixed(1)} s · step ${view.tick} · ` +
       `range ${range.toFixed(0)} m · in flight ${view.projectileCount} · ` +
-      `fired ${state.totalProjectilesFired} · hits ${state.totalProjectileHits} · grid ${gridStep(camera.scale)} m`;
+      `p.fired ${state.totalProjectilesFired} · p.hits ${state.totalProjectileHits} · ` +
+      `b.fired ${state.totalBeamsFired} · b.hits ${state.totalBeamHits} · grid ${gridStep(camera.scale)} m`;
 
     window.requestAnimationFrame(tick);
   };
