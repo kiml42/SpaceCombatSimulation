@@ -74,7 +74,7 @@ export class Snapshot {
   beamEndX = new Float64Array(0);
   beamEndY = new Float64Array(0);
   beamWidth = new Float64Array(0);
-  beamEnergy = new Float64Array(0);
+  beamPower = new Float64Array(0);
   beamCount = 0;
 
   /**
@@ -112,7 +112,7 @@ function growBeams(snapshot: Snapshot, needed: number): void {
   snapshot.beamEndX = new Float64Array(size);
   snapshot.beamEndY = new Float64Array(size);
   snapshot.beamWidth = new Float64Array(size);
-  snapshot.beamEnergy = new Float64Array(size);
+  snapshot.beamPower = new Float64Array(size);
 }
 
 function shipView(snapshot: Snapshot, i: number): ShipView {
@@ -214,7 +214,7 @@ export function capture(
     out.beamEndX[b] = beams.endX[i]!;
     out.beamEndY[b] = beams.endY[i]!;
     out.beamWidth[b] = beams.width[i]!;
-    out.beamEnergy[b] = beams.energy[i]!;
+    out.beamPower[b] = beams.power[i]!;
     b++;
   }
   out.beamCount = b;

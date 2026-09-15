@@ -18,7 +18,7 @@ export interface BeamSpec {
   endX: number;
   endY: number;
   width: number;
-  energy: number;
+  power: number;
   /**
    * A body *index* the beam passes through — the firing ship, normally, so a
    * turret does not shoot its own hull. - temporary until we set up the two layer world model.
@@ -110,7 +110,7 @@ export class Beams {
   endX!: Float64Array;
   endY!: Float64Array;
   width!: Float64Array;
-  energy!: Float64Array;
+  power!: Float64Array;
   owner!: Int32Array;
   kind!: Int32Array;
   alive!: Uint8Array;
@@ -152,7 +152,7 @@ export class Beams {
     this.endX = f64(this.endX);
     this.endY = f64(this.endY);
     this.width = f64(this.width);
-    this.energy = f64(this.energy);
+    this.power = f64(this.power);
     this.owner = i32(this.owner);
     this.kind = i32(this.kind);
 
@@ -179,7 +179,7 @@ export class Beams {
     endX: number,
     endY: number,
     width: number,
-    energy: number,
+    power: number,
     owner: number,
     kind: number,
     bodies: Bodies,
@@ -194,13 +194,13 @@ export class Beams {
       if (this.highWater >= this.capacity) this.grow(this.capacity * 2);
       i = this.highWater++;
     }
-    
+
     this.startX[i] = startX;
     this.startY[i] = startY;
     this.endX[i] = endX;
     this.endY[i] = endY;
     this.width[i] = width;
-    this.energy[i] = energy;
+    this.power[i] = power;
     this.owner[i] = owner;
     this.kind[i] = kind;
     this.alive[i] = 1;
@@ -225,7 +225,7 @@ export class Beams {
       spec.endX,
       spec.endY,
       spec.width,
-      spec.energy,
+      spec.power,
       spec.owner ?? NO_OWNER,
       spec.kind ?? 0,
       bodies,
@@ -323,7 +323,7 @@ export class Beams {
     muzzleDirectionX: number,
     muzzleDirectionY: number,
     width: number,
-    energy: number,
+    power: number,
     kind: number,
     bodies: Bodies,
     grid: SpatialGrid,
@@ -335,7 +335,7 @@ export class Beams {
       muzzleX + muzzleDirectionX * MAX_BEAM_LENGTH,
       muzzleY + muzzleDirectionY * MAX_BEAM_LENGTH,
       width,
-      energy,
+      power,
       bodyIndex,
       kind,
       bodies,
