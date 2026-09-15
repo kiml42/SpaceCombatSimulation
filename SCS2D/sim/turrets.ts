@@ -59,7 +59,7 @@ import {
  * correction rate is capped at what lands exactly rather than braking early —
  * so there is no dead band to sit outside of.
  */
-const ON_TARGET_FLOOR = 0.01;
+const ON_TARGET_FLOOR = 0.001;
 
 export enum TurretState {
   // ready to fire
@@ -441,10 +441,6 @@ export class Turrets {
         aimX = dx + (targetVx - shooterVx) * t;
         aimY = dy + (targetVy - shooterVy) * t;
       }
-    }
-    if(speed <0) {
-      // negative speed indicates a laser turret, which has no lead time. Aim directly at the target.
-      t = 0;
     }
 
     // Angular rate of the aim point about the mount: the transverse component
