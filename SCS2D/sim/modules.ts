@@ -491,9 +491,7 @@ export function gunStats(mountLength: number, mountWidth: number, barrelCount: n
  * The bore is set by how wide the mount is, and the barrel by how long the
  * gun can be for that bore — so a turret is described by the same two numbers
  * as every other module, and its weapon falls out of them. Everything after
- * that is physics: charge energy scales with the volume of bore it fills,
- * shell mass with the cube of calibre, and muzzle velocity is whatever
- * dividing one by the other leaves.
+ * that is physics.
  *
  * The trade this produces is the real one. Widening the mount buys a higher
  * energy beam that hits harder but reloads less often;
