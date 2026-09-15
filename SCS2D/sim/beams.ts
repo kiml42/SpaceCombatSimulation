@@ -1,6 +1,6 @@
 import type { Bodies } from './bodies.js';
 import { sqrt } from './math.js';
-import { RayHit, type SpatialGrid } from './spatialGrid.js';
+import { RayHit, type SpatialGrid, MAX_CELLS_PER_RAY } from './spatialGrid.js';
 import { NO_OWNER } from './projectiles.js';
 
 /**
@@ -9,6 +9,8 @@ import { NO_OWNER } from './projectiles.js';
  *
  * Hits are *reported*, not applied.
  */
+
+export const MAX_BEAM_LENGTH = MAX_CELLS_PER_RAY * 0.8;
 
 export interface BeamSpec {
   startX: number;
@@ -192,7 +194,7 @@ export class Beams {
       if (this.highWater >= this.capacity) this.grow(this.capacity * 2);
       i = this.highWater++;
     }
-
+    
     this.startX[i] = startX;
     this.startY[i] = startY;
     this.endX[i] = endX;
@@ -311,6 +313,8 @@ export class Beams {
    *
    * The lead a turret needs in order to *hit* something is the aiming problem,
    * not this one; this only makes the round leave the barrel correctly.
+   * 
+   * muzzleDirectionX and muzzleDirectionY must represent a unit vector.
    */
   fireFrom(
     bodyIndex: number,
@@ -325,12 +329,11 @@ export class Beams {
     grid: SpatialGrid,
     hits: BeamHits
   ): number {
-    // TODO make a sensible constant for the length of a beam.
     return this.shootRaw(
       muzzleX,
       muzzleY,
-      muzzleX + muzzleDirectionX * 1000000000,
-      muzzleY + muzzleDirectionY * 1000000000,
+      muzzleX + muzzleDirectionX * MAX_BEAM_LENGTH,
+      muzzleY + muzzleDirectionY * MAX_BEAM_LENGTH,
       width,
       energy,
       bodyIndex,
