@@ -9,6 +9,7 @@ import {
   type WellSpec,
 } from '../../sim/index.js';
 import { duel } from '../../scenarios/duel.js';
+import { beamDuel } from '../../scenarios/beamDuel.js';
 import { swarm } from '../../scenarios/swarm.js';
 import { fractal } from '../../scenarios/fractal.js';
 
@@ -279,6 +280,16 @@ export function duelScenario(seed = 20260905): ScenarioRun {
       `fired=${run.totalFired} hits=${run.totalHits}`,
   };
 }
+export function beamDuelScenario(seed = 20260905): ScenarioRun {
+  const run = beamDuel(seed);
+  return {
+    step: () => run.step(),
+    checksum: () => checksumProjectiles(run.projectiles, checksumWorld(run.world)),
+    describe: () =>
+      `ships=${run.ships.count} inFlight=${run.projectiles.count} ` +
+      `fired=${run.totalFired} hits=${run.totalHits}`,
+  };
+}
 
 export function swarmScenario(seed = 20260905, corvetteCount = 20): ScenarioRun {
   const run = swarm(seed, corvetteCount);
@@ -323,6 +334,7 @@ export const SCENARIOS = {
   tumble: worldScenario(() => tumbleScenario(), 5_000),
   gunnery: { steps: 3_000, build: () => gunneryScenario() },
   duel: { steps: 3_000, build: () => duelScenario() },
+  beamDuel: { steps: 3_000, build: () => beamDuelScenario() },
   swarm: { steps: 3_000, build: () => swarmScenario() },
   superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
   fractal: { steps: 3_000, build: () => fractalScenario() },
