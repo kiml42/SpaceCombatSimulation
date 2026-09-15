@@ -212,7 +212,7 @@ export class Beams {
       spec.endX,
       spec.endY,
       spec.width,
-      spec.energy,  // TODO
+      spec.energy,
       spec.owner ?? NO_OWNER,
       spec.kind ?? 0,
     );
