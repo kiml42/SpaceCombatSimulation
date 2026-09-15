@@ -430,11 +430,12 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   // meet, where a single stroke over one path would have composited once.
   // Worth it for a halo that is the round's own size, and rare enough not to
   // read as anything but two tracers crossing.
-  ctx.lineCap = 'square';
+  ctx.lineCap = 'butt';
   ctx.strokeStyle = BEAM_GLOW;
   for (let i = 0; i < snapshot.beamCount; i++) {
     const calibre = snapshot.beamWidth[i]!;
-    const energy = snapshot.beamEnergy[i]!;
+    const energy = snapshot.beamEnergy[i]! * 0.000001;
+    ctx.globalAlpha = energy;
     ctx.lineWidth = legibleWidth(energy * GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale);
     ctx.beginPath();
     ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
@@ -448,7 +449,8 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   ctx.strokeStyle = BEAM;
   for (let i = 0; i < snapshot.beamCount; i++) {
     const calibre = snapshot.beamWidth[i]!;
-    const energy = snapshot.beamEnergy[i]!;
+    const energy = snapshot.beamEnergy[i]! * 0.000001;
+    ctx.globalAlpha = energy;
     // The round *is* its calibre wide. Twice the calibre is the barrel's outer
     // diameter — right for the tube, wrong for what comes out of it.
     ctx.lineWidth = legibleWidth(energy * calibre, MIN_TRACER_PX, camera.scale);
