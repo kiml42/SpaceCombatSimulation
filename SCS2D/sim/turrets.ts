@@ -54,7 +54,7 @@ import {
  */
 
 /**
- * Bearing error below which a turret counts as on target. About 0.6°, finer
+ * Bearing error below which a turret counts as on target. About 0.06°, finer
  * than any gunnery cares about, and reachable by every mount because the
  * correction rate is capped at what lands exactly rather than braking early —
  * so there is no dead band to sit outside of.
