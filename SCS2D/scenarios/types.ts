@@ -33,7 +33,9 @@ export interface Battle {
   readonly hits: ProjectileHits;
   readonly beamHits: BeamHits;
   /** Cumulative, so a duel that stops shooting or stops hitting is detectable. */
-  totalFired: number;
-  totalHits: number;
+  totalProjectilesFired: number;
+  totalProjectileHits: number;
+  totalBeamsFired: number;
+  totalBeamHits: number;
   step(): void;
 }

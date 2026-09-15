@@ -23,7 +23,7 @@ for (const [name, scenario] of Object.entries(SCENARIOS)) {
 
   console.log(
     `${name.padEnd(8)} steps=${String(scenario.steps).padStart(6)} ` +
-      `checksum=0x${checksum} ` +
+      `checksum=0x ${checksum} ` + // space added for double-click select
       `${elapsedMs.toFixed(1)}ms (${perStepUs.toFixed(2)}us/step)  ` +
       run.describe(),
   );

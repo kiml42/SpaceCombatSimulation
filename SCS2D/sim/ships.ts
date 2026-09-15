@@ -131,6 +131,11 @@ export interface ShipSpec {
   team?: number;
 }
 
+export interface FireReport {
+  projectilesFired: number;
+  beamsFired: number;
+}
+
 export class Ships {
   /** Shared by every ship in the world, since a turret's owner is a body index. */
   readonly turrets: Turrets;
@@ -316,13 +321,15 @@ export class Ships {
     }
   }
 
+
   /**
    * Fire every gun that is loaded, on target and clear to shoot. Call after
    * the world has stepped and the index has been rebuilt.
    */
-  fire(world: World, projectiles: Projectiles, beams: Beams, grid: SpatialGrid, beamHits: BeamHits): number {
+  fire(world: World, projectiles: Projectiles, beams: Beams, grid: SpatialGrid, beamHits: BeamHits): FireReport {
     const bodies = world.bodies;
-    let fired = 0;
+    let projectilesFired = 0;
+    let beamsFired = 0;
 
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
@@ -423,7 +430,7 @@ export class Ships {
 
           turretStates[t] = TurretState.Reloading; // Projectile guns immediately reload after firing.
 
-          fired++;  // increment for every shot fired
+          projectilesFired++;  // increment for every shot fired
         } else {
           beams.fireFrom(
             bodyIdx,
@@ -443,7 +450,7 @@ export class Ships {
             state = turretStates[t] = TurretState.CommittedOn;
             timers[t] = gun.beamOnTime;
 
-            fired++;  // only increment when going from idle to on.
+            beamsFired++;  // only increment when going from idle to on.
           }
         }
       }
@@ -459,7 +466,7 @@ export class Ships {
       }
     }
 
-    return fired;
+    return { projectilesFired, beamsFired };
   }
 
   /**
