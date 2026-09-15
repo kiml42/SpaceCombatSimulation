@@ -73,7 +73,7 @@ describe('impacts', () => {
     expect(r.beams.alive[p]).toBe(1);
     expect(r.beams.pending[p]).toBe(1);
     expect(r.beams.pendingCount).toBe(1);
-    expect(r.beams.startX[p]).toBe(r.hits.x[0]);
+    expect(r.beams.endX[p]).toBe(r.hits.x[0]);
 
     // Everything about the beam itself is read from the store rather than
     // copied into the hit record, so there is no second copy to diverge.

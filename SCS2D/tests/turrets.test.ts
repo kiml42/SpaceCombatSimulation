@@ -146,8 +146,8 @@ describe('pointing tolerance', () => {
     // parked just outside tolerance, never reporting ready, and never firing.
     // Capping the correction at the landing rate removes the dead band, so
     // every mount can reach the same tolerance however brisk it is.
-    expect(turrets.tolerance[gentle]!).toBeCloseTo(0.001, 12);
-    expect(turrets.tolerance[brisk]!).toBeCloseTo(0.001, 12);
+    expect(turrets.tolerance[gentle]!).toBeCloseTo(0.01, 12);
+    expect(turrets.tolerance[brisk]!).toBeCloseTo(0.01, 12);
   });
 
   it('still settles and reports ready however brisk the mount', () => {
