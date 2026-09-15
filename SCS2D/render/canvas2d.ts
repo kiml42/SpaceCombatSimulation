@@ -434,7 +434,8 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   ctx.strokeStyle = BEAM_GLOW;
   for (let i = 0; i < snapshot.beamCount; i++) {
     const calibre = snapshot.beamWidth[i]!;
-    ctx.lineWidth = legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale);
+    const energy = snapshot.beamEnergy[i]!;
+    ctx.lineWidth = legibleWidth(energy * GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale);
     ctx.beginPath();
     ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
     ctx.lineTo(snapshot.beamEndX[i]!, snapshot.beamEndY[i]!);
@@ -447,9 +448,10 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   ctx.strokeStyle = BEAM;
   for (let i = 0; i < snapshot.beamCount; i++) {
     const calibre = snapshot.beamWidth[i]!;
+    const energy = snapshot.beamEnergy[i]!;
     // The round *is* its calibre wide. Twice the calibre is the barrel's outer
     // diameter — right for the tube, wrong for what comes out of it.
-    ctx.lineWidth = legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
+    ctx.lineWidth = legibleWidth(energy * calibre, MIN_TRACER_PX, camera.scale);
     ctx.beginPath();
     ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
     ctx.lineTo(snapshot.beamEndX[i]! , snapshot.beamEndY[i]!);
