@@ -524,6 +524,7 @@ export function gunStats(mountLength: number, mountWidth: number, barrelCount: n
  * the barrels to converge at a chosen range is the natural answer when it does.
  */
 export function beamGunStats(mountLength: number, mountWidth: number, barrelCount: number = 1): GunStats {
+  // TODO work out scaling rules for beam turrets
   const calibre = (mountWidth * CALIBRE_FRACTION) / barrelCount;
   // The barrel wants to be as long as its calibre allows, but a mount cannot
   // carry a gun longer than itself without fouling the rest of the ship.
