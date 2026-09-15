@@ -63,7 +63,7 @@ const BEAM = '#3df72c';
 const BEAM_GLOW = '#a8f132';
 
 /**
- * Beam brightness, in joules of muzzle energy.
+ * Beam brightness, in watta of power.
  *
  * A beam is drawn at its true width, exactly as a tracer is — the mount fixes
  * how thick it is, and nothing else may. What it says about itself, it says
@@ -72,34 +72,34 @@ const BEAM_GLOW = '#a8f132';
  * inert.
  *
  * The mapping is logarithmic because the quantity is. The mounts on one hull
- * already span four orders of magnitude of muzzle energy — the beam gunship
+ * already span four orders of magnitude of beam power — the beam gunship
  * carries 4e5 J on its outriggers and 1.4e8 J at the bow — and a linear ramp
  * over that range either clips everything above a thousandth of the maximum or
- * leaves everything below it invisible. A decade of energy is therefore an
+ * leaves everything below it invisible. A decade of power is therefore an
  * equal step of brightness, which is also how the eye reads brightness.
  *
- * `BEAM_DIM_ENERGY` is where the ramp starts and `BEAM_BRIGHT_ENERGY` where it
+ * `BEAM_DIM_POWER` is where the ramp starts and `BEAM_BRIGHT_POWER` where it
  * reaches full opacity; outside them the beam clamps. `BEAM_MIN_ALPHA` is the
  * floor, because a beam that is being fired is a thing the player must be able
  * to see even when it is the weakest thing on the screen — the alternative is
  * a gun that reads as jammed.
  */
-const BEAM_DIM_ENERGY = 1e5;
-const BEAM_BRIGHT_ENERGY = 1e8;
+const BEAM_DIM_POWER = 1e5;
+const BEAM_BRIGHT_POWER = 1e8;
 const BEAM_MIN_ALPHA = 0.25;
-const BEAM_DECADES = Math.log(BEAM_BRIGHT_ENERGY / BEAM_DIM_ENERGY);
+const BEAM_DECADES = Math.log(BEAM_BRIGHT_POWER / BEAM_DIM_POWER);
 
 /**
  * How much of the core's opacity the glow gets. Below 1 so that the halo stays
- * a halo at every energy: at parity a full-energy beam's glow is as solid as
+ * a halo at every power: at parity a full-power beam's glow is as solid as
  * its core and the two stop being distinguishable.
  */
 const BEAM_GLOW_ALPHA = 0.45;
 
-/** Opacity for a beam carrying `energy` joules. See the constants above. */
-function beamAlpha(energy: number): number {
-  if (!(energy > BEAM_DIM_ENERGY)) return BEAM_MIN_ALPHA;
-  const t = Math.log(energy / BEAM_DIM_ENERGY) / BEAM_DECADES;
+/** Opacity for a beam carrying `power` watts. See the constants above. */
+function beamAlpha(power: number): number {
+  if (!(power > BEAM_DIM_POWER)) return BEAM_MIN_ALPHA;
+  const t = Math.log(power / BEAM_DIM_POWER) / BEAM_DECADES;
   return t >= 1 ? 1 : BEAM_MIN_ALPHA + (1 - BEAM_MIN_ALPHA) * t;
 }
 
@@ -512,7 +512,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   ctx.strokeStyle = BEAM_GLOW;
   for (let i = 0; i < snapshot.beamCount; i++) {
     const calibre = snapshot.beamWidth[i]!;
-    ctx.globalAlpha = beamAlpha(snapshot.beamEnergy[i]!) * BEAM_GLOW_ALPHA;
+    ctx.globalAlpha = beamAlpha(snapshot.beamPower[i]!) * BEAM_GLOW_ALPHA;
     ctx.lineWidth = legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale);
     ctx.beginPath();
     ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
@@ -526,7 +526,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   ctx.strokeStyle = BEAM;
   for (let i = 0; i < snapshot.beamCount; i++) {
     const calibre = snapshot.beamWidth[i]!;
-    ctx.globalAlpha = beamAlpha(snapshot.beamEnergy[i]!);
+    ctx.globalAlpha = beamAlpha(snapshot.beamPower[i]!);
     // The beam *is* its calibre wide. Twice the calibre is the barrel's outer
     // diameter — right for the tube, wrong for what comes out of it.
     ctx.lineWidth = legibleWidth(calibre, MIN_TRACER_PX, camera.scale);

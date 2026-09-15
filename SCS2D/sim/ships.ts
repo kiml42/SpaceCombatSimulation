@@ -410,7 +410,7 @@ export class Ships {
             this.solution.dirX,
             this.solution.dirY,
             gun.calibre,
-            gun.muzzleEnergy,
+            gun.beamPower,
             0,
             bodies,
             grid,

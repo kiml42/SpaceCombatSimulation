@@ -230,6 +230,8 @@ export interface GunStats {
   muzzleSpeed: number;
   /** Kinetic energy of one round at the muzzle, joules. */
   muzzleEnergy: number;
+  /** beam power at the muzzle, watts. */
+  beamPower: number;
   /** Seconds between rounds. */
   cycleTime: number;
   /** Seconds a beam stays on. */
@@ -477,6 +479,7 @@ export function gunStats(mountLength: number, mountWidth: number, barrelCount: n
     roundMass,
     muzzleSpeed,
     muzzleEnergy,
+    beamPower: 0,
     cycleTime: (CYCLE_TIME_PER_CALIBRE * calibre) / barrelCount,
     beamOnTime: 0
   };
@@ -540,7 +543,7 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
   const barrelLength = wanted < mountLength ? wanted : mountLength;
 
   const boreArea = PI * 0.25 * calibre * calibre;
-  const muzzleEnergy = CHARGE_ENERGY_PER_BORE_VOLUME * boreArea * barrelLength;
+  const power = CHARGE_ENERGY_PER_BORE_VOLUME * boreArea * barrelLength;
   // One whole gap outboard of each end barrel, so `n` barrels make `n + 1`
   // gaps. Zero rather than a notional half-face for a single barrel, which has
   // nothing to be spaced from.
@@ -557,7 +560,8 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
     barrelSpacing,
     roundMass: 0,
     muzzleSpeed: -1,
-    muzzleEnergy,
+    muzzleEnergy: 0,
+    beamPower: power,
     cycleTime: cycleTime,
     beamOnTime: cycleTime / 2
   };
