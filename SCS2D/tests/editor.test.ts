@@ -30,6 +30,8 @@ import {
 } from '../editor/edit.js';
 import { emptyBlueprint, Library, toFileText, type KeyValueStore } from '../editor/library.js';
 import { Demonstration, ROUND_LIFETIME } from '../editor/demonstrate.js';
+import { MAX_BEAM_LENGTH } from '../sim/beams.js';
+import { GunType } from '../sim/modules.js';
 import { previewSnapshot } from '../editor/preview.js';
 import { designStats, envelopes, headingCost, moduleReadout } from '../editor/stats.js';
 
@@ -769,6 +771,83 @@ describe('Demonstration', () => {
     for (let t = 0; t < ROUND_LIFETIME + 1; t += 1 / 60) demo.step(design, [], 1 / 60);
     demo.writeInto(snapshot);
     expect(snapshot.projectileCount).toBe(0);
+    expect(demo.running).toBe(false);
+  });
+
+  /** A beam mount, to show the other branch of `fire`. */
+  const beamBoat = (): ShipDesign =>
+    new EditorDocument(
+      ship({
+        modules: [
+          { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
+          { kind: 'beamTurret', x: 11, y: 0, length: 4, width: 3 },
+          { kind: 'thruster', x: -11, y: 0, angle: 0, length: 2, width: 6 },
+        ],
+      }),
+    ).view.design!;
+
+  it('lights a selected beam mount, and lets the renderer know it is there', () => {
+    // Every array reaching the snapshot with the count left at zero draws
+    // exactly nothing, which is indistinguishable from a gun that never fired.
+    const design = beamBoat();
+    const turret = design.turrets[0]!;
+    expect(turret.gun.type).toBe(GunType.Beam);
+    const demo = new Demonstration();
+
+    demo.step(design, [design.modules[turret.module]!.index], 1 / 240);
+
+    const snapshot = previewSnapshot(design);
+    demo.writeInto(snapshot);
+    expect(snapshot.beamCount).toBe(1);
+    expect(snapshot.projectileCount).toBe(0);
+    expect(snapshot.beamWidth[0]).toBe(turret.gun.calibre);
+    expect(snapshot.beamPower[0]).toBe(turret.gun.beamPower);
+  });
+
+  it('runs a beam from the muzzle outward, rather than from the origin', () => {
+    // Both ends are positions. Writing the heading into `end` instead draws a
+    // beam from the muzzle to a point measured from the world origin, which
+    // points somewhere else entirely and is the wrong length besides.
+    const design = beamBoat();
+    const turret = design.turrets[0]!;
+    const demo = new Demonstration();
+    demo.step(design, [design.modules[turret.module]!.index], 1 / 240);
+
+    const snapshot = previewSnapshot(design);
+    demo.writeInto(snapshot);
+    const dx = snapshot.beamEndX[0]! - snapshot.beamStartX[0]!;
+    const dy = snapshot.beamEndY[0]! - snapshot.beamStartY[0]!;
+    expect(Math.hypot(dx, dy)).toBeCloseTo(MAX_BEAM_LENGTH, 6);
+    // The mount rests along the hull's +x, so the beam leaves that way.
+    expect(dx).toBeCloseTo(MAX_BEAM_LENGTH, 6);
+    expect(dy).toBeCloseTo(0, 6);
+    // And it starts at the muzzle, out beyond the mount's own centre.
+    expect(snapshot.beamStartX[0]).toBeCloseTo(
+      design.centreOfMassX + turret.mount.x + turret.gun.barrelLength,
+      6,
+    );
+  });
+
+  it('holds a beam for its dwell and then drops it', () => {
+    // A beam is not in flight; it is lit while the mount holds the trigger.
+    // Removing it the frame it appears leaves nothing on screen at all.
+    const design = beamBoat();
+    const turret = design.turrets[0]!;
+    const dwell = turret.gun.beamOnTime;
+    expect(dwell).toBeGreaterThan(0);
+    const demo = new Demonstration();
+    const selected = [design.modules[turret.module]!.index];
+    const snapshot = previewSnapshot(design);
+
+    // Most of the way through the dwell, it is still lit.
+    for (let t = 0; t < dwell * 0.9; t += 1 / 240) demo.step(design, selected, 1 / 240);
+    demo.writeInto(snapshot);
+    expect(snapshot.beamCount).toBe(1);
+
+    // Deselected, it goes out once the dwell runs down rather than persisting.
+    for (let t = 0; t < dwell * 1.2; t += 1 / 240) demo.step(design, [], 1 / 240);
+    demo.writeInto(snapshot);
+    expect(snapshot.beamCount).toBe(0);
     expect(demo.running).toBe(false);
   });
 

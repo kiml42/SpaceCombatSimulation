@@ -7,7 +7,7 @@ import {
   type Blueprint,
 } from '../sim/blueprint.js';
 import { HALF_PI, PI } from '../sim/math.js';
-import { moduleStats, type ModuleSpec } from '../sim/modules.js';
+import { GunType, moduleStats, type ModuleSpec } from '../sim/modules.js';
 import { BLUEPRINTS } from '../scenarios/blueprints.js';
 
 /**
@@ -325,10 +325,16 @@ describe('the authored blueprints', () => {
           expect(turret.mount.rightArc).toBeGreaterThan(0);
           expect(turret.mount.maxRate).toBeGreaterThan(0);
           expect(turret.mount.maxAccel).toBeGreaterThan(0);
-          if(design.name == "Beam Gunship"){
-            expect(turret.gun.muzzleSpeed).toBe(-1); // Only has beam turrets
-          } else{
+          // Asked of the gun rather than of the ship's name: a name-based
+          // test passes until someone adds a second beam ship, and then
+          // reports the new design as broken rather than as unrecognised.
+          if (turret.gun.type === GunType.Beam) {
+            // Negative muzzle speed is how a weapon says it arrives instantly.
+            expect(turret.gun.muzzleSpeed).toBe(-1);
+            expect(turret.gun.beamPower).toBeGreaterThan(0);
+          } else {
             expect(turret.gun.muzzleSpeed).toBeGreaterThan(0);
+            expect(turret.gun.muzzleEnergy).toBeGreaterThan(0);
           }
           expect(turret.gun.cycleTime).toBeGreaterThan(0);
         }

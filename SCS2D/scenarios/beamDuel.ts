@@ -12,10 +12,15 @@ import {
   type WellSpec,
 } from '../sim/index.js';
 import type { Battle } from './types.js';
-import { BEAM_CORVETTE, DAMAGED_CORVETTE, BEAM_GUNSHIP } from './blueprints.js';
+import { BEAM_CORVETTE, BEAM_GUNSHIP } from './blueprints.js';
 
 /**
- * A beam corvette and a beam gunship closing on each other and opening fire.
+ * Beam-armed ships only: two beam corvettes closing on a beam gunship.
+ *
+ * Every weapon here is a beam, deliberately. The projectile scenarios already
+ * cover rounds in flight, and a scenario that mixed the two would let a beam
+ * regression hide behind gunnery that still worked — the checksum would move
+ * either way and say nothing about which.
  *
  * **One definition, used by both the golden test and the viewer**, which is
  * the point of it being here rather than in either. The step order below is
@@ -56,7 +61,6 @@ export function beamDuel(seed = 20260905): Battle {
   world.addForceProvider(ships.forceProvider());
 
   const corvette = compileBlueprint(BEAM_CORVETTE);
-  const damagedCorvette = compileBlueprint(DAMAGED_CORVETTE);
   const gunship = compileBlueprint(BEAM_GUNSHIP);
 
   // Offset across the line of approach as well as along it, so neither ship
@@ -73,11 +77,11 @@ export function beamDuel(seed = 20260905): Battle {
     vy: 90,
     team: 0,
   });
-   const closeCorvette = ships.spawn(world, {
-    design: damagedCorvette,
+  const closeCorvette = ships.spawn(world, {
+    design: corvette,
     x: 2000,
     y: -740,
-    angle: math.HALF_PI/2,
+    angle: math.HALF_PI / 2,
     vx: 0,
     vy: 90,
     team: 0,
@@ -96,13 +100,12 @@ export function beamDuel(seed = 20260905): Battle {
   // rather hold it off. Neither gets what it wants, which is the interesting
   // part.
 
-  // the gunship starts off attacking the closer corvette.
+  // Both corvettes go for the gunship, the near one first and the far one
+  // arriving later, so the gunship is fighting one and then two.
   ships.setOrder(closeCorvette, b, 300, 500, 120);
-
-  // this one starts far away and comes in later to help.
   ships.setOrder(distantCorvette, b, 300, 500, 120);
 
-  // these two start at quite short range tying to fight each other
+  // The gunship holds the nearer of them off at a range its own mounts like.
   ships.setOrder(b, closeCorvette, 900, 1200, 60);
 
   const grid = new SpatialGrid(64);

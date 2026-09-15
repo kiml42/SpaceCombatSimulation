@@ -30,6 +30,8 @@ interface Rig {
   grid: SpatialGrid;
   /** Rounds put in the air over the run, since a store recycles its slots. */
   fired: number;
+  /** Beams lit over the run, counted once per trigger pull rather than per step. */
+  beamsFired: number;
   step(): void;
 }
 
@@ -51,12 +53,16 @@ function rig(): Rig {
     beamHits,
     grid,
     fired: 0,
+    beamsFired: 0,
     step(): void {
       ships.command(DT, world);
       world.step();
       grid.rebuild(world.bodies);
+      beams.clear();
+      beamHits.clear();
       const fireReport = ships.fire(world, projectiles, beams, grid, beamHits);
       r.fired += fireReport.projectilesFired;
+      r.beamsFired += fireReport.beamsFired;
       projectiles.step(DT, world.bodies, grid, hits);
       for (let i = 0; i < hits.count; i++) projectiles.kill(hits.projectile[i]!);
     },
@@ -413,13 +419,13 @@ describe('beam gunnery', () => {
     r.ships.setOrder(ship, enemy, 1400, 1600, 20);
 
     r.step();
-    expect(r.fired).toBe(0);
+    expect(r.beamsFired).toBe(0);
 
     // A gunship is sluggish: coming round onto something astern and settling
     // enough for a mount to read as on target takes it something like a
     // quarter of a minute.
     for (let i = 0; i < 60 * 30; i++) r.step();
-    expect(r.fired).toBeGreaterThan(0);
+    expect(r.beamsFired).toBeGreaterThan(0);
   });
 
   it('respects the gun cycle time rather than firing every step', () => {
@@ -432,8 +438,8 @@ describe('beam gunnery', () => {
     for (const t of beamGunship.turrets) {
       ceiling += 2 * (seconds / t.gun.cycleTime + 1);
     }
-    expect(r.fired).toBeGreaterThan(0);
-    expect(r.fired).toBeLessThanOrEqual(ceiling);
+    expect(r.beamsFired).toBeGreaterThan(0);
+    expect(r.beamsFired).toBeLessThanOrEqual(ceiling);
   });
 
   it('recoils is zero', () => {
@@ -461,7 +467,7 @@ describe('beam gunnery', () => {
     expect(bodies.angularVel[b]).toBe(0);
 
     const fired = r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits);
-    expect(fired.projectilesFired).toBe(3);
+    expect(fired.beamsFired).toBe(3);
 
     let px = bodies.mass[b]! * bodies.vx[b]!;
     let py = bodies.mass[b]! * bodies.vy[b]!;
@@ -487,7 +493,7 @@ describe('beam gunnery', () => {
     // Fire 1st round (barrel 0): should be at -0.5 * spacing in y
     r.ships.command(DT, r.world);
     r.grid.rebuild(r.world.bodies);
-    expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).projectilesFired).toBe(1);
+    expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(1);
     const spacing = twin.turrets[0]!.gun.barrelSpacing;
     expect(spacing).toBeGreaterThan(0);
     const y0 = r.beams.startY[0]!;
@@ -499,7 +505,7 @@ describe('beam gunnery', () => {
     while (r.beams.count > 0 && timeSinceTrigger < 100 * gun.beamOnTime) {
       advanceTime();
       // only counts on the first frame it starts firing
-      expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).projectilesFired).toBe(0);
+      expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(0);
       timeSinceTrigger += DT;
     }
     expect(timeSinceTrigger).toBeCloseTo(gun.beamOnTime, 6);
@@ -511,7 +517,7 @@ describe('beam gunnery', () => {
       advanceTime();
       // beam count should be 0 until the beam is turned on by the fire step.
       expect(r.beams.count).toBe(0);
-      mostRecentFiredCount = r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).projectilesFired;
+      mostRecentFiredCount = r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired;
       timeSpentReloading += DT;
     }
     while (mostRecentFiredCount == 0 && timeSpentReloading < 100 * gun.cycleTime)
@@ -550,7 +556,7 @@ describe('beam gunnery', () => {
     // Fire 1st round
     r.ships.command(DT, r.world);
     r.grid.rebuild(r.world.bodies);
-    expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).projectilesFired).toBe(1);
+    expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(1);
 
     // Now the ship's started firing, delete the target
     const enemyBody = r.ships.body(enemy);  // grab the BodyId before removing
@@ -564,7 +570,7 @@ describe('beam gunnery', () => {
     while (r.beams.count > 0 && timeSinceTrigger < 100 * gun.beamOnTime) {
       advanceTime();
       // only counts on the first frame it starts firing
-      expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).projectilesFired).toBe(0);
+      expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(0);
       timeSinceTrigger += DT;
     }
     expect(timeSinceTrigger).toBeCloseTo(gun.beamOnTime, 6);
@@ -578,7 +584,7 @@ describe('beam gunnery', () => {
     for(var i = 0; i < steps; i++){
       advanceTime();
       // beam count should be 0
-      expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).projectilesFired).toBe(0);
+      expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(0);
       expect(r.beams.count).toBe(0);
     }
 
