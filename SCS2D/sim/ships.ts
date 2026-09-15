@@ -324,9 +324,9 @@ export class Ships {
       let angularImpulse = 0;
 
       for (let t = 0; t < indices.length; t++) {
-        var state = turretStates[t]!;
+        let state = turretStates[t]!;
         const gun = design.turrets[t]!.gun;
-        var barrel = barrels[t]!;
+        let barrel = barrels[t]!;
 
         if (timers[t]! <= 0 && state != TurretState.Idle) {
           // the timer's run out, progress the state (except idle, which only progresses when ready to fire)

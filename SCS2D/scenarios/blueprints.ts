@@ -32,6 +32,6 @@ export const GUNSHIP: Blueprint = parseBlueprint(gunshipFile);
 export const BEAM_GUNSHIP: Blueprint = parseBlueprint(beamGunshipFile);
 export const FRACTAL: Blueprint = parseBlueprint(fractalFile);
 
-export const BLUEPRINTS = { corvette: CORVETTE, gunship: GUNSHIP, gunship2: BEAM_GUNSHIP, damagedCorvette: DAMAGED_CORVETTE, fractal: FRACTAL } as const;
+export const BLUEPRINTS = { corvette: CORVETTE, gunship: GUNSHIP, beamGunship: BEAM_GUNSHIP, damagedCorvette: DAMAGED_CORVETTE, fractal: FRACTAL } as const;
 
 export type BlueprintName = keyof typeof BLUEPRINTS;
