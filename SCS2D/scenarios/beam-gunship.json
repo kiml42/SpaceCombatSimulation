@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "name": "Gunship2",
+  "name": "Beam Gunship",
   "notes": "A heavy gunship: a bow gun firing a shell an order of magnitude heavier than the corvette's, and a multi-barrelled turret on each beam for anything that gets inside it. Twice the corvette's engines move four times its mass, so it is markedly more sluggish — which is the point of having two ships to compare.",
   "assemblies": {
     "outrigger": {
