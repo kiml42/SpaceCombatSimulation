@@ -142,6 +142,29 @@ const MIN_GLOW_PX = 5;
 const MIN_TRACER_PX = 2;
 const MIN_BARREL_PX = 2;
 
+/**
+ * The bounding circle a shot is actually stopped by, drawn under the hull.
+ *
+ * **A stop-gap until the narrow phase lands.** Hits are resolved against one
+ * bounding circle per ship and nothing finer: `sim/spatialGrid.ts` is a broad
+ * phase, and there is as yet nothing behind it. So a beam arriving abeam of a
+ * long hull stops about thirty metres short of any metal, and a shell vanishes
+ * out there — which reads as a bug in the renderer rather than a gap in the
+ * simulation.
+ *
+ * Drawing the circle makes the picture honest: a shot stops where the picture
+ * says it stops. It reads as a shield bubble, which is a happy accident and
+ * not what it is. Delete it the moment shots are tested against module
+ * geometry, and the ships lose their shields.
+ *
+ * Faint, because it is not a thing in the world. It has to be visible enough
+ * to explain where a shot stopped and no more; anything bolder competes with
+ * the hull, which *is* a thing in the world.
+ */
+const HULL_SPHERE_FILL_ALPHA = 0.05;
+const HULL_SPHERE_EDGE_ALPHA = 0.16;
+const MIN_HULL_SPHERE_PX = 1;
+
 /** A stroke at its true width, but never thinner than `minPx` on screen. */
 function legibleWidth(physical: number, minPx: number, metresToPx: number): number {
   const floor = minPx / metresToPx;
@@ -212,6 +235,20 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   ctx.save();
   ctx.translate(ship.x, ship.y);
   ctx.rotate(ship.angle);
+
+  // What actually stops a shot. A stop-gap — see `HULL_SPHERE_FILL_ALPHA`.
+  // Drawn first, so it sits under the ship it is standing in for.
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(0, 0, design.radius, 0, TAU);
+  ctx.fillStyle = colours.trim;
+  ctx.globalAlpha = HULL_SPHERE_FILL_ALPHA;
+  ctx.fill();
+  ctx.strokeStyle = colours.trim;
+  ctx.globalAlpha = HULL_SPHERE_EDGE_ALPHA;
+  ctx.lineWidth = legibleWidth(0, MIN_HULL_SPHERE_PX, metresToPx);
+  ctx.stroke();
+  ctx.restore();
 
   // Module boxes, in the body frame the design already put them in.
   for (let i = 0; i < design.modules.length; i++) {
