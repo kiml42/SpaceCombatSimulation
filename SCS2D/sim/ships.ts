@@ -13,7 +13,7 @@ import { Projectiles } from './projectiles.js';
 import { Allocation } from './thrusters.js';
 import { FiringSolution, Turrets, TurretState } from './turrets.js';
 import type { World } from './world.js';
-import type { Beams } from './index.js';
+import type { BeamHits, Beams, SpatialGrid } from './index.js';
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -297,9 +297,8 @@ export class Ships {
    * Fire every gun that is loaded, on target and clear to shoot. Call after
    * the world has stepped and the index has been rebuilt.
    */
-  fire(world: World, projectiles: Projectiles, beams: Beams): number {
+  fire(world: World, projectiles: Projectiles, beams: Beams, grid: SpatialGrid, beamHits: BeamHits): number {
     const bodies = world.bodies;
-    beams.clear(); // beams only last one frame, so clear them all at the start of this step.
     let fired = 0;
 
     for (let i = 0; i < this.alive.length; i++) {
@@ -411,7 +410,10 @@ export class Ships {
             this.solution.dirY * 100000,
             gun.calibre,
             gun.muzzleEnergy,
-            0
+            0,
+            bodies,
+            grid,
+            beamHits
           );
           if (state == TurretState.Idle) {
             // was idle before, now committed on for beamOnTime
