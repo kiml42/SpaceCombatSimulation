@@ -393,6 +393,11 @@ export class Turrets {
    * Returns the intercept time, or -1 if the target cannot be caught — in which
    * case the turret is left pointing at the target's present position, which is
    * the best available guess and keeps it tracking.
+   *
+   * A beam's intercept time is zero rather than -1. It arrives the instant it
+   * is fired, so there is nothing to lead and the present position *is* the
+   * solution — which is the opposite of not having one, and callers that read
+   * -1 as "cannot be caught" would have it exactly backwards.
    */
   aimAt(
     bodies: Bodies,
@@ -434,7 +439,8 @@ export class Turrets {
 
     let aimX = dx;
     let aimY = dy;
-    let t = -1;
+    // Negative muzzle speed marks a weapon that arrives instantaneously.
+    let t = speed < 0 ? 0 : -1;
     if (speed > 0) {
       t = interceptTime(dx, dy, targetVx - shooterVx, targetVy - shooterVy, speed);
       if (t > 0) {

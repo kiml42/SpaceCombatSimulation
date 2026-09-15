@@ -515,7 +515,9 @@ describe('beam gunnery', () => {
     }
     while (mostRecentFiredCount == 0 && timeSpentReloading < 100 * gun.cycleTime)
 
-    expect(timeSpentReloading).toBeCloseTo(gun.cycleTime + DT, 6); // TODO check if this should be +DT
+    // Exactly the cycle time: the countdown settles to zero rather than
+    // stopping a few parts in 10^15 above it and costing another whole step.
+    expect(timeSpentReloading).toBeCloseTo(gun.cycleTime, 6);
     expect(mostRecentFiredCount).toBe(1);
     expect(r.beams.count).toBe(1);
 
@@ -564,7 +566,7 @@ describe('beam gunnery', () => {
       expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits)).toBe(0);
       timeSinceTrigger += DT;
     }
-    expect(timeSinceTrigger).toBeCloseTo(gun.beamOnTime + DT, 6); // TODO check if this should be +DT
+    expect(timeSinceTrigger).toBeCloseTo(gun.beamOnTime, 6);
     expect(r.beams.count).toBe(0);
 
     // Wait for a while to make sure the ship doesn't fire again (proof that it knows the target really is gone)

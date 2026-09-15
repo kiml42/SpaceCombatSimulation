@@ -71,6 +71,25 @@ const ROUND_FLIGHT_TIME = 30;
 const VELOCITY_RESPONSE_TIME = 2;
 
 /**
+ * How near zero a countdown has to get before it counts as finished, seconds.
+ *
+ * A timer set to a whole number of timesteps does not reach exactly zero by
+ * repeated subtraction: `dt` is not representable in binary, so the residue
+ * after the right number of steps is a few parts in 10^15 and its *sign* is
+ * arithmetic luck. A 0.8 s countdown lands just below zero and finishes on
+ * time; 1.6, 3.2 and 6.4 land just above it and run a whole extra step. That
+ * is a sixtieth of a second of reload nobody asked for, appearing and
+ * disappearing as the scaling laws move a cycle time about.
+ *
+ * Fifteen orders of magnitude above the residue and seven below a timestep, so
+ * it cannot fail to absorb the one or let a gun fire measurably early. The
+ * countdown is snapped to zero rather than the comparisons being loosened, so
+ * that a finished timer reads as zero everywhere — including anything that
+ * later shows a reload as a fraction of its cycle.
+ */
+const TIMER_SETTLE = 1e-9;
+
+/**
  * Seconds over which a pilot aims to close the distance to its ordered band.
  * With `approachSpeed` as a cap, this is what makes the approach ease in
  * rather than arrive at full speed — the same reason a turret brakes into its
@@ -275,7 +294,10 @@ export class Ships {
       this.trainOne(bodies, i);
       const timers = this.cooldown[i]!;
       for (let t = 0; t < timers.length; t++) {
-        if (timers[t]! > 0) timers[t] = timers[t]! - dt;
+        if (timers[t]! > 0) {
+          const remaining = timers[t]! - dt;
+          timers[t] = remaining > TIMER_SETTLE ? remaining : 0;
+        }
       }
     }
 
