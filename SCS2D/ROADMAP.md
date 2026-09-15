@@ -220,6 +220,40 @@ Deliberately unresolved; decide when they block something.
   being far wider than the row, but it is a real effect against small targets, and converging the
   barrels at a chosen range (paying for it at every other range) is a genuine design axis rather than
   a correction.
+- **A beam's optics: spot size, intensity, wavelength and what armour does about them.** The beam laws derive an
+  aperture, a power and a dwell, and stop there — because everything past that point needs a damage model to
+  land on. What is deferred is one equation and its consequences. A beam leaving an aperture `D` at wavelength
+  `λ` spreads at `1.22 λ / D`, so its spot at range `R` is `D + 2.44 λ R / D` and the intensity that actually
+  burns is `P` over that area.
+
+  Three things follow, none of them yet built. **Aperture is a two-sided choice**: a small optic concentrates
+  far harder at short range and spreads sooner, a large one never concentrates but holds its spot to any range.
+  For a 100 MW beam at 1.06 µm, a 0.1 m aperture delivers about 5500 MW/m² at 2 km against a 1 m aperture's 126,
+  and the two cross over at roughly 40 km — so the choice is a range band rather than a quality. **Wavelength
+  moves the same curve**, halving the spread for half the wavelength, and pays for it in the efficiency of
+  generating it, which is waste heat. It is deliberately *not* a parameter yet: with focus unmodelled and armour
+  absent, its only live consequence would be the cost, so every design would pick the longest wavelength going
+  and the knob would be dead. It arrives with the optics, and it brings a beam's colour with it. **Reflective
+  armour is the counter**, wavelength-dependent and weak to kinetics, which is why `BeamHits` already reports a
+  surface normal: incidence angle is half of what decides whether a beam couples in or skids off.
+
+  Until then `BEAM_APERTURE_FRACTION` is the constant carrying all of this. It is calibrated so that the spread
+  range `D²/2.44λ` lands between about 9 km and 190 km across the shipped mounts, which puts the interesting
+  part of the curve inside the engagement ranges this game means to reach. It is the number to revisit first
+  when intensity acquires a consumer.
+- **What a beam mount's duty cycle should be.** `BEAM_DUTY_CYCLE` is a flat fraction standing in for two
+  systems that do not exist. The bank refills at whatever the ship's plant can spare, which is a power model;
+  and the mount can keep firing until its heat sinks are full, which is a heat model and is properly a
+  *cumulative* limit across an engagement rather than a per-shot one — a beam mount should warm up over minutes
+  and eventually have to stop, not reload. Worth knowing how large that problem is: radiating 300 MW of waste
+  heat at 500 K needs something like 88,000 m² of radiator, which is why a laser warship is a hard ship to
+  build and why the heat model will have real consequences for hull layout rather than merely for rate of fire.
+- **Firing several emitters at once.** A mount with `n` emitters currently fires them in turn, which a gun does
+  for good reasons — the loading gear and the recoil are both sequential — and a laser does for none. The
+  shared bank then feeds one emitter at `1/n` the power for `n` times as long, so the beam gunship's eight-way
+  mounts hold a weak beam for fifteen seconds and then sit dead for forty-four. Nothing is wrong with the
+  arithmetic; the sequencing is what a laser has no reason to inherit. Firing them together needs `Ships.fire`
+  to emit a salvo rather than a shot, which is a change to the firing loop rather than to the scaling laws.
 - **Reflected beams, and the trap waiting at the surface.** A beam that is deflected rather than absorbed
   resumes from the point it struck, which means it starts *on* that hull's bounding circle. Any new heading
   that does not lead away from that body's centre therefore intersects it again at zero distance, and the

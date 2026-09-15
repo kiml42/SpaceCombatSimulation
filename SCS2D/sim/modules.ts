@@ -1,4 +1,4 @@
-import { PI, sqrt, max } from './math.js';
+import { PI, sqrt } from './math.js';
 
 /**
  * Parametric ship modules: a few archetypes with continuous parameters, rather
@@ -139,6 +139,101 @@ export const CYCLE_TIME_PER_CALIBRE = 40;
  * open question.
  */
 export const MECHANISM_MASS_PER_CALIBRE = 4e4;
+
+/**
+ * A laser's final optic, as a fraction of the mount's smaller face.
+ *
+ * Smaller than it sounds, and for a real reason: a laser weapon is mostly the
+ * plant behind the mirror — pumping, power conditioning, the capacitor bank and
+ * the cooling that all of it needs — so the aperture is a modest disc on the
+ * front of a box full of machinery, not a telescope with a gun bolted on.
+ *
+ * It is the mount's *smaller* dimension for the same reason a gun's row of
+ * barrels is: a turret traverses, so its footprint is the circle inscribed in
+ * it. And it is a single disc rather than a row, because splitting an aperture
+ * makes every part of it spread faster — see `beamGunStats`.
+ *
+ * This one is calibrated on the game rather than on hardware, and it is worth
+ * being plain about that. What it decides is the range at which a beam starts
+ * to spread — `D² / 2.44λ`, from the diffraction below — and at a twentieth of
+ * the face the shipped mounts land between about 9 km and 190 km. That puts
+ * the interesting part of the curve inside the engagement ranges this game
+ * intends to reach, which is the whole point of the number. Pick it much larger
+ * and no beam ever spreads at any range worth fighting at; much smaller and
+ * every beam is diffuse before it arrives.
+ */
+export const BEAM_APERTURE_FRACTION = 0.05;
+
+/**
+ * Intensity the final optic can pass without destroying itself, W/m².
+ *
+ * This is what sets a beam mount's power: unlike a gun, whose charge could in
+ * principle be made arbitrarily large, a laser is limited by its own last
+ * mirror. Dielectric coatings damage somewhere around 10^7–10^8 W/m² under
+ * continuous load today; at 2·10^8 this is a couple of times better, which is
+ * the licence a new technology gets against one that has been optimised for
+ * six centuries.
+ *
+ * Note what it does to the design space. Power goes as the *square* of the
+ * aperture, so widening a mount buys output steeply — and the same widening
+ * spreads that output over a bigger spot at short range. Which of those wins
+ * is a damage-model question (ROADMAP.md §12).
+ */
+export const OPTIC_INTENSITY_LIMIT = 2e8;
+
+/**
+ * Energy in the mount's capacitor bank per cubic metre of mount, J/m³.
+ *
+ * A beam mount does not reload; it discharges. The bank is what lets it put
+ * out far more power than the ship's plant can supply, for as long as the bank
+ * lasts, and that is what `beamOnTime` measures.
+ *
+ * Supercapacitors reach something like 10 MJ/m³, so this is a few per cent of
+ * the mount given over to storage and the rest to optics, pumping and cooling
+ * — which is the right shape for a weapon whose real problem is heat.
+ */
+export const BEAM_STORED_ENERGY_PER_VOLUME = 1.2e5;
+
+/**
+ * Fraction of the time a beam mount can be firing.
+ *
+ * **A stop-gap until power and heat are modelled**, which are what actually
+ * decide this: the bank refills at whatever the ship's plant can spare, and
+ * the mount can keep it up until its heat sinks are full. Neither exists, so
+ * the recharge is a flat fraction rather than a rate. When power lands, this
+ * constant is what it replaces.
+ */
+export const BEAM_DUTY_CYCLE = 0.25;
+
+/**
+ * Depth of the emitter housing, in apertures.
+ *
+ * A laser has no barrel. What protrudes is the housing round the final optic,
+ * and it is as deep as the optic is wide rather than fifty times. That is most
+ * of why a beam mount trains faster than a gun of the same size: the mass is
+ * the same box, but there is no long rod of steel held out in front of it.
+ */
+export const BEAM_EMITTER_APERTURES = 1.5;
+
+/**
+ * Areal density of the final optic, kg/m².
+ *
+ * The JWST primary manages 26 kg/m² in beryllium, but it is never slewed hard
+ * and nobody shoots at it. Sixty is that mirror built to be trained at degrees
+ * a second and to survive its own ship manoeuvring.
+ */
+export const OPTIC_AREAL_DENSITY = 60;
+
+/**
+ * Laser head, pumping and power conditioning, kg per watt of beam.
+ *
+ * A current fibre system runs to tens of kilograms per kilowatt all in — the
+ * US Navy's HELIOS is 60 kW in several tonnes. A tenth of a kilogram per
+ * kilowatt is some five hundred times better, which is a large claim and the
+ * one the whole archetype rests on: it is what makes a beam mount lighter than
+ * a gun, and therefore quicker onto a target.
+ */
+export const BEAM_MASS_PER_WATT = 1e-4;
 
 /**
  * Traverse torque the mount ring can deliver per kilogram of turret, N·m/kg.
@@ -353,30 +448,43 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
       ? gunStats(spec.length, spec.width, spec.barrels)
       : beamGunStats(spec.length, spec.width, spec.barrels);
 
-    // The gun itself: a barrel is a thick-walled tube, taken here as steel
-    // filling the annulus between the bore and an outside diameter of twice
-    // the calibre.
-    const outerDiameter = 2 * gun.calibre;
-    const barrelSection =
-      PI * 0.25 * (outerDiameter * outerDiameter - gun.calibre * gun.calibre);
-    const barrelMass = barrelSection * gun.barrelLength * HULL_DENSITY;
-    // Plus the machinery behind each barrel, which every barrel needs its own
-    // of and which does not scale down as steeply as the tube does.
-    const mechanismMass = MECHANISM_MASS_PER_CALIBRE * gun.calibre;
-    fittingMass = (barrelMass + mechanismMass) * gun.barrelCount;
+    // What hangs off the front of the mount, per barrel or emitter. The two
+    // archetypes differ in what that is and in almost nothing else: both are a
+    // mass held out ahead of the pivot, and both pay for it in traverse.
+    let protrudingMass: number;
+    if (spec.kind === 'turret') {
+      // A barrel is a thick-walled tube, taken as steel filling the annulus
+      // between the bore and an outside diameter of twice the calibre.
+      const outerDiameter = 2 * gun.calibre;
+      const barrelSection =
+        PI * 0.25 * (outerDiameter * outerDiameter - gun.calibre * gun.calibre);
+      protrudingMass = barrelSection * gun.barrelLength * HULL_DENSITY;
+      // Plus the machinery behind each barrel, which every barrel needs its own
+      // of and which does not scale down as steeply as the tube does.
+      const mechanismMass = MECHANISM_MASS_PER_CALIBRE * gun.calibre;
+      fittingMass = (protrudingMass + mechanismMass) * gun.barrelCount;
+    } else {
+      // A laser's mass is its optic and the plant that feeds it, and neither
+      // resembles a gun's. There is no tube of steel and no loading machinery,
+      // which is why a beam mount comes out lighter than a gun on the same
+      // footprint — and, having nothing long held out in front, quicker round.
+      protrudingMass = OPTIC_AREAL_DENSITY * PI * 0.25 * gun.calibre * gun.calibre;
+      const headMass = BEAM_MASS_PER_WATT * gun.beamPower;
+      fittingMass = (protrudingMass + headMass) * gun.barrelCount;
+    }
 
-    // The barrels are the one part of a module that is not shaped like the box
-    // it is declared as: each is a rod running outward from the pivot at the
-    // mount's centre, so it contributes `m L²/3` rather than its share of the
-    // box, plus `m d²` for sitting `d` off the centreline. This is what makes
-    // barrel length cost traverse — the box formula cannot see a barrel at all,
+    // What protrudes is the one part of a module that is not shaped like the
+    // box it is declared as: each piece is a rod running outward from the pivot
+    // at the mount's centre, so it contributes `m L²/3` rather than its share
+    // of the box, plus `m d²` for sitting `d` off the centreline. This is what
+    // makes reach cost traverse — the box formula cannot see a barrel at all,
     // and under it a long gun and a stubby one of the same weight came round
     // equally fast.
-    rodMass = barrelMass * gun.barrelCount;
-    const spin = (barrelMass * gun.barrelLength * gun.barrelLength) / 3;
+    rodMass = protrudingMass * gun.barrelCount;
+    const spin = (protrudingMass * gun.barrelLength * gun.barrelLength) / 3;
     for (let barrel = 0; barrel < gun.barrelCount; barrel++) {
       const offset = (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing;
-      rodInertia += spin + barrelMass * offset * offset;
+      rodInertia += spin + protrudingMass * offset * offset;
     }
   }
 
@@ -486,82 +594,77 @@ export function gunStats(mountLength: number, mountWidth: number, barrelCount: n
 }
 
 /**
- * The gun a turret mount of this size carries.
+ * The beam a laser mount of this size projects.
  *
- * The bore is set by how wide the mount is, and the barrel by how long the
- * gun can be for that bore — so a turret is described by the same two numbers
- * as every other module, and its weapon falls out of them. Everything after
- * that is physics.
+ * A laser is not a gun with the shell removed, and almost none of a gun's
+ * arithmetic survives the translation. There is no bore, no charge, no round
+ * and no barrel; what there is instead is an aperture, a power limit set by
+ * that aperture, and a bank of stored energy that decides how long the mount
+ * can hold the trigger down.
  *
- * The trade this produces is the real one. Widening the mount buys a higher
- * energy beam that hits harder but reloads less often;
+ * **Width buys power, length buys endurance.** The optic sits across the
+ * mount's smaller face and the power it can pass goes as its area, so a wider
+ * mount projects a harder beam. The capacitor bank fills the mount's volume,
+ * so a *longer* mount of the same width holds the beam on for longer without
+ * making it any stronger. The dwell that falls out is `L/W` — an aspect ratio
+ * and not a size, so a mount cannot buy endurance simply by being huge.
  *
- * **Multiple barrels** put a row of what are essentially independent guns on
- * one mount, firing in turn, so the mount's rate of fire rises — twice over,
- * since each barrel is narrower than a single gun would be and a narrower gun
- * cycles faster. They are a little longer than one gun could be, since a row
- * of tubes braces itself.
+ * That is deliberately the opposite trade from a gun, where width buys weight
+ * of shell and length buys muzzle velocity. The two archetypes want differently
+ * shaped mounts, which is most of what makes having both interesting.
  *
- * Two rules shape that row, and they are independent of each other. Saying so
- * is worth the space, because they look related and are not:
+ * **What is not modelled here, and why it is worth knowing about.** A beam
+ * leaving an aperture `D` at wavelength `λ` spreads at `1.22 λ / D`, so its
+ * spot at range `R` is `D + 2.44 λ R / D` and the intensity that does the
+ * damage is the power divided by that area. Nothing consumes intensity yet —
+ * a hit is a hit — so the figure is not computed, but it is the reason the
+ * aperture is sized as it is, and ROADMAP.md §12 holds the rest: that a small
+ * aperture concentrates harder while a large one reaches further, that
+ * wavelength moves the same curve, and that reflective armour answers it.
  *
- * - **How much bore.** A mount of a given width is allowed a fixed total bore,
- *   `width * CALIBRE_FRACTION`, and `n` barrels divide it — so calibre falls as
- *   `1/n`. This is a *budget*, not a packing constraint: the barrels never come
- *   close to filling the face, and there would be room for far more of them.
- *   What it says is that a mount of a given size is worth the same weight of
- *   metal downrange however it is arranged, and the interesting choice is
- *   whether to spend it on one heavy shell or many light ones.
- * - **Where the barrels go.** They spread evenly right across the mount face
- *   with `n + 1` equal gaps, so there is one whole gap outboard of each end
- *   barrel and the row is as wide as the mount can make it. Nothing is chosen
- *   here — the face and the barrel count between them fix the spacing, which
- *   is why there is no constant. It cannot overhang, either: the row spans
- *   `(n-1)/(n+1)` of the face and that is under 1 for every `n`.
- *
- * The face in question is the *smaller* of the mount's two dimensions, because
- * a turret traverses. At rest the row lies across the width; ninety degrees
- * round it lies along the length, and a mount wider than it is long would
- * otherwise sweep a row of barrels through whatever is beside it. Taking the
- * lesser makes the mount's footprint the circle inscribed in it, which is what
- * a barbette is.
- *
- * Note what this does *not* model: the barrels fire parallel, never converged,
- * so a barrel `d` off the mount's centreline misses the aim point by `d` at
- * every range. That is a real effect and currently a small one, ships being
- * far wider than the row; against small targets it would bite, and harmonising
- * the barrels to converge at a chosen range is the natural answer when it does.
+ * **Multiple barrels are a discount, not a bargain.** `n` emitters divide the
+ * optic's *area*, so each is `D/√n` across and passes `1/n` the power: the
+ * mount's total output is unchanged however it is split, exactly as a gun's
+ * bore budget is. What splitting costs is focus — every sub-beam spreads `√n`
+ * times faster than the single optic would have. There is no reason to build
+ * one until a mount can track more than one target, and if every design
+ * settles on a single emitter that is the laws working rather than failing.
  */
 export function beamGunStats(mountLength: number, mountWidth: number, barrelCount: number = 1): GunStats {
-  // TODO work out scaling rules for beam turrets
-  const calibre = (mountWidth * CALIBRE_FRACTION) / barrelCount;
-  // The barrel wants to be as long as its calibre allows, but a mount cannot
-  // carry a gun longer than itself without fouling the rest of the ship.
-  const wanted = calibre * BARREL_CALIBRES * sqrt(barrelCount);
-  const barrelLength = wanted < mountLength ? wanted : mountLength;
+  // One disc, or `n` discs dividing the same area between them.
+  const face = mountWidth < mountLength ? mountWidth : mountLength;
+  const aperture = (face * BEAM_APERTURE_FRACTION) / sqrt(barrelCount);
+  const apertureArea = PI * 0.25 * aperture * aperture;
 
-  const boreArea = PI * 0.25 * calibre * calibre;
-  const power = CHARGE_ENERGY_PER_BORE_VOLUME * boreArea * barrelLength;
-  // One whole gap outboard of each end barrel, so `n` barrels make `n + 1`
-  // gaps. Zero rather than a notional half-face for a single barrel, which has
-  // nothing to be spaced from.
-  const mountFace = mountWidth < mountLength ? mountWidth : mountLength;
-  const barrelSpacing = barrelCount > 1 ? mountFace / (barrelCount + 1) : 0;
+  // What the optic can pass without destroying itself, which is the whole of
+  // what limits a beam mount's output.
+  const power = OPTIC_INTENSITY_LIMIT * apertureArea;
 
+  // The bank fills the mount, and feeds one emitter at a time.
+  const stored = BEAM_STORED_ENERGY_PER_VOLUME * mountLength * mountWidth * DECK_HEIGHT;
+  const beamOnTime = stored / power;
 
-  let cycleTime = max(0.5, (CYCLE_TIME_PER_CALIBRE * calibre) / barrelCount);
+  // No barrel: a housing round the optic, as deep as the optic is wide.
+  const barrelLength = aperture * BEAM_EMITTER_APERTURES;
+
+  // Emitters spread across the mount face the same way barrels do, for the
+  // same reason — one whole gap outboard of each.
+  const barrelSpacing = barrelCount > 1 ? face / (barrelCount + 1) : 0;
+
   return {
     type: GunType.Beam,
-    calibre,
+    calibre: aperture,
     barrelLength,
     barrelCount,
     barrelSpacing,
+    // A beam has no round, so nothing here describes one. Negative muzzle
+    // speed is how a weapon says it arrives the instant it is fired.
     roundMass: 0,
     muzzleSpeed: -1,
     muzzleEnergy: 0,
     beamPower: power,
-    cycleTime: cycleTime,
-    beamOnTime: cycleTime / 2
+    beamOnTime,
+    cycleTime: beamOnTime / BEAM_DUTY_CYCLE,
   };
 }
 

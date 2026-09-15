@@ -508,7 +508,12 @@ describe('beam gunnery', () => {
       expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(0);
       timeSinceTrigger += DT;
     }
-    expect(timeSinceTrigger).toBeCloseTo(gun.beamOnTime, 6);
+    // A fixed step can only resolve a dwell to within one step of itself, and
+    // the dwell is no longer a whole number of them. So: the first step at or
+    // after the dwell, and never a step later than that — the latter is the
+    // failure TIMER_SETTLE exists to prevent.
+    expect(timeSinceTrigger).toBeGreaterThanOrEqual(gun.beamOnTime);
+    expect(timeSinceTrigger).toBeLessThan(gun.beamOnTime + DT);
 
     // Advance cooldown until next shot can fire
     let timeSpentReloading = 0;
@@ -522,9 +527,9 @@ describe('beam gunnery', () => {
     }
     while (mostRecentFiredCount == 0 && timeSpentReloading < 100 * gun.cycleTime)
 
-    // Exactly the cycle time: the countdown settles to zero rather than
-    // stopping a few parts in 10^15 above it and costing another whole step.
-    expect(timeSpentReloading).toBeCloseTo(gun.cycleTime, 6);
+    // The same one-step resolution, and the same guard against a second one.
+    expect(timeSpentReloading).toBeGreaterThanOrEqual(gun.cycleTime);
+    expect(timeSpentReloading).toBeLessThan(gun.cycleTime + DT);
     expect(mostRecentFiredCount).toBe(1);
     expect(r.beams.count).toBe(1);
 
@@ -573,7 +578,12 @@ describe('beam gunnery', () => {
       expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(0);
       timeSinceTrigger += DT;
     }
-    expect(timeSinceTrigger).toBeCloseTo(gun.beamOnTime, 6);
+    // A fixed step can only resolve a dwell to within one step of itself, and
+    // the dwell is no longer a whole number of them. So: the first step at or
+    // after the dwell, and never a step later than that — the latter is the
+    // failure TIMER_SETTLE exists to prevent.
+    expect(timeSinceTrigger).toBeGreaterThanOrEqual(gun.beamOnTime);
+    expect(timeSinceTrigger).toBeLessThan(gun.beamOnTime + DT);
     expect(r.beams.count).toBe(0);
 
     // Wait for a while to make sure the ship doesn't fire again (proof that it knows the target really is gone)
