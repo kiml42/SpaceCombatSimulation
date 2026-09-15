@@ -206,7 +206,7 @@ export function start(): void {
     readout.textContent =
       `t ${view.time.toFixed(1)} s · step ${view.tick} · ` +
       `range ${range.toFixed(0)} m · in flight ${view.projectileCount} · ` +
-      `fired ${state.totalFired} · hits ${state.totalHits} · grid ${gridStep(camera.scale)} m`;
+      `fired ${state.totalProjectilesFired} · hits ${state.totalProjectileHits} · grid ${gridStep(camera.scale)} m`;
 
     window.requestAnimationFrame(tick);
   };

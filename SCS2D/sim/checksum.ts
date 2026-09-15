@@ -1,3 +1,4 @@
+import type { Beams } from './beams.js';
 import { imul } from './math.js';
 import type { Projectiles } from './projectiles.js';
 import type { World } from './world.js';
@@ -80,7 +81,7 @@ export function checksumWorld(world: World): number {
  * Slot indices are included, so recycling a slot in a different order shows up.
  * That is deliberate: the free list is part of what has to be reproducible.
  */
-export function checksumProjectiles(projectiles: Projectiles, seed = FNV_OFFSET): number {
+export function checksumProjectiles(projectiles: Projectiles, beams: Beams, seed = FNV_OFFSET): number {
   let h = seed;
   h = mixU32(h, projectiles.count);
 
@@ -96,6 +97,20 @@ export function checksumProjectiles(projectiles: Projectiles, seed = FNV_OFFSET)
     h = mixU32(h, projectiles.owner[i]!);
     h = mixU32(h, projectiles.kind[i]!);
     h = mixU32(h, projectiles.pending[i]!);
+  }
+
+  for (let i = 0; i < beams.highWater; i++) {
+    if (beams.alive[i] === 0) continue;
+    h = mixU32(h, i);
+    h = mixF64(h, beams.startX[i]!);
+    h = mixF64(h, beams.startY[i]!);
+    h = mixF64(h, beams.endX[i]!);
+    h = mixF64(h, beams.endY[i]!);
+    h = mixF64(h, beams.power[i]!);
+    h = mixF64(h, beams.width[i]!);
+    h = mixU32(h, beams.owner[i]!);
+    h = mixU32(h, beams.kind[i]!);
+    h = mixU32(h, beams.pending[i]!);
   }
 
   return h >>> 0;
