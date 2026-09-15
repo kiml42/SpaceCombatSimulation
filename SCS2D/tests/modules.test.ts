@@ -292,14 +292,34 @@ describe('beam gun scaling', () => {
   it('trades rate of fire and handiness for weight of shell', () => {
     const light = beamGunStats(100, 4);
     const heavy = beamGunStats(100, 16);
-    expect(heavy.muzzleEnergy).toBeGreaterThan(light.muzzleEnergy);
+    // A beam's output is a power, and it leaves `muzzleEnergy` — the kinetic
+    // energy of a round — at zero, having no round.
+    expect(heavy.beamPower).toBeGreaterThan(light.beamPower);
+    expect(heavy.muzzleEnergy).toBe(0);
+    expect(light.muzzleEnergy).toBe(0);
     expect(heavy.cycleTime).toBeGreaterThan(light.cycleTime);
   });
 
+  it('will not cycle faster than its floor however the barrels are divided', () => {
+    // The floor stands in for whatever eventually limits how fast a beam mount
+    // can recharge, and it binds on the small multi-barrel mounts the current
+    // ships carry — so it, rather than the scaling law above, decides their
+    // rate of fire. Pinned so that replacing it is a deliberate act with a
+    // visible consequence rather than a number quietly going away.
+    const floored = beamGunStats(100, 4, 8);
+    expect(floored.cycleTime).toBe(0.5);
+    // Halving the bore again buys no more rate once the floor is reached.
+    expect(beamGunStats(100, 2, 8).cycleTime).toBe(floored.cycleTime);
+    // And the beam is lit for half of whatever the cycle turns out to be.
+    expect(floored.beamOnTime).toBe(floored.cycleTime / 2);
+  });
+
   it('more barrels fire quicker but are smaller', () => {
-    const single = beamGunStats(100, 4, 1);
+    // A mount wide enough that neither side is held up by the minimum cycle
+    // time, so this measures the scaling law rather than the floor under it.
+    const single = beamGunStats(100, 32, 1);
     const barrelCount = 8;
-    const multi = beamGunStats(100, 4, barrelCount);
+    const multi = beamGunStats(100, 32, barrelCount);
     expect(multi.calibre).toBeLessThan(single.calibre);
     expect(multi.cycleTime).toBeLessThan(single.cycleTime);
     expect(multi.cycleTime).toBeCloseTo(single.cycleTime / (barrelCount * barrelCount), 6);
@@ -308,7 +328,7 @@ describe('beam gun scaling', () => {
     expect(multi.roundMass).toBe(0);
     expect(single.muzzleSpeed).toBe(-1);
     expect(multi.muzzleSpeed).toBe(-1);
-    expect(multi.muzzleEnergy).toBeLessThan(single.muzzleEnergy);
+    expect(multi.beamPower).toBeLessThan(single.beamPower);
     expect(single.barrelSpacing).toBe(0);
     expect(multi.barrelSpacing).toBeGreaterThan(0);
   });
