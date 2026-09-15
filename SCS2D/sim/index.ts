@@ -106,4 +106,4 @@ export {
   type ShipSpec,
 } from './ships.js';
 export { capture, Snapshot, type ShipView } from './snapshot.js';
-export { checksumWorld, checksumProjectiles, formatChecksum } from './checksum.js';
+export { checksumWorld, checksumProjectiles, checksumBeams, formatChecksum } from './checksum.js';

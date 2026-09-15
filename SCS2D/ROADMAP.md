@@ -220,6 +220,24 @@ Deliberately unresolved; decide when they block something.
   being far wider than the row, but it is a real effect against small targets, and converging the
   barrels at a chosen range (paying for it at every other range) is a genuine design axis rather than
   a correction.
+- **Reflected beams, and the trap waiting at the surface.** A beam that is deflected rather than absorbed
+  resumes from the point it struck, which means it starts *on* that hull's bounding circle. Any new heading
+  that does not lead away from that body's centre therefore intersects it again at zero distance, and the
+  beam sticks: a grazing deflection — exactly the case reflection exists to model — is the worst one. The tie
+  has to be broken deliberately, by nudging the origin along the new heading or by carrying the struck body
+  as the resumed beam's owner, and the second is tidier because the store already has an owner field and
+  already skips it. Neither is free: the first invents a length scale, and the second stops a beam bouncing
+  between two faces of the same concave hull, which is a thing a real one would do.
+
+  Two further pieces belong with it. `Beams.detectHits` casts once per beam, so reflection makes it a loop
+  and needs a bound — reflections per beam, energy remaining, or both — or a pair of facing mirrors runs for
+  ever. And the store's `pending` flag exists precisely so a struck beam survives for something to decide
+  what happens to it; nothing does yet, so today every beam is cleared at the start of the next step and the
+  flag is carrying a contract that has no second party. Reflection is that second party.
+
+  What decides whether a beam reflects at all is the target's reflectivity and the angle of incidence, and
+  the hit already reports the surface normal for exactly that reason. Where reflectivity lives — a material
+  property, per module, per armour facing — is part of the materials question above rather than settled here.
 - **How a blueprint is versioned, once there is a campaign.** Editing a design must not silently re-equip
   ships already built to it: §2's Production rule is that a fleet transitions gradually, so existing ships
   keep flying the layout they were built to and only new production uses the revision. That makes a ship in

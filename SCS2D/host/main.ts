@@ -194,12 +194,15 @@ export function start(): void {
     }
     draw(ctx, view, camera, canvas.width, canvas.height);
 
-    const range = math.distance(
-            view.ships[0]!.x,
-            view.ships[0]!.y,
-            view.ships[1]!.x,
-            view.ships[1]!.y,
-          );
+    // Between the first two ships, whatever the scenario holds — but only if
+    // there are two. A single survivor has nothing to measure against, and
+    // reading past the end of the list would take the viewer down with it.
+    const first = view.ships[0];
+    const second = view.ships[1];
+    const range =
+      first !== undefined && second !== undefined
+        ? math.distance(first.x, first.y, second.x, second.y)
+        : 0;
     readout.textContent =
       `t ${view.time.toFixed(1)} s · step ${view.tick} · ` +
       `range ${range.toFixed(0)} m · in flight ${view.projectileCount} · ` +

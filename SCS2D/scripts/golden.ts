@@ -23,7 +23,10 @@ for (const [name, scenario] of Object.entries(SCENARIOS)) {
 
   console.log(
     `${name.padEnd(8)} steps=${String(scenario.steps).padStart(6)} ` +
-      `checksum=0x ${checksum} ` + // space added for double-click select
+      // Bare hex, exactly as `golden.test.ts` stores it: a `0x` prefix has to
+      // be trimmed off again after pasting, and joined to the digits it stops
+      // a double-click selecting them.
+      `checksum=${checksum} ` +
       `${elapsedMs.toFixed(1)}ms (${perStepUs.toFixed(2)}us/step)  ` +
       run.describe(),
   );

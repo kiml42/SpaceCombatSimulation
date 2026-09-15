@@ -81,7 +81,7 @@ export function checksumWorld(world: World): number {
  * Slot indices are included, so recycling a slot in a different order shows up.
  * That is deliberate: the free list is part of what has to be reproducible.
  */
-export function checksumProjectiles(projectiles: Projectiles, beams: Beams, seed = FNV_OFFSET): number {
+export function checksumProjectiles(projectiles: Projectiles, seed = FNV_OFFSET): number {
   let h = seed;
   h = mixU32(h, projectiles.count);
 
@@ -98,6 +98,27 @@ export function checksumProjectiles(projectiles: Projectiles, beams: Beams, seed
     h = mixU32(h, projectiles.kind[i]!);
     h = mixU32(h, projectiles.pending[i]!);
   }
+
+  return h >>> 0;
+}
+
+/**
+ * Checksum every beam present this step, chaining after another checksum the
+ * same way — `checksumBeams(b, checksumProjectiles(p, checksumWorld(w)))`
+ * covers the lot.
+ *
+ * Beams last one step rather than accumulating, so unlike rounds this is a
+ * picture of what was fired *this* step and not of anything carried over. That
+ * is exactly why it is worth covering: nothing else in the checksum would
+ * notice a mount that quietly stopped shooting.
+ *
+ * Both ends are included, so a beam truncated at an impact reads differently
+ * from one that reached its full length — which makes where a beam stopped
+ * part of what the goldens pin, not just that it was fired.
+ */
+export function checksumBeams(beams: Beams, seed = FNV_OFFSET): number {
+  let h = seed;
+  h = mixU32(h, beams.count);
 
   for (let i = 0; i < beams.highWater; i++) {
     if (beams.alive[i] === 0) continue;

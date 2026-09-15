@@ -1,5 +1,6 @@
 import {
   Beams,
+  checksumBeams,
   checksumProjectiles,
   checksumWorld,
   gravityWell,
@@ -10,6 +11,7 @@ import {
   type WellSpec,
 } from '../../sim/index.js';
 import { duel } from '../../scenarios/duel.js';
+import type { Battle } from '../../scenarios/types.js';
 import { beamDuel } from '../../scenarios/beamDuel.js';
 import { swarm } from '../../scenarios/swarm.js';
 import { fractal } from '../../scenarios/fractal.js';
@@ -247,7 +249,7 @@ export function gunneryScenario(seed = 777): GunneryRun {
     },
 
     checksum(): number {
-      return checksumProjectiles(projectiles, beams, checksumWorld(world));
+      return checksumBeams(beams, checksumProjectiles(projectiles, checksumWorld(world)));
     },
 
     describe(): string {
@@ -274,24 +276,39 @@ export function gunneryScenario(seed = 777): GunneryRun {
  * matrix, traverse rates, firing arcs, gun ballistics — through the loop the
  * game itself uses.
  */
+/**
+ * One report line for every battle, because any of them may carry either kind
+ * of weapon and `beamDuel` carries both — a scenario-specific line drops
+ * whichever half its author was not thinking about.
+ *
+ * The two hit counts are not in the same units and must not be added: a
+ * projectile hit is one round arriving, a beam hit is one step of a beam
+ * resting on a hull, so a beam that dwells for a second reports sixty.
+ */
+function describeBattle(run: Battle): string {
+  return (
+    `ships=${run.ships.count} inFlight=${run.projectiles.count} ` +
+    `p.fired=${run.totalProjectilesFired} p.hits=${run.totalProjectileHits} ` +
+    `b.fired=${run.totalBeamsFired} b.hits=${run.totalBeamHits}`
+  );
+}
+
 export function duelScenario(seed = 20260905): ScenarioRun {
   const run = duel(seed);
   return {
     step: () => run.step(),
-    checksum: () => checksumProjectiles(run.projectiles, run.beams, checksumWorld(run.world)),
-    describe: () =>
-      `ships=${run.ships.count} inFlight=${run.projectiles.count} ` +
-      `projectilesFired=${run.totalProjectilesFired} projectileHits=${run.totalProjectileHits}`,
+    checksum: () =>
+      checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+    describe: () => describeBattle(run),
   };
 }
 export function beamDuelScenario(seed = 20260905): ScenarioRun {
   const run = beamDuel(seed);
   return {
     step: () => run.step(),
-    checksum: () => checksumProjectiles(run.projectiles, run.beams, checksumWorld(run.world)),
-    describe: () =>
-      `ships=${run.ships.count} inFlight=${run.projectiles.count} ` +
-      `beamsFired=${run.totalBeamsFired} beamHits=${run.totalBeamHits}`,
+    checksum: () =>
+      checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+    describe: () => describeBattle(run),
   };
 }
 
@@ -299,10 +316,9 @@ export function swarmScenario(seed = 20260905, corvetteCount = 20): ScenarioRun 
   const run = swarm(seed, corvetteCount);
   return {
     step: () => run.step(),
-    checksum: () => checksumProjectiles(run.projectiles, run.beams, checksumWorld(run.world)),
-    describe: () =>
-      `ships=${run.ships.count} inFlight=${run.projectiles.count} ` +
-      `projectilesFired=${run.totalProjectilesFired} projectileHits=${run.totalProjectileHits}`,
+    checksum: () =>
+      checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+    describe: () => describeBattle(run),
   };
 }
 
@@ -310,10 +326,9 @@ export function fractalScenario(seed = 20260905): ScenarioRun {
   const run = fractal(seed);
   return {
     step: () => run.step(),
-    checksum: () => checksumProjectiles(run.projectiles, run.beams, checksumWorld(run.world)),
-    describe: () =>
-      `ships=${run.ships.count} inFlight=${run.projectiles.count} ` +
-      `projectilesFired=${run.totalProjectilesFired} projectileHits=${run.totalProjectileHits}`,
+    checksum: () =>
+      checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+    describe: () => describeBattle(run),
   };
 }
 

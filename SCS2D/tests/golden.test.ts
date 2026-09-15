@@ -25,12 +25,12 @@ import { SCENARIO_TIMEOUT, SCENARIOS, type ScenarioName } from './fixtures/scena
 const GOLDEN: Record<ScenarioName, string> = {
   orbit: '0441a895',
   tumble: '52118178',
-  gunnery: 'c3e9551c',
-  duel: '86c102ab',
-  beamDuel: '615fbc7d',
-  swarm: '8c71ede3',
-  superSwarm: 'df51e925',
-  fractal: 'eeab3f4b',
+  gunnery: 'cf408adc',
+  duel: '57dd425b',
+  beamDuel: '7aae6365',
+  swarm: '301fa913',
+  superSwarm: '9f2c9675',
+  fractal: '4ed6a8fb',
 };
 
 describe('golden scenarios', () => {

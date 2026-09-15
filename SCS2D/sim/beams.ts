@@ -4,13 +4,43 @@ import { RayHit, type SpatialGrid, MAX_CELLS_PER_RAY } from './spatialGrid.js';
 import { NO_OWNER } from './projectiles.js';
 
 /**
- * Beams: lasers, particle beams anything else that's considered to go from its
- * emitter to the target instantaneously.
+ * Beams: lasers, particle beams, and anything else taken to go from its
+ * emitter to its target instantaneously.
  *
  * Hits are *reported*, not applied.
+ *
+ * A beam is a segment rather than a moving point, which is the whole of what
+ * separates this from `Projectiles`: `start` and `end` are both positions,
+ * nothing advances between steps, and a beam has already struck whatever it is
+ * going to strike by the time `shoot` returns.
  */
 
-export const MAX_BEAM_LENGTH = MAX_CELLS_PER_RAY * 0.8;
+/**
+ * How far a beam is drawn out from its muzzle, metres.
+ *
+ * A beam has no natural range. Nothing slows it, and until intensity falls off
+ * with distance nothing weakens it either — so this is a culling distance and
+ * not a rule about how far a laser shoots, the same kind of quantity as a
+ * round's flight time. It wants to sit comfortably past any engagement range
+ * and no further: every metre is grid cells a cast walks through before it can
+ * report a miss, and a missing beam pays for all of them.
+ *
+ * Ten kilometres is about five times the longest range the shipped scenarios
+ * fight at, and costs about 156 cells a cast.
+ *
+ * It must also stay inside what the index will actually cast. `SpatialGrid`
+ * gives up after `MAX_CELLS_PER_RAY` cells, so a beam longer than
+ * `MAX_CELLS_PER_RAY * cellSize` is silently cut short — at the 64 m cells the
+ * scenarios use that limit is 262 km, which this is comfortably within. The
+ * cell size is the grid's rather than this module's, so the relationship is
+ * documented and asserted at the call site rather than computed here.
+ */
+export const MAX_BEAM_LENGTH = 10_000;
+
+/** Longest beam the index can cast through a grid of this cell size, metres. */
+export function castableBeamLength(cellSize: number): number {
+  return MAX_CELLS_PER_RAY * cellSize;
+}
 
 export interface BeamSpec {
   startX: number;
@@ -29,8 +59,11 @@ export interface BeamSpec {
 }
 
 /**
- * Impacts from one step, in projectile order. Reused between steps so that
- * reporting hits allocates nothing.
+ * Impacts from one step, in the order the beams were fired. Reused between
+ * steps so that reporting hits allocates nothing.
+ *
+ * Whoever reads it clears it: firing appends, so a caller that forgets reports
+ * every earlier step's hits again.
  */
 export class BeamHits {
   /** Index of the beam, which is still alive and pending resolution. */
@@ -84,7 +117,7 @@ export class BeamHits {
     this.ny = f64(this.ny);
   }
 
-  /** Append an impact. Called by `Projectiles.step`. */
+  /** Append an impact. Called as each beam is cast. */
   push(
     beam: number,
     body: number,
@@ -115,16 +148,16 @@ export class Beams {
   kind!: Int32Array;
   alive!: Uint8Array;
   /**
-   * Set on impact. A pending round is stopped at the point of contact and is
-   * not cast again until something resolves it — see the note at the top of
-   * this file.
+   * Set on impact. A struck beam is truncated at the point of contact and is
+   * left alive, because what a hit *does* belongs to the damage model and it
+   * cannot decide that about a beam already thrown away.
    */
   pending!: Uint8Array;
 
   capacity = 0;
-  /** Rounds currently in flight, including those awaiting resolution. */
+  /** Beams present this step, including those awaiting resolution. */
   count = 0;
-  /** Rounds stopped at an impact, awaiting resolution. */
+  /** Beams stopped at an impact, awaiting resolution. */
   pendingCount = 0;
   /** One past the highest slot ever used; loops may stop here. */
   highWater = 0;
@@ -212,7 +245,7 @@ export class Beams {
     return i;
   }
 
-  /** `spawnRaw` with named fields and defaults, for setup code and tests. */
+  /** `shootRaw` with named fields and defaults, for setup code and tests. */
   shoot(
     spec: BeamSpec,
     bodies: Bodies,
@@ -234,10 +267,7 @@ export class Beams {
     );
   }
 
-  /**
-   * Remove a beam from the world — it penetrated, embedded, detonated or expired.
-   * Safe to call on an already-dead slot.
-   */
+  /** Remove a beam. Safe to call on an already-dead slot. */
   kill(i: number): void {
     if (i < 0 || i >= this.highWater || this.alive[i] === 0) return;
     if (this.pending[i] === 1) {
@@ -287,34 +317,39 @@ export class Beams {
       const dx = endX - startX;
       const dy = endY - startY;
       const olen = sqrt(ox * ox + oy * oy);
-      // A round starting exactly at the centre has no meaningful normal;
-      // oppose its travel, which is the only defensible answer.
+      // A beam starting exactly at a body's centre has no meaningful outward
+      // normal; oppose its travel, which is the only defensible answer.
       const oinv = olen > 0 ? 1 / olen : 0;
       const seglen = sqrt(dx * dx + dy * dy);
       const sinv = seglen > 0 ? 1 / seglen : 0;
       const nx = olen > 0 ? ox * oinv : -dx * sinv;
       const ny = olen > 0 ? oy * oinv : -dy * sinv;
 
-      // Stop at the point of contact and wait to be resolved. The round is
-      // deliberately left alive: see the note at the top of this file.
+      // Stop at the point of contact and wait to be resolved. The beam is
+      // deliberately left alive, for the damage model to read.
       this.endX[i] = hit.x;
       this.endY[i] = hit.y;
       this.pending[i] = 1;
       this.pendingCount++;
       hits.push(i, bi, hit.x, hit.y, nx, ny);
 
-      // at some point this will need to be done iteratively to handle reflections.
+      // Reflection will make this a loop rather than a single cast, and the
+      // trap waiting there is recorded in ROADMAP.md §12: a deflected beam
+      // resumes *on* the surface it bounced off, so any new heading that does
+      // not lead away from that body's centre strikes it again at zero
+      // distance and the beam sticks.
     }
   }
 
   /**
-   * Muzzle velocity is added to the firing body's own velocity, so a round
-   * fired from a ship under way inherits its motion. Returns the index.
+   * Fire a beam from a muzzle along a heading, out to `MAX_BEAM_LENGTH`.
+   * Returns the index.
    *
-   * The lead a turret needs in order to *hit* something is the aiming problem,
-   * not this one; this only makes the round leave the barrel correctly.
-   * 
-   * muzzleDirectionX and muzzleDirectionY must represent a unit vector.
+   * Unlike a round, a beam inherits nothing from the firing ship's motion:
+   * there is no flight time for that motion to act over. Where to *point* is
+   * the aiming problem and not this one.
+   *
+   * `muzzleDirectionX` and `muzzleDirectionY` must be a unit vector.
    */
   fireFrom(
     bodyIndex: number,
