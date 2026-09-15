@@ -139,6 +139,24 @@ const PLUME_CORE = '#fff4e0';
  */
 const PLUME_THRUST_PER_AREA = 0.5e4;
 
+/**
+ * How wide a thruster is drawn where it meets the hull, as a fraction of its
+ * true width. The nozzle end keeps the full width, so the module reads as a
+ * bell and its facing can be seen at a glance.
+ *
+ * A thruster is a box like everything else — this is how it is *drawn*, not
+ * what it is. Mass, capacity, firing arcs and the overlap rule all still see
+ * the rectangle, which is why the editor outlines the full box when one is
+ * selected. The taper is worth the small dishonesty because a thruster's
+ * facing is the one thing about it that matters and the one thing a rectangle
+ * cannot show: which way a square engine pushes is invisible until it fires.
+ *
+ * Narrow at the mounting face rather than at the nozzle, which is both how a
+ * rocket bell is shaped and the direction the plume already leaves in — so the
+ * two agree instead of arguing.
+ */
+const THRUSTER_THROAT = 0.55;
+
 function shipColours(team: number): (typeof TEAM_COLOURS)[number] {
   return TEAM_COLOURS[team] ?? NEUTRAL;
 }
@@ -159,7 +177,23 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     ctx.translate(m.x, m.y);
     ctx.rotate(m.angle);
     ctx.fillStyle = spec.kind === 'structure' ? colours.hull : colours.trim;
-    ctx.fillRect(-spec.length / 2, -spec.width / 2, spec.length, spec.width);
+    const halfLength = spec.length / 2;
+    const halfWidth = spec.width / 2;
+    if (spec.kind === 'thruster') {
+      // Local +x is the way it pushes and the face it is bolted on by; the
+      // nozzle is at -x. Tapering towards +x therefore points the wide end the
+      // way the exhaust goes.
+      const throat = halfWidth * THRUSTER_THROAT;
+      ctx.beginPath();
+      ctx.moveTo(halfLength, -throat);
+      ctx.lineTo(halfLength, throat);
+      ctx.lineTo(-halfLength, halfWidth);
+      ctx.lineTo(-halfLength, -halfWidth);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
+    }
     ctx.restore();
   }
   ctx.restore();

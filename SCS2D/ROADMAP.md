@@ -85,14 +85,15 @@ teach the mechanics. Each scenario is a data file, not code.
 
 ### Slice 1 — blueprint editor, first iteration
 
-Specified but not built. §8 step 1, scoped down to one iteration: **lay out a ship, see what the layout
-bought, save it, get it into a file.** Flying what you built is deliberately the *second* iteration.
+§8 step 1, scoped down to one iteration: **lay out a ship, see what the layout bought, save it, get it into
+a file.** Flying what you built is deliberately the *second* iteration. What remains of it is below; Status
+says what the editor already does.
 
-**What the player does.** Opens a separate page, picks a ship from a library or starts a new one, drags
-modules around a canvas, and watches the numbers change. Modules are placed and sized by direct
-manipulation — drag to move, corner handles to resize, a handle to rotate — while the values that are not
-spatial (reinforcement, barrel count, notes) are typed into a panel for the selected module. Position snaps
-to a grid and rotation to 15°, with a modifier held to escape both. Undo and redo throughout.
+**Direct manipulation is half-built.** A module is dragged to move it, and everything that is not spatial is
+typed into a panel — but size and facing are still numbers in boxes rather than corner handles and a rotate
+handle. Rotation snaps to 15° through the box's own arrows, which is the cheap version of the same idea and
+not the same thing. Position snaps to a grid; both snaps want a held modifier to escape, and only the drag
+has one.
 
 **Assemblies are how a ship stops being edited twice.** A blueprint holds a table of named groups of
 modules, and places them by reference — so the gunship's eight lateral thrusters are one thruster placed
@@ -100,142 +101,73 @@ eight times, and making them all bigger is one edit with no state in which seven
 of a single module is the ordinary shared-part case and deliberately not a separate concept; an assembly
 containing other assemblies is what lets a whole wing, or a whole side of a ship, be one thing.
 
-An instance says only *where*: position, facing, and whether it is reflected. It cannot override any value
-of the assembly it places, so "linked" means identical with no exceptions to track.
+The format has all of this and the editor reads it: selecting one copy of a shared part selects the
+*placement*, says how many copies it draws, and edits every one of them together — except position, which
+belongs to the copy, since a shared module sits at its assembly's origin and each instance carries a pose of
+its own. Duplicate makes a shared part out of a module and unlink dissolves one, so the editor can make and
+unmake an assembly of a single module. What it cannot do is **restructure** anything larger than that.
+Everything below is that gap.
 
-**A long repeated structure is a count, not a chain.** An instance may carry `repeat` and a `step`, which
-places that many copies with each one a step on from the last — so a wing of six identical bays is one bay
-and the number six, and lengthening it is one edit. The step is applied in each copy's own frame, so a step
-angle walks the copies round an arc and a ring of mounts costs the same as a row of them. Both are capped,
-per instance and again over the whole expansion, because repetition and nesting multiply.
+**Making an assembly from several modules is the missing half.** Duplicating a module makes a *one-module*
+assembly and places it twice, and unlinking reverses that, so shared parts can be created and undone one
+module at a time. What cannot be done is selecting several modules and grouping them — and that is the case
+reflection needs. Reflection is what replaces a mirrored editing mode: symmetry becomes structural rather
+than something the editor keeps in step — build a side once, place it twice with one instance mirrored, and
+the two cannot disagree about anything but which side they are on. That removes a mode, its state, and the
+question of what happens to a module straddling the centreline. Until grouping exists, none of it is
+reachable from the editor, and a symmetrical ship has to be drawn one side at a time.
+
+Two things follow from having only the one-module case, and both are worth deciding rather than inheriting.
+A duplicate cannot be **mirrored**, since an instance's `mirror` flag is not reachable; and a shared part
+cannot be given a second, differently-posed group to belong to. Both wait on the same work.
+
+**An instance is not selectable, so a repeat cannot be edited.** A long repeated structure is a count, not a
+chain: an instance may carry `repeat` and a `step`, which places that many copies with each one a step on
+from the last — so a wing of six identical bays is one bay and the number six, and lengthening it is one
+edit. The step is applied in each copy's own frame, so a step angle walks the copies round an arc and a ring
+of mounts costs the same as a row of them. Both are capped, per instance and again over the whole expansion,
+because repetition and nesting multiply. All of that is in the format and none of it is reachable from the
+editor: clicking a drawn module selects the module inside the assembly, never the instance placing it, so
+`repeat`, `step` and `mirror` can only be hand-edited in the file. An instance's *position* is the exception
+and is reachable, because a shared module keeps none of its own — dragging one copy moves the instance,
+which is the only way moving one copy of a shared part can mean anything.
 
 How copies differ is instead **additive**: an instance may carry `extra` modules of its own, placed in the
 same frame as the assembly's, so they move and reflect with it. That is the whole of the divergence
-mechanism, and two editor actions are built from it rather than from anything new in the format:
+mechanism, and the editor's unlink is built from it rather than from anything new in the format. Unlink
+takes the shape the layout makes necessary: when the module is the whole of its assembly, each instance is
+replaced by what it expanded to and the assembly goes, which is exact down to module order; when the
+assembly holds other modules too, the module leaves the definition and every instance is handed its own copy
+as an `extra`. The second has a cost the button states — the part is gone from the assembly, so a *new*
+instance will not have it, and extras land after the assembly's own modules, so the part moves down the
+expansion order and the ship changes very slightly even though nothing about its geometry has.
 
-- **Unlink a part** takes it out of the definition and hands every instance its own copy as an extra. The
-  ship is unchanged at the moment it happens and each copy is separately editable afterwards. The cost,
-  which the button has to state, is that the part is gone from the assembly — a *new* instance will not
-  have it — and that extras land after the assembly's own modules, so the part moves down the expansion
-  order and the ship changes very slightly even though nothing about its geometry has.
-- **Unlink a copy** replaces one instance with its expanded modules inline. That needs no format support at
-  all, and it preserves order exactly, at the cost of that copy sharing nothing thereafter.
+What is *not* built is unlinking **one** copy while the others stay linked. Both shapes above unlink every
+copy at once, because the editor cannot yet name a single instance.
 
-**Reflection is what replaces a mirrored editing mode.** Symmetry becomes structural rather than something
-the editor keeps in step: build a side once, place it twice with one instance mirrored, and the two cannot
-disagree about anything but which side they are on. That removes a mode, its state, and the question of
-what happens to a module straddling the centreline. What the editor owes instead is making assemblies easy
-to *create* — select some modules, make them an assembly, place another copy — since the tedium moves from
-placing modules to structuring them.
+**A connectivity warning is still owed.** Validity is shown rather than enforced: a layout may be invalid
+while it is being worked on — you often have to move one module through another to get it past — so the
+problems appear as a list and only export and save-to-library are blocked. What is missing from that list is
+the crude connectivity check: modules that touch nothing else, flagged using the snap grid. That is
+deliberately *not* the graph with per-edge strengths §12 describes; it catches the obvious mistake without
+answering an open question inside a UI task.
 
-**What it tells you** is the point of the whole thing: total mass and inertia, the manoeuvring envelope
-(`ThrusterLayout.support` already exists to draw it — §4 anticipated this), linear acceleration and turn
-rate available in each direction, and per turret its calibre, rate of fire, muzzle speed and round mass.
-Firing arcs are drawn on the canvas, which is the mechanism §12 wants a player to be able to read.
-
-**Validity is shown, not enforced.** A layout may be invalid while it is being worked on — you often have
-to move one module through another to get it past — so `blueprintProblem`'s complaints appear as a problems
-list, and only export and save-to-library are blocked. A crude connectivity warning rides along with it:
-modules that touch nothing else are flagged using the snap grid. That is deliberately *not* the graph with
-per-edge strengths that §12 describes; it catches the obvious mistake without answering an open question
-inside a UI task.
-
-#### Where it lives
-
-**Its own page and its own bundle**, `dist/editor.html` beside `dist/index.html`, linked both ways.
-
-The reasoning is worth recording because it is stronger than it first appears. The editor's inputs and
-outputs are both blueprints, so it needs to know nothing about a battle in progress: no shared clock, no
-snapshots, no `SharedWorker` — which means this slice does not have to build the worker architecture §5
-describes, and the question of whether views subscribe to a shared sim stays open until something actually
-needs it.
-
-But the claim has an exact boundary, and stating it loosely invites the failure it is meant to prevent.
-**The editor is independent of the running simulation and tightly coupled to the simulation's laws.** Mass,
-inertia, thrust, traverse rate, gun statistics and firing arcs all come from `moduleStats`, `gunStats`,
-`compileBlueprint` and `firingArc`. If the editor ever computes one of those itself, the editor and the
-battle disagree about the same ship, which is the worst thing this tool can do — its entire value is that
-the picture and the numbers are true.
-
-The same argument applies to drawing. The editor **builds a one-ship `Snapshot` at rest and hands it to the
-existing `render/canvas2d.ts`**, adding only selection handles, the grid and the problems overlay on top.
-`Snapshot` is a plain class with a no-arg constructor, so this costs nothing. A second renderer would drift
-from the first exactly the way a second copy of the duel would have drifted from the golden one, which is
-why `scenarios/duel.ts` exists.
-
-**Plain DOM, no React**, for a canvas and a properties panel. This is a decision with a known expiry rather
-than a position: §5 says application UI is the dominant cost of this game and assumes React for it, and the
-second or third iteration of this editor is probably where that stops being deferrable.
-
-#### The file format
-
-An editor has to serialise what it produces, so this settles the format question §12 has been holding.
-
-- **JSON, one file per blueprint**, and the two authored ships convert. The conversion must not move the
-  golden checksums — if it does, it is wrong, and that is the test worth writing first.
-- **`notes` on the blueprint and on each module**, optional free text, round-tripped by the editor. Without
-  it the conversion silently destroys the only record of *why* each ship is shaped as it is, which is a
-  worse loss than it sounds: "outriggers with small, fast firing, multi-barrelled guns" is not recoverable
-  from the numbers.
-- **Angles in degrees in the file**, radians everywhere inside `sim/`, converted by the parser. A file
-  people hand-edit should not contain `1.5707963267948966`.
-- **Assemblies and their instances are in the file**, normalised: shared values are written once and
-  referred to, rather than repeated with a link tag. Copies then cannot disagree even in a hand-edited
-  file, which a tag-and-duplicate scheme could not promise. `expandBlueprint` resolves them, and everything
-  downstream works on the flat result, so an assembly is a way of *writing* a layout rather than a property
-  a compiled ship has.
-- **Module order is part of the ship, so restructuring a layout is not free.** Thruster allocation solves
-  over the columns in order and turrets fire in order, so the same modules listed differently compile to a
-  ship that behaves differently. It is why the authored ships place symmetric *pairs* adjacently rather
-  than grouping each whole side: the tidier structure reorders the modules, and reordering the gunship
-  moved the duel checksum while leaving the expanded geometry bit-identical. Worth knowing before
-  reorganising a working ship, and worth the editor saying out loud when a restructure would reorder.
-- **A `formatVersion` field**, since the library lives in browser storage and will outlive a format change.
-  Named that way and not `version` deliberately: a campaign will eventually need a *blueprint* revision, so
-  that existing ships keep flying the layout they were built to while new production uses the upgraded one.
-  Two different quantities, and letting them share a word now would be expensive to unpick later.
-- **Parsing splits from loading.** `parseBlueprint(unknown)` is pure shape-checking and unit conversion, so
-  it belongs in `sim/` alongside `blueprintProblem`; reading a file or `localStorage` is the host's job.
-  This is the distinction behind §12's "a loader outside `sim/`" — the *loader* is outside, the *parser*
-  need not be.
-- The built-in ships are **imported as JSON rather than read at runtime** (`resolveJsonModule`, which
-  `tsconfig.base.json` does not yet set), so esbuild inlines them into the bundle and Node resolves them in
-  tests. No asynchronous loading, no fetch, no divergence between the two environments.
-
-**A ship is identified by its name**, not by an index or a generated id. Indexes collide across players
-immediately — everyone has a ship at index 0 — and an opaque id, while collision-free, would be a second
-identity nobody uses: the file stops being readable and diffable, and a shared ship's identity really is
-"here's my Corvette". This matches the same instinct as degrees-in-the-file.
-
-The cost is worth stating plainly, because it comes due later rather than now: **renaming is
-re-identifying**. Once a campaign fleet references blueprints, changing a ship's name orphans every ship
-flying one, which is the exact problem generated ids exist to solve. A rename will have to be forbidden,
-propagated, or treated as a fork; that is a campaign-slice decision, not this one, but it is a bill this
-choice runs up.
-
-Names therefore collide, and importing a friend's ship is where it happens. Import **asks** — rename,
-replace, or cancel, with the rename box pre-filled — rather than deciding for the player. Auto-renaming
-quietly turns a re-import of a friend's updated ship into a fourth copy, and replacing destroys an
-afternoon's work on a name match, which "Corvette" guarantees.
-
-**A new ship starts blank.** No seed module: the first thing you do is choose what the ship is built around,
-and starting you with a structure module quietly makes that choice for you.
-
-**Saving** goes to `localStorage` so that iterating has no friction, with explicit Export and Import moving
-a `.json` in and out. The browser cannot write to a checkout, so export is how a ship reaches the repository
-or another person.
-
-#### What has to change outside the editor
-
-- `scripts/build.ts` grows a second entry point and shell; the Pages job publishes both pages.
-- `tsconfig.base.json` gains `resolveJsonModule`.
-- `ModuleSpec` and `Blueprint` gain optional `notes`.
-- `scenarios/blueprints.ts` becomes JSON plus a thin module re-exporting the parsed ships, so `duel.ts`,
-  `swarm.ts` and the golden tests keep importing a `Blueprint` and do not notice.
+**Module order is part of the ship, so restructuring a layout is not free.** Thruster allocation solves over
+the columns in order and turrets fire in order, so the same modules listed differently compile to a ship
+that behaves differently. It is why the authored ships place symmetric *pairs* adjacently rather than
+grouping each whole side: the tidier structure reorders the modules, and reordering the gunship moved the
+duel checksum while leaving the expanded geometry bit-identical. Adding a module appends, which is the one
+placement that leaves the existing ship alone — but every restructuring action above reorders something, and
+the editor owes the player a word about it when it does.
 
 #### Deliberately not in this iteration
 
-Test flight (the editor can have its own throwaway sim later — it does not need the battle page's).
+Test flight — putting a ship in a scene and letting it fly. The editor can have its own throwaway sim
+later; it does not need the battle page's. What is there instead is an **animation**, not a start on one: a
+selected engine burns and a selected gun fires at its own rate, with rounds flying straight at the muzzle
+speed and being forgotten. Nothing is integrated, nothing collides, and the ship does not move however hard
+its engine burns — so it cannot grow into a test flight by accident, and it claims nothing the panel beside
+it does not already state.
 Fleets and budgets. The real connectivity graph. Asymmetric or interval-based firing arcs. Any of §12's
 open scaling questions.
 
