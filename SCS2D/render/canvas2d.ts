@@ -59,6 +59,9 @@ const GRID = '#161d29';
 const TRACER = '#ffe6a8';
 const TRACER_GLOW = '#ffb2a888';
 
+const BEAM = '#3df72ca4';
+const BEAM_GLOW = '#a8f1327c';
+
 /**
  * Tracer geometry, in seconds of flight per metre of calibre — so a round's
  * streak is as long as a bigger round's is, scaled by how big it is. The glow
@@ -428,7 +431,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   // Worth it for a halo that is the round's own size, and rare enough not to
   // read as anything but two tracers crossing.
   ctx.lineCap = 'square';
-  ctx.strokeStyle = TRACER_GLOW;
+  ctx.strokeStyle = BEAM_GLOW;
   for (let i = 0; i < snapshot.beamCount; i++) {
     const calibre = snapshot.beamWidth[i]!;
     ctx.lineWidth = legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale);
@@ -441,7 +444,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   // A pass per round, because each carries its own width. Cheap at the round
   // counts a battle reaches; if that ever stops being true, bucket by width
   // rather than reaching for a single average.
-  ctx.strokeStyle = TRACER;
+  ctx.strokeStyle = BEAM;
   for (let i = 0; i < snapshot.beamCount; i++) {
     const calibre = snapshot.beamWidth[i]!;
     // The round *is* its calibre wide. Twice the calibre is the barrel's outer
