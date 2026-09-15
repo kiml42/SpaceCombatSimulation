@@ -340,8 +340,12 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     const spacing = gun.barrelSpacing;
 
     ctx.strokeStyle = ready ? colours.ready : BARREL;
-    // The barrel's outer diameter, twice the calibre, which is the tube the
-    // annulus in `moduleStats` charges steel for — not the bore.
+    // Twice the calibre: for a gun that is the barrel's outer diameter, the
+    // tube the annulus in `moduleStats` charges steel for rather than the bore.
+    // For a beam mount it is the housing round the optic rather than the optic
+    // itself, which comes to the same drawn width and wants no special case —
+    // and the two read quite differently anyway, a laser's housing being about
+    // as deep as it is wide where a barrel is fifty times.
     const physicalWidth = 2 * gun.calibre;
     // Barrels are allowed to overlap once the floor has widened them past their
     // own gaps, which happens only when the whole ship is a hundred-odd pixels
