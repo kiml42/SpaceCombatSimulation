@@ -308,7 +308,6 @@ export class Beams {
    * not this one; this only makes the round leave the barrel correctly.
    */
   fireFrom(
-    bodies: Bodies,
     bodyIndex: number,
     muzzleX: number,
     muzzleY: number,
