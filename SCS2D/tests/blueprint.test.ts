@@ -325,7 +325,11 @@ describe('the authored blueprints', () => {
           expect(turret.mount.rightArc).toBeGreaterThan(0);
           expect(turret.mount.maxRate).toBeGreaterThan(0);
           expect(turret.mount.maxAccel).toBeGreaterThan(0);
-          expect(turret.gun.muzzleSpeed).toBeGreaterThan(0);
+          if(design.name == "Beam Gunship"){
+            expect(turret.gun.muzzleSpeed).toBe(-1); // Only has beam turrets
+          } else{
+            expect(turret.gun.muzzleSpeed).toBeGreaterThan(0);
+          }
           expect(turret.gun.cycleTime).toBeGreaterThan(0);
         }
       });
