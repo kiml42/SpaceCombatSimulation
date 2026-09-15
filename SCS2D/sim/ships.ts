@@ -405,7 +405,6 @@ export class Ships {
           fired++;  // increment for every shot fired
         } else {
           beams.fireFrom(
-            bodies,
             bodyIdx,
             this.solution.x,
             this.solution.y,
