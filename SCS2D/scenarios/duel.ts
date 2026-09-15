@@ -128,9 +128,10 @@ export function duel(seed = 20260905): Battle {
       ships.command(dt, world);
       world.step();
       grid.rebuild(world.bodies);
-      run.totalFired += ships.fire(world, projectiles, beams);
+      beams.clear();
+      beamHits.clear();
+      run.totalFired += ships.fire(world, projectiles, beams, grid, beamHits);
       projectiles.step(dt, world.bodies, grid, hits, wells);
-      beams.detectHits(world.bodies, grid, beamHits);
       run.totalHits += hits.count + beamHits.count;
       // A stop-gap until terminal ballistics and the damage model (§8 step 2),
       // which decide what a hit does: every round penetrates and is absorbed.

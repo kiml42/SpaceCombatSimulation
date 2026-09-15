@@ -171,7 +171,7 @@ export class Beams {
    * The long argument list is deliberate: firing is frequent enough that the
    * gunnery code should not have to build an options object per shot.
    */
-  shootRaw(
+  private shootRaw(
     startX: number,
     startY: number,
     endX: number,
@@ -180,6 +180,9 @@ export class Beams {
     energy: number,
     owner: number,
     kind: number,
+    bodies: Bodies,
+    grid: SpatialGrid,
+    hits: BeamHits
   ): number {
     let i: number;
     const reused = this.free.pop();
@@ -201,11 +204,19 @@ export class Beams {
     this.alive[i] = 1;
     this.pending[i] = 0;
     this.count++;
+
+    this.detectHits(i, bodies, grid, hits)
+
     return i;
   }
 
   /** `spawnRaw` with named fields and defaults, for setup code and tests. */
-  shoot(spec: BeamSpec): number {
+  shoot(
+    spec: BeamSpec,
+    bodies: Bodies,
+    grid: SpatialGrid,
+    hits: BeamHits
+  ): number {
     return this.shootRaw(
       spec.startX,
       spec.startY,
@@ -215,6 +226,9 @@ export class Beams {
       spec.energy,
       spec.owner ?? NO_OWNER,
       spec.kind ?? 0,
+      bodies,
+      grid,
+      hits
     );
   }
 
@@ -233,18 +247,7 @@ export class Beams {
     this.count--;
   }
 
-  /**
-   * Return a pending beam to flight, after a reflection has rewritten its
-   * direction. The beam resumes from the impact point immediately.
-   */
-  resume(i: number): void {
-    if (i < 0 || i >= this.highWater || this.alive[i] === 0) return;
-    if (this.pending[i] === 0) return;
-    this.pending[i] = 0;
-    this.pendingCount--;
-  }
-
-  /** Remove every round. */
+  /** Remove every beam. */
   clear(): void {
     for (let i = 0; i < this.highWater; i++) {
       this.alive[i] = 0;
@@ -256,53 +259,49 @@ export class Beams {
     this.highWater = 0;
   }
 
-  // TODO: Run the the detect hits code straight in the fire method instead of a separate one.
-  // Whe beams reflect, we'll need it to be all in one loop that outputs hits.
   /**
    * Detect hits.
    */
-  detectHits(
+  private detectHits(
+    i: number,
     bodies: Bodies,
     grid: SpatialGrid,
-    hits: BeamHits,
+    hits: BeamHits
   ): void {
-    hits.clear();
     const hit = this.hit;
+    if (this.alive[i] === 0 || this.pending[i] === 1) return;
 
-    for (let i = 0; i < this.highWater; i++) {
-      if (this.alive[i] === 0 || this.pending[i] === 1) continue;
+    const startX = this.startX[i];
+    const startY = this.startY[i];
+    const endX = this.endX[i];
+    const endY = this.endY[i];
 
-      const startX = this.startX[i];
-      const startY = this.startY[i];
-      const endX = this.endX[i];
-      const endY = this.endY[i];
+    if (grid.raycast(bodies, startX, startY, endX, endY, hit, this.owner[i])) {
+      // Outward surface normal. Exact for a bounding circle; a polygon narrow
+      // phase would supply the struck edge's normal instead.
+      const bi = hit.bodyIndex;
+      const ox = hit.x - bodies.x[bi];
+      const oy = hit.y - bodies.y[bi];
+      const dx = endX - startX;
+      const dy = endY - startY;
+      const olen = sqrt(ox * ox + oy * oy);
+      // A round starting exactly at the centre has no meaningful normal;
+      // oppose its travel, which is the only defensible answer.
+      const oinv = olen > 0 ? 1 / olen : 0;
+      const seglen = sqrt(dx * dx + dy * dy);
+      const sinv = seglen > 0 ? 1 / seglen : 0;
+      const nx = olen > 0 ? ox * oinv : -dx * sinv;
+      const ny = olen > 0 ? oy * oinv : -dy * sinv;
 
-      if (grid.raycast(bodies, startX, startY, endX, endY, hit, this.owner[i])) {
-        // Outward surface normal. Exact for a bounding circle; a polygon narrow
-        // phase would supply the struck edge's normal instead.
-        const bi = hit.bodyIndex;
-        const ox = hit.x - bodies.x[bi];
-        const oy = hit.y - bodies.y[bi];
-        const dx = endX - startX;
-        const dy = endY - startY;
-        const olen = sqrt(ox * ox + oy * oy);
-        // A round starting exactly at the centre has no meaningful normal;
-        // oppose its travel, which is the only defensible answer.
-        const oinv = olen > 0 ? 1 / olen : 0;
-        const seglen = sqrt(dx * dx + dy * dy);
-        const sinv = seglen > 0 ? 1 / seglen : 0;
-        const nx = olen > 0 ? ox * oinv : -dx * sinv;
-        const ny = olen > 0 ? oy * oinv : -dy * sinv;
+      // Stop at the point of contact and wait to be resolved. The round is
+      // deliberately left alive: see the note at the top of this file.
+      this.endX[i] = hit.x;
+      this.endY[i] = hit.y;
+      this.pending[i] = 1;
+      this.pendingCount++;
+      hits.push(i, bi, hit.x, hit.y, nx, ny);
 
-        // Stop at the point of contact and wait to be resolved. The round is
-        // deliberately left alive: see the note at the top of this file.
-        this.endX[i] = hit.x;
-        this.endY[i] = hit.y;
-        this.pending[i] = 1;
-        this.pendingCount++;
-        hits.push(i, bi, hit.x, hit.y, nx, ny);
-        continue;
-      }
+      // at some point this will need to be done iteratively to handle reflections.
     }
   }
 
@@ -322,6 +321,9 @@ export class Beams {
     width: number,
     energy: number,
     kind: number,
+    bodies: Bodies,
+    grid: SpatialGrid,
+    hits: BeamHits
   ): number {
     // TODO make a sensible constant for the length of a beam.
     return this.shootRaw(
@@ -333,6 +335,9 @@ export class Beams {
       energy,
       bodyIndex,
       kind,
+      bodies,
+      grid,
+      hits
     );
   }
 }
