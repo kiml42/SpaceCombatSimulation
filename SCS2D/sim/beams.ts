@@ -150,7 +150,7 @@ export class Beams {
     this.endX = f64(this.endX);
     this.endY = f64(this.endY);
     this.width = f64(this.width);
-    this.energy = f64(this.width);
+    this.energy = f64(this.energy);
     this.owner = i32(this.owner);
     this.kind = i32(this.kind);
 

@@ -59,8 +59,49 @@ const GRID = '#161d29';
 const TRACER = '#ffe6a8';
 const TRACER_GLOW = '#ffb2a888';
 
-const BEAM = '#3df72ca4';
-const BEAM_GLOW = '#a8f1327c';
+const BEAM = '#3df72c';
+const BEAM_GLOW = '#a8f132';
+
+/**
+ * Beam brightness, in joules of muzzle energy.
+ *
+ * A beam is drawn at its true width, exactly as a tracer is — the mount fixes
+ * how thick it is, and nothing else may. What it says about itself, it says
+ * through *opacity*: a point-defence beam is a faint thread and a capital
+ * mount's is a solid bar, at the same width they would each be if they were
+ * inert.
+ *
+ * The mapping is logarithmic because the quantity is. The mounts on one hull
+ * already span four orders of magnitude of muzzle energy — the beam gunship
+ * carries 4e5 J on its outriggers and 1.4e8 J at the bow — and a linear ramp
+ * over that range either clips everything above a thousandth of the maximum or
+ * leaves everything below it invisible. A decade of energy is therefore an
+ * equal step of brightness, which is also how the eye reads brightness.
+ *
+ * `BEAM_DIM_ENERGY` is where the ramp starts and `BEAM_BRIGHT_ENERGY` where it
+ * reaches full opacity; outside them the beam clamps. `BEAM_MIN_ALPHA` is the
+ * floor, because a beam that is being fired is a thing the player must be able
+ * to see even when it is the weakest thing on the screen — the alternative is
+ * a gun that reads as jammed.
+ */
+const BEAM_DIM_ENERGY = 1e5;
+const BEAM_BRIGHT_ENERGY = 1e8;
+const BEAM_MIN_ALPHA = 0.25;
+const BEAM_DECADES = Math.log(BEAM_BRIGHT_ENERGY / BEAM_DIM_ENERGY);
+
+/**
+ * How much of the core's opacity the glow gets. Below 1 so that the halo stays
+ * a halo at every energy: at parity a full-energy beam's glow is as solid as
+ * its core and the two stop being distinguishable.
+ */
+const BEAM_GLOW_ALPHA = 0.45;
+
+/** Opacity for a beam carrying `energy` joules. See the constants above. */
+function beamAlpha(energy: number): number {
+  if (!(energy > BEAM_DIM_ENERGY)) return BEAM_MIN_ALPHA;
+  const t = Math.log(energy / BEAM_DIM_ENERGY) / BEAM_DECADES;
+  return t >= 1 ? 1 : BEAM_MIN_ALPHA + (1 - BEAM_MIN_ALPHA) * t;
+}
 
 /**
  * Tracer geometry, in seconds of flight per metre of calibre — so a round's
@@ -434,31 +475,34 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   ctx.strokeStyle = BEAM_GLOW;
   for (let i = 0; i < snapshot.beamCount; i++) {
     const calibre = snapshot.beamWidth[i]!;
-    const energy = snapshot.beamEnergy[i]! * 0.000001;
-    ctx.globalAlpha = energy;
-    ctx.lineWidth = legibleWidth(energy * GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale);
+    ctx.globalAlpha = beamAlpha(snapshot.beamEnergy[i]!) * BEAM_GLOW_ALPHA;
+    ctx.lineWidth = legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale);
     ctx.beginPath();
     ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
     ctx.lineTo(snapshot.beamEndX[i]!, snapshot.beamEndY[i]!);
     ctx.stroke();
   }
 
-  // A pass per round, because each carries its own width. Cheap at the round
-  // counts a battle reaches; if that ever stops being true, bucket by width
-  // rather than reaching for a single average.
+  // A pass per beam, because each carries its own width and its own opacity.
+  // Cheap at the beam counts a battle reaches; if that ever stops being true,
+  // bucket by width rather than reaching for a single average.
   ctx.strokeStyle = BEAM;
   for (let i = 0; i < snapshot.beamCount; i++) {
     const calibre = snapshot.beamWidth[i]!;
-    const energy = snapshot.beamEnergy[i]! * 0.000001;
-    ctx.globalAlpha = energy;
-    // The round *is* its calibre wide. Twice the calibre is the barrel's outer
+    ctx.globalAlpha = beamAlpha(snapshot.beamEnergy[i]!);
+    // The beam *is* its calibre wide. Twice the calibre is the barrel's outer
     // diameter — right for the tube, wrong for what comes out of it.
-    ctx.lineWidth = legibleWidth(energy * calibre, MIN_TRACER_PX, camera.scale);
+    ctx.lineWidth = legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
     ctx.beginPath();
     ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
-    ctx.lineTo(snapshot.beamEndX[i]! , snapshot.beamEndY[i]!);
+    ctx.lineTo(snapshot.beamEndX[i]!, snapshot.beamEndY[i]!);
     ctx.stroke();
   }
+
+  // Beams are drawn last, and nothing restores the context between frames:
+  // leaving the final beam's opacity set would tint the next frame's grid and
+  // wells before anything else had a chance to set it.
+  ctx.globalAlpha = 1;
 }
 
 /**
