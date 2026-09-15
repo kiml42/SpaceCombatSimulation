@@ -411,6 +411,7 @@ export class Ships {
             this.solution.dirX * 100000, // TODO create a constant for this.
             this.solution.dirY * 100000,
             gun.calibre,
+            gun.muzzleEnergy,
             0
           );
           if (state == TurretState.Idle) {

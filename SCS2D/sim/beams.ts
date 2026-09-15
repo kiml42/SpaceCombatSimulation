@@ -16,6 +16,7 @@ export interface BeamSpec {
   endX: number;
   endY: number;
   width: number;
+  energy: number;
   /**
    * A body *index* the beam passes through — the firing ship, normally, so a
    * turret does not shoot its own hull. - temporary until we set up the two layer world model.
@@ -107,6 +108,7 @@ export class Beams {
   endX!: Float64Array;
   endY!: Float64Array;
   width!: Float64Array;
+  energy!: Float64Array;
   owner!: Int32Array;
   kind!: Int32Array;
   alive!: Uint8Array;
@@ -148,6 +150,7 @@ export class Beams {
     this.endX = f64(this.endX);
     this.endY = f64(this.endY);
     this.width = f64(this.width);
+    this.energy = f64(this.width);
     this.owner = i32(this.owner);
     this.kind = i32(this.kind);
 
@@ -174,6 +177,7 @@ export class Beams {
     endX: number,
     endY: number,
     width: number,
+    energy: number,
     owner: number,
     kind: number,
   ): number {
@@ -191,6 +195,7 @@ export class Beams {
     this.endX[i] = endX;
     this.endY[i] = endY;
     this.width[i] = width;
+    this.energy[i] = energy;
     this.owner[i] = owner;
     this.kind[i] = kind;
     this.alive[i] = 1;
@@ -207,6 +212,7 @@ export class Beams {
       spec.endX,
       spec.endY,
       spec.width,
+      spec.energy,  // TODO
       spec.owner ?? NO_OWNER,
       spec.kind ?? 0,
     );
@@ -314,6 +320,7 @@ export class Beams {
     muzzleDirectionX: number,
     muzzleDirectionY: number,
     width: number,
+    energy: number,
     kind: number,
   ): number {
     // TODO make a sensible constant for the length of a beam.
@@ -323,6 +330,7 @@ export class Beams {
       muzzleX + muzzleDirectionX * 1000000000,
       muzzleY + muzzleDirectionY * 1000000000,
       width,
+      energy,
       bodyIndex,
       kind,
     );
