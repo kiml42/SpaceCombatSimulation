@@ -1,5 +1,6 @@
 import {
   degreesToRadians,
+  MAX_REPEAT,
   math,
   parseBlueprint,
   placementAt,
@@ -30,7 +31,10 @@ import {
   renameAssembly,
   renameProblem,
   setMirror,
+  setRepetition,
+  extentAlong,
   movePlacement,
+  toPlacementAngle,
   positionHandle,
   removeCopy,
   snap,
@@ -41,6 +45,7 @@ import {
 import { emptyBlueprint, Library, toFileText } from './library.js';
 import { Demonstration } from './demonstrate.js';
 import { drawOverlay } from './overlay.js';
+import { facingTo, handleAt, handlesFor, sizedTo, type Handle } from './handles.js';
 import { previewSnapshot } from './preview.js';
 import { designStats, envelopes, groupMass, moduleReadout, type Envelopes } from './stats.js';
 
@@ -136,6 +141,12 @@ export function startEditor(): void {
   const groupY = el<HTMLInputElement>('groupY');
   const groupAngle = el<HTMLInputElement>('groupAngle');
   const groupMirror = el<HTMLInputElement>('groupMirror');
+  const groupRepeat = el<HTMLInputElement>('groupRepeat');
+  const groupStepRow = el<HTMLElement>('groupStepRow');
+  const groupStepAngleRow = el<HTMLElement>('groupStepAngleRow');
+  const groupStepX = el<HTMLInputElement>('groupStepX');
+  const groupStepY = el<HTMLInputElement>('groupStepY');
+  const groupStepAngle = el<HTMLInputElement>('groupStepAngle');
   const groupDuplicate = el<HTMLButtonElement>('groupDuplicate');
   const groupDelete = el<HTMLButtonElement>('groupDelete');
   const saveButton = el<HTMLButtonElement>('saveShip');
@@ -161,6 +172,22 @@ export function startEditor(): void {
     canvas.height = max(1, Math.round(rect.height * ratio));
   };
 
+  /**
+   * The grab points on the selection, or none.
+   *
+   * Only for a single module: a group has no size, and several modules picked
+   * at once have no one box to size or turn. The copy they sit on is the one
+   * under the pointer, which is the copy the highlight draws brightest and the
+   * one a drag would move.
+   */
+  const currentHandles = (): Handle[] => {
+    if (doc.selections.length !== 1) return [];
+    const drawn = doc.selectedLoose()[0];
+    if (drawn === undefined) return [];
+    const spec = doc.view.modules[drawn];
+    return spec === undefined ? [] : handlesFor(spec, camera.scale);
+  };
+
   const render = (): void => {
     const view = doc.view;
     if (view.design !== null) {
@@ -182,6 +209,7 @@ export function startEditor(): void {
         selected: doc.selectedLoose(),
         groups: doc.selectedGroups(),
         faulty: view.faulty,
+        handles: currentHandles(),
         envelope,
       },
       camera,
@@ -322,6 +350,25 @@ export function startEditor(): void {
       if (document.activeElement !== input) input.value = String(value);
     }
     groupMirror.checked = instance.mirror === true;
+
+    const copies = instance.repeat ?? 1;
+    if (document.activeElement !== groupRepeat) groupRepeat.value = String(copies);
+    groupRepeat.max = String(MAX_REPEAT);
+    // A step with one copy places nothing, so the boxes are not there to be
+    // filled in: the count is what turns a group into a row, and the step is
+    // what that row is made of.
+    groupStepRow.hidden = copies < 2;
+    groupStepAngleRow.hidden = copies < 2;
+    const step = instance.step;
+    if (step !== undefined) {
+      for (const [input, value] of [
+        [groupStepX, step.x],
+        [groupStepY, step.y],
+        [groupStepAngle, radiansToDegrees(step.angle ?? 0)],
+      ] as const) {
+        if (document.activeElement !== input) input.value = String(value);
+      }
+    }
   };
 
   /**
@@ -718,6 +765,63 @@ export function startEditor(): void {
     gesture = false;
   });
 
+  /**
+   * The step to give a group that is being repeated for the first time: its
+   * own length along the row, so the second copy lands beyond the first.
+   *
+   * Measured off the drawn copy rather than guessed, and snapped to the same
+   * grid a drag moves on, so the number that appears in the box is one
+   * somebody could have typed. Zero would be the alternative, and it is the
+   * one answer certain to be wrong: every copy would land on the first.
+   */
+  const stepClearOfGroup = (): { x: number; y: number } => {
+    const outline = doc.selectedGroups().find((group) => group.primary);
+    const specs = (outline?.modules ?? []).map((index) => doc.view.modules[index]!);
+    const rotation = doc.selectedOrigin()?.rotation ?? 0;
+    const along = specs.length === 0 ? 0 : extentAlong(specs, rotation);
+    return { x: max(SNAP_METRES, snap(along, SNAP_METRES)), y: 0 };
+  };
+
+  const repeatOf = (): { repeat: number; step: { x: number; y: number; angle?: number } } => {
+    const placement = doc.selectedPlacement;
+    const instance = placement !== null && !isModuleSpec(placement) ? (placement as AssemblyInstance) : null;
+    return {
+      repeat: instance?.repeat ?? 1,
+      step: instance?.step ?? stepClearOfGroup(),
+    };
+  };
+
+  groupRepeat.addEventListener('input', () => {
+    const path = doc.selection;
+    const value = Number(groupRepeat.value);
+    if (path === null || !Number.isFinite(value)) return;
+    const copies = Math.max(1, Math.min(MAX_REPEAT, Math.round(value)));
+    change(setRepetition(doc.blueprint, path, copies, repeatOf().step), true);
+  });
+  groupRepeat.addEventListener('change', () => {
+    gesture = false;
+  });
+
+  for (const [input, key] of [
+    [groupStepX, 'x'],
+    [groupStepY, 'y'],
+    [groupStepAngle, 'angle'],
+  ] as const) {
+    input.addEventListener('input', () => {
+      const path = doc.selection;
+      const value = Number(input.value);
+      if (path === null || !Number.isFinite(value)) return;
+      const current = repeatOf();
+      const step = { ...current.step };
+      if (key === 'angle') step.angle = degreesToRadians(value);
+      else step[key] = value;
+      change(setRepetition(doc.blueprint, path, current.repeat, step), true);
+    });
+    input.addEventListener('change', () => {
+      gesture = false;
+    });
+  }
+
   groupMirror.addEventListener('change', () => {
     const path = doc.selection;
     if (path === null) return;
@@ -888,8 +992,55 @@ export function startEditor(): void {
         /** The module pressed on, and whether releasing without a drag goes in a level. */
         hit: number;
         drill: boolean;
+      }
+    | {
+        /** A corner is dragged to size the module, the knob to turn it. */
+        kind: 'size' | 'rotate';
+        from: Blueprint;
+        /**
+         * The module as it was drawn when the handle was grabbed.
+         *
+         * Held rather than re-read, because it is the frame every position the
+         * pointer reaches is measured in — and re-reading it mid-drag would
+         * measure against a module the drag itself has just changed.
+         */
+        spec: ModuleSpec;
+        moved: boolean;
       };
   let drag: Drag | null = null;
+
+  /**
+   * Size or turn the selected module to wherever the pointer is.
+   *
+   * Written through the same `updatePlacement` the panel's boxes use, so a
+   * module sized by dragging and one sized by typing are the same edit — and a
+   * shared part's size and facing change every copy, exactly as the panel says
+   * they do. The facing has to be converted on the way in: what the pointer
+   * names is a direction on screen, and a module inside a turned or mirrored
+   * group is written in another frame.
+   */
+  const dragHandle = (event: PointerEvent): void => {
+    if (drag === null || (drag.kind !== 'size' && drag.kind !== 'rotate')) return;
+    const path = doc.selection;
+    const origin = doc.selectedOrigin();
+    if (path === null || origin === null) return;
+    const world = worldAt(event);
+    const patch =
+      drag.kind === 'size'
+        ? sizedTo(drag.spec, world.x, world.y, event.altKey ? 0 : SNAP_METRES)
+        : {
+            angle: toPlacementAngle(
+              origin,
+              facingTo(drag.spec, world.x, world.y, event.altKey ? 0 : ANGLE_SNAP_DEGREES),
+            ),
+          };
+    const next = updatePlacement(drag.from, path, (placement) => ({ ...placement, ...patch }));
+    if (next === null) return;
+    if (drag.moved) doc.amend(next);
+    else doc.apply(next);
+    drag = { ...drag, moved: true };
+    refresh();
+  };
 
   canvas.addEventListener('pointerdown', (event) => {
     // A canvas is not focusable, so clicking it does not move focus off a
@@ -898,8 +1049,25 @@ export function startEditor(): void {
     // held back while something is being typed into.
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     const world = worldAt(event);
-    const hit = moduleAt(doc.view.modules, world.x, world.y);
     canvas.setPointerCapture(event.pointerId);
+    // The selection's own handles are tested before the layout under them: a
+    // corner handle sits on the module's corner, and often over the neighbour
+    // it abuts, so whichever is on top would otherwise decide whether a
+    // resize or a drag of something else began.
+    const handles = currentHandles();
+    const grabbed = event.button === 1 ? -1 : handleAt(handles, world.x, world.y, camera.scale);
+    const spec = doc.view.modules[doc.selectedLoose()[0] ?? -1];
+    if (grabbed >= 0 && spec !== undefined) {
+      gesture = false;
+      drag = {
+        kind: handles[grabbed]!.kind === 'rotate' ? 'rotate' : 'size',
+        from: doc.blueprint,
+        spec,
+        moved: false,
+      };
+      return;
+    }
+    const hit = moduleAt(doc.view.modules, world.x, world.y);
     // Shift over a module adds it to the selection; shift over empty space
     // still pans, as does the middle button and a plain drag on empty space.
     // The one gesture this costs is panning by shift-dragging *from* a module,
@@ -945,6 +1113,11 @@ export function startEditor(): void {
       render();
       return;
     }
+    if (drag.kind !== 'module') {
+      dragHandle(event);
+      return;
+    }
+    const moving = drag;
     const handle = selectedPosition();
     if (handle === null) return;
     const world = worldAt(event);
@@ -954,14 +1127,14 @@ export function startEditor(): void {
     // face would part company. Snapping the movement keeps whatever offsets a
     // ship was designed with, and Alt escapes it entirely.
     const step = event.altKey ? 0 : SNAP_METRES;
-    const dx = snap(world.x - drag.startX, step);
-    const dy = snap(world.y - drag.startY, step);
-    if (dx === 0 && dy === 0 && !drag.moved) return;
-    const next = movePlacement(drag.from, handle.origin, dx, dy);
+    const dx = snap(world.x - moving.startX, step);
+    const dy = snap(world.y - moving.startY, step);
+    if (dx === 0 && dy === 0 && !moving.moved) return;
+    const next = movePlacement(moving.from, handle.origin, dx, dy);
     if (next === null) return;
-    if (drag.moved) doc.amend(next);
+    if (moving.moved) doc.amend(next);
     else doc.apply(next);
-    drag = { ...drag, moved: true };
+    drag = { ...moving, moved: true };
     refresh();
   });
 
@@ -1025,9 +1198,9 @@ export function startEditor(): void {
   });
 
   hint.textContent =
-    'Click a module to select it, drag to move; Shift-click to pick several and Group them. ' +
-    `Movement snaps to ${SNAP_METRES} m — hold Alt to escape; angles are in degrees, ` +
-    `${ANGLE_SNAP_DEGREES}° on the arrows. ` +
+    'Click a module to select it, drag to move, drag a corner to size it or the knob to turn it; ' +
+    `Shift-click to pick several and Group them. Snaps to ${SNAP_METRES} m and ` +
+    `${ANGLE_SNAP_DEGREES}° — hold Alt to escape. ` +
     'Drag empty space to pan, scroll to zoom, F to fit, Delete to remove, Ctrl+Z to undo.';
 
   resize();

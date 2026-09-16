@@ -2,6 +2,7 @@ import { math, type ModuleSpec, type ShipDesign } from '../sim/index.js';
 import type { Camera } from '../render/camera.js';
 import { headingCost, type Envelopes } from './stats.js';
 import type { GroupOutline } from './document.js';
+import { HANDLE_RADIUS_PX, type Handle } from './handles.js';
 
 const { cos, sin, max, TAU } = math;
 
@@ -48,6 +49,9 @@ const GROUP_BOX_MARGIN = 0.6;
  */
 const FAULT = '#ff6b5e';
 const FAULT_FILL = 'rgba(255, 107, 94, 0.18)';
+/** The grab points on the selected module, in the selection's own colour. */
+const HANDLE_FILL = '#e9c05f';
+const HANDLE_EDGE = '#1b1f27';
 const CENTRE_OF_MASS = '#7fd6a0';
 const ENVELOPE = '#5b8dd6';
 const ENVELOPE_FILL = 'rgba(91, 141, 214, 0.22)';
@@ -74,6 +78,14 @@ export interface OverlayView {
   /** Indices of the drawn modules a problem names: overlapping, adrift, or unbuildable. */
   faulty: readonly number[];
   /**
+   * The grab points on the selected module — corners that size it and a knob
+   * that turns it — or empty when the selection is not one module.
+   *
+   * Worked out by the caller rather than here, because the pointer has to hit
+   * exactly what is drawn: one set of handles, used twice.
+   */
+  handles: readonly Handle[];
+  /**
    * The manoeuvring envelopes, or null when there is no design to have any.
    *
    * Passed in rather than derived here, because the holding curve costs
@@ -96,6 +108,7 @@ export function drawOverlay(
 ): void {
   drawFaults(ctx, view, camera);
   drawSelection(ctx, view, camera);
+  drawHandles(ctx, view, camera);
   if (view.design !== null) drawCentreOfMass(ctx, view.design, camera);
 
   // The rosette is a screen-space widget, so the world transform has to go
@@ -166,6 +179,47 @@ function drawSelection(ctx: CanvasRenderingContext2D, view: OverlayView, camera:
   }
 
   drawGroups(ctx, view, lineWidth);
+}
+
+/**
+ * The handles on the selected module: a dot at each corner, and the knob that
+ * turns it on a short arm beyond the bow.
+ *
+ * The arm is drawn, not implied. A knob floating off the module says nothing
+ * about which module it belongs to on a busy layout, and the line also shows
+ * the facing it is about to change — it points the way the module points.
+ */
+function drawHandles(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Camera): void {
+  if (view.handles.length === 0) return;
+  const radius = HANDLE_RADIUS_PX / camera.scale;
+  const lineWidth = max(1 / camera.scale, 0.05);
+  const spec = view.modules[view.selected[0] ?? -1];
+
+  const knob = view.handles.find((handle) => handle.kind === 'rotate');
+  if (knob !== undefined && spec !== undefined) {
+    ctx.save();
+    ctx.strokeStyle = SELECTION;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.moveTo(spec.x, spec.y);
+    ctx.lineTo(knob.x, knob.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  for (const handle of view.handles) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(handle.x, handle.y, radius, 0, TAU);
+    ctx.fillStyle = HANDLE_FILL;
+    ctx.fill();
+    // Outlined in the background's own colour so a handle stays visible over
+    // the hull it sits on, which is the same value as the selection outline.
+    ctx.strokeStyle = HANDLE_EDGE;
+    ctx.lineWidth = lineWidth;
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 /**

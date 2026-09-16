@@ -10,6 +10,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import type { Browser, Page } from 'playwright';
 import { launchChromium } from './launch.js';
+import { ROTATE_ARM_PX } from '../../editor/handles.js';
 
 /**
  * The blueprint editor, driven in a real browser.
@@ -452,6 +453,93 @@ describe('the editor in a browser', () => {
     await page.click('#undo');
     expect(await page.textContent('#problems')).toMatch(/No problems/);
     expect(await redPixels(page)).toBe(0);
+  });
+
+  it('offers barrels on a gun and not on a hull', async () => {
+    // A rule of the page's own outranks the browser's for [hidden], so a row
+    // laid out by this stylesheet stays on screen when hidden unless the
+    // stylesheet says otherwise. Checked here because nothing else would
+    // notice: the panel simply offers a field that means nothing.
+    await page.selectOption('#ship', 'Corvette');
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x, centre.y);
+    expect(await page.textContent('#propKind')).toBe('structure');
+    expect(await page.isHidden('#barrelsRow')).toBe(true);
+
+    await page.mouse.click(centre.x + 168, centre.y);
+    expect(await page.textContent('#propKind')).toBe('turret');
+    expect(await page.isHidden('#barrelsRow')).toBe(false);
+  });
+
+  it('sizes a module by its corner and turns it by its knob', async () => {
+    // A ship of one module, so the camera's fit puts that module's centre at
+    // the middle of the canvas and its handles can be worked out rather than
+    // aimed at. Pixels per metre is measured here rather than assumed, since it
+    // comes from a fit that depends on the canvas size.
+    await page.click('#newShip');
+    await page.click('[data-add="structure"]');
+    await page.keyboard.press('f');
+    const centre = await canvasCentre(page);
+
+    await page.mouse.move(centre.x, centre.y);
+    await page.mouse.down();
+    await page.mouse.move(centre.x + 200, centre.y, { steps: 6 });
+    await page.mouse.up();
+    const scale = 200 / Number(await page.inputValue('#propX'));
+    await page.click('#undo');
+    expect(await page.inputValue('#propX')).toBe('0');
+
+    const length = Number(await page.inputValue('#propLength'));
+    const width = Number(await page.inputValue('#propWidth'));
+    // The corner at +x/+y; screen y grows downward where the world's grows up.
+    const corner = { x: centre.x + (length / 2) * scale, y: centre.y - (width / 2) * scale };
+    await page.mouse.move(corner.x, corner.y);
+    await page.mouse.down();
+    await page.mouse.move(corner.x + 2 * scale, corner.y - 1 * scale, { steps: 6 });
+    await page.mouse.up();
+    // Sized about the centre, so two metres of drag adds four to the length.
+    expect(Number(await page.inputValue('#propLength'))).toBe(length + 4);
+    expect(Number(await page.inputValue('#propWidth'))).toBe(width + 2);
+    expect(await page.inputValue('#propX')).toBe('0');
+
+    const grown = Number(await page.inputValue('#propLength'));
+    const knob = { x: centre.x + (grown / 2) * scale + ROTATE_ARM_PX, y: centre.y };
+    await page.mouse.move(knob.x, knob.y);
+    await page.mouse.down();
+    await page.mouse.move(centre.x, centre.y - 6 * scale, { steps: 6 });
+    await page.mouse.up();
+    expect(await page.inputValue('#propAngle')).toBe('90');
+
+    // One drag, one undo: a resize is one action to the player however many
+    // blueprints it took.
+    await page.click('#undo');
+    expect(await page.inputValue('#propAngle')).toBe('0');
+    await page.click('#undo');
+    expect(Number(await page.inputValue('#propLength'))).toBe(length);
+  });
+
+  it('repeats a group, and takes the step away when it drops back to one', async () => {
+    await page.selectOption('#ship', 'Corvette');
+    const centre = await canvasCentre(page);
+    // The hull, made into a shared part so that there is a group to place in a
+    // row, and then selected as the group rather than as the module.
+    await page.mouse.click(centre.x, centre.y);
+    await page.click('#propDuplicate');
+    await page.click('#propSelectGroup');
+    expect(await page.inputValue('#groupRepeat')).toBe('1');
+    // A step means nothing with one copy, so its boxes are not offered.
+    expect(await page.isHidden('#groupStepRow')).toBe(true);
+
+    await page.fill('#groupRepeat', '3');
+    expect(await page.isHidden('#groupStepRow')).toBe(false);
+    // Seeded from the group's own length, so the copies land beyond each other
+    // rather than all on the first.
+    expect(Number(await page.inputValue('#groupStepX'))).toBeGreaterThan(0);
+    expect((await page.textContent('#stats')) ?? '').toMatch(/Modules/);
+
+    await page.fill('#groupRepeat', '1');
+    expect(await page.isHidden('#groupStepRow')).toBe(true);
+    await page.click('#undo');
   });
 
   it('adds a module, and says what is now wrong with the layout', async () => {
