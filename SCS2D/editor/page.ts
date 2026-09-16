@@ -181,6 +181,7 @@ export function startEditor(): void {
         modules: view.modules,
         selected: doc.selectedLoose(),
         groups: doc.selectedGroups(),
+        faulty: view.faulty,
         envelope,
       },
       camera,

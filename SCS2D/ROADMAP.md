@@ -70,13 +70,19 @@ Then, in order:
 4. **Headless evolution and analysis** — balance testing plus sandbox mode.
 5. **v1: skirmish** — a fixed budget of *materials* rather than of points (§12), designed scenarios,
    shareable by URL. *This is the first thing worth giving people to play.*
-6. **Salvage and in-battle construction** — wrecks from the current battle as the resource. The
+6. **Editor restructuring — dissolving a group, and grouping what is already grouped.** Making a
+   group is what building a symmetrical ship needs; unmaking one, nesting one inside another and
+   adding a group to a group are what *reworking* a ship needs, and that pressure only arrives once
+   there are ships people want to keep and rebuild rather than replace. Until then the way out of a
+   group is undo and the way to a nested one is the file, which is a poor tool and an adequate
+   stop-gap.
+7. **Salvage and in-battle construction** — wrecks from the current battle as the resource. The
    natural bridge to an economy: no map features needed, and it ties income directly to combat.
-7. **Mining and the two-resource economy** — metals for hulls, volatiles for propellant, so maps can
+8. **Mining and the two-resource economy** — metals for hulls, volatiles for propellant, so maps can
    have economic character and scarcity changes behaviour. *Note: this is a re-balance, not an
    addition — it lengthens battles and replaces "did I spend 500 points well?" with "did I manage
    income well?". Scenarios will need revisiting.*
-8. **Campaign** — Homeworld-shaped, with the adaptive enemy. Last, because it's mostly *authoring*
+9. **Campaign** — Homeworld-shaped, with the adaptive enemy. Last, because it's mostly *authoring*
    (scripted missions, pacing, narrative), which is the largest volume of work in the least-proven
    discipline.
 
@@ -139,11 +145,12 @@ Modules picked alongside a single group can be put into it, which is the other w
 are re-expressed through the instance's pose on the way in, and a group placed more than once gains one per
 copy, which the panel says out loud.
 
-What is left of it. **A group cannot be dissolved**: `unlink` takes one module out of an assembly at a time,
-and there is no inverse of grouping that puts a whole assembly back inline. And
-**grouping several modules that are already in different assemblies** is refused rather than handled, as is
-grouping a group — both would nest, which the format allows and this does not yet build. Adding to a group
-takes loose modules only, for the same reason.
+What a group cannot do is be **restructured**. It cannot be dissolved — `unlink` takes one module out of an
+assembly at a time, and there is no inverse of grouping that puts a whole assembly back inline — and
+grouping several modules already in different assemblies is refused, as is grouping a group; both would
+nest, which the format allows and this does not build. Adding to a group takes loose modules only, for the
+same reason. All of it is §8 step 6, deliberately after v1: it is what reworking a ship needs rather than
+what building one needs.
 
 **An instance's repeat and step are still file-only.** A long repeated structure is a count, not a
 chain: an instance may carry `repeat` and a `step`, which places that many copies with each one a step on
@@ -167,13 +174,6 @@ expansion order and the ship changes very slightly even though nothing about its
 
 What is *not* built is unlinking **one** copy while the others stay linked. Both shapes above unlink every
 copy at once, because the editor cannot yet name a single instance.
-
-**A connectivity warning is still owed.** Validity is shown rather than enforced: a layout may be invalid
-while it is being worked on — you often have to move one module through another to get it past — so the
-problems appear as a list and only export and save-to-library are blocked. What is missing from that list is
-the crude connectivity check: modules that touch nothing else, flagged using the snap grid. That is
-deliberately *not* the graph with per-edge strengths §12 describes; it catches the obvious mistake without
-answering an open question inside a UI task.
 
 **Module order is part of the ship, so restructuring a layout is not bit-free.** Thruster allocation solves
 over the columns in order and turrets fire in order, so the same modules listed differently compile to a
@@ -536,10 +536,18 @@ Deliberately unresolved; decide when they block something.
     changes topology" is worth. A flood fill or union-find over a static array is enough, and it must be
     order-deterministic like everything else in `sim/`.
 
-  Two loose ends this exposes. `blueprintProblem` does not currently require a layout to be connected *at all*:
-  a module floating clear of the ship compiles, contributes its mass and flies along in formation, and nothing
-  will notice until severing exists. That check cannot be written until "joined" is defined, which is this
-  question. And when a hull does split, something must decide which component keeps being the ship — its
+  A crude version of the *check* now exists ahead of the graph: a layout is rejected when some module cannot
+  be traced back to the first one in the list through modules touching within `ATTACHMENT_TOLERANCE`, and the
+  editor draws the stragglers in red. It answers "is this one ship or several" and nothing else — no edges are
+  kept, no strengths derived, and contact at a corner counts — so it does not pre-empt any of the above. What
+  it does pre-empt is the tolerance: change that constant and the layout rule and the graph move together,
+  which is the point of there being one.
+
+  Two loose ends this exposes. **Which module is the ship** is answered by a stand-in: the first in the list,
+  because a layout has no core module to be the real answer. It is arbitrary and deliberately so — the check
+  only asks whether a layout is one piece, and the size of a piece says nothing about which of them is the
+  ship — but it is the same question a *core module* would settle, and it will want revisiting when one turns
+  up. And when a hull does split, something must decide which component keeps being the ship — its
   controller, its identity, its orders — which is the sibling of the existing question above about how severed
   chunks divide fuel, ammunition and power.
   Do it with the damage model (§8 step 2), the first thing that can sever anything.

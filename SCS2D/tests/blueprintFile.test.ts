@@ -188,7 +188,7 @@ describe('rejecting a file that arrived from somewhere else', () => {
         assemblies: { seg: { modules: [{ kind: 'structure', x: 0, y: 0, length: 4, width: 4 }] } },
         modules: [
           { kind: 'structure', x: 0, y: 0, length: 10, width: 4 },
-          { use: 'seg', x: 0, y: 20, repeat: 2, step: { x: 6, y: 0, angle: 90 } },
+          { use: 'seg', x: 0, y: 4, repeat: 2, step: { x: 4, y: 0, angle: 90 } },
         ],
       }),
     );

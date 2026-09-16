@@ -189,14 +189,14 @@ describe('extras: how one copy differs from another', () => {
   });
 
   it('gives one copy something the others do not have', () => {
-    // Placed clear of the hull, since the expanded modules face the overlap
-    // rule exactly as hand-placed ones do.
+    // Against the hull rather than clear of it, since the expanded modules
+    // face the overlap and attachment rules exactly as hand-placed ones do.
     const bp = ship({
       assemblies: { wing },
       modules: [
         hull,
-        { use: 'wing', x: 12, y: 0 },
-        { use: 'wing', x: -12, y: 0, extra: [{ kind: 'structure', x: 0, y: 5, length: 2, width: 2 }] },
+        { use: 'wing', x: 11, y: 0 },
+        { use: 'wing', x: -11, y: 0, extra: [{ kind: 'structure', x: 0, y: 5, length: 2, width: 2 }] },
       ],
     });
     expect(expandBlueprint(bp)).toHaveLength(4);

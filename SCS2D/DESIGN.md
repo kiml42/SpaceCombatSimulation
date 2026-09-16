@@ -50,13 +50,16 @@ inside any one file is not contiguous.
   picked at once and grouped into one part, which is then placed again and reflected
   to build a symmetrical ship out of one side and a mirror of it, and clicked, dragged
   and added to as one thing, and carries a name of its own; every problem with the layout is listed rather
-  than enforced, and undo and redo run throughout. Ships are opened from the built-in
+  than enforced — including a module that is attached to nothing, which a ship is checked for by tracing
+  every module back to the first one through what it touches — and each module a problem names is drawn in
+  red on the ship, so the list says what is wrong and the picture says where. Undo and redo run
+  throughout. Ships are opened from the built-in
   library or from browser storage, saved back to it, and exported and imported as
   blueprint files. Both pages build to one self-contained HTML file each.
-- **Next:** the rest of §8 step 1. A group can be made, placed again, moved, dragged,
-  turned, mirrored and added to, but not dissolved back into loose modules, and an
-  instance's `repeat` and `step` are still file-only. Size and facing are still
-  typed rather than dragged. ROADMAP.md's Slice 1 section has what remains.
+- **Next:** the rest of §8 step 1. An instance's `repeat` and `step` are still
+  file-only, and size and facing are still typed rather than dragged. Restructuring a
+  group — dissolving one, or nesting one inside another — is deliberately not part of
+  it and is §8 step 6, after v1. ROADMAP.md's Slice 1 section has what remains.
 - **Blocked on:** nothing.
 - **Owed:** nothing outstanding. The `duel` golden scenario discharges the coverage that was owed
   for thruster allocation and turrets: it drives both through the same loop the game uses, so a

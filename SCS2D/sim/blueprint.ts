@@ -811,6 +811,101 @@ function structureAhead(spec: ModuleSpec, modules: readonly ModuleSpec[]): boole
 }
 
 /**
+ * Whether two modules are bolted together: touching, or within the attachment
+ * tolerance of touching.
+ *
+ * Answered by inflating one module by the tolerance on every side and asking
+ * whether it now overlaps the other, which reuses the separating-axis test and
+ * so stays correct at any mounting angle.
+ *
+ * Contact at a corner alone counts, which a joint that thin would not really
+ * be. It is the crude answer deliberately: the graph with a strength per edge
+ * that ROADMAP.md §12 describes is what decides how *well* two modules are
+ * joined, and erring towards "attached" here means this warning nags about a
+ * layout only when nothing is touching at all.
+ */
+function modulesAttached(a: ModuleSpec, b: ModuleSpec): boolean {
+  const inflated: ModuleSpec = {
+    ...a,
+    length: a.length + ATTACHMENT_TOLERANCE * 2,
+    width: a.width + ATTACHMENT_TOLERANCE * 2,
+  };
+  return modulesOverlap(inflated, b);
+}
+
+/**
+ * The modules that cannot be reached from the ship itself, as one group per
+ * separate piece.
+ *
+ * **The ship is whatever the first module is attached to.** A layout has no
+ * concept of a core or a hull the rest hangs off — it is a list — so the first
+ * module in it stands in as the root until there is a core module to be the
+ * real one. It is a stand-in and not a rule about ship design: what the check
+ * is really answering is "is this one ship or several", and with no core the
+ * question has no other anchor.
+ *
+ * Modules whose geometry cannot be measured are left out of the graph
+ * entirely, the way `compileDraft` leaves them out of a ship: a module typed
+ * down to zero size touches nothing, and reporting it as adrift as well as
+ * unmeasurable is two complaints about one mistake.
+ */
+function detachedGroups(modules: readonly ModuleSpec[]): number[][] {
+  const live: number[] = [];
+  for (let i = 0; i < modules.length; i++) {
+    if (moduleProblem(modules[i]!) === null) live.push(i);
+  }
+  if (live.length === 0) return [];
+
+  const attached = new Set<number>([live[0]!]);
+  const frontier = [live[0]!];
+  while (frontier.length > 0) {
+    const at = frontier.pop()!;
+    for (const other of live) {
+      if (attached.has(other)) continue;
+      if (!modulesAttached(modules[at]!, modules[other]!)) continue;
+      attached.add(other);
+      frontier.push(other);
+    }
+  }
+
+  // The stragglers, gathered into the pieces they form, so that a wing that
+  // came off is one complaint rather than one per module of it.
+  const groups: number[][] = [];
+  const placed = new Set<number>();
+  for (const index of live) {
+    if (attached.has(index) || placed.has(index)) continue;
+    const group = [index];
+    placed.add(index);
+    for (let k = 0; k < group.length; k++) {
+      for (const other of live) {
+        if (attached.has(other) || placed.has(other)) continue;
+        if (!modulesAttached(modules[group[k]!]!, modules[other]!)) continue;
+        placed.add(other);
+        group.push(other);
+      }
+    }
+    group.sort((a, b) => a - b);
+    groups.push(group);
+  }
+  return groups;
+}
+
+/**
+ * Something wrong with a layout, and which modules it is wrong about.
+ *
+ * The indices are why this exists rather than a bare message: an editor draws
+ * the offending modules in red, and a sentence naming "modules 3 and 7" is a
+ * puzzle on a ship of forty. They index the *expansion* — the modules a ship
+ * would be built from — which is the same list `expandWithOrigins` gives
+ * places in the layout for.
+ */
+export interface BlueprintFault {
+  readonly message: string;
+  /** Empty when the complaint is about the layout as a whole rather than a part of it. */
+  readonly modules: readonly number[];
+}
+
+/**
  * Everything wrong with a layout, rather than the first thing.
  *
  * An editor shows a problems list, and a list of one that grows back as each
@@ -823,12 +918,12 @@ function structureAhead(spec: ModuleSpec, modules: readonly ModuleSpec[]): boole
  * layout that names a missing assembly or contains itself cannot be expanded,
  * so there are no modules to find anything else wrong with.
  */
-export function blueprintProblems(blueprint: Blueprint): string[] {
+export function blueprintFaults(blueprint: Blueprint): BlueprintFault[] {
   // Assemblies are resolved before anything else looks at the layout, so every
   // rule below is stated once, about the modules a ship is actually built
   // from — rather than once for a module and again for a copy of one.
   const structural = assemblyProblem(blueprint);
-  if (structural !== null) return [structural];
+  if (structural !== null) return [{ message: structural, modules: [] }];
 
   let modules: ModuleSpec[];
   try {
@@ -837,21 +932,25 @@ export function blueprintProblems(blueprint: Blueprint): string[] {
     // Depth and expansion-size limits are enforced by the walk itself, since
     // both are about what the whole expansion comes to rather than about any
     // one placement. Reaching one is a problem to report, not a crash.
-    return [error instanceof Error ? error.message : String(error)];
+    return [{ message: error instanceof Error ? error.message : String(error), modules: [] }];
   }
 
-  const problems: string[] = [];
-  if (modules.length === 0) problems.push(`${blueprint.name}: a ship needs at least one module`);
+  const faults: BlueprintFault[] = [];
+  if (modules.length === 0) {
+    faults.push({ message: `${blueprint.name}: a ship needs at least one module`, modules: [] });
+  }
 
   for (let i = 0; i < modules.length; i++) {
     const problem = moduleProblem(modules[i]!);
-    if (problem !== null) problems.push(`${blueprint.name}, module ${i} — ${problem}`);
+    if (problem !== null) {
+      faults.push({ message: `${blueprint.name}, module ${i} — ${problem}`, modules: [i] });
+    }
   }
 
   for (let i = 0; i < modules.length; i++) {
     for (let k = i + 1; k < modules.length; k++) {
       if (modulesOverlap(modules[i]!, modules[k]!)) {
-        problems.push(`${blueprint.name}: modules ${i} and ${k} overlap`);
+        faults.push({ message: `${blueprint.name}: modules ${i} and ${k} overlap`, modules: [i, k] });
       }
     }
   }
@@ -870,14 +969,38 @@ export function blueprintProblems(blueprint: Blueprint): string[] {
     const spec = modules[i]!;
     if (spec.kind !== 'thruster') continue;
     if (!structureAhead(spec, modules)) {
-      problems.push(
-        `${blueprint.name}: thruster ${i} at (${spec.x}, ${spec.y}) has no structure to push ` +
+      faults.push({
+        message:
+          `${blueprint.name}: thruster ${i} at (${spec.x}, ${spec.y}) has no structure to push ` +
           `against — the face opposite its nozzle must be against a structure module`,
-      );
+        modules: [i],
+      });
     }
   }
 
-  return problems;
+  // A ship is one connected assembly of modules. A piece touching nothing is
+  // either a module dropped somewhere it does not belong or a wing left behind
+  // when its root moved, and both are invisible on a busy layout until
+  // something is drawn round them.
+  for (const group of detachedGroups(modules)) {
+    const which = group.join(', ');
+    faults.push({
+      message:
+        group.length === 1
+          ? `${blueprint.name}: module ${which} touches nothing — every module must be attached ` +
+            `to the ship, through its neighbours or directly`
+          : `${blueprint.name}: modules ${which} are a separate piece, attached to each other but ` +
+            `not to the rest of the ship`,
+      modules: group,
+    });
+  }
+
+  return faults;
+}
+
+/** Everything wrong with a layout, as sentences. */
+export function blueprintProblems(blueprint: Blueprint): string[] {
+  return blueprintFaults(blueprint).map((fault) => fault.message);
 }
 
 /** Why a layout cannot be built into a ship, or null if it can. */

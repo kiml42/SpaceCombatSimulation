@@ -58,6 +58,7 @@ export {
 } from './modules.js';
 export {
   assemblyProblem,
+  blueprintFaults,
   blueprintProblem,
   blueprintProblems,
   compileBlueprint,
@@ -75,6 +76,7 @@ export {
   type AssemblyInstance,
   type AssemblyStep,
   type Blueprint,
+  type BlueprintFault,
   type Expansion,
   type Frame,
   type ModuleOrigin,

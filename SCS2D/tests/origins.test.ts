@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  blueprintFaults,
   blueprintProblem,
   blueprintProblems,
   compileBlueprint,
@@ -149,6 +150,32 @@ describe('blueprintProblems', () => {
   it('stops at a structural fault, which leaves nothing to expand', () => {
     const bp = ship({ modules: [hull, { use: 'missing', x: 0, y: 0 }] });
     expect(blueprintProblems(bp)).toHaveLength(1);
+  });
+});
+
+describe('blueprintFaults', () => {
+  // The messages are the same; what a bare list of sentences cannot give an
+  // editor is *which* modules to draw in red, and these are indices into the
+  // expansion — the same list `expandWithOrigins` gives places in the layout
+  // for, so a fault leads all the way back to what a player would edit.
+  it('names the modules each problem is about', () => {
+    const bp = ship({
+      modules: [hull, { kind: 'structure', x: 8, y: 0, length: 20, width: 6 }],
+    });
+    expect(blueprintFaults(bp)).toEqual([
+      { message: expect.stringMatching(/modules 0 and 1 overlap/), modules: [0, 1] },
+    ]);
+  });
+
+  it('names none for a complaint about the layout as a whole', () => {
+    expect(blueprintFaults(ship({ modules: [] }))).toEqual([
+      { message: expect.stringMatching(/at least one module/), modules: [] },
+    ]);
+  });
+
+  it('says the same things blueprintProblems does', () => {
+    const bp = ship({ modules: [hull, { kind: 'structure', x: 40, y: 0, length: 4, width: 4 }] });
+    expect(blueprintFaults(bp).map((fault) => fault.message)).toEqual(blueprintProblems(bp));
   });
 });
 

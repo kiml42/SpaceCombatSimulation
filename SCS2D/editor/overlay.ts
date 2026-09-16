@@ -36,6 +36,18 @@ const GROUP_LINKED = '#7fd4ffcc';
 const GROUP_CONTEXT = '#7fd4ff66';
 /** How far the group's box stands off what it contains, metres. */
 const GROUP_BOX_MARGIN = 0.6;
+/**
+ * A module some problem names. Red, filled as well as outlined, and drawn
+ * under the selection so that picking a broken module does not hide why it is
+ * broken.
+ *
+ * The problems list already says what is wrong; what it cannot say is *which*
+ * module, on a ship of forty where "module 23" is a number nobody can count
+ * to. The two halves are deliberately different kinds of statement — the list
+ * explains, the canvas points.
+ */
+const FAULT = '#ff6b5e';
+const FAULT_FILL = 'rgba(255, 107, 94, 0.18)';
 const CENTRE_OF_MASS = '#7fd6a0';
 const ENVELOPE = '#5b8dd6';
 const ENVELOPE_FILL = 'rgba(91, 141, 214, 0.22)';
@@ -59,6 +71,8 @@ export interface OverlayView {
   selected: readonly number[];
   /** One box per drawn copy of a selected group, and of the group a selected module is in. */
   groups: readonly GroupOutline[];
+  /** Indices of the drawn modules a problem names: overlapping, adrift, or unbuildable. */
+  faulty: readonly number[];
   /**
    * The manoeuvring envelopes, or null when there is no design to have any.
    *
@@ -80,6 +94,7 @@ export function drawOverlay(
   widthPx: number,
   heightPx: number,
 ): void {
+  drawFaults(ctx, view, camera);
   drawSelection(ctx, view, camera);
   if (view.design !== null) drawCentreOfMass(ctx, view.design, camera);
 
@@ -88,6 +103,42 @@ export function drawOverlay(
   // every label upside down.
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (view.envelope !== null) drawEnvelope(ctx, view.envelope, widthPx, heightPx);
+}
+
+/**
+ * Mark every module a problem names: filled, and ringed just outside its own
+ * edge.
+ *
+ * Outside rather than on the edge so that the mark survives being selected.
+ * The selection outline sits exactly on the module's box, and two outlines in
+ * the same place are one outline in whichever colour was drawn second — which
+ * would hide the fault at the very moment the player has picked the module up
+ * to do something about it.
+ */
+function drawFaults(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Camera): void {
+  const lineWidth = max(2 / camera.scale, 0.1);
+  const standoff = max(3 / camera.scale, 0.2);
+  for (const index of view.faulty) {
+    const spec = view.modules[index];
+    if (spec === undefined) continue;
+    // A module with no interior is one of the things complained about, and it
+    // has no box to draw. It is named in the list instead.
+    if (!(spec.length > 0) || !(spec.width > 0)) continue;
+    ctx.save();
+    ctx.translate(spec.x, spec.y);
+    ctx.rotate(spec.angle ?? 0);
+    ctx.fillStyle = FAULT_FILL;
+    ctx.fillRect(-spec.length / 2, -spec.width / 2, spec.length, spec.width);
+    ctx.strokeStyle = FAULT;
+    ctx.lineWidth = lineWidth;
+    ctx.strokeRect(
+      -spec.length / 2 - standoff,
+      -spec.width / 2 - standoff,
+      spec.length + standoff * 2,
+      spec.width + standoff * 2,
+    );
+    ctx.restore();
+  }
 }
 
 /**
