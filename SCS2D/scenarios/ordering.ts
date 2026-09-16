@@ -15,61 +15,81 @@ import type { Battle } from './types.js';
 import { CORVETTE, FLAT_GUNSHIP, FLAT_GUNSHIP_GROUPED, GUNSHIP } from './blueprints.js';
 
 /**
- * Three identical gunships, flying the same order from the same spot, to
- * measure what listing their modules in a different order costs.
+ * What listing a ship's modules in a different order costs, flown two ways.
  *
  * Module order reaches the simulation twice: thrusters are allocated in it and
- * guns fire in it. The three ships are the same eighteen modules in the same
- * places, differing only in the list — flat in expansion order (the control,
- * which should track the assembled ship exactly), flat listed kind by kind
- * (the variable), and built from assemblies. Same position, heading, velocity
- * and order, so any difference that appears is the ordering.
+ * guns fire in it. The three layouts here are the same eighteen modules in the
+ * same places, differing only in the list — flat in expansion order (the
+ * control, which should track the assembled ship exactly), flat listed kind by
+ * kind (the variable), and built from assemblies.
  *
- * Deliberately artificial, and both parts stop being possible once hulls
- * collide (DESIGN.md §4): the three start on top of each other, which is the
- * only way to give them identical opening conditions, and the target is given
- * no order, so it neither manoeuvres nor shoots back. What replaces it then is
- * three *pairs* of ships fighting far enough apart to be undisturbed, one pair
- * per ordering, compared on the figures a long run produces — final position
- * and velocity, shots fired, hits — rather than on a distance.
+ * `ordering` flies all three at once, from one spot on one order against a
+ * mark that is given no order and so neither manoeuvres nor shoots back. That
+ * is the one you can watch: the drift is on screen as the range between two
+ * ships that started on top of each other. It is also artificial in two ways
+ * that stop being possible once hulls collide (DESIGN.md §4) — the stack, and
+ * the mark — and `p.hits` means nothing in it, since rounds are absorbed by the
+ * first hull they cross with no friendly fire check.
  *
- * `p.hits` means nothing here: rounds are absorbed by the first hull they
- * cross and there is no friendly fire check, so stacked ships eat each other's
- * shots. The viewer's readout reports the range between the first two ships,
- * which here is the drift between the two flat orders.
+ * `soloOrdering` flies one layout in a battle of its own, so three runs give
+ * three ships the identical problem with nothing between them. Nothing about it
+ * depends on the ships sharing a world, so it survives collisions, damage and
+ * anything else that makes ships interact — and it compares the figures that
+ * matter about a battle rather than a distance: final position and velocity,
+ * shots fired, hits scored. What it cannot do is show you the answer in one
+ * run, which is why both are here.
  */
 export interface OrderingBattle extends Battle {
-  /** The three ships under test, with the difference each one represents. */
+  /** The ships under test, with the ordering each one represents. */
   readonly contenders: readonly { readonly name: string; readonly ship: number }[];
-  /** The mark they are all shooting at. */
+  /** The mark they are shooting at. */
   readonly target: number;
 }
 
+/**
+ * The layouts under test, in the order the contenders are reported: the
+ * control, the variable, and the assembled ship the control is a copy of.
+ */
+export const ORDERINGS = [
+  { name: 'flat, expansion order', blueprint: FLAT_GUNSHIP },
+  { name: 'flat, kinds together', blueprint: FLAT_GUNSHIP_GROUPED },
+  { name: 'assemblies', blueprint: GUNSHIP },
+] as const;
+
+/** All three layouts in one battle, stacked. The scene in the viewer. */
 export function ordering(seed = 20260905): OrderingBattle {
+  return battle(ORDERINGS.map((_, i) => i), seed);
+}
+
+/**
+ * One layout in a battle of its own, so three runs can be compared without the
+ * ships ever sharing a world.
+ */
+export function soloOrdering(which: number, seed = 20260905): OrderingBattle {
+  const entry = ORDERINGS[which];
+  if (entry === undefined) throw new Error(`no ordering ${which}`);
+  return battle([which], seed);
+}
+
+function battle(which: readonly number[], seed: number): OrderingBattle {
   const dt = 1 / 60;
   const world = new World({ dt, seed });
 
   // The same well the other battles fight around. It cannot itself separate
-  // the three, since all three start in the same place.
+  // the contenders, since they all start in the same place.
   const wells: WellSpec[] = [{ x: 0, y: -1500, gm: 2.5e6, softening: 200 }];
   for (const well of wells) world.addForceProvider(gravityWell(well));
 
   const ships = new Ships();
   world.addForceProvider(ships.forceProvider());
 
-  const designs = [
-    { name: 'flat, expansion order', design: compileBlueprint(FLAT_GUNSHIP) },
-    { name: 'flat, kinds together', design: compileBlueprint(FLAT_GUNSHIP_GROUPED) },
-    { name: 'assemblies', design: compileBlueprint(GUNSHIP) },
-  ];
-
   // Facing across the engagement with a crossing velocity, as the duel does.
   // A ship flying straight down a bearing barely uses its manoeuvring
   // thrusters, and thruster allocation is half of what is being measured.
-  const contenders = designs.map((entry) => ({
-    name: entry.name,
+  const contenders = which.map((i) => ({
+    name: ORDERINGS[i]!.name,
     ship: ships.spawn(world, {
-      design: entry.design,
+      design: compileBlueprint(ORDERINGS[i]!.blueprint),
       x: -1800,
       y: -240,
       angle: math.HALF_PI,
@@ -79,8 +99,8 @@ export function ordering(seed = 20260905): OrderingBattle {
     }),
   }));
 
-  // A corvette rather than another gunship, so the stack of three is never in
-  // doubt on screen.
+  // A corvette rather than another gunship, so a contender is never mistaken
+  // for the mark on screen.
   const target = ships.spawn(world, {
     design: compileBlueprint(CORVETTE),
     x: 1800,
@@ -91,7 +111,7 @@ export function ordering(seed = 20260905): OrderingBattle {
     team: 1,
   });
 
-  // No order for the target, which is what makes it hold fire: a ship with no
+  // No order for the mark, which is what makes it hold fire: a ship with no
   // target neither trains its guns nor shoots, and keeps no station.
   for (const contender of contenders) ships.setOrder(contender.ship, target, 300, 500, 120);
 

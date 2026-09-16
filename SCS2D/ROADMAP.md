@@ -180,8 +180,9 @@ over the columns in order and turrets fire in order, so the same modules listed 
 ship that is not bit-identical: reordering the gunship moved the duel checksum while leaving the expanded
 geometry identical. It is why the authored ships place symmetric *pairs* adjacently rather than grouping
 each whole side. How much of that is *behaviour* is now measured rather than assumed, by
-`scenarios/ordering.ts`: 8.2e-13 m of drift over 3,000 steps of manoeuvring and gunnery, because both
-mechanisms are order-independent in substance and merely add their numbers up in list order. So the word the
+`scenarios/ordering.ts`: 8.2e-13 m of drift over 3,000 steps of manoeuvring and gunnery, with identical
+shots fired and hits scored, because both mechanisms are order-independent in substance and merely add their
+numbers up in list order. So the word the
 editor owes the player when a restructuring action reorders something is about reproducibility — a saved
 ship will not check-sum the same — and not about the ship fighting differently. Adding a module appends,
 which is the one placement that leaves even the bits alone.

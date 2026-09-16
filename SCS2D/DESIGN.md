@@ -71,8 +71,10 @@ inside any one file is not contiguous.
   ~65 rounds in the air. Listing a ship's modules in a different order moves it
   8.2e-13 m over 3,000 steps of manoeuvring and gunnery, and grouping them into
   assemblies moves it not at all, bit for bit: module order reaches thruster
-  allocation and firing, but both are order-independent in substance. Measured by
-  `scenarios/ordering.ts`, which flies three gunships of one geometry from one spot.
+  allocation and firing, but both are order-independent in substance. Shots fired
+  and hits scored are identical too. Measured by `scenarios/ordering.ts`, which
+  flies three gunships of one geometry both stacked in one battle and one to a
+  battle each.
 - **Last updated:** 2026-09-16
 
 ---
