@@ -119,12 +119,19 @@ question about a module straddling the centreline.
 usually a thing hanging off one connecting module — a wing off its root — and that module is the one whose
 position means something, so reflection turns the group about the part that joins it to the ship.
 
+**A group is handled as one thing on the canvas.** Clicking a module inside a group selects the group, not
+the module; clicking again, with that group already selected, drills into the module — so reaching a part is
+deliberate rather than accidental. A selected group drags as a whole, and its own outline is drawn round
+everything it places, which is what distinguishes it at a glance from several modules picked one by one.
+Modules picked alongside a single group can be put into it, which is the other way to build a group up: they
+are re-expressed through the instance's pose on the way in, and a group placed more than once gains one per
+copy, which the panel says out loud.
+
 What is left of it. **A group cannot be dissolved**: `unlink` takes one module out of an assembly at a time,
-and there is no inverse of grouping that puts a whole assembly back inline. **A group is moved by typing its
-position**, because clicking the canvas picks the module under the pointer and dragging moves that; making a
-drag move the *group* when the group is what is selected is the obvious next step and is not done. And
+and there is no inverse of grouping that puts a whole assembly back inline. And
 **grouping several modules that are already in different assemblies** is refused rather than handled, as is
-grouping a group — both would nest, which the format allows and this does not yet build.
+grouping a group — both would nest, which the format allows and this does not yet build. Adding to a group
+takes loose modules only, for the same reason.
 
 **An instance's repeat and step are still file-only.** A long repeated structure is a count, not a
 chain: an instance may carry `repeat` and a `step`, which places that many copies with each one a step on

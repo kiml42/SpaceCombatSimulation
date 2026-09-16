@@ -1,6 +1,7 @@
 import {
   expandBlueprint,
   isInstance,
+  samePlacement,
   math,
   placementAt,
   type Assembly,
@@ -474,6 +475,156 @@ export function duplicateInstance(
   const index = found.list.length;
   found.list.push({ ...instance, y: instance.y + assemblySpan(blueprint, instance.use) });
   return { blueprint: copy as unknown as Blueprint, path: siblingOf(path, index) };
+}
+
+/**
+ * Every instance a module was placed through, outermost first.
+ *
+ * A group inside a group is reached one level at a time, so clicking picks the
+ * outermost and clicking again goes in — which is how a person expects to get
+ * at a wing before getting at a bracket on it.
+ */
+export function instanceChain(path: ModulePath): ModulePath[] {
+  const out: ModulePath[] = [];
+  for (let i = 0; i < path.length - 1; i++) {
+    const step = path[i]!;
+    // Either hop is through an instance: `assembly` reaches its definition and
+    // `extra` reaches what this copy carries on top of it.
+    if (step.into === undefined) continue;
+    out.push([...path.slice(0, i), { index: step.index, copy: step.copy }]);
+  }
+  return out;
+}
+
+/**
+ * An instance addressed as an origin, so that the ordinary move and edit
+ * functions work on it.
+ *
+ * The frame is taken from the expansion rather than worked out again, which is
+ * what makes it exact: `instanceFrame` is the frame the innermost instance on
+ * a module's path was written in, so any module this instance placed directly
+ * carries the answer. An instance placing nothing but other instances has no
+ * such module and gets null — it cannot be dragged, which is honest rather
+ * than approximate.
+ */
+export function instanceHandle(
+  origins: readonly ModuleOrigin[],
+  path: ModulePath,
+): ModuleOrigin | null {
+  for (const origin of origins) {
+    const inner = instanceOf(origin);
+    if (inner === null || !samePlacement(inner, path)) continue;
+    const frame = origin.instanceFrame;
+    if (frame === null) continue;
+    return { path, rotation: frame.rotation, mirrored: frame.mirrored, instanceFrame: null };
+  }
+  return null;
+}
+
+/**
+ * Why these modules cannot be added to this group, or null if they can.
+ */
+export function addToGroupProblem(
+  blueprint: Blueprint,
+  instance: ModulePath,
+  modules: readonly ModulePath[],
+): string | null {
+  const placed = placementAt(blueprint, instance);
+  if (placed === null || !isInstance(placed)) return 'Pick one group to add to';
+  if (blueprint.assemblies?.[placed.use] === undefined) return 'That group has no definition';
+  if (modules.length === 0) return 'Pick some modules to add';
+
+  const where = writtenIn(instance);
+  for (const path of modules) {
+    const module = placementAt(blueprint, path);
+    if (module === null) return 'One of the modules is no longer there';
+    if (isInstance(module)) return 'Only modules can be added to a group, not other groups';
+    const here = writtenIn(path);
+    if (!here.direct || here.root !== where.root) {
+      return 'The modules have to be written alongside the group';
+    }
+  }
+  return null;
+}
+
+/**
+ * Move modules into a group that is already placed.
+ *
+ * The other way to build up a group: rather than picking everything and
+ * grouping it at once, add to one that exists. What makes it more than a list
+ * operation is the frame — the modules are written in the parent's frame and
+ * the group's are written in the group's, so each one has to be re-expressed
+ * through the instance's pose on the way in. Getting that wrong moves the
+ * ship, and moves it in a way that only shows up on a turned or reflected
+ * group, which is exactly the kind that gets built once and trusted.
+ *
+ * **A group placed more than once gains a module in every copy**, so adding
+ * one part to a wing placed twice puts two parts on the ship. That is the
+ * bargain rather than a surprise — it is why the group is worth having — but
+ * it is the reason this is not simply a tidier way to write the same layout.
+ */
+export function addToGroup(
+  blueprint: Blueprint,
+  instance: ModulePath,
+  modules: readonly ModulePath[],
+): { blueprint: Blueprint; path: ModulePath } | null {
+  if (addToGroupProblem(blueprint, instance, modules) !== null) return null;
+
+  const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
+  const found = containing(copy, instance);
+  if (found === null) return null;
+  const placed = found.list[found.index] as AssemblyInstance;
+  const definition = copy.assemblies?.[placed.use];
+  if (definition === undefined) return null;
+
+  // The instance's own pose, which everything going in has to be expressed
+  // through. Both the modules and the instance are written in the same frame,
+  // so whatever that frame is cancels and only the instance's own pose is left.
+  const turn = placed.angle ?? 0;
+  const flipped = placed.mirror === true;
+  const c = cos(-turn);
+  const sn = sin(-turn);
+
+  const indices: number[] = [];
+  for (const path of modules) {
+    const at = containing(copy, path);
+    if (at === null || at.list !== found.list) return null;
+    if (!indices.includes(at.index)) indices.push(at.index);
+  }
+  indices.sort((a, b) => a - b);
+
+  for (const index of indices) {
+    const module = found.list[index] as ModuleSpec;
+    const dx = module.x - placed.x;
+    const dy = module.y - placed.y;
+    // Undo the placement: translate, then turn back, then unreflect — the
+    // reverse of the order `place` applies them in.
+    const localX = dx * c - dy * sn;
+    const localY = dx * sn + dy * c;
+    const own = (module.angle ?? 0) - turn;
+    const member: ModuleSpec = {
+      ...module,
+      x: localX,
+      y: flipped ? -localY : localY,
+    };
+    if (module.angle !== undefined || own !== 0) member.angle = flipped ? -own : own;
+    definition.modules.push(member);
+  }
+
+  // Descending, so that removing one does not move the next. The instance
+  // itself is never among them: it is not in `modules`.
+  for (let i = indices.length - 1; i >= 0; i--) found.list.splice(indices[i]!, 1);
+
+  // Every module taken out from ahead of the instance moves it down one, so
+  // the path handed back is not the one passed in. Without this the caller
+  // keeps selecting whatever slid into the old slot.
+  const ahead = indices.filter((index) => index < found.index).length;
+  const last = instance[instance.length - 1]!;
+  const path: ModulePath = [
+    ...instance.slice(0, -1),
+    { ...last, index: found.index - ahead },
+  ];
+  return { blueprint: copy as unknown as Blueprint, path };
 }
 
 /**

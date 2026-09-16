@@ -9,18 +9,23 @@ import {
   parseBlueprint,
   serialiseBlueprint,
   type Blueprint,
+  type ModulePath,
   type ModuleSpec,
+  type Placement,
   type ShipDesign,
 } from '../sim/index.js';
 import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 import { EditorDocument } from '../editor/document.js';
 import {
   addModule,
+  addToGroup,
+  addToGroupProblem,
   cloneBlueprint,
   duplicateInstance,
   duplicatePlacement,
   groupPlacements,
   groupProblem,
+  instanceHandle,
   instanceOf,
   setMirror,
   positionHandle,
@@ -1151,5 +1156,223 @@ describe('picking several modules', () => {
     doc.toggleModule(1);
     doc.selectModule(2);
     expect(doc.selections).toHaveLength(1);
+  });
+});
+
+describe('clicking a grouped module', () => {
+  /** A hull, and a wing of two modules grouped and placed twice. */
+  function twoWings(): { doc: EditorDocument; group: ModulePath } {
+    const doc = new EditorDocument(
+      ship({
+        modules: [
+          hull,
+          { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
+          { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
+        ],
+      }),
+    );
+    doc.selectModule(1);
+    doc.toggleModule(2);
+    const grouped = groupPlacements(doc.blueprint, doc.selectedOrigins())!;
+    doc.apply(grouped.blueprint);
+    const placed = duplicateInstance(doc.blueprint, grouped.path)!;
+    doc.apply(setMirror(placed.blueprint, placed.path, true)!);
+    doc.select(null);
+    return { doc, group: grouped.path };
+  }
+
+  /** The first drawn module that came through an assembly. */
+  function inAGroup(doc: EditorDocument): number {
+    const at = doc.view.origins.findIndex((o) => o.path.length > 1);
+    expect(at).toBeGreaterThanOrEqual(0);
+    return at;
+  }
+
+  it('selects the group, not the module', () => {
+    // A grouped module is part of a thing before it is a module, and the thing
+    // is what you usually want: dragging a wing should move the wing.
+    const { doc } = twoWings();
+    const index = inAGroup(doc);
+
+    doc.selectAt(index, doc.resolveClick(index));
+
+    const placement = doc.selectedPlacement!;
+    expect('use' in placement).toBe(true);
+  });
+
+  it('goes in a level when the group is already selected', () => {
+    const { doc } = twoWings();
+    const index = inAGroup(doc);
+    doc.selectAt(index, doc.resolveClick(index));
+
+    doc.selectAt(index, doc.resolveClick(index));
+
+    const placement = doc.selectedPlacement!;
+    expect('use' in placement).toBe(false);
+    expect((placement as ModuleSpec).kind).toBeDefined();
+  });
+
+  it('reaches a sibling directly once you are inside the group', () => {
+    // Otherwise working on a wing means clicking twice for every part of it,
+    // being thrown back out to the wing each time.
+    const { doc } = twoWings();
+    const inside = doc.view.origins
+      .map((o, i) => ({ o, i }))
+      .filter(({ o }) => o.path.length > 1);
+    const first = inside[0]!.i;
+    const sibling = inside.find(({ o }) => !samePlacement(o.path, inside[0]!.o.path))!.i;
+
+    doc.selectAt(first, doc.resolveClick(first));
+    doc.selectAt(first, doc.resolveClick(first));
+    doc.selectAt(sibling, doc.resolveClick(sibling));
+
+    const placement = doc.selectedPlacement!;
+    expect('use' in placement).toBe(false);
+  });
+
+  it('selects a loose module directly, having no group to stop at', () => {
+    const { doc } = twoWings();
+    const loose = doc.view.origins.findIndex((o) => o.path.length === 1);
+    doc.selectAt(loose, doc.resolveClick(loose));
+    expect('use' in doc.selectedPlacement!).toBe(false);
+  });
+
+  it('tells a selected group apart from several picked modules', () => {
+    // What the overlay draws from: a group is outlined once, several modules
+    // separately, and reading it off the selection means the picture cannot
+    // disagree with what an edit would do.
+    const { doc } = twoWings();
+    const index = inAGroup(doc);
+    doc.selectAt(index, doc.resolveClick(index));
+
+    expect(doc.selectedGroups()).toHaveLength(1);
+    expect(doc.selectedGroups()[0]!.length).toBe(2);
+    expect(doc.selectedLoose()).toHaveLength(0);
+
+    doc.selectModule(0);
+    doc.toggleModule(1);
+    expect(doc.selectedGroups()).toHaveLength(0);
+    expect(doc.selectedLoose().length).toBeGreaterThan(1);
+  });
+
+  it('drags the whole group, in the frame the instance was written in', () => {
+    const { doc } = twoWings();
+    const index = inAGroup(doc);
+    doc.selectAt(index, doc.resolveClick(index));
+    const group = doc.selectedGroupPath()!;
+    const handle = instanceHandle(doc.view.origins, group)!;
+    expect(handle).not.toBeNull();
+
+    const before = expandBlueprint(doc.blueprint).map((m) => [m.x, m.y]);
+    const moved = movePlacement(doc.blueprint, handle, 3, 0)!;
+    const after = expandBlueprint(moved).map((m) => [m.x, m.y]);
+
+    // Only the modules this copy of the group placed have moved, and all of
+    // them have, together and by the same amount.
+    const shifted = after.filter(([x, y], i) => x !== before[i]![0] || y !== before[i]![1]);
+    expect(shifted).toHaveLength(2);
+    for (let i = 0; i < after.length; i++) {
+      const dx = after[i]![0] - before[i]![0];
+      expect(dx === 0 || Math.abs(dx - 3) < 1e-9).toBe(true);
+    }
+  });
+});
+
+describe('adding modules to a group', () => {
+  function wingAndSpare(): { doc: EditorDocument; group: ModulePath } {
+    const doc = new EditorDocument(
+      ship({
+        modules: [
+          hull,
+          { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
+          { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
+          // The spare, written alongside and added later.
+          { kind: 'thruster', x: -6, y: 6, angle: 0, length: 3, width: 3 },
+        ],
+      }),
+    );
+    doc.selectModule(1);
+    doc.toggleModule(2);
+    const grouped = groupPlacements(doc.blueprint, doc.selectedOrigins())!;
+    doc.apply(grouped.blueprint);
+    return { doc, group: grouped.path };
+  }
+
+  it('refuses what it cannot add', () => {
+    const { doc, group } = wingAndSpare();
+    expect(addToGroupProblem(doc.blueprint, group, [])).toMatch(/some modules/);
+    // A group cannot be put inside a group here, which would nest.
+    expect(addToGroupProblem(doc.blueprint, group, [group])).toMatch(/not other groups/);
+  });
+
+  it('moves the module into the definition, leaving the ship where it was', () => {
+    const { doc, group } = wingAndSpare();
+    const spare = doc.view.origins.findIndex(
+      (_, i) => doc.view.modules[i]!.kind === 'thruster',
+    );
+    const before = positions(doc.blueprint).sort();
+
+    const added = addToGroup(doc.blueprint, group, [doc.view.origins[spare]!.path])!;
+    const next = added.blueprint;
+
+    expect(positions(next).sort()).toEqual(before);
+    const definition = Object.values(next.assemblies!)[0]!;
+    expect(definition.modules).toHaveLength(3);
+    // Out of the layout's own list, into the group's.
+    expect(next.modules).toHaveLength(2);
+    // The group moved up the list as the module left it, so the path handed
+    // back has to be the one that still names it.
+    expect(placementAt(next, added.path)).toHaveProperty('use');
+  });
+
+  it('re-expresses the module through a turned and mirrored group', () => {
+    // The whole reason this is not a list operation. A module is written in the
+    // parent's frame and the group's are written in the group's, so getting the
+    // transform wrong moves the ship — and only on a posed group, which is
+    // exactly the kind that gets built once and trusted.
+    const { doc, group } = wingAndSpare();
+    const posed = setMirror(
+      updatePlacement(doc.blueprint, group, (p) => ({ ...p, angle: Math.PI / 2 }) as Placement)!,
+      group,
+      true,
+    )!;
+    const withSpare = new EditorDocument(posed);
+    const spare = withSpare.view.origins.findIndex(
+      (_, i) => withSpare.view.modules[i]!.kind === 'thruster',
+    );
+    const before = positions(posed).sort();
+
+    const next = addToGroup(posed, group, [withSpare.view.origins[spare]!.path])!.blueprint;
+
+    expect(positions(next).sort()).toEqual(before);
+  });
+
+  it('gives every copy of the group the new module', () => {
+    // The bargain rather than a surprise: the part joins the group, and the
+    // group is what is placed twice.
+    const { doc, group } = wingAndSpare();
+    const twice = duplicateInstance(doc.blueprint, group)!;
+    const withSpare = new EditorDocument(twice.blueprint);
+    const spare = withSpare.view.origins.findIndex(
+      (_, i) => withSpare.view.modules[i]!.kind === 'thruster',
+    );
+    const thrustersBefore = expandBlueprint(twice.blueprint).filter((m) => m.kind === 'thruster');
+
+    const next = addToGroup(twice.blueprint, group, [withSpare.view.origins[spare]!.path])!.blueprint;
+
+    expect(thrustersBefore).toHaveLength(1);
+    expect(expandBlueprint(next).filter((m) => m.kind === 'thruster')).toHaveLength(2);
+  });
+
+  it('offers the operation only when one group and some modules are picked', () => {
+    const { doc, group } = wingAndSpare();
+    doc.select(group);
+    expect(doc.groupAndLooseSelection()).toBeNull();
+
+    const spare = doc.view.origins.findIndex((_, i) => doc.view.modules[i]!.kind === 'thruster');
+    doc.togglePath(doc.view.origins[spare]!.path);
+    const both = doc.groupAndLooseSelection()!;
+    expect(both).not.toBeNull();
+    expect(both.modules).toHaveLength(1);
   });
 });

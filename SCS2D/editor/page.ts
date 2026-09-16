@@ -17,10 +17,13 @@ import { frame, type Camera } from '../render/camera.js';
 import { EditorDocument } from './document.js';
 import {
   addModule,
+  addToGroup,
+  addToGroupProblem,
   duplicateInstance,
   duplicatePlacement,
   groupPlacements,
   groupProblem,
+  instanceHandle,
   instanceOf,
   moduleAt,
   removePlacement,
@@ -122,6 +125,7 @@ export function startEditor(): void {
   const groupSelection = el<HTMLElement>('groupSelection');
   const groupCount = el<HTMLElement>('groupCount');
   const groupButton = el<HTMLButtonElement>('propGroup');
+  const addToGroupButton = el<HTMLButtonElement>('propAddToGroup');
   const groupPanel = el<HTMLElement>('groupPanel');
   const groupOf = el<HTMLElement>('groupOf');
   const groupX = el<HTMLInputElement>('groupX');
@@ -168,7 +172,13 @@ export function startEditor(): void {
     draw(ctx, snapshot, camera, canvas.width, canvas.height);
     drawOverlay(
       ctx,
-      { design: view.design, modules: view.modules, selected: doc.highlightedModules(), envelope },
+      {
+        design: view.design,
+        modules: view.modules,
+        selected: doc.selectedLoose(),
+        groups: doc.selectedGroups(),
+        envelope,
+      },
       camera,
       canvas.width,
       canvas.height,
@@ -271,6 +281,13 @@ export function startEditor(): void {
 
   /** Where the selected copy's position is written, and in what frame. */
   const selectedPosition = (): ReturnType<typeof positionHandle> | null => {
+    // A selected group is dragged as one thing, which is the point of having
+    // selected the group rather than a part of it.
+    const group = doc.selectedGroupPath();
+    if (group !== null) {
+      const handle = instanceHandle(doc.view.origins, group);
+      return handle === null ? null : { origin: handle, perCopy: true };
+    }
     const origin = doc.selectedOrigin();
     return origin === null ? null : positionHandle(doc.blueprint, origin);
   };
@@ -300,6 +317,49 @@ export function startEditor(): void {
     groupMirror.checked = instance.mirror === true;
   };
 
+  /**
+   * What can be done with several things picked at once: make a group of them,
+   * or put them into one that exists.
+   *
+   * The two are mutually exclusive by what is picked rather than by a mode —
+   * a selection that is all modules can be grouped, and a selection with
+   * exactly one group in it can be added to — so the panel says which of the
+   * two this selection is, and why when it is neither.
+   */
+  const renderSelectionOfSeveral = (picked: number): void => {
+    const why = groupProblem(doc.blueprint, doc.selectedOrigins());
+    groupButton.disabled = why !== null;
+
+    const adding = doc.groupAndLooseSelection();
+    const addWhy =
+      adding === null
+        ? 'Pick one group and the modules to put into it'
+        : addToGroupProblem(doc.blueprint, adding.group, adding.modules);
+    addToGroupButton.disabled = adding === null || addWhy !== null;
+
+    if (why === null) {
+      groupCount.textContent =
+        `${picked} modules picked. Grouping makes them one part, built around the first one picked.`;
+      return;
+    }
+    if (adding !== null && addWhy === null) {
+      const into = placementAt(doc.blueprint, adding.group);
+      const name = into !== null && !isModuleSpec(into) ? (into as AssemblyInstance).use : 'the group';
+      const copies = doc.accountedFor(adding.group);
+      const members = adding.modules.length;
+      // Said out loud because it is the bargain rather than a surprise: the
+      // part joins every copy of the group, so the ship gains one per copy.
+      const spread =
+        copies > members
+          ? ` The group is placed more than once, so each copy gains ${members === 1 ? 'it' : 'them'}.`
+          : '';
+      groupCount.textContent =
+        `${members} ${members === 1 ? 'module' : 'modules'} to add to ${name}.${spread}`;
+      return;
+    }
+    groupCount.textContent = why;
+  };
+
   const renderProperties = (): void => {
     const placement = doc.selectedPlacement;
     const copies = doc.selectedModules().length;
@@ -309,21 +369,16 @@ export function startEditor(): void {
     // properties, and a single module is the ordinary case.
     const picked = doc.selections.length;
     groupSelection.hidden = picked < 2;
-    if (picked >= 2) {
-      const why = groupProblem(doc.blueprint, doc.selectedOrigins());
-      groupCount.textContent =
-        why === null
-          ? `${picked} modules picked. Grouping makes them one part, built around the first one picked.`
-          : why;
-      groupButton.disabled = why !== null;
-    }
+    if (picked >= 2) renderSelectionOfSeveral(picked);
 
-    groupPanel.hidden = placement === null || isModuleSpec(placement) === true;
-    if (placement !== null && isModuleSpec(placement) === false) {
-      renderGroup(placement as AssemblyInstance);
-    }
+    // With several things picked, only what can be done to a *set* is offered:
+    // a panel editing one of them would be editing whichever happened to be
+    // first, which is not a thing anybody asked for.
+    const single = picked < 2;
+    groupPanel.hidden = !single || placement === null || isModuleSpec(placement) === true;
+    if (!groupPanel.hidden) renderGroup(placement as AssemblyInstance);
 
-    if (placement === null || isModuleSpec(placement) === false) {
+    if (!single || placement === null || isModuleSpec(placement) === false) {
       properties.hidden = true;
       shownSelection = null;
       return;
@@ -555,6 +610,18 @@ export function startEditor(): void {
     refresh();
   });
 
+  addToGroupButton.addEventListener('click', () => {
+    const adding = doc.groupAndLooseSelection();
+    if (adding === null) return;
+    const next = addToGroup(doc.blueprint, adding.group, adding.modules);
+    if (next === null) return;
+    doc.apply(next.blueprint);
+    // The group is what is left, and what the player is now working on. Its own
+    // path, not the one picked: taking the modules out moved it up the list.
+    doc.select(next.path);
+    refresh();
+  });
+
   selectGroupButton.addEventListener('click', () => {
     const origin = doc.selectedOrigin();
     if (origin === null) return;
@@ -755,7 +822,16 @@ export function startEditor(): void {
 
   type Drag =
     | { kind: 'pan'; x: number; y: number }
-    | { kind: 'module'; from: Blueprint; startX: number; startY: number; moved: boolean };
+    | {
+        kind: 'module';
+        from: Blueprint;
+        startX: number;
+        startY: number;
+        moved: boolean;
+        /** The module pressed on, and whether releasing without a drag goes in a level. */
+        hit: number;
+        drill: boolean;
+      };
   let drag: Drag | null = null;
 
   canvas.addEventListener('pointerdown', (event) => {
@@ -772,7 +848,7 @@ export function startEditor(): void {
     // The one gesture this costs is panning by shift-dragging *from* a module,
     // which the other two cover.
     if (hit >= 0 && event.shiftKey && event.button !== 1) {
-      doc.toggleModule(hit);
+      doc.togglePath(doc.resolveClick(hit));
       refresh();
       return;
     }
@@ -782,9 +858,23 @@ export function startEditor(): void {
       refresh();
       return;
     }
-    doc.selectModule(hit);
+    // Pressing on something the selection already covers leaves the selection
+    // alone, so that a group can be dragged as a group. Going *in* a level is
+    // what a click does, and a click is a press that did not become a drag —
+    // otherwise selecting a wing and then dragging it would quietly drag one
+    // part of it instead, which is the difference between the two operations.
+    const drill = doc.covers(hit);
+    if (!drill) doc.selectAt(hit, doc.resolveClick(hit));
     gesture = false;
-    drag = { kind: 'module', from: doc.blueprint, startX: world.x, startY: world.y, moved: false };
+    drag = {
+      kind: 'module',
+      from: doc.blueprint,
+      startX: world.x,
+      startY: world.y,
+      moved: false,
+      hit,
+      drill,
+    };
     refresh();
   });
 
@@ -819,6 +909,13 @@ export function startEditor(): void {
   });
 
   const endDrag = (): void => {
+    // A press that never became a drag is a click, and a click on something
+    // already selected goes in a level: group, then part of the group, then
+    // nothing further.
+    if (drag !== null && drag.kind === 'module' && drag.drill && !drag.moved) {
+      doc.selectAt(drag.hit, doc.resolveClick(drag.hit));
+      refresh();
+    }
     drag = null;
     gesture = false;
   };
