@@ -8,16 +8,16 @@
       "modules": [
         { "kind": "structure", "x": 0, "y": 0, "length": 4, "width": 8 },
         { "kind": "turret", "x": 4.5, "y": 0, "angle": 0, "length": 5, "width": 4, "barrels": 1 },
-        { "kind": "thruster", "x": -4, "y": 0, "angle": 0, "length": 4, "width": 6 },
+        { "kind": "thruster", "x": -2, "y": 0, "angle": 0, "length": 4, "width": 6 },
         {
-          "kind": "thruster", "x": 3, "y": 3, "angle": 180, "length": 2, "width": 2,
+          "kind": "thruster", "x": 2, "y": 3, "angle": 180, "length": 2, "width": 2,
           "notes": "Braking thrust, tucked outboard of the gun. Every bay carries one, so a longer wing stops harder — which is the point of repeating a segment that is more than structure."
         }
       ]
     },
     "rcs": {
       "notes": "A manoeuvring thruster on the spine.",
-      "modules": [{ "kind": "thruster", "x": 0, "y": 0, "length": 2, "width": 3 }]
+      "modules": [{ "kind": "thruster", "x": 1, "y": 0, "length": 2, "width": 3 }]
     }
   },
   "modules": [

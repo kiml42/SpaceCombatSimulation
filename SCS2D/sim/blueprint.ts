@@ -1,6 +1,7 @@
 import { abs, angleDelta, atan2, cos, max, min, normalizeAngle, PI, sin, sqrt, TAU } from './math.js';
 import {
   GunType,
+  moduleCentre,
   moduleProblem,
   moduleStats,
   traverseAccel,
@@ -295,13 +296,15 @@ function corners(m: ModuleSpec, out: number[]): void {
   const s = sin(a);
   const hl = m.length * 0.5;
   const hw = m.width * 0.5;
+  // About the box's middle, which a thruster's position is not.
+  const mid = moduleCentre(m);
   let k = 0;
   for (let i = 0; i < 4; i++) {
     // (+,+), (+,-), (-,-), (-,+) so the corners come out in order round the box.
     const dl = i < 2 ? hl : -hl;
     const dw = i === 0 || i === 3 ? hw : -hw;
-    out[k++] = m.x + dl * c - dw * s;
-    out[k++] = m.y + dl * s + dw * c;
+    out[k++] = mid.x + dl * c - dw * s;
+    out[k++] = mid.y + dl * s + dw * c;
   }
 }
 
@@ -358,8 +361,9 @@ function distanceToModule(m: ModuleSpec, px: number, py: number): number {
   const a = m.angle ?? 0;
   const c = cos(a);
   const s = sin(a);
-  const dx = px - m.x;
-  const dy = py - m.y;
+  const mid = moduleCentre(m);
+  const dx = px - mid.x;
+  const dy = py - mid.y;
   // Into the box's own frame, where the nearest point is a clamp per axis.
   const along = dx * c + dy * s;
   const across = -dx * s + dy * c;
@@ -407,6 +411,7 @@ export function firingArc(
   reach: number,
 ): { left: number; right: number } {
   const mount = modules[index]!;
+  const from = moduleCentre(mount);
   const rest = normalizeAngle(mount.angle ?? 0);
 
   let left = 2 * PI;
@@ -415,18 +420,19 @@ export function firingArc(
   for (let i = 0; i < modules.length; i++) {
     if (i === index) continue;
     const other = modules[i]!;
-    if (distanceToModule(other, mount.x, mount.y) > reach) continue;
+    if (distanceToModule(other, from.x, from.y) > reach) continue;
 
     const c: number[] = [];
     corners(other, c);
 
     // Bearings to the corners, taken relative to the bearing of the centre so
     // that the interval never has to be unwrapped.
-    const centre = atan2(other.y - mount.y, other.x - mount.x);
+    const mid = moduleCentre(other);
+    const centre = atan2(mid.y - from.y, mid.x - from.x);
     let lo = 0;
     let hi = 0;
     for (let k = 0; k < 8; k += 2) {
-      const d = angleDelta(centre, atan2(c[k + 1]! - mount.y, c[k]! - mount.x));
+      const d = angleDelta(centre, atan2(c[k + 1]! - from.y, c[k]! - from.x));
       lo = min(lo, d);
       hi = max(hi, d);
     }
@@ -825,8 +831,17 @@ function structureAhead(spec: ModuleSpec, modules: readonly ModuleSpec[]): boole
  * layout only when nothing is touching at all.
  */
 function modulesAttached(a: ModuleSpec, b: ModuleSpec): boolean {
+  // Grown about the middle of the box, which is why the probe is written as a
+  // plain one: growing a *thruster* would leave its mounting face where it is
+  // and add the whole of the extra length astern, so an engine would reach
+  // towards its own exhaust and not towards what it is bolted to — and whether
+  // two modules are attached would depend on which of them was asked.
+  const mid = moduleCentre(a);
   const inflated: ModuleSpec = {
     ...a,
+    kind: 'structure',
+    x: mid.x,
+    y: mid.y,
     length: a.length + ATTACHMENT_TOLERANCE * 2,
     width: a.width + ATTACHMENT_TOLERANCE * 2,
   };
@@ -1049,14 +1064,15 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
   }
   const stats = specs.map(moduleStats);
 
+  const centres = specs.map(moduleCentre);
   let mass = 0;
   let comX = 0;
   let comY = 0;
   for (let i = 0; i < specs.length; i++) {
     const m = stats[i]!.mass;
     mass += m;
-    comX += specs[i]!.x * m;
-    comY += specs[i]!.y * m;
+    comX += centres[i]!.x * m;
+    comY += centres[i]!.y * m;
   }
   comX /= mass;
   comY /= mass;
@@ -1078,8 +1094,12 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
   for (let i = 0; i < specs.length; i++) {
     const spec = specs[i]!;
     const s = stats[i]!;
-    const x = spec.x - comX;
-    const y = spec.y - comY;
+    // The middle of the box rather than where the module is attached: this is
+    // what carries its mass, what the renderer draws about, and — for a
+    // thruster — a point on the same line of action as its mounting, so the
+    // force and torque it delivers are the same either way.
+    const x = centres[i]!.x - comX;
+    const y = centres[i]!.y - comY;
     const angle = normalizeAngle(spec.angle ?? 0);
 
     // Parallel axis: each module's own inertia, carried out to where it sits.

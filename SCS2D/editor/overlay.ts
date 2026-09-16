@@ -1,4 +1,4 @@
-import { math, type ModuleSpec, type ShipDesign } from '../sim/index.js';
+import { math, moduleCentre, type ModuleSpec, type ShipDesign } from '../sim/index.js';
 import type { Camera } from '../render/camera.js';
 import { headingCost, type Envelopes } from './stats.js';
 import type { GroupOutline } from './document.js';
@@ -137,8 +137,9 @@ function drawFaults(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Ca
     // A module with no interior is one of the things complained about, and it
     // has no box to draw. It is named in the list instead.
     if (!(spec.length > 0) || !(spec.width > 0)) continue;
+    const mid = moduleCentre(spec);
     ctx.save();
-    ctx.translate(spec.x, spec.y);
+    ctx.translate(mid.x, mid.y);
     ctx.rotate(spec.angle ?? 0);
     ctx.fillStyle = FAULT_FILL;
     ctx.fillRect(-spec.length / 2, -spec.width / 2, spec.length, spec.width);
@@ -167,8 +168,9 @@ function drawSelection(ctx: CanvasRenderingContext2D, view: OverlayView, camera:
   for (let i = 0; i < view.selected.length; i++) {
     const spec = view.modules[view.selected[i]!];
     if (spec === undefined) continue;
+    const mid = moduleCentre(spec);
     ctx.save();
-    ctx.translate(spec.x, spec.y);
+    ctx.translate(mid.x, mid.y);
     ctx.rotate(spec.angle ?? 0);
     ctx.strokeStyle = i === 0 ? SELECTION : SELECTION_LINKED;
     ctx.lineWidth = lineWidth;
@@ -197,11 +199,12 @@ function drawHandles(ctx: CanvasRenderingContext2D, view: OverlayView, camera: C
 
   const knob = view.handles.find((handle) => handle.kind === 'rotate');
   if (knob !== undefined && spec !== undefined) {
+    const mid = moduleCentre(spec);
     ctx.save();
     ctx.strokeStyle = SELECTION;
     ctx.lineWidth = lineWidth;
     ctx.beginPath();
-    ctx.moveTo(spec.x, spec.y);
+    ctx.moveTo(mid.x, mid.y);
     ctx.lineTo(knob.x, knob.y);
     ctx.stroke();
     ctx.restore();
@@ -244,14 +247,15 @@ function drawGroups(ctx: CanvasRenderingContext2D, view: OverlayView, lineWidth:
       const s = Math.sin(angle);
       const halfL = spec.length / 2;
       const halfW = spec.width / 2;
+      const mid = moduleCentre(spec);
       for (const [ox, oy] of [
         [halfL, halfW],
         [halfL, -halfW],
         [-halfL, halfW],
         [-halfL, -halfW],
       ] as const) {
-        const x = spec.x + ox * c - oy * s;
-        const y = spec.y + ox * s + oy * c;
+        const x = mid.x + ox * c - oy * s;
+        const y = mid.y + ox * s + oy * c;
         if (x < minX) minX = x;
         if (x > maxX) maxX = x;
         if (y < minY) minY = y;

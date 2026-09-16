@@ -1,4 +1,4 @@
-import { PI, sqrt } from './math.js';
+import { cos, PI, sin, sqrt } from './math.js';
 
 /**
  * Parametric ship modules: a few archetypes with continuous parameters, rather
@@ -266,7 +266,19 @@ export type ModuleKind = 'structure' | 'thruster' | 'turret' | 'beamTurret';
  */
 export interface ModuleSpec {
   kind: ModuleKind;
-  /** Centre of the module, metres. */
+  /**
+   * Where the module is bolted to the ship, metres — which is its centre for
+   * every kind but a thruster.
+   *
+   * A thruster is the one module with a side that means something: it is held
+   * on by the face it pushes from and exhausts out of the other, so that face
+   * is the only part of it whose position the rest of the ship cares about.
+   * Its position is therefore the middle of *that* face, and the engine runs
+   * back from there along its own facing — so a thruster made longer grows
+   * out into the exhaust rather than half into the hull it is mounted on, and
+   * lengthening one is one number rather than two. `moduleCentre` is where the
+   * box actually sits, and everything geometric goes through it.
+   */
   x: number;
   y: number;
   /**
@@ -405,6 +417,23 @@ export function moduleProblem(spec: ModuleSpec): string | null {
 }
 
 /** The scaling laws, applied. Throws if the module could not exist. */
+/**
+ * Where a module's box sits, which is its position for every kind but a
+ * thruster — see `ModuleSpec.x`.
+ *
+ * Everything that asks a geometric question about a module goes through this:
+ * its corners, what it overlaps, what it blocks, where its mass acts, and
+ * where it is drawn. A caller that reads `spec.x` directly for any of those is
+ * asking where the module is *attached* and using the answer as though it were
+ * the middle, which for an engine is half its length out.
+ */
+export function moduleCentre(spec: ModuleSpec): { x: number; y: number } {
+  if (spec.kind !== 'thruster') return { x: spec.x, y: spec.y };
+  const angle = spec.angle ?? 0;
+  const back = spec.length / 2;
+  return { x: spec.x - cos(angle) * back, y: spec.y - sin(angle) * back };
+}
+
 export function moduleStats(spec: ModuleSpec): ModuleStats {
   const problem = moduleProblem(spec);
   if (problem !== null) throw new Error(`Invalid module — ${problem}`);

@@ -54,7 +54,7 @@
     },
     {
       "kind": "thruster",
-      "x": -24,
+      "x": -20,
       "y": 3,
       "angle": 0,
       "length": 8,
@@ -62,7 +62,7 @@
     },
     {
       "kind": "thruster",
-      "x": -24,
+      "x": -20,
       "y": -3,
       "angle": 0,
       "length": 8,
@@ -71,7 +71,7 @@
     {
       "kind": "thruster",
       "x": 12,
-      "y": 10,
+      "y": 9,
       "angle": -90,
       "length": 2,
       "width": 4
@@ -79,7 +79,7 @@
     {
       "kind": "thruster",
       "x": 12,
-      "y": -10,
+      "y": -9,
       "angle": 90,
       "length": 2,
       "width": 4
@@ -87,7 +87,7 @@
     {
       "kind": "thruster",
       "x": -12,
-      "y": 10,
+      "y": 9,
       "angle": -90,
       "length": 2,
       "width": 4
@@ -95,14 +95,14 @@
     {
       "kind": "thruster",
       "x": -12,
-      "y": -10,
+      "y": -9,
       "angle": 90,
       "length": 2,
       "width": 4
     },
     {
       "kind": "thruster",
-      "x": 16.5,
+      "x": 15,
       "y": 7,
       "angle": 180,
       "length": 3,
@@ -110,7 +110,7 @@
     },
     {
       "kind": "thruster",
-      "x": 16.5,
+      "x": 15,
       "y": -7,
       "angle": 180,
       "length": 3,

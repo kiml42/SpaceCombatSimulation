@@ -355,6 +355,14 @@ Mass from wall volume, capacity from interior area, strength from thickness and 
 - **The GA is an automated exploit-finder** for these scaling laws — any mispricing gets discovered
   in your own game within a few generations. This is a strong argument for building headless
   evolution early.
+- **A module's position is where it is attached, which is its middle for every kind but a thruster.**
+  A thruster is the one module with a side that means something: it is held on by the face it pushes
+  from and exhausts out of the other, and a layout only cares where that mounting face is. So a
+  thruster's position is the middle of that face and the engine runs back from it along its own
+  facing — which is what makes an engine scalable by one number, since a longer one grows into its
+  exhaust rather than half into the hull it is bolted to. Everything geometric goes through
+  `moduleCentre`; the mounting face and the box's middle lie on the same line of action, so which of
+  them thrust is applied at makes no difference to the force or the torque.
 
 ### Determinism
 
