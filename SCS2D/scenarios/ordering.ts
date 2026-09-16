@@ -15,58 +15,28 @@ import type { Battle } from './types.js';
 import { CORVETTE, FLAT_GUNSHIP, FLAT_GUNSHIP_GROUPED, GUNSHIP } from './blueprints.js';
 
 /**
- * Three identical gunships, flying the same orders from the same spot, to
+ * Three identical gunships, flying the same order from the same spot, to
  * measure what listing their modules in a different order costs.
  *
- * A blueprint's module order is not inert. Thrusters are allocated in the
- * order they are listed, and so a demand two engines could satisfy between
- * them is met by whichever comes first; guns fire in the order they are
- * listed, and a salvo's rounds leave in that order carrying the recoil of the
- * ones before them. Neither is wrong, but both mean two ships that are the
- * same shape can fly differently — and grouping parts into an assembly moves
- * them in the list without moving them on the hull. This scenario is how much
- * that is worth, in metres.
+ * Module order reaches the simulation twice: thrusters are allocated in it and
+ * guns fire in it. The three ships are the same eighteen modules in the same
+ * places, differing only in the list — flat in expansion order (the control,
+ * which should track the assembled ship exactly), flat listed kind by kind
+ * (the variable), and built from assemblies. Same position, heading, velocity
+ * and order, so any difference that appears is the ordering.
  *
- * The three are the same eighteen modules at the same places, differing only
- * in the list:
+ * Deliberately artificial, and both parts stop being possible once hulls
+ * collide (DESIGN.md §4): the three start on top of each other, which is the
+ * only way to give them identical opening conditions, and the target is given
+ * no order, so it neither manoeuvres nor shoots back. What replaces it then is
+ * three *pairs* of ships fighting far enough apart to be undisturbed, one pair
+ * per ordering, compared on the figures a long run produces — final position
+ * and velocity, shots fired, hits — rather than on a distance.
  *
- * - **Flat Gunship** — no assemblies, listed in the order the Gunship's
- *   assemblies expand to. The control: it should track the third exactly.
- * - **Flat Gunship (kinds together)** — no assemblies, listed kind by kind.
- *   The variable: same ship, different list.
- * - **Gunship** — the same layout built out of assemblies.
- *
- * Identical is meant strictly: same position, same heading, same velocity,
- * same order against the same target. Nothing in the opening conditions can
- * account for a difference, so anything that appears is the ordering.
- *
- * Two things about it are deliberately artificial, and both stop being
- * possible once hulls collide (DESIGN.md §4):
- *
- * - The three start *on top of each other*, which is the only way to give them
- *   identical opening conditions.
- * - The target does not shoot back and is given no order, so it neither
- *   manoeuvres nor returns fire. It is a mark to shoot at rather than an
- *   opponent: a fight it took part in would answer all three ships
- *   differently, and the difference being measured would be buried in it.
- *
- * **What replaces it when hulls become solid:** three *pairs* of ships, each
- * pair fighting its own battle far enough from the others to be undisturbed,
- * one pair per module ordering. What is compared then is not a distance — two
- * real fights will not stay on top of each other — but the high-level figures
- * over a long run: final position and velocity, shots fired, hits scored. The
- * question stays the same and the tolerance changes: identical to the metre
- * here, indistinguishable as a battle there.
- *
- * Rounds are absorbed by the first hull they cross and there is no friendly
- * fire check, so ships stacked in a line eat each other's shots. That costs
- * the hit counts their meaning here and nothing else — a hit does no damage
- * and imparts no impulse yet — but it is why this scenario's `p.hits` should
- * not be read as gunnery.
- *
- * The viewer's readout reports the range between the first two ships, which in
- * this scenario is the divergence between the two flat orders: 0 while they
- * agree, and growing from the moment they stop.
+ * `p.hits` means nothing here: rounds are absorbed by the first hull they
+ * cross and there is no friendly fire check, so stacked ships eat each other's
+ * shots. The viewer's readout reports the range between the first two ships,
+ * which here is the drift between the two flat orders.
  */
 export interface OrderingBattle extends Battle {
   /** The three ships under test, with the difference each one represents. */
@@ -79,9 +49,8 @@ export function ordering(seed = 20260905): OrderingBattle {
   const dt = 1 / 60;
   const world = new World({ dt, seed });
 
-  // The same well the other battles fight around, so their trajectories are
-  // comparable. It cannot itself separate the three: gravity depends on where
-  // a ship is, and all three start in the same place.
+  // The same well the other battles fight around. It cannot itself separate
+  // the three, since all three start in the same place.
   const wells: WellSpec[] = [{ x: 0, y: -1500, gm: 2.5e6, softening: 200 }];
   for (const well of wells) world.addForceProvider(gravityWell(well));
 
@@ -94,11 +63,9 @@ export function ordering(seed = 20260905): OrderingBattle {
     { name: 'assemblies', design: compileBlueprint(GUNSHIP) },
   ];
 
-  // Facing across the engagement with a crossing velocity, as the duel does:
-  // each has to come round before a gun bears and kill the crossing before it
-  // can hold a range band. A ship flying straight down a bearing barely uses
-  // its manoeuvring thrusters, and thruster allocation is half of what is
-  // being measured.
+  // Facing across the engagement with a crossing velocity, as the duel does.
+  // A ship flying straight down a bearing barely uses its manoeuvring
+  // thrusters, and thruster allocation is half of what is being measured.
   const contenders = designs.map((entry) => ({
     name: entry.name,
     ship: ships.spawn(world, {
@@ -112,8 +79,8 @@ export function ordering(seed = 20260905): OrderingBattle {
     }),
   }));
 
-  // A corvette rather than another gunship: something that is plainly not one
-  // of the three, so the stack is never in doubt on screen.
+  // A corvette rather than another gunship, so the stack of three is never in
+  // doubt on screen.
   const target = ships.spawn(world, {
     design: compileBlueprint(CORVETTE),
     x: 1800,
@@ -125,8 +92,7 @@ export function ordering(seed = 20260905): OrderingBattle {
   });
 
   // No order for the target, which is what makes it hold fire: a ship with no
-  // target neither trains its guns nor shoots, and its pilot has no station to
-  // keep, so it coasts through the well on whatever it started with.
+  // target neither trains its guns nor shoots, and keeps no station.
   for (const contender of contenders) ships.setOrder(contender.ship, target, 300, 500, 120);
 
   const grid = new SpatialGrid(64);

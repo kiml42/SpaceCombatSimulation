@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "name": "Flat Gunship",
-  "notes": "The Gunship with its assemblies expanded away: the same eighteen modules, at the same places, at the same angles, with nothing grouped. Every derived figure — mass, inertia, thrust, arcs, ballistics — is therefore identical to the Gunship's, and so is every pixel drawn. What differs is the order the modules are listed in, which is what decides thruster allocation order and firing order. Written by expanding the Gunship rather than drawn by hand, so the geometry cannot drift from it. This one lists them in exactly the order expansion produces, so it is the control: it should behave identically to the Gunship in every respect. Regenerate with: npx tsx scripts/flatten.ts gunship scenarios/flat-gunship.json --name=\"Flat Gunship\".",
+  "notes": "The Gunship with its assemblies expanded away: the same eighteen modules, in the same places, listed flat. Every derived figure is identical to the Gunship's and so is every pixel drawn; only the order differs, which is what decides thruster allocation and firing order. Listed in expansion order, so this is the control — it should behave exactly as the Gunship does. Regenerate with: npx tsx scripts/flatten.ts gunship scenarios/flat-gunship.json --name=\"Flat Gunship\".",
   "modules": [
     {
       "kind": "structure",
