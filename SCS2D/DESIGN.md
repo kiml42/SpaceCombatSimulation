@@ -68,8 +68,12 @@ inside any one file is not contiguous.
   60 Hz. Neither is the bottleneck at this scale; the gap widens with projectile
   count, which is the direction of travel. A whole gunnery step — bodies, index
   rebuild, and projectiles under gravity — costs ~7 microseconds with 9 bodies and
-  ~65 rounds in the air.
-- **Last updated:** 2026-09-14
+  ~65 rounds in the air. Listing a ship's modules in a different order moves it
+  8.2e-13 m over 3,000 steps of manoeuvring and gunnery, and grouping them into
+  assemblies moves it not at all, bit for bit: module order reaches thruster
+  allocation and firing, but both are order-independent in substance. Measured by
+  `scenarios/ordering.ts`, which flies three gunships of one geometry from one spot.
+- **Last updated:** 2026-09-16
 
 ---
 
