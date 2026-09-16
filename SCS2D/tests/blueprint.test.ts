@@ -433,7 +433,9 @@ describe('the authored blueprints', () => {
     });
   }
 
-  it('points every thruster so its exhaust leaves clear air', () => {
+  // Slow: it samples every thruster's plume along its whole length against
+  // every other module, and the default 5s timeout is marginal on Windows CI.
+  it('points every thruster so its exhaust leaves clear air', { timeout: 30_000 }, () => {
     // A thruster pushes along its facing and exhausts the other way, so a
     // mount out on a wing has to push *inboard* or it fires into the wing it
     // is bolted to.
