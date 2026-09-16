@@ -468,6 +468,22 @@ Deliberately unresolved; decide when they block something.
   The cheap middle is to arm on the timer and detonate on first proximity within a short window, so the
   check runs only while armed.
   Belongs with §8 step 2: a fuse is a delivery mechanism, and the damage model is what it delivers into.
+- **The penetration law needs arithmetic `sim/math.ts` does not have yet.** Every empirical armour formula
+  worth using is a product of fractional powers — de Marre, the standard reference for a hard round against
+  a steel plate, gives a limit velocity `K · t^0.7 · d^0.75 / √m`, and its exponents are the law rather
+  than a choice. `Math.pow`, `Math.exp` and `Math.log` are implementation-defined in the ECMAScript spec
+  exactly as the trigonometry is, so they are barred by the same non-negotiable and for the same reason: a
+  round that skids off armour on one engine and gets through on another is determinism broken where it is
+  least visible. So **deterministic `exp`, `log` and `pow` come before terminal ballistics**, alongside the
+  `sin`/`cos`/`atan2` already written — and `acos`, which the incidence angle needs and which
+  `atan2(√(1 − c²), c)` gives for free once the rest exists. They want the same treatment the existing
+  transcendentals had: a stated argument reduction, a stated polynomial, and a test against values worked
+  out independently rather than against `Math`.
+  The choice of law is otherwise settled enough to build on: de Marre for the form, obliquity as
+  line-of-sight thickness (`t / cos θ`, which the module path already reports as a distance through the
+  box), a critical ricochet angle for a round that fails to perforate, and a residual the damage model
+  spends. What is *not* settled is the constant — how hard armour is in this game — and whether the ricochet
+  angle should depend on plate thickness over calibre as the literature has it.
 - **Whether the remaining authored data lives in files rather than in code.** Blueprints do: they are JSON,
   parsed by `sim/blueprintFile.ts`, and the shipped ships go through exactly the validation a stranger's file
   does. What has not moved is `tests/fixtures/scenarios.ts`, and §9's promise of
