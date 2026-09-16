@@ -41,25 +41,29 @@ inside any one file is not contiguous.
   envelope curves separating what a layout can project from what it can use
   while holding a heading — and each turret's calibre, rate of fire, muzzle
   speed and arc. Modules are
-  clicked to select and dragged to move on a snapping grid, with the rest of their
-  values typed into a panel beside the module's own mass, capacity, armour and gun,
-  and a selected engine burns and a selected gun fires at the rate its own figures
-  claim; a module can be duplicated into a shared part placed twice, and a shared
-  part unlinked back into separate modules, with position, dragging and deletion
-  belonging to the copy and everything else to all of them; several modules can be
+  clicked to select, dragged to move on a snapping grid, sized by dragging a corner
+  and turned by dragging a knob beyond the bow — every snap escaped by holding Alt —
+  with the rest of their values typed into a panel beside the module's own mass,
+  capacity, armour and gun, and a selected engine burns and a selected gun fires at the
+  rate its own figures claim; a module can be duplicated into a shared part placed
+  twice, and a shared part unlinked back into separate modules, with position, dragging
+  and deletion belonging to the copy and everything else to all of them; several modules can be
   picked at once and grouped into one part, which is then placed again and reflected
   to build a symmetrical ship out of one side and a mirror of it, and clicked, dragged
-  and added to as one thing, and carries a name of its own; every problem with the layout is listed rather
-  than enforced — including a module that is attached to nothing, which a ship is checked for by tracing
-  every module back to the first one through what it touches — and each module a problem names is drawn in
-  red on the ship, so the list says what is wrong and the picture says where. Undo and redo run
-  throughout. Ships are opened from the built-in
-  library or from browser storage, saved back to it, and exported and imported as
-  blueprint files. Both pages build to one self-contained HTML file each.
-- **Next:** the rest of §8 step 1. An instance's `repeat` and `step` are still
-  file-only, and size and facing are still typed rather than dragged. Restructuring a
-  group — dissolving one, or nesting one inside another — is deliberately not part of
-  it and is §8 step 6, after v1. ROADMAP.md's Slice 1 section has what remains.
+  and added to as one thing, carries a name of its own, and is placed in a row or round
+  an arc by a count and a step rather than by placing it again and again;
+  every problem with the layout is listed rather than enforced — including a module
+  that is attached to nothing, which a ship is checked for by tracing every module back
+  to the first one through what it touches — and each module a problem names is drawn
+  in red on the ship, so the list says what is wrong and the picture says where. Undo and
+  redo run throughout. Ships are opened from the built-in library or from browser
+  storage, saved back to it, and exported and imported as blueprint files. Both pages
+  build to one self-contained HTML file each.
+- **Next:** §8 step 2, terminal ballistics and the damage model. Slice 1 has two
+  things left in it, neither blocking: unlinking one copy of a shared part while the
+  others stay linked, and the word the editor owes the player when an action reorders
+  a layout. Restructuring a group — dissolving one, or nesting one inside another —
+  is deliberately not part of it and is §8 step 6, after v1.
 - **Blocked on:** nothing.
 - **Owed:** nothing outstanding. The `duel` golden scenario discharges the coverage that was owed
   for thruster allocation and turrets: it drives both through the same loop the game uses, so a

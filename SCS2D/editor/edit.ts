@@ -14,7 +14,7 @@ import {
   type Placement,
 } from '../sim/index.js';
 
-const { cos, sin, round, abs } = math;
+const { cos, sin, round, abs, normalizeAngle } = math;
 
 /**
  * Edits to a layout, as values.
@@ -232,6 +232,20 @@ export function toPlacementFrame(
   const localX = dx * c - dy * s;
   const localY = dx * s + dy * c;
   return { dx: localX, dy: origin.mirrored ? -localY : localY };
+}
+
+/**
+ * Turn a facing in the blueprint's frame into the one to write on a placement.
+ *
+ * The inverse of what the expansion did: a module in a mirrored group is
+ * written with the facing that comes out reflected, so turning a drawn copy
+ * clockwise turns the written module anticlockwise. Kept beside
+ * `toPlacementFrame` because the two are the same conversion for the two
+ * things a drag can change.
+ */
+export function toPlacementAngle(origin: ModuleOrigin, angle: number): number {
+  const own = angle - origin.rotation;
+  return normalizeAngle(origin.mirrored ? -own : own);
 }
 
 /**
@@ -657,6 +671,81 @@ export function setMirror(
     else delete instance.mirror;
     return instance;
   });
+}
+
+/**
+ * Set how many copies an instance places, and the step between them.
+ *
+ * The two are one edit because the format makes them one thing: a count above
+ * one without a step piles every copy on the same spot, and a step without a
+ * count does nothing at all, so a layout carrying one and not the other is
+ * refused. Dropping back to a single copy therefore takes the step with it.
+ *
+ * What a repeat *is* worth saying here, since the panel has room for four
+ * numbers and not for this: a repeated instance is a long structure written as
+ * a count, so a wing of six identical bays is one bay and the number six, and
+ * lengthening it is one edit rather than five placements to keep in step. The
+ * step is applied in each copy's own frame, so a step angle walks the copies
+ * round an arc and a ring of mounts costs no more to write than a row.
+ */
+export function setRepetition(
+  blueprint: Blueprint,
+  path: ModulePath,
+  repeat: number,
+  step: { x: number; y: number; angle?: number } | null,
+): Blueprint | null {
+  const placement = placementAt(blueprint, path);
+  if (placement === null || !isInstance(placement)) return null;
+  return updatePlacement(blueprint, path, (current) => {
+    const instance = { ...(current as AssemblyInstance) };
+    if (repeat > 1 && step !== null) {
+      instance.repeat = repeat;
+      instance.step = step;
+    } else {
+      delete instance.repeat;
+      delete instance.step;
+    }
+    return instance;
+  });
+}
+
+/**
+ * How far a set of drawn modules reaches along a direction, metres.
+ *
+ * What it is for: a step that puts the next copy of a group beyond the last
+ * one rather than on top of it. Turning a single instance into a repeat needs
+ * *some* step, and a step of nothing is the one answer guaranteed to be wrong
+ * — every copy would land on the first and the layout would complain about
+ * geometry rather than about the number just typed.
+ *
+ * Measured over every module's own corners after its own rotation, so a group
+ * of turned parts is measured by what it actually covers.
+ */
+export function extentAlong(specs: readonly ModuleSpec[], rotation: number): number {
+  const ax = cos(rotation);
+  const ay = sin(rotation);
+  let low = Infinity;
+  let high = -Infinity;
+  for (const spec of specs) {
+    const angle = spec.angle ?? 0;
+    const c = cos(angle);
+    const s = sin(angle);
+    const hl = spec.length / 2;
+    const hw = spec.width / 2;
+    for (const [dl, dw] of [
+      [hl, hw],
+      [hl, -hw],
+      [-hl, hw],
+      [-hl, -hw],
+    ] as const) {
+      const x = spec.x + dl * c - dw * s;
+      const y = spec.y + dl * s + dw * c;
+      const along = x * ax + y * ay;
+      if (along < low) low = along;
+      if (along > high) high = along;
+    }
+  }
+  return high > low ? high - low : 0;
 }
 
 /**

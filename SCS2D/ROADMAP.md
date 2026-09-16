@@ -95,12 +95,6 @@ teach the mechanics. Each scenario is a data file, not code.
 a file.** Flying what you built is deliberately the *second* iteration. What remains of it is below; Status
 says what the editor already does.
 
-**Direct manipulation is half-built.** A module is dragged to move it, and everything that is not spatial is
-typed into a panel — but size and facing are still numbers in boxes rather than corner handles and a rotate
-handle. Rotation snaps to 15° through the box's own arrows, which is the cheap version of the same idea and
-not the same thing. Position snaps to a grid; both snaps want a held modifier to escape, and only the drag
-has one.
-
 **Assemblies are how a ship stops being edited twice.** A blueprint holds a table of named groups of
 modules, and places them by reference — so the gunship's eight lateral thrusters are one thruster placed
 eight times, and making them all bigger is one edit with no state in which seven of them are. An assembly
@@ -152,18 +146,8 @@ nest, which the format allows and this does not build. Adding to a group takes l
 same reason. All of it is §8 step 6, deliberately after v1: it is what reworking a ship needs rather than
 what building one needs.
 
-**An instance's repeat and step are still file-only.** A long repeated structure is a count, not a
-chain: an instance may carry `repeat` and a `step`, which places that many copies with each one a step on
-from the last — so a wing of six identical bays is one bay and the number six, and lengthening it is one
-edit. The step is applied in each copy's own frame, so a step angle walks the copies round an arc and a ring
-of mounts costs the same as a row of them. Both are capped, per instance and again over the whole expansion,
-because repetition and nesting multiply. An instance is now selectable — a module's panel offers the
-group it belongs to, and a new group is selected as soon as it is made — so its position, facing and
-`mirror` are all reachable. `repeat` and `step` are not: they are the two fields with no control on that
-panel, so a repeated structure can be read and flown but only lengthened by hand in the file.
-
-How copies differ is instead **additive**: an instance may carry `extra` modules of its own, placed in the
-same frame as the assembly's, so they move and reflect with it. That is the whole of the divergence
+**How one copy of a group differs from another is additive.** An instance may carry `extra` modules of its
+own, placed in the same frame as the assembly's, so they move and reflect with it. That is the whole of the divergence
 mechanism, and the editor's unlink is built from it rather than from anything new in the format. Unlink
 takes the shape the layout makes necessary: when the module is the whole of its assembly, each instance is
 replaced by what it expanded to and the assembly goes, which is exact down to module order; when the

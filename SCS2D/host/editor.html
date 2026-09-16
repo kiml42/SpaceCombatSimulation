@@ -64,6 +64,9 @@
       th { text-align: left; font-weight: 400; color: #7f93aa; padding: 0.1rem 0.6rem 0.1rem 0; vertical-align: top; }
       td { text-align: right; padding: 0.1rem 0; }
       #stats td { color: #e6edf5; }
+      /* A display rule of our own outranks the browser's for [hidden], so
+         anything laid out here would stay on screen when hidden without this. */
+      [hidden] { display: none !important; }
       .field { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.3rem; }
       .field label { flex: 0 0 6.5rem; color: #7f93aa; }
       .field input, .field textarea { flex: 1; min-width: 0; }
@@ -141,6 +144,19 @@
           <div class="field">
             <label for="groupMirror">mirrored</label>
             <input id="groupMirror" type="checkbox" />
+          </div>
+          <div class="field">
+            <label for="groupRepeat">copies</label>
+            <input id="groupRepeat" type="number" step="1" min="1" />
+          </div>
+          <div class="field" id="groupStepRow">
+            <label for="groupStepX">step m</label>
+            <input id="groupStepX" type="number" step="0.5" />
+            <input id="groupStepY" type="number" step="0.5" />
+          </div>
+          <div class="field" id="groupStepAngleRow">
+            <label for="groupStepAngle">step turn °</label>
+            <input id="groupStepAngle" type="number" step="15" />
           </div>
           <div id="groupStats"></div>
           <div class="buttons">

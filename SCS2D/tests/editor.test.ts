@@ -3,6 +3,7 @@ import {
   expandBlueprint,
   expandWithOrigins,
   math,
+  radiansToDegrees as toDegrees,
   moduleStats,
   placementAt,
   samePlacement,
@@ -28,6 +29,9 @@ import {
   instanceHandle,
   instanceOf,
   setMirror,
+  setRepetition,
+  extentAlong,
+  toPlacementAngle,
   positionHandle,
   removeCopy,
   unlinkable,
@@ -45,6 +49,15 @@ import { emptyBlueprint, Library, toFileText, type KeyValueStore } from '../edit
 import { Demonstration, ROUND_LIFETIME } from '../editor/demonstrate.js';
 import { MAX_BEAM_LENGTH } from '../sim/beams.js';
 import { GunType } from '../sim/modules.js';
+import {
+  facingTo,
+  handleAt,
+  handlesFor,
+  HANDLE_GRAB_PX,
+  MIN_SIZE,
+  ROTATE_ARM_PX,
+  sizedTo,
+} from '../editor/handles.js';
 import { previewSnapshot } from '../editor/preview.js';
 import { designStats, envelopes, groupMass, headingCost, moduleReadout } from '../editor/stats.js';
 
@@ -331,6 +344,167 @@ describe('EditorDocument', () => {
     const doc = new EditorDocument(bp);
     doc.apply(movePlacement(doc.blueprint, doc.view.origins[0]!, 9, 9)!);
     expect(positions(bp)).toEqual([[0, 0]]);
+  });
+});
+
+describe('the handles on a selected module', () => {
+  // A box 8 long and 4 wide at the origin, square to the world: its corners
+  // are at (±4, ±2) and there is no frame conversion in the way of reading
+  // them.
+  const box: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 8, width: 4 };
+
+  it('puts one on each corner, and the knob beyond the bow', () => {
+    const handles = handlesFor(box, 10);
+    expect(handles.filter((handle) => handle.kind === 'size')).toHaveLength(4);
+    expect(handles.slice(0, 4).map((h) => [h.x, h.y])).toEqual([
+      [4, 2],
+      [4, -2],
+      [-4, -2],
+      [-4, 2],
+    ]);
+    // Beyond the +x face, which is the way the module points, and standing off
+    // it by a fixed number of pixels rather than metres.
+    expect(handles[4]).toMatchObject({ kind: 'rotate', y: 0 });
+    expect(handles[4]!.x).toBeCloseTo(4 + ROTATE_ARM_PX / 10, 12);
+  });
+
+  it('turns with the module', () => {
+    const turned = handlesFor({ ...box, angle: math.HALF_PI }, 10);
+    // A quarter turn anticlockwise: the bow corner goes to +y.
+    expect(turned[0]!.x).toBeCloseTo(-2, 12);
+    expect(turned[0]!.y).toBeCloseTo(4, 12);
+    expect(turned[4]!.y).toBeCloseTo(4 + ROTATE_ARM_PX / 10, 12);
+  });
+
+  it('is grabbed within a few pixels of it, whatever the zoom', () => {
+    const scale = 10;
+    const handles = handlesFor(box, scale);
+    const near = (HANDLE_GRAB_PX - 1) / scale;
+    expect(handleAt(handles, 4, 2, scale)).toBe(0);
+    expect(handleAt(handles, 4 + near, 2, scale)).toBe(0);
+    expect(handleAt(handles, 4 + (HANDLE_GRAB_PX + 1) / scale, 2, scale)).toBe(-1);
+    // The reach is in pixels, so zooming out shrinks it in metres: the same
+    // point in the world is no longer on the handle.
+    expect(handleAt(handles, 4 + near, 2, scale * 4)).toBe(-1);
+  });
+
+  it('takes the nearest when two are in reach', () => {
+    // A module small enough that its corners are within a grab of each other.
+    const small: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 1, width: 1 };
+    const handles = handlesFor(small, 4);
+    expect(handleAt(handles, 0.5, 0.4, 4)).toBe(0);
+    expect(handleAt(handles, 0.5, -0.4, 4)).toBe(1);
+  });
+});
+
+describe('sizing a module by a corner', () => {
+  const box: ModuleSpec = { kind: 'structure', x: 3, y: -2, length: 8, width: 4 };
+
+  it('sizes about the centre, so the module stays where it is', () => {
+    // The corner dragged two metres out along each axis: the box grows by four
+    // in each, because the opposite corner moves with it.
+    expect(sizedTo(box, 3 + 6, -2 + 4, 0.5)).toEqual({ length: 12, width: 8 });
+  });
+
+  it('measures in the module’s own frame', () => {
+    const turned = { ...box, angle: math.HALF_PI };
+    // Along the module's length is now along the world's +y.
+    expect(sizedTo(turned, 3, -2 + 6, 0.5)).toEqual({ length: 12, width: 0.5 });
+  });
+
+  it('snaps to the grid, and Alt escapes it', () => {
+    expect(sizedTo(box, 3 + 3.1, -2, 0.5)).toMatchObject({ length: 6 });
+    expect(sizedTo(box, 3 + 3.1, -2, 0).length).toBeCloseTo(6.2, 12);
+  });
+
+  it('will not go below the smallest a module may be', () => {
+    expect(sizedTo(box, 3, -2, 0.5)).toEqual({ length: MIN_SIZE, width: MIN_SIZE });
+  });
+});
+
+describe('turning a module by its knob', () => {
+  const box: ModuleSpec = { kind: 'structure', x: 2, y: 2, length: 8, width: 4 };
+
+  it('points the module at the pointer, snapped', () => {
+    expect(facingTo(box, 12, 2, 15)).toBeCloseTo(0, 12);
+    expect(facingTo(box, 2, 12, 15)).toBeCloseTo(math.HALF_PI, 12);
+    // 40° from the module, which is nearest to 45.
+    expect(toDegrees(facingTo(box, 2 + 10, 2 + 8.4, 15))).toBeCloseTo(45, 9);
+  });
+
+  it('lands on angles somebody could have typed', () => {
+    // Snapped in degrees rather than radians: rounding in radians and
+    // converting back produces -74.99999999999999, which then appears in the
+    // box and in the file.
+    expect(String(toDegrees(facingTo(box, 2 + 1, 2 - 3.6, 15)))).toBe('-75');
+  });
+
+  it('gives the bearing itself when the snap is escaped', () => {
+    expect(toDegrees(facingTo(box, 2 + 10, 2 + 8.4, 0))).toBeCloseTo(40.03, 1);
+  });
+
+  it('is written in the frame the module was written in', () => {
+    // A module in a mirrored group is drawn turned one way and written the
+    // other, so a knob dragged clockwise on screen writes an anticlockwise
+    // facing.
+    const origin = { path: [], rotation: 0, mirrored: true, instanceFrame: null };
+    expect(toPlacementAngle(origin, math.HALF_PI)).toBeCloseTo(-math.HALF_PI, 12);
+    const turned = { path: [], rotation: math.HALF_PI, mirrored: false, instanceFrame: null };
+    expect(toPlacementAngle(turned, math.HALF_PI)).toBeCloseTo(0, 12);
+  });
+});
+
+describe('repeating a group', () => {
+  const wing = { modules: [{ kind: 'structure', x: 0, y: 0, length: 4, width: 4 } as const] };
+  const bp = ship({ assemblies: { wing }, modules: [hull, { use: 'wing', x: 12, y: 0 }] });
+  const path = [{ index: 1, copy: 0 }];
+
+  it('sets the count and the step together', () => {
+    const next = setRepetition(bp, path, 3, { x: 4, y: 0 })!;
+    expect(positions(next)).toEqual([
+      [0, 0],
+      [12, 0],
+      [16, 0],
+      [20, 0],
+    ]);
+  });
+
+  it('takes the step away again when it drops back to one copy', () => {
+    // A count of one with a step left behind is a layout the parser refuses,
+    // so the two have to leave together.
+    const repeated = setRepetition(bp, path, 3, { x: 4, y: 0 })!;
+    const once = setRepetition(repeated, path, 1, { x: 4, y: 0 })!;
+    expect(once.modules[1]).not.toHaveProperty('repeat');
+    expect(once.modules[1]).not.toHaveProperty('step');
+    expect(positions(once)).toEqual(positions(bp));
+  });
+
+  it('walks the copies round an arc when the step turns', () => {
+    const arc = setRepetition(bp, path, 2, { x: 4, y: 0, angle: math.HALF_PI })!;
+    const drawn = expandWithOrigins(arc).modules;
+    expect(drawn[2]!.angle).toBeCloseTo(math.HALF_PI, 12);
+  });
+
+  it('refuses a placement that is not a group', () => {
+    expect(setRepetition(bp, [{ index: 0, copy: 0 }], 3, { x: 4, y: 0 })).toBeNull();
+  });
+});
+
+describe('how far a group reaches', () => {
+  it('measures the whole of what it covers, along a direction', () => {
+    const specs: ModuleSpec[] = [
+      { kind: 'structure', x: 0, y: 0, length: 4, width: 2 },
+      { kind: 'structure', x: 6, y: 0, length: 4, width: 2 },
+    ];
+    // Two 4 m boxes with their centres 6 m apart: 10 m from end to end.
+    expect(extentAlong(specs, 0)).toBeCloseTo(10, 12);
+    // Across the row, both boxes are only as wide as one.
+    expect(extentAlong(specs, math.HALF_PI)).toBeCloseTo(2, 12);
+  });
+
+  it('measures a turned module by what it actually covers', () => {
+    const specs: ModuleSpec[] = [{ kind: 'structure', x: 0, y: 0, length: 4, width: 2, angle: math.HALF_PI }];
+    expect(extentAlong(specs, 0)).toBeCloseTo(2, 12);
   });
 });
 
