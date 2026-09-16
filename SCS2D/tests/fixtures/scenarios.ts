@@ -279,7 +279,7 @@ export function gunneryScenario(seed = 777): GunneryRun {
  */
 /**
  * One report line for every battle, because any of them may carry either kind
- * of weapon and `beamDuel` carries both — a scenario-specific line drops
+ * of weapon and `beamVGun` carries both — a scenario-specific line drops
  * whichever half its author was not thinking about.
  *
  * The two hit counts are not in the same units and must not be added: a
