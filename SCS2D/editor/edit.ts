@@ -315,6 +315,200 @@ export function duplicatePlacement(
 }
 
 /**
+ * Where a placement is written: which definition's list it sits in, and
+ * whether it sits there directly.
+ *
+ * Two placements can be grouped only if they answer the same `root` and both
+ * sit one step inside it, because that is what "the same list" means — the
+ * new instance has to go somewhere, and it goes where they were.
+ */
+function writtenIn(path: ModulePath): { root: string; direct: boolean } {
+  const entered = enteredAssembly(path);
+  const from = entered === null ? 0 : entered.at + 1;
+  return { root: entered?.step.assembly ?? '', direct: path.length - from === 1 };
+}
+
+/** The path naming a placement's parent list, which a sibling is appended to. */
+function siblingOf(path: ModulePath, index: number): ModulePath {
+  return [...path.slice(0, -1), { index, copy: 0 }];
+}
+
+/**
+ * Why these modules cannot be made into a group, or null if they can.
+ *
+ * The first origin is the one the group will be built around, so order
+ * matters and the caller has to pass them in the order they were picked.
+ */
+export function groupProblem(
+  blueprint: Blueprint,
+  origins: readonly ModuleOrigin[],
+): string | null {
+  if (origins.length < 2) return 'Select two or more modules to group them';
+
+  const first = writtenIn(origins[0]!.path);
+  for (const origin of origins) {
+    const placement = placementAt(blueprint, origin.path);
+    if (placement === null) return 'One of the modules is no longer there';
+    // Grouping instances would nest one assembly inside another, which the
+    // format allows and this does not yet build.
+    if (isInstance(placement)) return 'A group can only be made out of modules, not other groups';
+    const here = writtenIn(origin.path);
+    if (!here.direct || here.root !== first.root) {
+      return 'All of the modules have to be in the same group already';
+    }
+  }
+  return null;
+}
+
+/**
+ * Make an assembly out of several modules, and place it once where they were.
+ *
+ * The half of shared parts that `duplicatePlacement` cannot reach: that one
+ * makes an assembly out of a *single* module, so a ship can have shared parts
+ * but not shared *structures*. This is what a mirrored wing needs — build one
+ * side, group it, place the group again with `mirror` set, and the two sides
+ * cannot disagree about anything except which side they are on.
+ *
+ * **The first module picked is the origin**, and that is a choice worth
+ * stating because it is not the obvious one. The centre of the selection would
+ * be tidier on screen, but a group is usually a thing hanging off a single
+ * connecting module — a wing off its root, a turret and its barbette — and
+ * that module is the one whose position means something. Making it the origin
+ * means mirroring turns the group about the part that joins it to the ship,
+ * which is where a shipwright would put the hinge.
+ *
+ * **Members keep the order they were written in**, not the order they were
+ * clicked, so that the group's internals stay as close to the original ship as
+ * they can be.
+ *
+ * **The instance is appended**, like every other placement this editor makes,
+ * because module order is part of the ship: thrusters are allocated over the
+ * columns in order and turrets fire in order. Grouping therefore moves the
+ * grouped modules to the end of the expansion, and a ship whose layout is
+ * order-sensitive will fly slightly differently afterwards. Nothing about its
+ * geometry moves.
+ */
+export function groupPlacements(
+  blueprint: Blueprint,
+  origins: readonly ModuleOrigin[],
+): { blueprint: Blueprint; path: ModulePath } | null {
+  if (groupProblem(blueprint, origins) !== null) return null;
+
+  const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
+  const pivot = containing(copy, origins[0]!.path);
+  if (pivot === null) return null;
+  const list = pivot.list;
+  const at = list[pivot.index]!;
+  const originX = at.x;
+  const originY = at.y;
+
+  const indices: number[] = [];
+  for (const origin of origins) {
+    const found = containing(copy, origin.path);
+    if (found === null || found.list !== list) return null;
+    if (!indices.includes(found.index)) indices.push(found.index);
+  }
+  indices.sort((a, b) => a - b);
+
+  // Re-expressed about the origin, so the assembly is written in its own frame
+  // and the instance carries where that frame lands.
+  const members: Placement[] = indices.map((index) => {
+    const member = list[index]!;
+    return { ...member, x: member.x - originX, y: member.y - originY };
+  });
+
+  const name = unusedAssemblyName(copy, 'group');
+  copy.assemblies = { ...copy.assemblies, [name]: { modules: members } };
+
+  // Descending, so that removing one does not move the next.
+  for (let i = indices.length - 1; i >= 0; i--) list.splice(indices[i]!, 1);
+  const index = list.length;
+  list.push({ use: name, x: originX, y: originY } as AssemblyInstance);
+
+  return {
+    blueprint: copy as unknown as Blueprint,
+    path: siblingOf(origins[0]!.path, index),
+  };
+}
+
+/** How tall the assembly is, so a second copy can be put clear of the first. */
+function assemblySpan(blueprint: Blueprint, name: string): number {
+  const modules = blueprint.assemblies?.[name]?.modules ?? [];
+  let lo = 0;
+  let hi = 0;
+  let seen = false;
+  for (const member of modules) {
+    // An instance has a pose and no size of its own; its own contents would
+    // need the whole expansion, and a rough span is all this is for.
+    const half = isInstance(member) ? 0 : (member as ModuleSpec).width / 2;
+    const low = member.y - half;
+    const high = member.y + half;
+    if (!seen || low < lo) lo = low;
+    if (!seen || high > hi) hi = high;
+    seen = true;
+  }
+  const span = hi - lo;
+  // Something rather than nothing, for a group with no height to speak of.
+  return span > 1 ? span : 1;
+}
+
+/**
+ * Place a group a second time, alongside the copy that was selected.
+ *
+ * The instance counterpart of `duplicatePlacement`, and the step that makes
+ * grouping worth anything: one definition placed twice is a pair that cannot
+ * drift apart, and setting `mirror` on the second is what makes it the other
+ * side rather than the same side again.
+ */
+export function duplicateInstance(
+  blueprint: Blueprint,
+  path: ModulePath,
+): { blueprint: Blueprint; path: ModulePath } | null {
+  const placement = placementAt(blueprint, path);
+  if (placement === null || !isInstance(placement)) return null;
+
+  const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
+  const found = containing(copy, path);
+  if (found === null) return null;
+  const instance = found.list[found.index] as AssemblyInstance;
+  const index = found.list.length;
+  found.list.push({ ...instance, y: instance.y + assemblySpan(blueprint, instance.use) });
+  return { blueprint: copy as unknown as Blueprint, path: siblingOf(path, index) };
+}
+
+/**
+ * The instance that placed this module, or null if nothing did.
+ *
+ * What makes a group's own properties reachable at all: clicking a module
+ * selects the module, and the pose — where the group sits, how far it is
+ * turned, whether it is reflected — belongs to the instance above it.
+ */
+export function instanceOf(origin: ModuleOrigin): ModulePath | null {
+  const entered = enteredAssembly(origin.path);
+  if (entered === null) return null;
+  const steps = origin.path.slice(0, entered.at + 1);
+  const last = steps[steps.length - 1]!;
+  // Named rather than descended through, so the last step drops the hop.
+  return [...steps.slice(0, -1), { index: last.index, copy: last.copy }];
+}
+
+/** Reflect an instance, or stop reflecting it. */
+export function setMirror(
+  blueprint: Blueprint,
+  path: ModulePath,
+  mirror: boolean,
+): Blueprint | null {
+  const placement = placementAt(blueprint, path);
+  if (placement === null || !isInstance(placement)) return null;
+  return updatePlacement(blueprint, path, (current) => {
+    const instance = { ...(current as AssemblyInstance) };
+    if (mirror) instance.mirror = true;
+    else delete instance.mirror;
+    return instance;
+  });
+}
+
+/**
  * Whether a module could be unlinked: is it shared, and how many copies are
  * about to become separate parts.
  */

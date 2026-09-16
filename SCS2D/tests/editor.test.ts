@@ -4,6 +4,7 @@ import {
   expandWithOrigins,
   math,
   moduleStats,
+  placementAt,
   samePlacement,
   parseBlueprint,
   serialiseBlueprint,
@@ -16,7 +17,12 @@ import { EditorDocument } from '../editor/document.js';
 import {
   addModule,
   cloneBlueprint,
+  duplicateInstance,
   duplicatePlacement,
+  groupPlacements,
+  groupProblem,
+  instanceOf,
+  setMirror,
   positionHandle,
   removeCopy,
   unlinkable,
@@ -864,5 +870,286 @@ describe('Demonstration', () => {
     expect(snapshot.projectileCount).toBe(2);
     // Two rounds from two barrels leave from different places across the mount.
     expect(snapshot.projectileY[0]).not.toBe(snapshot.projectileY[1]);
+  });
+});
+
+describe('grouping modules into an assembly', () => {
+  /** A wing: a root that joins it to the hull, and two things hanging off it. */
+  const wing = (): Blueprint =>
+    ship({
+      modules: [
+        hull,
+        { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
+        { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
+        { kind: 'thruster', x: -4, y: 9, angle: 0, length: 3, width: 3 },
+      ],
+    });
+
+  /** Pick the drawn modules at these indices, in this order. */
+  function pick(doc: EditorDocument, ...indices: number[]) {
+    doc.selectModule(indices[0]!);
+    for (const index of indices.slice(1)) doc.toggleModule(index);
+    return doc.selectedOrigins();
+  }
+
+  it('refuses a selection it cannot make a group out of', () => {
+    const doc = new EditorDocument(wing());
+    expect(groupProblem(doc.blueprint, pick(doc, 1))).toMatch(/two or more/);
+
+    const grouped = groupPlacements(doc.blueprint, pick(doc, 1, 2))!;
+    const after = new EditorDocument(grouped.blueprint);
+    // The hull is written in the layout; the wing's modules are now written
+    // inside the assembly, so the two are not in the same list.
+    const across = pick(after, 0, after.view.modules.length - 1);
+    expect(groupProblem(after.blueprint, across)).toMatch(/same group/);
+  });
+
+  it('builds the group around the first module picked', () => {
+    // Not the centre of the selection: a wing hangs off one connecting module,
+    // and that module is the one whose position means something.
+    const doc = new EditorDocument(wing());
+    const grouped = groupPlacements(doc.blueprint, pick(doc, 1, 2, 3))!;
+    const assemblies = grouped.blueprint.assemblies!;
+    const definition = Object.values(assemblies)[0]!;
+
+    expect(Object.keys(assemblies)).toHaveLength(1);
+    // The root was picked first, so it sits at the assembly's origin and the
+    // instance carries where that origin lands.
+    expect(definition.modules[0]).toMatchObject({ kind: 'structure', x: 0, y: 0 });
+    const instance = grouped.blueprint.modules[grouped.blueprint.modules.length - 1]!;
+    expect(instance).toMatchObject({ x: 0, y: 6 });
+  });
+
+  it('puts the same ship back, in the same places', () => {
+    // The whole safety property: grouping is a change to how a layout is
+    // *written* and not to what it builds, so every module comes out where it
+    // went in. Order is the one thing that moves, and it moves knowingly.
+    const before = wing();
+    const doc = new EditorDocument(before);
+    const grouped = groupPlacements(before, pick(doc, 1, 2, 3))!;
+
+    expect(positions(grouped.blueprint).sort()).toEqual(positions(before).sort());
+    expect(expandBlueprint(grouped.blueprint)).toHaveLength(expandBlueprint(before).length);
+  });
+
+  it('keeps the members in the order they were written, not the order picked', () => {
+    // Clicked back to front. Inside the group they stay as the file had them,
+    // so the group's own internals are as close to the original as they can be.
+    const doc = new EditorDocument(wing());
+    const grouped = groupPlacements(doc.blueprint, pick(doc, 3, 2, 1))!;
+    const definition = Object.values(grouped.blueprint.assemblies!)[0]!;
+    expect(definition.modules.map((m) => (m as ModuleSpec).kind)).toEqual([
+      'structure',
+      'turret',
+      'thruster',
+    ]);
+    // The thruster was picked first, so it is the origin even though it is
+    // written last.
+    expect(definition.modules[2]).toMatchObject({ x: 0, y: 0 });
+  });
+
+  it('appends the instance, which moves the group down the firing order', () => {
+    // Stated because it is a real consequence and not a detail: thrusters are
+    // allocated over the columns in order and turrets fire in order, so a
+    // layout that depended on the old order flies slightly differently.
+    const doc = new EditorDocument(wing());
+    const grouped = groupPlacements(doc.blueprint, pick(doc, 1, 2))!;
+    const last = grouped.blueprint.modules[grouped.blueprint.modules.length - 1]!;
+    expect('use' in last).toBe(true);
+    // The hull, untouched, keeps its place at the front.
+    expect(grouped.blueprint.modules[0]).toMatchObject({ length: 20, width: 6 });
+  });
+
+  it('selects the new group, so its pose can be edited straight away', () => {
+    const doc = new EditorDocument(wing());
+    const grouped = groupPlacements(doc.blueprint, pick(doc, 1, 2))!;
+    doc.apply(grouped.blueprint);
+    doc.select(grouped.path);
+    const placement = doc.selectedPlacement!;
+    expect(placement).not.toBeNull();
+    expect('use' in placement).toBe(true);
+  });
+});
+
+describe('mirroring a group', () => {
+  const wing = (): Blueprint =>
+    ship({
+      modules: [
+        hull,
+        { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
+        { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
+      ],
+    });
+
+  it('reaches the instance from a module inside it', () => {
+    // Clicking a module selects the module; the pose belongs to the instance
+    // above it, and without this there is no way to get there.
+    const doc = new EditorDocument(wing());
+    doc.selectModule(1);
+    doc.toggleModule(2);
+    const grouped = groupPlacements(doc.blueprint, doc.selectedOrigins())!;
+    doc.apply(grouped.blueprint);
+
+    const inside = doc.view.origins.findIndex((o) => o.path.length > 1);
+    expect(inside).toBeGreaterThanOrEqual(0);
+    doc.selectModule(inside);
+    const path = instanceOf(doc.selectedOrigin()!)!;
+    expect(path).not.toBeNull();
+    const placement = placementAt(doc.blueprint, path)!;
+    expect('use' in placement).toBe(true);
+  });
+
+  it('reflects a placed group, and stops reflecting it again', () => {
+    const doc = new EditorDocument(wing());
+    doc.selectModule(1);
+    doc.toggleModule(2);
+    const grouped = groupPlacements(doc.blueprint, doc.selectedOrigins())!;
+
+    const mirrored = setMirror(grouped.blueprint, grouped.path, true)!;
+    const turret = expandBlueprint(mirrored).find((m) => m.kind === 'turret')!;
+    const wasAt = expandBlueprint(grouped.blueprint).find((m) => m.kind === 'turret')!;
+    // Reflected across the instance's own x-axis: the turret was 3 m outboard
+    // of the wing root, and is now 3 m the other way.
+    expect(turret.x).toBeCloseTo(wasAt.x, 9);
+    expect(turret.y - 6).toBeCloseTo(-(wasAt.y - 6), 9);
+
+    const back = setMirror(mirrored, grouped.path, false)!;
+    expect(expandBlueprint(back).map((m) => [m.x, m.y])).toEqual(
+      expandBlueprint(grouped.blueprint).map((m) => [m.x, m.y]),
+    );
+    // Cleared rather than written false, so a layout that was never mirrored
+    // round-trips through the file unchanged.
+    expect('mirror' in (back.modules[back.modules.length - 1] as object)).toBe(false);
+  });
+
+  it('keeps a group selected through an edit to the group itself', () => {
+    // An instance draws nothing of its own — its assembly's modules do — so a
+    // "does this still draw anything" test that only asked which placement
+    // wrote each module called every group selection dead. The panel would
+    // then close on the first edit made from it, which is the one moment it
+    // must not.
+    const doc = new EditorDocument(wing());
+    doc.selectModule(1);
+    doc.toggleModule(2);
+    const grouped = groupPlacements(doc.blueprint, doc.selectedOrigins())!;
+    doc.apply(grouped.blueprint);
+    doc.select(grouped.path);
+    expect(doc.selectedPlacement).not.toBeNull();
+
+    doc.apply(setMirror(doc.blueprint, doc.selection!, true)!);
+
+    expect(doc.selection).not.toBeNull();
+    const still = doc.selectedPlacement!;
+    expect('use' in still).toBe(true);
+    expect((still as { mirror?: boolean }).mirror).toBe(true);
+    // And it accounts for the modules it placed, which is what the highlight
+    // and the panel's own count both read.
+    expect(doc.accountedFor(doc.selection!)).toBe(2);
+    expect(doc.highlightedModules()).toHaveLength(2);
+  });
+
+  it('forgets a group that an edit removed', () => {
+    // The other half of the same rule: still gone when it is genuinely gone.
+    const doc = new EditorDocument(wing());
+    doc.selectModule(1);
+    doc.toggleModule(2);
+    const grouped = groupPlacements(doc.blueprint, doc.selectedOrigins())!;
+    doc.apply(grouped.blueprint);
+    doc.select(grouped.path);
+
+    doc.apply(removePlacement(doc.blueprint, doc.selection!)!);
+
+    expect(doc.selection).toBeNull();
+  });
+
+  it('builds a symmetrical ship out of one side and a reflection', () => {
+    // The workflow this exists for. Draw one wing, group it, place the group
+    // again reflected, and the two sides cannot drift apart.
+    const doc = new EditorDocument(wing());
+    doc.selectModule(1);
+    doc.toggleModule(2);
+    const grouped = groupPlacements(doc.blueprint, doc.selectedOrigins())!;
+
+    // Place it again, and reflect the copy. Three operations, which is the
+    // whole workflow.
+    const placed = duplicateInstance(grouped.blueprint, grouped.path)!;
+    const ship2 = setMirror(placed.blueprint, placed.path, true)!;
+
+    // One definition serving both sides is the property that makes them unable
+    // to disagree: there is nowhere for a difference to be written.
+    expect(Object.keys(ship2.assemblies!)).toHaveLength(1);
+    const turrets = expandBlueprint(ship2).filter((m) => m.kind === 'turret');
+    expect(turrets).toHaveLength(2);
+    expect(turrets[0]!.x).toBeCloseTo(turrets[1]!.x, 9);
+    expect(turrets[0]!.y).not.toBeCloseTo(turrets[1]!.y, 3);
+
+    // And widening the wing root widens it on both sides at once, which is the
+    // thing a mirrored *mode* could only keep in step by watching for it.
+    const root = expandWithOrigins(ship2).origins.findIndex((o) => o.path.length > 1);
+    const wider = updatePlacement(ship2, expandWithOrigins(ship2).origins[root]!.path, (p) => ({
+      ...(p as ModuleSpec),
+      width: 10,
+    }))!;
+    const widened = expandBlueprint(wider).filter((m) => m.kind === 'structure' && m.width === 10);
+    expect(widened).toHaveLength(2);
+  });
+});
+
+describe('picking several modules', () => {
+  const three = (): Blueprint =>
+    ship({
+      modules: [
+        hull,
+        { kind: 'structure', x: 0, y: 6, length: 4, width: 4 },
+        { kind: 'structure', x: 0, y: -6, length: 4, width: 4 },
+      ],
+    });
+
+  it('adds to the selection, and takes back out again', () => {
+    const doc = new EditorDocument(three());
+    doc.selectModule(0);
+    expect(doc.selections).toHaveLength(1);
+    doc.toggleModule(1);
+    expect(doc.selections).toHaveLength(2);
+    doc.toggleModule(1);
+    expect(doc.selections).toHaveLength(1);
+  });
+
+  it('keeps the order they were picked in, because the first one is the origin', () => {
+    const doc = new EditorDocument(three());
+    doc.selectModule(2);
+    doc.toggleModule(0);
+    const origins = doc.selectedOrigins();
+    expect(origins).toHaveLength(2);
+    expect(origins[0]!.path[0]!.index).toBe(2);
+    expect(origins[1]!.path[0]!.index).toBe(0);
+  });
+
+  it('highlights every copy of everything picked', () => {
+    // A shared part picked once is drawn several times, and all of them are
+    // the selection — the placement is what was picked.
+    const doc = new EditorDocument(GUNSHIP);
+    doc.selectModule(0);
+    const first = doc.highlightedModules().length;
+    const other = doc.view.origins.findIndex((_, i) => !doc.highlightedModules().includes(i));
+    doc.toggleModule(other);
+    expect(doc.highlightedModules().length).toBeGreaterThan(first);
+  });
+
+  it('drops only what an edit removed, keeping the rest picked', () => {
+    const doc = new EditorDocument(three());
+    doc.selectModule(1);
+    doc.toggleModule(2);
+    const removed = removePlacement(doc.blueprint, doc.selections[0]!)!;
+    doc.apply(removed);
+    expect(doc.selections).toHaveLength(1);
+  });
+
+  it('replaces the selection on a plain pick', () => {
+    const doc = new EditorDocument(three());
+    doc.selectModule(0);
+    doc.toggleModule(1);
+    doc.selectModule(2);
+    expect(doc.selections).toHaveLength(1);
   });
 });

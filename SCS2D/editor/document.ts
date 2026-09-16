@@ -74,11 +74,19 @@ export class EditorDocument {
   private readonly future: Blueprint[] = [];
 
   /**
-   * The placement being edited, or null. A *placement* and not a drawn module:
-   * selecting one of eight copies of a thruster selects the thruster, because
-   * that is the thing an edit would change.
+   * The placements being edited, in the order they were picked. A *placement*
+   * and not a drawn module: selecting one of eight copies of a thruster
+   * selects the thruster, because that is the thing an edit would change.
+   *
+   * An ordered list rather than a set, and the order is load-bearing: the
+   * first one picked is the module a group is built around, so which module
+   * was clicked first has to survive all the way to `groupPlacements`.
+   *
+   * The properties panel edits one placement at a time, so everything that
+   * reads a single selection reads the first of these. Picking several is for
+   * the operations that act on a *set* — grouping, today.
    */
-  private selected: ModulePath | null = null;
+  private selected: ModulePath[] = [];
 
   /**
    * Which drawn copy was picked, when the selection is shared.
@@ -134,7 +142,7 @@ export class EditorDocument {
   replace(blueprint: Blueprint): void {
     this.past.length = 0;
     this.future.length = 0;
-    this.selected = null;
+    this.selected = [];
     this.set(cloneBlueprint(blueprint));
   }
 
@@ -154,18 +162,46 @@ export class EditorDocument {
     return true;
   }
 
+  /** The placement an edit would change: the first one picked, or null. */
   get selection(): ModulePath | null {
+    return this.selected[0] ?? null;
+  }
+
+  /** Everything picked, in the order it was picked. */
+  get selections(): readonly ModulePath[] {
     return this.selected;
   }
 
   /** Select the placement that drew module `index`, or clear the selection. */
   selectModule(index: number): void {
-    this.selected = this.derived.origins[index]?.path ?? null;
-    this.grabbed = this.selected === null ? 0 : index;
+    const path = this.derived.origins[index]?.path;
+    this.selected = path === undefined ? [] : [path];
+    this.grabbed = path === undefined ? 0 : index;
+  }
+
+  /**
+   * Add the placement that drew module `index` to the selection, or take it
+   * out again if it is already there.
+   *
+   * By placement and not by drawn module, so that picking a second copy of a
+   * part already selected removes it rather than adding a duplicate — the two
+   * copies are one placement, and an edit could not tell them apart anyway.
+   */
+  toggleModule(index: number): void {
+    const path = this.derived.origins[index]?.path;
+    if (path === undefined) return;
+    const at = this.selected.findIndex((each) => samePlacement(each, path));
+    if (at >= 0) {
+      this.selected.splice(at, 1);
+      if (this.grabbed === index) this.grabbed = 0;
+      return;
+    }
+    this.selected.push(path);
+    this.grabbed = index;
   }
 
   select(path: ModulePath | null): void {
-    this.selected = path;
+    this.selected = path === null ? [] : [path];
     this.grabbed = 0;
   }
 
@@ -178,7 +214,7 @@ export class EditorDocument {
    * ones somebody typed. The panel edits what was typed.
    */
   get selectedPlacement(): Placement | null {
-    const path = this.selected;
+    const path = this.selection;
     if (path === null) return null;
     return placementAt(this.current, path);
   }
@@ -192,7 +228,7 @@ export class EditorDocument {
    * from it.
    */
   selectedModules(): number[] {
-    const path = this.selected;
+    const path = this.selection;
     if (path === null) return [];
     const out: number[] = [];
     for (let i = 0; i < this.derived.origins.length; i++) {
@@ -216,12 +252,88 @@ export class EditorDocument {
     return this.derived.origins[drawn[0]!] ?? null;
   }
 
+  /**
+   * One origin per picked placement, in the order they were picked — which is
+   * what an operation over the whole selection needs, and what carries the
+   * "first one picked" that decides a group's origin.
+   */
+  selectedOrigins(): ModuleOrigin[] {
+    const out: ModuleOrigin[] = [];
+    for (const path of this.selected) {
+      const found = this.derived.origins.find((origin) => samePlacement(origin.path, path));
+      if (found !== undefined) out.push(found);
+    }
+    return out;
+  }
+
+  /**
+   * Whether a placement accounts for a drawn module: either it wrote it, or it
+   * is an instance somewhere above it.
+   *
+   * The second half is what makes a group selectable at all. An instance draws
+   * nothing itself — its assembly's modules do — so a test that only asked
+   * "did this placement write that module" would call every group selection
+   * dead, and the panel editing one would close on its own first edit.
+   */
+  private accountsFor(path: ModulePath, drawn: ModulePath): boolean {
+    if (samePlacement(drawn, path)) return true;
+    for (let k = 1; k < drawn.length; k++) {
+      const step = drawn[k - 1]!;
+      // Named rather than descended through, so the hop is dropped.
+      const ancestor = [...drawn.slice(0, k - 1), { index: step.index, copy: step.copy }];
+      if (samePlacement(ancestor, path)) return true;
+    }
+    return false;
+  }
+
+  /** Every drawn module a placement accounts for. */
+  private drawnFor(path: ModulePath): number[] {
+    const out: number[] = [];
+    for (let i = 0; i < this.derived.origins.length; i++) {
+      if (this.accountsFor(path, this.derived.origins[i]!.path)) out.push(i);
+    }
+    return out;
+  }
+
+  /**
+   * Every drawn module the selection accounts for, for the highlight.
+   *
+   * Distinct from `selectedModules`, which answers only for the placement the
+   * panel is editing: a shared part selected once is drawn eight times and all
+   * eight are highlighted, so is everything else picked alongside it, and so is
+   * every module of a selected group.
+   */
+  highlightedModules(): number[] {
+    const out: number[] = [];
+    for (let i = 0; i < this.derived.origins.length; i++) {
+      const path = this.derived.origins[i]!.path;
+      if (this.selected.some((each) => this.accountsFor(each, path))) out.push(i);
+    }
+    // The copy that was picked comes first, as it does in `selectedModules`,
+    // because the overlay draws the first one brightest and that should be the
+    // one under the pointer.
+    const picked = out.indexOf(this.grabbed);
+    if (picked > 0) {
+      out.splice(picked, 1);
+      out.unshift(this.grabbed);
+    }
+    return out;
+  }
+
+  /** How many drawn modules a placement accounts for, groups included. */
+  accountedFor(path: ModulePath): number {
+    return this.drawnFor(path).length;
+  }
+
   private set(blueprint: Blueprint): void {
     this.current = blueprint;
     this.derived = derive(blueprint);
     // A selection that no longer draws anything is gone, not merely stale.
     // Keeping it would leave the properties panel editing a placement the
-    // player cannot see.
-    if (this.selected !== null && this.selectedModules().length === 0) this.selected = null;
+    // player cannot see. Checked per placement, since an edit can remove one
+    // of several picked and leave the rest standing — and through
+    // `accountsFor`, so that editing a group's own pose does not dismiss the
+    // panel that just made the edit.
+    this.selected = this.selected.filter((path) => this.drawnFor(path).length > 0);
   }
 }
