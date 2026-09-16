@@ -15,7 +15,7 @@
     },
     "mainEngine": {
       "notes": "One of the pair that drives the ship forward.",
-      "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": 0, "length": 8, "width": 4 }]
+      "modules": [{ "kind": "thruster", "x": 4, "y": 0, "angle": 0, "length": 8, "width": 4 }]
     },
     "wingBox": {
       "notes": "A stub holding a manoeuvring thruster out where its moment arm is worth having.",
@@ -23,11 +23,11 @@
     },
     "lateral": {
       "notes": "A manoeuvring thruster pushing inboard, so its exhaust leaves into clear air rather than into the stub it is bolted to.",
-      "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": -90, "length": 2, "width": 4 }]
+      "modules": [{ "kind": "thruster", "x": 0, "y": -1, "angle": -90, "length": 2, "width": 4 }]
     },
     "retro": {
       "notes": "Braking thrust, pushing aft.",
-      "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": 180, "length": 3, "width": 4 }]
+      "modules": [{ "kind": "thruster", "x": -1.5, "y": 0, "angle": 180, "length": 3, "width": 4 }]
     }
   },
   "modules": [

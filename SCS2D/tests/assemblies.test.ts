@@ -435,15 +435,18 @@ describe('rejecting a layout that cannot be resolved', () => {
     const engine = { kind: 'thruster', x: 0, y: 0, angle: 0, length: 2, width: 4 } as const;
     const good = ship({
       assemblies: { e: { modules: [engine] } },
-      modules: [hull, { use: 'e', x: -11, y: 0 }],
+      // A thruster's position is the face it pushes from, so the instance puts
+      // that face on the hull's own and the engine hangs back off it.
+      modules: [hull, { use: 'e', x: -10, y: 0 }],
     });
     expect(blueprintProblem(good)).toBeNull();
 
     // Same definition, placed the other side of the hull, where pushing +x
-    // means pushing away from it.
+    // means pushing away from it: the engine abuts the hull by its nozzle and
+    // the face it pushes from is out in clear air.
     const bad = ship({
       assemblies: { e: { modules: [engine] } },
-      modules: [hull, { use: 'e', x: 11, y: 0 }],
+      modules: [hull, { use: 'e', x: 12, y: 0 }],
     });
     expect(blueprintProblem(bad)).toMatch(/no structure to push against/);
   });

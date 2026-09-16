@@ -1,4 +1,10 @@
-import { degreesToRadians, math, radiansToDegrees, type ModuleSpec } from '../sim/index.js';
+import {
+  degreesToRadians,
+  math,
+  moduleCentre,
+  radiansToDegrees,
+  type ModuleSpec,
+} from '../sim/index.js';
 import { snap } from './edit.js';
 
 const { abs, atan2, cos, sin, max, sqrt } = math;
@@ -66,10 +72,11 @@ export function handlesFor(spec: ModuleSpec, scale: number): Handle[] {
   const s = sin(angle);
   const hl = spec.length / 2;
   const hw = spec.width / 2;
+  const mid = moduleCentre(spec);
   const at = (dl: number, dw: number, kind: Handle['kind']): Handle => ({
     kind,
-    x: spec.x + dl * c - dw * s,
-    y: spec.y + dl * s + dw * c,
+    x: mid.x + dl * c - dw * s,
+    y: mid.y + dl * s + dw * c,
   });
   return [
     at(hl, hw, 'size'),
@@ -104,15 +111,21 @@ export function handleAt(
 /**
  * The size a module takes when a corner is dragged to a point.
  *
- * **About the module's centre**, so the opposite corner moves too. Anchoring
- * the corner opposite the one being dragged would feel more like a drawing
- * program, and it was rejected for two reasons that both come from what a
+ * **About the module's position**, which keeps that position meaning what it
+ * says: a hull grows equally from its middle, and a thruster grows back from
+ * the face it is bolted on by, because that face is where a thruster's
+ * position is. An engine dragged longer therefore stays bolted where it was
+ * and reaches further into its own exhaust, which is the only direction it
+ * has room to grow in.
+ *
+ * Anchoring the corner *opposite* the one being dragged — what a drawing
+ * program does — was rejected for two reasons that both come from what a
  * module is here. A module's position is the thing that belongs to a *copy*
  * where its size belongs to the shared part, so anchoring a corner would make
- * every resize of a shared module also a move of one copy of it — and the
- * other copies would have nothing to anchor. And with size snapping to half a
- * metre, an anchored corner puts the centre on a quarter-metre grid, which
- * takes the module off the grid its neighbours abut on.
+ * every resize of a shared module also a move of one copy of it, and the other
+ * copies would have nothing to anchor. And with size snapping to half a metre,
+ * an anchored corner puts the position on a quarter-metre grid, which takes
+ * the module off the grid its neighbours abut on.
  *
  * Both dimensions move together, since a corner is a statement about both. A
  * drag along one edge would be the handle for one of them, and there is no
@@ -129,11 +142,14 @@ export function sizedTo(
   const s = sin(-angle);
   const dx = x - spec.x;
   const dy = y - spec.y;
-  // The pointer in the module's own frame: half the box in each direction, so
-  // the size is twice how far out the corner has been dragged.
+  // The pointer in the module's own frame, measured from where the module is
+  // attached. A box centred on that point reaches half its length either side
+  // of it; a thruster hanging back from it reaches the whole of its length one
+  // way, so the same drag buys twice as much engine.
   const local = { x: dx * c - dy * s, y: dx * s + dy * c };
+  const lengthwise = spec.kind === 'thruster' ? abs(local.x) : abs(local.x) * 2;
   return {
-    length: max(MIN_SIZE, snap(abs(local.x) * 2, step)),
+    length: max(MIN_SIZE, snap(lengthwise, step)),
     width: max(MIN_SIZE, snap(abs(local.y) * 2, step)),
   };
 }
