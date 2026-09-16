@@ -276,9 +276,78 @@ describe('the editor in a browser', () => {
     expect(await page.isHidden('#groupPanel')).toBe(false);
     expect(await page.isChecked('#groupMirror')).toBe(true);
 
-    // And the ship now has two of everything that was grouped.
+    // And the ship now has two of everything that was grouped: clicking where
+    // the original's turret is picks a group rather than nothing.
     await page.mouse.click(centre.x + 168, centre.y);
-    expect(await page.isHidden('#properties')).toBe(false);
+    expect(await page.isHidden('#groupPanel')).toBe(false);
+  });
+
+  it('picks the whole group first, and the module inside it on a second click', async () => {
+    // A group is a part, so clicking it selects the part. Reaching what is
+    // inside is deliberate rather than accidental: click it again, once the
+    // group it belongs to is already the selection.
+    await page.selectOption('#ship', 'Corvette');
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x + 168, centre.y);
+    await page.keyboard.down('Shift');
+    await page.mouse.click(centre.x, centre.y);
+    await page.keyboard.up('Shift');
+    await page.click('#propGroup');
+    await page.keyboard.press('Escape');
+
+    await page.mouse.click(centre.x + 168, centre.y);
+    expect(await page.isHidden('#groupPanel')).toBe(false);
+    expect(await page.isHidden('#properties')).toBe(true);
+
+    await page.mouse.click(centre.x + 168, centre.y);
+    expect(await page.isHidden('#groupPanel')).toBe(true);
+    expect(await page.textContent('#propKind')).toBe('turret');
+  });
+
+  it('drags a selected group as one part', async () => {
+    // Dragging has to move what is selected. Drilling into the group on the
+    // press would have moved one module out of it instead, which is both the
+    // wrong thing and hard to notice until the ship is wrong.
+    await page.selectOption('#ship', 'Corvette');
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x + 168, centre.y);
+    await page.keyboard.down('Shift');
+    await page.mouse.click(centre.x, centre.y);
+    await page.keyboard.up('Shift');
+    await page.click('#propGroup');
+
+    const before = Number(await page.inputValue('#groupX'));
+    await page.mouse.move(centre.x + 168, centre.y);
+    await page.mouse.down();
+    await page.mouse.move(centre.x + 228, centre.y - 40, { steps: 8 });
+    await page.mouse.up();
+    // Still the group's panel, and the group is where it was dragged to.
+    expect(await page.isHidden('#groupPanel')).toBe(false);
+    expect(Number(await page.inputValue('#groupX'))).not.toBe(before);
+  });
+
+  it('adds a loose module to a group that is already placed', async () => {
+    await page.selectOption('#ship', 'Corvette');
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x + 168, centre.y);
+    await page.keyboard.down('Shift');
+    await page.mouse.click(centre.x, centre.y);
+    await page.keyboard.up('Shift');
+    await page.click('#propGroup');
+    expect(await page.textContent('#groupOf')).toMatch(/2 modules/);
+
+    // A module outside the group: the corvette's aft thruster, well behind the
+    // hull along the ship's -x.
+    await page.keyboard.down('Shift');
+    await page.mouse.click(centre.x - 200, centre.y);
+    await page.keyboard.up('Shift');
+    expect(await page.isDisabled('#propAddToGroup')).toBe(false);
+
+    await page.click('#propAddToGroup');
+    // The group gained it, and the selection is the group rather than whatever
+    // slid into the module's place in the list.
+    expect(await page.isHidden('#groupPanel')).toBe(false);
+    expect(await page.textContent('#groupOf')).toMatch(/3 modules/);
   });
 
   it('reaches a group from a module inside it', async () => {

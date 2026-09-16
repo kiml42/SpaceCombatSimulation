@@ -2,6 +2,7 @@ import {
   blueprintProblems,
   compileDraft,
   expandWithOrigins,
+  isInstance,
   placementAt,
   samePlacement,
   type Blueprint,
@@ -11,7 +12,7 @@ import {
   type Placement,
   type ShipDesign,
 } from '../sim/index.js';
-import { cloneBlueprint } from './edit.js';
+import { cloneBlueprint, instanceChain } from './edit.js';
 
 /**
  * The layout being worked on, everything derived from it, and the way back to
@@ -200,6 +201,46 @@ export class EditorDocument {
     this.grabbed = index;
   }
 
+  /**
+   * Select a placement that a particular drawn module led to.
+   *
+   * The index is kept as the grabbed copy even when the path names something
+   * above the module — a group dragged by one of its parts has to be written
+   * in that part's frame, and the highlight has to brighten the copy under the
+   * pointer rather than whichever one the layout drew first.
+   */
+  selectAt(index: number, path: ModulePath | null): void {
+    this.selected = path === null ? [] : [path];
+    this.grabbed = path === null ? 0 : index;
+  }
+
+  /** Add a placement to the selection, or take it out if it is already there. */
+  togglePath(path: ModulePath | null): void {
+    if (path === null) return;
+    const at = this.selected.findIndex((each) => samePlacement(each, path));
+    if (at >= 0) this.selected.splice(at, 1);
+    else this.selected.push(path);
+  }
+
+  /** The selected group, when exactly one thing is selected and it is a group. */
+  selectedGroupPath(): ModulePath | null {
+    if (this.selected.length !== 1) return null;
+    const path = this.selected[0]!;
+    return this.isGroup(path) ? path : null;
+  }
+
+  /**
+   * The one selected group and the loose modules picked alongside it, which is
+   * what adding to a group needs.
+   */
+  groupAndLooseSelection(): { group: ModulePath; modules: ModulePath[] } | null {
+    const groups = this.selected.filter((path) => this.isGroup(path));
+    if (groups.length !== 1) return null;
+    const modules = this.selected.filter((path) => !this.isGroup(path));
+    if (modules.length === 0) return null;
+    return { group: groups[0]!, modules };
+  }
+
   select(path: ModulePath | null): void {
     this.selected = path === null ? [] : [path];
     this.grabbed = 0;
@@ -276,14 +317,95 @@ export class EditorDocument {
    * dead, and the panel editing one would close on its own first edit.
    */
   private accountsFor(path: ModulePath, drawn: ModulePath): boolean {
-    if (samePlacement(drawn, path)) return true;
-    for (let k = 1; k < drawn.length; k++) {
-      const step = drawn[k - 1]!;
+    return samePlacement(drawn, path) || this.under(drawn, path);
+  }
+
+  /** Whether one placement is written inside another — at any depth. */
+  private under(inner: ModulePath, outer: ModulePath): boolean {
+    for (let k = 1; k < inner.length; k++) {
+      const step = inner[k - 1]!;
       // Named rather than descended through, so the hop is dropped.
-      const ancestor = [...drawn.slice(0, k - 1), { index: step.index, copy: step.copy }];
-      if (samePlacement(ancestor, path)) return true;
+      const ancestor = [...inner.slice(0, k - 1), { index: step.index, copy: step.copy }];
+      if (samePlacement(ancestor, outer)) return true;
     }
     return false;
+  }
+
+  /**
+   * What clicking a drawn module should select: the group it is in, or the
+   * module itself once you are already in that group.
+   *
+   * A grouped module is part of a thing before it is a module, and the thing
+   * is what you usually want — dragging a wing should move the wing. So a
+   * click lands on the outermost group and a second one goes in, a level at a
+   * time, which is how a person expects to get at a wing before getting at a
+   * bracket on it.
+   *
+   * "Already in that group" counts a sibling too, not only the group itself:
+   * once you are working inside a wing, clicking its other parts should reach
+   * them rather than throwing you back out to the wing each time.
+   */
+  resolveClick(index: number): ModulePath | null {
+    const origin = this.derived.origins[index];
+    if (origin === undefined) return null;
+    const chain: ModulePath[] = [...instanceChain(origin.path), origin.path];
+
+    let depth = 0;
+    for (let i = 0; i < chain.length; i++) {
+      const level = chain[i]!;
+      const inside = this.selected.some(
+        (path) => samePlacement(path, level) || this.under(path, level),
+      );
+      if (inside) depth = i + 1;
+    }
+    return chain[depth < chain.length ? depth : chain.length - 1] ?? null;
+  }
+
+  /** Whether the selection already accounts for this drawn module. */
+  covers(index: number): boolean {
+    const path = this.derived.origins[index]?.path;
+    if (path === undefined) return false;
+    return this.selected.some((each) => this.accountsFor(each, path));
+  }
+
+  /** Whether a selected placement is a group rather than a module. */
+  private isGroup(path: ModulePath): boolean {
+    const placement = placementAt(this.current, path);
+    return placement !== null && isInstance(placement);
+  }
+
+  /**
+   * The drawn modules of each selected group, one list per group.
+   *
+   * Kept apart from the loose modules because the two are shown differently:
+   * a group is one thing and is outlined once, where several modules picked
+   * separately are several things and are outlined separately. Reading that
+   * off the shape of the selection rather than off a flag means the picture
+   * cannot disagree with what an edit would do.
+   */
+  selectedGroups(): number[][] {
+    const out: number[][] = [];
+    for (const path of this.selected) {
+      if (!this.isGroup(path)) continue;
+      const drawn = this.drawnFor(path);
+      if (drawn.length > 0) out.push(drawn);
+    }
+    return out;
+  }
+
+  /** The drawn modules of the selected placements that are not groups. */
+  selectedLoose(): number[] {
+    const out: number[] = [];
+    for (const path of this.selected) {
+      if (this.isGroup(path)) continue;
+      for (const index of this.drawnFor(path)) if (!out.includes(index)) out.push(index);
+    }
+    const picked = out.indexOf(this.grabbed);
+    if (picked > 0) {
+      out.splice(picked, 1);
+      out.unshift(this.grabbed);
+    }
+    return out;
   }
 
   /** Every drawn module a placement accounts for. */

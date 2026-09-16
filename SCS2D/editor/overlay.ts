@@ -17,6 +17,20 @@ const { cos, sin, max, TAU } = math;
 
 const SELECTION = '#e9c05f';
 const SELECTION_LINKED = '#e9c05fcc';
+/**
+ * A group is outlined in a different colour from a module, and once around
+ * everything it holds rather than separately around each part.
+ *
+ * Both cues say the same thing, deliberately. The colour says *what kind of
+ * thing* is selected, which is what decides what an edit will do — dragging a
+ * group moves the group. The single box says *how many things* are selected,
+ * which a selection of several modules and a selection of one group could
+ * otherwise look identical about: five outlines either way, and a drag that
+ * behaves quite differently.
+ */
+const GROUP_SELECTION = '#7fd4ff';
+/** How far the group's box stands off what it contains, metres. */
+const GROUP_BOX_MARGIN = 0.6;
 const CENTRE_OF_MASS = '#7fd6a0';
 const ENVELOPE = '#5b8dd6';
 const ENVELOPE_FILL = 'rgba(91, 141, 214, 0.22)';
@@ -33,8 +47,13 @@ const ENVELOPE_CAPTION_PX = 32;
 export interface OverlayView {
   design: ShipDesign | null;
   modules: readonly ModuleSpec[];
-  /** Indices of the drawn modules the selection accounts for; the first is the one grabbed. */
+  /**
+   * Indices of the drawn modules picked individually; the first is the one
+   * grabbed. Groups are not among them — they come through `groups`.
+   */
   selected: readonly number[];
+  /** One list per selected group, of the drawn modules that group accounts for. */
+  groups: readonly (readonly number[])[];
   /**
    * The manoeuvring envelopes, or null when there is no design to have any.
    *
@@ -87,6 +106,58 @@ function drawSelection(ctx: CanvasRenderingContext2D, view: OverlayView, camera:
     if (i > 0) ctx.setLineDash([lineWidth * 4, lineWidth * 3]);
     ctx.strokeRect(-spec.length / 2, -spec.width / 2, spec.length, spec.width);
     ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  drawGroups(ctx, view, lineWidth);
+}
+
+/**
+ * One box around each selected group, about everything it holds.
+ *
+ * Corners rather than centres, and every module's own corners after its own
+ * rotation, so a group of turned parts is boxed by what it actually covers
+ * rather than by a rectangle its contents stick out of.
+ */
+function drawGroups(ctx: CanvasRenderingContext2D, view: OverlayView, lineWidth: number): void {
+  for (const group of view.groups) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const index of group) {
+      const spec = view.modules[index];
+      if (spec === undefined) continue;
+      const angle = spec.angle ?? 0;
+      const c = Math.cos(angle);
+      const s = Math.sin(angle);
+      const halfL = spec.length / 2;
+      const halfW = spec.width / 2;
+      for (const [ox, oy] of [
+        [halfL, halfW],
+        [halfL, -halfW],
+        [-halfL, halfW],
+        [-halfL, -halfW],
+      ] as const) {
+        const x = spec.x + ox * c - oy * s;
+        const y = spec.y + ox * s + oy * c;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+    if (!(maxX > minX) && !(maxY > minY)) continue;
+
+    ctx.save();
+    ctx.strokeStyle = GROUP_SELECTION;
+    ctx.lineWidth = lineWidth;
+    ctx.strokeRect(
+      minX - GROUP_BOX_MARGIN,
+      minY - GROUP_BOX_MARGIN,
+      maxX - minX + GROUP_BOX_MARGIN * 2,
+      maxY - minY + GROUP_BOX_MARGIN * 2,
+    );
     ctx.restore();
   }
 }
