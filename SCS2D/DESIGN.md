@@ -49,7 +49,7 @@ inside any one file is not contiguous.
   belonging to the copy and everything else to all of them; several modules can be
   picked at once and grouped into one part, which is then placed again and reflected
   to build a symmetrical ship out of one side and a mirror of it, and clicked, dragged
-  and added to as one thing; every problem with the layout is listed rather
+  and added to as one thing, and carries a name of its own; every problem with the layout is listed rather
   than enforced, and undo and redo run throughout. Ships are opened from the built-in
   library or from browser storage, saved back to it, and exported and imported as
   blueprint files. Both pages build to one self-contained HTML file each.

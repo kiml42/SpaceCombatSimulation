@@ -362,6 +362,44 @@ describe('the editor in a browser', () => {
     expect(await page.isHidden('#groupPanel')).toBe(false);
   });
 
+  it('renames a group, and keeps the ship it names', async () => {
+    await page.selectOption('#ship', 'Corvette');
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x + 168, centre.y);
+    await page.keyboard.down('Shift');
+    await page.mouse.click(centre.x, centre.y);
+    await page.keyboard.up('Shift');
+    await page.click('#propGroup');
+    const mass = (await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0];
+
+    await page.fill('#groupName', 'bow mount');
+    // The rename reaches the instance as well as the definition — a `use` left
+    // pointing at the old name would place nothing, so the ship standing still
+    // is the check that both halves happened.
+    expect((await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0]).toBe(mass);
+    expect(await page.textContent('#problems')).toMatch(/No problems/);
+
+    // Still the group's own panel, holding what was typed.
+    expect(await page.isHidden('#groupPanel')).toBe(false);
+    expect(await page.inputValue('#groupName')).toBe('bow mount');
+  });
+
+  it('steps size by the same amount every time the arrow is pressed', async () => {
+    // A number input's steps are counted from its minimum, so a minimum off
+    // the step grid puts every arrow press off it too — 8 became 8.1 and then
+    // moved in halves.
+    await page.selectOption('#ship', 'Corvette');
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x, centre.y);
+    await page.fill('#propLength', '8');
+    const steps: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      await page.locator('#propLength').press('ArrowUp');
+      steps.push(Number(await page.inputValue('#propLength')));
+    }
+    expect(steps).toEqual([8.5, 9, 9.5]);
+  });
+
   it('adds a module, and says what is now wrong with the layout', async () => {
     await page.selectOption('#ship', 'Corvette');
     await page.click('[data-add="turret"]');

@@ -783,6 +783,71 @@ function appendCopy(blueprint: Blueprint, path: ModulePath, across: number): Blu
   return copy as unknown as Blueprint;
 }
 
+/**
+ * What stops a group being called this, or null if nothing does.
+ *
+ * A group's name is its key in the assemblies table and the `use` every
+ * instance names it by, so the only rules are the ones that keep the table a
+ * table: something has to be written, and two groups cannot share a name
+ * without one of them disappearing into the other.
+ */
+export function renameProblem(blueprint: Blueprint, path: ModulePath, name: string): string | null {
+  const placed = placementAt(blueprint, path);
+  if (placed === null || !isInstance(placed)) return 'Only a group has a name';
+  const wanted = name.trim();
+  if (wanted === '') return 'A group needs a name';
+  if (wanted === placed.use) return null;
+  if (blueprint.assemblies?.[wanted] !== undefined) return `Another group is already called ${wanted}`;
+  return null;
+}
+
+/**
+ * Rename the group an instance places, everywhere it is named.
+ *
+ * The name is worth editing because it is the only thing about a group that
+ * says what it is *for* — an assembly is otherwise a list of modules and a
+ * number of copies — and a layout accumulates `group`, `group2`, `group3`
+ * faster than anyone can keep track of.
+ *
+ * Every instance is renamed with it, at every depth, because the name is a
+ * reference rather than a label: a `use` left pointing at the old name places
+ * nothing at all. The table keeps its order, so the file's diff is the name
+ * and not a reshuffle.
+ */
+export function renameAssembly(
+  blueprint: Blueprint,
+  path: ModulePath,
+  name: string,
+): Blueprint | null {
+  if (renameProblem(blueprint, path, name) !== null) return null;
+  const placed = placementAt(blueprint, path) as AssemblyInstance;
+  const wanted = name.trim();
+  if (wanted === placed.use) return blueprint;
+
+  const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
+  const definitions = copy.assemblies;
+  if (definitions?.[placed.use] === undefined) return null;
+
+  const renamed: Record<string, { modules: Placement[]; notes?: string }> = {};
+  for (const [key, assembly] of Object.entries(definitions)) {
+    renamed[key === placed.use ? wanted : key] = assembly;
+  }
+  copy.assemblies = renamed;
+
+  const walk = (list: Placement[]): void => {
+    for (const entry of list) {
+      if (!isInstance(entry)) continue;
+      const instance = entry as unknown as { use: string; extra?: Placement[] };
+      if (instance.use === placed.use) instance.use = wanted;
+      if (instance.extra !== undefined) walk(instance.extra);
+    }
+  };
+  walk(copy.modules);
+  for (const assembly of Object.values(renamed)) walk(assembly.modules);
+
+  return copy as unknown as Blueprint;
+}
+
 /** A name for a new assembly that the layout is not already using. */
 function unusedAssemblyName(blueprint: MutableBlueprint, kind: string): string {
   const taken = blueprint.assemblies ?? {};
