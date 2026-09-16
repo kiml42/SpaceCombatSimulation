@@ -351,15 +351,11 @@ export function orderingScenario(seed = 20260905): ScenarioRun {
     step: () => run.step(),
     checksum: () =>
       checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-    // The spread is the whole point of the scenario, so it is what the report
-    // line leads with: three ships that are the same shape, and how far apart
-    // listing their modules differently has put them.
+    // The spread is the point of the scenario, so it leads the report line.
     describe: () => {
       const gap = spread(run);
-      // Exponential once it is small, which is where it has been: a figure
-      // reported as 0.0m reads as "no difference" when what it means is "a
-      // difference far below anything that matters", and those are not the
-      // same finding.
+      // Exponential once it is small: "0.0m" reads as no difference when it
+      // means a difference far below anything that matters.
       return `spread=${gap < 0.01 ? gap.toExponential(2) : gap.toFixed(1)}m ${describeBattle(run)}`;
     },
   };

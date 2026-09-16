@@ -12,27 +12,20 @@ import { BLUEPRINTS, type BlueprintName } from '../scenarios/blueprints.js';
  *   npx tsx scripts/flatten.ts gunship scenarios/flat-gunship.json
  *   npx tsx scripts/flatten.ts gunship scenarios/flat-gunship-grouped.json --order=kind
  *
- * A flat copy is the same ship to look at and to compile — mass, arcs and
- * ballistics all come out of the geometry — so the only thing it can differ in
- * is the order its modules are listed in, and that decides thruster allocation
- * order and firing order. Which makes a pair of flat copies the way to measure
- * what that ordering is worth; `scenarios/ordering.ts` is the scenario that
- * does.
- *
- * Generated rather than hand-drawn, so a flat copy cannot quietly drift away
- * from the ship it is a copy of. Notes already in the output file are kept:
- * why a layout is as it is belongs with the layout (see
- * `scenarios/blueprints.ts`), and regenerating must not throw that away.
+ * A flat copy compiles to the same ship, so the only thing it can differ in is
+ * module order — which is what `scenarios/ordering.ts` measures. Generated
+ * rather than hand-drawn so a copy cannot drift from its original; notes
+ * already in the output file are kept, since why a layout is as it is belongs
+ * with the layout.
  */
 
 const ORDERS = {
   /** Exactly what expansion produces: depth-first through the assemblies. */
   expansion: (modules: readonly ModuleSpec[]): readonly ModuleSpec[] => modules,
-  /** All the structure, then all the thrusters, then the guns. */
+  /** All the structure, then all the thrusters, then the guns. Stable, so the
+   * only change is which kinds come first. */
   kind: (modules: readonly ModuleSpec[]): readonly ModuleSpec[] => {
     const rank = ['structure', 'thruster', 'turret', 'beamTurret'];
-    // Stable, so modules of one kind keep their expansion order among
-    // themselves and the only change is which kinds come first.
     return [...modules].sort((a, b) => rank.indexOf(a.kind) - rank.indexOf(b.kind));
   },
 } as const;
@@ -78,8 +71,7 @@ const flat: Blueprint = {
 if (existingNotes !== undefined) flat.notes = existingNotes;
 
 const file = serialiseBlueprint(flat);
-// Round-trip through the same validation a stranger's file gets, so a broken
-// file is caught here rather than when something tries to fly it.
+// The same validation a stranger's file gets, so a broken one is caught here.
 parseBlueprint(JSON.parse(JSON.stringify(file)));
 writeFileSync(path, `${JSON.stringify(file, null, 2)}\n`);
 

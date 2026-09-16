@@ -209,9 +209,8 @@ export function start(): void {
         : 0;
     readout.textContent =
       `t ${view.time.toFixed(1)} s · step ${view.tick} · ` +
-      // Metres are the right resolution for a duel and useless for two ships
-      // that are almost on top of each other, which is what a scenario
-      // comparing near-identical designs leaves on screen.
+      // Metres suit a duel and tell you nothing about two near-identical
+      // designs flying almost on top of each other.
       `range ${range.toFixed(range < 10 ? 3 : 0)} m · in flight ${view.projectileCount} · ` +
       `p.fired ${state.totalProjectilesFired} · p.hits ${state.totalProjectileHits} · ` +
       `b.fired ${state.totalBeamsFired} · b.hits ${state.totalBeamHits} · grid ${gridStep(camera.scale)} m`;
