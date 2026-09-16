@@ -12,3 +12,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - Beam turrets should allow for multiple beams to be on at the same time.
   - Might need to allow for reloading one while firing another to have continuous firing, could possibly just have each barrel reload independently, and just stagger the triggers by the set amount.
 - Account for the angular size of the target when firing, shots don't need to hit the centre.
+- Multi-Barrel beams
+  - Could point in different directions, allowing switching targets with less turning
+  - Could buy redundancy - if one mirror gets hit, the beam can continue at full power
