@@ -133,16 +133,31 @@ const SWEEP = 'rgba(196, 210, 232, 0.2)';
 const SWEEP_EDGE = 'rgba(196, 210, 232, 0)';
 
 /**
- * How far the arc indicator reaches, as a multiple of the barrel's length.
+ * How far the arc indicator reaches, as a multiple of the mount's own face.
  *
  * The quantity being shown is an *angle* — where the gun may shoot — and the
- * radius is only there to make that angle readable. Drawn at the barrel's own
- * length the wedge is too small to judge, and reads as the volume the barrel
- * sweeps rather than the sky it covers. Three times is enough to see the span
- * at a glance while staying well short of the gun's actual reach, which is
+ * radius is only there to make that angle readable. Drawn at the mount's own
+ * size the wedge is too small to judge, and reads as the volume the mount
+ * sweeps rather than the sky it covers. Four times is enough to see the span
+ * at a glance while staying well short of the weapon's actual reach, which is
  * measured in kilometres and would swallow the battle.
+ *
+ * From the mount rather than from the barrel, because a barrel is not a thing
+ * every weapon has. A beam mount's emitter housing is about as deep as it is
+ * wide, so scaling from that drew a wedge a metre or so across — invisible,
+ * and invisible in a way that reads as a mount having no arc rather than as
+ * the renderer having nothing to scale by. The mount's smaller face is the
+ * same quantity the pivot disc is drawn at and the same one the mount's own
+ * footprint is reckoned by, and every weapon has one.
+ *
+ * The bounds are guards rather than tuning: nothing in the current fleet
+ * reaches either, and they are there so that a mount far outside today's range
+ * of sizes still draws a wedge that can be read and does not swamp the ship
+ * carrying it.
  */
-const ARC_RADIUS_SCALE = 3;
+const ARC_RADIUS_SCALE = 4;
+const ARC_MIN_RADIUS = 8;
+const ARC_MAX_RADIUS = 40;
 
 /** A barrel that is not clear to fire. Dark, because it sits on the pale sweep. */
 const BARREL = '#8f6f25';
@@ -261,8 +276,16 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     // port — so the left arc is the *upper* bound. Drawing it the other way
     // round looks perfectly plausible on a symmetric ship and mirrors every
     // gun's arc on an asymmetric one.
-    if (reach > 0) {
-      const span = reach * ARC_RADIUS_SCALE;
+    const spec = design.modules[design.turrets[t]!.module]!.spec;
+    const face = min(spec.length, spec.width);
+    {
+      const scaled = face * ARC_RADIUS_SCALE;
+      const span =
+        scaled < ARC_MIN_RADIUS
+          ? ARC_MIN_RADIUS
+          : scaled > ARC_MAX_RADIUS
+            ? ARC_MAX_RADIUS
+            : scaled;
       ctx.fillStyle = SWEEP;
       ctx.strokeStyle = SWEEP_EDGE;
       ctx.lineWidth = lineWidth * 0.8;
@@ -280,8 +303,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
 
     // The rotating part itself: a disc at the mount, sized to the module it
     // sits in so a heavy mount looks heavy.
-    const spec = design.modules[design.turrets[t]!.module]!.spec;
-    const pivot = min(spec.length, spec.width) * 0.5;
+    const pivot = face * 0.5;
     ctx.fillStyle = colours.pivot;
     ctx.beginPath();
     ctx.arc(mx, my, pivot, 0, TAU);
