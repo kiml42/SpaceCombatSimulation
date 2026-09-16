@@ -26,7 +26,7 @@ for (const [name, scenario] of Object.entries(SCENARIOS)) {
       // Bare hex, exactly as `golden.test.ts` stores it: a `0x` prefix has to
       // be trimmed off again after pasting, and joined to the digits it stops
       // a double-click selecting them.
-      `checksum=${checksum} ` +
+      `checksum= ${checksum} ` +
       `${elapsedMs.toFixed(1)}ms (${perStepUs.toFixed(2)}us/step)  ` +
       run.describe(),
   );
