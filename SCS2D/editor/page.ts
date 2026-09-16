@@ -6,6 +6,7 @@ import {
   radiansToDegrees,
   samePlacement,
   Snapshot,
+  type AssemblyInstance,
   type Blueprint,
   type ModulePath,
   type ModuleSpec,
@@ -16,8 +17,14 @@ import { frame, type Camera } from '../render/camera.js';
 import { EditorDocument } from './document.js';
 import {
   addModule,
+  duplicateInstance,
   duplicatePlacement,
+  groupPlacements,
+  groupProblem,
+  instanceOf,
   moduleAt,
+  removePlacement,
+  setMirror,
   movePlacement,
   positionHandle,
   removeCopy,
@@ -111,6 +118,18 @@ export function startEditor(): void {
   const moduleStats = el<HTMLElement>('moduleStats');
   const duplicateButton = el<HTMLButtonElement>('propDuplicate');
   const unlinkButton = el<HTMLButtonElement>('propUnlink');
+  const selectGroupButton = el<HTMLButtonElement>('propSelectGroup');
+  const groupSelection = el<HTMLElement>('groupSelection');
+  const groupCount = el<HTMLElement>('groupCount');
+  const groupButton = el<HTMLButtonElement>('propGroup');
+  const groupPanel = el<HTMLElement>('groupPanel');
+  const groupOf = el<HTMLElement>('groupOf');
+  const groupX = el<HTMLInputElement>('groupX');
+  const groupY = el<HTMLInputElement>('groupY');
+  const groupAngle = el<HTMLInputElement>('groupAngle');
+  const groupMirror = el<HTMLInputElement>('groupMirror');
+  const groupDuplicate = el<HTMLButtonElement>('groupDuplicate');
+  const groupDelete = el<HTMLButtonElement>('groupDelete');
   const saveButton = el<HTMLButtonElement>('saveShip');
   const exportButton = el<HTMLButtonElement>('exportShip');
 
@@ -149,7 +168,7 @@ export function startEditor(): void {
     draw(ctx, snapshot, camera, canvas.width, canvas.height);
     drawOverlay(
       ctx,
-      { design: view.design, modules: view.modules, selected: doc.selectedModules(), envelope },
+      { design: view.design, modules: view.modules, selected: doc.highlightedModules(), envelope },
       camera,
       canvas.width,
       canvas.height,
@@ -256,9 +275,54 @@ export function startEditor(): void {
     return origin === null ? null : positionHandle(doc.blueprint, origin);
   };
 
+  /**
+   * A placed group: where it sits, how far it is turned, and which way round.
+   *
+   * Separate from the module panel because it edits a different thing. A
+   * module has a size and a kind; an instance has only a *pose*, and the whole
+   * reason it is worth reaching is `mirror` — the flag that makes a second
+   * copy of a wing the other wing rather than the same one again.
+   */
+  const renderGroup = (instance: AssemblyInstance): void => {
+    const members = doc.blueprint.assemblies?.[instance.use]?.modules.length ?? 0;
+    const path = doc.selection;
+    const drawn = path === null ? 0 : doc.accountedFor(path);
+    groupOf.textContent =
+      `${instance.use}: ${members} ${members === 1 ? 'module' : 'modules'}` +
+      (drawn > members ? `, this copy draws ${drawn}` : '');
+    for (const [input, value] of [
+      [groupX, instance.x],
+      [groupY, instance.y],
+      [groupAngle, radiansToDegrees(instance.angle ?? 0)],
+    ] as const) {
+      if (document.activeElement !== input) input.value = String(value);
+    }
+    groupMirror.checked = instance.mirror === true;
+  };
+
   const renderProperties = (): void => {
     const placement = doc.selectedPlacement;
     const copies = doc.selectedModules().length;
+
+    // Three panels, one selection: several modules picked offers only what can
+    // be done to a set, an instance is a group's pose rather than a module's
+    // properties, and a single module is the ordinary case.
+    const picked = doc.selections.length;
+    groupSelection.hidden = picked < 2;
+    if (picked >= 2) {
+      const why = groupProblem(doc.blueprint, doc.selectedOrigins());
+      groupCount.textContent =
+        why === null
+          ? `${picked} modules picked. Grouping makes them one part, built around the first one picked.`
+          : why;
+      groupButton.disabled = why !== null;
+    }
+
+    groupPanel.hidden = placement === null || isModuleSpec(placement) === true;
+    if (placement !== null && isModuleSpec(placement) === false) {
+      renderGroup(placement as AssemblyInstance);
+    }
+
     if (placement === null || isModuleSpec(placement) === false) {
       properties.hidden = true;
       shownSelection = null;
@@ -304,6 +368,13 @@ export function startEditor(): void {
       shared < 2
         ? 'Only a shared part can be unlinked'
         : `Give each of the ${shared} copies its own module, so they stop changing together`;
+
+    const within = origin === null ? null : instanceOf(origin);
+    selectGroupButton.disabled = within === null;
+    selectGroupButton.title =
+      within === null
+        ? 'This module is not in a group'
+        : 'Edit where the group sits, how far it is turned, and whether it is mirrored';
 
     linked.hidden = copies < 2;
     linked.textContent =
@@ -474,6 +545,79 @@ export function startEditor(): void {
     refresh();
   });
 
+  groupButton.addEventListener('click', () => {
+    const grouped = groupPlacements(doc.blueprint, doc.selectedOrigins());
+    if (grouped === null) return;
+    doc.apply(grouped.blueprint);
+    // Selected straight away, because the next thing anybody does with a new
+    // group is place it again or mirror it, and both live on its own panel.
+    doc.select(grouped.path);
+    refresh();
+  });
+
+  selectGroupButton.addEventListener('click', () => {
+    const origin = doc.selectedOrigin();
+    if (origin === null) return;
+    const path = instanceOf(origin);
+    if (path === null) return;
+    doc.select(path);
+    refresh();
+  });
+
+  const editInstance = (patch: Partial<AssemblyInstance>, continues: boolean): void => {
+    const path = doc.selection;
+    if (path === null) return;
+    change(
+      updatePlacement(doc.blueprint, path, (placement) => ({ ...placement, ...patch }) as Placement),
+      continues,
+    );
+  };
+
+  for (const [input, key] of [
+    [groupX, 'x'],
+    [groupY, 'y'],
+  ] as const) {
+    input.addEventListener('input', () => {
+      const value = Number(input.value);
+      if (Number.isFinite(value)) editInstance({ [key]: value }, true);
+    });
+    input.addEventListener('change', () => {
+      gesture = false;
+    });
+  }
+
+  groupAngle.addEventListener('input', () => {
+    const value = Number(groupAngle.value);
+    if (Number.isFinite(value)) editInstance({ angle: degreesToRadians(value) }, true);
+  });
+  groupAngle.addEventListener('change', () => {
+    gesture = false;
+  });
+
+  groupMirror.addEventListener('change', () => {
+    const path = doc.selection;
+    if (path === null) return;
+    change(setMirror(doc.blueprint, path, groupMirror.checked));
+  });
+
+  groupDuplicate.addEventListener('click', () => {
+    const path = doc.selection;
+    if (path === null) return;
+    const placed = duplicateInstance(doc.blueprint, path);
+    if (placed === null) return;
+    doc.apply(placed.blueprint);
+    // The new copy is selected, not the old one: it is the one about to be
+    // mirrored or dragged.
+    doc.select(placed.path);
+    refresh();
+  });
+
+  groupDelete.addEventListener('click', () => {
+    const path = doc.selection;
+    if (path === null) return;
+    change(removePlacement(doc.blueprint, path));
+  });
+
   unlinkButton.addEventListener('click', () => {
     const origin = doc.selectedOrigin();
     if (origin === null) return;
@@ -623,6 +767,15 @@ export function startEditor(): void {
     const world = worldAt(event);
     const hit = moduleAt(doc.view.modules, world.x, world.y);
     canvas.setPointerCapture(event.pointerId);
+    // Shift over a module adds it to the selection; shift over empty space
+    // still pans, as does the middle button and a plain drag on empty space.
+    // The one gesture this costs is panning by shift-dragging *from* a module,
+    // which the other two cover.
+    if (hit >= 0 && event.shiftKey && event.button !== 1) {
+      doc.toggleModule(hit);
+      refresh();
+      return;
+    }
     if (hit < 0 || event.button === 1 || event.shiftKey) {
       doc.select(null);
       drag = { kind: 'pan', x: event.clientX, y: event.clientY };
@@ -718,9 +871,10 @@ export function startEditor(): void {
   });
 
   hint.textContent =
-    `Click a module to select it, drag to move. Movement snaps to ${SNAP_METRES} m — hold Alt to escape it. ` +
-    `Angles are typed in degrees; ${ANGLE_SNAP_DEGREES}° steps are the arrows on the box. ` +
-    'Shift-drag or drag empty space to pan, scroll to zoom, F to fit, Delete to remove, Ctrl+Z to undo.';
+    'Click a module to select it, drag to move; Shift-click to pick several and Group them. ' +
+    `Movement snaps to ${SNAP_METRES} m — hold Alt to escape; angles are in degrees, ` +
+    `${ANGLE_SNAP_DEGREES}° on the arrows. ` +
+    'Drag empty space to pan, scroll to zoom, F to fit, Delete to remove, Ctrl+Z to undo.';
 
   resize();
   refresh();

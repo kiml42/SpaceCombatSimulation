@@ -108,29 +108,33 @@ its own. Duplicate makes a shared part out of a module and unlink dissolves one,
 unmake an assembly of a single module. What it cannot do is **restructure** anything larger than that.
 Everything below is that gap.
 
-**Making an assembly from several modules is the missing half.** Duplicating a module makes a *one-module*
-assembly and places it twice, and unlinking reverses that, so shared parts can be created and undone one
-module at a time. What cannot be done is selecting several modules and grouping them — and that is the case
-reflection needs. Reflection is what replaces a mirrored editing mode: symmetry becomes structural rather
-than something the editor keeps in step — build a side once, place it twice with one instance mirrored, and
-the two cannot disagree about anything but which side they are on. That removes a mode, its state, and the
-question of what happens to a module straddling the centreline. Until grouping exists, none of it is
-reachable from the editor, and a symmetrical ship has to be drawn one side at a time.
+**Grouping exists, and reflection with it.** Several modules are picked with Shift-click and made into an
+assembly placed once where they were; the group is then selectable in its own right, placed again, moved,
+turned and reflected. That is the whole of what replaces a mirrored editing mode: symmetry is structural
+rather than something the editor keeps in step — build a side once, place it twice with one instance
+mirrored, and the two cannot disagree about anything but which side they are on. No mode, no state, and no
+question about a module straddling the centreline.
 
-Two things follow from having only the one-module case, and both are worth deciding rather than inheriting.
-A duplicate cannot be **mirrored**, since an instance's `mirror` flag is not reachable; and a shared part
-cannot be given a second, differently-posed group to belong to. Both wait on the same work.
+**A group is built around the first module picked**, not around the centre of the selection. A group is
+usually a thing hanging off one connecting module — a wing off its root — and that module is the one whose
+position means something, so reflection turns the group about the part that joins it to the ship.
 
-**An instance is not selectable, so a repeat cannot be edited.** A long repeated structure is a count, not a
+What is left of it. **A group cannot be dissolved**: `unlink` takes one module out of an assembly at a time,
+and there is no inverse of grouping that puts a whole assembly back inline. **A group is moved by typing its
+position**, because clicking the canvas picks the module under the pointer and dragging moves that; making a
+drag move the *group* when the group is what is selected is the obvious next step and is not done. And
+**grouping several modules that are already in different assemblies** is refused rather than handled, as is
+grouping a group — both would nest, which the format allows and this does not yet build.
+
+**An instance's repeat and step are still file-only.** A long repeated structure is a count, not a
 chain: an instance may carry `repeat` and a `step`, which places that many copies with each one a step on
 from the last — so a wing of six identical bays is one bay and the number six, and lengthening it is one
 edit. The step is applied in each copy's own frame, so a step angle walks the copies round an arc and a ring
 of mounts costs the same as a row of them. Both are capped, per instance and again over the whole expansion,
-because repetition and nesting multiply. All of that is in the format and none of it is reachable from the
-editor: clicking a drawn module selects the module inside the assembly, never the instance placing it, so
-`repeat`, `step` and `mirror` can only be hand-edited in the file. An instance's *position* is the exception
-and is reachable, because a shared module keeps none of its own — dragging one copy moves the instance,
-which is the only way moving one copy of a shared part can mean anything.
+because repetition and nesting multiply. An instance is now selectable — a module's panel offers the
+group it belongs to, and a new group is selected as soon as it is made — so its position, facing and
+`mirror` are all reachable. `repeat` and `step` are not: they are the two fields with no control on that
+panel, so a repeated structure can be read and flown but only lengthened by hand in the file.
 
 How copies differ is instead **additive**: an instance may carry `extra` modules of its own, placed in the
 same frame as the assembly's, so they move and reflect with it. That is the whole of the divergence

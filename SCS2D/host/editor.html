@@ -114,6 +114,34 @@
           <button data-add="turret">Turret</button>
           <button data-add="beamTurret">Beam turret</button>
         </section>
+        <section id="groupSelection" hidden>
+          <h2>Several modules</h2>
+          <p id="groupCount"></p>
+          <div class="buttons">
+            <button id="propGroup" title="Make these one part, placed once">Group</button>
+          </div>
+        </section>
+        <section id="groupPanel" hidden>
+          <h2>Selected group</h2>
+          <p id="groupOf"></p>
+          <div class="field">
+            <label for="groupX">position</label>
+            <input id="groupX" type="number" step="0.5" />
+            <input id="groupY" type="number" step="0.5" />
+          </div>
+          <div class="field">
+            <label for="groupAngle">facing °</label>
+            <input id="groupAngle" type="number" step="15" />
+          </div>
+          <div class="field">
+            <label for="groupMirror">mirrored</label>
+            <input id="groupMirror" type="checkbox" />
+          </div>
+          <div class="buttons">
+            <button id="groupDuplicate" title="Place this group again">Duplicate</button>
+            <button id="groupDelete">Delete</button>
+          </div>
+        </section>
         <section id="properties" hidden>
           <h2>Selected module</h2>
           <p id="linked" hidden></p>
@@ -151,6 +179,7 @@
           <div class="buttons">
             <button id="propDuplicate" title="Make this a shared part and place a second copy">Duplicate</button>
             <button id="propUnlink">Unlink</button>
+            <button id="propSelectGroup" title="Edit the group this module belongs to">Select group</button>
             <button id="propDelete">Delete</button>
           </div>
         </section>

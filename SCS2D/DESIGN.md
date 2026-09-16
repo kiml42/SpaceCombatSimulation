@@ -46,13 +46,16 @@ inside any one file is not contiguous.
   and a selected engine burns and a selected gun fires at the rate its own figures
   claim; a module can be duplicated into a shared part placed twice, and a shared
   part unlinked back into separate modules, with position, dragging and deletion
-  belonging to the copy and everything else to all of them; every problem with the layout is listed rather
+  belonging to the copy and everything else to all of them; several modules can be
+  picked at once and grouped into one part, which is then placed again and reflected
+  to build a symmetrical ship out of one side and a mirror of it; every problem with the layout is listed rather
   than enforced, and undo and redo run throughout. Ships are opened from the built-in
   library or from browser storage, saved back to it, and exported and imported as
   blueprint files. Both pages build to one self-contained HTML file each.
-- **Next:** the second half of §8 step 1. The editor can make and unmake an assembly of a
-  *single* module, but cannot group several into one — which is what mirrored construction needs —
-  and cannot reach an instance to change its repeat, step or mirror. Size and facing are still
+- **Next:** the rest of §8 step 1. A group can be made, placed again, moved, turned and
+  mirrored, but not dissolved back into loose modules, and an instance's `repeat` and `step`
+  are still file-only. A group is moved by typing its position rather than by dragging it,
+  since clicking the canvas picks the module under the pointer. Size and facing are still
   typed rather than dragged. ROADMAP.md's Slice 1 section has what remains.
 - **Blocked on:** nothing.
 - **Owed:** nothing outstanding. The `duel` golden scenario discharges the coverage that was owed

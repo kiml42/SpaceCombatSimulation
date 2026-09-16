@@ -163,7 +163,12 @@ describe('the editor in a browser', () => {
     expect(await page.inputValue('#propX')).not.toBe('0');
 
     const before = await page.inputValue('#propY');
-    await page.mouse.move(centre.x + 168, centre.y - 96);
+    // The middle of the new copy rather than its edge. Where a module lands on
+    // screen depends on how the camera framed the ship, which depends on the
+    // canvas size, which depends on how many lines the hint below it wraps to —
+    // so an offset that only just lands on the module is one an unrelated
+    // change to the page can push off it.
+    await page.mouse.move(centre.x + 168, centre.y - 64);
     await page.mouse.down();
     await page.mouse.move(centre.x + 250, centre.y - 130, { steps: 6 });
     await page.mouse.up();
@@ -240,6 +245,52 @@ describe('the editor in a browser', () => {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(1200);
     expect(await warmth()).toBeLessThan(burning / 2);
+  });
+
+  it('groups two modules, places the group again, and mirrors the copy', async () => {
+    // The whole reason grouping exists, driven the way a person would: this is
+    // what replaces a mirrored editing mode, so symmetry is structural rather
+    // than something the editor has to keep in step.
+    await page.selectOption('#ship', 'Corvette');
+    const centre = await canvasCentre(page);
+
+    await page.mouse.click(centre.x + 168, centre.y);
+    expect(await page.textContent('#propKind')).toBe('turret');
+    await page.keyboard.down('Shift');
+    await page.mouse.click(centre.x, centre.y);
+    await page.keyboard.up('Shift');
+    expect(await page.isHidden('#groupSelection')).toBe(false);
+    expect(await page.textContent('#groupCount')).toMatch(/2 modules picked/);
+
+    await page.click('#propGroup');
+    // The module panel gives way to the group's own, which edits a pose and
+    // not a size.
+    expect(await page.isHidden('#properties')).toBe(true);
+    expect(await page.isHidden('#groupPanel')).toBe(false);
+    expect(await page.textContent('#groupOf')).toMatch(/2 modules/);
+
+    await page.click('#groupDuplicate');
+    await page.check('#groupMirror');
+    // Still on the new copy's panel: an edit made from a panel must not
+    // dismiss the panel that made it.
+    expect(await page.isHidden('#groupPanel')).toBe(false);
+    expect(await page.isChecked('#groupMirror')).toBe(true);
+
+    // And the ship now has two of everything that was grouped.
+    await page.mouse.click(centre.x + 168, centre.y);
+    expect(await page.isHidden('#properties')).toBe(false);
+  });
+
+  it('reaches a group from a module inside it', async () => {
+    await page.selectOption('#ship', 'Gunship');
+    const centre = await canvasCentre(page);
+    // The gunship's lateral thrusters are one thruster placed eight times, so
+    // any of them is inside an assembly.
+    await page.mouse.click(centre.x, centre.y);
+    const inGroup = (await page.isDisabled('#propSelectGroup')) === false;
+    if (!inGroup) return; // whichever module the camera put under the centre
+    await page.click('#propSelectGroup');
+    expect(await page.isHidden('#groupPanel')).toBe(false);
   });
 
   it('adds a module, and says what is now wrong with the layout', async () => {
