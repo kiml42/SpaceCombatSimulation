@@ -420,6 +420,15 @@ describe('sizing a module by a corner', () => {
   it('will not go below the smallest a module may be', () => {
     expect(sizedTo(box, 3, -2, 0.5)).toEqual({ length: MIN_SIZE, width: MIN_SIZE });
   });
+
+  it('grows a thruster back from its mounting rather than about its middle', () => {
+    // An engine's position is the face it is bolted on by, so a corner dragged
+    // out buys the whole of the extra length astern — where the exhaust is,
+    // and the only direction an engine has room to grow in.
+    const engine: ModuleSpec = { kind: 'thruster', x: 0, y: 0, angle: 0, length: 4, width: 4 };
+    // Six metres back from the mounting, three across.
+    expect(sizedTo(engine, -6, 3, 0.5)).toEqual({ length: 6, width: 6 });
+  });
 });
 
 describe('turning a module by its knob', () => {

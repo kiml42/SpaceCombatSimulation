@@ -8,16 +8,16 @@
       "modules": [{ "kind": "structure", "x": 0, "y": 0, "length": 4, "width": 3 }]
     },
     "lateral": {
-      "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": -90, "length": 2, "width": 3 }]
+      "modules": [{ "kind": "thruster", "x": 0, "y": -1, "angle": -90, "length": 2, "width": 3 }]
     },
     "retro": {
-      "modules": [{ "kind": "thruster", "x": 0, "y": 0, "angle": 180, "length": 2, "width": 3 }]
+      "modules": [{ "kind": "thruster", "x": -1, "y": 0, "angle": 180, "length": 2, "width": 3 }]
     }
   },
   "modules": [
     { "kind": "structure", "x": 0, "y": 0, "length": 16, "width": 6 },
     { "kind": "turret", "x": 10.5, "y": 0, "angle": 0, "length": 5, "width": 4, "barrels": 1 },
-    { "kind": "thruster", "x": -10, "y": 0, "angle": 0, "length": 4, "width": 6 },
+    { "kind": "thruster", "x": -8, "y": 0, "angle": 0, "length": 4, "width": 6 },
 
     { "use": "wingBox", "x": 4, "y": 4.5 },
     { "use": "wingBox", "x": 4, "y": -4.5, "mirror": true },

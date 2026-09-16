@@ -1,6 +1,7 @@
 import {
   expandBlueprint,
   isInstance,
+  moduleCentre,
   samePlacement,
   math,
   placementAt,
@@ -732,14 +733,15 @@ export function extentAlong(specs: readonly ModuleSpec[], rotation: number): num
     const s = sin(angle);
     const hl = spec.length / 2;
     const hw = spec.width / 2;
+    const mid = moduleCentre(spec);
     for (const [dl, dw] of [
       [hl, hw],
       [hl, -hw],
       [-hl, hw],
       [-hl, -hw],
     ] as const) {
-      const x = spec.x + dl * c - dw * s;
-      const y = spec.y + dl * s + dw * c;
+      const x = mid.x + dl * c - dw * s;
+      const y = mid.y + dl * s + dw * c;
       const along = x * ax + y * ay;
       if (along < low) low = along;
       if (along > high) high = along;
@@ -967,8 +969,9 @@ export function moduleAt(modules: readonly ModuleSpec[], x: number, y: number): 
     const angle = m.angle ?? 0;
     const c = cos(-angle);
     const s = sin(-angle);
-    const dx = x - m.x;
-    const dy = y - m.y;
+    const mid = moduleCentre(m);
+    const dx = x - mid.x;
+    const dy = y - mid.y;
     const along = dx * c - dy * s;
     const across = dx * s + dy * c;
     if (abs(along) <= m.length * 0.5 && abs(across) <= m.width * 0.5) return i;

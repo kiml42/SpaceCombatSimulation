@@ -9,7 +9,7 @@ import {
   type Blueprint,
 } from '../sim/blueprint.js';
 import { HALF_PI, PI } from '../sim/math.js';
-import { GunType, moduleStats, type ModuleSpec } from '../sim/modules.js';
+import { GunType, moduleCentre, moduleStats, type ModuleSpec } from '../sim/modules.js';
 import { BLUEPRINTS } from '../scenarios/blueprints.js';
 
 /**
@@ -79,10 +79,14 @@ describe('blueprint validation', () => {
     // out of the other. Turn one round and it is held on by its nozzle: the
     // mounting sits in the exhaust and the thrust is delivered to nothing.
     const hull = structure(0, 0, 10, 4);
-    /** A thruster on the hull's -x end, pushing whichever way `angle` says. */
+    /**
+     * A thruster bolted to the hull's -x end, pushing whichever way `angle`
+     * says. A thruster's position is the middle of the face it pushes from, so
+     * this is the hull's own face and the engine hangs back from it.
+     */
     const engine = (angle: number): ModuleSpec => ({
       kind: 'thruster',
-      x: -6,
+      x: -5,
       y: 0,
       angle,
       length: 2,
@@ -94,10 +98,12 @@ describe('blueprint validation', () => {
     });
 
     it('rejects one mounted back to front', () => {
-      // Same position, same hull, turned through half a circle.
-      expect(blueprintProblem({ name: 'Backwards', modules: [hull, engine(PI)] })).toMatch(
-        /no structure to push against/,
-      );
+      // The same box in the same place, turned through half a circle: the face
+      // it pushes from is now the far one, out in the exhaust at -7, and
+      // nothing is there to push against.
+      expect(
+        blueprintProblem({ name: 'Backwards', modules: [hull, { ...engine(PI), x: -7 }] }),
+      ).toMatch(/no structure to push against/);
     });
 
     it('rejects one that touches the hull only along its side', () => {
@@ -119,7 +125,7 @@ describe('blueprint validation', () => {
     it('will not let a thruster push against another thruster or a turret', () => {
       // Engines and guns are not load paths. Bolting an engine to the back of
       // another engine is a way of drawing a ship, not of building one.
-      const stack: ModuleSpec = { kind: 'thruster', x: -8.5, y: 0, angle: 0, length: 2, width: 4 };
+      const stack: ModuleSpec = { kind: 'thruster', x: -7, y: 0, angle: 0, length: 2, width: 4 };
       expect(
         blueprintProblem({ name: 'Stacked', modules: [hull, engine(0), stack] }),
       ).toMatch(/thruster 2/);
@@ -129,8 +135,8 @@ describe('blueprint validation', () => {
       // Exact abutment is a knife edge that only a layout drawn on round
       // numbers lands on, so the rule has a tolerance — and a tolerance that
       // never bites is not one.
-      const near: ModuleSpec = { kind: 'thruster', x: -6.005, y: 0, angle: 0, length: 2, width: 4 };
-      const far: ModuleSpec = { kind: 'thruster', x: -6.5, y: 0, angle: 0, length: 2, width: 4 };
+      const near: ModuleSpec = { kind: 'thruster', x: -5.005, y: 0, angle: 0, length: 2, width: 4 };
+      const far: ModuleSpec = { kind: 'thruster', x: -5.5, y: 0, angle: 0, length: 2, width: 4 };
       expect(blueprintProblem({ name: 'Near', modules: [hull, near] })).toBeNull();
       expect(blueprintProblem({ name: 'Far', modules: [hull, far] })).toMatch(
         /no structure to push against/,
@@ -141,22 +147,26 @@ describe('blueprint validation', () => {
       // The check nudges the module along its facing and reuses the
       // separating-axis test, so nothing about it assumes right angles.
       // Both boxes canted the same way, so the thruster abuts the pylon's rear
-      // face squarely and the arithmetic is a clean 3 + 1 along the facing.
+      // face squarely: its mounting face is the pylon's own, three along the
+      // facing from the pylon's middle.
       const pylon: ModuleSpec = { kind: 'structure', x: 0, y: 0, angle: 0.4, length: 6, width: 6 };
       const c = Math.cos(0.4);
       const sn = Math.sin(0.4);
       const canted: ModuleSpec = {
         kind: 'thruster',
-        x: -(3 + 1) * c,
-        y: -(3 + 1) * sn,
+        x: -3 * c,
+        y: -3 * sn,
         angle: 0.4,
         length: 2,
         width: 2,
       };
       expect(blueprintProblem({ name: 'Canted', modules: [pylon, canted] })).toBeNull();
-      expect(
-        blueprintProblem({ name: 'CantedBackwards', modules: [pylon, { ...canted, angle: 0.4 + PI }] }),
-      ).toMatch(/no structure to push against/);
+      // The same box turned round, so its mounting face is the far one: five
+      // along the facing rather than three.
+      const backwards: ModuleSpec = { ...canted, x: -5 * c, y: -5 * sn, angle: 0.4 + PI };
+      expect(blueprintProblem({ name: 'CantedBackwards', modules: [pylon, backwards] })).toMatch(
+        /no structure to push against/,
+      );
     });
   });
 
@@ -175,6 +185,52 @@ describe('blueprint validation', () => {
  * inertia can be worked out by hand exactly, so these compile a *draft*, which
  * is the same derivation without the rules about how a ship goes together.
  */
+describe('where a module sits', () => {
+  // A thruster is the one module with a side that means something: it is held
+  // on by the face it pushes from, so that face is what its position names.
+  const hull = structure(0, 0, 10, 4);
+
+  it('puts an ordinary module about its own position', () => {
+    expect(moduleCentre(structure(3, -2, 8, 4))).toEqual({ x: 3, y: -2 });
+  });
+
+  it('hangs a thruster back from its mounting face', () => {
+    const engine: ModuleSpec = { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4 };
+    expect(moduleCentre(engine).x).toBeCloseTo(-7, 12);
+    // Turned, it hangs back along its own facing rather than along the world's.
+    expect(moduleCentre({ ...engine, angle: HALF_PI }).y).toBeCloseTo(-2, 12);
+  });
+
+  it('measures overlap and attachment from the box, not from the mounting', () => {
+    // Bolted flush to the hull's -x face: the position is *on* the hull and
+    // the engine is entirely clear of it.
+    const engine: ModuleSpec = { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4 };
+    expect(blueprintProblem({ name: 'Flush', modules: [hull, engine] })).toBeNull();
+    expect(modulesOverlap(hull, engine)).toBe(false);
+  });
+
+  it('says the same about an engine and its hull whichever is listed first', () => {
+    // Attachment is tested by growing one module and asking whether it now
+    // overlaps the other, and the answer has to be the same either way round.
+    // Growing a thruster from its *mounting* would add the length astern, so
+    // an engine would reach towards its own exhaust and a ship listed engine
+    // first would look like two pieces.
+    const engine: ModuleSpec = { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4 };
+    expect(blueprintProblem({ name: 'Hull first', modules: [hull, engine] })).toBeNull();
+    expect(blueprintProblem({ name: 'Engine first', modules: [engine, hull] })).toBeNull();
+  });
+
+  it('lengthens a thruster into its exhaust, leaving the mounting where it was', () => {
+    // The point of measuring an engine from its mounting face: making it
+    // bigger is one number, and it stays bolted where it was rather than
+    // growing half into the hull.
+    const engine: ModuleSpec = { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4 };
+    const longer: ModuleSpec = { ...engine, length: 9 };
+    expect(blueprintProblem({ name: 'Longer', modules: [hull, longer] })).toBeNull();
+    expect(moduleCentre(longer).x).toBeCloseTo(-9.5, 12);
+  });
+});
+
 describe('every module attached to the ship', () => {
   // A ship is one connected assembly. With no core module to be the root, the
   // first module in the list stands in as one: a piece is part of the ship if
@@ -296,7 +352,7 @@ describe('derived thrusters', () => {
       name: 'Pusher',
       modules: [
         structure(0, 0, 10, 4),
-        { kind: 'thruster', x: -7, y: 0, angle: 0, length: 4, width: 4 },
+        { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4 },
       ],
     });
 
@@ -304,6 +360,8 @@ describe('derived thrusters', () => {
     const t = design.thrusters[0]!;
     expect(t.dirX).toBeCloseTo(1, 12);
     expect(t.dirY).toBeCloseTo(0, 12);
+    // Bolted on at -5 and four long, so the box's middle — which is what a
+    // compiled design carries, and what its mass acts at — is at -7.
     expect(t.x).toBeCloseTo(-7 - design.centreOfMassX, 12);
     expect(t.maxThrust).toBeCloseTo(design.modules[1]!.stats.thrust, 6);
   });

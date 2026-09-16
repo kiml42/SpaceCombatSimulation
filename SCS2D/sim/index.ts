@@ -46,6 +46,7 @@ export {
   DECK_HEIGHT,
   gunStats,
   beamGunStats,
+  moduleCentre,
   moduleProblem,
   moduleStats,
   traverseAccel,
