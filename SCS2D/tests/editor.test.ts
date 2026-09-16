@@ -208,6 +208,42 @@ describe('EditorDocument', () => {
     expect(doc.view.design).not.toBeNull();
   });
 
+  it('says which drawn modules the problems are about', () => {
+    const doc = new EditorDocument(CORVETTE);
+    expect(doc.view.faulty).toEqual([]);
+
+    // Dragged clear of the ship: the module is adrift, and the canvas has to
+    // be able to say which one without the player counting down the list.
+    const origin = doc.view.origins[1]!;
+    doc.apply(movePlacement(doc.blueprint, origin, 500, 500)!);
+    expect(doc.view.faulty).toContain(1);
+    expect(doc.view.problems.some((p) => /touches nothing|separate piece/.test(p))).toBe(true);
+
+    doc.undo();
+    expect(doc.view.faulty).toEqual([]);
+  });
+
+  it('flags every copy of a shared part that is at fault', () => {
+    // One placement, several drawn modules: the mistake is made once and shown
+    // everywhere it lands, the same way the selection highlight works.
+    const doc = new EditorDocument(GUNSHIP);
+    expect(doc.view.faulty).toEqual([]);
+    const drawn = doc.view.modules.length;
+    doc.apply({
+      ...doc.blueprint,
+      assemblies: {
+        ...doc.blueprint.assemblies,
+        pod: { modules: [{ kind: 'structure', x: 0, y: 0, length: 4, width: 4 }] },
+      },
+      modules: [
+        ...doc.blueprint.modules,
+        { use: 'pod', x: 400, y: 0 },
+        { use: 'pod', x: 400, y: 80 },
+      ],
+    });
+    expect(doc.view.faulty).toEqual([drawn, drawn + 1]);
+  });
+
   it('has nothing to measure in an empty layout, and says why', () => {
     const doc = new EditorDocument(emptyBlueprint('Blank'));
     expect(doc.view.design).toBeNull();

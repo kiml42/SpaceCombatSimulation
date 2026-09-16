@@ -44,6 +44,23 @@ async function distinctColours(p: Page): Promise<number> {
   });
 }
 
+/** How many pixels on the canvas are the fault mark's red. */
+async function redPixels(p: Page): Promise<number> {
+  return p.evaluate(() => {
+    const canvas = document.getElementById('view') as HTMLCanvasElement;
+    const ctx = canvas.getContext('2d');
+    if (ctx === null) return 0;
+    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let red = 0;
+    // Strongly red and not much else: the page is otherwise greys, a gold
+    // selection and a blue-green set of overlay marks.
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i]! > 170 && data[i + 1]! < 120 && data[i + 2]! < 120) red++;
+    }
+    return red;
+  });
+}
+
 /** The middle of the canvas, where a framed ship's hull sits. */
 async function canvasCentre(p: Page): Promise<{ x: number; y: number }> {
   const box = await p.locator('#view').boundingBox();
@@ -417,6 +434,24 @@ describe('the editor in a browser', () => {
       steps.push(Number(await page.inputValue('#propLength')));
     }
     expect(steps).toEqual([8.5, 9, 9.5]);
+  });
+
+  it('draws a module that broke a rule in red, and clears the mark when it is fixed', async () => {
+    await page.selectOption('#ship', 'Corvette');
+    expect(await redPixels(page)).toBe(0);
+
+    // The bow turret, dragged clear of the ship: attached to nothing.
+    const centre = await canvasCentre(page);
+    await page.mouse.move(centre.x + 168, centre.y);
+    await page.mouse.down();
+    await page.mouse.move(centre.x + 168, centre.y - 220, { steps: 8 });
+    await page.mouse.up();
+    expect(await page.textContent('#problems')).toMatch(/touches nothing/);
+    expect(await redPixels(page)).toBeGreaterThan(0);
+
+    await page.click('#undo');
+    expect(await page.textContent('#problems')).toMatch(/No problems/);
+    expect(await redPixels(page)).toBe(0);
   });
 
   it('adds a module, and says what is now wrong with the layout', async () => {

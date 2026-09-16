@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   blueprintProblem,
+  blueprintProblems,
   compileBlueprint,
+  compileDraft,
   firingArc,
   modulesOverlap,
   type Blueprint,
@@ -166,12 +168,77 @@ describe('blueprint validation', () => {
   });
 });
 
+/**
+ * A dumbbell — two boxes with a gap between them — is deliberately not a
+ * buildable ship, since nothing joins its halves. It is used anyway because
+ * the arithmetic is the whole point here and a dumbbell's centre of mass and
+ * inertia can be worked out by hand exactly, so these compile a *draft*, which
+ * is the same derivation without the rules about how a ship goes together.
+ */
+describe('every module attached to the ship', () => {
+  // A ship is one connected assembly. With no core module to be the root, the
+  // first module in the list stands in as one: a piece is part of the ship if
+  // it can be traced back to that module through its neighbours.
+  const hull = structure(0, 0, 10, 4);
+
+  it('accepts a chain of modules, however long the way round', () => {
+    const bp: Blueprint = {
+      name: 'Chain',
+      // Only the first touches the hull; the rest hang off each other.
+      modules: [hull, structure(7, 0, 4, 4), structure(11, 0, 4, 4), structure(15, 0, 4, 4)],
+    };
+    expect(blueprintProblem(bp)).toBeNull();
+  });
+
+  it('accepts modules that touch within the attachment tolerance', () => {
+    // A hand-typed file misses exact abutment; a centimetre is nothing at ship
+    // scale, and it is the same tolerance a thruster's mounting is judged by.
+    const bp: Blueprint = { name: 'Near', modules: [hull, structure(7.005, 0, 4, 4)] };
+    expect(blueprintProblem(bp)).toBeNull();
+  });
+
+  it('names a module that touches nothing', () => {
+    const bp: Blueprint = { name: 'Adrift', modules: [hull, structure(30, 0, 4, 4)] };
+    expect(blueprintProblem(bp)).toMatch(/module 1 touches nothing/);
+    expect(() => compileBlueprint(bp)).toThrow(/touches nothing/);
+  });
+
+  it('reports a detached piece once rather than once per module of it', () => {
+    const bp: Blueprint = {
+      name: 'Severed',
+      modules: [hull, structure(30, 0, 4, 4), structure(34, 0, 4, 4)],
+    };
+    const problems = blueprintProblems(bp).filter((p) => /separate piece/.test(p));
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/modules 1, 2 are a separate piece/);
+  });
+
+  it('measures the ship from the first module, not from the biggest piece', () => {
+    // A stand-in for a core module, and deliberately arbitrary: what the check
+    // answers is whether a layout is one ship or several, and the size of a
+    // piece says nothing about which of them is the ship.
+    const bp: Blueprint = {
+      name: 'Lonely first',
+      modules: [structure(30, 0, 4, 4), hull, structure(7, 0, 4, 4)],
+    };
+    expect(blueprintProblems(bp)).toEqual([expect.stringMatching(/modules 1, 2 are a separate piece/)]);
+  });
+
+  it('says nothing about a module it could not measure in the first place', () => {
+    // Zero size is already a complaint of its own, and a box with no interior
+    // touches nothing by construction. One mistake, one problem.
+    const bp: Blueprint = { name: 'Nothing there', modules: [hull, structure(30, 0, 0, 4)] };
+    expect(blueprintProblems(bp)).toEqual([expect.stringMatching(/module 1/)]);
+    expect(blueprintProblems(bp)[0]).not.toMatch(/touches nothing/);
+  });
+});
+
 describe('mass properties', () => {
   it('puts the origin on the centre of mass', () => {
     // Two identical boxes, one at the origin and one ten metres up the x axis:
     // the centre of mass is exactly between them, so the compiled positions
     // are ±5 whatever the boxes weigh.
-    const design = compileBlueprint({
+    const design = compileDraft({
       name: 'Dumbbell',
       modules: [structure(0, 0, 4, 4), structure(10, 0, 4, 4)],
     });
@@ -185,7 +252,7 @@ describe('mass properties', () => {
   it('weights the centre of mass by module mass', () => {
     const light = structure(0, 0, 4, 4);
     const heavy = structure(10, 0, 8, 8);
-    const design = compileBlueprint({ name: 'Lopsided', modules: [light, heavy] });
+    const design = compileDraft({ name: 'Lopsided', modules: [light, heavy] });
 
     const lm = moduleStats(light).mass;
     const hm = moduleStats(heavy).mass;
@@ -195,7 +262,7 @@ describe('mass properties', () => {
 
   it('carries each module inertia out to where it sits', () => {
     const spec = structure(0, 0, 4, 4);
-    const design = compileBlueprint({
+    const design = compileDraft({
       name: 'Dumbbell',
       modules: [spec, structure(10, 0, 4, 4)],
     });

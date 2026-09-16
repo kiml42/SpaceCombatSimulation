@@ -1,11 +1,12 @@
 import {
-  blueprintProblems,
+  blueprintFaults,
   compileDraft,
   expandWithOrigins,
   isInstance,
   placementAt,
   samePlacement,
   type Blueprint,
+  type BlueprintFault,
   type ModuleOrigin,
   type ModulePath,
   type ModuleSpec,
@@ -70,10 +71,28 @@ export interface Derived {
   underivable: string | null;
   /** Everything wrong with the layout, shown rather than enforced. */
   problems: readonly string[];
+  /**
+   * The drawn modules some problem names, in the order they are drawn.
+   *
+   * The problems list says what is wrong and this says *where*: a sentence
+   * about "modules 3 and 7" is a puzzle on a ship of forty, and the canvas can
+   * answer it at a glance.
+   */
+  faulty: readonly number[];
+}
+
+/** The drawn modules named by any fault, deduplicated and in drawing order. */
+function faultyModules(faults: readonly BlueprintFault[], count: number): number[] {
+  const flagged = new Set<number>();
+  for (const fault of faults) for (const index of fault.modules) flagged.add(index);
+  const out: number[] = [];
+  for (let i = 0; i < count; i++) if (flagged.has(i)) out.push(i);
+  return out;
 }
 
 function derive(blueprint: Blueprint): Derived {
-  const problems = blueprintProblems(blueprint);
+  const faults = blueprintFaults(blueprint);
+  const problems = faults.map((fault) => fault.message);
   let modules: readonly ModuleSpec[] = [];
   let origins: readonly ModuleOrigin[] = [];
   try {
@@ -82,14 +101,29 @@ function derive(blueprint: Blueprint): Derived {
     origins = expansion.origins;
   } catch {
     // Already reported: an expansion that throws is the first thing
-    // `blueprintProblems` complains about.
-    return { modules, origins, design: null, underivable: problems[0] ?? null, problems };
+    // `blueprintFaults` complains about.
+    return {
+      modules,
+      origins,
+      design: null,
+      underivable: problems[0] ?? null,
+      problems,
+      faulty: [],
+    };
   }
+  const faulty = faultyModules(faults, modules.length);
   try {
-    return { modules, origins, design: compileDraft(blueprint), underivable: null, problems };
+    return {
+      modules,
+      origins,
+      design: compileDraft(blueprint),
+      underivable: null,
+      problems,
+      faulty,
+    };
   } catch (error) {
     const why = error instanceof Error ? error.message : String(error);
-    return { modules, origins, design: null, underivable: why, problems };
+    return { modules, origins, design: null, underivable: why, problems, faulty };
   }
 }
 
