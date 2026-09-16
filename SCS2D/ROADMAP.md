@@ -119,6 +119,10 @@ question about a module straddling the centreline.
 usually a thing hanging off one connecting module — a wing off its root — and that module is the one whose
 position means something, so reflection turns the group about the part that joins it to the ship.
 
+**A group carries a name**, editable on its panel and renamed everywhere it is used at once, since the name
+is a reference rather than a label. It is the only thing about a group that says what it is *for*, and it is
+what a palette of groups to place would list, if one is ever built.
+
 **A group is handled as one thing on the canvas.** Clicking a module inside a group selects the group, not
 the module; clicking again, with that group already selected, drills into the module — so reaching a part is
 deliberate rather than accidental. A selected group drags as a whole, and its own outline is drawn round

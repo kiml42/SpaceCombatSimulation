@@ -35,6 +35,8 @@ import {
   moduleAt,
   movePlacement,
   removePlacement,
+  renameAssembly,
+  renameProblem,
   snap,
   toPlacementFrame,
   updatePlacement,
@@ -1374,5 +1376,83 @@ describe('adding modules to a group', () => {
     const both = doc.groupAndLooseSelection()!;
     expect(both).not.toBeNull();
     expect(both.modules).toHaveLength(1);
+  });
+});
+
+describe('naming a group', () => {
+  /** A layout with two groups, so a name can collide with one that exists. */
+  function twoGroups(): { doc: EditorDocument; first: ModulePath; second: ModulePath } {
+    const doc = new EditorDocument(
+      ship({
+        modules: [
+          hull,
+          { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
+          { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
+          { kind: 'structure', x: 0, y: -6, length: 4, width: 6 },
+          { kind: 'turret', x: 4, y: -9, length: 4, width: 3, barrels: 1 },
+        ],
+      }),
+    );
+    doc.selectModule(1);
+    doc.toggleModule(2);
+    const one = groupPlacements(doc.blueprint, doc.selectedOrigins())!;
+    doc.apply(one.blueprint);
+    // The other side, which the first grouping left where it was.
+    const after = new EditorDocument(doc.blueprint);
+    const lower = after.view.modules
+      .map((module, i) => ({ module, i }))
+      .filter(({ module }) => module.y < -1)
+      .map(({ i }) => i);
+    after.selectModule(lower[0]!);
+    after.toggleModule(lower[1]!);
+    const two = groupPlacements(after.blueprint, after.selectedOrigins())!;
+    after.apply(two.blueprint);
+    // Found afterwards rather than kept: the second grouping took modules out
+    // of the same list the first instance sits in, so the path it was made
+    // with no longer names it.
+    const instances = after.blueprint.modules
+      .map((placement, index) => ({ placement, index }))
+      .filter(({ placement }) => 'use' in placement)
+      .map(({ index }) => [{ index, copy: 0 }] as ModulePath);
+    return { doc: after, first: instances[0]!, second: instances[1]! };
+  }
+
+  it('renames the definition and every instance that names it', () => {
+    const { doc, first } = twoGroups();
+    const before = positions(doc.blueprint).sort();
+    const next = renameAssembly(doc.blueprint, first, 'port wing')!;
+
+    expect(Object.keys(next.assemblies!)).toContain('port wing');
+    expect(placementAt(next, first)).toHaveProperty('use', 'port wing');
+    // A `use` left pointing at the old name would place nothing, so the ship
+    // itself is the check that both halves of the rename happened.
+    expect(positions(next).sort()).toEqual(before);
+  });
+
+  it('refuses a name that is blank or already another group’s', () => {
+    const { doc, first, second } = twoGroups();
+    const taken = (placementAt(doc.blueprint, second) as { use: string }).use;
+    expect(renameProblem(doc.blueprint, first, '  ')).toMatch(/needs a name/);
+    expect(renameProblem(doc.blueprint, first, taken)).toMatch(/already called/);
+    expect(renameAssembly(doc.blueprint, first, taken)).toBeNull();
+    // Its own name is not a collision with itself.
+    const own = (placementAt(doc.blueprint, first) as { use: string }).use;
+    expect(renameProblem(doc.blueprint, first, own)).toBeNull();
+  });
+
+  it('is offered for a group and not for a module', () => {
+    const { doc } = twoGroups();
+    const loose = doc.view.origins[0]!.path;
+    expect(renameProblem(doc.blueprint, loose, 'anything')).toMatch(/Only a group/);
+  });
+
+  it('keeps the table in order, so a rename is one line of a diff', () => {
+    const { doc, first, second } = twoGroups();
+    const order = Object.keys(doc.blueprint.assemblies!);
+    const at = order.indexOf((placementAt(doc.blueprint, first) as { use: string }).use);
+    const next = renameAssembly(doc.blueprint, first, 'nose')!;
+    expect(Object.keys(next.assemblies!)[at]).toBe('nose');
+    expect(Object.keys(next.assemblies!)).toHaveLength(order.length);
+    expect(placementAt(next, second)).toHaveProperty('use', order[1 - at]);
   });
 });

@@ -27,6 +27,8 @@ import {
   instanceOf,
   moduleAt,
   removePlacement,
+  renameAssembly,
+  renameProblem,
   setMirror,
   movePlacement,
   positionHandle,
@@ -128,6 +130,7 @@ export function startEditor(): void {
   const addToGroupButton = el<HTMLButtonElement>('propAddToGroup');
   const groupPanel = el<HTMLElement>('groupPanel');
   const groupOf = el<HTMLElement>('groupOf');
+  const groupName = el<HTMLInputElement>('groupName');
   const groupX = el<HTMLInputElement>('groupX');
   const groupY = el<HTMLInputElement>('groupY');
   const groupAngle = el<HTMLInputElement>('groupAngle');
@@ -305,8 +308,9 @@ export function startEditor(): void {
     const path = doc.selection;
     const drawn = path === null ? 0 : doc.accountedFor(path);
     groupOf.textContent =
-      `${instance.use}: ${members} ${members === 1 ? 'module' : 'modules'}` +
-      (drawn > members ? `, this copy draws ${drawn}` : '');
+      `${members} ${members === 1 ? 'module' : 'modules'}` +
+      (drawn > members ? `, and this copy draws ${drawn}` : '');
+    if (document.activeElement !== groupName) groupName.value = instance.use;
     for (const [input, value] of [
       [groupX, instance.x],
       [groupY, instance.y],
@@ -658,6 +662,27 @@ export function startEditor(): void {
     if (Number.isFinite(value)) editInstance({ angle: degreesToRadians(value) }, true);
   });
   groupAngle.addEventListener('change', () => {
+    gesture = false;
+  });
+
+  // Live, like the ship's own name, so the box holds what is being typed and
+  // the layout takes it as soon as it is a name it can use. A name already
+  // taken is simply not applied — the group keeps the one it has, and the
+  // panel says why rather than putting the old text back mid-word.
+  groupName.addEventListener('input', () => {
+    const path = doc.selection;
+    if (path === null) return;
+    const why = renameProblem(doc.blueprint, path, groupName.value);
+    if (why !== null) {
+      groupOf.textContent = why;
+      return;
+    }
+    change(renameAssembly(doc.blueprint, path, groupName.value), true);
+  });
+  groupName.addEventListener('focus', () => {
+    gesture = false;
+  });
+  groupName.addEventListener('change', () => {
     gesture = false;
   });
 
