@@ -8,7 +8,7 @@
       "modules": [
         { "kind": "structure", "x": 0, "y": 0, "length": 6, "width": 10 },
         {
-          "kind": "beamTurret", "x": 0, "y": 8, "angle": 0, "length": 12, "width": 6, "barrels": 8,
+          "kind": "beamTurret", "x": 0, "y": 8, "angle": 0, "length": 12, "width": 6, "barrels": 2,
           "notes": "Many narrow barrels rather than one wide one: the same bore budget spent on rate of fire instead of weight of shell."
         }
       ]
