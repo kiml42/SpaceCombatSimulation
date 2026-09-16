@@ -15,3 +15,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Multi-Barrel beams
   - Could point in different directions, allowing switching targets with less turning
   - Could buy redundancy - if one mirror gets hit, the beam can continue at full power
+
+
+## Maneuvering
+- Command ships with a max tangential velocity
