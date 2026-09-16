@@ -33,6 +33,8 @@ Ask before pushing directly, unless the author has already said to for that part
 
 The rest of this file documents that archived project.
 
+Don't make comments too verbose, make sure they're short enough that people will actually read them.
+
 ## What it is
 
 A Unity 3D simulation of space combat with Newtonian-ish physics ("space ships are not aeroplanes"), plus a
