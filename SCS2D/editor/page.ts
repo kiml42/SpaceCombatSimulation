@@ -42,7 +42,7 @@ import { emptyBlueprint, Library, toFileText } from './library.js';
 import { Demonstration } from './demonstrate.js';
 import { drawOverlay } from './overlay.js';
 import { previewSnapshot } from './preview.js';
-import { designStats, envelopes, moduleReadout, type Envelopes } from './stats.js';
+import { designStats, envelopes, groupMass, moduleReadout, type Envelopes } from './stats.js';
 
 /**
  * The blueprint editor's page: the canvas, the panels and the pointer.
@@ -131,6 +131,7 @@ export function startEditor(): void {
   const groupPanel = el<HTMLElement>('groupPanel');
   const groupOf = el<HTMLElement>('groupOf');
   const groupName = el<HTMLInputElement>('groupName');
+  const groupStats = el<HTMLElement>('groupStats');
   const groupX = el<HTMLInputElement>('groupX');
   const groupY = el<HTMLInputElement>('groupY');
   const groupAngle = el<HTMLInputElement>('groupAngle');
@@ -311,6 +312,7 @@ export function startEditor(): void {
       `${members} ${members === 1 ? 'module' : 'modules'}` +
       (drawn > members ? `, and this copy draws ${drawn}` : '');
     if (document.activeElement !== groupName) groupName.value = instance.use;
+    renderGroupStats();
     for (const [input, value] of [
       [groupX, instance.x],
       [groupY, instance.y],
@@ -319,6 +321,35 @@ export function startEditor(): void {
       if (document.activeElement !== input) input.value = String(value);
     }
     groupMirror.checked = instance.mirror === true;
+  };
+
+  /**
+   * What a group weighs.
+   *
+   * The one figure that bubbles up from modules to the group: a sum means the
+   * same thing about a part of a ship as it does about a module, where
+   * capacity, armour, hit points and thrust each describe something a bag of
+   * modules has no single answer for. Every copy is counted separately when
+   * there is more than one, because what a group costs the ship is what all of
+   * it costs.
+   */
+  const renderGroupStats = (): void => {
+    const outlines = doc.selectedGroups().filter((group) => !group.context);
+    const own = outlines.find((group) => group.primary) ?? outlines[0];
+    if (own === undefined) {
+      groupStats.innerHTML = '';
+      return;
+    }
+    const specs = own.modules.map((index) => doc.view.modules[index]!);
+    const mass = groupMass(specs);
+    const rows = [['Mass', `${numbers(mass / 1000, 2)} t`]];
+    if (outlines.length > 1) {
+      const all = outlines.flatMap((group) => group.modules).map((i) => doc.view.modules[i]!);
+      rows.push([`All ${outlines.length} copies`, `${numbers(groupMass(all) / 1000, 2)} t`]);
+    }
+    groupStats.innerHTML = `<table>${rows
+      .map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`)
+      .join('')}</table>`;
   };
 
   /**

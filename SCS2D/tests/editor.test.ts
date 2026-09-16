@@ -46,7 +46,7 @@ import { Demonstration, ROUND_LIFETIME } from '../editor/demonstrate.js';
 import { MAX_BEAM_LENGTH } from '../sim/beams.js';
 import { GunType } from '../sim/modules.js';
 import { previewSnapshot } from '../editor/preview.js';
-import { designStats, envelopes, headingCost, moduleReadout } from '../editor/stats.js';
+import { designStats, envelopes, groupMass, headingCost, moduleReadout } from '../editor/stats.js';
 
 /**
  * The editor's half: what an edit does to a layout, and what the page reads
@@ -1240,21 +1240,55 @@ describe('clicking a grouped module', () => {
   });
 
   it('tells a selected group apart from several picked modules', () => {
-    // What the overlay draws from: a group is outlined once, several modules
-    // separately, and reading it off the selection means the picture cannot
-    // disagree with what an edit would do.
+    // What the overlay draws from: a group is outlined as a group, several
+    // modules separately, and reading it off the selection means the picture
+    // cannot disagree with what an edit would do.
     const { doc } = twoWings();
     const index = inAGroup(doc);
     doc.selectAt(index, doc.resolveClick(index));
 
-    expect(doc.selectedGroups()).toHaveLength(1);
-    expect(doc.selectedGroups()[0]!.length).toBe(2);
+    const groups = doc.selectedGroups();
+    expect(groups.every((group) => group.context)).toBe(false);
+    expect(groups.find((group) => group.primary)!.modules).toHaveLength(2);
     expect(doc.selectedLoose()).toHaveLength(0);
 
     doc.selectModule(0);
     doc.toggleModule(1);
-    expect(doc.selectedGroups()).toHaveLength(0);
+    // Loose modules: any box drawn is the group one of them sits in, which is
+    // context rather than the selection.
+    expect(doc.selectedGroups().every((group) => group.context)).toBe(true);
     expect(doc.selectedLoose().length).toBeGreaterThan(1);
+  });
+
+  it('boxes every copy of the selected group, the clicked one as the selection', () => {
+    // A group placed twice is two things in two places: one box round both
+    // would enclose most of the ship, and the copies a drag would leave alone
+    // have to look different from the one it would move.
+    const { doc } = twoWings();
+    const index = inAGroup(doc);
+    doc.selectAt(index, doc.resolveClick(index));
+
+    const groups = doc.selectedGroups();
+    expect(groups).toHaveLength(2);
+    expect(groups.filter((group) => group.primary)).toHaveLength(1);
+    expect(groups.find((group) => group.primary)!.modules).toContain(index);
+    // No module is boxed twice: each copy holds its own.
+    const all = groups.flatMap((group) => group.modules);
+    expect(new Set(all).size).toBe(all.length);
+  });
+
+  it('keeps the group’s box while a module inside it is selected', () => {
+    const { doc } = twoWings();
+    const index = inAGroup(doc);
+    doc.selectAt(index, doc.resolveClick(index));
+    doc.selectAt(index, doc.resolveClick(index));
+
+    expect('use' in doc.selectedPlacement!).toBe(false);
+    const groups = doc.selectedGroups();
+    expect(groups.length).toBeGreaterThan(0);
+    // Context, not selection: nothing is drawn as the thing being edited.
+    expect(groups.every((group) => group.context && !group.primary)).toBe(true);
+    expect(groups.some((group) => group.modules.includes(index))).toBe(true);
   });
 
   it('drags the whole group, in the frame the instance was written in', () => {
@@ -1454,5 +1488,17 @@ describe('naming a group', () => {
     expect(Object.keys(next.assemblies!)[at]).toBe('nose');
     expect(Object.keys(next.assemblies!)).toHaveLength(order.length);
     expect(placementAt(next, second)).toHaveProperty('use', order[1 - at]);
+  });
+});
+
+describe('what a group weighs', () => {
+  it('sums the same masses the ship totals are summed from', () => {
+    const parts: ModuleSpec[] = [
+      { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
+      { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
+    ];
+    const each = parts.map((spec) => moduleStats(spec).mass);
+    expect(groupMass(parts)).toBeCloseTo(each[0]! + each[1]!, 9);
+    expect(groupMass([])).toBe(0);
   });
 });

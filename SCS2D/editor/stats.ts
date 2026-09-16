@@ -164,6 +164,26 @@ export interface ModuleReadout {
 }
 
 /**
+ * What a group weighs, and what all its copies weigh together.
+ *
+ * Mass is the one figure that means the same thing about a group as it does
+ * about a module: it is a sum, so a part of a ship has one. Nothing else on
+ * the module panel does — capacity and armour describe a wall, hit points
+ * belong to a module that can be shot off on its own, and thrust and a gun's
+ * figures are about where a module points, which a bag of modules has no
+ * single answer for.
+ *
+ * Read from `moduleStats`, the same derivation the ship totals are summed
+ * from, so a group's mass and the change removing it would make to the ship
+ * are the same number by construction.
+ */
+export function groupMass(modules: readonly ModuleSpec[]): number {
+  let total = 0;
+  for (const spec of modules) total += moduleStats(spec).mass;
+  return total;
+}
+
+/**
  * The selected module's own figures.
  *
  * Read from `moduleStats`, which is the same derivation the ship totals are

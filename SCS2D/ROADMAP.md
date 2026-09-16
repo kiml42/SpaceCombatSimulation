@@ -119,6 +119,14 @@ question about a module straddling the centreline.
 usually a thing hanging off one connecting module — a wing off its root — and that module is the one whose
 position means something, so reflection turns the group about the part that joins it to the ship.
 
+**A group is boxed once per copy**, so a group placed twice is two boxes rather than one round both, with the
+copy that was clicked solid and the rest dashed — the same distinction the module highlight makes between the
+copy under the pointer and the ones it moves with. A module selected inside a group keeps its group's box,
+drawn faintly: it says which thing the part belongs to without competing with the part itself. The panel
+shows what the group weighs, and what all its copies weigh together; mass is the only figure that means the
+same thing about a bag of modules as it does about one, since capacity, armour, hit points and thrust each
+describe something a group has no single answer for.
+
 **A group carries a name**, editable on its panel and renamed everywhere it is used at once, since the name
 is a reference rather than a label. It is the only thing about a group that says what it is *for*, and it is
 what a palette of groups to place would list, if one is ever built.
