@@ -175,13 +175,16 @@ the crude connectivity check: modules that touch nothing else, flagged using the
 deliberately *not* the graph with per-edge strengths §12 describes; it catches the obvious mistake without
 answering an open question inside a UI task.
 
-**Module order is part of the ship, so restructuring a layout is not free.** Thruster allocation solves over
-the columns in order and turrets fire in order, so the same modules listed differently compile to a ship
-that behaves differently. It is why the authored ships place symmetric *pairs* adjacently rather than
-grouping each whole side: the tidier structure reorders the modules, and reordering the gunship moved the
-duel checksum while leaving the expanded geometry bit-identical. Adding a module appends, which is the one
-placement that leaves the existing ship alone — but every restructuring action above reorders something, and
-the editor owes the player a word about it when it does.
+**Module order is part of the ship, so restructuring a layout is not bit-free.** Thruster allocation solves
+over the columns in order and turrets fire in order, so the same modules listed differently compile to a
+ship that is not bit-identical: reordering the gunship moved the duel checksum while leaving the expanded
+geometry identical. It is why the authored ships place symmetric *pairs* adjacently rather than grouping
+each whole side. How much of that is *behaviour* is now measured rather than assumed, by
+`scenarios/ordering.ts`: 8.2e-13 m of drift over 3,000 steps of manoeuvring and gunnery, because both
+mechanisms are order-independent in substance and merely add their numbers up in list order. So the word the
+editor owes the player when a restructuring action reorders something is about reproducibility — a saved
+ship will not check-sum the same — and not about the ship fighting differently. Adding a module appends,
+which is the one placement that leaves even the bits alone.
 
 #### Deliberately not in this iteration
 

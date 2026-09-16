@@ -14,6 +14,7 @@ import { duel } from '../../scenarios/duel.js';
 import { beamVGun } from '../../scenarios/beamVGun.js';
 import type { Battle } from '../../scenarios/types.js';
 import { beamDuel } from '../../scenarios/beamDuel.js';
+import { ordering, spread } from '../../scenarios/ordering.js';
 import { swarm } from '../../scenarios/swarm.js';
 import { fractal } from '../../scenarios/fractal.js';
 
@@ -344,6 +345,26 @@ export function fractalScenario(seed = 20260905): ScenarioRun {
   };
 }
 
+export function orderingScenario(seed = 20260905): ScenarioRun {
+  const run = ordering(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+    // The spread is the whole point of the scenario, so it is what the report
+    // line leads with: three ships that are the same shape, and how far apart
+    // listing their modules differently has put them.
+    describe: () => {
+      const gap = spread(run);
+      // Exponential once it is small, which is where it has been: a figure
+      // reported as 0.0m reads as "no difference" when what it means is "a
+      // difference far below anything that matters", and those are not the
+      // same finding.
+      return `spread=${gap < 0.01 ? gap.toExponential(2) : gap.toFixed(1)}m ${describeBattle(run)}`;
+    },
+  };
+}
+
 // ---- registry ----
 
 function worldScenario(build: () => World, steps: number): Scenario {
@@ -370,6 +391,7 @@ export const SCENARIOS = {
   swarm: { steps: 3_000, build: () => swarmScenario() },
   superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
   fractal: { steps: 3_000, build: () => fractalScenario() },
+  ordering: { steps: 3_000, build: () => orderingScenario() },
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;

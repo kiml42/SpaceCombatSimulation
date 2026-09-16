@@ -4,6 +4,7 @@ import { beamDuel } from '../scenarios/beamDuel.js';
 import { beamVGun } from '../scenarios/beamVGun.js';
 import { fractal } from '../scenarios/fractal.js';
 import type { Battle } from '../scenarios/types.js';
+import { ordering } from '../scenarios/ordering.js';
 import { swarm } from '../scenarios/swarm.js';
 import { draw } from '../render/canvas2d.js';
 import { frame, gridStep, type Camera } from '../render/camera.js';
@@ -48,7 +49,8 @@ export function start(): void {
     { name: 'Beam Vs Gun', create: () => beamVGun(SEED) },
     { name: 'Swarm', create: () => swarm(SEED) },
     { name: 'Fractal', create: () => fractal(SEED) },
-    { name: 'Super Swarm', create: () => swarm(SEED, 300) }
+    { name: 'Super Swarm', create: () => swarm(SEED, 300) },
+    { name: 'Part Ordering', create: () => ordering(SEED) }
   ];
   let sceneIndex = 0;
   const nextSceneIndex = (): number => (sceneIndex + 1) % scenes.length;
@@ -207,7 +209,10 @@ export function start(): void {
         : 0;
     readout.textContent =
       `t ${view.time.toFixed(1)} s · step ${view.tick} · ` +
-      `range ${range.toFixed(0)} m · in flight ${view.projectileCount} · ` +
+      // Metres are the right resolution for a duel and useless for two ships
+      // that are almost on top of each other, which is what a scenario
+      // comparing near-identical designs leaves on screen.
+      `range ${range.toFixed(range < 10 ? 3 : 0)} m · in flight ${view.projectileCount} · ` +
       `p.fired ${state.totalProjectilesFired} · p.hits ${state.totalProjectileHits} · ` +
       `b.fired ${state.totalBeamsFired} · b.hits ${state.totalBeamHits} · grid ${gridStep(camera.scale)} m`;
 

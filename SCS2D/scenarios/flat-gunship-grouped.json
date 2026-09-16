@@ -1,0 +1,149 @@
+{
+  "formatVersion": 1,
+  "name": "Flat Gunship (kinds together)",
+  "notes": "The Gunship with its assemblies expanded away: the same eighteen modules, at the same places, at the same angles, with nothing grouped. Every derived figure — mass, inertia, thrust, arcs, ballistics — is therefore identical to the Gunship's, and so is every pixel drawn. What differs is the order the modules are listed in, which is what decides thruster allocation order and firing order. Written by expanding the Gunship rather than drawn by hand, so the geometry cannot drift from it. This one lists them kind by kind — all the structure, then all the thrusters, then the guns — which is the order someone drawing the hull before hanging anything off it would arrive at. Same ship to look at, different list, and how much that costs is what scenarios/ordering.ts exists to show. Regenerate with: npx tsx scripts/flatten.ts gunship scenarios/flat-gunship-grouped.json --order=kind --name=\"Flat Gunship (kinds together)\".",
+  "modules": [
+    {
+      "kind": "structure",
+      "x": 0,
+      "y": 0,
+      "length": 40,
+      "width": 10
+    },
+    {
+      "kind": "structure",
+      "x": 0,
+      "y": 9,
+      "length": 8,
+      "width": 8
+    },
+    {
+      "kind": "structure",
+      "x": 0,
+      "y": -9,
+      "length": 8,
+      "width": 8
+    },
+    {
+      "kind": "structure",
+      "x": 12,
+      "y": 7,
+      "length": 6,
+      "width": 4
+    },
+    {
+      "kind": "structure",
+      "x": 12,
+      "y": -7,
+      "length": 6,
+      "width": 4
+    },
+    {
+      "kind": "structure",
+      "x": -12,
+      "y": 7,
+      "length": 6,
+      "width": 4
+    },
+    {
+      "kind": "structure",
+      "x": -12,
+      "y": -7,
+      "length": 6,
+      "width": 4
+    },
+    {
+      "kind": "thruster",
+      "x": -24,
+      "y": 3,
+      "angle": 0,
+      "length": 8,
+      "width": 4
+    },
+    {
+      "kind": "thruster",
+      "x": -24,
+      "y": -3,
+      "angle": 0,
+      "length": 8,
+      "width": 4
+    },
+    {
+      "kind": "thruster",
+      "x": 12,
+      "y": 10,
+      "angle": -90,
+      "length": 2,
+      "width": 4
+    },
+    {
+      "kind": "thruster",
+      "x": 12,
+      "y": -10,
+      "angle": 90,
+      "length": 2,
+      "width": 4
+    },
+    {
+      "kind": "thruster",
+      "x": -12,
+      "y": 10,
+      "angle": -90,
+      "length": 2,
+      "width": 4
+    },
+    {
+      "kind": "thruster",
+      "x": -12,
+      "y": -10,
+      "angle": 90,
+      "length": 2,
+      "width": 4
+    },
+    {
+      "kind": "thruster",
+      "x": 16.5,
+      "y": 7,
+      "angle": 180,
+      "length": 3,
+      "width": 4
+    },
+    {
+      "kind": "thruster",
+      "x": 16.5,
+      "y": -7,
+      "angle": 180,
+      "length": 3,
+      "width": 4
+    },
+    {
+      "kind": "turret",
+      "x": 26,
+      "y": 0,
+      "angle": 0,
+      "length": 12,
+      "width": 8,
+      "barrels": 1
+    },
+    {
+      "kind": "turret",
+      "x": 0,
+      "y": 17,
+      "angle": 90,
+      "length": 8,
+      "width": 6,
+      "barrels": 8,
+      "notes": "Many narrow barrels rather than one wide one: the same bore budget spent on rate of fire instead of weight of shell."
+    },
+    {
+      "kind": "turret",
+      "x": 0,
+      "y": -17,
+      "angle": -90,
+      "length": 8,
+      "width": 6,
+      "barrels": 8,
+      "notes": "Many narrow barrels rather than one wide one: the same bore budget spent on rate of fire instead of weight of shell."
+    }
+  ]
+}
