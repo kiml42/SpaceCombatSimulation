@@ -25,6 +25,31 @@ import { cloneBlueprint, instanceChain } from './edit.js';
  * pointed at, an undo that half-restores, a derived figure that goes stale.
  */
 
+/**
+ * A box to draw around one drawn copy of a group.
+ *
+ * Copies are told apart because they are edited apart: dragging the selection
+ * moves the copy that was clicked and leaves the others, exactly as a shared
+ * module's copies behave.
+ */
+export interface GroupOutline {
+  /** The drawn modules this copy of the group puts on the ship. */
+  modules: number[];
+  /** The copy that was clicked, rather than one of the others it is placed as. */
+  primary: boolean;
+  /** Drawn because something inside it is selected, rather than being selected itself. */
+  context: boolean;
+}
+
+/** The innermost group a placement is written in, by name. */
+function enclosingAssembly(path: ModulePath): string | null {
+  for (let i = path.length - 1; i >= 0; i--) {
+    const step = path[i]!;
+    if (step.into === 'assembly' && step.assembly !== undefined) return step.assembly;
+  }
+  return null;
+}
+
 /** How many steps back an editor can go. */
 export const HISTORY_LIMIT = 100;
 
@@ -383,14 +408,63 @@ export class EditorDocument {
    * off the shape of the selection rather than off a flag means the picture
    * cannot disagree with what an edit would do.
    */
-  selectedGroups(): number[][] {
-    const out: number[][] = [];
+  selectedGroups(): GroupOutline[] {
+    const out: GroupOutline[] = [];
+    const drawn: string[] = [];
     for (const path of this.selected) {
       if (!this.isGroup(path)) continue;
-      const drawn = this.drawnFor(path);
-      if (drawn.length > 0) out.push(drawn);
+      const placement = placementAt(this.current, path);
+      if (placement === null || !isInstance(placement)) continue;
+      if (drawn.includes(placement.use)) continue;
+      drawn.push(placement.use);
+      out.push(...this.outlinesOf(placement.use, false));
+    }
+    // A module picked inside a group keeps its group's box, faintly: the thing
+    // being edited is one part *of* something, and which something is what
+    // decides where a drag of the group's own panel would take it.
+    for (const path of this.selected) {
+      if (this.isGroup(path)) continue;
+      const use = enclosingAssembly(path);
+      if (use === null || drawn.includes(use)) continue;
+      drawn.push(use);
+      out.push(...this.outlinesOf(use, true));
     }
     return out;
+  }
+
+  /**
+   * One outline per drawn copy of an assembly.
+   *
+   * Per copy rather than one box over every module the selection accounts for,
+   * because a group placed twice is two things in two places and a single box
+   * round both would enclose most of the ship. The copy under the pointer is
+   * the selection; the rest are drawn as copies, the same distinction the
+   * module highlight makes between the one grabbed and the others it moves
+   * with.
+   */
+  private outlinesOf(use: string, context: boolean): GroupOutline[] {
+    const byCopy = new Map<string, GroupOutline>();
+    for (let i = 0; i < this.derived.origins.length; i++) {
+      const path = this.derived.origins[i]!.path;
+      for (let k = 0; k < path.length - 1; k++) {
+        const step = path[k]!;
+        if (step.into !== 'assembly' || step.assembly !== use) continue;
+        const key = path
+          .slice(0, k + 1)
+          .map((each) => `${each.index}.${each.copy}.${each.into ?? ''}`)
+          .join('/');
+        const found = byCopy.get(key);
+        if (found === undefined) byCopy.set(key, { modules: [i], primary: false, context });
+        else found.modules.push(i);
+        break;
+      }
+    }
+    const outlines = [...byCopy.values()];
+    if (!context) {
+      const grabbed = outlines.find((outline) => outline.modules.includes(this.grabbed));
+      (grabbed ?? outlines[0])!.primary = true;
+    }
+    return outlines;
   }
 
   /** The drawn modules of the selected placements that are not groups. */

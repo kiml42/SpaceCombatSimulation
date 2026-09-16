@@ -362,6 +362,25 @@ describe('the editor in a browser', () => {
     expect(await page.isHidden('#groupPanel')).toBe(false);
   });
 
+  it('shows what a selected group weighs, and what all its copies weigh', async () => {
+    await page.selectOption('#ship', 'Corvette');
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x + 168, centre.y);
+    await page.keyboard.down('Shift');
+    await page.mouse.click(centre.x, centre.y);
+    await page.keyboard.up('Shift');
+    await page.click('#propGroup');
+
+    const one = (await page.textContent('#groupStats')) ?? '';
+    expect(one).toMatch(/Mass/);
+    // One copy, so there is nothing to total.
+    expect(one).not.toMatch(/copies/);
+
+    await page.click('#groupDuplicate');
+    const two = (await page.textContent('#groupStats')) ?? '';
+    expect(two).toMatch(/All 2 copies/);
+  });
+
   it('renames a group, and keeps the ship it names', async () => {
     await page.selectOption('#ship', 'Corvette');
     const centre = await canvasCentre(page);

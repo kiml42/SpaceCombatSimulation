@@ -1,6 +1,7 @@
 import { math, type ModuleSpec, type ShipDesign } from '../sim/index.js';
 import type { Camera } from '../render/camera.js';
 import { headingCost, type Envelopes } from './stats.js';
+import type { GroupOutline } from './document.js';
 
 const { cos, sin, max, TAU } = math;
 
@@ -29,6 +30,10 @@ const SELECTION_LINKED = '#e9c05fcc';
  * behaves quite differently.
  */
 const GROUP_SELECTION = '#7fd4ff';
+/** The group's other copies, which a drag of the selected one leaves where they are. */
+const GROUP_LINKED = '#7fd4ffcc';
+/** The group a selected module sits in: context rather than selection, so it is faint. */
+const GROUP_CONTEXT = '#7fd4ff66';
 /** How far the group's box stands off what it contains, metres. */
 const GROUP_BOX_MARGIN = 0.6;
 const CENTRE_OF_MASS = '#7fd6a0';
@@ -52,8 +57,8 @@ export interface OverlayView {
    * grabbed. Groups are not among them — they come through `groups`.
    */
   selected: readonly number[];
-  /** One list per selected group, of the drawn modules that group accounts for. */
-  groups: readonly (readonly number[])[];
+  /** One box per drawn copy of a selected group, and of the group a selected module is in. */
+  groups: readonly GroupOutline[];
   /**
    * The manoeuvring envelopes, or null when there is no design to have any.
    *
@@ -113,7 +118,8 @@ function drawSelection(ctx: CanvasRenderingContext2D, view: OverlayView, camera:
 }
 
 /**
- * One box around each selected group, about everything it holds.
+ * One box around each drawn copy of a selected group, about everything it
+ * holds — and a faint one around the group a selected module sits in.
  *
  * Corners rather than centres, and every module's own corners after its own
  * rotation, so a group of turned parts is boxed by what it actually covers
@@ -125,7 +131,7 @@ function drawGroups(ctx: CanvasRenderingContext2D, view: OverlayView, lineWidth:
     let minY = Infinity;
     let maxX = -Infinity;
     let maxY = -Infinity;
-    for (const index of group) {
+    for (const index of group.modules) {
       const spec = view.modules[index];
       if (spec === undefined) continue;
       const angle = spec.angle ?? 0;
@@ -150,14 +156,22 @@ function drawGroups(ctx: CanvasRenderingContext2D, view: OverlayView, lineWidth:
     if (!(maxX > minX) && !(maxY > minY)) continue;
 
     ctx.save();
-    ctx.strokeStyle = GROUP_SELECTION;
+    ctx.strokeStyle = group.context
+      ? GROUP_CONTEXT
+      : group.primary
+        ? GROUP_SELECTION
+        : GROUP_LINKED;
     ctx.lineWidth = lineWidth;
+    // Dashed for everything that is not the copy being edited, so the one a
+    // drag would move reads as solid the way a grabbed module does.
+    if (!group.primary) ctx.setLineDash([lineWidth * 4, lineWidth * 3]);
     ctx.strokeRect(
       minX - GROUP_BOX_MARGIN,
       minY - GROUP_BOX_MARGIN,
       maxX - minX + GROUP_BOX_MARGIN * 2,
       maxY - minY + GROUP_BOX_MARGIN * 2,
     );
+    ctx.setLineDash([]);
     ctx.restore();
   }
 }
