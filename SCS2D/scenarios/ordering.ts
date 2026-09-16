@@ -41,8 +41,7 @@ import { CORVETTE, FLAT_GUNSHIP, FLAT_GUNSHIP_GROUPED, GUNSHIP } from './bluepri
  * account for a difference, so anything that appears is the ordering.
  *
  * Two things about it are deliberately artificial, and both stop being
- * possible once hulls collide (ROADMAP.md §12), at which point this scenario
- * stops meaning anything and should go:
+ * possible once hulls collide (DESIGN.md §4):
  *
  * - The three start *on top of each other*, which is the only way to give them
  *   identical opening conditions.
@@ -50,6 +49,14 @@ import { CORVETTE, FLAT_GUNSHIP, FLAT_GUNSHIP_GROUPED, GUNSHIP } from './bluepri
  *   manoeuvres nor returns fire. It is a mark to shoot at rather than an
  *   opponent: a fight it took part in would answer all three ships
  *   differently, and the difference being measured would be buried in it.
+ *
+ * **What replaces it when hulls become solid:** three *pairs* of ships, each
+ * pair fighting its own battle far enough from the others to be undisturbed,
+ * one pair per module ordering. What is compared then is not a distance — two
+ * real fights will not stay on top of each other — but the high-level figures
+ * over a long run: final position and velocity, shots fired, hits scored. The
+ * question stays the same and the tolerance changes: identical to the metre
+ * here, indistinguishable as a battle there.
  *
  * Rounds are absorbed by the first hull they cross and there is no friendly
  * fire check, so ships stacked in a line eat each other's shots. That costs
