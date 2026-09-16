@@ -57,6 +57,7 @@ export {
   type ModuleSpec,
   type ModuleStats,
 } from './modules.js';
+export { HullPath, modulesAlong } from './hull.js';
 export {
   assemblyProblem,
   blueprintFaults,

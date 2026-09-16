@@ -59,7 +59,13 @@ inside any one file is not contiguous.
   redo run throughout. Ships are opened from the built-in library or from browser
   storage, saved back to it, and exported and imported as blueprint files. Both pages
   build to one self-contained HTML file each.
-- **Next:** §8 step 2, terminal ballistics and the damage model. Slice 1 has two
+  A shot's path through a ship is resolved to the modules it crosses, in order,
+  with the face each is entered by — the geometry both halves of the damage
+  model are built on, and the first thing the bounding circles the broad phase
+  stops at cannot answer.
+- **Next:** the rest of §8 step 2 — terminal ballistics deciding
+  penetrate/embed/deflect against a module's armour, and the damage model
+  spending what is left walking the path. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
   others stay linked, and the word the editor owes the player when an action reorders
   a layout. Restructuring a group — dissolving one, or nesting one inside another —
