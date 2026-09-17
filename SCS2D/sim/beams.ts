@@ -2,6 +2,7 @@ import type { Bodies } from './bodies.js';
 import { sqrt } from './math.js';
 import { RayHit, type SpatialGrid, MAX_CELLS_PER_RAY } from './spatialGrid.js';
 import { NO_OWNER } from './projectiles.js';
+import type { Hulls } from './hull.js';
 
 /**
  * Beams: lasers, particle beams, and anything else taken to go from its
@@ -76,12 +77,16 @@ export class BeamHits {
    * Outward unit surface normal at the impact point — what decides incidence
    * angle, and therefore whether an oblique hit skids off armour.
    *
-   * Exact for the bounding circles the broad phase tests. Once hulls are
-   * polygons this becomes the narrow phase's to supply, which is why it is
-   * reported rather than left for the caller to infer.
+   * The face of the module struck when a hull was cast against; the circle's
+   * own normal for a body with no hull to cast against.
    */
   nx: Float64Array;
   ny: Float64Array;
+  /**
+   * Index into the struck ship's `design.modules`, or -1 where the hit was
+   * against a bounding circle and no module is known.
+   */
+  module: Int32Array;
   count = 0;
 
   constructor(capacity = 256) {
@@ -91,6 +96,7 @@ export class BeamHits {
     this.y = new Float64Array(capacity);
     this.nx = new Float64Array(capacity);
     this.ny = new Float64Array(capacity);
+    this.module = new Int32Array(capacity);
   }
 
   clear(): void {
@@ -115,6 +121,7 @@ export class BeamHits {
     this.y = f64(this.y);
     this.nx = f64(this.nx);
     this.ny = f64(this.ny);
+    this.module = i32(this.module);
   }
 
   /** Append an impact. Called as each beam is cast. */
@@ -125,6 +132,7 @@ export class BeamHits {
     y: number,
     nx: number,
     ny: number,
+    module = -1,
   ): void {
     if (this.count === this.beam.length) this.grow();
     const i = this.count++;
@@ -134,6 +142,7 @@ export class BeamHits {
     this.y[i] = y;
     this.nx[i] = nx;
     this.ny[i] = ny;
+    this.module[i] = module;
   }
 }
 
@@ -217,7 +226,8 @@ export class Beams {
     kind: number,
     bodies: Bodies,
     grid: SpatialGrid,
-    hits: BeamHits
+    hits: BeamHits,
+    hulls?: Hulls,
   ): number {
     let i: number;
     const reused = this.free.pop();
@@ -240,7 +250,7 @@ export class Beams {
     this.pending[i] = 0;
     this.count++;
 
-    this.detectHits(i, bodies, grid, hits)
+    this.detectHits(i, bodies, grid, hits, hulls)
 
     return i;
   }
@@ -250,7 +260,8 @@ export class Beams {
     spec: BeamSpec,
     bodies: Bodies,
     grid: SpatialGrid,
-    hits: BeamHits
+    hits: BeamHits,
+    hulls?: Hulls,
   ): number {
     return this.shootRaw(
       spec.startX,
@@ -263,7 +274,8 @@ export class Beams {
       spec.kind ?? 0,
       bodies,
       grid,
-      hits
+      hits,
+      hulls,
     );
   }
 
@@ -298,7 +310,8 @@ export class Beams {
     i: number,
     bodies: Bodies,
     grid: SpatialGrid,
-    hits: BeamHits
+    hits: BeamHits,
+    hulls?: Hulls,
   ): void {
     const hit = this.hit;
     if (this.alive[i] === 0 || this.pending[i] === 1) return;
@@ -308,22 +321,32 @@ export class Beams {
     const endX = this.endX[i];
     const endY = this.endY[i];
 
-    if (grid.raycast(bodies, startX, startY, endX, endY, hit, this.owner[i])) {
-      // Outward surface normal. Exact for a bounding circle; a polygon narrow
-      // phase would supply the struck edge's normal instead.
+    if (grid.raycast(bodies, startX, startY, endX, endY, hit, this.owner[i], hulls)) {
       const bi = hit.bodyIndex;
-      const ox = hit.x - bodies.x[bi];
-      const oy = hit.y - bodies.y[bi];
       const dx = endX - startX;
       const dy = endY - startY;
-      const olen = sqrt(ox * ox + oy * oy);
-      // A beam starting exactly at a body's centre has no meaningful outward
-      // normal; oppose its travel, which is the only defensible answer.
-      const oinv = olen > 0 ? 1 / olen : 0;
-      const seglen = sqrt(dx * dx + dy * dy);
-      const sinv = seglen > 0 ? 1 / seglen : 0;
-      const nx = olen > 0 ? ox * oinv : -dx * sinv;
-      const ny = olen > 0 ? oy * oinv : -dy * sinv;
+      let module = -1;
+      let nx = 0;
+      let ny = 0;
+      // The face of the module met, where there was a hull to meet. A body
+      // with no design keeps the circle's own normal.
+      if (hulls !== undefined && hulls.describe(bodies, bi, startX, startY, dx, dy)) {
+        module = hulls.module;
+        nx = hulls.nx;
+        ny = hulls.ny;
+      }
+      if (nx === 0 && ny === 0) {
+        const ox = hit.x - bodies.x[bi];
+        const oy = hit.y - bodies.y[bi];
+        const olen = sqrt(ox * ox + oy * oy);
+        // A beam starting exactly at a body's centre has no meaningful outward
+        // normal; oppose its travel, which is the only defensible answer.
+        const oinv = olen > 0 ? 1 / olen : 0;
+        const seglen = sqrt(dx * dx + dy * dy);
+        const sinv = seglen > 0 ? 1 / seglen : 0;
+        nx = olen > 0 ? ox * oinv : -dx * sinv;
+        ny = olen > 0 ? oy * oinv : -dy * sinv;
+      }
 
       // Stop at the point of contact and wait to be resolved. The beam is
       // deliberately left alive, for the damage model to read.
@@ -331,7 +354,7 @@ export class Beams {
       this.endY[i] = hit.y;
       this.pending[i] = 1;
       this.pendingCount++;
-      hits.push(i, bi, hit.x, hit.y, nx, ny);
+      hits.push(i, bi, hit.x, hit.y, nx, ny, module);
 
       // Reflection will make this a loop rather than a single cast, and the
       // trap waiting there is recorded in ROADMAP.md §12: a deflected beam
@@ -362,7 +385,8 @@ export class Beams {
     kind: number,
     bodies: Bodies,
     grid: SpatialGrid,
-    hits: BeamHits
+    hits: BeamHits,
+    hulls?: Hulls,
   ): number {
     return this.shootRaw(
       muzzleX,
@@ -375,7 +399,8 @@ export class Beams {
       kind,
       bodies,
       grid,
-      hits
+      hits,
+      hulls,
     );
   }
 }

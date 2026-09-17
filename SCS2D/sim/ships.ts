@@ -1,5 +1,6 @@
 import { Bodies, type BodyId } from './bodies.js';
 import type { ShipDesign } from './blueprint.js';
+import { Hulls } from './hull.js';
 import {
   atan2,
   angleDelta,
@@ -142,6 +143,28 @@ export class Ships {
 
   private readonly designs: (ShipDesign | null)[] = [];
   private readonly bodyIds: BodyId[] = [];
+  /**
+   * Body index → the hull that body is built from, for the narrow phase, which
+   * knows bodies and not ships. The handle is kept beside the design so that a
+   * body destroyed and its slot reused is detected rather than inherited.
+   *
+   * A hull outlives its ship: a wrecked ship is removed from this store while
+   * its body stays in the world (§4), and a wreck's matter still stops a
+   * shell, so the entry is left where it is.
+   */
+  private readonly hullDesign: (ShipDesign | null)[] = [];
+  private readonly hullBody: BodyId[] = [];
+  private bodyStore: Bodies | null = null;
+
+  /**
+   * The narrow phase over those hulls, so that a shot lands on a ship's
+   * modules rather than on the circle drawn round them.
+   *
+   * Owned here because this is what knows which body is which ship. Beams are
+   * cast through it without the caller having to pass it; a round is cast by
+   * `Projectiles.step`, which the caller drives, so that one is handed this.
+   */
+  readonly hulls = new Hulls(this);
   /** Persistent between steps, per §12: never shared scratch. */
   private readonly throttles: Float64Array[] = [];
   /** Turret store indices owned by each ship, and their gun timers. */
@@ -181,6 +204,20 @@ export class Ships {
 
   isAlive(i: number): boolean {
     return this.alive[i] === 1;
+  }
+
+  /**
+   * The hull a body is built from, or null for a body that has none — which is
+   * what the narrow phase asks, and what makes a round land on a ship's
+   * modules rather than on the circle drawn round them.
+   */
+  designOf(bodyIndex: number): ShipDesign | null {
+    const design = this.hullDesign[bodyIndex];
+    if (design === undefined || design === null) return null;
+    // The slot may have been destroyed and taken by something else since.
+    const bodies = this.bodyStore;
+    if (bodies !== null && bodies.indexOf(this.hullBody[bodyIndex]!) !== bodyIndex) return null;
+    return design;
   }
 
   design(i: number): ShipDesign {
@@ -223,6 +260,9 @@ export class Ships {
     });
 
     const bodyIdx = world.bodies.indexOf(id);
+    this.bodyStore = world.bodies;
+    this.hullDesign[bodyIdx] = design;
+    this.hullBody[bodyIdx] = id;
     const mounts = design.turrets;
     const indices = new Int32Array(mounts.length);
     for (let t = 0; t < mounts.length; t++) {
@@ -443,7 +483,8 @@ export class Ships {
             0,
             bodies,
             grid,
-            beamHits
+            beamHits,
+            this.hulls,
           );
           if (state == TurretState.Idle) {
             // was idle before, now committed on for beamOnTime

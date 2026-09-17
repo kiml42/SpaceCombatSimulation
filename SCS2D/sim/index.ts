@@ -23,7 +23,7 @@ export {
 } from './bodies.js';
 export { World, type ForceProvider, type WorldOptions } from './world.js';
 export { gravityWell, wellPull, wellPotentialEnergy, type WellSpec } from './gravity.js';
-export { SpatialGrid, IndexBuffer, RayHit, segmentCircleT } from './spatialGrid.js';
+export { SpatialGrid, IndexBuffer, RayHit, segmentCircleT, type RayNarrowPhase } from './spatialGrid.js';
 export {
   Projectiles,
   ProjectileHits,
@@ -57,7 +57,7 @@ export {
   type ModuleSpec,
   type ModuleStats,
 } from './modules.js';
-export { HullPath, modulesAlong } from './hull.js';
+export { HullPath, Hulls, modulesAlong, type HullDesigns } from './hull.js';
 export {
   assemblyProblem,
   blueprintFaults,

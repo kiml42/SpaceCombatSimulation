@@ -3,6 +3,7 @@ import type { WellSpec } from './gravity.js';
 import { wellPull } from './gravity.js';
 import { sqrt } from './math.js';
 import { RayHit, type SpatialGrid } from './spatialGrid.js';
+import type { Hulls } from './hull.js';
 
 /**
  * Projectiles: shells, slugs and other ballistic rounds in flight.
@@ -101,12 +102,16 @@ export class ProjectileHits {
    * Outward unit surface normal at the impact point — what decides incidence
    * angle, and therefore whether an oblique hit skids off armour.
    *
-   * Exact for the bounding circles the broad phase tests. Once hulls are
-   * polygons this becomes the narrow phase's to supply, which is why it is
-   * reported rather than left for the caller to infer.
+   * The face of the module struck when a hull was cast against; the circle's
+   * own normal for a body with no hull to cast against.
    */
   nx: Float64Array;
   ny: Float64Array;
+  /**
+   * Index into the struck ship's `design.modules`, or -1 where the hit was
+   * against a bounding circle and no module is known.
+   */
+  module: Int32Array;
   count = 0;
 
   constructor(capacity = 256) {
@@ -117,6 +122,7 @@ export class ProjectileHits {
     this.y = new Float64Array(capacity);
     this.nx = new Float64Array(capacity);
     this.ny = new Float64Array(capacity);
+    this.module = new Int32Array(capacity);
   }
 
   clear(): void {
@@ -142,6 +148,7 @@ export class ProjectileHits {
     this.y = f64(this.y);
     this.nx = f64(this.nx);
     this.ny = f64(this.ny);
+    this.module = i32(this.module);
   }
 
   /** Append an impact. Called by `Projectiles.step`. */
@@ -153,6 +160,7 @@ export class ProjectileHits {
     y: number,
     nx: number,
     ny: number,
+    module = -1,
   ): void {
     if (this.count === this.projectile.length) this.grow();
     const i = this.count++;
@@ -163,6 +171,7 @@ export class ProjectileHits {
     this.y[i] = y;
     this.nx[i] = nx;
     this.ny[i] = ny;
+    this.module[i] = module;
   }
 }
 
@@ -359,6 +368,7 @@ export class Projectiles {
     grid: SpatialGrid,
     hits: ProjectileHits,
     wells?: readonly WellSpec[],
+    hulls?: Hulls,
   ): void {
     hits.clear();
     const hit = this.hit;
@@ -384,20 +394,31 @@ export class Projectiles {
       const dx = this.vx[i] * dt;
       const dy = this.vy[i] * dt;
 
-      if (grid.raycast(bodies, x0, y0, x0 + dx, y0 + dy, hit, this.owner[i])) {
-        // Outward surface normal. Exact for a bounding circle; a polygon narrow
-        // phase would supply the struck edge's normal instead.
+      if (grid.raycast(bodies, x0, y0, x0 + dx, y0 + dy, hit, this.owner[i], hulls)) {
         const bi = hit.bodyIndex;
-        const ox = hit.x - bodies.x[bi];
-        const oy = hit.y - bodies.y[bi];
-        const olen = sqrt(ox * ox + oy * oy);
-        // A round starting exactly at the centre has no meaningful normal;
-        // oppose its travel, which is the only defensible answer.
-        const oinv = olen > 0 ? 1 / olen : 0;
-        const seglen = sqrt(dx * dx + dy * dy);
-        const sinv = seglen > 0 ? 1 / seglen : 0;
-        const nx = olen > 0 ? ox * oinv : -dx * sinv;
-        const ny = olen > 0 ? oy * oinv : -dy * sinv;
+        let module = -1;
+        let nx = 0;
+        let ny = 0;
+        // The face of the module met, where there was a hull to meet. A body
+        // with no design keeps the circle's own normal, which is exact for a
+        // circle and is all there ever was before hulls.
+        if (hulls !== undefined && hulls.describe(bodies, bi, x0, y0, dx, dy)) {
+          module = hulls.module;
+          nx = hulls.nx;
+          ny = hulls.ny;
+        }
+        if (nx === 0 && ny === 0) {
+          const ox = hit.x - bodies.x[bi];
+          const oy = hit.y - bodies.y[bi];
+          const olen = sqrt(ox * ox + oy * oy);
+          // A round starting exactly at the centre has no meaningful normal;
+          // oppose its travel, which is the only defensible answer.
+          const oinv = olen > 0 ? 1 / olen : 0;
+          const seglen = sqrt(dx * dx + dy * dy);
+          const sinv = seglen > 0 ? 1 / seglen : 0;
+          nx = olen > 0 ? ox * oinv : -dx * sinv;
+          ny = olen > 0 ? oy * oinv : -dy * sinv;
+        }
 
         // Stop at the point of contact and wait to be resolved. The round is
         // deliberately left alive: see the note at the top of this file.
@@ -405,7 +426,7 @@ export class Projectiles {
         this.y[i] = hit.y;
         this.pending[i] = 1;
         this.pendingCount++;
-        hits.push(i, bi, hit.t, hit.x, hit.y, nx, ny);
+        hits.push(i, bi, hit.t, hit.x, hit.y, nx, ny, module);
         continue;
       }
 
