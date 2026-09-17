@@ -51,7 +51,7 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
     const y = -240 + radius * math.sin(angle);
     const dvx = rng.nextRange(-20, 20);
     const dvy = rng.nextRange(-20, 20);
-    const range = rng.nextRange(5, 100);
+    const range = rng.nextRange(30, 100);
 
     const a = ships.spawn(world, {
       design: dinky,
@@ -67,7 +67,7 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
     swarm.push(a);
   }
 
-  ships.setOrder(b, swarm[0], 1500, 2000, 60);
+  ships.setOrder(b, swarm[0], 50, 2000, 60);
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);
