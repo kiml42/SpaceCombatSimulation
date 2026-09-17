@@ -51,7 +51,6 @@ export function start(): void {
     { name: 'Swarm', create: () => swarm(SEED) },
     { name: 'Fractal', create: () => fractal(SEED) },
     { name: 'Super Swarm', create: () => swarm(SEED, 300) },
-    { name: 'Part Ordering', create: () => soloOrdering(0, SEED) }
   ];
   let sceneIndex = 0;
   const nextSceneIndex = (): number => (sceneIndex + 1) % scenes.length;
