@@ -38,6 +38,7 @@ export const NO_TEAM = -1;
 export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot()): Snapshot {
   const view = out.ships[0] ?? {
     design,
+    body: -1,
     team: NO_TEAM,
     x: 0,
     y: 0,

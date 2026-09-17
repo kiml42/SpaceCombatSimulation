@@ -208,12 +208,21 @@ export function start(): void {
       }
       frame(camera, view, canvas.width, canvas.height, simDt);
     }
-    // Impacts come from the simulation and fade on the wall clock, so a paused
-    // battle holds its last flashes rather than freezing them for ever.
+    // Impacts belong to the battle, so they fade on *its* clock: a paused
+    // battle holds its flashes, a single step advances them by one step, and
+    // eight times speed burns them off eight times as fast.
     for (let i = 0; i < view.impactCount; i++) {
-      flashes.add(view.impactX[i]!, view.impactY[i]!, view.impactEnergy[i]!, view.impactKind[i]!);
+      flashes.add(
+        view.impactX[i]!,
+        view.impactY[i]!,
+        view.impactEnergy[i]!,
+        view.impactKind[i]!,
+        view.impactBody[i]!,
+        view.impactLocalX[i]!,
+        view.impactLocalY[i]!,
+      );
     }
-    flashes.step(elapsed);
+    flashes.step(simDt);
     draw(ctx, view, camera, canvas.width, canvas.height, flashes);
 
     // Between the first two ships, whatever the scenario holds — but only if

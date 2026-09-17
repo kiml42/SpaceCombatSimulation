@@ -1,7 +1,7 @@
 import { math, type ShipView, type Snapshot } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth } from './strokes.js';
-import { flashFade, type Flashes } from './flashes.js';
+import { flashFade, flashPosition, type FlashAnchor, type Flashes } from './flashes.js';
 
 const { cos, sin, max, min, PI, sqrt, TAU } = math;
 
@@ -415,7 +415,17 @@ export function draw(
 
   drawProjectiles(ctx, snapshot, camera);
   drawBeams(ctx, snapshot, camera);
-  if (flashes !== undefined) drawFlashes(ctx, flashes, camera);
+  if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera);
+}
+
+/** The ship a flash is riding, or null when nothing in the picture is it. */
+function shipByBody(snapshot: Snapshot, body: number): FlashAnchor | null {
+  if (body < 0) return null;
+  for (let i = 0; i < snapshot.shipCount; i++) {
+    const ship = snapshot.ships[i]!;
+    if (ship.body === body) return ship;
+  }
+  return null;
 }
 
 /**
@@ -425,7 +435,12 @@ export function draw(
  * hit on a hull brightens the hull rather than covering it, and two hits in
  * the same place are brighter than one.
  */
-function drawFlashes(ctx: CanvasRenderingContext2D, flashes: Flashes, camera: Camera): void {
+function drawFlashes(
+  ctx: CanvasRenderingContext2D,
+  snapshot: Snapshot,
+  flashes: Flashes,
+  camera: Camera,
+): void {
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < flashes.count; i++) {
@@ -435,8 +450,15 @@ function drawFlashes(ctx: CanvasRenderingContext2D, flashes: Flashes, camera: Ca
     // Floored on screen, so a hit is visible from far enough out to see the
     // battle it is part of.
     const radius = max(flashes.radius[i]! * fade, MIN_FLASH_PX / camera.scale);
-    const x = flashes.x[i]!;
-    const y = flashes.y[i]!;
+    // On the hull it went off against, wherever that hull has got to since.
+    // A ship that has gone leaves its flashes where they happened.
+    const anchor = shipByBody(snapshot, flashes.body[i]!);
+    const at =
+      anchor === null
+        ? { x: flashes.x[i]!, y: flashes.y[i]! }
+        : flashPosition(flashes.localX[i]!, flashes.localY[i]!, anchor);
+    const x = at.x;
+    const y = at.y;
 
     ctx.fillStyle = beam ? BEAM_FLASH_GLOW : FLASH_GLOW;
     ctx.globalAlpha = 0.5 * fade;

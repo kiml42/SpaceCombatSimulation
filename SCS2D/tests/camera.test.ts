@@ -27,6 +27,7 @@ function ship(x: number, y: number, vx = 0, vy = 0): ShipView {
     turretReady: [],
     throttles: [],
     integrity: [],
+    body: -1,
   };
 }
 
