@@ -8,6 +8,7 @@ import flatGunshipFile from './flat-gunship.json' with { type: 'json' };
 import flatGunshipGroupedFile from './flat-gunship-grouped.json' with { type: 'json' };
 import beamGunshipFile from './beam-gunship.json' with { type: 'json' };
 import fractalFile from './fractal.json' with { type: 'json' };
+import dinkyFile from './dinky.json' with { type: 'json' };
 
 /**
  * The ship layouts that ship with the game, loaded from the same files the
@@ -44,7 +45,8 @@ export const FLAT_GUNSHIP: Blueprint = parseBlueprint(flatGunshipFile);
 export const FLAT_GUNSHIP_GROUPED: Blueprint = parseBlueprint(flatGunshipGroupedFile);
 export const BEAM_GUNSHIP: Blueprint = parseBlueprint(beamGunshipFile);
 export const FRACTAL: Blueprint = parseBlueprint(fractalFile);
+export const DINKY: Blueprint = parseBlueprint(dinkyFile);
 
-export const BLUEPRINTS = { corvette: CORVETTE, beamCorvette: BEAM_CORVETTE, gunship: GUNSHIP, gunship2: GUNSHIP2, beamGunship: BEAM_GUNSHIP, damagedCorvette: DAMAGED_CORVETTE, fractal: FRACTAL, flatGunship: FLAT_GUNSHIP, flatGunshipGrouped: FLAT_GUNSHIP_GROUPED } as const;
+export const BLUEPRINTS = { corvette: CORVETTE, beamCorvette: BEAM_CORVETTE, gunship: GUNSHIP, gunship2: GUNSHIP2, beamGunship: BEAM_GUNSHIP, damagedCorvette: DAMAGED_CORVETTE, fractal: FRACTAL, flatGunship: FLAT_GUNSHIP, dinky: DINKY, flatGunshipGrouped: FLAT_GUNSHIP_GROUPED } as const;
 
 export type BlueprintName = keyof typeof BLUEPRINTS;
