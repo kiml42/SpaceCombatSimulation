@@ -1,6 +1,7 @@
 import {
   Beams,
   checksumBeams,
+  checksumDamage,
   checksumProjectiles,
   checksumWorld,
   gravityWell,
@@ -14,7 +15,7 @@ import { duel } from '../../scenarios/duel.js';
 import { beamVGun } from '../../scenarios/beamVGun.js';
 import type { Battle } from '../../scenarios/types.js';
 import { beamDuel } from '../../scenarios/beamDuel.js';
-import { ordering, spread } from '../../scenarios/ordering.js';
+import { soloOrdering } from '../../scenarios/ordering.js';
 import { swarm } from '../../scenarios/swarm.js';
 import { fractal } from '../../scenarios/fractal.js';
 
@@ -302,7 +303,10 @@ export function duelScenario(seed = 20260905): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
     describe: () => describeBattle(run),
   };
 }
@@ -312,7 +316,10 @@ export function beamDuelScenario(seed = 20260905): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
     describe: () => describeBattle(run),
   };
 }
@@ -322,7 +329,10 @@ export function beamVGunScenario(seed = 20260905): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
     describe: () => describeBattle(run),
   };
 }
@@ -332,7 +342,10 @@ export function swarmScenario(seed = 20260905, corvetteCount = 20): ScenarioRun 
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
     describe: () => describeBattle(run),
   };
 }
@@ -342,24 +355,24 @@ export function fractalScenario(seed = 20260905): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
     describe: () => describeBattle(run),
   };
 }
 
 export function orderingScenario(seed = 20260905): ScenarioRun {
-  const run = ordering(seed);
+  const run = soloOrdering(0, seed);
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-    // The spread is the point of the scenario, so it leads the report line.
-    describe: () => {
-      const gap = spread(run);
-      // Exponential once it is small: "0.0m" reads as no difference when it
-      // means a difference far below anything that matters.
-      return `spread=${gap < 0.01 ? gap.toExponential(2) : gap.toFixed(1)}m ${describeBattle(run)}`;
-    },
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
+    describe: () => describeBattle(run),
   };
 }
 

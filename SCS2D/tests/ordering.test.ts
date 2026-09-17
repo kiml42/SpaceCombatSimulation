@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { NO_TARGET } from '../sim/index.js';
-import { ORDERINGS, ordering, separation, soloOrdering, spread } from '../scenarios/ordering.js';
+import { ORDERINGS, soloOrdering } from '../scenarios/ordering.js';
 
 /**
  * What listing a ship's modules in a different order actually costs, pinned so
@@ -78,53 +78,11 @@ describe('module ordering, one battle each', () => {
   });
 });
 
-describe('module ordering, all three stacked', () => {
-  it('flies each ship exactly as it flies alone', () => {
-    // What licenses the stacked scene as evidence rather than as a picture.
-    // Ships do not yet interact, so sharing a world must change nothing; the
-    // day that stops being true this fails, and the scene goes.
-    const run = ordering();
-    for (let i = 0; i < STEPS; i++) run.step();
-    const bodies = run.world.bodies;
-
-    for (const [i, contender] of run.contenders.entries()) {
-      const body = bodies.indexOf(run.ships.body(contender.ship));
-      const alone = flySolo(i);
-      expect(bodies.x[body]).toBe(alone.x);
-      expect(bodies.y[body]).toBe(alone.y);
-      expect(bodies.angle[body]).toBe(alone.angle);
-    }
-  });
-
-  it('keeps the grouped and flat ships together for the whole flight', () => {
-    // Every step, not just the last: a pair that diverged and came back would
-    // pass an end-state check.
-    const run = ordering();
-    const bodies = run.world.bodies;
-    const flat = bodies.indexOf(run.ships.body(run.contenders[0]!.ship));
-    const assembled = bodies.indexOf(run.ships.body(run.contenders[2]!.ship));
-
-    for (let i = 0; i < STEPS; i++) {
-      run.step();
-      expect(bodies.x[assembled]).toBe(bodies.x[flat]);
-      expect(bodies.y[assembled]).toBe(bodies.y[flat]);
-      expect(bodies.angle[assembled]).toBe(bodies.angle[flat]);
-    }
-  });
-
-  it('shows the drift as the range the viewer reports', () => {
-    const run = ordering();
-    for (let i = 0; i < STEPS; i++) run.step();
-    const drift = separation(run, 0, 1);
-    expect(drift).toBeGreaterThan(0);
-    expect(drift).toBeLessThan(1e-6);
-    expect(spread(run)).toBe(drift);
-  });
-
-  it('holds the mark\'s fire', () => {
+describe('the mark', () => {
+  it('holds its fire, so every contender faces the same problem', () => {
     // If the mark ever acquired an order it would shoot back, and the three
     // would stop being given the same problem.
-    const run = ordering();
+    const run = soloOrdering(0);
     for (let i = 0; i < STEPS; i++) run.step();
     expect(run.ships.order(run.target).target).toBe(NO_TARGET);
   });

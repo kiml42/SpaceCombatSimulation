@@ -1,6 +1,7 @@
 import { Bodies, type BodyId } from './bodies.js';
 import type { ShipDesign } from './blueprint.js';
 import { Hulls } from './hull.js';
+import { Damage, DamageEffect } from './damage.js';
 import {
   atan2,
   angleDelta,
@@ -11,7 +12,7 @@ import {
   sin,
 } from './math.js';
 import { Projectiles } from './projectiles.js';
-import { Allocation } from './thrusters.js';
+import { Allocation, ThrusterLayout } from './thrusters.js';
 import { FiringSolution, Turrets, TurretState } from './turrets.js';
 import type { World } from './world.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
@@ -156,6 +157,9 @@ export class Ships {
   private readonly hullBody: BodyId[] = [];
   private bodyStore: Bodies | null = null;
 
+  /** What every ship has taken, by body index. */
+  readonly damage = new Damage();
+
   /**
    * The narrow phase over those hulls, so that a shot lands on a ship's
    * modules rather than on the circle drawn round them.
@@ -165,6 +169,26 @@ export class Ships {
    * `Projectiles.step`, which the caller drives, so that one is handed this.
    */
   readonly hulls = new Hulls(this);
+
+  /**
+   * The same, for beams, which bore through what they have already destroyed.
+   * A shell is stopped by matter whatever state it is in; a beam is stopped
+   * only by matter it can still boil away.
+   */
+  readonly beamHulls = new Hulls(this, {
+    stops: (body, module) => !this.damage.spent(body, module),
+  });
+
+  /**
+   * Per-ship thruster layouts, and the damage version each was built at.
+   *
+   * A design's layout is shared by every ship built to it, so a damaged ship
+   * needs one of its own — rebuilt when its damage changes and not per step,
+   * which is what §4's "damage never changes topology" buys: the geometry of
+   * what can push is what changed, and mass properties are untouched.
+   */
+  private readonly layouts: (ThrusterLayout | null)[] = [];
+  private readonly layoutVersion: number[] = [];
   /** Persistent between steps, per §12: never shared scratch. */
   private readonly throttles: Float64Array[] = [];
   /** Turret store indices owned by each ship, and their gun timers. */
@@ -220,6 +244,61 @@ export class Ships {
     return design;
   }
 
+  /**
+   * The thruster layout to fly this ship by: the design's own while it is
+   * undamaged, and one of its own once it is not.
+   *
+   * Rebuilt only when the ship's damage has changed since the last time, which
+   * is a version comparison rather than a dirty flag — nothing has to remember
+   * to set it.
+   */
+  private layoutOf(i: number): ThrusterLayout {
+    const design = this.designs[i]!;
+    const bodies = this.bodyStore;
+    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return design.thrusterLayout;
+
+    const version = this.damage.version(b);
+    const built = this.layouts[i];
+    if (built !== null && built !== undefined && this.layoutVersion[i] === version) return built;
+
+    let damaged = false;
+    const specs = design.thrusters.map((spec) => {
+      const left = this.damage.remaining(b, spec.module ?? -1, DamageEffect.Thrust);
+      if (left < 1) damaged = true;
+      return left === 1 ? spec : { ...spec, maxThrust: spec.maxThrust * left };
+    });
+    // An undamaged ship keeps the design's shared layout, so the common case
+    // costs one comparison and no allocation.
+    const layout = damaged ? new ThrusterLayout(specs) : design.thrusterLayout;
+    this.layouts[i] = layout;
+    this.layoutVersion[i] = version;
+    return layout;
+  }
+
+  /**
+   * Whether a ship can still do anything: push, or shoot.
+   *
+   * A ship that can do neither is a hulk — it keeps its mass, drifts on and
+   * goes on stopping shells (§4), which is what makes §3's mission kill worth
+   * something. It is not removed, so this is the question a scenario asks
+   * rather than a state the store holds.
+   */
+  isDisabled(i: number): boolean {
+    if (this.alive[i] === 0) return true;
+    const bodies = this.bodyStore;
+    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return true;
+    const design = this.designs[i]!;
+    for (const thruster of design.thrusters) {
+      if (this.damage.remaining(b, thruster.module ?? -1, DamageEffect.Thrust) > 0) return false;
+    }
+    for (const turret of design.turrets) {
+      if (this.damage.remaining(b, turret.module, DamageEffect.FireRate) > 0) return false;
+    }
+    return true;
+  }
+
   design(i: number): ShipDesign {
     const d = this.designs[i];
     if (d === null || d === undefined) throw new Error(`Ships: no ship at ${i}`);
@@ -263,6 +342,7 @@ export class Ships {
     this.bodyStore = world.bodies;
     this.hullDesign[bodyIdx] = design;
     this.hullBody[bodyIdx] = id;
+    this.damage.register(bodyIdx, design);
     const mounts = design.turrets;
     const indices = new Int32Array(mounts.length);
     for (let t = 0; t < mounts.length; t++) {
@@ -397,6 +477,16 @@ export class Ships {
         const gun = design.turrets[t]!.gun;
         let barrel = barrels[t]!;
 
+        // What damage has left of this mount's rate of fire. A wrecked mount
+        // stops where it is: it does not finish the shot it was committed to,
+        // because there is no longer a gun to finish it with.
+        const rate = this.damage.remaining(bodyIdx, design.turrets[t]!.module, DamageEffect.FireRate);
+        if (!(rate > 0)) {
+          turretStates[t] = TurretState.Idle;
+          timers[t] = 0;
+          continue;
+        }
+
         if (timers[t]! <= 0 && state != TurretState.Idle) {
           // the timer's run out, progress the state (except idle, which only progresses when ready to fire)
           if (state == TurretState.Reloading) {
@@ -407,7 +497,7 @@ export class Ships {
           if (state == TurretState.CommittedOn) {
             // finished firing -> reload
             state = turretStates[t] = TurretState.Reloading;
-            timers[t] = gun.cycleTime;
+            timers[t] = gun.cycleTime / rate;
           }
         }
 
@@ -466,7 +556,9 @@ export class Ships {
             (this.solution.x - bodies.x[bodyIdx]!) * jy -
             (this.solution.y - bodies.y[bodyIdx]!) * jx;
 
-          timers[t] = gun.cycleTime;
+          // A battered mount loads slower, which is the whole of what damage
+          // does to a gun for now.
+          timers[t] = gun.cycleTime / rate;
 
           turretStates[t] = TurretState.Reloading; // Projectile guns immediately reload after firing.
 
@@ -484,7 +576,7 @@ export class Ships {
             bodies,
             grid,
             beamHits,
-            this.hulls,
+            this.beamHulls,
           );
           if (state == TurretState.Idle) {
             // was idle before, now committed on for beamOnTime
@@ -525,7 +617,6 @@ export class Ships {
    * allocator, and a target handed to the turrets.
    */
   private flyOne(dt: number, bodies: Bodies, i: number): void {
-    const design = this.designs[i]!;
     const order = this.orders[i]!;
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
@@ -592,7 +683,8 @@ export class Ships {
     // of.
     const error = angleDelta(angle, wantAngle);
     const inertia = bodies.inertia[b]!;
-    const maxTorque = design.thrusterLayout.maxTorque(error >= 0 ? 1 : -1);
+    const layout = this.layoutOf(i);
+    const maxTorque = layout.maxTorque(error >= 0 ? 1 : -1);
     const maxAlpha = inertia > 0 ? maxTorque / inertia : 0;
     const wantRate = error >= 0
       ? brakingRate(error, maxAlpha, dt)
@@ -600,7 +692,7 @@ export class Ships {
     const localTorque =
       dt > 0 ? (inertia * (wantRate - bodies.angularVel[b]!)) / dt : 0;
 
-    design.thrusterLayout.allocate(
+    layout.allocate(
       localFx,
       localFy,
       clamp(localTorque, -maxTorque, maxTorque),

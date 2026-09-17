@@ -1,10 +1,11 @@
 import { capture, math, Snapshot } from '../sim/index.js';
+import { Flashes } from '../render/flashes.js';
 import { duel } from '../scenarios/duel.js';
 import { beamDuel } from '../scenarios/beamDuel.js';
 import { beamVGun } from '../scenarios/beamVGun.js';
 import { fractal } from '../scenarios/fractal.js';
 import type { Battle } from '../scenarios/types.js';
-import { ordering } from '../scenarios/ordering.js';
+import { soloOrdering } from '../scenarios/ordering.js';
 import { swarm } from '../scenarios/swarm.js';
 import { draw } from '../render/canvas2d.js';
 import { frame, gridStep, type Camera } from '../render/camera.js';
@@ -50,12 +51,13 @@ export function start(): void {
     { name: 'Swarm', create: () => swarm(SEED) },
     { name: 'Fractal', create: () => fractal(SEED) },
     { name: 'Super Swarm', create: () => swarm(SEED, 300) },
-    { name: 'Part Ordering', create: () => ordering(SEED) }
+    { name: 'Part Ordering', create: () => soloOrdering(0, SEED) }
   ];
   let sceneIndex = 0;
   const nextSceneIndex = (): number => (sceneIndex + 1) % scenes.length;
   let state: Battle = scenes[sceneIndex].create();
   let snapshot = new Snapshot();
+  const flashes = new Flashes();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
   // Auto-framing keeps everything in shot, which is what you want until you
   // want to look at something. Any manual zoom or pan hands control over;
@@ -101,6 +103,7 @@ export function start(): void {
   });
   resetButton.addEventListener('click', () => {
     state = scenes[sceneIndex].create();
+    flashes.clear();
     framed = false;
     autoFrame = true;
     setRunning(true);
@@ -109,6 +112,7 @@ export function start(): void {
     sceneIndex = nextSceneIndex();
     updateSwitchSceneButton();
     state = scenes[sceneIndex].create();
+    flashes.clear();
     framed = false;
     autoFrame = true;
     setRunning(true);
@@ -183,7 +187,15 @@ export function start(): void {
       if (steps === MAX_STEPS_PER_FRAME) accumulator = 0;
     }
 
-    const view = capture(snapshot, state.world, state.ships, state.projectiles, state.beams, state.wells);
+    const view = capture(
+      snapshot,
+      state.world,
+      state.ships,
+      state.projectiles,
+      state.beams,
+      state.wells,
+      state.impacts.log,
+    );
     // Negative when the battle has just been reset, which is not elapsed time.
     const simDt = view.time > lastSimTime ? view.time - lastSimTime : 0;
     lastSimTime = view.time;
@@ -196,7 +208,13 @@ export function start(): void {
       }
       frame(camera, view, canvas.width, canvas.height, simDt);
     }
-    draw(ctx, view, camera, canvas.width, canvas.height);
+    // Impacts come from the simulation and fade on the wall clock, so a paused
+    // battle holds its last flashes rather than freezing them for ever.
+    for (let i = 0; i < view.impactCount; i++) {
+      flashes.add(view.impactX[i]!, view.impactY[i]!, view.impactEnergy[i]!, view.impactKind[i]!);
+    }
+    flashes.step(elapsed);
+    draw(ctx, view, camera, canvas.width, canvas.height, flashes);
 
     // Between the first two ships, whatever the scenario holds — but only if
     // there are two. A single survivor has nothing to measure against, and

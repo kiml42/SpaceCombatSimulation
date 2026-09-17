@@ -269,6 +269,18 @@ export interface HullDesigns {
 }
 
 /**
+ * Which modules still stop the thing being cast.
+ *
+ * Shells are stopped by matter, so nothing implements this for them. A beam is
+ * stopped by matter it can still boil away: once a module is spent, a beam
+ * bores on through to what is behind it, which is how a beam ship kills
+ * anything at all.
+ */
+export interface LiveModules {
+  stops(bodyIndex: number, module: number): boolean;
+}
+
+/**
  * The narrow phase: a shot lands on a ship's hull rather than on the circle
  * drawn round it.
  *
@@ -292,7 +304,10 @@ export class Hulls implements RayNarrowPhase {
   nx = 0;
   ny = 0;
 
-  constructor(private readonly designs: HullDesigns) {}
+  constructor(
+    private readonly designs: HullDesigns,
+    private readonly live?: LiveModules,
+  ) {}
 
   confirm(
     bodies: Bodies,
@@ -346,6 +361,30 @@ export class Hulls implements RayNarrowPhase {
     return true;
   }
 
+  /**
+   * Drop the crossings at the front of the path that no longer stop anything,
+   * so that the first one left is what the cast actually meets.
+   *
+   * Only the leading ones: a spent module deeper in still shadows nothing, and
+   * the list stays in the order the segment crosses it.
+   */
+  private skipSpent(bodyIndex: number): void {
+    const live = this.live;
+    if (live === undefined) return;
+    let first = 0;
+    while (first < this.path.count && !live.stops(bodyIndex, this.path.module[first]!)) first++;
+    if (first === 0) return;
+    for (let i = first; i < this.path.count; i++) {
+      const to = i - first;
+      this.path.module[to] = this.path.module[i]!;
+      this.path.entry[to] = this.path.entry[i]!;
+      this.path.exit[to] = this.path.exit[i]!;
+      this.path.nx[to] = this.path.nx[i]!;
+      this.path.ny[to] = this.path.ny[i]!;
+    }
+    this.path.count -= first;
+  }
+
   /** The segment in the ship's frame, and the first module it crosses. */
   private cast(
     design: ShipDesign,
@@ -370,6 +409,7 @@ export class Hulls implements RayNarrowPhase {
     const ldy = -dx * s + dy * c;
 
     modulesAlong(design, lx0, ly0, lx0 + ldx, ly0 + ldy, this.path);
+    if (this.live !== undefined) this.skipSpent(bodyIndex);
     if (this.path.count === 0) return -1;
 
     // `modulesAlong` reports metres along the segment and the cast wants a

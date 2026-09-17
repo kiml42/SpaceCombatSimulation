@@ -119,4 +119,23 @@ export {
   strike,
   type Strike,
 } from './ballistics.js';
-export { checksumWorld, checksumProjectiles, checksumBeams, formatChecksum } from './checksum.js';
+export {
+  DAMAGE_ENERGY_PER_KG,
+  DAMAGE_RESPONSES,
+  Damage,
+  DamageEffect,
+  IMPACT_BEAM,
+  IMPACT_ROUND,
+  ImpactLog,
+  Impacts,
+  resolveRound,
+  type DamageResponse,
+  type RoundOutcome,
+} from './damage.js';
+export {
+  checksumWorld,
+  checksumProjectiles,
+  checksumBeams,
+  checksumDamage,
+  formatChecksum,
+} from './checksum.js';

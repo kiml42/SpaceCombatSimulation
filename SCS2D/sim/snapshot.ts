@@ -3,6 +3,7 @@ import type { ShipDesign } from './blueprint.js';
 import type { WellSpec } from './gravity.js';
 import type { Projectiles } from './projectiles.js';
 import type { Beams } from './beams.js';
+import type { ImpactLog } from './damage.js';
 import type { Ships } from './ships.js';
 import type { Turrets } from './turrets.js';
 import type { World } from './world.js';
@@ -43,6 +44,12 @@ export interface ShipView {
   turretReady: boolean[];
   /** Throttle held by each thruster, 0 to 1, in the design's thruster order. */
   throttles: number[];
+  /**
+   * How much of each module is left, 1 untouched and 0 spent, in the design's
+   * module order. A spent module is still there and still stops shells — it is
+   * drawn as wreckage rather than not drawn.
+   */
+  integrity: number[];
 }
 
 export class Snapshot {
@@ -76,6 +83,19 @@ export class Snapshot {
   beamWidth = new Float64Array(0);
   beamPower = new Float64Array(0);
   beamCount = 0;
+
+  /**
+   * Impacts since the last picture: where a hit landed and what it was worth.
+   *
+   * Drained from the log rather than sampled, because a frame may cover
+   * several steps and a hit that happened in the middle of one is still a hit
+   * somebody should see.
+   */
+  impactX = new Float64Array(0);
+  impactY = new Float64Array(0);
+  impactEnergy = new Float64Array(0);
+  impactKind = new Uint8Array(0);
+  impactCount = 0;
 
   /**
    * Bounding box of the *ships*, for a camera to frame.
@@ -115,6 +135,15 @@ function growBeams(snapshot: Snapshot, needed: number): void {
   snapshot.beamPower = new Float64Array(size);
 }
 
+function growImpacts(snapshot: Snapshot, needed: number): void {
+  if (snapshot.impactX.length >= needed) return;
+  const size = needed * 2;
+  snapshot.impactX = new Float64Array(size);
+  snapshot.impactY = new Float64Array(size);
+  snapshot.impactEnergy = new Float64Array(size);
+  snapshot.impactKind = new Uint8Array(size);
+}
+
 function shipView(snapshot: Snapshot, i: number): ShipView {
   const existing = snapshot.ships[i];
   if (existing !== undefined) return existing;
@@ -129,6 +158,7 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
     turretBearings: [],
     turretReady: [],
     throttles: [],
+    integrity: [],
   };
   snapshot.ships[i] = created;
   return created;
@@ -142,6 +172,7 @@ export function capture(
   projectiles: Projectiles,
   beams: Beams,
   wells: readonly WellSpec[] = [],
+  impacts?: ImpactLog,
 ): Snapshot {
   const bodies: Bodies = world.bodies;
   const turrets: Turrets = ships.turrets;
@@ -184,6 +215,11 @@ export function capture(
       view.throttles[t] = ships.throttleOf(i, t);
     }
 
+    view.integrity.length = design.modules.length;
+    for (let m = 0; m < design.modules.length; m++) {
+      view.integrity[m] = ships.damage.integrity(b, m);
+    }
+
     const r = design.radius;
     if (view.x - r < minX) minX = view.x - r;
     if (view.y - r < minY) minY = view.y - r;
@@ -218,6 +254,20 @@ export function capture(
     b++;
   }
   out.beamCount = b;
+
+  // Drained, not copied: every impact is shown once, whatever the frame rate.
+  out.impactCount = 0;
+  if (impacts !== undefined) {
+    growImpacts(out, impacts.count);
+    for (let i = 0; i < impacts.count; i++) {
+      out.impactX[i] = impacts.x[i]!;
+      out.impactY[i] = impacts.y[i]!;
+      out.impactEnergy[i] = impacts.energy[i]!;
+      out.impactKind[i] = impacts.kind[i]!;
+    }
+    out.impactCount = impacts.count;
+    impacts.clear();
+  }
 
   if (n === 0) {
     minX = minY = maxX = maxY = 0;

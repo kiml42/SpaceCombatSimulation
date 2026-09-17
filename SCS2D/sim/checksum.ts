@@ -1,4 +1,5 @@
 import type { Beams } from './beams.js';
+import type { Damage } from './damage.js';
 import { imul } from './math.js';
 import type { Projectiles } from './projectiles.js';
 import type { World } from './world.js';
@@ -116,6 +117,24 @@ export function checksumProjectiles(projectiles: Projectiles, seed = FNV_OFFSET)
  * from one that reached its full length — which makes where a beam stopped
  * part of what the goldens pin, not just that it was fired.
  */
+/**
+ * What every ship has taken, so a change in the damage model moves the goldens.
+ *
+ * Worth covering separately from the world: damage does not move a ship by
+ * itself — a wrecked hull drifts exactly as it did — so a battle could take a
+ * quite different beating and check out identical without this.
+ */
+export function checksumDamage(damage: Damage, seed = FNV_OFFSET): number {
+  let h = seed;
+  for (let b = 0; b < damage.highWater; b++) {
+    const absorbed = damage.absorbedOf(b);
+    if (absorbed === null) continue;
+    h = mixU32(h, b);
+    for (let m = 0; m < absorbed.length; m++) h = mixF64(h, absorbed[m]!);
+  }
+  return h;
+}
+
 export function checksumBeams(beams: Beams, seed = FNV_OFFSET): number {
   let h = seed;
   h = mixU32(h, beams.count);
