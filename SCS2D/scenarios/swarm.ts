@@ -11,11 +11,11 @@ import {
   type WellSpec,
 } from '../sim/index.js';
 import { type Battle } from './types.js';
-import { CORVETTE, GUNSHIP } from './blueprints.js';
+import { DINKY, GUNSHIP } from './blueprints.js';
 import { Rng } from '../sim/rng.js';
 
 /**
- * Many corvettes and one gunship closing on each other and opening fire.
+ * Many dinkies and one gunship closing on each other and opening fire.
  */
 
 export function swarm(seed = 20260905, corvetteCount = 20): Battle {
@@ -27,7 +27,7 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
   const ships = new Ships();
   world.addForceProvider(ships.forceProvider());
 
-  const corvette = compileBlueprint(CORVETTE);
+  const dinky = compileBlueprint(DINKY);
   const gunship = compileBlueprint(GUNSHIP);
 
   const b = ships.spawn(world, {
@@ -53,7 +53,7 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
     const dvy = rng.nextRange(-20, 20);
 
     const a = ships.spawn(world, {
-      design: corvette,
+      design: dinky,
       x: x,
       y: y,
       angle: rng.nextRange(0, 2 * math.PI),
@@ -61,7 +61,7 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
       vy: 90 + dvy,
       team: 0,
     });
-    ships.setOrder(a, b, 300, 500, 120);
+    ships.setOrder(a, b, 10, 500, 1200);
 
     corvettes.push(a);
   }
