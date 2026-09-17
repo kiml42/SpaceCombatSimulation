@@ -200,6 +200,143 @@ export function atan2(y: number, x: number): number {
   return 0;
 }
 
+// --- exp / log / pow -------------------------------------------------------
+
+/**
+ * Cody-Waite split of ln 2: `LN2_HI + LN2_LO` carries it to roughly twice
+ * double precision, so `x - k·ln2` stays accurate when the subtraction
+ * cancels. The classic fdlibm constants.
+ */
+const LN2_HI = 6.93147180369123816490e-1;
+const LN2_LO = 1.90821492927058770002e-10;
+
+/** log(m) for m in [1/√2, √2), by the atanh series in s = (m−1)/(m+1).
+ *
+ * |s| <= 0.1716, so terms fall by a factor of about 34 each; stopping at s^25
+ * leaves a truncation error near 1e-21, well under a double ulp.
+ */
+function logKernel(m: number): number {
+  const s = (m - 1) / (m + 1);
+  const z = s * s;
+  let p = 1 / 25;
+  p = 1 / 23 + z * p;
+  p = 1 / 21 + z * p;
+  p = 1 / 19 + z * p;
+  p = 1 / 17 + z * p;
+  p = 1 / 15 + z * p;
+  p = 1 / 13 + z * p;
+  p = 1 / 11 + z * p;
+  p = 1 / 9 + z * p;
+  p = 1 / 7 + z * p;
+  p = 1 / 5 + z * p;
+  p = 1 / 3 + z * p;
+  p = 1 + z * p;
+  return 2 * s * p;
+}
+
+/**
+ * Natural logarithm.
+ *
+ * x is split into m·2^k with m in [1/√2, √2) by halving and doubling, which
+ * are exact, so the split itself costs no accuracy. The loop runs once per
+ * octave — around twenty times for the magnitudes a ship deals in.
+ */
+export function log(x: number): number {
+  if (!(x > 0)) return x === 0 ? -Infinity : NaN;
+  if (x === Infinity) return Infinity;
+  let m = x;
+  let k = 0;
+  while (m >= Math.SQRT2) {
+    m *= 0.5;
+    k++;
+  }
+  while (m < Math.SQRT1_2) {
+    m *= 2;
+    k--;
+  }
+  return k * LN2_HI + (k * LN2_LO + logKernel(m));
+}
+
+/** exp(r) for |r| <= ln2/2, by Taylor to r^13. Truncation about 1e-18. */
+function expKernel(r: number): number {
+  let p = 1 / 6227020800; // 1/13!
+  p = 1 / 479001600 + r * p; //  1/12!
+  p = 1 / 39916800 + r * p; //  1/11!
+  p = 1 / 3628800 + r * p; //  1/10!
+  p = 1 / 362880 + r * p; //  1/9!
+  p = 1 / 40320 + r * p; //  1/8!
+  p = 1 / 5040 + r * p; //  1/7!
+  p = 1 / 720 + r * p; //  1/6!
+  p = 1 / 120 + r * p; //  1/5!
+  p = 1 / 24 + r * p; //  1/4!
+  p = 1 / 6 + r * p; //  1/3!
+  p = 1 / 2 + r * p; //  1/2!
+  p = 1 + r * p;
+  p = 1 + r * p;
+  return p;
+}
+
+/** v · 2^k. Scaling by a power of two is exact while the result is normal. */
+function scale2(v: number, k: number): number {
+  let out = v;
+  let n = k;
+  while (n > 30) {
+    out *= 1073741824; // 2^30
+    n -= 30;
+  }
+  while (n < -30) {
+    out *= 9.313225746154785e-10; // 2^-30
+    n += 30;
+  }
+  while (n > 0) {
+    out *= 2;
+    n--;
+  }
+  while (n < 0) {
+    out *= 0.5;
+    n++;
+  }
+  return out;
+}
+
+/**
+ * e^x, reduced to exp(r)·2^k with |r| <= ln2/2.
+ *
+ * The bounds are where a double overflows and where it underflows to zero;
+ * returning the limits rather than letting the reduction run keeps the loop in
+ * `scale2` short and the answer the same one IEEE would give.
+ */
+export function exp(x: number): number {
+  if (x !== x) return NaN;
+  if (x > 709.782712893384) return Infinity;
+  if (x < -745.1332191019411) return 0;
+  const k = Math.round(x / Math.LN2);
+  const r = x - k * LN2_HI - k * LN2_LO;
+  return scale2(expKernel(r), k);
+}
+
+/**
+ * x^y, for **x >= 0 only**, as exp(y·log x).
+ *
+ * A negative base is a NaN rather than an integer-exponent special case: the
+ * uses here are physical laws in fractional powers, where a negative base is a
+ * mistake worth hearing about rather than a case to serve.
+ *
+ * Relative error is about `|y·log x|` ulps — a few parts in 1e16 for the
+ * exponents these laws use, which is far finer than anything measured in
+ * metres per second. Determinism is the point, as everywhere in this file: two
+ * engines must agree bit for bit, and `Math.pow` does not promise that.
+ */
+export function pow(x: number, y: number): number {
+  if (y === 0) return 1;
+  if (y === 1) return x;
+  if (y === 2) return x * x;
+  if (y === 0.5) return Math.sqrt(x);
+  if (x === 0) return y > 0 ? 0 : Infinity;
+  if (!(x > 0)) return NaN;
+  return exp(y * log(x));
+}
+
 // --- Angles ----------------------------------------------------------------
 
 /** Wrap an angle to [-pi, pi). */

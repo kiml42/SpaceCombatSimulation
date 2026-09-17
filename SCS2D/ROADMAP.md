@@ -65,10 +65,13 @@ Then, in order:
 
 1. **Blueprint editor** — parametric modules; ships stop being hard-coded.
 2. **Terminal ballistics and the damage model** — armour properties exist once modules are parametric, so
-   this is the first point at which a real answer is possible. Terminal ballistics decides
-   penetrate/embed/deflect from local surface properties and returns a residual; the damage model spends
-   that residual walking the internals. Until then, Slice 0 stands in with a flat "everything penetrates
-   and is absorbed", which is enough to watch ships come apart but tells you nothing about armour design.
+   this is the first point at which a real answer is possible. **Terminal ballistics is built**
+   (`sim/ballistics.ts`): de Marre's law decides penetrate/embed/deflect from a round, a plate and the
+   angle between them, and returns the residual. What is left is the half that spends it — and the step
+   before that, which is *which plate*: a hit reports the body it struck and its surface normal, so
+   finding the module that was met, and the facing of it, is the damage model's first job. Until then,
+   Slice 0 stands in with a flat "everything penetrates and is absorbed", which is enough to watch ships
+   come apart but tells you nothing about armour design.
 3. **Doctrine and orders** — make configuration visibly change behaviour.
 4. **Headless evolution and analysis** — balance testing plus sandbox mode.
 5. **v1: skirmish** — a fixed budget of *materials* rather than of points (§12), designed scenarios,
@@ -208,6 +211,21 @@ what the editor can honestly show, and it is not a placeholder.
 ## 12. Open questions
 
 Deliberately unresolved; decide when they block something.
+
+- **How hard armour is: `DE_MARRE_K`.** De Marre's exponents are the physics and are not ours to choose;
+  its constant is the *material*, and it is the one number in terminal ballistics that is a decision. It
+  stands at 91,460, calibrated so that a 16-inch rifle — a 1,225 kg shell of 0.406 m calibre at 700 m/s —
+  gets through 0.40 m of belt, which is the Iowa class against its own protection at battle range.
+  Everything else follows: the corvette's 160 mm main gun beats 12 cm, so against the 20 mm walls modules
+  carry today every round perforates, and the reinforcement dial spans "paper to that gun" at 1 and
+  "immune" at about 6. Whether that is the *game* anyone wants is the open part, and the honest test needs
+  the damage model behind it and the GA shooting at it. Move the constant, not the exponents.
+- **Two refinements terminal ballistics leaves out on purpose.** The critical angle is one constant at 65°,
+  where the literature makes it depend on the plate's thickness relative to the round's calibre — a thin
+  plate is easier to skid off than a thick one. And a deflected round is mirrored about the normal, where
+  the honest answer is along the face; the two agree at the grazing angles a ricochet actually happens at,
+  which is why mirroring is enough for now. Both want test data this project does not have, so one constant
+  that is honestly a constant beats two that are honestly neither.
 
 - **Exact scaling laws for parametric modules.** A first cut exists in `sim/modules.ts`, with each
   constant calibrated against real hardware — an RS-25's thrust per unit of exit area, a 16"/50's

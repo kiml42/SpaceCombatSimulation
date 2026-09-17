@@ -15,5 +15,4 @@ is waiting for is just a second place to look.
 
 | File | What it is |
 | --- | --- |
-| `ballistics.ts` | Terminal ballistics — the de Marre penetration law. Does not compile: needs `pow`. |
 | `compare-designs.mts` | Compiles every authored ship on two checkouts and compares each figure bit for bit. |

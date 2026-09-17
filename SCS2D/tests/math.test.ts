@@ -6,9 +6,12 @@ import {
   atan2,
   clamp,
   cos,
+  exp,
   length,
+  log,
   normalizeAngle,
   PI,
+  pow,
   sin,
   tan,
   TAU,
@@ -157,5 +160,56 @@ describe('helpers', () => {
     expect(approach(0, 2, 3)).toBe(2);
     expect(approach(0, -10, 3)).toBe(-3);
     expect(approach(5, 5, 3)).toBe(5);
+  });
+});
+
+describe('exp / log / pow', () => {
+  it('matches Math.exp over the range a double can hold', () => {
+    for (const x of sweep(-700, 700)) {
+      expect(Math.abs(exp(x) - Math.exp(x))).toBeLessThan(Math.exp(x) * 1e-14);
+    }
+  });
+
+  it('matches Math.log over twelve decades', () => {
+    for (const x of sweep(1e-6, 1e6)) {
+      if (x <= 0) continue;
+      expect(Math.abs(log(x) - Math.log(x))).toBeLessThan(Math.abs(Math.log(x)) * 1e-14 + 1e-15);
+    }
+  });
+
+  it('is exact where the answer is a whole number', () => {
+    expect(log(1)).toBe(0);
+    expect(exp(0)).toBe(1);
+    expect(pow(3, 0)).toBe(1);
+    expect(pow(3, 1)).toBe(3);
+    expect(pow(3, 2)).toBe(9);
+    // A square root, taken as one: sqrt is correctly rounded where exp(y·log x)
+    // would only be close.
+    expect(pow(2, 0.5)).toBe(Math.sqrt(2));
+  });
+
+  it('round-trips: log undoes exp', () => {
+    for (const x of sweep(-20, 20, 500)) {
+      expect(Math.abs(log(exp(x)) - x)).toBeLessThan(1e-13 * Math.max(1, Math.abs(x)));
+    }
+  });
+
+  it('matches Math.pow at the exponents the ballistics law uses', () => {
+    for (const x of sweep(1e-4, 5, 500)) {
+      for (const y of [0.7, 0.75, 1.5, -0.5, 3]) {
+        expect(Math.abs(pow(x, y) - Math.pow(x, y))).toBeLessThan(Math.pow(x, y) * 1e-13);
+      }
+    }
+  });
+
+  it('answers for the edges rather than leaving them to the reduction', () => {
+    expect(exp(1000)).toBe(Infinity);
+    expect(exp(-1000)).toBe(0);
+    expect(log(0)).toBe(-Infinity);
+    expect(Number.isNaN(log(-1))).toBe(true);
+    expect(pow(0, 2)).toBe(0);
+    // A negative base is a mistake in a law written in fractional powers, and
+    // says so rather than serving the integer-exponent case.
+    expect(Number.isNaN(pow(-2, 0.7))).toBe(true);
   });
 });

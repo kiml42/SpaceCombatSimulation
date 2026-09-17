@@ -59,7 +59,12 @@ inside any one file is not contiguous.
   redo run throughout. Ships are opened from the built-in library or from browser
   storage, saved back to it, and exported and imported as blueprint files. Both pages
   build to one self-contained HTML file each.
-- **Next:** §8 step 2, terminal ballistics and the damage model. Slice 1 has two
+  **Terminal ballistics exists as a pure function** — de Marre's perforation law, obliquity as
+  line-of-sight thickness, and a critical angle — deciding perforate, embed or deflect from a round, a
+  plate and the angle between them, and returning the residual speed and the energy the plate took. It is
+  not wired to anything: a hit reports a *body*, and which plate of which module a round met is the damage
+  model's question. `sim/math.ts` grew the deterministic `exp`, `log` and `pow` the law needs.
+- **Next:** §8 step 2, the damage model, which spends what terminal ballistics returns. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
   others stay linked, and the word the editor owes the player when an action reorders
   a layout. Restructuring a group — dissolving one, or nesting one inside another —

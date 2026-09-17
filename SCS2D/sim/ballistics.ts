@@ -1,20 +1,4 @@
-// PARKED — this file does not compile, and nothing imports it. See notes/README.md.
-//
-// What it is waiting on: `pow`. The law below is a product of fractional powers
-// and `sim/math.ts` has no `exp`, `log` or `pow` — `Math`'s are
-// implementation-defined in the ECMAScript spec exactly as its trigonometry is,
-// so they are barred by the same non-negotiable. ROADMAP.md §12 records that,
-// and the decision the law still needs: `DE_MARRE_K` is how hard armour is in
-// this game, and nobody has argued for a value yet. The figures quoted in the
-// comments below are the arithmetic of a first cut, not a balance decision.
-//
-// What is here is worth keeping because the *form* is settled (DESIGN.md §4 and
-// ROADMAP.md §12): de Marre for perforation, obliquity as line-of-sight
-// thickness, a critical angle for a round that fails to get through, and a
-// residual for the damage model to spend. It moves to `sim/ballistics.ts` once
-// the arithmetic exists, with its own tests.
-
-import { abs, atan2, cos, max, pow, sin, sqrt } from './math.js';
+import { abs, atan2, cos, max, min, pow, sin, sqrt } from './math.js';
 
 /**
  * Terminal ballistics: what happens where a round meets a plate.
@@ -60,9 +44,9 @@ import { abs, atan2, cos, max, pow, sin, sqrt } from './math.js';
  * 12 cm, so the reinforcement dial (§4: wall thickness × reinforcement) spans
  * "paper to that gun" at 1 and "immune to it" at about 6.
  *
- * A first cut in exactly the sense §4 means: the form is the physics and this
- * is the material, so moving it is a balance decision about how hard armour is
- * in this game, not a correction.
+ * The form is the physics and this is the material, so moving it is a balance
+ * decision about how hard armour is in this game rather than a correction —
+ * which is why it is one named constant and not a number inside the law.
  */
 export const DE_MARRE_K = 91_460;
 
@@ -83,6 +67,14 @@ export const DE_MARRE_K = 91_460;
  * armour the way a light one does.
  */
 export const RICOCHET_ANGLE = 1.134464;
+
+/**
+ * How nearly along a face counts as along it — a guard on the division by the
+ * cosine, not a tolerance for sloppiness. A millionth of a radian from the
+ * face is a line-of-sight thickness a million times the plate's, which no
+ * round survives and no arithmetic represents usefully.
+ */
+const EDGE_ON = 1e-6;
 
 /** What a round did to the plate it met. */
 export enum Terminal {
@@ -170,14 +162,6 @@ export function strike(
 }
 
 /**
- * How nearly along a face counts as along it — a guard on the division by the
- * cosine, not a tolerance for sloppiness. A millionth of a radian from the
- * face is a line-of-sight thickness a million times the plate's, which no
- * round survives and no arithmetic represents usefully.
- */
-const EDGE_ON = 1e-6;
-
-/**
  * Where a deflected round goes: its path mirrored about the surface normal.
  *
  * The honest answer for a skid is along the face rather than mirrored — a
@@ -215,14 +199,9 @@ export function deflected(
  * happened on.
  */
 export function incidenceAngle(dx: number, dy: number, nx: number, ny: number): number {
-  const dot = abs(dx * nx + dy * ny);
-  // Guarded, since a dot product of a shade over one from rounding would make
-  // the arccos a NaN.
-  return acos(max(-1, min1(dot)));
-}
-
-function min1(v: number): number {
-  return v > 1 ? 1 : v;
+  // Capped, since a dot product a shade over one from rounding would make the
+  // arccos a NaN.
+  return acos(min(1, abs(dx * nx + dy * ny)));
 }
 
 /**
