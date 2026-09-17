@@ -607,7 +607,7 @@ export class Ships {
 
     for (var j = orders.length - 1; j >= 0; j--) {
       let order = orders[j];
-      if (!order || order.target === NO_TARGET || !this.alive[order.target]) {
+      if (!order || order.target === NO_TARGET || !this.alive[order.target] || this.isDisabled(order.target)) {
         // not a useful order any more, so delete it.
         delete orders[j];
       } else {

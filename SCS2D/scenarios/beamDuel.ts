@@ -107,6 +107,7 @@ export function beamDuel(seed = 20260905): Battle {
   ships.pushOrder(distantCorvette, b, 300, 500, 120);
 
   // The gunship holds the nearer of them off at a range its own mounts like.
+  ships.pushOrder(b, distantCorvette, 900, 1200, 60);
   ships.pushOrder(b, closeCorvette, 900, 1200, 60);
 
   const grid = new SpatialGrid(64);
