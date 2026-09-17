@@ -8,6 +8,8 @@ import {
   Terminal,
   BeamHits,
   Beams,
+  Impacts,
+  ProjectileHits,
   Projectiles,
   Ships,
   SpatialGrid,
@@ -257,5 +259,39 @@ describe('a damaged ship flies and shoots worse', () => {
     const battered = salvo(hurt);
     expect(fresh).toBeGreaterThan(0);
     expect(battered).toBeLessThan(fresh);
+  });
+});
+
+describe('what a hit logs to be drawn', () => {
+  it('records where it landed on the hull, not only where that was in the world', () => {
+    // A flash belongs to the ship it went off against: a hull doing two
+    // hundred metres a second would otherwise leave its own hits behind.
+    const world = new World({ dt: 1 / 60, seed: 3 });
+    const ships = new Ships();
+    world.addForceProvider(ships.forceProvider());
+    const ship = ships.spawn(world, { design: corvette, x: 500, y: -200, angle: Math.PI / 2, team: 0 });
+    const bodies = world.bodies;
+    const body = bodies.indexOf(ships.body(ship));
+
+    const impacts = new Impacts();
+    const projectiles = new Projectiles(8);
+    const hits = new ProjectileHits();
+    const grid = new SpatialGrid(64);
+    grid.rebuild(bodies);
+    projectiles.spawn({ x: 500 - corvette.radius * 2, y: -200, vx: 900, vy: 0, width: 0.16, ttl: 5, mass: 90 });
+    for (let i = 0; i < 60 && hits.count === 0; i++) {
+      projectiles.step(1 / 60, bodies, grid, hits, undefined, ships.hulls);
+      if (hits.count > 0) impacts.rounds(ships, ships.damage, bodies, projectiles, hits);
+    }
+
+    expect(impacts.log.count).toBe(1);
+    expect(impacts.log.body[0]).toBe(body);
+    // The offset is in the ship's frame, so putting it back through the ship's
+    // pose returns the world point the hit happened at.
+    const angle = bodies.angle[body]!;
+    const x = bodies.x[body]! + impacts.log.localX[0]! * Math.cos(angle) - impacts.log.localY[0]! * Math.sin(angle);
+    const y = bodies.y[body]! + impacts.log.localX[0]! * Math.sin(angle) + impacts.log.localY[0]! * Math.cos(angle);
+    expect(x).toBeCloseTo(impacts.log.x[0]!, 9);
+    expect(y).toBeCloseTo(impacts.log.y[0]!, 9);
   });
 });

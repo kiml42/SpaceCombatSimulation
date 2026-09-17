@@ -301,23 +301,54 @@ export function resolveRound(
   return result;
 }
 
-/** One impact worth drawing: where it was, and how hard. */
+/**
+ * One impact worth drawing: where it was, how hard, and what it happened *on*.
+ *
+ * The position is recorded twice, in the world and in the struck ship's own
+ * frame, because a flash belongs to the hull it went off against: a ship doing
+ * two hundred metres a second would otherwise leave its own hits behind. The
+ * world position is what a flash falls back to when the ship it was on is no
+ * longer there to carry it.
+ */
 export class ImpactLog {
   x = new Float64Array(64);
   y = new Float64Array(64);
+  /** Body struck, or -1 for a hit on nothing in particular. */
+  body = new Int32Array(64);
+  /** The same point in that body's frame, so the flash rides it. */
+  localX = new Float64Array(64);
+  localY = new Float64Array(64);
   /** Energy the ship absorbed, joules. What decides how bright it reads. */
   energy = new Float64Array(64);
   /** 0 for a round, 1 for a beam. */
   kind = new Uint8Array(64);
   count = 0;
 
-  push(x: number, y: number, energy: number, kind: number): void {
+  push(
+    x: number,
+    y: number,
+    energy: number,
+    kind: number,
+    bodies?: Bodies,
+    body = -1,
+  ): void {
     if (this.count === this.x.length) this.grow();
     const i = this.count++;
     this.x[i] = x;
     this.y[i] = y;
     this.energy[i] = energy;
     this.kind[i] = kind;
+    this.body[i] = body;
+    this.localX[i] = 0;
+    this.localY[i] = 0;
+    if (bodies === undefined || body < 0) return;
+    const angle = bodies.angle[body]!;
+    const c = cos(angle);
+    const sn = sin(angle);
+    const dx = x - bodies.x[body]!;
+    const dy = y - bodies.y[body]!;
+    this.localX[i] = dx * c + dy * sn;
+    this.localY[i] = -dx * sn + dy * c;
   }
 
   clear(): void {
@@ -334,10 +365,19 @@ export class ImpactLog {
     y.set(this.y);
     energy.set(this.energy);
     kind.set(this.kind);
+    const body = new Int32Array(size);
+    const localX = new Float64Array(size);
+    const localY = new Float64Array(size);
+    body.set(this.body);
+    localX.set(this.localX);
+    localY.set(this.localY);
     this.x = x;
     this.y = y;
     this.energy = energy;
     this.kind = kind;
+    this.body = body;
+    this.localX = localX;
+    this.localY = localY;
   }
 }
 
@@ -384,7 +424,7 @@ export class Impacts {
       // A round with no design to walk, or no speed left to walk it with, is
       // absorbed where it stopped: there is nothing else to spend it on.
       if (design === null || !(speed > 0)) {
-        this.log.push(x, y, 0.5 * projectiles.mass[round]! * speed * speed, IMPACT_ROUND);
+        this.log.push(x, y, 0.5 * projectiles.mass[round]! * speed * speed, IMPACT_ROUND, bodies, body);
         projectiles.kill(round);
         continue;
       }
@@ -404,7 +444,7 @@ export class Impacts {
         projectiles.width[round]!,
         speed,
       );
-      this.log.push(x, y, outcome.energy, IMPACT_ROUND);
+      this.log.push(x, y, outcome.energy, IMPACT_ROUND, bodies, body);
 
       if (outcome.speed <= 0) {
         projectiles.kill(round);
@@ -429,11 +469,11 @@ export class Impacts {
    * which, because a spent module no longer stops a beam, walks inward through
    * a hull as it destroys it.
    */
-  beams(damage: Damage, beams: Beams, hits: BeamHits, dt: number): void {
+  beams(damage: Damage, beams: Beams, hits: BeamHits, dt: number, bodies?: Bodies): void {
     for (let i = 0; i < hits.count; i++) {
       const energy = beams.power[hits.beam[i]!]! * dt;
       damage.absorb(hits.body[i]!, hits.module[i]!, energy);
-      this.log.push(hits.x[i]!, hits.y[i]!, energy, IMPACT_BEAM);
+      this.log.push(hits.x[i]!, hits.y[i]!, energy, IMPACT_BEAM, bodies, hits.body[i]!);
     }
   }
 }

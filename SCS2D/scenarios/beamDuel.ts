@@ -148,7 +148,7 @@ export function beamDuel(seed = 20260905): Battle {
       // killed or sent on their way; beams pour their power into what they are
       // burning through.
       impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits);
-      impacts.beams(ships.damage, beams, beamHits, dt);
+      impacts.beams(ships.damage, beams, beamHits, dt, world.bodies);
     },
   };
 

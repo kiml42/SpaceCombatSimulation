@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BEAM_FLASH_LIFETIME,
+  flashPosition,
   FLASH_REFERENCE_ENERGY,
   FLASH_REFERENCE_RADIUS,
   Flashes,
@@ -100,5 +101,43 @@ describe('the store', () => {
     const flashes = new Flashes();
     flashes.add(0, 0, 0, 0);
     expect(flashes.count).toBe(0);
+  });
+});
+
+describe('riding the hull it went off against', () => {
+  it('puts a flash back through the ship\u2019s own frame', () => {
+    // The same transform the hull's modules are drawn through: a hit ten
+    // metres up the bow is ten metres up the bow after the ship turns.
+    const straight = flashPosition(10, 0, { body: 0, x: 100, y: 50, angle: 0 });
+    expect(straight.x).toBeCloseTo(110, 9);
+    expect(straight.y).toBeCloseTo(50, 9);
+
+    const turned = flashPosition(10, 0, { body: 0, x: 100, y: 50, angle: Math.PI / 2 });
+    expect(turned.x).toBeCloseTo(100, 9);
+    expect(turned.y).toBeCloseTo(60, 9);
+  });
+
+  it('keeps what it needs to follow a ship that is moving', () => {
+    const flashes = new Flashes();
+    flashes.add(100, 0, FLASH_REFERENCE_ENERGY, 0, 3, 5, -2);
+    expect(flashes.body[0]).toBe(3);
+    expect(flashes.localX[0]).toBe(5);
+    expect(flashes.localY[0]).toBe(-2);
+
+    // And a hit on nothing rides nothing, which is what the world position is
+    // there for.
+    flashes.add(0, 0, FLASH_REFERENCE_ENERGY, 0);
+    expect(flashes.body[1]).toBe(-1);
+  });
+
+  it('keeps a survivor\u2019s anchor when a neighbour burns out', () => {
+    const flashes = new Flashes();
+    flashes.add(1, 1, FLASH_REFERENCE_ENERGY, 1, 7, 1, 2);
+    flashes.add(2, 2, FLASH_REFERENCE_ENERGY, 0, 9, 3, 4);
+    flashes.step(BEAM_FLASH_LIFETIME + 1e-9);
+    expect(flashes.count).toBe(1);
+    expect(flashes.body[0]).toBe(9);
+    expect(flashes.localX[0]).toBe(3);
+    expect(flashes.localY[0]).toBe(4);
   });
 });

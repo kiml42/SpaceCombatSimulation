@@ -32,6 +32,11 @@ import type { World } from './world.js';
 /** One ship: which design to draw, where it is, and how its turrets are trained. */
 export interface ShipView {
   design: ShipDesign;
+  /**
+   * Which body it is — how a flash finds the hull it went off against a frame
+   * or two later, when the ships have moved and the list may have changed.
+   */
+  body: number;
   team: number;
   x: number;
   y: number;
@@ -95,6 +100,10 @@ export class Snapshot {
   impactY = new Float64Array(0);
   impactEnergy = new Float64Array(0);
   impactKind = new Uint8Array(0);
+  /** The body each landed on, and where on it, so a flash rides the hull. */
+  impactBody = new Int32Array(0);
+  impactLocalX = new Float64Array(0);
+  impactLocalY = new Float64Array(0);
   impactCount = 0;
 
   /**
@@ -142,6 +151,9 @@ function growImpacts(snapshot: Snapshot, needed: number): void {
   snapshot.impactY = new Float64Array(size);
   snapshot.impactEnergy = new Float64Array(size);
   snapshot.impactKind = new Uint8Array(size);
+  snapshot.impactBody = new Int32Array(size);
+  snapshot.impactLocalX = new Float64Array(size);
+  snapshot.impactLocalY = new Float64Array(size);
 }
 
 function shipView(snapshot: Snapshot, i: number): ShipView {
@@ -149,6 +161,7 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
   if (existing !== undefined) return existing;
   const created: ShipView = {
     design: null as unknown as ShipDesign,
+    body: -1,
     team: 0,
     x: 0,
     y: 0,
@@ -195,6 +208,7 @@ export function capture(
     const design = ships.design(i);
     const view = shipView(out, n++);
     view.design = design;
+    view.body = b;
     view.team = ships.teamOf(i);
     view.x = bodies.x[b]!;
     view.y = bodies.y[b]!;
@@ -264,6 +278,9 @@ export function capture(
       out.impactY[i] = impacts.y[i]!;
       out.impactEnergy[i] = impacts.energy[i]!;
       out.impactKind[i] = impacts.kind[i]!;
+      out.impactBody[i] = impacts.body[i]!;
+      out.impactLocalX[i] = impacts.localX[i]!;
+      out.impactLocalY[i] = impacts.localY[i]!;
     }
     out.impactCount = impacts.count;
     impacts.clear();
