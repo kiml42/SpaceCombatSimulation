@@ -177,6 +177,27 @@ describe('exp / log / pow', () => {
     }
   });
 
+  it('matches values worked out independently of any engine', () => {
+    // Compared against `Math` above for coverage; these are the check that
+    // both are right, taken from published expansions rather than from a
+    // library that could be wrong in the same direction.
+    const known: [number, number][] = [
+      [exp(1), 2.718281828459045],
+      [exp(-1), 0.36787944117144233],
+      [exp(10), 22026.465794806718],
+      [log(2), 0.6931471805599453],
+      [log(10), 2.302585092994046],
+      [log(0.5), -0.6931471805599453],
+      [pow(2, 10), 1024],
+      // 2^(1/3) and the golden ratio's square, both to sixteen figures.
+      [pow(2, 1 / 3), 1.2599210498948732],
+      [pow(1.618033988749895, 2), 2.618033988749895],
+    ];
+    for (const [ours, expected] of known) {
+      expect(Math.abs(ours - expected)).toBeLessThan(Math.abs(expected) * 1e-14);
+    }
+  });
+
   it('is exact where the answer is a whole number', () => {
     expect(log(1)).toBe(0);
     expect(exp(0)).toBe(1);

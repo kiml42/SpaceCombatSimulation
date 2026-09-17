@@ -65,13 +65,13 @@ Then, in order:
 
 1. **Blueprint editor** — parametric modules; ships stop being hard-coded.
 2. **Terminal ballistics and the damage model** — armour properties exist once modules are parametric, so
-   this is the first point at which a real answer is possible. **Terminal ballistics is built**
-   (`sim/ballistics.ts`): de Marre's law decides penetrate/embed/deflect from a round, a plate and the
-   angle between them, and returns the residual. What is left is the half that spends it — and the step
-   before that, which is *which plate*: a hit reports the body it struck and its surface normal, so
-   finding the module that was met, and the facing of it, is the damage model's first job. Until then,
-   Slice 0 stands in with a flat "everything penetrates and is absorbed", which is enough to watch ships
-   come apart but tells you nothing about armour design.
+   this is the first point at which a real answer is possible. Two of the three pieces exist:
+   `sim/hull.ts` resolves a shot to the modules it crosses with the face each is entered by, and
+   `sim/ballistics.ts` decides penetrate/embed/deflect against a plate by de Marre's law and returns the
+   residual. What is left is the half that spends it — walking that path, taking each module's armour
+   from its own figures, and deciding what the energy does to it. Until then, Slice 0 stands in with a
+   flat "everything penetrates and is absorbed", which is enough to watch ships come apart but tells you
+   nothing about armour design.
 3. **Doctrine and orders** — make configuration visibly change behaviour.
 4. **Headless evolution and analysis** — balance testing plus sandbox mode.
 5. **v1: skirmish** — a fixed budget of *materials* rather than of points (§12), designed scenarios,
