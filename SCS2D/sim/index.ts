@@ -110,4 +110,13 @@ export {
   type ShipSpec,
 } from './ships.js';
 export { capture, Snapshot, type ShipView } from './snapshot.js';
+export {
+  DE_MARRE_K,
+  RICOCHET_ANGLE,
+  Terminal,
+  deflected,
+  incidenceAngle,
+  strike,
+  type Strike,
+} from './ballistics.js';
 export { checksumWorld, checksumProjectiles, checksumBeams, formatChecksum } from './checksum.js';
