@@ -52,8 +52,8 @@ export function fractal(seed = 20260905): Battle {
     team: 1,
   });
 
-  ships.setOrder(distantCorvette, b, 300, 500, 120);
-  ships.setOrder(b, distantCorvette, 900, 1200, 60);
+  ships.pushOrder(distantCorvette, b, 300, 500, 120);
+  ships.pushOrder(b, distantCorvette, 900, 1200, 60);
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);

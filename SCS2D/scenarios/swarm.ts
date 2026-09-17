@@ -63,12 +63,12 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
       vy: 90 + dvy,
       team: 0,
     });
-    ships.setOrder(a, b, range, range * 2, 2000);
+    ships.pushOrder(a, b, range, range * 2, 2000);
 
     swarm.push(a);
   }
 
-  ships.setOrder(b, swarm[0], 50, 2000, 60);
+  ships.pushOrder(b, swarm[0], 50, 2000, 60);
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);

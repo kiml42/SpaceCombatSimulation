@@ -103,11 +103,11 @@ export function beamDuel(seed = 20260905): Battle {
 
   // Both corvettes go for the gunship, the near one first and the far one
   // arriving later, so the gunship is fighting one and then two.
-  ships.setOrder(closeCorvette, b, 300, 500, 120);
-  ships.setOrder(distantCorvette, b, 300, 500, 120);
+  ships.pushOrder(closeCorvette, b, 300, 500, 120);
+  ships.pushOrder(distantCorvette, b, 300, 500, 120);
 
   // The gunship holds the nearer of them off at a range its own mounts like.
-  ships.setOrder(b, closeCorvette, 900, 1200, 60);
+  ships.pushOrder(b, closeCorvette, 900, 1200, 60);
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);

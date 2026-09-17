@@ -57,8 +57,8 @@ export function beamVGun(seed = 20260905): Battle {
     team: 1,
   });
 
-  ships.setOrder(beamy, gunny, 1500, 2500, 80);
-  ships.setOrder(gunny, beamy, 300, 500, 200);
+  ships.pushOrder(beamy, gunny, 1500, 2500, 80);
+  ships.pushOrder(gunny, beamy, 300, 500, 200);
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);

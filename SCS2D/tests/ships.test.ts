@@ -102,7 +102,7 @@ describe('spawning', () => {
     const enemy = r.ships.spawn(r.world, { design: gunship, x: 0 });
 
     // Only one of them is told to go anywhere.
-    r.ships.setOrder(a, enemy, 400, 600, 80);
+    r.ships.pushOrder(a, enemy, 400, 600, 80);
     for (let i = 0; i < 30; i++) r.step();
 
     let movedA = 0;
@@ -130,7 +130,7 @@ describe('the force provider', () => {
     const r = rig();
     const a = r.ships.spawn(r.world, { design: corvette, x: -3000 });
     const enemy = r.ships.spawn(r.world, { design: gunship, x: 0 });
-    r.ships.setOrder(a, enemy, 400, 600, 80);
+    r.ships.pushOrder(a, enemy, 400, 600, 80);
 
     r.ships.command(DT, r.world);
     const bodies = r.world.bodies;
@@ -162,7 +162,7 @@ describe('the pilot', () => {
     const r = rig();
     const chaser = r.ships.spawn(r.world, { design: corvette, x: -4000, y: 0 });
     const quarry = r.ships.spawn(r.world, { design: gunship, x: 0, y: 0 });
-    r.ships.setOrder(chaser, quarry, 800, 1000, 150);
+    r.ships.pushOrder(chaser, quarry, 800, 1000, 150);
 
     const range = (): number => {
       const bodies = r.world.bodies;
@@ -184,7 +184,7 @@ describe('the pilot', () => {
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: corvette, x: 0, y: 0, angle: math.PI });
     const enemy = r.ships.spawn(r.world, { design: gunship, x: 3000, y: 0 });
-    r.ships.setOrder(ship, enemy, 2000, 4000, 50);
+    r.ships.pushOrder(ship, enemy, 2000, 4000, 50);
 
     for (let i = 0; i < 60 * 60; i++) r.step();
 
@@ -200,7 +200,7 @@ describe('the pilot', () => {
   it('sits still when it has no order', () => {
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: corvette, x: 0, y: 0 });
-    expect(r.ships.order(ship).target).toBe(NO_TARGET);
+    expect(r.ships.getBestOrder(ship).target).toBe(NO_TARGET);
 
     for (let i = 0; i < 600; i++) r.step();
 
@@ -215,8 +215,8 @@ describe('gunnery', () => {
     const r = rig();
     const a = r.ships.spawn(r.world, { design, x: -range / 2, team: 0 });
     const b = r.ships.spawn(r.world, { design, x: range / 2, angle: math.PI, team: 1 });
-    r.ships.setOrder(a, b, range * 0.9, range * 1.1, 20);
-    r.ships.setOrder(b, a, range * 0.9, range * 1.1, 20);
+    r.ships.pushOrder(a, b, range * 0.9, range * 1.1, 20);
+    r.ships.pushOrder(b, a, range * 0.9, range * 1.1, 20);
     return r;
   }
 
@@ -228,7 +228,7 @@ describe('gunnery', () => {
     // of them do.
     const ship = r.ships.spawn(r.world, { design: gunship, x: 0, angle: 0 });
     const enemy = r.ships.spawn(r.world, { design: gunship, x: -1500, angle: math.PI });
-    r.ships.setOrder(ship, enemy, 1400, 1600, 20);
+    r.ships.pushOrder(ship, enemy, 1400, 1600, 20);
 
     r.step();
     expect(r.fired).toBe(0);
@@ -267,7 +267,7 @@ describe('gunnery', () => {
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: gunship, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.setOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.pushOrder(ship, enemy, 1900, 2100, 10);
     r.ships.remove(enemy);
 
     const bodies = r.world.bodies;
@@ -306,7 +306,7 @@ describe('gunnery', () => {
       angularVel: spin,
     });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.setOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.pushOrder(ship, enemy, 1900, 2100, 10);
     r.ships.remove(enemy);
 
     const bodies = r.world.bodies;
@@ -372,7 +372,7 @@ describe('gunnery', () => {
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: twin, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.setOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.pushOrder(ship, enemy, 1900, 2100, 10);
     r.ships.remove(enemy);
 
     // Fire 1st round (barrel 0): should be at -0.5 * spacing in y
@@ -403,8 +403,8 @@ describe('beam gunnery', () => {
     const r = rig();
     const a = r.ships.spawn(r.world, { design, x: -range / 2, team: 0 });
     const b = r.ships.spawn(r.world, { design, x: range / 2, angle: math.PI, team: 1 });
-    r.ships.setOrder(a, b, range * 0.9, range * 1.1, 20);
-    r.ships.setOrder(b, a, range * 0.9, range * 1.1, 20);
+    r.ships.pushOrder(a, b, range * 0.9, range * 1.1, 20);
+    r.ships.pushOrder(b, a, range * 0.9, range * 1.1, 20);
     return r;
   }
 
@@ -416,7 +416,7 @@ describe('beam gunnery', () => {
     // of them do.
     const ship = r.ships.spawn(r.world, { design: beamGunship, x: 0, angle: 0 });
     const enemy = r.ships.spawn(r.world, { design: beamGunship, x: -1500, angle: math.PI });
-    r.ships.setOrder(ship, enemy, 1400, 1600, 20);
+    r.ships.pushOrder(ship, enemy, 1400, 1600, 20);
 
     r.step();
     expect(r.beamsFired).toBe(0);
@@ -455,7 +455,7 @@ describe('beam gunnery', () => {
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: beamGunship, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.setOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.pushOrder(ship, enemy, 1900, 2100, 10);
     r.ships.remove(enemy);
 
     const bodies = r.world.bodies;
@@ -487,7 +487,7 @@ describe('beam gunnery', () => {
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: twin, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.setOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.pushOrder(ship, enemy, 1900, 2100, 10);
     r.ships.remove(enemy);
 
     // Fire 1st round (barrel 0): should be at -0.5 * spacing in y
@@ -555,7 +555,7 @@ describe('beam gunnery', () => {
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: ship1, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.setOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.pushOrder(ship, enemy, 1900, 2100, 10);
     r.ships.remove(enemy);
 
     // Fire 1st round
