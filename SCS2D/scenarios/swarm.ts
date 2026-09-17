@@ -11,7 +11,7 @@ import {
   type WellSpec,
 } from '../sim/index.js';
 import { type Battle } from './types.js';
-import { DINKY, GUNSHIP } from './blueprints.js';
+import { DINKY, BEAM_GUNSHIP } from './blueprints.js';
 import { Rng } from '../sim/rng.js';
 
 /**
@@ -28,7 +28,7 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
   world.addForceProvider(ships.forceProvider());
 
   const dinky = compileBlueprint(DINKY);
-  const gunship = compileBlueprint(GUNSHIP);
+  const gunship = compileBlueprint(BEAM_GUNSHIP);
 
   const b = ships.spawn(world, {
     design: gunship,
@@ -42,7 +42,7 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
 
   const rng = new Rng(seed);
   const randomRadius = 1000;
-  const corvettes: number[] = [];
+  const swarm: number[] = [];
 
   for (let i = 0; i < corvetteCount; i++) {
     const angle = rng.nextRange(0, 2 * math.PI);
@@ -51,6 +51,7 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
     const y = -240 + radius * math.sin(angle);
     const dvx = rng.nextRange(-20, 20);
     const dvy = rng.nextRange(-20, 20);
+    const range = rng.nextRange(5, 100);
 
     const a = ships.spawn(world, {
       design: dinky,
@@ -61,12 +62,12 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
       vy: 90 + dvy,
       team: 0,
     });
-    ships.setOrder(a, b, 10, 500, 1200);
+    ships.setOrder(a, b, range, range * 2, 2000);
 
-    corvettes.push(a);
+    swarm.push(a);
   }
 
-  ships.setOrder(b, corvettes[0], 900, 1200, 60);
+  ships.setOrder(b, swarm[0], 1500, 2000, 60);
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);
