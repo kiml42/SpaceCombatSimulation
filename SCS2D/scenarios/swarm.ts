@@ -1,4 +1,5 @@
 import {
+  Impacts,
   compileBlueprint,
   math,
   ProjectileHits,
@@ -74,6 +75,7 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
   const beams = new Beams(512);
   const hits = new ProjectileHits();
   const beamHits = new BeamHits();
+  const impacts = new Impacts();
 
   const run: Battle = {
     dt,
@@ -85,6 +87,7 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
     grid,
     hits,
     beamHits,
+    impacts,
     totalProjectilesFired: 0,
     totalProjectileHits: 0,
     totalBeamsFired: 0,
@@ -102,11 +105,11 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
       projectiles.step(dt, world.bodies, grid, hits, wells, ships.hulls);
       run.totalProjectileHits += hits.count;
       run.totalBeamHits += beamHits.count;
-      // A stop-gap until terminal ballistics and the damage model (§8 step 2),
-      // which decide what a hit does: every round penetrates and is absorbed.
-      // Impacts have to be resolved by something, or the rounds stay parked at
-      // the point of contact for ever.
-      for (let i = 0; i < hits.count; i++) projectiles.kill(hits.projectile[i]!);
+      // What the hits did. Rounds walk the modules along their path and are
+      // killed or sent on their way; beams pour their power into what they are
+      // burning through.
+      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits);
+      impacts.beams(ships.damage, beams, beamHits, dt);
     },
   };
 

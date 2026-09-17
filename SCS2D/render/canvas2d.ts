@@ -1,6 +1,7 @@
 import { math, type ShipView, type Snapshot } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth } from './strokes.js';
+import { flashFade, type Flashes } from './flashes.js';
 
 const { cos, sin, max, min, PI, sqrt, TAU } = math;
 
@@ -102,6 +103,18 @@ const GLOW_CALIBRES = 3;
 const MIN_GLOW_PX = 5;
 const MIN_TRACER_PX = 2;
 const MIN_BARREL_PX = 2;
+/** A flash is never smaller than this on screen, however far out the camera is. */
+const MIN_FLASH_PX = 2;
+
+/** A module that has taken everything it can: still there, no longer anything. */
+const WRECKAGE = '#3c4048';
+
+/** An impact: the white-hot moment, and the warmer flare around it. */
+const FLASH_CORE = '#fff6e2';
+const FLASH_GLOW = '#ffb257';
+/** A beam's, which reads as the beam's own colour boiling the hull away. */
+const BEAM_FLASH_CORE = '#eaffd9';
+const BEAM_FLASH_GLOW = '#8ef04a';
 
 const WELL = '#3a4e7a';
 
@@ -191,7 +204,16 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     ctx.save();
     ctx.translate(m.x, m.y);
     ctx.rotate(m.angle);
-    ctx.fillStyle = spec.kind === 'structure' ? colours.hull : colours.trim;
+    // Wreckage: still there, still stopping shells, no longer doing its job.
+    // Drawn as what it is rather than removed, which is what §4 means by
+    // conserving matter — and it is the only way to see a ship being killed
+    // module by module rather than simply going quiet.
+    // Optional, because a view can be built by hand: the editor's preview and
+    // the camera's tests both do, and neither has anything to be damaged.
+    const integrity = ship.integrity?.[i] ?? 1;
+    ctx.fillStyle =
+      integrity <= 0 ? WRECKAGE : spec.kind === 'structure' ? colours.hull : colours.trim;
+    ctx.globalAlpha = integrity <= 0 ? 1 : 0.45 + 0.55 * integrity;
     const halfLength = spec.length / 2;
     const halfWidth = spec.width / 2;
     if (spec.kind === 'thruster') {
@@ -373,6 +395,7 @@ export function draw(
   camera: Camera,
   widthPx: number,
   heightPx: number,
+  flashes?: Flashes,
 ): void {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = BACKGROUND;
@@ -392,6 +415,42 @@ export function draw(
 
   drawProjectiles(ctx, snapshot, camera);
   drawBeams(ctx, snapshot, camera);
+  if (flashes !== undefined) drawFlashes(ctx, flashes, camera);
+}
+
+/**
+ * Impacts, as a hot core inside a warmer flare.
+ *
+ * Drawn last and additively, so a flash reads as light rather than as paint: a
+ * hit on a hull brightens the hull rather than covering it, and two hits in
+ * the same place are brighter than one.
+ */
+function drawFlashes(ctx: CanvasRenderingContext2D, flashes: Flashes, camera: Camera): void {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < flashes.count; i++) {
+    const fade = flashFade(flashes.age[i]!, flashes.lifetime[i]!);
+    if (fade <= 0) continue;
+    const beam = flashes.kind[i] === 1;
+    // Floored on screen, so a hit is visible from far enough out to see the
+    // battle it is part of.
+    const radius = max(flashes.radius[i]! * fade, MIN_FLASH_PX / camera.scale);
+    const x = flashes.x[i]!;
+    const y = flashes.y[i]!;
+
+    ctx.fillStyle = beam ? BEAM_FLASH_GLOW : FLASH_GLOW;
+    ctx.globalAlpha = 0.5 * fade;
+    ctx.beginPath();
+    ctx.arc(x, y, radius * 2.2, 0, TAU);
+    ctx.fill();
+
+    ctx.fillStyle = beam ? BEAM_FLASH_CORE : FLASH_CORE;
+    ctx.globalAlpha = 0.9 * fade;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, TAU);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera) {

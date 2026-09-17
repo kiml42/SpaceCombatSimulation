@@ -47,6 +47,7 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
     turretBearings: [],
     turretReady: [],
     throttles: [],
+    integrity: [],
   };
   out.ships[0] = view;
   out.shipCount = 1;
@@ -74,6 +75,11 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
   // standing still would be saying something untrue about it.
   view.throttles.length = design.thrusters.length;
   for (let t = 0; t < design.thrusters.length; t++) view.throttles[t] = 0;
+
+  // A design has taken nothing: the editor draws the ship as it would be built,
+  // not as one that has been somewhere.
+  view.integrity.length = design.modules.length;
+  for (let m = 0; m < design.modules.length; m++) view.integrity[m] = 1;
 
   out.tick = 0;
   out.time = 0;

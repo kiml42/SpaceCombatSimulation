@@ -1,4 +1,4 @@
-import type { World, WellSpec, Ships, Projectiles, Beams, SpatialGrid, ProjectileHits, BeamHits } from '../sim/index.js';
+import type { World, WellSpec, Ships, Projectiles, Beams, SpatialGrid, ProjectileHits, BeamHits, Impacts } from '../sim/index.js';
 
 /**
  * The shapes every scenario in this directory implements. No scenario of its
@@ -32,6 +32,8 @@ export interface Battle {
   readonly grid: SpatialGrid;
   readonly hits: ProjectileHits;
   readonly beamHits: BeamHits;
+  /** What the hits did, and the log of them a renderer draws flashes from. */
+  readonly impacts: Impacts;
   /** Cumulative, so a duel that stops shooting or stops hitting is detectable. */
   totalProjectilesFired: number;
   totalProjectileHits: number;

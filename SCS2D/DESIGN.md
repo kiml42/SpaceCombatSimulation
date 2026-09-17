@@ -71,9 +71,15 @@ inside any one file is not contiguous.
   deciding perforate, embed or deflect from a round, a plate and the angle
   between them, and returning the residual speed and the energy the plate took.
   `sim/math.ts` grew the deterministic `exp`, `log` and `pow` the law needs.
-  Nothing calls it yet: what a module does with the energy is the damage model.
-- **Next:** the rest of §8 step 2 — the damage model, spending what terminal
-  ballistics returns along the path a shot takes. Slice 1 has two
+  **The damage model spends what it returns**: a round walks the modules along
+  its path, each taking the energy its armour stopped, until it embeds, skids
+  off or comes out the far side; a beam pours its power into what it is burning
+  through, and bores deeper as it destroys. A module that has taken all it can
+  stops working and goes on stopping shells, so a battered ship is sluggish and
+  quiet rather than lighter, and a ship that can neither move nor shoot drifts
+  as a hulk. Hits flash on the canvas and wrecked modules are drawn as wreckage.
+- **Next:** severing — the connectivity graph that lets a hull come apart, which
+  is the rest of §8 step 2. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
   others stay linked, and the word the editor owes the player when an action reorders
   a layout. Restructuring a group — dissolving one, or nesting one inside another —
@@ -262,10 +268,13 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
     both correct and a better feel than a ship growing nimbler as it loses modules.
   - It gives salvage something to be: the matter is all still accounted for somewhere.
 
-  The open question is whether "destroyed" is even a distinct state, or just the bottom of a continuous
-  damage scale — a heavily damaged engine at 10% thrust, a magazine that cooks off, armour that is still
-  there but no longer resists as well. Continuous is the more interesting design; it is deferred with the
-  damage model rather than decided here.
+  **Settled with the damage model: neither a step nor a smooth slide, but a list of responses.** A module
+  carries the failure modes it is subject to, each saying how much of one capability survives at a given
+  integrity — so an engine's thrust falls away and then cuts out with a third of the engine left, and a gun
+  loads slower and slower before it stops. A module goes on absorbing damage after its last response has
+  given out, because matter does not stop being matter. The list is the extension point: a jammed traverse,
+  a broken barrel, a magazine that cooks off and widening dispersion are all responses that have not been
+  written yet, rather than code that has to be restructured to admit them (§12).
 - **No joints anywhere.** The joint solver was the cost centre, the main obstacle to determinism,
   and the direct cause of the turret-control problems in the old project.
 - **Turrets are kinematic**: slew toward the lead-corrected bearing under rate and acceleration

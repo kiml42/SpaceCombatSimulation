@@ -65,13 +65,12 @@ Then, in order:
 
 1. **Blueprint editor** — parametric modules; ships stop being hard-coded.
 2. **Terminal ballistics and the damage model** — armour properties exist once modules are parametric, so
-   this is the first point at which a real answer is possible. Two of the three pieces exist:
-   `sim/hull.ts` resolves a shot to the modules it crosses with the face each is entered by, and
-   `sim/ballistics.ts` decides penetrate/embed/deflect against a plate by de Marre's law and returns the
-   residual. What is left is the half that spends it — walking that path, taking each module's armour
-   from its own figures, and deciding what the energy does to it. Until then, Slice 0 stands in with a
-   flat "everything penetrates and is absorbed", which is enough to watch ships come apart but tells you
-   nothing about armour design.
+   this is the first point at which a real answer is possible. **Built**: `sim/hull.ts` resolves a shot to
+   the modules it crosses, `sim/ballistics.ts` decides penetrate/embed/deflect against each plate, and
+   `sim/damage.ts` spends the result — every module the round crosses takes what its armour stopped, and
+   what a module does about that is a list of responses it carries. What is left of this step is
+   **severing**: a hull that comes apart needs the connectivity graph described in §12, and until it
+   exists a wrecked ship is a whole drifting hulk rather than pieces.
 3. **Doctrine and orders** — make configuration visibly change behaviour.
 4. **Headless evolution and analysis** — balance testing plus sandbox mode.
 5. **v1: skirmish** — a fixed budget of *materials* rather than of points (§12), designed scenarios,
@@ -317,7 +316,25 @@ Deliberately unresolved; decide when they block something.
   referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
   together, at the campaign slice.
 - How severed chunks divide fuel, ammunition and power.
-- Whether module destruction is a discrete state or simply the bottom of a continuous damage scale (§4).
+- **More failure modes than a fading capability.** A module carries a list of damage responses and two are
+  written: thrust fades and cuts out, rate of fire stretches. What the shape is for, and what is not built,
+  is the interesting half — a turret whose traverse jams, leaving it stuck or cut down to part of its arc; a
+  barrel broken outright; a magazine that cooks off; dispersion widening with damage, once there is
+  dispersion to widen. Those want a *likelihood* per response rather than a curve, rolled on the damage an
+  event delivers as well as the total, which needs the world's seeded RNG threaded into the damage pass and
+  the rolls taken in a fixed order — determinism is the whole constraint on how that arrives.
+- **How much a module can take: `DAMAGE_ENERGY_PER_KG`.** A module stops working when it has absorbed about
+  a kilojoule per kilogram of its structure — the energy of its own mass at 45 m/s. It is the sibling of
+  `DE_MARRE_K`: that one decides how much energy gets *in*, this one how much a module can swallow, and both
+  are dials rather than derivations. What makes them hard to set separately is that armour thickness decides
+  the split: against today's 20 mm walls a heavy round overpenetrates and leaves most of its energy on the
+  far side, so the figure that matters is what a hit *deposits*, not what it arrived with.
+- **A beam bores a tunnel and then shines through it.** A spent module no longer stops a beam, which is what
+  lets a beam ship kill anything; the consequence is that a beam holding on one spot eventually reaches
+  clear space beyond the hull and stops doing damage at all. Two ways out, both wanted for their own sake: a
+  **heat model**, where the beam heats the wreck it is burning and the heat conducts into what is still
+  alive, and **sublimation**, where a module being burned loses mass until it is gone from the layout
+  entirely — which is also how matter finally leaves a ship without being severed.
 - **Gimballed thrusters** fit, with one change of variable. A gimbal makes the thrust *direction* an
   unknown, and the wrench then depends on sin and cos — nonlinear, and fatal to fixed columns and normal
   equations. The fix is to solve for the thrust **vector** `(Fx, Fy)` rather than a scalar throttle: the

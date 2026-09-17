@@ -59,6 +59,12 @@ export interface ThrusterSpec {
   dirY: number;
   /** Thrust at full throttle, newtons. */
   maxThrust: number;
+  /**
+   * Index into the design's modules — which engine this is, so that damage to
+   * it reaches the layout. Absent on a layout built by hand rather than
+   * compiled, which nothing can damage anyway.
+   */
+  module?: number;
 }
 
 /** Filled in place by `allocate`, so allocation allocates nothing. */

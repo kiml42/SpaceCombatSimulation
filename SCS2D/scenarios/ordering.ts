@@ -1,4 +1,5 @@
 import {
+  Impacts,
   compileBlueprint,
   gravityWell,
   math,
@@ -23,21 +24,19 @@ import { CORVETTE, FLAT_GUNSHIP, FLAT_GUNSHIP_GROUPED, GUNSHIP } from './bluepri
  * control, which should track the assembled ship exactly), flat listed kind by
  * kind (the variable), and built from assemblies.
  *
- * `ordering` flies all three at once, from one spot on one order against a
- * mark that is given no order and so neither manoeuvres nor shoots back. That
- * is the one you can watch: the drift is on screen as the range between two
- * ships that started on top of each other. It is also artificial in two ways
- * that stop being possible once hulls collide (DESIGN.md §4) — the stack, and
- * the mark — and `p.hits` means nothing in it, since rounds are absorbed by the
- * first hull they cross with no friendly fire check.
+ * `soloOrdering` flies one layout in a battle of its own against a mark that
+ * is given no order, and so neither manoeuvres nor shoots back. Three runs
+ * give three ships the identical problem with nothing between them, and what
+ * is compared is the figures that matter about a battle rather than a distance:
+ * final position and velocity, shots fired, hits scored.
  *
- * `soloOrdering` flies one layout in a battle of its own, so three runs give
- * three ships the identical problem with nothing between them. Nothing about it
- * depends on the ships sharing a world, so it survives collisions, damage and
- * anything else that makes ships interact — and it compares the figures that
- * matter about a battle rather than a distance: final position and velocity,
- * shots fired, hits scored. What it cannot do is show you the answer in one
- * run, which is why both are here.
+ * **There was a stacked scene, and the damage model took it.** All three flew
+ * from one spot so the drift could be read straight off the range between two
+ * ships that had started on top of each other — which was only honest while a
+ * hit did nothing, because they also ate each other's rounds. Now that a hit
+ * damages what it lands on, three ships in a line are three different problems
+ * and a mark under three ships' fire is not the mark one of them faces. The
+ * comparison moved to where it always had to go, which is this one.
  */
 export interface OrderingBattle extends Battle {
   /** The ships under test, with the ordering each one represents. */
@@ -55,11 +54,6 @@ export const ORDERINGS = [
   { name: 'flat, kinds together', blueprint: FLAT_GUNSHIP_GROUPED },
   { name: 'assemblies', blueprint: GUNSHIP },
 ] as const;
-
-/** All three layouts in one battle, stacked. The scene in the viewer. */
-export function ordering(seed = 20260905): OrderingBattle {
-  return battle(ORDERINGS.map((_, i) => i), seed);
-}
 
 /**
  * One layout in a battle of its own, so three runs can be compared without the
@@ -120,6 +114,7 @@ function battle(which: readonly number[], seed: number): OrderingBattle {
   const beams = new Beams(512);
   const hits = new ProjectileHits();
   const beamHits = new BeamHits();
+  const impacts = new Impacts();
 
   const run: OrderingBattle = {
     dt,
@@ -131,6 +126,7 @@ function battle(which: readonly number[], seed: number): OrderingBattle {
     grid,
     hits,
     beamHits,
+    impacts,
     contenders,
     target,
     totalProjectilesFired: 0,
@@ -150,34 +146,13 @@ function battle(which: readonly number[], seed: number): OrderingBattle {
       projectiles.step(dt, world.bodies, grid, hits, wells, ships.hulls);
       run.totalProjectileHits += hits.count;
       run.totalBeamHits += beamHits.count;
-      // A stop-gap until terminal ballistics and the damage model (§8 step 2),
-      // which decide what a hit does: every round penetrates and is absorbed.
-      // Impacts have to be resolved by something, or the rounds stay parked at
-      // the point of contact for ever.
-      for (let i = 0; i < hits.count; i++) projectiles.kill(hits.projectile[i]!);
+      // What the hits did. Rounds walk the modules along their path and are
+      // killed or sent on their way; beams pour their power into what they are
+      // burning through.
+      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits);
+      impacts.beams(ships.damage, beams, beamHits, dt);
     },
   };
 
   return run;
-}
-
-/** How far apart a pair of the contenders has drifted, in metres. */
-export function separation(run: OrderingBattle, a: number, b: number): number {
-  const bodies = run.world.bodies;
-  const ia = bodies.indexOf(run.ships.body(run.contenders[a]!.ship));
-  const ib = bodies.indexOf(run.ships.body(run.contenders[b]!.ship));
-  if (ia < 0 || ib < 0) return 0;
-  return math.distance(bodies.x[ia]!, bodies.y[ia]!, bodies.x[ib]!, bodies.y[ib]!);
-}
-
-/** The widest gap between any two of them: the headline number. */
-export function spread(run: OrderingBattle): number {
-  let worst = 0;
-  for (let a = 0; a < run.contenders.length; a++) {
-    for (let b = a + 1; b < run.contenders.length; b++) {
-      const gap = separation(run, a, b);
-      if (gap > worst) worst = gap;
-    }
-  }
-  return worst;
 }

@@ -1121,6 +1121,7 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
         dirX: cos(angle),
         dirY: sin(angle),
         maxThrust: s.thrust,
+        module: modules.length - 1,
       });
     } else if ((spec.kind === 'turret' || spec.kind === 'beamTurret') && s.gun !== null) {
       const gun = s.gun;
