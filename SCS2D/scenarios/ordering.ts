@@ -107,7 +107,7 @@ function battle(which: readonly number[], seed: number): OrderingBattle {
 
   // No order for the mark, which is what makes it hold fire: a ship with no
   // target neither trains its guns nor shoots, and keeps no station.
-  for (const contender of contenders) ships.setOrder(contender.ship, target, 300, 500, 120);
+  for (const contender of contenders) ships.pushOrder(contender.ship, target, 300, 500, 120);
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);

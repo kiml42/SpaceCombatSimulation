@@ -186,7 +186,7 @@ describe('a damaged ship flies and shoots worse', () => {
     world.addForceProvider(ships.forceProvider());
     const ship = ships.spawn(world, { design: corvette, x: 0, y: 0, team: 0 });
     const mark = ships.spawn(world, { design: corvette, x: 2000, y: 0, team: 1 });
-    ships.setOrder(ship, mark, 300, 500, 120);
+    ships.pushOrder(ship, mark, 300, 500, 120);
     return { world, ships, ship, mark, body: world.bodies.indexOf(ships.body(ship)) };
   }
 

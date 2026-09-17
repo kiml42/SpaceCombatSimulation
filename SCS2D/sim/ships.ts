@@ -198,7 +198,9 @@ export class Ships {
   private readonly nextBarrelToFire: Int32Array[] = [];
 
   private readonly team: number[] = [];
-  private readonly orders: Order[] = [];
+
+  // a queue of orders by ship [shipIndex][orderIndex]
+  private readonly orders: Order[][] = [[]];
 
   /** The wrench `command` decided, body frame, replayed by the force provider. */
   private readonly demandFx: number[] = [];
@@ -313,10 +315,6 @@ export class Ships {
     return this.team[i]!;
   }
 
-  order(i: number): Order {
-    return this.orders[i]!;
-  }
-
   /**
    * Put a ship in the world.
    *
@@ -358,12 +356,7 @@ export class Ships {
     this.turretStates.push(new Uint8Array(mounts.length));
     this.nextBarrelToFire.push(new Int32Array(mounts.length));
     this.team.push(spec.team ?? 0);
-    this.orders.push({
-      target: NO_TARGET,
-      minRange: 0,
-      maxRange: 0,
-      approachSpeed: 0,
-    });
+    this.orders.push([]); // Initialise to an empty array of orders for this ship
     this.demandFx.push(0);
     this.demandFy.push(0);
     this.demandTorque.push(0);
@@ -373,16 +366,18 @@ export class Ships {
   }
 
   /** Hold station on another ship within a range band. */
-  setOrder(i: number, target: number, minRange: number, maxRange: number, approachSpeed: number): void {
-    const order = this.orders[i]!;
-    order.target = target;
-    order.minRange = minRange;
-    order.maxRange = maxRange;
-    order.approachSpeed = approachSpeed;
+  pushOrder(i: number, target: number, minRange: number, maxRange: number, approachSpeed: number): void {
+    const order = {
+      target: target,
+      minRange: minRange,
+      maxRange: maxRange,
+      approachSpeed: approachSpeed
+    };
+    this.orders[i]!.push(order);
   }
 
   clearOrder(i: number): void {
-    this.setOrder(i, NO_TARGET, 0, 0, 0);
+    this.pushOrder(i, NO_TARGET, 0, 0, 0);
   }
 
   /**
@@ -505,10 +500,10 @@ export class Ships {
 
         const ti = indices[t]!;
 
-        const order = this.orders[i]!;
+        const order = this.getBestOrder(i);
 
         // skip if it's not ready to fire, and it's not committed to being on.
-        if ((order.target === NO_TARGET || !this.turrets.readyToFire(ti)) && state != TurretState.CommittedOn) continue;
+        if ((!order || order.target === NO_TARGET || !this.turrets.readyToFire(ti)) && state != TurretState.CommittedOn) continue;
 
         const lateralOffset =
           gun.barrelCount > 1
@@ -603,6 +598,27 @@ export class Ships {
   }
 
   /**
+   * gets the most recent order that it still valid for this ship and removes all more recent invalid orders.
+   * @param i the index of the ship that has the orders
+   * @returns the best order given to that ship
+   */
+  getBestOrder(i: number): Order {
+    const orders = this.orders[i]!;
+
+    for (var j = orders.length - 1; j >= 0; j--) {
+      let order = orders[j];
+      if (!order || order.target === NO_TARGET || !this.alive[order.target]) {
+        // not a useful order any more, so delete it.
+        delete orders[j];
+      } else {
+        return order;
+      }
+    }
+
+    return orders[0]; // return the first order (if any)
+  }
+
+  /**
    * One ship's pilot: hold the ordered range band, and face the target.
    *
    * It eases into the band, holds station by matching the target's velocity,
@@ -617,7 +633,7 @@ export class Ships {
    * allocator, and a target handed to the turrets.
    */
   private flyOne(dt: number, bodies: Bodies, i: number): void {
-    const order = this.orders[i]!;
+    const order = this.getBestOrder(i);
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
 
@@ -625,7 +641,7 @@ export class Ships {
     let wantVy = 0;
     let wantAngle = bodies.angle[b]!;
 
-    const target = order.target;
+    const target = order?.target;
     if (target !== NO_TARGET && this.alive[target] === 1) {
       const tb = bodies.indexOf(this.bodyIds[target]!);
       if (tb >= 0) {
@@ -708,9 +724,9 @@ export class Ships {
   /** Train this ship's turrets on its ordered target, leading it. */
   private trainOne(bodies: Bodies, i: number): void {
     const indices = this.turretIndex[i]!;
-    const order = this.orders[i]!;
+    const order = this.getBestOrder(i);
 
-    if (order.target === NO_TARGET || this.alive[order.target] !== 1) {
+    if (!order || order.target === NO_TARGET || this.alive[order.target] !== 1) {
       for (let t = 0; t < indices.length; t++) this.turrets.returnToRest(indices[t]!);
       return;
     }

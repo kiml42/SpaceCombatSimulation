@@ -98,13 +98,13 @@ export function duel(seed = 20260905): Battle {
   // part.
 
   // the gunship starts off attacking the closer corvette.
-  ships.setOrder(closeCorvette, b, 300, 500, 120);
+  ships.pushOrder(closeCorvette, b, 300, 500, 120);
 
   // this one starts far away and comes in later to help.
-  ships.setOrder(distantCorvette, b, 300, 500, 120);
+  ships.pushOrder(distantCorvette, b, 300, 500, 120);
 
   // these two start at quite short range tying to fight each other
-  ships.setOrder(b, closeCorvette, 900, 1200, 60);
+  ships.pushOrder(b, closeCorvette, 900, 1200, 60);
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);

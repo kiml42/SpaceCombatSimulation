@@ -84,6 +84,6 @@ describe('the mark', () => {
     // would stop being given the same problem.
     const run = soloOrdering(0);
     for (let i = 0; i < STEPS; i++) run.step();
-    expect(run.ships.order(run.target).target).toBe(NO_TARGET);
+    expect(run.ships.getBestOrder(run.target).target).toBe(NO_TARGET);
   });
 });
