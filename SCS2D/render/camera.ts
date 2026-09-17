@@ -51,6 +51,14 @@ export interface Camera {
  * ships move in simulated time, so at eight times speed the feed-forward has
  * eight times as far to carry. These are smoothing constants, not physics,
  * which is why they live out here rather than in `sim/`.
+ *
+ * **The easing, though, is per frame rather than per `dt`, and that is the
+ * right way round.** Only the feed-forward is chasing the battle; the easing
+ * and the containment are the camera settling, and the camera is the viewer's
+ * instrument rather than a thing in the world. So a paused battle goes on
+ * settling into frame, which is what anybody pausing to look at something
+ * wants. An impact flash is the opposite case and ages on the battle's clock,
+ * because a flash *is* a thing in the world (`render/flashes.ts`).
  */
 export function frame(
   camera: Camera,
