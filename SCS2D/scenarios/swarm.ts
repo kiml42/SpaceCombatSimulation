@@ -43,7 +43,6 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
 
   const rng = new Rng(seed);
   const randomRadius = 1000;
-  const swarm: number[] = [];
 
   for (let i = 0; i < corvetteCount; i++) {
     const angle = rng.nextRange(0, 2 * math.PI);
@@ -65,10 +64,9 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
     });
     ships.pushOrder(a, b, range, range * 2, 2000);
 
-    swarm.push(a);
+    ships.pushOrder(b, a, 50, 2000, 60);
   }
 
-  ships.pushOrder(b, swarm[0], 50, 2000, 60);
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);
