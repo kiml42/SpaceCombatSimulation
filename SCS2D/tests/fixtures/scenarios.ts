@@ -241,6 +241,8 @@ export function gunneryScenario(seed = 777): GunneryRun {
         }
       }
 
+      // No hulls: these bodies are bare masses with a radius and no design, so
+      // the bounding circle *is* the shape, and casting against it is exact.
       projectiles.step(dt, world.bodies, grid, hits, wells);
       run.totalHits += hits.count;
 

@@ -135,7 +135,7 @@ export function duel(seed = 20260905): Battle {
       const fireReport = ships.fire(world, projectiles, beams, grid, beamHits);
       run.totalProjectilesFired += fireReport.projectilesFired;
       run.totalBeamsFired += fireReport.beamsFired;
-      projectiles.step(dt, world.bodies, grid, hits, wells);
+      projectiles.step(dt, world.bodies, grid, hits, wells, ships.hulls);
       run.totalProjectileHits += hits.count;
       run.totalBeamHits += beamHits.count;
       // A stop-gap until terminal ballistics and the damage model (§8 step 2),

@@ -1,5 +1,7 @@
 import { abs, cos, max, min, sin, sqrt } from './math.js';
 import type { ShipDesign } from './blueprint.js';
+import type { Bodies } from './bodies.js';
+import { segmentCircleT, type RayNarrowPhase } from './spatialGrid.js';
 
 /**
  * What a shot meets inside a ship: the modules a line crosses, in the order it
@@ -253,3 +255,127 @@ export function modulesAlong(
  * where the arithmetic stops meaning anything.
  */
 const EDGE_ON = 1e-6;
+
+/**
+ * Which body has a hull to be met, and what it is built from.
+ *
+ * A body is a mass with a radius; a *hull* is a list of modules. Most bodies
+ * in a battle have one and some — debris, a race goal — do not, and a body
+ * with no design keeps the bounding circle it always had rather than becoming
+ * unhittable.
+ */
+export interface HullDesigns {
+  designOf(bodyIndex: number): ShipDesign | null;
+}
+
+/**
+ * The narrow phase: a shot lands on a ship's hull rather than on the circle
+ * drawn round it.
+ *
+ * A bounding circle is drawn to the furthest module, so for a ship longer than
+ * it is wide most of that circle is empty space — and a round stopped by it
+ * stops in the vacuum beside the bow. This turns the segment into the ship's
+ * frame, asks `modulesAlong` what it crosses, and reports the first crossing;
+ * a round that crosses nothing is a **miss**, and the cast carries on to
+ * whatever is behind the ship.
+ *
+ * One `HullPath` is kept and reused, so a cast allocates nothing. It holds the
+ * last answer rather than returning it, which is what lets `confirm` be the
+ * cheap question the traversal asks of every candidate and `describe` the one
+ * the caller asks once, about the winner.
+ */
+export class Hulls implements RayNarrowPhase {
+  private readonly path = new HullPath();
+  /** The module struck by the last `describe`, or -1 if it missed. */
+  module = -1;
+  /** Outward normal of the face it was entered by, in the **world** frame. */
+  nx = 0;
+  ny = 0;
+
+  constructor(private readonly designs: HullDesigns) {}
+
+  confirm(
+    bodies: Bodies,
+    bodyIndex: number,
+    x0: number,
+    y0: number,
+    dx: number,
+    dy: number,
+  ): number {
+    const design = this.designs.designOf(bodyIndex);
+    // No hull to meet: the circle was the answer all along.
+    if (design === null) return segmentCircleT(x0, y0, dx, dy, bodies.x[bodyIndex]!, bodies.y[bodyIndex]!, bodies.radius[bodyIndex]!);
+    return this.cast(design, bodies, bodyIndex, x0, y0, dx, dy);
+  }
+
+  /**
+   * Re-run the narrow phase for the body the cast settled on, filling
+   * `module`, `nx` and `ny`. Returns false if it finds nothing, which a caller
+   * that has just been told the body was hit should treat as a bug rather than
+   * as a miss.
+   *
+   * Recomputed rather than remembered: `confirm` is asked about every
+   * candidate and only one of them wins, so keeping each answer would cost
+   * more bookkeeping than one repeat of a dozen multiplications per module.
+   */
+  describe(
+    bodies: Bodies,
+    bodyIndex: number,
+    x0: number,
+    y0: number,
+    dx: number,
+    dy: number,
+  ): boolean {
+    this.module = -1;
+    this.nx = 0;
+    this.ny = 0;
+    const design = this.designs.designOf(bodyIndex);
+    if (design === null) return false;
+    if (this.cast(design, bodies, bodyIndex, x0, y0, dx, dy) < 0) return false;
+
+    const angle = bodies.angle[bodyIndex]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    const nx = this.path.nx[0]!;
+    const ny = this.path.ny[0]!;
+    this.module = this.path.module[0]!;
+    // Back out of the ship's frame. A segment that began inside a module
+    // entered by no face and carries a zero normal, which rotates to zero.
+    this.nx = nx * c - ny * s;
+    this.ny = nx * s + ny * c;
+    return true;
+  }
+
+  /** The segment in the ship's frame, and the first module it crosses. */
+  private cast(
+    design: ShipDesign,
+    bodies: Bodies,
+    bodyIndex: number,
+    x0: number,
+    y0: number,
+    dx: number,
+    dy: number,
+  ): number {
+    const bx = bodies.x[bodyIndex]!;
+    const by = bodies.y[bodyIndex]!;
+    const angle = bodies.angle[bodyIndex]!;
+    const c = cos(angle);
+    const s = sin(angle);
+
+    const rx = x0 - bx;
+    const ry = y0 - by;
+    const lx0 = rx * c + ry * s;
+    const ly0 = -rx * s + ry * c;
+    const ldx = dx * c + dy * s;
+    const ldy = -dx * s + dy * c;
+
+    modulesAlong(design, lx0, ly0, lx0 + ldx, ly0 + ldy, this.path);
+    if (this.path.count === 0) return -1;
+
+    // `modulesAlong` reports metres along the segment and the cast wants a
+    // fraction of it, since that is what the grid orders hits by.
+    const length = sqrt(ldx * ldx + ldy * ldy);
+    if (!(length > 0)) return -1;
+    return this.path.entry[0]! / length;
+  }
+}

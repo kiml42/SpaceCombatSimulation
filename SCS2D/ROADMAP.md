@@ -287,8 +287,9 @@ Deliberately unresolved; decide when they block something.
   arithmetic; the sequencing is what a laser has no reason to inherit. Firing them together needs `Ships.fire`
   to emit a salvo rather than a shot, which is a change to the firing loop rather than to the scaling laws.
 - **Reflected beams, and the trap waiting at the surface.** A beam that is deflected rather than absorbed
-  resumes from the point it struck, which means it starts *on* that hull's bounding circle. Any new heading
-  that does not lead away from that body's centre therefore intersects it again at zero distance, and the
+  resumes from the point it struck, which is now a point *on a module's face* rather than on the ship's
+  bounding circle — and makes the trap worse rather than better, since a module the beam is sitting on is met
+  again by any heading that leads back into it, and a concave hull has faces that look at each other. The
   beam sticks: a grazing deflection — exactly the case reflection exists to model — is the worst one. The tie
   has to be broken deliberately, by nudging the origin along the new heading or by carrying the struck body
   as the resumed beam's owner, and the second is tidier because the store already has an owner field and

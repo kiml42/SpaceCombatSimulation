@@ -62,7 +62,11 @@ inside any one file is not contiguous.
   A shot's path through a ship is resolved to the modules it crosses, in order,
   with the face each is entered by — the geometry both halves of the damage
   model are built on, and the first thing the bounding circles the broad phase
-  stops at cannot answer. **Terminal ballistics is built on it**: de Marre's
+  stops at cannot answer. **Rounds and beams land on that hull**: the circle is
+  the broad phase's question and a module's face is the answer, so a shot
+  through the empty part of a ship's circle carries on to whatever is behind it,
+  and one that lands reports the module it struck and the face it came in by.
+  **Terminal ballistics is built on it**: de Marre's
   perforation law, obliquity as line-of-sight thickness and a critical angle,
   deciding perforate, embed or deflect from a round, a plate and the angle
   between them, and returning the residual speed and the energy the plate took.

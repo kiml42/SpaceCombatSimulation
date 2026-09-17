@@ -56,6 +56,35 @@ export class IndexBuffer {
   }
 }
 
+/**
+ * A second opinion on a body the broad phase says was hit.
+ *
+ * The grid tests bounding circles, which is what makes it fast and what makes
+ * it wrong about *where*: a circle is drawn round a ship's extremities, so most
+ * of it is empty space. A narrow phase is asked about each body whose circle
+ * the segment enters, and answers with where the segment really meets it — or
+ * that it does not, in which case the cast carries on past it to whatever is
+ * behind.
+ *
+ * Refinement only ever moves a hit *later* along the segment, which is what
+ * lets the traversal keep its ordering and its early-out: a body first reached
+ * in a later cell cannot beat a refined hit already found.
+ */
+export interface RayNarrowPhase {
+  /**
+   * Where the segment from (`x0`, `y0`) along (`dx`, `dy`) really meets this
+   * body, as a t in [0, 1] — or -1 if it misses it after all.
+   */
+  confirm(
+    bodies: Bodies,
+    bodyIndex: number,
+    x0: number,
+    y0: number,
+    dx: number,
+    dy: number,
+  ): number;
+}
+
 /** The result of a `raycast`, filled in place so casting allocates nothing. */
 export class RayHit {
   /** Body index, or -1 for a miss. Note: an index, not a `BodyId` handle. */
@@ -275,6 +304,7 @@ export class SpatialGrid {
     y1: number,
     hit: RayHit,
     ignoreBody = -1,
+    narrow?: RayNarrowPhase,
   ): boolean {
     hit.clear();
 
@@ -291,7 +321,7 @@ export class SpatialGrid {
 
     if (dx === 0 && dy === 0) {
       // Degenerate: a point query against one cell.
-      this.testRayCell(bodies, cx, cy, x0, y0, dx, dy, ignoreBody, stampId);
+      this.testRayCell(bodies, cx, cy, x0, y0, dx, dy, ignoreBody, stampId, narrow);
     } else {
       const stepX = dx > 0 ? 1 : dx < 0 ? -1 : 0;
       const stepY = dy > 0 ? 1 : dy < 0 ? -1 : 0;
@@ -305,7 +335,7 @@ export class SpatialGrid {
       // Amanatides & Woo grid traversal: visit cells in the order the segment
       // enters them, so the first hit found is the nearest one.
       for (let visited = 0; visited < MAX_CELLS_PER_RAY; visited++) {
-        this.testRayCell(bodies, cx, cy, x0, y0, dx, dy, ignoreBody, stampId);
+        this.testRayCell(bodies, cx, cy, x0, y0, dx, dy, ignoreBody, stampId, narrow);
 
         // Distance at which the segment leaves this cell.
         const tExit = tMaxX < tMaxY ? tMaxX : tMaxY;
@@ -346,6 +376,7 @@ export class SpatialGrid {
     dy: number,
     ignoreBody: number,
     stampId: number,
+    narrow?: RayNarrowPhase,
   ): void {
     let e = this.cellHeads[this.bucketOf(cx, cy)];
     while (e !== -1) {
@@ -354,7 +385,10 @@ export class SpatialGrid {
         const bi = this.entryBody[e];
         if (bi !== ignoreBody && this.stamp[bi] !== stampId) {
           this.stamp[bi] = stampId;
-          const t = segmentCircleT(x0, y0, dx, dy, bodies.x[bi], bodies.y[bi], bodies.radius[bi]);
+          let t = segmentCircleT(x0, y0, dx, dy, bodies.x[bi], bodies.y[bi], bodies.radius[bi]);
+          // The circle is the question "could this have been hit"; the narrow
+          // phase is the answer to "was it, and where".
+          if (t >= 0 && narrow !== undefined) t = narrow.confirm(bodies, bi, x0, y0, dx, dy);
           if (t >= 0 && (t < this.rayBestT || (t === this.rayBestT && bi < this.rayBestIndex))) {
             this.rayBestT = t;
             this.rayBestIndex = bi;
