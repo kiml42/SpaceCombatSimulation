@@ -1,6 +1,6 @@
 import { math, type Snapshot } from '../sim/index.js';
 
-const { max, min } = math;
+const { abs, max, min } = math;
 
 /**
  * The camera: what part of the world is on screen, and how it follows.
@@ -87,34 +87,53 @@ export function frame(
 }
 
 /**
- * Carry the camera along with the mean velocity of the ships still fighting.
+ * Carry the camera along with the mean velocity of the ships it is looking at.
  *
  * With one ship this holds it perfectly still on screen; with several it
  * removes the part of their motion they share and leaves only the spread.
- * Hulks are left out for the same reason they are left out of the framing: a
- * wreck drifting out of the battle should not drag the view with it.
+ *
+ * **Only the ships on screen count.** The camera's job is to hold what the
+ * viewer is looking at still, so a ship they have panned away from, or zoomed
+ * past, is not part of the answer — and neither is a hulk, which is drifting
+ * out of the fight rather than flying in it. A ship counts while any part of
+ * it is in shot, so one crossing the edge does not flick in and out.
  *
  * `dt` is *simulated* seconds — this is the half of the camera that chases the
  * battle, so it runs on the battle's clock. The easing in `frame` is the half
  * that settles, and runs on the frame.
  */
-export function moveWithAllShips(camera: Camera, snapshot: Snapshot, dt: number): void {
-  if (!(dt > 0) || snapshot.shipCount === 0) return;
+export function moveWithVisibleShips(
+  camera: Camera,
+  snapshot: Snapshot,
+  dt: number,
+  widthPx: number,
+  heightPx: number,
+): void {
+  if (!(dt > 0) || snapshot.shipCount === 0 || !(camera.scale > 0)) return;
+
+  // The view in metres, about the camera.
+  const halfWidth = widthPx / (2 * camera.scale);
+  const halfHeight = heightPx / (2 * camera.scale);
+
   let vx = 0;
   let vy = 0;
-  let fighting = 0;
+  let counted = 0;
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
     if (ship.isDisabled) continue;
+    const r = ship.design.radius;
+    if (abs(ship.x - camera.x) > halfWidth + r) continue;
+    if (abs(ship.y - camera.y) > halfHeight + r) continue;
     vx += ship.vx;
     vy += ship.vy;
-    fighting++;
+    counted++;
   }
-  // Every ship a hulk: nothing left to keep up with, and dividing by none of
-  // them would put the camera at NaN and take the whole view with it.
-  if (fighting === 0) return;
-  camera.x += (vx / fighting) * dt;
-  camera.y += (vy / fighting) * dt;
+  // Nothing in shot to keep up with: hold still rather than drift after ships
+  // the viewer has deliberately left behind — and rather than divide by none
+  // of them, which would put the camera at NaN and take the view with it.
+  if (counted === 0) return;
+  camera.x += (vx / counted) * dt;
+  camera.y += (vy / counted) * dt;
 }
 
 /**

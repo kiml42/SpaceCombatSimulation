@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Snapshot, type ShipView } from '../sim/index.js';
-import { frame, gridStep, moveWithAllShips, type Camera } from '../render/camera.js';
+import { frame, gridStep, moveWithVisibleShips, type Camera } from '../render/camera.js';
 
 /**
  * The camera is arithmetic over a snapshot, so it can be tested without a
@@ -61,7 +61,7 @@ function follow(camera: Camera, ships: ShipView[], seconds: number, dt = DT): vo
       s.y += s.vy * dt;
     }
     const snapshot = snapshotOf(ships);
-    moveWithAllShips(camera, snapshot, dt);
+    moveWithVisibleShips(camera, snapshot, dt, WIDTH, HEIGHT);
     frame(camera, snapshot, WIDTH, HEIGHT);
   }
 }
@@ -102,7 +102,7 @@ describe('the camera', () => {
       for (let n = 0; n < Math.round(12 / DT); n++) {
         for (const s of ships) s.x += s.vx * DT;
         const snapshot = snapshotOf(ships);
-        if (fedForward) moveWithAllShips(camera, snapshot, DT);
+        if (fedForward) moveWithVisibleShips(camera, snapshot, DT, WIDTH, HEIGHT);
         frame(camera, snapshot, WIDTH, HEIGHT);
       }
       return Math.abs(camera.x - (ships[0]!.x + ships[1]!.x) / 2);
@@ -150,22 +150,46 @@ describe('the camera', () => {
   });
 });
 
-describe('what the camera leaves behind', () => {
+describe('what the camera keeps up with', () => {
   it('keeps up with the ships still fighting, not with the wreckage', () => {
     // A hulk blown clear of the battle would otherwise drag the view off it.
     const fighting = ship(0, 0, 100, 0);
     const hulk = ship(0, 0, -900, 0, true);
     const camera: Camera = { x: 0, y: 0, scale: 0.1 };
-    moveWithAllShips(camera, snapshotOf([fighting, hulk]), 1);
+    moveWithVisibleShips(camera, snapshotOf([fighting, hulk]), 1, WIDTH, HEIGHT);
     expect(camera.x).toBeCloseTo(100, 9);
   });
 
-  it('holds still when every ship is a hulk, rather than going to NaN', () => {
-    // Dividing by the ships still fighting, when there are none of them.
+  it('ignores a ship that is off screen', () => {
+    // The camera holds still what the viewer is looking at. At this zoom the
+    // view is 10 km across, so the second ship is a long way outside it.
+    const watched = ship(0, 0, 100, 0);
+    const elsewhere = ship(50_000, 0, -900, 0);
+    const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+    moveWithVisibleShips(camera, snapshotOf([watched, elsewhere]), 1, WIDTH, HEIGHT);
+    expect(camera.x).toBeCloseTo(100, 9);
+  });
+
+  it('counts a ship crossing the edge, so it does not flick in and out', () => {
+    // Just outside by its centre, still in shot by its hull.
+    const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+    const halfWidth = WIDTH / (2 * camera.scale);
+    const straddling = ship(halfWidth + 10, 0, 300, 0);
+    moveWithVisibleShips(camera, snapshotOf([straddling]), 1, WIDTH, HEIGHT);
+    expect(camera.x).toBeCloseTo(300, 9);
+  });
+
+  it('holds still when nothing it could follow is in shot', () => {
+    // Panned away, or every ship a hulk: either way there is nothing to keep
+    // up with, and dividing by none of them would put the camera at NaN.
     const camera: Camera = { x: 10, y: -5, scale: 0.1 };
-    moveWithAllShips(camera, snapshotOf([ship(0, 0, 400, 0, true)]), 1);
+    moveWithVisibleShips(camera, snapshotOf([ship(0, 0, 400, 0, true)]), 1, WIDTH, HEIGHT);
     expect(camera.x).toBe(10);
     expect(camera.y).toBe(-5);
+
+    const panned: Camera = { x: 100_000, y: 0, scale: 0.1 };
+    moveWithVisibleShips(panned, snapshotOf([ship(0, 0, 400, 0)]), 1, WIDTH, HEIGHT);
+    expect(panned.x).toBe(100_000);
   });
 
   it('still frames the wreckage when that is all there is', () => {
