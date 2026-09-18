@@ -124,8 +124,10 @@ export interface Order {
 }
 
 export enum OrderCancelCondition {
-  /** This order will never be automatically cancelled. */
+  /** This order will never be automatically cancelled */
   'None' = 0,
+  /** This order will be cancelled automatically for No Target, or when the target is not alive any more */
+  'CompletelyDead' = 0,
   /** This order will be cancelled when the target has no active weapons */
   'Disarm' = 1,
   /** This order will be cancelled when the target has no active engines */
@@ -644,13 +646,14 @@ export class Ships {
 
     for (var j = orders.length - 1; j >= 0; j--) {
       let order = orders[j];
+      if (order.cancelOn == OrderCancelCondition.None) {
+        // None is the only one that will hold on a dead or missing target order.
+        return;
+      }
       if (!order || order.target === NO_TARGET || !this.alive[order.target]) {
         // not a useful order any more, so delete it.
         orders.pop();
       } else {
-        if (order.cancelOn == OrderCancelCondition.None) {
-          return;
-        }
         const isDisarmed = this.isDisarmed(order.target);
         const hasNoEngines = this.hasNoEngines(order.target);
         const orderComplete = (order.cancelOn === OrderCancelCondition.CompleteDisable && isDisarmed && hasNoEngines) ||

@@ -12,13 +12,15 @@ import {
   type ShipDesign,
   BeamHits,
 } from '../sim/index.js';
-import { CORVETTE, GUNSHIP, BEAM_GUNSHIP } from '../scenarios/blueprints.js';
+import { CORVETTE, GUNSHIP, BEAM_GUNSHIP, DINKY } from '../scenarios/blueprints.js';
+import { OrderCancelCondition } from '../sim/ships.js';
 
 const DT = 1 / 60;
 
 const corvette = compileBlueprint(CORVETTE);
 const gunship = compileBlueprint(GUNSHIP);
 const beamGunship = compileBlueprint(BEAM_GUNSHIP);
+const dinky = compileBlueprint(DINKY);
 
 interface Rig {
   world: World;
@@ -197,10 +199,45 @@ describe('the pilot', () => {
     expect(math.abs(math.angleDelta(bodies.angle[b]!, wanted))).toBeLessThan(0.05);
   });
 
+  it('executes most recent order then goes to previous', () => {
+    const r = rig();
+    const ship = r.ships.spawn(r.world, { design: gunship, x: 0, y: 0, angle: math.PI });
+    const enemy1 = r.ships.spawn(r.world, { design: dinky, x: 3000, y: 0 });
+    const enemy2 = r.ships.spawn(r.world, { design: dinky, x: -3000, y: 0 });
+    r.ships.pushOrder(ship, enemy2, 2000, 4000, 50);  // old order to attack enemy 2
+    r.ships.pushOrder(ship, enemy1, 2000, 4000, 50);  // Overriding order to attack enemy 1
+
+    for (let i = 0; i < 60 * 60; i++) r.step();
+
+    const bodies = r.world.bodies;
+    const b = bodyOf(r, ship);
+
+    // confirm it's attacking the first ship
+    {
+      const wanted = math.atan2(
+        bodies.y[bodyOf(r, enemy1)]! - bodies.y[b]!,
+        bodies.x[bodyOf(r, enemy1)]! - bodies.x[b]!,
+      );
+      expect(math.abs(math.angleDelta(bodies.angle[b]!, wanted))).toBeLessThan(0.05);
+    }
+    r.ships.remove(enemy1);
+
+    for (let i = 0; i < 60 * 60; i++) r.step();
+
+    // confirm it's attacking the second ship
+    {
+      const wanted = math.atan2(
+        bodies.y[bodyOf(r, enemy2)]! - bodies.y[b]!,
+        bodies.x[bodyOf(r, enemy2)]! - bodies.x[b]!,
+      );
+      expect(math.abs(math.angleDelta(bodies.angle[b]!, wanted))).toBeLessThan(0.05);
+    }
+  });
+
   it('sits still when it has no order', () => {
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: corvette, x: 0, y: 0 });
-    expect(r.ships.getCurrentOrder(ship).target).toBe(NO_TARGET);
+    expect(r.ships.getCurrentOrder(ship)).toBe(undefined);
 
     for (let i = 0; i < 600; i++) r.step();
 
@@ -267,7 +304,7 @@ describe('gunnery', () => {
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: gunship, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.pushOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
     r.ships.remove(enemy);
 
     const bodies = r.world.bodies;
@@ -306,7 +343,7 @@ describe('gunnery', () => {
       angularVel: spin,
     });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.pushOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
     r.ships.remove(enemy);
 
     const bodies = r.world.bodies;
@@ -372,7 +409,7 @@ describe('gunnery', () => {
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: twin, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.pushOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
     r.ships.remove(enemy);
 
     // Fire 1st round (barrel 0): should be at -0.5 * spacing in y
@@ -455,7 +492,7 @@ describe('beam gunnery', () => {
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: beamGunship, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.pushOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
     r.ships.remove(enemy);
 
     const bodies = r.world.bodies;
@@ -487,7 +524,7 @@ describe('beam gunnery', () => {
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: twin, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.pushOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
     r.ships.remove(enemy);
 
     // Fire 1st round (barrel 0): should be at -0.5 * spacing in y
@@ -555,7 +592,7 @@ describe('beam gunnery', () => {
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: ship1, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.pushOrder(ship, enemy, 1900, 2100, 10);
+    r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
     r.ships.remove(enemy);
 
     // Fire 1st round
@@ -591,7 +628,7 @@ describe('beam gunnery', () => {
     const steps = waitDuration / DT;
 
     // make sure it doesn't shoot again as there's nothing to shoot at now.
-    for(var i = 0; i < steps; i++){
+    for (var i = 0; i < steps; i++) {
       advanceTime();
       // beam count should be 0
       expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(0);
