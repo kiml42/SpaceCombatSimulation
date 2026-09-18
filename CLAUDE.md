@@ -35,7 +35,7 @@ or leave them out entirely if the name is sufficient, or the code easy to read.
 ## Archived Unity Project
 
 The rest of this file documents that archived project, but only for parts that may be useful for reference in the new project.
-This whole project will be removed from teh repository once we've implemented target prioritisation, and evolution mechanics (and possibly persistence).
+This whole project will be removed from the repository once we've implemented target prioritisation, and evolution mechanics (and possibly persistence).
 
 ### What it is
 

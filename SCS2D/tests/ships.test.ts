@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   compileBlueprint,
   math,
-  NO_TARGET,
   ProjectileHits,
   Projectiles,
   Beams,
@@ -14,6 +13,7 @@ import {
 } from '../sim/index.js';
 import { CORVETTE, GUNSHIP, BEAM_GUNSHIP, DINKY } from '../scenarios/blueprints.js';
 import { OrderCancelCondition } from '../sim/ships.js';
+import { DAMAGE_ENERGY_PER_KG } from '../sim/damage.js';
 
 const DT = 1 / 60;
 
@@ -199,39 +199,35 @@ describe('the pilot', () => {
     expect(math.abs(math.angleDelta(bodies.angle[b]!, wanted))).toBeLessThan(0.05);
   });
 
-  it('executes most recent order then goes to previous', () => {
+  it('fights its orders in the order they were given', () => {
+    // A queue, not a stack: a list of orders is a plan, so the ship works
+    // through it from the front. It turns to the first target, and only takes
+    // up the second once it is finished with the first.
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: gunship, x: 0, y: 0, angle: math.PI });
-    const enemy1 = r.ships.spawn(r.world, { design: dinky, x: 3000, y: 0 });
-    const enemy2 = r.ships.spawn(r.world, { design: dinky, x: -3000, y: 0 });
-    r.ships.pushOrder(ship, enemy2, 2000, 4000, 50);  // old order to attack enemy 2
-    r.ships.pushOrder(ship, enemy1, 2000, 4000, 50);  // Overriding order to attack enemy 1
-
-    for (let i = 0; i < 60 * 60; i++) r.step();
+    const first = r.ships.spawn(r.world, { design: dinky, x: 3000, y: 0 });
+    const second = r.ships.spawn(r.world, { design: dinky, x: -3000, y: 0 });
+    r.ships.pushOrder(ship, first, 2000, 4000, 50);
+    r.ships.pushOrder(ship, second, 2000, 4000, 50);
 
     const bodies = r.world.bodies;
     const b = bodyOf(r, ship);
-
-    // confirm it's attacking the first ship
-    {
-      const wanted = math.atan2(
-        bodies.y[bodyOf(r, enemy1)]! - bodies.y[b]!,
-        bodies.x[bodyOf(r, enemy1)]! - bodies.x[b]!,
-      );
-      expect(math.abs(math.angleDelta(bodies.angle[b]!, wanted))).toBeLessThan(0.05);
-    }
-    r.ships.remove(enemy1);
+    const bearingTo = (other: number): number =>
+      math.atan2(bodies.y[bodyOf(r, other)]! - bodies.y[b]!, bodies.x[bodyOf(r, other)]! - bodies.x[b]!);
 
     for (let i = 0; i < 60 * 60; i++) r.step();
 
-    // confirm it's attacking the second ship
-    {
-      const wanted = math.atan2(
-        bodies.y[bodyOf(r, enemy2)]! - bodies.y[b]!,
-        bodies.x[bodyOf(r, enemy2)]! - bodies.x[b]!,
-      );
-      expect(math.abs(math.angleDelta(bodies.angle[b]!, wanted))).toBeLessThan(0.05);
-    }
+    expect(r.ships.getCurrentOrder(ship)?.target).toBe(first);
+    expect(math.abs(math.angleDelta(bodies.angle[b]!, bearingTo(first)))).toBeLessThan(0.05);
+
+    // The first is gone: the ship takes up the order behind it without being
+    // told anything new.
+    r.ships.remove(first);
+    for (let i = 0; i < 60 * 60; i++) r.step();
+
+    expect(r.ships.getCurrentOrder(ship)?.target).toBe(second);
+    expect(math.abs(math.angleDelta(bodies.angle[b]!, bearingTo(second)))).toBeLessThan(0.05);
+    expect(r.ships.orderCount(ship)).toBe(1);
   });
 
   it('sits still when it has no order', () => {
@@ -593,15 +589,17 @@ describe('beam gunnery', () => {
     const ship = r.ships.spawn(r.world, { design: ship1, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
     r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.CompletelyDead);
-    r.ships.remove(enemy);
 
-    // Fire 1st round
+    // Open fire on a target that is still there: a ship does not shoot at
+    // something it has been told is gone, which is what the rest of this is
+    // about not applying to a burst already committed.
     r.ships.command(DT, r.world);
     r.grid.rebuild(r.world.bodies);
     expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(1);
 
     // Now the ship's started firing, delete the target
     const enemyBody = r.ships.body(enemy);  // grab the BodyId before removing
+    r.ships.remove(enemy);                  // the ship
     r.world.destroy(enemyBody);             // the body itself
     r.ships.clearOrder(ship);               // also cancel the order
 
@@ -640,5 +638,120 @@ describe('beam gunnery', () => {
       r.ships.command(DT, r.world);
       r.grid.rebuild(r.world.bodies);
     }
+  });
+});
+
+describe('a queue of orders', () => {
+  /** Wreck every module of one kind on a ship, as a battering would. */
+  function wreck(r: Rig, ship: number, kind: string): void {
+    const design = r.ships.design(ship);
+    const body = r.world.bodies.indexOf(r.ships.body(ship));
+    for (let m = 0; m < design.modules.length; m++) {
+      const module = design.modules[m]!;
+      if (module.spec.kind !== kind) continue;
+      r.ships.damage.absorb(body, m, module.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
+    }
+  }
+
+  /** A ship with two orders, and the two marks they name. */
+  function squadron(first: OrderCancelCondition, second = OrderCancelCondition.CompleteDisable) {
+    const r = rig();
+    const ship = r.ships.spawn(r.world, { design: gunship, x: 0, y: 0 });
+    const a = r.ships.spawn(r.world, { design: dinky, x: 3000, y: 0, team: 1 });
+    const b = r.ships.spawn(r.world, { design: dinky, x: -3000, y: 0, team: 1 });
+    r.ships.pushOrder(ship, a, 2000, 4000, 50, first);
+    r.ships.pushOrder(ship, b, 2000, 4000, 50, second);
+    return { r, ship, a, b };
+  }
+
+  it('finishes with a target when its condition is met, and not before', () => {
+    const { r, ship, a, b } = squadron(OrderCancelCondition.Disarm);
+    r.ships.command(DT, r.world);
+    expect(r.ships.getCurrentOrder(ship)?.target).toBe(a);
+
+    // Engines gone is not what this order was after.
+    wreck(r, a, 'thruster');
+    r.ships.command(DT, r.world);
+    expect(r.ships.getCurrentOrder(ship)?.target).toBe(a);
+
+    // Its guns are, so the ship is done with it.
+    wreck(r, a, 'turret');
+    r.ships.command(DT, r.world);
+    expect(r.ships.getCurrentOrder(ship)?.target).toBe(b);
+  });
+
+  it('wants both halves of a mission kill before it leaves one alone', () => {
+    const { r, ship, a, b } = squadron(OrderCancelCondition.CompleteDisable);
+    wreck(r, a, 'turret');
+    r.ships.command(DT, r.world);
+    expect(r.ships.getCurrentOrder(ship)?.target).toBe(a);
+
+    wreck(r, a, 'thruster');
+    r.ships.command(DT, r.world);
+    expect(r.ships.getCurrentOrder(ship)?.target).toBe(b);
+  });
+
+  it('is finished with either half when told either will do', () => {
+    const { r, ship, a, b } = squadron(OrderCancelCondition.DisarmOrNoEngines);
+    wreck(r, a, 'thruster');
+    r.ships.command(DT, r.world);
+    expect(r.ships.getCurrentOrder(ship)?.target).toBe(b);
+  });
+
+  it('holds a station-keeping order whatever becomes of the target', () => {
+    // `None` is the one condition that survives the target being gone
+    // altogether: an escort keeps station on the wreck it was escorting.
+    const { r, ship, a } = squadron(OrderCancelCondition.None);
+    wreck(r, a, 'turret');
+    wreck(r, a, 'thruster');
+    r.ships.command(DT, r.world);
+    expect(r.ships.getCurrentOrder(ship)?.target).toBe(a);
+
+    r.ships.remove(a);
+    r.ships.command(DT, r.world);
+    expect(r.ships.getCurrentOrder(ship)?.target).toBe(a);
+  });
+
+  it('drops any other order once its target is gone', () => {
+    const { r, ship, a, b } = squadron(OrderCancelCondition.CompletelyDead);
+    r.ships.remove(a);
+    r.ships.command(DT, r.world);
+    expect(r.ships.getCurrentOrder(ship)?.target).toBe(b);
+  });
+
+  it('drops an order whose target died while it waited its turn', () => {
+    // Somebody else got there first. Leaving it in the queue would send this
+    // ship off to fight a wreck once it finished with the target in front.
+    const { r, ship, a, b } = squadron(
+      OrderCancelCondition.CompleteDisable,
+      OrderCancelCondition.CompleteDisable,
+    );
+    expect(r.ships.orderCount(ship)).toBe(2);
+
+    r.ships.remove(b);
+    r.ships.command(DT, r.world);
+    expect(r.ships.orderCount(ship)).toBe(1);
+    expect(r.ships.getCurrentOrder(ship)?.target).toBe(a);
+  });
+
+  it('holds its heading and its fire with nothing left to do', () => {
+    const { r, ship, a, b } = squadron(OrderCancelCondition.CompletelyDead);
+    r.ships.remove(a);
+    r.ships.remove(b);
+    for (let i = 0; i < 120; i++) r.step();
+
+    expect(r.ships.getCurrentOrder(ship)).toBeUndefined();
+    expect(r.ships.orderCount(ship)).toBe(0);
+    expect(r.fired).toBe(0);
+    // Still flying, just not told anything: a ship with no order is not a hulk.
+    expect(r.ships.isDisabled(ship)).toBe(false);
+  });
+
+  it('takes the whole queue away when the orders are cleared', () => {
+    const { r, ship } = squadron(OrderCancelCondition.CompleteDisable);
+    expect(r.ships.orderCount(ship)).toBe(2);
+    r.ships.clearOrder(ship);
+    expect(r.ships.orderCount(ship)).toBe(0);
+    expect(r.ships.getCurrentOrder(ship)).toBeUndefined();
   });
 });

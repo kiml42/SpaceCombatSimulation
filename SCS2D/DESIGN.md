@@ -32,7 +32,10 @@ inside any one file is not contiguous.
   and firing arcs all derived from a layout, with four ships authored to it as validated
   JSON files, one of them built from a repeated wing segment — and ships
   built from those blueprints fighting: flying their layouts to hold an ordered range
-  band, training their turrets with lead, and firing salvoes that recoil. A Canvas2D
+  band, training their turrets with lead, and firing salvoes that recoil. A ship
+  holds a *queue* of orders rather than one order, each naming what would finish
+  it — the target disarmed, stranded, both, or simply gone — so a plan can be
+  given in advance and worked through as targets are put out of the fight. A Canvas2D
   viewer draws snapshots of all of it — ships, turret bearings, tracers and the wells
   bending them — with pause, single-step, time scaling, and zoom and pan over an
   auto-framing camera. A blueprint editor on a second page of its own draws a layout
@@ -136,7 +139,7 @@ so decisions are never under time pressure.
 | Doctrine | Editable per craft, with "propagate to all identical craft" as a tactical verb — flip a whole swarm from defensive to aggressive mid-battle. |
 | Cost | **There is no abstract cost value for anything.** A ship costs the materials that make up its dry mass, the time to build it (from a module-complexity metric, deliberately not yet pinned down), and the propellant and raw materials it consumes running. Those are the only currencies, and every budget — a skirmish allowance, an evolution fitness penalty, the price of a better material — is denominated in them. Points values are what a game reaches for when it has not decided what a thing really costs. |
 | Scarcity | Ammunition and propellant are limited. This is what makes engagement-range and manoeuvre doctrine matter rather than being sliders nobody touches. |
-| Orders | Every order is *(target object, allowed distance range, allowed approach-angle range)*, mostly defaulted from doctrine — so issuing one collapses to picking a target. Fixed points in space rarely make sense; orders are relative to objects. |
+| Orders | Every order is *(target object, allowed distance range, allowed approach-angle range)*, mostly defaulted from doctrine — so issuing one collapses to picking a target. Fixed points in space rarely make sense; orders are relative to objects. A ship holds a **queue** of them and works through it in the order given, each carrying the condition that finishes it. |
 | Scale rationale | Small numbers are a design requirement, not a technical limit: you must be able to attribute a battle outcome to a design change. |
 
 ---

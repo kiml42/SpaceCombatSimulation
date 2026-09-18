@@ -263,8 +263,10 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     // gun's arc on an asymmetric one.
     const spec = design.modules[design.turrets[t]!.module]!.spec;
     const face = min(spec.length, spec.width);
-    {
-      // TODO stop drawing firing arcs for disabled turrets
+    // A wrecked mount shows no arc: the wash says "this gun may shoot here",
+    // which is a promise a gun that cannot shoot is not making. The barrel
+    // stays, because it is still there.
+    if (ship.turretDisabled?.[t] !== true) {
       const scaled = face * ARC_RADIUS_SCALE;
       const span =
         scaled < ARC_MIN_RADIUS

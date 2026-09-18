@@ -71,7 +71,11 @@ Then, in order:
    what a module does about that is a list of responses it carries. What is left of this step is
    **severing**: a hull that comes apart needs the connectivity graph described in §12, and until it
    exists a wrecked ship is a whole drifting hulk rather than pieces.
-3. **Doctrine and orders** — make configuration visibly change behaviour.
+3. **Doctrine and orders** — make configuration visibly change behaviour. Part-built: a ship holds a queue
+   of orders and each carries the condition that finishes it (disarmed, stranded, either, both, or gone),
+   so a plan survives its targets being put out of the fight. What is missing is the *doctrine* half — the
+   per-craft configuration those orders should be defaulted from — and anything that issues orders while a
+   battle runs, both of which are what "configuration visibly changes behaviour" means.
 4. **Headless evolution and analysis** — balance testing plus sandbox mode.
 5. **v1: skirmish** — a fixed budget of *materials* rather than of points (§12), designed scenarios,
    shareable by URL. *This is the first thing worth giving people to play.*

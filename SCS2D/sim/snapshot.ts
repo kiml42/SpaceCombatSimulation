@@ -4,7 +4,7 @@ import type { WellSpec } from './gravity.js';
 import type { Projectiles } from './projectiles.js';
 import type { Beams } from './beams.js';
 import type { ImpactLog } from './damage.js';
-import { Ships } from './ships.js';
+import type { Ships } from './ships.js';
 import type { Turrets } from './turrets.js';
 import type { World } from './world.js';
 
@@ -55,7 +55,17 @@ export interface ShipView {
    * drawn as wreckage rather than not drawn.
    */
   integrity: number[];
+  /**
+   * Whether the ship can no longer either move or shoot — a hulk (§4). What a
+   * camera uses to stop chasing wreckage, and a scenario to count survivors.
+   */
   isDisabled: boolean;
+  /**
+   * Which of its mounts are out, in the design's turret order. Read from the
+   * gunnery rather than worked out from `integrity`, so that a gun drawn as
+   * able to shoot is one that can.
+   */
+  turretDisabled: boolean[];
 }
 
 export class Snapshot {
@@ -173,6 +183,8 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
     turretReady: [],
     throttles: [],
     integrity: [],
+    isDisabled: false,
+    turretDisabled: [],
   };
   snapshot.ships[i] = created;
   return created;
@@ -202,8 +214,7 @@ export function capture(
 
   let n = 0;
   for (let i = 0; i < ships.highWater; i++) {
-    if (!ships.isAlive(i))
-      continue; // Ignore destroyed or disabled ships.
+    if (!ships.isAlive(i)) continue;
     const b = bodies.indexOf(ships.body(i));
     if (b < 0) continue;
 
@@ -221,10 +232,12 @@ export function capture(
 
     view.turretBearings.length = design.turrets.length;
     view.turretReady.length = design.turrets.length;
+    view.turretDisabled.length = design.turrets.length;
     for (let t = 0; t < design.turrets.length; t++) {
       const ti = ships.turretIndexOf(i, t);
       view.turretBearings[t] = turrets.worldBearing(bodies, ti);
       view.turretReady[t] = turrets.readyToFire(ti);
+      view.turretDisabled[t] = ships.isTurretDisabled(i, t);
     }
 
     view.throttles.length = design.thrusters.length;
@@ -237,7 +250,9 @@ export function capture(
       view.integrity[m] = ships.damage.integrity(b, m);
     }
 
-    if (!view.isDisabled) { // only consider enabled ships for the bounds of the snapshot
+    // Only the ships still in the fight are framed: a camera that kept a dead
+    // hulk in shot would pull away from the battle to hold on wreckage.
+    if (!view.isDisabled) {
       const r = design.radius;
       if (view.x - r < minX) minX = view.x - r;
       if (view.y - r < minY) minY = view.y - r;
@@ -246,6 +261,19 @@ export function capture(
     }
   }
   out.shipCount = n;
+
+  // Unless they are *all* hulks, in which case the wreckage is the battle and
+  // framing nothing would leave the camera with infinite bounds to fit.
+  if (n > 0 && minX === Infinity) {
+    for (let i = 0; i < n; i++) {
+      const view = out.ships[i]!;
+      const r = view.design.radius;
+      if (view.x - r < minX) minX = view.x - r;
+      if (view.y - r < minY) minY = view.y - r;
+      if (view.x + r > maxX) maxX = view.x + r;
+      if (view.y + r > maxY) maxY = view.y + r;
+    }
+  }
 
   growProjectiles(out, projectiles.count);
   let p = 0;

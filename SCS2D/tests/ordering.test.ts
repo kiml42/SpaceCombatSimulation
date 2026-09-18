@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { NO_TARGET } from '../sim/index.js';
 import { ORDERINGS, soloOrdering } from '../scenarios/ordering.js';
 
 /**
@@ -84,6 +83,9 @@ describe('the mark', () => {
     // would stop being given the same problem.
     const run = soloOrdering(0);
     for (let i = 0; i < STEPS; i++) run.step();
-    expect(run.ships.getCurrentOrder(run.target).target).toBe(NO_TARGET);
+    // Never given one, and nothing gives a ship an order but a caller: no
+    // order at all is how a ship holds its fire.
+    expect(run.ships.getCurrentOrder(run.target)).toBeUndefined();
+    expect(run.ships.orderCount(run.target)).toBe(0);
   });
 });

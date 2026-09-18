@@ -104,7 +104,9 @@ export function duel(seed = 20260905): Battle {
   // this one starts far away and comes in later to help.
   ships.pushOrder(distantCorvette, b, 300, 500, 120);
 
-  // these two start at quite short range tying to fight each other
+  // The gunship has a plan rather than a target, worked through in order:
+  // silence the corvette already on it, deal with the one coming to help, then
+  // come back and finish the first off.
   ships.pushOrder(b, closeCorvette, 900, 1200, 60, OrderCancelCondition.Disarm);
   ships.pushOrder(b, distantCorvette, 900, 1200, 60, OrderCancelCondition.CompleteDisable);
   ships.pushOrder(b, closeCorvette, 900, 1200, 60, OrderCancelCondition.CompleteDisable);

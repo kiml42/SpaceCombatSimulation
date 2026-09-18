@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Snapshot, type ShipView } from '../sim/index.js';
-import { frame, gridStep, type Camera } from '../render/camera.js';
+import { frame, gridStep, moveWithAllShips, type Camera } from '../render/camera.js';
 
 /**
  * The camera is arithmetic over a snapshot, so it can be tested without a
@@ -13,7 +13,7 @@ const WIDTH = 1000;
 const HEIGHT = 600;
 const DT = 1 / 60;
 
-function ship(x: number, y: number, vx = 0, vy = 0): ShipView {
+function ship(x: number, y: number, vx = 0, vy = 0, isDisabled = false): ShipView {
   return {
     // The camera reads position, velocity and radius; the rest is for drawing.
     design: { radius: 20 } as ShipView['design'],
@@ -28,6 +28,8 @@ function ship(x: number, y: number, vx = 0, vy = 0): ShipView {
     throttles: [],
     integrity: [],
     body: -1,
+    isDisabled,
+    turretDisabled: [],
   };
 }
 
@@ -36,21 +38,31 @@ function snapshotOf(ships: ShipView[]): Snapshot {
   const snapshot = new Snapshot();
   snapshot.ships = ships;
   snapshot.shipCount = ships.length;
-  snapshot.minX = Math.min(...ships.map((s) => s.x - 20));
-  snapshot.maxX = Math.max(...ships.map((s) => s.x + 20));
-  snapshot.minY = Math.min(...ships.map((s) => s.y - 20));
-  snapshot.maxY = Math.max(...ships.map((s) => s.y + 20));
+  // As `capture` does: the ships still fighting are what is framed, and all of
+  // them when none of them is.
+  const framed = ships.some((s) => !s.isDisabled) ? ships.filter((s) => !s.isDisabled) : ships;
+  snapshot.minX = Math.min(...framed.map((s) => s.x - 20));
+  snapshot.maxX = Math.max(...framed.map((s) => s.x + 20));
+  snapshot.minY = Math.min(...framed.map((s) => s.y - 20));
+  snapshot.maxY = Math.max(...framed.map((s) => s.y + 20));
   return snapshot;
 }
 
-/** Advance the ships and the camera together for `seconds`. */
+/**
+ * Advance the ships and the camera together for `seconds`.
+ *
+ * The two halves are driven the way the viewer drives them: the feed-forward
+ * takes the simulated step, the framing eases per frame.
+ */
 function follow(camera: Camera, ships: ShipView[], seconds: number, dt = DT): void {
   for (let n = 0; n < Math.round(seconds / dt); n++) {
     for (const s of ships) {
       s.x += s.vx * dt;
       s.y += s.vy * dt;
     }
-    frame(camera, snapshotOf(ships), WIDTH, HEIGHT, dt);
+    const snapshot = snapshotOf(ships);
+    moveWithAllShips(camera, snapshot, dt);
+    frame(camera, snapshot, WIDTH, HEIGHT);
   }
 }
 
@@ -89,7 +101,9 @@ describe('the camera', () => {
       const camera: Camera = { x: 150, y: 60, scale: 0.1 };
       for (let n = 0; n < Math.round(12 / DT); n++) {
         for (const s of ships) s.x += s.vx * DT;
-        frame(camera, snapshotOf(ships), WIDTH, HEIGHT, fedForward ? DT : 0);
+        const snapshot = snapshotOf(ships);
+        if (fedForward) moveWithAllShips(camera, snapshot, DT);
+        frame(camera, snapshot, WIDTH, HEIGHT);
       }
       return Math.abs(camera.x - (ships[0]!.x + ships[1]!.x) / 2);
     };
@@ -133,5 +147,33 @@ describe('the camera', () => {
       const mantissa = step / 10 ** Math.round(Math.log10(step / 1.0000001));
       expect([1, 2, 5, 10]).toContain(Math.round(mantissa));
     }
+  });
+});
+
+describe('what the camera leaves behind', () => {
+  it('keeps up with the ships still fighting, not with the wreckage', () => {
+    // A hulk blown clear of the battle would otherwise drag the view off it.
+    const fighting = ship(0, 0, 100, 0);
+    const hulk = ship(0, 0, -900, 0, true);
+    const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+    moveWithAllShips(camera, snapshotOf([fighting, hulk]), 1);
+    expect(camera.x).toBeCloseTo(100, 9);
+  });
+
+  it('holds still when every ship is a hulk, rather than going to NaN', () => {
+    // Dividing by the ships still fighting, when there are none of them.
+    const camera: Camera = { x: 10, y: -5, scale: 0.1 };
+    moveWithAllShips(camera, snapshotOf([ship(0, 0, 400, 0, true)]), 1);
+    expect(camera.x).toBe(10);
+    expect(camera.y).toBe(-5);
+  });
+
+  it('still frames the wreckage when that is all there is', () => {
+    // Otherwise the bounds are empty and the camera has nothing to fit.
+    const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+    const hulks = [ship(1000, 0, 0, 0, true), ship(1400, 0, 0, 0, true)];
+    for (let n = 0; n < 600; n++) frame(camera, snapshotOf(hulks), WIDTH, HEIGHT);
+    expect(Number.isFinite(camera.x)).toBe(true);
+    expect(camera.x).toBeCloseTo(1200, 0);
   });
 });
