@@ -7,7 +7,7 @@ import { fractal } from '../scenarios/fractal.js';
 import type { Battle } from '../scenarios/types.js';
 import { swarm } from '../scenarios/swarm.js';
 import { draw } from '../render/canvas2d.js';
-import { frame, gridStep, moveWithAllShips, type Camera } from '../render/camera.js';
+import { frame, gridStep, moveWithVisibleShips, type Camera } from '../render/camera.js';
 
 /**
  * The browser host: owns the clock, the canvas and the controls, and nothing else.
@@ -198,7 +198,7 @@ export function start(): void {
     const simDt = view.time > lastSimTime ? view.time - lastSimTime : 0;
     lastSimTime = view.time;
 
-    moveWithAllShips(camera, snapshot, simDt);
+    moveWithVisibleShips(camera, view, simDt, canvas.width, canvas.height);
     if (autoFrame) {
       if (!framed) {
         // Snap to the opening positions rather than easing in from nowhere.
