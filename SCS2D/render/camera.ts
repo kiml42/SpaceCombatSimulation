@@ -74,12 +74,17 @@ export function frame(
   if (dt > 0 && snapshot.shipCount > 0) {
     let vx = 0;
     let vy = 0;
+    let disabledCount = 0;
     for (let i = 0; i < snapshot.shipCount; i++) {
-      vx += snapshot.ships[i]!.vx;
-      vy += snapshot.ships[i]!.vy;
+      if (snapshot.ships[i]!.isDisabled) {
+        disabledCount++;
+      } else {
+        vx += snapshot.ships[i]!.vx;
+        vy += snapshot.ships[i]!.vy;
+      }
     }
-    camera.x += (vx / snapshot.shipCount) * dt;
-    camera.y += (vy / snapshot.shipCount) * dt;
+    camera.x += (vx / (snapshot.shipCount - disabledCount)) * dt;
+    camera.y += (vy / (snapshot.shipCount - disabledCount)) * dt;
   }
 
   const margin = 1.25;

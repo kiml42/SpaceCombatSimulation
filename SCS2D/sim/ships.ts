@@ -368,8 +368,6 @@ export class Ships {
   /** Hold station on another ship within a range band. */
   pushOrder(i: number, target: number, minRange: number, maxRange: number, approachSpeed: number): void {
     // TODO Specify if the order should last until disarmed, loss of all engines, or both.
-    // TODO have Fit camera only include non-disabled ships (possibly only focus on a ship and its target.)
-    // TODO stop drawing firing arcs for disabled turrets
     const order = {
       target: target,
       minRange: minRange,
