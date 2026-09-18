@@ -370,7 +370,6 @@ export class Ships {
     // TODO Specify if the order should last until disarmed, loss of all engines, or both.
     // TODO have Fit camera only include non-disabled ships (possibly only focus on a ship and its target.)
     // TODO stop drawing firing arcs for disabled turrets
-    // TODO Update orders once per step so that there can be an easy way to access the current order without changing anything.
     const order = {
       target: target,
       minRange: minRange,
@@ -414,6 +413,7 @@ export class Ships {
 
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
+      this.removeInvalidOrders(i);
       this.flyOne(dt, bodies, i);
       this.trainOne(bodies, i);
       const timers = this.cooldown[i]!;
@@ -504,7 +504,7 @@ export class Ships {
 
         const ti = indices[t]!;
 
-        const order = this.getBestOrder(i);
+        const order = this.getCurrentOrder(i);
 
         // skip if it's not ready to fire, and it's not committed to being on.
         if ((!order || order.target === NO_TARGET || !this.turrets.readyToFire(ti)) && state != TurretState.CommittedOn) continue;
@@ -602,24 +602,38 @@ export class Ships {
   }
 
   /**
-   * gets the most recent order that it still valid for this ship and removes all more recent invalid orders.
+   * Removes all invalid orders after the most recent valid order.
+   * An order is invalid if:
+   * - it has no target
+   * - the target is not alive
+   * - the target is disbled
    * @param i the index of the ship that has the orders
-   * @returns the best order given to that ship
    */
-  getBestOrder(i: number): Order {
+  removeInvalidOrders(i: number): void {
     const orders = this.orders[i]!;
 
     for (var j = orders.length - 1; j >= 0; j--) {
       let order = orders[j];
       if (!order || order.target === NO_TARGET || !this.alive[order.target] || this.isDisabled(order.target)) {
         // not a useful order any more, so delete it.
-        delete orders[j];
+        orders.pop();
       } else {
-        return order;
+        return;
       }
     }
+  }
 
-    return orders[0]; // return the first order (if any)
+  /**
+   * gets the most recent order.
+   * @param i the index of the ship that has the orders
+   * @returns the best order given to that ship
+   */
+  getCurrentOrder(i: number): Order {
+    const orders = this.orders[i]!;
+
+    const index = orders.length > 0 ? orders.length - 1 : 0;
+
+    return orders[index];
   }
 
   /**
@@ -637,7 +651,7 @@ export class Ships {
    * allocator, and a target handed to the turrets.
    */
   private flyOne(dt: number, bodies: Bodies, i: number): void {
-    const order = this.getBestOrder(i);
+    const order = this.getCurrentOrder(i);
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
 
@@ -728,7 +742,7 @@ export class Ships {
   /** Train this ship's turrets on its ordered target, leading it. */
   private trainOne(bodies: Bodies, i: number): void {
     const indices = this.turretIndex[i]!;
-    const order = this.getBestOrder(i);
+    const order = this.getCurrentOrder(i);
 
     if (!order || order.target === NO_TARGET || this.alive[order.target] !== 1) {
       for (let t = 0; t < indices.length; t++) this.turrets.returnToRest(indices[t]!);
