@@ -119,6 +119,21 @@ export interface Order {
   maxRange: number;
   /** Speed to close or open the range at when outside the band, m/s. */
   approachSpeed: number;
+  /** Under what condition should this order be cancelled */
+  cancelOn: OrderCancelCondition;
+}
+
+export enum OrderCancelCondition {
+  /** This order will never be automatically cancelled. */
+  'None' = 0,
+  /** This order will be cancelled when the target has no active weapons */
+  'Disarm' = 1,
+  /** This order will be cancelled when the target has no active engines */
+  'NoEngines' = 2,
+  /** This order will be cancelled when the target has no active engines OR when it has no active weapons */
+  'DisarmOrNoEngines' = 3,
+  /** This order will be cancelled when the target has no active engines AND no active weapons */
+  'CompleteDisable' = 4
 }
 
 export interface ShipSpec {
@@ -278,6 +293,32 @@ export class Ships {
     return layout;
   }
 
+  /** Returns true when the ship has no active weapons left */
+  isDisarmed(i: number): boolean {
+    if (this.alive[i] === 0) return true;
+    const bodies = this.bodyStore;
+    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return true;
+    const design = this.designs[i]!;
+    for (const turret of design.turrets) {
+      if (this.damage.remaining(b, turret.module, DamageEffect.FireRate) > 0) return false;
+    }
+    return true;
+  }
+
+  /** Returns true when this ship has no active engines */
+  hasNoEngines(i: number): boolean {
+    if (this.alive[i] === 0) return true;
+    const bodies = this.bodyStore;
+    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return true;
+    const design = this.designs[i]!;
+    for (const thruster of design.thrusters) {
+      if (this.damage.remaining(b, thruster.module ?? -1, DamageEffect.Thrust) > 0) return false;
+    }
+    return true;
+  }
+
   /**
    * Whether a ship can still do anything: push, or shoot.
    *
@@ -287,18 +328,7 @@ export class Ships {
    * rather than a state the store holds.
    */
   isDisabled(i: number): boolean {
-    if (this.alive[i] === 0) return true;
-    const bodies = this.bodyStore;
-    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
-    if (b < 0) return true;
-    const design = this.designs[i]!;
-    for (const thruster of design.thrusters) {
-      if (this.damage.remaining(b, thruster.module ?? -1, DamageEffect.Thrust) > 0) return false;
-    }
-    for (const turret of design.turrets) {
-      if (this.damage.remaining(b, turret.module, DamageEffect.FireRate) > 0) return false;
-    }
-    return true;
+    return this.isDisarmed(i) && this.hasNoEngines(i);
   }
 
   design(i: number): ShipDesign {
@@ -366,13 +396,13 @@ export class Ships {
   }
 
   /** Hold station on another ship within a range band. */
-  pushOrder(i: number, target: number, minRange: number, maxRange: number, approachSpeed: number): void {
-    // TODO Specify if the order should last until disarmed, loss of all engines, or both.
+  pushOrder(i: number, target: number, minRange: number, maxRange: number, approachSpeed: number, cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable): void {
     const order = {
       target: target,
       minRange: minRange,
       maxRange: maxRange,
-      approachSpeed: approachSpeed
+      approachSpeed: approachSpeed,
+      cancelOn: cancelOn
     };
     this.orders[i]!.push(order);
   }
@@ -612,11 +642,24 @@ export class Ships {
 
     for (var j = orders.length - 1; j >= 0; j--) {
       let order = orders[j];
-      if (!order || order.target === NO_TARGET || !this.alive[order.target] || this.isDisabled(order.target)) {
+      if (!order || order.target === NO_TARGET || !this.alive[order.target]) {
         // not a useful order any more, so delete it.
         orders.pop();
       } else {
-        return;
+        if (order.cancelOn == OrderCancelCondition.None) {
+          return;
+        }
+        const isDisarmed = this.isDisarmed(order.target);
+        const hasNoEngines = this.hasNoEngines(order.target);
+        const orderComplete = (order.cancelOn === OrderCancelCondition.CompleteDisable && isDisarmed && hasNoEngines) ||
+          (order.cancelOn === OrderCancelCondition.Disarm && isDisarmed) ||
+          (order.cancelOn === OrderCancelCondition.NoEngines && hasNoEngines) ||
+          (order.cancelOn === OrderCancelCondition.DisarmOrNoEngines && (hasNoEngines || isDisarmed));
+        if (orderComplete) {
+          orders.pop();
+        } else {
+          return;
+        }
       }
     }
   }

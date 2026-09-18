@@ -14,6 +14,7 @@ import {
 } from '../sim/index.js';
 import type { Battle } from './types.js';
 import { BEAM_CORVETTE, BEAM_GUNSHIP } from './blueprints.js';
+import { OrderCancelCondition } from '../sim/ships.js';
 
 /**
  * Beam-armed ships only: two beam corvettes closing on a beam gunship.
@@ -107,8 +108,9 @@ export function beamDuel(seed = 20260905): Battle {
   ships.pushOrder(distantCorvette, b, 300, 500, 120);
 
   // The gunship holds the nearer of them off at a range its own mounts like.
-  ships.pushOrder(b, distantCorvette, 900, 1200, 60);
-  ships.pushOrder(b, closeCorvette, 900, 1200, 60);
+  ships.pushOrder(b, distantCorvette, 900, 1200, 60, OrderCancelCondition.Disarm);
+  ships.pushOrder(b, closeCorvette, 900, 1200, 60, OrderCancelCondition.CompleteDisable);
+  ships.pushOrder(b, distantCorvette, 900, 1200, 60, OrderCancelCondition.CompleteDisable);
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);
