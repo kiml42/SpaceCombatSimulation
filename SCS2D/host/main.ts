@@ -5,7 +5,6 @@ import { beamDuel } from '../scenarios/beamDuel.js';
 import { beamVGun } from '../scenarios/beamVGun.js';
 import { fractal } from '../scenarios/fractal.js';
 import type { Battle } from '../scenarios/types.js';
-import { soloOrdering } from '../scenarios/ordering.js';
 import { swarm } from '../scenarios/swarm.js';
 import { draw } from '../render/canvas2d.js';
 import { frame, gridStep, moveWithAllShips, type Camera } from '../render/camera.js';
@@ -208,7 +207,6 @@ export function start(): void {
       }
       frame(camera, view, canvas.width, canvas.height);
     }
-
 
     // Impacts belong to the battle, so they fade on *its* clock: a paused
     // battle holds its flashes, a single step advances them by one step, and

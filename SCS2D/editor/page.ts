@@ -193,7 +193,8 @@ export function startEditor(): void {
     if (view.design !== null) {
       previewSnapshot(view.design, snapshot);
       if (fitPending) {
-        frame(camera, snapshot, canvas.width, canvas.height, 0, 1);
+        // Snap rather than ease: a layout being fitted has no motion to follow.
+        frame(camera, snapshot, canvas.width, canvas.height, 1);
         fitPending = false;
       }
     } else {

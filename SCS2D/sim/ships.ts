@@ -123,19 +123,26 @@ export interface Order {
   cancelOn: OrderCancelCondition;
 }
 
+/**
+ * When a ship is finished with an order and moves on to the next.
+ *
+ * Every condition but `None` also drops an order whose target has gone: a
+ * target that no longer exists cannot be fought, whatever finishing it would
+ * have meant.
+ */
 export enum OrderCancelCondition {
-  /** This order will never be automatically cancelled */
-  'None' = 0,
-  /** This order will be cancelled automatically for No Target, or when the target is not alive any more */
-  'CompletelyDead' = 0,
-  /** This order will be cancelled when the target has no active weapons */
-  'Disarm' = 1,
-  /** This order will be cancelled when the target has no active engines */
-  'NoEngines' = 2,
-  /** This order will be cancelled when the target has no active engines OR when it has no active weapons */
-  'DisarmOrNoEngines' = 3,
-  /** This order will be cancelled when the target has no active engines AND no active weapons */
-  'CompleteDisable' = 4
+  /** Never dropped, not even when the target is gone. Station-keeping. */
+  None = 0,
+  /** Dropped once the target is gone. Nothing short of that will do. */
+  CompletelyDead = 1,
+  /** Dropped once the target has no working weapon: it cannot shoot back. */
+  Disarm = 2,
+  /** Dropped once the target has no working engine: it cannot run. */
+  NoEngines = 3,
+  /** Dropped once the target can no longer either shoot back or run. */
+  DisarmOrNoEngines = 4,
+  /** Dropped only once the target can do neither: a mission kill (§3). */
+  CompleteDisable = 5,
 }
 
 export interface ShipSpec {
@@ -216,8 +223,15 @@ export class Ships {
 
   private readonly team: number[] = [];
 
-  // a queue of orders by ship [shipIndex][orderIndex]
-  private readonly orders: Order[][] = [[]];
+  /**
+   * Each ship's orders, oldest first: `orders[ship][n]`.
+   *
+   * A queue rather than a stack, so a ship carries out what it was told in the
+   * order it was told, and moves on to the next when one is finished — which
+   * is what makes a list of orders a *plan* rather than a pile of
+   * interruptions.
+   */
+  private readonly orders: Order[][] = [];
 
   /** The wrench `command` decided, body frame, replayed by the force provider. */
   private readonly demandFx: number[] = [];
@@ -302,10 +316,28 @@ export class Ships {
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return true;
     const design = this.designs[i]!;
-    for (const turret of design.turrets) {
-      if (this.damage.remaining(b, turret.module, DamageEffect.FireRate) > 0) return false;
+    for (let t = 0; t < design.turrets.length; t++) {
+      if (!this.isTurretDisabled(i, t)) return false;
     }
     return true;
+  }
+
+  /**
+   * Whether this ship's `t`-th mount can still shoot.
+   *
+   * The same question `fire` asks before it lets a gun off, so that anything
+   * drawing a turret and the gunnery that runs it cannot disagree about which
+   * guns are out — which is the whole reason this lives here and not in the
+   * renderer, where the cutout would have to be guessed at.
+   */
+  isTurretDisabled(i: number, t: number): boolean {
+    if (this.alive[i] === 0) return true;
+    const bodies = this.bodyStore;
+    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return true;
+    const turret = this.designs[i]!.turrets[t];
+    if (turret === undefined) return true;
+    return !(this.damage.remaining(b, turret.module, DamageEffect.FireRate) > 0);
   }
 
   /** Returns true when this ship has no active engines */
@@ -397,8 +429,11 @@ export class Ships {
     return i;
   }
 
-  /** Pushes a new order on top of the stack
-   * The most recently received order will be acted on first, once it's complete the next most recent order will be acted on.
+  /**
+   * Add an order to the end of this ship's queue.
+   *
+   * Orders are carried out in the order they were given: the ship works on the
+   * first one until `cancelOn` says it is finished, then takes up the next.
    */
   pushOrder(i: number, target: number, minRange: number, maxRange: number, approachSpeed: number, cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable): void {
     const order = {
@@ -411,8 +446,9 @@ export class Ships {
     this.orders[i]!.push(order);
   }
 
+  /** Drop every order this ship has. It holds its heading and its fire. */
   clearOrder(i: number): void {
-    this.pushOrder(i, NO_TARGET, 0, 0, 0);
+    this.orders[i] = [];
   }
 
   /**
@@ -634,45 +670,60 @@ export class Ships {
   }
 
   /**
-   * Removes all invalid orders after the most recent valid order.
-   * An order is invalid if:
-   * - it has no target
-   * - the target is not alive
-   * - the target is disabled
-   * @param i the index of the ship that has the orders
+   * Drop every order this ship is finished with, wherever it sits in the
+   * queue — not only the one it is working on.
+   *
+   * A target killed by somebody else while the queue waited its turn is just
+   * as finished as one this ship killed itself, and leaving it in would send
+   * the ship off to fight a wreck later.
    */
   removeInvalidOrders(i: number): void {
-    const orders = this.orders[i]!;
-    const validOrders = [];
-
-    for (var j = 0; j < orders.length; j++) {
-      let order = orders[j];
-      if (order.cancelOn == OrderCancelCondition.None) {
-        // None is the only one that will hold on a dead or missing target order.
-        validOrders.push(order);
-      } else if (!(!order || order.target === NO_TARGET || !this.alive[order.target])) {
-        const isDisarmed = this.isDisarmed(order.target);
-        const hasNoEngines = this.hasNoEngines(order.target);
-        const orderComplete = (order.cancelOn === OrderCancelCondition.CompleteDisable && isDisarmed && hasNoEngines) ||
-          (order.cancelOn === OrderCancelCondition.Disarm && isDisarmed) ||
-          (order.cancelOn === OrderCancelCondition.NoEngines && hasNoEngines) ||
-          (order.cancelOn === OrderCancelCondition.DisarmOrNoEngines && (hasNoEngines || isDisarmed));
-        if (!orderComplete) {
-          validOrders.push(order);
-        }
-      }
+    const orders = this.orders[i];
+    if (orders === undefined) return;
+    const kept: Order[] = [];
+    for (const order of orders) {
+      if (!this.orderFinished(order)) kept.push(order);
     }
-    this.orders[i] = validOrders;
+    this.orders[i] = kept;
+  }
+
+  /** Whether an order's `cancelOn` condition has been met. */
+  private orderFinished(order: Order): boolean {
+    // Station-keeping: held whatever becomes of the target, including nothing.
+    if (order.cancelOn === OrderCancelCondition.None) return false;
+
+    // Everything else needs a target that is still there to be finished with.
+    if (order.target === NO_TARGET || this.alive[order.target] !== 1) return true;
+
+    const disarmed = this.isDisarmed(order.target);
+    const stranded = this.hasNoEngines(order.target);
+    switch (order.cancelOn) {
+      case OrderCancelCondition.CompletelyDead:
+        return false;
+      case OrderCancelCondition.Disarm:
+        return disarmed;
+      case OrderCancelCondition.NoEngines:
+        return stranded;
+      case OrderCancelCondition.DisarmOrNoEngines:
+        return disarmed || stranded;
+      case OrderCancelCondition.CompleteDisable:
+        return disarmed && stranded;
+      default:
+        return false;
+    }
   }
 
   /**
-   * gets the most recent order.
-   * @param i the index of the ship that has the orders
-   * @returns the best order given to that ship
+   * The order this ship is working on: the oldest it has not finished with, or
+   * `undefined` when it has none and is free to hold its heading and its fire.
    */
-  getCurrentOrder(i: number): Order {
-    const orders = this.orders[i]!;
-    return orders[0];
+  getCurrentOrder(i: number): Order | undefined {
+    return this.orders[i]?.[0];
+  }
+
+  /** How many orders this ship still has, the current one included. */
+  orderCount(i: number): number {
+    return this.orders[i]?.length ?? 0;
   }
 
   /**
@@ -698,8 +749,10 @@ export class Ships {
     let wantVy = 0;
     let wantAngle = bodies.angle[b]!;
 
-    const target = order?.target;
-    if (target !== NO_TARGET && this.alive[target] === 1) {
+    // No order at all is the same problem as an order with no target: hold
+    // what you are doing and wait to be told something.
+    const target = order?.target ?? NO_TARGET;
+    if (order !== undefined && target !== NO_TARGET && this.alive[target] === 1) {
       const tb = bodies.indexOf(this.bodyIds[target]!);
       if (tb >= 0) {
         const dx = bodies.x[tb]! - bodies.x[b]!;

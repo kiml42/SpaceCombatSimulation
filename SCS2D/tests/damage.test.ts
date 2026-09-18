@@ -10,6 +10,8 @@ import {
   Beams,
   Impacts,
   ProjectileHits,
+  Snapshot,
+  capture,
   Projectiles,
   Ships,
   SpatialGrid,
@@ -293,5 +295,36 @@ describe('what a hit logs to be drawn', () => {
     const y = bodies.y[body]! + impacts.log.localX[0]! * Math.sin(angle) + impacts.log.localY[0]! * Math.cos(angle);
     expect(x).toBeCloseTo(impacts.log.x[0]!, 9);
     expect(y).toBeCloseTo(impacts.log.y[0]!, 9);
+  });
+});
+
+describe('what the picture is told about damage', () => {
+  it('reports a wrecked mount as one that cannot shoot', () => {
+    // The renderer draws a firing arc as a promise that a gun may shoot there,
+    // and has no business guessing at the cutout that decides it. So the
+    // snapshot carries the same answer the gunnery acts on.
+    const world = new World({ dt: 1 / 60, seed: 11 });
+    const ships = new Ships();
+    world.addForceProvider(ships.forceProvider());
+    const ship = ships.spawn(world, { design: corvette, x: 0, y: 0, team: 0 });
+    const body = world.bodies.indexOf(ships.body(ship));
+
+    const projectiles = new Projectiles(4);
+    const beams = new Beams(4);
+    const before = capture(new Snapshot(), world, ships, projectiles, beams);
+    expect(before.ships[0]!.turretDisabled).toEqual(corvette.turrets.map(() => false));
+    expect(before.ships[0]!.isDisabled).toBe(false);
+
+    // Wreck the mount the first turret is built on.
+    const module = corvette.turrets[0]!.module;
+    ships.damage.absorb(body, module, corvette.modules[module]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
+
+    const after = capture(new Snapshot(), world, ships, projectiles, beams);
+    expect(after.ships[0]!.turretDisabled[0]).toBe(true);
+    expect(ships.isTurretDisabled(ship, 0)).toBe(true);
+    // The module is still drawn, and still stops shells: it is wreckage, not
+    // an absence (§4).
+    expect(after.ships[0]!.integrity[module]).toBe(0);
+    expect(after.ships[0]!.design.modules[module]).toBeDefined();
   });
 });

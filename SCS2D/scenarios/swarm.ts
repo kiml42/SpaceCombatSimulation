@@ -44,7 +44,7 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
 
   const rng = new Rng(seed);
   const randomRadius = 1000;
-  const swarm = [];
+  const swarm: number[] = [];
 
   for (let i = 0; i < corvetteCount; i++) {
     const angle = rng.nextRange(0, 2 * math.PI);
@@ -66,13 +66,14 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
     });
     ships.pushOrder(a, b, range, range * 2, 2000);
     swarm.push(a);
-    // Set orders to completely disable them all first.
+    // The gunship's plan, in two passes over the swarm. First: take the teeth
+    // out of every one of them, so the least of the incoming fire stops
+    // soonest. Orders are worked through in the order they are given.
     ships.pushOrder(b, a, 50, 2000, 60, OrderCancelCondition.Disarm);
   }
-  
-  for (var i = 0; i < swarm.length; i++) {
-    // then set orders to disarm them (most recent are acted on first.)
-    const a = swarm[i];
+
+  // Then, in the same order, go back and finish them off.
+  for (const a of swarm) {
     ships.pushOrder(b, a, 50, 2000, 60, OrderCancelCondition.CompleteDisable);
   }
 

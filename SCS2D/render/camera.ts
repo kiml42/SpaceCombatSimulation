@@ -87,24 +87,34 @@ export function frame(
 }
 
 /**
- * Moves the camera a distance that keeps it at the same average velocity as all ships in the scene.
+ * Carry the camera along with the mean velocity of the ships still fighting.
+ *
+ * With one ship this holds it perfectly still on screen; with several it
+ * removes the part of their motion they share and leaves only the spread.
+ * Hulks are left out for the same reason they are left out of the framing: a
+ * wreck drifting out of the battle should not drag the view with it.
+ *
+ * `dt` is *simulated* seconds — this is the half of the camera that chases the
+ * battle, so it runs on the battle's clock. The easing in `frame` is the half
+ * that settles, and runs on the frame.
  */
-export function moveWithAllShips(camera: Camera, snapshot: Snapshot, dt: number) {
-  if (dt > 0 && snapshot.shipCount > 0) {
-    let vx = 0;
-    let vy = 0;
-    let disabledCount = 0;
-    for (let i = 0; i < snapshot.shipCount; i++) {
-      if (snapshot.ships[i]!.isDisabled) {
-        disabledCount++;
-      } else {
-        vx += snapshot.ships[i]!.vx;
-        vy += snapshot.ships[i]!.vy;
-      }
-    }
-    camera.x += (vx / (snapshot.shipCount - disabledCount)) * dt;
-    camera.y += (vy / (snapshot.shipCount - disabledCount)) * dt;
+export function moveWithAllShips(camera: Camera, snapshot: Snapshot, dt: number): void {
+  if (!(dt > 0) || snapshot.shipCount === 0) return;
+  let vx = 0;
+  let vy = 0;
+  let fighting = 0;
+  for (let i = 0; i < snapshot.shipCount; i++) {
+    const ship = snapshot.ships[i]!;
+    if (ship.isDisabled) continue;
+    vx += ship.vx;
+    vy += ship.vy;
+    fighting++;
   }
+  // Every ship a hulk: nothing left to keep up with, and dividing by none of
+  // them would put the camera at NaN and take the whole view with it.
+  if (fighting === 0) return;
+  camera.x += (vx / fighting) * dt;
+  camera.y += (vy / fighting) * dt;
 }
 
 /**
