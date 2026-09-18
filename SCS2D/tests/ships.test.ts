@@ -200,7 +200,7 @@ describe('the pilot', () => {
   it('sits still when it has no order', () => {
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: corvette, x: 0, y: 0 });
-    expect(r.ships.getBestOrder(ship).target).toBe(NO_TARGET);
+    expect(r.ships.getCurrentOrder(ship).target).toBe(NO_TARGET);
 
     for (let i = 0; i < 600; i++) r.step();
 
