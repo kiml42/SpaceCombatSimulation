@@ -395,7 +395,9 @@ export class Ships {
     return i;
   }
 
-  /** Hold station on another ship within a range band. */
+  /** Pushes a new order on top of the stack
+   * The most recently received order will be acted on first, once it's complete the next most recent order will be acted on.
+   */
   pushOrder(i: number, target: number, minRange: number, maxRange: number, approachSpeed: number, cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable): void {
     const order = {
       target: target,
