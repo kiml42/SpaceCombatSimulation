@@ -14,6 +14,7 @@ import {
 import { type Battle } from './types.js';
 import { DINKY, BEAM_GUNSHIP } from './blueprints.js';
 import { Rng } from '../sim/rng.js';
+import { OrderCancelCondition } from '../sim/ships.js';
 
 /**
  * Many dinkies and one gunship closing on each other and opening fire.
@@ -43,6 +44,7 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
 
   const rng = new Rng(seed);
   const randomRadius = 1000;
+  const swarm = [];
 
   for (let i = 0; i < corvetteCount; i++) {
     const angle = rng.nextRange(0, 2 * math.PI);
@@ -63,8 +65,15 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
       team: 0,
     });
     ships.pushOrder(a, b, range, range * 2, 2000);
+    swarm.push(a);
+    // Set orders to completely disable them all first.
+    ships.pushOrder(b, a, 50, 2000, 60, OrderCancelCondition.CompleteDisable);
+  }
 
-    ships.pushOrder(b, a, 50, 2000, 60);
+  for (var i = 0; i < swarm.length; i++) {
+    // then set orders to disarm them (most recent are acted on first.)
+    const a = swarm[i];
+    ships.pushOrder(b, a, 50, 2000, 60, OrderCancelCondition.Disarm);
   }
 
 
