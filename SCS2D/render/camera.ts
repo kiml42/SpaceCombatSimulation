@@ -68,6 +68,8 @@ export function frame(
   dt = 0,
   ease = 0.08,
 ): void {
+  // TODO move with the ships on screen even when not in fit mode (possibly all ships if that's hard)
+  // TODO consider only fitting to ships that still have guns (possibly when there are more than 2 ships with guns, and then to all non-disabled ships)
   // Carry the camera along with the mean velocity of what it is framing. With
   // one ship this holds it perfectly still on screen; with several it removes
   // the part of their motion they share and leaves only the spread.
