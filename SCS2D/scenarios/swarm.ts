@@ -67,13 +67,13 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
     ships.pushOrder(a, b, range, range * 2, 2000);
     swarm.push(a);
     // Set orders to completely disable them all first.
-    ships.pushOrder(b, a, 50, 2000, 60, OrderCancelCondition.CompleteDisable);
+    ships.pushOrder(b, a, 50, 2000, 60, OrderCancelCondition.Disarm);
   }
-
+  
   for (var i = 0; i < swarm.length; i++) {
     // then set orders to disarm them (most recent are acted on first.)
     const a = swarm[i];
-    ships.pushOrder(b, a, 50, 2000, 60, OrderCancelCondition.Disarm);
+    ships.pushOrder(b, a, 50, 2000, 60, OrderCancelCondition.CompleteDisable);
   }
 
 

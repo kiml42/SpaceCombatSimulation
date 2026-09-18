@@ -638,35 +638,31 @@ export class Ships {
    * An order is invalid if:
    * - it has no target
    * - the target is not alive
-   * - the target is disbled
+   * - the target is disabled
    * @param i the index of the ship that has the orders
    */
   removeInvalidOrders(i: number): void {
     const orders = this.orders[i]!;
+    const validOrders = [];
 
-    for (var j = orders.length - 1; j >= 0; j--) {
+    for (var j = 0; j < orders.length; j++) {
       let order = orders[j];
       if (order.cancelOn == OrderCancelCondition.None) {
         // None is the only one that will hold on a dead or missing target order.
-        return;
-      }
-      if (!order || order.target === NO_TARGET || !this.alive[order.target]) {
-        // not a useful order any more, so delete it.
-        orders.pop();
-      } else {
+        validOrders.push(order);
+      } else if (!(!order || order.target === NO_TARGET || !this.alive[order.target])) {
         const isDisarmed = this.isDisarmed(order.target);
         const hasNoEngines = this.hasNoEngines(order.target);
         const orderComplete = (order.cancelOn === OrderCancelCondition.CompleteDisable && isDisarmed && hasNoEngines) ||
           (order.cancelOn === OrderCancelCondition.Disarm && isDisarmed) ||
           (order.cancelOn === OrderCancelCondition.NoEngines && hasNoEngines) ||
           (order.cancelOn === OrderCancelCondition.DisarmOrNoEngines && (hasNoEngines || isDisarmed));
-        if (orderComplete) {
-          orders.pop();
-        } else {
-          return;
+        if (!orderComplete) {
+          validOrders.push(order);
         }
       }
     }
+    this.orders[i] = validOrders;
   }
 
   /**
@@ -676,10 +672,7 @@ export class Ships {
    */
   getCurrentOrder(i: number): Order {
     const orders = this.orders[i]!;
-
-    const index = orders.length > 0 ? orders.length - 1 : 0;
-
-    return orders[index];
+    return orders[0];
   }
 
   /**
