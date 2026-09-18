@@ -4,7 +4,7 @@ import type { WellSpec } from './gravity.js';
 import type { Projectiles } from './projectiles.js';
 import type { Beams } from './beams.js';
 import type { ImpactLog } from './damage.js';
-import type { Ships } from './ships.js';
+import { Ships } from './ships.js';
 import type { Turrets } from './turrets.js';
 import type { World } from './world.js';
 
@@ -55,6 +55,7 @@ export interface ShipView {
    * drawn as wreckage rather than not drawn.
    */
   integrity: number[];
+  isDisabled: boolean;
 }
 
 export class Snapshot {
@@ -201,7 +202,8 @@ export function capture(
 
   let n = 0;
   for (let i = 0; i < ships.highWater; i++) {
-    if (!ships.isAlive(i)) continue;
+    if (!ships.isAlive(i))
+      continue; // Ignore destroyed or disabled ships.
     const b = bodies.indexOf(ships.body(i));
     if (b < 0) continue;
 
@@ -215,6 +217,7 @@ export function capture(
     view.angle = bodies.angle[b]!;
     view.vx = bodies.vx[b]!;
     view.vy = bodies.vy[b]!;
+    view.isDisabled = ships.isDisabled(i);
 
     view.turretBearings.length = design.turrets.length;
     view.turretReady.length = design.turrets.length;
@@ -234,11 +237,13 @@ export function capture(
       view.integrity[m] = ships.damage.integrity(b, m);
     }
 
-    const r = design.radius;
-    if (view.x - r < minX) minX = view.x - r;
-    if (view.y - r < minY) minY = view.y - r;
-    if (view.x + r > maxX) maxX = view.x + r;
-    if (view.y + r > maxY) maxY = view.y + r;
+    if (!view.isDisabled) { // only consider enabled ships for the bounds of the snapshot
+      const r = design.radius;
+      if (view.x - r < minX) minX = view.x - r;
+      if (view.y - r < minY) minY = view.y - r;
+      if (view.x + r > maxX) maxX = view.x + r;
+      if (view.y + r > maxY) maxY = view.y + r;
+    }
   }
   out.shipCount = n;
 
