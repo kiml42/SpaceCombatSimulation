@@ -592,7 +592,7 @@ describe('beam gunnery', () => {
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: ship1, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
+    r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.CompletelyDead);
     r.ships.remove(enemy);
 
     // Fire 1st round
