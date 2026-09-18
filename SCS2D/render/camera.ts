@@ -65,30 +65,8 @@ export function frame(
   snapshot: Snapshot,
   widthPx: number,
   heightPx: number,
-  dt = 0,
   ease = 0.08,
 ): void {
-  // TODO move with the ships on screen even when not in fit mode (possibly all ships if that's hard)
-  // TODO consider only fitting to ships that still have guns (possibly when there are more than 2 ships with guns, and then to all non-disabled ships)
-  // Carry the camera along with the mean velocity of what it is framing. With
-  // one ship this holds it perfectly still on screen; with several it removes
-  // the part of their motion they share and leaves only the spread.
-  if (dt > 0 && snapshot.shipCount > 0) {
-    let vx = 0;
-    let vy = 0;
-    let disabledCount = 0;
-    for (let i = 0; i < snapshot.shipCount; i++) {
-      if (snapshot.ships[i]!.isDisabled) {
-        disabledCount++;
-      } else {
-        vx += snapshot.ships[i]!.vx;
-        vy += snapshot.ships[i]!.vy;
-      }
-    }
-    camera.x += (vx / (snapshot.shipCount - disabledCount)) * dt;
-    camera.y += (vy / (snapshot.shipCount - disabledCount)) * dt;
-  }
-
   const margin = 1.25;
   const spanX = max(snapshot.maxX - snapshot.minX, 1) * margin;
   const spanY = max(snapshot.maxY - snapshot.minY, 1) * margin;
@@ -106,6 +84,27 @@ export function frame(
     wantScale < camera.scale ? wantScale : camera.scale * (wantScale / camera.scale) ** ease;
 
   contain(camera, snapshot, widthPx, heightPx);
+}
+
+/**
+ * Moves the camera a distance that keeps it at the same average velocity as all ships in the scene.
+ */
+export function moveWithAllShips(camera: Camera, snapshot: Snapshot, dt: number) {
+  if (dt > 0 && snapshot.shipCount > 0) {
+    let vx = 0;
+    let vy = 0;
+    let disabledCount = 0;
+    for (let i = 0; i < snapshot.shipCount; i++) {
+      if (snapshot.ships[i]!.isDisabled) {
+        disabledCount++;
+      } else {
+        vx += snapshot.ships[i]!.vx;
+        vy += snapshot.ships[i]!.vy;
+      }
+    }
+    camera.x += (vx / (snapshot.shipCount - disabledCount)) * dt;
+    camera.y += (vy / (snapshot.shipCount - disabledCount)) * dt;
+  }
 }
 
 /**
