@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Status: the Unity project is archived
 
 **Active development is in `SCS2D/`, a TypeScript rewrite. Start at [SCS2D/DESIGN.md](SCS2D/DESIGN.md) and
@@ -31,17 +29,21 @@ revert.
 
 Ask before pushing directly, unless the author has already said to for that particular change.
 
-The rest of this file documents that archived project.
+Don't make comments too verbose, make sure they're short enough that people will actually read them, 
+or leave them out entirely if the name is sufficient, or the code easy to read.
 
-Don't make comments too verbose, make sure they're short enough that people will actually read them.
+## Archived Unity Project
 
-## What it is
+The rest of this file documents that archived project, but only for parts that may be useful for reference in the new project.
+This whole project will be removed from teh repository once we've implemented target prioritisation, and evolution mechanics (and possibly persistence).
+
+### What it is
 
 A Unity 3D simulation of space combat with Newtonian-ish physics ("space ships are not aeroplanes"), plus a
 genetic-algorithm harness that evolves ship designs. A ship is not authored by hand: it is *grown* from a genome
 string, fought in a match, scored, and its genome mutated for the next generation. Results persist in SQLite.
 
-## Repository layout
+### Repository layout
 
 The Unity project is **not** at the repo root — it lives in the `SpaceCombatSimulation/` subfolder.
 
@@ -63,38 +65,9 @@ files, so everything compiles into `Assembly-CSharp` / `Assembly-CSharp-Editor`.
 `6000.3.9f1` (`C:\Program Files\Unity\Hub\Editor\<version>\Editor\Unity.exe`). Opening with an installed editor
 will trigger a project upgrade.
 
-## Commands
+### Architecture
 
-Run the EditMode test suite headlessly:
-
-```bash
-"C:\Program Files\Unity\Hub\Editor\6000.3.9f1\Editor\Unity.exe" -runTests -batchmode -projectPath C:\Projects\SpaceCombatSimulation\SpaceCombatSimulation -testPlatform EditMode -testResults C:\Projects\SpaceCombatSimulation\SpaceCombatSimulation\tmp\results.xml
-```
-
-Run a single test or fixture by adding a filter:
-
-```bash
-"C:\Program Files\Unity\Hub\Editor\6000.3.9f1\Editor\Unity.exe" -runTests -batchmode -projectPath C:\Projects\SpaceCombatSimulation\SpaceCombatSimulation -testPlatform EditMode -testFilter "GenerationTests.GetCompetitors_SelectsThoseWithNoMatchesFirst" -testResults C:\Projects\SpaceCombatSimulation\SpaceCombatSimulation\tmp\results.xml
-```
-
-Only one Unity process may hold the project at a time; close the editor first or pass a different `-projectPath`
-copy. Interactively, tests run from **Window > General > Test Runner**.
-
-Run a committed build without a GUI (per the README):
-
-```bash
-Builds/0.0.5/SpaceCombatSimulation.exe -batchmode -nographics
-```
-
-In-game keys: `Z` cycles the ship-cam's followed object, `R` cycles reticle state, `O` cycles camera mode,
-`Esc` returns to the main menu.
-
-Useful SQL for inspecting a run is kept in `DebuggingScripts.sql`; e.g. filter individuals with
-`runConfigId = 2 ORDER BY generation DESC, score DESC LIMIT 200;`.
-
-## Architecture
-
-### Genome → ship
+#### Genome → ship
 
 `GenomeWrapper` ([GenomeWrapper.cs](SpaceCombatSimulation/Assets/Src/Evolution/GenomeWrapper.cs)) is a cursor over
 the genome string. It hands out fixed-width "genes" (`GetGene`, `GetGeneAsInt`, `GetScaledNumber`) and wraps around
@@ -121,7 +94,7 @@ The tree of instantiated modules is recorded as nested `ModuleRecord`s, and thei
 `Species` / `Subspecies` / `Name` on `GenomeWrapper` are all renderings of that tree. Species strings are used as
 grouping keys in the DB and graphs, so changing `ModuleRecord.ToString*` changes data compatibility.
 
-### Evolution loop
+#### Evolution loop
 
 `EvolutionController` ([EvolutionController.cs](SpaceCombatSimulation/Assets/Src/Evolution/EvolutionController.cs))
 drives everything and handles all three run flavours (battle-royale, drone, race) in one class, with `#region`
@@ -140,7 +113,7 @@ blocks per flavour and a config object per flavour hanging off `EvolutionConfig`
 The `Edit*ConfigController` classes in `Assets/Src/Evolution/` back the `EditEvolution` scene, which is the UI for
 the same DB rows.
 
-### Targeting
+#### Targeting
 
 Targeting is deliberately data-driven so it can be tuned by the genome:
 
@@ -157,19 +130,7 @@ Targeting is deliberately data-driven so it can be tuned by the genome:
   `GeneticallyConfigurableTargetPicker` have their `Threshold`/`FlatBoost`/`Multiplier` read out of the genome, so
   each evolved ship has its own target preferences.
 
-### Ship control
-
-`SpaceShipControler` / `RocketController` are thin MonoBehaviours; the logic lives in `BasePilot` subclasses
-(`SpaceshipPilot`, `RocketPilot`, `ManualSpaceshipPilot`) which decide an orientation and acceleration, then push
-that onto `EngineControler`s and a `TorquerManager`. Turrets follow the same split: `TurretRunner` +
-`ITurretTurner` implementations (`UnityTurretTurner` for hinge-joint turrets, `EyeballTurretTurner` for free-aiming
-ones). Ships are physical assemblies of jointed rigidbodies — `JointBreakHandler` and `HealthControler` handle
-modules being severed, and severed parts remain in the world.
-
-Camera work uses `ShipCam` plus a set of `ICameraOrientator`s; `WeightedCameraOrientator`/`PriorityCameraOrientator`
-blend or select among them.
-
-### Persistence
+#### Persistence
 
 SQLite via the committed `Assets/Plugins/Mono.Data.Sqlite.dll` + `sqlite3.dll` (the `packages.config` entries for
 `Microsoft.Data.Sqlite` are vestigial). `EvolutionDatabaseHandler` writes raw SQL — no ORM.
@@ -185,14 +146,3 @@ Path conventions matter and are easy to get wrong:
 
 Any new persisted config field needs to be added in four places: the config class, `CreateBlankDatabase.sql`,
 `CreateTestDB.sql`, and the read/write SQL in `EvolutionDatabaseHandler`.
-
-## Conventions and gotchas
-
-- Namespaces are mostly `Assets.Src.<Folder>`, but not uniformly: `ShipBuilder` is in `Assets.src.Evolution`
-  (lowercase `src`), and several MonoBehaviours (`TargetChoosingMechanism`, `MainMenuController`,
-  `EvolutionBRDatabaseHandler*Tests`) sit in the global namespace. Match the file you're editing.
-- Dependency wiring is via public fields assigned in prefabs/scenes, with `GetComponent`/`GetComponentInParent`
-  fallbacks in `Start()`. Renaming or retyping a public field silently breaks serialized scene references.
-- Every asset has a `.meta` sibling; add, move and delete them together with their asset.
-- Many components carry a `public bool Log` for targeted `Debug.Log` tracing instead of a logging framework.
-- Physics logic belongs in `FixedUpdate`; input and UI in `Update`/`OnGUI`.
