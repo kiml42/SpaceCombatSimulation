@@ -8,7 +8,7 @@ import type { Battle } from '../scenarios/types.js';
 import { soloOrdering } from '../scenarios/ordering.js';
 import { swarm } from '../scenarios/swarm.js';
 import { draw } from '../render/canvas2d.js';
-import { frame, gridStep, type Camera } from '../render/camera.js';
+import { frame, gridStep, moveWithAllShips, type Camera } from '../render/camera.js';
 
 /**
  * The browser host: owns the clock, the canvas and the controls, and nothing else.
@@ -199,14 +199,17 @@ export function start(): void {
     const simDt = view.time > lastSimTime ? view.time - lastSimTime : 0;
     lastSimTime = view.time;
 
+    moveWithAllShips(camera, snapshot, simDt);
     if (autoFrame) {
       if (!framed) {
         // Snap to the opening positions rather than easing in from nowhere.
-        frame(camera, view, canvas.width, canvas.height, 0, 1);
+        frame(camera, view, canvas.width, canvas.height, 1);
         framed = true;
       }
-      frame(camera, view, canvas.width, canvas.height, simDt);
+      frame(camera, view, canvas.width, canvas.height);
     }
+
+
     // Impacts belong to the battle, so they fade on *its* clock: a paused
     // battle holds its flashes, a single step advances them by one step, and
     // eight times speed burns them off eight times as fast.
