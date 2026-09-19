@@ -31,28 +31,30 @@ export interface Joint {
   /** Length of the faces in contact, metres. A corner joins nothing. */
   readonly width: number;
   /**
-   * Energy the weld takes before it gives way, joules — comparable with what
-   * `Damage` puts into a module, because that is what breaks it.
+   * Impulse the weld can pass before it tears, newton-seconds, with the
+   * modules it joins undamaged.
+   *
+   * An impulse and not an energy, because **what parts a hull is a blow, not
+   * a wound**. Damage decides how much of this is left (`Ships.sever`); the
+   * shock of a collision decides whether what is left is enough.
    */
   readonly strength: number;
 }
 
 /**
- * What a square metre of weld cross-section is worth, joules.
+ * What a square metre of weld cross-section can carry, newton-seconds.
  *
  * A joint's section is the length of the faces in contact by the thinner of
  * the two walls meeting there, so a wing hung off a narrow neck comes away
  * long before the same wing welded along its whole root — which is the design
  * decision the graph exists to make possible.
  *
- * Set so that **a weld outlasts the lightest plate it joins**: on the shipped
- * hulls the weakest joint is worth about half again what the weakest module
- * can absorb, so something comes off when the metal around it has been wrecked
- * rather than merely dented. Lower and ships shed parts every few hits, which
- * ends fights before their guns do; higher and nothing ever comes apart. A
- * dial, and in §12 with the others.
+ * Set so that an undamaged hull shrugs off the bumps of a crowded battle and
+ * a real ram takes something off it, while a hull whose metal has been shot to
+ * pieces sheds parts on contacts it would once have ignored. A dial, and in
+ * §12 with the others.
  */
-export const JOINT_ENERGY_PER_AREA = 2.4e8;
+export const JOINT_IMPULSE_PER_AREA = 2.0e5;
 
 /**
  * Every joint in a design, in a fixed order: ascending by the lower module,
@@ -84,7 +86,7 @@ export function joints(design: ShipDesign): readonly Joint[] {
         design.modules[i]!.stats.wallThickness,
         design.modules[j]!.stats.wallThickness,
       );
-      found.push({ a: i, b: j, width, strength: width * thickness * JOINT_ENERGY_PER_AREA });
+      found.push({ a: i, b: j, width, strength: width * thickness * JOINT_IMPULSE_PER_AREA });
     }
   }
   cache.set(design, found);
@@ -134,4 +136,26 @@ export function components(design: ShipDesign, broken: (joint: Joint) => boolean
     pieces.push(found);
   }
   return pieces;
+}
+
+/**
+ * The piece that would come away if one joint let go, or null if nothing
+ * would: the modules on the far side of it from `from`.
+ *
+ * What a joint has to hold is whatever hangs off it, so this is how much of
+ * the ship a blow has to drag along through that one weld. A joint in a ring
+ * has no far side — cutting it leaves the hull in one piece — and so carries
+ * no load of its own, which is exactly what a second load path is worth.
+ */
+export function acrossJoint(
+  design: ShipDesign,
+  joint: Joint,
+  from: number,
+): readonly number[] | null {
+  const parts = components(design, (other) => other === joint);
+  if (parts.length < 2) return null;
+  for (const part of parts) {
+    if (!part.includes(from)) return part;
+  }
+  return null;
 }

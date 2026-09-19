@@ -60,6 +60,12 @@ export class Contacts {
   moduleB = new Int32Array(64);
   /** Closing speed along the normal when they met, m/s. Zero if separating. */
   closing = new Float64Array(64);
+  /**
+   * Impulse the solver put through the contact, newton-seconds, along the
+   * normal — what `a` took one way and `b` the other. Zero for a pair already
+   * coming apart, and what decides whether a hull holds together (§4).
+   */
+  impulse = new Float64Array(64);
   count = 0;
 
   clear(): void {
@@ -89,6 +95,7 @@ export class Contacts {
     this.moduleA[i] = moduleA;
     this.moduleB[i] = moduleB;
     this.closing[i] = 0;
+    this.impulse[i] = 0;
   }
 
   private grow(): void {
@@ -103,6 +110,7 @@ export class Contacts {
     const moduleA = new Int32Array(size);
     const moduleB = new Int32Array(size);
     const closing = new Float64Array(size);
+    const impulse = new Float64Array(size);
     a.set(this.a);
     b.set(this.b);
     x.set(this.x);
@@ -113,6 +121,8 @@ export class Contacts {
     moduleA.set(this.moduleA);
     moduleB.set(this.moduleB);
     closing.set(this.closing);
+    impulse.set(this.impulse);
+    this.impulse = impulse;
     this.a = a;
     this.b = b;
     this.x = x;
@@ -405,6 +415,7 @@ export function resolveContacts(bodies: Bodies, contacts: Contacts): void {
     if (!(invMassSum > 0)) continue;
 
     const impulse = (-(1 + RESTITUTION) * vn) / invMassSum;
+    contacts.impulse[k] = impulse;
     const jx = impulse * nx;
     const jy = impulse * ny;
 
