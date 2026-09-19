@@ -918,6 +918,11 @@ function modulesAttached(a: ModuleSpec, b: ModuleSpec): boolean {
  * entirely, the way `compileDraft` leaves them out of a ship: a module typed
  * down to zero size touches nothing, and reporting it as adrift as well as
  * unmeasurable is two complaints about one mistake.
+ *
+ * Attachment here is the same `contactWidth` the connectivity graph is built
+ * from, so a layout this accepts is one that holds together once it is being
+ * shot at — a ship blessed by a rule the welds disagreed with would come
+ * apart at the first scratch.
  */
 function detachedGroups(modules: readonly ModuleSpec[]): number[][] {
   const live: number[] = [];

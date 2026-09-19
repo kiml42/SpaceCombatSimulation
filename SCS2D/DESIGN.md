@@ -84,8 +84,12 @@ inside any one file is not contiguous.
   stops working and goes on stopping shells, so a battered ship is sluggish and
   quiet rather than lighter, and a ship that can neither move nor shoot drifts
   as a hulk. Hits flash on the canvas and wrecked modules are drawn as wreckage.
-- **Next:** severing — the connectivity graph that lets a hull come apart, which
-  is the rest of §8 step 2. Slice 1 has two
+  **Hulls come apart.** A ship is held together by welds derived from where its modules touch, a weld
+  parts when the metal at either end has taken more than the weld is worth, and what comes off is a body
+  of its own with its share of the momentum, the spin and the scars — a piece of ship with nobody aboard,
+  which collides and takes damage like any other hull.
+- **Next:** §8 step 3, doctrine and orders: the per-craft configuration that orders should be
+  defaulted from, and something that issues them while a battle runs. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
   others stay linked, and the word the editor owes the player when an action reorders
   a layout. Restructuring a group — dissolving one, or nesting one inside another —
@@ -251,10 +255,14 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
 
 **One planar rigid body per ship. Modules are data, not physics bodies.**
 
-- **Connectivity graph** per hull. When damage disconnects a subgraph, spawn a new body for the
-  detached chunk inheriting `v + ω × r`, and recompute mass properties on both sides. This gives
-  ships breaking in half, losing engines and tumbling, and wrecks to salvage — the good part of the
-  old jointed-assembly model — without a constraint solver.
+- **Connectivity graph** per hull, and it is built (`sim/connectivity.ts`). Two modules are welded
+  where their faces touch, the weld is worth its section — the contact by the thinner wall meeting
+  there — and it parts when either module it joins has absorbed more than that. When damage
+  disconnects a subgraph the detached chunk becomes a body of its own inheriting `v + ω × r`, with
+  mass properties recomputed on both sides, so momentum and angular momentum come out where they went
+  in. This gives ships breaking in half, losing engines and tumbling, and wrecks to salvage — the good
+  part of the old jointed-assembly model — without a constraint solver. Which piece keeps being *the
+  ship* is the stand-in answer the layout rule uses, and is §12's to settle.
 - **Destruction is a state change, not a removal. Matter is conserved.** A "destroyed" module becomes
   *non-functional* — an engine gives no thrust, a magazine holds no rounds, a turret does not fire — but it
   keeps its mass, its place in the layout, and its ability to stop a shell. Mass leaves a ship only by being
