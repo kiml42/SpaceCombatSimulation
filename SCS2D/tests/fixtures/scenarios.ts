@@ -16,6 +16,7 @@ import { beamVGun } from '../../scenarios/beamVGun.js';
 import type { Battle } from '../../scenarios/types.js';
 import { beamDuel } from '../../scenarios/beamDuel.js';
 import { soloOrdering } from '../../scenarios/ordering.js';
+import { ram } from '../../scenarios/ram.js';
 import { swarm } from '../../scenarios/swarm.js';
 import { fractal } from '../../scenarios/fractal.js';
 
@@ -294,7 +295,8 @@ function describeBattle(run: Battle): string {
   return (
     `ships=${run.ships.count} inFlight=${run.projectiles.count} ` +
     `p.fired=${run.totalProjectilesFired} p.hits=${run.totalProjectileHits} ` +
-    `b.fired=${run.totalBeamsFired} b.hits=${run.totalBeamHits}`
+    `b.fired=${run.totalBeamsFired} b.hits=${run.totalBeamHits} ` +
+    `contacts=${run.totalContacts}`
   );
 }
 
@@ -363,6 +365,19 @@ export function fractalScenario(seed = 20260905): ScenarioRun {
   };
 }
 
+export function ramScenario(seed = 20260905): ScenarioRun {
+  const run = ram(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function orderingScenario(seed = 20260905): ScenarioRun {
   const run = soloOrdering(0, seed);
   return {
@@ -403,6 +418,7 @@ export const SCENARIOS = {
   superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
   fractal: { steps: 3_000, build: () => fractalScenario() },
   ordering: { steps: 3_000, build: () => orderingScenario() },
+  ram: { steps: 3_000, build: () => ramScenario() },
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;

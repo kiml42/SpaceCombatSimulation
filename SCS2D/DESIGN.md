@@ -74,6 +74,9 @@ inside any one file is not contiguous.
   deciding perforate, embed or deflect from a round, a plate and the angle
   between them, and returning the residual speed and the energy the plate took.
   `sim/math.ts` grew the deterministic `exp`, `log` and `pow` the law needs.
+  **Hulls are solid**: ships meet each other module box against module box, and the impulse that comes
+  out of it shoves them apart and sets them tumbling. What a ram *costs* is not modelled yet — a
+  collision trades momentum and does no damage.
   **The damage model spends what it returns**: a round walks the modules along
   its path, each taking the energy its armour stopped, until it embeds, skids
   off or comes out the far side; a beam pours its power into what it is burning
@@ -340,6 +343,15 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
     so it still stops a shell. This falls out for free from the rule below.
 - **Collision:** impulse-based, single pass. Stacking and resting contact are artefacts of a
   persistent force pressing bodies together; in space there isn't one, so the hard case never arises.
+  Built in `sim/collision.ts`, and geometry is the same two-stage question shots ask: bounding circles
+  say which pairs *could* have met, module boxes say whether they did. Three approximations, all of
+  them affordable because a collision here is a rare violent event rather than a pile of resting
+  bodies: **one contact per pair of hulls**, the deepest module against the deepest module, where a
+  manifold of two points would be needed to hold two hulls flat together; the contact acts through the
+  **middle of the overlapping face** rather than a corner, so two ships meeting squarely shove rather
+  than spin; and the overlap left after the impulse is corrected out over a few steps rather than
+  resolved at once. A body with no hull does not collide at all — everything in a battle is a ship or
+  the wreck of one, and a bare mass with a radius is not a shape.
 - **The spatial index is for queries, not collision pairing.** At a few hundred bodies, testing every body
   against every other is cheaper than building an index to avoid it. What is expensive is thousands of
   projectiles, turret line-of-sight checks and blast radii each interrogating a small region every step —
