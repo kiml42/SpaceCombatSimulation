@@ -1,4 +1,4 @@
-import type { World, WellSpec, Ships, Projectiles, Beams, SpatialGrid, ProjectileHits, BeamHits, Impacts } from '../sim/index.js';
+import type { World, WellSpec, Ships, Projectiles, Beams, SpatialGrid, ProjectileHits, BeamHits, Impacts, Collisions } from '../sim/index.js';
 
 /**
  * The shapes every scenario in this directory implements. No scenario of its
@@ -34,10 +34,14 @@ export interface Battle {
   readonly beamHits: BeamHits;
   /** What the hits did, and the log of them a renderer draws flashes from. */
   readonly impacts: Impacts;
+  /** Hulls meeting each other, and the contacts from the last step. */
+  readonly collisions: Collisions;
   /** Cumulative, so a duel that stops shooting or stops hitting is detectable. */
   totalProjectilesFired: number;
   totalProjectileHits: number;
   totalBeamsFired: number;
   totalBeamHits: number;
+  /** Cumulative contacts, so a scenario that stops colliding is detectable. */
+  totalContacts: number;
   step(): void;
 }

@@ -1,4 +1,5 @@
 import {
+  Collisions,
   Impacts,
   compileBlueprint,
   gravityWell,
@@ -66,6 +67,7 @@ export function beamVGun(seed = 20260905): Battle {
   const hits = new ProjectileHits();
   const beamHits = new BeamHits();
   const impacts = new Impacts();
+  const collisions = new Collisions();
 
   const run: Battle = {
     dt,
@@ -78,14 +80,20 @@ export function beamVGun(seed = 20260905): Battle {
     hits,
     beamHits,
     impacts,
+    collisions,
     totalProjectilesFired: 0,
     totalProjectileHits: 0,
     totalBeamsFired: 0,
     totalBeamHits: 0,
+    totalContacts: 0,
 
     step(): void {
       ships.command(dt, world);
       world.step();
+      // Hulls are solid: what the world's step drove into each other is pushed
+      // back apart before anything asks where anything is.
+      collisions.step(world.bodies, ships);
+      run.totalContacts += collisions.contacts.count;
       grid.rebuild(world.bodies);
       beams.clear();
       beamHits.clear();

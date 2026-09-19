@@ -68,9 +68,12 @@ Then, in order:
    this is the first point at which a real answer is possible. **Built**: `sim/hull.ts` resolves a shot to
    the modules it crosses, `sim/ballistics.ts` decides penetrate/embed/deflect against each plate, and
    `sim/damage.ts` spends the result — every module the round crosses takes what its armour stopped, and
-   what a module does about that is a list of responses it carries. What is left of this step is
-   **severing**: a hull that comes apart needs the connectivity graph described in §12, and until it
-   exists a wrecked ship is a whole drifting hulk rather than pieces.
+   what a module does about that is a list of responses it carries. **Hulls are also solid now**
+   (`sim/collision.ts`), which was a Slice 0 debt with no step of its own: ships meet module box
+   against module box and come apart tumbling. What is left of this step is **severing**: a hull that
+   comes apart needs the connectivity graph described in §12, and until it exists a wrecked ship is a
+   whole drifting hulk rather than pieces. Severing waits on nothing else now — solid hulls went first
+   deliberately, so that a severed chunk is a thing that collides rather than a ghost.
 3. **Doctrine and orders** — make configuration visibly change behaviour. Part-built: a ship holds a queue
    of orders and each carries the condition that finishes it (disarmed, stranded, either, both, or gone),
    so a plan survives its targets being put out of the fight. What is missing is the *doctrine* half — the
@@ -632,8 +635,23 @@ Deliberately unresolved; decide when they block something.
 - **Whether a downed craft's wreck falls onto the deck it was attacking.** Physically it should, and debris
   raining on a capital is evocative; it may also be an irritation. Cheap either way, so leave it until
   there is something to watch.
+- **What a ram costs, beyond momentum.** A collision shoves and spins; it does no damage. The pieces to
+  spend are already there — a contact names the two modules that met and the speed they met at, and the
+  damage model takes energy into a module — so this is a decision about *how much*, not about
+  mechanism. It is what makes §3's strike craft literal: "a torpedo is a fighter that crashes into
+  things" is a ram that hurts, and a kinetic-kill vehicle needs no warhead only if a ram is lethal.
+- **Weld on slow contact, which is what makes a dock a dock.** §4 has the rule and §3 leans on it — a
+  craft closing slowly has landed, one closing fast has rammed, same threshold — but nothing welds yet:
+  a slow contact is simply a gentle bounce. The threshold is one of the concrete values below.
+- **Whether collision pairing wants an index after all.** §4 says to test every body against every
+  other, and at the scale the game is designed for that holds: the 21-ship swarm pays about 3% for
+  solid hulls. The 301-ship stress fixture pays **82%** (2.8 s to 5.1 s over 3,000 steps), and almost
+  all of it is the 45,000 pair tests per step rather than the geometry behind them. A sweep over one
+  axis would cut that to a few thousand without building anything persistent. Not worth doing until
+  the game is played at a scale where it shows, which by §3's own scale rationale it should not be.
 - Whether fighter-vs-fighter collision matters at swarm density, or whether only capitals and
-  turrets are solid.
+  turrets are solid. Now measurable rather than speculative: the 301-ship fixture logs 6,642 contacts
+  over 3,000 steps, most of them swarm craft brushing each other.
 - Ammunition model granularity — per-mount magazines, shared bunkerage, or both.
 - Whether the mothership's build priorities are a doctrine blob (so async PvP competes on them) or
   a player-driven queue.

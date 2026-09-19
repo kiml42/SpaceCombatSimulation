@@ -29,10 +29,11 @@ const GOLDEN: Record<ScenarioName, string> = {
   duel: '1fa25aa1',
   beamDuel: 'c1945699',
   beamVGun: 'a55cb177',
-  swarm: '0bbfe887',
-  superSwarm: 'ab86c3b6',
+  swarm: 'f4959904',
+  superSwarm: '9ce1d4df',
   fractal: 'ac34046d',
   ordering: '3269ddac',
+  ram: 'f57f6281',
 };
 
 describe('golden scenarios', () => {

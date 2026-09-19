@@ -59,6 +59,13 @@ export {
 } from './modules.js';
 export { HullPath, Hulls, modulesAlong, type HullDesigns } from './hull.js';
 export {
+  Collisions,
+  Contacts,
+  RESTITUTION,
+  findContacts,
+  resolveContacts,
+} from './collision.js';
+export {
   assemblyProblem,
   blueprintFaults,
   blueprintProblem,

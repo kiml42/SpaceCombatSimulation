@@ -6,6 +6,7 @@ import { beamVGun } from '../scenarios/beamVGun.js';
 import { fractal } from '../scenarios/fractal.js';
 import type { Battle } from '../scenarios/types.js';
 import { swarm } from '../scenarios/swarm.js';
+import { ram } from '../scenarios/ram.js';
 import { draw } from '../render/canvas2d.js';
 import { frame, gridStep, moveWithVisibleShips, type Camera } from '../render/camera.js';
 
@@ -50,6 +51,7 @@ export function start(): void {
     { name: 'Swarm', create: () => swarm(SEED) },
     { name: 'Fractal', create: () => fractal(SEED) },
     { name: 'Super Swarm', create: () => swarm(SEED, 300) },
+    { name: 'Ram', create: () => ram(SEED) },
   ];
   let sceneIndex = 0;
   const nextSceneIndex = (): number => (sceneIndex + 1) % scenes.length;
