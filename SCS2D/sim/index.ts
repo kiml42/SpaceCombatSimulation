@@ -59,7 +59,8 @@ export {
 } from './modules.js';
 export { HullPath, Hulls, modulesAlong, type HullDesigns } from './hull.js';
 export {
-  JOINT_ENERGY_PER_AREA,
+  JOINT_IMPULSE_PER_AREA,
+  acrossJoint,
   components,
   joints,
   type Joint,
