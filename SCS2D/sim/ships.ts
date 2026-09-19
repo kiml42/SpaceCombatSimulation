@@ -1,5 +1,6 @@
 import { Bodies, type BodyId } from './bodies.js';
-import type { ShipDesign } from './blueprint.js';
+import { subDesign, type ShipDesign } from './blueprint.js';
+import { components, type Joint } from './connectivity.js';
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
 import {
@@ -9,6 +10,7 @@ import {
   clamp,
   cos,
   length,
+  max,
   sin,
 } from './math.js';
 import { Projectiles } from './projectiles.js';
@@ -224,6 +226,25 @@ export class Ships {
   private readonly team: number[] = [];
 
   /**
+   * Which ships have nobody aboard: the pieces other ships have been broken
+   * into.
+   *
+   * A chunk is a ship in every way that matters to the rest of the sim — it
+   * has a hull, it collides, it takes damage and it can come apart further —
+   * and in exactly one way it is not: nothing flies it and nothing fires it.
+   * Making it a ship rather than a third kind of thing is what lets it be
+   * drawn, hit and severed by the code that already does those.
+   */
+  private readonly derelict: number[] = [];
+
+  /**
+   * The damage version each ship was last checked for breaking up at, so that
+   * a hull that has taken nothing since is not walked again. The graph is
+   * static (§4); what changes is which joints still hold.
+   */
+  private readonly severVersion: number[] = [];
+
+  /**
    * Each ship's orders, oldest first: `orders[ship][n]`.
    *
    * A queue rather than a stack, so a ship carries out what it was told in the
@@ -312,6 +333,7 @@ export class Ships {
   /** Returns true when the ship has no active weapons left */
   isDisarmed(i: number): boolean {
     if (this.alive[i] === 0) return true;
+    if (this.derelict[i] === 1) return true;
     const bodies = this.bodyStore;
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return true;
@@ -343,6 +365,7 @@ export class Ships {
   /** Returns true when this ship has no active engines */
   hasNoEngines(i: number): boolean {
     if (this.alive[i] === 0) return true;
+    if (this.derelict[i] === 1) return true;
     const bodies = this.bodyStore;
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return true;
@@ -362,7 +385,13 @@ export class Ships {
    * rather than a state the store holds.
    */
   isDisabled(i: number): boolean {
+    if (this.derelict[i] === 1) return true;
     return this.isDisarmed(i) && this.hasNoEngines(i);
+  }
+
+  /** Whether this is a piece of a ship rather than a ship: no pilot, no guns. */
+  isDerelict(i: number): boolean {
+    return this.derelict[i] === 1;
   }
 
   design(i: number): ShipDesign {
@@ -420,6 +449,8 @@ export class Ships {
     this.turretStates.push(new Uint8Array(mounts.length));
     this.nextBarrelToFire.push(new Int32Array(mounts.length));
     this.team.push(spec.team ?? 0);
+    this.derelict.push(0);
+    this.severVersion.push(-1);
     this.orders.push([]); // Initialise to an empty array of orders for this ship
     this.demandFx.push(0);
     this.demandFy.push(0);
@@ -481,6 +512,9 @@ export class Ships {
 
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
+      // Nobody aboard a severed chunk, so nothing holds its heading or kills
+      // its drift: it tumbles on with whatever the break gave it.
+      if (this.derelict[i] === 1) continue;
       this.removeInvalidOrders(i);
       this.flyOne(dt, bodies, i);
       this.trainOne(bodies, i);
@@ -520,6 +554,7 @@ export class Ships {
 
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
+      if (this.derelict[i] === 1) continue;
       const design = this.designs[i]!;
       const indices = this.turretIndex[i]!;
       const timers = this.cooldown[i]!;
@@ -860,6 +895,201 @@ export class Ships {
    * Remove a ship and its turrets. The body is the caller's to destroy, since
    * a dead ship's hull normally stays in the world as a wreck (§4).
    */
+  /**
+   * Break up every ship whose damage has parted it, and say how many pieces
+   * came off.
+   *
+   * A hull is held together by the welds `connectivity.ts` derives from its
+   * geometry, and a weld gives way when either module it joins has absorbed
+   * more than the weld is worth. When what is left is in more than one piece,
+   * the pieces that are not the ship become ships of their own with nobody
+   * aboard, carrying their share of the momentum and every scar their modules
+   * already had.
+   *
+   * **The piece holding the first module goes on being the ship** — its
+   * orders, its team, its body. That is the same stand-in `blueprintProblem`
+   * uses for "which module is the ship", made for the same reason: a layout
+   * has no core module to be the real answer, and the size of a piece says
+   * nothing about which of them the crew is on. ROADMAP.md §12 keeps both
+   * halves of the question open together.
+   *
+   * Cheap when nothing has happened: a hull whose damage has not changed
+   * since it was last looked at is not walked at all, which is what §4's
+   * "damage never changes topology" buys.
+   */
+  sever(world: World): number {
+    const bodies = world.bodies;
+    this.bodyStore = bodies;
+    let pieces = 0;
+
+    // The bound is re-read each time round, so a chunk that is itself in
+    // pieces comes apart on this same pass rather than a step later.
+    for (let i = 0; i < this.alive.length; i++) {
+      if (this.alive[i] === 0) continue;
+      const b = bodies.indexOf(this.bodyIds[i]!);
+      if (b < 0) continue;
+      const version = this.damage.version(b);
+      if (this.severVersion[i] === version) continue;
+      this.severVersion[i] = version;
+
+      const design = this.designs[i]!;
+      if (design.modules.length < 2) continue;
+      const parts = components(design, (joint) => this.jointBroken(b, joint));
+      if (parts.length < 2) continue;
+
+      for (let p = 1; p < parts.length; p++) {
+        this.detach(world, i, design, parts[p]!);
+        pieces++;
+      }
+      this.reshape(world, i, design, parts[0]!);
+    }
+
+    return pieces;
+  }
+
+  /**
+   * Whether a weld has let go: either module it joins has taken more than the
+   * weld is worth.
+   *
+   * Either, not both, and not the sum: a joint is loaded through the metal at
+   * each end of it, so wrecking one end is enough to part it whatever state
+   * the other is in.
+   */
+  private jointBroken(bodyIndex: number, joint: Joint): boolean {
+    const worst = max(
+      this.damage.absorbedAt(bodyIndex, joint.a),
+      this.damage.absorbedAt(bodyIndex, joint.b),
+    );
+    return worst > joint.strength;
+  }
+
+  /**
+   * Put a piece of a ship into the world as a body of its own.
+   *
+   * It leaves with the velocity the point it broke off at already had —
+   * `v + ω × r` — and the hull's spin, which is what a rigid split conserves:
+   * no impulse is invented, so the momentum and the angular momentum of the
+   * pieces together are the ones the whole hull had a moment earlier.
+   */
+  private detach(world: World, i: number, design: ShipDesign, keep: readonly number[]): void {
+    const bodies = world.bodies;
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    const chunk = subDesign(design, keep);
+    const offset = this.offsetOf(bodies, b, design, chunk);
+    const spin = bodies.angularVel[b]!;
+
+    const j = this.spawn(world, {
+      design: chunk,
+      x: bodies.x[b]! + offset.x,
+      y: bodies.y[b]! + offset.y,
+      angle: bodies.angle[b]!,
+      vx: bodies.vx[b]! - spin * offset.y,
+      vy: bodies.vy[b]! + spin * offset.x,
+      angularVel: spin,
+      team: this.team[i]!,
+    });
+    this.derelict[j] = 1;
+
+    const chunkBody = bodies.indexOf(this.bodyIds[j]!);
+    this.damage.register(chunkBody, chunk, this.scarsOf(b, keep));
+    // Looked at again on this same pass, in case the piece is itself in bits.
+    this.severVersion[j] = -1;
+  }
+
+  /**
+   * Cut a ship down to the piece its crew is on, in place.
+   *
+   * Everything derived from the layout is derived again, because the layout
+   * is what changed: mass and inertia, the centre of mass the body turns
+   * about, the thruster matrix, the mounts and their arcs. What is carried
+   * over is state that belongs to the ship rather than to its shape — its
+   * orders, its gun timers, where its surviving turrets were pointing, and
+   * what each remaining module had already taken.
+   */
+  private reshape(world: World, i: number, was: ShipDesign, keep: readonly number[]): void {
+    const bodies = world.bodies;
+    const id = this.bodyIds[i]!;
+    const b = bodies.indexOf(id);
+    const design = subDesign(was, keep);
+    const offset = this.offsetOf(bodies, b, was, design);
+    const spin = bodies.angularVel[b]!;
+
+    bodies.x[b] = bodies.x[b]! + offset.x;
+    bodies.y[b] = bodies.y[b]! + offset.y;
+    bodies.vx[b] = bodies.vx[b]! - spin * offset.y;
+    bodies.vy[b] = bodies.vy[b]! + spin * offset.x;
+    bodies.setMass(id, design.mass);
+    bodies.setInertia(id, design.inertia);
+    bodies.radius[b] = design.radius;
+
+    const scars = this.scarsOf(b, keep);
+
+    // Mounts are added before the old ones go, so that a freed slot cannot be
+    // handed straight back out and leave two turrets sharing an index.
+    const indices = new Int32Array(design.turrets.length);
+    const cooldown = new Float64Array(design.turrets.length);
+    const states = new Uint8Array(design.turrets.length);
+    const barrels = new Int32Array(design.turrets.length);
+    for (let t = 0; t < design.turrets.length; t++) {
+      const mount = design.turrets[t]!;
+      const index = this.turrets.add({ ...mount.mount, owner: b });
+      indices[t] = index;
+      // Which mount this was, by the module it sits on.
+      const module = keep[mount.module]!;
+      let before = -1;
+      for (let k = 0; k < was.turrets.length; k++) {
+        if (was.turrets[k]!.module === module) before = k;
+      }
+      if (before < 0) continue;
+      this.turrets.bearing[index] = this.turrets.bearing[this.turretIndex[i]![before]!]!;
+      cooldown[t] = this.cooldown[i]![before]!;
+      states[t] = this.turretStates[i]![before]!;
+      barrels[t] = this.nextBarrelToFire[i]![before]!;
+    }
+    const old = this.turretIndex[i]!;
+    for (let t = 0; t < old.length; t++) this.turrets.remove(old[t]!);
+
+    this.designs[i] = design;
+    this.hullDesign[b] = design;
+    this.turretIndex[i] = indices;
+    this.cooldown[i] = cooldown;
+    this.turretStates[i] = states;
+    this.nextBarrelToFire[i] = barrels;
+    this.throttles[i] = new Float64Array(design.thrusters.length);
+    this.layouts[i] = null;
+    this.layoutVersion[i] = -1;
+    this.damage.register(b, design, scars);
+    this.severVersion[i] = this.damage.version(b);
+  }
+
+  /** What each kept module has already absorbed, in the new design's order. */
+  private scarsOf(bodyIndex: number, keep: readonly number[]): number[] {
+    const scars: number[] = [];
+    for (let k = 0; k < keep.length; k++) scars.push(this.damage.absorbedAt(bodyIndex, keep[k]!));
+    return scars;
+  }
+
+  /**
+   * Where a piece's centre of mass sits relative to the whole hull's, world
+   * frame — the arm its share of the spin acts through.
+   */
+  private offsetOf(
+    bodies: Bodies,
+    b: number,
+    was: ShipDesign,
+    piece: ShipDesign,
+  ): { x: number; y: number } {
+    // Both centres are measured in the blueprint's frame, which is the body's
+    // frame shifted rather than turned, so the difference needs only the
+    // hull's angle to reach the world.
+    const dx = piece.centreOfMassX - was.centreOfMassX;
+    const dy = piece.centreOfMassY - was.centreOfMassY;
+    const angle = bodies.angle[b]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    return { x: dx * c - dy * s, y: dx * s + dy * c };
+  }
+
   remove(i: number): void {
     if (this.alive[i] === 0) return;
     const indices = this.turretIndex[i]!;
