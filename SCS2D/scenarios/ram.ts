@@ -85,6 +85,7 @@ export function ram(seed = 20260905): Battle {
     totalBeamsFired: 0,
     totalBeamHits: 0,
     totalContacts: 0,
+    totalSevered: 0,
 
     step(): void {
       world.step();
@@ -101,6 +102,7 @@ export function ram(seed = 20260905): Battle {
       run.totalBeamHits += beamHits.count;
       impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits);
       impacts.beams(ships.damage, beams, beamHits, dt, world.bodies);
+      run.totalSevered += ships.sever(world);
     },
   };
 

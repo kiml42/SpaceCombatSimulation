@@ -296,7 +296,7 @@ function describeBattle(run: Battle): string {
     `ships=${run.ships.count} inFlight=${run.projectiles.count} ` +
     `p.fired=${run.totalProjectilesFired} p.hits=${run.totalProjectileHits} ` +
     `b.fired=${run.totalBeamsFired} b.hits=${run.totalBeamHits} ` +
-    `contacts=${run.totalContacts}`
+    `contacts=${run.totalContacts} severed=${run.totalSevered}`
   );
 }
 

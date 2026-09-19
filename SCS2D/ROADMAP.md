@@ -70,10 +70,12 @@ Then, in order:
    `sim/damage.ts` spends the result — every module the round crosses takes what its armour stopped, and
    what a module does about that is a list of responses it carries. **Hulls are also solid now**
    (`sim/collision.ts`), which was a Slice 0 debt with no step of its own: ships meet module box
-   against module box and come apart tumbling. What is left of this step is **severing**: a hull that
-   comes apart needs the connectivity graph described in §12, and until it exists a wrecked ship is a
-   whole drifting hulk rather than pieces. Severing waits on nothing else now — solid hulls went first
-   deliberately, so that a severed chunk is a thing that collides rather than a ghost.
+   against module box and come apart tumbling. **Severing is built too** (`sim/connectivity.ts`): a
+   hull is held together by welds derived from its geometry, a weld parts when the metal at either end of
+   it has taken more than the weld is worth, and what comes off is a body of its own — solid hulls went
+   first deliberately, so a severed chunk is a thing that collides rather than a ghost. **This step is
+   done**; what it leaves open is in §12, and is about balance and about which piece the crew is on rather
+   than about mechanism.
 3. **Doctrine and orders** — make configuration visibly change behaviour. Part-built: a ship holds a queue
    of orders and each carries the condition that finishes it (disarmed, stranded, either, both, or gone),
    so a plan survives its targets being put out of the fight. What is missing is the *doctrine* half — the
@@ -542,45 +544,19 @@ Deliberately unresolved; decide when they block something.
   Earliest sensible point is §8 step 2, terminal ballistics and the damage model: hardness, density and
   thickness are what it decides penetration against, so that is where per-material properties stop being
   decoration and start deciding outcomes.
-- **Where a hull's connectivity graph comes from.** §4 requires one per hull — severing is how mass leaves a
-  ship, and it is the entire return on not having a joint solver — but nothing in a blueprint expresses it.
-  `ModuleSpec` is a position and a size, `DesignModule` adds the body-frame transform, and neither says which
-  modules hold which. `compileBlueprint` derives mass, inertia, thrust and firing arcs from the layout;
-  connectivity is the one structural property it does not derive.
-  Derive it rather than author it, for the reason firing arcs are derived: a layout should not be able to claim
-  an attachment its shape does not support. Two modules are joined when their boundaries touch — which is the
-  near-miss of the check `blueprintProblem` already has, since modules may not *overlap*. Contact is therefore
-  exact abutment, a knife-edge no floating-point layout lands on reliably: the corvette and gunship manage it
-  only because they are hand-drawn on round numbers, and nothing from the editor or from a mutation will. So
-  the rule needs a tolerance, and that tolerance is a game parameter — how close counts as welded — rather than
-  an implementation detail. One now exists: `ATTACHMENT_TOLERANCE` in `sim/blueprint.ts`, a centimetre, added
-  for the thruster-attachment rule. Connectivity should use that same constant rather than introducing a
-  second, and if a centimetre turns out to be the wrong answer it is the wrong answer for both.
-  What it has to be, beyond a set of edges:
-  - **A graph, not a tree.** A ring of structure has two load paths to every part of it, and surviving a cut is
-    exactly what makes that layout worth its mass. Parent pointers would make severing trivial and delete the
-    design decision.
-  - **Edges carry strength**, derived from the contact between the two modules. Without it the graph says which
-    joints exist but not which one gives way, and severing has nothing to choose with.
-  - **Components are recomputed only on a sever event**, never per step — which is what §4's "damage never
-    changes topology" is worth. A flood fill or union-find over a static array is enough, and it must be
-    order-deterministic like everything else in `sim/`.
-
-  A crude version of the *check* now exists ahead of the graph: a layout is rejected when some module cannot
-  be traced back to the first one in the list through modules touching within `ATTACHMENT_TOLERANCE`, and the
-  editor draws the stragglers in red. It answers "is this one ship or several" and nothing else — no edges are
-  kept, no strengths derived, and contact at a corner counts — so it does not pre-empt any of the above. What
-  it does pre-empt is the tolerance: change that constant and the layout rule and the graph move together,
-  which is the point of there being one.
-
-  Two loose ends this exposes. **Which module is the ship** is answered by a stand-in: the first in the list,
-  because a layout has no core module to be the real answer. It is arbitrary and deliberately so — the check
-  only asks whether a layout is one piece, and the size of a piece says nothing about which of them is the
-  ship — but it is the same question a *core module* would settle, and it will want revisiting when one turns
-  up. And when a hull does split, something must decide which component keeps being the ship — its
-  controller, its identity, its orders — which is the sibling of the existing question above about how severed
-  chunks divide fuel, ammunition and power.
-  Do it with the damage model (§8 step 2), the first thing that can sever anything.
+- **Which piece of a severed hull keeps being the ship.** The connectivity graph is built
+  (`sim/connectivity.ts`) and hulls come apart, but *who the crew is with* is answered by the same
+  stand-in the layout rule uses: the piece holding the first module. It is arbitrary and deliberately so —
+  the size of a piece says nothing about which of them the ship is — and it is the same question a **core
+  module** would settle, along with "which module is the ship" in the layout check. Decide both when a core
+  module turns up. Its sibling is unchanged and below: how severed chunks divide fuel, ammunition and
+  power.
+- **What a weld is worth: `JOINT_ENERGY_PER_AREA`.** A joint's section is the faces in contact by the
+  thinner wall meeting there, and it parts when either module it joins has absorbed more than that section
+  is worth. The constant is set so a weld outlasts the lightest plate it joins — lower and ships shed parts
+  every few hits, ending fights before their guns do; higher and nothing comes apart. A dial, with
+  `RESTITUTION`, `DE_MARRE_K` and `DAMAGE_ENERGY_PER_KG`, and the one that decides how the game *looks*
+  most directly of the four.
 - **How time travel in the viewer works — and it needs no stored state.** Determinism pays for this one
   outright: rewinding to any earlier step is *re-simulating* from the seed, not restoring a snapshot. At the
   measured cost of roughly 15 µs per step, winding a 3,000-step battle back to its start is about 50 ms, which
@@ -639,7 +615,9 @@ Deliberately unresolved; decide when they block something.
   spend are already there — a contact names the two modules that met and the speed they met at, and the
   damage model takes energy into a module — so this is a decision about *how much*, not about
   mechanism. It is what makes §3's strike craft literal: "a torpedo is a fighter that crashes into
-  things" is a ram that hurts, and a kinetic-kill vehicle needs no warhead only if a ram is lethal.
+  things" is a ram that hurts, and a kinetic-kill vehicle needs no warhead only if a ram is lethal. It is
+  also the whole of what stands between collisions and a ram that tears a wing off, since severing spends
+  the damage a hit leaves and a contact leaves none.
 - **Weld on slow contact, which is what makes a dock a dock.** §4 has the rule and §3 leans on it — a
   craft closing slowly has landed, one closing fast has rammed, same threshold — but nothing welds yet:
   a slow contact is simply a gentle bounce. The threshold is one of the concrete values below.

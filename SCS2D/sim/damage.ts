@@ -96,8 +96,15 @@ export class Damage {
   private readonly kinds: (ModuleSpec['kind'][] | null)[] = [];
   private readonly versions: number[] = [];
 
-  /** Give a body a damage record, sized from its design. */
-  register(bodyIndex: number, design: ShipDesign): void {
+  /**
+   * Give a body a damage record, sized from its design.
+   *
+   * `carried` is what each module has already taken, which is how a hull that
+   * has come apart keeps its scars: a severed chunk is a new body with a
+   * design of its own, and the modules on it are the same battered modules
+   * they were a moment earlier.
+   */
+  register(bodyIndex: number, design: ShipDesign, carried?: readonly number[]): void {
     const n = design.modules.length;
     const capacity = new Float64Array(n);
     const kinds: ModuleSpec['kind'][] = [];
@@ -106,7 +113,11 @@ export class Damage {
       capacity[i] = module.stats.hitPoints * DAMAGE_ENERGY_PER_KG;
       kinds.push(module.spec.kind);
     }
-    this.absorbed[bodyIndex] = new Float64Array(n);
+    const absorbed = new Float64Array(n);
+    if (carried !== undefined) {
+      for (let i = 0; i < n; i++) absorbed[i] = carried[i] ?? 0;
+    }
+    this.absorbed[bodyIndex] = absorbed;
     this.capacity[bodyIndex] = capacity;
     this.kinds[bodyIndex] = kinds;
     this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
@@ -130,6 +141,13 @@ export class Damage {
     const limit = capacity[module];
     if (limit === undefined || !(limit > 0)) return 1;
     return max(0, 1 - absorbed[module]! / limit);
+  }
+
+  /** Joules one module has taken, which is what a weld holding it is up against. */
+  absorbedAt(bodyIndex: number, module: number): number {
+    const absorbed = this.absorbed[bodyIndex];
+    if (!absorbed) return 0;
+    return absorbed[module] ?? 0;
   }
 
   /** Whether a module has taken everything it can. */

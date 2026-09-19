@@ -104,6 +104,7 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
     totalBeamsFired: 0,
     totalBeamHits: 0,
     totalContacts: 0,
+    totalSevered: 0,
 
     step(): void {
       ships.command(dt, world);
@@ -126,6 +127,7 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
       // burning through.
       impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits);
       impacts.beams(ships.damage, beams, beamHits, dt, world.bodies);
+      run.totalSevered += ships.sever(world);
     },
   };
 

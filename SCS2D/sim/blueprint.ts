@@ -47,12 +47,12 @@ const TOUCH_TOLERANCE = 1e-9;
  * Exact abutment is a knife edge: the authored layouts land on it only because
  * they are drawn on round numbers, and a file someone typed will not.
  *
- * This is ROADMAP.md §12's "how close counts as welded" appearing for the
- * first time, ahead of the connectivity graph that will also need it. It is a
- * game parameter rather than an implementation detail, and when connectivity
- * lands the two should be the same number rather than two that drift.
+ * This is ROADMAP.md §12's "how close counts as welded". It is a game
+ * parameter rather than an implementation detail, and the layout rule and the
+ * connectivity graph (`connectivity.ts`) both read this one constant rather
+ * than each keeping a number of their own to drift from the other.
  */
-const ATTACHMENT_TOLERANCE = 0.01;
+export const ATTACHMENT_TOLERANCE = 0.01;
 
 /**
  * A named group of modules placed as one thing, so that several copies of it
@@ -817,35 +817,90 @@ function structureAhead(spec: ModuleSpec, modules: readonly ModuleSpec[]): boole
 }
 
 /**
- * Whether two modules are bolted together: touching, or within the attachment
- * tolerance of touching.
+ * How wide the weld between two modules is: the length of the faces they have
+ * in contact, in metres, or zero when they are not joined at all.
  *
- * Answered by inflating one module by the tolerance on every side and asking
- * whether it now overlaps the other, which reuses the separating-axis test and
- * so stays correct at any mounting angle.
+ * By the separating-axis test, so it stays correct at any mounting angle. The
+ * axis of least overlap is the one the two face each other across, and the
+ * perpendicular one measures along the join. Modules within
+ * `ATTACHMENT_TOLERANCE` of touching count as touching, applied half to each
+ * so that the answer cannot depend on which of them was asked.
  *
- * Contact at a corner alone counts, which a joint that thin would not really
- * be. It is the crude answer deliberately: the graph with a strength per edge
- * that ROADMAP.md §12 describes is what decides how *well* two modules are
- * joined, and erring towards "attached" here means this warning nags about a
- * layout only when nothing is touching at all.
+ * **Contact at a corner is not a joint.** Two boxes meeting at a point share
+ * no face, so this measures nothing there, and the layout rule and the
+ * connectivity graph agree about it because both ask this one question. A
+ * corner weld would be a joint of no width, which is not a weak joint but an
+ * absent one.
+ *
+ * Measured about the middle of each box, which a thruster's position is not:
+ * growing a thruster about the point it is *mounted* by would add its whole
+ * skin astern and have an engine reaching towards its own exhaust.
+ */
+export function contactWidth(a: ModuleSpec, b: ModuleSpec): number {
+  const aa = a.angle ?? 0;
+  const ba = b.angle ?? 0;
+  const aux = cos(aa);
+  const auy = sin(aa);
+  const bux = cos(ba);
+  const buy = sin(ba);
+  const half = ATTACHMENT_TOLERANCE * 0.5;
+  const ahl = a.length * 0.5 + half;
+  const ahw = a.width * 0.5 + half;
+  const bhl = b.length * 0.5 + half;
+  const bhw = b.width * 0.5 + half;
+  const ac = moduleCentre(a);
+  const bc = moduleCentre(b);
+  const dx = bc.x - ac.x;
+  const dy = bc.y - ac.y;
+
+  const axes = [aux, auy, -auy, aux, bux, buy, -buy, bux];
+  let least = Infinity;
+  let nx = 0;
+  let ny = 0;
+  for (let k = 0; k < axes.length; k += 2) {
+    const px = axes[k]!;
+    const py = axes[k + 1]!;
+    const ea = boxExtent(ahl, ahw, aux, auy, px, py);
+    const eb = boxExtent(bhl, bhw, bux, buy, px, py);
+    const overlap = ea + eb - abs(dx * px + dy * py);
+    if (overlap <= 0) return 0;
+    if (overlap < least) {
+      least = overlap;
+      nx = px;
+      ny = py;
+    }
+  }
+
+  // Along the join rather than across it, and no wider than the narrower of
+  // the two: a small module welded to the middle of a big one is joined by
+  // all of itself and by only part of the other.
+  const px = -ny;
+  const py = nx;
+  const ea = boxExtent(a.length * 0.5, a.width * 0.5, aux, auy, px, py);
+  const eb = boxExtent(b.length * 0.5, b.width * 0.5, bux, buy, px, py);
+  return max(0, min(ea + eb - abs(dx * px + dy * py), min(ea, eb) * 2));
+}
+
+/** A box's extent along `(nx, ny)` from its own centre, metres. */
+function boxExtent(
+  hl: number,
+  hw: number,
+  ux: number,
+  uy: number,
+  nx: number,
+  ny: number,
+): number {
+  // The width axis is the length axis turned a quarter turn, so its dot with
+  // the probe is the cross product of the two.
+  return hl * abs(ux * nx + uy * ny) + hw * abs(-uy * nx + ux * ny);
+}
+
+/**
+ * Whether two modules are bolted together: their faces touching, or within
+ * the attachment tolerance of touching.
  */
 function modulesAttached(a: ModuleSpec, b: ModuleSpec): boolean {
-  // Grown about the middle of the box, which is why the probe is written as a
-  // plain one: growing a *thruster* would leave its mounting face where it is
-  // and add the whole of the extra length astern, so an engine would reach
-  // towards its own exhaust and not towards what it is bolted to — and whether
-  // two modules are attached would depend on which of them was asked.
-  const mid = moduleCentre(a);
-  const inflated: ModuleSpec = {
-    ...a,
-    kind: 'structure',
-    x: mid.x,
-    y: mid.y,
-    length: a.length + ATTACHMENT_TOLERANCE * 2,
-    width: a.width + ATTACHMENT_TOLERANCE * 2,
-  };
-  return modulesOverlap(inflated, b);
+  return contactWidth(a, b) > 0;
 }
 
 /**
@@ -863,6 +918,11 @@ function modulesAttached(a: ModuleSpec, b: ModuleSpec): boolean {
  * entirely, the way `compileDraft` leaves them out of a ship: a module typed
  * down to zero size touches nothing, and reporting it as adrift as well as
  * unmeasurable is two complaints about one mistake.
+ *
+ * Attachment here is the same `contactWidth` the connectivity graph is built
+ * from, so a layout this accepts is one that holds together once it is being
+ * shot at — a ship blessed by a rule the welds disagreed with would come
+ * apart at the first scratch.
  */
 function detachedGroups(modules: readonly ModuleSpec[]): number[][] {
   const live: number[] = [];
@@ -1062,8 +1122,57 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
   if (specs.length === 0) {
     throw new Error(`${blueprint.name}: no module has geometry that can be measured`);
   }
-  const stats = specs.map(moduleStats);
 
+  // Where each kept module sat in the expansion, since a draft compile may
+  // have dropped some of it.
+  const layoutIndex: number[] = [];
+  for (let i = 0; i < expanded.length; i++) {
+    if (moduleProblem(expanded[i]!) === null) layoutIndex.push(i);
+  }
+
+  return designFrom(blueprint.name, specs, specs.map(moduleStats), layoutIndex);
+}
+
+/**
+ * The design that part of a ship makes on its own, once the rest has come off.
+ *
+ * Everything is derived again from the modules that are left — mass, the
+ * centre of mass they turn about, inertia, bounding radius, which thrusters
+ * and guns went with them — because a chunk is a ship-shaped thing that
+ * happens to have no crew, and nothing downstream should have to ask whether
+ * the design it holds came from a blueprint or from a break.
+ *
+ * Firing arcs are worked out against the modules that remain, so a mount whose
+ * obstruction has been shot away really does gain the arc. Each module keeps
+ * the layout index it had in the ship it came off, so a path back to the
+ * blueprint that authored it survives the split.
+ */
+export function subDesign(design: ShipDesign, keep: readonly number[]): ShipDesign {
+  if (keep.length === 0) throw new Error(`${design.name}: a piece needs at least one module`);
+  const specs: ModuleSpec[] = [];
+  const stats: ModuleStats[] = [];
+  const layoutIndex: number[] = [];
+  for (let k = 0; k < keep.length; k++) {
+    const module = design.modules[keep[k]!]!;
+    specs.push(module.spec);
+    stats.push(module.stats);
+    layoutIndex.push(module.index);
+  }
+  return designFrom(design.name, specs, stats, layoutIndex);
+}
+
+/**
+ * Measure a design from modules that have already been chosen and measured.
+ *
+ * The half of compiling that both a blueprint and a severed chunk need, so
+ * that a piece of a ship is measured by exactly the rules the whole ship was.
+ */
+function designFrom(
+  name: string,
+  specs: readonly ModuleSpec[],
+  stats: readonly ModuleStats[],
+  layoutIndex: readonly number[],
+): ShipDesign {
   const centres = specs.map(moduleCentre);
   let mass = 0;
   let comX = 0;
@@ -1076,13 +1185,6 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
   }
   comX /= mass;
   comY /= mass;
-
-  // Where each kept module sat in the expansion, since a draft compile may
-  // have dropped some of it.
-  const layoutIndex: number[] = [];
-  for (let i = 0; i < expanded.length; i++) {
-    if (moduleProblem(expanded[i]!) === null) layoutIndex.push(i);
-  }
 
   const modules: DesignModule[] = [];
   const thrusters: ThrusterSpec[] = [];
@@ -1173,7 +1275,7 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
   }
 
   return {
-    name: blueprint.name,
+    name,
     modules,
     mass,
     inertia,
