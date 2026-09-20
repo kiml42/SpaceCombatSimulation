@@ -58,6 +58,14 @@
           "use": "structure3",
           "x": 5.5,
           "y": 6.2
+        },
+        {
+          "kind": "thruster",
+          "x": -1.75,
+          "y": 6.5,
+          "angle": 0,
+          "length": 1,
+          "width": 1
         }
       ]
     },
@@ -97,6 +105,14 @@
           "x": 0.55,
           "y": -0.3,
           "length": 0.1,
+          "width": 0.2
+        },
+        {
+          "kind": "thruster",
+          "x": -0.5,
+          "y": 0.15,
+          "angle": -135,
+          "length": 0.2,
           "width": 0.2
         }
       ]

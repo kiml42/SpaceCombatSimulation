@@ -1,0 +1,208 @@
+{
+  "formatVersion": 1,
+  "name": "Star Destroyer",
+  "assemblies": {
+    "structure": {
+      "modules": [
+        {
+          "kind": "structure",
+          "x": -10.5,
+          "y": 39,
+          "length": 1352.5,
+          "width": 60
+        },
+        {
+          "kind": "structure",
+          "x": -113,
+          "y": 99,
+          "length": 1100,
+          "width": 60
+        },
+        {
+          "kind": "structure",
+          "x": -202,
+          "y": 159,
+          "length": 922,
+          "width": 60
+        },
+        {
+          "kind": "thruster",
+          "x": -663,
+          "y": 160.5,
+          "angle": 0,
+          "length": 50,
+          "width": 100
+        },
+        {
+          "kind": "structure",
+          "x": -453.5,
+          "y": 219,
+          "length": 387,
+          "width": 60
+        },
+        {
+          "use": "turret",
+          "x": -180,
+          "y": 219
+        },
+        {
+          "use": "turret",
+          "x": -273,
+          "y": 279
+        },
+        {
+          "use": "turret",
+          "x": -354,
+          "y": 339
+        },
+        {
+          "use": "turret",
+          "x": -443,
+          "y": 399
+        },
+        {
+          "kind": "structure",
+          "x": -480.5,
+          "y": 279,
+          "length": 255,
+          "width": 60
+        },
+        {
+          "kind": "structure",
+          "x": -543,
+          "y": 399,
+          "length": 40,
+          "width": 60
+        },
+        {
+          "kind": "structure",
+          "x": -510.5,
+          "y": 339,
+          "length": 153,
+          "width": 60
+        },
+        {
+          "use": "beamTurret",
+          "x": 680.25,
+          "y": 21
+        },
+        {
+          "use": "beamTurret",
+          "x": 451.5,
+          "y": 81
+        },
+        {
+          "use": "beamTurret",
+          "x": 273.5,
+          "y": 141
+        },
+        {
+          "use": "beamTurret",
+          "x": -414.5,
+          "y": 441
+        },
+        {
+          "kind": "structure",
+          "x": -487,
+          "y": 459,
+          "length": 116,
+          "width": 60
+        },
+        {
+          "use": "beamTurret",
+          "x": -557,
+          "y": 443.5,
+          "angle": 90
+        },
+        {
+          "use": "beamTurret",
+          "x": -620,
+          "y": 263.5,
+          "angle": 90
+        },
+        {
+          "use": "thruster",
+          "x": 874.5,
+          "y": 9
+        },
+        {
+          "use": "thruster",
+          "x": -522,
+          "y": 489
+        },
+        {
+          "use": "thruster",
+          "x": -429,
+          "y": 474.5,
+          "angle": -90
+        }
+      ]
+    },
+    "turret": {
+      "modules": [
+        {
+          "kind": "turret",
+          "x": 0,
+          "y": 0,
+          "angle": 0,
+          "length": 160,
+          "width": 60,
+          "barrels": 4
+        }
+      ]
+    },
+    "beamTurret": {
+      "modules": [
+        {
+          "kind": "beamTurret",
+          "x": 0,
+          "y": 0,
+          "angle": 0,
+          "length": 29,
+          "width": 24,
+          "barrels": 1
+        }
+      ]
+    },
+    "thruster": {
+      "modules": [
+        {
+          "kind": "thruster",
+          "x": 0,
+          "y": 0,
+          "angle": -90,
+          "length": 10,
+          "width": 43
+        }
+      ]
+    }
+  },
+  "modules": [
+    {
+      "kind": "structure",
+      "x": 0,
+      "y": 0,
+      "length": 1600,
+      "width": 60
+    },
+    {
+      "use": "structure",
+      "x": -96.5,
+      "y": 21
+    },
+    {
+      "use": "structure",
+      "x": -96,
+      "y": -21,
+      "mirror": true
+    },
+    {
+      "kind": "thruster",
+      "x": -800,
+      "y": 0.5,
+      "angle": 0,
+      "length": 51,
+      "width": 100
+    }
+  ]
+}
