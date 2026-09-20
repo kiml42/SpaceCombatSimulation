@@ -6,6 +6,7 @@ import { beamVGun } from '../scenarios/beamVGun.js';
 import { fractal } from '../scenarios/fractal.js';
 import type { Battle } from '../scenarios/types.js';
 import { swarm } from '../scenarios/swarm.js';
+import { starWars } from '../scenarios/starWars.js';
 import { ram } from '../scenarios/ram.js';
 import { standoff } from '../scenarios/standoff.js';
 import { column } from '../scenarios/column.js';
@@ -49,6 +50,7 @@ export function start(): void {
   const scenes = [
     { name: 'Duel', create: () => duel(SEED) },
     { name: 'Beam Duel', create: () => beamDuel(SEED) },
+    { name: 'Star Wars', create: () => starWars(SEED, 10, 5) },
     { name: 'Beam Vs Gun', create: () => beamVGun(SEED) },
     { name: 'Swarm', create: () => swarm(SEED) },
     { name: 'Fractal', create: () => fractal(SEED) },

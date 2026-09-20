@@ -1,0 +1,159 @@
+import {
+  Collisions,
+  Impacts,
+  compileBlueprint,
+  math,
+  ProjectileHits,
+  Projectiles,
+  BeamHits,
+  Beams,
+  Ships,
+  SpatialGrid,
+  World,
+  type WellSpec,
+  type ShipDesign,
+} from '../sim/index.js';
+import { type Battle } from './types.js';
+import { TIE, X_WING, GHOST } from './blueprints.js';
+import { Rng } from '../sim/rng.js';
+import { OrderCancelCondition } from '../sim/ships.js';
+
+/**
+ * Many dinkies and one gunship closing on each other and opening fire.
+ */
+
+export function starWars(seed = 20260905, tieFighterCount = 20, xWingCount = 20): Battle {
+  const dt = 1 / 60;
+  const world = new World({ dt, seed });
+
+  const wells: WellSpec[] = [];
+
+  const ships = new Ships();
+  world.addForceProvider(ships.forceProvider());
+
+  const xWingBlueprint = compileBlueprint(X_WING);
+  const ghostBlueprint = compileBlueprint(GHOST);
+
+  const tieBlueprint = compileBlueprint(TIE);
+
+  const rng = new Rng(seed);
+  const randomRadius = 1000;
+
+
+  const ties = SpawnMany(tieFighterCount, rng, randomRadius, ships, world, tieBlueprint, 1000, 1000,0 );
+
+  const xWings = SpawnMany(xWingCount, rng, randomRadius, ships, world, xWingBlueprint, -1000, -1000, 1);
+  const ghosts = SpawnMany(1, rng, randomRadius, ships, world, ghostBlueprint, -1000, -1000, 1);
+
+  // Then, in the same order, go back and finish them off.
+  for (const tie of ties) {
+    for (const xWing of xWings) {
+      ships.pushOrder(tie, xWing, 50, 400, 80, OrderCancelCondition.Disarm);
+    }
+    for (const ghost of ghosts) {
+      ships.pushOrder(tie, ghost, 50, 400, 80, OrderCancelCondition.Disarm);
+    }
+    for (const ghost of ghosts) {
+      ships.pushOrder(tie, ghost, 50, 400, 80, OrderCancelCondition.CompleteDisable);
+    }
+    for (const xWing of xWings) {
+      ships.pushOrder(tie, xWing, 50, 400, 80, OrderCancelCondition.CompleteDisable);
+    }
+  }
+
+  for (const ghost of ghosts) {
+    for (const tie of ties) {
+      ships.pushOrder(ghost, tie, 50, 1000, 30, OrderCancelCondition.Disarm);
+    }
+    for (const tie of ties) {
+      ships.pushOrder(ghost, tie, 50, 1000, 30, OrderCancelCondition.CompleteDisable);
+    }
+  }
+
+  for (const xWing of xWings) {
+    for (const tie of ties) {
+      ships.pushOrder(xWing, tie, 50, 500, 60, OrderCancelCondition.Disarm);
+    }
+    for (const tie of ties) {
+      ships.pushOrder(xWing, tie, 50, 500, 60, OrderCancelCondition.CompleteDisable);
+    }
+  }
+
+
+  const grid = new SpatialGrid(64);
+  const projectiles = new Projectiles(512);
+  const beams = new Beams(512);
+  const hits = new ProjectileHits();
+  const beamHits = new BeamHits();
+  const impacts = new Impacts();
+  const collisions = new Collisions();
+
+  const run: Battle = {
+    dt,
+    world,
+    wells,
+    ships,
+    projectiles,
+    beams,
+    grid,
+    hits,
+    beamHits,
+    impacts,
+    collisions,
+    totalProjectilesFired: 0,
+    totalProjectileHits: 0,
+    totalBeamsFired: 0,
+    totalBeamHits: 0,
+    totalContacts: 0,
+
+    step(): void {
+      ships.command(dt, world);
+      world.step();
+      // Hulls are solid: what the world's step drove into each other is pushed
+      // back apart before anything asks where anything is.
+      collisions.step(world.bodies, ships);
+      run.totalContacts += collisions.contacts.count;
+      grid.rebuild(world.bodies);
+      beams.clear();
+      beamHits.clear();
+      const fireReport = ships.fire(world, projectiles, beams, grid, beamHits);
+      run.totalProjectilesFired += fireReport.projectilesFired;
+      run.totalBeamsFired += fireReport.beamsFired;
+      projectiles.step(dt, world.bodies, grid, hits, wells, ships.hulls);
+      run.totalProjectileHits += hits.count;
+      run.totalBeamHits += beamHits.count;
+      // What the hits did. Rounds walk the modules along their path and are
+      // killed or sent on their way; beams pour their power into what they are
+      // burning through.
+      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits);
+      impacts.beams(ships.damage, beams, beamHits, dt, world.bodies);
+    },
+  };
+
+  return run;
+}
+
+function SpawnMany(count: number, rng: Rng, randomRadius: number, ships: Ships, world: World, blueprint: ShipDesign, xStart: number, yStart: number, team: number): number[] {
+  const shipIndices = [];
+  for (let i = 0; i < count; i++) {
+    const angle = rng.nextRange(0, 2 * math.PI);
+    const radius = math.sqrt(rng.nextRange(0, 1)) * randomRadius;
+    const x = xStart + radius * math.cos(angle);
+    const y = yStart + radius * math.sin(angle);
+    const dvx = rng.nextRange(-20, 20);
+    const dvy = rng.nextRange(-20, 20);
+
+    const a = ships.spawn(world, {
+      design: blueprint,
+      x: x,
+      y: y,
+      angle: rng.nextRange(0, 2 * math.PI),
+      vx: dvx,
+      vy: 90 + dvy,
+      team: team,
+    });
+    shipIndices.push(a);
+  }
+  return shipIndices;
+}
+
