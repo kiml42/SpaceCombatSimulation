@@ -14,6 +14,7 @@ import dinkyFile from './dinky.json' with { type: 'json' };
 import xWingFile from './blueprints/x-wing.json' with { type: 'json' };
 import ghostFile from './blueprints/ghost.json' with { type: 'json' };
 import tieFile from './blueprints/tie-fighter.json' with { type: 'json' };
+import starDestroyerFile from './blueprints/star-destroyer.json' with { type: 'json' };
 
 
 /**
@@ -56,22 +57,24 @@ export const DINKY: Blueprint = parseBlueprint(dinkyFile);
 export const X_WING: Blueprint = parseBlueprint(xWingFile);
 export const GHOST: Blueprint = parseBlueprint(ghostFile);
 export const TIE: Blueprint = parseBlueprint(tieFile);
+export const STAR_DESTROYER: Blueprint = parseBlueprint(starDestroyerFile);
 
-export const BLUEPRINTS = { 
-    corvette: CORVETTE, 
+export const BLUEPRINTS = {
+    corvette: CORVETTE,
     beamCorvette: BEAM_CORVETTE,
-     gunship: GUNSHIP, 
-     gunship2: GUNSHIP2, 
-     beamGunship: BEAM_GUNSHIP, 
-     damagedCorvette: DAMAGED_CORVETTE,
-      fractal: FRACTAL, 
-      flatGunship: FLAT_GUNSHIP, 
-      dinky: DINKY, 
-      flatGunshipGrouped: FLAT_GUNSHIP_GROUPED ,
+    gunship: GUNSHIP,
+    gunship2: GUNSHIP2,
+    beamGunship: BEAM_GUNSHIP,
+    damagedCorvette: DAMAGED_CORVETTE,
+    fractal: FRACTAL,
+    flatGunship: FLAT_GUNSHIP,
+    dinky: DINKY,
+    flatGunshipGrouped: FLAT_GUNSHIP_GROUPED,
 
-      xWing: X_WING ,
-      ghost: GHOST ,
-      tie: TIE ,
-    } as const;
+    xWing: X_WING,
+    ghost: GHOST,
+    tie: TIE,
+    starDestroyer: STAR_DESTROYER,
+} as const;
 
 export type BlueprintName = keyof typeof BLUEPRINTS;

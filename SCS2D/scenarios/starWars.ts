@@ -14,7 +14,7 @@ import {
   type ShipDesign,
 } from '../sim/index.js';
 import { type Battle } from './types.js';
-import { TIE, X_WING, GHOST } from './blueprints.js';
+import { STAR_DESTROYER, TIE, X_WING, GHOST } from './blueprints.js';
 import { Rng } from '../sim/rng.js';
 import { OrderCancelCondition } from '../sim/ships.js';
 
@@ -35,17 +35,18 @@ export function starWars(seed = 20260905, tieFighterCount = 20, xWingCount = 20)
   const ghostBlueprint = compileBlueprint(GHOST);
 
   const tieBlueprint = compileBlueprint(TIE);
+  const isdBlueprint = compileBlueprint(STAR_DESTROYER);
 
   const rng = new Rng(seed);
   const randomRadius = 1000;
 
 
-  const ties = SpawnMany(tieFighterCount, rng, randomRadius, ships, world, tieBlueprint, 1000, 1000,0 );
+  const isds = SpawnMany(1, rng, randomRadius, ships, world, isdBlueprint, 1000, 1000, 0);
+  const ties = SpawnMany(tieFighterCount, rng, randomRadius, ships, world, tieBlueprint, 1000, 1000, 0);
 
   const xWings = SpawnMany(xWingCount, rng, randomRadius, ships, world, xWingBlueprint, -1000, -1000, 1);
   const ghosts = SpawnMany(1, rng, randomRadius, ships, world, ghostBlueprint, -1000, -1000, 1);
 
-  // Then, in the same order, go back and finish them off.
   for (const tie of ties) {
     for (const xWing of xWings) {
       ships.pushOrder(tie, xWing, 50, 400, 80, OrderCancelCondition.Disarm);
@@ -61,12 +62,33 @@ export function starWars(seed = 20260905, tieFighterCount = 20, xWingCount = 20)
     }
   }
 
+  for (const isd of isds) {
+    for (const ghost of ghosts) {
+      ships.pushOrder(isd, ghost, 1500, 2500, 20, OrderCancelCondition.Disarm);
+    }
+    for (const xWing of xWings) {
+      ships.pushOrder(isd, xWing, 1500, 2500, 20, OrderCancelCondition.Disarm);
+    }
+    for (const ghost of ghosts) {
+      ships.pushOrder(isd, ghost, 1500, 2500, 20, OrderCancelCondition.CompleteDisable);
+    }
+    for (const xWing of xWings) {
+      ships.pushOrder(isd, xWing, 1500, 2500, 20, OrderCancelCondition.CompleteDisable);
+    }
+  }
+
   for (const ghost of ghosts) {
     for (const tie of ties) {
       ships.pushOrder(ghost, tie, 50, 1000, 30, OrderCancelCondition.Disarm);
     }
+    for (const isd of isds) {
+      ships.pushOrder(ghost, isd, 500, 1000, 30, OrderCancelCondition.Disarm);
+    }
     for (const tie of ties) {
       ships.pushOrder(ghost, tie, 50, 1000, 30, OrderCancelCondition.CompleteDisable);
+    }
+    for (const isd of isds) {
+      ships.pushOrder(ghost, isd, 500, 1000, 30, OrderCancelCondition.CompleteDisable);
     }
   }
 
@@ -74,8 +96,14 @@ export function starWars(seed = 20260905, tieFighterCount = 20, xWingCount = 20)
     for (const tie of ties) {
       ships.pushOrder(xWing, tie, 50, 500, 60, OrderCancelCondition.Disarm);
     }
+    for (const isd of isds) {
+      ships.pushOrder(xWing, isd, 500, 800, 30, OrderCancelCondition.Disarm);
+    }
     for (const tie of ties) {
       ships.pushOrder(xWing, tie, 50, 500, 60, OrderCancelCondition.CompleteDisable);
+    }
+    for (const isd of isds) {
+      ships.pushOrder(xWing, isd, 500, 800, 30, OrderCancelCondition.CompleteDisable);
     }
   }
 
