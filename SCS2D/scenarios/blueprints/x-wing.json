@@ -1,0 +1,154 @@
+{
+  "formatVersion": 1,
+  "name": "X Wing",
+  "assemblies": {
+    "structure": {
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 0,
+          "y": 0,
+          "length": 3,
+          "width": 1
+        },
+        {
+          "kind": "structure",
+          "x": 0,
+          "y": 1.25,
+          "length": 4.5,
+          "width": 1.5
+        },
+        {
+          "kind": "structure",
+          "x": 0,
+          "y": 4,
+          "length": 2.5,
+          "width": 4
+        },
+        {
+          "kind": "structure",
+          "x": 1,
+          "y": 6.5,
+          "length": 5.5,
+          "width": 1
+        },
+        {
+          "kind": "thruster",
+          "x": -2.25,
+          "y": 1.25,
+          "angle": 0,
+          "length": 1.5,
+          "width": 2
+        },
+        {
+          "kind": "beamTurret",
+          "x": 5.75,
+          "y": 6.5,
+          "angle": 0,
+          "length": 4,
+          "width": 0.5,
+          "barrels": 1
+        },
+        {
+          "use": "structure3",
+          "x": 5.5,
+          "y": 6.8
+        },
+        {
+          "use": "structure3",
+          "x": 5.5,
+          "y": 6.2
+        }
+      ]
+    },
+    "structure2": {
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 0,
+          "y": 0,
+          "length": 4.5,
+          "width": 1.5
+        }
+      ]
+    },
+    "structure3": {
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 0,
+          "y": 0,
+          "length": 3.5,
+          "width": 0.1
+        }
+      ]
+    },
+    "structure4": {
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 0,
+          "y": 0,
+          "length": 1,
+          "width": 0.1
+        },
+        {
+          "kind": "structure",
+          "x": 0.55,
+          "y": -0.3,
+          "length": 0.1,
+          "width": 0.2
+        }
+      ]
+    }
+  },
+  "modules": [
+    {
+      "kind": "structure",
+      "x": 4,
+      "y": 0,
+      "length": 5,
+      "width": 1.4
+    },
+    {
+      "use": "structure",
+      "x": -0.5,
+      "y": 1.5
+    },
+    {
+      "use": "structure",
+      "x": -0.5,
+      "y": -1.5,
+      "mirror": true
+    },
+    {
+      "kind": "turret",
+      "x": 7,
+      "y": 0,
+      "angle": 0,
+      "length": 1,
+      "width": 1,
+      "barrels": 1
+    },
+    {
+      "kind": "beamTurret",
+      "x": -0.5,
+      "y": 0,
+      "angle": 180,
+      "length": 4,
+      "width": 2,
+      "barrels": 1
+    },
+    {
+      "use": "structure4",
+      "x": 7,
+      "y": 0.55
+    },
+    {
+      "use": "structure4",
+      "x": 7,
+      "y": -0.55,
+      "mirror": true
+    }
+  ]
+}
