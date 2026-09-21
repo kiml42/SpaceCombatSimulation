@@ -275,6 +275,8 @@ export interface DesignTurret {
   /** Everything but the body it belongs to, which is only known at spawn. */
   readonly mount: Omit<TurretSpec, 'owner'>;
   readonly gun: GunStats;
+  /** How far this mount alone is worth shooting at, metres. */
+  readonly reach: number;
 }
 
 export interface ShipDesign {
@@ -523,6 +525,17 @@ const ENGAGEMENT_FLIGHT_TIME = 2;
  * burn through, which gets harder the further off the target is.
  */
 const BEAM_REACH = 1500;
+
+/**
+ * How far one gun is worth shooting at, metres.
+ *
+ * A ship's reach is the best of these, and a mount's own reach is this — the
+ * distinction is what lets a capital hold at artillery range while its
+ * close-in mounts pick targets they can actually hit.
+ */
+export function gunReach(gun: GunStats): number {
+  return gun.type === GunType.Beam ? BEAM_REACH : gun.muzzleSpeed * ENGAGEMENT_FLIGHT_TIME;
+}
 
 export const MAX_REPEAT = 64;
 
@@ -1317,18 +1330,13 @@ function designFrom(
           muzzleOffset: gun.barrelLength,
         },
         gun,
+        reach: gunReach(gun),
       });
     }
   }
 
   let reach = 0;
-  for (const turret of turrets) {
-    const worth =
-      turret.gun.type === GunType.Beam
-        ? BEAM_REACH
-        : turret.gun.muzzleSpeed * ENGAGEMENT_FLIGHT_TIME;
-    reach = max(reach, worth);
-  }
+  for (const turret of turrets) reach = max(reach, turret.reach);
 
   return {
     name,

@@ -161,6 +161,16 @@ describe('what a ship is worth shooting at', () => {
     expect(score(doctrine, evens, REACH, 100_000, 7)).toBeGreaterThan(score(doctrine, evens, REACH, 100_000, 3));
   });
 
+  it('is drawn to what the ship as a whole is fighting', () => {
+    // What keeps a broadside concentrated once each mount chooses for itself
+    // — a preference rather than an instruction, so a gun on the wrong side
+    // is still free to fight what it can reach.
+    const evens = candidate({ ship: 7 });
+    expect(score(doctrine, evens, REACH, 100_000, -1, 7)).toBeGreaterThan(
+      score(doctrine, evens, REACH, 100_000, -1, 3),
+    );
+  });
+
   it('prefers what can still shoot back, and what can still get away', () => {
     const live = candidate();
     const disarmed = candidate({ armed: false });

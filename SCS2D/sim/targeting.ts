@@ -46,6 +46,10 @@ const CLOSING_SCALE = 100;
  * are good for scores nothing, and one beyond that scores against, which is
  * what makes a ship close rather than plink.
  *
+ * `focusOn` is what the chooser's ship as a whole is fighting, which a mount
+ * is drawn towards rather than bound to — so a broadside concentrates without
+ * a gun on the wrong side being left with nothing to do.
+ *
  * **A hulk needs no rule of its own.** It has no guns to earn `armedWeight`
  * and no engines to earn `mobileWeight`, so it falls behind every live ship
  * on the list by exactly the amount a doctrine says those are worth. §3's
@@ -58,12 +62,14 @@ export function score(
   reach: number,
   own: number,
   loyalTo: number,
+  focusOn = -1,
 ): number {
   let total = 0;
   if (reach > 0) total += doctrine.proximityWeight * (1 - candidate.range / reach);
   total += doctrine.massWeight * (1 - sizeMiss(doctrine, candidate.mass, own));
   total += doctrine.closingWeight * (candidate.closing / CLOSING_SCALE);
   if (candidate.ship === loyalTo) total += doctrine.loyaltyWeight;
+  if (candidate.ship === focusOn) total += doctrine.focusWeight;
   if (candidate.armed) total += doctrine.armedWeight;
   if (candidate.mobile) total += doctrine.mobileWeight;
   return total;

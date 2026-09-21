@@ -102,8 +102,14 @@ Then, in order:
    queue chooses its own target and closes to its own engagement band, and `standoff` is two fleets
    fighting with nobody issuing an order. Only `ordering` and `standoff` moved when it landed, which is
    the evidence that doctrine is strictly a fallback: every other scenario gives all its ships orders.
-   Still to do, in order: per-turret targets,
-   then a picker per module kind so a doctrine can say to go for the engines. Firing discipline lands with
+   **Per-turret targets** landed next: every mount picks through the same stack from its own point of
+   view — its own gun's reach, its own arc as an outright discard, and a bonus for what its ship is
+   fighting — on an interval derived from its traverse rate and cycle time. What that does not yet buy is
+   *variety*: mounts sharing a doctrine and a hull agree about everything except what they can see, so a
+   fleet in line ahead still concentrates. That is the next piece rather than a fault in this one.
+   Still to do, in order: a doctrine block per mount, so a ship's close-in guns can prefer smaller or
+   nearer targets than its main battery, then a picker per module kind so a doctrine can say to go for the
+   engines. Firing discipline lands with
    the turret work as a short cast ahead of the muzzle for a friendly — the length of a barrel's reach for a
    gun, the whole beam for a beam. Withdrawal, line-of-sight, hemisphere, looking-at and ship-type pickers
    are deliberately after this step.
