@@ -92,10 +92,32 @@ inside any one file is not contiguous.
   anything: what it does instead is boil along every seam its tunnel crosses until one of them is gone,
   and whatever that seam was holding is then simply no longer attached. What comes away is a body of its own with its share of the momentum, the spin
   and the scars — a piece of ship with nobody aboard, which collides and takes damage like any other hull.
-  The `standoff` scenario is the *before* picture for what comes next: two fleets a kilometre apart, well
-  inside each other's reach, with not one order between them — and therefore doing nothing at all.
-- **Next:** §8 step 3, doctrine and orders: the per-craft configuration a ship falls back on when the
-  player's order queue is empty. ROADMAP.md §8 carries the settled plan. Slice 1 has two
+  **Craft carry a doctrine, and fight without being told to.** A blueprint can hold a block of named
+  numbers saying what its craft picks a fight with and how it wants to fight it; a ship with an empty
+  order queue chooses a target through a stack of preferences — what is close, what can still shoot
+  back, what can still get away, what is its own size, what is coming at it, and what it is already
+  fighting — and closes to a range that is a fraction of what its own guns are good for. A hulk earns
+  neither of the first two, which is how a mission kill puts a ship behind every live one without a rule
+  saying so, and what size of target a craft goes for is a ratio to its own mass — one meaning
+  "something my own size", which sends a fighter after fighters and a capital after capitals without
+  either being told. An order given always outranks it, so doctrine is a fallback and never
+  a second voice. The `standoff` scenario is the evidence: two fleets a kilometre apart, not one order
+  between them, and a battle anyway.
+  **Every mount picks its own target**, through the same preferences the hull uses but from the mount's
+  point of view: its own gun's reach, and nothing outside the arc it can train through — so a ship with an
+  enemy on each beam fights both, and a gun that cannot reach what its ship is fighting fights what it can
+  instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
+  is fighting, is what keeps a broadside concentrated without tying it together; an order given is still
+  obeyed by every mount that can train on it. How often a mount reconsiders is derived from the mount:
+  half a circle of traverse plus a firing cycle, which is what it costs to swing onto something new and
+  get a shot away. **A mount can carry targeting preferences of its own**, written beside it in the
+  blueprint as only what it wants differently from its ship — so the gunship's eight-barrelled beam guns go
+  after whatever is small, close and still dangerous while its bow gun fights its own weight class, and a
+  hull whose doctrine changes takes its guns with it except where a gun has an opinion. Everything a mount
+  asks is measured from the gun rather than from the hull it is bolted to, which is both the truth and
+  what leaves a pair of beam guns taking a threat each rather than both piling onto one.
+- **Next:** the rest of §8 step 3 — firing discipline, a short cast ahead of the muzzle so a gun does not
+  shoot through a friend, then a picker per module kind so a doctrine can say to go for the engines. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
   others stay linked, and the word the editor owes the player when an action reorders
   a layout. Restructuring a group — dissolving one, or nesting one inside another —

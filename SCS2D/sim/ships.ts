@@ -1,17 +1,20 @@
 import { Bodies, type BodyId } from './bodies.js';
-import { subDesign, type ShipDesign } from './blueprint.js';
+import { subDesign, type DesignTurret, type ShipDesign } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
+import { Choice, look, lookFrom, score } from './targeting.js';
 import {
   atan2,
   angleDelta,
+  PI,
   brakingRate,
   clamp,
   cos,
   length,
   max,
   min,
+  round,
   sin,
   sqrt,
 } from './math.js';
@@ -151,6 +154,35 @@ const SALVAGE_REACH = 5;
 const MINIMUM_BATTLE_RADIUS = 2000;
 
 /**
+ * How much hull it takes to be worth a second of thinking, kilograms.
+ *
+ * How often a ship reconsiders what it is fighting is *derived* rather than
+ * configured, because it is not really a preference: a fighter can bring
+ * itself round in a moment and should change its mind about as often, and a
+ * capital that takes half a minute to come about gains nothing by
+ * reconsidering four times a second. Mass stands in for that, being what
+ * makes a hull slow to point somewhere new.
+ */
+const THINKING_MASS = 300_000;
+/** However light it is, a ship is not re-picking every step. */
+const MIN_RETHINK = 0.25;
+/** However heavy it is, a ship has not forgotten there is a battle on. */
+const MAX_RETHINK = 4;
+
+/**
+ * How often a mount reconsiders: the time it would take to act on the answer.
+ *
+ * Half a circle of traverse plus one firing cycle — what it costs a mount to
+ * swing onto something new and get a shot away. Deriving it that way is what
+ * makes a close-in mount reconsider several times a second while an artillery
+ * piece that takes six seconds to come round and load thinks about as often
+ * as it can do anything about it. Choosing faster than you can act on the
+ * choice is only a way of never finishing a slew.
+ */
+const TURRET_MIN_RETHINK = 0.25;
+const TURRET_MAX_RETHINK = 4;
+
+/**
  * How far a blow carries through a hull before it has half spent itself,
  * metres.
  *
@@ -164,6 +196,11 @@ const MINIMUM_BATTLE_RADIUS = 2000;
 const SHOCK_REACH = 15;
 
 export const NO_TARGET = -1;
+
+/** World bearing from one point to another. */
+function bearing(fromX: number, fromY: number, toX: number, toY: number): number {
+  return atan2(toY - fromY, toX - fromX);
+}
 
 /**
  * An order: a target object and the range band to hold against it.
@@ -283,6 +320,18 @@ export class Ships {
   private readonly cooldown: Float64Array[] = [];
   private readonly turretStates: Uint8Array[] = [];
   private readonly nextBarrelToFire: Int32Array[] = [];
+  /**
+   * What each mount has picked to shoot at, and the step it will think about
+   * that again.
+   *
+   * A mount chooses for itself, because a broadside with an enemy on each
+   * beam cannot fight both by pointing the whole ship at one of them — and
+   * because what a mount can reach is a property of the mount: its own arc,
+   * and its own gun's reach. `focusWeight` is what keeps them together
+   * without tying them together.
+   */
+  private readonly turretTarget: Int32Array[] = [];
+  private readonly turretRethinkAt: Float64Array[] = [];
 
   private readonly team: number[] = [];
 
@@ -348,6 +397,24 @@ export class Ships {
    */
   private readonly orders: Order[][] = [];
 
+  /**
+   * What each ship has decided to fight on its own account, and the step at
+   * which it will think about that again.
+   *
+   * The player's queue outranks this entirely: doctrine is what a ship falls
+   * back on when it has been told nothing, so this is consulted only when the
+   * queue is empty and is never written into it. An order given is an order
+   * obeyed, and a ship that has run out of orders is not left idle.
+   */
+  private readonly chosen: number[] = [];
+  private readonly rethinkAt: number[] = [];
+  /**
+   * The order doctrine makes up, one per ship and rewritten in place, so that
+   * falling back on doctrine allocates nothing per step.
+   */
+  private readonly standing: Order[] = [];
+  private readonly choice = new Choice();
+
   /** The wrench `command` decided, body frame, replayed by the force provider. */
   private readonly demandFx: number[] = [];
   private readonly demandFy: number[] = [];
@@ -357,6 +424,13 @@ export class Ships {
 
   private readonly allocation = new Allocation();
   private readonly solution = new FiringSolution();
+  /**
+   * Where a mount sits in the world and how fast that point is moving, filled
+   * in place by `locateMount` and read straight away. Persistent rather than
+   * built per call, per §12.
+   */
+  private readonly gunPoint = { x: 0, y: 0, vx: 0, vy: 0 };
+
   /** Turret reaction torque per body index, filled by `Turrets.step`. */
   private reaction = new Float64Array(64);
 
@@ -548,9 +622,27 @@ export class Ships {
     this.cooldown.push(new Float64Array(mounts.length));
     this.turretStates.push(new Uint8Array(mounts.length));
     this.nextBarrelToFire.push(new Int32Array(mounts.length));
+    const chosenBy = new Int32Array(mounts.length).fill(NO_TARGET);
+    this.turretTarget.push(chosenBy);
+    // Staggered like the hull's own, so a battery does not stop to think all
+    // at once for the rest of the battle.
+    const schedule = new Float64Array(mounts.length);
+    for (let t = 0; t < mounts.length; t++) schedule[t] = i + t;
+    this.turretRethinkAt.push(schedule);
     this.team.push(spec.team ?? 0);
     this.derelict.push(0);
     this.cutSeen.push(-1);
+    this.chosen.push(NO_TARGET);
+    // Staggered by index, so a fleet spawned together does not all stop to
+    // think on the same step for the rest of the battle.
+    this.rethinkAt.push(i);
+    this.standing.push({
+      target: NO_TARGET,
+      minRange: 0,
+      maxRange: 0,
+      approachSpeed: 0,
+      cancelOn: OrderCancelCondition.CompleteDisable,
+    });
     this.orders.push([]); // Initialise to an empty array of orders for this ship
     this.demandFx.push(0);
     this.demandFy.push(0);
@@ -558,6 +650,245 @@ export class Ships {
     this.alive.push(1);
 
     return i;
+  }
+
+  /**
+   * Pick a fight, if nobody has picked one for this ship.
+   *
+   * Only when the order queue is empty: an order given is an order obeyed,
+   * and doctrine is the fallback rather than a second voice. And only every
+   * so often — a hull reconsiders at a rate its own mass can act on, which
+   * also spreads the cost of looking at every enemy across the steps between.
+   */
+  private decide(world: World, bodies: Bodies, i: number): void {
+    if (this.orders[i]!.length > 0) {
+      // Being told what to do clears what it had decided for itself, so
+      // running out of orders is a fresh look rather than a stale one.
+      this.chosen[i] = NO_TARGET;
+      return;
+    }
+    if (world.tick < this.rethinkAt[i]!) return;
+
+    const design = this.designs[i]!;
+    this.rethinkAt[i] = world.tick + this.rethinkTicks(world, design.mass);
+
+    // A ship with nothing to shoot with has nothing to choose between.
+    if (design.reach <= 0 || this.isDisarmed(i)) {
+      this.chosen[i] = NO_TARGET;
+      return;
+    }
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return;
+
+    const doctrine = design.doctrine.targeting;
+    const mine = this.team[i]!;
+    const loyalTo = this.chosen[i]!;
+    this.choice.begin();
+    for (let t = 0; t < this.alive.length; t++) {
+      if (t === i || this.alive[t] === 0) continue;
+      // Wreckage is matter, not an enemy, and one's own side never is.
+      if (this.derelict[t] === 1 || this.team[t] === mine) continue;
+      const tb = bodies.indexOf(this.bodyIds[t]!);
+      if (tb < 0) continue;
+      const candidate = look(
+        bodies,
+        b,
+        tb,
+        t,
+        this.designs[t]!.mass,
+        !this.isDisarmed(t),
+        !this.hasNoEngines(t),
+      );
+      this.choice.offer(
+        candidate,
+        score(doctrine, candidate, design.reach, design.mass, loyalTo),
+      );
+    }
+    this.chosen[i] = this.choice.ship;
+  }
+
+  /**
+   * Let every mount pick its own fight.
+   *
+   * Same doctrine as the hull's, asked from the mount's point of view: its
+   * own gun's reach rather than the ship's best, and nothing it cannot train
+   * on. A mount that has been wrecked chooses nothing, which is also what
+   * takes its firing arc off the display.
+   */
+  private decideTurrets(world: World, bodies: Bodies, i: number): void {
+    const design = this.designs[i]!;
+    const indices = this.turretIndex[i]!;
+    const targets = this.turretTarget[i]!;
+    const schedule = this.turretRethinkAt[i]!;
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return;
+
+    const mine = this.team[i]!;
+    const focus = this.focusOf(i);
+
+    for (let t = 0; t < indices.length; t++) {
+      // What it was fighting is dropped the moment that stops being a fight,
+      // whatever its schedule says: a mount tracking a wreck is worse than a
+      // mount at rest, because it goes on shooting at it.
+      const held = targets[t]!;
+      if (held !== NO_TARGET && (this.alive[held] !== 1 || this.derelict[held] === 1)) {
+        targets[t] = NO_TARGET;
+      }
+      if (world.tick < schedule[t]!) continue;
+      const mount = design.turrets[t]!;
+      schedule[t] = world.tick + this.turretRethinkTicks(world, t, design);
+
+      if (!(this.damage.remaining(b, mount.module, DamageEffect.FireRate) > 0)) {
+        targets[t] = NO_TARGET;
+        continue;
+      }
+
+      const ti = indices[t]!;
+      const doctrine = mount.targeting;
+
+      // Everything is measured from the gun rather than from the hull it is
+      // bolted to. Metres, against gunnery range — but enough to order two
+      // targets differently, which is what stops both beams piling onto the
+      // same one when either could take it.
+      this.locateMount(bodies, b, mount);
+      const gunX = this.gunPoint.x;
+      const gunY = this.gunPoint.y;
+      const gunVx = this.gunPoint.vx;
+      const gunVy = this.gunPoint.vy;
+
+      this.choice.begin();
+      for (let e = 0; e < this.alive.length; e++) {
+        if (e === i || this.alive[e] === 0) continue;
+        if (this.derelict[e] === 1 || this.team[e] === mine) continue;
+        const tb = bodies.indexOf(this.bodyIds[e]!);
+        if (tb < 0) continue;
+        if (!this.turrets.bearsOn(bodies, ti, bearing(gunX, gunY, bodies.x[tb]!, bodies.y[tb]!))) {
+          continue;
+        }
+        const candidate = lookFrom(
+          bodies,
+          gunX,
+          gunY,
+          gunVx,
+          gunVy,
+          tb,
+          e,
+          this.designs[e]!.mass,
+          !this.isDisarmed(e),
+          !this.hasNoEngines(e),
+        );
+        this.choice.offer(
+          candidate,
+          score(doctrine, candidate, mount.reach, design.mass, targets[t]!, focus),
+        );
+      }
+      targets[t] = this.choice.ship;
+    }
+  }
+
+  /**
+   * Where a mount is and how fast that point is moving, into `gunPoint`.
+   *
+   * A mount out on a beam is carried round by its ship, so its velocity is
+   * the hull's plus ω × r — the same term a round leaving it inherits.
+   */
+  private locateMount(bodies: Bodies, b: number, mount: DesignTurret): void {
+    const angle = bodies.angle[b]!;
+    const rx = mount.mount.x * cos(angle) - mount.mount.y * sin(angle);
+    const ry = mount.mount.x * sin(angle) + mount.mount.y * cos(angle);
+    const spin = bodies.angularVel[b]!;
+    this.gunPoint.x = bodies.x[b]! + rx;
+    this.gunPoint.y = bodies.y[b]! + ry;
+    this.gunPoint.vx = bodies.vx[b]! - spin * ry;
+    this.gunPoint.vy = bodies.vy[b]! + spin * rx;
+  }
+
+  /** What this ship as a whole is fighting, for its mounts to converge on. */
+  private focusOf(i: number): number {
+    const order = this.effectiveOrder(i);
+    if (order === undefined) return NO_TARGET;
+    return order.target;
+  }
+
+  /**
+   * What one mount is shooting at.
+   *
+   * An order given is an order obeyed, so a mount that can train on the
+   * ordered target takes it; one that cannot is not left idle for the sake of
+   * it, and fights what it can reach. With nothing ordered this is whatever
+   * the mount picked for itself.
+   */
+  private turretAim(bodies: Bodies, i: number, t: number): number {
+    const given = this.getCurrentOrder(i);
+    if (given !== undefined && given.target !== NO_TARGET && this.alive[given.target] === 1) {
+      const tb = bodies.indexOf(this.bodyIds[given.target]!);
+      const b = bodies.indexOf(this.bodyIds[i]!);
+      if (tb >= 0 && b >= 0) {
+        const ti = this.turretIndex[i]![t]!;
+        this.locateMount(bodies, b, this.designs[i]!.turrets[t]!);
+        const canBear = this.turrets.bearsOn(
+          bodies,
+          ti,
+          bearing(this.gunPoint.x, this.gunPoint.y, bodies.x[tb]!, bodies.y[tb]!),
+        );
+        if (canBear) return given.target;
+      }
+    }
+    const own = this.turretTarget[i]![t]!;
+    if (own === NO_TARGET || this.alive[own] !== 1) return NO_TARGET;
+    return own;
+  }
+
+  /** How long this mount waits before reconsidering, in steps. */
+  private turretRethinkTicks(world: World, t: number, design: ShipDesign): number {
+    const mount = design.turrets[t]!;
+    const rate = mount.mount.maxRate;
+    const sweep = rate > 0 ? PI / rate : TURRET_MAX_RETHINK;
+    const seconds = clamp(sweep + mount.gun.cycleTime, TURRET_MIN_RETHINK, TURRET_MAX_RETHINK);
+    return max(1, round(seconds / world.dt));
+  }
+
+  /** How long a hull of this mass waits before reconsidering, in steps. */
+  private rethinkTicks(world: World, mass: number): number {
+    const seconds = clamp(mass / THINKING_MASS, MIN_RETHINK, MAX_RETHINK);
+    // At least one step, or a ship would decide twice in the same instant.
+    return max(1, round(seconds / world.dt));
+  }
+
+  /**
+   * What this ship is actually doing: what it was told, or failing that what
+   * its doctrine makes of the fight it picked.
+   *
+   * The doctrine order is built here rather than pushed onto the queue, so
+   * that "has orders" goes on meaning "has been told something by somebody".
+   */
+  private effectiveOrder(i: number): Order | undefined {
+    const given = this.getCurrentOrder(i);
+    if (given !== undefined) return given;
+
+    const target = this.chosen[i]!;
+    if (target === NO_TARGET || this.alive[target] !== 1) return undefined;
+
+    const design = this.designs[i]!;
+    const approach = design.doctrine.approach;
+    const standing = this.standing[i]!;
+    standing.target = target;
+
+    // **Close until the target looks big enough to hit.** A gun misses
+    // because its firing solution guessed wrong about where the target would
+    // be, and how much of a guess it can afford depends on how much of the
+    // sky the target fills — so a fighter has to be closed right in on and a
+    // capital does not, and one number covers both because it is measured in
+    // the target's own radii. Capped by what this ship's guns are good for,
+    // so nothing stands off further than it can shoot.
+    const wanted = min(
+      approach.standoffRadii * this.designs[target]!.radius,
+      approach.standoff * design.reach,
+    );
+    standing.minRange = max(0, wanted * (1 - approach.tolerance));
+    standing.maxRange = max(standing.minRange, wanted * (1 + approach.tolerance));
+    standing.approachSpeed = approach.approachSpeed;
+    return standing;
   }
 
   /**
@@ -616,6 +947,8 @@ export class Ships {
       // its drift: it tumbles on with whatever the break gave it.
       if (this.derelict[i] === 1) continue;
       this.removeInvalidOrders(i);
+      this.decide(world, bodies, i);
+      this.decideTurrets(world, bodies, i);
       this.flyOne(dt, bodies, i);
       this.trainOne(bodies, i);
       const timers = this.cooldown[i]!;
@@ -707,10 +1040,10 @@ export class Ships {
 
         const ti = indices[t]!;
 
-        const order = this.getCurrentOrder(i);
+        const target = this.turretAim(bodies, i, t);
 
         // skip if it's not ready to fire, and it's not committed to being on.
-        if ((!order || order.target === NO_TARGET || !this.turrets.readyToFire(ti)) && state != TurretState.CommittedOn) continue;
+        if ((target === NO_TARGET || !this.turrets.readyToFire(ti)) && state != TurretState.CommittedOn) continue;
 
         const lateralOffset =
           gun.barrelCount > 1
@@ -876,7 +1209,7 @@ export class Ships {
    * allocator, and a target handed to the turrets.
    */
   private flyOne(dt: number, bodies: Bodies, i: number): void {
-    const order = this.getCurrentOrder(i);
+    const order = this.effectiveOrder(i);
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
 
@@ -966,28 +1299,22 @@ export class Ships {
     this.demandTorque[i] = this.allocation.torque;
   }
 
-  /** Train this ship's turrets on its ordered target, leading it. */
+  /** Train each of this ship's turrets on what it is fighting, leading it. */
   private trainOne(bodies: Bodies, i: number): void {
     const indices = this.turretIndex[i]!;
-    const order = this.getCurrentOrder(i);
-
-    if (!order || order.target === NO_TARGET || this.alive[order.target] !== 1) {
-      for (let t = 0; t < indices.length; t++) this.turrets.returnToRest(indices[t]!);
-      return;
-    }
-
-    const tb = bodies.indexOf(this.bodyIds[order.target]!);
-    if (tb < 0) {
-      for (let t = 0; t < indices.length; t++) this.turrets.returnToRest(indices[t]!);
-      return;
-    }
-
-    const tx = bodies.x[tb]!;
-    const ty = bodies.y[tb]!;
-    const tvx = bodies.vx[tb]!;
-    const tvy = bodies.vy[tb]!;
     for (let t = 0; t < indices.length; t++) {
-      this.turrets.aimAt(bodies, indices[t]!, tx, ty, tvx, tvy);
+      const ti = indices[t]!;
+      const target = this.turretAim(bodies, i, t);
+      if (target === NO_TARGET) {
+        this.turrets.returnToRest(ti);
+        continue;
+      }
+      const tb = bodies.indexOf(this.bodyIds[target]!);
+      if (tb < 0) {
+        this.turrets.returnToRest(ti);
+        continue;
+      }
+      this.turrets.aimAt(bodies, ti, bodies.x[tb]!, bodies.y[tb]!, bodies.vx[tb]!, bodies.vy[tb]!);
     }
   }
 
@@ -1390,6 +1717,8 @@ export class Ships {
     const cooldown = new Float64Array(design.turrets.length);
     const states = new Uint8Array(design.turrets.length);
     const barrels = new Int32Array(design.turrets.length);
+    const targets = new Int32Array(design.turrets.length).fill(NO_TARGET);
+    const schedule = new Float64Array(design.turrets.length);
     for (let t = 0; t < design.turrets.length; t++) {
       const mount = design.turrets[t]!;
       const index = this.turrets.add({ ...mount.mount, owner: b });
@@ -1405,6 +1734,8 @@ export class Ships {
       cooldown[t] = this.cooldown[i]![before]!;
       states[t] = this.turretStates[i]![before]!;
       barrels[t] = this.nextBarrelToFire[i]![before]!;
+      targets[t] = this.turretTarget[i]![before]!;
+      schedule[t] = this.turretRethinkAt[i]![before]!;
     }
     const old = this.turretIndex[i]!;
     for (let t = 0; t < old.length; t++) this.turrets.remove(old[t]!);
@@ -1415,6 +1746,8 @@ export class Ships {
     this.cooldown[i] = cooldown;
     this.turretStates[i] = states;
     this.nextBarrelToFire[i] = barrels;
+    this.turretTarget[i] = targets;
+    this.turretRethinkAt[i] = schedule;
     this.throttles[i] = new Float64Array(design.thrusters.length);
     this.layouts[i] = null;
     this.layoutVersion[i] = -1;
@@ -1482,6 +1815,14 @@ export class Ships {
    * Index in the shared turret store of one of a ship's mounts, in the order
    * its design lists them. What a snapshot needs to read a bearing back out.
    */
+  /**
+   * What one of this ship's mounts is shooting at, or `NO_TARGET` — the
+   * ordered target when it can train on it, and otherwise its own pick.
+   */
+  targetOfTurret(bodies: Bodies, i: number, turret: number): number {
+    return this.turretAim(bodies, i, turret);
+  }
+
   turretIndexOf(i: number, turret: number): number {
     return this.turretIndex[i]![turret]!;
   }

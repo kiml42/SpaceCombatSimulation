@@ -1,6 +1,11 @@
 {
   "formatVersion": 1,
   "name": "Corvette",
+  "doctrine": {
+    "targeting": {
+      "preferredMass": 3
+    }
+  },
   "notes": "A light escort: one main engine, one gun, and enough manoeuvring thrust to turn faster than anything can track it. Drawn as a deck plan on round numbers, +x the bow and +y to port, with modules abutting exactly.",
   "assemblies": {
     "wingBox": {

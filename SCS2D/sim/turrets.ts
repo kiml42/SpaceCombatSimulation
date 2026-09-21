@@ -377,6 +377,19 @@ export class Turrets {
     this.blocked[i] = clamped ? 1 : 0;
   }
 
+  /**
+   * Whether this mount could point at a world bearing at all.
+   *
+   * What a mount can see, rather than where it is looking: a target behind
+   * the superstructure is not one this gun can choose, however good it would
+   * otherwise be. Asked before scoring, so a broadside picks a fight on the
+   * side it is on.
+   */
+  bearsOn(bodies: Bodies, i: number, worldBearing: number): boolean {
+    const wanted = normalizeAngle(worldBearing - bodies.angle[this.owner[i]!]!);
+    return abs(angleDelta(this.clampToArc(i, wanted), wanted)) <= this.tolerance[i]!;
+  }
+
   /** Give up and return to the idle bearing, and stop tracking. */
   returnToRest(i: number): void {
     this.setCommand(i, this.restBearing[i]!, 0);

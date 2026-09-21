@@ -9,6 +9,13 @@ import {
   type Placement,
 } from './blueprint.js';
 import type { ModuleKind, ModuleSpec } from './modules.js';
+import {
+  doctrineProblem,
+  serialiseDoctrine,
+  targetingProblem,
+  toDoctrine,
+  type Targeting,
+} from './doctrine.js';
 
 /**
  * The blueprint file format: what a saved ship looks like, and how to get a
@@ -56,6 +63,7 @@ const MODULE_KEYS: readonly string[] = [
   'width',
   'reinforcement',
   'barrels',
+  'targeting',
   'notes',
 ];
 
@@ -76,7 +84,7 @@ const STEP_KEYS: readonly string[] = ['x', 'y', 'angle'];
 
 const ASSEMBLY_KEYS: readonly string[] = ['modules', 'notes'];
 
-const FILE_KEYS: readonly string[] = ['formatVersion', 'name', 'notes', 'assemblies', 'modules'];
+const FILE_KEYS: readonly string[] = ['formatVersion', 'name', 'notes', 'doctrine', 'assemblies', 'modules'];
 
 export function degreesToRadians(degrees: number): number {
   return (degrees / 180) * PI;
@@ -136,6 +144,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalNumberProblem(value['angle'], `${where}: angle`) ??
     optionalNumberProblem(value['reinforcement'], `${where}: reinforcement`) ??
     optionalNumberProblem(value['barrels'], `${where}: barrels`) ??
+    targetingProblem(value['targeting'], `${where}: targeting`) ??
     optionalStringProblem(value['notes'], `${where}: notes`)
   );
 }
@@ -246,6 +255,9 @@ export function blueprintFileProblem(value: unknown): string | null {
   const notesProblem = optionalStringProblem(value['notes'], 'notes');
   if (notesProblem !== null) return notesProblem;
 
+  const doctrine = doctrineProblem(value['doctrine']);
+  if (doctrine !== null) return doctrine;
+
   const assemblies = assembliesShapeProblem(value['assemblies']);
   if (assemblies !== null) return assemblies;
 
@@ -262,6 +274,7 @@ function toBlueprint(file: Record<string, unknown>): Blueprint {
     modules: toPlacements(file['modules'] as unknown[]),
   };
   if (file['notes'] !== undefined) blueprint.notes = file['notes'] as string;
+  if (file['doctrine'] !== undefined) blueprint.doctrine = toDoctrine(file['doctrine']);
 
   const rawAssemblies = file['assemblies'] as Record<string, Record<string, unknown>> | undefined;
   if (rawAssemblies !== undefined) {
@@ -314,6 +327,7 @@ function toPlacements(raws: unknown[]): Placement[] {
     if (raw['angle'] !== undefined) spec.angle = degreesToRadians(raw['angle'] as number);
     if (raw['reinforcement'] !== undefined) spec.reinforcement = raw['reinforcement'] as number;
     if (raw['barrels'] !== undefined) spec.barrels = raw['barrels'] as number;
+    if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
     if (raw['notes'] !== undefined) spec.notes = raw['notes'] as string;
     return spec;
   });
@@ -339,6 +353,13 @@ export function serialiseBlueprint(blueprint: Blueprint): Record<string, unknown
     name: blueprint.name,
   };
   if (blueprint.notes !== undefined) file['notes'] = blueprint.notes;
+  if (blueprint.doctrine !== undefined) {
+    // Only what it says differently from the default, so a file stays short
+    // and a default that moves later moves for every ship that never had an
+    // opinion about it.
+    const doctrine = serialiseDoctrine(blueprint.doctrine);
+    if (doctrine !== undefined) file['doctrine'] = doctrine;
+  }
 
   if (blueprint.assemblies !== undefined) {
     const assemblies: Record<string, unknown> = {};
@@ -378,6 +399,9 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
   raw['width'] = placement.width;
   if (placement.reinforcement !== undefined) raw['reinforcement'] = placement.reinforcement;
   if (placement.barrels !== undefined) raw['barrels'] = placement.barrels;
+  // Written as authored: a mount's block is already only its differences from
+  // the ship it is on, so there is nothing to subtract.
+  if (placement.targeting !== undefined) raw['targeting'] = { ...placement.targeting };
   if (placement.notes !== undefined) raw['notes'] = placement.notes;
   return raw;
 }

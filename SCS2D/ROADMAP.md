@@ -98,11 +98,26 @@ Then, in order:
    far more often than an artillery piece — and staggered so the cost spreads across steps. The engagement
    envelope a player currently types into every order (range band, approach speed) becomes a doctrine
    default derived from what the ship's own guns are good for.
-   In order: **the standoff scenario** (built: two fleets in reach of each other with no orders, doing
-   nothing, which is the *before* picture), then doctrine and the ship-level pick, then per-turret targets,
-   then a picker per module kind so a doctrine can say to go for the engines. Firing discipline lands with
-   the turret work as a short cast ahead of the muzzle for a friendly — the length of a barrel's reach for a
-   gun, the whole beam for a beam. Withdrawal, line-of-sight, hemisphere, looking-at and ship-type pickers
+   **Built so far**: the standoff scenario, and doctrine with the ship-level pick — a craft with an empty
+   queue chooses its own target and closes to its own engagement band, and `standoff` is two fleets
+   fighting with nobody issuing an order. Only `ordering` and `standoff` moved when it landed, which is
+   the evidence that doctrine is strictly a fallback: every other scenario gives all its ships orders.
+   **Per-turret targets** landed next: every mount picks through the same stack from its own point of
+   view — its own gun's reach, its own arc as an outright discard, and a bonus for what its ship is
+   fighting — on an interval derived from its traverse rate and cycle time. **A targeting block per mount**
+   followed, since mounts sharing a doctrine and a hull agree about everything except what they can see:
+   a mount's block is only its differences from its ship's, so the gunship's close-in guns hunt fighters
+   while its bow gun fights capitals, and a fleet that used to concentrate now splits its fire — 30 of 60
+   sampled multi-mount ships in `standoff`, against none before it. Two things a close-in gun needs
+   turned out to be things it says rather than mechanisms of its own: caring about whether a target can
+   still do something, worth more to it than the whole of its proximity preference, so it passes over a
+   drifting hulk at any range; and *not* caring what the ship as a whole is fighting, which is what
+   leaves a pair of them free to take a threat each. What separates the pair is that a mount measures
+   from itself rather than from the hull — metres, against gunnery range, and enough to order two
+   otherwise identical targets differently.
+   Still to do, in order: firing discipline, then a picker per module kind so a doctrine can say to go for
+   the engines. Firing discipline is a short cast ahead of the muzzle for a
+   friendly — the length of a barrel's reach for a gun, the whole beam for a beam. Withdrawal, line-of-sight, hemisphere, looking-at and ship-type pickers
    are deliberately after this step.
 4. **Headless evolution and analysis** — balance testing plus sandbox mode.
 5. **v1: skirmish** — a fixed budget of *materials* rather than of points (§12), designed scenarios,
