@@ -325,6 +325,12 @@ Deliberately unresolved; decide when they block something.
   referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
   together, at the campaign slice.
 - How severed chunks divide fuel, ammunition and power.
+- **What scrap and salvage reach are worth: `SCRAP_MASS` and `SALVAGE_REACH`.** They encode an economic
+  judgement — what is too smashed to harvest, and how far is too far to go for — against an economy that
+  does not exist yet, so they will want revisiting when it does. Worth knowing before tuning them: the
+  shipped fleet's *capital* modules weigh five to nine tonnes apiece, and the only modules under a tonne
+  anywhere are a fighter's, so the scrap floor reaches fighter debris and nothing else. Culling capital
+  wreckage at all is entirely `SALVAGE_REACH`'s doing.
 - **More failure modes than a fading capability.** A module carries a list of damage responses and two are
   written: thrust fades and cuts out, rate of fire stretches. What the shape is for, and what is not built,
   is the interesting half — a turret whose traverse jams, leaving it stuck or cut down to part of its arc; a

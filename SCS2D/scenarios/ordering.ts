@@ -138,6 +138,7 @@ function battle(which: readonly number[], seed: number): OrderingBattle {
     totalBeamHits: 0,
     totalContacts: 0,
     totalSevered: 0,
+    totalCulled: 0,
 
     step(): void {
       ships.command(dt, world);
@@ -162,6 +163,7 @@ function battle(which: readonly number[], seed: number): OrderingBattle {
       impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits, ships);
       impacts.beams(ships.damage, beams, beamHits, dt, world.bodies, ships);
       run.totalSevered += ships.sever(world, collisions.contacts);
+      run.totalCulled += ships.cull(world);
     },
   };
 

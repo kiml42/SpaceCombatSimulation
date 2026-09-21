@@ -10,6 +10,7 @@ import {
   clamp,
   cos,
   length,
+  max,
   min,
   sin,
   sqrt,
@@ -112,6 +113,42 @@ const APPROACH_TIME = 8;
  * been shot out fell to pieces at the first nudge.
  */
 const WRECK_STRENGTH = 0.05;
+
+/**
+ * Below this mass, a severed piece is scrap and is never put in the world at
+ * all, kilograms.
+ *
+ * Matter is conserved *within a hull* — a wrecked module keeps its mass and
+ * its place, which is what makes a battered ship sluggish and its wreckage
+ * free armour (§4). It is not conserved in the world: a shard this small is
+ * too broken up to be worth going after and too light to be worth avoiding,
+ * so tracking it buys nothing. What is discarded is counted rather than
+ * quietly dropped, so a salvage economy can balance its books later.
+ */
+const SCRAP_MASS = 300;
+
+/**
+ * How far past the fighting a piece has to drift before it stops being worth
+ * tracking, in metres per kilogram above `SCRAP_MASS`.
+ *
+ * Continuous rather than a second threshold, and that is the point: a shard
+ * just over the scrap mass is gone as soon as it leaves the battle, a tonne
+ * of hull has to clear it by kilometres, and a serious chunk effectively
+ * never leaves. "Worth hunting down for the rest of the battle" falls out of
+ * that rather than being declared, which leaves one cliff in the rule instead
+ * of two — and the one that is left is at a mass where nothing cares.
+ */
+const SALVAGE_REACH = 5;
+
+/**
+ * How small the battle can get, metres.
+ *
+ * The area is drawn round the ships still in it, so it shrinks as they die
+ * and would collapse to a point around the last one — taking the whole debris
+ * field with it in a single step. A survivor going back for the wreckage has
+ * to find it still there.
+ */
+const MINIMUM_BATTLE_RADIUS = 2000;
 
 /**
  * How far a blow carries through a hull before it has half spent itself,
@@ -260,6 +297,19 @@ export class Ships {
    * drawn, hit and severed by the code that already does those.
    */
   private readonly derelict: number[] = [];
+
+  /**
+   * Mass thrown away as scrap or lost track of, kilograms — everything the
+   * world stopped accounting for. Matter is conserved in a hull but not in
+   * the world, and this is the difference, kept rather than silently dropped.
+   */
+  discarded = 0;
+  /**
+   * The momentum that went with it, kg·m/s — so that "momentum is conserved"
+   * stays a thing a test can check rather than a thing that used to be true.
+   */
+  discardedPx = 0;
+  discardedPy = 0;
 
   /**
    * Which ship each body is, so a blow landing on a body finds the hull it
@@ -1043,12 +1093,88 @@ export class Ships {
       });
       if (parts.length < 2) continue;
       for (let p = 1; p < parts.length; p++) {
-        this.detach(world, i, design, parts[p]!);
-        pieces++;
+        if (this.detach(world, i, design, parts[p]!)) pieces++;
       }
       this.reshape(world, i, design, parts[0]!);
     }
     return pieces;
+  }
+
+  /**
+   * Stop tracking wreckage that has drifted out of the fight, and say how
+   * many pieces were let go.
+   *
+   * Between "too smashed to be worth harvesting" and "worth hunting down" is
+   * a question about *relevance* rather than size: what matters is whether a
+   * piece could still hit somebody or still be worth going after, and both
+   * depend on how big it is and how far it is from where the fighting is. So
+   * a piece is kept while it is within the battle plus its own reach, and its
+   * reach grows with its mass — a shard goes as soon as it leaves, a tonne of
+   * hull has to clear the fight by kilometres, and a serious chunk never
+   * really leaves at all.
+   *
+   * Only wreckage. A ship is tracked wherever it goes, because a ship can
+   * come back.
+   */
+  cull(world: World): number {
+    const bodies = world.bodies;
+    const area = this.battleArea(bodies);
+    let dropped = 0;
+
+    for (let i = 0; i < this.alive.length; i++) {
+      if (this.alive[i] === 0 || this.derelict[i] === 0) continue;
+      const b = bodies.indexOf(this.bodyIds[i]!);
+      if (b < 0) continue;
+      const design = this.designs[i]!;
+      const reach = area.radius + (design.mass - SCRAP_MASS) * SALVAGE_REACH;
+      if (length(bodies.x[b]! - area.x, bodies.y[b]! - area.y) <= reach) continue;
+
+      this.discarded += design.mass;
+      this.discardedPx += design.mass * bodies.vx[b]!;
+      this.discardedPy += design.mass * bodies.vy[b]!;
+      this.damage.forget(b);
+      this.shipByBody[b] = -1;
+      this.remove(i);
+      world.destroy(this.bodyIds[i]!);
+      dropped++;
+    }
+
+    return dropped;
+  }
+
+  /**
+   * Where the fighting is and how far it reaches: the ships still in it, and
+   * the distance from the middle of them to the furthest.
+   *
+   * Their centre and their spread rather than the smallest circle that
+   * contains them — the exact answer is either randomised or cubic, and what
+   * this is for is the *scale* of the fight rather than a tight bound. Hulks
+   * count, since a drifting wreck is still somewhere the battle was.
+   */
+  private battleArea(bodies: Bodies): { x: number; y: number; radius: number } {
+    let x = 0;
+    let y = 0;
+    let n = 0;
+    for (let i = 0; i < this.alive.length; i++) {
+      if (this.alive[i] === 0 || this.derelict[i] === 1) continue;
+      const b = bodies.indexOf(this.bodyIds[i]!);
+      if (b < 0) continue;
+      x += bodies.x[b]!;
+      y += bodies.y[b]!;
+      n++;
+    }
+    if (n === 0) return { x: 0, y: 0, radius: Infinity };
+    x /= n;
+    y /= n;
+
+    let radius = MINIMUM_BATTLE_RADIUS;
+    for (let i = 0; i < this.alive.length; i++) {
+      if (this.alive[i] === 0 || this.derelict[i] === 1) continue;
+      const b = bodies.indexOf(this.bodyIds[i]!);
+      if (b < 0) continue;
+      radius = max(radius, length(bodies.x[b]! - x, bodies.y[b]! - y));
+    }
+    return { x, y, radius };
   }
 
   /** The ship a body is, or -1 — guarded, since a body's slot is reused. */
@@ -1156,8 +1282,7 @@ export class Ships {
 
     let pieces = 0;
     for (let p = 1; p < parts.length; p++) {
-      this.detach(world, i, design, parts[p]!);
-      pieces++;
+      if (this.detach(world, i, design, parts[p]!)) pieces++;
     }
     this.reshape(world, i, design, parts[0]!);
     return pieces;
@@ -1191,12 +1316,21 @@ export class Ships {
    * no impulse is invented, so the momentum and the angular momentum of the
    * pieces together are the ones the whole hull had a moment earlier.
    */
-  private detach(world: World, i: number, design: ShipDesign, keep: readonly number[]): void {
+  private detach(world: World, i: number, design: ShipDesign, keep: readonly number[]): boolean {
     const bodies = world.bodies;
     const b = bodies.indexOf(this.bodyIds[i]!);
     const chunk = subDesign(design, keep);
     const offset = this.offsetOf(bodies, b, design, chunk);
     const spin = bodies.angularVel[b]!;
+    // Scrap never reaches the world, so nothing the eye was following ever
+    // vanishes: a piece this small is not created rather than removed.
+    if (chunk.mass < SCRAP_MASS) {
+      this.discarded += chunk.mass;
+      // Whatever it would have left with, had it been worth putting there.
+      this.discardedPx += chunk.mass * (bodies.vx[b]! - spin * offset.y);
+      this.discardedPy += chunk.mass * (bodies.vy[b]! + spin * offset.x);
+      return false;
+    }
 
     const j = this.spawn(world, {
       design: chunk,
@@ -1218,6 +1352,7 @@ export class Ships {
       this.weldScarsOf(b, design, chunk, keep),
     );
     this.shipByBody[chunkBody] = j;
+    return true;
   }
 
   /**
