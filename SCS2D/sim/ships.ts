@@ -398,6 +398,11 @@ export class Ships {
    */
   isTurretDisabled(i: number, t: number): boolean {
     if (this.alive[i] === 0) return true;
+    // A sound gun on a piece of hull that came off is still out of the fight:
+    // what is missing is not the gun but everything that would tell it what to
+    // shoot at. The arc a renderer draws is a promise that a mount may fire
+    // there, so a derelict's mounts must not draw one.
+    if (this.derelict[i] === 1) return true;
     const bodies = this.bodyStore;
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return true;
