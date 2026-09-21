@@ -179,6 +179,50 @@ describe('what parts a hull', () => {
   });
 });
 
+describe('cutting a weld through', () => {
+  const TIP_INDEX = joints(design).indexOf(TIP_JOINT);
+
+  it('lets the piece go with no blow at all: a cut is not a weak weld', () => {
+    const s = scene();
+    s.ships.damage.cutWeld(s.body, TIP_INDEX, TIP_JOINT.width);
+    expect(s.ships.sever(s.world)).toBe(1);
+    expect(s.ships.design(s.ship).modules).toHaveLength(2);
+  });
+
+  it('holds while there is any of the weld left', () => {
+    const s = scene();
+    s.ships.damage.cutWeld(s.body, TIP_INDEX, TIP_JOINT.width * 0.9);
+    expect(s.ships.sever(s.world)).toBe(0);
+  });
+
+  it('takes a part-cut weld off the blow it can stand', () => {
+    const sound = scene();
+    hit(sound, TIP, TIP_JOINT.strength * 2);
+    expect(sound.ships.sever(sound.world)).toBe(0);
+
+    const sawn = scene();
+    sawn.ships.damage.cutWeld(sawn.body, TIP_INDEX, TIP_JOINT.width * 0.9);
+    hit(sawn, TIP, TIP_JOINT.strength * 2);
+    expect(sawn.ships.sever(sawn.world)).toBe(1);
+  });
+
+  it('keeps what has been cut out of the welds a piece takes with it', () => {
+    // The tail's weld is half sawn through, and the tip is what comes off, so
+    // the ship keeps a weld that is still half sawn through.
+    const s = scene();
+    const tail = joints(design).find((j) => j.a === 0 && j.b === 1)!;
+    s.ships.damage.cutWeld(s.body, joints(design).indexOf(tail), tail.width * 0.5);
+    hit(s, TIP, TIP_JOINT.strength * 4);
+    s.ships.sever(s.world);
+
+    const left = s.ships.design(s.ship);
+    expect(left.modules).toHaveLength(2);
+    const kept = joints(left)[0]!;
+    expect(joints(left)).toHaveLength(1);
+    expect(s.ships.damage.weldIntegrity(s.body, 0, kept.width)).toBeCloseTo(0.5, 9);
+  });
+});
+
 describe('what a hull that has come apart looks like', () => {
   function broken(): Scene {
     const s = scene();

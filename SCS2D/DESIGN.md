@@ -84,10 +84,13 @@ inside any one file is not contiguous.
   stops working and goes on stopping shells, so a battered ship is sluggish and
   quiet rather than lighter, and a ship that can neither move nor shoot drifts
   as a hulk. Hits flash on the canvas and wrecked modules are drawn as wreckage.
-  **Hulls come apart.** A ship is held together by welds derived from where its modules touch, a weld
-  parts when the metal at either end has taken more than the weld is worth, and what comes off is a body
-  of its own with its share of the momentum, the spin and the scars — a piece of ship with nobody aboard,
-  which collides and takes damage like any other hull.
+  **Hulls come apart, and it takes a blow to do it.** A ship is held together by welds derived from where
+  its modules touch, each rated by its section. Damage decides how much of a weld is left; what spends it
+  is the impulse that has to cross it, so a hit on an outlying module takes it off and the same hit
+  amidships takes nothing. A round also cuts the welds it passes through, which is a gun shearing a wing
+  off at the root rather than knocking it off; a beam, carrying no momentum, can wreck every module it
+  touches and part nothing. What comes away is a body of its own with its share of the momentum, the spin
+  and the scars — a piece of ship with nobody aboard, which collides and takes damage like any other hull.
 - **Next:** §8 step 3, doctrine and orders: the per-craft configuration that orders should be
   defaulted from, and something that issues them while a battle runs. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
@@ -256,8 +259,11 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
 **One planar rigid body per ship. Modules are data, not physics bodies.**
 
 - **Connectivity graph** per hull, and it is built (`sim/connectivity.ts`). Two modules are welded
-  where their faces touch, the weld is worth its section — the contact by the thinner wall meeting
-  there — and it parts when either module it joins has absorbed more than that. When damage
+  where their faces touch, and the weld is worth its section — the contact by the thinner wall meeting
+  there — rated as an impulse. **Damage weakens a weld; a blow parts it**, and the load through a weld
+  is the impulse that has to cross it: the far side's mass by the velocity change there. A weld cut
+  through its section by rounds passing along it parts with no blow at all, since a cut weld is not a
+  weak one but an absent one. When damage
   disconnects a subgraph the detached chunk becomes a body of its own inheriting `v + ω × r`, with
   mass properties recomputed on both sides, so momentum and angular momentum come out where they went
   in. This gives ships breaking in half, losing engines and tumbling, and wrecks to salvage — the good

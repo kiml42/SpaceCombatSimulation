@@ -21,6 +21,7 @@ import {
   type ShipDesign,
 } from '../sim/index.js';
 import { CORVETTE } from '../scenarios/blueprints.js';
+import { joints } from '../sim/connectivity.js';
 
 /**
  * What a hit does to the ship it landed on.
@@ -295,6 +296,27 @@ describe('what a hit logs to be drawn', () => {
     const y = bodies.y[body]! + impacts.log.localX[0]! * Math.sin(angle) + impacts.log.localY[0]! * Math.cos(angle);
     expect(x).toBeCloseTo(impacts.log.x[0]!, 9);
     expect(y).toBeCloseTo(impacts.log.y[0]!, 9);
+  });
+
+  it('takes a bite out of every weld it goes through, and none it does not', () => {
+    // A round that crosses from one module into the next has gone through the
+    // weld between them. One that stops in the first module has gone through
+    // nothing, however much it hurt.
+    const through = ship();
+    shoot(through, 90, 0.16, 1400);
+    const design = corvette;
+    let bitten = 0;
+    joints(design).forEach((_joint, k) => {
+      if (through.damage.cutAt(0, k) > 0) bitten++;
+    });
+    expect(bitten).toBeGreaterThan(0);
+
+    const stopped = ship();
+    // A pebble: it embeds in the first plate it meets.
+    shoot(stopped, 0.1, 0.01, 90);
+    joints(design).forEach((_joint, k) => {
+      expect(stopped.damage.cutAt(0, k)).toBe(0);
+    });
   });
 
   it('shoves the ship by the momentum the round left in it', () => {

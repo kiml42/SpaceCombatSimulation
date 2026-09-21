@@ -71,8 +71,8 @@ Then, in order:
    what a module does about that is a list of responses it carries. **Hulls are also solid now**
    (`sim/collision.ts`), which was a Slice 0 debt with no step of its own: ships meet module box
    against module box and come apart tumbling. **Severing is built too** (`sim/connectivity.ts`): a
-   hull is held together by welds derived from its geometry, a weld parts when the metal at either end of
-   it has taken more than the weld is worth, and what comes off is a body of its own — solid hulls went
+   hull is held together by welds derived from its geometry, damage decides how much of a weld is left,
+   and a blow — a collision, or a round crossing it — spends it. What comes off is a body of its own; solid hulls went
    first deliberately, so a severed chunk is a thing that collides rather than a ghost. **This step is
    done**; what it leaves open is in §12, and is about balance and about which piece the crew is on rather
    than about mechanism.
@@ -551,12 +551,18 @@ Deliberately unresolved; decide when they block something.
   module** would settle, along with "which module is the ship" in the layout check. Decide both when a core
   module turns up. Its sibling is unchanged and below: how severed chunks divide fuel, ammunition and
   power.
-- **What a weld is worth: `JOINT_ENERGY_PER_AREA`.** A joint's section is the faces in contact by the
-  thinner wall meeting there, and it parts when either module it joins has absorbed more than that section
-  is worth. The constant is set so a weld outlasts the lightest plate it joins — lower and ships shed parts
-  every few hits, ending fights before their guns do; higher and nothing comes apart. A dial, with
-  `RESTITUTION`, `DE_MARRE_K` and `DAMAGE_ENERGY_PER_KG`, and the one that decides how the game *looks*
-  most directly of the four.
+- **What a weld is worth: `JOINT_IMPULSE_PER_AREA`, and the three constants around it.** A weld's section
+  is the faces in contact by the thinner wall meeting there, rated as an impulse; `WRECK_STRENGTH` is how
+  much of it survives the metal at its ends being wrecked; `SHOCK_REACH` is how far a blow carries before
+  it has half spent itself; `HOLE_CALIBRES` is how much wider than itself a round's hole is, which decides
+  how many rounds along a seam cut it. Set so that an undamaged hull shrugs off the bumps of a crowded
+  battle, a ram takes pieces off, and a gun that keeps putting rounds through one seam cuts it. Dials, with
+  `RESTITUTION`, `DE_MARRE_K` and `DAMAGE_ENERGY_PER_KG`, and the ones that decide how the game *looks*
+  most directly.
+  **The thing they cannot reach** is a shell tearing a sound part off by momentum alone: a 90 kg round at
+  900 m/s carries 81 kN·s and a 177-tonne corvette merely drifting at 3 m/s carries 530, so any weld weak
+  enough to fail to a shell comes apart when two ships nudge each other. That is why a gun's way through a
+  weld is to cut it rather than to shove it, and it is worth remembering before anyone tries to tune it.
 - **How time travel in the viewer works — and it needs no stored state.** Determinism pays for this one
   outright: rewinding to any earlier step is *re-simulating* from the seed, not restoring a snapshot. At the
   measured cost of roughly 15 µs per step, winding a 3,000-step battle back to its start is about 50 ms, which
