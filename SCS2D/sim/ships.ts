@@ -1,6 +1,6 @@
 import { Bodies, type BodyId } from './bodies.js';
 import { subDesign, type ShipDesign } from './blueprint.js';
-import { components, cuts, joints, type Joint } from './connectivity.js';
+import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
 import {
@@ -276,6 +276,10 @@ export class Ships {
    * apart once, from everything that hit it this step, rather than once per
    * hit in whatever order the hits were resolved.
    */
+  /** The weld-cut version each ship was last checked at, so a hull is walked
+   * only when something has taken a fresh bite out of one of its welds. */
+  private readonly cutSeen: number[] = [];
+
   private readonly blowBody: number[] = [];
   private readonly blowModule: number[] = [];
   private readonly blowJx: number[] = [];
@@ -491,6 +495,7 @@ export class Ships {
     this.nextBarrelToFire.push(new Int32Array(mounts.length));
     this.team.push(spec.team ?? 0);
     this.derelict.push(0);
+    this.cutSeen.push(-1);
     this.orders.push([]); // Initialise to an empty array of orders for this ship
     this.demandFx.push(0);
     this.demandFy.push(0);
@@ -988,10 +993,56 @@ export class Ships {
     }
 
     let pieces = 0;
+    pieces += this.partCutWelds(world);
     for (let k = 0; k < this.blows; k++) {
       pieces += this.answer(world, this.blowBody[k]!, this.blowModule[k]!, this.blowJx[k]!, this.blowJy[k]!, this.blowX[k]!, this.blowY[k]!);
     }
     this.blows = 0;
+    return pieces;
+  }
+
+  /**
+   * Let go of every weld that has been cut through.
+   *
+   * **A cut needs no blow.** Everything else here is a weld failing under a
+   * load, but a weld with none of its section left is not a weak weld: it is
+   * an absent one, and what it was holding is simply no longer attached.
+   *
+   * Walked only for hulls something has cut into since the last look, which
+   * is a version comparison like the thruster layout's.
+   */
+  private partCutWelds(world: World): number {
+    const bodies = world.bodies;
+    let pieces = 0;
+    for (let i = 0; i < this.alive.length; i++) {
+      if (this.alive[i] === 0) continue;
+      const b = bodies.indexOf(this.bodyIds[i]!);
+      if (b < 0) continue;
+      const version = this.damage.cutVersion(b);
+      if (this.cutSeen[i] === version) continue;
+      this.cutSeen[i] = version;
+
+      const design = this.designs[i]!;
+      const all = joints(design);
+      let through = false;
+      for (let k = 0; k < all.length; k++) {
+        if (this.damage.weldIntegrity(b, k, all[k]!.width) > 0) continue;
+        through = true;
+        break;
+      }
+      if (!through) continue;
+
+      const parts = components(design, (joint) => {
+        const k = jointBetween(design, joint.a, joint.b);
+        return this.damage.weldIntegrity(b, k, joint.width) <= 0;
+      });
+      if (parts.length < 2) continue;
+      for (let p = 1; p < parts.length; p++) {
+        this.detach(world, i, design, parts[p]!);
+        pieces++;
+      }
+      this.reshape(world, i, design, parts[0]!);
+    }
     return pieces;
   }
 
@@ -1080,7 +1131,7 @@ export class Ships {
         const away = length(joint.x - hitX, joint.y - hitY);
         const carried = SHOCK_REACH / (SHOCK_REACH + away);
         const load = (mass * sqrt(fx * fx + fy * fy) * budget * carried) / delivered;
-        const strength = this.weldStrength(bodyIndex, joint);
+        const strength = this.weldStrength(bodyIndex, joint, k);
         if (load <= strength) continue;
         if (load - strength <= worstLoad - worstStrength) continue;
         worst = k;
@@ -1116,12 +1167,15 @@ export class Ships {
    * shot out would shed everything at the first nudge, which is the failure
    * this model exists to avoid.
    */
-  private weldStrength(bodyIndex: number, joint: Joint): number {
+  private weldStrength(bodyIndex: number, joint: Joint, index: number): number {
     const metal = min(
       this.damage.integrity(bodyIndex, joint.a),
       this.damage.integrity(bodyIndex, joint.b),
     );
-    return joint.strength * (WRECK_STRENGTH + (1 - WRECK_STRENGTH) * metal);
+    // What is left of the section, which no amount of sound metal at its ends
+    // can make up for: a weld cut through is not a weak weld but an absent one.
+    const section = this.damage.weldIntegrity(bodyIndex, index, joint.width);
+    return joint.strength * section * (WRECK_STRENGTH + (1 - WRECK_STRENGTH) * metal);
   }
 
   /**
@@ -1152,7 +1206,12 @@ export class Ships {
     this.derelict[j] = 1;
 
     const chunkBody = bodies.indexOf(this.bodyIds[j]!);
-    this.damage.register(chunkBody, chunk, this.scarsOf(b, keep));
+    this.damage.register(
+      chunkBody,
+      chunk,
+      this.scarsOf(b, keep),
+      this.weldScarsOf(b, design, chunk, keep),
+    );
     this.shipByBody[chunkBody] = j;
   }
 
@@ -1183,6 +1242,7 @@ export class Ships {
     bodies.radius[b] = design.radius;
 
     const scars = this.scarsOf(b, keep);
+    const weldScars = this.weldScarsOf(b, was, design, keep);
 
     // Mounts are added before the old ones go, so that a freed slot cannot be
     // handed straight back out and leave two turrets sharing an index.
@@ -1218,13 +1278,31 @@ export class Ships {
     this.throttles[i] = new Float64Array(design.thrusters.length);
     this.layouts[i] = null;
     this.layoutVersion[i] = -1;
-    this.damage.register(b, design, scars);
+    this.damage.register(b, design, scars, weldScars);
+    this.cutSeen[i] = this.damage.cutVersion(b);
   }
 
   /** What each kept module has already absorbed, in the new design's order. */
   private scarsOf(bodyIndex: number, keep: readonly number[]): number[] {
     const scars: number[] = [];
     for (let k = 0; k < keep.length; k++) scars.push(this.damage.absorbedAt(bodyIndex, keep[k]!));
+    return scars;
+  }
+
+  /**
+   * What has already been cut out of each weld the piece keeps, in the new
+   * design's joint order — a weld half sawn through stays half sawn through.
+   */
+  private weldScarsOf(
+    bodyIndex: number,
+    was: ShipDesign,
+    piece: ShipDesign,
+    keep: readonly number[],
+  ): number[] {
+    const scars: number[] = [];
+    for (const joint of joints(piece)) {
+      scars.push(this.damage.cutAt(bodyIndex, jointBetween(was, keep[joint.a]!, keep[joint.b]!)));
+    }
     return scars;
   }
 

@@ -2,6 +2,7 @@ import type { Bodies } from './bodies.js';
 import type { ShipDesign } from './blueprint.js';
 import { Terminal, deflected, incidenceAngle, strike } from './ballistics.js';
 import { HullPath, modulesAlong, type HullDesigns } from './hull.js';
+import { jointBetween, joints } from './connectivity.js';
 import type { ProjectileHits, Projectiles } from './projectiles.js';
 import type { BeamHits, Beams } from './beams.js';
 import { cos, max, min, sin, sqrt } from './math.js';
@@ -31,6 +32,17 @@ import type { ModuleSpec } from './modules.js';
  * and this decides how much a module can take. ROADMAP.md §12 keeps it open.
  */
 export const DAMAGE_ENERGY_PER_KG = 1000;
+
+/**
+ * How wide a hole a round makes, in calibres.
+ *
+ * A perforation is not a neat bore: the plate petals and spalls, and what is
+ * left is a ragged hole rather larger than the round that made it. It matters
+ * here because it is what decides how many rounds through the same seam it
+ * takes to cut a weld — at one calibre apiece a gun would have to put thirty
+ * shells through the same joint.
+ */
+const HOLE_CALIBRES = 3;
 
 /** What damage takes away from a module, beyond eventually stopping it. */
 export enum DamageEffect {
@@ -91,6 +103,16 @@ export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly Dama
  */
 export class Damage {
   private readonly absorbed: (Float64Array | null)[] = [];
+  /**
+   * Metres of weld cut away, by body and joint — what a round took out of a
+   * weld by passing through it.
+   *
+   * Separate from what its modules have absorbed because it is a different
+   * injury: damage to the metal at a weld's ends *weakens* it, and a hole
+   * punched through the weld itself *removes* it.
+   */
+  private readonly cut: (Float64Array | null)[] = [];
+  private readonly cutVersions: number[] = [];
   /** Joules each module can take before it stops working. */
   private readonly capacity: (Float64Array | null)[] = [];
   private readonly kinds: (ModuleSpec['kind'][] | null)[] = [];
@@ -104,7 +126,12 @@ export class Damage {
    * design of its own, and the modules on it are the same battered modules
    * they were a moment earlier.
    */
-  register(bodyIndex: number, design: ShipDesign, carried?: readonly number[]): void {
+  register(
+    bodyIndex: number,
+    design: ShipDesign,
+    carried?: readonly number[],
+    welds?: readonly number[],
+  ): void {
     const n = design.modules.length;
     const capacity = new Float64Array(n);
     const kinds: ModuleSpec['kind'][] = [];
@@ -118,6 +145,12 @@ export class Damage {
       for (let i = 0; i < n; i++) absorbed[i] = carried[i] ?? 0;
     }
     this.absorbed[bodyIndex] = absorbed;
+    const cut = new Float64Array(joints(design).length);
+    if (welds !== undefined) {
+      for (let i = 0; i < cut.length; i++) cut[i] = welds[i] ?? 0;
+    }
+    this.cut[bodyIndex] = cut;
+    this.cutVersions[bodyIndex] = (this.cutVersions[bodyIndex] ?? 0) + 1;
     this.capacity[bodyIndex] = capacity;
     this.kinds[bodyIndex] = kinds;
     this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
@@ -141,6 +174,42 @@ export class Damage {
     const limit = capacity[module];
     if (limit === undefined || !(limit > 0)) return 1;
     return max(0, 1 - absorbed[module]! / limit);
+  }
+
+  /**
+   * Take a strip out of a weld: what a round removes by going through it.
+   *
+   * A weld with nothing left is not a weld, so this is how a gun can cut a
+   * piece off a ship rather than merely loosening it — and it is deliberately
+   * geometry rather than energy, because what matters is how much of the
+   * section is still there.
+   */
+  cutWeld(bodyIndex: number, joint: number, metres: number): void {
+    const cut = this.cut[bodyIndex];
+    if (!cut) return;
+    if (joint < 0 || joint >= cut.length) return;
+    if (!(metres > 0)) return;
+    cut[joint] += metres;
+    this.cutVersions[bodyIndex] = (this.cutVersions[bodyIndex] ?? 0) + 1;
+  }
+
+  /** How much of a weld's section is still there, 1 whole and 0 cut through. */
+  weldIntegrity(bodyIndex: number, joint: number, width: number): number {
+    const cut = this.cut[bodyIndex];
+    if (!cut || !(width > 0)) return 1;
+    const gone = cut[joint];
+    if (gone === undefined) return 1;
+    return max(0, 1 - gone / width);
+  }
+
+  /** Metres already cut out of a weld, for carrying scars across a sever. */
+  cutAt(bodyIndex: number, joint: number): number {
+    return this.cut[bodyIndex]?.[joint] ?? 0;
+  }
+
+  /** How many times this body's welds have been cut into. */
+  cutVersion(bodyIndex: number): number {
+    return this.cutVersions[bodyIndex] ?? 0;
   }
 
   /** Joules one module has taken, which is what a weld holding it is up against. */
@@ -196,6 +265,7 @@ export class Damage {
   }
 
   forget(bodyIndex: number): void {
+    this.cut[bodyIndex] = null;
     this.absorbed[bodyIndex] = null;
     this.capacity[bodyIndex] = null;
     this.kinds[bodyIndex] = null;
@@ -315,6 +385,14 @@ export function resolveRound(
     const hit = strike(mass, calibre, carried, crossing.stats.wallThickness, incidence);
 
     damage.absorb(bodyIndex, module, hit.energy);
+    // A round that goes on from one module into the next has gone *through*
+    // the weld between them, and taken its own width out of it. Enough rounds
+    // along the same seam cut the piece free — a gun shearing a wing off at
+    // the root rather than knocking it off.
+    if (k > 0) {
+      const from = path.module[k - 1]!;
+      damage.cutWeld(bodyIndex, jointBetween(design, from, module), calibre * HOLE_CALIBRES);
+    }
     result.energy += hit.energy;
     result.crossed++;
     result.outcome = hit.outcome;

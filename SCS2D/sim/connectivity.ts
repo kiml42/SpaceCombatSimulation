@@ -215,3 +215,27 @@ export function cuts(design: ShipDesign): readonly (Cut | null)[] {
 }
 
 const cutCache = new WeakMap<ShipDesign, readonly (Cut | null)[]>();
+
+/**
+ * Which joint holds two modules together, or -1 if nothing does.
+ *
+ * Kept per design as a lookup, because anything walking a path *through* a
+ * hull — a round crossing from one module into the next — asks it once per
+ * boundary it crosses.
+ */
+export function jointBetween(design: ShipDesign, a: number, b: number): number {
+  let index = indexCache.get(design);
+  if (index === undefined) {
+    index = new Map<number, number>();
+    const all = joints(design);
+    for (let k = 0; k < all.length; k++) {
+      index.set(all[k]!.a * design.modules.length + all[k]!.b, k);
+    }
+    indexCache.set(design, index);
+  }
+  const lo = a < b ? a : b;
+  const hi = a < b ? b : a;
+  return index.get(lo * design.modules.length + hi) ?? -1;
+}
+
+const indexCache = new WeakMap<ShipDesign, Map<number, number>>();
