@@ -41,7 +41,7 @@ export function start(): void {
   const playButton = el<HTMLButtonElement>('play');
   const stepButton = el<HTMLButtonElement>('step');
   const resetButton = el<HTMLButtonElement>('reset');
-  const switchSceneButton = el<HTMLButtonElement>('switchScene');
+  const sceneSelect = el<HTMLSelectElement>('scene');
   const speedInput = el<HTMLInputElement>('speed');
   const speedLabel = el<HTMLElement>('speedLabel');
   const fitButton = el<HTMLButtonElement>('fit');
@@ -56,7 +56,6 @@ export function start(): void {
     { name: 'Standoff', create: () => standoff(SEED) },
   ];
   let sceneIndex = 0;
-  const nextSceneIndex = (): number => (sceneIndex + 1) % scenes.length;
   let state: Battle = scenes[sceneIndex].create();
   let snapshot = new Snapshot();
   const flashes = new Flashes();
@@ -75,11 +74,14 @@ export function start(): void {
   // passed, once the speed control is off 1x.
   let lastSimTime = 0;
 
-  const updateSwitchSceneButton = (): void => {
-    const nextIndex = nextSceneIndex();
-    switchSceneButton.textContent = `Play ${scenes[nextIndex].name}`;
+  // Named rather than numbered, and the list is the scenes array itself, so a
+  // scenario added there appears here without being mentioned twice.
+  for (const scene of scenes) {
+    const option = document.createElement('option');
+    option.textContent = scene.name;
+    sceneSelect.append(option);
   }
-  updateSwitchSceneButton();
+  sceneSelect.selectedIndex = sceneIndex;
 
   const resize = (): void => {
     const ratio = window.devicePixelRatio || 1;
@@ -110,9 +112,8 @@ export function start(): void {
     autoFrame = true;
     setRunning(true);
   });
-  switchSceneButton.addEventListener('click', () => {
-    sceneIndex = nextSceneIndex();
-    updateSwitchSceneButton();
+  sceneSelect.addEventListener('change', () => {
+    sceneIndex = sceneSelect.selectedIndex;
     state = scenes[sceneIndex].create();
     flashes.clear();
     framed = false;
