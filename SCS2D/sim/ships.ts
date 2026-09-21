@@ -21,10 +21,13 @@ import {
 import { Projectiles } from './projectiles.js';
 import { Allocation, ThrusterLayout } from './thrusters.js';
 import { FiringSolution, Turrets, TurretState } from './turrets.js';
+import type { Targeting } from './doctrine.js';
 import type { World } from './world.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
+import { MAX_BEAM_LENGTH } from './beams.js';
+import { RayHit } from './spatialGrid.js';
 import type { Contacts } from './collision.js';
-import { GunType } from './modules.js';
+import { GunType, type GunStats, type ModuleKind } from './modules.js';
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -183,6 +186,22 @@ const TURRET_MIN_RETHINK = 0.25;
 const TURRET_MAX_RETHINK = 4;
 
 /**
+ * How far ahead of a gun's muzzle a friendly stops it firing, in seconds of
+ * the round's own flight.
+ *
+ * Short on purpose. A shell is slow enough and a battle wide enough that
+ * asking "is a friend anywhere along where this round could go" would stop a
+ * fleet firing at all; what this is for is the consort that has just drifted
+ * across the muzzle, which is the case a gunner would actually notice. Beyond
+ * it, a round is everyone's problem and the ship that flew into the line of
+ * fire is the one that made the mistake.
+ *
+ * A beam gets no such allowance: it arrives instantly along its whole length,
+ * so anything in the line *is* hit, and the cast is the beam itself.
+ */
+const FRIENDLY_LOOKAHEAD = 0.5;
+
+/**
  * How far a blow carries through a hull before it has half spent itself,
  * metres.
  *
@@ -200,6 +219,16 @@ export const NO_TARGET = -1;
 /** World bearing from one point to another. */
 function bearing(fromX: number, fromY: number, toX: number, toY: number): number {
   return atan2(toY - fromY, toX - fromX);
+}
+
+/** Aiming at a ship rather than at any part of it. */
+const WHOLE_SHIP = -1;
+
+/** What a doctrine thinks one kind of module is worth shooting at. */
+function partWeight(doctrine: Targeting, kind: ModuleKind): number {
+  if (kind === 'thruster') return doctrine.engineWeight;
+  if (kind === 'structure') return doctrine.structureWeight;
+  return doctrine.gunWeight;
 }
 
 /**
@@ -332,6 +361,23 @@ export class Ships {
    */
   private readonly turretTarget: Int32Array[] = [];
   private readonly turretRethinkAt: Float64Array[] = [];
+  /**
+   * What each mount was actually trained on, last time it was trained.
+   *
+   * **A gun fires at what its barrel is pointing at, not at what it would
+   * choose if asked again.** Training happens before the world steps and
+   * firing after it, and a hull turns in between — so asking twice can give
+   * two answers, and the second one is a target the barrel was never brought
+   * round to. A gun with a stale answer shoots off into empty space, which is
+   * exactly what it looks like.
+   */
+  private readonly turretAiming: Int32Array[] = [];
+  /**
+   * Which module of its target each mount is shooting at, or -1 for the ship
+   * as a whole — which is what a doctrine with no opinion about parts means,
+   * since picking a part is picking a smaller thing to miss.
+   */
+  private readonly turretAimModule: Int32Array[] = [];
 
   private readonly team: number[] = [];
 
@@ -430,6 +476,8 @@ export class Ships {
    * built per call, per §12.
    */
   private readonly gunPoint = { x: 0, y: 0, vx: 0, vy: 0 };
+  /** Where a shot would land, for the friendly check. Reused, never shared. */
+  private readonly lineOfFire = new RayHit();
 
   /** Turret reaction torque per body index, filled by `Turrets.step`. */
   private reaction = new Float64Array(64);
@@ -624,11 +672,13 @@ export class Ships {
     this.nextBarrelToFire.push(new Int32Array(mounts.length));
     const chosenBy = new Int32Array(mounts.length).fill(NO_TARGET);
     this.turretTarget.push(chosenBy);
+    this.turretAiming.push(new Int32Array(mounts.length).fill(NO_TARGET));
     // Staggered like the hull's own, so a battery does not stop to think all
     // at once for the rest of the battle.
     const schedule = new Float64Array(mounts.length);
     for (let t = 0; t < mounts.length; t++) schedule[t] = i + t;
     this.turretRethinkAt.push(schedule);
+    this.turretAimModule.push(new Int32Array(mounts.length).fill(WHOLE_SHIP));
     this.team.push(spec.team ?? 0);
     this.derelict.push(0);
     this.cutSeen.push(-1);
@@ -719,6 +769,7 @@ export class Ships {
     const design = this.designs[i]!;
     const indices = this.turretIndex[i]!;
     const targets = this.turretTarget[i]!;
+    const aims = this.turretAimModule[i]!;
     const schedule = this.turretRethinkAt[i]!;
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
@@ -733,6 +784,7 @@ export class Ships {
       const held = targets[t]!;
       if (held !== NO_TARGET && (this.alive[held] !== 1 || this.derelict[held] === 1)) {
         targets[t] = NO_TARGET;
+        aims[t] = WHOLE_SHIP;
       }
       if (world.tick < schedule[t]!) continue;
       const mount = design.turrets[t]!;
@@ -740,6 +792,7 @@ export class Ships {
 
       if (!(this.damage.remaining(b, mount.module, DamageEffect.FireRate) > 0)) {
         targets[t] = NO_TARGET;
+        aims[t] = WHOLE_SHIP;
         continue;
       }
 
@@ -783,6 +836,9 @@ export class Ships {
         );
       }
       targets[t] = this.choice.ship;
+      aims[t] = targets[t] === NO_TARGET
+        ? WHOLE_SHIP
+        : this.aimModule(bodies, doctrine, targets[t]!, gunX, gunY);
     }
   }
 
@@ -801,6 +857,55 @@ export class Ships {
     this.gunPoint.y = bodies.y[b]! + ry;
     this.gunPoint.vx = bodies.vx[b]! - spin * ry;
     this.gunPoint.vy = bodies.vy[b]! + spin * rx;
+  }
+
+  /**
+   * Which part of a target to shoot at: the best-weighted module still worth
+   * hitting, or the ship as a whole when the doctrine has no opinion.
+   *
+   * Ties go to whatever is nearest the gun — the gun itself, not its ship —
+   * so a mount aiming for engines takes the engine on the near side rather
+   * than shooting through the ship to reach one behind it. A module already
+   * spent is no longer worth a round.
+   */
+  private aimModule(
+    bodies: Bodies,
+    doctrine: Targeting,
+    target: number,
+    fromX: number,
+    fromY: number,
+  ): number {
+    if (
+      doctrine.engineWeight === 0 &&
+      doctrine.gunWeight === 0 &&
+      doctrine.structureWeight === 0
+    ) {
+      return WHOLE_SHIP;
+    }
+    const tb = bodies.indexOf(this.bodyIds[target]!);
+    if (tb < 0) return WHOLE_SHIP;
+    const design = this.designs[target]!;
+    const angle = bodies.angle[tb]!;
+    const c = cos(angle);
+    const s = sin(angle);
+
+    let best = WHOLE_SHIP;
+    let bestWeight = 0;
+    let bestRange = 0;
+    for (let k = 0; k < design.modules.length; k++) {
+      if (this.damage.spent(tb, k)) continue;
+      const weight = partWeight(doctrine, design.modules[k]!.spec.kind);
+      const mx = bodies.x[tb]! + design.modules[k]!.x * c - design.modules[k]!.y * s;
+      const my = bodies.y[tb]! + design.modules[k]!.x * s + design.modules[k]!.y * c;
+      const range = length(mx - fromX, my - fromY);
+      if (best !== WHOLE_SHIP && (weight < bestWeight || (weight === bestWeight && range >= bestRange))) {
+        continue;
+      }
+      best = k;
+      bestWeight = weight;
+      bestRange = range;
+    }
+    return best;
   }
 
   /** What this ship as a whole is fighting, for its mounts to converge on. */
@@ -837,6 +942,49 @@ export class Ships {
     const own = this.turretTarget[i]![t]!;
     if (own === NO_TARGET || this.alive[own] !== 1) return NO_TARGET;
     return own;
+  }
+
+  /**
+   * Whether a friendly hull is in the way of this shot.
+   *
+   * A straight cast from the muzzle along the barrel, at this instant and
+   * ignoring everyone's velocity: a gun that tried to work out where its
+   * friends will be would be solving the firing problem twice, and the answer
+   * it wants is the crude one — is somebody *there*.
+   *
+   * The cast stops at the nearest hull, so an enemy between this gun and a
+   * consort behind it is still shot at. Wreckage is not a friend however it
+   * is painted: nobody is aboard it, and holding fire for it would make every
+   * broken ship a shield. Nor is what this mount is shooting at, whoever's
+   * side it is on — a ship told to fire on one of its own does so, because
+   * this is a rule about what is *in the way* and not about who may be shot.
+   */
+  private friendlyInTheWay(
+    bodies: Bodies,
+    grid: SpatialGrid,
+    i: number,
+    bodyIdx: number,
+    gun: GunStats,
+    target: number,
+  ): boolean {
+    const range =
+      gun.type === GunType.Beam ? MAX_BEAM_LENGTH : gun.muzzleSpeed * FRIENDLY_LOOKAHEAD;
+    if (!(range > 0)) return false;
+    const hit = this.lineOfFire;
+    const found = grid.raycast(
+      bodies,
+      this.solution.x,
+      this.solution.y,
+      this.solution.x + this.solution.dirX * range,
+      this.solution.y + this.solution.dirY * range,
+      hit,
+      bodyIdx,
+      this.hulls,
+    );
+    if (!found) return false;
+    const other = this.shipAt(bodies, hit.bodyIndex);
+    if (other < 0 || other === i || other === target) return false;
+    return this.derelict[other] === 0 && this.team[other] === this.team[i];
   }
 
   /** How long this mount waits before reconsidering, in steps. */
@@ -990,6 +1138,7 @@ export class Ships {
       if (this.derelict[i] === 1) continue;
       const design = this.designs[i]!;
       const indices = this.turretIndex[i]!;
+      const aiming = this.turretAiming[i]!;
       const timers = this.cooldown[i]!;
 
       const turretStates = this.turretStates[i]!;
@@ -1040,7 +1189,10 @@ export class Ships {
 
         const ti = indices[t]!;
 
-        const target = this.turretAim(bodies, i, t);
+        // What this gun was trained on, rather than what it would pick now:
+        // the hull has turned since, and a target chosen after the barrel
+        // stopped moving is one the barrel is not pointing at.
+        const target = aiming[t]!;
 
         // skip if it's not ready to fire, and it's not committed to being on.
         if ((target === NO_TARGET || !this.turrets.readyToFire(ti)) && state != TurretState.CommittedOn) continue;
@@ -1051,6 +1203,12 @@ export class Ships {
             : 0;
 
         this.turrets.firingSolution(bodies, ti, this.solution, lateralOffset);
+
+        // A burst already committed is seen through: the emitter is lit and
+        // there is nothing to hold. Discipline is about pulling the trigger.
+        if (state != TurretState.CommittedOn && this.friendlyInTheWay(bodies, grid, i, bodyIdx, gun, target)) {
+          continue;
+        }
 
         if (gun.type == GunType.Projectile) {
           projectiles.fireFrom(
@@ -1302,9 +1460,11 @@ export class Ships {
   /** Train each of this ship's turrets on what it is fighting, leading it. */
   private trainOne(bodies: Bodies, i: number): void {
     const indices = this.turretIndex[i]!;
+    const aiming = this.turretAiming[i]!;
     for (let t = 0; t < indices.length; t++) {
       const ti = indices[t]!;
       const target = this.turretAim(bodies, i, t);
+      aiming[t] = NO_TARGET;
       if (target === NO_TARGET) {
         this.turrets.returnToRest(ti);
         continue;
@@ -1314,8 +1474,70 @@ export class Ships {
         this.turrets.returnToRest(ti);
         continue;
       }
-      this.turrets.aimAt(bodies, ti, bodies.x[tb]!, bodies.y[tb]!, bodies.vx[tb]!, bodies.vy[tb]!);
+      aiming[t] = target;
+
+      // Where on it: a part, when the doctrine has an opinion about parts and
+      // that part is still there, and otherwise the ship.
+      //
+      // **The part's position, the hull's velocity.** A part does not travel
+      // in the straight line a firing solution assumes: it goes round the
+      // centre of mass, so extrapolating the ω × r it has right now sends the
+      // aim point off on a tangent that grows with the square of the flight
+      // time. Leading the *hull* instead is wrong by at most how far the part
+      // sits from the centre of mass, whatever the flight time — metres,
+      // against a lead measured in hundreds of them. It is the better
+      // approximation for every shot long enough for the difference to
+      // matter, and the tangent is worse for exactly those.
+      //
+      // The error it does leave — a part swinging round to the far side while
+      // the round is in the air — grows with the hull's rate of turn and its
+      // size, and those pull against each other: a ship large enough for the
+      // offset to matter is one too heavy to spin quickly. It is also the
+      // forgiving kind of error: an aim point held on the hull puts a round
+      // that misses the part it was meant for into some other part of the
+      // same ship, where a tangent that has run off the ship misses
+      // altogether.
+      const part = this.aimPart(i, t, target, tb);
+      const design = this.designs[target]!;
+      let x = bodies.x[tb]!;
+      let y = bodies.y[tb]!;
+      // What the barrel has to keep up with is the part's own motion, ω × r
+      // and all: that is how fast the sky it sits in is moving. Only the lead
+      // is the hull's.
+      let sweepVx = bodies.vx[tb]!;
+      let sweepVy = bodies.vy[tb]!;
+      if (part !== WHOLE_SHIP) {
+        const angle = bodies.angle[tb]!;
+        const module = design.modules[part]!;
+        const rx = module.x * cos(angle) - module.y * sin(angle);
+        const ry = module.x * sin(angle) + module.y * cos(angle);
+        const spin = bodies.angularVel[tb]!;
+        x += rx;
+        y += ry;
+        sweepVx -= spin * ry;
+        sweepVy += spin * rx;
+      }
+      this.turrets.aimAt(bodies, ti, x, y, bodies.vx[tb]!, bodies.vy[tb]!, sweepVx, sweepVy);
     }
+  }
+
+  /**
+   * The part of its target this mount is aiming at, or `WHOLE_SHIP`.
+   *
+   * Checked here rather than trusted, because what was chosen may since have
+   * been shot away or broken off — and a gun holding its aim on a module that
+   * is no longer there would be pointing at empty space beside the ship. A
+   * target that has just come apart renumbers its modules, so a mount may aim
+   * at the wrong part of it until it next looks; that is a fraction of a
+   * second of pointing at the same ship, which is why it is left alone.
+   */
+  private aimPart(i: number, t: number, target: number, targetBody: number): number {
+    const part = this.turretAimModule[i]![t]!;
+    if (part === WHOLE_SHIP) return WHOLE_SHIP;
+    if (this.turretTarget[i]![t] !== target) return WHOLE_SHIP;
+    const design = this.designs[target]!;
+    if (part >= design.modules.length) return WHOLE_SHIP;
+    return this.damage.spent(targetBody, part) ? WHOLE_SHIP : part;
   }
 
   /**
@@ -1718,6 +1940,8 @@ export class Ships {
     const states = new Uint8Array(design.turrets.length);
     const barrels = new Int32Array(design.turrets.length);
     const targets = new Int32Array(design.turrets.length).fill(NO_TARGET);
+    const aiming = new Int32Array(design.turrets.length).fill(NO_TARGET);
+    const aims = new Int32Array(design.turrets.length).fill(WHOLE_SHIP);
     const schedule = new Float64Array(design.turrets.length);
     for (let t = 0; t < design.turrets.length; t++) {
       const mount = design.turrets[t]!;
@@ -1735,6 +1959,8 @@ export class Ships {
       states[t] = this.turretStates[i]![before]!;
       barrels[t] = this.nextBarrelToFire[i]![before]!;
       targets[t] = this.turretTarget[i]![before]!;
+      aiming[t] = this.turretAiming[i]![before]!;
+      aims[t] = this.turretAimModule[i]![before]!;
       schedule[t] = this.turretRethinkAt[i]![before]!;
     }
     const old = this.turretIndex[i]!;
@@ -1747,6 +1973,8 @@ export class Ships {
     this.turretStates[i] = states;
     this.nextBarrelToFire[i] = barrels;
     this.turretTarget[i] = targets;
+    this.turretAiming[i] = aiming;
+    this.turretAimModule[i] = aims;
     this.turretRethinkAt[i] = schedule;
     this.throttles[i] = new Float64Array(design.thrusters.length);
     this.layouts[i] = null;
@@ -1816,11 +2044,14 @@ export class Ships {
    * its design lists them. What a snapshot needs to read a bearing back out.
    */
   /**
-   * What one of this ship's mounts is shooting at, or `NO_TARGET` — the
-   * ordered target when it can train on it, and otherwise its own pick.
+   * What one of this ship's mounts is shooting at, or `NO_TARGET` — what it
+   * was last trained on, which is the only target it can actually hit.
+   *
+   * `bodies` is no longer needed and is kept so that callers read the same
+   * either way.
    */
-  targetOfTurret(bodies: Bodies, i: number, turret: number): number {
-    return this.turretAim(bodies, i, turret);
+  targetOfTurret(_bodies: Bodies, i: number, turret: number): number {
+    return this.turretAiming[i]![turret]!;
   }
 
   turretIndexOf(i: number, turret: number): number {

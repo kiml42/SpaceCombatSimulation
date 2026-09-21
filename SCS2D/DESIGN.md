@@ -116,8 +116,22 @@ inside any one file is not contiguous.
   hull whose doctrine changes takes its guns with it except where a gun has an opinion. Everything a mount
   asks is measured from the gun rather than from the hull it is bolted to, which is both the truth and
   what leaves a pair of beam guns taking a threat each rather than both piling onto one.
-- **Next:** the rest of §8 step 3 — firing discipline, a short cast ahead of the muzzle so a gun does not
-  shoot through a friend, then a picker per module kind so a doctrine can say to go for the engines. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
+  **A gun holds its fire rather than shoot through its own side**: a straight cast from the muzzle at
+  this instant, ignoring everyone's velocity, out to a moment of the round's flight for a gun and the
+  whole length for a beam — which arrives instantly along all of it. What it is shooting at is never in
+  the way, whoever's side it is on, and neither is wreckage. Whether it matters is a question about
+  formation: fleets meeting line abreast have their friends beside them, and the `column` scenario is the
+  same fleets in line ahead, where the opening ten seconds go from twenty hits on one's own side to none.
+  **A doctrine also says which part of a ship to shoot at**, as a weight per kind of module. The default
+  is guns first, engines close behind and structure a long way back: a ship that cannot shoot has stopped
+  being a threat, one that cannot move has stopped being a problem, and structure is what is left when
+  there is nothing better to hit. In `standoff` that moves two thirds of the hits onto guns where a third
+  of them used to land there, and it costs accuracy — a part is a smaller thing to miss — so the fleets
+  trade fewer hits for hits that matter. A doctrine that would rather not choose sets all three weights to
+  zero and shoots at the ship. Above the default is where crippling beats killing: the Dinky puts engines
+  first, because a fighter that cannot destroy a capital can still strand one.
+- **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
+  hemisphere, looking-at and ship-type pickers. After it comes headless evolution and analysis. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
   others stay linked, and the word the editor owes the player when an action reorders
   a layout. Restructuring a group — dissolving one, or nesting one inside another —

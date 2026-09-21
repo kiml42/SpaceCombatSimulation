@@ -101,9 +101,17 @@ describe('a doctrine as written down', () => {
       doctrine: toDoctrine({ approach: { standoff: 1.4 } }),
     });
     expect(design.doctrine.approach.standoff).toBe(1.4);
-    // The Dinky is the ship with nothing to say: the adaptable default
-    // already sends a fighter after fighters.
-    expect(compileBlueprint(DINKY).doctrine).toEqual(DEFAULT_DOCTRINE);
+    // The Dinky has an opinion about where to shoot and none at all about
+    // what to shoot: the adaptable default already sends a fighter after
+    // fighters, so its block says one thing — engines above the guns the
+    // default puts first — and inherits the rest.
+    expect(compileBlueprint(DINKY).doctrine).toEqual({
+      ...DEFAULT_DOCTRINE,
+      targeting: { ...DEFAULT_DOCTRINE.targeting, engineWeight: 150 },
+    });
+    expect(compileBlueprint(DINKY).doctrine.targeting.engineWeight).toBeGreaterThan(
+      DEFAULT_DOCTRINE.targeting.gunWeight,
+    );
   });
 });
 
@@ -200,11 +208,12 @@ describe('what a ship is worth shooting at', () => {
 
   it('sends a fighter after fighters, on the default doctrine alone', () => {
     // A fighter that goes for the biggest thing on the board achieves
-    // nothing, and this is why the Dinky needs no doctrine block of its own:
+    // nothing, and this is why the Dinky says nothing about what to go after:
     // "something my own size" is already what the default says.
     const dinky = compileBlueprint(DINKY);
     const capital = compileBlueprint(GUNSHIP);
-    expect(dinky.doctrine).toEqual(DEFAULT_DOCTRINE);
+    expect(dinky.doctrine.targeting.preferredMass).toBe(DEFAULT_DOCTRINE.targeting.preferredMass);
+    expect(dinky.doctrine.targeting.massWeight).toBe(DEFAULT_DOCTRINE.targeting.massWeight);
 
     const small = candidate({ ship: 1, mass: dinky.mass });
     const large = candidate({ ship: 2, mass: capital.mass });

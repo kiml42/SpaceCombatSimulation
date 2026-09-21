@@ -115,10 +115,54 @@ Then, in order:
    leaves a pair of them free to take a threat each. What separates the pair is that a mount measures
    from itself rather than from the hull — metres, against gunnery range, and enough to order two
    otherwise identical targets differently.
-   Still to do, in order: firing discipline, then a picker per module kind so a doctrine can say to go for
-   the engines. Firing discipline is a short cast ahead of the muzzle for a
-   friendly — the length of a barrel's reach for a gun, the whole beam for a beam. Withdrawal, line-of-sight, hemisphere, looking-at and ship-type pickers
-   are deliberately after this step.
+   **Firing discipline** followed: a straight cast from the muzzle for a friendly hull, ignoring
+   everyone's velocity — half a second of the round's flight for a gun, since a shell is slow and a battle
+   is wide, and the whole length for a beam, which arrives instantly along all of it. The mount's own
+   target is never in the way, whoever's side it is on, and nor is wreckage; a burst already committed is
+   seen through. **The formation is what decides whether it matters**: two fleets meeting line-abreast
+   keep their friends beside them and their guns looking into clear space, so `standoff` is bit-identical
+   with the rule in place. The `column` scenario is the same fleets turned ninety degrees — line ahead,
+   every ship but the leader with one of its own in front of its guns — and there it takes the first ten
+   seconds from twenty hits on one's own side to none, and stops the beam ships raking their own line.
+   Over a full run the columns dissolve into a melee and the count stops being a measure of the rule
+   (400 against 199), which is why the golden pins the whole run and the test pins the formation.
+   One thing the same work turned up: **a gun fires at what its barrel is pointing at**. Turrets are
+   trained before the world steps and fired after it, and a hull turns in between, so working the target
+   out afresh at the trigger could name one the barrel had never been brought round to — a fighter would
+   put a round out over its own shoulder. What a mount was trained on is recorded when it is trained, and
+   that is what fires.
+   **A picker per module kind** finished the step: `engineWeight`, `gunWeight` and `structureWeight` say
+   which part of a ship to aim at. The default is 100 / 80 / 20 — guns first, engines close behind,
+   structure a long way back — since a ship that cannot shoot has stopped being a threat and one that
+   cannot move has stopped being a problem, in that order. All three at zero is the way out for a
+   doctrine that would rather shoot at the ship than pick a smaller thing to miss. Ties go to whatever is
+   nearest the gun, so a mount does not shoot through a ship to reach the engine on its far side, and an
+   aim point that has been shot away falls back to the hull. **A part is led by its hull's velocity, not by
+   its own**: a part goes round the centre of mass rather than off along the tangent it is travelling
+   down at this instant, so extrapolating that tangent over a long shot throws the aim point clean off
+   the ship, while leading the hull is wrong by at most how far the part sits from the centre of mass,
+   whatever the flight time. The error that leaves grows with a hull's size and its rate of turn, and
+   those pull against each other — and it is the forgiving kind: an aim point held on the hull puts a
+   round that misses the part it was meant for into some other part of the same ship, where a tangent
+   that has run off the ship misses altogether. A fighter firing at a pinned capital spinning at
+   0.4 rad/s lands 0.91 impacts per round at two kilometres against 0.55, and 1.23 against 0.87 at one. The *tracking* rate is still the part's own, since how fast a barrel
+   must turn now and where a thing will be in five seconds are different questions. In `duel` the
+   difference is 0.58 hits per round fired against 1.14, and 78 rounds fired against 321 — a turret
+   chasing a tangent rarely settles enough to read as on target at all. Measured in `standoff`: hits
+   landing on guns go from 37% to 68% and on structure from 55% to 22%, nine of ten survivors are
+   disarmed rather than eight, and it is paid for in accuracy — 1.81 bodies struck per round fired
+   against 1.41, because a module is a smaller thing to hit than a ship. The Dinky sets engines above
+   guns, because a fighter cannot destroy a capital but can strand one.
+   What is left of this step is what it always deferred — withdrawal, and the line-of-sight, hemisphere,
+   looking-at and ship-type pickers — plus one thing using it turned up: **how much a mount cares about
+   its ship's orders, as a weight of its own**. An order is currently a mandate: every mount that can
+   train on the ordered target takes it. That is right for a main battery and wrong for a close-in mount,
+   which should go on swatting whatever is about to hit the ship while the hull is ordered onto something
+   big. The shape is the one the rest of targeting already has: a weight scoring the ordered target
+   alongside every other candidate, defaulted high enough that an ordinary mount obeys and set low on a
+   CIWS. It replaces the mandate rather than sitting beside it, so it moves the goldens of every scenario
+   that issues an order — which is why it is a piece of work of its own rather than a postscript to the
+   one that introduced the mandate.
 4. **Headless evolution and analysis** — balance testing plus sandbox mode.
 5. **v1: skirmish** — a fixed budget of *materials* rather than of points (§12), designed scenarios,
    shareable by URL. *This is the first thing worth giving people to play.*
