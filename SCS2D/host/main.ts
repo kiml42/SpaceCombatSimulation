@@ -50,7 +50,7 @@ export function start(): void {
   const scenes = [
     { name: 'Duel', create: () => duel(SEED) },
     { name: 'Beam Duel', create: () => beamDuel(SEED) },
-    { name: 'Star Wars', create: () => starWars(SEED, 10, 5) },
+    { name: 'Star Wars', create: () => starWars(SEED) },
     { name: 'Beam Vs Gun', create: () => beamVGun(SEED) },
     { name: 'Swarm', create: () => swarm(SEED) },
     { name: 'Fractal', create: () => fractal(SEED) },

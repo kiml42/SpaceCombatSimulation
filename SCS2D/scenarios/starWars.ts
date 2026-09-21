@@ -22,7 +22,7 @@ import { OrderCancelCondition } from '../sim/ships.js';
  * Many dinkies and one gunship closing on each other and opening fire.
  */
 
-export function starWars(seed = 20260905, tieFighterCount = 25, xWingCount = 30): Battle {
+export function starWars(seed = 20260905, tieFighterCount = 15, xWingCount = 30): Battle {
   const dt = 1 / 60;
   const world = new World({ dt, seed });
 
@@ -41,13 +41,15 @@ export function starWars(seed = 20260905, tieFighterCount = 25, xWingCount = 30)
   const randomRadius = 1000;
 
 
-  const isds = SpawnMany(1, rng, randomRadius, ships, world, isdBlueprint, 3000, 0, 0);
-  const ties = SpawnMany(tieFighterCount, rng, randomRadius, ships, world, tieBlueprint, 1000, 0, 0);
+  const isds = spawnMany(1, rng, randomRadius, ships, world, isdBlueprint, 10_000, 0, 0);
+  const ties = spawnMany(tieFighterCount, rng, randomRadius, ships, world, tieBlueprint, 1200, 0, 0);
 
-  const xWings = SpawnMany(xWingCount, rng, randomRadius, ships, world, xWingBlueprint, -1000, 0, 1);
-  const ghosts = SpawnMany(2, rng, randomRadius, ships, world, ghostBlueprint, -1200, 0, 1);
+  const xWings = spawnMany(xWingCount, rng, randomRadius, ships, world, xWingBlueprint, -2400, 0, 1);
+  const ghosts = spawnMany(2, rng, randomRadius, ships, world, ghostBlueprint, -4000, 0, 1);
 
   for (const tie of ties) {
+    shuffle(xWings, rng);
+    shuffle(ghosts, rng);
     for (const xWing of xWings) {
       ships.pushOrder(tie, xWing, 50, 400, 80, OrderCancelCondition.Disarm);
     }
@@ -63,6 +65,8 @@ export function starWars(seed = 20260905, tieFighterCount = 25, xWingCount = 30)
   }
 
   for (const isd of isds) {
+    shuffle(xWings, rng);
+    shuffle(ghosts, rng);
     for (const ghost of ghosts) {
       ships.pushOrder(isd, ghost, 1500, 2500, 20, OrderCancelCondition.Disarm);
     }
@@ -78,32 +82,36 @@ export function starWars(seed = 20260905, tieFighterCount = 25, xWingCount = 30)
   }
 
   for (const ghost of ghosts) {
+    shuffle(ties, rng);
+    shuffle(isds, rng);
     for (const tie of ties) {
       ships.pushOrder(ghost, tie, 50, 1000, 30, OrderCancelCondition.Disarm);
     }
     for (const isd of isds) {
-      ships.pushOrder(ghost, isd, 500, 1000, 30, OrderCancelCondition.Disarm);
+      ships.pushOrder(ghost, isd, 600, 1000, 30, OrderCancelCondition.Disarm);
     }
     for (const tie of ties) {
       ships.pushOrder(ghost, tie, 50, 1000, 30, OrderCancelCondition.CompleteDisable);
     }
     for (const isd of isds) {
-      ships.pushOrder(ghost, isd, 500, 1000, 30, OrderCancelCondition.CompleteDisable);
+      ships.pushOrder(ghost, isd, 600, 1000, 30, OrderCancelCondition.CompleteDisable);
     }
   }
 
   for (const xWing of xWings) {
+    shuffle(ties, rng);
+    shuffle(isds, rng);
     for (const tie of ties) {
       ships.pushOrder(xWing, tie, 50, 500, 60, OrderCancelCondition.Disarm);
     }
     for (const isd of isds) {
-      ships.pushOrder(xWing, isd, 500, 800, 30, OrderCancelCondition.Disarm);
+      ships.pushOrder(xWing, isd, 600, 800, 30, OrderCancelCondition.Disarm);
     }
     for (const tie of ties) {
       ships.pushOrder(xWing, tie, 50, 500, 60, OrderCancelCondition.CompleteDisable);
     }
     for (const isd of isds) {
-      ships.pushOrder(xWing, isd, 500, 800, 30, OrderCancelCondition.CompleteDisable);
+      ships.pushOrder(xWing, isd, 600, 800, 30, OrderCancelCondition.CompleteDisable);
     }
   }
 
@@ -161,7 +169,15 @@ export function starWars(seed = 20260905, tieFighterCount = 25, xWingCount = 30)
   return run;
 }
 
-function SpawnMany(count: number, rng: Rng, randomRadius: number, ships: Ships, world: World, blueprint: ShipDesign, xStart: number, yStart: number, team: number): number[] {
+function spawnMany(count: number,
+  rng: Rng,
+  randomRadius: number,
+  ships: Ships,
+  world: World,
+  blueprint: ShipDesign,
+  xStart: number,
+  yStart: number,
+  team: number): number[] {
   const shipIndices = [];
   for (let i = 0; i < count; i++) {
     const angle = rng.nextRange(0, 2 * math.PI);
@@ -186,5 +202,21 @@ function SpawnMany(count: number, rng: Rng, randomRadius: number, ships: Ships, 
     shipIndices.push(a);
   }
   return shipIndices;
+}
+
+function shuffle(array : number[], rng: Rng) {
+  let currentIndex = array.length;
+
+  // While there remain elements to shuffle...
+  while (currentIndex != 0) {
+
+    // Pick a remaining element...
+    let randomIndex = math.floor(rng.nextRange(0,currentIndex));
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
+  }
 }
 
