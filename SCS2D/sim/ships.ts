@@ -350,6 +350,17 @@ export class Ships {
    */
   private readonly turretTarget: Int32Array[] = [];
   private readonly turretRethinkAt: Float64Array[] = [];
+  /**
+   * What each mount was actually trained on, last time it was trained.
+   *
+   * **A gun fires at what its barrel is pointing at, not at what it would
+   * choose if asked again.** Training happens before the world steps and
+   * firing after it, and a hull turns in between — so asking twice can give
+   * two answers, and the second one is a target the barrel was never brought
+   * round to. A gun with a stale answer shoots off into empty space, which is
+   * exactly what it looks like.
+   */
+  private readonly turretAiming: Int32Array[] = [];
 
   private readonly team: number[] = [];
 
@@ -644,6 +655,7 @@ export class Ships {
     this.nextBarrelToFire.push(new Int32Array(mounts.length));
     const chosenBy = new Int32Array(mounts.length).fill(NO_TARGET);
     this.turretTarget.push(chosenBy);
+    this.turretAiming.push(new Int32Array(mounts.length).fill(NO_TARGET));
     // Staggered like the hull's own, so a battery does not stop to think all
     // at once for the rest of the battle.
     const schedule = new Float64Array(mounts.length);
@@ -1053,6 +1065,7 @@ export class Ships {
       if (this.derelict[i] === 1) continue;
       const design = this.designs[i]!;
       const indices = this.turretIndex[i]!;
+      const aiming = this.turretAiming[i]!;
       const timers = this.cooldown[i]!;
 
       const turretStates = this.turretStates[i]!;
@@ -1103,7 +1116,10 @@ export class Ships {
 
         const ti = indices[t]!;
 
-        const target = this.turretAim(bodies, i, t);
+        // What this gun was trained on, rather than what it would pick now:
+        // the hull has turned since, and a target chosen after the barrel
+        // stopped moving is one the barrel is not pointing at.
+        const target = aiming[t]!;
 
         // skip if it's not ready to fire, and it's not committed to being on.
         if ((target === NO_TARGET || !this.turrets.readyToFire(ti)) && state != TurretState.CommittedOn) continue;
@@ -1371,9 +1387,11 @@ export class Ships {
   /** Train each of this ship's turrets on what it is fighting, leading it. */
   private trainOne(bodies: Bodies, i: number): void {
     const indices = this.turretIndex[i]!;
+    const aiming = this.turretAiming[i]!;
     for (let t = 0; t < indices.length; t++) {
       const ti = indices[t]!;
       const target = this.turretAim(bodies, i, t);
+      aiming[t] = NO_TARGET;
       if (target === NO_TARGET) {
         this.turrets.returnToRest(ti);
         continue;
@@ -1383,6 +1401,7 @@ export class Ships {
         this.turrets.returnToRest(ti);
         continue;
       }
+      aiming[t] = target;
       this.turrets.aimAt(bodies, ti, bodies.x[tb]!, bodies.y[tb]!, bodies.vx[tb]!, bodies.vy[tb]!);
     }
   }
@@ -1787,6 +1806,7 @@ export class Ships {
     const states = new Uint8Array(design.turrets.length);
     const barrels = new Int32Array(design.turrets.length);
     const targets = new Int32Array(design.turrets.length).fill(NO_TARGET);
+    const aiming = new Int32Array(design.turrets.length).fill(NO_TARGET);
     const schedule = new Float64Array(design.turrets.length);
     for (let t = 0; t < design.turrets.length; t++) {
       const mount = design.turrets[t]!;
@@ -1804,6 +1824,7 @@ export class Ships {
       states[t] = this.turretStates[i]![before]!;
       barrels[t] = this.nextBarrelToFire[i]![before]!;
       targets[t] = this.turretTarget[i]![before]!;
+      aiming[t] = this.turretAiming[i]![before]!;
       schedule[t] = this.turretRethinkAt[i]![before]!;
     }
     const old = this.turretIndex[i]!;
@@ -1816,6 +1837,7 @@ export class Ships {
     this.turretStates[i] = states;
     this.nextBarrelToFire[i] = barrels;
     this.turretTarget[i] = targets;
+    this.turretAiming[i] = aiming;
     this.turretRethinkAt[i] = schedule;
     this.throttles[i] = new Float64Array(design.thrusters.length);
     this.layouts[i] = null;
@@ -1885,11 +1907,14 @@ export class Ships {
    * its design lists them. What a snapshot needs to read a bearing back out.
    */
   /**
-   * What one of this ship's mounts is shooting at, or `NO_TARGET` — the
-   * ordered target when it can train on it, and otherwise its own pick.
+   * What one of this ship's mounts is shooting at, or `NO_TARGET` — what it
+   * was last trained on, which is the only target it can actually hit.
+   *
+   * `bodies` is no longer needed and is kept so that callers read the same
+   * either way.
    */
-  targetOfTurret(bodies: Bodies, i: number, turret: number): number {
-    return this.turretAim(bodies, i, turret);
+  targetOfTurret(_bodies: Bodies, i: number, turret: number): number {
+    return this.turretAiming[i]![turret]!;
   }
 
   turretIndexOf(i: number, turret: number): number {

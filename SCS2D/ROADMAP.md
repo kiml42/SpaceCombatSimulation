@@ -126,6 +126,11 @@ Then, in order:
    seconds from twenty hits on one's own side to none, and stops the beam ships raking their own line.
    Over a full run the columns dissolve into a melee and the count stops being a measure of the rule
    (400 against 199), which is why the golden pins the whole run and the test pins the formation.
+   One thing the same work turned up: **a gun fires at what its barrel is pointing at**. Turrets are
+   trained before the world steps and fired after it, and a hull turns in between, so working the target
+   out afresh at the trigger could name one the barrel had never been brought round to — a fighter would
+   put a round out over its own shoulder. What a mount was trained on is recorded when it is trained, and
+   that is what fires.
    Still to do: a picker per module kind so a doctrine can say to go for the engines. Withdrawal, line-of-sight, hemisphere, looking-at and ship-type pickers
    are deliberately after this step.
 4. **Headless evolution and analysis** — balance testing plus sandbox mode.
