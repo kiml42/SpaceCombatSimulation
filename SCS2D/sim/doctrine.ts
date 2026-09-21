@@ -45,11 +45,21 @@ export interface Doctrine {
    */
   readonly loyaltyWeight: number;
   /**
-   * What a ship that can neither move nor shoot is worth, as a multiplier on
-   * everything else. Zero — the default — means a mission kill is a kill and
-   * the fleet moves on, which is what makes §3's distinction worth anything.
+   * Prefer what can still shoot back.
+   *
+   * The first thing worth knowing about a target: a gun that still works is
+   * the reason to fight it at all, and a ship that has lost all of them has
+   * stopped being a threat whatever else is left of it.
    */
-  readonly hulkValue: number;
+  readonly armedWeight: number;
+  /**
+   * Prefer what can still get away.
+   *
+   * Between two disarmed ships, the one that can still make it home is the
+   * one worth spending rounds on — and it is what stops a fleet finishing a
+   * drifting wreck while a crippled ship limps out of the battle.
+   */
+  readonly mobileWeight: number;
 }
 
 /**
@@ -69,7 +79,8 @@ export const DEFAULT_DOCTRINE: Doctrine = {
   valueWeight: 25,
   closingWeight: 10,
   loyaltyWeight: 20,
-  hulkValue: 0,
+  armedWeight: 60,
+  mobileWeight: 30,
 };
 
 /**
@@ -88,7 +99,8 @@ export const DOCTRINE_FIELDS: readonly (keyof Doctrine)[] = [
   'valueWeight',
   'closingWeight',
   'loyaltyWeight',
-  'hulkValue',
+  'armedWeight',
+  'mobileWeight',
 ];
 
 /** Whatever is wrong with a doctrine block, or null. */

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  Choice,
   DEFAULT_DOCTRINE,
   DOCTRINE_FIELDS,
   Ships,
@@ -30,7 +31,8 @@ const candidate = (over: Partial<Candidate> = {}): Candidate => ({
   range: 500,
   closing: 0,
   mass: 100_000,
-  disabled: false,
+  armed: true,
+  mobile: true,
   ...over,
 });
 
@@ -68,9 +70,9 @@ describe('a doctrine as written down', () => {
   });
 
   it('survives a trip through a blueprint file', () => {
-    const blueprint = { ...CORVETTE, doctrine: toDoctrine({ standoff: 1.4, hulkValue: 0.5 }) };
+    const blueprint = { ...CORVETTE, doctrine: toDoctrine({ standoff: 1.4, armedWeight: 90 }) };
     const file = serialiseBlueprint(blueprint);
-    expect(file['doctrine']).toEqual({ standoff: 1.4, hulkValue: 0.5 });
+    expect(file['doctrine']).toEqual({ standoff: 1.4, armedWeight: 90 });
     expect(blueprintFileProblem(file)).toBeNull();
     expect(parseBlueprint(file).doctrine?.standoff).toBe(1.4);
   });
@@ -84,7 +86,7 @@ describe('a doctrine as written down', () => {
 });
 
 describe('what a ship is worth shooting at', () => {
-  const doctrine: Doctrine = { ...DEFAULT_DOCTRINE, loyaltyWeight: 20, hulkValue: 0 };
+  const doctrine: Doctrine = { ...DEFAULT_DOCTRINE, loyaltyWeight: 20 };
   const REACH = 1000;
 
   it('prefers what is closer', () => {
@@ -112,12 +114,52 @@ describe('what a ship is worth shooting at', () => {
     expect(score(doctrine, evens, REACH, 7)).toBeGreaterThan(score(doctrine, evens, REACH, 3));
   });
 
-  it('writes a hulk off entirely, by default', () => {
-    // A multiplier rather than a term, so a doctrine that does not finish
-    // hulks cannot be talked into one by how close it is.
-    const hulk = candidate({ disabled: true, range: 1 });
-    expect(score(doctrine, hulk, REACH, -1)).toBe(0);
-    expect(score({ ...doctrine, hulkValue: 0.5 }, hulk, REACH, -1)).toBeGreaterThan(0);
+  it('prefers what can still shoot back, and what can still get away', () => {
+    const live = candidate();
+    const disarmed = candidate({ armed: false });
+    const stranded = candidate({ mobile: false });
+    expect(score(doctrine, live, REACH, -1)).toBeGreaterThan(score(doctrine, disarmed, REACH, -1));
+    expect(score(doctrine, live, REACH, -1)).toBeGreaterThan(score(doctrine, stranded, REACH, -1));
+  });
+
+  it('puts a hulk behind every live ship without a rule about hulks', () => {
+    // It earns neither of the two bonuses, so it falls behind by exactly what
+    // a doctrine says they are worth. §3's mission kill is then a consequence
+    // of what a ship is rather than a special case about what it has become.
+    const hulk = candidate({ armed: false, mobile: false, range: 1 });
+    const live = candidate({ ship: 2, range: REACH * 0.9 });
+    expect(score(doctrine, live, REACH, -1)).toBeGreaterThan(score(doctrine, hulk, REACH, -1));
+  });
+
+  it('still finishes a hulk when there is nothing else left', () => {
+    // Ranking rather than a threshold: a fleet with nothing appealing to
+    // shoot at does the job in front of it.
+    const choice = new Choice();
+    const hulk = candidate({ armed: false, mobile: false });
+    choice.begin();
+    choice.offer(hulk, score(doctrine, hulk, REACH, -1));
+    expect(choice.ship).toBe(hulk.ship);
+  });
+
+  it('lets a craft prefer its own weight class, without refusing a capital', () => {
+    // A fighter that goes for the biggest thing on the board achieves
+    // nothing. A negative value weight sends it after what it can actually
+    // hurt — and because scoring ranks rather than admits, it still takes on
+    // a capital when a capital is all there is.
+    const dinky = compileBlueprint(DINKY);
+    const capital = compileBlueprint(GUNSHIP);
+    expect(dinky.doctrine.valueWeight).toBeLessThan(0);
+
+    const small = candidate({ ship: 1, mass: dinky.mass });
+    const large = candidate({ ship: 2, mass: capital.mass });
+    expect(score(dinky.doctrine, small, dinky.reach, -1)).toBeGreaterThan(
+      score(dinky.doctrine, large, dinky.reach, -1),
+    );
+
+    const choice = new Choice();
+    choice.begin();
+    choice.offer(large, score(dinky.doctrine, large, dinky.reach, -1));
+    expect(choice.ship).toBe(large.ship);
   });
 
   it('scores a target beyond its reach against, so a ship closes', () => {

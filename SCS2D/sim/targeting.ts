@@ -28,8 +28,10 @@ export interface Candidate {
   readonly closing: number;
   /** Kilograms, which stands in for how much killing it is worth. */
   readonly mass: number;
-  /** Whether it can no longer either move or shoot (§4's hulk). */
-  readonly disabled: boolean;
+  /** Whether any of its guns still work. */
+  readonly armed: boolean;
+  /** Whether it can still push itself about. */
+  readonly mobile: boolean;
 }
 
 /** A hundred tonnes, so `valueWeight` is "score per capital ship". */
@@ -45,6 +47,12 @@ const CLOSING_SCALE = 100;
  * at arm's length scores the full weight, one at the edge of what the guns
  * are good for scores nothing, and one beyond that scores against, which is
  * what makes a ship close rather than plink.
+ *
+ * **A hulk needs no rule of its own.** It has no guns to earn `armedWeight`
+ * and no engines to earn `mobileWeight`, so it falls behind every live ship
+ * on the list by exactly the amount a doctrine says those are worth. §3's
+ * mission kill is then a consequence of what a ship *is* rather than a
+ * special case about what it has become.
  */
 export function score(
   doctrine: Doctrine,
@@ -57,9 +65,8 @@ export function score(
   total += doctrine.valueWeight * (candidate.mass / VALUE_SCALE);
   total += doctrine.closingWeight * (candidate.closing / CLOSING_SCALE);
   if (candidate.ship === loyalTo) total += doctrine.loyaltyWeight;
-  // Last, and a multiplier rather than a term: a doctrine that does not
-  // finish off hulks should not be talked into one by how close it is.
-  if (candidate.disabled) total *= doctrine.hulkValue;
+  if (candidate.armed) total += doctrine.armedWeight;
+  if (candidate.mobile) total += doctrine.mobileWeight;
   return total;
 }
 
@@ -82,8 +89,10 @@ export class Choice {
   }
 
   offer(candidate: Candidate, value: number): void {
-    // A target worth nothing is worth not turning the ship round for.
-    if (value <= 0) return;
+    // Ranking rather than a threshold: a score is only ever worth comparing
+    // with another score. A fleet with nothing appealing left to shoot at
+    // still finishes the job, and a craft that would rather fight its own
+    // weight class still takes on a capital when that is all there is.
     if (this.started && value <= this.best) return;
     this.started = true;
     this.best = value;
@@ -98,7 +107,8 @@ export function look(
   to: number,
   ship: number,
   mass: number,
-  disabled: boolean,
+  armed: boolean,
+  mobile: boolean,
 ): Candidate {
   const dx = bodies.x[to]! - bodies.x[from]!;
   const dy = bodies.y[to]! - bodies.y[from]!;
@@ -111,5 +121,5 @@ export function look(
     const dvy = bodies.vy[to]! - bodies.vy[from]!;
     closing = -(dvx * dx + dvy * dy) / range;
   }
-  return { ship, range, closing, mass, disabled };
+  return { ship, range, closing, mass, armed, mobile };
 }

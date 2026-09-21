@@ -13,6 +13,7 @@ import {
   World,
   type WellSpec,
 } from '../sim/index.js';
+import { NO_TARGET, OrderCancelCondition } from '../sim/ships.js';
 import type { Battle } from './types.js';
 import { CORVETTE, FLAT_GUNSHIP, FLAT_GUNSHIP_GROUPED, GUNSHIP } from './blueprints.js';
 
@@ -106,8 +107,13 @@ function battle(which: readonly number[], seed: number): OrderingBattle {
     team: 1,
   });
 
-  // No order for the mark, which is what makes it hold fire: a ship with no
-  // target neither trains its guns nor shoots, and keeps no station.
+  // The mark is under orders to do nothing, and that is deliberate rather
+  // than incidental: it is the controlled variable of the whole rig, and a
+  // mark that fought back would turn the round-off this measures into chaos.
+  // An order with no target holds heading and holds fire, and being *under*
+  // an order is what keeps its doctrine out of it.
+  ships.pushOrder(target, NO_TARGET, 0, 0, 0, OrderCancelCondition.None);
+
   for (const contender of contenders) ships.pushOrder(contender.ship, target, 300, 500, 120);
 
   const grid = new SpatialGrid(64);
