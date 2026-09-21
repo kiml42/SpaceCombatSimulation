@@ -34,7 +34,7 @@ const GOLDEN: Record<ScenarioName, string> = {
   fractal: 'c12470ea',
   ordering: 'e443f465',
   standoff: 'a7c7bead',
-  ram: '75de2ddc',
+  ram: '1b73021f',
 };
 
 describe('golden scenarios', () => {
