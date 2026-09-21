@@ -296,6 +296,37 @@ describe('what a hit logs to be drawn', () => {
     expect(x).toBeCloseTo(impacts.log.x[0]!, 9);
     expect(y).toBeCloseTo(impacts.log.y[0]!, 9);
   });
+
+  it('shoves the ship by the momentum the round left in it', () => {
+    // A round is a lump of metal arriving at speed, so what it gives up it
+    // gives to the hull. It is also what can tear a piece off, and a blow
+    // that moved nothing could not.
+    const world = new World({ dt: 1 / 60, seed: 4 });
+    const ships = new Ships();
+    const ship = ships.spawn(world, { design: corvette, x: 0, y: 0, team: 0 });
+    const bodies = world.bodies;
+    const body = bodies.indexOf(ships.body(ship));
+
+    const impacts = new Impacts();
+    const projectiles = new Projectiles(8);
+    const hits = new ProjectileHits();
+    const grid = new SpatialGrid(64);
+    grid.rebuild(bodies);
+    const mass = 90;
+    const speed = 900;
+    projectiles.spawn({ x: -corvette.radius * 2, y: 0, vx: speed, vy: 0, width: 0.16, ttl: 5, mass });
+    for (let i = 0; i < 60 && hits.count === 0; i++) {
+      projectiles.step(1 / 60, bodies, grid, hits, undefined, ships.hulls);
+      if (hits.count > 0) impacts.rounds(ships, ships.damage, bodies, projectiles, hits, ships);
+    }
+    expect(hits.count).toBe(1);
+
+    // Whatever the round kept, the ship took the rest — head on, so all of it
+    // is along the round's own heading.
+    const left = projectiles.alive[0] === 1 ? projectiles.vx[0]! : 0;
+    expect(bodies.vx[body]).toBeCloseTo((mass * (speed - left)) / corvette.mass, 9);
+    expect(bodies.vx[body]!).toBeGreaterThan(0);
+  });
 });
 
 describe('what the picture is told about damage', () => {

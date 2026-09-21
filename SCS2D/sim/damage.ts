@@ -202,6 +202,31 @@ export class Damage {
   }
 }
 
+/**
+ * Something that can be hit hard enough to come apart: a hull, told about a
+ * blow it has to answer structurally.
+ *
+ * Declared here rather than taken as a `Ships` so that spending a hit stays
+ * ignorant of what a ship is — this pass knows bodies and modules, and what
+ * the hull does about the shock is the hull's business.
+ */
+export interface Shocked {
+  blow(bodyIndex: number, module: number, jx: number, jy: number, px: number, py: number): void;
+}
+
+/** Put an impulse through a body at a world-frame point. */
+function shove(bodies: Bodies, body: number, jx: number, jy: number, px: number, py: number): void {
+  const mass = bodies.mass[body]!;
+  if (!(mass > 0)) return;
+  bodies.vx[body] = bodies.vx[body]! + jx / mass;
+  bodies.vy[body] = bodies.vy[body]! + jy / mass;
+  const inertia = bodies.inertia[body]!;
+  if (!(inertia > 0)) return;
+  const rx = px - bodies.x[body]!;
+  const ry = py - bodies.y[body]!;
+  bodies.angularVel[body] = bodies.angularVel[body]! + (rx * jy - ry * jx) / inertia;
+}
+
 /** Where a round ended up, and what it left with. */
 export interface RoundOutcome {
   /** What the last plate it met did to it. */
@@ -428,6 +453,7 @@ export class Impacts {
     bodies: Bodies,
     projectiles: Projectiles,
     hits: ProjectileHits,
+    shocks?: Shocked,
   ): void {
     for (let i = 0; i < hits.count; i++) {
       const round = hits.projectile[i]!;
@@ -463,6 +489,16 @@ export class Impacts {
         speed,
       );
       this.log.push(x, y, outcome.energy, IMPACT_ROUND, bodies, body);
+
+      // What the round left behind: the momentum it lost is the momentum the
+      // ship gained, which is a shove and — where it lands — a blow the hull
+      // has to hold together under.
+      const jx = mass * (vx - outcome.dirX * outcome.speed);
+      const jy = mass * (vy - outcome.dirY * outcome.speed);
+      shove(bodies, body, jx, jy, x, y);
+      if (shocks !== undefined && this.path.count > 0) {
+        shocks.blow(body, this.path.module[0]!, jx, jy, x, y);
+      }
 
       if (outcome.speed <= 0) {
         projectiles.kill(round);

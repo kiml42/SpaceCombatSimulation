@@ -100,9 +100,9 @@ export function ram(seed = 20260905): Battle {
       projectiles.step(dt, world.bodies, grid, hits, wells, ships.hulls);
       run.totalProjectileHits += hits.count;
       run.totalBeamHits += beamHits.count;
-      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits);
+      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits, ships);
       impacts.beams(ships.damage, beams, beamHits, dt, world.bodies);
-      run.totalSevered += ships.sever(world);
+      run.totalSevered += ships.sever(world, collisions.contacts);
     },
   };
 

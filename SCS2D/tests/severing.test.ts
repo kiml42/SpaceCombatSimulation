@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { beamDuel } from '../scenarios/beamDuel.js';
 import {
+  Contacts,
   Ships,
   World,
   compileBlueprint,
@@ -12,11 +14,13 @@ import {
 /**
  * Hulls coming apart.
  *
- * The graph that decides *where* a hull parts is tested on its own; what is
- * here is what happens when it does — that the pieces carry the momentum,
- * the spin and the scars they had a moment earlier, that the surviving ship
- * does not jump, and that a piece with nobody on it behaves like matter
- * rather than like a ship.
+ * **What parts a hull is a blow, not a wound.** Damage decides how much of a
+ * weld is left and something still has to hit the ship hard enough to spend
+ * it, so most of what is here is about which blows take something off and
+ * which do not — and about the case that matters most, a ship shot to pieces
+ * amidships going on carrying its wings.
+ *
+ * The graph that decides *where* a hull parts is tested on its own.
  */
 
 function structure(x: number, y: number, length: number, width: number): ModuleSpec {
@@ -25,7 +29,7 @@ function structure(x: number, y: number, length: number, width: number): ModuleS
 
 /**
  * Three boxes in a row. The tip is joined by 2 m of weld and the tail by 4 m,
- * so there is a weak end and a strong one and which breaks is not a toss-up.
+ * so there is a weak end and a strong one and which goes is not a toss-up.
  */
 const CHAIN: Blueprint = {
   name: 'Chain',
@@ -33,8 +37,8 @@ const CHAIN: Blueprint = {
 };
 
 const design: ShipDesign = compileBlueprint(CHAIN);
-/** The weld holding the tip on. */
-const TIP_JOINT = joints(design).find((j) => j.a === 0 && j.b === 2)!;
+const TIP = 2;
+const TIP_JOINT = joints(design).find((j) => j.a === 0 && j.b === TIP)!;
 
 interface Scene {
   world: World;
@@ -46,8 +50,24 @@ interface Scene {
 function scene(vx = 30, vy = -10, spin = 0.4): Scene {
   const world = new World({ dt: 1 / 60, seed: 1 });
   const ships = new Ships();
-  const ship = ships.spawn(world, { design, x: 100, y: 40, angle: 0.3, vx, vy, angularVel: spin, team: 1 });
+  const ship = ships.spawn(world, { design, x: 100, y: 40, vx, vy, angularVel: spin, team: 1 });
   return { world, ships, ship, body: world.bodies.indexOf(ships.body(ship)) };
+}
+
+/** Where a module of a ship is in the world. */
+function moduleAt(scene: Scene, ship: number, module: number): { x: number; y: number } {
+  const b = scene.world.bodies;
+  const i = b.indexOf(scene.ships.body(ship));
+  const m = scene.ships.design(ship).modules[module]!;
+  const c = Math.cos(b.angle[i]!);
+  const s = Math.sin(b.angle[i]!);
+  return { x: b.x[i]! + m.x * c - m.y * s, y: b.y[i]! + m.x * s + m.y * c };
+}
+
+/** Hit one module square across the hull, with an impulse of `size`. */
+function hit(s: Scene, module: number, size: number): void {
+  const at = moduleAt(s, s.ship, module);
+  s.ships.blow(s.body, module, 0, size, at.x, at.y);
 }
 
 /** Mass, momentum and angular momentum about the world origin, over everything. */
@@ -68,49 +88,109 @@ function totals(scene: Scene): { mass: number; px: number; py: number; l: number
   return { mass, px, py, l };
 }
 
-/** Where a module of a ship is in the world, which a sever must not change. */
-function moduleAt(scene: Scene, ship: number, module: number): { x: number; y: number } {
-  const b = scene.world.bodies;
-  const i = b.indexOf(scene.ships.body(ship));
-  const m = scene.ships.design(ship).modules[module]!;
-  const c = Math.cos(b.angle[i]!);
-  const s = Math.sin(b.angle[i]!);
-  return { x: b.x[i]! + m.x * c - m.y * s, y: b.y[i]! + m.x * s + m.y * c };
-}
+/** Enough of a blow to part a sound weld, and nothing like enough. */
+const HARD = TIP_JOINT.strength * 20;
+const GENTLE = TIP_JOINT.strength * 0.05;
 
-/** Put enough into a module to part every weld holding it. */
-function wreck(scene: Scene, module: number, joules: number): void {
-  scene.ships.damage.absorb(scene.body, module, joules);
-}
-
-describe('severing a hull', () => {
-  it('leaves an undamaged ship alone', () => {
+describe('what parts a hull', () => {
+  it('leaves a ship alone when nothing hits it', () => {
     const s = scene();
     expect(s.ships.sever(s.world)).toBe(0);
     expect(s.ships.count).toBe(1);
   });
 
-  it('leaves a damaged ship alone while its welds hold', () => {
+  it('leaves a ship alone however badly it is damaged, until something hits it', () => {
+    // The whole of the middle of the ship, wrecked several times over. This
+    // is the case the model exists for: a hull shot to pieces amidships is a
+    // wreck, not a pile of parts.
     const s = scene();
-    wreck(s, 2, TIP_JOINT.strength * 0.9);
+    s.ships.damage.absorb(s.body, 0, 1e12);
     expect(s.ships.sever(s.world)).toBe(0);
     expect(s.ships.design(s.ship).modules).toHaveLength(3);
   });
 
-  it('takes the piece off at the weld that gave way', () => {
+  it('takes a piece off when something hits it hard enough', () => {
     const s = scene();
-    wreck(s, 2, TIP_JOINT.strength * 1.1);
+    hit(s, TIP, HARD);
     expect(s.ships.sever(s.world)).toBe(1);
-    expect(s.ships.count).toBe(2);
-    // The ship keeps the two boxes the crew is on; the tip goes.
     expect(s.ships.design(s.ship).modules).toHaveLength(2);
     expect(s.ships.design(s.ship + 1).modules).toHaveLength(1);
   });
 
+  it('shrugs off a knock', () => {
+    const s = scene();
+    hit(s, TIP, GENTLE);
+    expect(s.ships.sever(s.world)).toBe(0);
+  });
+
+  it('parts a wrecked weld under a blow a sound one would take', () => {
+    const sound = scene();
+    hit(sound, TIP, TIP_JOINT.strength * 2);
+    expect(sound.ships.sever(sound.world)).toBe(0);
+
+    const wrecked = scene();
+    wrecked.ships.damage.absorb(wrecked.body, TIP, 1e12);
+    hit(wrecked, TIP, TIP_JOINT.strength * 2);
+    expect(wrecked.ships.sever(wrecked.world)).toBe(1);
+  });
+
+  it('holds wreckage on under a knock: a dead module is still metal', () => {
+    const s = scene();
+    s.ships.damage.absorb(s.body, TIP, 1e12);
+    hit(s, TIP, GENTLE);
+    expect(s.ships.sever(s.world)).toBe(0);
+  });
+
+  it('takes off what the blow landed on rather than what is furthest from it', () => {
+    // The same blow twice. On the tip, nearly all of it goes through the one
+    // weld holding the tip on, and the tip goes. Amidships — which is where a
+    // gun aiming at the centre of mass puts it all day — the tip is a small
+    // part of a ship that barely moved, so little reaches that weld and
+    // nothing comes off. This is why wrecking the middle of a hull does not
+    // shed its extremities.
+    const size = TIP_JOINT.strength * 4;
+
+    const tip = scene();
+    hit(tip, TIP, size);
+    expect(tip.ships.sever(tip.world)).toBe(1);
+
+    const middle = scene();
+    hit(middle, 0, size);
+    expect(middle.ships.sever(middle.world)).toBe(0);
+    expect(middle.ships.design(middle.ship).modules).toHaveLength(3);
+  });
+
+  it('breaks the weld the blow loaded, not every weld at once', () => {
+    const s = scene();
+    hit(s, TIP, HARD);
+    s.ships.sever(s.world);
+    // The tail is joined by twice the weld and is nowhere near the impact.
+    expect(s.ships.design(s.ship).modules).toHaveLength(2);
+    expect(s.ships.count).toBe(2);
+  });
+
+  it('answers a collision, which is the heaviest blow a battle has', () => {
+    const s = scene();
+    const at = moduleAt(s, s.ship, TIP);
+    const contacts = new Contacts();
+    contacts.push(s.body, 99, at.x, at.y, 0, 1, 0.1, TIP, -1);
+    contacts.impulse[0] = HARD;
+    expect(s.ships.sever(s.world, contacts)).toBe(1);
+  });
+});
+
+describe('what a hull that has come apart looks like', () => {
+  function broken(): Scene {
+    const s = scene();
+    hit(s, TIP, HARD);
+    s.ships.sever(s.world);
+    return s;
+  }
+
   it('conserves mass, momentum and angular momentum', () => {
     const s = scene();
     const before = totals(s);
-    wreck(s, 2, TIP_JOINT.strength * 1.1);
+    hit(s, TIP, HARD);
     s.ships.sever(s.world);
     const after = totals(s);
     expect(after.mass).toBeCloseTo(before.mass, 9);
@@ -122,11 +202,9 @@ describe('severing a hull', () => {
   it('leaves every module exactly where it was', () => {
     const s = scene();
     const tail = moduleAt(s, s.ship, 1);
-    const tip = moduleAt(s, s.ship, 2);
-    wreck(s, 2, TIP_JOINT.strength * 1.1);
+    const tip = moduleAt(s, s.ship, TIP);
+    hit(s, TIP, HARD);
     s.ships.sever(s.world);
-    // The tail is the ship's second module still; the tip is the whole of the
-    // piece that came off.
     expect(moduleAt(s, s.ship, 1).x).toBeCloseTo(tail.x, 9);
     expect(moduleAt(s, s.ship, 1).y).toBeCloseTo(tail.y, 9);
     expect(moduleAt(s, s.ship + 1, 0).x).toBeCloseTo(tip.x, 9);
@@ -135,24 +213,23 @@ describe('severing a hull', () => {
 
   it('carries the damage across with the modules that took it', () => {
     const s = scene();
-    wreck(s, 2, TIP_JOINT.strength * 1.1);
-    wreck(s, 1, 1000);
+    s.ships.damage.absorb(s.body, TIP, 1000);
+    s.ships.damage.absorb(s.body, 1, 2000);
+    hit(s, TIP, HARD);
     s.ships.sever(s.world);
-    const chunkBody = s.world.bodies.indexOf(s.ships.body(s.ship + 1));
-    expect(s.ships.damage.absorbedAt(chunkBody, 0)).toBeCloseTo(TIP_JOINT.strength * 1.1, 6);
-    expect(s.ships.damage.absorbedAt(s.body, 1)).toBeCloseTo(1000, 9);
+    const chunk = s.world.bodies.indexOf(s.ships.body(s.ship + 1));
+    expect(s.ships.damage.absorbedAt(chunk, 0)).toBeCloseTo(1000, 9);
+    expect(s.ships.damage.absorbedAt(s.body, 1)).toBeCloseTo(2000, 9);
   });
 
   it('gives the piece to nobody: it is not flown and does not shoot', () => {
-    const s = scene();
-    wreck(s, 2, TIP_JOINT.strength * 1.1);
-    s.ships.sever(s.world);
+    const s = broken();
     const chunk = s.ship + 1;
     expect(s.ships.isDerelict(chunk)).toBe(true);
     expect(s.ships.isDisabled(chunk)).toBe(true);
 
-    // A ship with no orders brakes to a halt, so a piece that is still
-    // drifting a second later is one nobody is flying.
+    // A ship with no orders brakes to a halt, so a piece still drifting a
+    // second later is one nobody is flying.
     const b = s.world.bodies;
     const i = b.indexOf(s.ships.body(chunk));
     const speed = Math.hypot(b.vx[i]!, b.vy[i]!);
@@ -167,7 +244,7 @@ describe('severing a hull', () => {
     const s = scene();
     s.ships.pushOrder(s.ship, 7, 100, 400, 50);
     const id = s.ships.body(s.ship);
-    wreck(s, 2, TIP_JOINT.strength * 1.1);
+    hit(s, TIP, HARD);
     s.ships.sever(s.world);
     expect(s.ships.body(s.ship)).toBe(id);
     expect(s.ships.teamOf(s.ship)).toBe(1);
@@ -175,9 +252,7 @@ describe('severing a hull', () => {
   });
 
   it('re-measures the ship that is left', () => {
-    const s = scene();
-    wreck(s, 2, TIP_JOINT.strength * 1.1);
-    s.ships.sever(s.world);
+    const s = broken();
     const b = s.world.bodies;
     const left = s.ships.design(s.ship);
     expect(b.mass[s.body]).toBeCloseTo(left.mass, 9);
@@ -185,17 +260,17 @@ describe('severing a hull', () => {
     expect(b.radius[s.body]).toBeCloseTo(left.radius, 9);
     expect(left.mass).toBeLessThan(design.mass);
   });
+});
 
-  it('breaks a piece that is itself in pieces on the same pass', () => {
-    // Wreck the middle box so hard that both its welds go at once: the hull
-    // is in three pieces, not two, and none of them waits a step.
-    const s = scene();
-    const worst = Math.max(...joints(design).map((j) => j.strength));
-    wreck(s, 0, worst * 1.1);
-    expect(s.ships.sever(s.world)).toBe(2);
-    expect(s.ships.count).toBe(3);
-    for (const ship of [s.ship + 1, s.ship + 2]) {
-      expect(s.ships.design(ship).modules).toHaveLength(1);
-    }
+describe('what a beam does to a hull', () => {
+  it('never takes a piece off it, however long it burns', () => {
+    // A beam delivers energy and no momentum, so it can wreck every module it
+    // touches and still not part a single weld. Cutting is a mechanism of its
+    // own, and is not this one.
+    const run = beamDuel();
+    for (let i = 0; i < 3000; i++) run.step();
+    expect(run.totalBeamHits).toBeGreaterThan(0);
+    expect(run.totalContacts).toBe(0);
+    expect(run.totalSevered).toBe(0);
   });
 });

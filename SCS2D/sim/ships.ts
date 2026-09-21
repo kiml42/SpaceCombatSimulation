@@ -1,6 +1,6 @@
 import { Bodies, type BodyId } from './bodies.js';
 import { subDesign, type ShipDesign } from './blueprint.js';
-import { components, type Joint } from './connectivity.js';
+import { components, cuts, joints, type Joint } from './connectivity.js';
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
 import {
@@ -10,14 +10,16 @@ import {
   clamp,
   cos,
   length,
-  max,
+  min,
   sin,
+  sqrt,
 } from './math.js';
 import { Projectiles } from './projectiles.js';
 import { Allocation, ThrusterLayout } from './thrusters.js';
 import { FiringSolution, Turrets, TurretState } from './turrets.js';
 import type { World } from './world.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
+import type { Contacts } from './collision.js';
 import { GunType } from './modules.js';
 
 /**
@@ -102,6 +104,28 @@ const TIMER_SETTLE = 1e-9;
 const APPROACH_TIME = 8;
 
 /** No order, or an order whose target has gone. */
+/**
+ * How much of a weld survives the metal at its ends being wrecked.
+ *
+ * A destroyed module keeps its mass and its place (§4), so it keeps holding
+ * on to its neighbours — badly. Zero here would mean a hull whose middle had
+ * been shot out fell to pieces at the first nudge.
+ */
+const WRECK_STRENGTH = 0.05;
+
+/**
+ * How far a blow carries through a hull before it has half spent itself,
+ * metres.
+ *
+ * A shock disperses as it travels: the metal it passes through crushes,
+ * bends and heats, and what reaches a weld thirty metres away is a fraction
+ * of what the plating at the impact felt. Without this a fighter that flew
+ * into a capital ship's flank would break every weld the fighter's momentum
+ * could pay for, wherever they were, and take the ship apart from end to end
+ * — the blow has to land *somewhere*.
+ */
+const SHOCK_REACH = 15;
+
 export const NO_TARGET = -1;
 
 /**
@@ -238,11 +262,27 @@ export class Ships {
   private readonly derelict: number[] = [];
 
   /**
-   * The damage version each ship was last checked for breaking up at, so that
-   * a hull that has taken nothing since is not walked again. The graph is
-   * static (§4); what changes is which joints still hold.
+   * Which ship each body is, so a blow landing on a body finds the hull it
+   * has to be answered by. Guarded by the handle, since a destroyed body's
+   * slot is handed out again.
    */
-  private readonly severVersion: number[] = [];
+  private readonly shipByBody: number[] = [];
+
+  /**
+   * Blows waiting to be answered: an impulse at a point on a hull, world
+   * frame, one entry per array. Drained by `sever`.
+   *
+   * Kept rather than answered where they land because a hull should come
+   * apart once, from everything that hit it this step, rather than once per
+   * hit in whatever order the hits were resolved.
+   */
+  private readonly blowBody: number[] = [];
+  private readonly blowModule: number[] = [];
+  private readonly blowJx: number[] = [];
+  private readonly blowJy: number[] = [];
+  private readonly blowX: number[] = [];
+  private readonly blowY: number[] = [];
+  private blows = 0;
 
   /**
    * Each ship's orders, oldest first: `orders[ship][n]`.
@@ -431,6 +471,7 @@ export class Ships {
 
     const bodyIdx = world.bodies.indexOf(id);
     this.bodyStore = world.bodies;
+    this.shipByBody[bodyIdx] = this.alive.length;
     this.hullDesign[bodyIdx] = design;
     this.hullBody[bodyIdx] = id;
     this.damage.register(bodyIdx, design);
@@ -450,7 +491,6 @@ export class Ships {
     this.nextBarrelToFire.push(new Int32Array(mounts.length));
     this.team.push(spec.team ?? 0);
     this.derelict.push(0);
-    this.severVersion.push(-1);
     this.orders.push([]); // Initialise to an empty array of orders for this ship
     this.demandFx.push(0);
     this.demandFy.push(0);
@@ -896,71 +936,192 @@ export class Ships {
    * a dead ship's hull normally stays in the world as a wreck (§4).
    */
   /**
-   * Break up every ship whose damage has parted it, and say how many pieces
-   * came off.
+   * Record a blow a hull has to survive: an impulse, newton-seconds, applied
+   * at a world-frame point on the module it landed on.
    *
-   * A hull is held together by the welds `connectivity.ts` derives from its
-   * geometry, and a weld gives way when either module it joins has absorbed
-   * more than the weld is worth. When what is left is in more than one piece,
-   * the pieces that are not the ship become ships of their own with nobody
-   * aboard, carrying their share of the momentum and every scar their modules
-   * already had.
-   *
-   * **The piece holding the first module goes on being the ship** — its
-   * orders, its team, its body. That is the same stand-in `blueprintProblem`
-   * uses for "which module is the ship", made for the same reason: a layout
-   * has no core module to be the real answer, and the size of a piece says
-   * nothing about which of them the crew is on. ROADMAP.md §12 keeps both
-   * halves of the question open together.
-   *
-   * Cheap when nothing has happened: a hull whose damage has not changed
-   * since it was last looked at is not walked at all, which is what §4's
-   * "damage never changes topology" buys.
+   * The momentum itself is the caller's to apply — the contact solver and the
+   * gunnery each already do it, and doing it twice would be inventing
+   * momentum. This is only the structural half: what the blow does to the
+   * welds holding the ship together, answered by `sever`.
    */
-  sever(world: World): number {
+  blow(bodyIndex: number, module: number, jx: number, jy: number, px: number, py: number): void {
+    if (module < 0) return;
+    if (!(jx !== 0 || jy !== 0)) return;
+    const i = this.blows++;
+    this.blowBody[i] = bodyIndex;
+    this.blowModule[i] = module;
+    this.blowJx[i] = jx;
+    this.blowJy[i] = jy;
+    this.blowX[i] = px;
+    this.blowY[i] = py;
+  }
+
+  /**
+   * Answer this step's blows, breaking hulls where they could not take them,
+   * and say how many pieces came off.
+   *
+   * **What parts a hull is a blow, not a wound.** Damage decides how much of
+   * a weld is left; something still has to hit the ship hard enough to spend
+   * it. So a ship shot to pieces around its spine goes on carrying its wings
+   * until something *hits* it, which is the whole difference between a hull
+   * coming apart and a hull dissolving.
+   *
+   * `contacts` are this step's collisions, which are blows like any other and
+   * the heaviest a battle has.
+   */
+  sever(world: World, contacts?: Contacts): number {
     const bodies = world.bodies;
     this.bodyStore = bodies;
-    let pieces = 0;
 
-    // The bound is re-read each time round, so a chunk that is itself in
-    // pieces comes apart on this same pass rather than a step later.
-    for (let i = 0; i < this.alive.length; i++) {
-      if (this.alive[i] === 0) continue;
-      const b = bodies.indexOf(this.bodyIds[i]!);
-      if (b < 0) continue;
-      const version = this.damage.version(b);
-      if (this.severVersion[i] === version) continue;
-      this.severVersion[i] = version;
-
-      const design = this.designs[i]!;
-      if (design.modules.length < 2) continue;
-      const parts = components(design, (joint) => this.jointBroken(b, joint));
-      if (parts.length < 2) continue;
-
-      for (let p = 1; p < parts.length; p++) {
-        this.detach(world, i, design, parts[p]!);
-        pieces++;
+    if (contacts !== undefined) {
+      for (let k = 0; k < contacts.count; k++) {
+        const j = contacts.impulse[k]!;
+        if (!(j > 0)) continue;
+        const jx = contacts.nx[k]! * j;
+        const jy = contacts.ny[k]! * j;
+        const x = contacts.x[k]!;
+        const y = contacts.y[k]!;
+        // The normal points from `a` towards `b`, so `a` took it the other way.
+        this.blow(contacts.a[k]!, contacts.moduleA[k]!, -jx, -jy, x, y);
+        this.blow(contacts.b[k]!, contacts.moduleB[k]!, jx, jy, x, y);
       }
-      this.reshape(world, i, design, parts[0]!);
     }
 
+    let pieces = 0;
+    for (let k = 0; k < this.blows; k++) {
+      pieces += this.answer(world, this.blowBody[k]!, this.blowModule[k]!, this.blowJx[k]!, this.blowJy[k]!, this.blowX[k]!, this.blowY[k]!);
+    }
+    this.blows = 0;
+    return pieces;
+  }
+
+  /** The ship a body is, or -1 — guarded, since a body's slot is reused. */
+  private shipAt(bodies: Bodies, bodyIndex: number): number {
+    const i = this.shipByBody[bodyIndex];
+    if (i === undefined || i < 0) return -1;
+    if (this.alive[i] !== 1) return -1;
+    if (bodies.indexOf(this.bodyIds[i]!) !== bodyIndex) return -1;
+    return i;
+  }
+
+  /**
+   * What one blow does to one hull.
+   *
+   * The hull answers the blow as a rigid body would — every module has to
+   * reach the new motion — and a weld's job is to drag whatever hangs off it
+   * along. So the load through a weld is the impulse that has to *cross* it:
+   * the far side's mass by the velocity change at the far side's centre. That
+   * is the whole of why a hit on an outlying module takes it off while the
+   * same hit amidships takes nothing: the wing's root has to carry the ship,
+   * and the ship's middle barely has to carry the wing.
+   *
+   * **A blow is spent as it breaks things.** The worst-loaded weld goes
+   * first, its strength comes off the blow, and what is left goes on to the
+   * next — so a ram tears off as much as it has paid for and a nudge tears
+   * off one thing or nothing. Answering every overloaded weld at once is what
+   * makes a ship shatter rather than break.
+   */
+  private answer(
+    world: World,
+    bodyIndex: number,
+    module: number,
+    jx: number,
+    jy: number,
+    px: number,
+    py: number,
+  ): number {
+    const bodies = world.bodies;
+    const i = this.shipAt(bodies, bodyIndex);
+    if (i < 0) return 0;
+    const design = this.designs[i]!;
+    if (design.modules.length < 2) return 0;
+    if (module >= design.modules.length) return 0;
+
+    const all = joints(design);
+    const sides = cuts(design);
+    if (all.length === 0) return 0;
+
+    // The hull's response, in its own frame, where its modules live.
+    const angle = bodies.angle[bodyIndex]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    const invMass = bodies.invMass[bodyIndex]!;
+    const invInertia = bodies.invInertia[bodyIndex]!;
+    const rcx = px - bodies.x[bodyIndex]!;
+    const rcy = py - bodies.y[bodyIndex]!;
+    const spin = (rcx * jy - rcy * jx) * invInertia;
+    // Where the blow landed, in the hull's frame, to measure outward from.
+    const hitX = rcx * c + rcy * s;
+    const hitY = -rcx * s + rcy * c;
+    const dvx = (jx * invMass) * c + (jy * invMass) * s;
+    const dvy = -(jx * invMass) * s + (jy * invMass) * c;
+
+    const failed = new Set<Joint>();
+    // What the blow has left to give. Every load is linear in it, so spending
+    // it is one scale over all of them.
+    const delivered = sqrt(jx * jx + jy * jy);
+    let budget = delivered;
+    for (;;) {
+      let worst = -1;
+      let worstLoad = 0;
+      let worstStrength = 0;
+      for (let k = 0; k < all.length; k++) {
+        const joint = all[k]!;
+        if (failed.has(joint)) continue;
+        const cut = sides[k];
+        if (cut === null || cut === undefined) continue;
+        const far = 1 - cut.side[module]!;
+        const mass = cut.mass[far]!;
+        if (!(mass > 0)) continue;
+        // Velocity change where the far side's mass actually is.
+        const fx = dvx - spin * cut.y[far]!;
+        const fy = dvy + spin * cut.x[far]!;
+        // What is left of the shock by the time it reaches this weld.
+        const away = length(joint.x - hitX, joint.y - hitY);
+        const carried = SHOCK_REACH / (SHOCK_REACH + away);
+        const load = (mass * sqrt(fx * fx + fy * fy) * budget * carried) / delivered;
+        const strength = this.weldStrength(bodyIndex, joint);
+        if (load <= strength) continue;
+        if (load - strength <= worstLoad - worstStrength) continue;
+        worst = k;
+        worstLoad = load;
+        worstStrength = strength;
+      }
+      if (worst < 0) break;
+      failed.add(all[worst]!);
+      // Tearing a weld costs the blow what the weld was worth.
+      budget -= worstStrength;
+      if (!(budget > 0)) break;
+    }
+    if (failed.size === 0) return 0;
+
+    const parts = components(design, (joint) => failed.has(joint));
+    if (parts.length < 2) return 0;
+
+    let pieces = 0;
+    for (let p = 1; p < parts.length; p++) {
+      this.detach(world, i, design, parts[p]!);
+      pieces++;
+    }
+    this.reshape(world, i, design, parts[0]!);
     return pieces;
   }
 
   /**
-   * Whether a weld has let go: either module it joins has taken more than the
-   * weld is worth.
+   * What a weld can still carry, newton-seconds.
    *
-   * Either, not both, and not the sum: a joint is loaded through the metal at
-   * each end of it, so wrecking one end is enough to part it whatever state
-   * the other is in.
+   * A weld is only as good as the metal at its ends, so damage to either
+   * module takes it down — but never to nothing: **wreckage is still metal,
+   * and still holds, badly.** Without that floor a hull whose middle had been
+   * shot out would shed everything at the first nudge, which is the failure
+   * this model exists to avoid.
    */
-  private jointBroken(bodyIndex: number, joint: Joint): boolean {
-    const worst = max(
-      this.damage.absorbedAt(bodyIndex, joint.a),
-      this.damage.absorbedAt(bodyIndex, joint.b),
+  private weldStrength(bodyIndex: number, joint: Joint): number {
+    const metal = min(
+      this.damage.integrity(bodyIndex, joint.a),
+      this.damage.integrity(bodyIndex, joint.b),
     );
-    return worst > joint.strength;
+    return joint.strength * (WRECK_STRENGTH + (1 - WRECK_STRENGTH) * metal);
   }
 
   /**
@@ -992,8 +1153,7 @@ export class Ships {
 
     const chunkBody = bodies.indexOf(this.bodyIds[j]!);
     this.damage.register(chunkBody, chunk, this.scarsOf(b, keep));
-    // Looked at again on this same pass, in case the piece is itself in bits.
-    this.severVersion[j] = -1;
+    this.shipByBody[chunkBody] = j;
   }
 
   /**
@@ -1059,7 +1219,6 @@ export class Ships {
     this.layouts[i] = null;
     this.layoutVersion[i] = -1;
     this.damage.register(b, design, scars);
-    this.severVersion[i] = this.damage.version(b);
   }
 
   /** What each kept module has already absorbed, in the new design's order. */

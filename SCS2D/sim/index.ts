@@ -60,9 +60,10 @@ export {
 export { HullPath, Hulls, modulesAlong, type HullDesigns } from './hull.js';
 export {
   JOINT_IMPULSE_PER_AREA,
-  acrossJoint,
+  cuts,
   components,
   joints,
+  type Cut,
   type Joint,
 } from './connectivity.js';
 export {
@@ -147,6 +148,7 @@ export {
   resolveRound,
   type DamageResponse,
   type RoundOutcome,
+  type Shocked,
 } from './damage.js';
 export {
   checksumWorld,

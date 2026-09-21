@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ATTACHMENT_TOLERANCE,
-  JOINT_ENERGY_PER_AREA,
+  JOINT_IMPULSE_PER_AREA,
   compileBlueprint,
   components,
   joints,
@@ -54,7 +54,7 @@ describe('deriving the joints', () => {
       design.modules[0]!.stats.wallThickness,
       design.modules[2]!.stats.wallThickness,
     );
-    expect(found[1]!.strength).toBeCloseTo(2 * thinner * JOINT_ENERGY_PER_AREA, 6);
+    expect(found[1]!.strength).toBeCloseTo(2 * thinner * JOINT_IMPULSE_PER_AREA, 6);
     expect(found[1]!.strength).toBeLessThan(found[0]!.strength);
   });
 
