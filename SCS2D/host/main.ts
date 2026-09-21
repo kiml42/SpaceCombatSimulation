@@ -243,7 +243,8 @@ export function start(): void {
       `range ${range.toFixed(range < 10 ? 3 : 0)} m · in flight ${view.projectileCount} · ` +
       `p.fired ${state.totalProjectilesFired} · p.hits ${state.totalProjectileHits} · ` +
       `b.fired ${state.totalBeamsFired} · b.hits ${state.totalBeamHits} · ` +
-      `severed ${state.totalSevered} · grid ${gridStep(camera.scale)} m`;
+      `severed ${state.totalSevered} · scrap ${(state.ships.discarded / 1000).toFixed(1)} t · ` +
+      `grid ${gridStep(camera.scale)} m`;
 
     window.requestAnimationFrame(tick);
   };

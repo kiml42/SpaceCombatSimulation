@@ -263,10 +263,13 @@ describe('a battle of nothing but collisions', () => {
 
     for (let i = 0; i < 3000; i++) run.step();
 
+    // Plus what the world stopped tracking: scrap too small to be worth
+    // keeping is not created, and it takes its momentum with it, so the books
+    // balance only when that is counted back in.
     const after = momentum(run.world.bodies);
     expect(run.totalContacts).toBeGreaterThan(0);
-    expect(after.x).toBeCloseTo(before.x, 6);
-    expect(after.y).toBeCloseTo(before.y, 6);
+    expect(after.x + run.ships.discardedPx).toBeCloseTo(before.x, 6);
+    expect(after.y + run.ships.discardedPy).toBeCloseTo(before.y, 6);
   });
 
   it('connects every attacker', () => {
