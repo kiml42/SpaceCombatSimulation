@@ -116,8 +116,11 @@ inside any one file is not contiguous.
   hull whose doctrine changes takes its guns with it except where a gun has an opinion. Everything a mount
   asks is measured from the gun rather than from the hull it is bolted to, which is both the truth and
   what leaves a pair of beam guns taking a threat each rather than both piling onto one.
-- **Next:** the rest of §8 step 3 — firing discipline, a short cast ahead of the muzzle so a gun does not
-  shoot through a friend, then a picker per module kind so a doctrine can say to go for the engines. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
+  **A gun holds its fire rather than shoot through its own side**: a straight cast from the muzzle at
+  this instant, ignoring everyone's velocity, out to a moment of the round's flight for a gun and the
+  whole length for a beam — which arrives instantly along all of it. What it is shooting at is never in
+  the way, whoever's side it is on, and neither is wreckage.
+- **Next:** the rest of §8 step 3 — a picker per module kind, so a doctrine can say to go for the engines. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
   others stay linked, and the word the editor owes the player when an action reorders
   a layout. Restructuring a group — dissolving one, or nesting one inside another —

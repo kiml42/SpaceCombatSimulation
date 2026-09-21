@@ -115,9 +115,16 @@ Then, in order:
    leaves a pair of them free to take a threat each. What separates the pair is that a mount measures
    from itself rather than from the hull — metres, against gunnery range, and enough to order two
    otherwise identical targets differently.
-   Still to do, in order: firing discipline, then a picker per module kind so a doctrine can say to go for
-   the engines. Firing discipline is a short cast ahead of the muzzle for a
-   friendly — the length of a barrel's reach for a gun, the whole beam for a beam. Withdrawal, line-of-sight, hemisphere, looking-at and ship-type pickers
+   **Firing discipline** followed: a straight cast from the muzzle for a friendly hull, ignoring
+   everyone's velocity — half a second of the round's flight for a gun, since a shell is slow and a battle
+   is wide, and the whole length for a beam, which arrives instantly along all of it. The mount's own
+   target is never in the way, whoever's side it is on, and nor is wreckage; a burst already committed is
+   seen through. **The scenarios barely exercise it**, which is worth knowing rather than hiding: two
+   fleets meeting line-abreast keep their friends behind them, so `standoff` is bit-identical with the
+   rule in place and `swarm` withholds thirteen rounds in three thousand steps. It earns its keep the
+   moment a formation is in line ahead, or a consort crosses a muzzle — which is what its tests set up,
+   and what the fleet-shaped scenarios have no way to produce yet.
+   Still to do: a picker per module kind so a doctrine can say to go for the engines. Withdrawal, line-of-sight, hemisphere, looking-at and ship-type pickers
    are deliberately after this step.
 4. **Headless evolution and analysis** — balance testing plus sandbox mode.
 5. **v1: skirmish** — a fixed budget of *materials* rather than of points (§12), designed scenarios,

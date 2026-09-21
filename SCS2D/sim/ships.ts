@@ -23,8 +23,10 @@ import { Allocation, ThrusterLayout } from './thrusters.js';
 import { FiringSolution, Turrets, TurretState } from './turrets.js';
 import type { World } from './world.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
+import { MAX_BEAM_LENGTH } from './beams.js';
+import { RayHit } from './spatialGrid.js';
 import type { Contacts } from './collision.js';
-import { GunType } from './modules.js';
+import { GunType, type GunStats } from './modules.js';
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -181,6 +183,22 @@ const MAX_RETHINK = 4;
  */
 const TURRET_MIN_RETHINK = 0.25;
 const TURRET_MAX_RETHINK = 4;
+
+/**
+ * How far ahead of a gun's muzzle a friendly stops it firing, in seconds of
+ * the round's own flight.
+ *
+ * Short on purpose. A shell is slow enough and a battle wide enough that
+ * asking "is a friend anywhere along where this round could go" would stop a
+ * fleet firing at all; what this is for is the consort that has just drifted
+ * across the muzzle, which is the case a gunner would actually notice. Beyond
+ * it, a round is everyone's problem and the ship that flew into the line of
+ * fire is the one that made the mistake.
+ *
+ * A beam gets no such allowance: it arrives instantly along its whole length,
+ * so anything in the line *is* hit, and the cast is the beam itself.
+ */
+const FRIENDLY_LOOKAHEAD = 0.5;
 
 /**
  * How far a blow carries through a hull before it has half spent itself,
@@ -430,6 +448,8 @@ export class Ships {
    * built per call, per §12.
    */
   private readonly gunPoint = { x: 0, y: 0, vx: 0, vy: 0 };
+  /** Where a shot would land, for the friendly check. Reused, never shared. */
+  private readonly lineOfFire = new RayHit();
 
   /** Turret reaction torque per body index, filled by `Turrets.step`. */
   private reaction = new Float64Array(64);
@@ -839,6 +859,49 @@ export class Ships {
     return own;
   }
 
+  /**
+   * Whether a friendly hull is in the way of this shot.
+   *
+   * A straight cast from the muzzle along the barrel, at this instant and
+   * ignoring everyone's velocity: a gun that tried to work out where its
+   * friends will be would be solving the firing problem twice, and the answer
+   * it wants is the crude one — is somebody *there*.
+   *
+   * The cast stops at the nearest hull, so an enemy between this gun and a
+   * consort behind it is still shot at. Wreckage is not a friend however it
+   * is painted: nobody is aboard it, and holding fire for it would make every
+   * broken ship a shield. Nor is what this mount is shooting at, whoever's
+   * side it is on — a ship told to fire on one of its own does so, because
+   * this is a rule about what is *in the way* and not about who may be shot.
+   */
+  private friendlyInTheWay(
+    bodies: Bodies,
+    grid: SpatialGrid,
+    i: number,
+    bodyIdx: number,
+    gun: GunStats,
+    target: number,
+  ): boolean {
+    const range =
+      gun.type === GunType.Beam ? MAX_BEAM_LENGTH : gun.muzzleSpeed * FRIENDLY_LOOKAHEAD;
+    if (!(range > 0)) return false;
+    const hit = this.lineOfFire;
+    const found = grid.raycast(
+      bodies,
+      this.solution.x,
+      this.solution.y,
+      this.solution.x + this.solution.dirX * range,
+      this.solution.y + this.solution.dirY * range,
+      hit,
+      bodyIdx,
+      this.hulls,
+    );
+    if (!found) return false;
+    const other = this.shipAt(bodies, hit.bodyIndex);
+    if (other < 0 || other === i || other === target) return false;
+    return this.derelict[other] === 0 && this.team[other] === this.team[i];
+  }
+
   /** How long this mount waits before reconsidering, in steps. */
   private turretRethinkTicks(world: World, t: number, design: ShipDesign): number {
     const mount = design.turrets[t]!;
@@ -1051,6 +1114,12 @@ export class Ships {
             : 0;
 
         this.turrets.firingSolution(bodies, ti, this.solution, lateralOffset);
+
+        // A burst already committed is seen through: the emitter is lit and
+        // there is nothing to hold. Discipline is about pulling the trigger.
+        if (state != TurretState.CommittedOn && this.friendlyInTheWay(bodies, grid, i, bodyIdx, gun, target)) {
+          continue;
+        }
 
         if (gun.type == GunType.Projectile) {
           projectiles.fireFrom(
