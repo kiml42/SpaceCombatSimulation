@@ -137,8 +137,16 @@ Then, in order:
    does not shoot through a ship to reach the engine on its far side, and an aim point that has been shot
    away falls back to the hull. The Dinky carries it: a fighter cannot destroy a capital but can strand
    one, and four fifths of its hits now land on a thruster where a third did.
-   What is left of this step is what it always deferred: withdrawal, and the line-of-sight, hemisphere,
-   looking-at and ship-type pickers.
+   What is left of this step is what it always deferred — withdrawal, and the line-of-sight, hemisphere,
+   looking-at and ship-type pickers — plus one thing using it turned up: **how much a mount cares about
+   its ship's orders, as a weight of its own**. An order is currently a mandate: every mount that can
+   train on the ordered target takes it. That is right for a main battery and wrong for a close-in mount,
+   which should go on swatting whatever is about to hit the ship while the hull is ordered onto something
+   big. The shape is the one the rest of targeting already has: a weight scoring the ordered target
+   alongside every other candidate, defaulted high enough that an ordinary mount obeys and set low on a
+   CIWS. It replaces the mandate rather than sitting beside it, so it moves the goldens of every scenario
+   that issues an order — which is why it is a piece of work of its own rather than a postscript to the
+   one that introduced the mandate.
 4. **Headless evolution and analysis** — balance testing plus sandbox mode.
 5. **v1: skirmish** — a fixed budget of *materials* rather than of points (§12), designed scenarios,
    shareable by URL. *This is the first thing worth giving people to play.*
