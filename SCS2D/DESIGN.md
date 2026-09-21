@@ -103,8 +103,16 @@ inside any one file is not contiguous.
   either being told. An order given always outranks it, so doctrine is a fallback and never
   a second voice. The `standoff` scenario is the evidence: two fleets a kilometre apart, not one order
   between them, and a battle anyway.
-- **Next:** the rest of §8 step 3 — per-turret targets, then a picker per module kind so a doctrine can
-  say to go for the engines. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
+  **Every mount picks its own target**, through the same preferences the hull uses but from the mount's
+  point of view: its own gun's reach, and nothing outside the arc it can train through — so a ship with an
+  enemy on each beam fights both, and a gun that cannot reach what its ship is fighting fights what it can
+  instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
+  is fighting, is what keeps a broadside concentrated without tying it together; an order given is still
+  obeyed by every mount that can train on it. How often a mount reconsiders is derived from the mount:
+  half a circle of traverse plus a firing cycle, which is what it costs to swing onto something new and
+  get a shot away.
+- **Next:** the rest of §8 step 3 — a doctrine per mount, so a ship's close-in guns can prefer what its
+  main battery does not, then a picker per module kind so a doctrine can say to go for the engines. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
   others stay linked, and the word the editor owes the player when an action reorders
   a layout. Restructuring a group — dissolving one, or nesting one inside another —

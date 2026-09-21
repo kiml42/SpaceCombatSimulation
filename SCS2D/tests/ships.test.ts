@@ -76,6 +76,20 @@ function bodyOf(r: Rig, ship: number): number {
   return r.world.bodies.indexOf(r.ships.body(ship));
 }
 
+/**
+ * Slew every mount onto what it is fighting, leaving the hull exactly where it
+ * was spawned.
+ *
+ * `command` trains turrets and works out a wrench; only `world.step` acts on
+ * that wrench, so a ship trained this way has not moved a millimetre — which
+ * is what lets the gunnery arithmetic below be exact rather than approximate.
+ */
+function train(r: Rig, seconds = 30): void {
+  const steps = Math.ceil(seconds / DT);
+  for (let i = 0; i < steps; i++) r.ships.command(DT, r.world);
+  r.grid.rebuild(r.world.bodies);
+}
+
 describe('spawning', () => {
   it('takes mass, inertia and radius from the design rather than the caller', () => {
     const r = rig();
@@ -293,21 +307,19 @@ describe('gunnery', () => {
     // earlier ones already pushed, so the broadside gains momentum invented by
     // the firing order.
     //
-    // A gunship with a dead target returns all three mounts to rest, where
-    // each reads as on target, so all three fire on the same step — and with
-    // the hull motionless the arithmetic is exact rather than approximate: a
-    // round created at rest carries no hull momentum away with it.
+    // A gunship with a target dead ahead trains all three mounts onto it, so
+    // all three fire on the same step — and with the hull motionless the
+    // arithmetic is exact rather than approximate: a round created at rest
+    // carries no hull momentum away with it.
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: gunship, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
     r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
-    r.ships.remove(enemy);
 
     const bodies = r.world.bodies;
     const b = bodyOf(r, ship);
 
-    r.ships.command(DT, r.world);
-    r.grid.rebuild(bodies);
+    train(r);
     expect(bodies.vx[b]).toBe(0);
     expect(bodies.angularVel[b]).toBe(0);
 
@@ -332,20 +344,17 @@ describe('gunnery', () => {
     // across the line of fire — a bias in one direction, not scatter.
     const r = rig();
     const spin = 0.2;
-    const ship = r.ships.spawn(r.world, {
-      design: gunship,
-      x: 0,
-      y: 0,
-      angularVel: spin,
-    });
+    const ship = r.ships.spawn(r.world, { design: gunship, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
     r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
-    r.ships.remove(enemy);
 
     const bodies = r.world.bodies;
     const b = bodyOf(r, ship);
-    r.ships.command(DT, r.world);
-    r.grid.rebuild(bodies);
+    // Trained first and set spinning afterwards: a mount holding a world
+    // bearing on a turning hull is never quite still, and this test is about
+    // what a round leaves with rather than about how well a turret tracks.
+    train(r);
+    bodies.angularVel[b] = spin;
     // Before firing: recoil moves the hull, and what a round inherited is the
     // velocity the hull had when it left.
     const hullVx = bodies.vx[b]!;
@@ -406,16 +415,24 @@ describe('gunnery', () => {
     const ship = r.ships.spawn(r.world, { design: twin, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
     r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
-    r.ships.remove(enemy);
 
     // Fire 1st round (barrel 0): should be at -0.5 * spacing in y
-    r.ships.command(DT, r.world);
-    r.grid.rebuild(r.world.bodies);
+    train(r);
     expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).projectilesFired).toBe(1);
     const spacing = twin.turrets[0]!.gun.barrelSpacing;
     expect(spacing).toBeGreaterThan(0);
     const y0 = r.projectiles.y[0]!;
     expect(y0).toBeCloseTo(-0.5 * spacing, 6);
+
+    // The first shot's recoil set the hull moving and, fired from a barrel
+    // off the axis, turning — and a mount tracking from a moving hull leads
+    // its target and counter-rotates, which puts the barrel a fraction off
+    // the axis by the second shot. Stopped again, because this is a test
+    // about which barrel fires and not about gunnery.
+    const hull = bodyOf(r, ship);
+    r.world.bodies.vx[hull] = 0;
+    r.world.bodies.vy[hull] = 0;
+    r.world.bodies.angularVel[hull] = 0;
 
     // Advance cooldown until next shot can fire
     const cycle = twin.turrets[0]!.gun.cycleTime;
@@ -481,21 +498,19 @@ describe('beam gunnery', () => {
     // earlier ones already pushed, so the broadside gains momentum invented by
     // the firing order.
     //
-    // A gunship with a dead target returns all three mounts to rest, where
-    // each reads as on target, so all three fire on the same step — and with
-    // the hull motionless the arithmetic is exact rather than approximate: a
-    // round created at rest carries no hull momentum away with it.
+    // A gunship with a target dead ahead trains all three mounts onto it, so
+    // all three fire on the same step — and with the hull motionless the
+    // arithmetic is exact rather than approximate: a round created at rest
+    // carries no hull momentum away with it.
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: beamGunship, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
     r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
-    r.ships.remove(enemy);
 
     const bodies = r.world.bodies;
     const b = bodyOf(r, ship);
 
-    r.ships.command(DT, r.world);
-    r.grid.rebuild(bodies);
+    train(r);
     expect(bodies.vx[b]).toBe(0);
     expect(bodies.angularVel[b]).toBe(0);
 
@@ -521,11 +536,9 @@ describe('beam gunnery', () => {
     const ship = r.ships.spawn(r.world, { design: twin, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
     r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
-    r.ships.remove(enemy);
 
     // Fire 1st round (barrel 0): should be at -0.5 * spacing in y
-    r.ships.command(DT, r.world);
-    r.grid.rebuild(r.world.bodies);
+    train(r);
     expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(1);
     const spacing = twin.turrets[0]!.gun.barrelSpacing;
     expect(spacing).toBeGreaterThan(0);

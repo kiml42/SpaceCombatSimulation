@@ -1,0 +1,161 @@
+import { describe, expect, it } from 'vitest';
+import { compileBlueprint, NO_TARGET, Ships, World, type ShipDesign } from '../sim/index.js';
+import { CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+
+/**
+ * A mount picking its own fight.
+ *
+ * A broadside with an enemy on each beam cannot fight both by pointing the
+ * whole ship at one of them, and what a mount can reach is a property of the
+ * mount — its own arc and its own gun. So each one chooses for itself, out of
+ * the same doctrine the hull uses, and `focusWeight` is what keeps a ship's
+ * guns together without tying them together.
+ */
+
+const DT = 1 / 60;
+const gunship = compileBlueprint(GUNSHIP);
+const corvette = compileBlueprint(CORVETTE);
+const dinky = compileBlueprint(DINKY);
+
+interface Scene {
+  world: World;
+  ships: Ships;
+  mine: number;
+  run(steps: number): void;
+  aim(turret: number): number;
+}
+
+function scene(design: ShipDesign, enemies: { design: ShipDesign; x: number; y: number }[]): Scene {
+  const world = new World({ dt: DT, seed: 5 });
+  const ships = new Ships();
+  world.addForceProvider(ships.forceProvider());
+  const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
+  for (const e of enemies) ships.spawn(world, { design: e.design, x: e.x, y: e.y, team: 1 });
+  return {
+    world,
+    ships,
+    mine,
+    run(steps: number): void {
+      for (let i = 0; i < steps; i++) {
+        ships.command(DT, world);
+        world.step();
+      }
+    },
+    aim(turret: number): number {
+      return ships.targetOfTurret(world.bodies, mine, turret);
+    },
+  };
+}
+
+/** Which mount of the gunship is which: nose, port beam, starboard beam. */
+const NOSE = 0;
+const PORT = 1;
+const STARBOARD = 2;
+
+describe('a mount choosing its own target', () => {
+  it('fights an enemy on each beam at once', () => {
+    // The whole point: one hull, two fights, and no amount of manoeuvring
+    // would have let a single ship-wide target cover both.
+    const s = scene(gunship, [
+      { design: corvette, x: 0, y: 900 },
+      { design: corvette, x: 0, y: -900 },
+    ]);
+    const toPort = 1;
+    const toStarboard = 2;
+    s.run(60);
+
+    expect(gunship.turrets[PORT]!.mount.restBearing).toBeGreaterThan(0);
+    expect(gunship.turrets[STARBOARD]!.mount.restBearing).toBeLessThan(0);
+    expect(s.aim(PORT)).toBe(toPort);
+    expect(s.aim(STARBOARD)).toBe(toStarboard);
+    expect(s.aim(PORT)).not.toBe(s.aim(STARBOARD));
+  });
+
+  it('never picks what it cannot train on, however good it would be', () => {
+    // An arc is a discard rather than a penalty: a target behind the
+    // superstructure is not one this gun gets an opinion about.
+    const s = scene(gunship, [
+      { design: corvette, x: 0, y: 2000 },
+      // Much nearer, much more appealing, and squarely behind the port
+      // mount's obstruction.
+      { design: corvette, x: 0, y: -300 },
+    ]);
+    s.run(60);
+    expect(s.aim(PORT)).toBe(1);
+  });
+
+  it('holds its fire when nothing at all is within its arc', () => {
+    const s = scene(gunship, [{ design: corvette, x: 0, y: -900 }]);
+    s.run(60);
+    expect(s.aim(PORT)).toBe(NO_TARGET);
+    expect(s.aim(STARBOARD)).toBe(1);
+  });
+
+  it('is drawn to what its ship is fighting when it can reach both', () => {
+    // `focusWeight`: the nose gun can bear on either, and concentrating on
+    // what the hull chose is worth more than the difference between them.
+    const s = scene(gunship, [
+      { design: corvette, x: 2000, y: 200 },
+      { design: corvette, x: 2000, y: -200 },
+    ]);
+    s.run(120);
+    const hull = s.ships.getCurrentOrder(s.mine);
+    expect(hull).toBeUndefined(); // nobody told it anything; this is doctrine
+    expect(s.aim(NOSE)).toBe(s.ships.targetOfTurret(s.world.bodies, s.mine, NOSE));
+    // Both beam mounts and the nose gun can see both, and all three agree.
+    expect(s.aim(PORT)).toBe(s.aim(NOSE));
+    expect(s.aim(STARBOARD)).toBe(s.aim(NOSE));
+  });
+
+  it('takes the ordered target, and is not left idle when it cannot', () => {
+    // An order given is an order obeyed by every mount that can train on it.
+    // One that cannot is no use to the order and every use somewhere else.
+    const s = scene(gunship, [
+      { design: corvette, x: 0, y: 900 },
+      { design: corvette, x: 0, y: -900 },
+    ]);
+    s.ships.pushOrder(s.mine, 1, 800, 1000, 10);
+    // Briefly, before a sluggish hull has turned far enough to change which
+    // mount can see what.
+    s.run(30);
+    expect(s.aim(NOSE)).toBe(1);
+    expect(s.aim(PORT)).toBe(1);
+    // The starboard mount cannot reach the ordered target from where it sits,
+    // so it fights what it can.
+    expect(s.aim(STARBOARD)).toBe(2);
+  });
+
+  it('drops a target the moment it stops being one', () => {
+    const s = scene(gunship, [{ design: corvette, x: 2000, y: 0 }]);
+    s.run(60);
+    expect(s.aim(NOSE)).toBe(1);
+    s.ships.remove(1);
+    s.run(1);
+    expect(s.aim(NOSE)).toBe(NO_TARGET);
+  });
+
+  it('reconsiders as often as it could act on the answer', () => {
+    // Derived from the mount rather than configured: half a circle of
+    // traverse plus a firing cycle is what it costs to swing onto something
+    // new and get a shot away, so a close-in mount thinks several times a
+    // second and an artillery piece thinks about as often as it can move.
+    const switchSteps = (design: ShipDesign, turret: number): number => {
+      const s = scene(design, [
+        { design: dinky, x: 600, y: 0 },
+        { design: dinky, x: 700, y: 0 },
+      ]);
+      s.run(300);
+      const held = s.aim(turret);
+      expect(held).not.toBe(NO_TARGET);
+      s.ships.remove(held);
+      for (let i = 0; i < 600; i++) {
+        s.run(1);
+        if (s.aim(turret) !== NO_TARGET) return i;
+      }
+      return Infinity;
+    };
+    // The Dinky's single mount against the gunship's main battery: one swings
+    // round in a moment and reloads in a moment, the other does neither.
+    expect(switchSteps(dinky, 0)).toBeLessThan(switchSteps(gunship, NOSE));
+  });
+});

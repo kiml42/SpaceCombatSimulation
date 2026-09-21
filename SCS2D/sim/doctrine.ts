@@ -64,6 +64,15 @@ export interface Targeting {
    * drifting wreck while a crippled ship limps out of the battle.
    */
   readonly mobileWeight: number;
+  /**
+   * Prefer what the ship as a whole is fighting.
+   *
+   * A mount picks its own target, which is what lets a broadside engage on
+   * both sides at once; this is what stops that from becoming every gun
+   * shooting at something different. Large, and a fleet concentrates; zero,
+   * and every mount fights its own battle.
+   */
+  readonly focusWeight: number;
 }
 
 /** How to fight it, once it has been chosen. */
@@ -118,6 +127,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     loyaltyWeight: 20,
     armedWeight: 80,
     mobileWeight: 10,
+    focusWeight: 60,
   },
   approach: {
     standoffRadii: 50,
@@ -143,6 +153,7 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
   'loyaltyWeight',
   'armedWeight',
   'mobileWeight',
+  'focusWeight',
 ];
 
 export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
