@@ -131,8 +131,14 @@ Then, in order:
    out afresh at the trigger could name one the barrel had never been brought round to — a fighter would
    put a round out over its own shoulder. What a mount was trained on is recorded when it is trained, and
    that is what fires.
-   Still to do: a picker per module kind so a doctrine can say to go for the engines. Withdrawal, line-of-sight, hemisphere, looking-at and ship-type pickers
-   are deliberately after this step.
+   **A picker per module kind** finished the step: `engineWeight`, `gunWeight` and `structureWeight` say
+   which part of a ship to aim at, with all three zero — the default — meaning the ship as a whole, since
+   picking a part is picking a smaller thing to miss. Ties go to whatever is nearest the gun, so a mount
+   does not shoot through a ship to reach the engine on its far side, and an aim point that has been shot
+   away falls back to the hull. The Dinky carries it: a fighter cannot destroy a capital but can strand
+   one, and four fifths of its hits now land on a thruster where a third did.
+   What is left of this step is what it always deferred: withdrawal, and the line-of-sight, hemisphere,
+   looking-at and ship-type pickers.
 4. **Headless evolution and analysis** — balance testing plus sandbox mode.
 5. **v1: skirmish** — a fixed budget of *materials* rather than of points (§12), designed scenarios,
    shareable by URL. *This is the first thing worth giving people to play.*

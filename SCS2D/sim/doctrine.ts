@@ -73,6 +73,20 @@ export interface Targeting {
    * and every mount fights its own battle.
    */
   readonly focusWeight: number;
+  /**
+   * Where on a target to aim, by what the module is for: its engines, its
+   * guns, or the structure between them.
+   *
+   * **All three zero means no opinion**, and a gun with no opinion shoots at
+   * the ship rather than at a part of it — which is the sensible default,
+   * since picking a part is picking a *smaller* thing to miss. A weight only
+   * earns its keep where crippling is worth more than killing: a fighter that
+   * cannot hope to destroy a capital can still strand it, and §3's mission
+   * kill is what that is for.
+   */
+  readonly engineWeight: number;
+  readonly gunWeight: number;
+  readonly structureWeight: number;
 }
 
 /** How to fight it, once it has been chosen. */
@@ -128,6 +142,9 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     armedWeight: 80,
     mobileWeight: 10,
     focusWeight: 60,
+    engineWeight: 0,
+    gunWeight: 0,
+    structureWeight: 0,
   },
   approach: {
     standoffRadii: 50,
@@ -154,6 +171,9 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
   'armedWeight',
   'mobileWeight',
   'focusWeight',
+  'engineWeight',
+  'gunWeight',
+  'structureWeight',
 ];
 
 export const APPROACH_FIELDS: readonly (keyof Approach)[] = [

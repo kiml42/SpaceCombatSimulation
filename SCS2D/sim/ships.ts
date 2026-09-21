@@ -21,12 +21,13 @@ import {
 import { Projectiles } from './projectiles.js';
 import { Allocation, ThrusterLayout } from './thrusters.js';
 import { FiringSolution, Turrets, TurretState } from './turrets.js';
+import type { Targeting } from './doctrine.js';
 import type { World } from './world.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
 import { RayHit } from './spatialGrid.js';
 import type { Contacts } from './collision.js';
-import { GunType, type GunStats } from './modules.js';
+import { GunType, type GunStats, type ModuleKind } from './modules.js';
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -220,6 +221,16 @@ function bearing(fromX: number, fromY: number, toX: number, toY: number): number
   return atan2(toY - fromY, toX - fromX);
 }
 
+/** Aiming at a ship rather than at any part of it. */
+const WHOLE_SHIP = -1;
+
+/** What a doctrine thinks one kind of module is worth shooting at. */
+function partWeight(doctrine: Targeting, kind: ModuleKind): number {
+  if (kind === 'thruster') return doctrine.engineWeight;
+  if (kind === 'structure') return doctrine.structureWeight;
+  return doctrine.gunWeight;
+}
+
 /**
  * An order: a target object and the range band to hold against it.
  *
@@ -361,6 +372,12 @@ export class Ships {
    * exactly what it looks like.
    */
   private readonly turretAiming: Int32Array[] = [];
+  /**
+   * Which module of its target each mount is shooting at, or -1 for the ship
+   * as a whole — which is what a doctrine with no opinion about parts means,
+   * since picking a part is picking a smaller thing to miss.
+   */
+  private readonly turretAimModule: Int32Array[] = [];
 
   private readonly team: number[] = [];
 
@@ -661,6 +678,7 @@ export class Ships {
     const schedule = new Float64Array(mounts.length);
     for (let t = 0; t < mounts.length; t++) schedule[t] = i + t;
     this.turretRethinkAt.push(schedule);
+    this.turretAimModule.push(new Int32Array(mounts.length).fill(WHOLE_SHIP));
     this.team.push(spec.team ?? 0);
     this.derelict.push(0);
     this.cutSeen.push(-1);
@@ -751,6 +769,7 @@ export class Ships {
     const design = this.designs[i]!;
     const indices = this.turretIndex[i]!;
     const targets = this.turretTarget[i]!;
+    const aims = this.turretAimModule[i]!;
     const schedule = this.turretRethinkAt[i]!;
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
@@ -765,6 +784,7 @@ export class Ships {
       const held = targets[t]!;
       if (held !== NO_TARGET && (this.alive[held] !== 1 || this.derelict[held] === 1)) {
         targets[t] = NO_TARGET;
+        aims[t] = WHOLE_SHIP;
       }
       if (world.tick < schedule[t]!) continue;
       const mount = design.turrets[t]!;
@@ -772,6 +792,7 @@ export class Ships {
 
       if (!(this.damage.remaining(b, mount.module, DamageEffect.FireRate) > 0)) {
         targets[t] = NO_TARGET;
+        aims[t] = WHOLE_SHIP;
         continue;
       }
 
@@ -815,6 +836,9 @@ export class Ships {
         );
       }
       targets[t] = this.choice.ship;
+      aims[t] = targets[t] === NO_TARGET
+        ? WHOLE_SHIP
+        : this.aimModule(bodies, doctrine, targets[t]!, gunX, gunY);
     }
   }
 
@@ -833,6 +857,55 @@ export class Ships {
     this.gunPoint.y = bodies.y[b]! + ry;
     this.gunPoint.vx = bodies.vx[b]! - spin * ry;
     this.gunPoint.vy = bodies.vy[b]! + spin * rx;
+  }
+
+  /**
+   * Which part of a target to shoot at: the best-weighted module still worth
+   * hitting, or the ship as a whole when the doctrine has no opinion.
+   *
+   * Ties go to whatever is nearest the gun — the gun itself, not its ship —
+   * so a mount aiming for engines takes the engine on the near side rather
+   * than shooting through the ship to reach one behind it. A module already
+   * spent is no longer worth a round.
+   */
+  private aimModule(
+    bodies: Bodies,
+    doctrine: Targeting,
+    target: number,
+    fromX: number,
+    fromY: number,
+  ): number {
+    if (
+      doctrine.engineWeight === 0 &&
+      doctrine.gunWeight === 0 &&
+      doctrine.structureWeight === 0
+    ) {
+      return WHOLE_SHIP;
+    }
+    const tb = bodies.indexOf(this.bodyIds[target]!);
+    if (tb < 0) return WHOLE_SHIP;
+    const design = this.designs[target]!;
+    const angle = bodies.angle[tb]!;
+    const c = cos(angle);
+    const s = sin(angle);
+
+    let best = WHOLE_SHIP;
+    let bestWeight = 0;
+    let bestRange = 0;
+    for (let k = 0; k < design.modules.length; k++) {
+      if (this.damage.spent(tb, k)) continue;
+      const weight = partWeight(doctrine, design.modules[k]!.spec.kind);
+      const mx = bodies.x[tb]! + design.modules[k]!.x * c - design.modules[k]!.y * s;
+      const my = bodies.y[tb]! + design.modules[k]!.x * s + design.modules[k]!.y * c;
+      const range = length(mx - fromX, my - fromY);
+      if (best !== WHOLE_SHIP && (weight < bestWeight || (weight === bestWeight && range >= bestRange))) {
+        continue;
+      }
+      best = k;
+      bestWeight = weight;
+      bestRange = range;
+    }
+    return best;
   }
 
   /** What this ship as a whole is fighting, for its mounts to converge on. */
@@ -1402,8 +1475,52 @@ export class Ships {
         continue;
       }
       aiming[t] = target;
-      this.turrets.aimAt(bodies, ti, bodies.x[tb]!, bodies.y[tb]!, bodies.vx[tb]!, bodies.vy[tb]!);
+
+      // Where on it: a part, when the doctrine has an opinion about parts and
+      // that part is still there, and otherwise the ship. A part is carried
+      // round by the hull's own rotation, so the aim point moves at the hull's
+      // velocity plus ω × r — the same term a mount's own muzzle gets, for the
+      // same reason.
+      const part = this.aimPart(i, t, target, tb);
+      const design = this.designs[target]!;
+      let x = bodies.x[tb]!;
+      let y = bodies.y[tb]!;
+      let vx = bodies.vx[tb]!;
+      let vy = bodies.vy[tb]!;
+      if (part !== WHOLE_SHIP) {
+        const angle = bodies.angle[tb]!;
+        const c = cos(angle);
+        const sn = sin(angle);
+        const module = design.modules[part]!;
+        const rx = module.x * c - module.y * sn;
+        const ry = module.x * sn + module.y * c;
+        const w = bodies.angularVel[tb]!;
+        x += rx;
+        y += ry;
+        vx -= w * ry;
+        vy += w * rx;
+      }
+      this.turrets.aimAt(bodies, ti, x, y, vx, vy);
     }
+  }
+
+  /**
+   * The part of its target this mount is aiming at, or `WHOLE_SHIP`.
+   *
+   * Checked here rather than trusted, because what was chosen may since have
+   * been shot away or broken off — and a gun holding its aim on a module that
+   * is no longer there would be pointing at empty space beside the ship. A
+   * target that has just come apart renumbers its modules, so a mount may aim
+   * at the wrong part of it until it next looks; that is a fraction of a
+   * second of pointing at the same ship, which is why it is left alone.
+   */
+  private aimPart(i: number, t: number, target: number, targetBody: number): number {
+    const part = this.turretAimModule[i]![t]!;
+    if (part === WHOLE_SHIP) return WHOLE_SHIP;
+    if (this.turretTarget[i]![t] !== target) return WHOLE_SHIP;
+    const design = this.designs[target]!;
+    if (part >= design.modules.length) return WHOLE_SHIP;
+    return this.damage.spent(targetBody, part) ? WHOLE_SHIP : part;
   }
 
   /**
@@ -1807,6 +1924,7 @@ export class Ships {
     const barrels = new Int32Array(design.turrets.length);
     const targets = new Int32Array(design.turrets.length).fill(NO_TARGET);
     const aiming = new Int32Array(design.turrets.length).fill(NO_TARGET);
+    const aims = new Int32Array(design.turrets.length).fill(WHOLE_SHIP);
     const schedule = new Float64Array(design.turrets.length);
     for (let t = 0; t < design.turrets.length; t++) {
       const mount = design.turrets[t]!;
@@ -1825,6 +1943,7 @@ export class Ships {
       barrels[t] = this.nextBarrelToFire[i]![before]!;
       targets[t] = this.turretTarget[i]![before]!;
       aiming[t] = this.turretAiming[i]![before]!;
+      aims[t] = this.turretAimModule[i]![before]!;
       schedule[t] = this.turretRethinkAt[i]![before]!;
     }
     const old = this.turretIndex[i]!;
@@ -1838,6 +1957,7 @@ export class Ships {
     this.nextBarrelToFire[i] = barrels;
     this.turretTarget[i] = targets;
     this.turretAiming[i] = aiming;
+    this.turretAimModule[i] = aims;
     this.turretRethinkAt[i] = schedule;
     this.throttles[i] = new Float64Array(design.thrusters.length);
     this.layouts[i] = null;
