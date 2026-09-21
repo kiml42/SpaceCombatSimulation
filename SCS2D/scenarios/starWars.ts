@@ -22,7 +22,7 @@ import { OrderCancelCondition } from '../sim/ships.js';
  * Many dinkies and one gunship closing on each other and opening fire.
  */
 
-export function starWars(seed = 20260905, tieFighterCount = 15, xWingCount = 30): Battle {
+export function starWars(seed = 20260905, tieFighterCount = 8, xWingCount = 30): Battle {
   const dt = 1 / 60;
   const world = new World({ dt, seed });
 
