@@ -8,6 +8,7 @@ import type { Battle } from '../scenarios/types.js';
 import { swarm } from '../scenarios/swarm.js';
 import { ram } from '../scenarios/ram.js';
 import { standoff } from '../scenarios/standoff.js';
+import { column } from '../scenarios/column.js';
 import { draw } from '../render/canvas2d.js';
 import { frame, gridStep, moveWithVisibleShips, type Camera } from '../render/camera.js';
 
@@ -54,6 +55,7 @@ export function start(): void {
     { name: 'Super Swarm', create: () => swarm(SEED, 300) },
     { name: 'Ram', create: () => ram(SEED) },
     { name: 'Standoff', create: () => standoff(SEED) },
+    { name: 'Line Ahead', create: () => column(SEED) },
   ];
   let sceneIndex = 0;
   let state: Battle = scenes[sceneIndex].create();

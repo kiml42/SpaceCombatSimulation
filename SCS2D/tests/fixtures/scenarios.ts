@@ -18,6 +18,7 @@ import { beamDuel } from '../../scenarios/beamDuel.js';
 import { soloOrdering } from '../../scenarios/ordering.js';
 import { ram } from '../../scenarios/ram.js';
 import { standoff } from '../../scenarios/standoff.js';
+import { column } from '../../scenarios/column.js';
 import { swarm } from '../../scenarios/swarm.js';
 import { fractal } from '../../scenarios/fractal.js';
 
@@ -380,6 +381,19 @@ export function standoffScenario(seed = 20260905): ScenarioRun {
   };
 }
 
+export function columnScenario(seed = 20260905): ScenarioRun {
+  const run = column(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function ramScenario(seed = 20260905): ScenarioRun {
   const run = ram(seed);
   return {
@@ -435,6 +449,7 @@ export const SCENARIOS = {
   ordering: { steps: 3_000, build: () => orderingScenario() },
   ram: { steps: 3_000, build: () => ramScenario() },
   standoff: { steps: 3_000, build: () => standoffScenario() },
+  column: { steps: 3_000, build: () => columnScenario() },
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;

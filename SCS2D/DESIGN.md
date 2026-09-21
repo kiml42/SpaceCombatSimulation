@@ -119,7 +119,9 @@ inside any one file is not contiguous.
   **A gun holds its fire rather than shoot through its own side**: a straight cast from the muzzle at
   this instant, ignoring everyone's velocity, out to a moment of the round's flight for a gun and the
   whole length for a beam — which arrives instantly along all of it. What it is shooting at is never in
-  the way, whoever's side it is on, and neither is wreckage.
+  the way, whoever's side it is on, and neither is wreckage. Whether it matters is a question about
+  formation: fleets meeting line abreast have their friends beside them, and the `column` scenario is the
+  same fleets in line ahead, where the opening ten seconds go from twenty hits on one's own side to none.
 - **Next:** the rest of §8 step 3 — a picker per module kind, so a doctrine can say to go for the engines. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
   others stay linked, and the word the editor owes the player when an action reorders
