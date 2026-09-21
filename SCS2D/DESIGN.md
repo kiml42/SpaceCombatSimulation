@@ -95,11 +95,12 @@ inside any one file is not contiguous.
   **Craft carry a doctrine, and fight without being told to.** A blueprint can hold a block of named
   numbers saying what its craft picks a fight with and how it wants to fight it; a ship with an empty
   order queue chooses a target through a stack of preferences — what is close, what can still shoot
-  back, what can still get away, what is worth killing, what is coming at it, and what it is already
+  back, what can still get away, what is its own size, what is coming at it, and what it is already
   fighting — and closes to a range that is a fraction of what its own guns are good for. A hulk earns
   neither of the first two, which is how a mission kill puts a ship behind every live one without a rule
-  saying so, and a fighter's doctrine can value small targets over big so that it fights what it can
-  actually hurt. An order given always outranks it, so doctrine is a fallback and never
+  saying so, and what size of target a craft goes for is a ratio to its own mass — one meaning
+  "something my own size", which sends a fighter after fighters and a capital after capitals without
+  either being told. An order given always outranks it, so doctrine is a fallback and never
   a second voice. The `standoff` scenario is the evidence: two fleets a kilometre apart, not one order
   between them, and a battle anyway.
 - **Next:** the rest of §8 step 3 — per-turret targets, then a picker per module kind so a doctrine can

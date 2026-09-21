@@ -31,8 +31,22 @@ export interface Doctrine {
 
   /** Prefer what is close: score for a target at no range at all. */
   readonly proximityWeight: number;
-  /** Prefer what is worth killing, per hundred tonnes of it. */
-  readonly valueWeight: number;
+  /**
+   * What size of target to go after, as a multiple of the chooser's own mass.
+   *
+   * One — the default — is "something my own size", which needs no knowledge
+   * of what else is in the battle and comes out right on every hull it is put
+   * on: a fighter goes after fighters, a capital goes after capitals. It
+   * rests on guns being scaled to the hull that carries them, so a ship's own
+   * mass is a fair guess at what it can actually hurt.
+   *
+   * Other numbers say other things without needing another mechanism: 50 is a
+   * torpedo boat that only wants capitals, a twentieth is a mount that exists
+   * to swat fighters.
+   */
+  readonly preferredMass: number;
+  /** How much going after the right size of thing is worth. */
+  readonly massWeight: number;
   /** Prefer what is coming at you, per hundred metres per second of closing. */
   readonly closingWeight: number;
   /**
@@ -76,7 +90,8 @@ export const DEFAULT_DOCTRINE: Doctrine = {
   tolerance: 0.15,
   approachSpeed: 60,
   proximityWeight: 100,
-  valueWeight: 25,
+  preferredMass: 1,
+  massWeight: 40,
   closingWeight: 10,
   loyaltyWeight: 20,
   armedWeight: 60,
@@ -96,7 +111,8 @@ export const DOCTRINE_FIELDS: readonly (keyof Doctrine)[] = [
   'tolerance',
   'approachSpeed',
   'proximityWeight',
-  'valueWeight',
+  'preferredMass',
+  'massWeight',
   'closingWeight',
   'loyaltyWeight',
   'armedWeight',
@@ -124,6 +140,10 @@ export function doctrineProblem(value: unknown): string | null {
   }
   if (typeof raw['tolerance'] === 'number' && raw['tolerance'] < 0) {
     return `doctrine.tolerance must not be negative, got ${raw['tolerance']}`;
+  }
+  if (typeof raw['preferredMass'] === 'number' && !(raw['preferredMass'] > 0)) {
+    // A ratio of nothing is not a size of ship.
+    return `doctrine.preferredMass must be greater than zero, got ${raw['preferredMass']}`;
   }
   return null;
 }

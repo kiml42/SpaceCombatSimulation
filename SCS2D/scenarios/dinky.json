@@ -1,9 +1,6 @@
 {
   "formatVersion": 1,
   "name": "Dinky",
-  "doctrine": {
-    "valueWeight": -40
-  },
   "assemblies": {
     "thruster": {
       "modules": [

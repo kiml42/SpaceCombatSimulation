@@ -654,7 +654,10 @@ export class Ships {
         !this.isDisarmed(t),
         !this.hasNoEngines(t),
       );
-      this.choice.offer(candidate, score(doctrine, candidate, design.reach, loyalTo));
+      this.choice.offer(
+        candidate,
+        score(doctrine, candidate, design.reach, design.mass, loyalTo),
+      );
     }
     this.chosen[i] = this.choice.ship;
   }

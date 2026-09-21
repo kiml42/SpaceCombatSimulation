@@ -1,6 +1,6 @@
 import type { Bodies } from './bodies.js';
 import type { Doctrine } from './doctrine.js';
-import { length } from './math.js';
+import { abs, length, log } from './math.js';
 
 /**
  * Choosing what to shoot at.
@@ -34,8 +34,6 @@ export interface Candidate {
   readonly mobile: boolean;
 }
 
-/** A hundred tonnes, so `valueWeight` is "score per capital ship". */
-const VALUE_SCALE = 100_000;
 /** A hundred metres a second, so `closingWeight` is per ramming speed. */
 const CLOSING_SCALE = 100;
 
@@ -58,16 +56,36 @@ export function score(
   doctrine: Doctrine,
   candidate: Candidate,
   reach: number,
+  own: number,
   loyalTo: number,
 ): number {
   let total = 0;
   if (reach > 0) total += doctrine.proximityWeight * (1 - candidate.range / reach);
-  total += doctrine.valueWeight * (candidate.mass / VALUE_SCALE);
+  total += doctrine.massWeight * (1 - sizeMiss(doctrine, candidate.mass, own));
   total += doctrine.closingWeight * (candidate.closing / CLOSING_SCALE);
   if (candidate.ship === loyalTo) total += doctrine.loyaltyWeight;
   if (candidate.armed) total += doctrine.armedWeight;
   if (candidate.mobile) total += doctrine.mobileWeight;
   return total;
+}
+
+/**
+ * How far off the wanted size a target is, as a natural logarithm.
+ *
+ * **Measured as a ratio rather than a difference**, because that is what
+ * "similar size" means across a fleet spanning a fighter to a capital: half
+ * my mass and twice my mass are equally wrong, and ten tonnes is a rounding
+ * error to one ship and the whole of another. Zero is exactly the size
+ * wanted, and one is a factor of `e` out in either direction.
+ *
+ * The score built from it reads like proximity's: full weight at the ideal,
+ * nothing one unit away, and against beyond that — so a ship that can only
+ * see targets far from its weight class goes after the nearest of them
+ * rather than refusing to fight.
+ */
+function sizeMiss(doctrine: Doctrine, mass: number, own: number): number {
+  if (!(mass > 0) || !(own > 0) || !(doctrine.preferredMass > 0)) return 0;
+  return abs(log(mass / (own * doctrine.preferredMass)));
 }
 
 /**

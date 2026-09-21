@@ -90,20 +90,45 @@ describe('what a ship is worth shooting at', () => {
   const REACH = 1000;
 
   it('prefers what is closer', () => {
-    const near = score(doctrine, candidate({ range: 200 }), REACH, -1);
-    const far = score(doctrine, candidate({ range: 800 }), REACH, -1);
+    const near = score(doctrine, candidate({ range: 200 }), REACH, 100_000, -1);
+    const far = score(doctrine, candidate({ range: 800 }), REACH, 100_000, -1);
     expect(near).toBeGreaterThan(far);
   });
 
-  it('prefers what is worth killing', () => {
-    const big = score(doctrine, candidate({ mass: 500_000 }), REACH, -1);
-    const small = score(doctrine, candidate({ mass: 10_000 }), REACH, -1);
-    expect(big).toBeGreaterThan(small);
+  it('prefers a target its own size, whatever size it is', () => {
+    // The adaptable default: the preference is a ratio to the chooser's own
+    // mass, so the same doctrine sends a fighter after fighters and a capital
+    // after capitals with nothing said about either.
+    const OWN = 100_000;
+    const same = score(doctrine, candidate({ mass: OWN }), REACH, OWN, -1);
+    const bigger = score(doctrine, candidate({ mass: OWN * 8 }), REACH, OWN, -1);
+    const smaller = score(doctrine, candidate({ mass: OWN / 8 }), REACH, OWN, -1);
+    expect(same).toBeGreaterThan(bigger);
+    expect(same).toBeGreaterThan(smaller);
+  });
+
+  it('measures size as a ratio, so wrong in either direction is wrong alike', () => {
+    // Half my mass and twice my mass are equally wrong; ten tonnes is a
+    // rounding error to one ship and the whole of another.
+    const OWN = 100_000;
+    const half = score(doctrine, candidate({ mass: OWN / 2 }), REACH, OWN, -1);
+    const double = score(doctrine, candidate({ mass: OWN * 2 }), REACH, OWN, -1);
+    expect(half).toBeCloseTo(double, 9);
+  });
+
+  it('can be pointed at another weight class entirely', () => {
+    // A torpedo boat that only wants capitals, said without a mechanism of
+    // its own: "what I go for is fifty times my own mass".
+    const hunter = { ...doctrine, preferredMass: 50 };
+    const OWN = 10_000;
+    const capital = score(hunter, candidate({ mass: OWN * 50 }), REACH, OWN, -1);
+    const peer = score(hunter, candidate({ mass: OWN }), REACH, OWN, -1);
+    expect(capital).toBeGreaterThan(peer);
   });
 
   it('prefers what is coming at it', () => {
-    const closing = score(doctrine, candidate({ closing: 120 }), REACH, -1);
-    const leaving = score(doctrine, candidate({ closing: -120 }), REACH, -1);
+    const closing = score(doctrine, candidate({ closing: 120 }), REACH, 100_000, -1);
+    const leaving = score(doctrine, candidate({ closing: -120 }), REACH, 100_000, -1);
     expect(closing).toBeGreaterThan(leaving);
   });
 
@@ -111,15 +136,15 @@ describe('what a ship is worth shooting at', () => {
     // The cheapest fix for the most visible failure a target picker has: two
     // equally good targets, and a ship that spends the battle turning round.
     const evens = candidate({ ship: 7 });
-    expect(score(doctrine, evens, REACH, 7)).toBeGreaterThan(score(doctrine, evens, REACH, 3));
+    expect(score(doctrine, evens, REACH, 100_000, 7)).toBeGreaterThan(score(doctrine, evens, REACH, 100_000, 3));
   });
 
   it('prefers what can still shoot back, and what can still get away', () => {
     const live = candidate();
     const disarmed = candidate({ armed: false });
     const stranded = candidate({ mobile: false });
-    expect(score(doctrine, live, REACH, -1)).toBeGreaterThan(score(doctrine, disarmed, REACH, -1));
-    expect(score(doctrine, live, REACH, -1)).toBeGreaterThan(score(doctrine, stranded, REACH, -1));
+    expect(score(doctrine, live, REACH, 100_000, -1)).toBeGreaterThan(score(doctrine, disarmed, REACH, 100_000, -1));
+    expect(score(doctrine, live, REACH, 100_000, -1)).toBeGreaterThan(score(doctrine, stranded, REACH, 100_000, -1));
   });
 
   it('puts a hulk behind every live ship without a rule about hulks', () => {
@@ -128,7 +153,7 @@ describe('what a ship is worth shooting at', () => {
     // of what a ship is rather than a special case about what it has become.
     const hulk = candidate({ armed: false, mobile: false, range: 1 });
     const live = candidate({ ship: 2, range: REACH * 0.9 });
-    expect(score(doctrine, live, REACH, -1)).toBeGreaterThan(score(doctrine, hulk, REACH, -1));
+    expect(score(doctrine, live, REACH, 100_000, -1)).toBeGreaterThan(score(doctrine, hulk, REACH, 100_000, -1));
   });
 
   it('still finishes a hulk when there is nothing else left', () => {
@@ -137,34 +162,46 @@ describe('what a ship is worth shooting at', () => {
     const choice = new Choice();
     const hulk = candidate({ armed: false, mobile: false });
     choice.begin();
-    choice.offer(hulk, score(doctrine, hulk, REACH, -1));
+    choice.offer(hulk, score(doctrine, hulk, REACH, 100_000, -1));
     expect(choice.ship).toBe(hulk.ship);
   });
 
-  it('lets a craft prefer its own weight class, without refusing a capital', () => {
+  it('sends a fighter after fighters, on the default doctrine alone', () => {
     // A fighter that goes for the biggest thing on the board achieves
-    // nothing. A negative value weight sends it after what it can actually
-    // hurt — and because scoring ranks rather than admits, it still takes on
-    // a capital when a capital is all there is.
+    // nothing, and this is why the Dinky needs no doctrine block of its own:
+    // "something my own size" is already what the default says.
     const dinky = compileBlueprint(DINKY);
     const capital = compileBlueprint(GUNSHIP);
-    expect(dinky.doctrine.valueWeight).toBeLessThan(0);
+    expect(dinky.doctrine).toEqual(DEFAULT_DOCTRINE);
 
     const small = candidate({ ship: 1, mass: dinky.mass });
     const large = candidate({ ship: 2, mass: capital.mass });
-    expect(score(dinky.doctrine, small, dinky.reach, -1)).toBeGreaterThan(
-      score(dinky.doctrine, large, dinky.reach, -1),
+    expect(score(dinky.doctrine, small, dinky.reach, dinky.mass, -1)).toBeGreaterThan(
+      score(dinky.doctrine, large, dinky.reach, dinky.mass, -1),
     );
 
+    // And the capital, given the same choice, prefers the capital.
+    expect(score(capital.doctrine, large, capital.reach, capital.mass, -1)).toBeGreaterThan(
+      score(capital.doctrine, small, capital.reach, capital.mass, -1),
+    );
+
+    // Still takes one on when it is all there is: scoring ranks, it does not
+    // admit.
     const choice = new Choice();
     choice.begin();
-    choice.offer(large, score(dinky.doctrine, large, dinky.reach, -1));
+    choice.offer(large, score(dinky.doctrine, large, dinky.reach, dinky.mass, -1));
     expect(choice.ship).toBe(large.ship);
   });
 
   it('scores a target beyond its reach against, so a ship closes', () => {
     expect(
-      score({ ...doctrine, valueWeight: 0, closingWeight: 0 }, candidate({ range: REACH * 2 }), REACH, -1),
+      score(
+        { ...doctrine, massWeight: 0, closingWeight: 0, armedWeight: 0, mobileWeight: 0 },
+        candidate({ range: REACH * 2 }),
+        REACH,
+        100_000,
+        -1,
+      ),
     ).toBeLessThan(0);
   });
 });
