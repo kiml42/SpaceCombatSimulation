@@ -30,6 +30,9 @@ export interface Joint {
   readonly b: number;
   /** Length of the faces in contact, metres. A corner joins nothing. */
   readonly width: number;
+  /** Where the weld is, in the hull's frame — how far a blow has to travel. */
+  readonly x: number;
+  readonly y: number;
   /**
    * Impulse the weld can pass before it tears, newton-seconds, with the
    * modules it joins undamaged.
@@ -54,7 +57,7 @@ export interface Joint {
  * pieces sheds parts on contacts it would once have ignored. A dial, and in
  * §12 with the others.
  */
-export const JOINT_IMPULSE_PER_AREA = 2.0e5;
+export const JOINT_IMPULSE_PER_AREA = 3.0e6;
 
 /**
  * Every joint in a design, in a fixed order: ascending by the lower module,
@@ -86,7 +89,18 @@ export function joints(design: ShipDesign): readonly Joint[] {
         design.modules[i]!.stats.wallThickness,
         design.modules[j]!.stats.wallThickness,
       );
-      found.push({ a: i, b: j, width, strength: width * thickness * JOINT_IMPULSE_PER_AREA });
+      // Between the two modules it joins, which is close enough to the weld
+      // for measuring how far a shock had to travel to reach it.
+      const x = (design.modules[i]!.x + design.modules[j]!.x) * 0.5;
+      const y = (design.modules[i]!.y + design.modules[j]!.y) * 0.5;
+      found.push({
+        a: i,
+        b: j,
+        width,
+        x,
+        y,
+        strength: width * thickness * JOINT_IMPULSE_PER_AREA,
+      });
     }
   }
   cache.set(design, found);
@@ -139,23 +153,65 @@ export function components(design: ShipDesign, broken: (joint: Joint) => boolean
 }
 
 /**
- * The piece that would come away if one joint let go, or null if nothing
- * would: the modules on the far side of it from `from`.
+ * What hangs off either side of one weld, if that weld alone lets go.
  *
- * What a joint has to hold is whatever hangs off it, so this is how much of
- * the ship a blow has to drag along through that one weld. A joint in a ring
- * has no far side — cutting it leaves the hull in one piece — and so carries
- * no load of its own, which is exactly what a second load path is worth.
+ * A weld's job is to drag whatever is on the far side of it along with the
+ * rest of the ship, so this is what a blow has to pull through it. Worked out
+ * per design and kept, because it is geometry and cannot change while a hull
+ * is one hull.
  */
-export function acrossJoint(
-  design: ShipDesign,
-  joint: Joint,
-  from: number,
-): readonly number[] | null {
-  const parts = components(design, (other) => other === joint);
-  if (parts.length < 2) return null;
-  for (const part of parts) {
-    if (!part.includes(from)) return part;
-  }
-  return null;
+export interface Cut {
+  /** Which side of this weld each module is on, 0 or 1. */
+  readonly side: Int8Array;
+  /** Each side's mass, kg. */
+  readonly mass: readonly number[];
+  /** Each side's own centre of mass, in the hull's frame. */
+  readonly x: readonly number[];
+  readonly y: readonly number[];
 }
+
+/**
+ * One entry per joint, in `joints` order, or null where cutting that weld
+ * alone parts nothing.
+ *
+ * Null is a weld in a **ring**: the hull is still in one piece without it, so
+ * nothing hangs off it and no blow can load it on its own. That is exactly
+ * what a second load path is worth, and it falls out of the geometry rather
+ * than being a rule about rings.
+ */
+export function cuts(design: ShipDesign): readonly (Cut | null)[] {
+  const known = cutCache.get(design);
+  if (known !== undefined) return known;
+
+  const all = joints(design);
+  const found: (Cut | null)[] = [];
+  for (const joint of all) {
+    const parts = components(design, (other) => other === joint);
+    if (parts.length !== 2) {
+      found.push(null);
+      continue;
+    }
+    const side = new Int8Array(design.modules.length);
+    const mass = [0, 0];
+    const x = [0, 0];
+    const y = [0, 0];
+    for (let p = 0; p < 2; p++) {
+      for (const module of parts[p]!) {
+        side[module] = p;
+        const m = design.modules[module]!;
+        mass[p]! += m.stats.mass;
+        x[p]! += m.x * m.stats.mass;
+        y[p]! += m.y * m.stats.mass;
+      }
+      if (mass[p]! > 0) {
+        x[p]! /= mass[p]!;
+        y[p]! /= mass[p]!;
+      }
+    }
+    found.push({ side, mass, x, y });
+  }
+  cutCache.set(design, found);
+  return found;
+}
+
+const cutCache = new WeakMap<ShipDesign, readonly (Cut | null)[]>();

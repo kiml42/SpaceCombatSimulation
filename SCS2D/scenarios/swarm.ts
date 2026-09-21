@@ -125,9 +125,9 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
       // What the hits did. Rounds walk the modules along their path and are
       // killed or sent on their way; beams pour their power into what they are
       // burning through.
-      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits);
+      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits, ships);
       impacts.beams(ships.damage, beams, beamHits, dt, world.bodies);
-      run.totalSevered += ships.sever(world);
+      run.totalSevered += ships.sever(world, collisions.contacts);
     },
   };
 
