@@ -59,6 +59,14 @@ export {
 } from './modules.js';
 export { HullPath, Hulls, modulesAlong, type HullDesigns } from './hull.js';
 export {
+  JOINT_IMPULSE_PER_AREA,
+  cuts,
+  components,
+  joints,
+  type Cut,
+  type Joint,
+} from './connectivity.js';
+export {
   Collisions,
   Contacts,
   RESTITUTION,
@@ -66,6 +74,7 @@ export {
   resolveContacts,
 } from './collision.js';
 export {
+  ATTACHMENT_TOLERANCE,
   assemblyProblem,
   blueprintFaults,
   blueprintProblem,
@@ -81,6 +90,7 @@ export {
   modulesOverlap,
   placementAt,
   samePlacement,
+  subDesign,
   type Assembly,
   type AssemblyInstance,
   type AssemblyStep,
@@ -132,12 +142,15 @@ export {
   Damage,
   DamageEffect,
   IMPACT_BEAM,
+  IMPACT_COLLISION,
   IMPACT_ROUND,
   ImpactLog,
   Impacts,
+  resolveCollision,
   resolveRound,
   type DamageResponse,
   type RoundOutcome,
+  type Shocked,
 } from './damage.js';
 export {
   checksumWorld,

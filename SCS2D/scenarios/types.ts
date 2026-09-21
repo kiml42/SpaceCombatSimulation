@@ -43,5 +43,9 @@ export interface Battle {
   totalBeamHits: number;
   /** Cumulative contacts, so a scenario that stops colliding is detectable. */
   totalContacts: number;
+  /** Cumulative pieces broken off hulls, which is how severing shows up. */
+  totalSevered: number;
+  /** Wreckage the world stopped tracking, as pieces let go. */
+  totalCulled: number;
   step(): void;
 }

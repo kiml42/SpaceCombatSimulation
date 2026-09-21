@@ -21,6 +21,7 @@ import {
   type ShipDesign,
 } from '../sim/index.js';
 import { CORVETTE } from '../scenarios/blueprints.js';
+import { joints } from '../sim/connectivity.js';
 
 /**
  * What a hit does to the ship it landed on.
@@ -295,6 +296,58 @@ describe('what a hit logs to be drawn', () => {
     const y = bodies.y[body]! + impacts.log.localX[0]! * Math.sin(angle) + impacts.log.localY[0]! * Math.cos(angle);
     expect(x).toBeCloseTo(impacts.log.x[0]!, 9);
     expect(y).toBeCloseTo(impacts.log.y[0]!, 9);
+  });
+
+  it('takes a bite out of every weld it goes through, and none it does not', () => {
+    // A round that crosses from one module into the next has gone through the
+    // weld between them. One that stops in the first module has gone through
+    // nothing, however much it hurt.
+    const through = ship();
+    shoot(through, 90, 0.16, 1400);
+    const design = corvette;
+    let bitten = 0;
+    joints(design).forEach((_joint, k) => {
+      if (through.damage.cutAt(0, k) > 0) bitten++;
+    });
+    expect(bitten).toBeGreaterThan(0);
+
+    const stopped = ship();
+    // A pebble: it embeds in the first plate it meets.
+    shoot(stopped, 0.1, 0.01, 90);
+    joints(design).forEach((_joint, k) => {
+      expect(stopped.damage.cutAt(0, k)).toBe(0);
+    });
+  });
+
+  it('shoves the ship by the momentum the round left in it', () => {
+    // A round is a lump of metal arriving at speed, so what it gives up it
+    // gives to the hull. It is also what can tear a piece off, and a blow
+    // that moved nothing could not.
+    const world = new World({ dt: 1 / 60, seed: 4 });
+    const ships = new Ships();
+    const ship = ships.spawn(world, { design: corvette, x: 0, y: 0, team: 0 });
+    const bodies = world.bodies;
+    const body = bodies.indexOf(ships.body(ship));
+
+    const impacts = new Impacts();
+    const projectiles = new Projectiles(8);
+    const hits = new ProjectileHits();
+    const grid = new SpatialGrid(64);
+    grid.rebuild(bodies);
+    const mass = 90;
+    const speed = 900;
+    projectiles.spawn({ x: -corvette.radius * 2, y: 0, vx: speed, vy: 0, width: 0.16, ttl: 5, mass });
+    for (let i = 0; i < 60 && hits.count === 0; i++) {
+      projectiles.step(1 / 60, bodies, grid, hits, undefined, ships.hulls);
+      if (hits.count > 0) impacts.rounds(ships, ships.damage, bodies, projectiles, hits, ships);
+    }
+    expect(hits.count).toBe(1);
+
+    // Whatever the round kept, the ship took the rest — head on, so all of it
+    // is along the round's own heading.
+    const left = projectiles.alive[0] === 1 ? projectiles.vx[0]! : 0;
+    expect(bodies.vx[body]).toBeCloseTo((mass * (speed - left)) / corvette.mass, 9);
+    expect(bodies.vx[body]!).toBeGreaterThan(0);
   });
 });
 

@@ -244,7 +244,9 @@ export function start(): void {
       // designs flying almost on top of each other.
       `range ${range.toFixed(range < 10 ? 3 : 0)} m · in flight ${view.projectileCount} · ` +
       `p.fired ${state.totalProjectilesFired} · p.hits ${state.totalProjectileHits} · ` +
-      `b.fired ${state.totalBeamsFired} · b.hits ${state.totalBeamHits} · grid ${gridStep(camera.scale)} m`;
+      `b.fired ${state.totalBeamsFired} · b.hits ${state.totalBeamHits} · ` +
+      `severed ${state.totalSevered} · scrap ${(state.ships.discarded / 1000).toFixed(1)} t · ` +
+      `grid ${gridStep(camera.scale)} m`;
 
     window.requestAnimationFrame(tick);
   };

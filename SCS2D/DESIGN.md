@@ -84,8 +84,16 @@ inside any one file is not contiguous.
   stops working and goes on stopping shells, so a battered ship is sluggish and
   quiet rather than lighter, and a ship that can neither move nor shoot drifts
   as a hulk. Hits flash on the canvas and wrecked modules are drawn as wreckage.
-- **Next:** severing — the connectivity graph that lets a hull come apart, which
-  is the rest of §8 step 2. Slice 1 has two
+  **Hulls come apart, and it takes a blow to do it.** A ship is held together by welds derived from where
+  its modules touch, each rated by its section. Damage decides how much of a weld is left; what spends it
+  is the impulse that has to cross it, so a hit on an outlying module takes it off and the same hit
+  amidships takes nothing. A round also cuts the welds it passes through, which is a gun shearing a wing
+  off at the root rather than knocking it off. A beam carries no momentum, so nothing it does can *tear*
+  anything: what it does instead is boil along every seam its tunnel crosses until one of them is gone,
+  and whatever that seam was holding is then simply no longer attached. What comes away is a body of its own with its share of the momentum, the spin
+  and the scars — a piece of ship with nobody aboard, which collides and takes damage like any other hull.
+- **Next:** §8 step 3, doctrine and orders: the per-craft configuration that orders should be
+  defaulted from, and something that issues them while a battle runs. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
   others stay linked, and the word the editor owes the player when an action reorders
   a layout. Restructuring a group — dissolving one, or nesting one inside another —
@@ -251,10 +259,30 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
 
 **One planar rigid body per ship. Modules are data, not physics bodies.**
 
-- **Connectivity graph** per hull. When damage disconnects a subgraph, spawn a new body for the
-  detached chunk inheriting `v + ω × r`, and recompute mass properties on both sides. This gives
-  ships breaking in half, losing engines and tumbling, and wrecks to salvage — the good part of the
-  old jointed-assembly model — without a constraint solver.
+- **Connectivity graph** per hull, and it is built (`sim/connectivity.ts`). Two modules are welded
+  where their faces touch, and the weld is worth its section — the contact by the thinner wall meeting
+  there — rated as an impulse. **Damage weakens a weld; a blow parts it**, and the load through a weld
+  is the impulse that has to cross it: the far side's mass by the velocity change there. A weld cut
+  through its section by rounds passing along it parts with no blow at all, since a cut weld is not a
+  weak one but an absent one. When damage
+  disconnects a subgraph the detached chunk becomes a body of its own inheriting `v + ω × r`, with
+  mass properties recomputed on both sides, so momentum and angular momentum come out where they went
+  in. This gives ships breaking in half, losing engines and tumbling, and wrecks to salvage — the good
+  part of the old jointed-assembly model — without a constraint solver. Which piece keeps being *the
+  ship* is the stand-in answer the layout rule uses, and is §12's to settle.
+- **A collision costs both hulls the energy the bounce did not give back**, spent from the faces that
+  met and working inward until it runs out, so a ram folds a nose in rather than putting a neat hole
+  through a ship. Half to each hull, which needs no rule about which is the harder: a module's capacity
+  goes with its mass, so the same energy that dents a capital ship destroys the fighter that flew into
+  it. That is what makes §3's strike craft literal — a torpedo is a fighter that crashes into things.
+- **Matter is conserved in a hull, not in the world.** Everything conservation buys — wreckage as free
+  armour, a topology damage cannot change, a battered ship that gets sluggish rather than lighter — is
+  about what a *hull* keeps, and none of it needs a shard to persist once it has left the ship. So a
+  severed piece too small to be worth harvesting is never created, and one that has drifted clear of the
+  fighting is let go. How far is "clear" grows with the piece's mass, so a shard goes as soon as it
+  leaves and a serious chunk effectively never does — which makes "worth hunting down" fall out of the
+  rule rather than being declared. What is discarded is counted, mass and momentum both, so the books
+  can still be balanced.
 - **Destruction is a state change, not a removal. Matter is conserved.** A "destroyed" module becomes
   *non-functional* — an engine gives no thrust, a magazine holds no rounds, a turret does not fire — but it
   keeps its mass, its place in the layout, and its ability to stop a shell. Mass leaves a ship only by being
