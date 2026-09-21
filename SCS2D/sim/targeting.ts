@@ -1,5 +1,5 @@
 import type { Bodies } from './bodies.js';
-import type { Doctrine } from './doctrine.js';
+import type { Targeting } from './doctrine.js';
 import { abs, length, log } from './math.js';
 
 /**
@@ -53,7 +53,7 @@ const CLOSING_SCALE = 100;
  * special case about what it has become.
  */
 export function score(
-  doctrine: Doctrine,
+  doctrine: Targeting,
   candidate: Candidate,
   reach: number,
   own: number,
@@ -83,7 +83,7 @@ export function score(
  * see targets far from its weight class goes after the nearest of them
  * rather than refusing to fight.
  */
-function sizeMiss(doctrine: Doctrine, mass: number, own: number): number {
+function sizeMiss(doctrine: Targeting, mass: number, own: number): number {
   if (!(mass > 0) || !(own > 0) || !(doctrine.preferredMass > 0)) return 0;
   return abs(log(mass / (own * doctrine.preferredMass)));
 }

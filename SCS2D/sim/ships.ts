@@ -635,7 +635,7 @@ export class Ships {
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
 
-    const doctrine = design.doctrine;
+    const doctrine = design.doctrine.targeting;
     const mine = this.team[i]!;
     const loyalTo = this.chosen[i]!;
     this.choice.begin();
@@ -684,14 +684,24 @@ export class Ships {
     if (target === NO_TARGET || this.alive[target] !== 1) return undefined;
 
     const design = this.designs[i]!;
-    const doctrine = design.doctrine;
+    const approach = design.doctrine.approach;
     const standing = this.standing[i]!;
     standing.target = target;
-    // Fractions of its own reach, so one doctrine means the same thing on a
-    // fighter and on a capital.
-    standing.minRange = max(0, (doctrine.standoff - doctrine.tolerance) * design.reach);
-    standing.maxRange = max(standing.minRange, (doctrine.standoff + doctrine.tolerance) * design.reach);
-    standing.approachSpeed = doctrine.approachSpeed;
+
+    // **Close until the target looks big enough to hit.** A gun misses
+    // because its firing solution guessed wrong about where the target would
+    // be, and how much of a guess it can afford depends on how much of the
+    // sky the target fills — so a fighter has to be closed right in on and a
+    // capital does not, and one number covers both because it is measured in
+    // the target's own radii. Capped by what this ship's guns are good for,
+    // so nothing stands off further than it can shoot.
+    const wanted = min(
+      approach.standoffRadii * this.designs[target]!.radius,
+      approach.standoff * design.reach,
+    );
+    standing.minRange = max(0, wanted * (1 - approach.tolerance));
+    standing.maxRange = max(standing.minRange, wanted * (1 + approach.tolerance));
+    standing.approachSpeed = approach.approachSpeed;
     return standing;
   }
 

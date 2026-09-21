@@ -60,11 +60,15 @@ export {
 export { HullPath, Hulls, modulesAlong, type HullDesigns } from './hull.js';
 export {
   DEFAULT_DOCTRINE,
+  APPROACH_FIELDS,
   DOCTRINE_FIELDS,
+  TARGETING_FIELDS,
   doctrineProblem,
   serialiseDoctrine,
   toDoctrine,
+  type Approach,
   type Doctrine,
+  type Targeting,
 } from './doctrine.js';
 export {
   Choice,
