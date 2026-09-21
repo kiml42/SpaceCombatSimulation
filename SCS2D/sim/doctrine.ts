@@ -116,8 +116,8 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     massWeight: 40,
     closingWeight: 10,
     loyaltyWeight: 20,
-    armedWeight: 60,
-    mobileWeight: 30,
+    armedWeight: 80,
+    mobileWeight: 10,
   },
   approach: {
     standoffRadii: 50,
