@@ -22,7 +22,7 @@ import { OrderCancelCondition } from '../sim/ships.js';
  * Many dinkies and one gunship closing on each other and opening fire.
  */
 
-export function starWars(seed = 20260905, tieFighterCount = 20, xWingCount = 20): Battle {
+export function starWars(seed = 20260905, tieFighterCount = 25, xWingCount = 30): Battle {
   const dt = 1 / 60;
   const world = new World({ dt, seed });
 
@@ -41,11 +41,11 @@ export function starWars(seed = 20260905, tieFighterCount = 20, xWingCount = 20)
   const randomRadius = 1000;
 
 
-  const isds = SpawnMany(1, rng, randomRadius, ships, world, isdBlueprint, 1000, 1000, 0);
-  const ties = SpawnMany(tieFighterCount, rng, randomRadius, ships, world, tieBlueprint, 1000, 1000, 0);
+  const isds = SpawnMany(1, rng, randomRadius, ships, world, isdBlueprint, 3000, 0, 0);
+  const ties = SpawnMany(tieFighterCount, rng, randomRadius, ships, world, tieBlueprint, 1000, 0, 0);
 
-  const xWings = SpawnMany(xWingCount, rng, randomRadius, ships, world, xWingBlueprint, -1000, -1000, 1);
-  const ghosts = SpawnMany(1, rng, randomRadius, ships, world, ghostBlueprint, -1000, -1000, 1);
+  const xWings = SpawnMany(xWingCount, rng, randomRadius, ships, world, xWingBlueprint, -1000, 0, 1);
+  const ghosts = SpawnMany(2, rng, randomRadius, ships, world, ghostBlueprint, -1200, 0, 1);
 
   for (const tie of ties) {
     for (const xWing of xWings) {
@@ -168,16 +168,19 @@ function SpawnMany(count: number, rng: Rng, randomRadius: number, ships: Ships, 
     const radius = math.sqrt(rng.nextRange(0, 1)) * randomRadius;
     const x = xStart + radius * math.cos(angle);
     const y = yStart + radius * math.sin(angle);
-    const dvx = rng.nextRange(-20, 20);
-    const dvy = rng.nextRange(-20, 20);
+    let vx = rng.nextRange(20, 50);
+    if (xStart > 0) {
+      vx = -vx;
+    }
+    const vy = rng.nextRange(-20, 20);
 
     const a = ships.spawn(world, {
       design: blueprint,
       x: x,
       y: y,
-      angle: rng.nextRange(0, 2 * math.PI),
-      vx: dvx,
-      vy: 90 + dvy,
+      angle: xStart > 0 ? math.PI : 0,
+      vx: vx,
+      vy: 90 + vy,
       team: team,
     });
     shipIndices.push(a);
