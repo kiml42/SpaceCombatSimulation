@@ -134,15 +134,50 @@ export function look(
   armed: boolean,
   mobile: boolean,
 ): Candidate {
-  const dx = bodies.x[to]! - bodies.x[from]!;
-  const dy = bodies.y[to]! - bodies.y[from]!;
+  return lookFrom(
+    bodies,
+    bodies.x[from]!,
+    bodies.y[from]!,
+    bodies.vx[from]!,
+    bodies.vy[from]!,
+    to,
+    ship,
+    mass,
+    armed,
+    mobile,
+  );
+}
+
+/**
+ * The same, seen from a point rather than from a body.
+ *
+ * **A mount asks from where it sits, not from its ship's centre.** Two guns
+ * on opposite beams are metres apart and that is almost nothing beside
+ * gunnery range — but it is enough to order two targets differently, which is
+ * what stops a pair of them piling onto the same one. It is also the truth:
+ * the range a gun has to shoot is the range from the gun.
+ */
+export function lookFrom(
+  bodies: Bodies,
+  fromX: number,
+  fromY: number,
+  fromVx: number,
+  fromVy: number,
+  to: number,
+  ship: number,
+  mass: number,
+  armed: boolean,
+  mobile: boolean,
+): Candidate {
+  const dx = bodies.x[to]! - fromX;
+  const dy = bodies.y[to]! - fromY;
   const range = length(dx, dy);
   let closing = 0;
   if (range > 0) {
     // Along the line between them: how fast the gap is shutting, which is
     // what "coming at you" means and is not the same as how fast it is going.
-    const dvx = bodies.vx[to]! - bodies.vx[from]!;
-    const dvy = bodies.vy[to]! - bodies.vy[from]!;
+    const dvx = bodies.vx[to]! - fromVx;
+    const dvy = bodies.vy[to]! - fromVy;
     closing = -(dvx * dx + dvy * dy) / range;
   }
   return { ship, range, closing, mass, armed, mobile };

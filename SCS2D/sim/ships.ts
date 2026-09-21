@@ -1,9 +1,9 @@
 import { Bodies, type BodyId } from './bodies.js';
-import { subDesign, type ShipDesign } from './blueprint.js';
+import { subDesign, type DesignTurret, type ShipDesign } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
-import { Choice, look, score } from './targeting.js';
+import { Choice, look, lookFrom, score } from './targeting.js';
 import {
   atan2,
   angleDelta,
@@ -196,6 +196,11 @@ const TURRET_MAX_RETHINK = 4;
 const SHOCK_REACH = 15;
 
 export const NO_TARGET = -1;
+
+/** World bearing from one point to another. */
+function bearing(fromX: number, fromY: number, toX: number, toY: number): number {
+  return atan2(toY - fromY, toX - fromX);
+}
 
 /**
  * An order: a target object and the range band to hold against it.
@@ -419,6 +424,13 @@ export class Ships {
 
   private readonly allocation = new Allocation();
   private readonly solution = new FiringSolution();
+  /**
+   * Where a mount sits in the world and how fast that point is moving, filled
+   * in place by `locateMount` and read straight away. Persistent rather than
+   * built per call, per §12.
+   */
+  private readonly gunPoint = { x: 0, y: 0, vx: 0, vy: 0 };
+
   /** Turret reaction torque per body index, filled by `Turrets.step`. */
   private reaction = new Float64Array(64);
 
@@ -733,16 +745,32 @@ export class Ships {
 
       const ti = indices[t]!;
       const doctrine = mount.targeting;
+
+      // Everything is measured from the gun rather than from the hull it is
+      // bolted to. Metres, against gunnery range — but enough to order two
+      // targets differently, which is what stops both beams piling onto the
+      // same one when either could take it.
+      this.locateMount(bodies, b, mount);
+      const gunX = this.gunPoint.x;
+      const gunY = this.gunPoint.y;
+      const gunVx = this.gunPoint.vx;
+      const gunVy = this.gunPoint.vy;
+
       this.choice.begin();
       for (let e = 0; e < this.alive.length; e++) {
         if (e === i || this.alive[e] === 0) continue;
         if (this.derelict[e] === 1 || this.team[e] === mine) continue;
         const tb = bodies.indexOf(this.bodyIds[e]!);
         if (tb < 0) continue;
-        if (!this.turrets.bearsOn(bodies, ti, this.bearingTo(bodies, b, tb))) continue;
-        const candidate = look(
+        if (!this.turrets.bearsOn(bodies, ti, bearing(gunX, gunY, bodies.x[tb]!, bodies.y[tb]!))) {
+          continue;
+        }
+        const candidate = lookFrom(
           bodies,
-          b,
+          gunX,
+          gunY,
+          gunVx,
+          gunVy,
           tb,
           e,
           this.designs[e]!.mass,
@@ -758,9 +786,21 @@ export class Ships {
     }
   }
 
-  /** World bearing from one body to another. */
-  private bearingTo(bodies: Bodies, from: number, to: number): number {
-    return atan2(bodies.y[to]! - bodies.y[from]!, bodies.x[to]! - bodies.x[from]!);
+  /**
+   * Where a mount is and how fast that point is moving, into `gunPoint`.
+   *
+   * A mount out on a beam is carried round by its ship, so its velocity is
+   * the hull's plus ω × r — the same term a round leaving it inherits.
+   */
+  private locateMount(bodies: Bodies, b: number, mount: DesignTurret): void {
+    const angle = bodies.angle[b]!;
+    const rx = mount.mount.x * cos(angle) - mount.mount.y * sin(angle);
+    const ry = mount.mount.x * sin(angle) + mount.mount.y * cos(angle);
+    const spin = bodies.angularVel[b]!;
+    this.gunPoint.x = bodies.x[b]! + rx;
+    this.gunPoint.y = bodies.y[b]! + ry;
+    this.gunPoint.vx = bodies.vx[b]! - spin * ry;
+    this.gunPoint.vy = bodies.vy[b]! + spin * rx;
   }
 
   /** What this ship as a whole is fighting, for its mounts to converge on. */
@@ -782,12 +822,16 @@ export class Ships {
     const given = this.getCurrentOrder(i);
     if (given !== undefined && given.target !== NO_TARGET && this.alive[given.target] === 1) {
       const tb = bodies.indexOf(this.bodyIds[given.target]!);
-      if (tb >= 0) {
-        const b = bodies.indexOf(this.bodyIds[i]!);
+      const b = bodies.indexOf(this.bodyIds[i]!);
+      if (tb >= 0 && b >= 0) {
         const ti = this.turretIndex[i]![t]!;
-        if (b >= 0 && this.turrets.bearsOn(bodies, ti, this.bearingTo(bodies, b, tb))) {
-          return given.target;
-        }
+        this.locateMount(bodies, b, this.designs[i]!.turrets[t]!);
+        const canBear = this.turrets.bearsOn(
+          bodies,
+          ti,
+          bearing(this.gunPoint.x, this.gunPoint.y, bodies.x[tb]!, bodies.y[tb]!),
+        );
+        if (canBear) return given.target;
       }
     }
     const own = this.turretTarget[i]![t]!;
