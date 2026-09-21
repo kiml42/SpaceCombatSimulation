@@ -113,6 +113,7 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
       // back apart before anything asks where anything is.
       collisions.step(world.bodies, ships);
       run.totalContacts += collisions.contacts.count;
+      impacts.collisions(ships, ships.damage, world.bodies, collisions.contacts);
       grid.rebuild(world.bodies);
       beams.clear();
       beamHits.clear();

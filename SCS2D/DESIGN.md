@@ -270,6 +270,11 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   in. This gives ships breaking in half, losing engines and tumbling, and wrecks to salvage — the good
   part of the old jointed-assembly model — without a constraint solver. Which piece keeps being *the
   ship* is the stand-in answer the layout rule uses, and is §12's to settle.
+- **A collision costs both hulls the energy the bounce did not give back**, spent from the faces that
+  met and working inward until it runs out, so a ram folds a nose in rather than putting a neat hole
+  through a ship. Half to each hull, which needs no rule about which is the harder: a module's capacity
+  goes with its mass, so the same energy that dents a capital ship destroys the fighter that flew into
+  it. That is what makes §3's strike craft literal — a torpedo is a fighter that crashes into things.
 - **Destruction is a state change, not a removal. Matter is conserved.** A "destroyed" module becomes
   *non-functional* — an engine gives no thrust, a magazine holds no rounds, a turret does not fire — but it
   keeps its mass, its place in the layout, and its ability to stop a shell. Mass leaves a ship only by being
