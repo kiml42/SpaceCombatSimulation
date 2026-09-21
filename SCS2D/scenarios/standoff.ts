@@ -24,17 +24,15 @@ import { BEAM_CORVETTE, CORVETTE, DINKY, GUNSHIP } from './blueprints.js';
  * script — and therefore the only honest way to see what a fleet does when
  * nobody is flying it.
  *
- * Today that is nothing at all. A ship with an empty order queue holds its
- * heading and its fire, so the two lines sit and look at each other for as
- * long as you care to run them, well inside the range at which they could
- * hurt each other. The distance is the point: what stops this being a battle
- * is that nothing has told them to make it one, not that they are too far
- * apart to try.
+ * What they do is fight, and every part of how they fight comes out of the
+ * doctrine each craft carries in its blueprint: what it picks on, how close
+ * it wants to be, and when it changes its mind. Nothing here issues an order,
+ * so a change to a doctrine shows up in this scenario and nowhere else can it
+ * be seen so plainly.
  *
- * It is here to be the *before* picture. When craft carry a doctrine to fall
- * back on, this same file becomes a battle with nobody issuing an order, and
- * the difference between the two checksums is the whole of what that step is
- * worth.
+ * The distance they start at is chosen to say something: well inside the
+ * range at which they can hurt each other, so what makes this a battle is the
+ * doctrine rather than the geometry.
  */
 export function standoff(seed = 20260905): Battle {
   const dt = 1 / 60;

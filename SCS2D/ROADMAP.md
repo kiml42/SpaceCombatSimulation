@@ -98,8 +98,11 @@ Then, in order:
    far more often than an artillery piece — and staggered so the cost spreads across steps. The engagement
    envelope a player currently types into every order (range band, approach speed) becomes a doctrine
    default derived from what the ship's own guns are good for.
-   In order: **the standoff scenario** (built: two fleets in reach of each other with no orders, doing
-   nothing, which is the *before* picture), then doctrine and the ship-level pick, then per-turret targets,
+   **Built so far**: the standoff scenario, and doctrine with the ship-level pick — a craft with an empty
+   queue chooses its own target and closes to its own engagement band, and `standoff` is two fleets
+   fighting with nobody issuing an order. Only `ordering` and `standoff` moved when it landed, which is
+   the evidence that doctrine is strictly a fallback: every other scenario gives all its ships orders.
+   Still to do, in order: per-turret targets,
    then a picker per module kind so a doctrine can say to go for the engines. Firing discipline lands with
    the turret work as a short cast ahead of the muzzle for a friendly — the length of a barrel's reach for a
    gun, the whole beam for a beam. Withdrawal, line-of-sight, hemisphere, looking-at and ship-type pickers

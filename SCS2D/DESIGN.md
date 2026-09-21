@@ -92,10 +92,15 @@ inside any one file is not contiguous.
   anything: what it does instead is boil along every seam its tunnel crosses until one of them is gone,
   and whatever that seam was holding is then simply no longer attached. What comes away is a body of its own with its share of the momentum, the spin
   and the scars — a piece of ship with nobody aboard, which collides and takes damage like any other hull.
-  The `standoff` scenario is the *before* picture for what comes next: two fleets a kilometre apart, well
-  inside each other's reach, with not one order between them — and therefore doing nothing at all.
-- **Next:** §8 step 3, doctrine and orders: the per-craft configuration a ship falls back on when the
-  player's order queue is empty. ROADMAP.md §8 carries the settled plan. Slice 1 has two
+  **Craft carry a doctrine, and fight without being told to.** A blueprint can hold a block of named
+  numbers saying what its craft picks a fight with and how it wants to fight it; a ship with an empty
+  order queue chooses a target through a stack of preferences — what is close, what is worth killing,
+  what is coming at it, and what it is already fighting — and closes to a range that is a fraction of
+  what its own guns are good for. An order given always outranks it, so doctrine is a fallback and never
+  a second voice. The `standoff` scenario is the evidence: two fleets a kilometre apart, not one order
+  between them, and a battle anyway.
+- **Next:** the rest of §8 step 3 — per-turret targets, then a picker per module kind so a doctrine can
+  say to go for the engines. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
   others stay linked, and the word the editor owes the player when an action reorders
   a layout. Restructuring a group — dissolving one, or nesting one inside another —

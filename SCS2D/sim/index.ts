@@ -59,6 +59,20 @@ export {
 } from './modules.js';
 export { HullPath, Hulls, modulesAlong, type HullDesigns } from './hull.js';
 export {
+  DEFAULT_DOCTRINE,
+  DOCTRINE_FIELDS,
+  doctrineProblem,
+  serialiseDoctrine,
+  toDoctrine,
+  type Doctrine,
+} from './doctrine.js';
+export {
+  Choice,
+  look,
+  score,
+  type Candidate,
+} from './targeting.js';
+export {
   JOINT_IMPULSE_PER_AREA,
   cuts,
   components,

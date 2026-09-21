@@ -3,6 +3,7 @@ import { subDesign, type ShipDesign } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
+import { Choice, look, score } from './targeting.js';
 import {
   atan2,
   angleDelta,
@@ -12,6 +13,7 @@ import {
   length,
   max,
   min,
+  round,
   sin,
   sqrt,
 } from './math.js';
@@ -149,6 +151,22 @@ const SALVAGE_REACH = 5;
  * to find it still there.
  */
 const MINIMUM_BATTLE_RADIUS = 2000;
+
+/**
+ * How much hull it takes to be worth a second of thinking, kilograms.
+ *
+ * How often a ship reconsiders what it is fighting is *derived* rather than
+ * configured, because it is not really a preference: a fighter can bring
+ * itself round in a moment and should change its mind about as often, and a
+ * capital that takes half a minute to come about gains nothing by
+ * reconsidering four times a second. Mass stands in for that, being what
+ * makes a hull slow to point somewhere new.
+ */
+const THINKING_MASS = 300_000;
+/** However light it is, a ship is not re-picking every step. */
+const MIN_RETHINK = 0.25;
+/** However heavy it is, a ship has not forgotten there is a battle on. */
+const MAX_RETHINK = 4;
 
 /**
  * How far a blow carries through a hull before it has half spent itself,
@@ -347,6 +365,24 @@ export class Ships {
    * interruptions.
    */
   private readonly orders: Order[][] = [];
+
+  /**
+   * What each ship has decided to fight on its own account, and the step at
+   * which it will think about that again.
+   *
+   * The player's queue outranks this entirely: doctrine is what a ship falls
+   * back on when it has been told nothing, so this is consulted only when the
+   * queue is empty and is never written into it. An order given is an order
+   * obeyed, and a ship that has run out of orders is not left idle.
+   */
+  private readonly chosen: number[] = [];
+  private readonly rethinkAt: number[] = [];
+  /**
+   * The order doctrine makes up, one per ship and rewritten in place, so that
+   * falling back on doctrine allocates nothing per step.
+   */
+  private readonly standing: Order[] = [];
+  private readonly choice = new Choice();
 
   /** The wrench `command` decided, body frame, replayed by the force provider. */
   private readonly demandFx: number[] = [];
@@ -551,6 +587,17 @@ export class Ships {
     this.team.push(spec.team ?? 0);
     this.derelict.push(0);
     this.cutSeen.push(-1);
+    this.chosen.push(NO_TARGET);
+    // Staggered by index, so a fleet spawned together does not all stop to
+    // think on the same step for the rest of the battle.
+    this.rethinkAt.push(i);
+    this.standing.push({
+      target: NO_TARGET,
+      minRange: 0,
+      maxRange: 0,
+      approachSpeed: 0,
+      cancelOn: OrderCancelCondition.CompleteDisable,
+    });
     this.orders.push([]); // Initialise to an empty array of orders for this ship
     this.demandFx.push(0);
     this.demandFy.push(0);
@@ -558,6 +605,83 @@ export class Ships {
     this.alive.push(1);
 
     return i;
+  }
+
+  /**
+   * Pick a fight, if nobody has picked one for this ship.
+   *
+   * Only when the order queue is empty: an order given is an order obeyed,
+   * and doctrine is the fallback rather than a second voice. And only every
+   * so often — a hull reconsiders at a rate its own mass can act on, which
+   * also spreads the cost of looking at every enemy across the steps between.
+   */
+  private decide(world: World, bodies: Bodies, i: number): void {
+    if (this.orders[i]!.length > 0) {
+      // Being told what to do clears what it had decided for itself, so
+      // running out of orders is a fresh look rather than a stale one.
+      this.chosen[i] = NO_TARGET;
+      return;
+    }
+    if (world.tick < this.rethinkAt[i]!) return;
+
+    const design = this.designs[i]!;
+    this.rethinkAt[i] = world.tick + this.rethinkTicks(world, design.mass);
+
+    // A ship with nothing to shoot with has nothing to choose between.
+    if (design.reach <= 0 || this.isDisarmed(i)) {
+      this.chosen[i] = NO_TARGET;
+      return;
+    }
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return;
+
+    const doctrine = design.doctrine;
+    const mine = this.team[i]!;
+    const loyalTo = this.chosen[i]!;
+    this.choice.begin();
+    for (let t = 0; t < this.alive.length; t++) {
+      if (t === i || this.alive[t] === 0) continue;
+      // Wreckage is matter, not an enemy, and one's own side never is.
+      if (this.derelict[t] === 1 || this.team[t] === mine) continue;
+      const tb = bodies.indexOf(this.bodyIds[t]!);
+      if (tb < 0) continue;
+      const candidate = look(bodies, b, tb, t, this.designs[t]!.mass, this.isDisabled(t));
+      this.choice.offer(candidate, score(doctrine, candidate, design.reach, loyalTo));
+    }
+    this.chosen[i] = this.choice.ship;
+  }
+
+  /** How long a hull of this mass waits before reconsidering, in steps. */
+  private rethinkTicks(world: World, mass: number): number {
+    const seconds = clamp(mass / THINKING_MASS, MIN_RETHINK, MAX_RETHINK);
+    // At least one step, or a ship would decide twice in the same instant.
+    return max(1, round(seconds / world.dt));
+  }
+
+  /**
+   * What this ship is actually doing: what it was told, or failing that what
+   * its doctrine makes of the fight it picked.
+   *
+   * The doctrine order is built here rather than pushed onto the queue, so
+   * that "has orders" goes on meaning "has been told something by somebody".
+   */
+  private effectiveOrder(i: number): Order | undefined {
+    const given = this.getCurrentOrder(i);
+    if (given !== undefined) return given;
+
+    const target = this.chosen[i]!;
+    if (target === NO_TARGET || this.alive[target] !== 1) return undefined;
+
+    const design = this.designs[i]!;
+    const doctrine = design.doctrine;
+    const standing = this.standing[i]!;
+    standing.target = target;
+    // Fractions of its own reach, so one doctrine means the same thing on a
+    // fighter and on a capital.
+    standing.minRange = max(0, (doctrine.standoff - doctrine.tolerance) * design.reach);
+    standing.maxRange = max(standing.minRange, (doctrine.standoff + doctrine.tolerance) * design.reach);
+    standing.approachSpeed = doctrine.approachSpeed;
+    return standing;
   }
 
   /**
@@ -616,6 +740,7 @@ export class Ships {
       // its drift: it tumbles on with whatever the break gave it.
       if (this.derelict[i] === 1) continue;
       this.removeInvalidOrders(i);
+      this.decide(world, bodies, i);
       this.flyOne(dt, bodies, i);
       this.trainOne(bodies, i);
       const timers = this.cooldown[i]!;
@@ -707,7 +832,7 @@ export class Ships {
 
         const ti = indices[t]!;
 
-        const order = this.getCurrentOrder(i);
+        const order = this.effectiveOrder(i);
 
         // skip if it's not ready to fire, and it's not committed to being on.
         if ((!order || order.target === NO_TARGET || !this.turrets.readyToFire(ti)) && state != TurretState.CommittedOn) continue;
@@ -876,7 +1001,7 @@ export class Ships {
    * allocator, and a target handed to the turrets.
    */
   private flyOne(dt: number, bodies: Bodies, i: number): void {
-    const order = this.getCurrentOrder(i);
+    const order = this.effectiveOrder(i);
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
 
@@ -969,7 +1094,7 @@ export class Ships {
   /** Train this ship's turrets on its ordered target, leading it. */
   private trainOne(bodies: Bodies, i: number): void {
     const indices = this.turretIndex[i]!;
-    const order = this.getCurrentOrder(i);
+    const order = this.effectiveOrder(i);
 
     if (!order || order.target === NO_TARGET || this.alive[order.target] !== 1) {
       for (let t = 0; t < indices.length; t++) this.turrets.returnToRest(indices[t]!);
