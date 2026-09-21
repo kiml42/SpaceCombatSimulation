@@ -44,6 +44,16 @@ export const DAMAGE_ENERGY_PER_KG = 1000;
  */
 const HOLE_CALIBRES = 3;
 
+/**
+ * What it takes to cut a square metre of weld with a beam, joules.
+ *
+ * A beam has no momentum to tear anything with, so this is the whole of how a
+ * beam can take a piece off a ship: it boils its way along a seam until there
+ * is no seam left. The figure is what decides whether that is a few seconds of
+ * held fire or half a minute — a dial, in §12 with the rest.
+ */
+const BEAM_CUT_ENERGY_PER_AREA = 6.0e7;
+
 /** What damage takes away from a module, beyond eventually stopping it. */
 export enum DamageEffect {
   /** A thruster's push. */
@@ -601,11 +611,88 @@ export class Impacts {
    * which, because a spent module no longer stops a beam, walks inward through
    * a hull as it destroys it.
    */
-  beams(damage: Damage, beams: Beams, hits: BeamHits, dt: number, bodies?: Bodies): void {
+  beams(
+    damage: Damage,
+    beams: Beams,
+    hits: BeamHits,
+    dt: number,
+    bodies?: Bodies,
+    designs?: HullDesigns,
+  ): void {
     for (let i = 0; i < hits.count; i++) {
       const energy = beams.power[hits.beam[i]!]! * dt;
       damage.absorb(hits.body[i]!, hits.module[i]!, energy);
       this.log.push(hits.x[i]!, hits.y[i]!, energy, IMPACT_BEAM, bodies, hits.body[i]!);
+      if (bodies !== undefined && designs !== undefined) {
+        this.burnSeams(damage, designs, bodies, beams, hits, i, energy);
+      }
+    }
+  }
+
+  /**
+   * Burn along every weld the beam is shining through.
+   *
+   * A beam bores inward: it is stopped only by matter it can still boil away,
+   * so everything between where it entered the hull and where it is working
+   * now is a tunnel it has already made. Every weld that tunnel crosses is a
+   * seam the beam is passing through, and it goes on cutting all of them for
+   * as long as the beam is held there — which is what lets a beam cut a ship
+   * in half rather than merely hollow it out.
+   *
+   * This is the whole of how a beam can take a piece off a ship. It carries no
+   * momentum, so nothing it does can *tear* anything (`Ships.sever`); what it
+   * can do is leave nothing there to tear.
+   */
+  private burnSeams(
+    damage: Damage,
+    designs: HullDesigns,
+    bodies: Bodies,
+    beams: Beams,
+    hits: BeamHits,
+    i: number,
+    energy: number,
+  ): void {
+    const body = hits.body[i]!;
+    const design = designs.designOf(body);
+    if (design === null) return;
+    const stopped = hits.module[i]!;
+    if (stopped < 0) return;
+
+    // The beam's line, in the hull's frame, where its modules live.
+    const angle = bodies.angle[body]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    const beam = hits.beam[i]!;
+    const sx = beams.startX[beam]! - bodies.x[body]!;
+    const sy = beams.startY[beam]! - bodies.y[body]!;
+    const ex = hits.x[i]! - bodies.x[body]!;
+    const ey = hits.y[i]! - bodies.y[body]!;
+    modulesAlong(
+      design,
+      sx * c + sy * s,
+      -sx * s + sy * c,
+      ex * c + ey * s,
+      -ex * s + ey * c,
+      this.path,
+    );
+
+    for (let k = 1; k < this.path.count; k++) {
+      const from = this.path.module[k - 1]!;
+      const into = this.path.module[k]!;
+      const joint = jointBetween(design, from, into);
+      if (joint >= 0) {
+        // The seam's own thickness is what has to be boiled through, and it is
+        // the thinner of the two walls meeting there — the same section the
+        // weld is rated by.
+        const thickness = min(
+          design.modules[from]!.stats.wallThickness,
+          design.modules[into]!.stats.wallThickness,
+        );
+        if (thickness > 0) {
+          damage.cutWeld(body, joint, energy / (thickness * BEAM_CUT_ENERGY_PER_AREA));
+        }
+      }
+      if (into === stopped) break;
     }
   }
 }

@@ -126,7 +126,7 @@ export function swarm(seed = 20260905, corvetteCount = 20): Battle {
       // killed or sent on their way; beams pour their power into what they are
       // burning through.
       impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits, ships);
-      impacts.beams(ships.damage, beams, beamHits, dt, world.bodies);
+      impacts.beams(ships.damage, beams, beamHits, dt, world.bodies, ships);
       run.totalSevered += ships.sever(world, collisions.contacts);
     },
   };
