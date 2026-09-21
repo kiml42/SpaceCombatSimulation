@@ -10,6 +10,7 @@ import {
   type ModuleSpec,
   type ModuleStats,
 } from './modules.js';
+import { DEFAULT_DOCTRINE, type Doctrine } from './doctrine.js';
 import { ThrusterLayout, type ThrusterSpec } from './thrusters.js';
 import type { TurretSpec } from './turrets.js';
 
@@ -238,6 +239,11 @@ export interface Blueprint {
   assemblies?: Readonly<Record<string, Assembly>>;
   /** Why the ship is shaped this way. See `ModuleSpec.notes`. */
   notes?: string;
+  /**
+   * What a craft of this design does when it has no orders. Left out, it
+   * fights by `DEFAULT_DOCTRINE`.
+   */
+  doctrine?: Doctrine;
 }
 
 /** A module in a compiled design: what was authored, plus what it works out to. */
@@ -287,6 +293,20 @@ export interface ShipDesign {
   /** Shared by every ship built to this design. */
   readonly thrusterLayout: ThrusterLayout;
   readonly turrets: readonly DesignTurret[];
+  /**
+   * How far out this ship's guns are worth using, metres.
+   *
+   * Derived from the guns themselves rather than configured: a round is worth
+   * firing while the lead it needs is still a guess worth making, which is a
+   * couple of seconds of flight, and a beam arrives instantly and is limited
+   * by how long it has to be held on one spot. Zero for a ship with no guns.
+   *
+   * Doctrine's ranges are fractions of this, so one doctrine means the same
+   * thing on a fighter and on a capital.
+   */
+  readonly reach: number;
+  /** What a ship of this design does when it has no orders. */
+  readonly doctrine: Doctrine;
 }
 
 /** Corner offsets of a module, body frame, written into `out` as x,y pairs. */
@@ -484,6 +504,26 @@ export function firingArc(
 const MAX_ASSEMBLY_DEPTH = 16;
 
 /** How many copies one instance may place. A wing, not a city. */
+/**
+ * How long a round is worth chasing a target for, seconds.
+ *
+ * What sets a gun's useful reach. A firing solution leads the target by where
+ * it will be, and the further out it is the more of a guess that lead becomes
+ * — so this is a statement about when aiming stops being worth the ammunition
+ * rather than about how far a round can physically travel, which is much
+ * further.
+ */
+const ENGAGEMENT_FLIGHT_TIME = 2;
+
+/**
+ * How far a beam is worth using, metres.
+ *
+ * A beam arrives instantly at any range, so nothing about its flight limits
+ * it; what limits it is having to hold the emitter on one spot long enough to
+ * burn through, which gets harder the further off the target is.
+ */
+const BEAM_REACH = 1500;
+
 export const MAX_REPEAT = 64;
 
 /**
@@ -1130,7 +1170,13 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
     if (moduleProblem(expanded[i]!) === null) layoutIndex.push(i);
   }
 
-  return designFrom(blueprint.name, specs, specs.map(moduleStats), layoutIndex);
+  return designFrom(
+    blueprint.name,
+    specs,
+    specs.map(moduleStats),
+    layoutIndex,
+    blueprint.doctrine ?? DEFAULT_DOCTRINE,
+  );
 }
 
 /**
@@ -1158,7 +1204,7 @@ export function subDesign(design: ShipDesign, keep: readonly number[]): ShipDesi
     stats.push(module.stats);
     layoutIndex.push(module.index);
   }
-  return designFrom(design.name, specs, stats, layoutIndex);
+  return designFrom(design.name, specs, stats, layoutIndex, design.doctrine);
 }
 
 /**
@@ -1172,6 +1218,7 @@ function designFrom(
   specs: readonly ModuleSpec[],
   stats: readonly ModuleStats[],
   layoutIndex: readonly number[],
+  doctrine: Doctrine = DEFAULT_DOCTRINE,
 ): ShipDesign {
   const centres = specs.map(moduleCentre);
   let mass = 0;
@@ -1274,9 +1321,20 @@ function designFrom(
     }
   }
 
+  let reach = 0;
+  for (const turret of turrets) {
+    const worth =
+      turret.gun.type === GunType.Beam
+        ? BEAM_REACH
+        : turret.gun.muzzleSpeed * ENGAGEMENT_FLIGHT_TIME;
+    reach = max(reach, worth);
+  }
+
   return {
     name,
     modules,
+    reach,
+    doctrine,
     mass,
     inertia,
     radius,

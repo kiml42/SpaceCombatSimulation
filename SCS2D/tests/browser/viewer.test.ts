@@ -179,12 +179,13 @@ describe('the viewer in a browser', () => {
 
     await page.selectOption('#scene', { label: 'Standoff' });
     await painted(page);
-    // The standoff is the one battle in which nothing is ever fired, so the
-    // readout says which scene is actually running rather than merely which
-    // is selected.
-    await page.waitForTimeout(300);
-    const readout = await page.textContent('#readout');
-    expect(readout).toContain('p.fired 0');
+    // The standoff's two lines start exactly a kilometre apart, which no
+    // other scene does — so this says the page is running the scene that was
+    // picked rather than merely showing its name in the box.
+    const readout = (await page.textContent('#readout')) ?? '';
+    const range = Number(/range (\d+)/.exec(readout)?.[1] ?? 0);
+    expect(range).toBeGreaterThan(900);
+    expect(range).toBeLessThan(1100);
     expect(await step(page)).toBeGreaterThan(0);
   });
 
