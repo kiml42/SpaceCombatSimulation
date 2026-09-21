@@ -9,7 +9,13 @@ import {
   type Placement,
 } from './blueprint.js';
 import type { ModuleKind, ModuleSpec } from './modules.js';
-import { doctrineProblem, serialiseDoctrine, toDoctrine } from './doctrine.js';
+import {
+  doctrineProblem,
+  serialiseDoctrine,
+  targetingProblem,
+  toDoctrine,
+  type Targeting,
+} from './doctrine.js';
 
 /**
  * The blueprint file format: what a saved ship looks like, and how to get a
@@ -57,6 +63,7 @@ const MODULE_KEYS: readonly string[] = [
   'width',
   'reinforcement',
   'barrels',
+  'targeting',
   'notes',
 ];
 
@@ -137,6 +144,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalNumberProblem(value['angle'], `${where}: angle`) ??
     optionalNumberProblem(value['reinforcement'], `${where}: reinforcement`) ??
     optionalNumberProblem(value['barrels'], `${where}: barrels`) ??
+    targetingProblem(value['targeting'], `${where}: targeting`) ??
     optionalStringProblem(value['notes'], `${where}: notes`)
   );
 }
@@ -319,6 +327,7 @@ function toPlacements(raws: unknown[]): Placement[] {
     if (raw['angle'] !== undefined) spec.angle = degreesToRadians(raw['angle'] as number);
     if (raw['reinforcement'] !== undefined) spec.reinforcement = raw['reinforcement'] as number;
     if (raw['barrels'] !== undefined) spec.barrels = raw['barrels'] as number;
+    if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
     if (raw['notes'] !== undefined) spec.notes = raw['notes'] as string;
     return spec;
   });
@@ -390,6 +399,9 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
   raw['width'] = placement.width;
   if (placement.reinforcement !== undefined) raw['reinforcement'] = placement.reinforcement;
   if (placement.barrels !== undefined) raw['barrels'] = placement.barrels;
+  // Written as authored: a mount's block is already only its differences from
+  // the ship it is on, so there is nothing to subtract.
+  if (placement.targeting !== undefined) raw['targeting'] = { ...placement.targeting };
   if (placement.notes !== undefined) raw['notes'] = placement.notes;
   return raw;
 }

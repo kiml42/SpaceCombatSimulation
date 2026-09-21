@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { compileBlueprint, NO_TARGET, Ships, World, type ShipDesign } from '../sim/index.js';
+import {
+  blueprintFileProblem,
+  compileBlueprint,
+  DEFAULT_DOCTRINE,
+  NO_TARGET,
+  parseBlueprint,
+  serialiseBlueprint,
+  Ships,
+  World,
+  type ShipDesign,
+} from '../sim/index.js';
 import { CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
@@ -157,5 +167,61 @@ describe('a mount choosing its own target', () => {
     // The Dinky's single mount against the gunship's main battery: one swings
     // round in a moment and reloads in a moment, the other does neither.
     expect(switchSteps(dinky, 0)).toBeLessThan(switchSteps(gunship, NOSE));
+  });
+});
+
+describe('a mount with a doctrine of its own', () => {
+  it('says only what it wants differently, and its ship covers the rest', () => {
+    // The whole reason a mount's block is a partial: a hull whose doctrine
+    // changes takes its guns with it, except where a gun has an opinion.
+    const design = compileBlueprint(GUNSHIP);
+    const close = design.turrets[PORT]!.targeting;
+    expect(close.preferredMass).toBeLessThan(design.doctrine.targeting.preferredMass);
+    expect(close.proximityWeight).toBeGreaterThan(design.doctrine.targeting.proximityWeight);
+    expect(close.massWeight).toBe(design.doctrine.targeting.massWeight);
+    expect(close.focusWeight).toBe(design.doctrine.targeting.focusWeight);
+    // And a mount with nothing to say is its ship, exactly.
+    expect(design.turrets[NOSE]!.targeting).toEqual(design.doctrine.targeting);
+  });
+
+  it('reaches every copy of a shared mount', () => {
+    // The gunship's beam guns are two placements of one assembly, so this is
+    // the check that a block written once is not lost on the way through.
+    const design = compileBlueprint(GUNSHIP);
+    expect(design.turrets[PORT]!.targeting).toEqual(design.turrets[STARBOARD]!.targeting);
+  });
+
+  it('survives a trip through a blueprint file', () => {
+    const file = serialiseBlueprint(GUNSHIP);
+    expect(blueprintFileProblem(file)).toBeNull();
+    expect(compileBlueprint(parseBlueprint(file)).turrets[PORT]!.targeting).toEqual(
+      compileBlueprint(GUNSHIP).turrets[PORT]!.targeting,
+    );
+  });
+
+  it('is refused when it says something nobody can read, and named where', () => {
+    const file = serialiseBlueprint(DINKY) as Record<string, unknown>;
+    const modules = file['modules'] as Record<string, unknown>[];
+    const mount = modules.find((m) => m['kind'] === 'turret')!;
+    mount['targeting'] = { aggression: 4 };
+    expect(blueprintFileProblem(file)).toMatch(/targeting has unknown key aggression/);
+    mount['targeting'] = { preferredMass: 0 };
+    expect(blueprintFileProblem(file)).toMatch(/greater than zero/);
+  });
+
+  it('sends the close-in guns after the fighter and the main gun after the capital', () => {
+    // What a doctrine per mount is *for*: one hull fighting two fights at
+    // once because its guns are for different things. A shell from an
+    // eight-barrelled pom-pom is wasted on a capital, and the bow gun has
+    // nothing better to do with a fighter than miss it.
+    const capital = compileBlueprint(GUNSHIP);
+    const s = scene(capital, [
+      { design: corvette, x: 1400, y: 0 },
+      { design: dinky, x: 1000, y: 260 },
+    ]);
+    s.run(60);
+    expect(s.aim(NOSE)).toBe(1);
+    expect(s.aim(PORT)).toBe(2);
+    expect(DEFAULT_DOCTRINE.targeting.preferredMass).toBe(1);
   });
 });

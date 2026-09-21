@@ -1,3 +1,4 @@
+import type { Targeting } from './doctrine.js';
 import { cos, PI, sin, sqrt } from './math.js';
 
 /**
@@ -302,6 +303,17 @@ export interface ModuleSpec {
    * specifies the number of barrels for a turret.
    */
   barrels?: number;
+
+  /**
+   * What this mount goes after, where it differs from its ship's doctrine.
+   *
+   * Only the differences: a gun says what it wants differently and its hull's
+   * doctrine covers the rest, so a ship whose doctrine changes takes its guns
+   * with it. This is what makes a close-in mount a close-in mount — "go for
+   * something a twentieth my ship's mass" on the same hull whose main battery
+   * wants something its own size — rather than a second kind of turret.
+   */
+  targeting?: Partial<Targeting>;
 
   /**
    * Why this module is here, in the author's own words. Carried through the

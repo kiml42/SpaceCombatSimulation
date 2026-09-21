@@ -9,7 +9,8 @@
         { "kind": "structure", "x": 0, "y": 0, "length": 8, "width": 8 },
         {
           "kind": "turret", "x": 0, "y": 8, "angle": 90, "length": 8, "width": 6, "barrels": 8,
-          "notes": "Many narrow barrels rather than one wide one: the same bore budget spent on rate of fire instead of weight of shell."
+          "targeting": { "preferredMass": 0.02, "proximityWeight": 200, "armedWeight": 40 },
+          "notes": "Many narrow barrels rather than one wide one: the same bore budget spent on rate of fire instead of weight of shell. It goes after whatever is small and close while the main battery fights its own weight class — a shell this light is wasted on a capital."
         }
       ]
     },
