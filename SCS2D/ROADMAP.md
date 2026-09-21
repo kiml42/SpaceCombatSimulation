@@ -624,13 +624,11 @@ Deliberately unresolved; decide when they block something.
 - **Whether a downed craft's wreck falls onto the deck it was attacking.** Physically it should, and debris
   raining on a capital is evocative; it may also be an irritation. Cheap either way, so leave it until
   there is something to watch.
-- **What a ram costs, beyond momentum.** A collision shoves and spins; it does no damage. The pieces to
-  spend are already there — a contact names the two modules that met and the speed they met at, and the
-  damage model takes energy into a module — so this is a decision about *how much*, not about
-  mechanism. It is what makes §3's strike craft literal: "a torpedo is a fighter that crashes into
-  things" is a ram that hurts, and a kinetic-kill vehicle needs no warhead only if a ram is lethal. It is
-  also the whole of what stands between collisions and a ram that tears a wing off, since severing spends
-  the damage a hit leaves and a contact leaves none.
+- **Whether a crush should spread sideways as well as inward.** A collision spends its energy along the
+  contact normal, module by module, which folds a nose in convincingly and leaves the metal *beside* the
+  impact untouched. A real crush spreads: the plating either side of a rammed bow buckles too. Doing it
+  needs a rule for how much reaches a neighbour and a way to walk the connectivity graph outward from the
+  contact, neither hard, and neither worth guessing at before there is something to watch it on.
 - **Weld on slow contact, which is what makes a dock a dock.** §4 has the rule and §3 leans on it — a
   craft closing slowly has landed, one closing fast has rammed, same threshold — but nothing welds yet:
   a slow contact is simply a gentle bounce. The threshold is one of the concrete values below.

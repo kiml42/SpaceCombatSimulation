@@ -5,6 +5,7 @@ import { HullPath, modulesAlong, type HullDesigns } from './hull.js';
 import { jointBetween, joints } from './connectivity.js';
 import type { ProjectileHits, Projectiles } from './projectiles.js';
 import type { BeamHits, Beams } from './beams.js';
+import { RESTITUTION, type Contacts } from './collision.js';
 import { cos, max, min, sin, sqrt } from './math.js';
 import type { ModuleSpec } from './modules.js';
 
@@ -229,6 +230,16 @@ export class Damage {
     return absorbed[module] ?? 0;
   }
 
+  /** How much more a module can absorb before it is spent, joules. */
+  capacityLeft(bodyIndex: number, module: number): number {
+    const absorbed = this.absorbed[bodyIndex];
+    const capacity = this.capacity[bodyIndex];
+    if (!absorbed || !capacity) return 0;
+    const limit = capacity[module];
+    if (limit === undefined) return 0;
+    return max(0, limit - absorbed[module]!);
+  }
+
   /** Whether a module has taken everything it can. */
   spent(bodyIndex: number, module: number): boolean {
     return this.integrity(bodyIndex, module) <= 0;
@@ -305,6 +316,72 @@ function shove(bodies: Bodies, body: number, jx: number, jy: number, px: number,
   const rx = px - bodies.x[body]!;
   const ry = py - bodies.y[body]!;
   bodies.angularVel[body] = bodies.angularVel[body]! + (rx * jy - ry * jx) / inertia;
+}
+
+/**
+ * Crush a hull inward from where something hit it, spending the energy the
+ * collision lost.
+ *
+ * A collision is not a perforation and has no ballistics in it: nothing
+ * arrives, nothing penetrates, and there is no residual to carry on with. Two
+ * hulls meet and the energy that does not come back out as bounce goes into
+ * folding metal, starting at the faces that met and working inward until it
+ * runs out — which is why a ram crushes a nose in rather than putting a neat
+ * hole through a ship.
+ *
+ * Each module takes what it can still absorb and the rest carries on to
+ * whatever is behind it, so a blow far past what the outer plating can hold
+ * reaches deeper rather than being thrown away. That is the one place this
+ * differs from a round, which spends what its armour stopped and loses the
+ * rest: there is no plate here to stop anything, only structure to fold.
+ *
+ * `(nx, ny)` points **into** the hull being crushed, world frame.
+ */
+export function resolveCollision(
+  design: ShipDesign,
+  damage: Damage,
+  bodies: Bodies,
+  bodyIndex: number,
+  path: HullPath,
+  x: number,
+  y: number,
+  nx: number,
+  ny: number,
+  energy: number,
+): number {
+  if (!(energy > 0)) return 0;
+
+  const angle = bodies.angle[bodyIndex]!;
+  const c = cos(angle);
+  const s = sin(angle);
+  const rx = x - bodies.x[bodyIndex]!;
+  const ry = y - bodies.y[bodyIndex]!;
+  // The contact and the direction it drives in, in the ship's own frame.
+  const px = rx * c + ry * s;
+  const py = -rx * s + ry * c;
+  const ux = nx * c + ny * s;
+  const uy = -nx * s + ny * c;
+
+  // From outside the hull, through the contact, and out the far side, so that
+  // a module is entered by a face rather than from nowhere.
+  const reach = design.radius * 2 + 1;
+  modulesAlong(design, px - ux * reach, py - uy * reach, px + ux * reach, py + uy * reach, path);
+
+  let left = energy;
+  let spent = 0;
+  for (let k = 0; k < path.count && left > 0; k++) {
+    // Only what lies at or beyond the contact: the crush goes inward, and the
+    // metal the cast crossed on its way in is on the other side of the ship.
+    if (path.exit[k]! <= reach) continue;
+    const module = path.module[k]!;
+    const capacity = damage.capacityLeft(bodyIndex, module);
+    if (!(capacity > 0)) continue;
+    const take = min(capacity, left);
+    damage.absorb(bodyIndex, module, take);
+    left -= take;
+    spent += take;
+  }
+  return spent;
 }
 
 /** Where a round ended up, and what it left with. */
@@ -515,6 +592,8 @@ export class ImpactLog {
 /** Kinds of impact, as the log records them. */
 export const IMPACT_ROUND = 0;
 export const IMPACT_BEAM = 1;
+/** Two hulls meeting. Drawn like a round's: a flash, not a glow. */
+export const IMPACT_COLLISION = 2;
 
 /**
  * Resolving a step's impacts: what each hit does, and a log of them to draw.
@@ -643,6 +722,58 @@ export class Impacts {
    * momentum, so nothing it does can *tear* anything (`Ships.sever`); what it
    * can do is leave nothing there to tear.
    */
+  /**
+   * Spend what every collision this step lost on the hulls that lost it.
+   *
+   * A bounce gives back only part of the closing speed (`RESTITUTION`); the
+   * rest of the energy went into folding metal, and this is where it lands.
+   * **Half to each hull**, which needs no rule about which is the harder: a
+   * module's capacity already goes with its mass, so the same energy that
+   * merely dents a capital ship destroys the fighter that flew into it.
+   *
+   * Call it with the contacts from this step's collision pass, before
+   * severing: what a ram breaks off should be broken off a hull that has
+   * already taken the ram's damage.
+   */
+  collisions(designs: HullDesigns, damage: Damage, bodies: Bodies, contacts: Contacts): void {
+    for (let k = 0; k < contacts.count; k++) {
+      const impulse = contacts.impulse[k]!;
+      if (!(impulse > 0)) continue;
+      // The energy a collision loses, from what the solver already worked out:
+      // the impulse is `(1 + e)` times the closing momentum, and what does not
+      // come back out is `(1 - e)` of it.
+      const energy = 0.5 * (1 - RESTITUTION) * contacts.closing[k]! * impulse;
+      if (!(energy > 0)) continue;
+      const half = energy * 0.5;
+      const x = contacts.x[k]!;
+      const y = contacts.y[k]!;
+      const nx = contacts.nx[k]!;
+      const ny = contacts.ny[k]!;
+
+      // The normal runs from `a` towards `b`, so it points into `b` and the
+      // other way into `a`.
+      this.crush(designs, damage, bodies, contacts.a[k]!, x, y, -nx, -ny, half);
+      this.crush(designs, damage, bodies, contacts.b[k]!, x, y, nx, ny, half);
+      this.log.push(x, y, energy, IMPACT_COLLISION, bodies, contacts.a[k]!);
+    }
+  }
+
+  private crush(
+    designs: HullDesigns,
+    damage: Damage,
+    bodies: Bodies,
+    body: number,
+    x: number,
+    y: number,
+    nx: number,
+    ny: number,
+    energy: number,
+  ): void {
+    const design = designs.designOf(body);
+    if (design === null) return;
+    resolveCollision(design, damage, bodies, body, this.path, x, y, nx, ny, energy);
+  }
+
   private burnSeams(
     damage: Damage,
     designs: HullDesigns,

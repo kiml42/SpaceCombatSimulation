@@ -91,6 +91,7 @@ export function ram(seed = 20260905): Battle {
       world.step();
       collisions.step(world.bodies, ships);
       run.totalContacts += collisions.contacts.count;
+      impacts.collisions(ships, ships.damage, world.bodies, collisions.contacts);
       grid.rebuild(world.bodies);
       beams.clear();
       beamHits.clear();
