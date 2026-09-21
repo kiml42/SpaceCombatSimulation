@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { assert, describe, expect, it } from 'vitest';
 import {
   BeamHits,
+  math,
   Beams,
   compileBlueprint,
   ProjectileHits,
@@ -14,6 +15,7 @@ import {
 } from '../sim/index.js';
 import { BEAM_CORVETTE, CORVETTE, DINKY } from '../scenarios/blueprints.js';
 import { column } from '../scenarios/column.js';
+import { swarm } from '../scenarios/swarm.js';
 
 /**
  * Not shooting through your own side.
@@ -222,5 +224,54 @@ describe('a fleet in line ahead', () => {
     expect(run.totalProjectilesFired).toBeGreaterThan(50);
     expect(landed).toBeGreaterThan(50);
     expect(ownSide).toBe(0);
+  });
+});
+
+describe('a gun and the target it was trained on', () => {
+  /**
+   * **A gun fires at what its barrel is pointing at.** Turrets are trained
+   * before the world steps and fired after it, and a hull turns in between —
+   * so a gun that worked out its target afresh at the trigger could name one
+   * the barrel was never brought round to, and put the round somewhere over
+   * its own shoulder. What it was trained on is therefore recorded when it is
+   * trained, and that is what fires.
+   */
+  it('never fires wide of what it is aiming at', () => {
+    const run = swarm();
+    const bodies = run.world.bodies;
+    let worst = 0;
+    let worstAt = '';
+
+    for (let step = 0; step < 1200; step++) {
+      run.step();
+      for (let s = 0; s < run.ships.highWater; s++) {
+        if (!run.ships.isAlive(s) || run.ships.isDerelict(s)) continue;
+        const design = run.ships.design(s);
+        for (let t = 0; t < design.turrets.length; t++) {
+          const ti = run.ships.turretIndexOf(s, t);
+          // Ready to fire is the moment that matters: it is the only state
+          // from which a round leaves.
+          if (!run.ships.turrets.readyToFire(ti)) continue;
+          const target = run.ships.targetOfTurret(bodies, s, t);
+          if (target < 0) continue;
+          const tb = bodies.indexOf(run.ships.body(target));
+          const own = bodies.indexOf(run.ships.body(s));
+          if (tb < 0 || own < 0) continue;
+          const wanted = Math.atan2(bodies.y[tb]! - bodies.y[own]!, bodies.x[tb]! - bodies.x[own]!);
+          const off = Math.abs(math.angleDelta(run.ships.turrets.worldBearing(bodies, ti), wanted));
+          if (off <= worst) continue;
+          worst = off;
+          worstAt = `${design.name} mount ${t} on ${run.ships.design(target).name}, step ${step}`;
+        }
+      }
+    }
+
+    // Leading a crossing target is a real angle off its present position —
+    // tens of degrees for a fighter shooting across a battle — but pointing
+    // the other way is not lead, it is a stale answer.
+    // Asserted with a message, because a bare number here says nothing about
+    // which gun on which ship was pointing the wrong way.
+    assert.isBelow(worst * (180 / Math.PI), 45, `worst was ${worstAt}`);
+    expect(run.totalProjectilesFired).toBeGreaterThan(100);
   });
 });
