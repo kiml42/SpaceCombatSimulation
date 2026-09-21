@@ -507,6 +507,53 @@ describe('lead', () => {
     expect(interceptTime(0, 0, 50, 0, 500)).toBe(0);
   });
 
+  it('leads with one velocity and tracks with another, when told two', () => {
+    // Where a thing will be in a second's flight and how fast the barrel has
+    // to turn right now are different questions. They have the same answer
+    // for a ship, and different answers for a point on a turning one: a part
+    // swinging round its hull sweeps the sky at a rate that says nothing
+    // about where the hull will be.
+    const { bodies, index } = ship();
+    const turrets = new Turrets();
+    const t = turrets.add({
+      owner: index,
+      x: 0,
+      y: 0,
+      maxRate: 10,
+      maxAccel: 100,
+      muzzleSpeed: 500,
+    });
+
+    // Going nowhere, sweeping fast: no lead, but a barrel that has to move.
+    turrets.aimAt(bodies, t, 1000, 0, 0, 0, 0, 100);
+    expect(turrets.commanded[t]).toBeCloseTo(0, 9);
+    expect(turrets.commandedRate[t]).toBeGreaterThan(0);
+
+    // Going somewhere, sweeping not at all: lead, and no tracking rate.
+    turrets.aimAt(bodies, t, 1000, 0, 0, 100, 0, 0);
+    expect(turrets.commanded[t]).toBeGreaterThan(0.1);
+    expect(turrets.commandedRate[t]).toBeCloseTo(0, 9);
+  });
+
+  it('sweeps with the lead velocity when told only one', () => {
+    const { bodies, index } = ship();
+    const turrets = new Turrets();
+    const t = turrets.add({
+      owner: index,
+      x: 0,
+      y: 0,
+      maxRate: 10,
+      maxAccel: 100,
+      muzzleSpeed: 500,
+    });
+    turrets.aimAt(bodies, t, 1000, 0, 0, 100);
+    const commanded = turrets.commanded[t]!;
+    const rate = turrets.commandedRate[t]!;
+    turrets.aimAt(bodies, t, 1000, 0, 0, 100, 0, 100);
+    expect(turrets.commanded[t]).toBe(commanded);
+    expect(turrets.commandedRate[t]).toBe(rate);
+  });
+
   it('aims ahead of a moving target', () => {
     const { bodies, index } = ship();
     const turrets = new Turrets();

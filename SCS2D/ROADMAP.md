@@ -137,11 +137,19 @@ Then, in order:
    cannot move has stopped being a problem, in that order. All three at zero is the way out for a
    doctrine that would rather shoot at the ship than pick a smaller thing to miss. Ties go to whatever is
    nearest the gun, so a mount does not shoot through a ship to reach the engine on its far side, and an
-   aim point that has been shot away falls back to the hull. Measured in `standoff`: hits landing on guns
-   go from 37% to 68% and on structure from 55% to 22%, nine of ten survivors are disarmed rather than
-   eight, and it is paid for in accuracy — 1.81 bodies struck per round fired against 1.37, because a
-   module is a smaller thing to hit than a ship. The Dinky sets engines above guns, because a fighter
-   cannot destroy a capital but can strand one.
+   aim point that has been shot away falls back to the hull. **A part is led by its hull's velocity, not by
+   its own**: a part goes round the centre of mass rather than off along the tangent it is travelling
+   down at this instant, so extrapolating that tangent over a long shot throws the aim point clean off
+   the ship, while leading the hull is wrong by at most how far the part sits from the centre of mass,
+   whatever the flight time. The error that leaves grows with a hull's size and its rate of turn, and
+   those pull against each other. The *tracking* rate is still the part's own, since how fast a barrel
+   must turn now and where a thing will be in five seconds are different questions. In `duel` the
+   difference is 0.58 hits per round fired against 1.14, and 78 rounds fired against 321 — a turret
+   chasing a tangent rarely settles enough to read as on target at all. Measured in `standoff`: hits
+   landing on guns go from 37% to 68% and on structure from 55% to 22%, nine of ten survivors are
+   disarmed rather than eight, and it is paid for in accuracy — 1.81 bodies struck per round fired
+   against 1.41, because a module is a smaller thing to hit than a ship. The Dinky sets engines above
+   guns, because a fighter cannot destroy a capital but can strand one.
    What is left of this step is what it always deferred — withdrawal, and the line-of-sight, hemisphere,
    looking-at and ship-type pickers — plus one thing using it turned up: **how much a mount cares about
    its ship's orders, as a weight of its own**. An order is currently a mandate: every mount that can
