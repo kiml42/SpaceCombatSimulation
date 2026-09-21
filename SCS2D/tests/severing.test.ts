@@ -336,14 +336,23 @@ describe('what a hull that has come apart looks like', () => {
 });
 
 describe('what a beam does to a hull', () => {
-  it('never takes a piece off it, however long it burns', () => {
-    // A beam delivers energy and no momentum, so it can wreck every module it
-    // touches and still not part a single weld. Cutting is a mechanism of its
-    // own, and is not this one.
+  it('tears nothing off, and burns its way through seams instead', () => {
+    // A beam delivers energy and no momentum, so nothing it does can tear
+    // anything. What it can do is leave nothing there to tear: no round is
+    // fired in this scenario, so every weld burnt into was burnt by a beam.
     const run = beamDuel();
     for (let i = 0; i < 3000; i++) run.step();
     expect(run.totalBeamHits).toBeGreaterThan(0);
-    expect(run.totalContacts).toBe(0);
-    expect(run.totalSevered).toBe(0);
+    expect(run.totalProjectilesFired).toBe(0);
+
+    let burnt = 0;
+    for (let i = 0; i < run.ships.highWater; i++) {
+      if (!run.ships.isAlive(i)) continue;
+      const body = run.world.bodies.indexOf(run.ships.body(i));
+      joints(run.ships.design(i)).forEach((_joint, k) => {
+        if (run.ships.damage.cutAt(body, k) > 0) burnt++;
+      });
+    }
+    expect(burnt).toBeGreaterThan(0);
   });
 });

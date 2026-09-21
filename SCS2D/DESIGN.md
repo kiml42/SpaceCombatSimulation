@@ -88,8 +88,9 @@ inside any one file is not contiguous.
   its modules touch, each rated by its section. Damage decides how much of a weld is left; what spends it
   is the impulse that has to cross it, so a hit on an outlying module takes it off and the same hit
   amidships takes nothing. A round also cuts the welds it passes through, which is a gun shearing a wing
-  off at the root rather than knocking it off; a beam, carrying no momentum, can wreck every module it
-  touches and part nothing. What comes away is a body of its own with its share of the momentum, the spin
+  off at the root rather than knocking it off. A beam carries no momentum, so nothing it does can *tear*
+  anything: what it does instead is boil along every seam its tunnel crosses until one of them is gone,
+  and whatever that seam was holding is then simply no longer attached. What comes away is a body of its own with its share of the momentum, the spin
   and the scars — a piece of ship with nobody aboard, which collides and takes damage like any other hull.
 - **Next:** §8 step 3, doctrine and orders: the per-craft configuration that orders should be
   defaulted from, and something that issues them while a battle runs. Slice 1 has two

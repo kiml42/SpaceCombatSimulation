@@ -340,10 +340,17 @@ Deliberately unresolved; decide when they block something.
   far side, so the figure that matters is what a hit *deposits*, not what it arrived with.
 - **A beam bores a tunnel and then shines through it.** A spent module no longer stops a beam, which is what
   lets a beam ship kill anything; the consequence is that a beam holding on one spot eventually reaches
-  clear space beyond the hull and stops doing damage at all. Two ways out, both wanted for their own sake: a
+  clear space beyond the hull and stops doing damage at all. Cutting takes some of the sting out of it — a
+  beam that has bored that far has been burning the seams along the way, and may well have cut the far part
+  free before the tunnel opens — but not all of it. Two ways out, both wanted for their own sake: a
   **heat model**, where the beam heats the wreck it is burning and the heat conducts into what is still
   alive, and **sublimation**, where a module being burned loses mass until it is gone from the layout
   entirely — which is also how matter finally leaves a ship without being severed.
+- **A beam aimed at a seam.** A beam cuts the welds its tunnel crosses, but nothing *aims* it at one: the
+  gunnery points a mount at a body and the cutting is whatever the line happens to pass through. Deliberately
+  choosing a seam — cutting a named piece off a named ship — is a targeting question rather than a damage one,
+  and it wants the target pickers the doctrine slice brings. It is the point at which a beam ship stops being
+  a gun that burns and starts being a surgeon.
 - **Gimballed thrusters** fit, with one change of variable. A gimbal makes the thrust *direction* an
   unknown, and the wrench then depends on sin and cos — nonlinear, and fatal to fixed columns and normal
   equations. The fix is to solve for the thrust **vector** `(Fx, Fy)` rather than a scalar throttle: the
