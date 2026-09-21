@@ -77,9 +77,33 @@ Then, in order:
    than about mechanism.
 3. **Doctrine and orders** — make configuration visibly change behaviour. Part-built: a ship holds a queue
    of orders and each carries the condition that finishes it (disarmed, stranded, either, both, or gone),
-   so a plan survives its targets being put out of the fight. What is missing is the *doctrine* half — the
-   per-craft configuration those orders should be defaulted from — and anything that issues orders while a
-   battle runs, both of which are what "configuration visibly changes behaviour" means.
+   so a plan survives its targets being put out of the fight. The player's queue is the *top* priority;
+   what is missing is what a craft falls back on when that queue is empty.
+
+   **The plan, settled and in build order.** Doctrine is a block in the **blueprint file**, so a craft's
+   behaviour ships with its design and one editor edits both; ships share their design's doctrine by
+   reference and take a copy only when something overrides it, the same copy-on-write split the thruster
+   layout uses. Targets are chosen by a **stack of pickers in ascending priority**, each either discarding a
+   candidate or adjusting its score, a low-priority discard hiding a target from everything above it — the
+   shape the old project proved (§10). Four to begin with: proximity, mass as a stand-in for value,
+   closing speed, and **previous-target**, which is not flavour but the hysteresis that stops a ship
+   flip-flopping between two equidistant enemies; turrets get a fifth, a bonus for what their *ship* is
+   fighting, so a hull has some pull over its guns without commanding them. A disabled ship is discarded by
+   default with doctrine able to re-admit it, since §3's mission kill has to mean something, and severed
+   debris is never a target. Different team is hostile, and the allied/neutral mapping waits.
+   **The ship picks a manoeuvre target and each turret picks its own firing target**, both through the same
+   stack: "different turrets, different targets" is then a consequence rather than a feature. Re-picking
+   happens on an interval *derived* rather than configured — from a hull's mass, as a stand-in for how fast
+   it can bring itself round, and from a mount's traverse and fire rates, so a close-in mount reconsiders
+   far more often than an artillery piece — and staggered so the cost spreads across steps. The engagement
+   envelope a player currently types into every order (range band, approach speed) becomes a doctrine
+   default derived from what the ship's own guns are good for.
+   In order: **the standoff scenario** (built: two fleets in reach of each other with no orders, doing
+   nothing, which is the *before* picture), then doctrine and the ship-level pick, then per-turret targets,
+   then a picker per module kind so a doctrine can say to go for the engines. Firing discipline lands with
+   the turret work as a short cast ahead of the muzzle for a friendly — the length of a barrel's reach for a
+   gun, the whole beam for a beam. Withdrawal, line-of-sight, hemisphere, looking-at and ship-type pickers
+   are deliberately after this step.
 4. **Headless evolution and analysis** — balance testing plus sandbox mode.
 5. **v1: skirmish** — a fixed budget of *materials* rather than of points (§12), designed scenarios,
    shareable by URL. *This is the first thing worth giving people to play.*
