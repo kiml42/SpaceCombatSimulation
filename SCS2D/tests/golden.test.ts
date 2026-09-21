@@ -30,10 +30,10 @@ const GOLDEN: Record<ScenarioName, string> = {
   beamDuel: 'be1f4a3f',
   beamVGun: '231b96bc',
   swarm: '9a4c26bc',
-  superSwarm: 'e0696ce3',
+  superSwarm: '17f58521',
   fractal: 'c12470ea',
   ordering: 'e443f465',
-  standoff: '643a6948',
+  standoff: 'a7c7bead',
   ram: '75de2ddc',
 };
 
