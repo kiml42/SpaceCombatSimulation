@@ -142,7 +142,10 @@ Then, in order:
    down at this instant, so extrapolating that tangent over a long shot throws the aim point clean off
    the ship, while leading the hull is wrong by at most how far the part sits from the centre of mass,
    whatever the flight time. The error that leaves grows with a hull's size and its rate of turn, and
-   those pull against each other. The *tracking* rate is still the part's own, since how fast a barrel
+   those pull against each other — and it is the forgiving kind: an aim point held on the hull puts a
+   round that misses the part it was meant for into some other part of the same ship, where a tangent
+   that has run off the ship misses altogether. A fighter firing at a pinned capital spinning at
+   0.4 rad/s lands 0.91 impacts per round at two kilometres against 0.55, and 1.23 against 0.87 at one. The *tracking* rate is still the part's own, since how fast a barrel
    must turn now and where a thing will be in five seconds are different questions. In `duel` the
    difference is 0.58 hits per round fired against 1.14, and 78 rounds fired against 321 — a turret
    chasing a tangent rarely settles enough to read as on target at all. Measured in `standoff`: hits
