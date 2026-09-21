@@ -122,11 +122,14 @@ inside any one file is not contiguous.
   the way, whoever's side it is on, and neither is wreckage. Whether it matters is a question about
   formation: fleets meeting line abreast have their friends beside them, and the `column` scenario is the
   same fleets in line ahead, where the opening ten seconds go from twenty hits on one's own side to none.
-  **A doctrine can also say which part of a ship to shoot at**, as a weight per kind of module — engines,
-  guns, or the structure between them. None of them set is the default, and a gun with no opinion shoots
-  at the ship rather than at a part of it, since picking a part is picking a smaller thing to miss. Where
-  it earns its keep is crippling: the Dinky shoots at engines, because a fighter that cannot destroy a
-  capital can still strand one, and four fifths of its hits now land on a thruster where a third did.
+  **A doctrine also says which part of a ship to shoot at**, as a weight per kind of module. The default
+  is guns first, engines close behind and structure a long way back: a ship that cannot shoot has stopped
+  being a threat, one that cannot move has stopped being a problem, and structure is what is left when
+  there is nothing better to hit. In `standoff` that moves two thirds of the hits onto guns where a third
+  of them used to land there, and it costs accuracy — a part is a smaller thing to miss — so the fleets
+  trade fewer hits for hits that matter. A doctrine that would rather not choose sets all three weights to
+  zero and shoots at the ship. Above the default is where crippling beats killing: the Dinky puts engines
+  first, because a fighter that cannot destroy a capital can still strand one.
 - **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. After it comes headless evolution and analysis. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the

@@ -132,11 +132,16 @@ Then, in order:
    put a round out over its own shoulder. What a mount was trained on is recorded when it is trained, and
    that is what fires.
    **A picker per module kind** finished the step: `engineWeight`, `gunWeight` and `structureWeight` say
-   which part of a ship to aim at, with all three zero — the default — meaning the ship as a whole, since
-   picking a part is picking a smaller thing to miss. Ties go to whatever is nearest the gun, so a mount
-   does not shoot through a ship to reach the engine on its far side, and an aim point that has been shot
-   away falls back to the hull. The Dinky carries it: a fighter cannot destroy a capital but can strand
-   one, and four fifths of its hits now land on a thruster where a third did.
+   which part of a ship to aim at. The default is 100 / 80 / 20 — guns first, engines close behind,
+   structure a long way back — since a ship that cannot shoot has stopped being a threat and one that
+   cannot move has stopped being a problem, in that order. All three at zero is the way out for a
+   doctrine that would rather shoot at the ship than pick a smaller thing to miss. Ties go to whatever is
+   nearest the gun, so a mount does not shoot through a ship to reach the engine on its far side, and an
+   aim point that has been shot away falls back to the hull. Measured in `standoff`: hits landing on guns
+   go from 37% to 68% and on structure from 55% to 22%, nine of ten survivors are disarmed rather than
+   eight, and it is paid for in accuracy — 1.81 bodies struck per round fired against 1.37, because a
+   module is a smaller thing to hit than a ship. The Dinky sets engines above guns, because a fighter
+   cannot destroy a capital but can strand one.
    What is left of this step is what it always deferred — withdrawal, and the line-of-sight, hemisphere,
    looking-at and ship-type pickers — plus one thing using it turned up: **how much a mount cares about
    its ship's orders, as a weight of its own**. An order is currently a mandate: every mount that can

@@ -77,12 +77,17 @@ export interface Targeting {
    * Where on a target to aim, by what the module is for: its engines, its
    * guns, or the structure between them.
    *
+   * **Guns first, then engines, and structure a long way behind both.** A
+   * ship that cannot shoot has stopped being a threat and one that cannot
+   * move has stopped being a problem, in that order — §3's mission kill is
+   * what the two of them are for. Structure is what is left when there is
+   * nothing better to hit: shooting it is how a ship is eventually destroyed,
+   * but every round spent on it is a round not spent on the parts that end
+   * the fight sooner.
+   *
    * **All three zero means no opinion**, and a gun with no opinion shoots at
-   * the ship rather than at a part of it — which is the sensible default,
-   * since picking a part is picking a *smaller* thing to miss. A weight only
-   * earns its keep where crippling is worth more than killing: a fighter that
-   * cannot hope to destroy a capital can still strand it, and §3's mission
-   * kill is what that is for.
+   * the ship as a whole rather than at a part of it. That is the way out for
+   * a doctrine that would rather not pick a smaller thing to miss.
    */
   readonly engineWeight: number;
   readonly gunWeight: number;
@@ -130,7 +135,8 @@ export interface Doctrine {
  * is its own size, then what can still get away — and sticks with what it
  * chose. A hulk earns neither of the two "can still" bonuses, which is what
  * puts a mission kill behind every live ship on the list without a rule that
- * says so.
+ * says so. Where it shoots follows the same reasoning at the other scale:
+ * guns first, then engines, then whatever structure is left.
  */
 export const DEFAULT_DOCTRINE: Doctrine = {
   targeting: {
@@ -142,9 +148,9 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     armedWeight: 80,
     mobileWeight: 10,
     focusWeight: 60,
-    engineWeight: 0,
-    gunWeight: 0,
-    structureWeight: 0,
+    engineWeight: 80,
+    gunWeight: 100,
+    structureWeight: 20,
   },
   approach: {
     standoffRadii: 50,

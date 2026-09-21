@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "name": "Dinky",
-  "notes": "A fighter. It cannot hope to destroy anything much larger than itself, so it shoots at engines: a capital it strands is a capital out of the battle, which is the most a craft this size can do to one.",
-  "doctrine": { "targeting": { "engineWeight": 1 } },
+  "notes": "A fighter. It cannot hope to destroy anything much larger than itself, so it puts engines above the guns everything else shoots at first: a capital it strands is a capital out of the battle, which is the most a craft this size can do to one.",
+  "doctrine": { "targeting": { "engineWeight": 150 } },
   "assemblies": {
     "thruster": {
       "modules": [
