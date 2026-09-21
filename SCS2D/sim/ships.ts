@@ -711,7 +711,6 @@ export class Ships {
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
 
-    const doctrine = design.doctrine.targeting;
     const mine = this.team[i]!;
     const focus = this.focusOf(i);
 
@@ -733,6 +732,7 @@ export class Ships {
       }
 
       const ti = indices[t]!;
+      const doctrine = mount.targeting;
       this.choice.begin();
       for (let e = 0; e < this.alive.length; e++) {
         if (e === i || this.alive[e] === 0) continue;

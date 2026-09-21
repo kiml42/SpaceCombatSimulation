@@ -172,31 +172,59 @@ export const DOCTRINE_FIELDS: readonly string[] = [
 /** Whatever is wrong with one half of a doctrine block, or null. */
 function halfProblem(
   value: unknown,
-  half: string,
+  where: string,
   fields: readonly string[],
   positive: readonly string[],
 ): string | null {
   if (value === undefined) return null;
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return `doctrine.${half} must be an object, got ${JSON.stringify(value)}`;
+    return `${where} must be an object, got ${JSON.stringify(value)}`;
   }
   const raw = value as Record<string, unknown>;
   const known = new Set<string>(fields);
   const extra = Object.keys(raw).filter((key) => !known.has(key));
   if (extra.length > 0) {
-    return `doctrine.${half} has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
+    return `${where} has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
   }
   for (const field of fields) {
     const held = raw[field];
     if (held === undefined) continue;
     if (typeof held !== 'number' || !Number.isFinite(held)) {
-      return `doctrine.${half}.${field} must be a number, got ${JSON.stringify(held)}`;
+      return `${where}.${field} must be a number, got ${JSON.stringify(held)}`;
     }
     if (positive.includes(field) && !(held > 0)) {
-      return `doctrine.${half}.${field} must be greater than zero, got ${held}`;
+      return `${where}.${field} must be greater than zero, got ${held}`;
     }
   }
   return null;
+}
+
+/**
+ * Whatever is wrong with a mount's own targeting block, or null.
+ *
+ * A partial: a mount says only what it wants differently from the ship it is
+ * bolted to, so a hull's doctrine goes on covering everything its guns have
+ * no opinion about.
+ */
+export function targetingProblem(value: unknown, where: string): string | null {
+  return halfProblem(value, where, TARGETING_FIELDS, ['preferredMass']);
+}
+
+/** A mount's targeting, with whatever it leaves out taken from its ship. */
+export function resolveTargeting(value: unknown, ship: Targeting): Targeting {
+  return toHalf(value, TARGETING_FIELDS, ship);
+}
+
+/** Only what a mount says differently from its ship's doctrine, for saving. */
+export function serialiseTargeting(
+  held: Targeting,
+  ship: Targeting,
+): Record<string, number> | undefined {
+  return serialiseHalf(
+    held as unknown as Record<string, number>,
+    ship as unknown as Record<string, number>,
+    TARGETING_FIELDS,
+  );
 }
 
 /** Whatever is wrong with a doctrine block, or null. */
@@ -211,8 +239,8 @@ export function doctrineProblem(value: unknown): string | null {
     return `doctrine has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
   }
   return (
-    halfProblem(raw['targeting'], 'targeting', TARGETING_FIELDS, ['preferredMass']) ??
-    halfProblem(raw['approach'], 'approach', APPROACH_FIELDS, ['standoffRadii'])
+    halfProblem(raw['targeting'], 'doctrine.targeting', TARGETING_FIELDS, ['preferredMass']) ??
+    halfProblem(raw['approach'], 'doctrine.approach', APPROACH_FIELDS, ['standoffRadii'])
   );
 }
 

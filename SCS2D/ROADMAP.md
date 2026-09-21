@@ -104,14 +104,14 @@ Then, in order:
    the evidence that doctrine is strictly a fallback: every other scenario gives all its ships orders.
    **Per-turret targets** landed next: every mount picks through the same stack from its own point of
    view — its own gun's reach, its own arc as an outright discard, and a bonus for what its ship is
-   fighting — on an interval derived from its traverse rate and cycle time. What that does not yet buy is
-   *variety*: mounts sharing a doctrine and a hull agree about everything except what they can see, so a
-   fleet in line ahead still concentrates. That is the next piece rather than a fault in this one.
-   Still to do, in order: a doctrine block per mount, so a ship's close-in guns can prefer smaller or
-   nearer targets than its main battery, then a picker per module kind so a doctrine can say to go for the
-   engines. Firing discipline lands with
-   the turret work as a short cast ahead of the muzzle for a friendly — the length of a barrel's reach for a
-   gun, the whole beam for a beam. Withdrawal, line-of-sight, hemisphere, looking-at and ship-type pickers
+   fighting — on an interval derived from its traverse rate and cycle time. **A targeting block per mount**
+   followed, since mounts sharing a doctrine and a hull agree about everything except what they can see:
+   a mount's block is only its differences from its ship's, so the gunship's close-in guns hunt fighters
+   while its bow gun fights capitals, and a fleet that used to concentrate now splits its fire — 34 of 60
+   sampled multi-mount ships in `standoff`, against none before it.
+   Still to do, in order: firing discipline, then a picker per module kind so a doctrine can say to go for
+   the engines. Firing discipline is a short cast ahead of the muzzle for a
+   friendly — the length of a barrel's reach for a gun, the whole beam for a beam. Withdrawal, line-of-sight, hemisphere, looking-at and ship-type pickers
    are deliberately after this step.
 4. **Headless evolution and analysis** — balance testing plus sandbox mode.
 5. **v1: skirmish** — a fixed budget of *materials* rather than of points (§12), designed scenarios,
