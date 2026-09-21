@@ -10,7 +10,7 @@ import {
   World,
   type ShipDesign,
 } from '../sim/index.js';
-import { CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import { BEAM_GUNSHIP, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
  * A mount picking its own fight.
@@ -24,6 +24,7 @@ import { CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 
 const DT = 1 / 60;
 const gunship = compileBlueprint(GUNSHIP);
+const beamGunship = compileBlueprint(BEAM_GUNSHIP);
 const corvette = compileBlueprint(CORVETTE);
 const dinky = compileBlueprint(DINKY);
 
@@ -55,6 +56,23 @@ function scene(design: ShipDesign, enemies: { design: ShipDesign; x: number; y: 
       return ships.targetOfTurret(world.bodies, mine, turret);
     },
   };
+}
+
+/**
+ * Shoot every gun and every engine off a ship, leaving a hulk: something
+ * that is still there, still in the way, and no longer a threat.
+ */
+function strip(s: Scene, ship: number): void {
+  const bodies = s.world.bodies;
+  const b = bodies.indexOf(s.ships.body(ship));
+  const design = s.ships.design(ship);
+  for (let k = 0; k < design.modules.length; k++) {
+    const kind = design.modules[k]!.spec.kind;
+    if (kind === 'structure') continue;
+    s.ships.damage.absorb(b, k, s.ships.damage.capacityLeft(b, k));
+  }
+  expect(s.ships.isDisarmed(ship)).toBe(true);
+  expect(s.ships.hasNoEngines(ship)).toBe(true);
 }
 
 /** Which mount of the gunship is which: nose, port beam, starboard beam. */
@@ -104,17 +122,18 @@ describe('a mount choosing its own target', () => {
   it('is drawn to what its ship is fighting when it can reach both', () => {
     // `focusWeight`: the nose gun can bear on either, and concentrating on
     // what the hull chose is worth more than the difference between them.
-    const s = scene(gunship, [
+    const s = scene(beamGunship, [
       { design: corvette, x: 2000, y: 200 },
       { design: corvette, x: 2000, y: -200 },
     ]);
     s.run(120);
-    const hull = s.ships.getCurrentOrder(s.mine);
-    expect(hull).toBeUndefined(); // nobody told it anything; this is doctrine
-    expect(s.aim(NOSE)).toBe(s.ships.targetOfTurret(s.world.bodies, s.mine, NOSE));
-    // Both beam mounts and the nose gun can see both, and all three agree.
-    expect(s.aim(PORT)).toBe(s.aim(NOSE));
-    expect(s.aim(STARBOARD)).toBe(s.aim(NOSE));
+    expect(s.ships.getCurrentOrder(s.mine)).toBeUndefined(); // doctrine, not orders
+    // Every mount here shares the ship's doctrine, and every one of them can
+    // see both, so the focus bonus is what decides — and they all agree.
+    for (let t = 0; t < beamGunship.turrets.length; t++) {
+      expect(beamGunship.turrets[t]!.targeting.focusWeight).toBeGreaterThan(0);
+      expect(s.aim(t)).toBe(s.aim(0));
+    }
   });
 
   it('takes the ordered target, and is not left idle when it cannot', () => {
@@ -179,7 +198,11 @@ describe('a mount with a doctrine of its own', () => {
     expect(close.preferredMass).toBeLessThan(design.doctrine.targeting.preferredMass);
     expect(close.proximityWeight).toBeGreaterThan(design.doctrine.targeting.proximityWeight);
     expect(close.massWeight).toBe(design.doctrine.targeting.massWeight);
-    expect(close.focusWeight).toBe(design.doctrine.targeting.focusWeight);
+    expect(close.closingWeight).toBe(design.doctrine.targeting.closingWeight);
+    // And where it does have an opinion, it overrides: a close-in gun takes
+    // no interest in what the ship as a whole is fighting.
+    expect(close.focusWeight).toBe(0);
+    expect(design.doctrine.targeting.focusWeight).toBeGreaterThan(0);
     // And a mount with nothing to say is its ship, exactly.
     expect(design.turrets[NOSE]!.targeting).toEqual(design.doctrine.targeting);
   });
@@ -207,6 +230,36 @@ describe('a mount with a doctrine of its own', () => {
     expect(blueprintFileProblem(file)).toMatch(/targeting has unknown key aggression/);
     mount['targeting'] = { preferredMass: 0 };
     expect(blueprintFileProblem(file)).toMatch(/greater than zero/);
+  });
+
+  it('splits a pair of beam mounts between two targets either could take', () => {
+    // Both mounts can train on both fighters, so what separates them is where
+    // they are: everything a mount asks is measured from the gun rather than
+    // from the hull, and metres of it is enough to order two targets
+    // differently. Without that, a broadside piles onto whichever one the
+    // hull happened to prefer.
+    const s = scene(compileBlueprint(GUNSHIP), [
+      { design: dinky, x: 700, y: 420 },
+      { design: dinky, x: 700, y: -420 },
+    ]);
+    s.run(60);
+    expect(s.aim(PORT)).not.toBe(s.aim(STARBOARD));
+    expect(s.aim(PORT)).not.toBe(NO_TARGET);
+    expect(s.aim(STARBOARD)).not.toBe(NO_TARGET);
+  });
+
+  it('passes over a hulk for something that can still do something', () => {
+    // A close-in gun exists for what is still dangerous. Caring about that is
+    // worth more to it than the whole of its proximity preference, so a
+    // drifting wreck alongside loses to a live fighter further out — which is
+    // the mission kill of §3 read from the other end.
+    const s = scene(compileBlueprint(GUNSHIP), [
+      { design: dinky, x: 250, y: 250 },
+      { design: dinky, x: 900, y: 500 },
+    ]);
+    strip(s, 1);
+    s.run(120);
+    expect(s.aim(PORT)).toBe(2);
   });
 
   it('sends the close-in guns after the fighter and the main gun after the capital', () => {

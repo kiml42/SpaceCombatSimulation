@@ -107,8 +107,14 @@ Then, in order:
    fighting — on an interval derived from its traverse rate and cycle time. **A targeting block per mount**
    followed, since mounts sharing a doctrine and a hull agree about everything except what they can see:
    a mount's block is only its differences from its ship's, so the gunship's close-in guns hunt fighters
-   while its bow gun fights capitals, and a fleet that used to concentrate now splits its fire — 34 of 60
-   sampled multi-mount ships in `standoff`, against none before it.
+   while its bow gun fights capitals, and a fleet that used to concentrate now splits its fire — 30 of 60
+   sampled multi-mount ships in `standoff`, against none before it. Two things a close-in gun needs
+   turned out to be things it says rather than mechanisms of its own: caring about whether a target can
+   still do something, worth more to it than the whole of its proximity preference, so it passes over a
+   drifting hulk at any range; and *not* caring what the ship as a whole is fighting, which is what
+   leaves a pair of them free to take a threat each. What separates the pair is that a mount measures
+   from itself rather than from the hull — metres, against gunnery range, and enough to order two
+   otherwise identical targets differently.
    Still to do, in order: firing discipline, then a picker per module kind so a doctrine can say to go for
    the engines. Firing discipline is a short cast ahead of the muzzle for a
    friendly — the length of a barrel's reach for a gun, the whole beam for a beam. Withdrawal, line-of-sight, hemisphere, looking-at and ship-type pickers

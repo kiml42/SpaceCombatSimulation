@@ -112,8 +112,10 @@ inside any one file is not contiguous.
   half a circle of traverse plus a firing cycle, which is what it costs to swing onto something new and
   get a shot away. **A mount can carry targeting preferences of its own**, written beside it in the
   blueprint as only what it wants differently from its ship — so the gunship's eight-barrelled beam guns go
-  after whatever is small and close while its bow gun fights its own weight class, and a hull whose
-  doctrine changes takes its guns with it except where a gun has an opinion.
+  after whatever is small, close and still dangerous while its bow gun fights its own weight class, and a
+  hull whose doctrine changes takes its guns with it except where a gun has an opinion. Everything a mount
+  asks is measured from the gun rather than from the hull it is bolted to, which is both the truth and
+  what leaves a pair of beam guns taking a threat each rather than both piling onto one.
 - **Next:** the rest of §8 step 3 — firing discipline, a short cast ahead of the muzzle so a gun does not
   shoot through a friend, then a picker per module kind so a doctrine can say to go for the engines. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
