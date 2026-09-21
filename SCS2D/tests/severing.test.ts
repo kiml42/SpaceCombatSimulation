@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { beamDuel } from '../scenarios/beamDuel.js';
+import { GUNSHIP } from '../scenarios/blueprints.js';
 import {
   Contacts,
   Ships,
@@ -37,6 +38,8 @@ const CHAIN: Blueprint = {
 };
 
 const design: ShipDesign = compileBlueprint(CHAIN);
+/** An authored hull with real mounts on it, for the questions about guns. */
+const gunship: ShipDesign = compileBlueprint(GUNSHIP);
 const TIP = 2;
 const TIP_JOINT = joints(design).find((j) => j.a === 0 && j.b === TIP)!;
 
@@ -264,6 +267,32 @@ describe('what a hull that has come apart looks like', () => {
     const chunk = s.world.bodies.indexOf(s.ships.body(s.ship + 1));
     expect(s.ships.damage.absorbedAt(chunk, 0)).toBeCloseTo(1000, 9);
     expect(s.ships.damage.absorbedAt(s.body, 1)).toBeCloseTo(2000, 9);
+  });
+
+  it('draws no firing arc on a piece: nothing is left to aim its guns', () => {
+    // A mount that came away sound is still out of the fight — what it has
+    // lost is everything that would give it a target. An arc is a promise
+    // that a gun may shoot there, so a piece must not draw one.
+    const world = new World({ dt: 1 / 60, seed: 2 });
+    const ships = new Ships();
+    const armed = ships.spawn(world, { design: gunship, x: 0, y: 0, team: 0 });
+    const body = world.bodies.indexOf(ships.body(armed));
+    expect(gunship.turrets.length).toBeGreaterThan(0);
+    expect(ships.isTurretDisabled(armed, 0)).toBe(false);
+
+    // Break the whole hull off around its first module.
+    for (const joint of joints(gunship)) {
+      ships.damage.cutWeld(body, joints(gunship).indexOf(joint), joint.width);
+    }
+    expect(ships.sever(world)).toBeGreaterThan(0);
+
+    for (let i = 0; i < ships.highWater; i++) {
+      if (!ships.isAlive(i) || !ships.isDerelict(i)) continue;
+      const piece = ships.design(i);
+      for (let t = 0; t < piece.turrets.length; t++) {
+        expect(ships.isTurretDisabled(i, t)).toBe(true);
+      }
+    }
   });
 
   it('gives the piece to nobody: it is not flown and does not shoot', () => {
