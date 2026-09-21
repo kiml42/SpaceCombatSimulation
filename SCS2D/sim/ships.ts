@@ -1477,30 +1477,43 @@ export class Ships {
       aiming[t] = target;
 
       // Where on it: a part, when the doctrine has an opinion about parts and
-      // that part is still there, and otherwise the ship. A part is carried
-      // round by the hull's own rotation, so the aim point moves at the hull's
-      // velocity plus ω × r — the same term a mount's own muzzle gets, for the
-      // same reason.
+      // that part is still there, and otherwise the ship.
+      //
+      // **The part's position, the hull's velocity.** A part does not travel
+      // in the straight line a firing solution assumes: it goes round the
+      // centre of mass, so extrapolating the ω × r it has right now sends the
+      // aim point off on a tangent that grows with the square of the flight
+      // time. Leading the *hull* instead is wrong by at most how far the part
+      // sits from the centre of mass, whatever the flight time — metres,
+      // against a lead measured in hundreds of them. It is the better
+      // approximation for every shot long enough for the difference to
+      // matter, and the tangent is worse for exactly those.
+      //
+      // The error it does leave — a part swinging round to the far side while
+      // the round is in the air — grows with the hull's rate of turn and its
+      // size, and those pull against each other: a ship large enough for the
+      // offset to matter is one too heavy to spin quickly.
       const part = this.aimPart(i, t, target, tb);
       const design = this.designs[target]!;
       let x = bodies.x[tb]!;
       let y = bodies.y[tb]!;
-      let vx = bodies.vx[tb]!;
-      let vy = bodies.vy[tb]!;
+      // What the barrel has to keep up with is the part's own motion, ω × r
+      // and all: that is how fast the sky it sits in is moving. Only the lead
+      // is the hull's.
+      let sweepVx = bodies.vx[tb]!;
+      let sweepVy = bodies.vy[tb]!;
       if (part !== WHOLE_SHIP) {
         const angle = bodies.angle[tb]!;
-        const c = cos(angle);
-        const sn = sin(angle);
         const module = design.modules[part]!;
-        const rx = module.x * c - module.y * sn;
-        const ry = module.x * sn + module.y * c;
-        const w = bodies.angularVel[tb]!;
+        const rx = module.x * cos(angle) - module.y * sin(angle);
+        const ry = module.x * sin(angle) + module.y * cos(angle);
+        const spin = bodies.angularVel[tb]!;
         x += rx;
         y += ry;
-        vx -= w * ry;
-        vy += w * rx;
+        sweepVx -= spin * ry;
+        sweepVy += spin * rx;
       }
-      this.turrets.aimAt(bodies, ti, x, y, vx, vy);
+      this.turrets.aimAt(bodies, ti, x, y, bodies.vx[tb]!, bodies.vy[tb]!, sweepVx, sweepVy);
     }
   }
 

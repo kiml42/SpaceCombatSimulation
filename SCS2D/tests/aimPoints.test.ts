@@ -158,6 +158,49 @@ describe('where a gun aims on a ship', () => {
     expect(off(a.bearing, toFurthest)).toBeGreaterThan(off(a.bearing, a.toNearestEngine));
   });
 
+  it('leads the ship rather than the part, on a spinning target', () => {
+    // A part goes round the centre of mass; it does not fly off along the
+    // tangent it happens to be travelling down. Extrapolating that tangent
+    // over a long shot throws the aim point clean off the ship — which is why
+    // the lead is solved from the hull's own velocity, leaving an error of at
+    // most how far the part sits from the centre of mass.
+    const world = new World({ dt: DT, seed: 12 });
+    const ships = new Ships();
+    world.addForceProvider(ships.forceProvider());
+    const shooter = ships.spawn(world, { design: sniper, x: 0, y: 0, team: 0 });
+    const RANGE = 3000;
+    const SPIN = 1;
+    const mark = ships.spawn(world, {
+      design: gunship,
+      x: RANGE,
+      y: 0,
+      angle: math.PI / 2,
+      angularVel: SPIN,
+      team: 1,
+    });
+
+    // Spun by hand, so the hull turns while its centre stays exactly put:
+    // stepping the world would let both craft manoeuvre and take the geometry
+    // with them.
+    const bodies = world.bodies;
+    const b = bodies.indexOf(ships.body(mark));
+    for (let i = 0; i < 600; i++) {
+      ships.command(DT, world);
+      bodies.angle[b] = bodies.angle[b]! + SPIN * DT;
+    }
+
+    const bearing = ships.turrets.worldBearing(bodies, ships.turretIndexOf(shooter, 0));
+    const toCentre = Math.atan2(bodies.y[b]!, bodies.x[b]!);
+    // How much of the sky the ship fills from here. The gun is aiming at one
+    // of its engines, so it must be inside that — where the tangent would put
+    // it several times further out, since a part twenty-odd metres off the
+    // axis at this rate of turn is travelling at tens of metres a second and
+    // the shell is nearly five seconds in the air.
+    const angularRadius = Math.atan(bodies.radius[b]! / RANGE);
+    expect(off(bearing, toCentre)).toBeLessThan(angularRadius);
+    expect(SPIN * bodies.radius[b]! * (RANGE / sniper.reach)).toBeGreaterThan(50);
+  });
+
   it('goes back to shooting at the ship once that part is gone', () => {
     // A gun holding its aim on a module that is no longer there would be
     // pointing at empty space beside the target.

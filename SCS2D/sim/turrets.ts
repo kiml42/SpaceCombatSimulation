@@ -407,6 +407,10 @@ export class Turrets {
    * case the turret is left pointing at the target's present position, which is
    * the best available guess and keeps it tracking.
    *
+   * `sweepVx`/`sweepVy` are the velocity the aim point is moving at *now*,
+   * used only for the tracking rate; they default to the velocity the lead is
+   * solved with, which is what a whole ship wants.
+   *
    * A beam's intercept time is zero rather than -1. It arrives the instant it
    * is fired, so there is nothing to lead and the present position *is* the
    * solution — which is the opposite of not having one, and callers that read
@@ -419,6 +423,8 @@ export class Turrets {
     targetY: number,
     targetVx: number,
     targetVy: number,
+    sweepVx = targetVx,
+    sweepVy = targetVy,
   ): number {
     const b = this.owner[i];
     const angle = bodies.angle[b]!;
@@ -465,8 +471,16 @@ export class Turrets {
     // Angular rate of the aim point about the mount: the transverse component
     // of relative velocity over range. This is the feed-forward term, and it is
     // what lets a turret hold a crossing target rather than trail behind it.
-    const rvx = targetVx - shooterVx;
-    const rvy = targetVy - shooterVy;
+    //
+    // It is taken from `sweepV` rather than from the velocity the lead was
+    // solved with, because the two answer different questions. Where a thing
+    // will be in a second's flight is a question about where it is *going*;
+    // how fast the barrel has to turn right now is a question about how fast
+    // it is moving *at this instant*. They are the same for a ship and differ
+    // for a point on a turning one — a part swinging round its hull sweeps
+    // the sky at a rate that says nothing about where the hull will be.
+    const rvx = sweepVx - shooterVx;
+    const rvy = sweepVy - shooterVy;
     const rangeSq = aimX * aimX + aimY * aimY;
     const bearingRate = rangeSq > 0 ? (aimX * rvy - aimY * rvx) / rangeSq : 0;
 
