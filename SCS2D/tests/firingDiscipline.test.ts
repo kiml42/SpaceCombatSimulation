@@ -13,6 +13,7 @@ import {
   type ShipDesign,
 } from '../sim/index.js';
 import { BEAM_CORVETTE, CORVETTE, DINKY } from '../scenarios/blueprints.js';
+import { column } from '../scenarios/column.js';
 
 /**
  * Not shooting through your own side.
@@ -182,5 +183,44 @@ describe('a beam with somebody in the way', () => {
     // anything in the line is hit rather than possibly hit.
     expect(salvo(beamCorvette, [{ design: corvette, x: 900, team: 0 }]).beams).toBe(0);
     expect(salvo(dinky, [{ design: corvette, x: 900, team: 0 }]).rounds).toBeGreaterThan(0);
+  });
+});
+
+describe('a fleet in line ahead', () => {
+  /**
+   * Same fleets as `standoff`, turned ninety degrees: every ship but the
+   * leader has one of its own in front of its guns. It is the formation the
+   * rule exists for, and the one no other scenario produces.
+   */
+  it('does not shoot up its own line while the formation holds', () => {
+    const run = column();
+    const shipOf = (body: number): number => {
+      for (let s = 0; s < run.ships.highWater; s++) {
+        if (run.ships.isAlive(s) && run.world.bodies.indexOf(run.ships.body(s)) === body) return s;
+      }
+      return -1;
+    };
+
+    let ownSide = 0;
+    let landed = 0;
+    // Ten seconds: long enough for the columns to open fire on each other,
+    // short enough that they are still columns. After that it is a melee, and
+    // what a melee does to a fleet's own side is a question about the melee.
+    for (let step = 0; step < 600; step++) {
+      run.step();
+      for (let h = 0; h < run.hits.count; h++) {
+        const shooter = shipOf(run.projectiles.owner[run.hits.projectile[h]!]!);
+        const victim = shipOf(run.hits.body[h]!);
+        if (shooter < 0 || victim < 0) continue;
+        landed++;
+        if (run.ships.teamOf(shooter) === run.ships.teamOf(victim)) ownSide++;
+      }
+    }
+
+    // The fleets really are shooting: this is a rule holding fire, not a
+    // scenario where nothing happens.
+    expect(run.totalProjectilesFired).toBeGreaterThan(50);
+    expect(landed).toBeGreaterThan(50);
+    expect(ownSide).toBe(0);
   });
 });

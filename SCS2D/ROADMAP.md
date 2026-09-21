@@ -119,11 +119,13 @@ Then, in order:
    everyone's velocity — half a second of the round's flight for a gun, since a shell is slow and a battle
    is wide, and the whole length for a beam, which arrives instantly along all of it. The mount's own
    target is never in the way, whoever's side it is on, and nor is wreckage; a burst already committed is
-   seen through. **The scenarios barely exercise it**, which is worth knowing rather than hiding: two
-   fleets meeting line-abreast keep their friends behind them, so `standoff` is bit-identical with the
-   rule in place and `swarm` withholds thirteen rounds in three thousand steps. It earns its keep the
-   moment a formation is in line ahead, or a consort crosses a muzzle — which is what its tests set up,
-   and what the fleet-shaped scenarios have no way to produce yet.
+   seen through. **The formation is what decides whether it matters**: two fleets meeting line-abreast
+   keep their friends beside them and their guns looking into clear space, so `standoff` is bit-identical
+   with the rule in place. The `column` scenario is the same fleets turned ninety degrees — line ahead,
+   every ship but the leader with one of its own in front of its guns — and there it takes the first ten
+   seconds from twenty hits on one's own side to none, and stops the beam ships raking their own line.
+   Over a full run the columns dissolve into a melee and the count stops being a measure of the rule
+   (400 against 199), which is why the golden pins the whole run and the test pins the formation.
    Still to do: a picker per module kind so a doctrine can say to go for the engines. Withdrawal, line-of-sight, hemisphere, looking-at and ship-type pickers
    are deliberately after this step.
 4. **Headless evolution and analysis** — balance testing plus sandbox mode.
