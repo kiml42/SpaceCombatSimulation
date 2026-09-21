@@ -170,6 +170,24 @@ describe('the viewer in a browser', () => {
     expect(await step(page)).toBeLessThan(10);
   });
 
+  it('lists every scene by name, and plays the one that is picked', async () => {
+    // A dropdown rather than a button that cycles: the list is long enough
+    // that finding a scene by pressing "next" repeatedly is a poor way in.
+    const names = await page.$$eval('#scene option', (o) => o.map((n) => n.textContent));
+    expect(names.length).toBeGreaterThan(5);
+    expect(names).toContain('Standoff');
+
+    await page.selectOption('#scene', { label: 'Standoff' });
+    await painted(page);
+    // The standoff is the one battle in which nothing is ever fired, so the
+    // readout says which scene is actually running rather than merely which
+    // is selected.
+    await page.waitForTimeout(300);
+    const readout = await page.textContent('#readout');
+    expect(readout).toContain('p.fired 0');
+    expect(await step(page)).toBeGreaterThan(0);
+  });
+
   it('reports no errors after all of that', () => {
     expect(problems).toEqual([]);
   });
