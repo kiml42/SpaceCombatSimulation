@@ -45,7 +45,6 @@ reasoning is spent.
 ---
 
 ### Quick fixes to do next
- - Allow rotating assemblies (possibly scaling as well, but only isometrically makes sense)
 
 ## 8. Build order
 

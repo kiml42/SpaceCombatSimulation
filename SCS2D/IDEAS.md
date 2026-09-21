@@ -10,6 +10,9 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - Ideal when one side is connected to the ship, but would make it hard to scale a center line module and keep it in the middle.
 - Allow dragging copies to set the offset (might get complicated with more than 2, so might need to restrict to the second one)
 - Allow dragging a module edge to stretch it keeping the other direction constant.
+- Allow rotating an assembly
+- Allow scaling an assembly
+
 
 ## Turrets
 - Turrets fire a volley of one shot per barrel, and then reload. Can specify delay between shots to alow for firing all at once or staggered
