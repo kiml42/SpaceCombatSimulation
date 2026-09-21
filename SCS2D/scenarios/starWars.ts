@@ -141,6 +141,8 @@ export function starWars(seed = 20260905, tieFighterCount = 15, xWingCount = 30)
     totalBeamsFired: 0,
     totalBeamHits: 0,
     totalContacts: 0,
+    totalSevered: 0,
+    totalCulled: 0,
 
     step(): void {
       ships.command(dt, world);
@@ -149,6 +151,7 @@ export function starWars(seed = 20260905, tieFighterCount = 15, xWingCount = 30)
       // back apart before anything asks where anything is.
       collisions.step(world.bodies, ships);
       run.totalContacts += collisions.contacts.count;
+      impacts.collisions(ships, ships.damage, world.bodies, collisions.contacts);
       grid.rebuild(world.bodies);
       beams.clear();
       beamHits.clear();
@@ -161,8 +164,10 @@ export function starWars(seed = 20260905, tieFighterCount = 15, xWingCount = 30)
       // What the hits did. Rounds walk the modules along their path and are
       // killed or sent on their way; beams pour their power into what they are
       // burning through.
-      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits);
-      impacts.beams(ships.damage, beams, beamHits, dt, world.bodies);
+      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits, ships);
+      impacts.beams(ships.damage, beams, beamHits, dt, world.bodies, ships);
+      run.totalSevered += ships.sever(world, collisions.contacts);
+      run.totalCulled += ships.cull(world);
     },
   };
 
