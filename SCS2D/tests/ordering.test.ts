@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { NO_TARGET } from '../sim/index.js';
 import { ORDERINGS, soloOrdering } from '../scenarios/ordering.js';
 
 /**
@@ -79,13 +80,17 @@ describe('module ordering, one battle each', () => {
 
 describe('the mark', () => {
   it('holds its fire, so every contender faces the same problem', () => {
-    // If the mark ever acquired an order it would shoot back, and the three
-    // would stop being given the same problem.
+    // The mark is the controlled variable of the rig. If it fought back the
+    // three contenders would stop being given the same problem, and the
+    // round-off this measures would become chaos.
     const run = soloOrdering(0);
     for (let i = 0; i < STEPS; i++) run.step();
-    // Never given one, and nothing gives a ship an order but a caller: no
-    // order at all is how a ship holds its fire.
-    expect(run.ships.getCurrentOrder(run.target)).toBeUndefined();
-    expect(run.ships.orderCount(run.target)).toBe(0);
+    // Under orders to do nothing, rather than merely un-ordered: an order
+    // with no target holds heading and holds fire, and being under one is
+    // what keeps the mark's own doctrine out of the measurement.
+    const order = run.ships.getCurrentOrder(run.target);
+    expect(order?.target).toBe(NO_TARGET);
+    expect(run.ships.orderCount(run.target)).toBe(1);
+    expect(run.totalProjectilesFired).toBeGreaterThan(0);
   });
 });

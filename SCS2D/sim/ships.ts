@@ -645,7 +645,15 @@ export class Ships {
       if (this.derelict[t] === 1 || this.team[t] === mine) continue;
       const tb = bodies.indexOf(this.bodyIds[t]!);
       if (tb < 0) continue;
-      const candidate = look(bodies, b, tb, t, this.designs[t]!.mass, this.isDisabled(t));
+      const candidate = look(
+        bodies,
+        b,
+        tb,
+        t,
+        this.designs[t]!.mass,
+        !this.isDisarmed(t),
+        !this.hasNoEngines(t),
+      );
       this.choice.offer(candidate, score(doctrine, candidate, design.reach, loyalTo));
     }
     this.chosen[i] = this.choice.ship;
