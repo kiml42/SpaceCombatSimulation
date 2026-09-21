@@ -24,14 +24,19 @@ import { DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 const DT = 1 / 60;
 const gunship = compileBlueprint(GUNSHIP);
 
-/** A fighter with a stated opinion about where to shoot, and one without. */
+/**
+ * A fighter that puts engines above the guns the default shoots at first, and
+ * one that has opted out of picking parts altogether.
+ */
 const sniper = compileBlueprint({
   ...DINKY,
-  doctrine: toDoctrine({ targeting: { engineWeight: 1 } }),
+  doctrine: toDoctrine({ targeting: { engineWeight: 150 } }),
 });
 const indifferent = compileBlueprint({
   ...DINKY,
-  doctrine: DEFAULT_DOCTRINE,
+  doctrine: toDoctrine({
+    targeting: { engineWeight: 0, gunWeight: 0, structureWeight: 0 },
+  }),
 });
 
 interface Aim {
@@ -41,6 +46,8 @@ interface Aim {
   toCentre: number;
   /** Bearing to whichever engine of the target is nearest the gun. */
   toNearestEngine: number;
+  /** Bearing to whichever of its mounts is nearest the gun. */
+  toNearestGun: number;
   ships: Ships;
   world: World;
   mark: number;
@@ -70,22 +77,29 @@ function aim(design: ShipDesign, seconds = 20): Aim {
   const angle = bodies.angle[b]!;
   const bearingTo = (x: number, y: number): number => Math.atan2(y, x);
 
-  let nearest = Infinity;
-  let toNearestEngine = 0;
-  for (const module of gunship.modules) {
-    if (module.spec.kind !== 'thruster') continue;
-    const x = bodies.x[b]! + module.x * Math.cos(angle) - module.y * Math.sin(angle);
-    const y = bodies.y[b]! + module.x * Math.sin(angle) + module.y * Math.cos(angle);
-    const range = Math.hypot(x, y);
-    if (range >= nearest) continue;
-    nearest = range;
-    toNearestEngine = bearingTo(x, y);
-  }
+  /** The bearing to the nearest module of one kind, from the shooter. */
+  const nearestOf = (wanted: string): number => {
+    let nearest = Infinity;
+    let bearing = 0;
+    for (const module of gunship.modules) {
+      const kind = module.spec.kind;
+      const isGun = kind === 'turret' || kind === 'beamTurret';
+      if (wanted === 'thruster' ? kind !== 'thruster' : !isGun) continue;
+      const x = bodies.x[b]! + module.x * Math.cos(angle) - module.y * Math.sin(angle);
+      const y = bodies.y[b]! + module.x * Math.sin(angle) + module.y * Math.cos(angle);
+      const range = Math.hypot(x, y);
+      if (range >= nearest) continue;
+      nearest = range;
+      bearing = bearingTo(x, y);
+    }
+    return bearing;
+  };
 
   return {
     bearing: ships.turrets.worldBearing(bodies, ships.turretIndexOf(shooter, 0)),
     toCentre: bearingTo(bodies.x[b]!, bodies.y[b]!),
-    toNearestEngine,
+    toNearestEngine: nearestOf('thruster'),
+    toNearestGun: nearestOf('turret'),
     ships,
     world,
     mark,
@@ -96,7 +110,21 @@ function aim(design: ShipDesign, seconds = 20): Aim {
 const off = (a: number, b: number): number => Math.abs(math.angleDelta(a, b));
 
 describe('where a gun aims on a ship', () => {
-  it('aims at the ship when its doctrine has no opinion about parts', () => {
+  it('prefers guns, then engines, then structure, by default', () => {
+    // A ship that cannot shoot has stopped being a threat and one that cannot
+    // move has stopped being a problem, in that order. Structure is what is
+    // left when there is nothing better to hit.
+    const parts = DEFAULT_DOCTRINE.targeting;
+    expect(parts.gunWeight).toBeGreaterThan(parts.engineWeight);
+    expect(parts.engineWeight).toBeGreaterThan(parts.structureWeight * 2);
+
+    // And it is the guns a default-doctrine craft actually trains on.
+    const a = aim(compileBlueprint({ ...DINKY, doctrine: DEFAULT_DOCTRINE }));
+    expect(off(a.bearing, a.toNearestGun)).toBeLessThan(0.01);
+    expect(off(a.toNearestGun, a.toNearestEngine)).toBeGreaterThan(0.03);
+  });
+
+  it('aims at the ship when its doctrine has opted out of picking parts', () => {
     const a = aim(indifferent);
     expect(off(a.bearing, a.toCentre)).toBeLessThan(0.01);
     // And the two really are different directions, or this proves nothing.
