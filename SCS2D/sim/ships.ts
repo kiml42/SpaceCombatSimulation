@@ -1492,7 +1492,11 @@ export class Ships {
       // The error it does leave — a part swinging round to the far side while
       // the round is in the air — grows with the hull's rate of turn and its
       // size, and those pull against each other: a ship large enough for the
-      // offset to matter is one too heavy to spin quickly.
+      // offset to matter is one too heavy to spin quickly. It is also the
+      // forgiving kind of error: an aim point held on the hull puts a round
+      // that misses the part it was meant for into some other part of the
+      // same ship, where a tangent that has run off the ship misses
+      // altogether.
       const part = this.aimPart(i, t, target, tb);
       const design = this.designs[target]!;
       let x = bodies.x[tb]!;
