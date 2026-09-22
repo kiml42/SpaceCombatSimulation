@@ -1,21 +1,9 @@
-import {
-  Collisions,
-  Impacts,
-  compileBlueprint,
-  gravityWell,
-  math,
-  ProjectileHits,
-  Projectiles,
-  BeamHits,
-  Beams,
-  Ships,
-  SpatialGrid,
-  World,
-  type WellSpec,
-} from '../sim/index.js';
+import { compileBlueprint } from '../sim/index.js';
 import { NO_TARGET, OrderCancelCondition } from '../sim/ships.js';
 import type { Battle } from './types.js';
+import { CROSSING, SIDE_WELL, makeBattle } from './battle.js';
 import { CORVETTE, FLAT_GUNSHIP, FLAT_GUNSHIP_GROUPED, GUNSHIP } from './blueprints.js';
+
 
 /**
  * What listing a ship's modules in a different order costs, flown two ways.
@@ -68,110 +56,36 @@ export function soloOrdering(which: number, seed = 20260905): OrderingBattle {
 }
 
 function battle(which: readonly number[], seed: number): OrderingBattle {
-  const dt = 1 / 60;
-  const world = new World({ dt, seed });
+  return makeBattle({ seed, wells: [SIDE_WELL] }, (ships, world) => {
+    // Facing across the engagement with a crossing velocity, as the duel does.
+    // A ship flying straight down a bearing barely uses its manoeuvring
+    // thrusters, and thruster allocation is half of what is being measured.
+    const contenders = which.map((i) => ({
+      name: ORDERINGS[i]!.name,
+      ship: ships.spawn(world, {
+        design: compileBlueprint(ORDERINGS[i]!.blueprint),
+        ...CROSSING.west,
+        team: 0,
+      }),
+    }));
 
-  // The same well the other battles fight around. It cannot itself separate
-  // the contenders, since they all start in the same place.
-  const wells: WellSpec[] = [{ x: 0, y: -1500, gm: 2.5e6, softening: 200 }];
-  for (const well of wells) world.addForceProvider(gravityWell(well));
+    // A corvette rather than another gunship, so a contender is never mistaken
+    // for the mark on screen.
+    const target = ships.spawn(world, {
+      design: compileBlueprint(CORVETTE),
+      ...CROSSING.east,
+      team: 1,
+    });
 
-  const ships = new Ships();
-  world.addForceProvider(ships.forceProvider());
+    // The mark is under orders to do nothing, and that is deliberate rather
+    // than incidental: it is the controlled variable of the whole rig, and a
+    // mark that fought back would turn the round-off this measures into chaos.
+    // An order with no target holds heading and holds fire, and being *under*
+    // an order is what keeps its doctrine out of it.
+    ships.pushOrder(target, NO_TARGET, 0, 0, 0, OrderCancelCondition.None);
 
-  // Facing across the engagement with a crossing velocity, as the duel does.
-  // A ship flying straight down a bearing barely uses its manoeuvring
-  // thrusters, and thruster allocation is half of what is being measured.
-  const contenders = which.map((i) => ({
-    name: ORDERINGS[i]!.name,
-    ship: ships.spawn(world, {
-      design: compileBlueprint(ORDERINGS[i]!.blueprint),
-      x: -1800,
-      y: -240,
-      angle: math.HALF_PI,
-      vx: 0,
-      vy: 90,
-      team: 0,
-    }),
-  }));
+    for (const contender of contenders) ships.pushOrder(contender.ship, target, 300, 500, 120);
 
-  // A corvette rather than another gunship, so a contender is never mistaken
-  // for the mark on screen.
-  const target = ships.spawn(world, {
-    design: compileBlueprint(CORVETTE),
-    x: 1800,
-    y: 240,
-    angle: -math.HALF_PI,
-    vx: 0,
-    vy: -60,
-    team: 1,
+    return { contenders, target };
   });
-
-  // The mark is under orders to do nothing, and that is deliberate rather
-  // than incidental: it is the controlled variable of the whole rig, and a
-  // mark that fought back would turn the round-off this measures into chaos.
-  // An order with no target holds heading and holds fire, and being *under*
-  // an order is what keeps its doctrine out of it.
-  ships.pushOrder(target, NO_TARGET, 0, 0, 0, OrderCancelCondition.None);
-
-  for (const contender of contenders) ships.pushOrder(contender.ship, target, 300, 500, 120);
-
-  const grid = new SpatialGrid(64);
-  const projectiles = new Projectiles(512);
-  const beams = new Beams(512);
-  const hits = new ProjectileHits();
-  const beamHits = new BeamHits();
-  const impacts = new Impacts();
-  const collisions = new Collisions();
-
-  const run: OrderingBattle = {
-    dt,
-    world,
-    wells,
-    ships,
-    projectiles,
-    beams,
-    grid,
-    hits,
-    beamHits,
-    impacts,
-    collisions,
-    contenders,
-    target,
-    totalProjectilesFired: 0,
-    totalProjectileHits: 0,
-    totalBeamsFired: 0,
-    totalBeamHits: 0,
-    totalContacts: 0,
-    totalSevered: 0,
-    totalCulled: 0,
-
-    step(): void {
-      ships.command(dt, world);
-      world.step();
-      // Hulls are solid: what the world's step drove into each other is pushed
-      // back apart before anything asks where anything is.
-      collisions.step(world.bodies, ships);
-      run.totalContacts += collisions.contacts.count;
-      impacts.collisions(ships, ships.damage, world.bodies, collisions.contacts);
-      grid.rebuild(world.bodies);
-      beams.clear();
-      beamHits.clear();
-      const fireReport = ships.fire(world, projectiles, beams, grid, beamHits);
-      run.totalProjectilesFired += fireReport.projectilesFired;
-      run.totalBeamsFired += fireReport.beamsFired;
-      projectiles.step(dt, world.bodies, grid, hits, wells, ships.hulls);
-      run.totalProjectileHits += hits.count;
-      run.totalBeamHits += beamHits.count;
-      // What the hits did. Rounds walk the modules along their path and are
-      // killed or sent on their way; beams pour their power into what they are
-      // burning through.
-      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits, ships);
-      impacts.beams(ships.damage, beams, beamHits, dt, world.bodies, ships);
-      run.totalSevered += ships.sever(world, collisions.contacts);
-      run.totalCulled += ships.cull(world);
-    },
-  };
-
-  return run;
 }

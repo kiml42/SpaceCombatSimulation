@@ -41,8 +41,9 @@ Almost everything worth changing is in one of these:
 
 | To change | Edit |
 | --- | --- |
-| The ships' layouts | `scenarios/blueprints.ts` |
+| The ships' layouts | `scenarios/blueprints/*.json`, listed in `scenarios/blueprints.ts` |
 | The engagement — positions, velocities, orders, the gravity well | `scenarios/duel.ts` |
+| How every scenario is assembled and stepped | `scenarios/battle.ts` |
 | Scaling laws and the constants behind them | `sim/modules.ts` |
 | How the pilot flies and fights | `sim/ships.ts` |
 | Colours, plumes, firing arcs | `render/canvas2d.ts` |

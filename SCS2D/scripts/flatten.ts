@@ -9,8 +9,8 @@ import { BLUEPRINTS, type BlueprintName } from '../scenarios/blueprints.js';
  * Write a blueprint out with its assemblies expanded away: the same modules,
  * in the same places, as one flat list.
  *
- *   npx tsx scripts/flatten.ts gunship scenarios/flat-gunship.json
- *   npx tsx scripts/flatten.ts gunship scenarios/flat-gunship-grouped.json --order=kind
+ *   npx tsx scripts/flatten.ts gunship scenarios/blueprints/flat-gunship.json
+ *   npx tsx scripts/flatten.ts gunship scenarios/blueprints/flat-gunship-grouped.json --order=kind
  *
  * A flat copy compiles to the same ship, so the only thing it can differ in is
  * module order — which is what `scenarios/ordering.ts` measures. Generated
