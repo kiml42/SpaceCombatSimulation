@@ -1,6 +1,13 @@
 {
   "formatVersion": 1,
   "name": "Star Destroyer",
+  "notes": "A capital. Its batteries go for the biggest thing on the board — nothing in the battle outweighs it, so a preference for its own mass is a preference for whatever is largest — and they shoot to disable rather than to destroy: guns, then engines, and never the hull while either is left.",
+  "doctrine": {
+    "targeting": {
+      "massWeight": 150,
+      "structureWeight": 0
+    }
+  },
   "assemblies": {
     "structure": {
       "modules": [
@@ -160,7 +167,14 @@
           "angle": 0,
           "length": 29,
           "width": 24,
-          "barrels": 1
+          "barrels": 1,
+          "targeting": {
+            "focusWeight": 0,
+            "proximityWeight": 250,
+            "massWeight": 0,
+            "structureWeight": 0
+          },
+          "notes": "Close-in defence, and it fights its own battle: no interest at all in what the ship as a whole has picked, no view on how big a target is, and every view on how near. Guns and engines before hull, because a fighter it disarms is a fighter that has stopped mattering, and a fighter it strands is one the batteries can take at their leisure."
         }
       ]
     },

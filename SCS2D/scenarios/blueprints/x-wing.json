@@ -1,6 +1,14 @@
 {
   "formatVersion": 1,
   "name": "X Wing",
+  "notes": "A fighter. It goes after other fighters, and shoots at what makes one dangerous rather than at what holds it together: a laser this light does nothing useful to a capital's plating, but it can strip the guns and engines off anything its own size — and off a capital, once its own size has run out.",
+  "doctrine": {
+    "targeting": {
+      "preferredMass": 0.4,
+      "massWeight": 120,
+      "structureWeight": 0
+    }
+  },
   "assemblies": {
     "structure": {
       "modules": [

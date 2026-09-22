@@ -1,6 +1,14 @@
 {
   "formatVersion": 1,
   "name": "TIE Fighter",
+  "notes": "A fighter, and a fighter's doctrine: other fighters first, by preferring a target about the size of an X-Wing, and guns and engines rather than hull. What is left over is a capital with its guns stripped, which is more than a TIE could have done to it by shooting at the hull.",
+  "doctrine": {
+    "targeting": {
+      "preferredMass": 2.5,
+      "massWeight": 120,
+      "structureWeight": 0
+    }
+  },
   "assemblies": {
     "structure": {
       "modules": [
