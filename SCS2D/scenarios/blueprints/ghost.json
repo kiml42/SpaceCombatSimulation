@@ -1,6 +1,14 @@
 {
   "formatVersion": 1,
   "name": "Ghost",
+  "notes": "A light freighter that fights whatever is nearest, whatever size it is: it takes no view on how big a target should be, and a great deal of view on how close. Guns first, then engines — it has neither the weight of fire nor the time to chew through a hull.",
+  "doctrine": {
+    "targeting": {
+      "proximityWeight": 250,
+      "massWeight": 0,
+      "structureWeight": 0
+    }
+  },
   "assemblies": {
     "structure2": {
       "modules": [
@@ -140,7 +148,8 @@
       "angle": 0,
       "length": 5,
       "width": 5,
-      "barrels": 1
+      "barrels": 1,
+      "notes": "Aesthetic for now: sat in the middle of the hull, it is boxed in on every side and its firing arc comes out empty, so it never trains on anything. It earns its keep once a turret can be masked by what it can shoot *over* rather than by what is beside it (ROADMAP.md §12)."
     },
     {
       "use": "structure",
