@@ -77,18 +77,21 @@ export interface Targeting {
    * Where on a target to aim, by what the module is for: the core it is flown
    * from, its engines, its guns, or the structure between them.
    *
-   * **The core first, then guns, then engines, and structure a long way
-   * behind all three.** A ship whose core is out stops fighting altogether,
-   * which is the most any one hit can achieve; after that a ship that cannot
-   * shoot has stopped being a threat and one that cannot move has stopped
-   * being a problem, in that order — §3's mission kill is what those two are
-   * for. Structure is what is left when there is nothing better to hit:
-   * shooting it is how a ship is eventually destroyed, but every round spent
-   * on it is a round not spent on the parts that end the fight sooner.
+   * **A core and a gun are worth the same, then engines, then structure a
+   * long way behind all three.** A ship whose core is out stops fighting
+   * altogether and one that cannot shoot has stopped being a threat; a ship
+   * that cannot move has merely stopped being a problem, and structure is
+   * what is left when there is nothing better to hit.
    *
-   * A core is also the hardest of them to hit — it is small, and usually
-   * amidships with the rest of the ship in the way — so a high weight buys
-   * fewer hits for a better one, which is the trade the whole block makes.
+   * The core is not rated above the gun, though it ends a fight outright,
+   * because a weight is not the whole story: a core is small and usually
+   * amidships with the ship in the way, so rating it higher has a gunner
+   * boring the length of a hull to reach one while a turret sits on the skin
+   * in front of it. Tied, the tie-break decides — whatever is nearest the gun
+   * — and what is nearest is what can actually be hit. Measured in `duel`:
+   * rated above, a fifth of all hits land on a core and sixteen pieces come
+   * off; tied, a twentieth do and one does, and the ships spend the fight
+   * stripping each other's mounts and engines instead.
    *
    * **All four zero means no opinion**, and a gun with no opinion shoots at
    * the ship as a whole rather than at a part of it. That is the way out for
@@ -154,7 +157,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     armedWeight: 80,
     mobileWeight: 10,
     focusWeight: 60,
-    coreWeight: 150,
+    coreWeight: 100,
     engineWeight: 80,
     gunWeight: 100,
     structureWeight: 20,

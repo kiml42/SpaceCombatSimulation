@@ -74,6 +74,15 @@
           "angle": 0,
           "length": 1,
           "width": 1
+        },
+        {
+          "kind": "thruster",
+          "x": 2.25,
+          "y": 1.25,
+          "angle": 180,
+          "length": 0.5,
+          "width": 0.6,
+          "notes": "A retro on the nose of each engine spine, so the ship can slow down as well as run away."
         }
       ]
     },
@@ -128,19 +137,19 @@
   },
   "modules": [
     {
-      "kind": "structure",
+      "kind": "core",
       "x": 3.25,
       "y": 0,
       "length": 3.5,
-      "width": 1.4
+      "width": 1.4,
+      "notes": "Hard against the rear-facing gun, with the length of the fuselage in front of it: anything shooting at the pilot from ahead has the whole ship to get through first."
     },
     {
-      "kind": "core",
+      "kind": "structure",
       "x": 5.75,
       "y": 0,
       "length": 1.5,
-      "width": 1.4,
-      "notes": "The cockpit, where it is on the real thing: forward of the fuselage and behind the nose gun."
+      "width": 1.4
     },
     {
       "use": "structure",

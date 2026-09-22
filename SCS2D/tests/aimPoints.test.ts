@@ -55,6 +55,8 @@ interface Aim {
   toNearestGun: number;
   /** Bearing to the core it is flown from. */
   toCore: number;
+  /** How far off the shooter each of those is, for "which did it pick". */
+  rangeOf: (kind: 'thruster' | 'core' | 'gun') => number;
   ships: Ships;
   world: World;
   mark: number;
@@ -84,8 +86,8 @@ function aim(design: ShipDesign, seconds = 20): Aim {
   const angle = bodies.angle[b]!;
   const bearingTo = (x: number, y: number): number => Math.atan2(y, x);
 
-  /** The bearing to the nearest module of one kind, from the shooter. */
-  const nearestOf = (wanted: string): number => {
+  /** The nearest module of one kind, from the shooter: bearing and range. */
+  const nearestOf = (wanted: string): { bearing: number; range: number } => {
     let nearest = Infinity;
     let bearing = 0;
     for (const module of gunship.modules) {
@@ -101,15 +103,16 @@ function aim(design: ShipDesign, seconds = 20): Aim {
       nearest = range;
       bearing = bearingTo(x, y);
     }
-    return bearing;
+    return { bearing, range: nearest };
   };
 
   return {
     bearing: ships.turrets.worldBearing(bodies, ships.turretIndexOf(shooter, 0)),
     toCentre: bearingTo(bodies.x[b]!, bodies.y[b]!),
-    toNearestEngine: nearestOf('thruster'),
-    toNearestGun: nearestOf('turret'),
-    toCore: nearestOf('core'),
+    toNearestEngine: nearestOf('thruster').bearing,
+    toNearestGun: nearestOf('turret').bearing,
+    toCore: nearestOf('core').bearing,
+    rangeOf: (kind) => nearestOf(kind === 'gun' ? 'turret' : kind).range,
     ships,
     world,
     mark,
@@ -120,20 +123,24 @@ function aim(design: ShipDesign, seconds = 20): Aim {
 const off = (a: number, b: number): number => Math.abs(math.angleDelta(a, b));
 
 describe('where a gun aims on a ship', () => {
-  it('prefers the core, then guns, then engines, then structure, by default', () => {
-    // A ship whose core is out has stopped fighting altogether; after that one
-    // that cannot shoot has stopped being a threat and one that cannot move
-    // has stopped being a problem, in that order. Structure is what is left
-    // when there is nothing better to hit.
+  it('prefers a core or a gun, then engines, then structure, by default', () => {
+    // A ship whose core is out has stopped fighting altogether, and one that
+    // cannot shoot has stopped being a threat: worth the same, because a core
+    // is worth more only if you can reach it, and the tie-break — whatever is
+    // nearest the gun — is what stops a ship drilling the length of a hull to
+    // reach a core when there is a turret on the skin in front of it. After
+    // those, one that cannot move has stopped being a problem, and structure
+    // is what is left when there is nothing better to hit.
     const parts = DEFAULT_DOCTRINE.targeting;
-    expect(parts.coreWeight).toBeGreaterThan(parts.gunWeight);
+    expect(parts.coreWeight).toBe(parts.gunWeight);
     expect(parts.gunWeight).toBeGreaterThan(parts.engineWeight);
     expect(parts.engineWeight).toBeGreaterThan(parts.structureWeight * 2);
 
-    // And it is the core a default-doctrine craft actually trains on.
+    // And it trains on whichever of the two is nearer to it, which on this
+    // capital is a mount on the skin rather than the core well inside it.
     const a = aim(compileBlueprint({ ...DINKY, doctrine: DEFAULT_DOCTRINE }));
-    expect(off(a.bearing, a.toCore)).toBeLessThan(0.01);
-    expect(off(a.toCore, a.toNearestEngine)).toBeGreaterThan(0.03);
+    expect(a.rangeOf('gun')).toBeLessThan(a.rangeOf('core'));
+    expect(off(a.bearing, a.toNearestGun)).toBeLessThan(0.01);
   });
 
   it('aims at a gun when its doctrine has no interest in the core', () => {
