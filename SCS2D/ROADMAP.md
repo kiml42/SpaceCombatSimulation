@@ -406,6 +406,15 @@ Deliberately unresolved; decide when they block something.
   Entangled with it: **identity is a ship's name**, so renaming re-identifies. Once revisions are
   referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
   together, at the campaign slice.
+- **What range an escort should hold.** A craft covering a consort stations on it through the same
+  `approach` band it would use on an enemy — close until the target looks big enough to hit, capped by what
+  its own guns are good for. That is a *gunnery* number doing a station-keeping job, and it shows: covering
+  a small marker puts a corvette four hundred metres off it, which is nowhere near it by any reading of
+  "escort". Two ways out, and they are not equivalent. A band of its own in `approach` is honest and is one
+  more knob on every doctrine. Leaving it alone makes the standoff numbers do double duty, so a design that
+  wants to sit on an objective has to adopt a short standoff and fight at knife range for it — which is a
+  real trade rather than an oversight, and is the kind of thing the GA should be allowed to argue about
+  first.
 - **How severed chunks divide fuel, ammunition and power.** Which piece goes on being a ship is settled —
   the one holding a working core, and every other piece with one becomes a ship of its own (DESIGN.md §4)
   — but what a piece takes *with* it is not. The interesting case is a magazine cut off from the gun it

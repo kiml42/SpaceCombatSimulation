@@ -101,6 +101,25 @@ export interface Targeting {
   readonly engineWeight: number;
   readonly gunWeight: number;
   readonly structureWeight: number;
+  /**
+   * How much a ship would rather be with something it will never shoot at
+   * than at the best fight it can find.
+   *
+   * What a craft escorts is anything not hostile to it — one of its own, or
+   * a neutral — and escorting means station-keeping and nothing else: the
+   * guns go on fighting whatever they can reach, since a consort does not
+   * need covering by a mount that is pointing the wrong way.
+   *
+   * **Zero means escort nobody, and is the default.** A friendly is not
+   * offered to the stack at all below it, which is deliberate rather than
+   * tidy: every preference here can be negative, so a friendly scored by the
+   * ordinary weights would beat a distant enemy on proximity alone and every
+   * fleet in the game would huddle. Above zero it is what being with the
+   * friendly is worth *against* the fight, in the same units as every other
+   * weight, so a ship with a large one covers its charge through a battle and
+   * one with a small one peels off only when there is nothing much to do.
+   */
+  readonly escortWeight: number;
 }
 
 /** How to fight it, once it has been chosen. */
@@ -161,6 +180,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     engineWeight: 80,
     gunWeight: 100,
     structureWeight: 20,
+    escortWeight: 0,
   },
   approach: {
     standoffRadii: 50,
@@ -191,6 +211,7 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
   'engineWeight',
   'gunWeight',
   'structureWeight',
+  'escortWeight',
 ];
 
 export const APPROACH_FIELDS: readonly (keyof Approach)[] = [

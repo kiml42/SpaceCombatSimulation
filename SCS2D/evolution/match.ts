@@ -2,6 +2,7 @@ import {
   compileBlueprint,
   DAMAGE_ENERGY_PER_KG,
   math,
+  NEUTRAL_TEAM,
   type Blueprint,
   type ShipDesign,
   type WellSpec,
@@ -24,12 +25,28 @@ import { makeBattle } from '../scenarios/battle.js';
  * fixed opponent, and no entrant has a friend to hide behind.
  */
 
-/** A point worth being near, and how far away stops being worth anything. */
+/**
+ * The thing worth being near, and how far away stops being worth anything.
+ *
+ * **It is an object, not a coordinate.** A marker hull on `NEUTRAL_TEAM` that
+ * nothing can hurt and nothing will shoot at, spawned where the goal is and
+ * scored against wherever it has got to since. Three things follow from that
+ * which a coordinate could not give: a ship can be *told* to go to it, since
+ * every order in this game is relative to an object (DESIGN.md §2); it is
+ * solid, so it can be hidden behind and run into; and it has mass, so shoving
+ * it away from an opponent is a thing a ship can decide to do.
+ *
+ * Nothing can hurt it because an objective that can be destroyed stops being
+ * an objective, and a doctrine that has learnt to ignore a wreck would learn
+ * to ignore this too.
+ */
 export interface GoalSpec {
   readonly x: number;
   readonly y: number;
   /** Distance at which the goal is worth nothing. Closer scores proportionally. */
   readonly reach: number;
+  /** How big the marker is, metres square. Its mass follows from its size. */
+  readonly size: number;
 }
 
 /**
@@ -72,7 +89,7 @@ export const DEFAULT_MATCH: MatchConfig = {
   dt: 1 / 60,
   duration: 120,
   radius: 900,
-  goal: { x: 0, y: 0, reach: 900 },
+  goal: { x: 0, y: 0, reach: 900, size: 12 },
   weights: { survival: 1, damage: 1, race: 1 },
   wells: [],
 };
@@ -120,6 +137,21 @@ export function hullCapacity(design: ShipDesign): number {
 }
 
 /**
+ * The marker hull: one core module and nothing else.
+ *
+ * A core because a ship is what can be flown, stationed on and shot at, and
+ * the core is the one module that makes a hull any of those — a marker built
+ * from structure alone would be wreckage the moment it was looked at, and
+ * doctrine is right to ignore wreckage.
+ */
+function markerHull(size: number): Blueprint {
+  return {
+    name: 'Goal',
+    modules: [{ kind: 'core', x: 0, y: 0, length: size, width: size }],
+  };
+}
+
+/**
  * Fight one match and score it.
  *
  * Deterministic in the config's seed and the blueprints: the same call gives
@@ -142,6 +174,17 @@ export function runMatch(entrants: readonly Blueprint[], config?: Partial<MatchC
     },
     (ships, world) => {
       const slots: number[] = [];
+      const goal = settings.goal;
+      const marker =
+        goal === null
+          ? -1
+          : ships.spawn(world, {
+              design: compileBlueprint(markerHull(goal.size)),
+              x: goal.x,
+              y: goal.y,
+              team: NEUTRAL_TEAM,
+              invulnerable: true,
+            });
       for (let i = 0; i < count; i++) {
         // Evenly round a ring, each facing the middle. Every entrant is the
         // same distance from every other and from the goal, so a slot is
@@ -157,12 +200,13 @@ export function runMatch(entrants: readonly Blueprint[], config?: Partial<MatchC
           }),
         );
       }
-      return { slots };
+      return { slots, marker };
     },
   );
 
   const { ships, world } = battle;
   const slots = battle.slots;
+  const marker = battle.marker;
 
   // Counted in steps rather than accrued in seconds: a sum of `dt` over two
   // minutes at sixty hertz comes to a shade over the duration it is divided
@@ -203,10 +247,11 @@ export function runMatch(entrants: readonly Blueprint[], config?: Partial<MatchC
       lifetime[i]! = step + 1;
 
       const goal = settings.goal;
-      if (goal !== null && goal.reach > 0) {
+      if (goal !== null && goal.reach > 0 && ships.isAlive(marker)) {
         const body = world.bodies.indexOf(ships.body(ship));
-        const dx = world.bodies.x[body]! - goal.x;
-        const dy = world.bodies.y[body]! - goal.y;
+        const at = world.bodies.indexOf(ships.body(marker));
+        const dx = world.bodies.x[body]! - world.bodies.x[at]!;
+        const dy = world.bodies.y[body]! - world.bodies.y[at]!;
         nearness[i]! = math.max(0, (goal.reach - math.length(dx, dy)) / goal.reach);
         race[i]! += nearness[i]!;
       }

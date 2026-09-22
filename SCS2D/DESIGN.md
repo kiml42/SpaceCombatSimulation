@@ -162,6 +162,18 @@ inside any one file is not contiguous.
   a match that ends early is credited to whoever is still standing: without it, winning outright scores less
   than failing to land a shot for the full two minutes. A four-ship match runs in a quarter of a second,
   about three hundred times faster than the battle it simulates.
+  **The objective is an object, and a ship goes to it because its doctrine says to.** The goal is a marker
+  hull on a side nobody is on and nobody is against: never shot at, and protected, because an objective that
+  can be destroyed stops being one and a doctrine that has learnt to ignore a wreck would learn to ignore
+  this. It is a hull rather than a coordinate so that it is solid — sheltered behind, run into, and shoved
+  out of somebody's way — and so that a ship can be *told* to go to it, every order in this game being
+  relative to an object. What takes a ship there without being told is **escorting**: a weight saying how
+  much a craft would rather be with something it will never shoot at than at the best fight it can find, so
+  covering a consort is one preference argued against the rest rather than a mode the ship is put into.
+  A craft escorting stations on its charge and fights on with whatever its mounts can reach, since where the
+  hull goes and what the guns do are different questions. Zero means escort nobody and is the default: every
+  weight may be negative, so a consort scored by the ordinary ones would beat a distant enemy on proximity
+  alone, and every fleet in the game would huddle.
 - **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. After it comes headless evolution and analysis. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the

@@ -75,6 +75,7 @@ export {
 } from './doctrine.js';
 export {
   Choice,
+  escortScore,
   look,
   score,
   type Candidate,
@@ -143,6 +144,7 @@ export {
 } from './turrets.js';
 export {
   Ships,
+  NEUTRAL_TEAM,
   NO_TARGET,
   type Order,
   type ShipSpec,

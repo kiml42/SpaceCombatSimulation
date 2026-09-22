@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { compileBlueprint } from '../sim/index.js';
 import { DEFAULT_MATCH, hullCapacity, runMatch } from '../evolution/match.js';
 import { BEAM_CORVETTE, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import type { Blueprint } from '../sim/index.js';
 
 /**
  * A match, and what it is worth.
@@ -15,6 +16,17 @@ import { BEAM_CORVETTE, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints
  */
 
 const FLEET = [CORVETTE, GUNSHIP, DINKY, BEAM_CORVETTE];
+
+function escorting(blueprint: Blueprint, escortWeight: number): Blueprint {
+  const doctrine = blueprint.doctrine!;
+  return {
+    ...blueprint,
+    doctrine: {
+      targeting: { ...doctrine.targeting, escortWeight },
+      approach: { ...doctrine.approach },
+    },
+  };
+}
 
 describe('match', () => {
   it('fights the same match twice from one seed', () => {
@@ -90,7 +102,7 @@ describe('match', () => {
     const result = runMatch([CORVETTE], {
       seed: 17,
       duration: 20,
-      goal: { x: DEFAULT_MATCH.radius, y: 0, reach: 500 },
+      goal: { x: DEFAULT_MATCH.radius, y: 0, reach: 500, size: 12 },
     });
     expect(result.ending).toEqual('timeout');
     expect(result.scores[0]!.race).toBeGreaterThan(0.97);
@@ -101,9 +113,21 @@ describe('match', () => {
     const result = runMatch([CORVETTE], {
       seed: 17,
       duration: 20,
-      goal: { x: 100_000, y: 0, reach: 500 },
+      goal: { x: 100_000, y: 0, reach: 500, size: 12 },
     });
     expect(result.scores[0]!.race).toEqual(0);
+  });
+
+  it('is reached by a ship whose doctrine says to go to it', () => {
+    // The goal is a hull on the neutral side, so going to it is *escorting*
+    // it: what a ship does about the objective comes out of its doctrine like
+    // everything else it does, and is weighed against the fight rather than
+    // scripted. A design with nothing to say about escorting never leaves the
+    // ring it started on, and scores nothing.
+    const alone = runMatch([CORVETTE], { seed: 23, duration: 60 });
+    const going = runMatch([escorting(CORVETTE, 200)], { seed: 23, duration: 60 });
+    expect(alone.scores[0]!.race).toEqual(0);
+    expect(going.scores[0]!.race).toBeGreaterThan(0.3);
   });
 
   it('measures a hull by what it can absorb', () => {

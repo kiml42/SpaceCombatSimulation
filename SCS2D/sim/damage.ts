@@ -139,6 +139,8 @@ export class Damage {
   private readonly capacity: (Float64Array | null)[] = [];
   private readonly kinds: (ModuleSpec['kind'][] | null)[] = [];
   private readonly versions: number[] = [];
+  /** Bodies nothing can hurt, by body index. */
+  private readonly protectedBody: boolean[] = [];
 
   /**
    * Give a body a damage record, sized from its design.
@@ -179,7 +181,25 @@ export class Damage {
   }
 
   /** Put energy into a module. Energy past what it can take is simply gone. */
+  /**
+   * Make a body one that nothing can hurt: no damage, and no weld cut.
+   *
+   * What it is for is an object a battle is *about* rather than one fighting
+   * in it — a waypoint a race is run round, a station a mission is to defend.
+   * The alternative, giving it enough armour to be impractical to destroy, is
+   * the same thing said less honestly and with a number that will one day be
+   * beaten.
+   */
+  protect(bodyIndex: number): void {
+    this.protectedBody[bodyIndex] = true;
+  }
+
+  isProtected(bodyIndex: number): boolean {
+    return this.protectedBody[bodyIndex] === true;
+  }
+
   absorb(bodyIndex: number, module: number, joules: number): void {
+    if (this.protectedBody[bodyIndex] === true) return;
     const absorbed = this.absorbed[bodyIndex];
     if (absorbed === null || absorbed === undefined) return;
     if (module < 0 || module >= absorbed.length) return;
@@ -207,6 +227,7 @@ export class Damage {
    * section is still there.
    */
   cutWeld(bodyIndex: number, joint: number, metres: number): void {
+    if (this.protectedBody[bodyIndex] === true) return;
     const cut = this.cut[bodyIndex];
     if (!cut) return;
     if (joint < 0 || joint >= cut.length) return;
@@ -297,6 +318,7 @@ export class Damage {
   }
 
   forget(bodyIndex: number): void {
+    this.protectedBody[bodyIndex] = false;
     this.cut[bodyIndex] = null;
     this.absorbed[bodyIndex] = null;
     this.capacity[bodyIndex] = null;

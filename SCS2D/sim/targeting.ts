@@ -76,6 +76,27 @@ export function score(
 }
 
 /**
+ * What a doctrine thinks of something it will never shoot at.
+ *
+ * The same stack, and then what the doctrine says escorting is worth — so a
+ * consort and an enemy are compared in one currency, and a ship decides
+ * between covering its charge and going and having the battle rather than
+ * being switched between the two by a mode.
+ *
+ * Only what the *hull* asks. A mount picks what to fire at, and a thing it
+ * will never fire at is not a candidate for that question at all.
+ */
+export function escortScore(
+  doctrine: Targeting,
+  candidate: Candidate,
+  reach: number,
+  own: number,
+  loyalTo: number,
+): number {
+  return doctrine.escortWeight + score(doctrine, candidate, reach, own, loyalTo);
+}
+
+/**
  * How far off the wanted size a target is, as a natural logarithm.
  *
  * **Measured as a ratio rather than a difference**, because that is what

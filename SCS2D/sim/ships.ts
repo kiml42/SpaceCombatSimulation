@@ -3,7 +3,7 @@ import { subDesign, type DesignTurret, type ShipDesign } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
-import { Choice, look, lookFrom, score } from './targeting.js';
+import { Choice, escortScore, look, lookFrom, score } from './targeting.js';
 import {
   atan2,
   angleDelta,
@@ -275,6 +275,16 @@ export enum OrderCancelCondition {
   CompleteDisable = 5,
 }
 
+/**
+ * The side nobody is on, and nobody is against.
+ *
+ * A ship on it is hostile to no one and no one is hostile to it, so it is
+ * never shot at and never shoots — but it is there, it is solid, and it can be
+ * escorted, stationed on and shoved about. What that is for is an object a
+ * battle is *about* rather than one fighting in it.
+ */
+export const NEUTRAL_TEAM = -1;
+
 export interface ShipSpec {
   design: ShipDesign;
   x?: number;
@@ -283,8 +293,10 @@ export interface ShipSpec {
   vx?: number;
   vy?: number;
   angularVel?: number;
-  /** Uninterpreted here; the caller's notion of sides. */
+  /** Uninterpreted here; the caller's notion of sides. `NEUTRAL_TEAM` is not. */
   team?: number;
+  /** Nothing can hurt it: no damage taken, no weld cut. See `Damage.protect`. */
+  invulnerable?: boolean;
 }
 
 export interface FireReport {
@@ -454,6 +466,12 @@ export class Ships {
    * obeyed, and a ship that has run out of orders is not left idle.
    */
   private readonly chosen: number[] = [];
+  /**
+   * What each ship is flying *relative to*, which is not always what it is
+   * fighting: a ship covering a consort stations on the consort while its
+   * guns go on fighting whatever they can reach.
+   */
+  private readonly station: number[] = [];
   private readonly rethinkAt: number[] = [];
   /**
    * The order doctrine makes up, one per ship and rewritten in place, so that
@@ -693,6 +711,7 @@ export class Ships {
     this.hullDesign[bodyIdx] = design;
     this.hullBody[bodyIdx] = id;
     this.damage.register(bodyIdx, design);
+    if (spec.invulnerable === true) this.damage.protect(bodyIdx);
     const mounts = design.turrets;
     const indices = new Int32Array(mounts.length);
     for (let t = 0; t < mounts.length; t++) {
@@ -720,6 +739,7 @@ export class Ships {
     this.derelict.push(0);
     this.cutSeen.push(-1);
     this.chosen.push(NO_TARGET);
+    this.station.push(NO_TARGET);
     // Staggered by index, so a fleet spawned together does not all stop to
     // think on the same step for the rest of the battle.
     this.rethinkAt.push(i);
@@ -752,6 +772,7 @@ export class Ships {
       // Being told what to do clears what it had decided for itself, so
       // running out of orders is a fresh look rather than a stale one.
       this.chosen[i] = NO_TARGET;
+      this.station[i] = NO_TARGET;
       return;
     }
     if (world.tick < this.rethinkAt[i]!) return;
@@ -759,22 +780,58 @@ export class Ships {
     const design = this.designs[i]!;
     this.rethinkAt[i] = world.tick + this.rethinkTicks(world, design.mass);
 
-    // A ship with nothing to shoot with has nothing to choose between.
-    if (design.reach <= 0 || this.isDisarmed(i)) {
-      this.chosen[i] = NO_TARGET;
-      return;
-    }
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
 
     const doctrine = design.doctrine.targeting;
-    const mine = this.team[i]!;
     const loyalTo = this.chosen[i]!;
+
+    // What it is fighting. A ship with nothing to shoot with has nothing to
+    // choose between — but it may still have somewhere it would rather be,
+    // which is why this no longer ends the question.
+    let fighting = NO_TARGET;
+    let fightingScore = 0;
+    if (design.reach > 0 && !this.isDisarmed(i)) {
+      this.choice.begin();
+      for (let t = 0; t < this.alive.length; t++) {
+        if (t === i || this.alive[t] === 0) continue;
+        // Wreckage is matter, not an enemy, and nor is anything not hostile.
+        if (this.derelict[t] === 1 || !this.hostile(i, t)) continue;
+        const tb = bodies.indexOf(this.bodyIds[t]!);
+        if (tb < 0) continue;
+        const candidate = look(
+          bodies,
+          b,
+          tb,
+          t,
+          this.designs[t]!.mass,
+          !this.isDisarmed(t),
+          !this.hasNoEngines(t),
+        );
+        this.choice.offer(
+          candidate,
+          score(doctrine, candidate, design.reach, design.mass, loyalTo),
+        );
+      }
+      fighting = this.choice.ship;
+      fightingScore = this.choice.best;
+    }
+    this.chosen[i] = fighting;
+
+    // What it would rather be with. Offered at all only when the doctrine
+    // says escorting is worth something, since every weight here may be
+    // negative and a consort scored by the ordinary ones would beat a distant
+    // enemy on proximity alone — which would have every fleet in the game
+    // huddling rather than fighting.
+    this.station[i] = fighting;
+    if (!(doctrine.escortWeight > 0)) return;
+
     this.choice.begin();
     for (let t = 0; t < this.alive.length; t++) {
       if (t === i || this.alive[t] === 0) continue;
-      // Wreckage is matter, not an enemy, and one's own side never is.
-      if (this.derelict[t] === 1 || this.team[t] === mine) continue;
+      // Wreckage is nobody's consort. A live friendly that cannot fight is:
+      // a thing worth covering is usually a thing that cannot cover itself.
+      if (this.derelict[t] === 1 || this.hostile(i, t)) continue;
       const tb = bodies.indexOf(this.bodyIds[t]!);
       if (tb < 0) continue;
       const candidate = look(
@@ -788,10 +845,26 @@ export class Ships {
       );
       this.choice.offer(
         candidate,
-        score(doctrine, candidate, design.reach, design.mass, loyalTo),
+        escortScore(doctrine, candidate, design.reach, design.mass, loyalTo),
       );
     }
-    this.chosen[i] = this.choice.ship;
+    if (this.choice.ship !== NO_TARGET && (fighting === NO_TARGET || this.choice.best > fightingScore)) {
+      this.station[i] = this.choice.ship;
+    }
+  }
+
+  /**
+   * Whether one ship may shoot at another.
+   *
+   * Sides are the caller's business and this is the one rule about them the
+   * simulation owns: a side is hostile to every side but its own, and
+   * `NEUTRAL_TEAM` is hostile to none and safe from all.
+   */
+  private hostile(i: number, other: number): boolean {
+    const mine = this.team[i]!;
+    const theirs = this.team[other]!;
+    if (mine === NEUTRAL_TEAM || theirs === NEUTRAL_TEAM) return false;
+    return mine !== theirs;
   }
 
   /**
@@ -811,7 +884,6 @@ export class Ships {
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
 
-    const mine = this.team[i]!;
     const focus = this.focusOf(i);
 
     for (let t = 0; t < indices.length; t++) {
@@ -849,7 +921,7 @@ export class Ships {
       this.choice.begin();
       for (let e = 0; e < this.alive.length; e++) {
         if (e === i || this.alive[e] === 0) continue;
-        if (this.derelict[e] === 1 || this.team[e] === mine) continue;
+        if (this.derelict[e] === 1 || !this.hostile(i, e)) continue;
         const tb = bodies.indexOf(this.bodyIds[e]!);
         if (tb < 0) continue;
         if (!this.turrets.bearsOn(bodies, ti, bearing(gunX, gunY, bodies.x[tb]!, bodies.y[tb]!))) {
@@ -946,11 +1018,21 @@ export class Ships {
     return best;
   }
 
-  /** What this ship as a whole is fighting, for its mounts to converge on. */
+  /**
+   * What this ship as a whole is fighting, for its mounts to converge on.
+   *
+   * What it is *fighting*, which is not always what it is flying relative to:
+   * a ship covering a consort is stationed on the consort and fighting
+   * something else entirely, and taking the station as the focus would point
+   * every mount's concentration at a thing no mount may shoot — quietly
+   * costing an escorting fleet the very broadside `focusWeight` exists to
+   * hold together.
+   */
   private focusOf(i: number): number {
-    const order = this.effectiveOrder(i);
-    if (order === undefined) return NO_TARGET;
-    return order.target;
+    const given = this.getCurrentOrder(i);
+    if (given !== undefined) return given.target;
+    const fighting = this.chosen[i]!;
+    return fighting !== NO_TARGET && this.alive[fighting] === 1 ? fighting : NO_TARGET;
   }
 
   /**
@@ -1022,7 +1104,7 @@ export class Ships {
     if (!found) return false;
     const other = this.shipAt(bodies, hit.bodyIndex);
     if (other < 0 || other === i || other === target) return false;
-    return this.derelict[other] === 0 && this.team[other] === this.team[i];
+    return this.derelict[other] === 0 && !this.hostile(i, other);
   }
 
   /** How long this mount waits before reconsidering, in steps. */
@@ -1052,7 +1134,7 @@ export class Ships {
     const given = this.getCurrentOrder(i);
     if (given !== undefined) return given;
 
-    const target = this.chosen[i]!;
+    const target = this.station[i]!;
     if (target === NO_TARGET || this.alive[target] !== 1) return undefined;
 
     const design = this.designs[i]!;
