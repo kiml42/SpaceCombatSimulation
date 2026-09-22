@@ -711,8 +711,6 @@ rather than reinventing (paths relative to repo root):
 | Circular-genome-with-jumps encoding | `SpaceCombatSimulation/Assets/Src/Evolution/GenomeWrapper.cs` |
 | Competitor selection (fewest matches first, avoid repeat pairings) | `SpaceCombatSimulation/Assets/Src/Evolution/Generation.cs` |
 | Species/subspecies naming from the module tree | `SpaceCombatSimulation/Assets/Src/ModuleSystem/ModuleRecord.cs` |
-| The *taxonomy* of target pickers — proximity, approaching, hemisphere, line-of-sight, mass, previous-target, looking-at, ship-type, has-tag | `SpaceCombatSimulation/Assets/Src/Targeting/TargetPickers/` |
-| Priority-ordered picker stack (ascending priority; a low-priority discard hides targets from higher ones) | `SpaceCombatSimulation/Assets/Src/Targeting/TargetPickers/CombinedTargetPicker.cs` |
 | Spawn positioning, orientation, velocity | `SpaceCombatSimulation/Assets/Src/Evolution/MatchConfig.cs` |
 | Evolution schema and analysis SQL | `SpaceCombatSimulation/Assets/StreamingAssets/CreateBlankDatabase.sql`, `DebuggingScripts.sql` |
 | Roadmap and known-issue history | `ToDo.txt` |

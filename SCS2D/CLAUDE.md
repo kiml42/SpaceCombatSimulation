@@ -93,8 +93,9 @@ meaningfully, and never "fix" a failing golden test by re-recording it without u
 
 `../SpaceCombatSimulation/` is a read-only reference. **Never modify it**; opening it in an installed editor
 converts it irreversibly. Read it for design — DESIGN.md §10 has an index of the parts worth consulting
-(genome encoding, competitor selection, species naming, the target-picker taxonomy, the SQL schema) and the
-failures worth avoiding.
+(genome encoding, competitor selection, species naming, the SQL schema) and the failures worth avoiding.
+Targeting is not among them: `sim/targeting.ts` and `sim/doctrine.ts` replaced that design rather than
+inherited it.
 
 ## Conventions
 
