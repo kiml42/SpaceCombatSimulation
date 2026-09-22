@@ -38,6 +38,42 @@ async function rows(p: Page, id: string): Promise<number> {
   return p.evaluate((of) => document.getElementById(of)?.childElementCount ?? 0, id);
 }
 
+/**
+ * Pixels on a canvas by hue band, for telling the sides apart.
+ *
+ * By hue rather than by the exact colour, because a ship far enough away to
+ * be drawn as an icon is faded into the background and a hull is shaded — so
+ * what survives of a side's palette on screen is which way round the wheel it
+ * was, which is also the only thing a person is reading it for.
+ */
+async function hues(p: Page, id: string): Promise<Record<string, number>> {
+  return p.evaluate((of) => {
+    const bands: Record<string, number> = { red: 0, green: 0, blue: 0, magenta: 0 };
+    const canvas = document.getElementById(of) as HTMLCanvasElement;
+    const ctx = canvas.getContext('2d');
+    if (ctx === null) return bands;
+    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i]!;
+      const g = data[i + 1]!;
+      const b = data[i + 2]!;
+      const high = Math.max(r, g, b);
+      const low = Math.min(r, g, b);
+      // Enough colour in it to be a side rather than the grey furniture.
+      if (high - low < 30 || high < 40) continue;
+      let hue: number;
+      if (high === r) hue = (60 * ((g - b) / (high - low)) + 360) % 360;
+      else if (high === g) hue = 60 * (2 + (b - r) / (high - low));
+      else hue = 60 * (4 + (r - g) / (high - low));
+      if (hue < 20 || hue > 340) bands['red']!++;
+      else if (hue > 90 && hue < 170) bands['green']!++;
+      else if (hue > 190 && hue < 265) bands['blue']!++;
+      else if (hue > 280 && hue < 330) bands['magenta']!++;
+    }
+    return bands;
+  }, id);
+}
+
 /** How many distinct colours a canvas is showing. Blank ones score 1. */
 async function distinctColours(p: Page, id: string): Promise<number> {
   return p.evaluate((of) => {
@@ -82,7 +118,7 @@ beforeAll(async () => {
   await set(page, 'generations', '2');
   await set(page, 'population', '4');
   await set(page, 'winners', '2');
-  await set(page, 'group', '2');
+  await set(page, 'group', '4');
   await set(page, 'minMatches', '1');
   await set(page, 'duration', '10');
   await set(page, 'effort', '100');
@@ -166,6 +202,20 @@ describe('the evolution page in a browser', () => {
       [...(document.getElementById('founders') as HTMLSelectElement).selectedOptions].map((o) => o.value),
     )).toEqual(['Dinky']);
     expect(problems).toEqual([]);
+  }, 60_000);
+
+  it('draws a third and fourth side in colours of their own', async () => {
+    // A match is a free-for-all, so four entrants are four sides — and two of
+    // them are sides the renderer only ever had to draw once evolution
+    // existed. Checked by hue rather than by counting colours, because a
+    // fourth palette that was quietly the neutral grey would raise a count by
+    // nothing anyone would notice.
+    await page.click('#fit');
+    await page.waitForTimeout(400);
+    const bands = await hues(page, 'view');
+    for (const band of ['red', 'green', 'blue', 'magenta']) {
+      expect(bands[band], `${band} in ${JSON.stringify(bands)}`).toBeGreaterThan(0);
+    }
   }, 60_000);
 
   it('hands the best of it to the editor', async () => {
