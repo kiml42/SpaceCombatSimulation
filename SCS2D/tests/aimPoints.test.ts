@@ -35,8 +35,13 @@ const sniper = compileBlueprint({
 const indifferent = compileBlueprint({
   ...DINKY,
   doctrine: toDoctrine({
-    targeting: { engineWeight: 0, gunWeight: 0, structureWeight: 0 },
+    targeting: { coreWeight: 0, engineWeight: 0, gunWeight: 0, structureWeight: 0 },
   }),
+});
+/** A fighter that would rather cripple a ship than go for what flies it. */
+const crippler = compileBlueprint({
+  ...DINKY,
+  doctrine: toDoctrine({ targeting: { coreWeight: 0 } }),
 });
 
 interface Aim {
@@ -48,6 +53,8 @@ interface Aim {
   toNearestEngine: number;
   /** Bearing to whichever of its mounts is nearest the gun. */
   toNearestGun: number;
+  /** Bearing to the core it is flown from. */
+  toCore: number;
   ships: Ships;
   world: World;
   mark: number;
@@ -84,7 +91,9 @@ function aim(design: ShipDesign, seconds = 20): Aim {
     for (const module of gunship.modules) {
       const kind = module.spec.kind;
       const isGun = kind === 'turret' || kind === 'beamTurret';
-      if (wanted === 'thruster' ? kind !== 'thruster' : !isGun) continue;
+      const wantedHere =
+        wanted === 'thruster' ? kind === 'thruster' : wanted === 'core' ? kind === 'core' : isGun;
+      if (!wantedHere) continue;
       const x = bodies.x[b]! + module.x * Math.cos(angle) - module.y * Math.sin(angle);
       const y = bodies.y[b]! + module.x * Math.sin(angle) + module.y * Math.cos(angle);
       const range = Math.hypot(x, y);
@@ -100,6 +109,7 @@ function aim(design: ShipDesign, seconds = 20): Aim {
     toCentre: bearingTo(bodies.x[b]!, bodies.y[b]!),
     toNearestEngine: nearestOf('thruster'),
     toNearestGun: nearestOf('turret'),
+    toCore: nearestOf('core'),
     ships,
     world,
     mark,
@@ -110,16 +120,27 @@ function aim(design: ShipDesign, seconds = 20): Aim {
 const off = (a: number, b: number): number => Math.abs(math.angleDelta(a, b));
 
 describe('where a gun aims on a ship', () => {
-  it('prefers guns, then engines, then structure, by default', () => {
-    // A ship that cannot shoot has stopped being a threat and one that cannot
-    // move has stopped being a problem, in that order. Structure is what is
-    // left when there is nothing better to hit.
+  it('prefers the core, then guns, then engines, then structure, by default', () => {
+    // A ship whose core is out has stopped fighting altogether; after that one
+    // that cannot shoot has stopped being a threat and one that cannot move
+    // has stopped being a problem, in that order. Structure is what is left
+    // when there is nothing better to hit.
     const parts = DEFAULT_DOCTRINE.targeting;
+    expect(parts.coreWeight).toBeGreaterThan(parts.gunWeight);
     expect(parts.gunWeight).toBeGreaterThan(parts.engineWeight);
     expect(parts.engineWeight).toBeGreaterThan(parts.structureWeight * 2);
 
-    // And it is the guns a default-doctrine craft actually trains on.
+    // And it is the core a default-doctrine craft actually trains on.
     const a = aim(compileBlueprint({ ...DINKY, doctrine: DEFAULT_DOCTRINE }));
+    expect(off(a.bearing, a.toCore)).toBeLessThan(0.01);
+    expect(off(a.toCore, a.toNearestEngine)).toBeGreaterThan(0.03);
+  });
+
+  it('aims at a gun when its doctrine has no interest in the core', () => {
+    // Guns before engines is the order underneath the core, and this is where
+    // it shows: a doctrine that has written the core off is back to stripping
+    // the ship of what makes it dangerous.
+    const a = aim(crippler);
     expect(off(a.bearing, a.toNearestGun)).toBeLessThan(0.01);
     expect(off(a.toNearestGun, a.toNearestEngine)).toBeGreaterThan(0.03);
   });

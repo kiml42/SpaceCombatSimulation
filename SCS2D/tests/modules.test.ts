@@ -8,6 +8,8 @@ import {
   BEAM_MASS_PER_WATT,
   BEAM_STORED_ENERGY_PER_VOLUME,
   CALIBRE_FRACTION,
+  CORE_MASS_PER_AREA,
+  CORE_MINIMUM_FITTING_MASS,
   DECK_HEIGHT,
   gunStats,
   beamGunStats,
@@ -125,6 +127,39 @@ describe('thruster scaling', () => {
     expect(stats.thrust).toBe(0);
     expect(stats.gun).toBeNull();
     expect(stats.fittingMass).toBe(0);
+  });
+});
+
+describe('core scaling', () => {
+  it('charges its machinery by the floor it fills', () => {
+    // Control machinery fills the compartment rather than lining its walls,
+    // so twice the floor is twice the equipment.
+    const small = moduleStats(box('core', 4, 4));
+    const large = moduleStats(box('core', 8, 4));
+    expect(small.fittingMass).toBeCloseTo(CORE_MASS_PER_AREA * small.capacity, 6);
+    expect(large.fittingMass).toBeCloseTo(CORE_MASS_PER_AREA * large.capacity, 6);
+    expect(large.fittingMass).toBeGreaterThan(small.fittingMass * 1.9);
+  });
+
+  it('costs more than the same box of structure, and buys nothing else', () => {
+    // What stops a ship carrying five of them is that each one is dead mass:
+    // no thrust, no gun, and heavier than the hull it replaces.
+    const hull = moduleStats(box('structure', 4, 4));
+    const flown = moduleStats(box('core', 4, 4));
+    expect(flown.mass).toBeGreaterThan(hull.mass);
+    expect(flown.structureMass).toBeCloseTo(hull.structureMass, 9);
+    expect(flown.thrust).toBe(0);
+    expect(flown.gun).toBeNull();
+  });
+
+  it('cannot be shrunk to nothing: half a metre square is a working core', () => {
+    // Every ship here is computer-flown, so the floor is a processor, its
+    // power supply and an aerial — low enough that a fighter can carry one.
+    const tiny = moduleStats(box('core', 0.2, 0.2));
+    expect(tiny.fittingMass).toBe(CORE_MINIMUM_FITTING_MASS);
+    // And it binds only below that: half a metre square is past it.
+    const half = moduleStats(box('core', 0.5, 0.5));
+    expect(half.fittingMass).toBeGreaterThan(CORE_MINIMUM_FITTING_MASS);
   });
 });
 

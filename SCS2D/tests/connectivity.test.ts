@@ -25,10 +25,15 @@ function structure(x: number, y: number, length: number, width: number): ModuleS
   return { kind: 'structure', x, y, length, width };
 }
 
+/** Every fixture here is a ship, so every fixture needs something to fly it. */
+function core(x: number, y: number, length: number, width: number): ModuleSpec {
+  return { kind: 'core', x, y, length, width };
+}
+
 /** Three boxes in a row: a wide join to the middle, a narrow one to the tip. */
 const CHAIN: Blueprint = {
   name: 'Chain',
-  modules: [structure(0, 0, 10, 4), structure(-10, 0, 10, 4), structure(8, 0, 6, 2)],
+  modules: [core(0, 0, 10, 4), structure(-10, 0, 10, 4), structure(8, 0, 6, 2)],
 };
 
 describe('deriving the joints', () => {
@@ -61,7 +66,7 @@ describe('deriving the joints', () => {
   it('counts a module within the attachment tolerance as welded', () => {
     const gap: Blueprint = {
       name: 'Gap',
-      modules: [structure(0, 0, 10, 4), structure(-10 - ATTACHMENT_TOLERANCE * 0.5, 0, 10, 4)],
+      modules: [core(0, 0, 10, 4), structure(-10 - ATTACHMENT_TOLERANCE * 0.5, 0, 10, 4)],
     };
     expect(joints(compileBlueprint(gap))).toHaveLength(1);
   });
@@ -70,7 +75,7 @@ describe('deriving the joints', () => {
     // Diagonally adjacent to the first box: touching it, across no face.
     const corner: Blueprint = {
       name: 'Corner',
-      modules: [structure(0, 0, 10, 4), structure(-10, 0, 10, 4), structure(-10, 4, 10, 4)],
+      modules: [core(0, 0, 10, 4), structure(-10, 0, 10, 4), structure(-10, 4, 10, 4)],
     };
     const found = joints(compileBlueprint(corner));
     expect(found.some((j) => j.a === 0 && j.b === 2)).toBe(false);
@@ -108,7 +113,7 @@ describe('the pieces a hull is in', () => {
     const ring: Blueprint = {
       name: 'Ring',
       modules: [
-        structure(-5, 0, 2, 12),
+        core(-5, 0, 2, 12),
         structure(5, 0, 2, 12),
         structure(0, -5, 8, 2),
         structure(0, 5, 8, 2),
@@ -153,7 +158,14 @@ describe('the design a piece makes on its own', () => {
     const whole = gunship.turrets[0]!;
     const alone = subDesign(
       gunship,
-      gunship.modules.map((_, i) => i).filter((i) => i === whole.module || gunship.modules[i]!.spec.kind === 'structure'),
+      gunship.modules
+        .map((_, i) => i)
+        .filter(
+          (i) =>
+            i === whole.module ||
+            gunship.modules[i]!.spec.kind === 'structure' ||
+            gunship.modules[i]!.spec.kind === 'core',
+        ),
     );
     const freed = alone.turrets[0]!;
     const span = (turret: typeof whole): number =>

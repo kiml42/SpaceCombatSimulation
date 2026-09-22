@@ -298,6 +298,15 @@ export interface ShipDesign {
   readonly thrusterLayout: ThrusterLayout;
   readonly turrets: readonly DesignTurret[];
   /**
+   * The modules that fly this ship, as indices into `modules`.
+   *
+   * A ship is controlled from a core, so this is what decides which piece of
+   * a hull goes on being a ship when the rest comes off, and what has to be
+   * shot out to leave a hulk. More than one is a design decision: a ship
+   * built with two cores survives being cut between them as two ships.
+   */
+  readonly cores: readonly number[];
+  /**
    * How far out this ship's guns are worth using, metres.
    *
    * Derived from the guns themselves rather than configured: a round is worth
@@ -848,7 +857,12 @@ export function assemblyProblem(blueprint: Blueprint): string | null {
 }
 
 /**
- * Is there structure immediately in front of this module, in its facing?
+ * Is there hull immediately in front of this module, in its facing?
+ *
+ * Structure or a core: both are boxes of welded plate, and a thruster mounted
+ * to the compartment that flies the ship is delivering its thrust to the ship
+ * as surely as one mounted to a girder. A turret is not, since what is ahead
+ * of a mount is its own barrel.
  *
  * Answered by nudging the module forward by the attachment tolerance and
  * asking whether it now overlaps — which reuses the separating-axis test and
@@ -857,7 +871,7 @@ export function assemblyProblem(blueprint: Blueprint): string | null {
  * a forward nudge and correctly does not count, and nor does one touching only
  * at a corner.
  */
-function structureAhead(spec: ModuleSpec, modules: readonly ModuleSpec[]): boolean {
+function hullAhead(spec: ModuleSpec, modules: readonly ModuleSpec[]): boolean {
   const angle = spec.angle ?? 0;
   const probe: ModuleSpec = {
     ...spec,
@@ -866,7 +880,7 @@ function structureAhead(spec: ModuleSpec, modules: readonly ModuleSpec[]): boole
   };
   for (const other of modules) {
     if (other === spec) continue;
-    if (other.kind !== 'structure') continue;
+    if (other.kind !== 'structure' && other.kind !== 'core') continue;
     if (modulesOverlap(probe, other)) return true;
   }
   return false;
@@ -960,20 +974,26 @@ function modulesAttached(a: ModuleSpec, b: ModuleSpec): boolean {
 }
 
 /**
- * The modules that cannot be reached from the ship itself, as one group per
- * separate piece.
+ * The modules that cannot be reached from the ship's first core, as one group
+ * per separate piece.
  *
- * **The ship is whatever the first module is attached to.** A layout has no
- * concept of a core or a hull the rest hangs off — it is a list — so the first
- * module in it stands in as the root until there is a core module to be the
- * real one. It is a stand-in and not a rule about ship design: what the check
- * is really answering is "is this one ship or several", and with no core the
- * question has no other anchor.
+ * **The ship is whatever the first core is attached to.** A core module is
+ * what flies a ship, so it is the anchor the rest of a layout traces back to
+ * — the real answer to "which module is the ship", where the first module in
+ * the list was once a stand-in for it.
+ *
+ * Anchored by one core and not by all of them, deliberately, because a
+ * blueprint describes **one** ship: a layout in two pieces with a core in
+ * each is two ships, and is authored as two blueprints. That the pieces would
+ * each fly perfectly well is exactly the point — it is why the complaint is
+ * that they are separate rather than that they are adrift.
  *
  * Modules whose geometry cannot be measured are left out of the graph
  * entirely, the way `compileDraft` leaves them out of a ship: a module typed
  * down to zero size touches nothing, and reporting it as adrift as well as
- * unmeasurable is two complaints about one mistake.
+ * unmeasurable is two complaints about one mistake. A layout with no
+ * measurable core has no anchor at all, so nothing is adrift — the missing
+ * core is the complaint, and it is made elsewhere.
  *
  * Attachment here is the same `contactWidth` the connectivity graph is built
  * from, so a layout this accepts is one that holds together once it is being
@@ -985,10 +1005,13 @@ function detachedGroups(modules: readonly ModuleSpec[]): number[][] {
   for (let i = 0; i < modules.length; i++) {
     if (moduleProblem(modules[i]!) === null) live.push(i);
   }
-  if (live.length === 0) return [];
 
-  const attached = new Set<number>([live[0]!]);
-  const frontier = [live[0]!];
+  const anchor = live.find((index) => modules[index]!.kind === 'core');
+  if (anchor === undefined) return [];
+
+  const attached = new Set<number>([anchor]);
+  const frontier = [anchor];
+
   while (frontier.length > 0) {
     const at = frontier.pop()!;
     for (const other of live) {
@@ -1087,7 +1110,7 @@ export function blueprintFaults(blueprint: Blueprint): BlueprintFault[] {
   }
 
   // An engine is bolted to the ship at the end it pushes from and exhausts out
-  // of the other, so the face opposite the nozzle has to be against structure.
+  // of the other, so the face opposite the nozzle has to be against hull.
   // Turn one round and it is held on by its nozzle: the mounting is in the
   // exhaust and the thrust is being delivered to nothing.
   //
@@ -1099,14 +1122,31 @@ export function blueprintFaults(blueprint: Blueprint): BlueprintFault[] {
   for (let i = 0; i < modules.length; i++) {
     const spec = modules[i]!;
     if (spec.kind !== 'thruster') continue;
-    if (!structureAhead(spec, modules)) {
+    if (!hullAhead(spec, modules)) {
       faults.push({
         message:
           `${blueprint.name}: thruster ${i} at (${spec.x}, ${spec.y}) has no structure to push ` +
-          `against — the face opposite its nozzle must be against a structure module`,
+          `against — the face opposite its nozzle must be against a structure or core module`,
         modules: [i],
       });
     }
+  }
+
+  // A ship is flown from a core, so a layout without one is a hull and not a
+  // ship. It is the anchor every other rule about how the layout hangs
+  // together is stated against, which is why it is checked before them. A
+  // layout with nothing in it at all is one mistake and is already one
+  // complaint, so it does not earn this one as well.
+  if (
+    modules.length > 0 &&
+    !modules.some((spec) => spec.kind === 'core' && moduleProblem(spec) === null)
+  ) {
+    faults.push({
+      message:
+        `${blueprint.name}: no core — a ship needs at least one core module to be flown from, ` +
+        `and a hull built around two survives being cut between them as two ships`,
+      modules: [],
+    });
   }
 
   // A ship is one connected assembly of modules. A piece touching nothing is
@@ -1119,7 +1159,7 @@ export function blueprintFaults(blueprint: Blueprint): BlueprintFault[] {
       message:
         group.length === 1
           ? `${blueprint.name}: module ${which} touches nothing — every module must be attached ` +
-            `to the ship, through its neighbours or directly`
+            `to the ship's core, through its neighbours or directly`
           : `${blueprint.name}: modules ${which} are a separate piece, attached to each other but ` +
             `not to the rest of the ship`,
       modules: group,
@@ -1252,6 +1292,7 @@ function designFrom(
   const modules: DesignModule[] = [];
   const thrusters: ThrusterSpec[] = [];
   const turrets: DesignTurret[] = [];
+  const cores: number[] = [];
   let inertia = 0;
   let radius = 0;
   const c: number[] = [];
@@ -1279,7 +1320,9 @@ function designFrom(
 
     modules.push({ spec, stats: s, x, y, angle, index: layoutIndex[i]! });
 
-    if (spec.kind === 'thruster') {
+    if (spec.kind === 'core') {
+      cores.push(modules.length - 1);
+    } else if (spec.kind === 'thruster') {
       thrusters.push({
         x,
         y,
@@ -1355,5 +1398,6 @@ function designFrom(
     thrusters,
     thrusterLayout: new ThrusterLayout(thrusters),
     turrets,
+    cores,
   };
 }

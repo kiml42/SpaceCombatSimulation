@@ -406,7 +406,10 @@ Deliberately unresolved; decide when they block something.
   Entangled with it: **identity is a ship's name**, so renaming re-identifies. Once revisions are
   referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
   together, at the campaign slice.
-- How severed chunks divide fuel, ammunition and power.
+- **How severed chunks divide fuel, ammunition and power.** Which piece goes on being a ship is settled —
+  the one holding a working core, and every other piece with one becomes a ship of its own (DESIGN.md §4)
+  — but what a piece takes *with* it is not. The interesting case is a magazine cut off from the gun it
+  fed. Nothing consumes either yet, so there is nothing to divide; decide it when stores exist.
 - **What scrap and salvage reach are worth: `SCRAP_MASS` and `SALVAGE_REACH`.** They encode an economic
   judgement — what is too smashed to harvest, and how far is too far to go for — against an economy that
   does not exist yet, so they will want revisiting when it does. Worth knowing before tuning them: the
@@ -639,13 +642,6 @@ Deliberately unresolved; decide when they block something.
   Earliest sensible point is §8 step 2, terminal ballistics and the damage model: hardness, density and
   thickness are what it decides penetration against, so that is where per-material properties stop being
   decoration and start deciding outcomes.
-- **Which piece of a severed hull keeps being the ship.** The connectivity graph is built
-  (`sim/connectivity.ts`) and hulls come apart, but *who the crew is with* is answered by the same
-  stand-in the layout rule uses: the piece holding the first module. It is arbitrary and deliberately so —
-  the size of a piece says nothing about which of them the ship is — and it is the same question a **core
-  module** would settle, along with "which module is the ship" in the layout check. Decide both when a core
-  module turns up. Its sibling is unchanged and below: how severed chunks divide fuel, ammunition and
-  power.
 - **What a weld is worth: `JOINT_IMPULSE_PER_AREA`, and the three constants around it.** A weld's section
   is the faces in contact by the thinner wall meeting there, rated as an impulse; `WRECK_STRENGTH` is how
   much of it survives the metal at its ends being wrecked; `SHOCK_REACH` is how far a blow carries before

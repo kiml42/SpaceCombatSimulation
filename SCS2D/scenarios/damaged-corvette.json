@@ -15,7 +15,10 @@
     }
   },
   "modules": [
-    { "kind": "structure", "x": 0, "y": 0, "length": 16, "width": 6 },
+    { "kind": "structure", "x": 5, "y": 0, "length": 6, "width": 6 },
+    { "kind": "core", "x": 0, "y": 0, "length": 4, "width": 6,
+      "notes": "Amidships, with a section of hull either side of it: the compartment the ship is flown from is the one thing worth putting the rest of the ship in front of." },
+    { "kind": "structure", "x": -5, "y": 0, "length": 6, "width": 6 },
     { "kind": "turret", "x": 10.5, "y": 0, "angle": 0, "length": 5, "width": 4, "barrels": 1 },
     { "kind": "thruster", "x": -8, "y": 0, "angle": 0, "length": 4, "width": 6 },
 

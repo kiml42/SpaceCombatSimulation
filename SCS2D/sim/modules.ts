@@ -1,5 +1,5 @@
 import type { Targeting } from './doctrine.js';
-import { cos, PI, sin, sqrt } from './math.js';
+import { cos, max, PI, sin, sqrt } from './math.js';
 
 /**
  * Parametric ship modules: a few archetypes with continuous parameters, rather
@@ -237,6 +237,27 @@ export const OPTIC_AREAL_DENSITY = 60;
 export const BEAM_MASS_PER_WATT = 1e-4;
 
 /**
+ * Control machinery mass per square metre of a core's interior, kg/m².
+ *
+ * A control centre is a compartment given over to computing, communications
+ * and the power conditioning that keeps both alive, so what it weighs follows
+ * the floor it fills rather than the walls around it. Rather less than a deck
+ * packed with equipment racks, rather more than a room with consoles in it.
+ */
+export const CORE_MASS_PER_AREA = 150;
+
+/**
+ * Least a core's machinery can weigh, kg, however small the compartment.
+ *
+ * Every ship in this game is computer-flown, so a core is a processor, its
+ * power supply and the aerials that reach the rest of the ship — which is why
+ * the floor is low enough that half a metre square is a working control
+ * centre and a fighter can carry one. It binds only below that, and the point
+ * of having it at all is that a core cannot be shrunk to nothing.
+ */
+export const CORE_MINIMUM_FITTING_MASS = 25;
+
+/**
  * Traverse torque the mount ring can deliver per kilogram of turret, N·m/kg.
  * A bigger turret gets a bigger ring, so the torque available grows with the
  * mass it has to shift; what it does not grow with is how that mass is spread,
@@ -257,7 +278,7 @@ export const TRAVERSE_TORQUE_PER_KG = 2;
  */
 export const TRAVERSE_SPINUP_TIME = 2;
 
-export type ModuleKind = 'structure' | 'thruster' | 'turret' | 'beamTurret';
+export type ModuleKind = 'structure' | 'core' | 'thruster' | 'turret' | 'beamTurret';
 
 /**
  * One module in a layout: what it is, where it sits, and how big it is.
@@ -476,7 +497,14 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
   let rodMass = 0;
   let rodInertia = 0;
 
-  if (spec.kind === 'thruster') {
+  if (spec.kind === 'core') {
+    // What flies the ship: a compartment of computing rather than a box with
+    // space left in it, so its machinery is priced by the floor it fills. A
+    // core buys no capability beyond being the control centre, so this mass
+    // and the fragility of a small one are the whole of what stops a ship
+    // carrying five of them.
+    fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity);
+  } else if (spec.kind === 'thruster') {
     // Thrust comes out of the nozzle, so it scales with the area of the face
     // the exhaust leaves through — the module's width by the deck height. A
     // thruster therefore gets stronger by being made *wider*, and gains

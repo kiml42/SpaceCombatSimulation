@@ -13,12 +13,15 @@ import { CORVETTE } from '../scenarios/blueprints.js';
  * corner must not be handed a module to spend itself on.
  */
 
-/** A ship of three boxes in a row along x, each 4 long and 4 wide. */
+/**
+ * A ship of three boxes in a row along x, each 4 long and 4 wide, flown from
+ * the middle one — which keeps the row symmetric about its own centre.
+ */
 const ROW: Blueprint = {
   name: 'Row',
   modules: [
     { kind: 'structure', x: -4, y: 0, length: 4, width: 4 },
-    { kind: 'structure', x: 0, y: 0, length: 4, width: 4 },
+    { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
     { kind: 'structure', x: 4, y: 0, length: 4, width: 4 },
   ],
 };
@@ -119,7 +122,7 @@ describe('the modules a shot crosses', () => {
   it('crosses a canted module by its own faces', () => {
     const canted = compileBlueprint({
       name: 'Canted',
-      modules: [{ kind: 'structure', x: 0, y: 0, angle: QUARTER_PI, length: 4, width: 4 }],
+      modules: [{ kind: 'core', x: 0, y: 0, angle: QUARTER_PI, length: 4, width: 4 }],
     });
     // A square 4 on a side turned through 45° presents its diagonal to a shot
     // through the middle of it, and the face met is its own, at 45°.
@@ -150,12 +153,13 @@ describe('the modules a shot crosses', () => {
 
   it('finds what a shot down the corvette’s axis goes through', () => {
     const design = compileBlueprint(CORVETTE);
-    // Nose-on from well ahead: the gun first, then the hull behind it, then
-    // the engine bolted to its stern.
+    // Nose-on from well ahead: the gun first, then the hull behind it — bow
+    // section, the core amidships and the stern section — then the engine
+    // bolted to the stern.
     modulesAlong(design, 100, 0, -100, 0, path);
     const kinds = [];
     for (let i = 0; i < path.count; i++) kinds.push(design.modules[path.module[i]!]!.spec.kind);
-    expect(kinds).toEqual(['turret', 'structure', 'thruster']);
+    expect(kinds).toEqual(['turret', 'structure', 'core', 'structure', 'thruster']);
     // In order, and each entered after the last was left.
     for (let i = 1; i < path.count; i++) {
       expect(path.entry[i]!).toBeGreaterThanOrEqual(path.entry[i - 1]!);

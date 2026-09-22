@@ -85,11 +85,12 @@
       "angle": 180
     },
     {
-      "kind": "structure",
+      "kind": "core",
       "x": 0,
       "y": 0,
       "length": 0.2,
-      "width": 1
+      "width": 1,
+      "notes": "Half a metre square of computing is a whole control centre, which is the only reason a fighter this size can be flown at all."
     },
     {
       "kind": "turret",

@@ -113,8 +113,9 @@ export function joints(design: ShipDesign): readonly Joint[] {
  * A flood fill over a static array, which is all §4's "damage never changes
  * topology" asks for: this runs when something breaks and never per step.
  * Components come back with their modules in ascending order and themselves
- * ordered by their lowest module, so the piece holding module 0 is first —
- * which is how the ship is told from what came off it.
+ * ordered by their lowest module, which makes the order a property of the
+ * layout rather than of the fill. Which of the pieces goes on being the ship
+ * is a question about its cores and is the caller's (`Ships.sever`).
  */
 export function components(design: ShipDesign, broken: (joint: Joint) => boolean): number[][] {
   const n = design.modules.length;

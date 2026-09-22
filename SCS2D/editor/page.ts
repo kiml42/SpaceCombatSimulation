@@ -76,6 +76,7 @@ const ANGLE_SNAP_DEGREES = 15;
 /** What a freshly added module of each kind starts as, metres. */
 const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
   structure: { kind: 'structure', length: 8, width: 5 },
+  core: { kind: 'core', length: 3, width: 3 },
   thruster: { kind: 'thruster', angle: 0, length: 3, width: 3 },
   turret: { kind: 'turret', angle: 0, length: 4, width: 3, barrels: 1 },
   beamTurret: { kind: 'beamTurret', angle: 0, length: 4, width: 3, barrels: 1 },

@@ -21,7 +21,9 @@
     }
   },
   "modules": [
-    { "kind": "structure", "x": 0, "y": 0, "length": 35, "width": 6 },
+    { "kind": "structure", "x": 9.5, "y": 0, "length": 16, "width": 6 },
+    { "kind": "core", "x": 0, "y": 0, "length": 3, "width": 6 },
+    { "kind": "structure", "x": -9.5, "y": 0, "length": 16, "width": 6 },
 
     { "use": "wingSegment", "x": 2, "y": 7, "repeat": 3, "step": { "x": -1, "y": 8 } },
     { "use": "wingSegment", "x": 2, "y": -7, "mirror": true, "repeat": 3, "step": { "x": -1, "y": 8 } },

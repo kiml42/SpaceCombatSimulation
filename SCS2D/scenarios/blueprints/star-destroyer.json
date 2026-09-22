@@ -194,10 +194,18 @@
   "modules": [
     {
       "kind": "structure",
-      "x": 0,
+      "x": 20,
       "y": 0,
-      "length": 1600,
+      "length": 1560,
       "width": 60
+    },
+    {
+      "kind": "core",
+      "x": -780,
+      "y": 0,
+      "length": 40,
+      "width": 60,
+      "notes": "The bridge, aft above the engines, where a Star Destroyer's is — and where every shot at it has to cross the length of the ship first."
     },
     {
       "use": "structure",

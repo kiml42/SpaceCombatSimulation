@@ -227,9 +227,10 @@ describe('EditorDocument', () => {
 
     // Dragged clear of the ship: the module is adrift, and the canvas has to
     // be able to say which one without the player counting down the list.
-    const origin = doc.view.origins[1]!;
+    // The corvette's bow gun, which nothing else hangs off.
+    const origin = doc.view.origins[3]!;
     doc.apply(movePlacement(doc.blueprint, origin, 500, 500)!);
-    expect(doc.view.faulty).toContain(1);
+    expect(doc.view.faulty).toContain(3);
     expect(doc.view.problems.some((p) => /touches nothing|separate piece/.test(p))).toBe(true);
 
     doc.undo();

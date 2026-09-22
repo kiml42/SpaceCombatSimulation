@@ -23,7 +23,8 @@ import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
  * instances, and the two floating-point traps in mirroring.
  */
 
-const hull = { kind: 'structure', x: 0, y: 0, length: 20, width: 6 } as const;
+// The core, so that a fixture built round it is a ship and not merely a hull.
+const hull = { kind: 'core', x: 0, y: 0, length: 20, width: 6 } as const;
 
 function ship(blueprint: Omit<Blueprint, 'name'>): Blueprint {
   return { name: 'Test', ...blueprint };
@@ -458,8 +459,8 @@ describe('the ships that ship with the game', () => {
     // them all bigger is one edit and there is no state in which seven are.
     expect(Object.keys(GUNSHIP.assemblies ?? {})).toContain('lateral');
     expect(Object.keys(CORVETTE.assemblies ?? {})).toContain('wingBox');
-    expect(expandBlueprint(GUNSHIP)).toHaveLength(18);
-    expect(expandBlueprint(CORVETTE)).toHaveLength(13);
+    expect(expandBlueprint(GUNSHIP)).toHaveLength(20);
+    expect(expandBlueprint(CORVETTE)).toHaveLength(15);
   });
 
   it('still compile to a ship, with every mirrored copy accounted for', () => {
