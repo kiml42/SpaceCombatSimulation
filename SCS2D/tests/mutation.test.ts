@@ -9,7 +9,7 @@ import {
   serialiseBlueprint,
   type Blueprint,
 } from '../sim/index.js';
-import { DEFAULT_LIMITS, mutate } from '../evolution/mutate.js';
+import { DEFAULT_KINDS, DEFAULT_LIMITS, mutate } from '../evolution/mutate.js';
 import { CATAMARAN, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
@@ -217,6 +217,73 @@ describe('mutation', () => {
       if ((held.doctrine?.targeting.escortWeight ?? 0) !== 0) moved = true;
     }
     expect(moved).toBe(true);
+  });
+
+  it('builds only the kinds it is told to', { timeout: 30_000 }, () => {
+    // The weights are what a run says it is interested in, and they have to
+    // hold for a module *refitted* as well as one added — a run told to breed
+    // engines that went on turning its engines into gun mounts half the time
+    // would be answering a question nobody asked.
+    const rng = new Rng(59);
+    let held: Blueprint = CORVETTE;
+    let added = 0;
+    let refitted = 0;
+    for (let i = 0; i < 400; i++) {
+      const child = mutate(held, rng, {
+        structural: 1,
+        kinds: { thruster: 1, structure: 0, turret: 0, beamTurret: 0, core: 0 },
+      });
+      held = child.blueprint;
+      for (const edit of child.edits) {
+        const arrival = /a (\w+) added to/.exec(edit);
+        if (arrival !== null) {
+          expect(arrival[1], edit).toEqual('thruster');
+          added++;
+        }
+        const change = /refitted as (\w+)/.exec(edit);
+        if (change !== null) {
+          expect(change[1], edit).toEqual('thruster');
+          refitted++;
+        }
+      }
+    }
+    expect(added).toBeGreaterThan(0);
+    expect(refitted).toBeGreaterThan(0);
+  });
+
+  it('refits a module into an engine without moving it', { timeout: 30_000 }, () => {
+    // A thruster's position is where it is *attached* rather than the middle
+    // of its box, so a refit that kept the coordinates would slide the module
+    // half its own length into its neighbour and be refused every time —
+    // closing the one route a lineage has to a large engine, since everything
+    // added arrives half a metre square.
+    const rng = new Rng(61);
+    let held: Blueprint = CORVETTE;
+    let engines = 0;
+    for (let i = 0; i < 400 && engines < 5; i++) {
+      const child = mutate(held, rng, { structural: 0, kinds: DEFAULT_KINDS });
+      held = child.blueprint;
+      if (child.edits.some((edit) => /refitted as thruster/.test(edit))) engines++;
+    }
+    expect(engines).toBeGreaterThan(0);
+  });
+
+  it('keeps breeding when no kind is allowed at all', () => {
+    // Every weight zero is a thing a form can be set to, and it means "add
+    // nothing new": the numbers still move, and a module can still be taken
+    // off or copied, so a lineage carries on rather than stalling.
+    const rng = new Rng(67);
+    let held: Blueprint = CORVETTE;
+    for (let i = 0; i < 50; i++) {
+      const child = mutate(held, rng, {
+        kinds: { thruster: 0, structure: 0, turret: 0, beamTurret: 0, core: 0 },
+      });
+      expect(child.edits.length, `child ${i}`).toBeGreaterThan(0);
+      expect(child.edits.some((edit) => /added to/.test(edit))).toBe(false);
+      expect(child.edits.some((edit) => /refitted as/.test(edit))).toBe(false);
+      expect(blueprintProblem(child.blueprint), `child ${i}`).toBeNull();
+      held = child.blueprint;
+    }
   });
 
   it('gives up rather than breeding something invalid', () => {

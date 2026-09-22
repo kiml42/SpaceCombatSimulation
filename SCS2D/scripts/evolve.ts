@@ -3,6 +3,8 @@ import { dirname } from 'node:path';
 import { compileBlueprint, type Blueprint } from '../sim/index.js';
 import { BLUEPRINTS, type BlueprintName } from '../scenarios/blueprints.js';
 import { champion, matchCount, runEvolution, DEFAULT_RUN, type RunConfig } from '../evolution/run.js';
+import { DEFAULT_KINDS } from '../evolution/mutate.js';
+import type { ModuleKind } from '../sim/modules.js';
 
 /**
  * Run an evolution headlessly and write what happened to a file.
@@ -25,6 +27,7 @@ function parse(argv: readonly string[]): Options {
   const from: BlueprintName[] = [];
   const config: Record<string, unknown> = {};
   const match: Record<string, unknown> = {};
+  const kinds: Partial<Record<ModuleKind, number>> = {};
   let out = 'runs/run.json';
   let quiet = false;
   let budget = 0;
@@ -57,6 +60,21 @@ function parse(argv: readonly string[]): Options {
       case '--budget': budget = Number(value()); break;
       case '--duration': match['duration'] = Number(value()); break;
       case '--radius': match['radius'] = Number(value()); break;
+      // A weight per module kind, as `thruster=5,turret=0` — only the kinds
+      // named are changed, the rest keeping their defaults.
+      case '--kinds':
+        for (const pair of value().split(',')) {
+          const [kind, weight] = pair.split('=');
+          if (kind === undefined || !(kind in DEFAULT_KINDS)) {
+            throw new Error(`no such module kind: ${kind}. Try ${Object.keys(DEFAULT_KINDS).join(', ')}`);
+          }
+          const number = Number(weight);
+          if (!Number.isFinite(number) || number < 0) {
+            throw new Error(`${kind} wants a weight of zero or more, not ${weight}`);
+          }
+          kinds[kind as ModuleKind] = number;
+        }
+        break;
       case '--quiet': quiet = true; break;
       default:
         throw new Error(`unknown argument ${arg}`);
@@ -65,6 +83,7 @@ function parse(argv: readonly string[]): Options {
 
   if (from.length === 0) from.push('corvette');
   if (Object.keys(match).length > 0) config['match'] = match;
+  if (Object.keys(kinds).length > 0) config['mutation'] = { kinds };
   if (budget > 0) {
     let heaviest = 0;
     for (const name of from) heaviest = Math.max(heaviest, compileBlueprint(BLUEPRINTS[name]!).mass);

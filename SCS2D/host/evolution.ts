@@ -7,6 +7,7 @@ import { Library, toFileText } from '../editor/library.js';
 import { compileBlueprint } from '../sim/index.js';
 import { fitness } from '../evolution/generation.js';
 import { DEFAULT_MATCH, Match } from '../evolution/match.js';
+import { DEFAULT_KINDS } from '../evolution/mutate.js';
 import {
   champion,
   DEFAULT_RUN,
@@ -49,6 +50,11 @@ const FIELDS = [
   'survivalWeight',
   'damageWeight',
   'raceWeight',
+  'kindThruster',
+  'kindStructure',
+  'kindTurret',
+  'kindBeamTurret',
+  'kindCore',
   'effort',
 ] as const;
 
@@ -159,6 +165,11 @@ export function startEvolution(): void {
     survivalWeight: String(DEFAULT_MATCH.weights.survival),
     damageWeight: String(DEFAULT_MATCH.weights.damage),
     raceWeight: String(DEFAULT_MATCH.weights.race),
+    kindThruster: String(DEFAULT_KINDS.thruster),
+    kindStructure: String(DEFAULT_KINDS.structure),
+    kindTurret: String(DEFAULT_KINDS.turret),
+    kindBeamTurret: String(DEFAULT_KINDS.beamTurret),
+    kindCore: String(DEFAULT_KINDS.core),
     effort: '12',
   };
 
@@ -213,6 +224,15 @@ export function startEvolution(): void {
       group: Math.max(2, Math.round(number(inputs.group, DEFAULT_RUN.group))),
       minMatches: Math.max(1, Math.round(number(inputs.minMatches, DEFAULT_RUN.minMatches))),
       massBudget: tonnes > 0 ? tonnes * 1000 : Infinity,
+      mutation: {
+        kinds: {
+          thruster: Math.max(0, number(inputs.kindThruster, DEFAULT_KINDS.thruster)),
+          structure: Math.max(0, number(inputs.kindStructure, DEFAULT_KINDS.structure)),
+          turret: Math.max(0, number(inputs.kindTurret, DEFAULT_KINDS.turret)),
+          beamTurret: Math.max(0, number(inputs.kindBeamTurret, DEFAULT_KINDS.beamTurret)),
+          core: Math.max(0, number(inputs.kindCore, DEFAULT_KINDS.core)),
+        },
+      },
       match: {
         duration: Math.max(1, number(inputs.duration, DEFAULT_MATCH.duration)),
         radius: Math.max(10, number(inputs.radius, DEFAULT_MATCH.radius)),

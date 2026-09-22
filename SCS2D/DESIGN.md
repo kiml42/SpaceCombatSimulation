@@ -152,7 +152,18 @@ inside any one file is not contiguous.
   flush. A module written inside an assembly is written once however many copies are placed, so mutating it
   changes every copy and a wing that grows a gun grows it on both wings. Whether a generation is structural
   is settled before the retrying starts rather than inside it, which is what stops the rare, hard edit being
-  crowded out by the common, easy one; and a child is written back to a file the editor opens. A doctrine number
+  crowded out by the common, easy one; and a child is written back to a file the editor opens. **What it reaches for is
+  weighted by kind, and the weights are a run's to set.** They are not equal things at the half-metre a
+  guess arrives in: thrust follows the nozzle's area, so six small engines are six small engines' worth of
+  push and, spread about the hull, torque as well — where six small guns are six peashooters that one grown
+  mount beats outright, and six small plates are ballast. Guns and hulls want *size*, which the operator
+  reaches by growing one module over many generations rather than by adding more, so engines are what it
+  tries most often. The same weights govern a module *refitted* into another kind, which is the only route
+  to a large module of a new kind; a run that asked for engines and went on turning its engines into gun
+  mounts half the time would be answering a question nobody asked. A refit keeps the space rather than the
+  coordinates, because a thruster's position is where it is attached and every other kind's is the middle
+  of its box — left alone, the numbers slide the module half its own length into its neighbour, which
+  refused every refit into an engine there was. A doctrine number
   is perturbed by a fraction of its *default* rather than of what is held, so nothing that has reached zero
   is stuck there — and where the default is zero too, by a fraction of what a number is worth in that half
   of the doctrine, since otherwise every draw is a fraction of nothing and the field is not slow to find but

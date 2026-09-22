@@ -156,6 +156,15 @@
           <p class="note">Zero a weight to breed for the others alone.</p>
         </section>
         <section>
+          <h2>What it tries to build</h2>
+          <div class="field"><label for="kindThruster">engines</label><input id="kindThruster" type="number" min="0" step="1" /></div>
+          <div class="field"><label for="kindStructure">structure</label><input id="kindStructure" type="number" min="0" step="1" /></div>
+          <div class="field"><label for="kindTurret">turrets</label><input id="kindTurret" type="number" min="0" step="1" /></div>
+          <div class="field"><label for="kindBeamTurret">beam turrets</label><input id="kindBeamTurret" type="number" min="0" step="1" /></div>
+          <div class="field"><label for="kindCore">cores</label><input id="kindCore" type="number" min="0" step="1" /></div>
+          <p class="note">Relative odds of each kind, when a module is added or refitted into something else. Zero shuts a kind out altogether.</p>
+        </section>
+        <section>
           <h2>Effort</h2>
           <div class="field"><label for="effort">ms per frame</label><input id="effort" type="number" min="1" max="200" step="1" /></div>
           <p class="note">How long each frame is spent fighting. Higher is faster and less responsive.</p>
