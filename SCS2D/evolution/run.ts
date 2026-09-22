@@ -1,7 +1,7 @@
 import { Rng, serialiseBlueprint, type Blueprint } from '../sim/index.js';
 import { compileBlueprint } from '../sim/index.js';
 import { max, min } from '../sim/math.js';
-import { runMatch, type MatchConfig, type MatchResult } from './match.js';
+import { Match, type MatchConfig, type MatchResult } from './match.js';
 import { mutate, type MutationLimits } from './mutate.js';
 import { blank, breed, fitness, Generation, type Individual } from './generation.js';
 
@@ -148,6 +148,169 @@ function mutationLimits(config: RunConfig): Partial<MutationLimits> {
 }
 
 /**
+ * A run in progress: the generation being fought, and the record so far.
+ *
+ * **Stepped rather than run, for the same reason a match is.** A run is
+ * minutes of simulation and a page cannot go away for that long, so the work
+ * is handed out in slices small enough to draw between — and because the
+ * slices drive the same objects the headless runner drives, what a page shows
+ * is the run that is being recorded rather than a second one alongside it.
+ */
+export class Run {
+  readonly config: RunConfig;
+  readonly generations: GenerationRecord[] = [];
+  private readonly onGeneration: OnGeneration | undefined;
+  private readonly rng: Rng;
+  /**
+   * A cap on a loop that is otherwise governed by a draw: a population smaller
+   * than a group, or a group of one, would never settle.
+   */
+  private readonly limit: number;
+  private generation: Generation;
+  private nextId: number;
+  private matches: MatchRecord[] = [];
+  private match: Match | null = null;
+  private competitors: number[] = [];
+  private seed = 0;
+  private over = false;
+
+  constructor(
+    founders: readonly Blueprint[],
+    config?: Partial<RunConfig>,
+    onGeneration?: OnGeneration,
+  ) {
+    const settings: RunConfig = { ...DEFAULT_RUN, ...config };
+    this.config = settings;
+    this.onGeneration = onGeneration;
+    this.rng = new Rng(settings.seed);
+    this.generation = seedPopulation(founders, this.rng, settings);
+    this.nextId = this.generation.individuals.length;
+    this.limit = settings.population * settings.minMatches * 4 + 16;
+    if (settings.generations <= 0) this.over = true;
+  }
+
+  get done(): boolean {
+    return this.over;
+  }
+
+  /** The match being fought, for watching one as it happens. */
+  get current(): Match | null {
+    return this.match;
+  }
+
+  /** Which individuals, by index into the generation, are in that match. */
+  get fighting(): readonly number[] {
+    return this.match === null ? [] : this.competitors;
+  }
+
+  /** The generation under test, finished or not. */
+  get living(): Generation {
+    return this.generation;
+  }
+
+  /** How far through the whole run, from nothing to one. */
+  get progress(): number {
+    const settings = this.config;
+    if (this.over) return 1;
+    const individuals = this.generation.individuals;
+    let heard = 0;
+    for (const individual of individuals) heard += min(individual.matches, settings.minMatches);
+    const wanted = individuals.length * settings.minMatches;
+    const within = wanted > 0 ? heard / wanted : 1;
+    return (this.generations.length + within) / settings.generations;
+  }
+
+  /**
+   * Fight up to `budget` simulation steps of it.
+   *
+   * Counted in steps rather than matches so that a slice costs about the same
+   * whatever is in it: a match between capitals is many times the work of one
+   * between fighters, and a caller trying to hold a frame rate needs the unit
+   * it is budgeting to mean something.
+   */
+  advance(budget: number): boolean {
+    let left = max(1, budget);
+    while (left > 0 && !this.over) {
+      if (this.match === null) {
+        this.open();
+        continue;
+      }
+      while (left > 0 && !this.match.done) {
+        this.match.advance();
+        left--;
+      }
+      if (this.match.done) this.close();
+    }
+    return !this.over;
+  }
+
+  /** Fight the rest of it, and hand back the record. */
+  finish(): RunRecord {
+    while (!this.over) this.advance(1 << 20);
+    return this.record();
+  }
+
+  record(): RunRecord {
+    return { config: this.config, generations: this.generations };
+  }
+
+  /** Draw the next match, or close the generation if it has had enough. */
+  private open(): void {
+    const settings = this.config;
+    if (this.generation.settled(settings.minMatches) || this.matches.length >= this.limit) {
+      this.roll();
+      return;
+    }
+    const competitors = this.generation.pickCompetitors(this.rng, settings.group);
+    if (competitors.length < 2) {
+      this.roll();
+      return;
+    }
+    this.competitors = competitors;
+    this.seed = this.rng.nextUint32();
+    this.match = new Match(
+      competitors.map((c) => this.generation.individuals[c]!.blueprint),
+      { ...settings.match, seed: this.seed },
+    );
+  }
+
+  private close(): void {
+    const result = this.match!.result();
+    this.generation.record(this.competitors, result);
+    this.matches.push({
+      seed: this.seed,
+      competitors: this.competitors.map((c) => this.generation.individuals[c]!.id),
+      ending: result.ending,
+      elapsed: result.elapsed,
+      scores: result.scores,
+    });
+    this.match = null;
+  }
+
+  private roll(): void {
+    const settings = this.config;
+    const record = describe(this.generation, this.matches);
+    this.generations.push(record);
+    this.onGeneration?.(record);
+    this.matches = [];
+    if (this.generations.length >= settings.generations) {
+      this.over = true;
+      return;
+    }
+    this.generation = breed(
+      this.generation,
+      this.rng,
+      {
+        population: settings.population,
+        winners: settings.winners,
+        limits: mutationLimits(settings),
+      },
+      () => this.nextId++,
+    );
+  }
+}
+
+/**
  * Fight a whole run and record it.
  *
  * Matches are drawn until every design has had its hearing, so a generation is
@@ -160,54 +323,7 @@ export function runEvolution(
   config?: Partial<RunConfig>,
   onGeneration?: OnGeneration,
 ): RunRecord {
-  const settings: RunConfig = { ...DEFAULT_RUN, ...config };
-  const rng = new Rng(settings.seed);
-  let generation = seedPopulation(founders, rng, settings);
-  let nextId = generation.individuals.length;
-
-  const generations: GenerationRecord[] = [];
-  for (let g = 0; g < settings.generations; g++) {
-    const matches: MatchRecord[] = [];
-    // A cap on a loop that is otherwise governed by a draw: a population
-    // smaller than a group, or a group of one, would never settle.
-    const limit = settings.population * settings.minMatches * 4 + 16;
-    while (!generation.settled(settings.minMatches) && matches.length < limit) {
-      const competitors = generation.pickCompetitors(rng, settings.group);
-      if (competitors.length < 2) break;
-      const seed = rng.nextUint32();
-      const result = runMatch(
-        competitors.map((c) => generation.individuals[c]!.blueprint),
-        { ...settings.match, seed },
-      );
-      generation.record(competitors, result);
-      matches.push({
-        seed,
-        competitors: competitors.map((c) => generation.individuals[c]!.id),
-        ending: result.ending,
-        elapsed: result.elapsed,
-        scores: result.scores,
-      });
-    }
-
-    const record = describe(generation, matches);
-    generations.push(record);
-    onGeneration?.(record);
-
-    if (g + 1 < settings.generations) {
-      generation = breed(
-        generation,
-        rng,
-        {
-          population: settings.population,
-          winners: settings.winners,
-          limits: mutationLimits(settings),
-        },
-        () => nextId++,
-      );
-    }
-  }
-
-  return { config: settings, generations };
+  return new Run(founders, config, onGeneration).finish();
 }
 
 function describe(generation: Generation, matches: readonly MatchRecord[]): GenerationRecord {

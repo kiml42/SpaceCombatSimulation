@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { blueprintProblem, parseBlueprint, Rng, type Blueprint } from '../sim/index.js';
 import { blank, breed, Generation, fitness } from '../evolution/generation.js';
 import { runMatch } from '../evolution/match.js';
-import { champion, runEvolution, seedPopulation, DEFAULT_RUN } from '../evolution/run.js';
+import { champion, Run, runEvolution, seedPopulation, DEFAULT_RUN } from '../evolution/run.js';
 import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
 
 /**
@@ -179,6 +179,30 @@ describe('a run', () => {
         expect(again.scores).toEqual(match.scores);
       }
     }
+  });
+
+  it('fights the same run in slices as it does in one go', () => {
+    // A page steps a run a few thousand steps at a time and a CLI fights it
+    // flat out; if those two diverge, what is watched is not what was
+    // recorded, and the replay the record promises is worthless.
+    const whole = runEvolution([CORVETTE], settings);
+    const stepped = new Run([CORVETTE], settings);
+    let slices = 0;
+    while (stepped.advance(97)) slices++;
+    expect(slices).toBeGreaterThan(10);
+    expect(JSON.stringify(stepped.record())).toEqual(JSON.stringify(whole));
+  });
+
+  it('never goes backwards while it runs', () => {
+    const run = new Run([CORVETTE], settings);
+    let seen = 0;
+    while (run.advance(500)) {
+      expect(run.progress).toBeGreaterThanOrEqual(seen);
+      expect(run.progress).toBeLessThanOrEqual(1);
+      seen = run.progress;
+    }
+    expect(run.progress).toEqual(1);
+    expect(run.done).toBe(true);
   });
 
   it('names a champion that actually fought', () => {
