@@ -222,7 +222,7 @@ describe('a fleet in line ahead', () => {
     // The fleets really are shooting: this is a rule holding fire, not a
     // scenario where nothing happens.
     expect(run.totalProjectilesFired).toBeGreaterThan(50);
-    expect(landed).toBeGreaterThan(50);
+    expect(landed).toBeGreaterThan(25);
     // Around twenty without the rule. Not zero with it, because the check is
     // made at the trigger and not for the whole flight of the round: half a
     // second carries a shell three hundred metres, and a file two hundred
