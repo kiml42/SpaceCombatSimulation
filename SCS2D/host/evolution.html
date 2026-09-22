@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Space Combat Simulation — Evolution</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        background: #0b0f16;
+        color: #c8d3e0;
+        font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        display: flex;
+        flex-direction: column;
+      }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+        padding: 0.6rem 0.9rem;
+        border-bottom: 1px solid #1c2533;
+      }
+      h1 { font-size: 13px; font-weight: 600; margin: 0 0.5rem 0 0; color: #e6edf5; }
+      button, input, select { font: inherit; }
+      button, select, input[type='text'], input[type='number'] {
+        background: #1a2434;
+        color: #dbe6f2;
+        border: 1px solid #2b3a50;
+        border-radius: 4px;
+        padding: 0.2rem 0.5rem;
+      }
+      button { cursor: pointer; padding-inline: 0.7rem; }
+      button:hover:not(:disabled) { background: #223044; }
+      button:disabled { opacity: 0.4; cursor: default; }
+      a { color: #7fa8e0; }
+      .grow { flex: 1; }
+      main { flex: 1; display: flex; min-height: 0; }
+      aside {
+        width: 17rem;
+        flex: 0 0 auto;
+        overflow-y: auto;
+        padding: 0.7rem 0.9rem 2rem;
+      }
+      #setup { border-right: 1px solid #1c2533; }
+      #results { width: 25rem; border-left: 1px solid #1c2533; }
+      section#middle { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+      h2 {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #7f93aa;
+        margin: 1.1rem 0 0.4rem;
+      }
+      aside section:first-of-type h2, #middle h2 { margin-top: 0; }
+      .field { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem; }
+      .field label { flex: 1; color: #7f93aa; }
+      .field input, .field select { flex: 0 0 5.5rem; }
+      .field input[type='checkbox'] { flex: 0 0 auto; }
+      .buttons { display: flex; gap: 0.4rem; margin: 0.7rem 0; }
+      .buttons button { flex: 1; padding-inline: 0.3rem; }
+      #founders { width: 100%; height: 9rem; }
+      #bar {
+        height: 4px;
+        background: #16202e;
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 0.4rem;
+      }
+      #barFill { height: 100%; width: 0; background: #7fd6a0; transition: width 0.1s linear; }
+      #readout { color: #7f93aa; margin: 0 0 0.6rem; }
+      #chart { width: 100%; height: 170px; display: block; border-radius: 4px; }
+      #legend { display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 0.35rem 0 0; color: #7f93aa; }
+      #legend span::before {
+        content: '';
+        display: inline-block;
+        width: 10px;
+        height: 2px;
+        vertical-align: middle;
+        margin-right: 0.35rem;
+        background: currentColor;
+      }
+      #viewWrap { flex: 1; position: relative; min-height: 12rem; }
+      #view { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+      #viewBar { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; padding: 0.4rem 0; }
+      #panelBody { padding: 0.7rem 0.9rem; display: flex; flex-direction: column; min-height: 0; flex: 1; }
+      table { width: 100%; border-collapse: collapse; }
+      th {
+        text-align: right;
+        font-weight: 400;
+        color: #7f93aa;
+        padding: 0.1rem 0 0.25rem;
+        position: sticky;
+        top: 0;
+        background: #0b0f16;
+      }
+      th:first-child, td:first-child { text-align: left; }
+      td { text-align: right; padding: 0.05rem 0; color: #c8d3e0; }
+      tr.champion td { color: #7fd6a0; }
+      tr.watched td { color: #e9c05f; }
+      tbody tr { cursor: pointer; }
+      tbody tr:hover td { background: #16202e; }
+      .note { color: #5d6f85; margin: 0.3rem 0 0; }
+      .warn { color: #e6a45b; }
+      [hidden] { display: none !important; }
+      footer { padding: 0.5rem 0.9rem; color: #5d6f85; border-top: 1px solid #1c2533; }
+      @media (max-width: 1100px) {
+        main { flex-direction: column; overflow-y: auto; }
+        aside, #results { width: auto; border: none; border-top: 1px solid #1c2533; }
+        #viewWrap { min-height: 20rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Evolution</h1>
+      <button id="start">Start</button>
+      <button id="pause" disabled>Pause</button>
+      <button id="stop" disabled>Stop</button>
+      <span id="state">idle</span>
+      <span class="grow"></span>
+      <a href="index.html">Battle view</a>
+      <a href="editor.html">Ship editor</a>
+    </header>
+    <main>
+      <aside id="setup">
+        <section>
+          <h2>Founders</h2>
+          <select id="founders" multiple title="The ships the run starts from"></select>
+          <p class="note">Ctrl-click for several. The rest of the first generation is mutants of these.</p>
+        </section>
+        <section>
+          <h2>The run</h2>
+          <div class="field"><label for="generations">generations</label><input id="generations" type="number" min="1" step="1" /></div>
+          <div class="field"><label for="population">population</label><input id="population" type="number" min="2" step="1" /></div>
+          <div class="field"><label for="winners">bred from</label><input id="winners" type="number" min="1" step="1" /></div>
+          <div class="field"><label for="group">ships per match</label><input id="group" type="number" min="2" step="1" /></div>
+          <div class="field"><label for="minMatches">matches each</label><input id="minMatches" type="number" min="1" step="1" /></div>
+          <div class="field"><label for="massBudget">mass budget t</label><input id="massBudget" type="number" min="0" step="1" placeholder="none" /></div>
+          <div class="field"><label for="seed">seed</label><input id="seed" type="number" step="1" /></div>
+        </section>
+        <section>
+          <h2>The match</h2>
+          <div class="field"><label for="duration">seconds</label><input id="duration" type="number" min="1" step="5" /></div>
+          <div class="field"><label for="radius">arena m</label><input id="radius" type="number" min="10" step="50" /></div>
+          <div class="field"><label for="scatter">scatter °</label><input id="scatter" type="number" min="0" max="180" step="15" /></div>
+          <div class="field"><label for="goal">goal to hold</label><input id="goal" type="checkbox" /></div>
+        </section>
+        <section>
+          <h2>What it is scored on</h2>
+          <div class="field"><label for="survivalWeight">surviving</label><input id="survivalWeight" type="number" step="0.5" /></div>
+          <div class="field"><label for="damageWeight">damage done</label><input id="damageWeight" type="number" step="0.5" /></div>
+          <div class="field"><label for="raceWeight">ground gained</label><input id="raceWeight" type="number" step="0.5" /></div>
+          <p class="note">Zero a weight to breed for the others alone.</p>
+        </section>
+        <section>
+          <h2>Effort</h2>
+          <div class="field"><label for="effort">ms per frame</label><input id="effort" type="number" min="1" max="200" step="1" /></div>
+          <p class="note">How long each frame is spent fighting. Higher is faster and less responsive.</p>
+        </section>
+      </aside>
+      <section id="middle">
+        <div style="padding: 0.7rem 0.9rem 0">
+          <div id="bar"><div id="barFill"></div></div>
+          <p id="readout">Pick founders and press Start.</p>
+          <canvas id="chart"></canvas>
+          <p id="legend">
+            <span style="color: #e6edf5">best</span>
+            <span style="color: #7fa8e0">mean</span>
+            <span style="color: #7fd6a0">surviving</span>
+            <span style="color: #e0655f">damage</span>
+            <span style="color: #e9c05f">ground</span>
+          </p>
+          <div id="viewBar">
+            <button id="play" disabled>Pause</button>
+            <button id="step" disabled>Step</button>
+            <button id="fit">Fit</button>
+            <label>speed <select id="speed">
+              <option value="0.5">0.5x</option>
+              <option value="1" selected>1x</option>
+              <option value="2">2x</option>
+              <option value="4">4x</option>
+              <option value="8">8x</option>
+            </select></label>
+            <label title="Draw whichever match the run is fighting right now">
+              <input id="follow" type="checkbox" checked /> watch the run
+            </label>
+            <span id="watching" class="grow"></span>
+          </div>
+        </div>
+        <div id="viewWrap"><canvas id="view"></canvas></div>
+      </section>
+      <aside id="results">
+        <section>
+          <h2>Generation <span id="shownGeneration">—</span></h2>
+          <div class="field">
+            <label for="generation">showing</label>
+            <select id="generation"></select>
+          </div>
+          <table>
+            <thead>
+              <tr><th>ship</th><th>from</th><th>score</th><th>surv</th><th>dmg</th><th>grnd</th><th>t</th></tr>
+            </thead>
+            <tbody id="ships"></tbody>
+          </table>
+          <p class="note" id="edits"></p>
+        </section>
+        <section>
+          <h2>Matches</h2>
+          <table>
+            <thead>
+              <tr><th>#</th><th>entrants</th><th>ended</th><th>s</th></tr>
+            </thead>
+            <tbody id="matches"></tbody>
+          </table>
+          <p class="note">Click one to watch it again — a match is replayed from its seed, so it is the match that was scored.</p>
+        </section>
+        <section>
+          <h2>The best of it</h2>
+          <p id="championLine" class="note">—</p>
+          <div class="buttons">
+            <button id="saveChampion" disabled>Save to editor</button>
+            <button id="exportChampion" disabled>Export</button>
+          </div>
+        </section>
+      </aside>
+    </main>
+    <footer id="hint">A run is decided entirely by its seed: the same settings give the same run, and any match in it can be fought again from the record.</footer>
+  </body>
+</html>

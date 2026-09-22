@@ -27,15 +27,16 @@ const root = join(here, '..');
 /**
  * The pages, each its own bundle.
  *
- * The editor is a separate page rather than a panel on the battle view
- * because its inputs and outputs are both blueprints: it needs to know
- * nothing about a battle in progress, so there is no shared clock and no
- * snapshot stream to route between them. Two bundles is the cost, and it is
- * the smaller half of the trade.
+ * One page per thing a person sits down to do — watch a battle, draw a ship,
+ * breed one — rather than panels on a single page, because they share no clock
+ * and no snapshot stream: the editor's inputs and outputs are both blueprints,
+ * and a run owns its own matches. A bundle each is the cost, and it is the
+ * smaller half of the trade.
  */
 const PAGES = [
   { entry: 'entry.ts', shell: 'index.html', out: 'index.html' },
   { entry: 'editorEntry.ts', shell: 'editor.html', out: 'editor.html' },
+  { entry: 'evolutionEntry.ts', shell: 'evolution.html', out: 'evolution.html' },
 ] as const;
 
 type Page = (typeof PAGES)[number];

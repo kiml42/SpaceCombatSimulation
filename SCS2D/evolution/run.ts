@@ -208,6 +208,11 @@ export class Run {
     return this.generation;
   }
 
+  /** Matches fought in it so far, which its record will hold once it closes. */
+  get played(): readonly MatchRecord[] {
+    return this.matches;
+  }
+
   /** How far through the whole run, from nothing to one. */
   get progress(): number {
     const settings = this.config;

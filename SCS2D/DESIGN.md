@@ -62,8 +62,8 @@ inside any one file is not contiguous.
   to the first one through what it touches — and each module a problem names is drawn
   in red on the ship, so the list says what is wrong and the picture says where. Undo and
   redo run throughout. Ships are opened from the built-in library or from browser
-  storage, saved back to it, and exported and imported as blueprint files. Both pages
-  build to one self-contained HTML file each.
+  storage, saved back to it, and exported and imported as blueprint files. Each page
+  builds to one self-contained HTML file.
   A shot's path through a ship is resolved to the modules it crosses, in order,
   with the face each is entered by — the geometry both halves of the damage
   model are built on, and the first thing the bounding circles the broad phase
@@ -230,8 +230,19 @@ inside any one file is not contiguous.
   measured against the ship it started from says how far it has come; the same run measured against **its
   own final design** says how bad things used to be, which is the only yardstick available to a run that
   started from nothing.
+  **A run is set going and watched on a page.** What a run is scored on, how big it is and how long a match
+  lasts are settings on a form rather than flags on a command; it is fought in slices a few milliseconds
+  long between frames, so the page goes on answering while it runs, and what is drawn is the match the run
+  is fighting rather than a re-enactment of it. The three sources of score are plotted apart as well as
+  together, because they move at different times — a population learning to fly reaches the goal long
+  before it learns to shoot, and a total hides that behind one rising line. Any match of any generation is
+  fought again from its seed at whatever speed suits, which is the same match that was scored rather than a
+  second one assembled to look like it, and the best design of a run goes to the editor's library to be
+  looked at and taken apart.
 - **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
-  hemisphere, looking-at and ship-type pickers. After it comes headless evolution and analysis. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
+  hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
+  of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio
+  belongs chief among them. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
   others stay linked, and the word the editor owes the player when an action reorders
   a layout. Restructuring a group — dissolving one, or nesting one inside another —
