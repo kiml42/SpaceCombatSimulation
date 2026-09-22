@@ -77,7 +77,8 @@ Keep these working — they are the cold-start re-entry path:
   `host/` have the DOM)
 - `npm run golden` — re-derive golden checksums after a *deliberate* behaviour change
 - `npm run evolve` — fight a headless evolution run and write it to `runs/`; `--from`, `--generations`,
-  `--population`, `--group`, `--matches`, `--budget`, `--duration`, `--seed`, `--out`
+  `--population`, `--group`, `--matches`, `--budget`, `--duration`, `--radius`, `--seed`, `--kinds`,
+  `--out`, and `--config` / `--save-config` for the settings file the evolution page reads and writes
 - `npm run yardstick` — measure a finished run against a ship that does not evolve; `--run`, and
   `--against latest | founder | <stock ship> | <blueprint file>`
 - `npm run build` — bundle each page to `dist/index.html`, `dist/editor.html` and `dist/evolution.html`,

@@ -6,8 +6,9 @@ import { frame, moveWithVisibleShips, type Camera } from '../render/camera.js';
 import { Library, toFileText } from '../editor/library.js';
 import { compileBlueprint } from '../sim/index.js';
 import { fitness } from '../evolution/generation.js';
-import { DEFAULT_MATCH, Match } from '../evolution/match.js';
-import { DEFAULT_KINDS } from '../evolution/mutate.js';
+import { DEFAULT_MATCH, Match, type MatchConfig } from '../evolution/match.js';
+import { DEFAULT_KINDS, type KindWeights } from '../evolution/mutate.js';
+import { parseRunConfig, serialiseRunConfig, type RunSetup } from '../evolution/configFile.js';
 import {
   champion,
   DEFAULT_RUN,
@@ -246,6 +247,72 @@ export function startEvolution(): void {
       },
     };
   };
+
+  /** Everything the form says, as a run's settings. */
+  const readSetup = (): RunSetup => ({
+    founders: [...foundersSelect.selectedOptions].map((option) => option.value),
+    config: { ...DEFAULT_RUN, ...configure() },
+  });
+
+  /**
+   * Put a setup into the form.
+   *
+   * A ship the library does not have is dropped rather than refused: a config
+   * is worth reading for its numbers even when it names somebody else's ship,
+   * and what is missing is visible in the founders list.
+   */
+  const applySetup = (setup: RunSetup): void => {
+    const config = setup.config;
+    const match: MatchConfig = { ...DEFAULT_MATCH, ...config.match };
+    const kinds: KindWeights = { ...DEFAULT_KINDS, ...config.mutation.kinds };
+    inputs.seed.value = String(config.seed);
+    inputs.generations.value = String(config.generations);
+    inputs.population.value = String(config.population);
+    inputs.winners.value = String(config.winners);
+    inputs.group.value = String(config.group);
+    inputs.minMatches.value = String(config.minMatches);
+    inputs.massBudget.value = Number.isFinite(config.massBudget) ? String(config.massBudget / 1000) : '';
+    inputs.duration.value = String(match.duration);
+    inputs.radius.value = String(match.radius);
+    inputs.scatter.value = String((match.scatter * 180) / Math.PI);
+    inputs.survivalWeight.value = String(match.weights.survival);
+    inputs.damageWeight.value = String(match.weights.damage);
+    inputs.raceWeight.value = String(match.weights.race);
+    inputs.kindThruster.value = String(kinds.thruster);
+    inputs.kindStructure.value = String(kinds.structure);
+    inputs.kindTurret.value = String(kinds.turret);
+    inputs.kindBeamTurret.value = String(kinds.beamTurret);
+    inputs.kindCore.value = String(kinds.core);
+    goalInput.checked = match.goal !== null;
+    if (setup.founders.length > 0) {
+      const named = new Set(setup.founders);
+      for (const option of foundersSelect.options) option.selected = named.has(option.value);
+    }
+    saveSetup();
+  };
+
+  el<HTMLButtonElement>('exportConfig').addEventListener('click', () => {
+    download('evolution-config.json', `${JSON.stringify(serialiseRunConfig(readSetup()), null, 2)}\n`);
+  });
+  const file = el<HTMLInputElement>('importConfigFile');
+  el<HTMLButtonElement>('importConfig').addEventListener('click', () => file.click());
+  file.addEventListener('change', () => {
+    const chosen = file.files?.[0];
+    if (chosen === undefined) return;
+    void chosen.text().then((text) => {
+      try {
+        applySetup(parseRunConfig(JSON.parse(text)));
+      } catch (error) {
+        window.alert(`Could not read those settings.\n\n${error instanceof Error ? error.message : error}`);
+        return;
+      }
+      readout.className = '';
+      readout.textContent = 'Settings read from a file. Press Start when you are ready.';
+    });
+    // Cleared so that choosing the same file twice is two imports rather
+    // than one, which matters while a file is being edited beside the page.
+    file.value = '';
+  });
 
   // ---- the viewer --------------------------------------------------------
 
@@ -568,7 +635,7 @@ export function startEvolution(): void {
       return;
     }
     readout.className = '';
-    run = new Run(founders, configure());
+    run = new Run(founders, readSetup().config);
     masses.clear();
     shown = -1;
     replay = null;

@@ -1,9 +1,10 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { compileBlueprint, type Blueprint } from '../sim/index.js';
 import { BLUEPRINTS, type BlueprintName } from '../scenarios/blueprints.js';
 import { champion, matchCount, runEvolution, DEFAULT_RUN, type RunConfig } from '../evolution/run.js';
 import { DEFAULT_KINDS } from '../evolution/mutate.js';
+import { parseRunConfig, serialiseRunConfig } from '../evolution/configFile.js';
 import type { ModuleKind } from '../sim/modules.js';
 
 /**
@@ -19,16 +20,41 @@ import type { ModuleKind } from '../sim/modules.js';
 interface Options {
   readonly from: readonly BlueprintName[];
   readonly out: string;
+  /** Where to write the settings this run was given, or '' for nowhere. */
+  readonly saveConfig: string;
   readonly config: Partial<RunConfig>;
   readonly quiet: boolean;
 }
 
+/**
+ * A ship named in a config file, as a key into the shipped fleet.
+ *
+ * By the ship's own name, because that is what a config written by the page
+ * holds — its library lists ships by name, having no notion of the key this
+ * file uses. A key is accepted too, since that is what `--from` takes.
+ */
+function resolve(name: string): BlueprintName {
+  for (const [key, blueprint] of Object.entries(BLUEPRINTS)) {
+    if (blueprint.name === name || key === name) return key as BlueprintName;
+  }
+  throw new Error(
+    `the config names a ship this has never heard of: ${name}. It may be one saved in the ` +
+      `editor, which lives in a browser rather than here — export it from there as a file. ` +
+      `The ships this knows are ${Object.values(BLUEPRINTS).map((b) => b.name).join(', ')}`,
+  );
+}
+
 function parse(argv: readonly string[]): Options {
   const from: BlueprintName[] = [];
-  const config: Record<string, unknown> = {};
+  // Whatever a `--config` file said, which every flag then overrides: a saved
+  // experiment with one number changed is the commonest thing to want, and
+  // having to edit the file to get it would mean editing the record of what
+  // was run in order to run something else.
+  let config: Record<string, unknown> = {};
   const match: Record<string, unknown> = {};
   const kinds: Partial<Record<ModuleKind, number>> = {};
   let out = 'runs/run.json';
+  let saveConfig = '';
   let quiet = false;
   let budget = 0;
 
@@ -75,6 +101,14 @@ function parse(argv: readonly string[]): Options {
           kinds[kind as ModuleKind] = number;
         }
         break;
+      // Settings written by the evolution page, or by `--save-config`.
+      case '--config': {
+        const setup = parseRunConfig(JSON.parse(readFileSync(value(), 'utf8')));
+        for (const name of setup.founders) from.push(resolve(name));
+        config = { ...setup.config };
+        break;
+      }
+      case '--save-config': saveConfig = value(); break;
       case '--quiet': quiet = true; break;
       default:
         throw new Error(`unknown argument ${arg}`);
@@ -82,14 +116,19 @@ function parse(argv: readonly string[]): Options {
   }
 
   if (from.length === 0) from.push('corvette');
-  if (Object.keys(match).length > 0) config['match'] = match;
-  if (Object.keys(kinds).length > 0) config['mutation'] = { kinds };
+  if (Object.keys(match).length > 0) {
+    config['match'] = { ...(config['match'] as object | undefined), ...match };
+  }
+  if (Object.keys(kinds).length > 0) {
+    const held = (config['mutation'] as { kinds?: object } | undefined)?.kinds;
+    config['mutation'] = { kinds: { ...held, ...kinds } };
+  }
   if (budget > 0) {
     let heaviest = 0;
     for (const name of from) heaviest = Math.max(heaviest, compileBlueprint(BLUEPRINTS[name]!).mass);
     config['massBudget'] = heaviest * budget;
   }
-  return { from, out, config, quiet };
+  return { from, out, saveConfig, config, quiet };
 }
 
 const options = parse(process.argv.slice(2));
@@ -101,6 +140,22 @@ if (!options.quiet) {
     `${options.from.join(', ')} — ${settings.generations} generations of ` +
       `${settings.population}, ${settings.group} to a match, ${settings.minMatches} matches each`,
   );
+}
+
+if (options.saveConfig !== '') {
+  mkdirSync(dirname(options.saveConfig), { recursive: true });
+  writeFileSync(
+    options.saveConfig,
+    `${JSON.stringify(
+      serialiseRunConfig({
+        founders: options.from.map((name) => BLUEPRINTS[name]!.name),
+        config: settings,
+      }),
+      null,
+      2,
+    )}\n`,
+  );
+  if (!options.quiet) console.log(`settings → ${options.saveConfig}`);
 }
 
 const started = Date.now();

@@ -255,7 +255,12 @@ inside any one file is not contiguous.
   before it learns to shoot, and a total hides that behind one rising line. Any match of any generation is
   fought again from its seed at whatever speed suits, which is the same match that was scored rather than a
   second one assembled to look like it, and the best design of a run goes to the editor's library to be
-  looked at and taken apart.
+  looked at and taken apart. **Settings are a file.** A run is decided entirely by its seed and its
+  configuration, so those few numbers are the whole record of what was tried: they are written out and read
+  back as JSON, by the page and by `npm run evolve` alike, so an experiment can be kept beside its result,
+  sent to somebody, or designed on the page and then fought overnight headlessly. Every field is optional
+  and anything left out is the default, angles are degrees as they are in a blueprint file, and no budget is
+  `null` because JSON has no infinity.
 - **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio

@@ -5,6 +5,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -135,6 +136,35 @@ describe('the evolution page in a browser', () => {
     const held = await page.textContent('#watching');
     await page.waitForTimeout(400);
     expect(await page.textContent('#watching')).toBe(held);
+    expect(problems).toEqual([]);
+  }, 60_000);
+
+  it('writes its settings to a file and reads them back', async () => {
+    // The settings are the experiment, so what matters is that the file is a
+    // faithful copy of the form and that reading one puts the form back where
+    // it was — including the founders, which live in a list rather than a box.
+    await set(page, 'seed', '4242');
+    await set(page, 'kindTurret', '0');
+    const saving = page.waitForEvent('download');
+    await page.click('#exportConfig');
+    const written = await (await saving).path();
+    const file = JSON.parse(await readFile(written, 'utf8')) as Record<string, unknown>;
+    expect(file['seed']).toEqual(4242);
+    expect((file['kinds'] as Record<string, number>)['turret']).toEqual(0);
+    expect(file['founders']).toEqual(['Dinky']);
+
+    // Changed underneath, then read back: the import has to put every one of
+    // these back rather than only the boxes somebody remembered to wire up.
+    await set(page, 'seed', '1');
+    await set(page, 'kindTurret', '9');
+    await page.selectOption('#founders', ['Corvette']);
+    await page.setInputFiles('#importConfigFile', written);
+    await page.waitForFunction(() => document.getElementById('readout')?.textContent?.includes('read from a file') === true);
+    expect(await page.inputValue('#seed')).toEqual('4242');
+    expect(await page.inputValue('#kindTurret')).toEqual('0');
+    expect(await page.evaluate(() =>
+      [...(document.getElementById('founders') as HTMLSelectElement).selectedOptions].map((o) => o.value),
+    )).toEqual(['Dinky']);
     expect(problems).toEqual([]);
   }, 60_000);
 

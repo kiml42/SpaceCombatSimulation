@@ -127,6 +127,15 @@
     <main>
       <aside id="setup">
         <section>
+          <h2>Settings</h2>
+          <div class="buttons">
+            <button id="exportConfig" title="Write these settings out as a file">Export</button>
+            <button id="importConfig" title="Read settings back from a file">Import</button>
+            <input id="importConfigFile" type="file" accept="application/json,.json" hidden />
+          </div>
+          <p class="note">A run is decided by its seed and these numbers, so the file is the whole of what was tried.</p>
+        </section>
+        <section>
           <h2>Founders</h2>
           <select id="founders" multiple title="The ships the run starts from"></select>
           <p class="note">Ctrl-click for several. The rest of the first generation is mutants of these.</p>
