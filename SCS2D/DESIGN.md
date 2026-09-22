@@ -134,7 +134,10 @@ inside any one file is not contiguous.
   engines first, because a fighter that cannot destroy a capital can still strand one.
   **A ship is flown from a core** (§4), and one whose cores have been shot out is a hulk with sound
   engines and sound guns — so a mission kill is a place on the hull rather than a tally of mounts, and a
-  ship worth its mass carries a second core, because a hull cut between two of them is two ships.
+  ship worth its mass carries a second core, because a hull cut between two of them is two ships. The
+  `split` scenario is that sentence made visible: the Catamaran is two hulls joined by a footbridge of thin
+  structure with a core in each, a corvette is sent through the bridge at sixty metres a second, and the
+  two halves pick up the enemy across the field on their own doctrine without being told anything.
 - **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. After it comes headless evolution and analysis. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
