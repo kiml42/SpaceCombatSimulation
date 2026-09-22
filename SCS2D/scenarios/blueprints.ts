@@ -9,6 +9,7 @@ import flatGunshipGroupedFile from './flat-gunship-grouped.json' with { type: 'j
 import beamGunshipFile from './beam-gunship.json' with { type: 'json' };
 import fractalFile from './fractal.json' with { type: 'json' };
 import dinkyFile from './dinky.json' with { type: 'json' };
+import catamaranFile from './catamaran.json' with { type: 'json' };
 
 // --- Star Wars ---
 import xWingFile from './blueprints/x-wing.json' with { type: 'json' };
@@ -53,6 +54,7 @@ export const FLAT_GUNSHIP_GROUPED: Blueprint = parseBlueprint(flatGunshipGrouped
 export const BEAM_GUNSHIP: Blueprint = parseBlueprint(beamGunshipFile);
 export const FRACTAL: Blueprint = parseBlueprint(fractalFile);
 export const DINKY: Blueprint = parseBlueprint(dinkyFile);
+export const CATAMARAN: Blueprint = parseBlueprint(catamaranFile);
 
 export const X_WING: Blueprint = parseBlueprint(xWingFile);
 export const GHOST: Blueprint = parseBlueprint(ghostFile);
@@ -69,6 +71,7 @@ export const BLUEPRINTS = {
     fractal: FRACTAL,
     flatGunship: FLAT_GUNSHIP,
     dinky: DINKY,
+    catamaran: CATAMARAN,
     flatGunshipGrouped: FLAT_GUNSHIP_GROUPED,
 
     xWing: X_WING,

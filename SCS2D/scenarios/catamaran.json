@@ -1,0 +1,160 @@
+{
+  "formatVersion": 1,
+  "name": "Catamaran",
+  "notes": "Two hulls and a footbridge. Each hull is a whole ship — core, gun, engines — and what joins them is four sections of thin structure, so the pair is held together by welds a fraction of the width of the ones inside either hull. Built to be cut in half: what the two halves then do is what tells you whether a piece with a core of its own is a ship or wreckage.",
+  "assemblies": {
+    "wingBox": {
+      "notes": "Holds a manoeuvring thruster out where its moment arm is worth having. Outboard only: a thruster on the inboard face would exhaust across the bridge and into the other hull.",
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 0,
+          "y": 0,
+          "length": 4,
+          "width": 3
+        }
+      ]
+    },
+    "lateral": {
+      "modules": [
+        {
+          "kind": "thruster",
+          "x": 0,
+          "y": -1,
+          "angle": -90,
+          "length": 2,
+          "width": 3
+        }
+      ]
+    },
+    "retro": {
+      "modules": [
+        {
+          "kind": "thruster",
+          "x": -1,
+          "y": 0,
+          "angle": 180,
+          "length": 2,
+          "width": 3
+        }
+      ]
+    },
+    "hull": {
+      "notes": "One of the pair, drawn as if it were the whole ship — which is what it becomes.",
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 5,
+          "y": 0,
+          "length": 6,
+          "width": 6,
+          "reinforcement": 2
+        },
+        {
+          "kind": "core",
+          "x": 0,
+          "y": 0,
+          "length": 4,
+          "width": 6,
+          "notes": "One each, which is the point: a hull cut off from the other still has somebody aboard it.",
+          "reinforcement": 2
+        },
+        {
+          "kind": "structure",
+          "x": -5,
+          "y": 0,
+          "length": 6,
+          "width": 6,
+          "reinforcement": 2
+        },
+        {
+          "kind": "turret",
+          "x": 10.5,
+          "y": 0,
+          "angle": 0,
+          "length": 5,
+          "width": 4,
+          "barrels": 1
+        },
+        {
+          "kind": "thruster",
+          "x": -8,
+          "y": 0,
+          "angle": 0,
+          "length": 4,
+          "width": 6
+        },
+        {
+          "use": "wingBox",
+          "x": 4,
+          "y": 4.5
+        },
+        {
+          "use": "wingBox",
+          "x": -4,
+          "y": 4.5
+        },
+        {
+          "use": "lateral",
+          "x": 4,
+          "y": 7
+        },
+        {
+          "use": "lateral",
+          "x": -4,
+          "y": 7
+        },
+        {
+          "use": "retro",
+          "x": 7,
+          "y": 4.5
+        }
+      ]
+    },
+    "link": {
+      "notes": "A section of the bridge. A metre and a bit of face is all that welds one to the next, against the six that hold a hull together and the reinforcement those carry.",
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 0,
+          "y": 0,
+          "length": 1.2,
+          "width": 5.5
+        }
+      ]
+    }
+  },
+  "modules": [
+    {
+      "use": "hull",
+      "x": 0,
+      "y": 14
+    },
+    {
+      "use": "hull",
+      "x": 0,
+      "y": -14,
+      "mirror": true
+    },
+    {
+      "use": "link",
+      "x": 0,
+      "y": 8.25
+    },
+    {
+      "use": "link",
+      "x": 0,
+      "y": 2.75
+    },
+    {
+      "use": "link",
+      "x": 0,
+      "y": -2.75
+    },
+    {
+      "use": "link",
+      "x": 0,
+      "y": -8.25
+    }
+  ]
+}
