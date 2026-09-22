@@ -17,8 +17,10 @@ import { describe, expect, it } from 'vitest';
 
 /**
  * The trees these rules cover. `scenarios/` is in because a scenario feeds a
- * golden checksum, so it is bound by determinism exactly as `sim/` is — but it
- * is a separate root because one rule, the import rule, applies only to `sim/`.
+ * golden checksum, and `evolution/` because a run has to be reproducible from
+ * its seed to be worth recording — so both are bound by determinism exactly as
+ * `sim/` is. They are separate roots because one rule, the import rule, applies
+ * only to `sim/`: both of these are *meant* to import the simulation.
  *
  * Each file carries the root it came from rather than being matched against
  * its path. Path matching is how this went wrong before: `path.includes('/sim/')`
@@ -28,6 +30,7 @@ import { describe, expect, it } from 'vitest';
 const ROOTS = [
   { label: 'sim', dir: fileURLToPath(new URL('../sim', import.meta.url)) },
   { label: 'scenarios', dir: fileURLToPath(new URL('../scenarios', import.meta.url)) },
+  { label: 'evolution', dir: fileURLToPath(new URL('../evolution', import.meta.url)) },
 ] as const;
 
 /** The one file allowed to touch `Math`, because its job is to replace it. */

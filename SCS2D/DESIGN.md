@@ -143,6 +143,16 @@ inside any one file is not contiguous.
   `split` scenario is that sentence made visible: the Catamaran is two hulls joined by a footbridge of thin
   structure with a core in each, a corvette is sent through the bridge at sixty metres a second, and the
   two halves pick up the enemy across the field on their own doctrine without being told anything.
+  **Ships breed.** A blueprint is mutated into another: the numbers in its modules, the numbers in its
+  doctrine, and its shape — a module added, copied onto a free face, or taken off. What decides whether a
+  mutant is a ship is the layout rules themselves, which refuse a candidate rather than repair it, since a
+  repair rule would be a second opinion about what a ship is. Two things make that affordable on a hull
+  that is a tight packing of boxes: a size changes by moving *one* face, so the opposite face stays against
+  whatever it was attached to, and everything moves in whole grid steps, so faces that were flush land
+  flush. A module written inside an assembly is written once however many copies are placed, so mutating it
+  changes every copy and a wing that grows a gun grows it on both wings. Whether a generation is structural
+  is settled before the retrying starts rather than inside it, which is what stops the rare, hard edit being
+  crowded out by the common, easy one; and a child is written back to a file the editor opens.
 - **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. After it comes headless evolution and analysis. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
@@ -154,7 +164,12 @@ inside any one file is not contiguous.
   for thruster allocation and turrets: it drives both through the same loop the game uses, so a
   change in either moves its checksum. Blueprint compilation is not owed one — it is pure derivation
   with no state to drift, and is pinned by unit tests against independently worked values.
-- **Measured:** integration costs ~0.19 microseconds per body-step. Ray queries
+- **Measured:** breeding is neutral about how big a ship is — 800 generations deep, a gunship's line
+  added 62 modules and took off 59, at 3.7 candidates drawn per child, with a structural edit landing in
+  121 of the 800. That balance is a calibration and not a coincidence: a module is harder to bolt on than
+  to take off, so drawing the two evenly breeds a line that loses a module whenever it gains one and ends
+  as a hull with no guns on it.
+  Integration costs ~0.19 microseconds per body-step. Ray queries
   against 140 bodies at 2,000 casts per step cost 0.16 ms through the grid versus
   0.79 ms brute-force — 5x, and about 1% of a 16,667 microsecond frame budget at
   60 Hz. Neither is the bottleneck at this scale; the gap widens with projectile
