@@ -34,14 +34,15 @@ or leave them out entirely if the name is sufficient, or the code easy to read.
 
 ## Archived Unity Project
 
-The rest of this file documents that archived project, but only for parts that may be useful for reference in the new project.
-This whole project will be removed from the repository once we've implemented target prioritisation, and evolution mechanics (and possibly persistence).
-
-### What it is
-
 A Unity 3D simulation of space combat with Newtonian-ish physics ("space ships are not aeroplanes"), plus a
 genetic-algorithm harness that evolves ship designs. A ship is not authored by hand: it is *grown* from a genome
 string, fought in a match, scored, and its genome mutated for the next generation. Results persist in SQLite.
+
+What follows documents only the parts still worth consulting — the genome encoding, the evolution loop and the
+SQLite layer, none of which the rewrite has yet. **Targeting is no longer among them**: `SCS2D/sim/targeting.ts`
+and `sim/doctrine.ts` replaced it with per-mount picking from doctrine weights, and the archive's static
+`TargetRepository` and priority-ordered `ITargetPicker` stack are of no further use. The tree goes when
+`SCS2D/DESIGN.md` §10's deletion trigger is met — the new sim running an evolution generation headlessly.
 
 ### Repository layout
 
@@ -58,79 +59,43 @@ The Unity project is **not** at the repo root — it lives in the `SpaceCombatSi
 | `Builds/<version>/` | Committed player builds |
 | `ToDo.txt` | The project's live bug list and roadmap — check it before "fixing" odd behaviour |
 
-`*.sln` and `*.csproj` are Unity-generated and gitignored. Don't hand-edit or commit them. There are no `.asmdef`
-files, so everything compiles into `Assembly-CSharp` / `Assembly-CSharp-Editor`.
+`*.sln` and `*.csproj` are Unity-generated and gitignored. Don't hand-edit or commit them.
 
-`ProjectVersion.txt` pins Unity `2022.3.15f1`, but the editors installed on this machine are `6000.3.2f1` and
-`6000.3.9f1` (`C:\Program Files\Unity\Hub\Editor\<version>\Editor\Unity.exe`). Opening with an installed editor
-will trigger a project upgrade.
-
-### Architecture
-
-#### Genome → ship
+### Genome → ship
 
 `GenomeWrapper` ([GenomeWrapper.cs](SpaceCombatSimulation/Assets/Src/Evolution/GenomeWrapper.cs)) is a cursor over
 the genome string. It hands out fixed-width "genes" (`GetGene`, `GetGeneAsInt`, `GetScaledNumber`) and wraps around
 the end of the string, so a genome is effectively circular. `Jump()`/`JumpBack()` let a module's configuration live
 at an arbitrary offset in the genome — this is what makes the encoding tree-shaped rather than a flat array.
 
-Construction is a mutual recursion:
-
-1. `EvolutionShipConfig.SpawnShip` instantiates the root prefab and calls `Configure(genomeWrapper)` on it.
-2. Every configurable component derives from
-   `GeneticConfigurableMonobehaviour` ([here](SpaceCombatSimulation/Assets/Src/ModuleSystem/GeneticConfigurableMonobehaviour.cs)),
-   which records `ConfigIndex`, guards against double-configuration, and delegates to `SubConfigure`.
-3. `ModuleHub.SubConfigure` runs a `ShipBuilder`, which walks the hub's `SpawnPoints`, reads a gene to pick a module
-   out of the shared `ModuleList` (constrained by `AllowedModuleIndicies`), instantiates it, and calls
-   `GenomeWrapper.ConfigureAddedModule`.
-4. `ConfigureAddedModule` accumulates cost/type counts, then jumps, configures the new module (which may itself be a
-   hub, recursing), and jumps back.
+Construction is a mutual recursion: `ModuleHub.SubConfigure` runs a `ShipBuilder`, which walks the hub's
+`SpawnPoints`, reads a gene to pick a module out of the shared `ModuleList`, instantiates it, and calls
+`GenomeWrapper.ConfigureAddedModule` — which accumulates cost/type counts, jumps, configures the new module (which
+may itself be a hub, recursing), and jumps back.
 
 Two hard limits shape the result: a **cost budget** (`GenomeWrapper.Budget`, from `MatchConfig`) and **spatial
-collision** — `ShipBuilder` spawns a throwaway `TestCubeChecker` at each candidate point and refuses locations within
-`THRESHOLD_DISTANCE` of an already-used one.
+collision** — `ShipBuilder` refuses a spawn point within `THRESHOLD_DISTANCE` of an already-used one.
 
 The tree of instantiated modules is recorded as nested `ModuleRecord`s, and their string forms *are* the taxonomy:
 `Species` / `Subspecies` / `Name` on `GenomeWrapper` are all renderings of that tree. Species strings are used as
 grouping keys in the DB and graphs, so changing `ModuleRecord.ToString*` changes data compatibility.
 
-#### Evolution loop
+### Evolution loop
 
 `EvolutionController` ([EvolutionController.cs](SpaceCombatSimulation/Assets/Src/Evolution/EvolutionController.cs))
-drives everything and handles all three run flavours (battle-royale, drone, race) in one class, with `#region`
-blocks per flavour and a config object per flavour hanging off `EvolutionConfig`.
+drives all three run flavours (battle-royale, drone, race) in one class, reading `EvolutionConfig` from SQLite and
+loading or creating the current `Generation`.
 
-- `Start()`: takes `DatabaseId` from `ArgumentStore.IdToLoad` (set by the menu scene, otherwise the inspector value),
-  reads `EvolutionConfig` from SQLite, loads or creates the current `Generation`, then spawns race goal, ships, drones.
 - `Generation` ([Generation.cs](SpaceCombatSimulation/Assets/Src/Evolution/Generation.cs)) owns competitor selection
   (`PickCompetitors` prefers individuals with fewest matches and avoids repeat pairings), `RecordMatch`, and
   `PickWinners`.
-- `FixedUpdate()`: polls at `MatchConfig.WinnerPollPeriod` via `EvolutionMatchController`, accrues `Score` by
-  `ScoreType`, and when the match ends writes the generation back and **reloads the current scene**. Scene reload is
-  the iteration mechanism — there is no in-place reset. A generation rolls over when every individual has played
-  `MinMatchesPerIndividual` matches; `EvolutionMutationWrapper`/`StringMutator` then produce the next genomes.
+- A match ends by polling at `MatchConfig.WinnerPollPeriod`, accruing `Score` by `ScoreType`, then writing the
+  generation back and **reloading the current scene**. Scene reload is the iteration mechanism — there is no
+  in-place reset.
+- A generation rolls over when every individual has played `MinMatchesPerIndividual` matches;
+  `EvolutionMutationWrapper`/`StringMutator` then produce the next genomes.
 
-The `Edit*ConfigController` classes in `Assets/Src/Evolution/` back the `EditEvolution` scene, which is the UI for
-the same DB rows.
-
-#### Targeting
-
-Targeting is deliberately data-driven so it can be tuned by the genome:
-
-- `TargetRepository` ([TargetRepository.cs](SpaceCombatSimulation/Assets/Src/ObjectManagement/TargetRepository.cs)) is
-  a **static** dictionary of `ITarget` keyed by team string. `SelfRegisteringTarget` adds/removes entries. Because it
-  is static it survives scene reloads — treat stale entries as a real failure mode.
-- Who counts as an enemy comes from `IKnowsEnemyTags`; `EnemyTagSource.DeferToParent` means a module normally
-  inherits its ship's enemy list rather than declaring its own.
-- `TargetChoosingMechanism` (global namespace) asks an `ITargetDetector` for candidates, then filters through
-  `CombinedTargetPicker`, which runs every sibling `ITargetPicker` in **ascending `TargetPickerPriority`**. A
-  low-priority picker that discards a target removes it before higher-priority pickers ever see it — ordering is
-  semantically load-bearing, not cosmetic.
-- Pickers under `Targeting/TargetPickers/` either filter or adjust `PotentialTarget.Score`. Those deriving from
-  `GeneticallyConfigurableTargetPicker` have their `Threshold`/`FlatBoost`/`Multiplier` read out of the genome, so
-  each evolved ship has its own target preferences.
-
-#### Persistence
+### Persistence
 
 SQLite via the committed `Assets/Plugins/Mono.Data.Sqlite.dll` + `sqlite3.dll` (the `packages.config` entries for
 `Microsoft.Data.Sqlite` are vestigial). `EvolutionDatabaseHandler` writes raw SQL — no ORM.
