@@ -438,26 +438,19 @@ Deliberately unresolved; decide when they block something.
   Entangled with it: **identity is a ship's name**, so renaming re-identifies. Once revisions are
   referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
   together, at the campaign slice.
-- **How a run starts from nothing, and how clever a pilot should be.** Breeding a bare core is the sharpest
-  test there is of what a fitness function rewards, and it ends up with guns rather than engines — a hundred
-  and fifty generations of one produced sixteen guns a design and a tenth of a thruster.
-  What is *not* the reason is the shape of the goal's falloff, the operator's ability to bolt an engine on,
-  or where on a face it lands; all three were investigated and fixed, and none of them moved it. A bare core
-  now keeps thrusters — eight in ten designs carry one, against none before — and still never moves.
-  The reason left is the **pilot**. A hull keeps the heading it spawned with unless it has the thrusters to
-  turn, and the allocator fires a thruster only when the force being asked for has a component along its
-  thrust — so of the four faces a first thruster can go on, the one pushing towards the goal earns 0.23 and
-  the other three earn *exactly* nothing. Mounting it off-centre, so its thrust line misses the centre of
-  mass and it has torque to turn with, changes nothing at all: 0.500 on all three, measured. What a lineage
-  accumulates instead is thrusters as ballast, carried because nothing costs them anything and used by
-  nothing.
+- **How clever a pilot should be.** A bare core bred against the goal and nothing else *does* learn to move,
+  given three hundred generations and a heading it did not choose — so the question is no longer whether a
+  run can start from nothing. What is still true is that a hull with one engine can only use it if it
+  happens to point the right way: the allocator fires a thruster when the force being asked for has a
+  component along its thrust, so a first engine is worth 0.23 on one face and exactly nothing on the other
+  three, and mounting it off-centre to give it torque changes nothing measurable. A lineage gets there by
+  collecting engines until enough of them point usefully, which works and is slow.
   A cleverer pilot would make every one of them useful. Any off-axis thruster can be flown with if you do
-  not mind spinning: fire it once to start the hull turning, then pulse it whenever the nose comes round to
-  the heading you want, and the ship walks along that heading. That is a real technique and it is a long way
-  past what this controller does — it holds a demanded velocity through a linear allocation, and spinning
-  deliberately is the opposite of everything else it is for. Worth knowing the choice is there: either the
-  pilot learns to do that and a first engine pays wherever it lands, or propulsion is something a run is
-  started with rather than expected to invent. The second is cheap and the first is a controller of its own.
+  not mind spinning: fire it to start the hull turning, then pulse it whenever the nose comes round to the
+  heading you want. That is a real technique and a long way past what this controller does — it holds a
+  demanded velocity through a linear allocation, and spinning deliberately is the opposite of everything
+  else it is for. The choice is between that and accepting that propulsion is assembled rather than
+  invented.
 - **How big an arena should be.** A match's ring is five hundred metres because that is where the shipped
   corvettes fight each other to a finish — put four of them a kilometre apart and they settle at the
   standoff their doctrine asks for and plink, and no match is ever decided however long it runs, so two of

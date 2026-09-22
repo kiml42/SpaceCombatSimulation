@@ -154,7 +154,7 @@ inside any one file is not contiguous.
   is settled before the retrying starts rather than inside it, which is what stops the rare, hard edit being
   crowded out by the common, easy one; and a child is written back to a file the editor opens.
   **A match is fought and scored.** A handful of designs are put in an arena together — every entrant its
-  own side, evenly round a ring, each facing the middle — and the battle is run until one of them is left or
+  own side, evenly round a ring, on a heading it did not choose — and the battle is run until one of them is left or
   the clock runs out. Three things are scored in the one match rather than in separate kinds of match,
   because the trade between them is the interesting part: surviving, damage done, and how much of the match
   was spent near a point worth holding — the last of those falling away with distance for ever rather than

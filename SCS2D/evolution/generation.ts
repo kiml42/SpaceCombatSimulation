@@ -1,5 +1,5 @@
 import type { Blueprint, Rng } from '../sim/index.js';
-import { min } from '../sim/math.js';
+import { max, min } from '../sim/math.js';
 import { mutate, type MutationLimits } from './mutate.js';
 import type { MatchResult } from './match.js';
 
@@ -30,6 +30,15 @@ export interface Individual {
   /** How often this individual has met each other one, by id. */
   readonly met: Map<number, number>;
 }
+
+/**
+ * How much of the generation's spread the worst design still gets, as a share.
+ *
+ * What it buys is the occasional wrong answer surviving to be measured again;
+ * what it costs is pressure. A fifth leaves the best of a generation six times
+ * likelier than the worst and nobody impossible.
+ */
+const SELECTION_FLOOR = 0.2;
 
 /** Mean score per match, which is what ranks an individual. */
 export function fitness(individual: Individual): number {
@@ -122,17 +131,39 @@ export class Generation {
    *
    * Weighted by score against a uniform draw, rather than simply taken from
    * the top: a match is a noisy sample, and a strictly elitist cut throws away
-   * a design that drew a hard group on the strength of one battle. The shift
-   * by the worst score keeps every individual possible — the point of a
-   * generation is to be wrong about a design occasionally and find out later.
+   * a design that drew a hard group on the strength of one battle. The point
+   * of a generation is to be wrong about a design occasionally and find out
+   * later, so the worst is never impossible.
+   *
+   * **The floor under it is a share of the spread, not a fixed number**, and
+   * that is the whole difference between selection and a random walk. A fixed
+   * floor of one is what the archive used, and it worked there because scores
+   * were counted in hundreds, so one was nothing. Here a score runs from
+   * nothing to a few, and a floor of one swamps every difference there is: a
+   * design scoring 0.72 against one scoring 0.50 was picked first 59% of the
+   * time — a coin toss with a lean — and a population that had *found* how to
+   * move lost it again within fifty generations, over and over. Against a
+   * floor set by the spread it is picked 92% of the time, which is pressure a
+   * gain can survive.
+   *
+   * Everything tied is the one case with no spread to take a share of, and
+   * then this is a straight draw, which is the right answer to a generation
+   * that has told you nothing.
    */
   winners(rng: Rng, count: number): Individual[] {
     let worst = Infinity;
-    for (const individual of this.individuals) worst = min(worst, fitness(individual));
+    let best = -Infinity;
+    for (const individual of this.individuals) {
+      const score = fitness(individual);
+      worst = min(worst, score);
+      best = max(best, score);
+    }
+    const spread = best - worst;
+    const floor = spread > 0 ? spread * SELECTION_FLOOR : 1;
     return [...this.individuals]
       .map((individual) => ({
         individual,
-        weight: (1 + fitness(individual) - worst) * rng.nextFloat(),
+        weight: (fitness(individual) - worst + floor) * rng.nextFloat(),
       }))
       .sort((a, b) => b.weight - a.weight)
       .slice(0, count)
