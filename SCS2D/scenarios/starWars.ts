@@ -16,10 +16,16 @@ import {
 import { type Battle } from './types.js';
 import { STAR_DESTROYER, TIE, X_WING, GHOST } from './blueprints.js';
 import { Rng } from '../sim/rng.js';
-import { OrderCancelCondition } from '../sim/ships.js';
 
 /**
- * Many dinkies and one gunship closing on each other and opening fire.
+ * A fleet action with nobody flying it.
+ *
+ * Every craft in it carries its own doctrine and nothing issues an order:
+ * the fighters go for each other's guns and engines, the freighters take
+ * whatever is nearest, the Star Destroyer's batteries work down from the
+ * biggest thing on the board, and its close-in beams fight their own battle
+ * against whatever has got inside them. What the battle does is therefore a
+ * property of four blueprints rather than of this file.
  */
 
 export function starWars(seed = 20260905, tieFighterCount = 8, xWingCount = 30): Battle {
@@ -41,11 +47,11 @@ export function starWars(seed = 20260905, tieFighterCount = 8, xWingCount = 30):
   const randomRadius = 1000;
 
 
-  const isds = spawnMany(1, rng, randomRadius, ships, world, isdBlueprint, 10_000, 0, 0);
-  const ties = spawnMany(tieFighterCount, rng, randomRadius, ships, world, tieBlueprint, 1200, 0, 0);
+  spawnMany(1, rng, randomRadius, ships, world, isdBlueprint, 10_000, 0, 0);
+  spawnMany(tieFighterCount, rng, randomRadius, ships, world, tieBlueprint, 1200, 0, 0);
 
-  const xWings = spawnMany(xWingCount, rng, randomRadius, ships, world, xWingBlueprint, -2400, 0, 1);
-  const ghosts = spawnMany(2, rng, randomRadius, ships, world, ghostBlueprint, -4000, 0, 1);
+  spawnMany(xWingCount, rng, randomRadius, ships, world, xWingBlueprint, -2400, 0, 1);
+  spawnMany(2, rng, randomRadius, ships, world, ghostBlueprint, -4000, 0, 1);
 
   const grid = new SpatialGrid(64);
   const projectiles = new Projectiles(512);
@@ -139,20 +145,3 @@ function spawnMany(count: number,
   }
   return shipIndices;
 }
-
-function shuffle(array : number[], rng: Rng) {
-  let currentIndex = array.length;
-
-  // While there remain elements to shuffle...
-  while (currentIndex != 0) {
-
-    // Pick a remaining element...
-    let randomIndex = math.floor(rng.nextRange(0,currentIndex));
-    currentIndex--;
-
-    // And swap it with the current element.
-    [array[currentIndex], array[randomIndex]] = [
-      array[randomIndex], array[currentIndex]];
-  }
-}
-
