@@ -272,7 +272,10 @@ assembly at a time, and there is no inverse of grouping that puts a whole assemb
 grouping several modules already in different assemblies is refused, as is grouping a group; both would
 nest, which the format allows and this does not build. Adding to a group takes loose modules only, for the
 same reason. All of it is §8 step 6, deliberately after v1: it is what reworking a ship needs rather than
-what building one needs.
+what building one needs. Evolution's mutation operator *does* dissolve a group, which is not a contradiction
+so much as a note about where the difficulty is: it only ever dissolves the plain case — one copy, no
+extras, nothing nested — which is the case the editor's unlink already handles exactly, and what the editor
+is short of is the interface rather than the arithmetic.
 
 **How one copy of a group differs from another is additive.** An instance may carry `extra` modules of its
 own, placed in the same frame as the assembly's, so they move and reflect with it. That is the whole of the divergence

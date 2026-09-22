@@ -23,6 +23,16 @@ import { CATAMARAN, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js'
  * every individual draw looks fine while it happens.
  */
 
+/**
+ * Edits that change how many modules a ship has.
+ *
+ * Named rather than written out at each use because the list has to be kept
+ * in step with the operators: an edit that moves modules and is not matched
+ * here reads as a generation that changed nothing, which is a test that
+ * quietly stops checking what it was written for.
+ */
+const STRUCTURAL = /removed|added|copied|taken into|instance placed|instance dropped/;
+
 const FLEET: readonly (readonly [string, Blueprint])[] = [
   ['corvette', CORVETTE],
   ['gunship', GUNSHIP],
@@ -109,11 +119,14 @@ describe('mutation', () => {
         expect(child.edits.length, `${name} child ${i}`).toBeLessThanOrEqual(
           DEFAULT_LIMITS.numbers + 1,
         );
-        const structural = child.edits.filter((edit) => /removed|added|copied/.test(edit));
+        const structural = child.edits.filter((edit) => STRUCTURAL.test(edit));
         expect(structural.length, `${name} child ${i}: ${child.edits.join(' | ')}`).toBeLessThanOrEqual(1);
         // A module added inside an assembly arrives once per copy of it, so
         // the expanded count moves by more than one — but only ever by whole
-        // copies of one module.
+        // copies of one module. Everything else leaves the ship the size it
+        // was, the edits to the *grouping* included: making a part of a module
+        // and dissolving one back into the layout change what a later
+        // generation can do rather than anything about the ship itself.
         const now = expandBlueprint(child.blueprint).length;
         if (structural.length === 0) expect(now, `${name} child ${i}`).toEqual(was);
       }
