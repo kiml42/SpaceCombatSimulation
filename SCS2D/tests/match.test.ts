@@ -102,20 +102,50 @@ describe('match', () => {
     const result = runMatch([CORVETTE], {
       seed: 17,
       duration: 20,
-      goal: { x: DEFAULT_MATCH.radius, y: 0, reach: 500, size: 12 },
+      goal: { x: DEFAULT_MATCH.radius, y: 0, scale: 500, size: 12 },
     });
     expect(result.ending).toEqual('timeout');
-    expect(result.scores[0]!.race).toBeGreaterThan(0.97);
+    expect(result.scores[0]!.race).toBeGreaterThan(0.95);
     expect(result.scores[0]!.survival).toEqual(1);
   });
 
-  it('scores nothing for a goal it is nowhere near', () => {
-    const result = runMatch([CORVETTE], {
+  it('scores almost nothing, but never nothing, for a goal far away', () => {
+    // **The falloff has no end to it.** A goal that stopped counting past
+    // some distance would leave everything beyond flat, and a flat region is
+    // one selection cannot see across — an engine too feeble to cross it
+    // would score exactly what no engine at all scores, so the first step
+    // towards moving would never be taken.
+    const far = runMatch([CORVETTE], {
       seed: 17,
       duration: 20,
-      goal: { x: 100_000, y: 0, reach: 500, size: 12 },
+      goal: { x: 100_000, y: 0, scale: 500, size: 12 },
     });
-    expect(result.scores[0]!.race).toEqual(0);
+    const nearer = runMatch([CORVETTE], {
+      seed: 17,
+      duration: 20,
+      goal: { x: 50_000, y: 0, scale: 500, size: 12 },
+    });
+    expect(far.scores[0]!.race).toBeGreaterThan(0);
+    expect(far.scores[0]!.race).toBeLessThan(0.01);
+    expect(nearer.scores[0]!.race).toBeGreaterThan(far.scores[0]!.race);
+  });
+
+  it('is worth more the closer it is, at every distance there is', () => {
+    // The property the whole thing rests on, stated directly: no plateau
+    // anywhere, so any closing at all is an improvement.
+    const at = (metres: number): number =>
+      runMatch([CORVETTE], {
+        seed: 17,
+        duration: 10,
+        goal: { x: DEFAULT_MATCH.radius + metres, y: 0, scale: 500, size: 12 },
+      }).scores[0]!.race;
+    let last = Infinity;
+    for (const metres of [0, 100, 500, 2_000, 10_000, 100_000]) {
+      const score = at(metres);
+      expect(score).toBeLessThan(last);
+      expect(score).toBeGreaterThan(0);
+      last = score;
+    }
   });
 
   it('is reached by a ship whose doctrine says to go to it', () => {
@@ -123,13 +153,13 @@ describe('match', () => {
     // it: what a ship does about the objective comes out of its doctrine like
     // everything else it does, and is weighed against the fight rather than
     // scripted. A design with nothing to say about escorting never leaves the
-    // ring it started on, and scores whatever the ring is worth — which is
-    // half, the goal reaching twice as far as the ring is wide, and is the
-    // same half for everyone, so what selection sees is the difference.
+    // ring it started on, and scores what the ring is worth — a half, the
+    // goal being worth half at exactly that distance, and the same half for
+    // every design that never moves, so what selection sees is the difference.
     const alone = runMatch([CORVETTE], { seed: 23, duration: 60 });
     const going = runMatch([escorting(CORVETTE, 200)], { seed: 23, duration: 60 });
     expect(alone.scores[0]!.race).toBeCloseTo(0.5, 2);
-    expect(going.scores[0]!.race).toBeGreaterThan(0.8);
+    expect(going.scores[0]!.race).toBeGreaterThan(0.75);
   });
 
   it('measures a hull by what it can absorb', () => {

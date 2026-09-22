@@ -44,8 +44,25 @@ import { makeBattle } from '../scenarios/battle.js';
 export interface GoalSpec {
   readonly x: number;
   readonly y: number;
-  /** Distance at which the goal is worth nothing. Closer scores proportionally. */
-  readonly reach: number;
+  /**
+   * The distance at which the goal is worth half of what it is worth at the
+   * goal itself, metres. It is worth something at *every* distance.
+   *
+   * **There is no range beyond which the goal stops counting.** A ramp that
+   * falls to nothing at some distance leaves everything past it flat, and a
+   * flat region is a region selection cannot see across: a hull that has
+   * evolved an engine too feeble to cross it scores exactly what a hull with
+   * no engine at all scores, so the first step towards moving is worth
+   * nothing and is never taken. Falling away for ever instead means any
+   * closing at all is an improvement, however small, which is what lets a
+   * half-metre thruster be an advantage rather than a rounding error.
+   *
+   * The price is a gentler slope near the goal than a ramp would give — half
+   * the weight is spent on the first `scale` metres and the rest is spread
+   * over the whole field — and that is the right way round for a search that
+   * has to start from nothing.
+   */
+  readonly scale: number;
   /** How big the marker is, metres square. Its mass follows from its size. */
   readonly size: number;
 }
@@ -92,10 +109,10 @@ export interface MatchConfig {
    *
    * At the middle of the ring by default, which is the one position every
    * entrant starts the same distance from — an objective off to one side
-   * would hand the match to whoever drew the nearest slot. Its reach is twice
-   * the ring, so that a craft out at the edge still has something to gain by
-   * turning inwards: a goal worth nothing from where the fighting happens is
-   * a goal nothing will be selected for going to.
+   * would hand the match to whoever drew the nearest slot. It is worth half
+   * from the ring the entrants start on, so a craft that never moves scores
+   * the same half as every other craft that never moves — what selection sees
+   * is which of them closed, and by how much.
    */
   readonly goal: GoalSpec | null;
   readonly weights: ScoreWeights;
@@ -107,7 +124,7 @@ export const DEFAULT_MATCH: MatchConfig = {
   dt: 1 / 60,
   duration: 120,
   radius: 500,
-  goal: { x: 0, y: 0, reach: 1000, size: 12 },
+  goal: { x: 0, y: 0, scale: 500, size: 12 },
   weights: { survival: 1, damage: 1, race: 1 },
   wells: [],
 };
@@ -296,11 +313,13 @@ export function runMatch(entrants: readonly Blueprint[], config?: Partial<MatchC
       lifetime[i]! = step + 1;
 
       const goal = settings.goal;
-      if (goal !== null && goal.reach > 0 && ships.isAlive(marker)) {
+      if (goal !== null && goal.scale > 0 && ships.isAlive(marker)) {
         const at = world.bodies.indexOf(ships.body(marker));
         const dx = world.bodies.x[body]! - world.bodies.x[at]!;
         const dy = world.bodies.y[body]! - world.bodies.y[at]!;
-        nearness[i]! = math.max(0, (goal.reach - math.length(dx, dy)) / goal.reach);
+        // One at the goal, a half at `scale`, and never quite nothing however
+        // far off — so every metre closed is worth something.
+        nearness[i]! = goal.scale / (goal.scale + math.length(dx, dy));
         race[i]! += nearness[i]!;
       }
     }

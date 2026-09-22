@@ -439,8 +439,9 @@ function rebarrel(site: ModuleSite, rng: Rng): string | null {
 
 function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits): string {
   const was = site.spec.angle ?? 0;
-  const now = was + (rng.chance(0.5) ? bounds.turn : -bounds.turn);
-  site.spec.angle = tidy(now, 6);
+  // Unrounded, for the reason `against` gives: a rounded right angle is a
+  // module tilted a fraction of a micron into its neighbour.
+  site.spec.angle = was + (rng.chance(0.5) ? bounds.turn : -bounds.turn);
   return `${site.where} ${site.spec.kind}: turned ${degrees(was)}° → ${degrees(site.spec.angle)}°`;
 }
 
@@ -534,19 +535,18 @@ const KIND_WEIGHTS: readonly (readonly [ModuleKind, number])[] = [
 /**
  * Add, copy or remove one module.
  *
- * Adding is drawn for twice as often as removing, and that is a correction
- * rather than a preference. A module taken off a hull usually leaves a layout
- * the rules still accept, while one bolted on has to find somewhere it fits —
- * so an even draw is not an even outcome, and a lineage bred from one erodes:
- * it loses a module whenever it gains one and then goes on losing, until it
- * is a hull with no guns on it. What the ratio is calibrated against is the
- * *accepted* mix, which `mutation.test.ts` pins by breeding a lineage and
- * checking it neither withers nor runs away.
+ * Drawn evenly between taking one off and putting one on, which is a
+ * calibration rather than a principle: what has to come out even is the
+ * *accepted* mix, and how often each is accepted depends on how easily a new
+ * module finds somewhere it fits. `mutation.test.ts` pins it by breeding a
+ * lineage and checking it neither withers nor runs away — and it earns its
+ * place, having caught the ratio drifting to two to one the moment a bug that
+ * was refusing half of all additions was fixed.
  */
 function restructure(draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
-  const draw = rng.nextInt(3);
-  if (draw === 0) return removePlacement(draft, rng);
-  return addModule(draft, rng, bounds, draw === 1);
+  const draw = rng.nextInt(4);
+  if (draw < 2) return removePlacement(draft, rng);
+  return addModule(draft, rng, bounds, draw === 2);
 }
 
 /**
@@ -662,13 +662,26 @@ function against(
   // *into* the anchor — which puts its position exactly on the face and its
   // exhaust pointing out. Everything else sits centred on the face, half its
   // own depth out.
+  // **The angle is not rounded, and that is load-bearing.** Positions are
+  // tidied because they are worked out through sines and cosines and land on
+  // values no file should carry; an angle is not, because a module sits
+  // against its neighbour's face and two boxes that merely touch must not
+  // count as overlapping. Rounding a right angle to six places tilts a module
+  // by three ten-millionths of a radian, which puts a corner of it some
+  // eighty nanometres inside the hull it is bolted to — and the overlap test
+  // is exact, so the layout is refused. It cost every thruster: mounted
+  // facing *into* its anchor, a thruster's angle is a right angle plus half a
+  // turn and so was never one of the two values that survive rounding, and
+  // not one could be added to any face of any ship. Angles are exact in
+  // radians here and exact in degrees in the file, which is where legibility
+  // was the concern in the first place.
   const added: ModuleSpec =
     kind === 'thruster'
       ? {
           kind,
           x: tidy(faceX, 6),
           y: tidy(faceY, 6),
-          angle: tidy(normalAngle + PI, 6),
+          angle: normalAngle + PI,
           length: out,
           width: across,
         }
@@ -676,7 +689,7 @@ function against(
           kind,
           x: tidy(faceX + (nx * out) / 2, 6),
           y: tidy(faceY + (ny * out) / 2, 6),
-          angle: tidy(endOn ? angle : angle + PI / 2, 6),
+          angle: endOn ? angle : angle + PI / 2,
           length: endOn ? out : across,
           width: endOn ? across : out,
         };

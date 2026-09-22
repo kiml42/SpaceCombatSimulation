@@ -157,7 +157,9 @@ inside any one file is not contiguous.
   own side, evenly round a ring, each facing the middle — and the battle is run until one of them is left or
   the clock runs out. Three things are scored in the one match rather than in separate kinds of match,
   because the trade between them is the interesting part: surviving, damage done, and how much of the match
-  was spent near a point worth holding. Each is scaled to run from nothing to one before it is weighted — a
+  was spent near a point worth holding — the last of those falling away with distance for ever rather than
+  stopping at a range, since a flat region is one selection cannot see across and a hull whose engine is too
+  feeble to cross it would score exactly what a hull with no engine scores. Each is scaled to run from nothing to one before it is weighted — a
   whole match survived, the whole of the opposition destroyed, a match spent sitting on the goal — so a
   weight says what an outcome is worth rather than what a joule is worth. **What keeps a ship in the match
   is a working core and nothing else**: not whether it still has a gun or an engine, since those are meant

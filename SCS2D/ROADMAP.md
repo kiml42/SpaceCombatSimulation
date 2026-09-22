@@ -438,20 +438,18 @@ Deliberately unresolved; decide when they block something.
   Entangled with it: **identity is a ship's name**, so renaming re-identifies. Once revisions are
   referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
   together, at the campaign slice.
-- **What a race goal is worth before a ship can move, and how a run starts from nothing.** Breeding a bare
-  core is the sharpest test there is of what a fitness function actually rewards, and it does not get off
-  the ground.
-  A proximity score paid over a reach wider than the ring gives every design the same something for standing
-  still — half, at twice the ring — so a run's race line can rise from nothing to a half without a single
-  craft ever having moved. Narrowing the reach to the ring removes that floor, and then a bare core scores
-  nothing at all for it: a hull that cannot move cannot approach anything, so the term it would be selected
-  on is exactly zero until it can. A first thruster does pay once it exists, and how much depends on how big
-  it is — a two-metre one earns 0.07 where the core earns nothing, and the half-metre one a mutation
-  actually adds earns a small fraction of that. Making a new module cheap to try made it cheap to ignore.
-  Meanwhile every design with a sound core scores the same full survival, so a population of bare cores is a
-  population of ties and selection is a coin toss. What would close it is a term that pays for *approaching*
-  rather than for arriving — a best-distance-gained, which a hull that moves four metres can be ranked by
-  and a hull that cannot move cannot. Until then a run wants starting from something that can already fly.
+- **How a run starts from nothing.** Breeding a bare core is the sharpest test there is of what a fitness
+  function rewards, and it still ends up with guns rather than engines — a hundred and fifty generations of
+  one produced sixteen guns a design and a tenth of a thruster.
+  What is *not* the reason, any more, is the shape of the goal's falloff or the operator's ability to bolt
+  an engine on; both were fixed and neither moved it. The reason left is that **a thruster only does
+  anything on one of the four faces it can go on.** A hull with one engine has no torque to turn with, so it
+  keeps the heading it spawned with, and the allocator fires a thruster only when the force the pilot is
+  asking for has a component along its thrust — so of the four placements, the one pushing towards the goal
+  earns 0.23 and the other three earn exactly nothing. A gun works whichever face it lands on. That
+  asymmetry, not the scoring, is what decides which a lineage discovers first, and closing it means either
+  making the first thruster worth something wherever it lands, or accepting that propulsion is something a
+  run should be started with rather than expected to invent.
 - **How big an arena should be.** A match's ring is five hundred metres because that is where the shipped
   corvettes fight each other to a finish — put four of them a kilometre apart and they settle at the
   standoff their doctrine asks for and plink, and no match is ever decided however long it runs, so two of
