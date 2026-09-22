@@ -110,14 +110,19 @@ export interface Targeting {
    * guns go on fighting whatever they can reach, since a consort does not
    * need covering by a mount that is pointing the wrong way.
    *
+   * **It is weighed against holding station, not against a target's score.**
+   * A hundred is worth exactly as much as the order a craft is flying, so a
+   * craft with that much splits the difference between closing on its enemy
+   * and staying with its charge, and one with four hundred stays with its
+   * charge and fights from there. It fades to nothing as the gap closes, so a
+   * craft that has caught up is pulled by the fight alone until the fight has
+   * drawn it off again.
+   *
    * **Zero means escort nobody, and is the default.** A friendly is not
    * offered to the stack at all below it, which is deliberate rather than
    * tidy: every preference here can be negative, so a friendly scored by the
    * ordinary weights would beat a distant enemy on proximity alone and every
-   * fleet in the game would huddle. Above zero it is what being with the
-   * friendly is worth *against* the fight, in the same units as every other
-   * weight, so a ship with a large one covers its charge through a battle and
-   * one with a small one peels off only when there is nothing much to do.
+   * fleet in the game would huddle.
    */
   readonly escortWeight: number;
 }
@@ -164,6 +169,21 @@ export interface Approach {
    * reach is a consort your guns can do something about.
    */
   readonly escort: number;
+  /**
+   * How much a craft wants to keep out of everybody's way.
+   *
+   * Weighed against holding its station like every other urge, and against
+   * nothing else: what is too close is too close whoever it is, since a
+   * collision hurts both hulls whichever side they are on.
+   */
+  readonly separation: number;
+  /**
+   * How close is too close, in multiples of the gap between two hulls' skins.
+   *
+   * Measured from touching rather than from either centre, so one number
+   * serves a fighter beside a fighter and a capital beside a capital.
+   */
+  readonly separationRadii: number;
   /** How much closer or further than that is close enough, as a fraction. */
   readonly tolerance: number;
   /** How briskly to close the difference, metres per second. */
@@ -209,6 +229,8 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     standoff: 0.65,
     escortRadii: 8,
     escort: 0.15,
+    separation: 300,
+    separationRadii: 3,
     tolerance: 0.2,
     approachSpeed: 60,
   },
@@ -243,6 +265,8 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'standoff',
   'escortRadii',
   'escort',
+  'separation',
+  'separationRadii',
   'tolerance',
   'approachSpeed',
 ];
@@ -255,7 +279,12 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
  * the mutation that must not write one are the same rule seen twice, and two
  * copies of it would disagree the first time a field was added.
  */
-export const POSITIVE_FIELDS: readonly string[] = ['preferredMass', 'standoffRadii', 'escortRadii'];
+export const POSITIVE_FIELDS: readonly string[] = [
+  'preferredMass',
+  'standoffRadii',
+  'escortRadii',
+  'separationRadii',
+];
 
 /** Every number in a doctrine, named by its path, in a fixed order. */
 export const DOCTRINE_FIELDS: readonly string[] = [

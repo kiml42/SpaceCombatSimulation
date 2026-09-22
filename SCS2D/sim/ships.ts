@@ -3,7 +3,7 @@ import { subDesign, type DesignTurret, type ShipDesign } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
-import { Choice, escortLeash, look, lookFrom, score } from './targeting.js';
+import { Choice, cohesionUrge, look, lookFrom, score } from './targeting.js';
 import {
   atan2,
   angleDelta,
@@ -100,6 +100,12 @@ const VELOCITY_RESPONSE_TIME = 2;
  * that a finished timer reads as zero everywhere — including anything that
  * later shows a reload as a fraction of its cycle.
  */
+/**
+ * The weight an order is flown with, so a doctrine number of this much is
+ * worth exactly as much as doing what it was told.
+ */
+const URGE_REFERENCE = 100;
+
 const TIMER_SETTLE = 1e-9;
 
 /**
@@ -109,6 +115,15 @@ const TIMER_SETTLE = 1e-9;
  * bearing instead of slamming against it.
  */
 const APPROACH_TIME = 8;
+
+/**
+ * How far ahead a pilot looks for something it is about to run into, seconds.
+ *
+ * Long enough that the answer is a lean rather than a swerve, and short enough
+ * that a craft is not steering around a pass that the next few seconds of
+ * everybody's manoeuvring will have changed anyway.
+ */
+const AVOID_HORIZON = 6;
 
 /** No order, or an order whose target has gone. */
 /**
@@ -467,11 +482,16 @@ export class Ships {
    */
   private readonly chosen: number[] = [];
   /**
-   * What each ship is flying *relative to*, which is not always what it is
-   * fighting: a ship covering a consort stations on the consort while its
-   * guns go on fighting whatever they can reach.
+   * What each ship is covering, which is never what it is fighting: a consort
+   * is by definition something it will not shoot at. Chosen on the same
+   * schedule as the fight and pulled on every step, since where a craft is
+   * relative to its charge changes far faster than which charge it wants.
    */
-  private readonly station: number[] = [];
+  private readonly consort: number[] = [];
+  /** The blend of steering urges being accumulated for one craft. */
+  private urgeVx = 0;
+  private urgeVy = 0;
+  private urgeWeight = 0;
   private readonly rethinkAt: number[] = [];
   /**
    * The order doctrine makes up, one per ship and rewritten in place, so that
@@ -739,7 +759,7 @@ export class Ships {
     this.derelict.push(0);
     this.cutSeen.push(-1);
     this.chosen.push(NO_TARGET);
-    this.station.push(NO_TARGET);
+    this.consort.push(NO_TARGET);
     // Staggered by index, so a fleet spawned together does not all stop to
     // think on the same step for the rest of the battle.
     this.rethinkAt.push(i);
@@ -772,7 +792,7 @@ export class Ships {
       // Being told what to do clears what it had decided for itself, so
       // running out of orders is a fresh look rather than a stale one.
       this.chosen[i] = NO_TARGET;
-      this.station[i] = NO_TARGET;
+      this.consort[i] = NO_TARGET;
       return;
     }
     if (world.tick < this.rethinkAt[i]!) return;
@@ -819,13 +839,11 @@ export class Ships {
     // negative and a consort scored by the ordinary ones would beat a distant
     // enemy on proximity alone — which would have every fleet in the game
     // huddling rather than fighting.
-    const wasEscorting = this.escorting(i);
     this.chosen[i] = fighting;
-    this.station[i] = fighting;
+    this.consort[i] = NO_TARGET;
     if (!(doctrine.escortWeight > 0)) return;
 
     this.choice.begin();
-    let gap = 0;
     for (let t = 0; t < this.alive.length; t++) {
       if (t === i || this.alive[t] === 0) continue;
       // Wreckage is nobody's consort. A live friendly that cannot fight is:
@@ -843,19 +861,11 @@ export class Ships {
         !this.hasNoEngines(t),
       );
       // Which consort is the ordinary stack's question — proximity dominating,
-      // nearly always the nearest. Whether to go to it is `escortLeash`, and
-      // is about where this craft is rather than about what that one is worth.
+      // nearly always the nearest. How hard it pulls is the pilot's, and is
+      // asked every step rather than on this schedule.
       this.choice.offer(candidate, score(doctrine, candidate, design.reach, design.mass, loyalTo));
-      if (this.choice.ship === t) gap = candidate.range;
     }
-
-    const consort = this.choice.ship;
-    if (consort === NO_TARGET) return;
-    const station = this.escortBand(design, consort);
-    // Closed up already, or strayed past the leash: the gap between the two is
-    // what stops a craft on the boundary changing its mind every time it looks.
-    const closing = wasEscorting ? gap > station : gap > escortLeash(doctrine, station);
-    if (closing || fighting === NO_TARGET) this.station[i] = consort;
+    this.consort[i] = this.choice.ship;
   }
 
   /**
@@ -870,19 +880,13 @@ export class Ships {
    */
   private escortBand(design: ShipDesign, target: number): number {
     const approach = design.doctrine.approach;
-    const wanted = approach.escortRadii * this.designs[target]!.radius;
-    if (!(design.reach > 0)) return wanted;
-    return min(wanted, approach.escort * design.reach);
-  }
-
-  /**
-   * Whether this craft is covering something rather than closing on a fight.
-   *
-   * What it is flying relative to and what it is fighting are the same thing
-   * unless it is escorting, since a consort is never a thing it fights.
-   */
-  private escorting(i: number): boolean {
-    return this.station[i] !== NO_TARGET && this.station[i] !== this.chosen[i];
+    const skin = this.designs[target]!.radius;
+    const wanted = approach.escortRadii * skin;
+    // From the consort's skin, for the same reason a standoff is: keeping
+    // station a hundred metres off a thing a kilometre across is a place
+    // inside it.
+    if (!(design.reach > 0)) return skin + wanted;
+    return skin + min(wanted, approach.escort * design.reach);
   }
 
   /**
@@ -1166,7 +1170,7 @@ export class Ships {
     const given = this.getCurrentOrder(i);
     if (given !== undefined) return given;
 
-    const target = this.station[i]!;
+    const target = this.chosen[i]!;
     if (target === NO_TARGET || this.alive[target] !== 1) return undefined;
 
     const design = this.designs[i]!;
@@ -1181,15 +1185,18 @@ export class Ships {
     // capital does not, and one number covers both because it is measured in
     // the target's own radii. Capped by what this ship's guns are good for,
     // so nothing stands off further than it can shoot.
-    //
-    // Unless it is covering the thing rather than shooting at it, which is a
-    // different distance for a different reason and has a band of its own.
-    const wanted = this.escorting(i)
-      ? this.escortBand(design, target)
-      : min(
-          approach.standoffRadii * this.designs[target]!.radius,
-          approach.standoff * design.reach,
-        );
+    // **Measured from the target's skin, not from the middle of it.** A gun's
+    // reach is how far it can throw a round past its own muzzle, and what it
+    // is shooting at is the hull rather than the point the hull turns about —
+    // which is the same thing on ships of a size and nothing like it when a
+    // fighter attacks a capital. Left centre to centre, a TIE's doctrine sends
+    // it to 460 metres from the middle of a Star Destroyer whose own radius is
+    // 1,073: the station it is holding is a third of the way inside the ship,
+    // so it flies into it, and no amount of keeping clear can save a craft
+    // whose orders are to be there.
+    const wanted =
+      this.designs[target]!.radius +
+      min(approach.standoffRadii * this.designs[target]!.radius, approach.standoff * design.reach);
     standing.minRange = max(0, wanted * (1 - approach.tolerance));
     standing.maxRange = max(standing.minRange, wanted * (1 + approach.tolerance));
     standing.approachSpeed = approach.approachSpeed;
@@ -1530,56 +1537,48 @@ export class Ships {
    * allocator, and a target handed to the turrets.
    */
   private flyOne(dt: number, bodies: Bodies, i: number): void {
-    const order = this.effectiveOrder(i);
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
 
-    let wantVx = 0;
-    let wantVy = 0;
+    // **Where a craft wants to go is several wants added up.** Holding the
+    // station it has been given, staying with what it is covering, and keeping
+    // out of everybody's way are not alternatives to choose between: a craft
+    // does all three at once, more or less, and what decides how much of each
+    // is one weight against another in metres per second — which is a currency
+    // they all share, unlike a target's score.
+    //
+    // Every urge is a *velocity* it would like to have and how much it would
+    // like it, and the result is their weighted average. With one urge that is
+    // exactly the urge, so a craft with nothing to avoid and nobody to cover
+    // flies its orders as it always did.
+    this.urgeVx = 0;
+    this.urgeVy = 0;
+    this.urgeWeight = 0;
     let wantAngle = bodies.angle[b]!;
 
     // No order at all is the same problem as an order with no target: hold
     // what you are doing and wait to be told something.
+    const order = this.effectiveOrder(i);
     const target = order?.target ?? NO_TARGET;
     if (order !== undefined && target !== NO_TARGET && this.alive[target] === 1) {
       const tb = bodies.indexOf(this.bodyIds[target]!);
       if (tb >= 0) {
-        const dx = bodies.x[tb]! - bodies.x[b]!;
-        const dy = bodies.y[tb]! - bodies.y[b]!;
-        const range = length(dx, dy);
-        wantAngle = atan2(dy, dx);
-
-        // Station-keeping is matching the target's velocity; closing or opening
-        // is that plus a radial component. Inside the band a ship simply keeps
-        // pace, which is what makes a range band a place to sit rather than a
-        // line to oscillate across.
-        wantVx = bodies.vx[tb]!;
-        wantVy = bodies.vy[tb]!;
-        if (range > 0) {
-          // How far outside the band, signed: positive means too far away.
-          // The closing speed tapers with that distance instead of being the
-          // full approach speed right up to the edge, which is what stops a
-          // ship arriving at the band still doing 150 m/s, sailing through it,
-          // and settling into a limit cycle across it. `approachSpeed` becomes
-          // the cap rather than the demand.
-          const outside =
-            range > order.maxRange
-              ? range - order.maxRange
-              : range < order.minRange
-                ? range - order.minRange
-                : 0;
-          if (outside !== 0) {
-            const radial = clamp(
-              outside / APPROACH_TIME,
-              -order.approachSpeed,
-              order.approachSpeed,
-            );
-            wantVx += (dx / range) * radial;
-            wantVy += (dy / range) * radial;
-          }
-        }
+        wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!);
+        this.hold(bodies, b, tb, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE);
       }
     }
+
+    const covering = this.cover(bodies, i, b);
+    if (target === NO_TARGET && covering >= 0) {
+      const cb = bodies.indexOf(this.bodyIds[covering]!);
+      if (cb >= 0) wantAngle = atan2(bodies.y[cb]! - bodies.y[b]!, bodies.x[cb]! - bodies.x[b]!);
+    }
+    this.avoid(bodies, i, b, target !== NO_TARGET ? target : covering);
+
+    // Nothing to want is a want of its own: a craft with no orders, no charge
+    // and nothing in its way kills its drift and waits.
+    const wantVx = this.urgeWeight > 0 ? this.urgeVx / this.urgeWeight : 0;
+    const wantVy = this.urgeWeight > 0 ? this.urgeVy / this.urgeWeight : 0;
 
     const mass = bodies.mass[b]!;
     const worldFx = (mass * (wantVx - bodies.vx[b]!)) / VELOCITY_RESPONSE_TIME;
@@ -1618,6 +1617,187 @@ export class Ships {
     this.demandFx[i] = this.allocation.fx;
     this.demandFy[i] = this.allocation.fy;
     this.demandTorque[i] = this.allocation.torque;
+  }
+
+  /** Add one want to the blend: a velocity, and how much it is wanted. */
+  private urge(weight: number, vx: number, vy: number): void {
+    if (!(weight > 0)) return;
+    this.urgeVx += weight * vx;
+    this.urgeVy += weight * vy;
+    this.urgeWeight += weight;
+  }
+
+  /**
+   * Want to be somewhere between two ranges of another body, and moving with
+   * it once there.
+   *
+   * Station-keeping is matching the other's velocity; closing or opening is
+   * that plus a radial component. Inside the band a craft simply keeps pace,
+   * which is what makes a range band a place to sit rather than a line to
+   * oscillate across. The closing speed tapers with how far outside the band
+   * it is instead of being the full approach speed right up to the edge, which
+   * is what stops a ship arriving at the band still doing 150 m/s, sailing
+   * through it, and settling into a limit cycle across it: `approachSpeed`
+   * is the cap rather than the demand.
+   *
+   * Every positional want in the game is this one — an order, a charge to
+   * cover, and a neighbour to keep clear of are the same shape with different
+   * bands, and a craft that is avoiding something is station-keeping on it
+   * with a minimum range and no maximum.
+   */
+  private hold(
+    bodies: Bodies,
+    b: number,
+    other: number,
+    minRange: number,
+    maxRange: number,
+    approachSpeed: number,
+    weight: number,
+  ): void {
+    if (!(weight > 0)) return;
+    const dx = bodies.x[other]! - bodies.x[b]!;
+    const dy = bodies.y[other]! - bodies.y[b]!;
+    const range = length(dx, dy);
+    let vx = bodies.vx[other]!;
+    let vy = bodies.vy[other]!;
+    if (range > 0) {
+      // How far outside the band, signed: positive means too far away.
+      const outside =
+        range > maxRange ? range - maxRange : range < minRange ? range - minRange : 0;
+      if (outside !== 0) {
+        const radial = clamp(outside / APPROACH_TIME, -approachSpeed, approachSpeed);
+        vx += (dx / range) * radial;
+        vy += (dy / range) * radial;
+      }
+    }
+    this.urge(weight, vx, vy);
+  }
+
+  /**
+   * Stay with what this craft is covering, and say what that is.
+   *
+   * The pull fades to nothing as the gap closes (`cohesionUrge`), so a craft
+   * that has caught up is steered by the fight alone until the fight has drawn
+   * it off again — which is what has a fleet close up, advance while it is
+   * closed up, and gather when it straggles, rather than either huddling or
+   * stringing out.
+   */
+  private cover(bodies: Bodies, i: number, b: number): number {
+    const consort = this.consort[i]!;
+    if (consort === NO_TARGET || this.alive[consort] !== 1) return NO_TARGET;
+    const cb = bodies.indexOf(this.bodyIds[consort]!);
+    if (cb < 0) return NO_TARGET;
+
+    const design = this.designs[i]!;
+    const station = this.escortBand(design, consort);
+    const gap = length(bodies.x[cb]! - bodies.x[b]!, bodies.y[cb]! - bodies.y[b]!);
+    const weight = cohesionUrge(design.doctrine.targeting, gap, station);
+    const approach = design.doctrine.approach;
+    this.hold(
+      bodies,
+      b,
+      cb,
+      0,
+      station,
+      approach.approachSpeed,
+      weight,
+    );
+    return consort;
+  }
+
+  /**
+   * Keep out of everybody's way.
+   *
+   * Whoever it is: a collision hurts both hulls whichever side they are on,
+   * and a craft that swerved only for its friends would ram its enemies by
+   * accident and call it tactics.
+   *
+   * **Steered by where a neighbour will be, not by where it is.** Distance
+   * alone cannot do this job: a craft holding station a hull's width away is
+   * no danger at all and one crossing at two hundred metres a second is,
+   * and a bubble treats them the same — so it shoves at things already moving
+   * apart and has nothing to say about the thing about to arrive. Measured,
+   * a plain bubble moved a fleet action's contacts by a tenth and made some of
+   * them worse.
+   *
+   * So: how long until this pair is at its closest, and how close that will
+   * be. A pair that is already opening is left alone, and one that is closing
+   * is answered by a want to be somewhere else *at that moment* — steering
+   * away from where the gap will be, which is a heading change rather than a
+   * stop, so a craft keeps the speed it is carrying and passes wider.
+   *
+   * The urgency is how little room the pass will leave and how soon it is, so
+   * keeping clear is a whisper at the edge of the look-ahead and the loudest
+   * thing in the blend just before a collision.
+   */
+  private avoid(bodies: Bodies, i: number, b: number, flying: number): void {
+    const approach = this.designs[i]!.doctrine.approach;
+    if (!(approach.separation > 0) || !(approach.separationRadii > 0)) return;
+    const mine = this.designs[i]!.radius;
+    const x = bodies.x[b]!;
+    const y = bodies.y[b]!;
+    const vx = bodies.vx[b]!;
+    const vy = bodies.vy[b]!;
+
+    for (let t = 0; t < this.alive.length; t++) {
+      if (t === i || this.alive[t] === 0) continue;
+      // Never the thing it is flying at. Where a craft wants to be relative to
+      // that is already decided, by an order or by the doctrine that chose it,
+      // and a second opinion here is this code arguing with the orders it is
+      // meant to be carrying out — a ship told to ram would sheer off at the
+      // last moment and call it seamanship.
+      if (t === flying) continue;
+      const ob = bodies.indexOf(this.bodyIds[t]!);
+      if (ob < 0) continue;
+
+      const touching = mine + this.designs[t]!.radius;
+      const room = touching * approach.separationRadii;
+      const dx = bodies.x[ob]! - x;
+      const dy = bodies.y[ob]! - y;
+      const rvx = bodies.vx[ob]! - vx;
+      const rvy = bodies.vy[ob]! - vy;
+
+      // When they will be at their closest, and how far apart that is. A pair
+      // already opening is at its closest *now*, which is what the clamp says
+      // — and saying it that way rather than dropping the pair is what keeps
+      // this continuous: an urge that vanished the instant two craft stopped
+      // closing would step from its loudest to nothing at the very moment it
+      // was loudest, and that discontinuity is enough to make two runs of the
+      // same battle diverge from a rounding difference.
+      const speedSq = rvx * rvx + rvy * rvy;
+      const closing = dx * rvx + dy * rvy;
+      const when = speedSq > 0 ? max(0, -closing / speedSq) : 0;
+      if (when > AVOID_HORIZON) continue;
+      const missX = dx + rvx * when;
+      const missY = dy + rvy * when;
+      const miss = length(missX, missY);
+      if (miss >= touching + room) continue;
+
+      // Away from where the gap is going to be. A pass that would be dead on
+      // has no side to go to, so the side is taken across the closing motion
+      // — either way opens it, and taking the same one every time is what
+      // keeps this deterministic.
+      let awayX: number;
+      let awayY: number;
+      if (miss > 0) {
+        awayX = -missX / miss;
+        awayY = -missY / miss;
+      } else if (speedSq > 0) {
+        const speed = sqrt(speedSq);
+        awayX = -rvy / speed;
+        awayY = rvx / speed;
+      } else {
+        continue;
+      }
+
+      const crowding = 1 - miss / (touching + room);
+      const soon = 1 - when / AVOID_HORIZON;
+      this.urge(
+        approach.separation * crowding * soon,
+        vx + awayX * approach.approachSpeed,
+        vy + awayY * approach.approachSpeed,
+      );
+    }
   }
 
   /** Train each of this ship's turrets on what it is fighting, leading it. */

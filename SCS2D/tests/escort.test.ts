@@ -148,43 +148,54 @@ describe('escort and neutrals', () => {
     expect(covering).toBeLessThan(alone / 2);
   });
 
-  it('closes a fleet up and advances it anyway', () => {
-    // The point of the leash. A craft closes up when it has strayed past it
-    // and goes back to the battle once it is on station, so a fleet given one
-    // arrives at the enemy *and* arrives together — which is more than a
-    // fleet with no doctrine about its consorts manages, since that one
-    // simply strings out behind whoever accelerates hardest.
-    function advance(escortWeight: number): { spread: number; centre: number } {
+  it('keeps a craft with its consort while it goes to the fight', () => {
+    // What the tether controls is the gap to the charge, so that is what is
+    // measured — averaged over the battle rather than read off at the end of
+    // it, since where four ships have got to after a minute of fighting is as
+    // much about how the fighting went as about how they steer.
+    //
+    // Both halves matter. Covering is worthless if the craft never arrives,
+    // and a craft that stays home is not escorting, it is hiding.
+    function fly(escortWeight: number): { consort: number; enemy: number } {
       const design = compileBlueprint(escorting(CORVETTE, escortWeight));
       const enemy = compileBlueprint(GUNSHIP);
       const battle = makeBattle({ seed: 9, projectiles: 512 }, (ships, world) => {
-        const fleet: number[] = [];
-        for (let i = 0; i < 4; i++) {
-          fleet.push(ships.spawn(world, { design, x: -2000, y: -600 + i * 400, angle: 0, team: 0 }));
-        }
-        ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
-        return { fleet };
+        const covering = ships.spawn(world, { design, x: -2000, y: -400, angle: 0, team: 0 });
+        const charge = ships.spawn(world, { design, x: -2000, y: 400, angle: 0, team: 0 });
+        const foe = ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
+        return { covering, charge, foe };
       });
-      for (let step = 0; step < 3600; step++) battle.step();
 
       const bodies = battle.world.bodies;
-      const at = battle.fleet
-        .filter((ship) => battle.ships.isAlive(ship))
-        .map((ship) => bodies.indexOf(battle.ships.body(ship)));
-      let spread = 0;
-      for (const a of at) {
-        for (const b of at) {
-          spread = math.max(spread, math.length(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!));
-        }
+      const gap = (a: number, b: number): number => {
+        const p = bodies.indexOf(battle.ships.body(a));
+        const q = bodies.indexOf(battle.ships.body(b));
+        return math.length(bodies.x[p]! - bodies.x[q]!, bodies.y[p]! - bodies.y[q]!);
+      };
+
+      let consort = 0;
+      let foe = 0;
+      const steps = 1800;
+      for (let step = 0; step < steps; step++) {
+        battle.step();
+        consort += gap(battle.covering, battle.charge);
+        foe += gap(battle.covering, battle.foe);
       }
-      const centre = at.reduce((total, b) => total + bodies.x[b]!, 0) / at.length;
-      return { spread, centre };
+      return { consort: consort / steps, enemy: foe / steps };
     }
 
-    const loose = advance(0);
-    const together = advance(30);
-    expect(together.spread).toBeLessThan(loose.spread);
-    expect(together.centre).toBeGreaterThan(loose.centre);
+    const alone = fly(0);
+    const covering = fly(100);
+    const harder = fly(400);
+    // Tighter the more it is asked for, and no cliff between: a blend of urges
+    // gives a knob that means something all the way along, which is what
+    // deciding between two targets could not.
+    expect(covering.consort).toBeLessThan(alone.consort * 0.7);
+    expect(harder.consort).toBeLessThan(covering.consort);
+    // And it costs almost nothing in getting there — which is the whole point
+    // of wanting two things at once rather than choosing between them.
+    expect(covering.enemy).toBeLessThan(alone.enemy * 1.1);
+    expect(harder.enemy).toBeLessThan(alone.enemy * 1.1);
   });
 
   it('goes on fighting while it covers', () => {

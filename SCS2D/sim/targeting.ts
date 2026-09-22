@@ -76,44 +76,37 @@ export function score(
 }
 
 /**
- * How far a craft will let itself be drawn off a consort before breaking off
- * to close up again, metres.
+ * How much a craft wants to be with its consort rather than where it is.
  *
- * **Position rather than preference, and that is the whole of it.** The
- * obvious design is to weigh wanting to cover a consort against wanting to go
- * and have the battle, and fade the first out as the gap closes. It cannot
- * work, and the reason is worth writing down: a target's score is a *ranking*
- * and not a measure of desire. A craft flies at the nearest enemy whether or
- * not its score says it is worth anything, and at four kilometres that score
- * is a long way below zero — so any positive pull at all beats it and the
- * fleet locks in place, whatever the weight. Measured on a fleet of four:
- * every setting from 2 to 200 produced the identical battle, sitting four
- * kilometres from an enemy it never went to.
+ * **A pull among several, not a decision between two.** The obvious design is
+ * to weigh covering a consort against going to the fight and fly at whichever
+ * wins. It cannot work, and the reason is worth keeping: a target's score is a
+ * *ranking* rather than a measure of desire. A craft flies at the nearest
+ * enemy whether or not its score says it is worth anything, and at four
+ * kilometres that score is far below zero — so any positive pull at all beat
+ * it and the fleet locked in place, whatever the weight. Measured on a fleet
+ * of four: every setting from 2 to 200 produced the identical battle, sitting
+ * four kilometres from an enemy it never went to.
  *
- * What is commensurable is *where the craft is*. A craft closes up when it
- * has strayed past the leash and goes back to the battle once it is on
- * station, and the gap between those two makes it a hysteresis rather than a
- * switch — without which a craft on the boundary changes its mind every time
- * it reconsiders and shuffles forward at walking pace instead of advancing.
+ * What a steering urge is weighed against is other steering urges, in metres
+ * per second, where both sides mean the same thing. The craft then does both
+ * at once — closing on the enemy while drifting back towards its consort —
+ * rather than being switched between them.
  *
- * `escortWeight` sets the leash, and shorter is tighter: at a hundred a craft
- * strays to twice its station distance before turning back, at four hundred to
- * a quarter over, and at very little the leash is so long that it never
- * re-forms at all — which is the graceful way for a doctrine that does not
- * much care about its consorts to behave.
- *
- * What comes out of it is a fleet that closes up, advances while it is closed
- * up, and gathers again when the fight has pulled it apart. What it is *not*
- * is a formation: a craft on station holds no particular place. A place in a
- * formation is a different mechanism.
+ * It fades to nothing as the gap closes, so a craft that has caught up is
+ * pulled by the fight alone until the fight has drawn it off again: full
+ * strength at twice the station distance, nothing at all once it is there.
  */
-export function escortLeash(doctrine: Targeting, station: number): number {
-  if (!(doctrine.escortWeight > 0)) return Infinity;
-  return station * (1 + ESCORT_REFERENCE / doctrine.escortWeight);
+export function cohesionUrge(doctrine: Targeting, gap: number, station: number): number {
+  return slack(gap, station) * doctrine.escortWeight;
 }
 
-/** The weight at which a craft strays to twice its station distance. */
-const ESCORT_REFERENCE = 100;
+/** One at twice the station distance or further, nothing once on station. */
+function slack(range: number, station: number): number {
+  if (!(station > 0)) return 1;
+  const over = (range - station) / station;
+  return over <= 0 ? 0 : over >= 1 ? 1 : over;
+}
 
 /**
  * How far off the wanted size a target is, as a natural logarithm.

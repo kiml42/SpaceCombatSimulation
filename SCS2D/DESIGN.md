@@ -173,17 +173,31 @@ inside any one file is not contiguous.
   A craft escorting stations on its charge and fights on with whatever its mounts can reach, since where the
   hull goes and what the guns do are different questions, and it holds a band of its own rather than the
   gunnery standoff — where you sit to *shoot* at something being the wrong answer by an order of magnitude
-  for something you are covering. **What decides between covering and fighting is position, not preference.**
-  A craft closes up when it has strayed past its leash and goes back to the battle once it is on station,
-  and the gap between those two is what stops one on the boundary changing its mind every time it looks.
-  Weighing the two as scores instead cannot work, and the reason is worth keeping: a target's score is a
-  ranking and not a measure of desire — a craft flies at the nearest enemy whether or not its score says it
-  is worth anything, and at four kilometres that score is far below zero, so any positive pull at all wins
-  and the fleet locks. A fleet given a leash arrives at the enemy *and* arrives together, which a fleet
-  without one does not: four corvettes close from 345 metres of straggle to 208 and get further up the field
-  doing it. Escorting is pairwise and knows nothing of a fleet, so a group where everyone is everyone's
-  charge and the leash is short settles into pairs that hold each other in place — a screen round one
-  mothership, which is the one-way case, does not.
+  for something you are covering.
+  **Where a craft goes is several wants added up.** Holding the station it has been given, staying with what
+  it is covering, and keeping out of everybody's way are not alternatives to choose between: each is a
+  velocity it would like to have and how much it would like it, and the pilot flies their weighted average.
+  One want is exactly that want, so a craft with nothing to avoid and nobody to cover flies its orders as it
+  always did. Weighing them as *target scores* instead cannot work, and the reason is worth keeping: a
+  target's score is a ranking rather than a measure of desire — a craft flies at the nearest enemy whether
+  or not its score says it is worth anything, and at four kilometres that score is far below zero, so any
+  positive pull at all wins and a fleet locks in place. Measured, every escort weight from 2 to 200 then
+  produced the identical battle. Added as velocities, in a currency they all share, a craft does both at
+  once: asking for a formation half as tight costs three per cent in closing on the enemy, and the knob
+  means something all the way along instead of having a cliff in it.
+  **A range band is measured from a hull, not from the middle of one.** A gun's reach is how far it can
+  throw a round past its own muzzle and what it is shooting at is the hull, which is the same thing on ships
+  of a size and nothing like it when a fighter attacks a capital: left centre to centre, a TIE's doctrine
+  sent it to 460 metres from the middle of a Star Destroyer whose own radius is 1,073, so the station it was
+  holding was a third of the way inside the ship and it flew into it.
+  **Craft keep out of each other's way by where they will be**, not by where they are: how long until a pair
+  is at its closest and how much room that will leave, since a bubble cannot tell a consort holding station
+  a hull's width away from something crossing at two hundred metres a second. It is never applied to the
+  thing a craft is flying at — where it wants to be relative to *that* is already decided, and a second
+  opinion would have a ship told to ram sheer off at the last moment and call it seamanship. It costs a
+  quarter of the contacts in the Star Wars scene and a third of those between a fighter and a capital, half
+  in the swarm and two thirds in the column; what it does not do is stop fighters flying through each other,
+  whose bubbles are as small as they are.
 - **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. After it comes headless evolution and analysis. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the

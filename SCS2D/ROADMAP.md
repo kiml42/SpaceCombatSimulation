@@ -406,22 +406,17 @@ Deliberately unresolved; decide when they block something.
   Entangled with it: **identity is a ship's name**, so renaming re-identifies. Once revisions are
   referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
   together, at the campaign slice.
-- **Weighing covering a consort against going to the fight, continuously.** What decides between them is
-  position — a leash strayed past and a station arrived at — because the two cannot be compared as scores:
-  a target's score is a ranking rather than a measure of desire, and a craft flies at the nearest enemy
-  whether or not its score says it is worth anything. A hysteresis on position works and gives a monotone
-  knob, but it is a switch with a dead band rather than a balance, and two things follow. A fleet where
-  everyone is everyone's charge pairs off once the leash is shorter than the fleet is spread, each pair
-  holding itself in place; and the useful settings are a narrow band, with a cliff at the far end rather
-  than a gradient.
-  What would replace it is a *blend*: a desired velocity made of several pulls added together, rather than
-  one target chosen between them. That is the BOIDS shape, and the reason to want it is not only escorting —
-  the same mechanism is what would let a craft weigh keeping clear of its neighbours against everything
-  else it is trying to do. **Craft flying through each other's paths is a real and visible problem in the
-  crowded scenarios**, and collision avoidance has no home in the current steering at all, which holds one
-  range band against one object. Both wanting the same thing is the argument for doing it properly rather
-  than adding a second special case.
-- **How severed chunks divide fuel, ammunition and power.**- **How severed chunks divide fuel, ammunition and power.** Which piece goes on being a ship is settled —
+- **What keeping clear cannot do as it stands.** Steering by time to closest approach takes a quarter of the
+  contacts out of the Star Wars scene and two thirds out of the column, and leaves two things undone. It is
+  one want among several and is *averaged* with the rest, so a craft whose orders say to be where it is
+  cannot be shouted down by it however urgent it gets — which is right for a lean and wrong for the last
+  half-second. And the room it asks for is a multiple of the two hulls' radii, so two fighters ask for
+  forty-five metres of clearance while closing at two hundred metres a second, and fighter-on-fighter
+  contacts do not improve at all. Both point the same way: clearance wants to be measured in *time* rather
+  than in hull radii, and the urge wants a way to dominate rather than merely to vote. Neither is a large
+  change; both want a scene to tune against, and the crowded ones are the Star Wars fleet action and the
+  super-swarm.
+- **How severed chunks divide fuel, ammunition and power.**- **How severed chunks divide fuel, ammunition and power.**- **How severed chunks divide fuel, ammunition and power.** Which piece goes on being a ship is settled —
   the one holding a working core, and every other piece with one becomes a ship of its own (DESIGN.md §4)
   — but what a piece takes *with* it is not. The interesting case is a magazine cut off from the gun it
   fed. Nothing consumes either yet, so there is nothing to divide; decide it when stores exist.
