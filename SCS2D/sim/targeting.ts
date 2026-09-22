@@ -55,10 +55,17 @@ const CLOSING_SCALE = 100;
  * only a little worse off than a hulk falls behind every live one on the
  * list by exactly what a doctrine says those are worth, with no special case
  * about what it has become. A ship with *nothing* left, though, is filtered
- * out before it ever reaches `score`: `Ships.isDisabled` is checked by the
- * caller, because a hulk can never be finished off, so ranking it low is not
- * enough to stop a chooser sitting next to one forever when a live threat is
- * further off.
+ * out before it ever reaches `score`: the caller checks `Ships.hasControl`,
+ * because a hull with nobody aboard can never be finished off, so ranking it
+ * low is not enough to stop a chooser sitting next to one forever when a live
+ * threat is further off.
+ *
+ * **A hull is out of the fight only when its cores are gone**, and not merely
+ * when it has lost its guns and its engines. One of those is harmless and
+ * still finishable — a round through the core ends it — so it stays a
+ * candidate and stays worth a shot when there is nothing better about. Filter
+ * it out instead and being harmless becomes the safest thing a ship can be:
+ * untouchable by everyone, for as long as it likes.
  */
 export function score(
   doctrine: Targeting,

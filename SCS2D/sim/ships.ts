@@ -817,11 +817,17 @@ export class Ships {
       for (let t = 0; t < this.alive.length; t++) {
         if (t === i || this.alive[t] === 0) continue;
         // Wreckage is matter, not an enemy, nor is anything not hostile, and
-        // a hulk offers nothing worth closing on: it cannot shoot back,
-        // cannot get away, and no shot fired at it will ever remove it from
-        // the battle, so scoring it low is not enough to stop a ship parking
-        // next to one forever.
-        if (this.derelict[t] === 1 || !this.hostile(i, t) || this.isDisabled(t)) continue;
+        // a hulk offers nothing worth closing on: nobody is aboard it, and no
+        // shot fired at it will ever remove it from the battle, so scoring it
+        // low is not enough to stop a ship parking next to one forever.
+        //
+        // **A hulk is a hull with its cores shot out, and nothing else is.**
+        // A ship that has merely lost its guns and its engines is harmless
+        // and still a target: there is somebody aboard it, and a round
+        // through the core finishes it. Excluding those as well would make
+        // being harmless the safest thing a hull could be — untouchable by
+        // everyone, for as long as it liked.
+        if (this.derelict[t] === 1 || !this.hostile(i, t) || !this.hasControl(t)) continue;
         const tb = bodies.indexOf(this.bodyIds[t]!);
         if (tb < 0) continue;
         const candidate = look(
@@ -935,7 +941,7 @@ export class Ships {
       const held = targets[t]!;
       if (
         held !== NO_TARGET &&
-        (this.alive[held] !== 1 || this.derelict[held] === 1 || this.isDisabled(held))
+        (this.alive[held] !== 1 || this.derelict[held] === 1 || !this.hasControl(held))
       ) {
         targets[t] = NO_TARGET;
         aims[t] = WHOLE_SHIP;
@@ -966,7 +972,7 @@ export class Ships {
       this.choice.begin();
       for (let e = 0; e < this.alive.length; e++) {
         if (e === i || this.alive[e] === 0) continue;
-        if (this.derelict[e] === 1 || !this.hostile(i, e) || this.isDisabled(e)) continue;
+        if (this.derelict[e] === 1 || !this.hostile(i, e) || !this.hasControl(e)) continue;
         const tb = bodies.indexOf(this.bodyIds[e]!);
         if (tb < 0) continue;
         if (!this.turrets.bearsOn(bodies, ti, bearing(gunX, gunY, bodies.x[tb]!, bodies.y[tb]!))) {
@@ -1180,7 +1186,7 @@ export class Ships {
     if (given !== undefined) return given;
 
     const target = this.chosen[i]!;
-    if (target === NO_TARGET || this.alive[target] !== 1 || this.isDisabled(target)) {
+    if (target === NO_TARGET || this.alive[target] !== 1 || !this.hasControl(target)) {
       return undefined;
     }
 

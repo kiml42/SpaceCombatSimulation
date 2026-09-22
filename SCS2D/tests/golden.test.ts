@@ -33,8 +33,8 @@ const GOLDEN: Record<ScenarioName, string> = {
   superSwarm: '564d4b4a',
   fractal: '1f32797d',
   ordering: '37d8e682',
-  split: '93ca310a',
-  column: '3a3a3778',
+  split: '462afe96',
+  column: 'f36c6d74',
   standoff: 'c61fb1b3',
   ram: 'e54765b1',
 };
