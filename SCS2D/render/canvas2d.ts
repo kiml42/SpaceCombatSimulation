@@ -413,8 +413,14 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
  * A hulk is drawn in the neutral colours: it is nobody's ship now, and a
  * counted-up formation that silently includes wreckage is worse than one that
  * shows it as such.
+ *
+ * A derelict piece — hull with no working core left aboard — gets no icon at
+ * all: it has no facing worth pointing out, and a debris field that drew as
+ * many arrowheads as the battle that made it would count as ships wreckage
+ * that no longer is any.
  */
 function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
+  if (ship.isDerelict) return;
   const alpha = iconAlpha(ship.design.radius * 2 * metresToPx);
   if (alpha <= 0) return;
   const colours = ship.isDisabled ? NEUTRAL : shipColours(ship.team);

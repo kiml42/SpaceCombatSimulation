@@ -61,6 +61,12 @@ export interface ShipView {
    */
   isDisabled: boolean;
   /**
+   * Whether this is a piece of a ship rather than a ship: no working core, no
+   * pilot, no guns. What a renderer uses to keep the arrowhead icon (§ icons)
+   * standing for ships that are still flown, not for the wreckage they shed.
+   */
+  isDerelict: boolean;
+  /**
    * Which of its mounts are out, in the design's turret order. Read from the
    * gunnery rather than worked out from `integrity`, so that a gun drawn as
    * able to shoot is one that can.
@@ -184,6 +190,7 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
     throttles: [],
     integrity: [],
     isDisabled: false,
+    isDerelict: false,
     turretDisabled: [],
   };
   snapshot.ships[i] = created;
@@ -229,6 +236,7 @@ export function capture(
     view.vx = bodies.vx[b]!;
     view.vy = bodies.vy[b]!;
     view.isDisabled = ships.isDisabled(i);
+    view.isDerelict = ships.isDerelict(i);
 
     view.turretBearings.length = design.turrets.length;
     view.turretReady.length = design.turrets.length;
