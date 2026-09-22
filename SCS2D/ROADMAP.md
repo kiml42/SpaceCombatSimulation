@@ -438,6 +438,14 @@ Deliberately unresolved; decide when they block something.
   Entangled with it: **identity is a ship's name**, so renaming re-identifies. Once revisions are
   referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
   together, at the campaign slice.
+- **How hard selection should press.** Standing is worth a fifth at the bottom and one at the top, which
+  makes the best of a field of twelve about half likely to breed against a seventh for the tail. Whether
+  that is the right pressure is not settled and is not really settleable by argument: too hard and a
+  population converges on the first thing that works, too soft and it drifts. Three seeds of a bare-core
+  run put ranked and score-weighted selection inside each other's noise — 0.167 against 0.197 on a spread
+  of 0.11 to 0.31 — so nothing about *run outcome* chose between them, and what did was the failure modes
+  one of them has and the other has not. The same will be true of the floor: it wants a benchmark that can
+  tell two runs apart before it is tuned, which is the entry below.
 - **How much of a design's score is the draw rather than the design.** A design plays a handful of matches
   and is ranked on the mean, so anything that varies between matches and is not the ship — which opponents
   it drew, which slot it started in, what shoved it — is noise the ranking cannot tell from signal. It is

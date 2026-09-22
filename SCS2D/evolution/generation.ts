@@ -1,5 +1,5 @@
 import type { Blueprint, Rng } from '../sim/index.js';
-import { max, min } from '../sim/math.js';
+import { min } from '../sim/math.js';
 import { mutate, type MutationLimits } from './mutate.js';
 import type { MatchResult } from './match.js';
 
@@ -32,11 +32,12 @@ export interface Individual {
 }
 
 /**
- * How much of the generation's spread the worst design still gets, as a share.
+ * What the bottom of a generation is worth against the top, as a share.
  *
  * What it buys is the occasional wrong answer surviving to be measured again;
- * what it costs is pressure. A fifth leaves the best of a generation six times
- * likelier than the worst and nobody impossible.
+ * what it costs is pressure. A fifth makes the best of a generation six times
+ * likelier than the worst and nobody impossible — in a field of twelve taking
+ * four, about half for the leader against a seventh for the tail.
  */
 const SELECTION_FLOOR = 0.2;
 
@@ -129,42 +130,46 @@ export class Generation {
   /**
    * Who gets to breed.
    *
-   * Weighted by score against a uniform draw, rather than simply taken from
-   * the top: a match is a noisy sample, and a strictly elitist cut throws away
-   * a design that drew a hard group on the strength of one battle. The point
-   * of a generation is to be wrong about a design occasionally and find out
-   * later, so the worst is never impossible.
+   * Each design draws a uniform number and multiplies it by what its standing
+   * in the generation is worth; the highest few win. A draw rather than a cut
+   * because a match is a noisy sample, and a strictly elitist top-four throws
+   * away a design that drew a hard group on the strength of one battle — the
+   * point of a generation is to be wrong about a design occasionally and find
+   * out later, so the worst is never impossible.
    *
-   * **The floor under it is a share of the spread, not a fixed number**, and
-   * that is the whole difference between selection and a random walk. A fixed
-   * floor of one is what the archive used, and it worked there because scores
-   * were counted in hundreds, so one was nothing. Here a score runs from
-   * nothing to a few, and a floor of one swamps every difference there is: a
-   * design scoring 0.72 against one scoring 0.50 was picked first 59% of the
-   * time — a coin toss with a lean — and a population that had *found* how to
-   * move lost it again within fifty generations, over and over. Against a
-   * floor set by the spread it is picked 92% of the time, which is pressure a
-   * gain can survive.
+   * **Standing is where a design came, not what it scored.** That is the whole
+   * of the difference, and it is what makes the pressure the same in every
+   * generation. Weighting by the score itself sounds more informative and is
+   * worse, because the scale it is measured against is set by whoever happens
+   * to be at the ends of the field: one design far ahead stretches it until
+   * everybody else is squashed together at the bottom — eleven designs
+   * spanning 0.50 to 0.55 all came out within a few points of one another,
+   * which is a generation the draw cannot tell apart — and one straggler far
+   * behind does the same from the other end. Ranked, a fifth of a field is
+   * worth the same wherever the scores happen to sit, and anything above the
+   * bottom is visibly better off than the bottom, which is the property that
+   * was wanted.
    *
-   * Everything tied is the one case with no spread to take a share of, and
-   * then this is a straight draw, which is the right answer to a generation
-   * that has told you nothing.
+   * Ties share their standing rather than being ordered arbitrarily by them,
+   * so designs that did equally well are equally likely — which sounds obvious
+   * and is exactly what a naive ranking gets wrong, handing four designs that
+   * scored identically chances of 0, 1, 4 and 12 per cent.
    */
   winners(rng: Rng, count: number): Individual[] {
-    let worst = Infinity;
-    let best = -Infinity;
-    for (const individual of this.individuals) {
-      const score = fitness(individual);
-      worst = min(worst, score);
-      best = max(best, score);
-    }
-    const spread = best - worst;
-    const floor = spread > 0 ? spread * SELECTION_FLOOR : 1;
-    return [...this.individuals]
-      .map((individual) => ({
-        individual,
-        weight: (fitness(individual) - worst + floor) * rng.nextFloat(),
-      }))
+    const n = this.individuals.length;
+    const scores = this.individuals.map(fitness);
+    return this.individuals
+      .map((individual, i) => {
+        // How many it beat, and half of how many it drew with.
+        let below = 0;
+        let level = 0;
+        for (let j = 0; j < n; j++) {
+          if (scores[j]! < scores[i]!) below++;
+          else if (j !== i) level++;
+        }
+        const standing = n > 1 ? (below + level / 2) / (n - 1) : 1;
+        return { individual, weight: (SELECTION_FLOOR + standing) * rng.nextFloat() };
+      })
       .sort((a, b) => b.weight - a.weight)
       .slice(0, count)
       .map((entry) => entry.individual);
