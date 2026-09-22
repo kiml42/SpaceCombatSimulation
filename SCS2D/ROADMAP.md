@@ -406,6 +406,20 @@ Deliberately unresolved; decide when they block something.
   Entangled with it: **identity is a ship's name**, so renaming re-identifies. Once revisions are
   referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
   together, at the campaign slice.
+- **What a race goal is worth before a ship can move, and the floor under it.** Two findings from breeding a
+  bare core, which is the sharpest test there is of what the fitness function actually rewards.
+  A proximity score paid over a reach wider than the ring gives every design the same something for standing
+  still — half, at twice the ring — so a run's race line can rise from nothing to a half without a single
+  craft ever having moved: what it is measuring is designs ceasing to be *disabled*, which is what unlocks
+  scoring at all. Narrowing the reach to the ring removes the floor and the line means what it says.
+  It also stops the search dead. A bare core scores nothing anywhere, and the cheapest way out of that is a
+  **gun**, not an engine: survival is gated on not being disabled, and a gun lifts that gate exactly as an
+  engine does for less mass, so under any weighting that includes survival the first thing a hull grows is a
+  weapon. Bred against pure proximity with nothing else scored, sixty generations produced no thrusters at
+  all — every individual scores zero, so selection is a random walk with no gradient to climb. A first
+  thruster does pay, once it exists: one on a bare core covers enough ground to earn 0.07 where the core
+  earns 0.00. The gap between those two facts is the whole problem, and what closes it is either a term that
+  pays for *approaching* rather than for arriving, or starting a run from a hull that can already fly.
 - **How big an arena should be, and what a run should measure itself against.** Two things a run turned up
   that are the same shape: a number in metres doing a job that wants to be a ratio.
   A match's ring is five hundred metres because that is where the shipped corvettes fight each other to a

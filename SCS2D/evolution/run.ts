@@ -85,6 +85,25 @@ export interface GenerationRecord {
   /** Mean and best fitness, which is what a run is read by. */
   readonly meanFitness: number;
   readonly bestFitness: number;
+  /**
+   * Each part of the score on its own, across the generation.
+   *
+   * Kept apart rather than only as the total they add up to, because they
+   * answer different questions and move at different times. A population
+   * learning to fly reaches the goal long before it learns to shoot, and a
+   * total hides that behind one rising line — where three lines say which of
+   * the three things a run is actually getting better at, and which weight is
+   * doing the work.
+   */
+  readonly mean: ScoreParts;
+  readonly best: ScoreParts;
+}
+
+/** The three sources of score, apart. */
+export interface ScoreParts {
+  readonly survival: number;
+  readonly damage: number;
+  readonly race: number;
 }
 
 export interface RunRecord {
@@ -207,16 +226,27 @@ function describe(generation: Generation, matches: readonly MatchRecord[]): Gene
 
   let total = 0;
   let best = -Infinity;
+  const sum = { survival: 0, damage: 0, race: 0 };
+  const most = { survival: -Infinity, damage: -Infinity, race: -Infinity };
   for (const individual of individuals) {
     total += individual.fitness;
     best = max(best, individual.fitness);
+    for (const part of ['survival', 'damage', 'race'] as const) {
+      sum[part] += individual[part];
+      most[part] = max(most[part], individual[part]);
+    }
   }
+  const count = individuals.length;
+  const mean = (part: keyof ScoreParts): number => (count > 0 ? sum[part] / count : 0);
+  const peak = (part: keyof ScoreParts): number => (count > 0 ? most[part] : 0);
   return {
     index: generation.index,
     individuals,
     matches,
-    meanFitness: individuals.length > 0 ? total / individuals.length : 0,
-    bestFitness: individuals.length > 0 ? best : 0,
+    meanFitness: count > 0 ? total / count : 0,
+    bestFitness: count > 0 ? best : 0,
+    mean: { survival: mean('survival'), damage: mean('damage'), race: mean('race') },
+    best: { survival: peak('survival'), damage: peak('damage'), race: peak('race') },
   };
 }
 

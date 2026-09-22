@@ -90,7 +90,9 @@ const run = runEvolution(founders, options.config, (generation) => {
   console.log(
     `gen ${String(generation.index).padStart(3)}  ` +
       `${String(generation.matches.length).padStart(3)} matches  ` +
-      `mean ${generation.meanFitness.toFixed(3)}  best ${generation.bestFitness.toFixed(3)}`,
+      `mean ${generation.meanFitness.toFixed(3)}  best ${generation.bestFitness.toFixed(3)}  ` +
+      `| survival ${generation.mean.survival.toFixed(2)}  ` +
+      `damage ${generation.mean.damage.toFixed(3)}  race ${generation.mean.race.toFixed(2)}`,
   );
 });
 const spent = (Date.now() - started) / 1000;
