@@ -340,6 +340,40 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
 }
 
 /**
+ * How big a number is in one half of a doctrine: the mean of the defaults
+ * that are not zero.
+ *
+ * It is the scale to perturb a field by when the field itself offers none —
+ * one whose default *is* zero, where both the held value and the reference
+ * are nothing to take a fraction of. Without it such a field is not merely
+ * slow to discover but unreachable: every draw is a fraction of zero, so it
+ * rounds to no change and is refused, and "off by default" quietly means "off
+ * for ever". `escortWeight` is the field that makes the point — a population
+ * that cannot find it can never be interested in an objective, whatever the
+ * match is scoring.
+ *
+ * The mean of the rest rather than a constant, because what a weight has to
+ * compete with is the other weights: a step that cannot be seen beside them
+ * is no more use than no step at all.
+ */
+function typical(half: 'targeting' | 'approach'): number {
+  const values = DEFAULT_DOCTRINE[half] as unknown as Record<string, number>;
+  const fields = half === 'targeting' ? TARGETING_FIELDS : APPROACH_FIELDS;
+  let total = 0;
+  let count = 0;
+  for (const field of fields) {
+    const value = abs(values[field as string]!);
+    if (value > 0) {
+      total += value;
+      count++;
+    }
+  }
+  return count > 0 ? total / count : 1;
+}
+
+const TYPICAL = { targeting: typical('targeting'), approach: typical('approach') };
+
+/**
  * Perturb a doctrine number.
  *
  * Scaled by the default doctrine's own value for the field rather than by
@@ -359,7 +393,7 @@ function turnDoctrine(
   const reference = (
     DEFAULT_DOCTRINE[half] as unknown as Record<string, number>
   )[field]!;
-  const scale = max(abs(held[field]!), abs(reference));
+  const scale = max(abs(held[field]!), abs(reference)) || TYPICAL[half];
   const was = held[field]!;
   let now = was + bounds.magnitude * scale * rng.nextRange(-1, 1);
   // Some fields are a size or a distance rather than a weight, and none of

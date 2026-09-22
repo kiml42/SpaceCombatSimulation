@@ -152,7 +152,13 @@ inside any one file is not contiguous.
   flush. A module written inside an assembly is written once however many copies are placed, so mutating it
   changes every copy and a wing that grows a gun grows it on both wings. Whether a generation is structural
   is settled before the retrying starts rather than inside it, which is what stops the rare, hard edit being
-  crowded out by the common, easy one; and a child is written back to a file the editor opens.
+  crowded out by the common, easy one; and a child is written back to a file the editor opens. A doctrine number
+  is perturbed by a fraction of its *default* rather than of what is held, so nothing that has reached zero
+  is stuck there — and where the default is zero too, by a fraction of what a number is worth in that half
+  of the doctrine, since otherwise every draw is a fraction of nothing and the field is not slow to find but
+  unreachable. **A run can start from nothing**: the Bare Core is a single control compartment that cannot
+  move, shoot or turn, so everything a lineage from it ever has is something selection paid for — where a
+  seed with an engine on it has already been told which way a ship is meant to go.
   **A match is fought and scored.** A handful of designs are put in an arena together — every entrant its
   own side, evenly round a ring, on a heading it did not choose — and the battle is run until one of them is left or
   the clock runs out. Three things are scored in the one match rather than in separate kinds of match,

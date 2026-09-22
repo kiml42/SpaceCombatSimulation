@@ -202,6 +202,23 @@ describe('mutation', () => {
     expect(moved).toBe(true);
   });
 
+  it('finds a weight whose own default is zero', () => {
+    // Scaling by the field's default is what lets a weight come back from
+    // zero — except where the default is zero too, which is a field nothing
+    // can ever reach: every draw is a fraction of nothing, rounds to no
+    // change, and is refused. `escortWeight` is the one that has it today, and
+    // a population that cannot find it can never be interested in an
+    // objective, whatever the match is scoring.
+    const rng = new Rng(53);
+    let held = CORVETTE;
+    let moved = false;
+    for (let i = 0; i < 200 && !moved; i++) {
+      held = mutate(held, rng).blueprint;
+      if ((held.doctrine?.targeting.escortWeight ?? 0) !== 0) moved = true;
+    }
+    expect(moved).toBe(true);
+  });
+
   it('gives up rather than breeding something invalid', () => {
     // A layout with nowhere to go: one core on its own, with no budget for
     // anything. Every candidate is over it, so the parent comes back with
