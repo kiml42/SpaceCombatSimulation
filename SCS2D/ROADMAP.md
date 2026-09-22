@@ -438,18 +438,23 @@ Deliberately unresolved; decide when they block something.
   Entangled with it: **identity is a ship's name**, so renaming re-identifies. Once revisions are
   referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
   together, at the campaign slice.
-- **How a run starts from nothing.** Breeding a bare core is the sharpest test there is of what a fitness
-  function rewards, and it still ends up with guns rather than engines — a hundred and fifty generations of
-  one produced sixteen guns a design and a tenth of a thruster.
-  What is *not* the reason, any more, is the shape of the goal's falloff or the operator's ability to bolt
-  an engine on; both were fixed and neither moved it. The reason left is that **a thruster only does
-  anything on one of the four faces it can go on.** A hull with one engine has no torque to turn with, so it
-  keeps the heading it spawned with, and the allocator fires a thruster only when the force the pilot is
-  asking for has a component along its thrust — so of the four placements, the one pushing towards the goal
-  earns 0.23 and the other three earn exactly nothing. A gun works whichever face it lands on. That
-  asymmetry, not the scoring, is what decides which a lineage discovers first, and closing it means either
-  making the first thruster worth something wherever it lands, or accepting that propulsion is something a
-  run should be started with rather than expected to invent.
+- **How a run starts from nothing, and how clever a pilot should be.** Breeding a bare core is the sharpest
+  test there is of what a fitness function rewards, and it ends up with guns rather than engines — a hundred
+  and fifty generations of one produced sixteen guns a design and a tenth of a thruster.
+  What is *not* the reason is the shape of the goal's falloff, or the operator's ability to bolt an engine
+  on, or where on a face it lands; all three were investigated and none of them moved it. The reason left is
+  the **pilot**. A hull with one engine keeps the heading it spawned with, and the allocator fires a thruster
+  only when the force being asked for has a component along its thrust — so of the four faces a first
+  thruster can go on, the one pushing towards the goal earns 0.23 and the other three earn *exactly*
+  nothing. Mounting it off-centre, so that its thrust line misses the centre of mass and it has torque to
+  turn the ship with, changes nothing at all: 0.500 on all three, measured.
+  A cleverer pilot would make every one of them useful. Any off-axis thruster can be flown with if you do
+  not mind spinning: fire it once to start the hull turning, then pulse it whenever the nose comes round to
+  the heading you want, and the ship walks along that heading. That is a real technique and it is a long way
+  past what this controller does — it holds a demanded velocity through a linear allocation, and spinning
+  deliberately is the opposite of everything else it is for. Worth knowing the choice is there: either the
+  pilot learns to do that and a first engine pays wherever it lands, or propulsion is something a run is
+  started with rather than expected to invent. The second is cheap and the first is a controller of its own.
 - **How big an arena should be.** A match's ring is five hundred metres because that is where the shipped
   corvettes fight each other to a finish — put four of them a kilometre apart and they settle at the
   standoff their doctrine asks for and plink, and no match is ever decided however long it runs, so two of
