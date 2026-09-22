@@ -10,7 +10,7 @@ import {
 } from '../sim/blueprint.js';
 import { HALF_PI, PI } from '../sim/math.js';
 import { GunType, moduleCentre, moduleStats, type ModuleSpec } from '../sim/modules.js';
-import { BLUEPRINTS } from '../scenarios/blueprints.js';
+import { BLUEPRINTS, type BlueprintName } from '../scenarios/blueprints.js';
 
 /**
  * What a compiled design has to get right is arithmetic that nothing
@@ -426,6 +426,48 @@ describe('firing arcs', () => {
  */
 const ASYMMETRIC: readonly Blueprint[] = [BLUEPRINTS.damagedCorvette];
 
+/**
+ * The ships the rest of the suite flies.
+ *
+ * Every golden checksum is a statement about these hulls, so their handling
+ * is load-bearing in a way the others' is not: a layout that cannot hold a
+ * heading while translating, or whose centre of mass is a hair off the axis
+ * it looks symmetric about, would move a checksum for a reason nobody could
+ * see. They are therefore held to the stricter checks below.
+ */
+const FLEET: readonly BlueprintName[] = [
+  'corvette',
+  'beamCorvette',
+  'gunship',
+  'gunship2',
+  'beamGunship',
+  'damagedCorvette',
+  'fractal',
+  'flatGunship',
+  'flatGunshipGrouped',
+  'dinky',
+];
+
+/**
+ * The rest: ships drawn for the look of the thing, flown in scenarios nothing
+ * pins.
+ *
+ * **They are allowed to be fun.** A hull with no reverse thrust flies
+ * perfectly well as long as it can turn and push one way; a centre of mass a
+ * few millimetres off an axis is compensated by offset thrust without the
+ * pilot ever noticing. Holding a showpiece to the fleet's standard buys
+ * nothing and costs designs, so what they have to satisfy is only what makes
+ * a ship a ship.
+ *
+ * Listed rather than inferred, so that a new blueprint has to be put in one
+ * group or the other on purpose — see the test below that checks the two
+ * cover every ship exactly once.
+ */
+const SHOWCASE: readonly BlueprintName[] = ['xWing', 'ghost', 'tie', 'starDestroyer'];
+
+/** Ships in the fleet, by identity, for the per-blueprint checks below. */
+const inFleet = (name: string): boolean => (FLEET as readonly string[]).includes(name);
+
 describe('the authored blueprints', () => {
   for (const [name, blueprint] of Object.entries(BLUEPRINTS)) {
     describe(name, () => {
@@ -440,14 +482,40 @@ describe('the authored blueprints', () => {
         expect(design.inertia).toBeGreaterThan(0);
         expect(design.radius).toBeGreaterThan(0);
 
-        // Every ship must be able to produce force in any direction and torque
-        // in either sense; a layout that cannot is one that cannot be flown.
-        expect(design.thrusterLayout.hasFullAuthority()).toBe(true);
+        // What every ship has to manage: turn either way, and push itself
+        // along at least one heading. A craft that can do that can get where
+        // it is going and point at what it is shooting at, which is the whole
+        // of what flying one asks.
+        expect(design.thrusterLayout.maxTorque(1)).toBeGreaterThan(0);
+        expect(design.thrusterLayout.maxTorque(-1)).toBeGreaterThan(0);
+        const along = [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+        ].map(([x, y]) => design.thrusterLayout.maxThrustAlong(x!, y!));
+        expect(Math.max(...along)).toBeGreaterThan(0);
+
+        // And what the fleet has to manage on top: force in *every* direction,
+        // so it can hold a heading while translating. A showpiece is allowed
+        // to have no reverse thrust and fly like an aeroplane.
+        if (inFleet(name)) {
+          expect(design.thrusterLayout.hasFullAuthority()).toBe(true);
+        }
 
         expect(design.turrets.length).toBeGreaterThan(0);
+        // Something aboard has to be able to shoot; on a fleet ship, every
+        // mount does. A showpiece is allowed a gun that is boxed in and
+        // trains on nothing — the Ghost's dorsal turret is exactly that, and
+        // says so in its own notes — because what fixes it is masking by what
+        // a turret can shoot *over* (ROADMAP.md §12) rather than a redraw.
+        const canTrain = design.turrets.filter(
+          (t) => t.mount.leftArc! > 0 && t.mount.rightArc! > 0,
+        );
+        expect(canTrain.length).toBeGreaterThan(0);
+        if (inFleet(name)) expect(canTrain.length).toBe(design.turrets.length);
+
         for (const turret of design.turrets) {
-          expect(turret.mount.leftArc).toBeGreaterThan(0);
-          expect(turret.mount.rightArc).toBeGreaterThan(0);
           expect(turret.mount.maxRate).toBeGreaterThan(0);
           expect(turret.mount.maxAccel).toBeGreaterThan(0);
           // Asked of the gun rather than of the ship's name: a name-based
@@ -470,7 +538,9 @@ describe('the authored blueprints', () => {
       it(
         deliberatelyAsymmetric
           ? 'is asymmetric about its own axis, as a wreck should be'
-          : 'is symmetric about its own axis',
+          : inFleet(name)
+            ? 'is symmetric about its own axis'
+            : 'is balanced closely enough to fly straight',
         () => {
           // A symmetric layout must put its centre of mass on the axis, or the
           // ship translates when it meant to rotate — very hard to spot by eye
@@ -483,13 +553,30 @@ describe('the authored blueprints', () => {
           const design = compileBlueprint(blueprint);
           if (deliberatelyAsymmetric) {
             expect(Math.abs(design.centreOfMassY)).toBeGreaterThan(0.01);
-          } else {
+          } else if (inFleet(name)) {
             expect(design.centreOfMassY).toBeCloseTo(0, 12);
+          } else {
+            // A showpiece only has to be near enough that offset thrust can
+            // trim it out without the pilot noticing — measured against the
+            // ship's own size, since a millimetre means one thing on a fighter
+            // and nothing at all on a kilometre of Star Destroyer.
+            expect(Math.abs(design.centreOfMassY)).toBeLessThan(design.radius * 0.02);
           }
         },
       );
     });
   }
+
+  it('sorts every ship into the fleet or the showcase, and no ship into both', () => {
+    // A new blueprint is classified on purpose or the suite complains. The
+    // failure mode this exists for is silent: a ship added to the library and
+    // to no list would be held to nothing at all, and a ship flown by a
+    // golden but left out of the fleet would have its handling unchecked
+    // while a checksum quietly depended on it.
+    const sorted = [...FLEET, ...SHOWCASE].sort();
+    expect(sorted).toEqual(Object.keys(BLUEPRINTS).sort());
+    expect(new Set(sorted).size).toBe(sorted.length);
+  });
 
   // Slow: it samples every thruster's plume along its whole length against
   // every other module, and the default 5s timeout is marginal on Windows CI.
@@ -505,7 +592,8 @@ describe('the authored blueprints', () => {
     // plume runs into something further aft. Thrust is still produced whatever
     // the exhaust hits (ROADMAP.md §12), so that case flies perfectly well and
     // merely looks absurd, which is exactly how it goes unnoticed.
-    for (const blueprint of Object.values(BLUEPRINTS)) {
+    for (const name of FLEET) {
+      const blueprint = BLUEPRINTS[name];
       const design = compileBlueprint(blueprint);
       const thrusters = design.modules.filter((m) => m.spec.kind === 'thruster');
 
