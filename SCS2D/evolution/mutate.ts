@@ -17,7 +17,7 @@ import {
   toDoctrine,
   type Doctrine,
 } from '../sim/doctrine.js';
-import { abs, cos, max, PI, round, sin } from '../sim/math.js';
+import { abs, cos, floor, max, PI, round, sin } from '../sim/math.js';
 import { moduleCentre, type ModuleKind, type ModuleSpec } from '../sim/modules.js';
 import type { Rng } from '../sim/rng.js';
 
@@ -613,17 +613,64 @@ function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, copy: boolean
     const kind = copy ? anchor.spec.kind : pickKind(rng);
     for (let i = 0; i < 4; i++) {
       const face = (firstFace + i) % 4;
-      const added = against(anchor.spec, face, kind, copy, bounds);
-      if (neighbours.some((neighbour) => modulesOverlap(added, neighbour))) continue;
-      anchor.list.placements.push(added);
-      return (
-        `${anchor.list.label}[${anchor.index}] ${anchor.spec.kind}: ` +
-        `${copy ? `copied onto` : `a ${kind} added to`} its ${faceName(face)} face`
-      );
+      for (const along of berths(anchor.spec, face, copy, bounds, rng)) {
+        const added = against(anchor.spec, face, along, kind, copy, bounds);
+        if (neighbours.some((neighbour) => modulesOverlap(added, neighbour))) continue;
+        anchor.list.placements.push(added);
+        return (
+          `${anchor.list.label}[${anchor.index}] ${anchor.spec.kind}: ` +
+          `${copy ? `copied onto` : `a ${kind} added to`} its ${faceName(face)} face`
+        );
+      }
     }
   }
   return null;
 }
+
+/**
+ * Where along a face a new module might go, in the order they are tried.
+ *
+ * **A face is a row of berths, not a single spot.** Fixed at the middle, a
+ * face can hold exactly one module ever: a second draw lands on top of the
+ * first, is refused, and the operator goes off to find another face — so a
+ * bank of engines down one side, or a battery of mounts along a beam, is a
+ * thing no lineage could ever be bred towards however long it ran. Sliding
+ * along the face makes every free stretch of hull available and a crowded one
+ * simply full.
+ *
+ * Every berth keeps the module wholly on the face it is bolted to, so what
+ * comes back is a real weld rather than a corner touch, and they are on the
+ * grid like everything else the operator writes. Drawn in a random order and
+ * tried until one fits, so a face with a gap in the middle of it is found
+ * rather than given up on.
+ */
+function berths(
+  anchor: ModuleSpec,
+  face: number,
+  copy: boolean,
+  bounds: MutationLimits,
+  rng: Rng,
+): number[] {
+  const endOn = face % 2 === 0;
+  const span = endOn ? anchor.width : anchor.length;
+  const across = copy ? span : bounds.grid;
+  const room = span - across;
+  if (!(room > 0)) return [0];
+
+  const steps = floor(room / bounds.grid);
+  const berth: number[] = [];
+  for (let i = 0; i <= steps; i++) berth.push(tidy(-room / 2 + i * bounds.grid, 6));
+  // Drawn without replacement, so a crowded face is searched rather than
+  // sampled: the same spot offered twice is a draw wasted.
+  const order: number[] = [];
+  while (berth.length > 0 && order.length < MOORINGS) {
+    order.push(berth.splice(rng.nextInt(berth.length), 1)[0]!);
+  }
+  return order;
+}
+
+/** How many places along one face are tried before moving to the next. */
+const MOORINGS = 6;
 
 /**
  * A module of the given kind, flush against one face of another.
@@ -634,6 +681,7 @@ function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, copy: boolean
 function against(
   anchor: ModuleSpec,
   face: number,
+  along: number,
   kind: ModuleKind,
   copy: boolean,
   bounds: MutationLimits,
@@ -642,11 +690,15 @@ function against(
   const normalAngle = angle + (face * PI) / 2;
   const nx = cos(normalAngle);
   const ny = sin(normalAngle);
+  // Along the face is the normal turned a quarter, which is where `along`
+  // slides the new module to.
+  const ax = -ny;
+  const ay = nx;
   const endOn = face % 2 === 0;
   const centre = moduleCentre(anchor);
   const reach = (endOn ? anchor.length : anchor.width) / 2;
-  const faceX = centre.x + nx * reach;
-  const faceY = centre.y + ny * reach;
+  const faceX = centre.x + nx * reach + ax * along;
+  const faceY = centre.y + ny * reach + ay * along;
 
   // **A copy keeps its original's proportions; anything new starts as small
   // as the grid allows.** A new module is a guess, and a guess should be
@@ -660,8 +712,8 @@ function against(
 
   // A thruster is held on by the face it pushes from, so it is mounted facing
   // *into* the anchor — which puts its position exactly on the face and its
-  // exhaust pointing out. Everything else sits centred on the face, half its
-  // own depth out.
+  // exhaust pointing out. Everything else sits on the face, half its own
+  // depth out.
   // **The angle is not rounded, and that is load-bearing.** Positions are
   // tidied because they are worked out through sines and cosines and land on
   // values no file should carry; an angle is not, because a module sits

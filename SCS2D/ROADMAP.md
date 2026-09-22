@@ -441,13 +441,16 @@ Deliberately unresolved; decide when they block something.
 - **How a run starts from nothing, and how clever a pilot should be.** Breeding a bare core is the sharpest
   test there is of what a fitness function rewards, and it ends up with guns rather than engines — a hundred
   and fifty generations of one produced sixteen guns a design and a tenth of a thruster.
-  What is *not* the reason is the shape of the goal's falloff, or the operator's ability to bolt an engine
-  on, or where on a face it lands; all three were investigated and none of them moved it. The reason left is
-  the **pilot**. A hull with one engine keeps the heading it spawned with, and the allocator fires a thruster
-  only when the force being asked for has a component along its thrust — so of the four faces a first
-  thruster can go on, the one pushing towards the goal earns 0.23 and the other three earn *exactly*
-  nothing. Mounting it off-centre, so that its thrust line misses the centre of mass and it has torque to
-  turn the ship with, changes nothing at all: 0.500 on all three, measured.
+  What is *not* the reason is the shape of the goal's falloff, the operator's ability to bolt an engine on,
+  or where on a face it lands; all three were investigated and fixed, and none of them moved it. A bare core
+  now keeps thrusters — eight in ten designs carry one, against none before — and still never moves.
+  The reason left is the **pilot**. A hull keeps the heading it spawned with unless it has the thrusters to
+  turn, and the allocator fires a thruster only when the force being asked for has a component along its
+  thrust — so of the four faces a first thruster can go on, the one pushing towards the goal earns 0.23 and
+  the other three earn *exactly* nothing. Mounting it off-centre, so its thrust line misses the centre of
+  mass and it has torque to turn with, changes nothing at all: 0.500 on all three, measured. What a lineage
+  accumulates instead is thrusters as ballast, carried because nothing costs them anything and used by
+  nothing.
   A cleverer pilot would make every one of them useful. Any off-axis thruster can be flown with if you do
   not mind spinning: fire it once to start the hull turning, then pulse it whenever the nose comes round to
   the heading you want, and the ship walks along that heading. That is a real technique and it is a long way
