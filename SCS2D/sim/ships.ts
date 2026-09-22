@@ -635,7 +635,9 @@ export class Ships {
    * A ship that can do neither is a hulk — it keeps its mass, drifts on and
    * goes on stopping shells (§4), which is what makes §3's mission kill worth
    * something. It is not removed, so this is the question a scenario asks
-   * rather than a state the store holds.
+   * rather than a state the store holds — and the question target-picking
+   * asks too, since a hulk can never be finished off and a ship that goes on
+   * shooting at one is a ship shooting at nothing.
    *
    * A ship with no working core is one of these however sound the rest of it
    * is, which is the whole of what shooting at a core buys: one hit in the
@@ -773,8 +775,12 @@ export class Ships {
     this.choice.begin();
     for (let t = 0; t < this.alive.length; t++) {
       if (t === i || this.alive[t] === 0) continue;
-      // Wreckage is matter, not an enemy, and one's own side never is.
-      if (this.derelict[t] === 1 || this.team[t] === mine) continue;
+      // Wreckage is matter, not an enemy, one's own side never is, and a
+      // hulk offers nothing worth closing on: it cannot shoot back, cannot
+      // get away, and no shot fired at it will ever remove it from the
+      // battle, so scoring it low is not enough to stop a ship parking next
+      // to one forever.
+      if (this.derelict[t] === 1 || this.team[t] === mine || this.isDisabled(t)) continue;
       const tb = bodies.indexOf(this.bodyIds[t]!);
       if (tb < 0) continue;
       const candidate = look(
@@ -816,10 +822,13 @@ export class Ships {
 
     for (let t = 0; t < indices.length; t++) {
       // What it was fighting is dropped the moment that stops being a fight,
-      // whatever its schedule says: a mount tracking a wreck is worse than a
-      // mount at rest, because it goes on shooting at it.
+      // whatever its schedule says: a mount tracking a wreck, or a hulk, is
+      // worse than a mount at rest, because it goes on shooting at it.
       const held = targets[t]!;
-      if (held !== NO_TARGET && (this.alive[held] !== 1 || this.derelict[held] === 1)) {
+      if (
+        held !== NO_TARGET &&
+        (this.alive[held] !== 1 || this.derelict[held] === 1 || this.isDisabled(held))
+      ) {
         targets[t] = NO_TARGET;
         aims[t] = WHOLE_SHIP;
       }
@@ -849,7 +858,7 @@ export class Ships {
       this.choice.begin();
       for (let e = 0; e < this.alive.length; e++) {
         if (e === i || this.alive[e] === 0) continue;
-        if (this.derelict[e] === 1 || this.team[e] === mine) continue;
+        if (this.derelict[e] === 1 || this.team[e] === mine || this.isDisabled(e)) continue;
         const tb = bodies.indexOf(this.bodyIds[e]!);
         if (tb < 0) continue;
         if (!this.turrets.bearsOn(bodies, ti, bearing(gunX, gunY, bodies.x[tb]!, bodies.y[tb]!))) {
@@ -1053,7 +1062,9 @@ export class Ships {
     if (given !== undefined) return given;
 
     const target = this.chosen[i]!;
-    if (target === NO_TARGET || this.alive[target] !== 1) return undefined;
+    if (target === NO_TARGET || this.alive[target] !== 1 || this.isDisabled(target)) {
+      return undefined;
+    }
 
     const design = this.designs[i]!;
     const approach = design.doctrine.approach;
