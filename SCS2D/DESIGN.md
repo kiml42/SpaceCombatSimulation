@@ -150,6 +150,18 @@ inside any one file is not contiguous.
   changes every copy and a wing that grows a gun grows it on both wings. Whether a generation is structural
   is settled before the retrying starts rather than inside it, which is what stops the rare, hard edit being
   crowded out by the common, easy one; and a child is written back to a file the editor opens.
+  **A match is fought and scored.** A handful of designs are put in an arena together — every entrant its
+  own side, evenly round a ring, each facing the middle — and the battle is run until one of them is left or
+  the clock runs out. Three things are scored in the one match rather than in separate kinds of match,
+  because the trade between them is the interesting part: surviving, damage done, and how much of the match
+  was spent near a point worth holding. Each is scaled to run from nothing to one before it is weighted — a
+  whole match survived, the whole of the opposition destroyed, a match spent sitting on the goal — so a
+  weight says what an outcome is worth rather than what a joule is worth. Damage is credited to whoever
+  fired, which is the one thing a fitness function cannot get from what a hull has taken, and it is capped
+  per victim, since a gun must not be paid for firing into something it has already killed. What is left of
+  a match that ends early is credited to whoever is still standing: without it, winning outright scores less
+  than failing to land a shot for the full two minutes. A four-ship match runs in a quarter of a second,
+  about three hundred times faster than the battle it simulates.
 - **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. After it comes headless evolution and analysis. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the

@@ -158,6 +158,7 @@ export {
   type Strike,
 } from './ballistics.js';
 export {
+  Credit,
   DAMAGE_ENERGY_PER_KG,
   DAMAGE_RESPONSES,
   Damage,

@@ -529,6 +529,56 @@ export function resolveRound(
  * world position is what a flash falls back to when the ship it was on is no
  * longer there to carry it.
  */
+/**
+ * Who did the damage: one row per hit that landed, naming the hull that fired
+ * and the hull that took it.
+ *
+ * The impact log next door records the same hits for a renderer to draw, and
+ * deliberately does not say who fired: a flash looks the same whoever's gun it
+ * came out of. Scoring a battle is the other question — a fitness function
+ * that cannot tell a ship that did the shooting from one that happened to be
+ * nearby is scoring the battle's luck — so it gets a store of its own rather
+ * than a field on that one, and nothing fills it unless something asks.
+ *
+ * Filled and drained per step, like `ProjectileHits`: whatever is scoring
+ * reads it after each step and keeps its own totals.
+ */
+export class Credit {
+  /** Body that fired. */
+  attacker = new Int32Array(64);
+  /** Body that absorbed it. */
+  victim = new Int32Array(64);
+  /** Joules the victim took, as delivered — a module already spent takes it too. */
+  energy = new Float64Array(64);
+  count = 0;
+
+  push(attacker: number, victim: number, energy: number): void {
+    if (attacker < 0 || !(energy > 0)) return;
+    if (this.count === this.attacker.length) this.grow();
+    const i = this.count++;
+    this.attacker[i] = attacker;
+    this.victim[i] = victim;
+    this.energy[i] = energy;
+  }
+
+  clear(): void {
+    this.count = 0;
+  }
+
+  private grow(): void {
+    const size = this.attacker.length * 2;
+    const attacker = new Int32Array(size);
+    attacker.set(this.attacker);
+    this.attacker = attacker;
+    const victim = new Int32Array(size);
+    victim.set(this.victim);
+    this.victim = victim;
+    const energy = new Float64Array(size);
+    energy.set(this.energy);
+    this.energy = energy;
+  }
+}
+
 export class ImpactLog {
   x = new Float64Array(64);
   y = new Float64Array(64);
@@ -632,6 +682,7 @@ export class Impacts {
     projectiles: Projectiles,
     hits: ProjectileHits,
     shocks?: Shocked,
+    credit?: Credit,
   ): void {
     for (let i = 0; i < hits.count; i++) {
       const round = hits.projectile[i]!;
@@ -667,6 +718,7 @@ export class Impacts {
         speed,
       );
       this.log.push(x, y, outcome.energy, IMPACT_ROUND, bodies, body);
+      credit?.push(projectiles.owner[round]!, body, outcome.energy);
 
       // What the round left behind: the momentum it lost is the momentum the
       // ship gained, which is a shove and — where it lands — a blow the hull
@@ -708,11 +760,13 @@ export class Impacts {
     dt: number,
     bodies?: Bodies,
     designs?: HullDesigns,
+    credit?: Credit,
   ): void {
     for (let i = 0; i < hits.count; i++) {
       const energy = beams.power[hits.beam[i]!]! * dt;
       damage.absorb(hits.body[i]!, hits.module[i]!, energy);
       this.log.push(hits.x[i]!, hits.y[i]!, energy, IMPACT_BEAM, bodies, hits.body[i]!);
+      credit?.push(beams.owner[hits.beam[i]!]!, hits.body[i]!, energy);
       if (bodies !== undefined && designs !== undefined) {
         this.burnSeams(damage, designs, bodies, beams, hits, i, energy);
       }

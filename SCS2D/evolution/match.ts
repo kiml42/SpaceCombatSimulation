@@ -1,0 +1,283 @@
+import {
+  compileBlueprint,
+  DAMAGE_ENERGY_PER_KG,
+  math,
+  type Blueprint,
+  type ShipDesign,
+  type WellSpec,
+} from '../sim/index.js';
+import { makeBattle } from '../scenarios/battle.js';
+
+/**
+ * One match: a handful of designs put in an arena together, and what each of
+ * them is worth when it is over.
+ *
+ * **One match scores all three things.** Surviving, doing damage, and holding
+ * a point on the field are accrued in the same battle rather than in separate
+ * kinds of match, because the trade between them is the interesting part — a
+ * ship that breaks off to hold the middle is not shooting while it does, and
+ * one that stands off to shoot is not holding anything. Scoring them in
+ * separate matches would measure all three and never the choice.
+ *
+ * **Every entrant is its own side.** A match is a free-for-all, so what a
+ * design is being scored against is the rest of its generation rather than a
+ * fixed opponent, and no entrant has a friend to hide behind.
+ */
+
+/** A point worth being near, and how far away stops being worth anything. */
+export interface GoalSpec {
+  readonly x: number;
+  readonly y: number;
+  /** Distance at which the goal is worth nothing. Closer scores proportionally. */
+  readonly reach: number;
+}
+
+/**
+ * What each part of a score is worth, once each is expressed as a fraction of
+ * the most that part could be.
+ *
+ * Every component is scaled to run from nothing to one before it is weighted —
+ * a whole match survived, a match spent sitting on the goal, the whole of the
+ * opposition destroyed — so a weight says what that outcome is worth against
+ * the others rather than what a joule is worth, and the same weights mean the
+ * same thing whatever size of ship is fighting or how long the match runs.
+ */
+export interface ScoreWeights {
+  readonly survival: number;
+  readonly damage: number;
+  readonly race: number;
+}
+
+export interface MatchConfig {
+  readonly seed: number;
+  readonly dt: number;
+  /** How long a match may last before it is called a draw, seconds. */
+  readonly duration: number;
+  /** How far from the middle the entrants start, metres. */
+  readonly radius: number;
+  /**
+   * The point worth holding, or null for a match that is only a fight.
+   *
+   * At the middle of the ring by default, which is the one position every
+   * entrant starts the same distance from — an objective off to one side
+   * would hand the match to whoever drew the nearest slot.
+   */
+  readonly goal: GoalSpec | null;
+  readonly weights: ScoreWeights;
+  readonly wells: readonly WellSpec[];
+}
+
+export const DEFAULT_MATCH: MatchConfig = {
+  seed: 1,
+  dt: 1 / 60,
+  duration: 120,
+  radius: 900,
+  goal: { x: 0, y: 0, reach: 900 },
+  weights: { survival: 1, damage: 1, race: 1 },
+  wells: [],
+};
+
+/** What one entrant did, each part scaled so that one is as good as it gets. */
+export interface Score {
+  /** Fraction of the match spent still able to fight. */
+  readonly survival: number;
+  /** Fraction of the opposition destroyed, by what its hulls could absorb. */
+  readonly damage: number;
+  /** Fraction of the match spent on the goal, by how near it got. */
+  readonly race: number;
+  /** The three, weighted and added. */
+  readonly total: number;
+  /** Seconds it lasted, for reading a result rather than for scoring one. */
+  readonly lifetime: number;
+  /** What it took, as a fraction of what its own hull could absorb. */
+  readonly taken: number;
+}
+
+/** Why a match stopped. */
+export type Ending = 'decided' | 'annihilated' | 'timeout';
+
+export interface MatchResult {
+  readonly seed: number;
+  /** Seconds simulated. */
+  readonly elapsed: number;
+  readonly steps: number;
+  readonly ending: Ending;
+  /** One per entrant, in the order they were given. */
+  readonly scores: readonly Score[];
+}
+
+/**
+ * What a hull can absorb before every module on it is spent, joules.
+ *
+ * Damage is scored as a fraction of this rather than in joules, so that
+ * wrecking a fighter and scratching a capital are not the same number, and so
+ * that a weight means something a person can reason about.
+ */
+export function hullCapacity(design: ShipDesign): number {
+  let total = 0;
+  for (const module of design.modules) total += module.stats.hitPoints * DAMAGE_ENERGY_PER_KG;
+  return total;
+}
+
+/**
+ * Fight one match and score it.
+ *
+ * Deterministic in the config's seed and the blueprints: the same call gives
+ * the same result, which is what makes a match replayable from a run's record
+ * rather than needing one recorded frame by frame.
+ */
+export function runMatch(entrants: readonly Blueprint[], config?: Partial<MatchConfig>): MatchResult {
+  const settings: MatchConfig = { ...DEFAULT_MATCH, ...config };
+  const designs = entrants.map((blueprint) => compileBlueprint(blueprint));
+  const capacities = designs.map(hullCapacity);
+  const count = entrants.length;
+
+  const battle = makeBattle(
+    {
+      seed: settings.seed,
+      dt: settings.dt,
+      wells: settings.wells,
+      projectiles: 1024,
+      beams: 256,
+    },
+    (ships, world) => {
+      const slots: number[] = [];
+      for (let i = 0; i < count; i++) {
+        // Evenly round a ring, each facing the middle. Every entrant is the
+        // same distance from every other and from the goal, so a slot is
+        // worth what any other slot is worth.
+        const bearing = (math.TAU * i) / count;
+        slots.push(
+          ships.spawn(world, {
+            design: designs[i]!,
+            x: math.cos(bearing) * settings.radius,
+            y: math.sin(bearing) * settings.radius,
+            angle: bearing + math.PI,
+            team: i,
+          }),
+        );
+      }
+      return { slots };
+    },
+  );
+
+  const { ships, world } = battle;
+  const slots = battle.slots;
+
+  // Counted in steps rather than accrued in seconds: a sum of `dt` over two
+  // minutes at sixty hertz comes to a shade over the duration it is divided
+  // by, and a survival score of 1.0000000000000073 makes a liar of every
+  // sentence saying these run from nothing to one.
+  const survival = new Float64Array(count);
+  const race = new Float64Array(count);
+  /** How near the goal each ship was when it was last looked at. */
+  const nearness = new Float64Array(count);
+  const lifetime = new Float64Array(count);
+  const taken = new Float64Array(count);
+  // What each entrant has put into each other entrant's hull, joules.
+  const dealt: Float64Array[] = [];
+  for (let i = 0; i < count; i++) dealt.push(new Float64Array(count));
+
+  /** Which entrant a body belongs to, rebuilt each step. */
+  const entrantOf = new Map<number, number>();
+
+  const steps = math.round(settings.duration / settings.dt);
+  let step = 0;
+  let ending: Ending = 'timeout';
+
+  for (; step < steps; step++) {
+    battle.step();
+
+    entrantOf.clear();
+    let fighting = 0;
+    for (let i = 0; i < count; i++) {
+      const ship = slots[i]!;
+      if (!ships.isAlive(ship)) continue;
+      entrantOf.set(world.bodies.indexOf(ships.body(ship)), i);
+      if (ships.isDisabled(ship)) continue;
+
+      // A hulk has stopped being a ship (DESIGN.md §3): it scores nothing more
+      // for being wreckage that has not been finished off.
+      fighting++;
+      survival[i]! += 1;
+      lifetime[i]! = step + 1;
+
+      const goal = settings.goal;
+      if (goal !== null && goal.reach > 0) {
+        const body = world.bodies.indexOf(ships.body(ship));
+        const dx = world.bodies.x[body]! - goal.x;
+        const dy = world.bodies.y[body]! - goal.y;
+        nearness[i]! = math.max(0, (goal.reach - math.length(dx, dy)) / goal.reach);
+        race[i]! += nearness[i]!;
+      }
+    }
+
+    // Who hit whom, this step. A hit whose shooter or whose victim is not a
+    // competitor — wreckage, or a piece that has come off something — is
+    // nobody's credit: it is neither a ship damaged nor an entrant doing it.
+    const credit = battle.credit;
+    for (let h = 0; h < credit.count; h++) {
+      const attacker = entrantOf.get(credit.attacker[h]!);
+      const victim = entrantOf.get(credit.victim[h]!);
+      if (attacker === undefined || victim === undefined || attacker === victim) continue;
+      dealt[attacker]![victim]! += credit.energy[h]!;
+    }
+
+    if (count > 1 && fighting <= 1) {
+      ending = fighting === 0 ? 'annihilated' : 'decided';
+      step++;
+      break;
+    }
+  }
+
+  const elapsed = step * settings.dt;
+
+  // What is left of the match, credited to whoever is still fighting at its
+  // last state.
+  //
+  // Without this, winning outright is worth *less* than a stalemate: a ship
+  // that kills everything in ten seconds of a two-minute match is credited
+  // with ten seconds of survival, and one that spends two minutes failing to
+  // land a shot is credited with all of it. The rest of a decided match is a
+  // formality, so it is scored as though it had been played out and gone on
+  // the way it was going.
+  const left = steps - step;
+  if (left > 0) {
+    for (let i = 0; i < count; i++) {
+      const ship = slots[i]!;
+      if (!ships.isAlive(ship) || ships.isDisabled(ship)) continue;
+      survival[i]! += left;
+      race[i]! += nearness[i]! * left;
+    }
+  }
+  const scores: Score[] = [];
+  for (let i = 0; i < count; i++) {
+    let hurt = 0;
+    for (let v = 0; v < count; v++) {
+      if (v === i) continue;
+      // Capped per victim: a ship can only be destroyed once, and without the
+      // cap the best thing a gun could do is go on firing into a hull that has
+      // already stopped — which is exactly the habit a fitness function must
+      // not pay for.
+      hurt += math.min(1, dealt[i]![v]! / capacities[v]!);
+      taken[i]! += dealt[v]![i]!;
+    }
+    const opposition = math.max(1, count - 1);
+    const parts = {
+      survival: survival[i]! / steps,
+      damage: hurt / opposition,
+      race: math.min(1, race[i]! / steps),
+    };
+    scores.push({
+      ...parts,
+      total:
+        parts.survival * settings.weights.survival +
+        parts.damage * settings.weights.damage +
+        parts.race * settings.weights.race,
+      lifetime: lifetime[i]! * settings.dt,
+      taken: math.min(1, taken[i]! / capacities[i]!),
+    });
+  }
+
+  return { seed: settings.seed, elapsed, steps: step, ending, scores };
+}
