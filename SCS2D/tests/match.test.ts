@@ -123,11 +123,13 @@ describe('match', () => {
     // it: what a ship does about the objective comes out of its doctrine like
     // everything else it does, and is weighed against the fight rather than
     // scripted. A design with nothing to say about escorting never leaves the
-    // ring it started on, and scores nothing.
+    // ring it started on, and scores whatever the ring is worth — which is
+    // half, the goal reaching twice as far as the ring is wide, and is the
+    // same half for everyone, so what selection sees is the difference.
     const alone = runMatch([CORVETTE], { seed: 23, duration: 60 });
     const going = runMatch([escorting(CORVETTE, 200)], { seed: 23, duration: 60 });
-    expect(alone.scores[0]!.race).toEqual(0);
-    expect(going.scores[0]!.race).toBeGreaterThan(0.3);
+    expect(alone.scores[0]!.race).toBeCloseTo(0.5, 2);
+    expect(going.scores[0]!.race).toBeGreaterThan(0.8);
   });
 
   it('measures a hull by what it can absorb', () => {

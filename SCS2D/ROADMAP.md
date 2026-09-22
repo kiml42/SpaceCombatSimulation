@@ -406,6 +406,19 @@ Deliberately unresolved; decide when they block something.
   Entangled with it: **identity is a ship's name**, so renaming re-identifies. Once revisions are
   referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
   together, at the campaign slice.
+- **How big an arena should be, and what a run should measure itself against.** Two things a run turned up
+  that are the same shape: a number in metres doing a job that wants to be a ratio.
+  A match's ring is five hundred metres because that is where the shipped corvettes fight each other to a
+  finish — put four of them a kilometre apart and they settle at the standoff their doctrine asks for and
+  plink, and no match is ever decided however long it runs, so the fitness function has no gradient in two
+  of its three terms and a run measures nothing. That threshold is a property of the ships, not of the game,
+  so the ring wants deriving from what the entrants can shoot rather than being a constant that will be
+  wrong for the first fleet of capitals anybody evolves.
+  The second is **what a run's numbers mean across generations**. Fitness is scored against the rest of the
+  generation, so a rising mean says the population beat itself and a flat one says nothing at all — the
+  graph cannot tell improvement from a red queen. A yardstick fixes it: a match per generation against a
+  fleet that does not evolve, scored but not bred from. It is cheap, and without it nobody can say whether
+  a run of a thousand matches produced a better ship or merely a different one.
 - **What keeping clear cannot do as it stands.** Steering by time to closest approach takes a quarter of the
   contacts out of the Star Wars scene and two thirds out of the column, and leaves two things undone. It is
   one want among several and is *averaged* with the rest, so a craft whose orders say to be where it is

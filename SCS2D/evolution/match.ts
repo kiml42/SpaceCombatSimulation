@@ -70,14 +70,31 @@ export interface MatchConfig {
   readonly dt: number;
   /** How long a match may last before it is called a draw, seconds. */
   readonly duration: number;
-  /** How far from the middle the entrants start, metres. */
+  /**
+   * How far from the middle the entrants start, metres.
+   *
+   * Small enough that a match is a fight. Four of the shipped corvettes put a
+   * kilometre apart never finish each other off however long they are given —
+   * they settle at the standoff their doctrine asks for and plink — so the
+   * arena decides whether a match discriminates at all, and one that always
+   * ends in four survivors has measured nothing. At five hundred metres the
+   * same four are decided every time, with survival running the whole way
+   * from a sixth of the match to all of it.
+   *
+   * It is a distance rather than a multiple of what the entrants can shoot,
+   * which is the wrong shape and is deliberately not fixed yet — see
+   * ROADMAP.md §12.
+   */
   readonly radius: number;
   /**
    * The point worth holding, or null for a match that is only a fight.
    *
    * At the middle of the ring by default, which is the one position every
    * entrant starts the same distance from — an objective off to one side
-   * would hand the match to whoever drew the nearest slot.
+   * would hand the match to whoever drew the nearest slot. Its reach is twice
+   * the ring, so that a craft out at the edge still has something to gain by
+   * turning inwards: a goal worth nothing from where the fighting happens is
+   * a goal nothing will be selected for going to.
    */
   readonly goal: GoalSpec | null;
   readonly weights: ScoreWeights;
@@ -88,8 +105,8 @@ export const DEFAULT_MATCH: MatchConfig = {
   seed: 1,
   dt: 1 / 60,
   duration: 120,
-  radius: 900,
-  goal: { x: 0, y: 0, reach: 900, size: 12 },
+  radius: 500,
+  goal: { x: 0, y: 0, reach: 1000, size: 12 },
   weights: { survival: 1, damage: 1, race: 1 },
   wells: [],
 };

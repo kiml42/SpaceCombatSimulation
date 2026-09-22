@@ -75,6 +75,8 @@ Keep these working — they are the cold-start re-entry path:
 - `npm run typecheck` — all three TS projects (`sim/` has no ambient types; `render/`, `editor/` and
   `host/` have the DOM)
 - `npm run golden` — re-derive golden checksums after a *deliberate* behaviour change
+- `npm run evolve` — fight a headless evolution run and write it to `runs/`; `--from`, `--generations`,
+  `--population`, `--group`, `--matches`, `--budget`, `--duration`, `--seed`, `--out`
 - `npm run build` — bundle both pages to `dist/index.html` and `dist/editor.html`, one file each with
   nothing external
 - `npm run dev` — the same build on every save, for tinkering; refresh the page to see it

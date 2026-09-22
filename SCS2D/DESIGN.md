@@ -198,6 +198,17 @@ inside any one file is not contiguous.
   quarter of the contacts in the Star Wars scene and a third of those between a fighter and a capital, half
   in the swarm and two thirds in the column; what it does not do is stop fighters flying through each other,
   whose bubbles are as small as they are.
+  **Generations are bred and run.** A population is seeded from the ships a run is started with and mutants
+  of them; matches are drawn until every design has had its hearing — fewest meetings with whoever is
+  already in the match, then fewest matches played, then the draw, since a design that has only ever met one
+  opponent has been measured against that opponent rather than against its generation; and what breeds is
+  drawn by score against a uniform number rather than taken off the top, so a design that drew a hard group
+  is not thrown away on the strength of one battle and the worst is never impossible. The winners carry over
+  unchanged as well as breeding, so a design that won on a lucky draw has to win again. `npm run evolve`
+  fights a run headlessly and writes it down: every generation, every design in it with the blueprint it
+  flew, and every match with the seed it was fought under — which is all it takes to watch any one of them
+  again, and a test fights every match of a run a second time to prove it. Three hundred matches take twenty
+  seconds.
 - **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. After it comes headless evolution and analysis. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
