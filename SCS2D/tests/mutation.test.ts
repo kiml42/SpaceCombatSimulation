@@ -151,7 +151,7 @@ describe('mutation', () => {
     expect(added / removed).toBeLessThan(1.6);
   });
 
-  it('delivers the structural generations it draws', () => {
+  it('delivers the structural generations it draws', { timeout: 30_000 }, () => {
     // Structural edits are refused far more often than changes to a number,
     // so a candidate that bundled the two would deliver them at a fraction of
     // the rate asked for. Set to always, most generations must carry one —

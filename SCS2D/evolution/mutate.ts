@@ -265,6 +265,7 @@ function spreadDoctrine(doctrine: Doctrine): MutableDoctrine {
 type Knob =
   | { readonly at: 'doctrine'; readonly half: 'targeting' | 'approach'; readonly field: string }
   | { readonly at: 'reinforcement'; readonly site: ModuleSite }
+  | { readonly at: 'kind'; readonly site: ModuleSite }
   | { readonly at: 'barrels'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
@@ -298,7 +299,12 @@ function knobs(draft: Draft): Knob[] {
         continue;
       }
       const site: ModuleSite = { spec: placement, where };
-      out.push({ at: 'reinforcement', site }, { at: 'face', site }, { at: 'slide', site });
+      out.push(
+        { at: 'reinforcement', site },
+        { at: 'face', site },
+        { at: 'slide', site },
+        { at: 'kind', site },
+      );
       if (placement.kind !== 'structure' && placement.kind !== 'core') {
         out.push({ at: 'angle', site });
       }
@@ -316,6 +322,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return turnDoctrine(draft, knob.half, knob.field, rng, bounds);
     case 'reinforcement':
       return reinforce(knob.site, rng, bounds);
+    case 'kind':
+      return refit(knob.site, rng);
     case 'barrels':
       return rebarrel(knob.site, rng);
     case 'angle':
@@ -380,6 +388,38 @@ function reinforce(site: ModuleSite, rng: Rng, bounds: MutationLimits): string |
   site.spec.reinforcement = now;
   return `${site.where} ${site.spec.kind}: reinforcement ${was} → ${now}`;
 }
+
+/**
+ * Change what a module is, keeping the space it occupies.
+ *
+ * **This is the only way a lineage gets a large module of a new kind.**
+ * Everything new arrives at the smallest size the grid allows and has to be
+ * grown, which is right for a guess and wrong as the only path there is: a
+ * hull that has spent twenty generations growing a good gun mounting should
+ * be able to discover that the same mounting makes a better beam mount,
+ * without starting again from half a metre. A refit keeps the geometry — the
+ * position, the size, the facing, the armour — and changes only what it is
+ * for.
+ *
+ * What comes out may be nothing of the sort: a thruster is held on by the
+ * face it pushes from, so structure refitted into one is usually mounted
+ * backwards and refused, which is the layout rules doing their job rather
+ * than this needing a rule of its own.
+ */
+function refit(site: ModuleSite, rng: Rng): string | null {
+  const was = site.spec.kind;
+  const to = KINDS[rng.nextInt(KINDS.length)]!;
+  if (to === was) return null;
+  site.spec.kind = to;
+  // Barrels mean nothing to anything but a gun, and a gun with none is a gun
+  // with one — so the field goes when it stops applying rather than sitting
+  // in the file saying nothing.
+  if (to !== 'turret' && to !== 'beamTurret') delete site.spec.barrels;
+  return `${site.where}: ${was} refitted as ${to}`;
+}
+
+/** Every kind a module may be refitted into. */
+const KINDS: readonly ModuleKind[] = ['structure', 'core', 'thruster', 'turret', 'beamTurret'];
 
 /**
  * Add or remove a barrel.
@@ -608,15 +648,15 @@ function against(
   const faceX = centre.x + nx * reach;
   const faceY = centre.y + ny * reach;
 
-  // A copy keeps its original's proportions; a new module is sized from the
-  // face it is going on, so what is added to a capital is capital-sized and
-  // what is added to a fighter is not.
-  const across = endOn ? anchor.width : anchor.length;
-  const out = copy
-    ? endOn
-      ? anchor.length
-      : anchor.width
-    : max(bounds.grid, snap((endOn ? anchor.length : anchor.width) / 2, bounds.grid));
+  // **A copy keeps its original's proportions; anything new starts as small
+  // as the grid allows.** A new module is a guess, and a guess should be
+  // cheap: sized from the face it is going on, a first gun on a capital
+  // arrives weighing tonnes and has to justify all of it at once, where one
+  // that starts at half a metre costs almost nothing and is grown a face at a
+  // time by the operator that grows faces — which is the difference between
+  // a lineage that can afford to try something and one that cannot.
+  const across = copy ? (endOn ? anchor.width : anchor.length) : bounds.grid;
+  const out = copy ? (endOn ? anchor.length : anchor.width) : bounds.grid;
 
   // A thruster is held on by the face it pushes from, so it is mounted facing
   // *into* the anchor — which puts its position exactly on the face and its
@@ -675,10 +715,6 @@ function tidy(value: number, places: number): number {
   let scale = 1;
   for (let i = 0; i < places; i++) scale *= 10;
   return round(value * scale) / scale;
-}
-
-function snap(value: number, grid: number): number {
-  return round(value / grid) * grid;
 }
 
 function degrees(radians: number): number {

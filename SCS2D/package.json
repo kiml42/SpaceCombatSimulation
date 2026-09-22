@@ -11,6 +11,7 @@
     "typecheck": "tsc -p sim && tsc -p . && tsc -p tsconfig.web.json",
     "golden": "tsx scripts/golden.ts",
     "evolve": "tsx scripts/evolve.ts",
+    "yardstick": "tsx scripts/yardstick.ts",
     "build": "tsx scripts/build.ts",
     "dev": "tsx scripts/build.ts --watch"
   },

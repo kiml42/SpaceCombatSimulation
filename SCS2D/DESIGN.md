@@ -159,7 +159,12 @@ inside any one file is not contiguous.
   because the trade between them is the interesting part: surviving, damage done, and how much of the match
   was spent near a point worth holding. Each is scaled to run from nothing to one before it is weighted — a
   whole match survived, the whole of the opposition destroyed, a match spent sitting on the goal — so a
-  weight says what an outcome is worth rather than what a joule is worth. Damage is credited to whoever
+  weight says what an outcome is worth rather than what a joule is worth. **What keeps a ship in the match
+  is a working core and nothing else**: not whether it still has a gun or an engine, since those are meant
+  to pay for themselves by doing something, and a score that pays for merely carrying them makes the
+  cheapest possible improvement to any design a weapon it never fires. Survival is weighted by what is left
+  of the core rather than counted while it holds out, so a hull being shot to pieces scores less every step
+  it takes it, and armour and layout are worth something before the moment they save a ship outright. Damage is credited to whoever
   fired, which is the one thing a fitness function cannot get from what a hull has taken, and it is capped
   per victim, since a gun must not be paid for firing into something it has already killed. What is left of
   a match that ends early is credited to whoever is still standing: without it, winning outright scores less
@@ -212,6 +217,16 @@ inside any one file is not contiguous.
   flew, and every match with the seed it was fought under — which is all it takes to watch any one of them
   again, and a test fights every match of a run a second time to prove it. Three hundred matches take twenty
   seconds.
+  **A run is measured against something that does not evolve.** Fitness is scored against the rest of the
+  generation, so a rising mean says the population beat itself and a flat one says nothing — a fleet getting
+  uniformly worse looks exactly like one getting uniformly better. Every design of every generation is
+  fought one against one against a fixed opponent, under seeds paired by slot so that two generations differ
+  by their designs and by nothing else. It is measured *afterwards and never during*: it must not reach
+  selection, or a run learns to beat that one ship (§7), and a record already holds every design it ever
+  bred, so the measurement can be taken again with a different opponent whenever the question changes. A run
+  measured against the ship it started from says how far it has come; the same run measured against **its
+  own final design** says how bad things used to be, which is the only yardstick available to a run that
+  started from nothing.
 - **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. After it comes headless evolution and analysis. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the

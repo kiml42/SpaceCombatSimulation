@@ -1,5 +1,6 @@
 import {
   compileBlueprint,
+  type Ships,
   DAMAGE_ENERGY_PER_KG,
   math,
   NEUTRAL_TEAM,
@@ -113,7 +114,18 @@ export const DEFAULT_MATCH: MatchConfig = {
 
 /** What one entrant did, each part scaled so that one is as good as it gets. */
 export interface Score {
-  /** Fraction of the match spent still able to fight. */
+  /**
+   * Time spent still flying, weighted by how much of what flies it is left.
+   *
+   * **What keeps a ship in the match is a working core, and nothing else.**
+   * Not whether it still has a gun or an engine: those are meant to pay for
+   * themselves by doing something, and a score that pays for merely carrying
+   * them makes the cheapest possible improvement to any design a weapon it
+   * never fires. Weighted by what is left of the core rather than counted
+   * while it holds out, so a hull that is being shot to pieces scores less
+   * every step it takes it — which is what makes armour and layout worth
+   * something before the moment they save a ship outright.
+   */
   readonly survival: number;
   /** Fraction of the opposition destroyed, by what its hulls could absorb. */
   readonly damage: number;
@@ -151,6 +163,25 @@ export function hullCapacity(design: ShipDesign): number {
   let total = 0;
   for (const module of design.modules) total += module.stats.hitPoints * DAMAGE_ENERGY_PER_KG;
   return total;
+}
+
+/**
+ * How much of what flies a ship is still there, from nothing to one.
+ *
+ * Weighted by what each core can absorb, so losing one of two cores costs
+ * what that core was worth rather than half by definition — and a ship built
+ * around one big core and a small spare is not the same ship as one built
+ * around two of a size.
+ */
+function coreHealth(ships: Ships, design: ShipDesign, body: number): number {
+  let held = 0;
+  let total = 0;
+  for (const core of design.cores) {
+    const capacity = design.modules[core]!.stats.hitPoints;
+    total += capacity;
+    held += capacity * ships.damage.integrity(body, core);
+  }
+  return total > 0 ? held / total : 0;
 }
 
 /**
@@ -254,18 +285,18 @@ export function runMatch(entrants: readonly Blueprint[], config?: Partial<MatchC
     for (let i = 0; i < count; i++) {
       const ship = slots[i]!;
       if (!ships.isAlive(ship)) continue;
-      entrantOf.set(world.bodies.indexOf(ships.body(ship)), i);
-      if (ships.isDisabled(ship)) continue;
+      const body = world.bodies.indexOf(ships.body(ship));
+      entrantOf.set(body, i);
+      if (!ships.hasControl(ship)) continue;
 
-      // A hulk has stopped being a ship (DESIGN.md §3): it scores nothing more
-      // for being wreckage that has not been finished off.
+      // Nobody is flying a hull whose cores have gone (DESIGN.md §4), and it
+      // scores nothing more for being wreckage that has not been finished off.
       fighting++;
-      survival[i]! += 1;
+      survival[i]! += coreHealth(ships, designs[i]!, body);
       lifetime[i]! = step + 1;
 
       const goal = settings.goal;
       if (goal !== null && goal.reach > 0 && ships.isAlive(marker)) {
-        const body = world.bodies.indexOf(ships.body(ship));
         const at = world.bodies.indexOf(ships.body(marker));
         const dx = world.bodies.x[body]! - world.bodies.x[at]!;
         const dy = world.bodies.y[body]! - world.bodies.y[at]!;
@@ -307,8 +338,9 @@ export function runMatch(entrants: readonly Blueprint[], config?: Partial<MatchC
   if (left > 0) {
     for (let i = 0; i < count; i++) {
       const ship = slots[i]!;
-      if (!ships.isAlive(ship) || ships.isDisabled(ship)) continue;
-      survival[i]! += left;
+      if (!ships.isAlive(ship) || !ships.hasControl(ship)) continue;
+      const body = world.bodies.indexOf(ships.body(ship));
+      survival[i]! += coreHealth(ships, designs[i]!, body) * left;
       race[i]! += nearness[i]! * left;
     }
   }

@@ -438,33 +438,26 @@ Deliberately unresolved; decide when they block something.
   Entangled with it: **identity is a ship's name**, so renaming re-identifies. Once revisions are
   referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
   together, at the campaign slice.
-- **What a race goal is worth before a ship can move, and the floor under it.** Two findings from breeding a
-  bare core, which is the sharpest test there is of what the fitness function actually rewards.
+- **What a race goal is worth before a ship can move, and how a run starts from nothing.** Breeding a bare
+  core is the sharpest test there is of what a fitness function actually rewards, and it does not get off
+  the ground.
   A proximity score paid over a reach wider than the ring gives every design the same something for standing
   still — half, at twice the ring — so a run's race line can rise from nothing to a half without a single
-  craft ever having moved: what it is measuring is designs ceasing to be *disabled*, which is what unlocks
-  scoring at all. Narrowing the reach to the ring removes the floor and the line means what it says.
-  It also stops the search dead. A bare core scores nothing anywhere, and the cheapest way out of that is a
-  **gun**, not an engine: survival is gated on not being disabled, and a gun lifts that gate exactly as an
-  engine does for less mass, so under any weighting that includes survival the first thing a hull grows is a
-  weapon. Bred against pure proximity with nothing else scored, sixty generations produced no thrusters at
-  all — every individual scores zero, so selection is a random walk with no gradient to climb. A first
-  thruster does pay, once it exists: one on a bare core covers enough ground to earn 0.07 where the core
-  earns 0.00. The gap between those two facts is the whole problem, and what closes it is either a term that
-  pays for *approaching* rather than for arriving, or starting a run from a hull that can already fly.
-- **How big an arena should be, and what a run should measure itself against.** Two things a run turned up
-  that are the same shape: a number in metres doing a job that wants to be a ratio.
-  A match's ring is five hundred metres because that is where the shipped corvettes fight each other to a
-  finish — put four of them a kilometre apart and they settle at the standoff their doctrine asks for and
-  plink, and no match is ever decided however long it runs, so the fitness function has no gradient in two
-  of its three terms and a run measures nothing. That threshold is a property of the ships, not of the game,
-  so the ring wants deriving from what the entrants can shoot rather than being a constant that will be
-  wrong for the first fleet of capitals anybody evolves.
-  The second is **what a run's numbers mean across generations**. Fitness is scored against the rest of the
-  generation, so a rising mean says the population beat itself and a flat one says nothing at all — the
-  graph cannot tell improvement from a red queen. A yardstick fixes it: a match per generation against a
-  fleet that does not evolve, scored but not bred from. It is cheap, and without it nobody can say whether
-  a run of a thousand matches produced a better ship or merely a different one.
+  craft ever having moved. Narrowing the reach to the ring removes that floor, and then a bare core scores
+  nothing at all for it: a hull that cannot move cannot approach anything, so the term it would be selected
+  on is exactly zero until it can. A first thruster does pay once it exists, and how much depends on how big
+  it is — a two-metre one earns 0.07 where the core earns nothing, and the half-metre one a mutation
+  actually adds earns a small fraction of that. Making a new module cheap to try made it cheap to ignore.
+  Meanwhile every design with a sound core scores the same full survival, so a population of bare cores is a
+  population of ties and selection is a coin toss. What would close it is a term that pays for *approaching*
+  rather than for arriving — a best-distance-gained, which a hull that moves four metres can be ranked by
+  and a hull that cannot move cannot. Until then a run wants starting from something that can already fly.
+- **How big an arena should be.** A match's ring is five hundred metres because that is where the shipped
+  corvettes fight each other to a finish — put four of them a kilometre apart and they settle at the
+  standoff their doctrine asks for and plink, and no match is ever decided however long it runs, so two of
+  the three terms in the fitness function have no gradient and a run measures nothing. That threshold is a
+  property of the ships, not of the game, so the ring wants deriving from what the entrants can shoot rather
+  than being a constant that will be wrong for the first fleet of capitals anybody evolves.
 - **What keeping clear cannot do as it stands.** Steering by time to closest approach takes a quarter of the
   contacts out of the Star Wars scene and two thirds out of the column, and leaves two things undone. It is
   one want among several and is *averaged* with the rest, so a craft whose orders say to be where it is
