@@ -59,6 +59,8 @@ host/       window lifecycle, the wall clock, and the controls — one entry
             point and one page shell per page
 scenarios/  the battles, and the blueprints they fly, under blueprints/
             (battle.ts holds the assembly and the step order they share)
+evolution/  breeding and running a generation; imports sim/, never the host,
+            and is bound by the same determinism rules
 ```
 
 **The editor is independent of the running simulation and tightly coupled to the simulation's laws.** It

@@ -6,5 +6,5 @@
     "lib": ["ES2022"],
     "types": ["node"]
   },
-  "include": ["scenarios", "scripts", "tests"]
+  "include": ["evolution", "scenarios", "scripts", "tests"]
 }
