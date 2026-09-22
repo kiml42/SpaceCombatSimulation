@@ -1,15 +1,15 @@
 import { parseBlueprint, type Blueprint } from '../sim/index.js';
-import corvetteFile from './corvette.json' with { type: 'json' };
-import beamCorvetteFile from './beam-corvette.json' with { type: 'json' };
-import damagedCorvetteFile from './damaged-corvette.json' with { type: 'json' };
-import gunshipFile from './gunship.json' with { type: 'json' };
-import gunship2File from './gunship2.json' with { type: 'json' };
-import flatGunshipFile from './flat-gunship.json' with { type: 'json' };
-import flatGunshipGroupedFile from './flat-gunship-grouped.json' with { type: 'json' };
-import beamGunshipFile from './beam-gunship.json' with { type: 'json' };
-import fractalFile from './fractal.json' with { type: 'json' };
-import dinkyFile from './dinky.json' with { type: 'json' };
-import catamaranFile from './catamaran.json' with { type: 'json' };
+import corvetteFile from './blueprints/corvette.json' with { type: 'json' };
+import beamCorvetteFile from './blueprints/beam-corvette.json' with { type: 'json' };
+import damagedCorvetteFile from './blueprints/damaged-corvette.json' with { type: 'json' };
+import gunshipFile from './blueprints/gunship.json' with { type: 'json' };
+import gunship2File from './blueprints/gunship2.json' with { type: 'json' };
+import flatGunshipFile from './blueprints/flat-gunship.json' with { type: 'json' };
+import flatGunshipGroupedFile from './blueprints/flat-gunship-grouped.json' with { type: 'json' };
+import beamGunshipFile from './blueprints/beam-gunship.json' with { type: 'json' };
+import fractalFile from './blueprints/fractal.json' with { type: 'json' };
+import dinkyFile from './blueprints/dinky.json' with { type: 'json' };
+import catamaranFile from './blueprints/catamaran.json' with { type: 'json' };
 
 // --- Star Wars ---
 import xWingFile from './blueprints/x-wing.json' with { type: 'json' };

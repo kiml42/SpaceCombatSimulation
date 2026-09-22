@@ -9,10 +9,10 @@ import {
   radiansToDegrees,
   serialiseBlueprint,
 } from '../sim/index.js';
-import corvetteFile from '../scenarios/corvette.json' with { type: 'json' };
-import damagedCorvetteFile from '../scenarios/damaged-corvette.json' with { type: 'json' };
-import fractalFile from '../scenarios/fractal.json' with { type: 'json' };
-import gunshipFile from '../scenarios/gunship.json' with { type: 'json' };
+import corvetteFile from '../scenarios/blueprints/corvette.json' with { type: 'json' };
+import damagedCorvetteFile from '../scenarios/blueprints/damaged-corvette.json' with { type: 'json' };
+import fractalFile from '../scenarios/blueprints/fractal.json' with { type: 'json' };
+import gunshipFile from '../scenarios/blueprints/gunship.json' with { type: 'json' };
 import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**

@@ -1,19 +1,6 @@
-import {
-  Collisions,
-  Impacts,
-  compileBlueprint,
-  gravityWell,
-  math,
-  ProjectileHits,
-  Projectiles,
-  BeamHits,
-  Beams,
-  Ships,
-  SpatialGrid,
-  World,
-  type WellSpec,
-} from '../sim/index.js';
+import { compileBlueprint, math } from '../sim/index.js';
 import type { Battle } from './types.js';
+import { CROSSING, SIDE_WELL, makeBattle } from './battle.js';
 import { CORVETTE, DAMAGED_CORVETTE, GUNSHIP } from './blueprints.js';
 import { OrderCancelCondition } from '../sim/ships.js';
 
@@ -21,151 +8,53 @@ import { OrderCancelCondition } from '../sim/ships.js';
  * A corvette and a gunship closing on each other and opening fire.
  *
  * **One definition, used by both the golden test and the viewer**, which is
- * the point of it being here rather than in either. The step order below is
- * load-bearing — turrets are commanded before the world advances, guns fire
- * after the index is rebuilt — and a viewer that had its own copy of that
- * order would drift from the one being pinned without anything failing. What
- * is on screen is then not what the checksum covers, which is the worst of
- * both.
+ * the point of it being here rather than in either.
  *
  * Two different designs on purpose. A duel between identical ships is
  * symmetric, and a symmetric scenario hides any error that is also symmetric.
  *
  * The opening conditions are chosen to *exercise* things rather than to be
- * tidy. Both ships start facing across the engagement rather than at each
- * other, so each has to turn before it can shoot; both carry velocity that is
- * mostly across the closing line, so holding a range band means cancelling it
- * rather than flying straight down the bearing; and a gravity well sits off to
- * one side, bending both the ships and their rounds. A head-on duel between
- * two ships at rest in empty space exercises almost none of that, and flatters
- * the gunnery besides — every shot hits when nothing is crossing.
+ * tidy: a crossing start (see `CROSSING`) and a gravity well off to one side,
+ * bending both the ships and their rounds. A head-on duel between two ships at
+ * rest in empty space exercises almost none of that, and flatters the gunnery
+ * besides — every shot hits when nothing is crossing.
  *
  * Plain TypeScript, no DOM and no Node: it has to run in a browser, in a test
  * and in a worker alike.
  */
 export function duel(seed = 20260905): Battle {
-  const dt = 1 / 60;
-  const world = new World({ dt, seed });
+  return makeBattle({ seed, wells: [SIDE_WELL] }, (ships, world) => {
+    const corvette = compileBlueprint(CORVETTE);
+    const damagedCorvette = compileBlueprint(DAMAGED_CORVETTE);
+    const gunship = compileBlueprint(GUNSHIP);
 
-  // Off to one side rather than between the ships, so nothing passes close
-  // enough for the softening to matter and the pull stays a steady bias rather
-  // than a slingshot. At the ranges fought here it is about 1.1 m/s² — half
-  // the gunship's own acceleration, so it shapes every trajectory without ever
-  // leaving a ship unable to resist it.
-  const wells: WellSpec[] = [{ x: 0, y: -1500, gm: 2.5e6, softening: 200 }];
-  for (const well of wells) world.addForceProvider(gravityWell(well));
+    const distantCorvette = ships.spawn(world, { design: corvette, ...CROSSING.west, team: 0 });
+    const closeCorvette = ships.spawn(world, {
+      design: damagedCorvette,
+      x: 2000,
+      y: -740,
+      angle: math.HALF_PI / 2,
+      vx: 0,
+      vy: 90,
+      team: 0,
+    });
+    const b = ships.spawn(world, { design: gunship, ...CROSSING.east, team: 1 });
 
-  const ships = new Ships();
-  world.addForceProvider(ships.forceProvider());
+    // The corvettes want to be inside the gunship's reach; the gunship would
+    // rather hold it off. Neither gets what it wants, which is the interesting
+    // part.
 
-  const corvette = compileBlueprint(CORVETTE);
-  const damagedCorvette = compileBlueprint(DAMAGED_CORVETTE);
-  const gunship = compileBlueprint(GUNSHIP);
+    // the gunship starts off attacking the closer corvette.
+    ships.pushOrder(closeCorvette, b, 300, 500, 120);
 
-  // Offset across the line of approach as well as along it, so neither ship
-  // starts with its bow gun already bearing and both have to manoeuvre.
-  // Facing across the engagement, not along it: both have to come round before
-  // a gun bears. Their velocity is mostly crossing too, so closing means
-  // killing that first — which is what a range band actually asks of a pilot.
-  const distantCorvette = ships.spawn(world, {
-    design: corvette,
-    x: -1800,
-    y: -240,
-    angle: math.HALF_PI,
-    vx: 0,
-    vy: 90,
-    team: 0,
+    // this one starts far away and comes in later to help.
+    ships.pushOrder(distantCorvette, b, 300, 500, 120);
+
+    // The gunship has a plan rather than a target, worked through in order:
+    // silence the corvette already on it, deal with the one coming to help,
+    // then come back and finish the first off.
+    ships.pushOrder(b, closeCorvette, 900, 1200, 60, OrderCancelCondition.Disarm);
+    ships.pushOrder(b, distantCorvette, 900, 1200, 60, OrderCancelCondition.CompleteDisable);
+    ships.pushOrder(b, closeCorvette, 900, 1200, 60, OrderCancelCondition.CompleteDisable);
   });
-   const closeCorvette = ships.spawn(world, {
-    design: damagedCorvette,
-    x: 2000,
-    y: -740,
-    angle: math.HALF_PI/2,
-    vx: 0,
-    vy: 90,
-    team: 0,
-  });
-  const b = ships.spawn(world, {
-    design: gunship,
-    x: 1800,
-    y: 240,
-    angle: -math.HALF_PI,
-    vx: 0,
-    vy: -60,
-    team: 1,
-  });
-
-  // The corvettes want to be inside the gunship's reach; the gunship would
-  // rather hold it off. Neither gets what it wants, which is the interesting
-  // part.
-
-  // the gunship starts off attacking the closer corvette.
-  ships.pushOrder(closeCorvette, b, 300, 500, 120);
-
-  // this one starts far away and comes in later to help.
-  ships.pushOrder(distantCorvette, b, 300, 500, 120);
-
-  // The gunship has a plan rather than a target, worked through in order:
-  // silence the corvette already on it, deal with the one coming to help, then
-  // come back and finish the first off.
-  ships.pushOrder(b, closeCorvette, 900, 1200, 60, OrderCancelCondition.Disarm);
-  ships.pushOrder(b, distantCorvette, 900, 1200, 60, OrderCancelCondition.CompleteDisable);
-  ships.pushOrder(b, closeCorvette, 900, 1200, 60, OrderCancelCondition.CompleteDisable);
-
-  const grid = new SpatialGrid(64);
-  const projectiles = new Projectiles(512);
-  const beams = new Beams(512);
-  const hits = new ProjectileHits();
-  const beamHits = new BeamHits();
-  const impacts = new Impacts();
-  const collisions = new Collisions();
-
-  const run: Battle = {
-    dt,
-    world,
-    wells,
-    ships,
-    projectiles,
-    beams,
-    grid,
-    hits,
-    beamHits,
-    impacts,
-    collisions,
-    totalProjectilesFired: 0,
-    totalProjectileHits: 0,
-    totalBeamsFired: 0,
-    totalBeamHits: 0,
-    totalContacts: 0,
-    totalSevered: 0,
-    totalCulled: 0,
-
-    step(): void {
-      ships.command(dt, world);
-      world.step();
-      // Hulls are solid: what the world's step drove into each other is pushed
-      // back apart before anything asks where anything is.
-      collisions.step(world.bodies, ships);
-      run.totalContacts += collisions.contacts.count;
-      impacts.collisions(ships, ships.damage, world.bodies, collisions.contacts);
-      grid.rebuild(world.bodies);
-      beams.clear();
-      beamHits.clear();
-      const fireReport = ships.fire(world, projectiles, beams, grid, beamHits);
-      run.totalProjectilesFired += fireReport.projectilesFired;
-      run.totalBeamsFired += fireReport.beamsFired;
-      projectiles.step(dt, world.bodies, grid, hits, wells, ships.hulls);
-      run.totalProjectileHits += hits.count;
-      run.totalBeamHits += beamHits.count;
-      // What the hits did. Rounds walk the modules along their path and are
-      // killed or sent on their way; beams pour their power into what they are
-      // burning through.
-      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits, ships);
-      impacts.beams(ships.damage, beams, beamHits, dt, world.bodies, ships);
-      run.totalSevered += ships.sever(world, collisions.contacts);
-      run.totalCulled += ships.cull(world);
-    },
-  };
-
-  return run;
 }

@@ -57,7 +57,8 @@ editor/     the blueprint editor; only page.ts and overlay.ts touch the DOM,
 ui/         React; UI state only
 host/       window lifecycle, the wall clock, and the controls — one entry
             point and one page shell per page
-scenarios/  data files
+scenarios/  the battles, and the blueprints they fly, under blueprints/
+            (battle.ts holds the assembly and the step order they share)
 ```
 
 **The editor is independent of the running simulation and tightly coupled to the simulation's laws.** It
