@@ -50,7 +50,8 @@ describe('match', () => {
         expect(score.survival, where).toBeLessThanOrEqual(1);
         expect(score.damage, where).toBeGreaterThanOrEqual(0);
         expect(score.damage, where).toBeLessThanOrEqual(1);
-        expect(score.race, where).toBeGreaterThanOrEqual(0);
+        // Signed: ground gained on the goal, so losing ground is negative.
+        expect(score.race, where).toBeGreaterThanOrEqual(-1);
         expect(score.race, where).toBeLessThanOrEqual(1);
         expect(score.taken, where).toBeGreaterThanOrEqual(0);
         expect(score.taken, where).toBeLessThanOrEqual(1);
@@ -94,58 +95,49 @@ describe('match', () => {
     for (const score of result.scores) expect(score.race).toEqual(0);
   });
 
-  it('scores a whole match held on the goal as one', () => {
-    // One entrant, nobody to fight, and the goal sitting exactly where it
-    // starts: it holds its position for the whole match, so the race
-    // component is the most it can be. The plainest statement of what the
-    // proximity integral means.
-    const result = runMatch([CORVETTE], {
+  it('scores nothing for holding a position, however good it is', () => {
+    // A craft that starts on the goal and stays there has gained nothing, and
+    // nor has one that starts far off and stays there. The quantity is ground
+    // *gained*: what a design is credited with is what it did, not where it
+    // happened to be put.
+    const onIt = runMatch([CORVETTE], {
       seed: 17,
       duration: 20,
       goal: { x: DEFAULT_MATCH.radius, y: 0, scale: 500, size: 12 },
     });
-    expect(result.ending).toEqual('timeout');
-    expect(result.scores[0]!.race).toBeGreaterThan(0.95);
-    expect(result.scores[0]!.survival).toEqual(1);
-  });
-
-  it('scores almost nothing, but never nothing, for a goal far away', () => {
-    // **The falloff has no end to it.** A goal that stopped counting past
-    // some distance would leave everything beyond flat, and a flat region is
-    // one selection cannot see across — an engine too feeble to cross it
-    // would score exactly what no engine at all scores, so the first step
-    // towards moving would never be taken.
-    const far = runMatch([CORVETTE], {
+    const milesOff = runMatch([CORVETTE], {
       seed: 17,
       duration: 20,
       goal: { x: 100_000, y: 0, scale: 500, size: 12 },
     });
-    const nearer = runMatch([CORVETTE], {
-      seed: 17,
-      duration: 20,
-      goal: { x: 50_000, y: 0, scale: 500, size: 12 },
-    });
-    expect(far.scores[0]!.race).toBeGreaterThan(0);
-    expect(far.scores[0]!.race).toBeLessThan(0.01);
-    expect(nearer.scores[0]!.race).toBeGreaterThan(far.scores[0]!.race);
+    expect(onIt.scores[0]!.race).toBeCloseTo(0, 2);
+    expect(milesOff.scores[0]!.race).toBeCloseTo(0, 6);
   });
 
-  it('is worth more the closer it is, at every distance there is', () => {
-    // The property the whole thing rests on, stated directly: no plateau
-    // anywhere, so any closing at all is an improvement.
-    const at = (metres: number): number =>
-      runMatch([CORVETTE], {
+  it('pays for ground gained at any distance, and charges for ground lost', () => {
+    // **The falloff has no end to it, and neither has the credit for closing.**
+    // A goal that stopped counting past some distance would leave everything
+    // beyond it flat, and a flat region is one selection cannot see across.
+    // Measured by moving the goal itself rather than the ship: a craft holding
+    // station while the goal is placed nearer or further is the same craft
+    // doing the same thing, so what changes is only how much of the field it
+    // has gained or lost.
+    // A craft that will actually go, so there is ground to gain: one with no
+    // doctrine about the objective holds its position and scores nothing at
+    // any distance, which is the previous test.
+    const closing = (metres: number): number =>
+      runMatch([escorting(CORVETTE, 200)], {
         seed: 17,
-        duration: 10,
+        duration: 30,
         goal: { x: DEFAULT_MATCH.radius + metres, y: 0, scale: 500, size: 12 },
       }).scores[0]!.race;
-    let last = Infinity;
-    for (const metres of [0, 100, 500, 2_000, 10_000, 100_000]) {
-      const score = at(metres);
-      expect(score).toBeLessThan(last);
-      expect(score).toBeGreaterThan(0);
-      last = score;
+    // Every distance pays, including one far outside anything the falloff
+    // would once have reached — there is no range at which closing stops
+    // counting, and so no plateau for a search to be stranded on.
+    for (const metres of [200, 2_000, 20_000]) {
+      expect(closing(metres), `${metres} m`).toBeGreaterThan(0);
     }
+    expect(closing(200)).toBeGreaterThan(closing(20_000));
   });
 
   it('is reached by a ship whose doctrine says to go to it', () => {
@@ -153,13 +145,13 @@ describe('match', () => {
     // it: what a ship does about the objective comes out of its doctrine like
     // everything else it does, and is weighed against the fight rather than
     // scripted. A design with nothing to say about escorting never leaves the
-    // ring it started on, and scores what the ring is worth — a half, the
-    // goal being worth half at exactly that distance, and the same half for
-    // every design that never moves, so what selection sees is the difference.
+    // ring it started on, and so gains no ground and scores nothing at all —
+    // where one that goes to the goal is credited with the whole of the
+    // distance it closed.
     const alone = runMatch([CORVETTE], { seed: 23, duration: 60 });
     const going = runMatch([escorting(CORVETTE, 200)], { seed: 23, duration: 60 });
-    expect(alone.scores[0]!.race).toBeCloseTo(0.5, 2);
-    expect(going.scores[0]!.race).toBeGreaterThan(0.75);
+    expect(alone.scores[0]!.race).toBeCloseTo(0, 2);
+    expect(going.scores[0]!.race).toBeGreaterThan(0.25);
   });
 
   it('measures a hull by what it can absorb', () => {

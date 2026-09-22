@@ -170,7 +170,11 @@ export interface Score {
   readonly survival: number;
   /** Fraction of the opposition destroyed, by what its hulls could absorb. */
   readonly damage: number;
-  /** Fraction of the match spent on the goal, by how near it got. */
+  /**
+   * Ground gained on the goal over the match, as a share of what there was to
+   * gain. Zero for a design that stayed where it was put, and negative for one
+   * that ended further off than it started.
+   */
   readonly race: number;
   /** The three, weighted and added. */
   readonly total: number;
@@ -265,7 +269,16 @@ export function runMatch(entrants: readonly Blueprint[], config?: Partial<MatchC
       // Its own generator rather than the world's, so that scattering the
       // headings does not shift every other draw a match makes and make two
       // runs incomparable for a reason that has nothing to do with the ships.
+      //
+      // **One draw for the whole match, not one each.** A heading nobody chose
+      // is meant to ask every design the same question; drawn separately it
+      // asks each of them a different one, and hands whoever drew the kindest
+      // start a lead that has nothing to do with how it was built. The ring is
+      // laid out so that every entrant is the same distance from every other
+      // and from the goal — turning them all by one angle keeps that, and
+      // turning them each by their own throws it away.
       const scatter = new Rng(settings.seed ^ 0x5CA77E4);
+      const turned = scatter.nextRange(-settings.scatter, settings.scatter);
       const slots: number[] = [];
       const goal = settings.goal;
       const marker =
@@ -288,7 +301,7 @@ export function runMatch(entrants: readonly Blueprint[], config?: Partial<MatchC
             design: designs[i]!,
             x: math.cos(bearing) * settings.radius,
             y: math.sin(bearing) * settings.radius,
-            angle: bearing + math.PI + scatter.nextRange(-settings.scatter, settings.scatter),
+            angle: bearing + math.PI + turned,
             team: i,
           }),
         );
@@ -309,6 +322,18 @@ export function runMatch(entrants: readonly Blueprint[], config?: Partial<MatchC
   const race = new Float64Array(count);
   /** How near the goal each ship was when it was last looked at. */
   const nearness = new Float64Array(count);
+  /**
+   * How near it was when it started, which is what its score is measured from.
+   *
+   * **The race scores ground gained, not ground held.** Measured against the
+   * goal outright, every design that never moves banks the same something for
+   * standing where it was put, and the number says "half" when what happened
+   * was nothing. Measured from where it started, standing still is nothing,
+   * closing is positive and drifting away is negative — which is what the
+   * quantity was always meant to mean.
+   */
+  const began = new Float64Array(count);
+  let measured = false;
   const lifetime = new Float64Array(count);
   const taken = new Float64Array(count);
   // What each entrant has put into each other entrant's hull, joules.
@@ -321,6 +346,21 @@ export function runMatch(entrants: readonly Blueprint[], config?: Partial<MatchC
   const steps = math.round(settings.duration / settings.dt);
   let step = 0;
   let ending: Ending = 'timeout';
+
+  // Where everyone began, taken before a single step so that nothing has had
+  // a chance to shove anybody: a craft knocked off its mark by a neighbour in
+  // the first instant would otherwise be scored from somewhere it never was.
+  if (settings.goal !== null && settings.goal.scale > 0 && ships.isAlive(marker)) {
+    const at = world.bodies.indexOf(ships.body(marker));
+    for (let i = 0; i < count; i++) {
+      const body = world.bodies.indexOf(ships.body(slots[i]!));
+      const dx = world.bodies.x[body]! - world.bodies.x[at]!;
+      const dy = world.bodies.y[body]! - world.bodies.y[at]!;
+      began[i] = settings.goal.scale / (settings.goal.scale + math.length(dx, dy));
+      nearness[i] = began[i]!;
+    }
+    measured = true;
+  }
 
   for (; step < steps; step++) {
     battle.step();
@@ -348,7 +388,7 @@ export function runMatch(entrants: readonly Blueprint[], config?: Partial<MatchC
         // One at the goal, a half at `scale`, and never quite nothing however
         // far off — so every metre closed is worth something.
         nearness[i]! = goal.scale / (goal.scale + math.length(dx, dy));
-        race[i]! += nearness[i]!;
+        race[i]! += nearness[i]! - began[i]!;
       }
     }
 
@@ -388,7 +428,7 @@ export function runMatch(entrants: readonly Blueprint[], config?: Partial<MatchC
       if (!ships.isAlive(ship) || !ships.hasControl(ship)) continue;
       const body = world.bodies.indexOf(ships.body(ship));
       survival[i]! += coreHealth(ships, designs[i]!, body) * left;
-      race[i]! += nearness[i]! * left;
+      race[i]! += (nearness[i]! - began[i]!) * left;
     }
   }
   const scores: Score[] = [];
@@ -407,7 +447,8 @@ export function runMatch(entrants: readonly Blueprint[], config?: Partial<MatchC
     const parts = {
       survival: survival[i]! / steps,
       damage: hurt / opposition,
-      race: math.min(1, race[i]! / steps),
+      // Signed, and bounded by how much ground there was to gain or lose.
+      race: measured ? race[i]! / steps : 0,
     };
     scores.push({
       ...parts,

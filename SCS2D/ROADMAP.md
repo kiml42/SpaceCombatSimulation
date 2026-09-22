@@ -438,6 +438,17 @@ Deliberately unresolved; decide when they block something.
   Entangled with it: **identity is a ship's name**, so renaming re-identifies. Once revisions are
   referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
   together, at the campaign slice.
+- **How much of a design's score is the draw rather than the design.** A design plays a handful of matches
+  and is ranked on the mean, so anything that varies between matches and is not the ship — which opponents
+  it drew, which slot it started in, what shoved it — is noise the ranking cannot tell from signal. It is
+  the thing that decides how small a difference a run can see, and nothing here measures it.
+  What would sharpen it is the trick the yardstick already uses: hold constant whatever can be held
+  constant, so two designs are compared under the same conditions rather than under two draws. The match
+  geometry is already fair — one ring, everyone equidistant, and one heading for the whole match rather than
+  one each — and the remaining variation is the opponents, which is the part a free-for-all is *for*. More
+  matches each is the blunt answer and costs time linearly; a stratified draw, where every design meets the
+  same spread of opponents rather than a random sample of them, is the sharp one. Worth doing before
+  anything is concluded from a small difference between two runs.
 - **How clever a pilot should be.** A bare core bred against the goal and nothing else *does* learn to move,
   given three hundred generations and a heading it did not choose — so the question is no longer whether a
   run can start from nothing. What is still true is that a hull with one engine can only use it if it

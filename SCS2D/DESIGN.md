@@ -156,10 +156,11 @@ inside any one file is not contiguous.
   **A match is fought and scored.** A handful of designs are put in an arena together — every entrant its
   own side, evenly round a ring, on a heading it did not choose — and the battle is run until one of them is left or
   the clock runs out. Three things are scored in the one match rather than in separate kinds of match,
-  because the trade between them is the interesting part: surviving, damage done, and how much of the match
-  was spent near a point worth holding — the last of those falling away with distance for ever rather than
-  stopping at a range, since a flat region is one selection cannot see across and a hull whose engine is too
-  feeble to cross it would score exactly what a hull with no engine scores. Each is scaled to run from nothing to one before it is weighted — a
+  because the trade between them is the interesting part: surviving, damage done, and and **ground gained** on a point
+  worth reaching — that last measured from where a craft started rather than against the goal outright, so
+  standing still is nothing, closing is positive and drifting away is negative. It falls away with distance
+  for ever rather than stopping at a range, since a flat region is one selection cannot see across and a
+  hull whose engine is too feeble to cross it would score exactly what a hull with no engine scores. Each is scaled to run from nothing to one before it is weighted — a
   whole match survived, the whole of the opposition destroyed, a match spent sitting on the goal — so a
   weight says what an outcome is worth rather than what a joule is worth. **What keeps a ship in the match
   is a working core and nothing else**: not whether it still has a gun or an engine, since those are meant
