@@ -2,6 +2,7 @@ import { math, type ShipView, type Snapshot } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth } from './strokes.js';
 import { flashFade, flashPosition, type FlashAnchor, type Flashes } from './flashes.js';
+import { iconAlpha, ICON_OUTLINE, ICON_PX } from './icons.js';
 
 const { cos, sin, max, min, PI, sqrt, TAU } = math;
 
@@ -400,6 +401,46 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
   ctx.restore();
 }
 
+/**
+ * A ship's icon: an arrowhead in its team's colour, pointing the way it is.
+ *
+ * Drawn at a fixed size on screen rather than in metres, which is the whole
+ * point of it — the hull shrinks with the zoom and this does not, so a
+ * skirmish seen from far enough out to fit is still a picture of ships facing
+ * each other rather than a field of specks. `render/icons.ts` decides when it
+ * shows and how solid it is.
+ *
+ * A hulk is drawn in the neutral colours: it is nobody's ship now, and a
+ * counted-up formation that silently includes wreckage is worse than one that
+ * shows it as such.
+ */
+function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
+  const alpha = iconAlpha(ship.design.radius * 2 * metresToPx);
+  if (alpha <= 0) return;
+  const colours = ship.isDisabled ? NEUTRAL : shipColours(ship.team);
+  const size = ICON_PX / metresToPx;
+
+  ctx.save();
+  ctx.translate(ship.x, ship.y);
+  ctx.rotate(ship.angle);
+  ctx.scale(size, size);
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  ctx.moveTo(ICON_OUTLINE[0]![0], ICON_OUTLINE[0]![1]);
+  for (let i = 1; i < ICON_OUTLINE.length; i++) {
+    ctx.lineTo(ICON_OUTLINE[i]![0], ICON_OUTLINE[i]![1]);
+  }
+  ctx.closePath();
+  ctx.fillStyle = colours.hull;
+  ctx.fill();
+  // An outline in the lighter of the same two colours, so the arrowhead holds
+  // its shape against the hull it is sitting on as well as against the field.
+  ctx.strokeStyle = colours.trim;
+  ctx.lineWidth = 1 / ICON_PX;
+  ctx.stroke();
+  ctx.restore();
+}
+
 /** Draw one snapshot. The canvas is cleared first; nothing persists between frames. */
 export function draw(
   ctx: CanvasRenderingContext2D,
@@ -423,6 +464,13 @@ export function draw(
 
   for (let i = 0; i < snapshot.shipCount; i++) {
     drawShip(ctx, snapshot.ships[i]!, camera.scale);
+  }
+
+  // Icons in a pass of their own, after every hull: an icon stands for the
+  // ship as a whole, so it belongs over its neighbours rather than under
+  // whichever of them happens to be drawn next.
+  for (let i = 0; i < snapshot.shipCount; i++) {
+    drawIcon(ctx, snapshot.ships[i]!, camera.scale);
   }
 
   drawProjectiles(ctx, snapshot, camera);
