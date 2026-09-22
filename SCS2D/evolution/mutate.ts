@@ -230,7 +230,17 @@ function buildable(blueprint: Blueprint, massBudget: number): boolean {
  */
 interface Draft {
   readonly blueprint: Blueprint;
-  readonly lists: readonly PlacementList[];
+  /**
+   * Mutable, because an operator that groups modules into a new assembly adds
+   * a list the knobs drawn after it should be able to reach.
+   */
+  readonly lists: PlacementList[];
+  /**
+   * The assembly table, as the one object the blueprint also holds — so an
+   * assembly written here is written on the child without anything being
+   * reattached.
+   */
+  readonly assemblies: Record<string, Assembly>;
   /** Materialised on the child, so every field is a knob. */
   doctrine: MutableDoctrine;
 }
@@ -264,7 +274,56 @@ function cloneBlueprint(parent: Blueprint): Draft {
   if (parent.notes !== undefined) blueprint.notes = parent.notes;
   if (Object.keys(assemblies).length > 0) blueprint.assemblies = assemblies;
 
-  return { blueprint, lists, doctrine };
+  return { blueprint, lists, assemblies, doctrine };
+}
+
+/**
+ * Take stock after an edit to the grouping: drop the definitions nothing
+ * places any more, and collect the lists again.
+ *
+ * **Reachability, not a count of instances**, because the instances of an
+ * assembly can themselves be written inside another one — so letting a part
+ * go can orphan a second part that only that part placed, and a count taken
+ * before the first was removed says the second is still in use. Walked from
+ * the layout each time instead, which cannot be wrong about that or about
+ * anything else it would have to be kept in step with.
+ *
+ * The lists are rebuilt for the same reason: an operator that patched them by
+ * hand would leave the knobs drawn afterwards pointing at placements that are
+ * no longer on the ship, and an edit to one of those is an edit that changes
+ * nothing while claiming to have changed something.
+ */
+function refresh(draft: Draft): void {
+  const wanted = new Set<string>();
+  const lists: PlacementList[] = [];
+
+  const walk = (placements: readonly Placement[], label: string): void => {
+    lists.push({ label, placements: placements as Placement[] });
+    for (const placement of placements) {
+      if (!isInstance(placement)) continue;
+      if (placement.extra !== undefined) walk(placement.extra, `${label}/${placement.use}`);
+      if (wanted.has(placement.use)) continue;
+      wanted.add(placement.use);
+      const assembly = draft.assemblies[placement.use];
+      if (assembly !== undefined) walk(assembly.modules, placement.use);
+    }
+  };
+  walk(draft.blueprint.modules, 'layout');
+
+  for (const name of Object.keys(draft.assemblies)) {
+    if (!wanted.has(name)) delete draft.assemblies[name];
+  }
+  draft.lists.length = 0;
+  draft.lists.push(...lists);
+
+  // The one place the blueprint is written to rather than built, since
+  // `Blueprint` is readable as an immutable value everywhere else. A layout
+  // with no assemblies leaves the key out rather than carrying an empty one,
+  // so grouping a module and ungrouping it again gives the file it started
+  // with.
+  const writable = draft.blueprint as { assemblies?: Record<string, Assembly> };
+  if (Object.keys(draft.assemblies).length > 0) writable.assemblies = draft.assemblies;
+  else delete writable.assemblies;
 }
 
 function clonePlacements(
@@ -316,6 +375,7 @@ type Knob =
   | { readonly at: 'face'; readonly site: ModuleSite }
   | { readonly at: 'slide'; readonly site: ModuleSite }
   | { readonly at: 'place'; readonly site: InstanceSite }
+  | { readonly at: 'mirror'; readonly site: InstanceSite }
   | { readonly at: 'repeat'; readonly site: InstanceSite };
 
 interface ModuleSite {
@@ -339,7 +399,7 @@ function knobs(draft: Draft): Knob[] {
       const where = `${list.label}[${i}]`;
       if (isInstance(placement)) {
         const site: InstanceSite = { instance: placement, where };
-        out.push({ at: 'place', site });
+        out.push({ at: 'place', site }, { at: 'mirror', site });
         if (placement.step !== undefined) out.push({ at: 'repeat', site });
         continue;
       }
@@ -379,6 +439,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return slide(knob.site, rng, bounds);
     case 'place':
       return movePlacement(knob.site, rng, bounds);
+    case 'mirror':
+      return reflect(knob.site);
     case 'repeat':
       return repeat(knob.site, rng);
   }
@@ -613,6 +675,342 @@ function repeat(site: InstanceSite, rng: Rng): string | null {
   return `${site.where} ${site.instance.use}: repeat ${was} → ${now}`;
 }
 
+// -- Assemblies ------------------------------------------------------------
+
+/**
+ * Grouping, as something a lineage can discover.
+ *
+ * An assembly is the one construction in a layout that says *these are the
+ * same part* (DESIGN.md §3). Everything downstream follows from that: a
+ * module written in an assembly is written once however many copies are
+ * placed, so mutating it mutates every copy, and a wing that grows a gun
+ * grows it on both wings. Without these operators a lineage could only ever
+ * mutate the grouping it was handed — a ship bred from a bare core could
+ * never have a pair of anything, only two things that happened to look alike
+ * and drifted apart the moment either was touched.
+ *
+ * Four things are possible, and each has its inverse, because an operator
+ * that can only ever add structure is a ratchet: a run would fill with
+ * assemblies it could not take back, and by the time the grouping was wrong
+ * there would be no way down from it. So grouping has ungrouping, and placing
+ * another instance has dropping one.
+ *
+ * **Every one of them is written in a frame, and the frame is why the maths
+ * is here at all.** A module inside an assembly is positioned in the
+ * assembly's own frame, which the instance then turns, reflects and moves —
+ * so taking a module into an assembly means expressing where it already is in
+ * that frame, and letting one out means the reverse. Get it wrong and the
+ * module silently moves, which is a candidate the layout rules throw away
+ * without saying why.
+ */
+
+/**
+ * Where a placement written beside an instance sits in that instance's frame.
+ *
+ * Exported for the test that pins it against `expandBlueprint`, which is the
+ * only thing that says whether it is right: these two are a hand-written
+ * inverse of the composition `place` does, and a sign wrong in either moves a
+ * module silently — the candidate is then refused by the layout rules for
+ * overlapping something, which says nothing at all about why.
+ */
+export function intoInstanceFrame(spec: ModuleSpec, instance: AssemblyInstance): ModuleSpec {
+  const turn = instance.angle ?? 0;
+  const flipped = instance.mirror ?? false;
+  const c = cos(turn);
+  const sn = sin(turn);
+  const dx = spec.x - instance.x;
+  const dy = spec.y - instance.y;
+  const local = { x: dx * c + dy * sn, y: -dx * sn + dy * c };
+  const spun = (spec.angle ?? 0) - turn;
+  const out: ModuleSpec = { ...spec, x: local.x, y: flipped ? -local.y : local.y };
+  if (spec.angle !== undefined || spun !== 0) out.angle = flipped ? -spun : spun;
+  return out;
+}
+
+/** The reverse: where a placement inside an instance sits beside it. */
+export function outOfInstanceFrame(spec: ModuleSpec, instance: AssemblyInstance): ModuleSpec {
+  const turn = instance.angle ?? 0;
+  const flipped = instance.mirror ?? false;
+  const c = cos(turn);
+  const sn = sin(turn);
+  const localY = flipped ? -spec.y : spec.y;
+  const own = flipped ? -(spec.angle ?? 0) : (spec.angle ?? 0);
+  const out: ModuleSpec = {
+    ...spec,
+    x: instance.x + spec.x * c - localY * sn,
+    y: instance.y + spec.x * sn + localY * c,
+  };
+  const angle = turn + own;
+  if (spec.angle !== undefined || angle !== 0) out.angle = angle;
+  return out;
+}
+
+/** A name no assembly in this layout has, and a person can read. */
+function freeName(draft: Draft): string {
+  for (let i = 1; ; i++) {
+    const name = `part${i}`;
+    if (draft.assemblies[name] === undefined) return name;
+  }
+}
+
+/** Every instance written anywhere in the layout, with the list holding it. */
+function instanceSites(draft: Draft): { list: PlacementList; index: number; instance: AssemblyInstance }[] {
+  const out: { list: PlacementList; index: number; instance: AssemblyInstance }[] = [];
+  for (const list of draft.lists) {
+    for (let i = 0; i < list.placements.length; i++) {
+      const placement = list.placements[i]!;
+      if (isInstance(placement)) out.push({ list, index: i, instance: placement });
+    }
+  }
+  return out;
+}
+
+/**
+ * Make one module a part of its own: an assembly holding it, placed where it
+ * was.
+ *
+ * **It changes nothing about the ship, and that is the point.** What it
+ * changes is what the *next* generation can do — the module can now be placed
+ * again, reflected onto the other side, or mutated once and have the change
+ * appear on every copy. A neutral edit is the only way a lineage reaches
+ * those, since there is no single mutation that both invents a grouping and
+ * pays off immediately.
+ *
+ * One module rather than several, because which several is a question with a
+ * very large answer and no obvious one. A part grows by absorbing its
+ * neighbours afterwards, one at a time.
+ */
+function group(draft: Draft, rng: Rng): string | null {
+  const sites: { list: PlacementList; index: number; spec: ModuleSpec }[] = [];
+  for (const list of draft.lists) {
+    for (let i = 0; i < list.placements.length; i++) {
+      const placement = list.placements[i]!;
+      if (!isInstance(placement)) sites.push({ list, index: i, spec: placement });
+    }
+  }
+  if (sites.length === 0) return null;
+
+  const chosen = sites[rng.nextInt(sites.length)]!;
+  const name = freeName(draft);
+  // The module goes to the assembly's origin and the instance takes its
+  // position, so where it lands is exactly where it already was.
+  const inner: ModuleSpec = { ...chosen.spec, x: 0, y: 0 };
+  draft.assemblies[name] = { modules: [inner] };
+  const instance: AssemblyInstance = { use: name, x: chosen.spec.x, y: chosen.spec.y };
+  chosen.list.placements[chosen.index] = instance;
+  refresh(draft);
+  return `${chosen.list.label}[${chosen.index}] ${chosen.spec.kind}: made a part of its own, ${name}`;
+}
+
+/**
+ * Dissolve one instance back into the layout that placed it.
+ *
+ * The inverse of grouping, and as neutral: the modules land exactly where
+ * they were. What it is for is a lineage that has grouped the wrong things —
+ * being stuck with a part is being stuck with every copy of it moving
+ * together for ever.
+ *
+ * Only a plain instance is dissolved: one copy, nothing nested inside, and no
+ * extras of its own. The rest would be the same arithmetic several times over
+ * for an edit that is rarely the one wanted, and a lineage reaches them by
+ * taking the repeat down and the extras out first.
+ */
+function ungroup(draft: Draft, rng: Rng): string | null {
+  const sites = instanceSites(draft).filter((site) => {
+    const instance = site.instance;
+    if ((instance.repeat ?? 1) !== 1 || instance.extra !== undefined) return false;
+    const assembly = draft.assemblies[instance.use];
+    return assembly !== undefined && assembly.modules.every((placement) => !isInstance(placement));
+  });
+  if (sites.length === 0) return null;
+
+  const chosen = sites[rng.nextInt(sites.length)]!;
+  const assembly = draft.assemblies[chosen.instance.use]!;
+  const loosened = assembly.modules.map((placement) =>
+    outOfInstanceFrame({ ...(placement as ModuleSpec) }, chosen.instance),
+  );
+  const name = chosen.instance.use;
+  chosen.list.placements.splice(chosen.index, 1, ...loosened);
+  refresh(draft);
+  return `${chosen.list.label}[${chosen.index}] ${name}: dissolved into ${loosened.length} loose modules`;
+}
+
+/**
+ * Move a module into an assembly placed beside it.
+ *
+ * This is how a part grows past the one module it was made from — and it is
+ * not a neutral edit, which is the interesting part: a module absorbed into
+ * an assembly that is placed twice appears *twice*, so a gun taken into a
+ * wing becomes a gun on both wings in one generation. That is the edit an
+ * operator working a module at a time can never make.
+ */
+function absorb(draft: Draft, rng: Rng): string | null {
+  const sites: { list: PlacementList; index: number; spec: ModuleSpec; instance: AssemblyInstance }[] = [];
+  for (const list of draft.lists) {
+    const instances = list.placements.filter(isInstance);
+    if (instances.length === 0) continue;
+    for (let i = 0; i < list.placements.length; i++) {
+      const placement = list.placements[i]!;
+      if (isInstance(placement)) continue;
+      for (const instance of instances) {
+        // A reference with no definition behind it is a layout the rules will
+        // refuse anyway; absorbing into it would only hide why.
+        if (draft.assemblies[instance.use] === undefined) continue;
+        sites.push({ list, index: i, spec: placement, instance });
+      }
+    }
+  }
+  if (sites.length === 0) return null;
+
+  const chosen = sites[rng.nextInt(sites.length)]!;
+  const name = chosen.instance.use;
+  const assembly = draft.assemblies[name]!;
+  const inner = intoInstanceFrame(chosen.spec, chosen.instance);
+  const modules = [...assembly.modules, inner];
+  draft.assemblies[name] = assembly.notes === undefined
+    ? { modules }
+    : { modules, notes: assembly.notes };
+  chosen.list.placements.splice(chosen.index, 1);
+  refresh(draft);
+  return `${chosen.list.label}[${chosen.index}] ${chosen.spec.kind}: taken into ${name}`;
+}
+
+/**
+ * Place another copy of a part that is already in the layout.
+ *
+ * Reflected across the axis the instance is written about as often as it is
+ * simply moved along, because a reflection is the edit worth having: a ship
+ * is symmetric or it flies crabwise, and reaching a matching pair of wings by
+ * drawing the same offsets twice is a thing a random walk does not do.
+ */
+function instantiate(draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
+  const sites = instanceSites(draft);
+  if (sites.length === 0) return null;
+
+  const chosen = sites[rng.nextInt(sites.length)]!;
+  const instance = chosen.instance;
+  const copy: AssemblyInstance = { ...instance };
+  if (instance.step !== undefined) copy.step = { ...instance.step };
+  delete copy.notes;
+
+  const reflected = rng.chance(0.5);
+  if (reflected) {
+    // The whole copy turned over: where it sits, which way it faces, and
+    // which way a repeated row of it runs.
+    copy.y = -instance.y;
+    copy.mirror = !(instance.mirror ?? false);
+    if (instance.angle !== undefined) copy.angle = -instance.angle;
+    if (copy.step !== undefined) {
+      copy.step = {
+        ...copy.step,
+        y: -copy.step.y,
+        ...(copy.step.angle === undefined ? {} : { angle: -copy.step.angle }),
+      };
+    }
+  } else {
+    // Clear of the original rather than a grid step from it. A part is nearly
+    // always wider than one step, so a copy nudged along lands inside the
+    // thing it is a copy of and is refused every time — which is how "place
+    // another one" came to be the operator that never delivered anything.
+    const along = rng.chance(0.5);
+    const room = clearance(draft, instance, along, bounds);
+    const step = rng.chance(0.5) ? room : -room;
+    if (along) copy.x = instance.x + step;
+    else copy.y = instance.y + step;
+  }
+
+  chosen.list.placements.push(copy);
+  refresh(draft);
+  return `${chosen.list.label}[${chosen.index}] ${instance.use}: ${
+    reflected ? 'a reflected instance' : 'another instance'
+  } placed`;
+}
+
+/**
+ * How far along an axis a copy has to sit to be clear of the original,
+ * rounded up to the grid.
+ *
+ * Measured against a circle round each module rather than its box, so the
+ * answer holds whatever angle anything is at, and read off the assembly's own
+ * frame — which is the frame the offset is applied in, so a turned instance
+ * needs no second thought. An assembly with anything nested inside it gets a
+ * grid step and the layout rules' opinion, since measuring that properly
+ * means expanding it.
+ */
+function clearance(
+  draft: Draft,
+  instance: AssemblyInstance,
+  along: boolean,
+  bounds: MutationLimits,
+): number {
+  const assembly = draft.assemblies[instance.use];
+  if (assembly === undefined || assembly.modules.some(isInstance)) return bounds.grid;
+  let far = 0;
+  for (const placement of assembly.modules) {
+    const spec = placement as ModuleSpec;
+    const centre = moduleCentre(spec);
+    const reach = max(spec.length, spec.width) / 2;
+    far = max(far, abs(along ? centre.x : centre.y) + reach);
+  }
+  const wanted = 2 * far;
+  return max(bounds.grid, ceilTo(wanted, bounds.grid));
+}
+
+/** The next multiple of `step` at or above `value`. */
+function ceilTo(value: number, step: number): number {
+  return step > 0 ? floor((value + step - 1e-9) / step) * step : value;
+}
+
+/**
+ * Take one copy of a part off the ship.
+ *
+ * The inverse of placing another, and it has to exist for the same reason
+ * ungrouping does: an operator that can add a wing and never take one off is
+ * a ratchet, and a lineage that has grown a limb it cannot afford would have
+ * to shed it a module at a time while carrying the cost all the way down.
+ *
+ * The definition goes with the last copy of it. A part nothing places is
+ * dead weight in the file rather than on the ship, but it is still something
+ * every later generation walks past.
+ */
+function dropInstance(draft: Draft, rng: Rng): string | null {
+  const sites = instanceSites(draft);
+  if (sites.length === 0) return null;
+
+  const chosen = sites[rng.nextInt(sites.length)]!;
+  const name = chosen.instance.use;
+  chosen.list.placements.splice(chosen.index, 1);
+  refresh(draft);
+  return `${chosen.list.label}[${chosen.index}] ${name}: an instance dropped`;
+}
+
+/**
+ * The operators that work on the grouping, drawn between evenly.
+ *
+ * Evenly, and listed in pairs, because each is another's inverse: what keeps
+ * a lineage able to change its mind is that every way of adding structure
+ * costs the same draw as the way of taking it back.
+ */
+const ASSEMBLY_OPERATORS: readonly ((
+  draft: Draft,
+  rng: Rng,
+  bounds: MutationLimits,
+) => string | null)[] = [group, ungroup, absorb, instantiate, dropInstance];
+
+/**
+ * Turn an instance over where it stands.
+ *
+ * A number rather than a structural edit, because it is one: nothing is added
+ * or taken away, and what changes is which way round a part sits — the same
+ * sort of change as moving it.
+ */
+function reflect(site: InstanceSite): string | null {
+  const was = site.instance.mirror ?? false;
+  if (was) delete site.instance.mirror;
+  else site.instance.mirror = true;
+  return `${site.where} ${site.instance.use}: ${was ? 'no longer' : 'now'} mirrored`;
+}
+
 // -- Structure -------------------------------------------------------------
 
 /**
@@ -627,6 +1025,17 @@ function repeat(site: InstanceSite, rng: Rng): string | null {
  * was refusing half of all additions was fixed.
  */
 function restructure(draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
+  // A third of structural generations are about the *grouping* rather than
+  // the modules. They are far more often impossible than a module edit — a
+  // ship with no assemblies has four of the five unavailable — so one that
+  // comes to nothing falls back to a module edit rather than costing the
+  // generation its structure.
+  if (rng.nextInt(3) === 0) {
+    const operator = ASSEMBLY_OPERATORS[rng.nextInt(ASSEMBLY_OPERATORS.length)]!;
+    const edit = operator(draft, rng, bounds);
+    if (edit !== null) return edit;
+  }
+
   const draw = rng.nextInt(4);
   if (draw < 2) return removePlacement(draft, rng);
   return addModule(draft, rng, bounds, draw === 2);

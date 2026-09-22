@@ -163,7 +163,13 @@ inside any one file is not contiguous.
   mounts half the time would be answering a question nobody asked. A refit keeps the space rather than the
   coordinates, because a thruster's position is where it is attached and every other kind's is the middle
   of its box — left alone, the numbers slide the module half its own length into its neighbour, which
-  refused every refit into an engine there was. A doctrine number
+  refused every refit into an engine there was. **The grouping is bred as well as the
+  modules.** A lineage can make a part of a module, dissolve one back into the layout, take a neighbour into
+  a part, place another instance of one — reflected as often as merely moved, since a ship is symmetric or
+  it flies crabwise — drop an instance, and turn one over. Making a part and dissolving one change nothing
+  about the ship at all: what they change is what the next generation can do, and there is no single
+  mutation that both invents a grouping and pays off at once. Every operator has its inverse, because one
+  that can only add structure is a ratchet a lineage has no way down from. A doctrine number
   is perturbed by a fraction of its *default* rather than of what is held, so nothing that has reached zero
   is stuck there — and where the default is zero too, by a fraction of what a number is worth in that half
   of the doctrine, since otherwise every draw is a fraction of nothing and the field is not slow to find but
