@@ -21,7 +21,7 @@ export const ICON_PX = 18;
  * Opacity of an icon once it has fully faded in. Short of solid, so the hull
  * underneath is still readable at the zooms where both are drawn.
  */
-export const ICON_MAX_ALPHA = 0.85;
+export const ICON_MAX_ALPHA = 0.3;
 
 /**
  * The on-screen widths, in pixels, between which an icon fades in: absent
@@ -38,8 +38,8 @@ export const ICON_MAX_ALPHA = 0.85;
  * it is invisible — at twelve pixels a ship is a smudge whose facing cannot be
  * made out, which is exactly what the icon is there to replace.
  */
-export const ICON_FADE_START_PX = 48;
-export const ICON_FADE_FULL_PX = 12;
+export const ICON_FADE_START_PX = 24;
+export const ICON_FADE_FULL_PX = 8;
 
 /**
  * How solid a ship's icon is, for a hull drawn `shipPx` across on screen.

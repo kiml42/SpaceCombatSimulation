@@ -29,6 +29,7 @@ function ship(x: number, y: number, vx = 0, vy = 0, isDisabled = false): ShipVie
     integrity: [],
     body: -1,
     isDisabled,
+    isDerelict: false,
     turretDisabled: [],
   };
 }
