@@ -38,7 +38,9 @@ inside any one file is not contiguous.
   given in advance and worked through as targets are put out of the fight. A Canvas2D
   viewer draws snapshots of all of it — ships, turret bearings, tracers and the wells
   bending them — with pause, single-step, time scaling, and zoom and pan over an
-  auto-framing camera. A blueprint editor on a second page of its own draws a layout
+  auto-framing camera. Each ship also carries an arrowhead in its team's colour, which
+  fades in as its hull becomes too small on screen to read, so that zooming out to see a
+  battle does not lose the small ships in it or which way they are facing. A blueprint editor on a second page of its own draws a layout
   through that same renderer and reports what it bought: mass, inertia, the
   acceleration available in each direction — as figures, and as a pair of
   envelope curves separating what a layout can project from what it can use
