@@ -75,18 +75,32 @@ describe('a ship cut in half', () => {
     }
   });
 
-  it('sends both halves after the enemy nobody told them about', () => {
-    // The point of the scenario. A hulk drifts; a piece with somebody aboard
-    // picks its own fight, and these two pick the same one without being
-    // ordered to.
-    const { run, live } = at(30);
+  it('sends both halves after the enemy nobody told them about, never the wreck the ram made of itself', () => {
+    // The point of the scenario. The rammer is a hulk within seconds of its own
+    // ram — a piece with somebody aboard picks the corvette still worth fighting
+    // instead, and both pick the same one without being ordered to. A single
+    // instant is the wrong thing to assert on: a mount tracking a far target
+    // loses and regains bearing as its ship holds station, so this samples a
+    // window instead and asks two things of every tick with a target — never
+    // the hulk, always the corvette — and one thing of the window as a whole:
+    // each half locks on at least once.
+    const { run, live } = at(25);
     const pieces = halves(run, live);
     expect(pieces.length).toBe(2);
 
+    const lockedOn = new Set<number>();
+    for (let i = 0; i < Math.round(10 * 60); i++) {
+      run.step();
+      for (const piece of pieces) {
+        const target = run.ships.targetOfTurret(run.world.bodies, piece, 0);
+        if (target < 0) continue;
+        expect(run.ships.isDisabled(target)).toBe(false);
+        expect(run.ships.design(target).name).toBe('Corvette');
+        lockedOn.add(piece);
+      }
+    }
     for (const piece of pieces) {
-      const target = run.ships.targetOfTurret(run.world.bodies, piece, 0);
-      expect(target).toBeGreaterThanOrEqual(0);
-      expect(run.ships.design(target).name).toBe('Corvette');
+      expect(lockedOn.has(piece)).toBe(true);
       expect(run.ships.orderCount(piece)).toBe(0);
     }
   });

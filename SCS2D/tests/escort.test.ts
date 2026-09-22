@@ -25,6 +25,20 @@ const MARKER: Blueprint = {
   modules: [{ kind: 'core', x: 0, y: 0, length: 12, width: 12 }],
 };
 
+/**
+ * The same hull with a thruster on the back, for the one test that needs a
+ * hostile hull somebody will deliberately shoot at: a ship that can neither
+ * shoot nor move is a hulk, and nothing aims at a hulk whatever side it is
+ * on. It carries no gun, so it still never fires.
+ */
+const MOBILE_MARKER: Blueprint = {
+  name: 'Mobile marker',
+  modules: [
+    { kind: 'core', x: 0, y: 0, length: 12, width: 12 },
+    { kind: 'thruster', x: -6, y: 0, angle: 0, length: 4, width: 6 },
+  ],
+};
+
 function escorting(blueprint: Blueprint, escortWeight: number): Blueprint {
   const doctrine = blueprint.doctrine!;
   const held: Doctrine = {
@@ -93,7 +107,7 @@ describe('escort and neutrals', () => {
   it('leaves a protected hull unmarked by what does hit it', () => {
     // The other half: on a side everyone is shooting at, so it is hit — and
     // nothing comes of it.
-    const marker = compileBlueprint(MARKER);
+    const marker = compileBlueprint(MOBILE_MARKER);
     const gunship = compileBlueprint(GUNSHIP);
     const battle = makeBattle({ seed: 3, projectiles: 512 }, (ships, world) => {
       ships.spawn(world, { design: gunship, x: -700, y: 0, angle: 0, team: 0 });

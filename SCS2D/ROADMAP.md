@@ -164,6 +164,38 @@ Then, in order:
    that issues an order — which is why it is a piece of work of its own rather than a postscript to the
    one that introduced the mandate.
 4. **Headless evolution and analysis** — balance testing plus sandbox mode.
+
+   **The plan, settled and in build order.**
+
+   **What a generation mutates** is a blueprint: the numbers in it — module sizes, positions, angles,
+   barrel counts, reinforcement — and its doctrine block, *and its topology*, since a lineage that can
+   never grow a second gun or shed a wing is a lineage searching a fixed shape. Adding, removing and
+   duplicating modules and assemblies, under a mass budget. **The layout rules are the arbiter**: a
+   mutant that fails `blueprintProblem` — no core, something attached to nothing, boxes overlapping — is
+   resampled rather than repaired, because a repair rule is a second opinion about what a ship is.
+   Edit distance is bounded per generation for §7's reason: at most so many numbers changed, each by so
+   much, and at most one module added or removed, so a descendant is recognisably one.
+
+   **Where it runs.** One evolution core, in code that imports nothing from the host, driven two ways:
+   `npm run evolve` headless in Node writing a run file, and — later — a third page that loads the same
+   file to show progress and replay matches through the existing viewer. Node first, because "headless"
+   is what makes a generation cheap and because nothing in it needs a canvas. §5's SharedWorker, React
+   and wa-sqlite stack is not built yet and this step does not need it: a run is a JSON file until a
+   campaign needs to query one.
+
+   **How competitors meet**: small free-for-all groups, picked the way the archive's `Generation` picks
+   them — fewest matches first, avoiding repeat pairings, until everyone has played its minimum. A melee
+   is both cheap per sample and the place doctrine shows.
+
+   **What a match scores**: survival, damage, and proximity to a race goal, all three in the one match,
+   with the weights in the run config. One match rather than two kinds, so that a design has to make the
+   trade the goal exists to force — break off and run for it, or stay and fight.
+
+   **Open, and deliberately**: what the mass budget is measured in (§12's materials, which step 5 also
+   wants); whether a population is seeded from the authored ships or from noise; how a run is persisted
+   and progressed graphed beyond a JSON blob; and whether each individual also fights a fixed benchmark
+   fleet as a yardstick, so the progress graph means something across generations rather than only
+   within one.
 5. **v1: skirmish** — a fixed budget of *materials* rather than of points (§12), designed scenarios,
    shareable by URL. *This is the first thing worth giving people to play.*
 6. **Editor restructuring — dissolving a group, and grouping what is already grouped.** Making a

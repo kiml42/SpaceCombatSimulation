@@ -98,9 +98,12 @@ inside any one file is not contiguous.
   numbers saying what its craft picks a fight with and how it wants to fight it; a ship with an empty
   order queue chooses a target through a stack of preferences — what is close, what can still shoot
   back, what can still get away, what is its own size, what is coming at it, and what it is already
-  fighting — and closes to a range that is a fraction of what its own guns are good for. A hulk earns
-  neither of the first two, which is how a mission kill puts a ship behind every live one without a rule
-  saying so, and what size of target a craft goes for is a ratio to its own mass — one meaning
+  fighting — and closes to a range that is a fraction of what its own guns are good for. A ship still
+  worth shooting at earns neither of the first two if it is only *nearly* a hulk, which puts it behind
+  every live one without a rule saying so; a ship that is a hulk outright — no working core, or no guns
+  and no engines — is dropped from the list before it is scored at all, both a chooser's own target and
+  each of its mounts', because a hulk can never be finished off and a fleet with nothing better in range
+  would otherwise park on one forever. What size of target a craft goes for is a ratio to its own mass — one meaning
   "something my own size", which sends a fighter after fighters and a capital after capitals without
   either being told. An order given always outranks it, so doctrine is a fallback and never
   a second voice. The `standoff` scenario is the evidence: two fleets a kilometre apart, not one order

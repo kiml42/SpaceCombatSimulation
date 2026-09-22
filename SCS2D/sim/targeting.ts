@@ -50,11 +50,15 @@ const CLOSING_SCALE = 100;
  * is drawn towards rather than bound to — so a broadside concentrates without
  * a gun on the wrong side being left with nothing to do.
  *
- * **A hulk needs no rule of its own.** It has no guns to earn `armedWeight`
- * and no engines to earn `mobileWeight`, so it falls behind every live ship
- * on the list by exactly the amount a doctrine says those are worth. §3's
- * mission kill is then a consequence of what a ship *is* rather than a
- * special case about what it has become.
+ * **A hulk that can still be reached scores like any other candidate** — no
+ * guns to earn `armedWeight`, no engines to earn `mobileWeight` — so a ship
+ * only a little worse off than a hulk falls behind every live one on the
+ * list by exactly what a doctrine says those are worth, with no special case
+ * about what it has become. A ship with *nothing* left, though, is filtered
+ * out before it ever reaches `score`: `Ships.isDisabled` is checked by the
+ * caller, because a hulk can never be finished off, so ranking it low is not
+ * enough to stop a chooser sitting next to one forever when a live threat is
+ * further off.
  */
 export function score(
   doctrine: Targeting,
