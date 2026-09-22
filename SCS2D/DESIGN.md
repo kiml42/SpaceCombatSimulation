@@ -171,9 +171,19 @@ inside any one file is not contiguous.
   much a craft would rather be with something it will never shoot at than at the best fight it can find, so
   covering a consort is one preference argued against the rest rather than a mode the ship is put into.
   A craft escorting stations on its charge and fights on with whatever its mounts can reach, since where the
-  hull goes and what the guns do are different questions. Zero means escort nobody and is the default: every
-  weight may be negative, so a consort scored by the ordinary ones would beat a distant enemy on proximity
-  alone, and every fleet in the game would huddle.
+  hull goes and what the guns do are different questions, and it holds a band of its own rather than the
+  gunnery standoff — where you sit to *shoot* at something being the wrong answer by an order of magnitude
+  for something you are covering. **What decides between covering and fighting is position, not preference.**
+  A craft closes up when it has strayed past its leash and goes back to the battle once it is on station,
+  and the gap between those two is what stops one on the boundary changing its mind every time it looks.
+  Weighing the two as scores instead cannot work, and the reason is worth keeping: a target's score is a
+  ranking and not a measure of desire — a craft flies at the nearest enemy whether or not its score says it
+  is worth anything, and at four kilometres that score is far below zero, so any positive pull at all wins
+  and the fleet locks. A fleet given a leash arrives at the enemy *and* arrives together, which a fleet
+  without one does not: four corvettes close from 345 metres of straggle to 208 and get further up the field
+  doing it. Escorting is pairwise and knows nothing of a fleet, so a group where everyone is everyone's
+  charge and the leash is short settles into pairs that hold each other in place — a screen round one
+  mothership, which is the one-way case, does not.
 - **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. After it comes headless evolution and analysis. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the

@@ -3,7 +3,7 @@ import { subDesign, type DesignTurret, type ShipDesign } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
-import { Choice, escortScore, look, lookFrom, score } from './targeting.js';
+import { Choice, escortLeash, look, lookFrom, score } from './targeting.js';
 import {
   atan2,
   angleDelta,
@@ -790,7 +790,6 @@ export class Ships {
     // choose between — but it may still have somewhere it would rather be,
     // which is why this no longer ends the question.
     let fighting = NO_TARGET;
-    let fightingScore = 0;
     if (design.reach > 0 && !this.isDisarmed(i)) {
       this.choice.begin();
       for (let t = 0; t < this.alive.length; t++) {
@@ -814,19 +813,19 @@ export class Ships {
         );
       }
       fighting = this.choice.ship;
-      fightingScore = this.choice.best;
     }
-    this.chosen[i] = fighting;
-
     // What it would rather be with. Offered at all only when the doctrine
     // says escorting is worth something, since every weight here may be
     // negative and a consort scored by the ordinary ones would beat a distant
     // enemy on proximity alone — which would have every fleet in the game
     // huddling rather than fighting.
+    const wasEscorting = this.escorting(i);
+    this.chosen[i] = fighting;
     this.station[i] = fighting;
     if (!(doctrine.escortWeight > 0)) return;
 
     this.choice.begin();
+    let gap = 0;
     for (let t = 0; t < this.alive.length; t++) {
       if (t === i || this.alive[t] === 0) continue;
       // Wreckage is nobody's consort. A live friendly that cannot fight is:
@@ -843,14 +842,47 @@ export class Ships {
         !this.isDisarmed(t),
         !this.hasNoEngines(t),
       );
-      this.choice.offer(
-        candidate,
-        escortScore(doctrine, candidate, design.reach, design.mass, loyalTo),
-      );
+      // Which consort is the ordinary stack's question — proximity dominating,
+      // nearly always the nearest. Whether to go to it is `escortLeash`, and
+      // is about where this craft is rather than about what that one is worth.
+      this.choice.offer(candidate, score(doctrine, candidate, design.reach, design.mass, loyalTo));
+      if (this.choice.ship === t) gap = candidate.range;
     }
-    if (this.choice.ship !== NO_TARGET && (fighting === NO_TARGET || this.choice.best > fightingScore)) {
-      this.station[i] = this.choice.ship;
-    }
+
+    const consort = this.choice.ship;
+    if (consort === NO_TARGET) return;
+    const station = this.escortBand(design, consort);
+    // Closed up already, or strayed past the leash: the gap between the two is
+    // what stops a craft on the boundary changing its mind every time it looks.
+    const closing = wasEscorting ? gap > station : gap > escortLeash(doctrine, station);
+    if (closing || fighting === NO_TARGET) this.station[i] = consort;
+  }
+
+  /**
+   * How close a craft wants to sit to what it is covering, metres.
+   *
+   * The escort's own band, not the gunnery one: a standoff is where you sit
+   * to *shoot* at something, which is the wrong answer by an order of
+   * magnitude for something you are covering. Capped by a fraction of the
+   * escort's own reach, since a consort inside that is a consort its guns can
+   * do something about — and uncapped for a craft with no guns, which has no
+   * reach for the cap to mean anything in.
+   */
+  private escortBand(design: ShipDesign, target: number): number {
+    const approach = design.doctrine.approach;
+    const wanted = approach.escortRadii * this.designs[target]!.radius;
+    if (!(design.reach > 0)) return wanted;
+    return min(wanted, approach.escort * design.reach);
+  }
+
+  /**
+   * Whether this craft is covering something rather than closing on a fight.
+   *
+   * What it is flying relative to and what it is fighting are the same thing
+   * unless it is escorting, since a consort is never a thing it fights.
+   */
+  private escorting(i: number): boolean {
+    return this.station[i] !== NO_TARGET && this.station[i] !== this.chosen[i];
   }
 
   /**
@@ -1149,10 +1181,15 @@ export class Ships {
     // capital does not, and one number covers both because it is measured in
     // the target's own radii. Capped by what this ship's guns are good for,
     // so nothing stands off further than it can shoot.
-    const wanted = min(
-      approach.standoffRadii * this.designs[target]!.radius,
-      approach.standoff * design.reach,
-    );
+    //
+    // Unless it is covering the thing rather than shooting at it, which is a
+    // different distance for a different reason and has a band of its own.
+    const wanted = this.escorting(i)
+      ? this.escortBand(design, target)
+      : min(
+          approach.standoffRadii * this.designs[target]!.radius,
+          approach.standoff * design.reach,
+        );
     standing.minRange = max(0, wanted * (1 - approach.tolerance));
     standing.maxRange = max(standing.minRange, wanted * (1 + approach.tolerance));
     standing.approachSpeed = approach.approachSpeed;

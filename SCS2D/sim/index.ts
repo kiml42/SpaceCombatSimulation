@@ -75,7 +75,7 @@ export {
 } from './doctrine.js';
 export {
   Choice,
-  escortScore,
+  escortLeash,
   look,
   score,
   type Candidate,

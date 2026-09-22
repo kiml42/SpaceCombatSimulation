@@ -12,6 +12,7 @@ import {
 import {
   APPROACH_FIELDS,
   DEFAULT_DOCTRINE,
+  POSITIVE_FIELDS,
   TARGETING_FIELDS,
   toDoctrine,
   type Doctrine,
@@ -353,9 +354,12 @@ function turnDoctrine(
   const scale = max(abs(held[field]!), abs(reference));
   const was = held[field]!;
   let now = was + bounds.magnitude * scale * rng.nextRange(-1, 1);
-  // Two fields are a size and a distance rather than a weight, and neither
-  // means anything at or below zero.
-  if (field === 'preferredMass' || field === 'standoffRadii') now = max(now, 0.01);
+  // Some fields are a size or a distance rather than a weight, and none of
+  // those means anything at or below zero. Which they are is the doctrine's
+  // own business, not this file's: a rule copied here would be a second
+  // opinion about what a doctrine may say, and would be wrong the first time
+  // a field was added over there.
+  if (POSITIVE_FIELDS.includes(field)) now = max(now, 0.01);
   const tidied = tidy(now, 3);
   // A draw small enough to round away, or one clamped back onto the floor it
   // was already sitting on. Neither is an edit, and counting it as one would

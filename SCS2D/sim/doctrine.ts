@@ -142,6 +142,28 @@ export interface Approach {
    * guns are good for however small the target is.
    */
   readonly standoff: number;
+  /**
+   * How close to sit to what it is covering, in multiples of *its* radius.
+   *
+   * The escort's own version of `standoffRadii`, and a separate number
+   * because it is answering a different question. A standoff is a gunnery
+   * distance — how much of a guess a firing solution can afford — and an
+   * escort distance is not about shooting at the thing at all. Made to do
+   * both jobs, one number puts a corvette four hundred metres off the consort
+   * it is meant to be covering, because that is where it would sit to shoot
+   * at it.
+   */
+  readonly escortRadii: number;
+  /**
+   * The furthest it will stray from what it is covering, as a fraction of its
+   * own reach.
+   *
+   * A cap on the above, the same way `standoff` caps `standoffRadii` — and
+   * the reason it is measured in the escort's own gun range is that this is
+   * what covering something *means*: a consort inside that fraction of your
+   * reach is a consort your guns can do something about.
+   */
+  readonly escort: number;
   /** How much closer or further than that is close enough, as a fraction. */
   readonly tolerance: number;
   /** How briskly to close the difference, metres per second. */
@@ -185,6 +207,8 @@ export const DEFAULT_DOCTRINE: Doctrine = {
   approach: {
     standoffRadii: 50,
     standoff: 0.65,
+    escortRadii: 8,
+    escort: 0.15,
     tolerance: 0.2,
     approachSpeed: 60,
   },
@@ -217,9 +241,21 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
 export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'standoffRadii',
   'standoff',
+  'escortRadii',
+  'escort',
   'tolerance',
   'approachSpeed',
 ];
+
+/**
+ * The fields that mean nothing at or below zero: a size, and two distances.
+ *
+ * Stated once and read by everything that writes a doctrine rather than being
+ * repeated wherever one is made up — the parser that refuses a bad file and
+ * the mutation that must not write one are the same rule seen twice, and two
+ * copies of it would disagree the first time a field was added.
+ */
+export const POSITIVE_FIELDS: readonly string[] = ['preferredMass', 'standoffRadii', 'escortRadii'];
 
 /** Every number in a doctrine, named by its path, in a fixed order. */
 export const DOCTRINE_FIELDS: readonly string[] = [
@@ -265,7 +301,7 @@ function halfProblem(
  * no opinion about.
  */
 export function targetingProblem(value: unknown, where: string): string | null {
-  return halfProblem(value, where, TARGETING_FIELDS, ['preferredMass']);
+  return halfProblem(value, where, TARGETING_FIELDS, POSITIVE_FIELDS);
 }
 
 /** A mount's targeting, with whatever it leaves out taken from its ship. */
@@ -297,8 +333,8 @@ export function doctrineProblem(value: unknown): string | null {
     return `doctrine has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
   }
   return (
-    halfProblem(raw['targeting'], 'doctrine.targeting', TARGETING_FIELDS, ['preferredMass']) ??
-    halfProblem(raw['approach'], 'doctrine.approach', APPROACH_FIELDS, ['standoffRadii'])
+    halfProblem(raw['targeting'], 'doctrine.targeting', TARGETING_FIELDS, POSITIVE_FIELDS) ??
+    halfProblem(raw['approach'], 'doctrine.approach', APPROACH_FIELDS, POSITIVE_FIELDS)
   );
 }
 

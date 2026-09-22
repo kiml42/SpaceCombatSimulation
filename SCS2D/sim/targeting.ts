@@ -76,25 +76,44 @@ export function score(
 }
 
 /**
- * What a doctrine thinks of something it will never shoot at.
+ * How far a craft will let itself be drawn off a consort before breaking off
+ * to close up again, metres.
  *
- * The same stack, and then what the doctrine says escorting is worth — so a
- * consort and an enemy are compared in one currency, and a ship decides
- * between covering its charge and going and having the battle rather than
- * being switched between the two by a mode.
+ * **Position rather than preference, and that is the whole of it.** The
+ * obvious design is to weigh wanting to cover a consort against wanting to go
+ * and have the battle, and fade the first out as the gap closes. It cannot
+ * work, and the reason is worth writing down: a target's score is a *ranking*
+ * and not a measure of desire. A craft flies at the nearest enemy whether or
+ * not its score says it is worth anything, and at four kilometres that score
+ * is a long way below zero — so any positive pull at all beats it and the
+ * fleet locks in place, whatever the weight. Measured on a fleet of four:
+ * every setting from 2 to 200 produced the identical battle, sitting four
+ * kilometres from an enemy it never went to.
  *
- * Only what the *hull* asks. A mount picks what to fire at, and a thing it
- * will never fire at is not a candidate for that question at all.
+ * What is commensurable is *where the craft is*. A craft closes up when it
+ * has strayed past the leash and goes back to the battle once it is on
+ * station, and the gap between those two makes it a hysteresis rather than a
+ * switch — without which a craft on the boundary changes its mind every time
+ * it reconsiders and shuffles forward at walking pace instead of advancing.
+ *
+ * `escortWeight` sets the leash, and shorter is tighter: at a hundred a craft
+ * strays to twice its station distance before turning back, at four hundred to
+ * a quarter over, and at very little the leash is so long that it never
+ * re-forms at all — which is the graceful way for a doctrine that does not
+ * much care about its consorts to behave.
+ *
+ * What comes out of it is a fleet that closes up, advances while it is closed
+ * up, and gathers again when the fight has pulled it apart. What it is *not*
+ * is a formation: a craft on station holds no particular place. A place in a
+ * formation is a different mechanism.
  */
-export function escortScore(
-  doctrine: Targeting,
-  candidate: Candidate,
-  reach: number,
-  own: number,
-  loyalTo: number,
-): number {
-  return doctrine.escortWeight + score(doctrine, candidate, reach, own, loyalTo);
+export function escortLeash(doctrine: Targeting, station: number): number {
+  if (!(doctrine.escortWeight > 0)) return Infinity;
+  return station * (1 + ESCORT_REFERENCE / doctrine.escortWeight);
 }
+
+/** The weight at which a craft strays to twice its station distance. */
+const ESCORT_REFERENCE = 100;
 
 /**
  * How far off the wanted size a target is, as a natural logarithm.

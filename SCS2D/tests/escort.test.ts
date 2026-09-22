@@ -148,6 +148,45 @@ describe('escort and neutrals', () => {
     expect(covering).toBeLessThan(alone / 2);
   });
 
+  it('closes a fleet up and advances it anyway', () => {
+    // The point of the leash. A craft closes up when it has strayed past it
+    // and goes back to the battle once it is on station, so a fleet given one
+    // arrives at the enemy *and* arrives together — which is more than a
+    // fleet with no doctrine about its consorts manages, since that one
+    // simply strings out behind whoever accelerates hardest.
+    function advance(escortWeight: number): { spread: number; centre: number } {
+      const design = compileBlueprint(escorting(CORVETTE, escortWeight));
+      const enemy = compileBlueprint(GUNSHIP);
+      const battle = makeBattle({ seed: 9, projectiles: 512 }, (ships, world) => {
+        const fleet: number[] = [];
+        for (let i = 0; i < 4; i++) {
+          fleet.push(ships.spawn(world, { design, x: -2000, y: -600 + i * 400, angle: 0, team: 0 }));
+        }
+        ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
+        return { fleet };
+      });
+      for (let step = 0; step < 3600; step++) battle.step();
+
+      const bodies = battle.world.bodies;
+      const at = battle.fleet
+        .filter((ship) => battle.ships.isAlive(ship))
+        .map((ship) => bodies.indexOf(battle.ships.body(ship)));
+      let spread = 0;
+      for (const a of at) {
+        for (const b of at) {
+          spread = math.max(spread, math.length(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!));
+        }
+      }
+      const centre = at.reduce((total, b) => total + bodies.x[b]!, 0) / at.length;
+      return { spread, centre };
+    }
+
+    const loose = advance(0);
+    const together = advance(30);
+    expect(together.spread).toBeLessThan(loose.spread);
+    expect(together.centre).toBeGreaterThan(loose.centre);
+  });
+
   it('goes on fighting while it covers', () => {
     // An escort stations on its charge and its guns fight whatever they can
     // reach: covering is where the hull goes, not what the mounts do. If the

@@ -406,16 +406,22 @@ Deliberately unresolved; decide when they block something.
   Entangled with it: **identity is a ship's name**, so renaming re-identifies. Once revisions are
   referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
   together, at the campaign slice.
-- **What range an escort should hold.** A craft covering a consort stations on it through the same
-  `approach` band it would use on an enemy — close until the target looks big enough to hit, capped by what
-  its own guns are good for. That is a *gunnery* number doing a station-keeping job, and it shows: covering
-  a small marker puts a corvette four hundred metres off it, which is nowhere near it by any reading of
-  "escort". Two ways out, and they are not equivalent. A band of its own in `approach` is honest and is one
-  more knob on every doctrine. Leaving it alone makes the standoff numbers do double duty, so a design that
-  wants to sit on an objective has to adopt a short standoff and fight at knife range for it — which is a
-  real trade rather than an oversight, and is the kind of thing the GA should be allowed to argue about
-  first.
-- **How severed chunks divide fuel, ammunition and power.** Which piece goes on being a ship is settled —
+- **Weighing covering a consort against going to the fight, continuously.** What decides between them is
+  position — a leash strayed past and a station arrived at — because the two cannot be compared as scores:
+  a target's score is a ranking rather than a measure of desire, and a craft flies at the nearest enemy
+  whether or not its score says it is worth anything. A hysteresis on position works and gives a monotone
+  knob, but it is a switch with a dead band rather than a balance, and two things follow. A fleet where
+  everyone is everyone's charge pairs off once the leash is shorter than the fleet is spread, each pair
+  holding itself in place; and the useful settings are a narrow band, with a cliff at the far end rather
+  than a gradient.
+  What would replace it is a *blend*: a desired velocity made of several pulls added together, rather than
+  one target chosen between them. That is the BOIDS shape, and the reason to want it is not only escorting —
+  the same mechanism is what would let a craft weigh keeping clear of its neighbours against everything
+  else it is trying to do. **Craft flying through each other's paths is a real and visible problem in the
+  crowded scenarios**, and collision avoidance has no home in the current steering at all, which holds one
+  range band against one object. Both wanting the same thing is the argument for doing it properly rather
+  than adding a second special case.
+- **How severed chunks divide fuel, ammunition and power.**- **How severed chunks divide fuel, ammunition and power.** Which piece goes on being a ship is settled —
   the one holding a working core, and every other piece with one becomes a ship of its own (DESIGN.md §4)
   — but what a piece takes *with* it is not. The interesting case is a magazine cut off from the gun it
   fed. Nothing consumes either yet, so there is nothing to divide; decide it when stores exist.
