@@ -32,7 +32,10 @@
     }
   },
   "modules": [
-    { "kind": "structure", "x": 0, "y": 0, "length": 40, "width": 10 },
+    { "kind": "structure", "x": 11, "y": 0, "length": 18, "width": 10 },
+    { "kind": "core", "x": 0, "y": 0, "length": 4, "width": 10,
+      "notes": "A bay amidships, where the spine is thickest and everything else is in the way. Cutting the spine here is what would part the ship, so it is also the last place a shell reaches." },
+    { "kind": "structure", "x": -11, "y": 0, "length": 18, "width": 10 },
     { "kind": "turret", "x": 26, "y": 0, "angle": 0, "length": 12, "width": 8, "barrels": 1 },
 
     { "use": "outrigger", "x": 0, "y": 9 },

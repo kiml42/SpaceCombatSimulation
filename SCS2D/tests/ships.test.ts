@@ -407,7 +407,7 @@ describe('gunnery', () => {
     const twin = compileBlueprint({
       name: 'Twin',
       modules: [
-        { kind: 'structure', x: 0, y: 0, length: 10, width: 4 },
+        { kind: 'core', x: 0, y: 0, length: 10, width: 4 },
         { kind: 'turret', x: 8, y: 0, length: 6, width: 4, barrels: 2 },
       ],
     });
@@ -528,7 +528,7 @@ describe('beam gunnery', () => {
     const twin = compileBlueprint({
       name: 'Twin',
       modules: [
-        { kind: 'structure', x: 0, y: 0, length: 10, width: 4 },
+        { kind: 'core', x: 0, y: 0, length: 10, width: 4 },
         { kind: 'beamTurret', x: 8, y: 0, length: 6, width: 4, barrels: 2 },
       ],
     });
@@ -594,7 +594,7 @@ describe('beam gunnery', () => {
     const ship1 = compileBlueprint({
       name: 'Ship1',
       modules: [
-        { kind: 'structure', x: 0, y: 0, length: 10, width: 4 },
+        { kind: 'core', x: 0, y: 0, length: 10, width: 4 },
         { kind: 'beamTurret', x: 8, y: 0, length: 6, width: 4 },
       ],
     });

@@ -226,6 +226,7 @@ const WHOLE_SHIP = -1;
 
 /** What a doctrine thinks one kind of module is worth shooting at. */
 function partWeight(doctrine: Targeting, kind: ModuleKind): number {
+  if (kind === 'core') return doctrine.coreWeight;
   if (kind === 'thruster') return doctrine.engineWeight;
   if (kind === 'structure') return doctrine.structureWeight;
   return doctrine.gunWeight;
@@ -546,10 +547,38 @@ export class Ships {
     return layout;
   }
 
+  /**
+   * Whether anybody is still flying this ship: a core damage has not finished
+   * with.
+   *
+   * A ship is controlled from its cores (DESIGN.md §4), so this is the one
+   * question under every other: a hull with none of them working neither
+   * manoeuvres nor lays a gun, whatever is left of its engines and mounts. It
+   * is how a hit amidships ends a fight that stripping every turret one at a
+   * time would also have ended, and it is why a ship worth the mass carries
+   * more than one core.
+   */
+  hasControl(i: number): boolean {
+    if (this.alive[i] === 0) return false;
+    // Nobody was ever aboard a severed chunk, whatever it is carrying.
+    if (this.derelict[i] === 1) return false;
+    const bodies = this.bodyStore;
+    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return false;
+    const design = this.designs[i]!;
+    for (const core of design.cores) {
+      if (this.damage.remaining(b, core, DamageEffect.Control) > 0) return true;
+    }
+    return false;
+  }
+
   /** Returns true when the ship has no active weapons left */
   isDisarmed(i: number): boolean {
     if (this.alive[i] === 0) return true;
     if (this.derelict[i] === 1) return true;
+    // A sound gun with nothing left to lay it is out of the fight as surely
+    // as a wrecked one.
+    if (!this.hasControl(i)) return true;
     const bodies = this.bodyStore;
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return true;
@@ -575,6 +604,7 @@ export class Ships {
     // shoot at. The arc a renderer draws is a promise that a mount may fire
     // there, so a derelict's mounts must not draw one.
     if (this.derelict[i] === 1) return true;
+    if (!this.hasControl(i)) return true;
     const bodies = this.bodyStore;
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return true;
@@ -587,6 +617,8 @@ export class Ships {
   hasNoEngines(i: number): boolean {
     if (this.alive[i] === 0) return true;
     if (this.derelict[i] === 1) return true;
+    // Sound engines nothing is throttling push nothing anywhere.
+    if (!this.hasControl(i)) return true;
     const bodies = this.bodyStore;
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return true;
@@ -604,9 +636,14 @@ export class Ships {
    * goes on stopping shells (§4), which is what makes §3's mission kill worth
    * something. It is not removed, so this is the question a scenario asks
    * rather than a state the store holds.
+   *
+   * A ship with no working core is one of these however sound the rest of it
+   * is, which is the whole of what shooting at a core buys: one hit in the
+   * right place does what stripping every mount would have done.
    */
   isDisabled(i: number): boolean {
     if (this.derelict[i] === 1) return true;
+    if (!this.hasControl(i)) return true;
     return this.isDisarmed(i) && this.hasNoEngines(i);
   }
 
@@ -876,6 +913,7 @@ export class Ships {
     fromY: number,
   ): number {
     if (
+      doctrine.coreWeight === 0 &&
       doctrine.engineWeight === 0 &&
       doctrine.gunWeight === 0 &&
       doctrine.structureWeight === 0
@@ -1088,12 +1126,14 @@ export class Ships {
    */
   command(dt: number, world: World): void {
     const bodies = world.bodies;
+    this.bodyStore = bodies;
 
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
-      // Nobody aboard a severed chunk, so nothing holds its heading or kills
-      // its drift: it tumbles on with whatever the break gave it.
-      if (this.derelict[i] === 1) continue;
+      // Nobody aboard a severed chunk, and nobody left aboard a ship whose
+      // cores have been shot out, so nothing holds its heading or kills its
+      // drift: it tumbles on with whatever the break or the last hit gave it.
+      if (!this.hasControl(i)) continue;
       this.removeInvalidOrders(i);
       this.decide(world, bodies, i);
       this.decideTurrets(world, bodies, i);
@@ -1130,12 +1170,16 @@ export class Ships {
    */
   fire(world: World, projectiles: Projectiles, beams: Beams, grid: SpatialGrid, beamHits: BeamHits): FireReport {
     const bodies = world.bodies;
+    this.bodyStore = bodies;
     let projectilesFired = 0;
     let beamsFired = 0;
 
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
-      if (this.derelict[i] === 1) continue;
+      // A gun with nothing left to tell it what to shoot at holds its fire,
+      // which is the same rule for a severed chunk and for a ship whose cores
+      // have gone.
+      if (!this.hasControl(i)) continue;
       const design = this.designs[i]!;
       const indices = this.turretIndex[i]!;
       const aiming = this.turretAiming[i]!;
@@ -1641,10 +1685,12 @@ export class Ships {
         return this.damage.weldIntegrity(b, k, joint.width) <= 0;
       });
       if (parts.length < 2) continue;
-      for (let p = 1; p < parts.length; p++) {
+      const keeper = this.keeperOf(b, design, parts);
+      for (let p = 0; p < parts.length; p++) {
+        if (p === keeper) continue;
         if (this.detach(world, i, design, parts[p]!)) pieces++;
       }
-      this.reshape(world, i, design, parts[0]!);
+      this.reshape(world, i, design, parts[keeper]!);
     }
     return pieces;
   }
@@ -1830,11 +1876,49 @@ export class Ships {
     if (parts.length < 2) return 0;
 
     let pieces = 0;
-    for (let p = 1; p < parts.length; p++) {
+    const keeper = this.keeperOf(bodyIndex, design, parts);
+    for (let p = 0; p < parts.length; p++) {
+      if (p === keeper) continue;
       if (this.detach(world, i, design, parts[p]!)) pieces++;
     }
-    this.reshape(world, i, design, parts[0]!);
+    this.reshape(world, i, design, parts[keeper]!);
     return pieces;
+  }
+
+  /**
+   * Which piece of a hull that has just come apart goes on being the ship,
+   * as an index into `parts`.
+   *
+   * **The piece holding the lowest-numbered working core.** A ship is flown
+   * from its cores, so that is where everything that belongs to the ship
+   * rather than to its shape stays: its orders, its side, and what its guns
+   * were doing. Lowest-numbered and not largest, for the reason the layout
+   * rule anchors on the first core — the size of a piece says nothing about
+   * which of them is still a ship, and an index gives the same answer every
+   * time the same battle is run.
+   *
+   * Every *other* piece with a working core of its own becomes a ship too;
+   * this only decides which of them is the one that was already there. A hull
+   * with no working core left keeps the piece holding its first core, or its
+   * lowest module if it has no core at all — a chunk coming apart further.
+   * Both are wreckage whichever piece is chosen, so what this settles for them
+   * is merely which body goes on being tracked.
+   */
+  private keeperOf(bodyIndex: number, design: ShipDesign, parts: readonly number[][]): number {
+    const partOf = new Map<number, number>();
+    for (let p = 0; p < parts.length; p++) {
+      for (const module of parts[p]!) partOf.set(module, p);
+    }
+    let fallback = -1;
+    // `cores` is in module order, so the first one that works wins and the
+    // first one at all is the fallback.
+    for (const core of design.cores) {
+      const p = partOf.get(core);
+      if (p === undefined) continue;
+      if (fallback < 0) fallback = p;
+      if (this.damage.remaining(bodyIndex, core, DamageEffect.Control) > 0) return p;
+    }
+    return fallback < 0 ? 0 : fallback;
   }
 
   /**
@@ -1864,6 +1948,13 @@ export class Ships {
    * `v + ω × r` — and the hull's spin, which is what a rigid split conserves:
    * no impulse is invented, so the momentum and the angular momentum of the
    * pieces together are the ones the whole hull had a moment earlier.
+   *
+   * **A piece with a working core leaves as a ship**, not as wreckage: it is
+   * flown, it shoots, it keeps the side it was on, and it works through a copy
+   * of the plan the ship was given, because whoever was aboard it was given
+   * that plan too. Everything else comes away as a piece of hull with nobody
+   * aboard. This is what a second core buys — a hull cut in two amidships
+   * becomes two ships rather than a ship and a wreck.
    */
   private detach(world: World, i: number, design: ShipDesign, keep: readonly number[]): boolean {
     const bodies = world.bodies;
@@ -1871,9 +1962,16 @@ export class Ships {
     const chunk = subDesign(design, keep);
     const offset = this.offsetOf(bodies, b, design, chunk);
     const spin = bodies.angularVel[b]!;
+    // Asked of the hull it is still part of, since that is where the damage
+    // to these modules is recorded.
+    const flies = chunk.cores.some(
+      (core) => this.damage.remaining(b, keep[core]!, DamageEffect.Control) > 0,
+    );
     // Scrap never reaches the world, so nothing the eye was following ever
-    // vanishes: a piece this small is not created rather than removed.
-    if (chunk.mass < SCRAP_MASS) {
+    // vanishes: a piece this small is not created rather than removed. A piece
+    // that still flies is not scrap at whatever mass — it is a ship, and the
+    // smallest ship in the game weighs less than this.
+    if (!flies && chunk.mass < SCRAP_MASS) {
       this.discarded += chunk.mass;
       // Whatever it would have left with, had it been worth putting there.
       this.discardedPx += chunk.mass * (bodies.vx[b]! - spin * offset.y);
@@ -1891,7 +1989,11 @@ export class Ships {
       angularVel: spin,
       team: this.team[i]!,
     });
-    this.derelict[j] = 1;
+    if (flies) {
+      this.orders[j] = this.orders[i]!.map((order) => ({ ...order }));
+    } else {
+      this.derelict[j] = 1;
+    }
 
     const chunkBody = bodies.indexOf(this.bodyIds[j]!);
     this.damage.register(

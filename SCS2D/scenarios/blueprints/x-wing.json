@@ -129,10 +129,18 @@
   "modules": [
     {
       "kind": "structure",
-      "x": 4,
+      "x": 3.25,
       "y": 0,
-      "length": 5,
+      "length": 3.5,
       "width": 1.4
+    },
+    {
+      "kind": "core",
+      "x": 5.75,
+      "y": 0,
+      "length": 1.5,
+      "width": 1.4,
+      "notes": "The cockpit, where it is on the real thing: forward of the fuselage and behind the nose gun."
     },
     {
       "use": "structure",

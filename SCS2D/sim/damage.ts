@@ -61,6 +61,8 @@ export enum DamageEffect {
   Thrust = 0,
   /** How often a gun can fire. */
   FireRate = 1,
+  /** Whether a core can still fly the ship and lay its guns. */
+  Control = 2,
 }
 
 /**
@@ -94,9 +96,18 @@ function fadesOutAt(cutout: number): (integrity: number) => number {
 const THRUST_CUTOUT = 0.3;
 /** Guns keep working longer: a gun is simpler than a rocket engine. */
 const FIRE_RATE_CUTOUT = 0.15;
+/**
+ * Integrity at which a core stops flying the ship.
+ *
+ * The earliest of the three, because a control centre is the most delicate
+ * thing aboard: computing, consoles and the aerials that join them are out
+ * long before the compartment holding them has stopped being a compartment.
+ */
+const CONTROL_CUTOUT = 0.4;
 
 export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly DamageResponse[]>> = {
   structure: [],
+  core: [{ effect: DamageEffect.Control, remaining: fadesOutAt(CONTROL_CUTOUT) }],
   thruster: [{ effect: DamageEffect.Thrust, remaining: fadesOutAt(THRUST_CUTOUT) }],
   turret: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
   beamTurret: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],

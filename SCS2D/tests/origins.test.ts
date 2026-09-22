@@ -26,7 +26,8 @@ import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
  * edit an editor makes is applied through it.
  */
 
-const hull: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 20, width: 6 };
+// The core, so a fixture is a ship and its faults are the ones under test.
+const hull: ModuleSpec = { kind: 'core', x: 0, y: 0, length: 20, width: 6 };
 
 function ship(blueprint: Omit<Blueprint, 'name'>): Blueprint {
   return { name: 'Test', ...blueprint };

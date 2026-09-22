@@ -43,9 +43,24 @@
   "modules": [
     {
       "kind": "structure",
+      "x": 5,
+      "y": 0,
+      "length": 6,
+      "width": 6
+    },
+    {
+      "kind": "core",
       "x": 0,
       "y": 0,
-      "length": 16,
+      "length": 4,
+      "width": 6,
+      "notes": "Amidships, with a section of hull either side of it: the compartment the ship is flown from is the one thing worth putting the rest of the ship in front of."
+    },
+    {
+      "kind": "structure",
+      "x": -5,
+      "y": 0,
+      "length": 6,
       "width": 6
     },
     {

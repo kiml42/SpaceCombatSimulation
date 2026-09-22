@@ -29,12 +29,18 @@ function structure(x: number, y: number, length: number, width: number): ModuleS
 }
 
 /**
- * Three boxes in a row. The tip is joined by 2 m of weld and the tail by 4 m,
- * so there is a weak end and a strong one and which goes is not a toss-up.
+ * Three boxes in a row, flown from the tail. The tip is joined by 2 m of weld
+ * and the tail by 4 m, so there is a weak end and a strong one and which goes
+ * is not a toss-up — and the piece that goes on being the ship is the one
+ * holding the core, which here is the end furthest from the weak weld.
  */
 const CHAIN: Blueprint = {
   name: 'Chain',
-  modules: [structure(0, 0, 10, 4), structure(-10, 0, 10, 4), structure(8, 0, 6, 2)],
+  modules: [
+    structure(0, 0, 10, 4),
+    { kind: 'core', x: -10, y: 0, length: 10, width: 4 },
+    structure(8, 0, 6, 2),
+  ],
 };
 
 const design: ShipDesign = compileBlueprint(CHAIN);
@@ -340,8 +346,12 @@ describe('what a beam does to a hull', () => {
     // A beam delivers energy and no momentum, so nothing it does can tear
     // anything. What it can do is leave nothing there to tear: no round is
     // fired in this scenario, so every weld burnt into was burnt by a beam.
+    //
+    // Long enough for a beam to bore through something and reach a seam
+    // behind it, which takes a while when both ships are aiming at a core
+    // with the rest of the hull in front of it.
     const run = beamDuel();
-    for (let i = 0; i < 3000; i++) run.step();
+    for (let i = 0; i < 6000; i++) run.step();
     expect(run.totalBeamHits).toBeGreaterThan(0);
     expect(run.totalProjectilesFired).toBe(0);
 

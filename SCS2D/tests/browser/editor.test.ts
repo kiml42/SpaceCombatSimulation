@@ -120,10 +120,11 @@ describe('the editor in a browser', () => {
   });
 
   it('selects the module under the pointer', async () => {
+    // The middle of the corvette is the core it is flown from.
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x, centre.y);
     expect(await page.isVisible('#properties')).toBe(true);
-    expect(await page.textContent('#propKind')).toBe('structure');
+    expect(await page.textContent('#propKind')).toBe('core');
   });
 
   it('moves the selected module when it is dragged, and undoes it', async () => {
@@ -146,7 +147,7 @@ describe('the editor in a browser', () => {
     // back from every refresh, and goes on showing the old module's value.
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x, centre.y);
-    expect(await page.textContent('#propKind')).toBe('structure');
+    expect(await page.textContent('#propKind')).toBe('core');
     const hull = await page.inputValue('#propLength');
 
     await page.fill('#propLength', '18');
@@ -463,7 +464,7 @@ describe('the editor in a browser', () => {
     await page.selectOption('#ship', 'Corvette');
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x, centre.y);
-    expect(await page.textContent('#propKind')).toBe('structure');
+    expect(await page.textContent('#propKind')).toBe('core');
     expect(await page.isHidden('#barrelsRow')).toBe(true);
 
     await page.mouse.click(centre.x + 168, centre.y);

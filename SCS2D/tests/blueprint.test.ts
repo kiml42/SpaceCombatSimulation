@@ -25,6 +25,11 @@ function structure(x: number, y: number, length: number, width: number): ModuleS
   return { kind: 'structure', x, y, length, width };
 }
 
+/** What flies the ship, and so what every rule about its layout is anchored on. */
+function core(x: number, y: number, length: number, width: number): ModuleSpec {
+  return { kind: 'core', x, y, length, width };
+}
+
 describe('module overlap', () => {
   const a = structure(0, 0, 10, 4);
 
@@ -60,7 +65,7 @@ describe('blueprint validation', () => {
   it('accepts a layout of abutting modules', () => {
     const bp: Blueprint = {
       name: 'Pair',
-      modules: [structure(0, 0, 10, 4), structure(7, 0, 4, 4)],
+      modules: [core(0, 0, 10, 4), structure(7, 0, 4, 4)],
     };
     expect(blueprintProblem(bp)).toBeNull();
   });
@@ -78,7 +83,11 @@ describe('blueprint validation', () => {
     // An engine is bolted to the ship at the end it pushes from and exhausts
     // out of the other. Turn one round and it is held on by its nozzle: the
     // mounting sits in the exhaust and the thrust is delivered to nothing.
-    const hull = structure(0, 0, 10, 4);
+    //
+    // A core rather than a structure module, deliberately: a thruster may
+    // push against either, and making it the core is also what makes each of
+    // these two-module layouts a ship.
+    const hull = core(0, 0, 10, 4);
     /**
      * A thruster bolted to the hull's -x end, pushing whichever way `angle`
      * says. A thruster's position is the middle of the face it pushes from, so
@@ -149,7 +158,7 @@ describe('blueprint validation', () => {
       // Both boxes canted the same way, so the thruster abuts the pylon's rear
       // face squarely: its mounting face is the pylon's own, three along the
       // facing from the pylon's middle.
-      const pylon: ModuleSpec = { kind: 'structure', x: 0, y: 0, angle: 0.4, length: 6, width: 6 };
+      const pylon: ModuleSpec = { kind: 'core', x: 0, y: 0, angle: 0.4, length: 6, width: 6 };
       const c = Math.cos(0.4);
       const sn = Math.sin(0.4);
       const canted: ModuleSpec = {
@@ -188,7 +197,8 @@ describe('blueprint validation', () => {
 describe('where a module sits', () => {
   // A thruster is the one module with a side that means something: it is held
   // on by the face it pushes from, so that face is what its position names.
-  const hull = structure(0, 0, 10, 4);
+  // The hull it is bolted to is the core, so each of these layouts is a ship.
+  const hull = core(0, 0, 10, 4);
 
   it('puts an ordinary module about its own position', () => {
     expect(moduleCentre(structure(3, -2, 8, 4))).toEqual({ x: 3, y: -2 });
@@ -232,10 +242,10 @@ describe('where a module sits', () => {
 });
 
 describe('every module attached to the ship', () => {
-  // A ship is one connected assembly. With no core module to be the root, the
-  // first module in the list stands in as one: a piece is part of the ship if
-  // it can be traced back to that module through its neighbours.
-  const hull = structure(0, 0, 10, 4);
+  // A ship is one connected assembly, anchored on the core it is flown from:
+  // a piece is part of the ship if it can be traced back to the core through
+  // its neighbours.
+  const hull = core(0, 0, 10, 4);
 
   it('accepts a chain of modules, however long the way round', () => {
     const bp: Blueprint = {
@@ -269,15 +279,16 @@ describe('every module attached to the ship', () => {
     expect(problems[0]).toMatch(/modules 1, 2 are a separate piece/);
   });
 
-  it('measures the ship from the first module, not from the biggest piece', () => {
-    // A stand-in for a core module, and deliberately arbitrary: what the check
-    // answers is whether a layout is one ship or several, and the size of a
-    // piece says nothing about which of them is the ship.
+  it('measures the ship from its core, wherever the core is listed', () => {
+    // Not from the first module and not from the biggest piece: what the check
+    // answers is whether a layout is one ship or several, and only the core
+    // says which of the pieces the ship is. Here the core is listed second and
+    // the module listed first is the one adrift.
     const bp: Blueprint = {
       name: 'Lonely first',
       modules: [structure(30, 0, 4, 4), hull, structure(7, 0, 4, 4)],
     };
-    expect(blueprintProblems(bp)).toEqual([expect.stringMatching(/modules 1, 2 are a separate piece/)]);
+    expect(blueprintProblems(bp)).toEqual([expect.stringMatching(/module 0 touches nothing/)]);
   });
 
   it('says nothing about a module it could not measure in the first place', () => {
@@ -329,13 +340,15 @@ describe('mass properties', () => {
   });
 
   it('bounds the ship by its furthest corner', () => {
-    const design = compileBlueprint({ name: 'One', modules: [structure(0, 0, 10, 4)] });
+    const design = compileBlueprint({ name: 'One', modules: [core(0, 0, 10, 4)] });
     expect(design.radius).toBeCloseTo(Math.sqrt(25 + 4), 12);
   });
 
   it('reaches the radius out to a barrel that protrudes', () => {
-    const design = compileBlueprint({
+    const design = compileDraft({
       name: 'Gun',
+      // A mount and nothing else: not a ship — there is nothing to fly it —
+      // but the bounding radius is pure derivation, so a draft is enough.
       modules: [{ kind: 'turret', x: 0, y: 0, length: 8, width: 4 }],
     });
     const gun = design.modules[0]!.stats.gun!;
@@ -351,7 +364,7 @@ describe('derived thrusters', () => {
     const design = compileBlueprint({
       name: 'Pusher',
       modules: [
-        structure(0, 0, 10, 4),
+        core(0, 0, 10, 4),
         { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4 },
       ],
     });

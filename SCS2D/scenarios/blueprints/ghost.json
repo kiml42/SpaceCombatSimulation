@@ -115,11 +115,26 @@
       "y": 0
     },
     {
-      "kind": "structure",
+      "kind": "core",
       "x": 16.5,
       "y": 0,
       "length": 3,
-      "width": 16
+      "width": 4,
+      "notes": "The cockpit in the middle of the nose, where the Ghost's is."
+    },
+    {
+      "kind": "structure",
+      "x": 16.5,
+      "y": 5,
+      "length": 3,
+      "width": 6
+    },
+    {
+      "kind": "structure",
+      "x": 16.5,
+      "y": -5,
+      "length": 3,
+      "width": 6
     },
     {
       "kind": "beamTurret",

@@ -123,13 +123,18 @@ inside any one file is not contiguous.
   formation: fleets meeting line abreast have their friends beside them, and the `column` scenario is the
   same fleets in line ahead, where the opening ten seconds go from twenty hits on one's own side to none.
   **A doctrine also says which part of a ship to shoot at**, as a weight per kind of module. The default
-  is guns first, engines close behind and structure a long way back: a ship that cannot shoot has stopped
-  being a threat, one that cannot move has stopped being a problem, and structure is what is left when
-  there is nothing better to hit. In `standoff` that moves two thirds of the hits onto guns where a third
-  of them used to land there, and it costs accuracy — a part is a smaller thing to miss — so the fleets
-  trade fewer hits for hits that matter. A doctrine that would rather not choose sets all three weights to
-  zero and shoots at the ship. Above the default is where crippling beats killing: the Dinky puts engines
-  first, because a fighter that cannot destroy a capital can still strand one.
+  is the core first, then guns, then engines, and structure a long way behind all three: a ship whose core
+  is out has stopped fighting altogether, one that cannot shoot has stopped being a threat, one that cannot
+  move has stopped being a problem, and structure is what is left when there is nothing better to hit.
+  Picking a part costs accuracy — a part is a smaller thing to miss — so a fleet trades fewer hits for
+  hits that matter, and a core is the smallest and best-buried target of the four. It is also amidships,
+  which is where the seams are: aiming there cuts spines, so hulls come apart far more often than they
+  did when everyone shot at the guns. A doctrine that would rather not choose sets all four weights to
+  zero and shoots at the ship. Away from the default is where crippling beats killing: the Dinky puts
+  engines first, because a fighter that cannot destroy a capital can still strand one.
+  **A ship is flown from a core** (§4), and one whose cores have been shot out is a hulk with sound
+  engines and sound guns — so a mission kill is a place on the hull rather than a tally of mounts, and a
+  ship worth its mass carries a second core, because a hull cut between two of them is two ships.
 - **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. After it comes headless evolution and analysis. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
@@ -154,7 +159,7 @@ inside any one file is not contiguous.
   and hits scored are identical too. Measured by `scenarios/ordering.ts`, which
   flies three gunships of one geometry both stacked in one battle and one to a
   battle each.
-- **Last updated:** 2026-09-16
+- **Last updated:** 2026-09-22
 
 ---
 
@@ -306,8 +311,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   disconnects a subgraph the detached chunk becomes a body of its own inheriting `v + ω × r`, with
   mass properties recomputed on both sides, so momentum and angular momentum come out where they went
   in. This gives ships breaking in half, losing engines and tumbling, and wrecks to salvage — the good
-  part of the old jointed-assembly model — without a constraint solver. Which piece keeps being *the
-  ship* is the stand-in answer the layout rule uses, and is §12's to settle.
+  part of the old jointed-assembly model — without a constraint solver. **Which pieces keep being ships
+  is a question about cores**: every piece with a working core goes on being a ship, and the piece
+  holding the lowest-numbered one is the ship that was already there.
 - **A collision costs both hulls the energy the bounce did not give back**, spent from the faces that
   met and working inward until it runs out, so a ram folds a nose in rather than putting a neat hole
   through a ship. Half to each hull, which needs no rule about which is the harder: a module's capacity
@@ -459,6 +465,15 @@ Mass from wall volume, capacity from interior area, strength from thickness and 
 - **The GA is an automated exploit-finder** for these scaling laws — any mispricing gets discovered
   in your own game within a few generations. This is a strong argument for building headless
   evolution early.
+- **A ship is flown from a core, and may carry more than one.** A core is the archetype that makes a
+  layout a ship rather than a hull: a compartment of computing, priced by the floor it fills, and the
+  anchor every rule about how a layout hangs together is stated against. It buys no capability, so what
+  stops a ship carrying five is that each one is dead mass and a small one is fragile — and it is worth
+  carrying two, because a hull cut between its cores is **two ships** rather than a ship and a wreck.
+  A ship with no working core neither manoeuvres nor lays a gun, whatever is left of its engines and
+  mounts, which is what makes a hit amidships worth more than stripping a battery one mount at a time;
+  the floor on a core's machinery is low enough that half a metre square is a working one, since every
+  craft here is computer-flown.
 - **A module's position is where it is attached, which is its middle for every kind but a thruster.**
   A thruster is the one module with a side that means something: it is held on by the face it pushes
   from and exhausts out of the other, and a layout only cares where that mounting face is. So a
@@ -743,6 +758,9 @@ Recorded so they aren't reopened without new information.
 | Stay 3D | Player-facing 3D modular ship design is unsolved; 3D RTS control is unsolved; occlusion hides the information needed to judge designs; 6-DOF thruster allocation and an undisplayable envelope. |
 | Strict single plane, perimeter weapons only | Weapon frontage grows as r while internal area grows as r², so big ships end up worse-armed per tonne — directly attacking the "another capital is a big deal" fantasy. |
 | Two genuinely separate physics planes | Collapses to one sim plus an internals structure with identical expressive power and a fraction of the machinery. |
+| The largest piece of a severed hull keeps being the ship | Size says nothing about which piece is still a ship; a core does. The piece holding the lowest-numbered working core is the ship, and every other piece with one becomes a ship too. |
+| A core as a flag on an ordinary module (`core: true`) | Cheap, and it makes "is this an archetype, and what does it cost" two questions instead of one. A core is a compartment of computing with a mass of its own, which is what stops a ship carrying five. |
+| One blueprint describing several craft that spawn already apart | A blueprint is one ship: two cores in two separate pieces is two designs, and allowing it means every rule about how a layout hangs together loses its anchor. |
 | Keep jointed module assemblies | The joint solver is the cost centre, the determinism obstacle, and the cause of the turret problems. Connectivity-graph severing gives the good part without it. |
 | Engine physics (Box2D via Unity or Godot) | Deterministic only for an identical binary on an identical platform, and not across engine versions — one editor upgrade silently invalidates every replay and regression test. Also no choice of integrator, no trajectory prediction, no regional physics. |
 | Godot 4 with C# | Genuinely close second, and MIT solves the licensing concern. Lost on UI toolchain, distribution by URL, and professional learning value. |

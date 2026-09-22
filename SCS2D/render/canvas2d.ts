@@ -211,8 +211,17 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     // Optional, because a view can be built by hand: the editor's preview and
     // the camera's tests both do, and neither has anything to be damaged.
     const integrity = ship.integrity?.[i] ?? 1;
+    // A core is drawn in the darkest of the team's colours: the compartment
+    // the ship is flown from is worth being able to find at a glance, since
+    // shooting it out is what leaves a hulk.
     ctx.fillStyle =
-      integrity <= 0 ? WRECKAGE : spec.kind === 'structure' ? colours.hull : colours.trim;
+      integrity <= 0
+        ? WRECKAGE
+        : spec.kind === 'structure'
+          ? colours.hull
+          : spec.kind === 'core'
+            ? colours.pivot
+            : colours.trim;
     ctx.globalAlpha = integrity <= 0 ? 1 : 0.45 + 0.55 * integrity;
     const halfLength = spec.length / 2;
     const halfWidth = spec.width / 2;

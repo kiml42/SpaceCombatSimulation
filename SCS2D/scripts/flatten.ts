@@ -25,7 +25,7 @@ const ORDERS = {
   /** All the structure, then all the thrusters, then the guns. Stable, so the
    * only change is which kinds come first. */
   kind: (modules: readonly ModuleSpec[]): readonly ModuleSpec[] => {
-    const rank = ['structure', 'thruster', 'turret', 'beamTurret'];
+    const rank = ['structure', 'core', 'thruster', 'turret', 'beamTurret'];
     return [...modules].sort((a, b) => rank.indexOf(a.kind) - rank.indexOf(b.kind));
   },
 } as const;
