@@ -246,6 +246,37 @@ describe('the evolution page in a browser', () => {
     expect(problems).toEqual([]);
   }, 60_000);
 
+  it('seeks through the generations while the pointer is held down', async () => {
+    // Dragging across the chart is meant to read as the ships changing over
+    // the run, so the panel has to follow the pointer rather than wait for it
+    // to be let go.
+    const box = await page.locator('#chart').boundingBox();
+    if (box === null) throw new Error('no chart on the page');
+    const y = box.y + box.height / 2;
+    await page.mouse.move(box.x + box.width * 0.9, y);
+    await page.mouse.down();
+    await page.waitForTimeout(200);
+    const late = await page.textContent('#shownGeneration');
+
+    // Still held, dragged back to the start of the run.
+    await page.mouse.move(box.x + box.width * 0.2, y, { steps: 8 });
+    await page.waitForTimeout(200);
+    const early = await page.textContent('#shownGeneration');
+    expect(Number(early)).toBeLessThan(Number(late));
+
+    // Past the left-hand end, which means the first generation rather than
+    // the seek stopping where the canvas does.
+    await page.mouse.move(box.x - 200, y, { steps: 4 });
+    await page.waitForTimeout(200);
+    expect(await page.textContent('#shownGeneration')).toBe('1');
+    await page.mouse.up();
+
+    // Let go, and the panel stays where it was left.
+    await page.waitForTimeout(200);
+    expect(await page.textContent('#shownGeneration')).toBe('1');
+    expect(problems).toEqual([]);
+  }, 60_000);
+
   it('shows the generation as ships rather than as a battle', async () => {
     // A run fights hundreds of times faster than real time, so a window on
     // the match in progress is a picture of nothing, refreshed. What the
