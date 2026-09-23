@@ -120,7 +120,7 @@ export function moveWithVisibleShips(
   let counted = 0;
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
-    if (ship.isDisabled) continue;
+    if (!ship.hasControl) continue;
     const r = ship.design.radius;
     if (abs(ship.x - camera.x) > halfWidth + r) continue;
     if (abs(ship.y - camera.y) > halfHeight + r) continue;

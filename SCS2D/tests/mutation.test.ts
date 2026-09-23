@@ -23,6 +23,16 @@ import { CATAMARAN, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js'
  * every individual draw looks fine while it happens.
  */
 
+/**
+ * Edits that change how many modules a ship has.
+ *
+ * Named rather than written out at each use because the list has to be kept
+ * in step with the operators: an edit that moves modules and is not matched
+ * here reads as a generation that changed nothing, which is a test that
+ * quietly stops checking what it was written for.
+ */
+const STRUCTURAL = /removed|added|copied|taken into|instance placed|instance dropped/;
+
 const FLEET: readonly (readonly [string, Blueprint])[] = [
   ['corvette', CORVETTE],
   ['gunship', GUNSHIP],
@@ -109,11 +119,14 @@ describe('mutation', () => {
         expect(child.edits.length, `${name} child ${i}`).toBeLessThanOrEqual(
           DEFAULT_LIMITS.numbers + 1,
         );
-        const structural = child.edits.filter((edit) => /removed|added|copied/.test(edit));
+        const structural = child.edits.filter((edit) => STRUCTURAL.test(edit));
         expect(structural.length, `${name} child ${i}: ${child.edits.join(' | ')}`).toBeLessThanOrEqual(1);
         // A module added inside an assembly arrives once per copy of it, so
         // the expanded count moves by more than one — but only ever by whole
-        // copies of one module.
+        // copies of one module. Everything else leaves the ship the size it
+        // was, the edits to the *grouping* included: making a part of a module
+        // and dissolving one back into the layout change what a later
+        // generation can do rather than anything about the ship itself.
         const now = expandBlueprint(child.blueprint).length;
         if (structural.length === 0) expect(now, `${name} child ${i}`).toEqual(was);
       }
@@ -132,23 +145,34 @@ describe('mutation', () => {
     // decides that. An imbalance here is invisible in any one child and
     // fatal over a run — a lineage that loses a module every time it gains
     // one ends up as a hull that cannot shoot, whatever the fitness says.
-    const rng = new Rng(37);
+    // Over several lines rather than one. A single line of 800 generations
+    // measured anywhere between 1.3 and 1.9, so a bound pinned to whichever
+    // one was run first is a test that fails on a change that did nothing —
+    // the same trap the structural-delivery test above fell into.
+    //
+    // The bound is asymmetric because the two failures are not alike. A ratio
+    // well under one is the fatal one: a lineage that loses a module whenever
+    // it gains one erodes until it cannot shoot, and nothing stops it. Above
+    // one a lineage grows, which the mass budget already bounds.
     let added = 0;
     let removed = 0;
-    let held: Blueprint = GUNSHIP;
     const budget = compileDraft(GUNSHIP).mass * 2;
-    for (let i = 0; i < 800; i++) {
-      const child = mutate(held, rng, { massBudget: budget });
-      held = child.blueprint;
-      for (const edit of child.edits) {
-        if (/removed/.test(edit)) removed++;
-        else if (/added|copied/.test(edit)) added++;
+    for (const seed of [37, 38, 39]) {
+      const rng = new Rng(seed);
+      let held: Blueprint = GUNSHIP;
+      for (let i = 0; i < 800; i++) {
+        const child = mutate(held, rng, { massBudget: budget });
+        held = child.blueprint;
+        for (const edit of child.edits) {
+          if (/removed/.test(edit)) removed++;
+          else if (/added|copied/.test(edit)) added++;
+        }
       }
     }
     expect(added).toBeGreaterThan(20);
     expect(removed).toBeGreaterThan(20);
     expect(added / removed).toBeGreaterThan(0.6);
-    expect(added / removed).toBeLessThan(1.6);
+    expect(added / removed).toBeLessThan(2);
   });
 
   it('delivers the structural generations it draws', { timeout: 30_000 }, () => {

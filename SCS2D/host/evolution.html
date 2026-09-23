@@ -84,6 +84,37 @@
       }
       #viewWrap { flex: 1; position: relative; min-height: 12rem; }
       #view { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+      #fleet {
+        position: absolute;
+        inset: 0;
+        overflow-y: auto;
+        display: flex;
+        flex-wrap: wrap;
+        align-content: flex-start;
+        gap: 0.5rem;
+        padding: 0.2rem 0 1rem;
+      }
+      #fleet figure {
+        margin: 0;
+        width: 9.5rem;
+        border: 1px solid #1c2533;
+        border-radius: 4px;
+        background: #0d1219;
+        cursor: pointer;
+      }
+      #fleet figure:hover { border-color: #2b3a50; }
+      #fleet figure.picked { border-color: #7fd6a0; }
+      #fleet canvas { display: block; width: 100%; height: 6rem; }
+      #fleet figcaption {
+        padding: 0.15rem 0.4rem 0.3rem;
+        color: #7f93aa;
+        border-top: 1px solid #1c2533;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #fleet figcaption b { color: #e6edf5; font-weight: 600; }
+      #fleet p.none { padding: 0.5rem 0.2rem; }
       #viewBar { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; padding: 0.4rem 0; }
       #panelBody { padding: 0.7rem 0.9rem; display: flex; flex-direction: column; min-height: 0; flex: 1; }
       table { width: 100%; border-collapse: collapse; }
@@ -192,25 +223,35 @@
             <span style="color: #7fd6a0">surviving</span>
             <span style="color: #e0655f">damage</span>
             <span style="color: #e9c05f">ground</span>
+            <span style="color: #5bd6d6">vs. yardstick</span>
           </p>
           <div id="viewBar">
-            <button id="play" disabled>Pause</button>
-            <button id="step" disabled>Step</button>
-            <button id="fit">Fit</button>
-            <label>speed <select id="speed">
-              <option value="0.5">0.5x</option>
-              <option value="1" selected>1x</option>
-              <option value="2">2x</option>
-              <option value="4">4x</option>
-              <option value="8">8x</option>
+            <label>showing <select id="mode">
+              <option value="fleet" selected>the ships</option>
+              <option value="battle">a battle</option>
             </select></label>
-            <label title="Draw whichever match the run is fighting right now">
-              <input id="follow" type="checkbox" checked /> watch the run
-            </label>
+            <span id="battleControls">
+              <button id="play" disabled>Pause</button>
+              <button id="step" disabled>Step</button>
+              <button id="fit">Fit</button>
+              <label>speed <select id="speed">
+                <option value="0.5">0.5x</option>
+                <option value="1" selected>1x</option>
+                <option value="2">2x</option>
+                <option value="4">4x</option>
+                <option value="8">8x</option>
+              </select></label>
+              <label title="When one finishes, play another from the same generation">
+                <input id="rolling" type="checkbox" checked /> one after another
+              </label>
+            </span>
             <span id="watching" class="grow"></span>
           </div>
         </div>
-        <div id="viewWrap"><canvas id="view"></canvas></div>
+        <div id="viewWrap">
+          <canvas id="view" hidden></canvas>
+          <div id="fleet"></div>
+        </div>
       </section>
       <aside id="results">
         <section>
@@ -238,12 +279,32 @@
           <p class="note">Click one to watch it again — a match is replayed from its seed, so it is the match that was scored.</p>
         </section>
         <section>
-          <h2>The best of it</h2>
+          <h2>What it arrived at</h2>
           <p id="championLine" class="note">—</p>
           <div class="buttons">
             <button id="saveChampion" disabled>Save to editor</button>
             <button id="exportChampion" disabled>Export</button>
           </div>
+          <p class="note">
+            The best of the latest generation. A score is against that generation's opponents, so it
+            cannot be compared with one from another generation — a population that learns to fly before
+            it learns to shoot scores superbly until guns appear, then far less while getting better.
+          </p>
+        </section>
+        <section>
+          <h2>Measured against one ship</h2>
+          <div class="field">
+            <label for="benchmark">opponent</label>
+            <select id="benchmark"></select>
+          </div>
+          <div class="buttons">
+            <button id="measure" disabled>Measure</button>
+          </div>
+          <p id="yardstickLine" class="note">
+            Every design of every generation, one against one against the same ship under the same
+            seeds — the one number here that means the same thing in generation one and generation four
+            hundred. Fought afterwards and never during, or a run would learn to beat that one ship.
+          </p>
         </section>
       </aside>
     </main>

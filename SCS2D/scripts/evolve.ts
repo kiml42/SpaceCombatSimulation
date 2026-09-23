@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { compileBlueprint, type Blueprint } from '../sim/index.js';
 import { BLUEPRINTS, type BlueprintName } from '../scenarios/blueprints.js';
-import { champion, matchCount, runEvolution, DEFAULT_RUN, type RunConfig } from '../evolution/run.js';
+import { finalist, matchCount, runEvolution, DEFAULT_RUN, type RunConfig } from '../evolution/run.js';
 import { DEFAULT_KINDS } from '../evolution/mutate.js';
 import { parseRunConfig, serialiseRunConfig } from '../evolution/configFile.js';
 import type { ModuleKind } from '../sim/modules.js';
@@ -175,11 +175,11 @@ mkdirSync(dirname(options.out), { recursive: true });
 writeFileSync(options.out, `${JSON.stringify(run, null, 2)}\n`);
 
 if (!options.quiet) {
-  const best = champion(run);
+  const best = finalist(run);
   console.log(`\n${matchCount(run)} matches in ${spent.toFixed(1)}s → ${options.out}`);
   if (best !== null) {
     console.log(
-      `champion: generation ${best.generation}, individual ${best.individual.id}, ` +
+      `arrived at: generation ${best.generation}, individual ${best.individual.id}, ` +
         `fitness ${best.individual.fitness.toFixed(3)} from ${best.individual.matches} matches, ` +
         `${(best.individual.mass / 1000).toFixed(1)} tonnes`,
     );
@@ -188,5 +188,12 @@ if (!options.quiet) {
         `damage ${best.individual.damage.toFixed(2)}  race ${best.individual.race.toFixed(2)}`,
     );
     for (const edit of best.individual.edits) console.log(`  ${edit}`);
+    // Said out loud because the number above invites exactly the wrong
+    // reading: a fitness is a score against that generation's opponents, so
+    // it cannot be compared with one from another generation.
+    console.log(
+      `\n  Fitness is scored against the rest of the generation, so these numbers do not\n` +
+        `  compare across generations. For that, run: npm run yardstick -- --run ${options.out}`,
+    );
   }
 }

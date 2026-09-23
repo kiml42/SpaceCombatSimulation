@@ -452,20 +452,27 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
  * each other rather than a field of specks. `render/icons.ts` decides when it
  * shows and how solid it is.
  *
- * A hulk is drawn in the neutral colours: it is nobody's ship now, and a
- * counted-up formation that silently includes wreckage is worse than one that
- * shows it as such.
+ * **The team's colour is for a ship anybody is still aboard, and nothing
+ * else.** Not for one that can still fight: a hull with a sound core and
+ * neither gun nor engine is somebody's ship, and drawing it grey said the
+ * opposite about an entire generation of engineless craft. What grey means
+ * here is that the core is out — the one thing that stops a hull being a
+ * ship — which is also the only state in which the arrowhead is telling you
+ * about something you can do nothing with and nothing can be done with.
  *
- * A derelict piece — hull with no working core left aboard — gets no icon at
- * all: it has no facing worth pointing out, and a debris field that drew as
- * many arrowheads as the battle that made it would count as ships wreckage
- * that no longer is any.
+ * A derelict piece — a severed chunk, with nobody ever aboard it — gets no
+ * icon at all: it has no facing worth pointing out, and a debris field that
+ * drew as many arrowheads as the battle that made it would count as ships
+ * wreckage that no longer is any. A mission-killed hull keeps its icon in
+ * grey rather than losing it, because it is still a solid thing in the way,
+ * and at the zoom where icons are what you are reading, losing it would make
+ * it vanish rather than read as a hulk.
  */
 function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
   if (ship.isDerelict) return;
   const alpha = iconAlpha(ship.design.radius * 2 * metresToPx);
   if (alpha <= 0) return;
-  const colours = ship.isDisabled ? NEUTRAL : shipColours(ship.team);
+  const colours = ship.hasControl ? shipColours(ship.team) : NEUTRAL;
   const size = ICON_PX / metresToPx;
 
   ctx.save();

@@ -1,6 +1,6 @@
 import { parseBlueprint, Rng, type Blueprint } from '../sim/index.js';
 import { max } from '../sim/math.js';
-import { runMatch, type MatchConfig } from './match.js';
+import { Match, type MatchConfig } from './match.js';
 import type { GenerationRecord, RunRecord } from './run.js';
 
 /**
@@ -67,6 +67,141 @@ export interface YardstickReport {
 }
 
 /**
+ * A measurement in progress: the matches still to fight, and the points so
+ * far.
+ *
+ * Stepped rather than run, for the reason `Match` and `Run` are: a
+ * measurement is one match per design per generation, which is minutes of
+ * simulation on a long run, and a page cannot go away for that long.
+ */
+export class Yardstick {
+  readonly points: YardstickPoint[] = [];
+  private readonly settings: YardstickConfig;
+  private readonly match: Partial<MatchConfig>;
+  private readonly seeds: number[] = [];
+  /** Kept, so a slot beyond what the run had when this started can be given one. */
+  private readonly draw: Rng;
+  private generation = 0;
+  private slot = 0;
+  private fighting: Match | null = null;
+  private total = 0;
+  private best = -Infinity;
+  private against = 0;
+  private wins = 0;
+  matches = 0;
+
+  constructor(
+    private readonly run: RunRecord,
+    private readonly benchmark: Blueprint,
+    config?: Partial<YardstickConfig>,
+  ) {
+    this.settings = { ...DEFAULT_YARDSTICK, ...config };
+    this.match = { ...run.config.match, ...this.settings.match };
+    this.draw = new Rng(this.settings.seed);
+    this.seedFor(longest(run) - 1);
+  }
+
+  /**
+   * The seed for one slot, drawn once and then reused by every generation.
+   *
+   * Drawn on demand rather than counted up front because a measurement can be
+   * started while a run is still going, and a later generation may be wider
+   * than anything it had closed at the time. The order is the same either way,
+   * so a measurement taken during a run and one taken after it agree.
+   */
+  private seedFor(slot: number): number {
+    while (this.seeds.length <= slot) this.seeds.push(this.draw.nextUint32());
+    return this.seeds[slot]!;
+  }
+
+  get done(): boolean {
+    return this.generation >= this.run.generations.length;
+  }
+
+  /** How far through, from nothing to one. */
+  get progress(): number {
+    const total = this.run.generations.length;
+    if (total === 0) return 1;
+    if (this.done) return 1;
+    const here = this.run.generations[this.generation]?.individuals.length ?? 1;
+    const within = here > 0 ? this.slot / here : 1;
+    return (this.generation + within) / total;
+  }
+
+  /** Fight up to `budget` simulation steps of it. */
+  advance(budget: number): boolean {
+    let left = max(1, budget);
+    while (left > 0 && !this.done) {
+      if (this.fighting === null) {
+        this.open();
+        continue;
+      }
+      while (left > 0 && !this.fighting.done) {
+        this.fighting.advance();
+        left--;
+      }
+      if (this.fighting.done) this.close();
+    }
+    return !this.done;
+  }
+
+  finish(): YardstickReport {
+    while (!this.done) this.advance(1 << 20);
+    return this.report();
+  }
+
+  report(): YardstickReport {
+    return { points: this.points, matches: this.matches };
+  }
+
+  /** Draw the next match, or close the generation when it has had them all. */
+  private open(): void {
+    const generation = this.run.generations[this.generation];
+    if (generation === undefined) return;
+    if (this.slot >= generation.individuals.length) {
+      this.roll(generation);
+      return;
+    }
+    const individual = generation.individuals[this.slot]!;
+    this.fighting = new Match([parseBlueprint(individual.blueprint), this.benchmark], {
+      ...this.match,
+      seed: this.seedFor(this.slot),
+    });
+  }
+
+  private close(): void {
+    const result = this.fighting!.result();
+    this.fighting = null;
+    this.matches++;
+    this.slot++;
+    const mine = result.scores[0]!.total;
+    const theirs = result.scores[1]!.total;
+    this.total += mine;
+    this.best = max(this.best, mine);
+    this.against += theirs;
+    if (mine > theirs) this.wins++;
+  }
+
+  private roll(generation: GenerationRecord): void {
+    const count = generation.individuals.length;
+    this.points.push({
+      generation: generation.index,
+      mean: count > 0 ? this.total / count : 0,
+      best: count > 0 ? this.best : 0,
+      against: count > 0 ? this.against / count : 0,
+      wins: this.wins,
+      individuals: count,
+    });
+    this.total = 0;
+    this.best = -Infinity;
+    this.against = 0;
+    this.wins = 0;
+    this.slot = 0;
+    this.generation++;
+  }
+}
+
+/**
  * Fight every design of every generation against one fixed opponent.
  *
  * The opponent takes the second slot in every match, so the geometry it is
@@ -78,41 +213,7 @@ export function measure(
   benchmark: Blueprint,
   config?: Partial<YardstickConfig>,
 ): YardstickReport {
-  const settings: YardstickConfig = { ...DEFAULT_YARDSTICK, ...config };
-  const match = { ...run.config.match, ...settings.match };
-  const seeds = pairedSeeds(settings.seed, longest(run));
-
-  const points: YardstickPoint[] = [];
-  let matches = 0;
-  for (const generation of run.generations) {
-    let total = 0;
-    let best = -Infinity;
-    let against = 0;
-    let wins = 0;
-    for (const [slot, individual] of generation.individuals.entries()) {
-      const result = runMatch([parseBlueprint(individual.blueprint), benchmark], {
-        ...match,
-        seed: seeds[slot]!,
-      });
-      matches++;
-      const mine = result.scores[0]!.total;
-      const theirs = result.scores[1]!.total;
-      total += mine;
-      best = max(best, mine);
-      against += theirs;
-      if (mine > theirs) wins++;
-    }
-    const count = generation.individuals.length;
-    points.push({
-      generation: generation.index,
-      mean: count > 0 ? total / count : 0,
-      best: count > 0 ? best : 0,
-      against: count > 0 ? against / count : 0,
-      wins,
-      individuals: count,
-    });
-  }
-  return { points, matches };
+  return new Yardstick(run, benchmark, config).finish();
 }
 
 /**
@@ -137,14 +238,6 @@ function longest(run: RunRecord): number {
   let most = 0;
   for (const generation of run.generations) most = max(most, generation.individuals.length);
   return most;
-}
-
-/** One seed per slot, drawn once and reused by every generation. */
-function pairedSeeds(seed: number, count: number): number[] {
-  const rng = new Rng(seed);
-  const seeds: number[] = [];
-  for (let i = 0; i < count; i++) seeds.push(rng.nextUint32());
-  return seeds;
 }
 
 /** Whether a run got better at beating the thing it was measured against. */
