@@ -4,6 +4,7 @@ import { draw } from '../render/canvas2d.js';
 import { drawChart, type Series } from '../render/chart.js';
 import { frame, moveWithVisibleShips, type Camera } from '../render/camera.js';
 import { Library, toFileText } from '../editor/library.js';
+import { previewSnapshot } from '../editor/preview.js';
 import { compileBlueprint } from '../sim/index.js';
 import { fitness } from '../evolution/generation.js';
 import { DEFAULT_MATCH, Match, type MatchConfig } from '../evolution/match.js';
@@ -114,7 +115,10 @@ export function startEvolution(): void {
   const stepButton = el<HTMLButtonElement>('step');
   const fitButton = el<HTMLButtonElement>('fit');
   const speedSelect = el<HTMLSelectElement>('speed');
-  const followInput = el<HTMLInputElement>('follow');
+  const modeSelect = el<HTMLSelectElement>('mode');
+  const rollingInput = el<HTMLInputElement>('rolling');
+  const battleControls = el<HTMLElement>('battleControls');
+  const fleetBox = el<HTMLElement>('fleet');
   const watchingLabel = el<HTMLElement>('watching');
   const generationSelect = el<HTMLSelectElement>('generation');
   const shownGeneration = el<HTMLElement>('shownGeneration');
@@ -143,6 +147,15 @@ export function startEvolution(): void {
   let shown = -1;
   let yardstick: Yardstick | null = null;
   let measured: YardstickReport | null = null;
+  /** Which generation the fleet tiles were built for, and the tiles by ship. */
+  let fleetOf = -1;
+  const fleetTiles = new Map<number, { figure: HTMLElement; caption: HTMLElement }>();
+  const fleetSnapshot = new Snapshot();
+  let picked = -1;
+  // Where the rolling replay has got to, and how many matches there were when
+  // it last chose — a match arriving while one plays jumps the queue.
+  let rollingAt = 0;
+  let rollingSeen = 0;
   const snapshot = new Snapshot();
   const flashes = new Flashes();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
@@ -367,12 +380,6 @@ export function startEvolution(): void {
     playButton.textContent = 'Play';
     if (replay !== null && !replay.done) replay.advance();
   });
-  followInput.addEventListener('change', () => {
-    if (followInput.checked) {
-      replay = null;
-      replayOf = null;
-    }
-  });
 
   view.addEventListener('wheel', (event) => {
     event.preventDefault();
@@ -450,6 +457,131 @@ export function startEvolution(): void {
     draw(ctx, shot, camera, view.width, view.height, flashes);
   }
 
+  // ---- the fleet ---------------------------------------------------------
+
+  /**
+   * What a generation *is*, drawn: every design in it, best first.
+   *
+   * **This is the view a run is worth watching in, and a battle is not.** A
+   * run fights hundreds of times faster than real time, so a window on
+   * whichever match is in progress shows a fraction of a second of each and
+   * flickers to the next — a picture of nothing, refreshed. What changes at a
+   * pace worth watching is the population: a generation of bare cores growing
+   * an engine, a wing appearing on one design and then on half of them.
+   *
+   * Tiles are made once per design and only reordered afterwards, so a
+   * generation redraws its hulls when it is bred rather than five times a
+   * second for as long as it lasts.
+   */
+  const showFleet = (index: number, rows: readonly Row[]): void => {
+    if (index !== fleetOf) {
+      fleetBox.replaceChildren();
+      fleetTiles.clear();
+      fleetOf = index;
+    }
+    if (rows.length === 0) {
+      if (fleetBox.childElementCount === 0) {
+        const note = document.createElement('p');
+        note.className = 'none';
+        note.textContent = 'Nothing bred yet.';
+        fleetBox.append(note);
+      }
+      return;
+    }
+
+    const ranked = [...rows].sort((a, b) => b.fitness - a.fitness);
+    const living = new Set(ranked.map((row) => row.id));
+    for (const [id, tile] of fleetTiles) {
+      if (!living.has(id)) {
+        tile.figure.remove();
+        fleetTiles.delete(id);
+      }
+    }
+
+    for (const [rank, row] of ranked.entries()) {
+      let tile = fleetTiles.get(row.id);
+      if (tile === undefined) {
+        tile = makeTile(row);
+        fleetTiles.set(row.id, tile);
+      }
+      // Appending something already here moves it, so this is the reordering.
+      fleetBox.append(tile.figure);
+      tile.figure.classList.toggle('picked', row.id === picked);
+      tile.caption.replaceChildren();
+      const name = document.createElement('b');
+      name.textContent = `${rank + 1}. #${row.id}`;
+      tile.caption.append(
+        name,
+        ` ${row.matches > 0 ? row.fitness.toFixed(3) : '—'} · ${(row.mass / 1000).toFixed(1)} t`,
+      );
+      tile.figure.title =
+        row.edits.length > 0 ? row.edits.join('\n') : 'a ship the run started from';
+    }
+  };
+
+  const makeTile = (row: Row): { figure: HTMLElement; caption: HTMLElement } => {
+    const figure = document.createElement('figure');
+    const canvas = document.createElement('canvas');
+    const caption = document.createElement('figcaption');
+    figure.append(canvas, caption);
+    figure.addEventListener('click', () => {
+      picked = row.id;
+      editsLine.textContent =
+        row.edits.length > 0 ? `#${row.id}: ${row.edits.join('; ')}` : `#${row.id}: a founder`;
+      for (const [id, tile] of fleetTiles) tile.figure.classList.toggle('picked', id === picked);
+    });
+    // Sized and drawn once. The ship is standing still and the tile is a fixed
+    // size, so there is nothing to redraw until the design itself changes —
+    // and a design never changes, it is replaced by a child.
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.round(152 * ratio);
+    canvas.height = Math.round(96 * ratio);
+    const tileCtx = canvas.getContext('2d');
+    if (tileCtx !== null) {
+      const design = compileBlueprint(row.blueprint);
+      const shot = previewSnapshot(design, fleetSnapshot);
+      const eye: Camera = { x: 0, y: 0, scale: 1 };
+      frame(eye, shot, canvas.width, canvas.height, 1);
+      draw(tileCtx, shot, eye, canvas.width, canvas.height);
+    }
+    return { figure, caption };
+  };
+
+  /** Show the ships or a battle, and make the controls match. */
+  function applyMode(): void {
+    const battle = modeSelect.value === 'battle';
+    view.hidden = !battle;
+    fleetBox.hidden = battle;
+    battleControls.hidden = !battle;
+    if (battle) {
+      // The canvas measured nothing while it was hidden.
+      resize();
+      if (replay === null && rollingInput.checked) rollOn();
+    } else {
+      replay = null;
+      replayOf = null;
+      watch(null);
+    }
+  }
+
+  /**
+   * Put on the next battle: the newest first, then back through the
+   * generation.
+   *
+   * A run fights faster than anybody can watch, so this is a sample rather
+   * than a record — what it is for is seeing *some* whole battles rather than
+   * the first tenth of a second of every one of them.
+   */
+  function rollOn(): void {
+    const { rows, matches } = showing();
+    if (matches.length === 0) return;
+    let at = matches.length > rollingSeen ? matches.length - 1 : rollingAt - 1;
+    if (at < 0) at = matches.length - 1;
+    rollingAt = at;
+    rollingSeen = matches.length;
+    startReplay(matches[at]!, rows);
+  }
+
   // ---- reading the run ---------------------------------------------------
 
   const massOf = (id: number, blueprint: Blueprint): number => {
@@ -514,11 +646,15 @@ export function startEvolution(): void {
     replayOf = record;
     replayPlaying = true;
     playButton.textContent = 'Pause';
-    followInput.checked = false;
+    // Asked for a battle, so show one: a match clicked in the list is the
+    // whole reason the viewer is there.
+    modeSelect.value = 'battle';
+    applyMode();
   };
 
   const refresh = (): void => {
     const { index, rows, matches } = showing();
+    if (modeSelect.value !== 'battle') showFleet(index, rows);
 
     // The list of generations to choose from, rebuilt only when it grows.
     const count = (run?.generations.length ?? 0) + (run !== null && !run.done ? 1 : 0);
@@ -691,10 +827,10 @@ export function startEvolution(): void {
     editsLine.textContent = '';
     generationSelect.replaceChildren();
     watch(null);
+    fleetOf = -1;
     setPaused(false);
     pauseButton.disabled = false;
     stopButton.disabled = false;
-    followInput.checked = true;
     refresh();
   });
   pauseButton.addEventListener('click', () => setPaused(!paused));
@@ -707,8 +843,17 @@ export function startEvolution(): void {
     stopButton.disabled = true;
   });
 
+  modeSelect.addEventListener('change', () => {
+    applyMode();
+    refresh();
+  });
+  rollingInput.addEventListener('change', () => {
+    if (rollingInput.checked && (replay === null || replay.done)) rollOn();
+  });
+
   window.addEventListener('resize', resize);
   resize();
+  applyMode();
   refresh();
 
   const tick = (now: number): void => {
@@ -746,6 +891,10 @@ export function startEvolution(): void {
       }
     }
 
+    if (replay !== null && replay.done && replayPlaying && rollingInput.checked) {
+      rollOn();
+    }
+
     if (replay !== null && replayPlaying && !replay.done) {
       const speed = Number(speedSelect.value);
       accumulator += elapsed * speed;
@@ -759,10 +908,10 @@ export function startEvolution(): void {
       if (steps === MAX_STEPS_PER_FRAME) accumulator = 0;
     }
 
-    watch(replay ?? (followInput.checked ? (run?.current ?? null) : null));
+    watch(replay);
     playButton.disabled = replay === null;
     stepButton.disabled = replay === null;
-    paint();
+    if (modeSelect.value === 'battle') paint();
 
     // Sampled rather than redrawn every frame: the panel is a page of DOM and
     // the run is the thing the frame is for (DESIGN.md non-negotiable 5).
@@ -808,13 +957,16 @@ export function startEvolution(): void {
     readout.textContent =
       `generation ${Math.min(done + 1, total)} of ${total} · ` +
       `${fought} matches fought · ${(run.progress * 100).toFixed(0)}%`;
-    const match = watchedMatch;
-    watchingLabel.textContent =
-      match === null
-        ? ''
-        : replay !== null
-          ? `replaying match ${(replayOf?.competitors ?? []).join(' v ')} · ${(replay.progress * 100).toFixed(0)}%`
-          : `live: ${run.fighting.map((c) => run!.living.individuals[c]!.id).join(' v ')}`;
+    if (modeSelect.value !== 'battle') {
+      const shown = showing();
+      watchingLabel.textContent = `${shown.rows.length} ships of generation ${shown.index + 1}`;
+    } else if (replay !== null) {
+      watchingLabel.textContent =
+        `${(replayOf?.competitors ?? []).join(' v ')} · ${(replay.progress * 100).toFixed(0)}%` +
+        `${replay.done ? ' · over' : ''}`;
+    } else {
+      watchingLabel.textContent = 'pick a match from the list';
+    }
   }
 
   window.requestAnimationFrame(tick);

@@ -158,8 +158,11 @@ describe('the evolution page in a browser', () => {
   });
 
   it('fights a recorded match again, and draws it', async () => {
+    // Clicking a match is a request to watch one, so it switches the panel
+    // over from the ships to the battle.
     await page.click('#matches tr');
-    await page.waitForFunction(() => /replaying/.test(document.getElementById('watching')?.textContent ?? ''));
+    expect(await page.inputValue('#mode')).toBe('battle');
+    await page.waitForFunction(() => /\d+%/.test(document.getElementById('watching')?.textContent ?? ''));
     await page.waitForTimeout(500);
     expect(await distinctColours(page, 'view')).toBeGreaterThan(3);
     // A replay is the page's own clock, so it pauses and single-steps like
@@ -217,6 +220,58 @@ describe('the evolution page in a browser', () => {
       expect(bands[band], `${band} in ${JSON.stringify(bands)}`).toBeGreaterThan(0);
     }
   }, 60_000);
+
+  it('shows the generation as ships rather than as a battle', async () => {
+    // A run fights hundreds of times faster than real time, so a window on
+    // the match in progress is a picture of nothing, refreshed. What the
+    // space is for is the population: one tile per design, best first.
+    await page.selectOption('#mode', 'fleet');
+    await page.waitForTimeout(300);
+    const tiles = await page.$$('#fleet figure');
+    expect(tiles.length).toBe(4);
+    const first = (await page.textContent('#fleet figure:first-child figcaption')) ?? '';
+    expect(first).toMatch(/^1\. #\d/);
+    // Drawn, rather than an empty box with a caption under it.
+    const colours = await page.evaluate(() => {
+      const canvas = document.querySelector('#fleet figure canvas') as HTMLCanvasElement;
+      const ctx = canvas.getContext('2d');
+      if (ctx === null) return 0;
+      const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const seen = new Set<number>();
+      for (let i = 0; i < data.length; i += 4) {
+        seen.add((data[i]! << 16) | (data[i + 1]! << 8) | data[i + 2]!);
+      }
+      return seen.size;
+    });
+    expect(colours).toBeGreaterThan(2);
+    expect(problems).toEqual([]);
+  }, 60_000);
+
+  it('puts on another battle when one finishes', async () => {
+    // A sample rather than a record: whole battles, one after another, which
+    // is the thing watching the run live could never be.
+    await page.selectOption('#mode', 'battle');
+    await page.click('#matches tr');
+    const progress = async (): Promise<number> =>
+      Number(/(\d+)%/.exec((await page.textContent('#watching')) ?? '')?.[1] ?? -1);
+    await page.waitForFunction(
+      () => /9\d%|100%/.test(document.getElementById('watching')?.textContent ?? ''),
+      undefined,
+      { timeout: 60_000 },
+    );
+    // Back to the start of another one rather than sitting on the last frame
+    // of that one for ever.
+    await page.waitForFunction(
+      () => {
+        const at = /(\d+)%/.exec(document.getElementById('watching')?.textContent ?? '');
+        return at !== null && Number(at[1]) < 50;
+      },
+      undefined,
+      { timeout: 60_000 },
+    );
+    expect(await progress()).toBeLessThan(50);
+    expect(problems).toEqual([]);
+  }, 120_000);
 
   it('measures every generation against one fixed ship', async () => {
     // The one number on the page that means the same thing at both ends of a
