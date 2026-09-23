@@ -482,10 +482,15 @@ describe('the editor in a browser', () => {
     await page.keyboard.press('f');
     const centre = await canvasCentre(page);
 
+    // Alt to escape the grid: a measuring drag that snapped would put the
+    // error in the scale into every drag worked out from it, and how far out
+    // that lands depends on the canvas size.
+    await page.keyboard.down('Alt');
     await page.mouse.move(centre.x, centre.y);
     await page.mouse.down();
     await page.mouse.move(centre.x + 200, centre.y, { steps: 6 });
     await page.mouse.up();
+    await page.keyboard.up('Alt');
     const scale = 200 / Number(await page.inputValue('#propX'));
     await page.click('#undo');
     expect(await page.inputValue('#propX')).toBe('0');
@@ -543,15 +548,102 @@ describe('the editor in a browser', () => {
     await page.click('#undo');
   });
 
+  it('duplicates a ship under a counted name, leaving the original alone', async () => {
+    await page.selectOption('#ship', 'Corvette');
+    await page.click('#duplicateShip');
+    expect(await page.inputValue('#shipName')).toBe('Corvette 2');
+    // Unsaved until the player says so, like a new ship.
+    expect(await page.textContent('#ship')).toMatch(/Corvette 2 \(unsaved\)/);
+    await page.click('#saveShip');
+    await page.click('#duplicateShip');
+    expect(await page.inputValue('#shipName')).toBe('Corvette 3');
+
+    // The one it was copied from is untouched and still opens.
+    await page.selectOption('#ship', 'Corvette');
+    expect(await page.inputValue('#shipName')).toBe('Corvette');
+    await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Corvette 2'));
+    await page.reload();
+  });
+
+  it('keeps the shipped ship openable after one is saved over its name', async () => {
+    await page.selectOption('#ship', 'Corvette');
+    await page.fill('#shipNotes', 'mine now');
+    await page.click('#saveShip');
+    expect(await page.textContent('#ship')).toMatch(/Corvette \(stock\)/);
+
+    // The name opens the player's copy, and the shipped hull is still there
+    // to start from rather than buried under it.
+    await page.selectOption('#ship', 'stock:Corvette');
+    expect(await page.inputValue('#shipNotes')).not.toBe('mine now');
+    await page.selectOption('#ship', 'Corvette');
+    expect(await page.inputValue('#shipNotes')).toBe('mine now');
+
+    await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Corvette'));
+    await page.reload();
+    expect(await page.textContent('#ship')).not.toMatch(/\(stock\)/);
+  });
+
+  it('clears the editor when a ship is deleted, and gives it back on undo', async () => {
+    await page.selectOption('#ship', 'Corvette');
+    await page.click('#duplicateShip');
+    await page.click('#saveShip');
+    const name = await page.inputValue('#shipName');
+    const ship = (await page.textContent('#stats')) ?? '';
+
+    page.once('dialog', (dialog) => void dialog.accept());
+    await page.click('#deleteShip');
+    // Blank, and gone from the library: what is drawn and what the library
+    // holds never disagree.
+    expect(await page.inputValue('#shipName')).toMatch(/^New ship/);
+    expect(await page.textContent('#ship')).not.toMatch(new RegExp(`${name}`));
+
+    // The way back is the way back from any other edit, and the ship can be
+    // saved again from there.
+    await page.click('#undo');
+    expect(await page.inputValue('#shipName')).toBe(name);
+    expect(await page.textContent('#stats')).toBe(ship);
+    await page.click('#saveShip');
+    expect(await page.textContent('#ship')).toMatch(new RegExp(`${name}`));
+
+    page.once('dialog', (dialog) => void dialog.accept());
+    await page.click('#deleteShip');
+    await page.reload();
+  });
+
   it('adds a module, and says what is now wrong with the layout', async () => {
     await page.selectOption('#ship', 'Corvette');
     await page.click('[data-add="turret"]');
     // The new module lands at the middle of the view, which is inside the
-    // hull — so the layout is invalid, and saving it is refused until it is not.
-    expect(await page.isDisabled('#saveShip')).toBe(true);
+    // hull — so the layout is invalid and the panel says so. It is still a
+    // layout that can be saved and opened again: work in progress is the
+    // normal state of one, and a ship that cannot be reopened cannot be fixed.
     expect(await page.textContent('#problems')).toMatch(/problem/);
+    expect(await page.isDisabled('#saveShip')).toBe(false);
 
     await page.click('#undo');
-    expect(await page.isDisabled('#saveShip')).toBe(false);
+    expect(await page.textContent('#problems')).toMatch(/would fly/);
+  });
+
+  it('opens a saved ship that breaks the design rules, rather than refusing it', async () => {
+    // The layout a player left half-finished, or one an older version of the
+    // format wrote: it has to come back up with its faults named, since the
+    // editor is the only place they can be put right.
+    await page.evaluate(() => {
+      const broken = {
+        formatVersion: 1,
+        name: 'Adrift',
+        modules: [
+          { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+          { kind: 'thruster', x: -20, y: 0, angle: 0, length: 3, width: 3 },
+        ],
+      };
+      window.localStorage.setItem('scs2d.blueprint.Adrift', JSON.stringify(broken));
+    });
+    await page.reload();
+    await page.selectOption('#ship', 'Adrift');
+    expect(await page.textContent('#problems')).toMatch(/no structure to push against/);
+    // Drawn, not merely complained about: the ship is on the canvas to drag.
+    expect(await page.textContent('#stats')).toMatch(/Modules/);
+    await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Adrift'));
   });
 });

@@ -45,7 +45,14 @@ import {
   unlinkPlacement,
   updatePlacement,
 } from './edit.js';
-import { emptyBlueprint, Library, toFileText } from './library.js';
+import {
+  emptyBlueprint,
+  Library,
+  nextName,
+  toFileText,
+  unusedName,
+  type LibraryEntry,
+} from './library.js';
 import { Demonstration } from './demonstrate.js';
 import { drawOverlay } from './overlay.js';
 import { facingTo, handleAt, handlesFor, sizedTo, type Handle } from './handles.js';
@@ -112,7 +119,26 @@ export function startEditor(): void {
   if (ctx === null) throw new Error('no 2d context');
 
   const library = new Library(window.localStorage);
-  const doc = new EditorDocument(library.load('Corvette') ?? emptyBlueprint('New ship'));
+  /**
+   * Open a saved ship, or say so and hand back nothing.
+   *
+   * A layout that breaks the design rules is not this: it opens like any
+   * other and the problems panel names what is wrong, which is the only way
+   * such a ship can be put right. This is for a file that cannot be *read* —
+   * storage holding what an older format wrote, or what someone typed into a
+   * console — and the editor must not be left unusable by one.
+   */
+  const read = (name: string): Blueprint | null => {
+    try {
+      return library.load(name);
+    } catch (error) {
+      window.alert(
+        `Could not read the saved ${name}.\n\n${error instanceof Error ? error.message : error}`,
+      );
+      return null;
+    }
+  };
+  const doc = new EditorDocument(read('Corvette') ?? emptyBlueprint('New ship'));
   const camera: Camera = { x: 0, y: 0, scale: 8 };
   const snapshot = new Snapshot();
   const demonstration = new Demonstration();
@@ -572,15 +598,32 @@ export function startEditor(): void {
     moduleStats.innerHTML = `<table>${rows}${gun}</table>`;
   };
 
+  /**
+   * What opening one entry asks for.
+   *
+   * A shipped ship shadowed by a saved copy needs a value of its own, since
+   * the two entries share a name and are different layouts. A saved ship
+   * called `stock:Corvette` would collide with the prefix, which is a name
+   * nobody has and would open the wrong ship rather than break the page.
+   */
+  const STOCK = 'stock:';
+  const optionValue = (entry: LibraryEntry): string =>
+    entry.stock && entry.saved ? STOCK + entry.name : entry.name;
+
   const renderLibrary = (): void => {
     const entries = library.list();
     const selected = doc.blueprint.name;
+    // Opening a name gives the saved copy where there is one, so a shadowed
+    // shipped ship is listed but never the entry shown as selected.
     shipList.innerHTML = entries
-      .map(
-        (entry) =>
-          `<option value="${escapeHtml(entry.name)}"${entry.name === selected ? ' selected' : ''}>` +
-          `${escapeHtml(entry.name)}${entry.saved ? ' •' : ''}</option>`,
-      )
+      .map((entry) => {
+        const chosen = entry.name === selected && !(entry.stock && entry.saved);
+        const label = entry.stock ? (entry.saved ? ' (stock)' : '') : ' •';
+        return (
+          `<option value="${escapeHtml(optionValue(entry))}"${chosen ? ' selected' : ''}>` +
+          `${escapeHtml(entry.name)}${label}</option>`
+        );
+      })
       .join('');
     if (!entries.some((entry) => entry.name === selected)) {
       shipList.insertAdjacentHTML(
@@ -598,17 +641,6 @@ export function startEditor(): void {
     if (document.activeElement !== shipNotes) shipNotes.value = doc.blueprint.notes ?? '';
     undoButton.disabled = !doc.canUndo;
     redoButton.disabled = !doc.canRedo;
-    // A layout is allowed to be invalid while it is being worked on — you often
-    // have to drag one module through another to get it past — but it may not
-    // *leave* in that state. Saving and exporting both write a blueprint file,
-    // and a file is read back by a parser that will refuse it, so writing one
-    // would be handing the player something that cannot be opened again.
-    const blocked = doc.view.problems.length > 0;
-    saveButton.disabled = blocked;
-    exportButton.disabled = blocked;
-    const why = blocked ? 'Fix the problems below first — a file with them cannot be read back.' : '';
-    saveButton.title = why;
-    exportButton.title = why;
     renderLibrary();
     renderProperties();
     renderStats();
@@ -948,8 +980,10 @@ export function startEditor(): void {
 
   // ---- the library --------------------------------------------------------
 
-  const open = (name: string): void => {
-    const blueprint = library.load(name);
+  const open = (value: string): void => {
+    const stock = value.startsWith(STOCK);
+    const name = stock ? value.slice(STOCK.length) : value;
+    const blueprint = stock ? library.loadStock(name) : read(name);
     if (blueprint === null) return;
     doc.replace(blueprint);
     demonstration.reset();
@@ -959,9 +993,19 @@ export function startEditor(): void {
   };
 
   shipList.addEventListener('change', () => open(shipList.value));
+  const taken = (): string[] => library.list().map((entry) => entry.name);
   el<HTMLButtonElement>('newShip').addEventListener('click', () => {
-    doc.replace(emptyBlueprint(unusedName(library.list().map((e) => e.name))));
+    doc.replace(emptyBlueprint(unusedName('New ship', taken())));
     fitPending = true;
+    gesture = false;
+    refresh();
+  });
+  // The copy is left unsaved, as a new ship is: what is on the screen is the
+  // player's to keep or abandon until they say otherwise. This is how a
+  // shipped hull becomes the start of a ship of their own without the save
+  // shadowing the hull they started from.
+  el<HTMLButtonElement>('duplicateShip').addEventListener('click', () => {
+    doc.replace({ ...doc.blueprint, name: unusedName(nextName(doc.blueprint.name), taken()) });
     gesture = false;
     refresh();
   });
@@ -969,10 +1013,21 @@ export function startEditor(): void {
     library.save(doc.blueprint);
     refresh();
   });
+  // Deleting clears the editor rather than leaving the ship on the screen: a
+  // layout that is still there, still named, and no longer anywhere is the one
+  // state where what is drawn and what the library holds disagree.
+  //
+  // It goes on the undo stack, so the way back is the way back from any other
+  // edit — undo brings the ship up again and Save puts it in the library. The
+  // stack rather than an undelete of its own, because the ship is the thing
+  // being restored and saving is the act that keeps it.
   deleteShipButton.addEventListener('click', () => {
     const name = doc.blueprint.name;
     if (!window.confirm(`Delete the saved copy of ${name}?`)) return;
     library.remove(name);
+    doc.apply(emptyBlueprint(unusedName('New ship', taken())));
+    gesture = false;
+    fitPending = true;
     refresh();
   });
   exportButton.addEventListener('click', () => {
@@ -1255,14 +1310,6 @@ export function startEditor(): void {
 }
 
 /** A name not already in the library, so a new ship does not shadow a saved one. */
-function unusedName(taken: readonly string[]): string {
-  if (!taken.includes('New ship')) return 'New ship';
-  for (let i = 2; ; i++) {
-    const name = `New ship ${i}`;
-    if (!taken.includes(name)) return name;
-  }
-}
-
 function isModuleSpec(placement: Placement): boolean {
   return !('use' in placement);
 }
