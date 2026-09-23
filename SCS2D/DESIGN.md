@@ -576,6 +576,14 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   - **The achievable (Fx, Fy, τ) set is a 3D polytope that can be drawn for the player.** For a game
     whose depth is ship design, showing what a thruster layout actually bought is a headline feature.
     In 3D the envelope is 6-dimensional and undisplayable.
+  - **A pilot only asks for torque from thrusters whose lever arms make it worth having.** An arm is
+    torque bought per newton of unwanted force, so an engine nearly in line with the centre of mass is
+    a dreadful way to turn: a sliver of twist, and a whole engine's thrust for the rest of the layout to
+    cancel. Worth less than nothing once there is fuel to burn and a plume that burns what stands behind
+    it. Useful is a fraction of the ship's own reach rather than any fixed distance, so the rule means
+    the same thing on a fighter and on a capital. It bounds the *demand* and nothing else: the arm is
+    real, the ship feels it, the allocator still trims it with the engines that do turn the ship, and the
+    envelope drawn for the player is the same envelope.
   - **No two thrusters that undo each other ever burn together.** A pair whose whole wrench cancels can
     do nothing as a pair that either could not do alone, so whatever throttle they are spending on each
     other comes off — which matters beyond the fuel, since an engine burns what its plume is pointed at.
