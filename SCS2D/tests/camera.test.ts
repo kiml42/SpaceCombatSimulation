@@ -13,7 +13,7 @@ const WIDTH = 1000;
 const HEIGHT = 600;
 const DT = 1 / 60;
 
-function ship(x: number, y: number, vx = 0, vy = 0, isDisabled = false): ShipView {
+function ship(x: number, y: number, vx = 0, vy = 0, hasControl = true): ShipView {
   return {
     // The camera reads position, velocity and radius; the rest is for drawing.
     design: { radius: 20 } as ShipView['design'],
@@ -28,7 +28,7 @@ function ship(x: number, y: number, vx = 0, vy = 0, isDisabled = false): ShipVie
     throttles: [],
     integrity: [],
     body: -1,
-    isDisabled,
+    hasControl,
     isDerelict: false,
     turretDisabled: [],
   };
@@ -39,9 +39,9 @@ function snapshotOf(ships: ShipView[]): Snapshot {
   const snapshot = new Snapshot();
   snapshot.ships = ships;
   snapshot.shipCount = ships.length;
-  // As `capture` does: the ships still fighting are what is framed, and all of
-  // them when none of them is.
-  const framed = ships.some((s) => !s.isDisabled) ? ships.filter((s) => !s.isDisabled) : ships;
+  // As `capture` does: the ships anybody is still aboard are what is framed,
+  // and all of them when nobody is aboard any of them.
+  const framed = ships.some((s) => s.hasControl) ? ships.filter((s) => s.hasControl) : ships;
   snapshot.minX = Math.min(...framed.map((s) => s.x - 20));
   snapshot.maxX = Math.max(...framed.map((s) => s.x + 20));
   snapshot.minY = Math.min(...framed.map((s) => s.y - 20));
@@ -152,12 +152,12 @@ describe('the camera', () => {
 });
 
 describe('what the camera keeps up with', () => {
-  it('keeps up with the ships still fighting, not with the wreckage', () => {
-    // A hulk blown clear of the battle would otherwise drag the view off it.
-    const fighting = ship(0, 0, 100, 0);
-    const hulk = ship(0, 0, -900, 0, true);
+  it('keeps up with the ships still flown, not with the wreckage', () => {
+    // A wreck blown clear of the battle would otherwise drag the view off it.
+    const flown = ship(0, 0, 100, 0);
+    const hulk = ship(0, 0, -900, 0, false);
     const camera: Camera = { x: 0, y: 0, scale: 0.1 };
-    moveWithVisibleShips(camera, snapshotOf([fighting, hulk]), 1, WIDTH, HEIGHT);
+    moveWithVisibleShips(camera, snapshotOf([flown, hulk]), 1, WIDTH, HEIGHT);
     expect(camera.x).toBeCloseTo(100, 9);
   });
 
@@ -181,10 +181,10 @@ describe('what the camera keeps up with', () => {
   });
 
   it('holds still when nothing it could follow is in shot', () => {
-    // Panned away, or every ship a hulk: either way there is nothing to keep
-    // up with, and dividing by none of them would put the camera at NaN.
+    // Panned away, or nobody aboard any of them: either way there is nothing
+    // to keep up with, and dividing by none of them would put the camera at NaN.
     const camera: Camera = { x: 10, y: -5, scale: 0.1 };
-    moveWithVisibleShips(camera, snapshotOf([ship(0, 0, 400, 0, true)]), 1, WIDTH, HEIGHT);
+    moveWithVisibleShips(camera, snapshotOf([ship(0, 0, 400, 0, false)]), 1, WIDTH, HEIGHT);
     expect(camera.x).toBe(10);
     expect(camera.y).toBe(-5);
 
@@ -196,7 +196,7 @@ describe('what the camera keeps up with', () => {
   it('still frames the wreckage when that is all there is', () => {
     // Otherwise the bounds are empty and the camera has nothing to fit.
     const camera: Camera = { x: 0, y: 0, scale: 0.1 };
-    const hulks = [ship(1000, 0, 0, 0, true), ship(1400, 0, 0, 0, true)];
+    const hulks = [ship(1000, 0, 0, 0, false), ship(1400, 0, 0, 0, false)];
     for (let n = 0; n < 600; n++) frame(camera, snapshotOf(hulks), WIDTH, HEIGHT);
     expect(Number.isFinite(camera.x)).toBe(true);
     expect(camera.x).toBeCloseTo(1200, 0);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseBlueprint, serialiseBlueprint } from '../sim/index.js';
 import { runEvolution } from '../evolution/run.js';
-import { latest, measure, trend } from '../evolution/yardstick.js';
+import { latest, measure, trend, Yardstick } from '../evolution/yardstick.js';
 import { CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
@@ -102,4 +102,18 @@ describe('the yardstick', () => {
     expect(moved.last).toEqual(report.points[report.points.length - 1]!.mean);
     expect(moved.gain).toBeCloseTo(moved.last - moved.first, 10);
   });
+
+  it('measures the same in slices as it does in one go', () => {
+    // The page steps a measurement a few thousand simulation steps at a time
+    // so it can draw between them; if that diverged from the headless run,
+    // the line on the chart would not be the measurement the report holds.
+    const run = runEvolution([CORVETTE], { generations: 2, population: 4, group: 2, minMatches: 1, match: { duration: 20 } });
+    const whole = measure(run, DINKY);
+    const stepped = new Yardstick(run, DINKY);
+    let slices = 0;
+    while (stepped.advance(101)) slices++;
+    expect(slices).toBeGreaterThan(5);
+    expect(JSON.stringify(stepped.report())).toEqual(JSON.stringify(whole));
+  });
+
 });

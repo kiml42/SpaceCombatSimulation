@@ -352,6 +352,37 @@ describe('what a hit logs to be drawn', () => {
 });
 
 describe('what the picture is told about damage', () => {
+  it('frames a hull with a sound core and nothing else', () => {
+    // **A ship is a ship because somebody is aboard it, not because it can
+    // fight.** A bare core cannot move or shoot, and is exactly what the first
+    // generation of a run bred from one is made of — framed by whether it can
+    // fight, a whole match of them is drawn as wreckage and left out of shot,
+    // so a replay looks like one ship flickering past on its own.
+    const bare = compileBlueprint({
+      name: 'Bare',
+      modules: [{ kind: 'core', x: 0, y: 0, length: 2, width: 2 }],
+    });
+    const world = new World({ dt: 1 / 60, seed: 3 });
+    const ships = new Ships();
+    world.addForceProvider(ships.forceProvider());
+    const hull = ships.spawn(world, { design: bare, x: 500, y: 0, team: 0 });
+
+    const view = capture(new Snapshot(), world, ships, new Projectiles(4), new Beams(4));
+    expect(view.ships[0]!.hasControl).toBe(true);
+    // It cannot fight, and that is still true and still worth scoring.
+    expect(ships.isDisabled(hull)).toBe(true);
+    // Framed all the same: the bounds reach it rather than collapsing to
+    // nothing and falling back on the all-wreckage case.
+    expect(view.maxX).toBeGreaterThanOrEqual(500);
+
+    // Once the core is gone nobody is aboard, and the camera lets it go.
+    const body = world.bodies.indexOf(ships.body(hull));
+    const core = bare.cores[0]!;
+    ships.damage.absorb(body, core, bare.modules[core]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
+    expect(capture(new Snapshot(), world, ships, new Projectiles(4), new Beams(4)).ships[0]!.hasControl).toBe(false);
+  });
+
+
   it('reports a wrecked mount as one that cannot shoot', () => {
     // The renderer draws a firing arc as a promise that a gun may shoot there,
     // and has no business guessing at the cutout that decides it. So the
@@ -366,7 +397,7 @@ describe('what the picture is told about damage', () => {
     const beams = new Beams(4);
     const before = capture(new Snapshot(), world, ships, projectiles, beams);
     expect(before.ships[0]!.turretDisabled).toEqual(corvette.turrets.map(() => false));
-    expect(before.ships[0]!.isDisabled).toBe(false);
+    expect(before.ships[0]!.hasControl).toBe(true);
 
     // Wreck the mount the first turret is built on.
     const module = corvette.turrets[0]!.module;
