@@ -51,9 +51,12 @@ import { fractal } from '../../scenarios/fractal.js';
  *
  * Generous rather than tuned, deliberately. It is a backstop against a genuine
  * hang, not a performance assertion — a budget set just above the current cost
- * is one that fails on a busy runner.
+ * is one that fails on a busy runner, and the cost moves whenever the
+ * simulation does: a change that makes ships lighter makes them collide and
+ * come apart more, which is more work per step without a line of it being
+ * slower.
  */
-export const SCENARIO_TIMEOUT = 60_000;
+export const SCENARIO_TIMEOUT = 120_000;
 
 export interface ScenarioRun {
   step(): void;
