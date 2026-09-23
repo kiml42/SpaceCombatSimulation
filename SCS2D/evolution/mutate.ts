@@ -12,11 +12,12 @@ import {
 import {
   APPROACH_FIELDS,
   DEFAULT_DOCTRINE,
+  POSITIVE_FIELDS,
   TARGETING_FIELDS,
   toDoctrine,
   type Doctrine,
 } from '../sim/doctrine.js';
-import { abs, cos, max, PI, round, sin } from '../sim/math.js';
+import { abs, cos, floor, HALF_PI, max, PI, round, sin } from '../sim/math.js';
 import { moduleCentre, type ModuleKind, type ModuleSpec } from '../sim/modules.js';
 import type { Rng } from '../sim/rng.js';
 
@@ -60,7 +61,45 @@ export interface MutationLimits {
   readonly massBudget: number;
   /** Candidates drawn before giving up and returning the parent. */
   readonly attempts: number;
+  /**
+   * How likely each kind is to be what the operator reaches for, as relative
+   * weights. A kind weighted zero is one a lineage can never grow into.
+   *
+   * It governs both a module added and a module refitted, which are the same
+   * question asked twice — what is worth trying here — and answering them
+   * apart would mean a run told to breed engines still turning its engines
+   * into gun mounts half the time.
+   */
+  readonly kinds: KindWeights;
 }
+
+export type KindWeights = Readonly<Record<ModuleKind, number>>;
+
+/**
+ * What the operator reaches for, unless a run says otherwise.
+ *
+ * **Weighted by what is worth having at the size a guess arrives in.** A new
+ * module is half a metre square, and the kinds are nothing like equal at that
+ * size: thrust follows the nozzle's area, so six small engines are six small
+ * engines' worth of push and, being spread about the hull, are torque as well
+ * — where six small guns are six peashooters that a single grown mount beats
+ * outright, and six small plates of structure are ballast. A gun and a hull
+ * both want *size*, which mutation gets to by growing one module over many
+ * generations rather than by adding more of them, so the kinds that pay off
+ * small are the ones worth trying often.
+ *
+ * Structure stays common because it is what everything else bolts to and how
+ * a hull reaches somewhere new; a core is rare because a hull needs one and
+ * rarely wants three — though a second is exactly what makes a ship survive
+ * being cut in half, so the chance is not zero.
+ */
+export const DEFAULT_KINDS: KindWeights = {
+  thruster: 5,
+  structure: 4,
+  turret: 2,
+  beamTurret: 1,
+  core: 1,
+};
 
 /**
  * Bounded edit distance, as DESIGN.md §7 asks for: a handful of numbers, none
@@ -78,6 +117,7 @@ export const DEFAULT_LIMITS: MutationLimits = {
   turn: PI / 12,
   massBudget: Infinity,
   attempts: 24,
+  kinds: DEFAULT_KINDS,
 };
 
 /** A child, and what was done to its parent to get it. */
@@ -100,7 +140,13 @@ export interface Mutant {
  * reproducible from its seed but the draws a child costs are not fixed.
  */
 export function mutate(parent: Blueprint, rng: Rng, limits?: Partial<MutationLimits>): Mutant {
-  const bounds: MutationLimits = { ...DEFAULT_LIMITS, ...limits };
+  // Merged a key at a time, so naming one kind's weight does not silently
+  // zero the four not mentioned.
+  const bounds: MutationLimits = {
+    ...DEFAULT_LIMITS,
+    ...limits,
+    kinds: { ...DEFAULT_LIMITS.kinds, ...limits?.kinds },
+  };
 
   // Whether this is a structural generation is decided once, outside the
   // retry, and every attempt then tries to deliver that kind of child.
@@ -264,6 +310,7 @@ function spreadDoctrine(doctrine: Doctrine): MutableDoctrine {
 type Knob =
   | { readonly at: 'doctrine'; readonly half: 'targeting' | 'approach'; readonly field: string }
   | { readonly at: 'reinforcement'; readonly site: ModuleSite }
+  | { readonly at: 'kind'; readonly site: ModuleSite }
   | { readonly at: 'barrels'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
@@ -297,7 +344,12 @@ function knobs(draft: Draft): Knob[] {
         continue;
       }
       const site: ModuleSite = { spec: placement, where };
-      out.push({ at: 'reinforcement', site }, { at: 'face', site }, { at: 'slide', site });
+      out.push(
+        { at: 'reinforcement', site },
+        { at: 'face', site },
+        { at: 'slide', site },
+        { at: 'kind', site },
+      );
       if (placement.kind !== 'structure' && placement.kind !== 'core') {
         out.push({ at: 'angle', site });
       }
@@ -315,6 +367,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return turnDoctrine(draft, knob.half, knob.field, rng, bounds);
     case 'reinforcement':
       return reinforce(knob.site, rng, bounds);
+    case 'kind':
+      return refit(knob.site, rng, bounds);
     case 'barrels':
       return rebarrel(knob.site, rng);
     case 'angle':
@@ -329,6 +383,40 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return repeat(knob.site, rng);
   }
 }
+
+/**
+ * How big a number is in one half of a doctrine: the mean of the defaults
+ * that are not zero.
+ *
+ * It is the scale to perturb a field by when the field itself offers none —
+ * one whose default *is* zero, where both the held value and the reference
+ * are nothing to take a fraction of. Without it such a field is not merely
+ * slow to discover but unreachable: every draw is a fraction of zero, so it
+ * rounds to no change and is refused, and "off by default" quietly means "off
+ * for ever". `escortWeight` is the field that makes the point — a population
+ * that cannot find it can never be interested in an objective, whatever the
+ * match is scoring.
+ *
+ * The mean of the rest rather than a constant, because what a weight has to
+ * compete with is the other weights: a step that cannot be seen beside them
+ * is no more use than no step at all.
+ */
+function typical(half: 'targeting' | 'approach'): number {
+  const values = DEFAULT_DOCTRINE[half] as unknown as Record<string, number>;
+  const fields = half === 'targeting' ? TARGETING_FIELDS : APPROACH_FIELDS;
+  let total = 0;
+  let count = 0;
+  for (const field of fields) {
+    const value = abs(values[field as string]!);
+    if (value > 0) {
+      total += value;
+      count++;
+    }
+  }
+  return count > 0 ? total / count : 1;
+}
+
+const TYPICAL = { targeting: typical('targeting'), approach: typical('approach') };
 
 /**
  * Perturb a doctrine number.
@@ -350,12 +438,15 @@ function turnDoctrine(
   const reference = (
     DEFAULT_DOCTRINE[half] as unknown as Record<string, number>
   )[field]!;
-  const scale = max(abs(held[field]!), abs(reference));
+  const scale = max(abs(held[field]!), abs(reference)) || TYPICAL[half];
   const was = held[field]!;
   let now = was + bounds.magnitude * scale * rng.nextRange(-1, 1);
-  // Two fields are a size and a distance rather than a weight, and neither
-  // means anything at or below zero.
-  if (field === 'preferredMass' || field === 'standoffRadii') now = max(now, 0.01);
+  // Some fields are a size or a distance rather than a weight, and none of
+  // those means anything at or below zero. Which they are is the doctrine's
+  // own business, not this file's: a rule copied here would be a second
+  // opinion about what a doctrine may say, and would be wrong the first time
+  // a field was added over there.
+  if (POSITIVE_FIELDS.includes(field)) now = max(now, 0.01);
   const tidied = tidy(now, 3);
   // A draw small enough to round away, or one clamped back onto the floor it
   // was already sitting on. Neither is an edit, and counting it as one would
@@ -378,6 +469,58 @@ function reinforce(site: ModuleSite, rng: Rng, bounds: MutationLimits): string |
 }
 
 /**
+ * Change what a module is, keeping the space it occupies.
+ *
+ * **This is the only way a lineage gets a large module of a new kind.**
+ * Everything new arrives at the smallest size the grid allows and has to be
+ * grown, which is right for a guess and wrong as the only path there is: a
+ * hull that has spent twenty generations growing a good gun mounting should
+ * be able to discover that the same mounting makes a better beam mount,
+ * without starting again from half a metre. A refit keeps the geometry — the
+ * position, the size, the facing, the armour — and changes only what it is
+ * for.
+ *
+ * **An engine is the awkward one, and it is worth saying why.** A thruster's
+ * position is where it is *attached* — the face opposite the nozzle — where
+ * every other kind's is the middle of its box, so changing the kind and
+ * leaving the numbers alone slides the module half its own length and lands
+ * it inside its neighbour. What is kept is therefore the space, not the
+ * coordinates: the centre is measured before and put back afterwards. Which
+ * way a new engine points is a free choice besides, since nothing about the
+ * module it was says which face should push, so that is drawn here and the
+ * attempts try different ones. Every other kind keeps the facing it had,
+ * because for those it means something.
+ *
+ * Neither is a nicety: without them a refit into an engine is refused every
+ * time, so the one route to a *large* engine is closed and a lineage can only
+ * ever have the half-metre ones it adds.
+ */
+function refit(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const was = site.spec.kind;
+  const to = pickKind(rng, bounds.kinds, was);
+  if (to === null) return null;
+  const centre = moduleCentre(site.spec);
+  site.spec.kind = to;
+  if (to === 'thruster') {
+    const angle = (site.spec.angle ?? 0) + rng.nextInt(4) * HALF_PI;
+    site.spec.angle = angle;
+    site.spec.x = centre.x + cos(angle) * (site.spec.length / 2);
+    site.spec.y = centre.y + sin(angle) * (site.spec.length / 2);
+  } else if (was === 'thruster') {
+    site.spec.x = centre.x;
+    site.spec.y = centre.y;
+  }
+  // Barrels mean nothing to anything but a gun, and a gun with none is a gun
+  // with one — so the field goes when it stops applying rather than sitting
+  // in the file saying nothing.
+  if (to !== 'turret' && to !== 'beamTurret') delete site.spec.barrels;
+  return `${site.where}: ${was} refitted as ${to}`;
+}
+
+/** Every kind there is, in the order the weighted draw walks them. */
+const KINDS: readonly ModuleKind[] = ['structure', 'core', 'thruster', 'turret', 'beamTurret'];
+
+/**
  * Add or remove a barrel.
  *
  * Deliberately uncapped. A multi-barrel mount is under-penalised as the
@@ -395,8 +538,9 @@ function rebarrel(site: ModuleSite, rng: Rng): string | null {
 
 function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits): string {
   const was = site.spec.angle ?? 0;
-  const now = was + (rng.chance(0.5) ? bounds.turn : -bounds.turn);
-  site.spec.angle = tidy(now, 6);
+  // Unrounded, for the reason `against` gives: a rounded right angle is a
+  // module tilted a fraction of a micron into its neighbour.
+  site.spec.angle = was + (rng.chance(0.5) ? bounds.turn : -bounds.turn);
   return `${site.where} ${site.spec.kind}: turned ${degrees(was)}° → ${degrees(site.spec.angle)}°`;
 }
 
@@ -472,37 +616,20 @@ function repeat(site: InstanceSite, rng: Rng): string | null {
 // -- Structure -------------------------------------------------------------
 
 /**
- * What a new module is likely to be.
- *
- * Structure is commonest because it is what the others are bolted to, and a
- * core is rare because a hull needs one and rarely wants three — though a
- * second one is exactly what makes a ship survive being cut in half, so the
- * chance is not zero.
- */
-const KIND_WEIGHTS: readonly (readonly [ModuleKind, number])[] = [
-  ['structure', 5],
-  ['thruster', 3],
-  ['turret', 3],
-  ['beamTurret', 1],
-  ['core', 1],
-];
-
-/**
  * Add, copy or remove one module.
  *
- * Adding is drawn for twice as often as removing, and that is a correction
- * rather than a preference. A module taken off a hull usually leaves a layout
- * the rules still accept, while one bolted on has to find somewhere it fits —
- * so an even draw is not an even outcome, and a lineage bred from one erodes:
- * it loses a module whenever it gains one and then goes on losing, until it
- * is a hull with no guns on it. What the ratio is calibrated against is the
- * *accepted* mix, which `mutation.test.ts` pins by breeding a lineage and
- * checking it neither withers nor runs away.
+ * Drawn evenly between taking one off and putting one on, which is a
+ * calibration rather than a principle: what has to come out even is the
+ * *accepted* mix, and how often each is accepted depends on how easily a new
+ * module finds somewhere it fits. `mutation.test.ts` pins it by breeding a
+ * lineage and checking it neither withers nor runs away — and it earns its
+ * place, having caught the ratio drifting to two to one the moment a bug that
+ * was refusing half of all additions was fixed.
  */
 function restructure(draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
-  const draw = rng.nextInt(3);
-  if (draw === 0) return removePlacement(draft, rng);
-  return addModule(draft, rng, bounds, draw === 1);
+  const draw = rng.nextInt(4);
+  if (draw < 2) return removePlacement(draft, rng);
+  return addModule(draft, rng, bounds, draw === 2);
 }
 
 /**
@@ -566,20 +693,68 @@ function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, copy: boolean
     const neighbours = anchor.list.placements.filter(
       (placement): placement is ModuleSpec => !isInstance(placement) && placement !== anchor.spec,
     );
-    const kind = copy ? anchor.spec.kind : pickKind(rng);
+    const kind = copy ? anchor.spec.kind : pickKind(rng, bounds.kinds);
+    if (kind === null) return null;
     for (let i = 0; i < 4; i++) {
       const face = (firstFace + i) % 4;
-      const added = against(anchor.spec, face, kind, copy, bounds);
-      if (neighbours.some((neighbour) => modulesOverlap(added, neighbour))) continue;
-      anchor.list.placements.push(added);
-      return (
-        `${anchor.list.label}[${anchor.index}] ${anchor.spec.kind}: ` +
-        `${copy ? `copied onto` : `a ${kind} added to`} its ${faceName(face)} face`
-      );
+      for (const along of berths(anchor.spec, face, copy, bounds, rng)) {
+        const added = against(anchor.spec, face, along, kind, copy, bounds);
+        if (neighbours.some((neighbour) => modulesOverlap(added, neighbour))) continue;
+        anchor.list.placements.push(added);
+        return (
+          `${anchor.list.label}[${anchor.index}] ${anchor.spec.kind}: ` +
+          `${copy ? `copied onto` : `a ${kind} added to`} its ${faceName(face)} face`
+        );
+      }
     }
   }
   return null;
 }
+
+/**
+ * Where along a face a new module might go, in the order they are tried.
+ *
+ * **A face is a row of berths, not a single spot.** Fixed at the middle, a
+ * face can hold exactly one module ever: a second draw lands on top of the
+ * first, is refused, and the operator goes off to find another face — so a
+ * bank of engines down one side, or a battery of mounts along a beam, is a
+ * thing no lineage could ever be bred towards however long it ran. Sliding
+ * along the face makes every free stretch of hull available and a crowded one
+ * simply full.
+ *
+ * Every berth keeps the module wholly on the face it is bolted to, so what
+ * comes back is a real weld rather than a corner touch, and they are on the
+ * grid like everything else the operator writes. Drawn in a random order and
+ * tried until one fits, so a face with a gap in the middle of it is found
+ * rather than given up on.
+ */
+function berths(
+  anchor: ModuleSpec,
+  face: number,
+  copy: boolean,
+  bounds: MutationLimits,
+  rng: Rng,
+): number[] {
+  const endOn = face % 2 === 0;
+  const span = endOn ? anchor.width : anchor.length;
+  const across = copy ? span : bounds.grid;
+  const room = span - across;
+  if (!(room > 0)) return [0];
+
+  const steps = floor(room / bounds.grid);
+  const berth: number[] = [];
+  for (let i = 0; i <= steps; i++) berth.push(tidy(-room / 2 + i * bounds.grid, 6));
+  // Drawn without replacement, so a crowded face is searched rather than
+  // sampled: the same spot offered twice is a draw wasted.
+  const order: number[] = [];
+  while (berth.length > 0 && order.length < MOORINGS) {
+    order.push(berth.splice(rng.nextInt(berth.length), 1)[0]!);
+  }
+  return order;
+}
+
+/** How many places along one face are tried before moving to the next. */
+const MOORINGS = 6;
 
 /**
  * A module of the given kind, flush against one face of another.
@@ -590,6 +765,7 @@ function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, copy: boolean
 function against(
   anchor: ModuleSpec,
   face: number,
+  along: number,
   kind: ModuleKind,
   copy: boolean,
   bounds: MutationLimits,
@@ -598,33 +774,50 @@ function against(
   const normalAngle = angle + (face * PI) / 2;
   const nx = cos(normalAngle);
   const ny = sin(normalAngle);
+  // Along the face is the normal turned a quarter, which is where `along`
+  // slides the new module to.
+  const ax = -ny;
+  const ay = nx;
   const endOn = face % 2 === 0;
   const centre = moduleCentre(anchor);
   const reach = (endOn ? anchor.length : anchor.width) / 2;
-  const faceX = centre.x + nx * reach;
-  const faceY = centre.y + ny * reach;
+  const faceX = centre.x + nx * reach + ax * along;
+  const faceY = centre.y + ny * reach + ay * along;
 
-  // A copy keeps its original's proportions; a new module is sized from the
-  // face it is going on, so what is added to a capital is capital-sized and
-  // what is added to a fighter is not.
-  const across = endOn ? anchor.width : anchor.length;
-  const out = copy
-    ? endOn
-      ? anchor.length
-      : anchor.width
-    : max(bounds.grid, snap((endOn ? anchor.length : anchor.width) / 2, bounds.grid));
+  // **A copy keeps its original's proportions; anything new starts as small
+  // as the grid allows.** A new module is a guess, and a guess should be
+  // cheap: sized from the face it is going on, a first gun on a capital
+  // arrives weighing tonnes and has to justify all of it at once, where one
+  // that starts at half a metre costs almost nothing and is grown a face at a
+  // time by the operator that grows faces — which is the difference between
+  // a lineage that can afford to try something and one that cannot.
+  const across = copy ? (endOn ? anchor.width : anchor.length) : bounds.grid;
+  const out = copy ? (endOn ? anchor.length : anchor.width) : bounds.grid;
 
   // A thruster is held on by the face it pushes from, so it is mounted facing
   // *into* the anchor — which puts its position exactly on the face and its
-  // exhaust pointing out. Everything else sits centred on the face, half its
-  // own depth out.
+  // exhaust pointing out. Everything else sits on the face, half its own
+  // depth out.
+  // **The angle is not rounded, and that is load-bearing.** Positions are
+  // tidied because they are worked out through sines and cosines and land on
+  // values no file should carry; an angle is not, because a module sits
+  // against its neighbour's face and two boxes that merely touch must not
+  // count as overlapping. Rounding a right angle to six places tilts a module
+  // by three ten-millionths of a radian, which puts a corner of it some
+  // eighty nanometres inside the hull it is bolted to — and the overlap test
+  // is exact, so the layout is refused. It cost every thruster: mounted
+  // facing *into* its anchor, a thruster's angle is a right angle plus half a
+  // turn and so was never one of the two values that survive rounding, and
+  // not one could be added to any face of any ship. Angles are exact in
+  // radians here and exact in degrees in the file, which is where legibility
+  // was the concern in the first place.
   const added: ModuleSpec =
     kind === 'thruster'
       ? {
           kind,
           x: tidy(faceX, 6),
           y: tidy(faceY, 6),
-          angle: tidy(normalAngle + PI, 6),
+          angle: normalAngle + PI,
           length: out,
           width: across,
         }
@@ -632,7 +825,7 @@ function against(
           kind,
           x: tidy(faceX + (nx * out) / 2, 6),
           y: tidy(faceY + (ny * out) / 2, 6),
-          angle: tidy(endOn ? angle : angle + PI / 2, 6),
+          angle: endOn ? angle : angle + PI / 2,
           length: endOn ? out : across,
           width: endOn ? across : out,
         };
@@ -646,15 +839,31 @@ function faceName(outward: number): string {
   return ['bow', 'port', 'stern', 'starboard'][outward] ?? 'bow';
 }
 
-function pickKind(rng: Rng): ModuleKind {
+/**
+ * Draw a kind by weight, optionally excluding the one a module already is.
+ *
+ * Null when there is nothing to draw: every weight zero, or the only kind
+ * with any weight being the one excluded. A caller that asked for a change
+ * and cannot have one reports no edit rather than an edit that changed
+ * nothing.
+ */
+function pickKind(rng: Rng, weights: KindWeights, except?: ModuleKind): ModuleKind | null {
   let total = 0;
-  for (const [, weight] of KIND_WEIGHTS) total += weight;
+  for (const kind of KINDS) if (kind !== except) total += max(0, weights[kind]);
+  if (total <= 0) return null;
   let draw = rng.nextRange(0, total);
-  for (const [kind, weight] of KIND_WEIGHTS) {
-    draw -= weight;
+  for (const kind of KINDS) {
+    if (kind === except) continue;
+    draw -= max(0, weights[kind]);
     if (draw < 0) return kind;
   }
-  return 'structure';
+  // Only reachable when the draw lands exactly on the total, which a float
+  // range can do at its top end.
+  for (let i = KINDS.length - 1; i >= 0; i--) {
+    const kind = KINDS[i]!;
+    if (kind !== except && weights[kind] > 0) return kind;
+  }
+  return null;
 }
 
 // -- Arithmetic ------------------------------------------------------------
@@ -671,10 +880,6 @@ function tidy(value: number, places: number): number {
   let scale = 1;
   for (let i = 0; i < places; i++) scale *= 10;
   return round(value * scale) / scale;
-}
-
-function snap(value: number, grid: number): number {
-  return round(value / grid) * grid;
 }
 
 function degrees(radians: number): number {

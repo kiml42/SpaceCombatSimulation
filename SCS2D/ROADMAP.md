@@ -438,7 +438,55 @@ Deliberately unresolved; decide when they block something.
   Entangled with it: **identity is a ship's name**, so renaming re-identifies. Once revisions are
   referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
   together, at the campaign slice.
-- **How severed chunks divide fuel, ammunition and power.** Which piece goes on being a ship is settled —
+- **How hard selection should press.** Standing is worth a fifth at the bottom and one at the top, which
+  makes the best of a field of twelve about half likely to breed against a seventh for the tail. Whether
+  that is the right pressure is not settled and is not really settleable by argument: too hard and a
+  population converges on the first thing that works, too soft and it drifts. Three seeds of a bare-core
+  run put ranked and score-weighted selection inside each other's noise — 0.167 against 0.197 on a spread
+  of 0.11 to 0.31 — so nothing about *run outcome* chose between them, and what did was the failure modes
+  one of them has and the other has not. The same will be true of the floor: it wants a benchmark that can
+  tell two runs apart before it is tuned, which is the entry below.
+- **How much of a design's score is the draw rather than the design.** A design plays a handful of matches
+  and is ranked on the mean, so anything that varies between matches and is not the ship — which opponents
+  it drew, which slot it started in, what shoved it — is noise the ranking cannot tell from signal. It is
+  the thing that decides how small a difference a run can see, and nothing here measures it.
+  What would sharpen it is the trick the yardstick already uses: hold constant whatever can be held
+  constant, so two designs are compared under the same conditions rather than under two draws. The match
+  geometry is already fair — one ring, everyone equidistant, and one heading for the whole match rather than
+  one each — and the remaining variation is the opponents, which is the part a free-for-all is *for*. More
+  matches each is the blunt answer and costs time linearly; a stratified draw, where every design meets the
+  same spread of opponents rather than a random sample of them, is the sharp one. Worth doing before
+  anything is concluded from a small difference between two runs.
+- **How clever a pilot should be.** A bare core bred against the goal and nothing else *does* learn to move,
+  given three hundred generations and a heading it did not choose — so the question is no longer whether a
+  run can start from nothing. What is still true is that a hull with one engine can only use it if it
+  happens to point the right way: the allocator fires a thruster when the force being asked for has a
+  component along its thrust, so a first engine is worth 0.23 on one face and exactly nothing on the other
+  three, and mounting it off-centre to give it torque changes nothing measurable. A lineage gets there by
+  collecting engines until enough of them point usefully, which works and is slow.
+  A cleverer pilot would make every one of them useful. Any off-axis thruster can be flown with if you do
+  not mind spinning: fire it to start the hull turning, then pulse it whenever the nose comes round to the
+  heading you want. That is a real technique and a long way past what this controller does — it holds a
+  demanded velocity through a linear allocation, and spinning deliberately is the opposite of everything
+  else it is for. The choice is between that and accepting that propulsion is assembled rather than
+  invented.
+- **How big an arena should be.** A match's ring is five hundred metres because that is where the shipped
+  corvettes fight each other to a finish — put four of them a kilometre apart and they settle at the
+  standoff their doctrine asks for and plink, and no match is ever decided however long it runs, so two of
+  the three terms in the fitness function have no gradient and a run measures nothing. That threshold is a
+  property of the ships, not of the game, so the ring wants deriving from what the entrants can shoot rather
+  than being a constant that will be wrong for the first fleet of capitals anybody evolves.
+- **What keeping clear cannot do as it stands.** Steering by time to closest approach takes a quarter of the
+  contacts out of the Star Wars scene and two thirds out of the column, and leaves two things undone. It is
+  one want among several and is *averaged* with the rest, so a craft whose orders say to be where it is
+  cannot be shouted down by it however urgent it gets — which is right for a lean and wrong for the last
+  half-second. And the room it asks for is a multiple of the two hulls' radii, so two fighters ask for
+  forty-five metres of clearance while closing at two hundred metres a second, and fighter-on-fighter
+  contacts do not improve at all. Both point the same way: clearance wants to be measured in *time* rather
+  than in hull radii, and the urge wants a way to dominate rather than merely to vote. Neither is a large
+  change; both want a scene to tune against, and the crowded ones are the Star Wars fleet action and the
+  super-swarm.
+- **How severed chunks divide fuel, ammunition and power.**- **How severed chunks divide fuel, ammunition and power.**- **How severed chunks divide fuel, ammunition and power.** Which piece goes on being a ship is settled —
   the one holding a working core, and every other piece with one becomes a ship of its own (DESIGN.md §4)
   — but what a piece takes *with* it is not. The interesting case is a magazine cut off from the gun it
   fed. Nothing consumes either yet, so there is nothing to divide; decide it when stores exist.

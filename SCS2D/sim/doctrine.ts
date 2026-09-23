@@ -101,6 +101,30 @@ export interface Targeting {
   readonly engineWeight: number;
   readonly gunWeight: number;
   readonly structureWeight: number;
+  /**
+   * How much a ship would rather be with something it will never shoot at
+   * than at the best fight it can find.
+   *
+   * What a craft escorts is anything not hostile to it — one of its own, or
+   * a neutral — and escorting means station-keeping and nothing else: the
+   * guns go on fighting whatever they can reach, since a consort does not
+   * need covering by a mount that is pointing the wrong way.
+   *
+   * **It is weighed against holding station, not against a target's score.**
+   * A hundred is worth exactly as much as the order a craft is flying, so a
+   * craft with that much splits the difference between closing on its enemy
+   * and staying with its charge, and one with four hundred stays with its
+   * charge and fights from there. It fades to nothing as the gap closes, so a
+   * craft that has caught up is pulled by the fight alone until the fight has
+   * drawn it off again.
+   *
+   * **Zero means escort nobody, and is the default.** A friendly is not
+   * offered to the stack at all below it, which is deliberate rather than
+   * tidy: every preference here can be negative, so a friendly scored by the
+   * ordinary weights would beat a distant enemy on proximity alone and every
+   * fleet in the game would huddle.
+   */
+  readonly escortWeight: number;
 }
 
 /** How to fight it, once it has been chosen. */
@@ -123,6 +147,43 @@ export interface Approach {
    * guns are good for however small the target is.
    */
   readonly standoff: number;
+  /**
+   * How close to sit to what it is covering, in multiples of *its* radius.
+   *
+   * The escort's own version of `standoffRadii`, and a separate number
+   * because it is answering a different question. A standoff is a gunnery
+   * distance — how much of a guess a firing solution can afford — and an
+   * escort distance is not about shooting at the thing at all. Made to do
+   * both jobs, one number puts a corvette four hundred metres off the consort
+   * it is meant to be covering, because that is where it would sit to shoot
+   * at it.
+   */
+  readonly escortRadii: number;
+  /**
+   * The furthest it will stray from what it is covering, as a fraction of its
+   * own reach.
+   *
+   * A cap on the above, the same way `standoff` caps `standoffRadii` — and
+   * the reason it is measured in the escort's own gun range is that this is
+   * what covering something *means*: a consort inside that fraction of your
+   * reach is a consort your guns can do something about.
+   */
+  readonly escort: number;
+  /**
+   * How much a craft wants to keep out of everybody's way.
+   *
+   * Weighed against holding its station like every other urge, and against
+   * nothing else: what is too close is too close whoever it is, since a
+   * collision hurts both hulls whichever side they are on.
+   */
+  readonly separation: number;
+  /**
+   * How close is too close, in multiples of the gap between two hulls' skins.
+   *
+   * Measured from touching rather than from either centre, so one number
+   * serves a fighter beside a fighter and a capital beside a capital.
+   */
+  readonly separationRadii: number;
   /** How much closer or further than that is close enough, as a fraction. */
   readonly tolerance: number;
   /** How briskly to close the difference, metres per second. */
@@ -161,10 +222,15 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     engineWeight: 80,
     gunWeight: 100,
     structureWeight: 20,
+    escortWeight: 0,
   },
   approach: {
     standoffRadii: 50,
     standoff: 0.65,
+    escortRadii: 8,
+    escort: 0.15,
+    separation: 300,
+    separationRadii: 3,
     tolerance: 0.2,
     approachSpeed: 60,
   },
@@ -191,13 +257,33 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
   'engineWeight',
   'gunWeight',
   'structureWeight',
+  'escortWeight',
 ];
 
 export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'standoffRadii',
   'standoff',
+  'escortRadii',
+  'escort',
+  'separation',
+  'separationRadii',
   'tolerance',
   'approachSpeed',
+];
+
+/**
+ * The fields that mean nothing at or below zero: a size, and two distances.
+ *
+ * Stated once and read by everything that writes a doctrine rather than being
+ * repeated wherever one is made up — the parser that refuses a bad file and
+ * the mutation that must not write one are the same rule seen twice, and two
+ * copies of it would disagree the first time a field was added.
+ */
+export const POSITIVE_FIELDS: readonly string[] = [
+  'preferredMass',
+  'standoffRadii',
+  'escortRadii',
+  'separationRadii',
 ];
 
 /** Every number in a doctrine, named by its path, in a fixed order. */
@@ -244,7 +330,7 @@ function halfProblem(
  * no opinion about.
  */
 export function targetingProblem(value: unknown, where: string): string | null {
-  return halfProblem(value, where, TARGETING_FIELDS, ['preferredMass']);
+  return halfProblem(value, where, TARGETING_FIELDS, POSITIVE_FIELDS);
 }
 
 /** A mount's targeting, with whatever it leaves out taken from its ship. */
@@ -276,8 +362,8 @@ export function doctrineProblem(value: unknown): string | null {
     return `doctrine has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
   }
   return (
-    halfProblem(raw['targeting'], 'doctrine.targeting', TARGETING_FIELDS, ['preferredMass']) ??
-    halfProblem(raw['approach'], 'doctrine.approach', APPROACH_FIELDS, ['standoffRadii'])
+    halfProblem(raw['targeting'], 'doctrine.targeting', TARGETING_FIELDS, POSITIVE_FIELDS) ??
+    halfProblem(raw['approach'], 'doctrine.approach', APPROACH_FIELDS, POSITIVE_FIELDS)
   );
 }
 
