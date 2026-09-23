@@ -1367,10 +1367,11 @@ function against(
   const across = copy ? (endOn ? anchor.width : anchor.length) : bounds.grid;
   const out = copy ? (endOn ? anchor.length : anchor.width) : bounds.grid;
 
-  // A thruster is held on by the face it pushes from, so it is mounted facing
-  // *into* the anchor — which puts its position exactly on the face and its
-  // exhaust pointing out. Everything else sits on the face, half its own
-  // depth out.
+  // A thruster is mounted facing *into* the anchor — which puts its position
+  // exactly on the face and its exhaust pointing out into clear air. Nothing
+  // refuses an engine pointed the other way any more; it is simply the only
+  // way round worth guessing, since the other burns the ship it is bolted to.
+  // Everything else sits on the face, half its own depth out.
   // **The angle is not rounded, and that is load-bearing.** Positions are
   // tidied because they are worked out through sines and cosines and land on
   // values no file should carry; an angle is not, because a module sits

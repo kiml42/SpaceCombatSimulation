@@ -641,7 +641,7 @@ describe('the editor in a browser', () => {
     });
     await page.reload();
     await page.selectOption('#ship', 'Adrift');
-    expect(await page.textContent('#problems')).toMatch(/no structure to push against/);
+    expect(await page.textContent('#problems')).toMatch(/touches nothing/);
     // Drawn, not merely complained about: the ship is on the canvas to drag.
     expect(await page.textContent('#stats')).toMatch(/Modules/);
     await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Adrift'));

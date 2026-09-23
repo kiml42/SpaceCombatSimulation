@@ -741,7 +741,7 @@ describe('Library', () => {
     };
     library.save(adrift);
     expect(library.load('Adrift')).toEqual(adrift);
-    expect(blueprintProblem(adrift)).toMatch(/no structure to push against/);
+    expect(blueprintProblem(adrift)).toMatch(/touches nothing/);
   });
 
   it('still refuses a saved ship it cannot read at all', () => {
