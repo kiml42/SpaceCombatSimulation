@@ -175,7 +175,9 @@ function children(parent: Blueprint, seed: number, count: number): string[] {
 }
 
 describe('growing a part that is placed more than once', () => {
-  it('puts a new module on one, where absorbing never can', () => {
+  // Twelve hundred mutants, which is a second or two here and over five on a
+  // slow runner — the default timeout is for tests that are quick by nature.
+  it('puts a new module on one, where absorbing never can', { timeout: 30_000 }, () => {
     // **The two ways of growing a part are not interchangeable.** Absorbing
     // moves a module that is already on the ship, so where it sits is where
     // it has to fit — beside the one instance it was next to, and inside
