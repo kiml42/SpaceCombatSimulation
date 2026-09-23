@@ -40,7 +40,11 @@ inside any one file is not contiguous.
   bending them — with pause, single-step, time scaling, and zoom and pan over an
   auto-framing camera. Each ship also carries an arrowhead in its team's colour, which
   fades in as its hull becomes too small on screen to read, so that zooming out to see a
-  battle does not lose the small ships in it or which way they are facing. A blueprint editor on a second page of its own draws a layout
+  battle does not lose the small ships in it or which way they are facing. **What the picture asks
+  about a ship is whether anybody is aboard it, not whether it can fight**: a hull with a sound core and
+  neither gun nor engine is somebody's ship, so it is framed and drawn in its own colours, where asking
+  whether it could fight drew a whole generation of engineless craft as wreckage and left them out of shot.
+  Grey is for a core that is out, and a severed piece gets no arrowhead at all. A blueprint editor on a second page of its own draws a layout
   through that same renderer and reports what it bought: mass, inertia, the
   acceleration available in each direction — as figures, and as a pair of
   envelope curves separating what a layout can project from what it can use
