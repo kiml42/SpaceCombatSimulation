@@ -264,9 +264,15 @@ inside any one file is not contiguous.
   long between frames, so the page goes on answering while it runs, and what is drawn is the match the run
   is fighting rather than a re-enactment of it. The three sources of score are plotted apart as well as
   together, because they move at different times — a population learning to fly reaches the goal long
-  before it learns to shoot, and a total hides that behind one rising line. Any match of any generation is
+  before it learns to shoot, and a total hides that behind one rising line. **What the page shows while a run
+  grinds is the population, not the fight.** A run fights hundreds of times faster than real time, so a window
+  on whichever match is in progress is a fraction of a second of each and a flicker to the next — a picture of
+  nothing, refreshed. A generation drawn as its ships, best first, changes at a pace worth watching: bare cores
+  growing an engine, a wing appearing on one design and then on half of them. The battle view is still there
+  and is for *whole* battles: any match of any generation is
   fought again from its seed at whatever speed suits, which is the same match that was scored rather than a
-  second one assembled to look like it, and the design a run arrived at goes to the editor's library to be
+  second one assembled to look like it, and one finishing puts on another, so what it shows is a sample of
+  recent battles rather than the opening moment of all of them; and the design a run arrived at goes to the editor's library to be
   looked at and taken apart. **What the page will not do is name a best design across generations**, because
   no such number exists: a fitness is a score against that generation's opponents, so a population that
   learns to fly before it learns to shoot peaks while nothing can shoot back and reads as declining while it
