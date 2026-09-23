@@ -470,6 +470,7 @@ describe('the editor in a browser', () => {
     await page.mouse.click(centre.x + 168, centre.y);
     expect(await page.textContent('#propKind')).toBe('turret');
     expect(await page.isHidden('#barrelsRow')).toBe(false);
+    expect(await page.textContent('#barrelsLabel')).toBe('barrels');
   });
 
   it('offers barrels on a beam mount too, and charges for them', async () => {
@@ -480,6 +481,8 @@ describe('the editor in a browser', () => {
     await page.click('[data-add="beamTurret"]');
     expect(await page.textContent('#propKind')).toBe('beamTurret');
     expect(await page.isHidden('#barrelsRow')).toBe(false);
+    // A beam has no barrel: what it has is the aperture the light leaves by.
+    expect(await page.textContent('#barrelsLabel')).toBe('emitters');
 
     // Off the Gun row by name: the panel's other rows carry millimetres too,
     // and the first of them is the thickness of the walls.
