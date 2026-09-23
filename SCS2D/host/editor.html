@@ -70,6 +70,7 @@
       .field { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.3rem; }
       .field label { flex: 0 0 6.5rem; color: #7f93aa; }
       .field input, .field textarea { flex: 1; min-width: 0; }
+      .field input[type="checkbox"] { flex: 0 0 auto; }
       .pair { display: flex; gap: 0.4rem; }
       .buttons { display: flex; gap: 0.4rem; margin-top: 0.6rem; }
       .buttons button { flex: 1; padding-inline: 0.3rem; }
@@ -193,6 +194,14 @@
           <div class="field" id="barrelsRow">
             <label for="propBarrels">barrels</label>
             <input id="propBarrels" type="number" step="1" min="1" />
+          </div>
+          <div class="field" id="weaponRow">
+            <label for="propWeapon">weapon</label>
+            <input
+              id="propWeapon"
+              type="checkbox"
+              title="Burn at an enemy that gets close behind this engine, whether or not thrust was wanted"
+            />
           </div>
           <div class="field">
             <label for="propNotes">notes</label>

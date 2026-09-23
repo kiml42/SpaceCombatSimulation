@@ -337,6 +337,22 @@ export interface ModuleSpec {
   targeting?: Partial<Targeting>;
 
   /**
+   * Whether this engine is pointed at things on purpose. Thrusters only.
+   *
+   * An exhaust burns whatever stands in it whoever meant it to (`exhaust.ts`),
+   * so this changes nothing about what a plume *does* — it changes when the
+   * engine burns. A weapon engine lights up on its own account the moment an
+   * enemy is close enough behind it to take a real share of the flame, whether
+   * or not the pilot wanted thrust just then, and the ship wears the push.
+   *
+   * A flag rather than a kind of module, because an engine used this way is
+   * the same engine: it is still what moves the ship, still costs what an
+   * engine costs, and can still be the only thing holding a heading. What a
+   * designer is choosing is a *role* for a mount already on the hull.
+   */
+  weapon?: boolean;
+
+  /**
    * Why this module is here, in the author's own words. Carried through the
    * file format and the editor, and ignored by every scaling law.
    *
@@ -436,6 +452,11 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     if (!(spec.barrels >= 1) || !Number.isInteger(spec.barrels)) {
       return `${spec.kind}: barrels must be a whole number of at least 1, got ${spec.barrels}`;
     }
+  }
+  if (spec.weapon === true && spec.kind !== 'thruster') {
+    // Only an engine has a plume to point. Silently ignoring it on a gun would
+    // leave a blueprint saying something the simulation never reads.
+    return `${spec.kind}: only a thruster can be used as a weapon`;
   }
   const thickness = BASE_WALL_THICKNESS * reinforcement;
   const smallest = spec.length < spec.width ? spec.length : spec.width;

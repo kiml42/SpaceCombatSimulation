@@ -265,6 +265,7 @@ type Knob =
   | { readonly at: 'doctrine'; readonly half: 'targeting' | 'approach'; readonly field: string }
   | { readonly at: 'reinforcement'; readonly site: ModuleSite }
   | { readonly at: 'barrels'; readonly site: ModuleSite }
+  | { readonly at: 'weapon'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
   | { readonly at: 'slide'; readonly site: ModuleSite }
@@ -304,6 +305,9 @@ function knobs(draft: Draft): Knob[] {
       if (placement.kind === 'turret' || placement.kind === 'beamTurret') {
         out.push({ at: 'barrels', site });
       }
+      if (placement.kind === 'thruster') {
+        out.push({ at: 'weapon', site });
+      }
     }
   }
   return out;
@@ -317,6 +321,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return reinforce(knob.site, rng, bounds);
     case 'barrels':
       return rebarrel(knob.site, rng);
+    case 'weapon':
+      return rearm(knob.site);
     case 'angle':
       return turnModule(knob.site, rng, bounds);
     case 'face':
@@ -391,6 +397,22 @@ function rebarrel(site: ModuleSite, rng: Rng): string | null {
   if (now === was) return null;
   site.spec.barrels = now;
   return `${site.where} ${site.spec.kind}: barrels ${was} → ${now}`;
+}
+
+/**
+ * Point an engine at things, or stop.
+ *
+ * A flip rather than a nudge, because the thing being mutated is a decision
+ * and not a quantity — there is no half-armed engine to land on. It is cheap
+ * for the search to try in both directions, which is what a knob with two
+ * positions and no cost of its own should be: the fitness of the ship decides
+ * whether being shoved about by one's own exhaust was worth the damage.
+ */
+function rearm(site: ModuleSite): string {
+  const was = site.spec.weapon === true;
+  if (was) delete site.spec.weapon;
+  else site.spec.weapon = true;
+  return `${site.where} ${site.spec.kind}: ${was ? 'no longer' : 'now'} a weapon`;
 }
 
 function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits): string {

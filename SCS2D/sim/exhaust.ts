@@ -73,8 +73,20 @@ export function plumeReach(force: number, exitWidth: number): number {
 }
 
 /**
- * Burning what the plumes are pointed at, with the scratch a pass needs so
- * that it allocates nothing.
+ * Least share of its power a plume must land for an engine to be worth firing
+ * as a weapon.
+ *
+ * A plume fades to nothing at its own reach, so the far end of one delivers
+ * almost nothing while costing the ship the full push of the burn. An engine
+ * that lit up whenever an enemy was anywhere in the flame would spend most of
+ * its firing shoving itself about for no damage, so it holds until the target
+ * is in the half of the plume that is worth burning — which is also what makes
+ * this a close-quarters weapon rather than a second gun.
+ */
+export const WEAPON_PLUME_SHARE = 0.5;
+
+/**
+ * Where the plumes land, and what that costs whoever is standing in them.
  *
  * Kept apart from `Ships` for the same reason `Impacts` is: the model can be
  * driven, and tested, without one.
@@ -82,8 +94,16 @@ export function plumeReach(force: number, exitWidth: number): number {
 export class Plumes {
   private readonly hit = new RayHit();
 
+  /** Body the last `cast` landed on, or -1 if the flame met nothing. */
+  body = -1;
+  /** Module on that body, or -1 where the cast met a body with no hull. */
+  module = -1;
+  /** Fraction of the engine's power landing there, 1 at the nozzle and 0 at the flame's end. */
+  share = 0;
+
   /**
-   * Burn whatever one of a ship's engines is playing on, for one step.
+   * Where one engine's plume lands if it burns at `force`, filled into `body`,
+   * `module` and `share`. Returns false if the flame reaches nothing.
    *
    * **The first thing in the way takes all of it and shields everything
    * behind**, spent or not: a plume is gas, and a wrecked module is still a
@@ -92,32 +112,37 @@ export class Plumes {
    *
    * What lands falls off linearly to nothing at the plume's own reach, so an
    * obstruction is cheap at the tip of the flame and ruinous at the throat.
-   * The cast is a single ray along the axis, so what is burnt is what sits
+   * The cast is a single ray along the axis, so what is reached is what sits
    * *behind* the nozzle rather than everything the triangle covers — the hot
    * core of the plume, which is where its power is anyway.
    *
    * What the engine's own hull puts in the way was worked out when the design
    * was compiled, so the only cast here is against everything else.
+   *
+   * Held rather than returned, so that a caller deciding whether to *fire* can
+   * ask the same question a burn does and get the same answer.
    */
-  burn(
+  cast(
     design: ShipDesign,
     thruster: number,
-    /** Thrust the engine is actually producing, newtons. */
+    /** Thrust the engine is producing, or would produce, newtons. */
     force: number,
-    damage: Damage,
     bodies: Bodies,
     bodyIndex: number,
     grid: SpatialGrid,
     hulls: Hulls,
-    dt: number,
-  ): void {
+  ): boolean {
+    this.body = -1;
+    this.module = -1;
+    this.share = 0;
+
     const spec = design.thrusters[thruster];
-    if (spec === undefined || !(force > 0) || !(dt > 0)) return;
+    if (spec === undefined || !(force > 0)) return false;
     const engine = design.modules[spec.module ?? -1];
-    if (engine === undefined) return;
+    if (engine === undefined) return false;
 
     const reach = plumeReach(force, engine.spec.width);
-    if (!(reach > 0)) return;
+    if (!(reach > 0)) return false;
 
     // Its own ship first, since that answer is already in hand.
     let distance = reach;
@@ -155,9 +180,29 @@ export class Plumes {
       victimModule = hulls.describe(bodies, victimBody, x0, y0, dx, dy) ? hulls.module : -1;
     }
 
-    if (victimBody < 0) return;
+    if (victimBody < 0) return false;
     const share = 1 - distance / reach;
-    if (!(share > 0)) return;
-    damage.absorb(victimBody, victimModule, PLUME_POWER_PER_NEWTON * force * share * dt);
+    if (!(share > 0)) return false;
+    this.body = victimBody;
+    this.module = victimModule;
+    this.share = share;
+    return true;
+  }
+
+  /** Burn whatever one of a ship's engines is playing on, for one step. */
+  burn(
+    design: ShipDesign,
+    thruster: number,
+    force: number,
+    damage: Damage,
+    bodies: Bodies,
+    bodyIndex: number,
+    grid: SpatialGrid,
+    hulls: Hulls,
+    dt: number,
+  ): void {
+    if (!(dt > 0)) return;
+    if (!this.cast(design, thruster, force, bodies, bodyIndex, grid, hulls)) return;
+    damage.absorb(this.body, this.module, PLUME_POWER_PER_NEWTON * force * this.share * dt);
   }
 }

@@ -115,7 +115,7 @@ export function makeBattle<Extra extends object = Record<never, never>>(
     totalCulled: 0,
 
     step(): void {
-      if (pilots) ships.command(dt, world);
+      if (pilots) ships.command(dt, world, grid);
       world.step();
       // Hulls are solid: what the world's step drove into each other is pushed
       // back apart before anything asks where anything is.

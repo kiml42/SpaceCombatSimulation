@@ -295,6 +295,13 @@ export interface ShipDesign {
   readonly centreOfMassX: number;
   readonly centreOfMassY: number;
   readonly thrusters: readonly ThrusterSpec[];
+  /**
+   * Which of those the designer meant to point at things, as indices into
+   * `thrusters`. Almost always empty, which is why it is a list rather than a
+   * flag on each: flying a ship then costs one length check instead of a walk
+   * over every engine it has.
+   */
+  readonly weaponThrusters: readonly number[];
   /** Shared by every ship built to this design. */
   readonly thrusterLayout: ThrusterLayout;
   readonly turrets: readonly DesignTurret[];
@@ -780,6 +787,7 @@ function place(
     if (angle !== 0 || placement.angle !== undefined) spec.angle = angle;
     if (placement.reinforcement !== undefined) spec.reinforcement = placement.reinforcement;
     if (placement.barrels !== undefined) spec.barrels = placement.barrels;
+    if (placement.weapon !== undefined) spec.weapon = placement.weapon;
     if (placement.targeting !== undefined) spec.targeting = placement.targeting;
     if (placement.notes !== undefined) spec.notes = placement.notes;
     out.push(spec);
@@ -1331,6 +1339,7 @@ function designFrom(
         dirY: sin(angle),
         maxThrust: s.thrust,
         module: modules.length - 1,
+        weapon: spec.weapon === true,
       });
     } else if ((spec.kind === 'turret' || spec.kind === 'beamTurret') && s.gun !== null) {
       const gun = s.gun;
@@ -1390,6 +1399,11 @@ function designFrom(
   // nothing in a battle can change: an engine firing into its own hull is
   // firing into it for as long as the hull is one piece, and a piece cut off
   // is a design of its own that works this out again.
+  const weaponThrusters: number[] = [];
+  for (let t = 0; t < thrusters.length; t++) {
+    if (thrusters[t]!.weapon === true) weaponThrusters.push(t);
+  }
+
   const exhaust = new HullPath();
   const far = radius * 2 + 1;
   for (const thruster of thrusters) {
@@ -1426,6 +1440,7 @@ function designFrom(
     centreOfMassX: comX,
     centreOfMassY: comY,
     thrusters,
+    weaponThrusters,
     thrusterLayout: new ThrusterLayout(thrusters),
     turrets,
     cores,

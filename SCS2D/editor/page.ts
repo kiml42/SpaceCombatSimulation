@@ -153,6 +153,8 @@ export function startEditor(): void {
   const saveButton = el<HTMLButtonElement>('saveShip');
   const exportButton = el<HTMLButtonElement>('exportShip');
 
+  const weaponInput = el<HTMLInputElement>('propWeapon');
+
   const propInputs: Record<string, HTMLInputElement | HTMLTextAreaElement> = {
     x: el<HTMLInputElement>('propX'),
     y: el<HTMLInputElement>('propY'),
@@ -500,6 +502,9 @@ export function startEditor(): void {
       else input.value = String(moduleField(spec, key as 'angle' | 'reinforcement' | 'barrels'));
     }
     el<HTMLElement>('barrelsRow').hidden = spec.kind !== 'turret';
+    // Only an engine has a plume to point.
+    el<HTMLElement>('weaponRow').hidden = spec.kind !== 'thruster';
+    weaponInput.checked = spec.weapon === true;
 
     const origin = doc.selectedOrigin();
     const shared = origin === null ? 0 : unlinkable(doc.blueprint, origin);
@@ -661,6 +666,24 @@ export function startEditor(): void {
       else editSelected({ [key]: value } as Partial<ModuleSpec>, true);
     });
   }
+
+  weaponInput.addEventListener('change', () => {
+    const path = doc.selection;
+    if (path === null) return;
+    const on = weaponInput.checked;
+    // Absent rather than false when it is off, so a blueprint file only ever
+    // says the unusual thing. A tick is one discrete act, so it takes an undo
+    // step of its own rather than amending whatever came before it.
+    change(
+      updatePlacement(doc.blueprint, path, (placement) => {
+        if (!('kind' in placement)) return placement;
+        const next = { ...placement };
+        if (on) next.weapon = true;
+        else delete next.weapon;
+        return next;
+      }),
+    );
+  });
 
   const deleteSelected = (): void => {
     const origin = doc.selectedOrigin();

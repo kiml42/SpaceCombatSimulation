@@ -89,7 +89,9 @@ inside any one file is not contiguous.
   **An engine is a weapon at close quarters**: a plume reaches back as far as the thrust it is carrying,
   and whatever stands in it burns — its own hull if a nozzle was pointed into one, anything that drifts
   behind a burning stern if not. It is the same flame the renderer draws, so what is on the screen is what
-  is doing the damage.
+  is doing the damage. An engine can also be *meant* as one: a thruster ticked as a weapon in the editor
+  lights up by itself when an enemy is close enough behind it to take a real share of the flame, and the
+  hull pays for it in the push, which the rest of the layout spends the step cancelling.
   **Hulls come apart, and it takes a blow to do it.** A ship is held together by welds derived from where
   its modules touch, each rated by its section. Damage decides how much of a weld is left; what spends it
   is the impulse that has to cross it, so a hit on an outlying module takes it off and the same hit
@@ -353,6 +355,16 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   drifted into the exhaust. So an engine firing into its own ship eats it, and a ship that parks behind
   another's stern is burnt by it, which makes where a nozzle points a thing worth aiming. §12 keeps the
   other half open: thrust is still produced in full while the flame is buried.
+- **An engine can be pointed at things on purpose.** A thruster marked `weapon` in the blueprint burns
+  flat out on its own account whenever an enemy is in the half of its plume that still delivers real
+  power, whether or not the pilot wanted thrust — and the ship wears the push, which is what the weapon
+  costs. A flag rather than a kind of module, because an engine used this way is the same engine: it is
+  still what moves the ship, still costs what an engine costs, and may still be the only thing holding a
+  heading. What a designer chooses is a *role* for a mount already on the hull, which is why breeding can
+  flip it. What it will not burn is what a gun will not shoot: its own hull, a friend, wreckage, or a hulk
+  that can never be finished off and is not worth being shoved about for. It is **opportunistic and not
+  aimed** — nothing manoeuvres to bring an exhaust to bear, so this is a weapon for whatever gets behind
+  you rather than a second gun. §12 has the aimed version.
 - **Matter is conserved in a hull, not in the world.** Everything conservation buys — wreckage as free
   armour, a topology damage cannot change, a battered ship that gets sluggish rather than lighter — is
   about what a *hull* keeps, and none of it needs a shard to persist once it has left the ship. So a

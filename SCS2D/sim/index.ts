@@ -62,6 +62,7 @@ export {
   PLUME_POWER_PER_NEWTON,
   PLUME_THRUST_PER_AREA,
   Plumes,
+  WEAPON_PLUME_SHARE,
   plumeReach,
 } from './exhaust.js';
 export {

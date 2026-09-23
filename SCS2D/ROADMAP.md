@@ -730,6 +730,23 @@ Deliberately unresolved; decide when they block something.
   discrete however it is modelled: a mount is on the hull or it is not, and there is no gradient between.
   Heat, mentioned when this was settled in direction, waits on there being a heat model to put it in.
   The deadline for the rest is §7's evolution rather than any particular slice.
+- **Whether a ship should manoeuvre to bring an engine to bear.** A thruster marked as a weapon fires when
+  something worth burning is already behind it, and nothing turns the ship to put it there — so it is a
+  weapon for what gets behind you rather than one you attack with. Aiming it is a genuinely different
+  problem from aiming a gun and is the reason this was left out rather than forgotten: a turret is a small
+  mass that trains independently of where its ship is going, while pointing an *exhaust* means choosing a
+  heading, which is the same quantity the pilot is already using to keep its guns on target and its range
+  band. So the two wants have to be blended rather than one of them winning, and the shape that blend
+  wants is probably the same weighted-average of urges §4's pilot already uses for position — a heading
+  urge per reason, rather than one `wantAngle` that the last caller wins.
+  Worth doing only once there is a hull that wants it. A ram-and-burn strike craft is the obvious one, and
+  §3 already says a torpedo is a fighter that crashes into things.
+- **Whether the editor should flag a weapon engine that fires into its own hull.** Where an engine's
+  exhaust runs into its own ship is worked out when the design is compiled, so the answer is in hand; what
+  is missing is that the problem list works on a layout's *specs* rather than on the compiled design. It
+  is a real mistake to make — an engine marked as a weapon and buried in the hull is a mount that can only
+  ever eat its own ship — and it is the kind of thing the editor exists to catch, since nothing about the
+  picture says it.
 - **A dead zone on the pilot's attitude hold.** A ship parked on its target bearing still twitches its
   thrusters continually, correcting an alignment error of almost nothing. Today that is only cosmetic — the
   ships have no fuel to waste — but it is the same behaviour that will empty a propellant tank while

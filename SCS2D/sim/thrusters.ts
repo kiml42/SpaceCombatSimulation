@@ -76,6 +76,12 @@ export interface ThrusterSpec {
   blocks?: number;
   /** How far aft of the nozzle that module is, metres. */
   blockedAt?: number;
+  /**
+   * Whether this engine burns at what it is pointed at, on its own account —
+   * `ModuleSpec.weapon`, carried through so that flying a ship needs only its
+   * layout.
+   */
+  weapon?: boolean;
 }
 
 /** Filled in place by `allocate`, so allocation allocates nothing. */

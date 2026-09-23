@@ -3,7 +3,7 @@ import { subDesign, type DesignTurret, type ShipDesign } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
-import { Plumes } from './exhaust.js';
+import { Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
 import { Choice, look, lookFrom, score } from './targeting.js';
 import {
   atan2,
@@ -348,6 +348,12 @@ export class Ships {
   private readonly throttles: Float64Array[] = [];
   /** Scratch for the exhaust pass, so that burning allocates nothing. */
   private readonly plumes = new Plumes();
+  /**
+   * Which engines of the ship being flown this step are burning as weapons.
+   * Scratch, written and read inside one `flyOne`, so one array serves every
+   * ship however many engines each has.
+   */
+  private forced = new Uint8Array(0);
   /** Turret store indices owned by each ship, and their gun timers. */
   private readonly turretIndex: Int32Array[] = [];
   private readonly cooldown: Float64Array[] = [];
@@ -1137,8 +1143,14 @@ export class Ships {
 
   /**
    * Fly every ship and train every turret, one step. Call before `world.step`.
+   *
+   * The index is what lets an engine used as a weapon see what is behind it.
+   * It is last step's — the rebuild happens after the world moves — which is
+   * the same staleness a turret is trained through, and a hundredth of a
+   * second of it. Without one, no engine fires on its own account and every
+   * ship flies exactly as it would have.
    */
-  command(dt: number, world: World): void {
+  command(dt: number, world: World, grid?: SpatialGrid): void {
     const bodies = world.bodies;
     this.bodyStore = bodies;
 
@@ -1151,7 +1163,7 @@ export class Ships {
       this.removeInvalidOrders(i);
       this.decide(world, bodies, i);
       this.decideTurrets(world, bodies, i);
-      this.flyOne(dt, bodies, i);
+      this.flyOne(dt, bodies, i, grid);
       this.trainOne(bodies, i);
       const timers = this.cooldown[i]!;
       for (let t = 0; t < timers.length; t++) {
@@ -1456,7 +1468,7 @@ export class Ships {
    * that replacement is the shape of the thing: a demand wrench handed to the
    * allocator, and a target handed to the turrets.
    */
-  private flyOne(dt: number, bodies: Bodies, i: number): void {
+  private flyOne(dt: number, bodies: Bodies, i: number, grid?: SpatialGrid): void {
     const order = this.effectiveOrder(i);
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
@@ -1534,17 +1546,97 @@ export class Ships {
     const localTorque =
       dt > 0 ? (inertia * (wantRate - bodies.angularVel[b]!)) / dt : 0;
 
-    layout.allocate(
-      localFx,
-      localFy,
-      clamp(localTorque, -maxTorque, maxTorque),
-      this.throttles[i]!,
-      this.allocation,
-    );
+    // Engines the designer meant as weapons, lit because something worth
+    // burning is behind them. Decided before the allocation and taken off the
+    // demand, so the rest of the layout spends its step cancelling the push
+    // rather than discovering it next step and chasing it forever.
+    const firing = this.aimEngines(bodies, grid, i, layout);
+    let demandFx = localFx;
+    let demandFy = localFy;
+    let demandTorque = clamp(localTorque, -maxTorque, maxTorque);
+    if (firing > 0) {
+      const forced = this.forced;
+      for (let t = 0; t < layout.count; t++) {
+        if (forced[t] === 0) continue;
+        demandFx -= layout.wfx[t]!;
+        demandFy -= layout.wfy[t]!;
+        demandTorque -= layout.wt[t]!;
+      }
+    }
 
-    this.demandFx[i] = this.allocation.fx;
-    this.demandFy[i] = this.allocation.fy;
-    this.demandTorque[i] = this.allocation.torque;
+    const throttles = this.throttles[i]!;
+    layout.allocate(demandFx, demandFy, demandTorque, throttles, this.allocation);
+
+    if (firing === 0) {
+      this.demandFx[i] = this.allocation.fx;
+      this.demandFy[i] = this.allocation.fy;
+      this.demandTorque[i] = this.allocation.torque;
+      return;
+    }
+
+    // A weapon engine burns flat out whatever the allocator made of it, and
+    // the wrench is read back off the throttles rather than off the solve,
+    // which knew nothing about them.
+    let fx = 0;
+    let fy = 0;
+    let torque = 0;
+    for (let t = 0; t < layout.count; t++) {
+      if (this.forced[t] === 1) throttles[t] = 1;
+      const u = throttles[t]!;
+      fx += layout.wfx[t]! * u;
+      fy += layout.wfy[t]! * u;
+      torque += layout.wt[t]! * u;
+    }
+    this.demandFx[i] = fx;
+    this.demandFy[i] = fy;
+    this.demandTorque[i] = torque;
+  }
+
+  /**
+   * Mark every engine this ship should fire as a weapon this step, in
+   * `forced`, and say how many.
+   *
+   * An engine burns on its own account when something worth burning is in the
+   * part of its plume that would actually hurt — asked at full throttle, since
+   * the question is whether to open up rather than what the current burn
+   * happens to reach. What counts as worth burning is what a gun would shoot
+   * at: not its own hull, not a friend, not wreckage, and not a hulk, which
+   * can never be finished off and is not worth being shoved about for.
+   */
+  private aimEngines(
+    bodies: Bodies,
+    grid: SpatialGrid | undefined,
+    i: number,
+    layout: ThrusterLayout,
+  ): number {
+    const design = this.designs[i]!;
+    const armed = design.weaponThrusters;
+    if (grid === undefined || armed.length === 0) return 0;
+
+    if (this.forced.length < layout.count) this.forced = new Uint8Array(layout.count);
+    const forced = this.forced;
+    forced.fill(0);
+
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return 0;
+
+    let firing = 0;
+    for (let k = 0; k < armed.length; k++) {
+      const t = armed[k]!;
+      // What damage has left of the engine, since an engine that cannot burn
+      // cannot burn anybody.
+      const force = layout.maxThrust[t]!;
+      if (!(force > 0)) continue;
+      if (!this.plumes.cast(design, t, force, bodies, b, grid, this.hulls)) continue;
+      if (this.plumes.share < WEAPON_PLUME_SHARE) continue;
+      if (this.plumes.body === b) continue;
+      const other = this.shipAt(bodies, this.plumes.body);
+      if (other < 0 || this.derelict[other] === 1) continue;
+      if (this.team[other] === this.team[i] || this.isDisabled(other)) continue;
+      forced[t] = 1;
+      firing++;
+    }
+    return firing;
   }
 
   /** Train each of this ship's turrets on what it is fighting, leading it. */
