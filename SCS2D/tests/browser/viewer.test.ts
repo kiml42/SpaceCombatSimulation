@@ -55,6 +55,32 @@ async function painted(p: Page): Promise<void> {
   );
 }
 
+/**
+ * Wait for the battle to advance past `from` steps, and say how far it got.
+ *
+ * **Counting frames is not counting steps**, and the difference is the whole
+ * of why this exists. The wall clock lives in the host and the simulation
+ * takes a fixed step, so a frame owes a step only once enough real time has
+ * passed for one — and the time that passed while a scene was being built is
+ * deliberately dropped rather than run off in a burst, so the first frame
+ * after a reset owes nothing at all. That leaves the second frame owing a
+ * step only if the interval reached the timestep, and at 60 Hz those are the
+ * same sixteen milliseconds: the race goes either way, and a test that waited
+ * two frames and demanded a step failed about one run in six.
+ */
+async function advanced(p: Page, from = 0): Promise<number> {
+  await p.waitForFunction(
+    (had) => {
+      const text = document.getElementById('readout')?.textContent ?? '';
+      const match = /step (\d+)/.exec(text);
+      return match !== null && Number(match[1]) > had;
+    },
+    from,
+    { timeout: 10_000 },
+  );
+  return step(p);
+}
+
 /** Steps reported by the page's readout. */
 async function step(p: Page): Promise<number> {
   const text = (await p.textContent('#readout')) ?? '';
@@ -186,7 +212,7 @@ describe('the viewer in a browser', () => {
     const range = Number(/range (\d+)/.exec(readout)?.[1] ?? 0);
     expect(range).toBeGreaterThan(900);
     expect(range).toBeLessThan(1100);
-    expect(await step(page)).toBeGreaterThan(0);
+    expect(await advanced(page)).toBeGreaterThan(0);
   });
 
   it('reports no errors after all of that', () => {

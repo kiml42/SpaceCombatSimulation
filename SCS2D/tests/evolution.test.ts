@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { blueprintProblem, parseBlueprint, Rng, type Blueprint } from '../sim/index.js';
 import { blank, breed, Generation, fitness } from '../evolution/generation.js';
 import { runMatch } from '../evolution/match.js';
-import { champion, Run, runEvolution, seedPopulation, DEFAULT_RUN } from '../evolution/run.js';
+import { finalist, Run, runEvolution, seedPopulation, DEFAULT_RUN } from '../evolution/run.js';
 import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
 
 /**
@@ -205,15 +205,21 @@ describe('a run', () => {
     expect(run.done).toBe(true);
   });
 
-  it('names a champion that actually fought', () => {
+  it('names what the run arrived at, from its last generation', () => {
+    // **Not the highest fitness it ever recorded**, which is a number with no
+    // meaning across generations: fitness is scored against the rest of the
+    // generation, so a population that learns to fly before it learns to
+    // shoot scores superbly while nothing can shoot back and far less the
+    // moment guns appear — and the "best ever" is then a design that would
+    // lose to everything bred since.
     const run = runEvolution([CORVETTE], settings);
-    const best = champion(run)!;
+    const best = finalist(run)!;
+    const last = run.generations[run.generations.length - 1]!;
+    expect(best.generation).toEqual(last.index);
     expect(best.individual.matches).toBeGreaterThan(0);
-    for (const generation of run.generations) {
-      for (const individual of generation.individuals) {
-        if (individual.matches > 0) {
-          expect(individual.fitness).toBeLessThanOrEqual(best.individual.fitness);
-        }
+    for (const individual of last.individuals) {
+      if (individual.matches > 0) {
+        expect(individual.fitness).toBeLessThanOrEqual(best.individual.fitness);
       }
     }
   });

@@ -40,7 +40,11 @@ inside any one file is not contiguous.
   bending them — with pause, single-step, time scaling, and zoom and pan over an
   auto-framing camera. Each ship also carries an arrowhead in its team's colour, which
   fades in as its hull becomes too small on screen to read, so that zooming out to see a
-  battle does not lose the small ships in it or which way they are facing. A blueprint editor on a second page of its own draws a layout
+  battle does not lose the small ships in it or which way they are facing. **What the picture asks
+  about a ship is whether anybody is aboard it, not whether it can fight**: a hull with a sound core and
+  neither gun nor engine is somebody's ship, so it is framed and drawn in its own colours, where asking
+  whether it could fight drew a whole generation of engineless craft as wreckage and left them out of shot.
+  Grey is for a core that is out, and a severed piece gets no arrowhead at all. A blueprint editor on a second page of its own draws a layout
   through that same renderer and reports what it bought: mass, inertia, the
   acceleration available in each direction — as figures, and as a pair of
   envelope curves separating what a layout can project from what it can use
@@ -172,7 +176,15 @@ inside any one file is not contiguous.
   mounts half the time would be answering a question nobody asked. A refit keeps the space rather than the
   coordinates, because a thruster's position is where it is attached and every other kind's is the middle
   of its box — left alone, the numbers slide the module half its own length into its neighbour, which
-  refused every refit into an engine there was. A doctrine number
+  refused every refit into an engine there was. **The grouping is bred as well as the
+  modules.** A lineage can make a part of a module, dissolve one back into the layout, take a neighbour into
+  a part, grow one with a new module — on its outer edge by preference, which is the face likely to be free
+  at every instance rather than at one, and the only way a part placed twice grows at all — place another
+  instance of one — reflected as often as merely moved, since a ship is symmetric or
+  it flies crabwise — drop an instance, and turn one over. Making a part and dissolving one change nothing
+  about the ship at all: what they change is what the next generation can do, and there is no single
+  mutation that both invents a grouping and pays off at once. Every operator has its inverse, because one
+  that can only add structure is a ratchet a lineage has no way down from. A doctrine number
   is perturbed by a fraction of its *default* rather than of what is held, so nothing that has reached zero
   is stuck there — and where the default is zero too, by a fraction of what a number is worth in that half
   of the doctrine, since otherwise every draw is a fraction of nothing and the field is not slow to find but
@@ -261,10 +273,20 @@ inside any one file is not contiguous.
   long between frames, so the page goes on answering while it runs, and what is drawn is the match the run
   is fighting rather than a re-enactment of it. The three sources of score are plotted apart as well as
   together, because they move at different times — a population learning to fly reaches the goal long
-  before it learns to shoot, and a total hides that behind one rising line. Any match of any generation is
+  before it learns to shoot, and a total hides that behind one rising line. **What the page shows while a run
+  grinds is the population, not the fight.** A run fights hundreds of times faster than real time, so a window
+  on whichever match is in progress is a fraction of a second of each and a flicker to the next — a picture of
+  nothing, refreshed. A generation drawn as its ships, best first, changes at a pace worth watching: bare cores
+  growing an engine, a wing appearing on one design and then on half of them. The battle view is still there
+  and is for *whole* battles: any match of any generation is
   fought again from its seed at whatever speed suits, which is the same match that was scored rather than a
-  second one assembled to look like it, and the best design of a run goes to the editor's library to be
-  looked at and taken apart. **Settings are a file.** A run is decided entirely by its seed and its
+  second one assembled to look like it, and one finishing puts on another, so what it shows is a sample of
+  recent battles rather than the opening moment of all of them; and the design a run arrived at goes to the editor's library to be
+  looked at and taken apart. **What the page will not do is name a best design across generations**, because
+  no such number exists: a fitness is a score against that generation's opponents, so a population that
+  learns to fly before it learns to shoot peaks while nothing can shoot back and reads as declining while it
+  improves. The yardstick is offered instead, fought on the page in the same slices as the run and drawn as
+  its own line over the ones that only mean something within a generation. **Settings are a file.** A run is decided entirely by its seed and its
   configuration, so those few numbers are the whole record of what was tried: they are written out and read
   back as JSON, by the page and by `npm run evolve` alike, so an experiment can be kept beside its result,
   sent to somebody, or designed on the page and then fought overnight headlessly. Every field is optional
@@ -639,6 +661,19 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   - **The achievable (Fx, Fy, τ) set is a 3D polytope that can be drawn for the player.** For a game
     whose depth is ship design, showing what a thruster layout actually bought is a headline feature.
     In 3D the envelope is 6-dimensional and undisplayable.
+  - **A pilot only asks for torque from thrusters whose lever arms make it worth having.** An arm is
+    torque bought per newton of unwanted force, so an engine nearly in line with the centre of mass is
+    a dreadful way to turn: a sliver of twist, and a whole engine's thrust for the rest of the layout to
+    cancel. Worth less than nothing once there is fuel to burn and a plume that burns what stands behind
+    it. Useful is a fraction of the ship's own reach rather than any fixed distance, so the rule means
+    the same thing on a fighter and on a capital. It bounds the *demand* and nothing else: the arm is
+    real, the ship feels it, the allocator still trims it with the engines that do turn the ship, and the
+    envelope drawn for the player is the same envelope.
+  - **No two thrusters that undo each other ever burn together.** A pair whose whole wrench cancels can
+    do nothing as a pair that either could not do alone, so whatever throttle they are spending on each
+    other comes off — which matters beyond the fuel, since an engine burns what its plume is pointed at.
+    Judged on the wrench and not on which way each pushes: a bow thruster and a stern one pushing
+    opposite ways are a *couple*, which is how a ship turns on the spot, and are left alone.
   - This is the exact problem ("RCS engines") that stalled the old project.
 - **Integrator:** symplectic (velocity Verlet / leapfrog), fixed timestep, with substepping near
   deep gravity wells. Semi-implicit Euler visibly precesses and spirals orbits.

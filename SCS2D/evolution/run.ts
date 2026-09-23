@@ -371,18 +371,35 @@ function describe(generation: Generation, matches: readonly MatchRecord[]): Gene
   };
 }
 
-/** The best design a run produced, and which generation it came from. */
-export function champion(run: RunRecord): { generation: number; individual: IndividualRecord } | null {
-  let best: { generation: number; individual: IndividualRecord } | null = null;
-  for (const generation of run.generations) {
+/**
+ * What a run arrived at: the best of its last generation.
+ *
+ * **Deliberately not the highest fitness it ever recorded**, which is a number
+ * with no meaning across generations and is actively misleading. Fitness is
+ * scored against the rest of the generation, so what it says is "better than
+ * these opponents on that day" — and the opponents change every generation. A
+ * population that learns to fly before it learns to shoot scores superbly
+ * while nothing can shoot back, and the moment guns appear the same designs
+ * are destroyed early and score far less; the *highest ever* then belongs to a
+ * design that would lose to everything bred since, and a run that is getting
+ * better looks like one that peaked and declined.
+ *
+ * What is comparable across generations is a fixed opponent, which is what
+ * `yardstick.ts` is for and why it exists. Short of that, the last
+ * generation's best is the run's own current answer, which is at least an
+ * answer to a question somebody asked.
+ */
+export function finalist(run: RunRecord): { generation: number; individual: IndividualRecord } | null {
+  for (let g = run.generations.length - 1; g >= 0; g--) {
+    const generation = run.generations[g]!;
+    let best: IndividualRecord | null = null;
     for (const individual of generation.individuals) {
       if (individual.matches === 0) continue;
-      if (best === null || individual.fitness > best.individual.fitness) {
-        best = { generation: generation.index, individual };
-      }
+      if (best === null || individual.fitness > best.fitness) best = individual;
     }
+    if (best !== null) return { generation: generation.index, individual: best };
   }
-  return best;
+  return null;
 }
 
 /** How many matches a run fought, for reporting what it cost. */

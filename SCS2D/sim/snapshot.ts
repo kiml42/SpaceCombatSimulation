@@ -56,10 +56,18 @@ export interface ShipView {
    */
   integrity: number[];
   /**
-   * Whether the ship can no longer either move or shoot — a hulk (§4). What a
-   * camera uses to stop chasing wreckage, and a scenario to count survivors.
+   * Whether anybody is still aboard: a core with control left in it (§4).
+   *
+   * **This, and not whether the ship can fight, is what the view asks.** A
+   * hull with a sound core and nothing else is a ship — it can be pushed, it
+   * can be run into, it is somebody's, and in a race it is a competitor — so
+   * a camera that framed only what could shoot or move would leave a whole
+   * generation of engineless craft out of shot and draw them as wreckage. A
+   * ship that *can* neither move nor shoot is still a mission kill and still
+   * worth scoring as one; that is `Ships.isDisabled`, a question about the
+   * fight rather than about the picture.
    */
-  isDisabled: boolean;
+  hasControl: boolean;
   /**
    * Whether this is a piece of a ship rather than a ship: no working core, no
    * pilot, no guns. What a renderer uses to keep the arrowhead icon (§ icons)
@@ -189,7 +197,7 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
     turretReady: [],
     throttles: [],
     integrity: [],
-    isDisabled: false,
+    hasControl: true,
     isDerelict: false,
     turretDisabled: [],
   };
@@ -235,7 +243,7 @@ export function capture(
     view.angle = bodies.angle[b]!;
     view.vx = bodies.vx[b]!;
     view.vy = bodies.vy[b]!;
-    view.isDisabled = ships.isDisabled(i);
+    view.hasControl = ships.hasControl(i);
     view.isDerelict = ships.isDerelict(i);
 
     view.turretBearings.length = design.turrets.length;
@@ -258,9 +266,9 @@ export function capture(
       view.integrity[m] = ships.damage.integrity(b, m);
     }
 
-    // Only the ships still in the fight are framed: a camera that kept a dead
-    // hulk in shot would pull away from the battle to hold on wreckage.
-    if (!view.isDisabled) {
+    // Only the ships with somebody aboard are framed: a camera that kept
+    // wreckage in shot would pull away from the battle to hold on it.
+    if (view.hasControl) {
       const r = design.radius;
       if (view.x - r < minX) minX = view.x - r;
       if (view.y - r < minY) minY = view.y - r;
@@ -270,8 +278,8 @@ export function capture(
   }
   out.shipCount = n;
 
-  // Unless they are *all* hulks, in which case the wreckage is the battle and
-  // framing nothing would leave the camera with infinite bounds to fit.
+  // Unless every one of them is wreckage, in which case the wreckage is the
+  // battle and framing nothing would leave the camera with infinite bounds.
   if (n > 0 && minX === Infinity) {
     for (let i = 0; i < n; i++) {
       const view = out.ships[i]!;

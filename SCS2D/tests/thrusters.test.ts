@@ -310,6 +310,185 @@ describe('allocation', () => {
   });
 });
 
+describe('thrusters that undo each other', () => {
+  /**
+   * A bow pair as a real ship carries one: two engines abreast at the nose,
+   * thrusting across the hull in opposite directions, with the rest of the
+   * layout aft. Mirrored *nearly* rather than exactly, as a drawn ship is —
+   * the centre of mass does not sit on the axis to the last decimal — so the
+   * pair's moment arms differ in the fourth figure, which is the case this has
+   * to handle rather than the tidy one.
+   */
+  function bowPairLayout(): ThrusterLayout {
+    return new ThrusterLayout([
+      { x: 1049.8, y: 35, dirX: 0, dirY: -1, maxThrust: 6.4e6 },
+      { x: 1050.3, y: -35, dirX: 0, dirY: 1, maxThrust: 6.4e6 },
+      { x: -512.7, y: 181.5, dirX: 1, dirY: 0, maxThrust: 1.5e7 },
+      { x: -512.2, y: -181.5, dirX: 1, dirY: 0, maxThrust: 1.5e7 },
+      { x: -248.7, y: 495.5, dirX: -1, dirY: 0, maxThrust: 6.4e6 },
+      { x: -248.2, y: -495.5, dirX: -1, dirY: 0, maxThrust: 6.4e6 },
+    ]);
+  }
+
+  it('never lights both of a pair that cancels, however hard it is pushed', () => {
+    // Where this was found: a demand past what the layout can do saturates the
+    // search, and a thruster pinned at full is never reconsidered — so a later
+    // pass would open its opposite number to claw back what the pinned one was
+    // overproducing. Both alight, the ship no better off, and on a hull whose
+    // exhaust burns what it is pointed at, something behind them paying for it.
+    const layout = bowPairLayout();
+    const throttles = new Float64Array(layout.count);
+    const out = new Allocation();
+    const rng = new Rng(7);
+    const force = layout.maxThrustAlong(1, 0) * 1.5;
+    const torque = layout.maxTorque(1) * 1.5;
+
+    let worst = 0;
+    for (let i = 0; i < 4000; i++) {
+      layout.allocate(
+        rng.nextRange(-force, force),
+        rng.nextRange(-force, force),
+        rng.nextRange(-torque, torque),
+        throttles,
+        out,
+      );
+      // The bow pair. Whichever is doing less is doing nothing but cancel.
+      worst = Math.max(worst, Math.min(throttles[0]!, throttles[1]!));
+    }
+    expect(worst).toBeCloseTo(0, 9);
+  });
+
+  it('leaves a couple burning, which is how a ship turns on the spot', () => {
+    // The thing this must not break, and the reason the pairing is judged on
+    // the whole wrench rather than on which way a thruster pushes: these two
+    // push opposite ways and are *meant* to, because together they are torque
+    // and nothing else.
+    const layout = coupleLayout();
+    const throttles = new Float64Array(2);
+    const out = new Allocation();
+
+    layout.allocate(0, 0, -6000, throttles, out);
+
+    expectRelative(throttles[0]!, 0.6);
+    expectRelative(throttles[1]!, 0.6);
+    expectRelative(out.torque, -6000);
+    expectRelative(out.fx, 0);
+  });
+
+  it('takes nothing off a layout that has no pair to trim', () => {
+    // A guard against the trim reaching past the case it is for: the same
+    // sweep over a layout with no opposite pair in it must come out exactly as
+    // it did before there was a trim at all, which is what the invariants
+    // elsewhere in this file already pin.
+    const layout = new ThrusterLayout([
+      { x: -10, y: 0, dirX: 1, dirY: 0, maxThrust: 1000 },
+      { x: 0, y: 10, dirX: 1, dirY: 0, maxThrust: 1000 },
+      { x: 0, y: -10, dirX: 0, dirY: 1, maxThrust: 1000 },
+    ]);
+    const throttles = new Float64Array(3);
+    const out = new Allocation();
+    layout.allocate(1500, 400, 0, throttles, out);
+    let fx = 0;
+    for (let i = 0; i < 3; i++) fx += layout.wfx[i]! * throttles[i]!;
+    expectRelative(out.fx, fx);
+    expect(throttles.some((u) => u > 0)).toBe(true);
+  });
+});
+
+describe('torque worth asking for', () => {
+  /**
+   * A big engine almost in line with the centre of mass, and a small one well
+   * off it. The big one makes torque — a ship's centre of mass does not sit
+   * exactly where a designer drew the engine — but making it is a dreadful
+   * bargain: a sliver of turn for a whole engine's worth of thrust the rest of
+   * the layout has to cancel.
+   */
+  function nearCentrelineLayout(scale = 1): ThrusterLayout {
+    return new ThrusterLayout([
+      { x: -100 * scale, y: 0.05 * scale, dirX: 1, dirY: 0, maxThrust: 1e7 },
+      { x: 0, y: 40 * scale, dirX: 1, dirY: 0, maxThrust: 1e5 },
+      { x: 0, y: -40 * scale, dirX: 1, dirY: 0, maxThrust: 1e5 },
+    ]);
+  }
+
+  it('leaves an engine almost in line with the centre of mass out of the ceiling', () => {
+    const layout = nearCentrelineLayout();
+    // The main engine's arm is a twentieth of a metre against a reach of a
+    // hundred, so what it could add is not torque worth turning a ship with.
+    const fromTheSmallOnes = 40 * 1e5;
+    expectRelative(layout.maxTorque(1), fromTheSmallOnes);
+    expectRelative(layout.maxTorque(-1), fromTheSmallOnes);
+  });
+
+  it('still makes that torque when it fires, because the arm is real', () => {
+    // What is bounded is the demand, not the geometry. The engine is off the
+    // centreline, so firing it turns the ship, and every figure taken from the
+    // layout — what the body is pushed by, what the editor draws — is worked
+    // out from the same unchanged column.
+    const layout = nearCentrelineLayout();
+    // Its line passes 5 cm to port of the centre of mass, so it turns the ship
+    // the other way, gently, whenever it fires.
+    expectRelative(layout.wt[0]!, -1e7 * 0.05);
+    // The envelope the editor draws is the achievable set, and it still has
+    // the big engine's arm in it — that is the sense its line twists the ship
+    // in, and the set is larger than the ceiling by exactly its contribution.
+    expectRelative(layout.support(0, 0, -1), layout.maxTorque(-1) + 1e7 * 0.05);
+  });
+
+  it('is still trimmed out by the engines that do turn the ship', () => {
+    // The reason for leaving the column alone rather than deleting it. Asked
+    // to drive forward and not turn, the layout fires the big engine and pays
+    // the small ones to cancel the twist it comes with — which it could only
+    // do by knowing the twist was there.
+    const layout = nearCentrelineLayout();
+    const throttles = new Float64Array(3);
+    const out = new Allocation();
+
+    layout.allocate(1e7, 0, 0, throttles, out);
+
+    expect(throttles[0]!).toBeGreaterThan(0.9);
+    expect(Math.abs(out.torque)).toBeLessThan(1e-6 * Math.abs(layout.wt[0]!));
+    // And what is reported is what the throttles make, as ever.
+    let torque = 0;
+    for (let i = 0; i < 3; i++) torque += layout.wt[i]! * throttles[i]!;
+    expectRelative(out.torque, torque);
+  });
+
+  it('scales with the ship rather than with any fixed distance', () => {
+    // The same layout drawn a hundred times bigger has to reach the same
+    // verdict: a twentieth of a metre off a hundred-metre ship and five metres
+    // off a ten-kilometre one are the same ship, and the same bad bargain.
+    const small = nearCentrelineLayout(1);
+    const large = nearCentrelineLayout(100);
+    expectRelative(small.maxTorque(1) * 100, large.maxTorque(1));
+  });
+
+  it('asks for nothing from a layout whose only torque is rounding', () => {
+    // Two engines either side of the centre of mass and nothing else: a hull
+    // that genuinely cannot turn. Its arms are floating-point dust, and a
+    // ceiling taken from them had the pilot demanding half a nanonewton-metre
+    // and the layout running both engines flat out to make it.
+    const layout = new ThrusterLayout([
+      { x: -6, y: 0, dirX: 1, dirY: 0, maxThrust: 6e5 },
+      { x: 6, y: -0, dirX: -1, dirY: -0, maxThrust: 6e5 },
+    ]);
+    expect(layout.maxTorque(1)).toBe(0);
+    expect(layout.maxTorque(-1)).toBe(0);
+    expect(layout.hasFullAuthority()).toBe(false);
+  });
+
+  it('keeps a deliberately offset engine, however small the offset looks', () => {
+    // A metre off the centreline of a ten-metre boat is a real bargain, and
+    // the rule must not take it away just because a metre is a small number.
+    const layout = new ThrusterLayout([
+      { x: -5, y: 1, dirX: 1, dirY: 0, maxThrust: 1000 },
+      { x: -5, y: -1, dirX: 1, dirY: 0, maxThrust: 1000 },
+    ]);
+    expectRelative(layout.maxTorque(1), 1000);
+    expectRelative(layout.maxTorque(-1), 1000);
+  });
+});
+
 describe('capability envelope', () => {
   it('support agrees with the best throttle combination found by search', () => {
     const rng = new Rng(777);

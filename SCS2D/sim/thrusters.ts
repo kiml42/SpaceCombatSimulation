@@ -139,6 +139,47 @@ const DET_EPSILON = 1e-12;
  */
 const MAX_PASSES = 64;
 
+/**
+ * How nearly two thrusters must undo each other before firing both is called
+ * waste, as one minus the cosine between their columns.
+ *
+ * A pair is not judged on which way it pushes but on its whole wrench, so a
+ * genuine couple — bow and stern pushing opposite ways to turn a ship on the
+ * spot — is nowhere near this and is left alone. What the tolerance is for is
+ * that a mirrored pair is only *nearly* mirrored: a ship's centre of mass does
+ * not sit exactly on its axis, so two engines drawn symmetrically about the
+ * hull come out with moment arms differing in the fourth figure. A pair that
+ * close can do nothing together that one of them could not do alone.
+ */
+const OPPOSED_TOLERANCE = 1e-3;
+
+/**
+ * How far off the centre of mass a thrust line must pass before the pilot will
+ * ask that engine for torque, as a fraction of the layout's own reach.
+ *
+ * **A lever arm is torque bought per newton of unwanted force.** An engine
+ * whose line passes almost through the centre of mass is a dreadful way to
+ * turn: it delivers a sliver of torque and a whole engine's worth of thrust
+ * the rest of the layout then has to cancel. Worth nothing in fuel, and worth
+ * less than nothing once a plume is burning whatever stands behind it.
+ *
+ * The scale is the layout's own reach — the furthest any of its thrusters
+ * sits from the centre of mass — because what counts as a useful arm is a
+ * question about the size of the ship and nothing else. Measured on the ships
+ * as drawn, every deliberate arm is at least 11% of reach and the largest
+ * accidental one is 0.05%, so anything between leaves both sets alone; a
+ * hundredth sits in the middle of that gap and is a figure a person can say.
+ * On every hull but the Star Destroyer it also comes out below the half-metre
+ * grid the editor snaps to, so it cannot discard an arm a designer drew — or
+ * one the search found, which moves on the same grid.
+ *
+ * It bounds only what is *asked for*. What an engine does when it fires is
+ * untouched: the torque is real, the ship feels it, the allocator still
+ * accounts for it and trims it with the engines that turn the ship properly,
+ * and the envelope the editor draws is the same envelope as before.
+ */
+const USEFUL_ARM_FRACTION = 0.01;
+
 
 export class ThrusterLayout {
   readonly count: number;
@@ -182,6 +223,22 @@ export class ThrusterLayout {
   /** Indices still free this pass; refilled each pass, never allocated. */
   private readonly freeIdx: Int32Array;
 
+  /**
+   * For each thruster, one whose wrench is the exact opposite of its own, or
+   * -1. A property of the geometry, so it is found once when the layout is
+   * built — see `trim`, which is the whole reason it is wanted.
+   */
+  private readonly opposite: Int32Array;
+  /** Column magnitudes, in the preconditioned units the pairing is judged in. */
+  private readonly size: Float64Array;
+
+  /**
+   * Whether each thruster's lever arm is long enough to be worth turning the
+   * ship with — see `USEFUL_ARM_FRACTION`. Read only by `maxTorque`, which is
+   * the ceiling the pilot holds its demand under.
+   */
+  private readonly worthTurning: Uint8Array;
+
   constructor(specs: readonly ThrusterSpec[]) {
     const n = specs.length;
     this.count = n;
@@ -196,6 +253,9 @@ export class ThrusterLayout {
     this.wts = new Float64Array(n);
     this.pinned = new Uint8Array(n);
     this.freeIdx = new Int32Array(n);
+    this.opposite = new Int32Array(n).fill(-1);
+    this.size = new Float64Array(n);
+    this.worthTurning = new Uint8Array(n);
 
     for (let i = 0; i < n; i++) {
       const s = specs[i]!;
@@ -234,6 +294,47 @@ export class ThrusterLayout {
     // torque column is zero, so any factor gives the same zeros.
     this.torqueScale = forceSq > 0 && torqueSq > 0 ? sqrt(forceSq / torqueSq) : 1;
     for (let i = 0; i < n; i++) this.wts[i] = this.wt[i] * this.torqueScale;
+
+    // Which thrusters are each other's opposites, which is what `trim` needs.
+    // Judged on the preconditioned columns, so that "opposite" means the whole
+    // wrench and not merely the direction of push: a bow thruster and a stern
+    // one pushing opposite ways are *not* opposites, they are a couple, which
+    // is how a ship turns without going anywhere.
+    for (let i = 0; i < n; i++) {
+      this.size[i] = sqrt(
+        this.wfx[i]! * this.wfx[i]! + this.wfy[i]! * this.wfy[i]! + this.wts[i]! * this.wts[i]!,
+      );
+    }
+    for (let i = 0; i < n; i++) {
+      if (this.size[i]! <= 0) continue;
+      let best = -1;
+      let closest = -1 + OPPOSED_TOLERANCE;
+      for (let k = 0; k < n; k++) {
+        if (k === i || this.size[k]! <= 0) continue;
+        const dot =
+          (this.wfx[i]! * this.wfx[k]! + this.wfy[i]! * this.wfy[k]! + this.wts[i]! * this.wts[k]!) /
+          (this.size[i]! * this.size[k]!);
+        if (dot < closest) {
+          closest = dot;
+          best = k;
+        }
+      }
+      this.opposite[i] = best;
+    }
+
+    // Which thrusters are worth asking for torque. Taken from the geometry
+    // alone, so damage — which only ever takes thrust off a mount, never moves
+    // one — cannot change the answer mid-battle.
+    let reach = 0;
+    for (let i = 0; i < n; i++) {
+      const r = sqrt(this.px[i]! * this.px[i]! + this.py[i]! * this.py[i]!);
+      if (r > reach) reach = r;
+    }
+    const useful = USEFUL_ARM_FRACTION * reach;
+    for (let i = 0; i < n; i++) {
+      const arm = this.px[i]! * this.dirY[i]! - this.py[i]! * this.dirX[i]!;
+      this.worthTurning[i] = (arm < 0 ? -arm : arm) >= useful ? 1 : 0;
+    }
 
     this.buildInverse(this.inv, -1);
   }
@@ -458,6 +559,8 @@ export class ThrusterLayout {
       else if (u > 1) throttles[i] = 1;
     }
 
+    this.trim(throttles);
+
     // Report what the throttles actually produce, rather than what was asked
     // for or what the solve believed: the two part company under saturation.
     let fx = 0;
@@ -476,6 +579,52 @@ export class ThrusterLayout {
     out.fx = fx;
     out.fy = fy;
     out.torque = torque;
+  }
+
+  /**
+   * Take off any throttle a pair of opposite thrusters is spending on each
+   * other.
+   *
+   * **Two engines that undo each other are burning for nothing**, and the
+   * search can leave them that way: redistribution pins a thruster at full and
+   * never reconsiders it, so a later pass is free to open its opposite number
+   * to claw back what the pinned one is overproducing. Both end up alight, the
+   * ship goes exactly where it was going anyway, and the fuel — and, since a
+   * plume burns what it is pointed at, whatever is standing behind them — pays
+   * for it. Measured on the Star Destroyer, whose bow pair is the case this was
+   * found in: a quarter of all demands lit both, up to a whole engine's 6.45 MN
+   * cancelled.
+   *
+   * Taking it off is exact rather than a guess. The pair's columns are
+   * opposite, so there is a reduction of both that leaves the wrench where it
+   * is: back each off in proportion to the *other's* strength, as far as the
+   * weaker one allows. What is left is strictly less throttle for the same
+   * push, so this can only improve the answer — which is why it is done here,
+   * after the search, rather than by teaching the search not to get here.
+   *
+   * It is a pairwise rule and makes no claim beyond that. Three or more
+   * thrusters can in principle be wasteful together without any two of them
+   * being opposites; no layout drawn by hand or bred so far does it, and
+   * finding the general case is a linear program rather than a loop.
+   */
+  private trim(throttles: Float64Array): void {
+    const n = this.count;
+    for (let i = 0; i < n; i++) {
+      const k = this.opposite[i]!;
+      // Each pair is met twice; take it the first time and leave the second.
+      if (k <= i) continue;
+      const ui = throttles[i]!;
+      const uk = throttles[k]!;
+      if (ui <= 0 || uk <= 0) continue;
+      // Both back off along the one direction that changes nothing: `i` by the
+      // strength of `k` and `k` by the strength of `i`, so the two reductions
+      // cancel in the wrench exactly as the columns do.
+      const si = this.size[i]!;
+      const sk = this.size[k]!;
+      const step = ui / sk < uk / si ? ui / sk : uk / si;
+      throttles[i] = ui - step * sk;
+      throttles[k] = uk - step * si;
+    }
   }
 
   /**
@@ -575,9 +724,27 @@ export class ThrusterLayout {
     return this.support(dirX / len, dirY / len, 0);
   }
 
-  /** Greatest torque available in the given sense (+1 or −1), ignoring force. */
+  /**
+   * Greatest torque worth asking this layout for in the given sense (+1 or
+   * −1), ignoring force.
+   *
+   * Counts only the thrusters whose lever arms make them worth turning a ship
+   * with (`USEFUL_ARM_FRACTION`). It is a ceiling on the *demand* rather than a
+   * statement about what the hull can physically be made to do: an engine
+   * almost in line with the centre of mass still makes its sliver of torque
+   * when it fires, and the allocator still sees it and trims it. What this
+   * stops is a pilot asking for that sliver and the layout spending an engine
+   * to produce it.
+   */
   maxTorque(sense: number): number {
-    return this.support(0, 0, sense >= 0 ? 1 : -1);
+    const dir = sense >= 0 ? 1 : -1;
+    let total = 0;
+    for (let i = 0; i < this.count; i++) {
+      if (this.worthTurning[i] === 0) continue;
+      const projection = this.wt[i]! * dir;
+      if (projection > 0) total += projection;
+    }
+    return total;
   }
 
   /**
