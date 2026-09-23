@@ -16,8 +16,13 @@ import {
   toDoctrine,
   type Doctrine,
 } from '../sim/doctrine.js';
-import { abs, cos, max, PI, round, sin } from '../sim/math.js';
-import { moduleCentre, type ModuleKind, type ModuleSpec } from '../sim/modules.js';
+import { abs, clamp, cos, max, PI, round, sin } from '../sim/math.js';
+import {
+  DEFAULT_NOZZLE_SHARE,
+  moduleCentre,
+  type ModuleKind,
+  type ModuleSpec,
+} from '../sim/modules.js';
 import type { Rng } from '../sim/rng.js';
 
 /**
@@ -265,6 +270,7 @@ type Knob =
   | { readonly at: 'doctrine'; readonly half: 'targeting' | 'approach'; readonly field: string }
   | { readonly at: 'reinforcement'; readonly site: ModuleSite }
   | { readonly at: 'barrels'; readonly site: ModuleSite }
+  | { readonly at: 'nozzle'; readonly site: ModuleSite }
   | { readonly at: 'weapon'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
@@ -306,7 +312,9 @@ function knobs(draft: Draft): Knob[] {
         out.push({ at: 'barrels', site });
       }
       if (placement.kind === 'thruster') {
-        out.push({ at: 'weapon', site });
+        // An engine's outlets are counted by the same field a gun's barrels
+        // are, so a cluster is something a line can find.
+        out.push({ at: 'weapon', site }, { at: 'barrels', site }, { at: 'nozzle', site });
       }
     }
   }
@@ -321,6 +329,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return reinforce(knob.site, rng, bounds);
     case 'barrels':
       return rebarrel(knob.site, rng);
+    case 'nozzle':
+      return rebell(knob.site, rng, bounds);
     case 'weapon':
       return rearm(knob.site);
     case 'angle':
@@ -397,6 +407,22 @@ function rebarrel(site: ModuleSite, rng: Rng): string | null {
   if (now === was) return null;
   site.spec.barrels = now;
   return `${site.where} ${site.spec.kind}: barrels ${was} → ${now}`;
+}
+
+/**
+ * Lengthen or shorten an engine's bell.
+ *
+ * A share of the engine's length rather than a length, so the knob means the
+ * same thing on a fighter's thruster and a capital's, and held off both ends:
+ * an engine that is all bell has no chamber, and the layout rules would
+ * refuse it rather than teach the search anything.
+ */
+function rebell(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const was = site.spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
+  const now = tidy(clamp(was + bounds.magnitude * rng.nextRange(-1, 1), 0, 0.9), 3);
+  if (now === was) return null;
+  site.spec.nozzle = now;
+  return `${site.where} ${site.spec.kind}: nozzle ${was} → ${now}`;
 }
 
 /**

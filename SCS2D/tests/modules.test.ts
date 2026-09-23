@@ -11,6 +11,7 @@ import {
   CORE_MASS_PER_AREA,
   CORE_MINIMUM_FITTING_MASS,
   DECK_HEIGHT,
+  ENGINE_MASS_PER_NEWTON,
   gunStats,
   beamGunStats,
   GunType,
@@ -107,19 +108,73 @@ describe('module geometry', () => {
 });
 
 describe('thruster scaling', () => {
-  it('takes thrust from the exit area, so width is what buys it', () => {
-    const narrow = moduleStats(box('thruster', 6, 2));
-    const wide = moduleStats(box('thruster', 6, 4));
-    const long = moduleStats(box('thruster', 12, 2));
+  /** The same engine, with its bell forced so only the exit area differs. */
+  const engine = (length: number, width: number, nozzle = 0.5, barrels?: number): ModuleSpec => ({
+    ...box('thruster', length, width),
+    nozzle,
+    ...(barrels === undefined ? {} : { barrels }),
+  });
 
-    expect(wide.thrust).toBeCloseTo(2 * narrow.thrust, 6);
-    expect(long.thrust).toBeCloseTo(narrow.thrust, 6);
+  it('takes the gas it has to throw from the exit area, so width is what buys it', () => {
+    // Doubling the width doubles the exit area and so doubles what the engine
+    // has to work with. What comes out of it is that times the bell's own
+    // efficiency, which is why this is stated against the machinery mass —
+    // the one figure priced on the throughput alone.
+    const narrow = moduleStats(engine(6, 2));
+    const wide = moduleStats(engine(6, 4));
+    const long = moduleStats(engine(12, 2));
+
+    expect(wide.fittingMass).toBeCloseTo(2 * narrow.fittingMass, 6);
+    expect(long.fittingMass).toBeCloseTo(narrow.fittingMass, 6);
+  });
+
+  it('keeps a share of it set by the bell, from half at no bell to nearly all', () => {
+    // The divergence correction, which is the whole of what a nozzle's length
+    // is for: gas leaving a flared bell goes sideways. A bare throat throws
+    // half of everything away; length recovers it, steeply at first.
+    const none = moduleStats(engine(6, 2, 0));
+    const some = moduleStats(engine(6, 2, 0.25));
+    const most = moduleStats(engine(6, 2, 0.75));
+
+    expect(none.thrust).toBeCloseTo(none.fittingMass / ENGINE_MASS_PER_NEWTON / 2, 6);
+    expect(some.thrust).toBeGreaterThan(none.thrust);
+    expect(most.thrust).toBeGreaterThan(some.thrust);
+    // Diminishing: the first quarter of bell is worth far more than the third.
+    expect(some.thrust - none.thrust).toBeGreaterThan((most.thrust - some.thrust) * 2);
+    expect(most.thrust).toBeLessThan(most.fittingMass / ENGINE_MASS_PER_NEWTON);
+  });
+
+  it('lets a cluster of small bells do in a stub what one wide bell cannot', () => {
+    // A narrow nozzle collimates in a fraction of the length, so dividing the
+    // face is how a short engine gets a good bell. Same exit area either way,
+    // so this is expansion and not extra power.
+    const one = moduleStats(engine(6, 8, 0.2));
+    const four = moduleStats(engine(6, 8, 0.2, 4));
+    expect(four.fittingMass).toBeCloseTo(one.fittingMass, 6);
+    expect(four.thrust).toBeGreaterThan(one.thrust * 1.2);
+  });
+
+  it('makes a long-belled engine the lighter and the more fragile one', () => {
+    // A bell is sheet in the exhaust rather than a walled box, so trading
+    // machinery for nozzle takes mass off — and takes the hit points with it.
+    const stubby = moduleStats(engine(6, 2, 0.1));
+    const belled = moduleStats(engine(6, 2, 0.8));
+    expect(belled.mass).toBeLessThan(stubby.mass);
+    expect(belled.hitPoints).toBeLessThan(stubby.hitPoints);
+    expect(belled.capacity).toBeLessThan(stubby.capacity);
   });
 
   it('charges machinery mass for the thrust it produces', () => {
-    const narrow = moduleStats(box('thruster', 6, 2));
+    const narrow = moduleStats(engine(6, 2));
     expect(narrow.fittingMass).toBeGreaterThan(0);
     expect(narrow.mass).toBeGreaterThan(narrow.structureMass);
+  });
+
+  it('refuses an engine that is all bell, and one whose nozzle is out of range', () => {
+    expect(moduleProblem(engine(6, 2, 0.999))).toMatch(/no interior/);
+    expect(moduleProblem({ ...box('thruster', 6, 2), nozzle: 1 })).toMatch(/0 to under 1/);
+    expect(moduleProblem({ ...box('thruster', 6, 2), nozzle: -0.1 })).toMatch(/0 to under 1/);
+    expect(moduleProblem({ ...box('structure', 6, 2), nozzle: 0.5 })).toMatch(/only a thruster/);
   });
 
   it('gives a structure module no thrust and no gun', () => {

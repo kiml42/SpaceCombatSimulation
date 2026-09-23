@@ -115,11 +115,21 @@ describe('blueprint validation', () => {
       ).toMatch(/no structure to push against/);
     });
 
-    it('rejects one that touches the hull only along its side', () => {
-      // Contact is not enough — it has to be contact in the right place, which
-      // is why this is not simply an "is it attached to anything" test.
-      const sideOn: ModuleSpec = { kind: 'thruster', x: 0, y: 3, angle: 0, length: 2, width: 2 };
-      expect(blueprintProblem({ name: 'Sideways', modules: [hull, sideOn] })).toMatch(
+    it('accepts one welded on by its machinery\'s flank', () => {
+      // An engine is held on by its machinery block, and a block welded to
+      // hull along its side is delivering its thrust to the ship as surely as
+      // one bolted on by its nose. This is what lets an engine be let into a
+      // hull rather than only stuck on an end of it.
+      const flank: ModuleSpec = { kind: 'thruster', x: 2, y: 3, angle: 0, length: 2, width: 2 };
+      expect(blueprintProblem({ name: 'Flank', modules: [hull, flank] })).toBeNull();
+    });
+
+    it('rejects one held on by nothing but its bell', () => {
+      // The one face that cannot hold an engine on: contact there is contact
+      // in the exhaust. Far enough aft that its flanks meet nothing, so the
+      // only thing touching hull is the mouth of the nozzle.
+      const bellFirst: ModuleSpec = { kind: 'thruster', x: -9, y: 0, angle: PI, length: 4, width: 4 };
+      expect(blueprintProblem({ name: 'Bell', modules: [hull, bellFirst] })).toMatch(
         /no structure to push against/,
       );
     });

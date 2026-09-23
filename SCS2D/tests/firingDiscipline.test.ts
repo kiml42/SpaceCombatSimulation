@@ -10,6 +10,7 @@ import {
   RayHit,
   Ships,
   SpatialGrid,
+  type BodyId,
   World,
   type ShipDesign,
 } from '../sim/index.js';
@@ -188,6 +189,14 @@ describe('a beam with somebody in the way', () => {
   });
 });
 
+/** Which ship a body belongs to, or -1 if none of the live ones do. */
+function shipOf(run: { ships: Ships; world: { bodies: { indexOf(id: BodyId): number } } }, body: number): number {
+  for (let s = 0; s < run.ships.highWater; s++) {
+    if (run.ships.isAlive(s) && run.world.bodies.indexOf(run.ships.body(s)) === body) return s;
+  }
+  return -1;
+}
+
 describe('a fleet in line ahead', () => {
   /**
    * Same fleets as `standoff`, turned ninety degrees: every ship but the
@@ -196,12 +205,6 @@ describe('a fleet in line ahead', () => {
    */
   it('does not shoot up its own line while the formation holds', () => {
     const run = column();
-    const shipOf = (body: number): number => {
-      for (let s = 0; s < run.ships.highWater; s++) {
-        if (run.ships.isAlive(s) && run.world.bodies.indexOf(run.ships.body(s)) === body) return s;
-      }
-      return -1;
-    };
 
     let ownSide = 0;
     let landed = 0;
@@ -211,8 +214,8 @@ describe('a fleet in line ahead', () => {
     for (let step = 0; step < 600; step++) {
       run.step();
       for (let h = 0; h < run.hits.count; h++) {
-        const shooter = shipOf(run.projectiles.owner[run.hits.projectile[h]!]!);
-        const victim = shipOf(run.hits.body[h]!);
+        const shooter = shipOf(run, run.projectiles.owner[run.hits.projectile[h]!]!);
+        const victim = shipOf(run, run.hits.body[h]!);
         if (shooter < 0 || victim < 0) continue;
         landed++;
         if (run.ships.teamOf(shooter) === run.ships.teamOf(victim)) ownSide++;
@@ -220,8 +223,13 @@ describe('a fleet in line ahead', () => {
     }
 
     // The fleets really are shooting: this is a rule holding fire, not a
-    // scenario where nothing happens.
-    expect(run.totalProjectilesFired).toBeGreaterThan(50);
+    // scenario where nothing happens. A floor rather than a figure, because
+    // how many rounds this window catches depends on how fast the columns
+    // close, and that moves with every change to what an engine delivers. The
+    // window itself cannot move: by eight hundred steps the files have drifted
+    // through each other and the own-side count is a dozen, which is the
+    // paragraph above rather than a broken rule.
+    expect(run.totalProjectilesFired).toBeGreaterThan(40);
     expect(landed).toBeGreaterThan(25);
     // Around twenty without the rule. Not zero with it, because the check is
     // made at the trigger and not for the whole flight of the round: half a
@@ -242,41 +250,62 @@ describe('a gun and the target it was trained on', () => {
    * trained, and that is what fires.
    */
   it('never fires wide of what it is aiming at', () => {
+    // Measured on the rounds that actually leave, rather than on the mounts
+    // that could fire: a mount held at the end of its arc reads as on target,
+    // because what it is on is the bearing it was *commanded*, and sampling
+    // those makes this a test of where a fighter's nose happens to be
+    // pointing. What the rule is about is the round.
     const run = swarm();
     const bodies = run.world.bodies;
+    const projectiles = run.projectiles;
+    const seen = new Set<number>();
     let worst = 0;
     let worstAt = '';
+    let rounds = 0;
 
     for (let step = 0; step < 1200; step++) {
       run.step();
-      for (let s = 0; s < run.ships.highWater; s++) {
-        if (!run.ships.isAlive(s) || run.ships.isDerelict(s)) continue;
-        const design = run.ships.design(s);
+      for (let k = 0; k < projectiles.highWater; k++) {
+        // A slot is reused once its round is gone, so a slot falling empty is
+        // what says the next round in it is a new one.
+        if (projectiles.alive[k] === 0) {
+          seen.delete(k);
+          continue;
+        }
+        if (seen.has(k)) continue;
+        seen.add(k);
+        const shooter = shipOf(run, projectiles.owner[k]!);
+        if (shooter < 0) continue;
+        const own = bodies.indexOf(run.ships.body(shooter));
+        if (own < 0) continue;
+        const design = run.ships.design(shooter);
+        const heading = Math.atan2(projectiles.vy[k]!, projectiles.vx[k]!);
+        // Against the nearest of what the ship's mounts are aiming at: which
+        // mount fired is not recorded on the round, and a round that lines up
+        // with none of them is the failure this is looking for.
+        let off = Math.PI;
         for (let t = 0; t < design.turrets.length; t++) {
-          const ti = run.ships.turretIndexOf(s, t);
-          // Ready to fire is the moment that matters: it is the only state
-          // from which a round leaves.
-          if (!run.ships.turrets.readyToFire(ti)) continue;
-          const target = run.ships.targetOfTurret(bodies, s, t);
+          const target = run.ships.targetOfTurret(bodies, shooter, t);
           if (target < 0) continue;
           const tb = bodies.indexOf(run.ships.body(target));
-          const own = bodies.indexOf(run.ships.body(s));
-          if (tb < 0 || own < 0) continue;
+          if (tb < 0) continue;
           const wanted = Math.atan2(bodies.y[tb]! - bodies.y[own]!, bodies.x[tb]! - bodies.x[own]!);
-          const off = Math.abs(math.angleDelta(run.ships.turrets.worldBearing(bodies, ti), wanted));
-          if (off <= worst) continue;
-          worst = off;
-          worstAt = `${design.name} mount ${t} on ${run.ships.design(target).name}, step ${step}`;
+          off = Math.min(off, Math.abs(math.angleDelta(heading, wanted)));
         }
+        rounds++;
+        if (off <= worst) continue;
+        worst = off;
+        worstAt = `${design.name}, step ${step}`;
       }
     }
 
-    // Leading a crossing target is a real angle off its present position —
-    // tens of degrees for a fighter shooting across a battle — but pointing
-    // the other way is not lead, it is a stale answer.
+    // Leading a crossing target is a real angle off its present position — a
+    // few degrees for a fighter shooting across a battle — but pointing the
+    // other way is not lead, it is a stale answer, and that is what the bound
+    // is set to catch rather than the lead itself.
     // Asserted with a message, because a bare number here says nothing about
-    // which gun on which ship was pointing the wrong way.
-    assert.isBelow(worst * (180 / Math.PI), 45, `worst was ${worstAt}`);
-    expect(run.totalProjectilesFired).toBeGreaterThan(100);
+    // which ship put a round somewhere over its own shoulder.
+    assert.isBelow(worst * (180 / Math.PI), 20, `worst was ${worstAt}`);
+    expect(rounds).toBeGreaterThan(100);
   });
 });

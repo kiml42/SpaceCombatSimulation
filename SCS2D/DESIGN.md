@@ -162,6 +162,14 @@ inside any one file is not contiguous.
   changes every copy and a wing that grows a gun grows it on both wings. Whether a generation is structural
   is settled before the retrying starts rather than inside it, which is what stops the rare, hard edit being
   crowded out by the common, easy one; and a child is written back to a file the editor opens.
+  **An engine has a nozzle rather than being one.** A thruster's length divides between a machinery block
+  and a bell, and the bell's share is the knob: a long one is lighter, keeps more of the thrust pointed
+  the right way and throws a longer flame, while the block is what has hit points and what the engine is
+  welded on by — on any face but the exhaust. The exit may be divided between several nozzles, on the same
+  field a gun counts barrels with, and the count buys expansion rather than power. It cost the shipped
+  fleet thrust: their engines are wide and short, which is a bad bell, and a corvette lost 3% of its
+  acceleration and a fighter 19%. That is the law being right about hulls drawn before it existed — the
+  answer for them is a cluster of small bells, which is a change to the ships rather than to the law.
 - **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. After it comes headless evolution and analysis. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
@@ -351,13 +359,32 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   through a ship. Half to each hull, which needs no rule about which is the harder: a module's capacity
   goes with its mass, so the same energy that dents a capital ship destroys the fighter that flew into
   it. That is what makes §3's strike craft literal — a torpedo is a fighter that crashes into things.
-- **An engine burns and shoves what it is pointed at.** A plume reaches back from the nozzle as far as the
-  thrust being produced, and the first thing standing in it takes the engine's power — at full strength
-  against the nozzle, falling off to nothing at the flame's end — and the exhaust's momentum with it, so a
-  plume on a hull's flank spins it as well as drives it away. The flame is sampled by **three rays across
-  the nozzle**, each carrying a third of the gas and reaching as far as the drawn plume does at its own
-  offset, which is a third of the way out for the two at the edges. So a plume is wide at the nozzle and a
-  thin core further out, and something beside the axis is burnt rather than missed.
+- **An engine is a machinery block with a bell on the back of it**, not a nozzle with a plume coming out.
+  The block holds the chamber and the pumps, is what the engine is welded to the ship by, and is the part
+  that has walls, an interior and hit points; the bell is sheet metal in the exhaust that can be bolted to
+  nothing. How the engine's length divides between them is the designer's, and it is the one knob on a
+  thruster that is not simply "make it bigger". **Its length buys expansion**: gas leaving a bell of
+  half-angle `a` keeps `(1 + cos a) / 2` of its momentum along the axis and throws the rest sideways, so a
+  bare throat loses half of everything and length recovers it — steeply at first and then barely, which is
+  what stops an engine being all nozzle. The same number sets how far the flame carries, since a jet
+  already flying apart spreads to nothing close in. **The exit face may be divided between several
+  nozzles**, counted by the field a turret's barrels are counted by and called Nozzles in the editor. They
+  share one chamber and divide one exit area, so the count is never free power — what a cluster buys is
+  that a narrow bell collimates in a fraction of the length a wide one needs, which is how a stubby engine
+  gets a good nozzle, and a flame combed into fingers rather than thrown as one sheet.
+- **An engine is held on by its machinery, on any face but the one it exhausts through.** Nose or either
+  flank: a block welded to hull along its side delivers its thrust as surely as one bolted on by its
+  front, so an engine can be let into a hull rather than only stuck on an end of it. The exhaust face is
+  the exception because a weld there is a weld in the flame.
+- **An engine burns and shoves what it is pointed at.** A plume reaches back from each nozzle as far as the
+  thrust being produced and the bell allows, and the first thing standing in it takes the engine's power —
+  at full strength against the nozzle, falling off to nothing at the flame's end — and the exhaust's
+  momentum with it, so a plume on a hull's flank spins it as well as drives it away. Each flame is sampled
+  by **three rays across its own nozzle**, each carrying an equal share of the gas and reaching as far as
+  the drawn plume does at its own offset, which is a third of the way out for the two at the edges. So a
+  plume is wide at the nozzle and a thin core further out, and something beside the axis is burnt rather
+  than missed. Per nozzle rather than per engine, because three rays stretched across a cluster's whole
+  face would fall in the gaps between its flames.
 - **An engine gets no thrust for exhaust it fires into itself.** A ray that runs into the ship's own hull
   hands its momentum back to the hull it was pushing: the push on the blocked module and the thrust off
   the nozzle are the same newton-seconds with opposite signs, so that third of the engine is not thrust at

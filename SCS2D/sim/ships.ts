@@ -3,8 +3,9 @@ import { subDesign, type DesignTurret, type ShipDesign } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
-import { PLUME_RAYS, Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
+import { plumeRays, Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
 import { Choice, look, lookFrom, score } from './targeting.js';
+import { thrusterGeometry } from './modules.js';
 import {
   atan2,
   angleDelta,
@@ -1632,7 +1633,9 @@ export class Ships {
       // burning as one dead astern, and the rays exist precisely so that the
       // flame's width counts.
       let worth = false;
-      for (let ray = 0; ray < PLUME_RAYS && !worth; ray++) {
+      const engine = design.modules[design.thrusters[t]?.module ?? -1];
+      const rays = engine === undefined ? 0 : plumeRays(thrusterGeometry(engine.spec));
+      for (let ray = 0; ray < rays && !worth; ray++) {
         if (!this.plumes.cast(design, t, ray, force, bodies, b, grid, this.hulls)) continue;
         if (this.plumes.share < WEAPON_PLUME_SHARE) continue;
         if (this.plumes.body === b) continue;

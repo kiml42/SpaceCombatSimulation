@@ -1,4 +1,5 @@
 import {
+  DEFAULT_NOZZLE_SHARE,
   degreesToRadians,
   MAX_REPEAT,
   math,
@@ -88,10 +89,13 @@ function el<T extends HTMLElement>(id: string): T {
   return found as T;
 }
 
+type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle';
+
 /** A module's own value for a field, with the default the parser would have applied. */
-function moduleField(spec: ModuleSpec, key: 'angle' | 'reinforcement' | 'barrels'): number {
+function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   if (key === 'angle') return radiansToDegrees(spec.angle ?? 0);
   if (key === 'reinforcement') return spec.reinforcement ?? 1;
+  if (key === 'nozzle') return spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
   return spec.barrels ?? 1;
 }
 
@@ -163,6 +167,7 @@ export function startEditor(): void {
     width: el<HTMLInputElement>('propWidth'),
     reinforcement: el<HTMLInputElement>('propReinforcement'),
     barrels: el<HTMLInputElement>('propBarrels'),
+    nozzle: el<HTMLInputElement>('propNozzle'),
     notes: el<HTMLTextAreaElement>('propNotes'),
   };
 
@@ -499,9 +504,15 @@ export function startEditor(): void {
         input.value = String(at === null ? 0 : key === 'x' ? at.x : at.y);
       }
       else if (key === 'length' || key === 'width') input.value = String(spec[key]);
-      else input.value = String(moduleField(spec, key as 'angle' | 'reinforcement' | 'barrels'));
+      else input.value = String(moduleField(spec, key as ModuleNumberField));
     }
-    el<HTMLElement>('barrelsRow').hidden = spec.kind !== 'turret';
+    // One field, two things it is called: a gun's outlets are barrels and an
+    // engine's are nozzles, and a designer should not have to know they are
+    // the same number to use either.
+    const nozzles = spec.kind === 'thruster';
+    el<HTMLElement>('barrelsRow').hidden = !nozzles && spec.kind !== 'turret';
+    el<HTMLElement>('barrelsLabel').textContent = nozzles ? 'nozzles' : 'barrels';
+    el<HTMLElement>('nozzleRow').hidden = !nozzles;
     // Only an engine has a plume to point.
     el<HTMLElement>('weaponRow').hidden = spec.kind !== 'thruster';
     weaponInput.checked = spec.weapon === true;

@@ -44,11 +44,17 @@ export {
 } from './thrusters.js';
 export {
   DECK_HEIGHT,
+  DEFAULT_NOZZLE_SHARE,
+  NOZZLE_SKIN_FRACTION,
+  NOZZLE_THROAT_FRACTION,
   gunStats,
   beamGunStats,
   moduleCentre,
   moduleProblem,
   moduleStats,
+  nozzleOffset,
+  thrusterGeometry,
+  thrusterMachinery,
   traverseAccel,
   traverseRate,
   TRAVERSE_SPINUP_TIME,
@@ -56,6 +62,7 @@ export {
   type ModuleKind,
   type ModuleSpec,
   type ModuleStats,
+  type ThrusterGeometry,
 } from './modules.js';
 export { HullPath, Hulls, modulesAlong, type HullDesigns } from './hull.js';
 export {
@@ -65,6 +72,8 @@ export {
   PLUME_THRUST_PER_AREA,
   Plumes,
   WEAPON_PLUME_SHARE,
+  nozzleReach,
+  plumeRays,
   plumeReach,
   rayOffset,
   rayReach,

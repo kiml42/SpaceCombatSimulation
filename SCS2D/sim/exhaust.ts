@@ -3,6 +3,7 @@ import type { ShipDesign } from './blueprint.js';
 import type { Damage } from './damage.js';
 import { HullPath, modulesAlong, type Boxes, type Hulls } from './hull.js';
 import { cos, sin, sqrt } from './math.js';
+import { nozzleOffset, thrusterGeometry, type ThrusterGeometry } from './modules.js';
 import { RayHit, type SpatialGrid } from './spatialGrid.js';
 
 /**
@@ -70,10 +71,22 @@ export const PLUME_POWER_PER_NEWTON = 4;
 /**
  * How far a plume reaches along its axis, metres. Zero for an engine that is
  * not burning.
+ *
+ * **The bell sets the rest of it.** Gas leaving a divergent nozzle is already
+ * flying apart as it goes, so it spreads to nothing in a fraction of the
+ * distance a collimated jet carries — the same `divergence` that says how much
+ * of the thrust survives says how far what does survive gets. A well-belled
+ * engine therefore throws the long, thin flame, and one with the bell blown
+ * off a stub of fire it can barely burn its own hull with.
+ *
+ * Engines of the same bell still all reach the same length at full throttle,
+ * whatever their size and however many nozzles they are divided into: thrust
+ * scales with exit area, so thrust per unit width is a constant of the
+ * technology. That is what a shared exhaust velocity should look like.
  */
-export function plumeReach(force: number, exitWidth: number): number {
+export function plumeReach(force: number, exitWidth: number, divergence = 1): number {
   if (!(force > 0) || !(exitWidth > 0)) return 0;
-  return force / (exitWidth * PLUME_THRUST_PER_AREA);
+  return (force * divergence) / (exitWidth * PLUME_THRUST_PER_AREA);
 }
 
 /**
@@ -99,26 +112,52 @@ export const PLUME_RAYS = 3;
 const RAY_OFFSET: readonly number[] = [-1 / 3, 0, 1 / 3];
 
 /**
- * How far one ray reaches, given the reach along the axis.
+ * How many rays an engine's exhaust is sampled by: `PLUME_RAYS` for each of
+ * its nozzles.
  *
- * **Derived from the drawn plume rather than chosen**, so the picture and the
- * burn cannot part company: the flame is a triangle as wide as the exit,
- * narrowing to a point at `reach`, so at an offset `y` from the axis it ends
- * where the triangle's half-width has shrunk to `y` — a third of the way out
- * for the rays at a third of the width. A plume is therefore wide at the
- * nozzle and a thin core further out, which is what a wedge-shaped flame
- * should do and what a single ray could not express.
+ * Per nozzle rather than per engine, because a cluster is a row of separate
+ * flames with ship's-eye gaps between them, and three rays stretched across
+ * the whole face would fall where the fire is not.
  */
-export function rayReach(ray: number, reach: number): number {
-  const offset = RAY_OFFSET[ray];
-  if (offset === undefined) return 0;
-  const edge = 1 - 2 * (offset < 0 ? -offset : offset);
-  return edge > 0 ? reach * edge : 0;
+export function plumeRays(geometry: ThrusterGeometry): number {
+  return PLUME_RAYS * geometry.nozzles;
 }
 
-/** Where a ray leaves the nozzle, in metres across it from the axis. */
-export function rayOffset(ray: number, exitWidth: number): number {
-  return (RAY_OFFSET[ray] ?? 0) * exitWidth;
+/** Which nozzle a ray belongs to, and which of its three it is. */
+function rayNozzle(ray: number): { nozzle: number; across: number } {
+  const nozzle = (ray / PLUME_RAYS) | 0;
+  return { nozzle, across: RAY_OFFSET[ray - nozzle * PLUME_RAYS] ?? 0 };
+}
+
+/** How far one flame reaches, given what the whole engine is producing. */
+export function nozzleReach(geometry: ThrusterGeometry, force: number): number {
+  // Every nozzle gets an equal share of the gas through an equal share of the
+  // face, so the count cancels and a cluster's flames are each as long as the
+  // single flame they replace — just narrower.
+  return plumeReach(force / geometry.nozzles, geometry.exitWidth, geometry.divergence);
+}
+
+/**
+ * How far one ray reaches, given what the whole engine is producing.
+ *
+ * **Derived from the drawn plume rather than chosen**, so the picture and the
+ * burn cannot part company: each flame is a triangle as wide as its own
+ * nozzle, narrowing to a point at its reach, so at an offset `y` from that
+ * nozzle's axis it ends where the triangle's half-width has shrunk to `y` — a
+ * third of the way out for the rays at a third of the width. A plume is
+ * therefore wide at the nozzle and a thin core further out, which is what a
+ * wedge-shaped flame should do and what a single ray could not express.
+ */
+export function rayReach(ray: number, geometry: ThrusterGeometry, force: number): number {
+  const { across } = rayNozzle(ray);
+  const edge = 1 - 2 * (across < 0 ? -across : across);
+  return edge > 0 ? nozzleReach(geometry, force) * edge : 0;
+}
+
+/** Where a ray leaves the engine, in metres across the exit face from its middle. */
+export function rayOffset(ray: number, geometry: ThrusterGeometry): number {
+  const { nozzle, across } = rayNozzle(ray);
+  return nozzleOffset(geometry, nozzle) + across * geometry.exitWidth;
 }
 
 /**
@@ -148,8 +187,8 @@ export function exhaustObstruction(
 
   const engine = boxes.modules[module];
   if (engine === undefined) return 1;
-  const width = engine.spec.width;
-  const reach = plumeReach(rating, width);
+  const geometry = thrusterGeometry(engine.spec);
+  const rays = plumeRays(geometry);
   const dirX = cos(engine.angle);
   const dirY = sin(engine.angle);
   // The exhaust leaves by the face opposite the one the engine pushes from.
@@ -164,9 +203,9 @@ export function exhaustObstruction(
   far = sqrt(far) * 2 + 1;
 
   let escaped = 0;
-  for (let ray = 0; ray < PLUME_RAYS; ray++) {
-    // Across the nozzle, which is the exhaust direction turned a quarter.
-    const across = rayOffset(ray, width);
+  for (let ray = 0; ray < rays; ray++) {
+    // Across the exit face, which is the exhaust direction turned a quarter.
+    const across = rayOffset(ray, geometry);
     const x = rootX - dirY * across;
     const y = rootY + dirX * across;
     modulesAlong(boxes, x, y, x - dirX * far, y - dirY * far, path);
@@ -181,9 +220,9 @@ export function exhaustObstruction(
     }
     blocks.push(hit);
     blockedAt.push(at);
-    if (!(at < rayReach(ray, reach))) escaped++;
+    if (!(at < rayReach(ray, geometry, rating))) escaped++;
   }
-  return escaped / PLUME_RAYS;
+  return escaped / rays;
 }
 
 /**
@@ -267,8 +306,8 @@ export class Plumes {
     const engine = design.modules[spec.module ?? -1];
     if (engine === undefined) return false;
 
-    const width = engine.spec.width;
-    const reach = rayReach(ray, plumeReach(force, width));
+    const geometry = thrusterGeometry(engine.spec);
+    const reach = rayReach(ray, geometry, force);
     if (!(reach > 0)) return false;
 
     // What this ray runs into on its own ship, worked out when the design was
@@ -279,7 +318,7 @@ export class Plumes {
     const angle = bodies.angle[bodyIndex]!;
     const c = cos(angle);
     const s = sin(angle);
-    const across = rayOffset(ray, width);
+    const across = rayOffset(ray, geometry);
     const rootX = spec.x - spec.dirX * engine.spec.length * 0.5 - spec.dirY * across;
     const rootY = spec.y - spec.dirY * engine.spec.length * 0.5 + spec.dirX * across;
     const ux = -(spec.dirX * c - spec.dirY * s);
@@ -342,10 +381,13 @@ export class Plumes {
     dt: number,
   ): void {
     if (!(dt > 0) || !(force > 0)) return;
-    // A ray is a third of the engine: a third of the gas, so a third of the
-    // power and a third of the momentum.
-    const perRay = force / PLUME_RAYS;
-    for (let ray = 0; ray < PLUME_RAYS; ray++) {
+    const engine = design.modules[design.thrusters[thruster]?.module ?? -1];
+    if (engine === undefined) return;
+    // A ray is one equal slice of the engine: a third of one of its nozzles,
+    // so that share of the gas, the power and the momentum.
+    const rays = plumeRays(thrusterGeometry(engine.spec));
+    const perRay = force / rays;
+    for (let ray = 0; ray < rays; ray++) {
       if (!this.cast(design, thruster, ray, force, bodies, bodyIndex, grid, hulls)) continue;
       damage.absorb(this.body, this.module, PLUME_POWER_PER_NEWTON * perRay * this.share * dt);
       if (this.body === bodyIndex) continue;

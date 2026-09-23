@@ -8,6 +8,7 @@ import {
   moduleStats,
   radiansToDegrees,
   shortfall,
+  thrusterGeometry,
   traverseAccel,
   traverseRate,
   type ModuleSpec,
@@ -247,6 +248,18 @@ export function moduleReadout(
         ? thrown
         : `${((stats.thrust * escaping) / 1e6).toLocaleString('en-GB', { maximumFractionDigits: 2 })} MN ` +
           `of ${thrown} — the rest fires into the ship`,
+    ]);
+  }
+  if (spec.kind === 'thruster') {
+    // What the bell is doing to the gas, which is the one number that says
+    // whether the nozzle is worth the length it takes up. A designer shrinking
+    // a bell sees the thrust fall before they see the ship fly worse.
+    const engine = thrusterGeometry(spec);
+    rows.push([
+      'Bell',
+      `${radiansToDegrees(engine.halfAngle).toLocaleString('en-GB', { maximumFractionDigits: 0 })}° ` +
+        `half-angle, keeping ${(engine.divergence * 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })}% ` +
+        `of the thrust${engine.nozzles > 1 ? ` across ${engine.nozzles} nozzles` : ''}`,
     ]);
   }
   const gun = stats.gun;

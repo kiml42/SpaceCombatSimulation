@@ -7,9 +7,11 @@ import {
   Plumes,
   SpatialGrid,
   compileBlueprint,
+  nozzleReach,
   plumeReach,
   rayOffset,
   rayReach,
+  thrusterGeometry,
   type ModuleSpec,
   type ShipDesign,
 } from '../sim/index.js';
@@ -115,18 +117,36 @@ function burn(w: ReturnType<typeof world>, d: ShipDesign, body: number, seconds:
 }
 
 describe('how far a plume reaches', () => {
-  it('gives every engine the same reach at full throttle', () => {
+  it('gives engines of the same shape the same reach at full throttle', () => {
     // Thrust scales with exit area, so thrust per unit width is the same for
-    // every engine: a bigger engine is a wider flame, not a longer one.
-    const reaches = [1, 2, 4, 8].map((width) => {
+    // every engine: a bigger engine is a wider flame, not a longer one. Scaled
+    // rather than merely widened, because the bell is part of the shape now —
+    // a wide flare on a short engine is a different nozzle, not a big one.
+    const reaches = [1, 2, 4, 8].map((scale) => {
       const d = compileBlueprint({
         name: 'Engine',
-        modules: [engine(-5, 0), hull(0, 10)].map((m, i) => (i === 0 ? { ...m, width } : m)),
+        modules: [{ ...engine(-5, 0), length: scale, width: 2 * scale }, hull(0, 10)],
       });
       const t = d.thrusters[0]!;
-      return plumeReach(t.maxThrust, d.modules[t.module!]!.spec.width);
+      return nozzleReach(thrusterGeometry(d.modules[t.module!]!.spec), t.maxThrust);
     });
     for (const reach of reaches) expect(reach).toBeCloseTo(reaches[0]!, 9);
+  });
+
+  it('is longer out of a longer bell, which is the other half of what one buys', () => {
+    // Gas leaving a divergent nozzle is already flying apart, so it spreads to
+    // nothing close in. The same number says how much thrust survives and how
+    // far what survives gets.
+    const reach = (nozzle: number): number => {
+      const d = compileBlueprint({
+        name: 'Engine',
+        modules: [{ ...engine(-5, 0), nozzle }, hull(0, 10)],
+      });
+      const t = d.thrusters[0]!;
+      return nozzleReach(thrusterGeometry(d.modules[t.module!]!.spec), t.maxThrust);
+    };
+    expect(reach(0.7)).toBeGreaterThan(reach(0.3) * 1.3);
+    expect(reach(0.05)).toBeLessThan(reach(0.7) * 0.4);
   });
 
   it('shortens with the throttle, so a low burn is a short flame', () => {
@@ -212,7 +232,8 @@ describe('an engine firing into its own ship', () => {
   });
 
   it('does nothing to something standing beyond the flame', () => {
-    const reach = plumeReach(design().thrusters[0]!.maxThrust, 4);
+    const d0 = design();
+    const reach = nozzleReach(thrusterGeometry(d0.modules[0]!.spec), d0.thrusters[0]!.maxThrust);
     const d = design(reach * 1.01);
     const w = world([d]);
     burn(w, d, 0, 30);
@@ -225,14 +246,29 @@ describe('the three rays a plume is sampled by', () => {
     // Derived from the drawn plume rather than chosen: the flame is a triangle
     // narrowing to a point, so a ray a third of the width off the axis ends a
     // third of the way out.
-    expect(rayReach(1, 30)).toBe(30);
-    expect(rayReach(0, 30)).toBeCloseTo(10, 9);
-    expect(rayReach(2, 30)).toBeCloseTo(10, 9);
+    const one = thrusterGeometry({ ...engine(0, 0), width: 6 });
+    const force = 1e6;
+    const reach = nozzleReach(one, force);
+    expect(reach).toBeGreaterThan(0);
+    expect(rayReach(1, one, force)).toBeCloseTo(reach, 9);
+    expect(rayReach(0, one, force)).toBeCloseTo(reach / 3, 9);
+    expect(rayReach(2, one, force)).toBeCloseTo(reach / 3, 9);
   });
 
   it('are spread across the nozzle, not stacked on its axis', () => {
-    const offsets = [0, 1, 2].map((ray) => rayOffset(ray, 6));
-    expect(offsets).toEqual([-2, 0, 2]);
+    const one = thrusterGeometry({ ...engine(0, 0), width: 6 });
+    expect([0, 1, 2].map((ray) => rayOffset(ray, one))).toEqual([-2, 0, 2]);
+  });
+
+  it('give every nozzle of a cluster three of its own', () => {
+    // A cluster is a row of separate flames, so three rays stretched across
+    // the whole face would fall in the gaps between them rather than in the
+    // fire. Two nozzles across six metres are three metres each, centred a
+    // metre and a half either side.
+    const two = thrusterGeometry({ ...engine(0, 0), width: 6, barrels: 2 });
+    expect([0, 1, 2, 3, 4, 5].map((ray) => rayOffset(ray, two))).toEqual([
+      -2.5, -1.5, -0.5, 0.5, 1.5, 2.5,
+    ]);
   });
 
   it('catch a hull beside the axis that a single ray down the middle misses', () => {

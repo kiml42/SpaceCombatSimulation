@@ -192,8 +192,19 @@
             <input id="propReinforcement" type="number" step="0.5" min="1" />
           </div>
           <div class="field" id="barrelsRow">
-            <label for="propBarrels">barrels</label>
+            <label for="propBarrels" id="barrelsLabel">barrels</label>
             <input id="propBarrels" type="number" step="1" min="1" />
+          </div>
+          <div class="field" id="nozzleRow">
+            <label for="propNozzle">nozzle</label>
+            <input
+              id="propNozzle"
+              type="number"
+              step="0.05"
+              min="0"
+              max="0.95"
+              title="How much of the engine's length is bell rather than machinery. A longer bell is lighter, throws a longer flame and wastes less thrust sideways; the machinery is what the engine is bolted on by."
+            />
           </div>
           <div class="field" id="weaponRow">
             <label for="propWeapon">weapon</label>

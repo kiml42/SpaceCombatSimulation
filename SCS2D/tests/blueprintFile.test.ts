@@ -116,6 +116,26 @@ describe('rejecting a file that arrived from somewhere else', () => {
     expect(blueprintFileProblem(file({ notes: 7 }))).toMatch(/notes must be a string/);
   });
 
+  it('carries an engine\'s bell and its nozzle count out and back', () => {
+    // Both are a thruster's own geometry rather than something derived, so
+    // they have to survive the file: a ship saved and loaded with a different
+    // nozzle is a different ship.
+    const raw = file({
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 10, width: 4 },
+        { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.3, barrels: 3 },
+      ],
+    }) as Record<string, unknown>;
+    expect(blueprintFileProblem(raw)).toBeNull();
+    const back = serialiseBlueprint(parseBlueprint(raw));
+    expect((back['modules'] as Record<string, unknown>[])[1]).toMatchObject({
+      nozzle: 0.3,
+      barrels: 3,
+    });
+    expect(blueprintFileProblem(file({ modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4, nozzle: 0.3 }] })))
+      .toMatch(/only a thruster/);
+  });
+
   it('refuses a format version it does not understand', () => {
     expect(blueprintFileProblem(file({ formatVersion: 2 }))).toMatch(/formatVersion must be 1/);
     expect(blueprintFileProblem(file({ formatVersion: undefined }))).toMatch(/formatVersion must be 1/);

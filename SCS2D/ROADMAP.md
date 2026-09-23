@@ -709,6 +709,20 @@ Deliberately unresolved; decide when they block something.
   argues against raising it. Heat was part of the answer when a plume's bite was first settled in
   direction and is still owed, but it waits on there being a heat model to put it in rather than on
   anything about exhaust.
+- **What a bell should buy once there is fuel.** A nozzle's length already buys thrust and reach, both out
+  of the one divergence factor, because both are about how much of the gas is going the right way. The
+  thing it should buy and cannot yet is **efficiency**: expansion is what a real bell is for, and a long
+  one gets more delta-v out of the same propellant rather than only more push. There is no propellant, so
+  there is nothing for it to be efficient with, and pricing it now would mean inventing a second currency
+  to spend. When fuel arrives the number is already sitting in `ThrusterGeometry.divergence` and wants no
+  new law — which is also the argument for the shape the bell was given: one physical quantity with three
+  consequences, two of them already paid for.
+  The neighbouring question is what a *stubby* engine should do about it. A wide exit cannot be collimated
+  in a short length, so the shipped hulls — whose engines are much wider than they are long — sit well
+  below one and lost thrust when this landed. The designed answer is a cluster of narrow bells, which the
+  nozzle count already gives them; whether the shipped ships should be re-drawn to take it, or left as
+  evidence of what the law says about a hull drawn before it, is a decision about the fleet rather than
+  about the model.
 - **Whether a ship should manoeuvre to bring an engine to bear.** A thruster marked as a weapon fires when
   something worth burning is already behind it, and nothing turns the ship to put it there — so it is a
   weapon for what gets behind you rather than one you attack with. Aiming it is a genuinely different
