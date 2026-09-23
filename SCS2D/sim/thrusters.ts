@@ -57,7 +57,11 @@ export interface ThrusterSpec {
   /** Direction the thrust pushes the ship, body frame. Normalised on build. */
   dirX: number;
   dirY: number;
-  /** Thrust at full throttle, newtons. */
+  /**
+   * Thrust at full throttle, newtons: what the nozzle throws, which is also
+   * what sets the plume's size and what it burns with. What the *ship* gets is
+   * this times `escaping`, and `ThrusterLayout` does that multiplication.
+   */
   maxThrust: number;
   /**
    * Index into the design's modules — which engine this is, so that damage to
@@ -65,6 +69,38 @@ export interface ThrusterSpec {
    * compiled, which nothing can damage anyway.
    */
   module?: number;
+  /**
+   * What this engine's exhaust runs into on its own ship, one entry per ray
+   * the plume is sampled by (`exhaust.ts`): the module that ray meets, or -1
+   * for a ray in clear air.
+   *
+   * Geometry, and the hull's geometry never changes — damage stops a module
+   * working without moving it (DESIGN.md §4) — so this is worked out once when
+   * the design is compiled, for the same reason the allocation matrix is.
+   */
+  blocks?: readonly number[];
+  /** How far aft of the nozzle each of those is, metres. */
+  blockedAt?: readonly number[];
+  /**
+   * What fraction of the exhaust actually leaves the ship, 0 to 1 in thirds.
+   *
+   * A ray that runs into the ship's own hull delivers its momentum back to the
+   * hull it was pushing, so that share of the thrust never happens — the push
+   * on the blocked module and the thrust off the nozzle are the same
+   * newton-seconds with opposite signs. `ThrusterLayout` therefore flies the
+   * engine at this fraction of its rating, which is what makes a buried nozzle
+   * cost thrust rather than being free (ROADMAP.md §12).
+   *
+   * Absent means nothing is in the way, which is what a layout built by hand
+   * rather than compiled has to assume.
+   */
+  escaping?: number;
+  /**
+   * Whether this engine burns at what it is pointed at, on its own account —
+   * `ModuleSpec.weapon`, carried through so that flying a ship needs only its
+   * layout.
+   */
+  weapon?: boolean;
 }
 
 /** Filled in place by `allocate`, so allocation allocates nothing. */
@@ -227,7 +263,12 @@ export class ThrusterLayout {
       // A thruster with no direction produces nothing rather than a NaN.
       const ux = len > 0 ? s.dirX / len : 0;
       const uy = len > 0 ? s.dirY / len : 0;
-      const t = s.maxThrust;
+      // What the ship actually gets: an engine firing part of its exhaust into
+      // its own hull delivers that part's momentum straight back, so it is not
+      // thrust at all. Everything built on this layout — the allocator, the
+      // manoeuvring envelope, what the editor claims a ship can do — therefore
+      // reads the honest figure without knowing why.
+      const t = s.maxThrust * (s.escaping ?? 1);
 
       this.px[i] = s.x;
       this.py[i] = s.y;

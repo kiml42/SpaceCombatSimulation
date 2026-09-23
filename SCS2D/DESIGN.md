@@ -90,6 +90,15 @@ inside any one file is not contiguous.
   stops working and goes on stopping shells, so a battered ship is sluggish and
   quiet rather than lighter, and a ship that can neither move nor shoot drifts
   as a hulk. Hits flash on the canvas and wrecked modules are drawn as wreckage.
+  **An engine is a weapon at close quarters**: a plume reaches back as far as the thrust it is carrying,
+  and whatever stands in it burns — its own hull if a nozzle was pointed into one, anything that drifts
+  behind a burning stern if not. It is the same flame the renderer draws, so what is on the screen is what
+  is doing the damage, and it shoves as well as burns. An engine can also be *meant* as one: a thruster
+  ticked as a weapon in the editor lights up by itself when an enemy is close enough behind it to take a
+  real share of the flame, and the hull pays for it in the push, which the rest of the layout spends the
+  step cancelling. An engine that fires part of its exhaust into its own ship gets no thrust for that
+  part, so a buried nozzle is a weak engine rather than a free one, and the editor says so beside the
+  engine that is paying.
   **Hulls come apart, and it takes a blow to do it.** A ship is held together by welds derived from where
   its modules touch, each rated by its section. Damage decides how much of a weld is left; what spends it
   is the impulse that has to cross it, so a hit on an outlying module takes it off and the same hit
@@ -288,6 +297,14 @@ inside any one file is not contiguous.
   sent to somebody, or designed on the page and then fought overnight headlessly. Every field is optional
   and anything left out is the default, angles are degrees as they are in a blueprint file, and no budget is
   `null` because JSON has no infinity.
+  **An engine has a nozzle rather than being one.** A thruster's length divides between a machinery block
+  and a bell, and the bell's share is the knob: a long one is lighter, keeps more of the thrust pointed
+  the right way and throws a longer flame, while the block is what has hit points and what the engine is
+  welded on by — on any face but the exhaust. The exit may be divided between several nozzles, on the same
+  field a gun counts barrels with, and the count buys expansion rather than power. It cost the shipped
+  fleet thrust: their engines are wide and short, which is a bad bell, and a corvette lost 3% of its
+  acceleration and a fighter 19%. That is the law being right about hulls drawn before it existed — the
+  answer for them is a cluster of small bells, which is a change to the ships rather than to the law.
 - **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio
@@ -319,7 +336,7 @@ inside any one file is not contiguous.
   and hits scored are identical too. Measured by `scenarios/ordering.ts`, which
   flies three gunships of one geometry both stacked in one battle and one to a
   battle each.
-- **Last updated:** 2026-09-22
+- **Last updated:** 2026-09-23
 
 ---
 
@@ -479,6 +496,61 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   through a ship. Half to each hull, which needs no rule about which is the harder: a module's capacity
   goes with its mass, so the same energy that dents a capital ship destroys the fighter that flew into
   it. That is what makes §3's strike craft literal — a torpedo is a fighter that crashes into things.
+- **An engine is a machinery block with a bell on the back of it**, not a nozzle with a plume coming out.
+  The block holds the chamber and the pumps, is what the engine is welded to the ship by, and is the part
+  that has walls, an interior and hit points; the bell is sheet metal in the exhaust that can be bolted to
+  nothing. How the engine's length divides between them is the designer's, and it is the one knob on a
+  thruster that is not simply "make it bigger". **Its length buys expansion**: gas leaving a bell of
+  half-angle `a` keeps `(1 + cos a) / 2` of its momentum along the axis and throws the rest sideways, so a
+  bare throat loses half of everything and length recovers it — steeply at first and then barely, which is
+  what stops an engine being all nozzle. The same number sets how far the flame carries, since a jet
+  already flying apart spreads to nothing close in. **The exit face may be divided between several
+  nozzles**, counted by the field a turret's barrels are counted by and called Nozzles in the editor. They
+  share one chamber and divide one exit area, so the count is never free power — what a cluster buys is
+  that a narrow bell collimates in a fraction of the length a wide one needs, which is how a stubby engine
+  gets a good nozzle, and a flame combed into fingers rather than thrown as one sheet.
+- **How hard the nozzle is fed is the machinery's business, so the split has a best answer in the
+  middle.** Thrust is the exit face's area times what the chamber and pumps behind it can drive through
+  the throat, and that machinery is the block the bell was cut out of: a shallow bell leaves a deep
+  chamber and more flow, a deep bell leaves an engine with nothing behind it. A throat chokes rather than
+  passing whatever is pushed at it, which is what stops a long thin engine being unbounded thrust. So the
+  two halves of the knob pull opposite ways — flow gained is aim lost — and the best engine is neither
+  all bell nor all chamber. An engine whose nozzle has fallen off throws its gas sideways however hard it
+  is pumping.
+- **An engine is bolted on like any other module.** It carries the machinery it needs, so it may be held
+  on by any face, to anything, the same way a gun mount or a plate of hull is — the only rule about where
+  one may go is the one every module obeys, that it is attached to the ship. An engine mounted with its
+  exhaust into its own hull is a bad design rather than an impossible one, and what says so is the plume:
+  it burns what it is pointed at, and the thrust fired into the ship is thrust the ship never gets.
+- **An engine burns and shoves what it is pointed at.** A plume reaches back from each nozzle as far as the
+  thrust being produced and the bell allows, and the first thing standing in it takes the engine's power —
+  at full strength against the nozzle, falling off to nothing at the flame's end — and the exhaust's
+  momentum with it, so a plume on a hull's flank spins it as well as drives it away. Each flame is sampled
+  by **three rays across its own nozzle**, each carrying an equal share of the gas and reaching as far as
+  the drawn plume does at its own offset, which is a third of the way out for the two at the edges. So a
+  plume is wide at the nozzle and a thin core further out, and something beside the axis is burnt rather
+  than missed. Per nozzle rather than per engine, because three rays stretched across a cluster's whole
+  face would fall in the gaps between its flames.
+- **An engine gets no thrust for exhaust it fires into itself.** A ray that runs into the ship's own hull
+  hands its momentum back to the hull it was pushing: the push on the blocked module and the thrust off
+  the nozzle are the same newton-seconds with opposite signs, so that third of the engine is not thrust at
+  all. A nozzle's own obstruction is fixed geometry — damage stops a module working without moving it — so
+  it is worked out when the design is compiled, and what comes out is the fraction of the exhaust that
+  escapes. **`ThrusterLayout` flies the engine at that fraction**, so the allocator, the manoeuvring
+  envelope and everything the editor claims about a ship all read the honest figure without knowing why.
+  A blocked ray still *burns* what it is buried in; what it no longer does is push. That is what makes a
+  buried nozzle cost something instead of being free, and it is why the plume the renderer draws is the
+  rating rather than the delivery: the gas is thrown either way.
+- **An engine can be pointed at things on purpose.** A thruster marked `weapon` in the blueprint burns
+  flat out on its own account whenever an enemy is in the half of its plume that still delivers real
+  power, whether or not the pilot wanted thrust — and the ship wears the push, which is what the weapon
+  costs. A flag rather than a kind of module, because an engine used this way is the same engine: it is
+  still what moves the ship, still costs what an engine costs, and may still be the only thing holding a
+  heading. What a designer chooses is a *role* for a mount already on the hull, which is why breeding can
+  flip it. What it will not burn is what a gun will not shoot: its own hull, a friend, wreckage, or a hulk
+  that can never be finished off and is not worth being shoved about for. It is **opportunistic and not
+  aimed** — nothing manoeuvres to bring an exhaust to bear, so this is a weapon for whatever gets behind
+  you rather than a second gun. §12 has the aimed version.
 - **Matter is conserved in a hull, not in the world.** Everything conservation buys — wreckage as free
   armour, a topology damage cannot change, a battered ship that gets sluggish rather than lighter — is
   about what a *hull* keeps, and none of it needs a shard to persist once it has left the ship. So a

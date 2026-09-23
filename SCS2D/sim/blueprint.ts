@@ -12,6 +12,8 @@ import {
 } from './modules.js';
 import { DEFAULT_DOCTRINE, resolveTargeting, type Doctrine, type Targeting } from './doctrine.js';
 import { ThrusterLayout, type ThrusterSpec } from './thrusters.js';
+import { HullPath } from './hull.js';
+import { exhaustObstruction } from './exhaust.js';
 import type { TurretSpec } from './turrets.js';
 
 /**
@@ -54,12 +56,6 @@ import type { TurretSpec } from './turrets.js';
  * rounded for the sake of the file tilts a module eighty nanometres into its
  * neighbour and the layout is refused. Every thruster a mutation tried to bolt
  * on was lost that way.
- *
- * `hullAhead` proves a thruster is mounted against hull by nudging it forward
- * and asking whether it now overlaps, so that nudge is this plus
- * `ATTACHMENT_TOLERANCE`: a module anywhere within the distance that counts as
- * attached then buries itself deeper than this when it is pushed, and the two
- * rules cannot disagree about a thruster sitting at the edge of the band.
  */
 const TOUCH_TOLERANCE = 0.005;
 
@@ -317,6 +313,13 @@ export interface ShipDesign {
   readonly centreOfMassX: number;
   readonly centreOfMassY: number;
   readonly thrusters: readonly ThrusterSpec[];
+  /**
+   * Which of those the designer meant to point at things, as indices into
+   * `thrusters`. Almost always empty, which is why it is a list rather than a
+   * flag on each: flying a ship then costs one length check instead of a walk
+   * over every engine it has.
+   */
+  readonly weaponThrusters: readonly number[];
   /** Shared by every ship built to this design. */
   readonly thrusterLayout: ThrusterLayout;
   readonly turrets: readonly DesignTurret[];
@@ -802,6 +805,8 @@ function place(
     if (angle !== 0 || placement.angle !== undefined) spec.angle = angle;
     if (placement.reinforcement !== undefined) spec.reinforcement = placement.reinforcement;
     if (placement.barrels !== undefined) spec.barrels = placement.barrels;
+    if (placement.nozzle !== undefined) spec.nozzle = placement.nozzle;
+    if (placement.weapon !== undefined) spec.weapon = placement.weapon;
     if (placement.targeting !== undefined) spec.targeting = placement.targeting;
     if (placement.notes !== undefined) spec.notes = placement.notes;
     out.push(spec);
@@ -877,40 +882,6 @@ export function assemblyProblem(blueprint: Blueprint): string | null {
     if (assembly.modules.length === 0) return `${blueprint.name}: assembly ${name} is empty`;
   }
   return null;
-}
-
-/**
- * Is there hull immediately in front of this module, in its facing?
- *
- * Structure or a core: both are boxes of welded plate, and a thruster mounted
- * to the compartment that flies the ship is delivering its thrust to the ship
- * as surely as one mounted to a girder. A turret is not, since what is ahead
- * of a mount is its own barrel.
- *
- * Answered by nudging the module forward by the attachment tolerance and
- * asking whether it now overlaps — which reuses the separating-axis test and
- * so stays correct for a module mounted at any angle, rather than needing a
- * face-contact test of its own. A neighbour merely alongside is unaffected by
- * a forward nudge and correctly does not count, and nor does one touching only
- * at a corner.
- */
-function hullAhead(spec: ModuleSpec, modules: readonly ModuleSpec[]): boolean {
-  const angle = spec.angle ?? 0;
-  // Far enough that anything within touching distance is driven further in
-  // than an overlap is forgiven, so a thruster the connectivity graph calls
-  // attached is one this calls mounted.
-  const nudge = ATTACHMENT_TOLERANCE + TOUCH_TOLERANCE;
-  const probe: ModuleSpec = {
-    ...spec,
-    x: spec.x + cos(angle) * nudge,
-    y: spec.y + sin(angle) * nudge,
-  };
-  for (const other of modules) {
-    if (other === spec) continue;
-    if (other.kind !== 'structure' && other.kind !== 'core') continue;
-    if (modulesOverlap(probe, other)) return true;
-  }
-  return false;
 }
 
 /**
@@ -1136,29 +1107,6 @@ export function blueprintFaults(blueprint: Blueprint): BlueprintFault[] {
     }
   }
 
-  // An engine is bolted to the ship at the end it pushes from and exhausts out
-  // of the other, so the face opposite the nozzle has to be against hull.
-  // Turn one round and it is held on by its nozzle: the mounting is in the
-  // exhaust and the thrust is being delivered to nothing.
-  //
-  // A layout is rejected for this rather than merely penalised, because it is a
-  // question about how the ship is *assembled* and not about how well it runs —
-  // the same kind of rule as modules not overlapping. How much a *blocked* but
-  // correctly mounted nozzle should cost is a different and continuous
-  // question, and ROADMAP.md §12 keeps it that way deliberately.
-  for (let i = 0; i < modules.length; i++) {
-    const spec = modules[i]!;
-    if (spec.kind !== 'thruster') continue;
-    if (!hullAhead(spec, modules)) {
-      faults.push({
-        message:
-          `${blueprint.name}: thruster ${i} at (${spec.x}, ${spec.y}) has no structure to push ` +
-          `against — the face opposite its nozzle must be against a structure or core module`,
-        modules: [i],
-      });
-    }
-  }
-
   // A ship is flown from a core, so a layout without one is a hull and not a
   // ship. It is the anchor every other rule about how the layout hangs
   // together is stated against, which is why it is checked before them. A
@@ -1357,6 +1305,7 @@ function designFrom(
         dirY: sin(angle),
         maxThrust: s.thrust,
         module: modules.length - 1,
+        weapon: spec.weapon === true,
       });
     } else if ((spec.kind === 'turret' || spec.kind === 'beamTurret') && s.gun !== null) {
       const gun = s.gun;
@@ -1412,6 +1361,38 @@ function designFrom(
   let reach = 0;
   for (const turret of turrets) reach = max(reach, turret.reach);
 
+  const weaponThrusters: number[] = [];
+  for (let t = 0; t < thrusters.length; t++) {
+    if (thrusters[t]!.weapon === true) weaponThrusters.push(t);
+  }
+
+  // What each engine exhausts into, ray by ray. A plume needs it every step
+  // and nothing in a battle can change it: an engine firing into its own hull
+  // is firing into it for as long as the hull is one piece, and a piece cut
+  // off is a design of its own that works this out again.
+  //
+  // What comes out of it is `escaping` — the share of the exhaust that leaves
+  // the ship at all, and therefore the share of the rated thrust the ship
+  // actually gets. A ray stopped by the ship's own structure hands its
+  // momentum straight back, so it is not thrust; a ray stopped beyond the
+  // flame's own end never had anything left to hand back, and does not count.
+  const exhaust = new HullPath();
+  const blocks: number[] = [];
+  const blockedAt: number[] = [];
+  for (const thruster of thrusters) {
+    const escaping = exhaustObstruction(
+      { modules },
+      thruster.module!,
+      thruster.maxThrust,
+      exhaust,
+      blocks,
+      blockedAt,
+    );
+    thruster.blocks = [...blocks];
+    thruster.blockedAt = [...blockedAt];
+    thruster.escaping = escaping;
+  }
+
   return {
     name,
     modules,
@@ -1423,6 +1404,7 @@ function designFrom(
     centreOfMassX: comX,
     centreOfMassY: comY,
     thrusters,
+    weaponThrusters,
     thrusterLayout: new ThrusterLayout(thrusters),
     turrets,
     cores,

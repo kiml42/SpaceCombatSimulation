@@ -145,23 +145,34 @@ describe('mutation', () => {
     // decides that. An imbalance here is invisible in any one child and
     // fatal over a run — a lineage that loses a module every time it gains
     // one ends up as a hull that cannot shoot, whatever the fitness says.
-    const rng = new Rng(37);
+    // Over several lines rather than one. A single line of 800 generations
+    // measured anywhere between 1.3 and 1.9, so a bound pinned to whichever
+    // one was run first is a test that fails on a change that did nothing —
+    // the same trap the structural-delivery test above fell into.
+    //
+    // The bound is asymmetric because the two failures are not alike. A ratio
+    // well under one is the fatal one: a lineage that loses a module whenever
+    // it gains one erodes until it cannot shoot, and nothing stops it. Above
+    // one a lineage grows, which the mass budget already bounds.
     let added = 0;
     let removed = 0;
-    let held: Blueprint = GUNSHIP;
     const budget = compileDraft(GUNSHIP).mass * 2;
-    for (let i = 0; i < 800; i++) {
-      const child = mutate(held, rng, { massBudget: budget });
-      held = child.blueprint;
-      for (const edit of child.edits) {
-        if (/removed/.test(edit)) removed++;
-        else if (/added|copied/.test(edit)) added++;
+    for (const seed of [37, 38, 39]) {
+      const rng = new Rng(seed);
+      let held: Blueprint = GUNSHIP;
+      for (let i = 0; i < 800; i++) {
+        const child = mutate(held, rng, { massBudget: budget });
+        held = child.blueprint;
+        for (const edit of child.edits) {
+          if (/removed/.test(edit)) removed++;
+          else if (/added|copied/.test(edit)) added++;
+        }
       }
     }
     expect(added).toBeGreaterThan(20);
     expect(removed).toBeGreaterThan(20);
     expect(added / removed).toBeGreaterThan(0.6);
-    expect(added / removed).toBeLessThan(1.6);
+    expect(added / removed).toBeLessThan(2);
   });
 
   it('delivers the structural generations it draws', { timeout: 30_000 }, () => {
@@ -230,6 +241,29 @@ describe('mutation', () => {
       if ((held.doctrine?.targeting.escortWeight ?? 0) !== 0) moved = true;
     }
     expect(moved).toBe(true);
+  });
+
+  it('takes an engine\'s bell with it when it stops being an engine', () => {
+    // A nozzle share is refused outright on anything but a thruster, so a
+    // refit that left one behind would not make an odd module — it would make
+    // every refit out of an engine impossible, and silently, since a refused
+    // candidate is simply retried.
+    const rng = new Rng(29);
+    let held: Blueprint = {
+      name: 'Tug',
+      modules: [
+        { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 4 },
+        { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.7 },
+      ],
+    };
+    let refits = 0;
+    for (let i = 0; i < 200; i++) {
+      const child = mutate(held, rng, { structural: 1 });
+      expect(blueprintProblem(child.blueprint), child.edits.join('; ')).toBeNull();
+      if (child.edits.some((edit) => /refitted as/.test(edit))) refits++;
+      held = child.blueprint;
+    }
+    expect(refits).toBeGreaterThan(0);
   });
 
   it('builds only the kinds it is told to', { timeout: 30_000 }, () => {

@@ -1,4 +1,5 @@
 import {
+  DEFAULT_NOZZLE_SHARE,
   degreesToRadians,
   MAX_REPEAT,
   math,
@@ -95,10 +96,13 @@ function el<T extends HTMLElement>(id: string): T {
   return found as T;
 }
 
+type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle';
+
 /** A module's own value for a field, with the default the parser would have applied. */
-function moduleField(spec: ModuleSpec, key: 'angle' | 'reinforcement' | 'barrels'): number {
+function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   if (key === 'angle') return radiansToDegrees(spec.angle ?? 0);
   if (key === 'reinforcement') return spec.reinforcement ?? 1;
+  if (key === 'nozzle') return spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
   return spec.barrels ?? 1;
 }
 
@@ -179,6 +183,8 @@ export function startEditor(): void {
   const saveButton = el<HTMLButtonElement>('saveShip');
   const exportButton = el<HTMLButtonElement>('exportShip');
 
+  const weaponInput = el<HTMLInputElement>('propWeapon');
+
   const propInputs: Record<string, HTMLInputElement | HTMLTextAreaElement> = {
     x: el<HTMLInputElement>('propX'),
     y: el<HTMLInputElement>('propY'),
@@ -187,6 +193,7 @@ export function startEditor(): void {
     width: el<HTMLInputElement>('propWidth'),
     reinforcement: el<HTMLInputElement>('propReinforcement'),
     barrels: el<HTMLInputElement>('propBarrels'),
+    nozzle: el<HTMLInputElement>('propNozzle'),
     notes: el<HTMLTextAreaElement>('propNotes'),
   };
 
@@ -523,23 +530,32 @@ export function startEditor(): void {
         input.value = String(at === null ? 0 : key === 'x' ? at.x : at.y);
       }
       else if (key === 'length' || key === 'width') input.value = String(spec[key]);
-      else input.value = String(moduleField(spec, key as 'angle' | 'reinforcement' | 'barrels'));
+      else input.value = String(moduleField(spec, key as ModuleNumberField));
     }
-    // Offered on a beam mount as well as a gun. More of them is worse for a
-    // beam — the aperture is divided between them and only one fires at a
-    // time — but worse is a thing somebody may want: a bank of emitters is a
-    // look, and the editor's job is to say what a layout costs rather than to
-    // refuse the ones it would not have chosen.
+    // Offered on a beam mount as well as a gun, and on an engine. More of
+    // them is worse for a beam — the aperture is divided between them and only
+    // one fires at a time — but worse is a thing somebody may want: a bank of
+    // emitters is a look, and the editor's job is to say what a layout costs
+    // rather than to refuse the ones it would not have chosen.
     //
-    // One field, two words for it: a beam has no barrel, it has an aperture
-    // the light leaves by, and calling that a barrel on the one panel that is
-    // supposed to explain a mount would be the tool teaching the wrong thing
-    // about it. The blueprint's own key stays `barrels` whatever it is
-    // labelled, since renaming a field in the format would cost every file
-    // ever saved.
-    el<HTMLElement>('barrelsRow').hidden = spec.kind !== 'turret' && spec.kind !== 'beamTurret';
-    el<HTMLElement>('barrelsLabel').textContent =
-      spec.kind === 'beamTurret' ? 'emitters' : 'barrels';
+    // One field, three words for it: a gun's outlets are barrels, a beam's are
+    // the apertures the light leaves by, and an engine's are nozzles. Calling
+    // any of them a barrel on the one panel that is supposed to explain a
+    // mount would be the tool teaching the wrong thing about it. The
+    // blueprint's own key stays `barrels` whatever it is labelled, since
+    // renaming a field in the format would cost every file ever saved.
+    const nozzles = spec.kind === 'thruster';
+    el<HTMLElement>('barrelsRow').hidden =
+      !nozzles && spec.kind !== 'turret' && spec.kind !== 'beamTurret';
+    el<HTMLElement>('barrelsLabel').textContent = nozzles
+      ? 'nozzles'
+      : spec.kind === 'beamTurret'
+        ? 'emitters'
+        : 'barrels';
+    el<HTMLElement>('nozzleRow').hidden = !nozzles;
+    // Only an engine has a plume to point.
+    el<HTMLElement>('weaponRow').hidden = spec.kind !== 'thruster';
+    weaponInput.checked = spec.weapon === true;
 
     const origin = doc.selectedOrigin();
     const shared = origin === null ? 0 : unlinkable(doc.blueprint, origin);
@@ -707,6 +723,24 @@ export function startEditor(): void {
       else editSelected({ [key]: value } as Partial<ModuleSpec>, true);
     });
   }
+
+  weaponInput.addEventListener('change', () => {
+    const path = doc.selection;
+    if (path === null) return;
+    const on = weaponInput.checked;
+    // Absent rather than false when it is off, so a blueprint file only ever
+    // says the unusual thing. A tick is one discrete act, so it takes an undo
+    // step of its own rather than amending whatever came before it.
+    change(
+      updatePlacement(doc.blueprint, path, (placement) => {
+        if (!('kind' in placement)) return placement;
+        const next = { ...placement };
+        if (on) next.weapon = true;
+        else delete next.weapon;
+        return next;
+      }),
+    );
+  });
 
   const deleteSelected = (): void => {
     const origin = doc.selectedOrigin();

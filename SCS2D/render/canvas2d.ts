@@ -1,4 +1,11 @@
-import { math, type ShipView, type Snapshot } from '../sim/index.js';
+import {
+  math,
+  nozzleOffset,
+  nozzleReach,
+  thrusterGeometry,
+  type ShipView,
+  type Snapshot,
+} from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth } from './strokes.js';
 import { flashFade, flashPosition, type FlashAnchor, type Flashes } from './flashes.js';
@@ -181,36 +188,6 @@ const BARREL = '#8f6f25';
 const PLUME = '#ffd9a0';
 const PLUME_CORE = '#fff4e0';
 
-/**
- * Newtons of thrust per square metre of drawn plume.
- *
- * The plume is a triangle as wide as the engine's exit, stretching with
- * throttle — so its *area* is proportional to the force being produced, which
- * is the quantity worth reading off a picture. It falls out of that: a
- * thruster's thrust scales with its exit area, so thrust per unit width is the
- * same for every engine, and every engine therefore reaches the same plume
- * length at full throttle. That is what it should look like — they share an
- * exhaust velocity, and a bigger engine is a wider flame, not a longer one.
- */
-const PLUME_THRUST_PER_AREA = 0.5e4;
-
-/**
- * How wide a thruster is drawn where it meets the hull, as a fraction of its
- * true width. The nozzle end keeps the full width, so the module reads as a
- * bell and its facing can be seen at a glance.
- *
- * A thruster is a box like everything else — this is how it is *drawn*, not
- * what it is. Mass, capacity, firing arcs and the overlap rule all still see
- * the rectangle, which is why the editor outlines the full box when one is
- * selected. The taper is worth the small dishonesty because a thruster's
- * facing is the one thing about it that matters and the one thing a rectangle
- * cannot show: which way a square engine pushes is invisible until it fires.
- *
- * Narrow at the mounting face rather than at the nozzle, which is both how a
- * rocket bell is shaped and the direction the plume already leaves in — so the
- * two agree instead of arguing.
- */
-const THRUSTER_THROAT = 0.55;
 
 function shipColours(team: number): (typeof TEAM_COLOURS)[number] {
   return TEAM_COLOURS[team] ?? NEUTRAL;
@@ -253,17 +230,36 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     const halfLength = spec.length / 2;
     const halfWidth = spec.width / 2;
     if (spec.kind === 'thruster') {
-      // Local +x is the way it pushes and the face it is bolted on by; the
-      // nozzle is at -x. Tapering towards +x therefore points the wide end the
-      // way the exhaust goes.
-      const throat = halfWidth * THRUSTER_THROAT;
-      ctx.beginPath();
-      ctx.moveTo(halfLength, -throat);
-      ctx.lineTo(halfLength, throat);
-      ctx.lineTo(-halfLength, halfWidth);
-      ctx.lineTo(-halfLength, -halfWidth);
-      ctx.closePath();
-      ctx.fill();
+      // An engine is a machinery block with bells on the back of it, and it is
+      // drawn as exactly that: the block a box like any other module, each
+      // bell flaring from its throat to the exit. Local +x is the way it
+      // pushes and the face it is bolted on by, so the bells are at -x and
+      // widen as they go, which is both how a rocket is shaped and the
+      // direction the plume already leaves in.
+      //
+      // This is the one drawing that is not an approximation of the module:
+      // the throat fraction it tapers from is the number the thrust is worked
+      // out from, so what the bell looks like is what it does.
+      const engine = thrusterGeometry(spec);
+      ctx.fillRect(
+        halfLength - engine.machineryLength,
+        -halfWidth,
+        engine.machineryLength,
+        spec.width,
+      );
+      const throat = engine.throatWidth / 2;
+      const exit = engine.exitWidth / 2;
+      const mouth = halfLength - engine.machineryLength;
+      for (let n = 0; n < engine.nozzles; n++) {
+        const across = nozzleOffset(engine, n);
+        ctx.beginPath();
+        ctx.moveTo(mouth, across - throat);
+        ctx.lineTo(mouth, across + throat);
+        ctx.lineTo(-halfLength, across + exit);
+        ctx.lineTo(-halfLength, across - exit);
+        ctx.closePath();
+        ctx.fill();
+      }
     } else {
       ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
     }
@@ -400,26 +396,34 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
     const force = throttle * (design.thrusters[thruster]?.maxThrust ?? 0);
     thruster++;
     if (force > 0) {
+      // One flame per nozzle, each as long as the single flame a whole-face
+      // nozzle would throw and a share of its width — the same triangles the
+      // burn samples its rays across.
+      const engine = thrusterGeometry(spec);
       const root = -spec.length / 2;
-      const reach = force / (spec.width * PLUME_THRUST_PER_AREA);
-      ctx.fillStyle = PLUME;
-      ctx.globalAlpha = 0.55;
-      ctx.beginPath();
-      ctx.moveTo(root, -spec.width / 2);
-      ctx.lineTo(root, spec.width / 2);
-      ctx.lineTo(root - reach, 0);
-      ctx.closePath();
-      ctx.fill();
-      // A brighter core, a third the width, so a hard burn reads as hotter
-      // rather than merely longer.
-      ctx.fillStyle = PLUME_CORE;
-      ctx.globalAlpha = 0.8;
-      ctx.beginPath();
-      ctx.moveTo(root, -spec.width / 6);
-      ctx.lineTo(root, spec.width / 6);
-      ctx.lineTo(root - reach * 0.55, 0);
-      ctx.closePath();
-      ctx.fill();
+      const reach = nozzleReach(engine, force);
+      const half = engine.exitWidth / 2;
+      for (let n = 0; n < engine.nozzles; n++) {
+        const across = nozzleOffset(engine, n);
+        ctx.fillStyle = PLUME;
+        ctx.globalAlpha = 0.55;
+        ctx.beginPath();
+        ctx.moveTo(root, across - half);
+        ctx.lineTo(root, across + half);
+        ctx.lineTo(root - reach, across);
+        ctx.closePath();
+        ctx.fill();
+        // A brighter core, a third the width, so a hard burn reads as hotter
+        // rather than merely longer.
+        ctx.fillStyle = PLUME_CORE;
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(root, across - half / 3);
+        ctx.lineTo(root, across + half / 3);
+        ctx.lineTo(root - reach * 0.55, across);
+        ctx.closePath();
+        ctx.fill();
+      }
       ctx.globalAlpha = 1;
     }
     ctx.restore();

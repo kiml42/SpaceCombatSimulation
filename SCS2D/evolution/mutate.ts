@@ -17,8 +17,13 @@ import {
   toDoctrine,
   type Doctrine,
 } from '../sim/doctrine.js';
-import { abs, cos, floor, HALF_PI, max, PI, round, sin } from '../sim/math.js';
-import { moduleCentre, type ModuleKind, type ModuleSpec } from '../sim/modules.js';
+import { abs, clamp, cos, floor, HALF_PI, max, PI, round, sin } from '../sim/math.js';
+import {
+  DEFAULT_NOZZLE_SHARE,
+  moduleCentre,
+  type ModuleKind,
+  type ModuleSpec,
+} from '../sim/modules.js';
 import type { Rng } from '../sim/rng.js';
 
 /**
@@ -371,6 +376,8 @@ type Knob =
   | { readonly at: 'reinforcement'; readonly site: ModuleSite }
   | { readonly at: 'kind'; readonly site: ModuleSite }
   | { readonly at: 'barrels'; readonly site: ModuleSite }
+  | { readonly at: 'nozzle'; readonly site: ModuleSite }
+  | { readonly at: 'weapon'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
   | { readonly at: 'slide'; readonly site: ModuleSite }
@@ -416,6 +423,11 @@ function knobs(draft: Draft): Knob[] {
       if (placement.kind === 'turret' || placement.kind === 'beamTurret') {
         out.push({ at: 'barrels', site });
       }
+      if (placement.kind === 'thruster') {
+        // An engine's outlets are counted by the same field a gun's barrels
+        // are, so a cluster is something a line can find.
+        out.push({ at: 'weapon', site }, { at: 'barrels', site }, { at: 'nozzle', site });
+      }
     }
   }
   return out;
@@ -431,6 +443,10 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return refit(knob.site, rng, bounds);
     case 'barrels':
       return rebarrel(knob.site, rng);
+    case 'nozzle':
+      return rebell(knob.site, rng, bounds);
+    case 'weapon':
+      return rearm(knob.site);
     case 'angle':
       return turnModule(knob.site, rng, bounds);
     case 'face':
@@ -572,10 +588,17 @@ function refit(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | nul
     site.spec.x = centre.x;
     site.spec.y = centre.y;
   }
-  // Barrels mean nothing to anything but a gun, and a gun with none is a gun
-  // with one — so the field goes when it stops applying rather than sitting
-  // in the file saying nothing.
-  if (to !== 'turret' && to !== 'beamTurret') delete site.spec.barrels;
+  // Fields go when they stop applying, rather than sitting in the file saying
+  // nothing — and here they would say something worse than nothing, since each
+  // is refused outright on a kind it does not belong to, which makes every
+  // refit away from that kind impossible. Silently, too: a refused candidate is
+  // simply retried. Barrels are the exception and stay, because they count a
+  // gun's barrels and a thruster's nozzles alike.
+  if (to !== 'turret' && to !== 'beamTurret' && to !== 'thruster') delete site.spec.barrels;
+  if (to !== 'thruster') {
+    delete site.spec.nozzle;
+    delete site.spec.weapon;
+  }
   return `${site.where}: ${was} refitted as ${to}`;
 }
 
@@ -596,6 +619,38 @@ function rebarrel(site: ModuleSite, rng: Rng): string | null {
   if (now === was) return null;
   site.spec.barrels = now;
   return `${site.where} ${site.spec.kind}: barrels ${was} → ${now}`;
+}
+
+/**
+ * Lengthen or shorten an engine's bell.
+ *
+ * A share of the engine's length rather than a length, so the knob means the
+ * same thing on a fighter's thruster and a capital's, and held off both ends:
+ * an engine that is all bell has no chamber, and the layout rules would
+ * refuse it rather than teach the search anything.
+ */
+function rebell(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const was = site.spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
+  const now = tidy(clamp(was + bounds.magnitude * rng.nextRange(-1, 1), 0, 0.9), 3);
+  if (now === was) return null;
+  site.spec.nozzle = now;
+  return `${site.where} ${site.spec.kind}: nozzle ${was} → ${now}`;
+}
+
+/**
+ * Point an engine at things, or stop.
+ *
+ * A flip rather than a nudge, because the thing being mutated is a decision
+ * and not a quantity — there is no half-armed engine to land on. It is cheap
+ * for the search to try in both directions, which is what a knob with two
+ * positions and no cost of its own should be: the fitness of the ship decides
+ * whether being shoved about by one's own exhaust was worth the damage.
+ */
+function rearm(site: ModuleSite): string {
+  const was = site.spec.weapon === true;
+  if (was) delete site.spec.weapon;
+  else site.spec.weapon = true;
+  return `${site.where} ${site.spec.kind}: ${was ? 'no longer' : 'now'} a weapon`;
 }
 
 function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits): string {
@@ -1312,10 +1367,11 @@ function against(
   const across = copy ? (endOn ? anchor.width : anchor.length) : bounds.grid;
   const out = copy ? (endOn ? anchor.length : anchor.width) : bounds.grid;
 
-  // A thruster is held on by the face it pushes from, so it is mounted facing
-  // *into* the anchor — which puts its position exactly on the face and its
-  // exhaust pointing out. Everything else sits on the face, half its own
-  // depth out.
+  // A thruster is mounted facing *into* the anchor — which puts its position
+  // exactly on the face and its exhaust pointing out into clear air. Nothing
+  // refuses an engine pointed the other way any more; it is simply the only
+  // way round worth guessing, since the other burns the ship it is bolted to.
+  // Everything else sits on the face, half its own depth out.
   // **The angle is not rounded, and that is load-bearing.** Positions are
   // tidied because they are worked out through sines and cosines and land on
   // values no file should carry; an angle is not, because a module sits

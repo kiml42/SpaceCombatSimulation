@@ -1,5 +1,5 @@
 import { abs, cos, max, min, sin, sqrt } from './math.js';
-import type { ShipDesign } from './blueprint.js';
+import type { DesignModule, ShipDesign } from './blueprint.js';
 import type { Bodies } from './bodies.js';
 import { segmentCircleT, type RayNarrowPhase } from './spatialGrid.js';
 
@@ -114,6 +114,14 @@ export class HullPath {
 }
 
 /**
+ * Just enough of a design to cast against: the boxes it is built from, in its
+ * own frame. A `ShipDesign` is one, and so is a design still being compiled.
+ */
+export interface Boxes {
+  readonly modules: readonly DesignModule[];
+}
+
+/**
  * The modules a segment crosses, written into `out` in the order it crosses
  * them.
  *
@@ -133,7 +141,7 @@ export class HullPath {
  * would only add a second set of arithmetic to nearly every one of them.
  */
 export function modulesAlong(
-  design: ShipDesign,
+  design: Boxes,
   x0: number,
   y0: number,
   x1: number,

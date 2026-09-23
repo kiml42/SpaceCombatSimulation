@@ -758,30 +758,45 @@ Deliberately unresolved; decide when they block something.
   non-negotiable 6 turning out to be load-bearing for something other than what it was written for, and it
   is also exactly what a replay file needs (§8's async fleet-vs-fleet), so the two features want the same
   mechanism built once.
-- **What a thruster firing into its own hull should cost.** Narrowed, not closed. A thruster mounted *back to
-  front* is now a rejected layout: `blueprintProblem` requires the face opposite the nozzle to be against a
-  structure module, because an engine held on by its nozzle is not an assembly question about how well the
-  ship runs but about whether it is a ship. That is the same kind of rule as modules not overlapping, and it
-  is discrete for the same reason.
-  What stays open is the continuous case, and it is the one this question was really about: a *correctly
-  mounted* engine whose plume runs into something further aft. Thrust is still produced whatever the exhaust
-  hits, so such a layout flies exactly as well as a clear one and merely looks absurd. Both authored ships
-  were drawn wrong and nobody noticed until the viewer started drawing plumes — which is the argument for the
-  viewer in miniature, and the reason the authored layouts also have a ray-cast test that the attachment rule
-  does not replace.
-  It matters more than tidiness once §7's evolution is running. A buried nozzle is thrust with no penalty
-  attached, which is precisely the shape of exploit `modules.ts` warns about: the search will find it, and
-  every evolved ship will end up with its engines pointing into itself because that packs a layout tighter
-  for free.
-  **Settled in direction, open in timing:** a blocked nozzle will lose thrust in proportion to how much of
-  its exhaust is obstructed, *and* deliver damage and heat to whatever is in the way. Not rejecting the
-  layout outright, which would turn a continuous quantity into a hard edge a mutation cannot cross, and the
-  search wants a gradient. That argument is about *obstruction* and does not reach the attachment rule above,
-  which is discrete however it is modelled: a mount is on the hull or it is not, and there is no gradient
-  between. Doing both means a plume becomes something a designer can point deliberately —
-  and something an attacker can exploit — rather than merely a thing to avoid.
-  The deadline is §7's evolution rather than any particular slice: until then a buried nozzle is a drawing
-  error, and afterwards it is an exploit the search will find and build every ship around.
+- **How finely a plume should be sampled, and whether it carries heat.** Settled in shape: the flame is
+  three rays across the nozzle, each a third of the gas, which is the cheapest count that tells the middle
+  of a jet from its edges and is what gives a buried nozzle a thrust penalty to lose in thirds rather than
+  an on/off. Whether thirds are a fine enough gradient for §7's search to climb is a question for a
+  generation that actually evolves its engine placement; the count is one constant, and nothing but cost
+  argues against raising it. Heat was part of the answer when a plume's bite was first settled in
+  direction and is still owed, but it waits on there being a heat model to put it in rather than on
+  anything about exhaust.
+- **What a bell should buy once there is fuel.** A nozzle's length already buys thrust and reach, both out
+  of the one divergence factor, because both are about how much of the gas is going the right way. The
+  thing it should buy and cannot yet is **efficiency**: expansion is what a real bell is for, and a long
+  one gets more delta-v out of the same propellant rather than only more push. There is no propellant, so
+  there is nothing for it to be efficient with, and pricing it now would mean inventing a second currency
+  to spend. When fuel arrives the number is already sitting in `ThrusterGeometry.divergence` and wants no
+  new law — which is also the argument for the shape the bell was given: one physical quantity with three
+  consequences, two of them already paid for.
+  The neighbouring question is what a *stubby* engine should do about it. A wide exit cannot be collimated
+  in a short length, so the shipped hulls — whose engines are much wider than they are long — sit well
+  below one and lost thrust when this landed. The designed answer is a cluster of narrow bells, which the
+  nozzle count already gives them; whether the shipped ships should be re-drawn to take it, or left as
+  evidence of what the law says about a hull drawn before it, is a decision about the fleet rather than
+  about the model.
+- **Whether a ship should manoeuvre to bring an engine to bear.** A thruster marked as a weapon fires when
+  something worth burning is already behind it, and nothing turns the ship to put it there — so it is a
+  weapon for what gets behind you rather than one you attack with. Aiming it is a genuinely different
+  problem from aiming a gun and is the reason this was left out rather than forgotten: a turret is a small
+  mass that trains independently of where its ship is going, while pointing an *exhaust* means choosing a
+  heading, which is the same quantity the pilot is already using to keep its guns on target and its range
+  band. So the two wants have to be blended rather than one of them winning, and the shape that blend
+  wants is probably the same weighted-average of urges §4's pilot already uses for position — a heading
+  urge per reason, rather than one `wantAngle` that the last caller wins.
+  Worth doing only once there is a hull that wants it. A ram-and-burn strike craft is the obvious one, and
+  §3 already says a torpedo is a fighter that crashes into things.
+- **Whether the editor should flag a weapon engine that fires into its own hull.** Where an engine's
+  exhaust runs into its own ship is worked out when the design is compiled, so the answer is in hand; what
+  is missing is that the problem list works on a layout's *specs* rather than on the compiled design. It
+  is a real mistake to make — an engine marked as a weapon and buried in the hull is a mount that can only
+  ever eat its own ship — and it is the kind of thing the editor exists to catch, since nothing about the
+  picture says it.
 - **A dead zone on the pilot's attitude hold.** A ship parked on its target bearing still twitches its
   thrusters continually, correcting an alignment error of almost nothing. Today that is only cosmetic — the
   ships have no fuel to waste — but it is the same behaviour that will empty a propellant tank while
@@ -818,5 +833,6 @@ Deliberately unresolved; decide when they block something.
 - Whether the mothership's build priorities are a doctrine blob (so async PvP competes on them) or
   a player-driven queue.
 - Concrete values, now that the units are settled: budgets, engagement ranges, timestep, weld
-  velocity threshold, edit-distance bounds, muzzle velocities, armour densities.
+  velocity threshold, edit-distance bounds, muzzle velocities, armour densities, and how hard a plume
+  burns (`PLUME_POWER_PER_NEWTON`, chosen for a timescale rather than derived).
 - Project name.

@@ -13,9 +13,9 @@
       "modules": [
         {
           "kind": "structure",
-          "x": -10.5,
+          "x": 17.5,
           "y": 39,
-          "length": 1352.5,
+          "length": 1296.5,
           "width": 60
         },
         {
@@ -35,10 +35,11 @@
         {
           "kind": "thruster",
           "x": -663,
-          "y": 160.5,
+          "y": 138,
           "angle": 0,
-          "length": 50,
-          "width": 100
+          "length": 150,
+          "width": 100,
+          "nozzle": 0.35
         },
         {
           "kind": "structure",
@@ -91,22 +92,22 @@
         {
           "use": "beamTurret",
           "x": 680.25,
-          "y": 21
+          "y": 25
         },
         {
           "use": "beamTurret",
           "x": 451.5,
-          "y": 81
+          "y": 76.5
         },
         {
           "use": "beamTurret",
           "x": 273.5,
-          "y": 141
+          "y": 136.5
         },
         {
           "use": "beamTurret",
           "x": -414.5,
-          "y": 441
+          "y": 436.5
         },
         {
           "kind": "structure",
@@ -117,13 +118,13 @@
         },
         {
           "use": "beamTurret",
-          "x": -557,
+          "x": -552.5,
           "y": 443.5,
           "angle": 90
         },
         {
           "use": "beamTurret",
-          "x": -620,
+          "x": -615.5,
           "y": 263.5,
           "angle": 90
         },
@@ -140,7 +141,13 @@
         {
           "use": "thruster",
           "x": -429,
-          "y": 474.5,
+          "y": 467,
+          "angle": -90
+        },
+        {
+          "use": "thruster",
+          "x": 437,
+          "y": 106,
           "angle": -90
         }
       ]
@@ -166,7 +173,7 @@
           "y": 0,
           "angle": 0,
           "length": 29,
-          "width": 24,
+          "width": 15,
           "barrels": 1,
           "targeting": {
             "focusWeight": 0,
@@ -186,7 +193,8 @@
           "y": 0,
           "angle": -90,
           "length": 10,
-          "width": 43
+          "width": 43,
+          "barrels": 4
         }
       ]
     }
@@ -194,16 +202,16 @@
   "modules": [
     {
       "kind": "structure",
-      "x": 20,
+      "x": 228,
       "y": 0,
-      "length": 1560,
+      "length": 1156,
       "width": 60
     },
     {
       "kind": "core",
-      "x": -780,
+      "x": -371,
       "y": 0,
-      "length": 40,
+      "length": 42,
       "width": 60,
       "notes": "The bridge, aft above the engines, where a Star Destroyer's is — and where every shot at it has to cross the length of the ship first."
     },
@@ -214,17 +222,25 @@
     },
     {
       "use": "structure",
-      "x": -96,
+      "x": -96.5,
       "y": -21,
       "mirror": true
     },
     {
       "kind": "thruster",
-      "x": -800,
-      "y": 0.5,
+      "x": -727.25,
+      "y": 0,
       "angle": 0,
-      "length": 51,
-      "width": 100
+      "length": 150,
+      "width": 100,
+      "nozzle": 0.35
+    },
+    {
+      "kind": "structure",
+      "x": -559.5,
+      "y": 0,
+      "length": 335,
+      "width": 60
     }
   ]
 }

@@ -118,7 +118,7 @@ export function makeBattle<Extra extends object = Record<never, never>>(
     totalCulled: 0,
 
     step(): void {
-      if (pilots) ships.command(dt, world);
+      if (pilots) ships.command(dt, world, grid);
       world.step();
       // Hulls are solid: what the world's step drove into each other is pushed
       // back apart before anything asks where anything is.
@@ -133,6 +133,9 @@ export function makeBattle<Extra extends object = Record<never, never>>(
       const fireReport = ships.fire(world, projectiles, beams, grid, beamHits);
       run.totalProjectilesFired += fireReport.projectilesFired;
       run.totalBeamsFired += fireReport.beamsFired;
+      // Exhaust burns whatever it is playing on, which is as much a weapon as
+      // a gun and answers to the same rebuilt index.
+      ships.scorch(world, grid, dt);
       projectiles.step(dt, world.bodies, grid, hits, wells, ships.hulls);
       run.totalProjectileHits += hits.count;
       run.totalBeamHits += beamHits.count;

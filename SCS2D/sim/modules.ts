@@ -1,5 +1,5 @@
 import type { Targeting } from './doctrine.js';
-import { cos, max, PI, sin, sqrt } from './math.js';
+import { atan2, cos, max, PI, sin, sqrt } from './math.js';
 
 /**
  * Parametric ship modules: a few archetypes with continuous parameters, rather
@@ -70,8 +70,77 @@ export const THRUST_PER_EXIT_AREA = 5e4;
 /**
  * Engine machinery mass per newton of thrust, kg/N. The RS-25 manages
  * 1.5e-3 (3.2 t for 2.2 MN); this is deliberately a little worse.
+ *
+ * Priced against the thrust the exit area could produce through a perfect
+ * bell rather than against what the engine actually delivers, because what
+ * this mass *is* — chamber, pumps, plumbing — is sized by the gas flowing
+ * through the throat. A bad nozzle wastes that flow sideways; it does not
+ * make the machinery behind it any smaller.
  */
 export const ENGINE_MASS_PER_NEWTON = 2e-3;
+
+/**
+ * A nozzle's throat as a fraction of its exit width.
+ *
+ * Fixed, so that expansion is bought with *length*: widening an engine widens
+ * the throat with it and buys area rather than a better bell. The renderer
+ * draws the taper from this same number, so the bell on the screen is the one
+ * the thrust is worked out from.
+ */
+export const NOZZLE_THROAT_FRACTION = 0.55;
+
+/**
+ * Bell skin thickness as a fraction of hull plate.
+ *
+ * A nozzle is sheet held in shape by the gas going through it, not armour and
+ * not a pressure vessel, so it weighs a fraction of what the machinery box of
+ * the same size does. This is the whole of why a long-belled engine is the
+ * lighter one.
+ */
+export const NOZZLE_SKIN_FRACTION = 0.35;
+
+/**
+ * Machinery depth, in the engine's own widths, that feeds the throat at
+ * `THRUST_PER_EXIT_AREA`.
+ *
+ * Measured against the engine's own width because that is what sets the
+ * throat: the chamber and pumps have to fill the hole they are behind, and a
+ * wide engine needs proportionally more machinery to do it. Which makes the
+ * whole law a question of *proportions*, so an engine scaled up bodily
+ * behaves the same.
+ *
+ * A third of a width, which is about what the engines people draw actually
+ * have behind them: a mounting wider than it is deep is the usual shape, and
+ * the reference engine has to be one somebody would draw. Set to a whole
+ * width — the depth a *rocket* has — every ship in the game is starved to a
+ * third of its thrust and stops being able to cross the distances its
+ * scenarios put it at. This is the constant to move if a fleet ought to be
+ * generally faster or slower; it decides nothing about the *shape* of the
+ * knob, which is the throat and the bell arguing.
+ */
+export const PUMP_DEPTH_WIDTHS = 0.35;
+
+/**
+ * The most a chamber may over-feed its own throat, as a multiple of what
+ * `THRUST_PER_EXIT_AREA` passes.
+ *
+ * A throat chokes: past the speed of sound in it, more pressure behind it
+ * stops buying more flow through it, so there is an end to what stacking
+ * machinery behind a hole can do. Without this, a long thin engine is
+ * unbounded thrust for the price of being long — which is the shape of
+ * exploit `§12` warns about for rate of fire, arriving instead through the
+ * engine.
+ */
+export const THROAT_CHOKE = 2;
+
+/**
+ * How much of a thruster is bell when its layout does not say.
+ *
+ * Half and half: enough expansion to be worth having (`divergence` lands near
+ * 0.91 on a squarish engine) while leaving a machinery block big enough to
+ * bolt to on three sides.
+ */
+export const DEFAULT_NOZZLE_SHARE = 0.5;
 
 /**
  * Bore as a fraction of the mount's width. A triple 16-inch turret is about
@@ -321,9 +390,32 @@ export interface ModuleSpec {
   reinforcement?: number;
 
   /**
-   * specifies the number of barrels for a turret.
+   * How many barrels a turret has, or how many nozzles a thruster has — the
+   * editor calls it Nozzles there.
+   *
+   * The same number because it is the same idea: one mount's budget divided
+   * between several outlets. `n` barrels divide a gun's bore and `n` nozzles
+   * divide an engine's exit face, so neither count is free power. What a
+   * cluster of small bells buys an engine is expansion — a narrow nozzle
+   * collimates in less length than a wide one — and a flame combed into `n`
+   * fingers rather than thrown as one sheet.
    */
   barrels?: number;
+
+  /**
+   * How much of a thruster's length is bell, as a fraction from 0 to 1. The
+   * rest is the machinery: chamber, pumps and the faces the engine is bolted
+   * on by. Thrusters only; `DEFAULT_NOZZLE_SHARE` when unsaid.
+   *
+   * An engine is not a nozzle. Splitting the box in two is what lets the
+   * length of the bell mean something — see `thrusterGeometry` — and what
+   * gives the mounting rule a *structural* part to ask about, so an engine
+   * can be welded on by its flank rather than only by its nose.
+   *
+   * Zero is legal and is a rocket whose bell has blown off: gas thrown in
+   * every direction, about half the thrust, and a flame that goes nowhere.
+   */
+  nozzle?: number;
 
   /**
    * What this mount goes after, where it differs from its ship's doctrine.
@@ -335,6 +427,22 @@ export interface ModuleSpec {
    * wants something its own size — rather than a second kind of turret.
    */
   targeting?: Partial<Targeting>;
+
+  /**
+   * Whether this engine is pointed at things on purpose. Thrusters only.
+   *
+   * An exhaust burns whatever stands in it whoever meant it to (`exhaust.ts`),
+   * so this changes nothing about what a plume *does* — it changes when the
+   * engine burns. A weapon engine lights up on its own account the moment an
+   * enemy is close enough behind it to take a real share of the flame, whether
+   * or not the pilot wanted thrust just then, and the ship wears the push.
+   *
+   * A flag rather than a kind of module, because an engine used this way is
+   * the same engine: it is still what moves the ship, still costs what an
+   * engine costs, and can still be the only thing holding a heading. What a
+   * designer is choosing is a *role* for a mount already on the hull.
+   */
+  weapon?: boolean;
 
   /**
    * Why this module is here, in the author's own words. Carried through the
@@ -437,14 +545,45 @@ export function moduleProblem(spec: ModuleSpec): string | null {
       return `${spec.kind}: barrels must be a whole number of at least 1, got ${spec.barrels}`;
     }
   }
+  if (spec.nozzle !== undefined) {
+    // A whole engine of bell has no chamber to burn in and nothing to bolt to
+    // the ship. Nothing of it is legal and continuous — the machinery block
+    // running out of interior is what stops it well before this.
+    if (!(spec.nozzle >= 0) || !(spec.nozzle < 1)) {
+      return `${spec.kind}: nozzle must be from 0 to under 1, got ${spec.nozzle}`;
+    }
+    if (spec.kind !== 'thruster') {
+      return `${spec.kind}: only a thruster has a nozzle`;
+    }
+  }
+  if (spec.weapon === true && spec.kind !== 'thruster') {
+    // Only an engine has a plume to point. Silently ignoring it on a gun would
+    // leave a blueprint saying something the simulation never reads.
+    return `${spec.kind}: only a thruster can be used as a weapon`;
+  }
   const thickness = BASE_WALL_THICKNESS * reinforcement;
-  const smallest = spec.length < spec.width ? spec.length : spec.width;
+  // For an engine it is the machinery block that has to be a box: the bell is
+  // meant to be open at both ends. This is also what makes "all nozzle"
+  // impossible by running out of block rather than by a rule of its own.
+  const boxLength = spec.kind === 'thruster' ? thrusterGeometry(spec).machineryLength : spec.length;
+  const smallest = boxLength < spec.width ? boxLength : spec.width;
   const limiting = smallest < DECK_HEIGHT ? smallest : DECK_HEIGHT;
   if (2 * thickness >= limiting) {
     return (
       `${spec.kind}: walls ${thickness.toFixed(3)} m thick leave no interior in a ` +
-      `${spec.length}x${spec.width} m module`
+      `${boxLength}x${spec.width} m module`
     );
+  }
+  if (spec.kind === 'thruster') {
+    const { exitWidth, throatWidth } = thrusterGeometry(spec);
+    const skin = thickness * NOZZLE_SKIN_FRACTION;
+    if (2 * skin >= throatWidth) {
+      return (
+        `${spec.kind}: ${spec.barrels ?? 1} nozzles across ${spec.width} m leave a ` +
+        `${throatWidth.toFixed(3)} m throat, which is all skin`
+      );
+    }
+    if (exitWidth <= 0) return `${spec.kind}: nozzles leave no exit`;
   }
   return null;
 }
@@ -467,6 +606,157 @@ export function moduleCentre(spec: ModuleSpec): { x: number; y: number } {
   return { x: spec.x - cos(angle) * back, y: spec.y - sin(angle) * back };
 }
 
+/**
+ * A thruster's two halves, and what the bell's shape does to the gas.
+ *
+ * An engine is a machinery block with a bell on the back of it. The block is
+ * the structural part — it holds the chamber and the pumps, it is what the
+ * engine is welded to the ship by, and it is what the mounting rule asks
+ * about. The bell is sheet metal in the exhaust: it weighs little, it can be
+ * bolted to nothing, and its *length* is the only thing that makes an engine
+ * more than a hole with gas coming out of it.
+ *
+ * **Expansion is the whole trade.** Gas leaving a bell of half-angle `a`
+ * keeps `(1 + cos a) / 2` of its momentum along the axis and throws the rest
+ * sideways — the standard divergence correction, and the reason a real nozzle
+ * is a long cone rather than a short flare. A bare throat is `a = 90°` and
+ * loses half of everything; lengthening the bell recovers it, steeply at
+ * first and then barely, so the first metre of bell is worth a great deal and
+ * the fifth is worth almost nothing. That curve is the parameter's answer to
+ * "why not make it all nozzle": a long bell costs length and structure for a
+ * gain that has already been had.
+ *
+ * It is also why nozzle *count* interacts with it. Dividing the exit face
+ * between `n` bells makes each one `n` times narrower, and a narrow bell
+ * collimates in a fraction of the length — so a cluster is how a stubby
+ * engine gets a good nozzle, and there is a reason to choose it beyond how
+ * the flame is shaped.
+ *
+ * Fuel is not modelled yet. When it is, expansion buys efficiency as well as
+ * thrust and this is where that comes from — ROADMAP.md §12.
+ */
+export interface ThrusterGeometry {
+  /** Nozzles across the exit face, at least one. */
+  nozzles: number;
+  /** The bell's share of the module's length, 0 to 1. */
+  share: number;
+  /** Length of the machinery block, metres. Always positive. */
+  machineryLength: number;
+  /** Length of the bell, metres. Zero for a throat with nothing on it. */
+  nozzleLength: number;
+  /** Exit width of one nozzle, metres. The nozzles tile the face. */
+  exitWidth: number;
+  /** Throat width of one nozzle, metres. */
+  throatWidth: number;
+  /** Bell half-angle, radians. A right angle when there is no bell. */
+  halfAngle: number;
+  /** Momentum kept along the axis, `(1 + cos a) / 2`: 0.5 to 1. */
+  divergence: number;
+}
+
+/** A thruster's halves and its bell geometry. Thrusters only. */
+export function thrusterGeometry(spec: ModuleSpec): ThrusterGeometry {
+  const nozzles = spec.barrels ?? 1;
+  const share = spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
+  const nozzleLength = spec.length * share;
+  const exitWidth = spec.width / nozzles;
+  const throatWidth = exitWidth * NOZZLE_THROAT_FRACTION;
+  // How far the wall has to travel sideways over the bell's length.
+  const flare = (exitWidth - throatWidth) * 0.5;
+  const halfAngle = atan2(flare, nozzleLength);
+  // cos of that angle without going back through a trig function, and exactly
+  // zero rather than nearly so when there is no bell at all.
+  const axial = nozzleLength > 0 ? nozzleLength / sqrt(nozzleLength * nozzleLength + flare * flare) : 0;
+  return {
+    nozzles,
+    share,
+    machineryLength: spec.length - nozzleLength,
+    nozzleLength,
+    exitWidth,
+    throatWidth,
+    halfAngle,
+    divergence: (1 + axial) * 0.5,
+  };
+}
+
+/**
+ * The machinery block as a box in its own right, for the questions that are
+ * about how the engine is *held on*: what it overlaps, what it is welded to.
+ *
+ * A thruster's position is the middle of the face it pushes from, so the
+ * block shares that position and is simply shorter — which is what makes this
+ * a change of one field rather than a second geometry.
+ */
+export function thrusterMachinery(spec: ModuleSpec): ModuleSpec {
+  return { ...spec, length: thrusterGeometry(spec).machineryLength };
+}
+
+/**
+ * Where one nozzle's axis sits across the exit face, metres from the middle.
+ *
+ * The bells tile the face rather than being spaced out across it the way
+ * barrels are: a gun's barrels are thin things with ship in between, while
+ * nozzles divide up a face that is entirely exhaust.
+ */
+export function nozzleOffset(geometry: ThrusterGeometry, index: number): number {
+  return (index - (geometry.nozzles - 1) * 0.5) * geometry.exitWidth;
+}
+
+/**
+ * Material in a thruster's bells, m³.
+ *
+ * Every bell is an open-ended tapered duct: two flanks running down the slant
+ * and a roof and floor spanning the taper, in skin a fraction of hull plate
+ * thick. Nothing is enclosed, which is the point — a bell holds no cargo, has
+ * no interior to hollow out, and weighs a small fraction of what the same
+ * length of machinery block does.
+ */
+function nozzleSkinVolume(geometry: ThrusterGeometry, wallThickness: number): number {
+  const { nozzles, nozzleLength, exitWidth, throatWidth } = geometry;
+  if (!(nozzleLength > 0)) return 0;
+  const flare = (exitWidth - throatWidth) * 0.5;
+  const slant = sqrt(nozzleLength * nozzleLength + flare * flare);
+  const meanWidth = (exitWidth + throatWidth) * 0.5;
+  const area = 2 * slant * DECK_HEIGHT + 2 * meanWidth * nozzleLength;
+  return area * wallThickness * NOZZLE_SKIN_FRACTION * nozzles;
+}
+
+
+/**
+ * A thruster's moment about its own centre, kg·m².
+ *
+ * Two pieces sitting at different places along the engine, so the box formula
+ * over the whole declared length would be wrong twice over: it puts the heavy
+ * machinery further aft than it is, and it treats a light bell as though it
+ * were packed as densely as the block. A cluster of bells is spread across the
+ * face as well, which the single-box formula cannot see at all.
+ */
+function thrusterInertia(
+  spec: ModuleSpec,
+  geometry: ThrusterGeometry,
+  blockMass: number,
+  skinMass: number,
+): number {
+  const { machineryLength, nozzleLength, nozzles, exitWidth } = geometry;
+  // Both pieces are measured from the middle of the whole engine, which is
+  // half a bell ahead of the block's middle and half a block behind the
+  // bells'.
+  const blockOffset = nozzleLength * 0.5;
+  const bellOffset = machineryLength * 0.5;
+  let inertia =
+    (blockMass * (machineryLength * machineryLength + spec.width * spec.width)) / 12 +
+    blockMass * blockOffset * blockOffset;
+
+  const perBell = skinMass / nozzles;
+  for (let i = 0; i < nozzles; i++) {
+    const across = nozzleOffset(geometry, i);
+    inertia +=
+      (perBell * (nozzleLength * nozzleLength + exitWidth * exitWidth)) / 12 +
+      perBell * (bellOffset * bellOffset + across * across);
+  }
+  return inertia;
+}
+
 export function moduleStats(spec: ModuleSpec): ModuleStats {
   const problem = moduleProblem(spec);
   if (problem !== null) throw new Error(`Invalid module — ${problem}`);
@@ -474,20 +764,27 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
   const reinforcement = spec.reinforcement ?? 1;
   const wallThickness = BASE_WALL_THICKNESS * reinforcement;
 
+  // A thruster is a box with a bell on the back of it rather than one box, and
+  // only the box part is walled. Every other archetype is the box it declares.
+  const engine = spec.kind === 'thruster' ? thrusterGeometry(spec) : null;
+  const boxLength = engine === null ? spec.length : engine.machineryLength;
+
   // The walls are what is left of the box once the interior is hollowed out of
   // it, on all six faces — so a long thin module carries proportionally more
   // wall for the space it encloses, which is the pressure that stops layouts
   // being made of splinters.
-  const outer = spec.length * spec.width * DECK_HEIGHT;
+  const outer = boxLength * spec.width * DECK_HEIGHT;
   const inner =
-    (spec.length - 2 * wallThickness) *
+    (boxLength - 2 * wallThickness) *
     (spec.width - 2 * wallThickness) *
     (DECK_HEIGHT - 2 * wallThickness);
-  const wallVolume = outer - inner;
+  // Bells, which are skins rather than boxes: two flanks along the slant and a
+  // roof and floor over the taper, with nothing enclosed and both ends open.
+  const skinVolume = engine === null ? 0 : nozzleSkinVolume(engine, wallThickness);
+  const wallVolume = outer - inner + skinVolume;
   const structureMass = wallVolume * HULL_DENSITY;
 
-  const capacity =
-    (spec.length - 2 * wallThickness) * (spec.width - 2 * wallThickness);
+  const capacity = (boxLength - 2 * wallThickness) * (spec.width - 2 * wallThickness);
 
   let fittingMass = 0;
   let thrust = 0;
@@ -504,14 +801,29 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     // and the fragility of a small one are the whole of what stops a ship
     // carrying five of them.
     fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity);
-  } else if (spec.kind === 'thruster') {
+  } else if (engine !== null) {
     // Thrust comes out of the nozzle, so it scales with the area of the face
-    // the exhaust leaves through — the module's width by the deck height. A
-    // thruster therefore gets stronger by being made *wider*, and gains
-    // nothing from being made longer, which is what stops "just stretch it"
+    // the exhaust leaves through — the module's width by the deck height,
+    // however many bells that face is divided into. A thruster therefore gets
+    // stronger by being made *wider*, which is what stops "just stretch it"
     // being the answer to every propulsion problem.
-    thrust = THRUST_PER_EXIT_AREA * spec.width * DECK_HEIGHT;
-    fittingMass = thrust * ENGINE_MASS_PER_NEWTON;
+    //
+    // **How hard that face is fed is the machinery's business**, and the
+    // machinery is the block the bell was cut out of. A shallow bell leaves a
+    // deep chamber with big pumps and drives more mass through the same
+    // throat; a deep bell leaves an engine with nothing behind it. Bounded by
+    // the throat itself, which chokes rather than passing whatever is pushed
+    // at it.
+    const feed = engine.machineryLength / (PUMP_DEPTH_WIDTHS * spec.width);
+    const supply = feed < THROAT_CHOKE ? feed : THROAT_CHOKE;
+    const throughput = THRUST_PER_EXIT_AREA * spec.width * DECK_HEIGHT * supply;
+    // What the bell then keeps pointed the right way. **The two pull opposite
+    // ways**, which is the whole of the knob: length taken off the bell is
+    // flow gained and aim lost, so the best engine is neither all bell nor all
+    // chamber but somewhere inside, and an engine whose nozzle has fallen off
+    // throws its gas sideways however hard it is pumping.
+    thrust = throughput * engine.divergence;
+    fittingMass = throughput * ENGINE_MASS_PER_NEWTON;
   } else if (spec.kind === 'turret' || spec.kind === 'beamTurret') {
     gun = spec.kind === 'turret'
       ? gunStats(spec.length, spec.width, spec.barrels)
@@ -562,8 +874,10 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
   // packed inside them.
   const boxMass = mass - rodMass;
   const inertia =
-    (boxMass * (spec.length * spec.length + spec.width * spec.width)) / 12 +
-    rodInertia;
+    engine === null
+      ? (boxMass * (spec.length * spec.length + spec.width * spec.width)) / 12 + rodInertia
+      : thrusterInertia(spec, engine, structureMass - skinVolume * HULL_DENSITY + fittingMass,
+          skinVolume * HULL_DENSITY);
 
   return {
     wallThickness,

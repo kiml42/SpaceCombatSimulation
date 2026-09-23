@@ -62,6 +62,8 @@ const MODULE_KEYS: readonly string[] = [
   'width',
   'reinforcement',
   'barrels',
+  'nozzle',
+  'weapon',
   'targeting',
   'notes',
 ];
@@ -120,6 +122,13 @@ function optionalNumberProblem(value: unknown, what: string): string | null {
   return value === undefined ? null : numberProblem(value, what);
 }
 
+function optionalBooleanProblem(value: unknown, what: string): string | null {
+  if (value !== undefined && typeof value !== 'boolean') {
+    return `${what} must be true or false, got ${JSON.stringify(value)}`;
+  }
+  return null;
+}
+
 function optionalStringProblem(value: unknown, what: string): string | null {
   if (value !== undefined && typeof value !== 'string') {
     return `${what} must be a string, got ${JSON.stringify(value)}`;
@@ -143,6 +152,8 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalNumberProblem(value['angle'], `${where}: angle`) ??
     optionalNumberProblem(value['reinforcement'], `${where}: reinforcement`) ??
     optionalNumberProblem(value['barrels'], `${where}: barrels`) ??
+    optionalNumberProblem(value['nozzle'], `${where}: nozzle`) ??
+    optionalBooleanProblem(value['weapon'], `${where}: weapon`) ??
     targetingProblem(value['targeting'], `${where}: targeting`) ??
     optionalStringProblem(value['notes'], `${where}: notes`)
   );
@@ -324,6 +335,8 @@ function toPlacements(raws: unknown[]): Placement[] {
     if (raw['angle'] !== undefined) spec.angle = degreesToRadians(raw['angle'] as number);
     if (raw['reinforcement'] !== undefined) spec.reinforcement = raw['reinforcement'] as number;
     if (raw['barrels'] !== undefined) spec.barrels = raw['barrels'] as number;
+    if (raw['nozzle'] !== undefined) spec.nozzle = raw['nozzle'] as number;
+    if (raw['weapon'] !== undefined) spec.weapon = raw['weapon'] as boolean;
     if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
     if (raw['notes'] !== undefined) spec.notes = raw['notes'] as string;
     return spec;
@@ -401,6 +414,8 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
   raw['width'] = placement.width;
   if (placement.reinforcement !== undefined) raw['reinforcement'] = placement.reinforcement;
   if (placement.barrels !== undefined) raw['barrels'] = placement.barrels;
+  if (placement.nozzle !== undefined) raw['nozzle'] = placement.nozzle;
+  if (placement.weapon !== undefined) raw['weapon'] = placement.weapon;
   // Written as authored: a mount's block is already only its differences from
   // the ship it is on, so there is nothing to subtract.
   if (placement.targeting !== undefined) raw['targeting'] = { ...placement.targeting };

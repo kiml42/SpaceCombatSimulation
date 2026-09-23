@@ -70,6 +70,7 @@
       .field { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.3rem; }
       .field label { flex: 0 0 6.5rem; color: #7f93aa; }
       .field input, .field textarea { flex: 1; min-width: 0; }
+      .field input[type="checkbox"] { flex: 0 0 auto; }
       .pair { display: flex; gap: 0.4rem; }
       .buttons { display: flex; gap: 0.4rem; margin-top: 0.6rem; }
       .buttons button { flex: 1; padding-inline: 0.3rem; }
@@ -195,6 +196,25 @@
           <div class="field" id="barrelsRow">
             <label for="propBarrels" id="barrelsLabel">barrels</label>
             <input id="propBarrels" type="number" step="1" min="1" />
+          </div>
+          <div class="field" id="nozzleRow">
+            <label for="propNozzle">nozzle</label>
+            <input
+              id="propNozzle"
+              type="number"
+              step="0.05"
+              min="0"
+              max="0.95"
+              title="How much of the engine's length is bell rather than machinery. A longer bell wastes less thrust sideways and is lighter; the machinery behind it is the chamber and the pumps, and a deeper one drives more gas through the throat. Most thrust comes from a bell somewhere in the middle."
+            />
+          </div>
+          <div class="field" id="weaponRow">
+            <label for="propWeapon">weapon</label>
+            <input
+              id="propWeapon"
+              type="checkbox"
+              title="Burn at an enemy that gets close behind this engine, whether or not thrust was wanted"
+            />
           </div>
           <div class="field">
             <label for="propNotes">notes</label>

@@ -293,17 +293,31 @@ describe('a battle of nothing but collisions', () => {
 
   it('leaves the hulls tumbling rather than shaking', () => {
     // A contact solver that fights itself shows up as spin that keeps
-    // growing, so the bound is on what a fragment carries away rather than on
-    // what a hull does: a one-module piece has very little inertia, and a
-    // sound knock sets it turning about once a second.
+    // growing, so what this pins is that the spin *settles*: the whole scene
+    // is ballistic once the last hulls have met, and a second run of the same
+    // length after that must not have found any more of it anywhere.
+    //
+    // The bound alongside it is loose on purpose. It is on what a fragment
+    // carries away rather than on what a hull does, and the smallest pieces
+    // the ram breaks off are a third of a metre across with almost no inertia
+    // at all — a knock that barely moves a hull sends one of those round
+    // several times a second, and that is the solver being right.
     const run = ram();
+    const worst = (): number => {
+      const bodies = run.world.bodies;
+      let spin = 0;
+      for (let i = 0; i < bodies.highWater; i++) {
+        if (bodies.alive[i] === 0) continue;
+        expect(Number.isFinite(bodies.x[i]!)).toBe(true);
+        expect(Math.abs(bodies.angularVel[i]!)).toBeLessThan(100);
+        expect(Math.hypot(bodies.vx[i]!, bodies.vy[i]!)).toBeLessThan(200);
+        spin = Math.max(spin, Math.abs(bodies.angularVel[i]!));
+      }
+      return spin;
+    };
     for (let i = 0; i < 3000; i++) run.step();
-    const bodies = run.world.bodies;
-    for (let i = 0; i < bodies.highWater; i++) {
-      if (bodies.alive[i] === 0) continue;
-      expect(Number.isFinite(bodies.x[i]!)).toBe(true);
-      expect(Math.abs(bodies.angularVel[i]!)).toBeLessThan(15);
-      expect(Math.hypot(bodies.vx[i]!, bodies.vy[i]!)).toBeLessThan(200);
-    }
+    const settled = worst();
+    for (let i = 0; i < 3000; i++) run.step();
+    expect(worst()).toBeLessThanOrEqual(settled);
   });
 });
