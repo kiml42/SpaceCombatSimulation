@@ -265,7 +265,9 @@ inside any one file is not contiguous.
   is fighting rather than a re-enactment of it. The chart is the way in to a generation as well as a picture of the run:
   pointing at it reads off what every line was worth there and names the generation under the cursor, and
   clicking takes the table, the matches and the ships to it — held down and dragged, it seeks, and the ships
-  redraw as it goes, so a run can be scrubbed through and watched changing. The three sources of score are plotted apart as
+  redraw as it goes, so a run can be scrubbed through and watched changing. One button says *latest*, and
+  puts the panel back to following the generation being fought — there is no list of generations to pick
+  from, a thousand of them being a worse way of doing what the chart does better. The three sources of score are plotted apart as
   well as together, because they move at different times — a population learning to fly reaches the goal long
   before it learns to shoot, and a total hides that behind one rising line. **What the page shows while a run
   grinds is the population, not the fight.** A run fights hundreds of times faster than real time, so a window

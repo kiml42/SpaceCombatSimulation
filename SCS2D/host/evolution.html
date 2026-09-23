@@ -90,6 +90,7 @@
       }
       #legend { display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 0.35rem 0 0; color: #7f93aa; }
       #legend b { color: #e6edf5; font-weight: 600; margin-left: 0.25rem; }
+      #fighting { color: #7fd6a0; text-transform: none; letter-spacing: 0; }
       #legend span::before {
         content: '';
         display: inline-block;
@@ -273,10 +274,9 @@
       </section>
       <aside id="results">
         <section>
-          <h2>Generation <span id="shownGeneration">—</span></h2>
-          <div class="field">
-            <label for="generation">showing</label>
-            <select id="generation"></select>
+          <h2>Generation <span id="shownGeneration">—</span><span id="fighting"></span></h2>
+          <div class="buttons">
+            <button id="latest" title="Follow the newest generation again">Latest</button>
           </div>
           <table>
             <thead>

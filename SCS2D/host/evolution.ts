@@ -128,8 +128,9 @@ export function startEvolution(): void {
   const battleControls = el<HTMLElement>('battleControls');
   const fleetBox = el<HTMLElement>('fleet');
   const watchingLabel = el<HTMLElement>('watching');
-  const generationSelect = el<HTMLSelectElement>('generation');
+  const latestButton = el<HTMLButtonElement>('latest');
   const shownGeneration = el<HTMLElement>('shownGeneration');
+  const fightingLabel = el<HTMLElement>('fighting');
   const shipsBody = el<HTMLElement>('ships');
   const matchesBody = el<HTMLElement>('matches');
   const editsLine = el<HTMLElement>('edits');
@@ -567,7 +568,6 @@ export function startEvolution(): void {
   const goTo = (at: number): void => {
     if (at === shown) return;
     shown = at;
-    generationSelect.value = String(at);
     reselected = true;
   };
 
@@ -810,20 +810,12 @@ export function startEvolution(): void {
     const { index, rows, matches } = showing();
     if (modeSelect.value !== 'battle') showFleet(rows);
 
-    // The list of generations to choose from, rebuilt only when it grows.
-    const count = (run?.generations.length ?? 0) + (run !== null && !run.done ? 1 : 0);
-    if (generationSelect.options.length !== count) {
-      generationSelect.replaceChildren();
-      for (let g = 0; g < count; g++) {
-        const option = document.createElement('option');
-        option.value = String(g);
-        const fighting = run !== null && !run.done && g === run.generations.length;
-        option.textContent = fighting ? `${g + 1} (fighting)` : String(g + 1);
-        generationSelect.append(option);
-      }
-      generationSelect.value = String(shown < 0 ? Math.max(0, count - 1) : shown);
-    }
     shownGeneration.textContent = run === null ? '—' : String(index + 1);
+    // Whether what is on show is the generation still being fought, which is
+    // the one that changes while it is looked at.
+    const live = run !== null && !run.done && index >= run.generations.length;
+    fightingLabel.textContent = live ? ' · fighting' : '';
+    latestButton.disabled = run === null || shown < 0;
 
     const ranked = [...rows].sort((a, b) => b.fitness - a.fitness);
     const best = ranked[0];
@@ -946,10 +938,17 @@ export function startEvolution(): void {
     yardstickLine.textContent = `Measuring against ${benchmark.name}…`;
   });
 
-  generationSelect.addEventListener('change', () => {
-    const picked = Number(generationSelect.value);
-    // Picking the generation being fought means "keep up with it".
-    shown = run !== null && picked >= run.generations.length ? -1 : picked;
+  /**
+   * Follow the newest generation again.
+   *
+   * Seeking the chart pins the panel to one generation, which is what it is
+   * for — and there has to be a way back, or watching a run means starting it
+   * over. It is a button rather than an entry in a list of generations
+   * because the list was a worse way of doing what the chart already does
+   * better: a thousand of them is not something to pick from.
+   */
+  latestButton.addEventListener('click', () => {
+    shown = -1;
     refresh();
   });
 
@@ -981,7 +980,6 @@ export function startEvolution(): void {
     replay = null;
     replayOf = null;
     editsLine.textContent = '';
-    generationSelect.replaceChildren();
     watch(null);
     fleetBox.replaceChildren();
     fleetTiles.clear();

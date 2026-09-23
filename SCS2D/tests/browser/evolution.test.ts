@@ -238,7 +238,8 @@ describe('the evolution page in a browser', () => {
     await page.mouse.click(box.x + box.width * 0.85, box.y + box.height / 2);
     await page.waitForTimeout(300);
     expect(await page.textContent('#shownGeneration')).toBe(named?.[1]);
-    expect(await page.inputValue('#generation')).toBe(String(Number(named?.[1]) - 1));
+    // Pinned to that generation now, so the way back to the newest is offered.
+    expect(await page.getAttribute('#latest', 'disabled')).toBeNull();
 
     // And nothing under the pointer once it leaves.
     await page.mouse.move(box.x + box.width / 2, box.y - 40);
@@ -274,6 +275,13 @@ describe('the evolution page in a browser', () => {
     // Let go, and the panel stays where it was left.
     await page.waitForTimeout(200);
     expect(await page.textContent('#shownGeneration')).toBe('1');
+
+    // "Latest" is the way back to the newest generation, and to following it.
+    await page.click('#latest');
+    await page.waitForTimeout(300);
+    expect(await page.textContent('#shownGeneration')).not.toBe('1');
+    // Following the newest again, so there is nowhere to go back to.
+    expect(await page.getAttribute('#latest', 'disabled')).not.toBeNull();
     expect(problems).toEqual([]);
   }, 60_000);
 
