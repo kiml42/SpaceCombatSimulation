@@ -545,10 +545,12 @@ function refit(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | nul
     site.spec.y = centre.y;
   }
   // Fields go when they stop applying, rather than sitting in the file saying
-  // nothing — and here they would say something worse than nothing, since
-  // every one of them is refused on a kind it does not belong to. Barrels are
-  // the exception: they count a gun's barrels and a hull mount's outlets and
-  // a thruster's nozzles, and none of those is meaningless on the others.
+  // nothing — and here they would say something worse than nothing, since each
+  // is refused outright on a kind it does not belong to, which would make
+  // every refit away from that kind impossible. Silently, too: a refused
+  // candidate is simply retried. Barrels are the exception and stay, because
+  // they count a gun's barrels, a hull mount's outlets and a thruster's
+  // nozzles, and mean something on all of them.
   if (!countsOutlets(to)) delete site.spec.barrels;
   if (to !== 'thruster') delete site.spec.nozzle;
   if (!isHullMount(to)) delete site.spec.muzzle;
