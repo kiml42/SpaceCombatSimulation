@@ -154,7 +154,7 @@ describe('the evolution page in a browser', () => {
   it('lists what it bred, and what each generation fought', async () => {
     expect(await rows(page, 'ships')).toBe(4);
     expect(await rows(page, 'matches')).toBeGreaterThan(0);
-    expect(await page.textContent('#championLine')).toMatch(/generation \d/);
+    expect(await page.textContent('#championLine')).toMatch(/best of generation \d/);
   });
 
   it('fights a recorded match again, and draws it', async () => {
@@ -217,6 +217,25 @@ describe('the evolution page in a browser', () => {
       expect(bands[band], `${band} in ${JSON.stringify(bands)}`).toBeGreaterThan(0);
     }
   }, 60_000);
+
+  it('measures every generation against one fixed ship', async () => {
+    // The one number on the page that means the same thing at both ends of a
+    // run: fitness is scored against the rest of the generation, so it says
+    // nothing across generations, and a population that learns to fly before
+    // it learns to shoot scores superbly until guns appear and less
+    // afterwards while getting better.
+    await page.selectOption('#benchmark', 'Dinky');
+    await page.click('#measure');
+    await page.waitForFunction(
+      () => document.getElementById('measure')?.hasAttribute('disabled') === false,
+      undefined,
+      { timeout: 120_000 },
+    );
+    const line = (await page.textContent('#yardstickLine')) ?? '';
+    expect(line).toMatch(/generation 1 scored -?\d/);
+    expect(line).toMatch(/beat it/);
+    expect(problems).toEqual([]);
+  }, 180_000);
 
   it('hands the best of it to the editor', async () => {
     await page.click('#saveChampion');

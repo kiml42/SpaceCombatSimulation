@@ -190,6 +190,7 @@
             <span style="color: #7fd6a0">surviving</span>
             <span style="color: #e0655f">damage</span>
             <span style="color: #e9c05f">ground</span>
+            <span style="color: #5bd6d6">vs. yardstick</span>
           </p>
           <div id="viewBar">
             <button id="play" disabled>Pause</button>
@@ -236,12 +237,32 @@
           <p class="note">Click one to watch it again — a match is replayed from its seed, so it is the match that was scored.</p>
         </section>
         <section>
-          <h2>The best of it</h2>
+          <h2>What it arrived at</h2>
           <p id="championLine" class="note">—</p>
           <div class="buttons">
             <button id="saveChampion" disabled>Save to editor</button>
             <button id="exportChampion" disabled>Export</button>
           </div>
+          <p class="note">
+            The best of the latest generation. A score is against that generation's opponents, so it
+            cannot be compared with one from another generation — a population that learns to fly before
+            it learns to shoot scores superbly until guns appear, then far less while getting better.
+          </p>
+        </section>
+        <section>
+          <h2>Measured against one ship</h2>
+          <div class="field">
+            <label for="benchmark">opponent</label>
+            <select id="benchmark"></select>
+          </div>
+          <div class="buttons">
+            <button id="measure" disabled>Measure</button>
+          </div>
+          <p id="yardstickLine" class="note">
+            Every design of every generation, one against one against the same ship under the same
+            seeds — the one number here that means the same thing in generation one and generation four
+            hundred. Fought afterwards and never during, or a run would learn to beat that one ship.
+          </p>
         </section>
       </aside>
     </main>

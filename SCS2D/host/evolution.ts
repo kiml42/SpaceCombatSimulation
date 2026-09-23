@@ -9,8 +9,9 @@ import { fitness } from '../evolution/generation.js';
 import { DEFAULT_MATCH, Match, type MatchConfig } from '../evolution/match.js';
 import { DEFAULT_KINDS, type KindWeights } from '../evolution/mutate.js';
 import { parseRunConfig, serialiseRunConfig, type RunSetup } from '../evolution/configFile.js';
+import { latest, Yardstick, type YardstickReport } from '../evolution/yardstick.js';
 import {
-  champion,
+  finalist,
   DEFAULT_RUN,
   Run,
   type GenerationRecord,
@@ -123,6 +124,9 @@ export function startEvolution(): void {
   const championLine = el<HTMLElement>('championLine');
   const saveButton = el<HTMLButtonElement>('saveChampion');
   const exportButton = el<HTMLButtonElement>('exportChampion');
+  const benchmarkSelect = el<HTMLSelectElement>('benchmark');
+  const measureButton = el<HTMLButtonElement>('measure');
+  const yardstickLine = el<HTMLElement>('yardstickLine');
   const inputs = Object.fromEntries(
     FIELDS.map((name) => [name, el<HTMLInputElement>(name)]),
   ) as Record<(typeof FIELDS)[number], HTMLInputElement>;
@@ -137,6 +141,8 @@ export function startEvolution(): void {
   let watchedMatch: Match | null = null;
   // Which generation the results panel is showing, or -1 to follow the newest.
   let shown = -1;
+  let yardstick: Yardstick | null = null;
+  let measured: YardstickReport | null = null;
   const snapshot = new Snapshot();
   const flashes = new Flashes();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
@@ -209,6 +215,18 @@ export function startEvolution(): void {
   }
   if (foundersSelect.selectedOptions.length === 0 && foundersSelect.options.length > 0) {
     foundersSelect.options[0]!.selected = true;
+  }
+
+  const OWN_FINAL = '';
+  const ownOption = document.createElement('option');
+  ownOption.value = OWN_FINAL;
+  ownOption.textContent = 'its own final design';
+  benchmarkSelect.append(ownOption);
+  for (const entry of library.list()) {
+    const option = document.createElement('option');
+    option.value = entry.name;
+    option.textContent = entry.name;
+    benchmarkSelect.append(option);
   }
 
   for (const name of FIELDS) inputs[name].addEventListener('change', saveSetup);
@@ -574,22 +592,31 @@ export function startEvolution(): void {
         { name: 'ground', colour: '#e9c05f', values: of((g) => g.mean.race), dashed: true },
       );
     }
+    // The yardstick last, so it is drawn over the rest: it is the line that
+    // means the same thing at both ends of the chart, and the others are not.
+    const points = yardstick?.points ?? measured?.points;
+    if (points !== undefined && points.length > 0) {
+      const scores: number[] = [];
+      for (const point of points) scores[point.generation] = point.mean;
+      series.push({ name: 'vs. yardstick', colour: '#5bd6d6', values: scores });
+    }
     drawChart(chartCtx, series, chart.width, chart.height, window.devicePixelRatio || 1);
 
-    const top = run === null ? null : champion(run.record());
+    const top = run === null ? null : finalist(run.record());
     saveButton.disabled = top === null;
     exportButton.disabled = top === null;
+    measureButton.disabled = top === null || yardstick !== null;
     championLine.textContent =
       top === null
         ? '—'
-        : `#${top.individual.id} from generation ${top.generation + 1}: ` +
+        : `#${top.individual.id}, best of generation ${top.generation + 1}: ` +
           `${top.individual.fitness.toFixed(3)} over ${top.individual.matches} matches, ` +
           `${(top.individual.mass / 1000).toFixed(1)} t`;
   };
 
   const bestBlueprint = (): { blueprint: Blueprint; generation: number } | null => {
     if (run === null) return null;
-    const top = champion(run.record());
+    const top = finalist(run.record());
     if (top === null) return null;
     const blueprint = parseBlueprint(top.individual.blueprint);
     return {
@@ -609,6 +636,24 @@ export function startEvolution(): void {
     if (best === null) return;
     download(`${best.blueprint.name.replace(/[^\w.-]+/g, '_')}.json`, toFileText(best.blueprint));
   });
+  measureButton.addEventListener('click', () => {
+    if (run === null || run.generations.length === 0) return;
+    const record = run.record();
+    const chosen = benchmarkSelect.value;
+    const benchmark = chosen === OWN_FINAL ? latest(record) : library.load(chosen);
+    if (benchmark === null) {
+      yardstickLine.textContent = 'Nothing to measure against yet.';
+      return;
+    }
+    // The record rather than a copy of it, so a measurement started while a
+    // run is still going carries on into the generations it has not closed
+    // yet — the answer is per generation either way.
+    yardstick = new Yardstick(record, benchmark);
+    measured = null;
+    measureButton.disabled = true;
+    yardstickLine.textContent = `Measuring against ${benchmark.name}…`;
+  });
+
   generationSelect.addEventListener('change', () => {
     const picked = Number(generationSelect.value);
     // Picking the generation being fought means "keep up with it".
@@ -636,6 +681,9 @@ export function startEvolution(): void {
     }
     readout.className = '';
     run = new Run(founders, readSetup().config);
+    yardstick = null;
+    measured = null;
+    yardstickLine.textContent = 'Measure once there is something to measure.';
     masses.clear();
     shown = -1;
     replay = null;
@@ -678,6 +726,22 @@ export function startEvolution(): void {
       }
     }
 
+    if (yardstick !== null) {
+      // Its own slice rather than a share of the run's, so measuring while a
+      // run is going slows the frame rather than the run — which is the right
+      // way round: the run is the thing that must not be held up.
+      const budget = Math.max(1, Math.min(200, number(inputs.effort, 12)));
+      const until = performance.now() + budget;
+      while (performance.now() < until && yardstick.advance(240)) {
+        // Measuring.
+      }
+      if (yardstick.done) {
+        measured = yardstick.report();
+        yardstick = null;
+        measureButton.disabled = false;
+      }
+    }
+
     if (replay !== null && replayPlaying && !replay.done) {
       const speed = Number(speedSelect.value);
       accumulator += elapsed * speed;
@@ -707,7 +771,23 @@ export function startEvolution(): void {
     window.requestAnimationFrame(tick);
   };
 
+  /** What a measurement says, once there is one. */
+  function reportYardstick(): void {
+    const points = yardstick?.points ?? measured?.points;
+    if (points === undefined || points.length === 0) return;
+    const first = points[0]!;
+    const last = points[points.length - 1]!;
+    const gain = last.mean - first.mean;
+    const where = yardstick === null ? '' : ` · measuring, ${(yardstick.progress * 100).toFixed(0)}%`;
+    yardstickLine.textContent =
+      `generation ${first.generation + 1} scored ${first.mean.toFixed(3)}, ` +
+      `generation ${last.generation + 1} scored ${last.mean.toFixed(3)} ` +
+      `(${gain >= 0 ? '+' : ''}${gain.toFixed(3)}) · ` +
+      `${last.wins} of ${last.individuals} beat it${where}`;
+  }
+
   function report(): void {
+    reportYardstick();
     if (run === null) {
       stateLabel.textContent = 'idle';
       barFill.style.width = '0';
