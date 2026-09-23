@@ -118,6 +118,8 @@
           <button data-add="thruster">Thruster</button>
           <button data-add="turret">Turret</button>
           <button data-add="beamTurret">Beam turret</button>
+          <button data-add="hullGun">Hull gun</button>
+          <button data-add="hullBeam">Hull beam</button>
         </section>
         <section id="groupSelection" hidden>
           <h2>Several modules</h2>
@@ -194,6 +196,17 @@
           <div class="field" id="barrelsRow">
             <label for="propBarrels" id="barrelsLabel">barrels</label>
             <input id="propBarrels" type="number" step="1" min="1" />
+          </div>
+          <div class="field" id="muzzleRow">
+            <label for="propMuzzle" id="muzzleLabel">barrel</label>
+            <input
+              id="propMuzzle"
+              type="number"
+              step="0.05"
+              min="0.05"
+              max="0.95"
+              title="How much of the mount's length is barrel or lens rather than the block behind it. A longer barrel is a faster shell, and leaves the mount less traverse — the barrel has to stay inside its own opening."
+            />
           </div>
           <div class="field" id="nozzleRow">
             <label for="propNozzle">nozzle</label>

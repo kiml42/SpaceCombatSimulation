@@ -7,6 +7,8 @@ import {
   moduleCentre,
   moduleStats,
   radiansToDegrees,
+  hullMountGeometry,
+  isHullMount,
   shortfall,
   thrusterGeometry,
   traverseAccel,
@@ -15,7 +17,7 @@ import {
   type ShipDesign,
 } from '../sim/index.js';
 
-const { cos, sin, max, TAU } = math;
+const { cos, sin, max, min, TAU } = math;
 
 /**
  * What a layout bought, in the units the simulation works in.
@@ -250,6 +252,18 @@ export function moduleReadout(
           `of ${thrown} — the rest fires into the ship`,
     ]);
   }
+  if (isHullMount(spec.kind)) {
+    // What the opening leaves it, and how much of the opening is already
+    // barrel — the two numbers a designer trades against each other when they
+    // decide how long a barrel to give it and how many.
+    const mount = hullMountGeometry(spec);
+    rows.push([
+      'Opening',
+      `${radiansToDegrees(mount.traverse).toLocaleString('en-GB', { maximumFractionDigits: 1 })}° ` +
+        `either way, with ${((mount.barrelWidth / spec.width) * 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })}% ` +
+        `of the face filled`,
+    ]);
+  }
   if (spec.kind === 'thruster') {
     // What the bell is doing to the gas, which is the one number that says
     // whether the nozzle is worth the length it takes up. A designer shrinking
@@ -288,7 +302,15 @@ function arcOf(
 ): { arcLeft: number; arcRight: number } {
   if (index < 0 || layout[index] === undefined) return { arcLeft: 0, arcRight: 0 };
   const arc = firingArc(layout, index, reach);
-  return { arcLeft: radiansToDegrees(arc.left), arcRight: radiansToDegrees(arc.right) };
+  // A hull mount is held to its own opening as well as to what the ship
+  // leaves it, and the panel has to say the number the ship will actually
+  // train through rather than the more generous of the two.
+  const spec = layout[index]!;
+  const own = isHullMount(spec.kind) ? hullMountGeometry(spec).traverse : Infinity;
+  return {
+    arcLeft: radiansToDegrees(min(arc.left, own)),
+    arcRight: radiansToDegrees(min(arc.right, own)),
+  };
 }
 
 /** Both manoeuvring envelopes, sampled in the same directions. */

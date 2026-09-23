@@ -12,6 +12,9 @@ import {
   CORE_MINIMUM_FITTING_MASS,
   DECK_HEIGHT,
   ENGINE_MASS_PER_NEWTON,
+  HULL_BARREL_WIDTH_CAP,
+  HULL_MAX_TRAVERSE,
+  hullMountGeometry,
   gunStats,
   beamGunStats,
   GunType,
@@ -182,6 +185,136 @@ describe('thruster scaling', () => {
     expect(stats.thrust).toBe(0);
     expect(stats.gun).toBeNull();
     expect(stats.fittingMass).toBe(0);
+  });
+});
+
+describe('hull mount scaling', () => {
+  const gun = (length: number, width: number, over: Partial<ModuleSpec> = {}): ModuleSpec => ({
+    kind: 'hullGun',
+    x: 0,
+    y: 0,
+    angle: 0,
+    length,
+    width,
+    ...over,
+  });
+
+  it('carries a far bigger bore than a turret of the same width', () => {
+    // The whole of why the archetype exists. A turret's bore is small because
+    // everything around it has to fit in a circle and then swing; a hull mount
+    // swings nothing but the tube.
+    const hull = moduleStats(gun(8, 4));
+    const turret = moduleStats({ kind: 'turret', x: 0, y: 0, length: 5, width: 4 });
+    expect(hull.gun!.calibre).toBeGreaterThan(turret.gun!.calibre * 2);
+    expect(hull.gun!.muzzleEnergy).toBeGreaterThan(turret.gun!.muzzleEnergy * 2);
+  });
+
+  it('takes its barrel length from the share it was given, not from its calibre', () => {
+    // A turret's barrel is as long as the calibre wants, capped by the mount.
+    // A hull mount's is authored, which is what makes the split a knob.
+    expect(moduleStats(gun(8, 4, { muzzle: 0.25 })).gun!.barrelLength).toBeCloseTo(2, 9);
+    expect(moduleStats(gun(8, 4, { muzzle: 0.75 })).gun!.barrelLength).toBeCloseTo(6, 9);
+    // And length is muzzle energy, since that is what the charge works over.
+    expect(moduleStats(gun(8, 4, { muzzle: 0.75 })).gun!.muzzleEnergy).toBeCloseTo(
+      moduleStats(gun(8, 4, { muzzle: 0.25 })).gun!.muzzleEnergy * 3,
+      6,
+    );
+  });
+
+  it('gives each outlet a whole bore until the row no longer fits the opening', () => {
+    // Not a turret's rule: there is no barbette to share, so asking for two
+    // guns asks for two guns. What stops it is the face running out.
+    const one = hullMountGeometry(gun(8, 4));
+    const four = hullMountGeometry(gun(8, 4, { barrels: 4 }));
+    const six = hullMountGeometry(gun(8, 4, { barrels: 6 }));
+
+    expect(four.outletWidth).toBeCloseTo(one.outletWidth, 9);
+    expect(four.barrelWidth).toBeCloseTo(4 * one.barrelWidth, 9);
+    expect(moduleStats(gun(8, 4, { barrels: 4 })).gun!.calibre).toBeCloseTo(
+      moduleStats(gun(8, 4)).gun!.calibre,
+      9,
+    );
+
+    // Six will not fit, so all six shrink together and the row stops at the cap.
+    expect(six.barrelWidth).toBeCloseTo(HULL_BARREL_WIDTH_CAP * 4, 9);
+    expect(six.outletWidth).toBeLessThan(one.outletWidth);
+  });
+
+  it('never lets the barrels fill more than the cap allows', () => {
+    for (const barrels of [1, 2, 4, 8, 20]) {
+      const geometry = hullMountGeometry(gun(8, 4, { barrels }));
+      expect(geometry.barrelWidth).toBeLessThanOrEqual(HULL_BARREL_WIDTH_CAP * 4 + 1e-9);
+      expect(geometry.outletWidth).toBeGreaterThan(0);
+    }
+  });
+
+  it('works its traverse out from the barrel having to stay in its own opening', () => {
+    // Derived rather than authored, so the three things that should move it do:
+    // a longer barrel sweeps further for the same angle, a fatter one starts
+    // closer to the edge, and a wider mount is a wider opening.
+    const shortBarrel = hullMountGeometry(gun(8, 4, { muzzle: 0.25 })).traverse;
+    const longBarrel = hullMountGeometry(gun(8, 4, { muzzle: 0.75 })).traverse;
+    const fatBarrel = hullMountGeometry(gun(8, 4, { barrels: 4 })).traverse;
+    const wideMount = hullMountGeometry(gun(8, 8)).traverse;
+
+    expect(longBarrel).toBeLessThan(shortBarrel);
+    expect(fatBarrel).toBeLessThan(hullMountGeometry(gun(8, 4)).traverse);
+    expect(wideMount).toBeGreaterThan(hullMountGeometry(gun(8, 4)).traverse);
+
+    // The corner of the swung barrel lands exactly on the edge of the opening,
+    // which is the statement the formula is made of.
+    const geometry = hullMountGeometry(gun(8, 4));
+    const reached =
+      geometry.barrelLength * Math.sin(geometry.traverse) +
+      geometry.barrelWidth * 0.5 * Math.cos(geometry.traverse);
+    expect(reached).toBeCloseTo(2, 9);
+  });
+
+  it('swings the barrels alone, about the root they are trunnioned at', () => {
+    // The block is welded into the ship and does not move, so what the drive
+    // has to turn is a fraction of what a turret of the same mass turns.
+    const stats = moduleStats(gun(8, 4));
+    expect(stats.swingInertia).toBeGreaterThan(0);
+    expect(stats.swingInertia).toBeLessThan(stats.inertia);
+  });
+
+  it('gives a beam the same opening rule and a bank in what is left of the block', () => {
+    // Same geometry, deliberately, rather than a second rule invented for it.
+    const deep = moduleStats({ kind: 'hullBeam', x: 0, y: 0, length: 6, width: 4, muzzle: 0.5 });
+    const shallow = moduleStats({ kind: 'hullBeam', x: 0, y: 0, length: 6, width: 4, muzzle: 0.25 });
+    expect(deep.gun!.beamPower).toBeCloseTo(shallow.gun!.beamPower, 6);
+    // A shallower lens leaves more block, and the bank is in the block.
+    expect(shallow.gun!.beamOnTime).toBeGreaterThan(deep.gun!.beamOnTime);
+  });
+
+  it('leaves a beam at the mounting\'s limit until its housing runs long', () => {
+    // Worth recording rather than asserting in passing: a lens is a fraction
+    // of the width a row of tubes is, so the opening barely constrains one and
+    // what actually holds a hull beam is the mounting. The opening only starts
+    // to bite once the housing is most of the module.
+    const at = (muzzle: number): number =>
+      hullMountGeometry({ kind: 'hullBeam', x: 0, y: 0, length: 6, width: 4, muzzle }).traverse;
+    expect(at(0.25)).toBeCloseTo(HULL_MAX_TRAVERSE, 9);
+    expect(at(0.5)).toBeCloseTo(HULL_MAX_TRAVERSE, 9);
+    expect(at(0.9)).toBeLessThan(HULL_MAX_TRAVERSE);
+  });
+
+  it('holds any hull mount to the mounting\'s limit however small its barrel', () => {
+    // Without this the geometry hands a short thin barrel a quarter turn each
+    // way, which is a turret's field of fire for none of a turret's costs.
+    for (const spec of [
+      { kind: 'hullGun', x: 0, y: 0, length: 8, width: 20 },
+      { kind: 'hullBeam', x: 0, y: 0, length: 2, width: 12 },
+    ] as ModuleSpec[]) {
+      expect(hullMountGeometry(spec).traverse).toBeCloseTo(HULL_MAX_TRAVERSE, 9);
+    }
+  });
+
+  it('refuses a muzzle share that leaves no barrel or no block, and one on a turret', () => {
+    expect(moduleProblem(gun(8, 4, { muzzle: 0 }))).toMatch(/over 0 and under 1/);
+    expect(moduleProblem(gun(8, 4, { muzzle: 1 }))).toMatch(/over 0 and under 1/);
+    expect(moduleProblem({ kind: 'turret', x: 0, y: 0, length: 5, width: 4, muzzle: 0.5 }))
+      .toMatch(/only a hull mount/);
   });
 });
 

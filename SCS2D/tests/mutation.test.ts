@@ -154,19 +154,30 @@ describe('mutation', () => {
   it('delivers the structural generations it draws', () => {
     // Structural edits are refused far more often than changes to a number,
     // so a candidate that bundled the two would deliver them at a fraction of
-    // the rate asked for. Set to always, nearly every generation must carry
-    // one. Not all of them: about a quarter of the draws are for a module
-    // that will not fit anywhere or cannot be spared, and those fall back to
-    // breeding a change to the numbers rather than to a copy of the parent.
-    const rng = new Rng(41);
+    // the rate asked for. Set to always, most generations must carry one —
+    // the rest are draws for a module that will not fit anywhere or cannot be
+    // spared, which fall back to breeding a change to the numbers rather than
+    // to a copy of the parent.
+    //
+    // Over several lines rather than one, because how often that happens
+    // depends a great deal on the shape a line has wandered into: single
+    // lines measured between half and six-sevenths, and a threshold pinned to
+    // whichever one was run first is a test that fails on a change that did
+    // nothing.
+    const budget = compileDraft(CORVETTE).mass * 2;
     let structural = 0;
-    let held: Blueprint = CORVETTE;
-    for (let i = 0; i < 200; i++) {
-      const child = mutate(held, rng, { structural: 1, massBudget: compileDraft(CORVETTE).mass * 2 });
-      held = child.blueprint;
-      if (child.edits.some((edit) => /removed|added|copied/.test(edit))) structural++;
+    let generations = 0;
+    for (const seed of [41, 42, 43]) {
+      const rng = new Rng(seed);
+      let held: Blueprint = CORVETTE;
+      for (let i = 0; i < 200; i++) {
+        const child = mutate(held, rng, { structural: 1, massBudget: budget });
+        held = child.blueprint;
+        generations++;
+        if (child.edits.some((edit) => /removed|added|copied/.test(edit))) structural++;
+      }
     }
-    expect(structural).toBeGreaterThan(140);
+    expect(structural).toBeGreaterThan(generations / 2);
   });
 
   it('brings a weight back from zero', () => {

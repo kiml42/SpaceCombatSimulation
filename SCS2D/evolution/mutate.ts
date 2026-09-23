@@ -18,7 +18,9 @@ import {
 } from '../sim/doctrine.js';
 import { abs, clamp, cos, max, PI, round, sin } from '../sim/math.js';
 import {
+  DEFAULT_MUZZLE_SHARE,
   DEFAULT_NOZZLE_SHARE,
+  isHullMount,
   moduleCentre,
   type ModuleKind,
   type ModuleSpec,
@@ -271,6 +273,7 @@ type Knob =
   | { readonly at: 'reinforcement'; readonly site: ModuleSite }
   | { readonly at: 'barrels'; readonly site: ModuleSite }
   | { readonly at: 'nozzle'; readonly site: ModuleSite }
+  | { readonly at: 'muzzle'; readonly site: ModuleSite }
   | { readonly at: 'weapon'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
@@ -311,6 +314,11 @@ function knobs(draft: Draft): Knob[] {
       if (placement.kind === 'turret' || placement.kind === 'beamTurret') {
         out.push({ at: 'barrels', site });
       }
+      if (isHullMount(placement.kind)) {
+        // How much of the mount is barrel is the archetype's real knob, and
+        // the outlet count divides the same opening between more of them.
+        out.push({ at: 'barrels', site }, { at: 'muzzle', site });
+      }
       if (placement.kind === 'thruster') {
         // An engine's outlets are counted by the same field a gun's barrels
         // are, so a cluster is something a line can find.
@@ -331,6 +339,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return rebarrel(knob.site, rng);
     case 'nozzle':
       return rebell(knob.site, rng, bounds);
+    case 'muzzle':
+      return rebarrelLength(knob.site, rng, bounds);
     case 'weapon':
       return rearm(knob.site);
     case 'angle':
@@ -423,6 +433,20 @@ function rebell(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | nu
   if (now === was) return null;
   site.spec.nozzle = now;
   return `${site.where} ${site.spec.kind}: nozzle ${was} → ${now}`;
+}
+
+/**
+ * Lengthen or shorten a hull mount's barrel.
+ *
+ * Held off both ends for the reason the bell is: all barrel leaves nothing to
+ * load it from, and no barrel leaves nothing to shoot out of.
+ */
+function rebarrelLength(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const was = site.spec.muzzle ?? DEFAULT_MUZZLE_SHARE;
+  const now = tidy(clamp(was + bounds.magnitude * rng.nextRange(-1, 1), 0.05, 0.95), 3);
+  if (now === was) return null;
+  site.spec.muzzle = now;
+  return `${site.where} ${site.spec.kind}: barrel ${was} → ${now}`;
 }
 
 /**
@@ -532,6 +556,8 @@ const KIND_WEIGHTS: readonly (readonly [ModuleKind, number])[] = [
   ['thruster', 3],
   ['turret', 3],
   ['beamTurret', 1],
+  ['hullGun', 2],
+  ['hullBeam', 1],
   ['core', 1],
 ];
 
@@ -662,10 +688,15 @@ function against(
       : anchor.width
     : max(bounds.grid, snap((endOn ? anchor.length : anchor.width) / 2, bounds.grid));
 
+  // Which way a module has to face to be *held on* by this face is the
+  // archetype's business, and three of them answer differently.
+  //
   // A thruster is held on by the face it pushes from, so it is mounted facing
   // *into* the anchor — which puts its position exactly on the face and its
-  // exhaust pointing out. Everything else sits centred on the face, half its
-  // own depth out.
+  // exhaust pointing out. A hull weapon is the mirror of that: it is held on
+  // by the block behind its barrel, so it faces *out* and the barrel clears
+  // the ship. Everything else has no front and sits centred on the face, half
+  // its own depth out, lying along it.
   const added: ModuleSpec =
     kind === 'thruster'
       ? {
@@ -676,14 +707,23 @@ function against(
           length: out,
           width: across,
         }
-      : {
-          kind,
-          x: tidy(faceX + (nx * out) / 2, 6),
-          y: tidy(faceY + (ny * out) / 2, 6),
-          angle: tidy(endOn ? angle : angle + PI / 2, 6),
-          length: endOn ? out : across,
-          width: endOn ? across : out,
-        };
+      : isHullMount(kind)
+        ? {
+            kind,
+            x: tidy(faceX + (nx * out) / 2, 6),
+            y: tidy(faceY + (ny * out) / 2, 6),
+            angle: tidy(normalAngle, 6),
+            length: out,
+            width: across,
+          }
+        : {
+            kind,
+            x: tidy(faceX + (nx * out) / 2, 6),
+            y: tidy(faceY + (ny * out) / 2, 6),
+            angle: tidy(endOn ? angle : angle + PI / 2, 6),
+            length: endOn ? out : across,
+            width: endOn ? across : out,
+          };
   if (copy && anchor.reinforcement !== undefined) added.reinforcement = anchor.reinforcement;
   if (copy && anchor.barrels !== undefined) added.barrels = anchor.barrels;
   return added;

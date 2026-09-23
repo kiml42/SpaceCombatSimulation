@@ -162,6 +162,14 @@ inside any one file is not contiguous.
   changes every copy and a wing that grows a gun grows it on both wings. Whether a generation is structural
   is settled before the retrying starts rather than inside it, which is what stops the rare, hard edit being
   crowded out by the common, easy one; and a child is written back to a file the editor opens.
+  **A weapon can be let into a hull rather than sat on top of it.** A hull gun and a hull beam are a
+  block with a barrel or a lens out of the front, welded on by the block alone, training about the
+  root of the barrel through whatever angle the opening leaves them — which is single figures for a
+  row of guns and twenty-odd degrees for one. They carry two and a half times a turret's bore on the
+  same width and five times its muzzle energy, and they can point it almost nowhere. Measured on a
+  beam, the opening turns out barely to constrain one at all: a lens is a fraction of the width a row
+  of tubes is, so what holds a hull beam is the mounting limit until its housing runs most of the
+  length of the module.
   **An engine has a nozzle rather than being one.** A thruster's length divides between a machinery block
   and a bell, and the bell's share is the knob: a long one is lighter, keeps more of the thrust pointed
   the right way and throws a longer flame, while the block is what has hit points and what the engine is
@@ -263,6 +271,12 @@ Rules:
   ROADMAP.md §12.
 - A **turret module includes the bit of hull it mounts to**, so the blueprint editor stays a single
   2D view and "is this shootable by guns" is a property of the module you picked.
+- **A weapon may be let into the hull instead of sitting on it.** A hull gun and a hull beam are a
+  block with a barrel or a lens out of the front of it, and the block is the only part other modules
+  may be welded to — a gun is not a girder. They carry a far bigger bore than a turret of the same
+  width, because a turret's is small in order to fit inside a ring and then be swung, and they pay for
+  it in having almost nowhere to point: a hull mount trains about the root of its barrel, and the
+  barrel has to stay inside the opening it comes out of.
 - Large modules may be flagged as **protruding** into the weapons layer: useful, but gun-vulnerable.
   *Not implemented.* Firing arcs, traverse limits and projectile hits currently treat every module as
   though it were in the weapons layer, which contradicts this section in three different ways —
@@ -359,6 +373,26 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   through a ship. Half to each hull, which needs no rule about which is the harder: a module's capacity
   goes with its mass, so the same energy that dents a capital ship destroys the fighter that flew into
   it. That is what makes §3's strike craft literal — a torpedo is a fighter that crashes into things.
+- **A hull weapon is a block with a barrel out of the front of it**, which is an engine the other way
+  round and answers the same questions the same way. The block is the breech and the loading gear, or
+  the bank and the plant; it is what has walls, an interior and hit points, and it is the only part
+  the ship may be welded to. How the length divides between the two is the designer's, and it is the
+  archetype's one real knob: barrel length is what a charge accelerates a shell down, so a long barrel
+  is a fast shell — and a long barrel sweeps further for the same angle, so it is also a weapon with
+  almost no traverse left.
+- **A hull weapon trains about the root of its barrel**, because that is where the trunnions of such a
+  mount are: the block is welded into the ship and only the tube moves, so it trains briskly through
+  very little. **How little is geometry rather than a number** — the barrel has to stay inside the
+  opening it comes out of, so the far corner of the swung tube must not pass the mount's own edge.
+  A longer barrel trains less, a fatter one trains less, a wider mount trains more, and a mounting
+  limit holds the whole archetype well short of a turret's field of fire however small its barrel,
+  since a bed that takes recoil faces one way. On top of that sits the same question every mount is
+  asked — what the ship itself is in the way of — and the narrower of the two wins.
+- **A hull mount's outlets are whole weapons rather than shares of one.** A turret's barrels divide
+  one bore because they share a barbette and its hoists; a hull mount has neither, so asking for two
+  guns asks for two guns and the row simply takes up more of the opening. What stops it is the face
+  running out: past a capped fraction of the mount's width they all shrink together, which is also
+  what keeps room for the barrel to swing into.
 - **An engine is a machinery block with a bell on the back of it**, not a nozzle with a plume coming out.
   The block holds the chamber and the pumps, is what the engine is welded to the ship by, and is the part
   that has walls, an interior and hit points; the bell is sheet metal in the exhaust that can be bolted to

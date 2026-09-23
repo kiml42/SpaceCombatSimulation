@@ -4,7 +4,10 @@ import {
   moduleCentre,
   moduleProblem,
   moduleStats,
+  isHullMount,
+  hullMountGeometry,
   thrusterMachinery,
+  weldBox,
   traverseAccel,
   traverseRate,
   type GunStats,
@@ -790,6 +793,7 @@ function place(
     if (placement.reinforcement !== undefined) spec.reinforcement = placement.reinforcement;
     if (placement.barrels !== undefined) spec.barrels = placement.barrels;
     if (placement.nozzle !== undefined) spec.nozzle = placement.nozzle;
+    if (placement.muzzle !== undefined) spec.muzzle = placement.muzzle;
     if (placement.weapon !== undefined) spec.weapon = placement.weapon;
     if (placement.targeting !== undefined) spec.targeting = placement.targeting;
     if (placement.notes !== undefined) spec.notes = placement.notes;
@@ -938,7 +942,12 @@ function hullAgainst(
  * growing a thruster about the point it is *mounted* by would add its whole
  * skin astern and have an engine reaching towards its own exhaust.
  */
-export function contactWidth(a: ModuleSpec, b: ModuleSpec): number {
+export function contactWidth(spec: ModuleSpec, other: ModuleSpec): number {
+  // Only the part of each that may be welded at all, which is the whole of
+  // most modules and a hull weapon's block: a barrel out in the open is not
+  // somewhere to hang a ship from.
+  const a = weldBox(spec);
+  const b = weldBox(other);
   const aa = a.angle ?? 0;
   const ba = b.angle ?? 0;
   const aux = cos(aa);
@@ -1369,6 +1378,44 @@ function designFrom(
         maxThrust: s.thrust,
         module: modules.length - 1,
         weapon: spec.weapon === true,
+      });
+    } else if (isHullMount(spec.kind) && s.gun !== null) {
+      const gun = s.gun;
+      const mount = hullMountGeometry(spec);
+      // A hull weapon trains about the root of its barrel, not about the
+      // middle of the module — the block is welded into the ship and only the
+      // tube moves. Everything downstream measures from the mount point, so
+      // this is where the mount point goes.
+      const px = x + cos(angle) * mount.pivot;
+      const py = y + sin(angle) * mount.pivot;
+      radius = max(radius, sqrt(px * px + py * py) + gun.barrelLength);
+
+      // Two limits, and the narrower wins. The barrel has to stay inside the
+      // opening it comes out of, which is the archetype's own bound and is
+      // usually single figures; and the ship may be in the way of even that,
+      // which is the question every mount is asked.
+      const reach = gun.type === GunType.Beam ? Infinity : gun.barrelLength;
+      const arc = firingArc(specs, i, reach);
+      // Only the barrels swing, so that is what the drive is sized against.
+      const accel = traverseAccel(s.mass, s.swingInertia);
+
+      turrets.push({
+        module: i,
+        mount: {
+          x: px,
+          y: py,
+          restBearing: angle,
+          leftArc: min(arc.left, mount.traverse),
+          rightArc: min(arc.right, mount.traverse),
+          maxRate: traverseRate(accel),
+          maxAccel: accel,
+          inertia: s.swingInertia,
+          muzzleSpeed: gun.muzzleSpeed,
+          muzzleOffset: gun.barrelLength,
+        },
+        gun,
+        reach: gunReach(gun),
+        targeting: resolveTargeting(spec.targeting, doctrine.targeting),
       });
     } else if ((spec.kind === 'turret' || spec.kind === 'beamTurret') && s.gun !== null) {
       const gun = s.gun;

@@ -1,6 +1,8 @@
 import {
+  DEFAULT_MUZZLE_SHARE,
   DEFAULT_NOZZLE_SHARE,
   degreesToRadians,
+  isHullMount,
   MAX_REPEAT,
   math,
   parseBlueprint,
@@ -81,6 +83,10 @@ const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
   thruster: { kind: 'thruster', angle: 0, length: 3, width: 3 },
   turret: { kind: 'turret', angle: 0, length: 4, width: 3, barrels: 1 },
   beamTurret: { kind: 'beamTurret', angle: 0, length: 4, width: 3, barrels: 1 },
+  // Longer than they are wide: a hull mount's length is mostly barrel, and one
+  // drawn square would train through an angle worth nothing.
+  hullGun: { kind: 'hullGun', angle: 0, length: 8, width: 4, barrels: 1 },
+  hullBeam: { kind: 'hullBeam', angle: 0, length: 6, width: 4, barrels: 1 },
 };
 
 function el<T extends HTMLElement>(id: string): T {
@@ -89,13 +95,14 @@ function el<T extends HTMLElement>(id: string): T {
   return found as T;
 }
 
-type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle';
+type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle' | 'muzzle';
 
 /** A module's own value for a field, with the default the parser would have applied. */
 function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   if (key === 'angle') return radiansToDegrees(spec.angle ?? 0);
   if (key === 'reinforcement') return spec.reinforcement ?? 1;
   if (key === 'nozzle') return spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
+  if (key === 'muzzle') return spec.muzzle ?? DEFAULT_MUZZLE_SHARE;
   return spec.barrels ?? 1;
 }
 
@@ -168,6 +175,7 @@ export function startEditor(): void {
     reinforcement: el<HTMLInputElement>('propReinforcement'),
     barrels: el<HTMLInputElement>('propBarrels'),
     nozzle: el<HTMLInputElement>('propNozzle'),
+    muzzle: el<HTMLInputElement>('propMuzzle'),
     notes: el<HTMLTextAreaElement>('propNotes'),
   };
 
@@ -510,9 +518,12 @@ export function startEditor(): void {
     // engine's are nozzles, and a designer should not have to know they are
     // the same number to use either.
     const nozzles = spec.kind === 'thruster';
-    el<HTMLElement>('barrelsRow').hidden = !nozzles && spec.kind !== 'turret';
+    const hullMount = isHullMount(spec.kind);
+    el<HTMLElement>('barrelsRow').hidden = !nozzles && !hullMount && spec.kind !== 'turret';
     el<HTMLElement>('barrelsLabel').textContent = nozzles ? 'nozzles' : 'barrels';
     el<HTMLElement>('nozzleRow').hidden = !nozzles;
+    el<HTMLElement>('muzzleRow').hidden = !hullMount;
+    el<HTMLElement>('muzzleLabel').textContent = spec.kind === 'hullBeam' ? 'lens' : 'barrel';
     // Only an engine has a plume to point.
     el<HTMLElement>('weaponRow').hidden = spec.kind !== 'thruster';
     weaponInput.checked = spec.weapon === true;

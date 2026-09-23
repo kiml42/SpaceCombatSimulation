@@ -44,7 +44,12 @@ export {
 } from './thrusters.js';
 export {
   DECK_HEIGHT,
+  DEFAULT_MUZZLE_SHARE,
   DEFAULT_NOZZLE_SHARE,
+  HULL_APERTURE_FRACTION,
+  HULL_BARREL_WIDTH_CAP,
+  HULL_CALIBRE_FRACTION,
+  HULL_MAX_TRAVERSE,
   NOZZLE_SKIN_FRACTION,
   NOZZLE_THROAT_FRACTION,
   gunStats,
@@ -52,7 +57,12 @@ export {
   moduleCentre,
   moduleProblem,
   moduleStats,
+  hullBeamStats,
+  hullGunStats,
+  hullMountGeometry,
+  isHullMount,
   nozzleOffset,
+  weldBox,
   thrusterGeometry,
   thrusterMachinery,
   traverseAccel,
@@ -61,6 +71,7 @@ export {
   type GunStats,
   type ModuleKind,
   type ModuleSpec,
+  type HullMountGeometry,
   type ModuleStats,
   type ThrusterGeometry,
 } from './modules.js';
