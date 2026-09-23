@@ -333,6 +333,26 @@ export const BEAM_STORED_ENERGY_PER_VOLUME = 1.2e5;
 export const BEAM_DUTY_CYCLE = 0.25;
 
 /**
+ * How long a beam mount takes to be ready again after emptying its bank,
+ * seconds.
+ *
+ * **A time rather than a rate, and that is not a simplification.** The bank
+ * holds energy in proportion to the machinery's volume, and the plant and heat
+ * sinks that refill it and dump what the shot made are the same machinery — so
+ * the volume cancels and what is left is a property of the technology. A big
+ * mount takes no longer to recover than a small one; it simply had more to
+ * spend.
+ *
+ * Which is the whole of why depth is worth buying on a beam: the burn grows
+ * with the bank and the recovery does not, so a deep mount spends more of its
+ * time firing. Set so that a hull beam of the proportions an unsaid layout
+ * gets — half block, half housing — works at about the flat quarter duty that
+ * `BEAM_DUTY_CYCLE` assumes, so this refines that stop-gap where it applies
+ * rather than moving the balance out from under it.
+ */
+export const BEAM_RECHARGE_TIME = 0.7;
+
+/**
  * Depth of the emitter housing, in apertures.
  *
  * A laser has no barrel. What protrudes is the housing round the final optic,
@@ -1077,6 +1097,13 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
   const power = OPTIC_INTENSITY_LIMIT * apertureArea;
   const stored = BEAM_STORED_ENERGY_PER_VOLUME * blockLength * spec.width * DECK_HEIGHT;
   const beamOnTime = power > 0 ? stored / power : 0;
+  // **The block is the bank and the cooling, so depth buys duty rather than
+  // only burst.** The burn grows with the bank behind it while the recovery
+  // does not, so a mount given more block spends a larger share of its time
+  // firing — where a flat duty cycle would have made a bigger bank buy a
+  // longer shot and an exactly proportionally longer wait, which is no gain at
+  // all on the only figure that matters over a battle.
+  const cycleTime = beamOnTime + BEAM_RECHARGE_TIME;
 
   return {
     type: GunType.Beam,
@@ -1089,7 +1116,7 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
     muzzleEnergy: 0,
     beamPower: power,
     beamOnTime,
-    cycleTime: BEAM_DUTY_CYCLE > 0 ? beamOnTime / BEAM_DUTY_CYCLE : 0,
+    cycleTime,
   };
 }
 

@@ -535,6 +535,15 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   barrel is muzzle velocity bought with rounds per minute, and traverse falls out on the velocity
   side. Sustained throughput therefore peaks in the middle, at a little over half the module given to
   the barrel.
+- **A hull beam's block is its bank and its cooling, so depth buys duty rather than only burst.** The
+  burn grows with the bank behind it and the recovery does not — the plant and heat sinks that refill
+  it scale with the same machinery, so the volume cancels and the recovery is a property of the
+  technology rather than of the mount. A deep mount therefore spends more of its time firing, which is
+  the only figure that matters over a battle; a flat duty cycle would have made a bigger bank buy a
+  longer shot and an exactly proportionally longer wait, and so buy nothing. The lens housing earns
+  the beam nothing in return, since the aperture comes from the mount's width — so the knob on a hull
+  beam is one-sided today, the minimum housing being the best housing, and what would make it a trade
+  is the housing buying focus, which ROADMAP.md §12 holds with the rest of the optics.
 - **A hull mount's outlets are whole weapons rather than shares of one.** A turret's barrels divide
   one bore because they share a barbette and its hoists; a hull mount has neither, so asking for two
   guns asks for two guns and the row simply takes up more of the opening. What stops it is the face

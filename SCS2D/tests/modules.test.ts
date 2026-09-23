@@ -6,6 +6,7 @@ import {
   BEAM_DUTY_CYCLE,
   BEAM_EMITTER_APERTURES,
   BEAM_MASS_PER_WATT,
+  BEAM_RECHARGE_TIME,
   BEAM_STORED_ENERGY_PER_VOLUME,
   CALIBRE_FRACTION,
   CORE_MASS_PER_AREA,
@@ -30,6 +31,7 @@ import {
   traverseAccel,
   traverseRate,
   TRAVERSE_SPINUP_TIME,
+  type GunStats,
   type ModuleSpec,
 } from '../sim/modules.js';
 
@@ -321,6 +323,34 @@ describe('hull mount scaling', () => {
     expect(deep.gun!.beamPower).toBeCloseTo(shallow.gun!.beamPower, 6);
     // A shallower lens leaves more block, and the bank is in the block.
     expect(shallow.gun!.beamOnTime).toBeGreaterThan(deep.gun!.beamOnTime);
+  });
+
+  it('gives a deeper beam a better duty cycle, not only a longer burst', () => {
+    // The point of the law: the bank grows with the block and the recovery
+    // does not, so depth is average power on target rather than a longer shot
+    // paid for by an exactly proportionally longer wait.
+    const beam = (muzzle: number) =>
+      moduleStats({ kind: 'hullBeam', x: 0, y: 0, length: 8, width: 4, muzzle }).gun!;
+    const deep = beam(0.1);
+    const shallow = beam(0.8);
+    const duty = (g: GunStats) => g.beamOnTime / g.cycleTime;
+    expect(duty(deep)).toBeGreaterThan(duty(shallow));
+    // The optic is unchanged, so this is the block and nothing else.
+    expect(deep.beamPower).toBeCloseTo(shallow.beamPower, 6);
+    expect(deep.beamPower * duty(deep)).toBeGreaterThan(shallow.beamPower * duty(shallow));
+  });
+
+  it('takes the same time to recover however big the mount is', () => {
+    // A time rather than a rate, because the bank and the plant that refills
+    // it are the same machinery: the volume cancels and what is left is the
+    // technology. It is what stops depth being free.
+    const beam = (length: number, width: number) =>
+      moduleStats({ kind: 'hullBeam', x: 0, y: 0, length, width }).gun!;
+    const small = beam(4, 2);
+    const large = beam(32, 16);
+    expect(large.beamPower).toBeGreaterThan(small.beamPower * 50);
+    expect(large.cycleTime - large.beamOnTime).toBeCloseTo(small.cycleTime - small.beamOnTime, 9);
+    expect(large.cycleTime - large.beamOnTime).toBeCloseTo(BEAM_RECHARGE_TIME, 9);
   });
 
   it('leaves a beam at the mounting\'s limit until its housing runs long', () => {
