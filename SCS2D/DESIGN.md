@@ -271,8 +271,13 @@ inside any one file is not contiguous.
   **A run is set going and watched on a page.** What a run is scored on, how big it is and how long a match
   lasts are settings on a form rather than flags on a command; it is fought in slices a few milliseconds
   long between frames, so the page goes on answering while it runs, and what is drawn is the match the run
-  is fighting rather than a re-enactment of it. The three sources of score are plotted apart as well as
-  together, because they move at different times — a population learning to fly reaches the goal long
+  is fighting rather than a re-enactment of it. The chart is the way in to a generation as well as a picture of the run:
+  pointing at it reads off what every line was worth there and names the generation under the cursor, and
+  clicking takes the table, the matches and the ships to it — held down and dragged, it seeks, and the ships
+  redraw as it goes, so a run can be scrubbed through and watched changing. One button says *latest*, and
+  puts the panel back to following the generation being fought — there is no list of generations to pick
+  from, a thousand of them being a worse way of doing what the chart does better. The three sources of score are plotted apart as
+  well as together, because they move at different times — a population learning to fly reaches the goal long
   before it learns to shoot, and a total hides that behind one rising line. **What the page shows while a run
   grinds is the population, not the fight.** A run fights hundreds of times faster than real time, so a window
   on whichever match is in progress is a fraction of a second of each and a flicker to the next — a picture of

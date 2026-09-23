@@ -1,7 +1,7 @@
-import { capture, parseBlueprint, Snapshot, type Blueprint } from '../sim/index.js';
+import { capture, parseBlueprint, Snapshot, type Blueprint, type ShipDesign } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
 import { draw } from '../render/canvas2d.js';
-import { drawChart, type Series } from '../render/chart.js';
+import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
 import { frame, moveWithVisibleShips, type Camera } from '../render/camera.js';
 import { Library, toFileText } from '../editor/library.js';
 import { previewSnapshot } from '../editor/preview.js';
@@ -32,6 +32,12 @@ import { el } from './dom.js';
  * re-enactment of it. A worker would be faster and is not what this is for:
  * the point of the page is to see what a run is doing while it does it.
  */
+
+/**
+ * Compiled designs kept for the panel: a few generations of a large
+ * population, which is what seeking back and forth actually revisits.
+ */
+const DESIGNS_KEPT = 512;
 
 /** Cap on replay steps per frame, so a tab left in the background cannot catch up in one lurch. */
 const MAX_STEPS_PER_FRAME = 16;
@@ -102,6 +108,8 @@ export function startEvolution(): void {
   // cannot see a narrowing made after it in the source.
   const ctx: CanvasRenderingContext2D = context(view);
   const chartCtx: CanvasRenderingContext2D = context(chart);
+  const chartTip = el<HTMLElement>('chartTip');
+  const legend = el<HTMLElement>('legend');
 
   const startButton = el<HTMLButtonElement>('start');
   const pauseButton = el<HTMLButtonElement>('pause');
@@ -120,8 +128,9 @@ export function startEvolution(): void {
   const battleControls = el<HTMLElement>('battleControls');
   const fleetBox = el<HTMLElement>('fleet');
   const watchingLabel = el<HTMLElement>('watching');
-  const generationSelect = el<HTMLSelectElement>('generation');
+  const latestButton = el<HTMLButtonElement>('latest');
   const shownGeneration = el<HTMLElement>('shownGeneration');
+  const fightingLabel = el<HTMLElement>('fighting');
   const shipsBody = el<HTMLElement>('ships');
   const matchesBody = el<HTMLElement>('matches');
   const editsLine = el<HTMLElement>('edits');
@@ -147,11 +156,22 @@ export function startEvolution(): void {
   let shown = -1;
   let yardstick: Yardstick | null = null;
   let measured: YardstickReport | null = null;
-  /** Which generation the fleet tiles were built for, and the tiles by ship. */
-  let fleetOf = -1;
+  /**
+   * The tiles, by ship rather than by generation: a design carried over into
+   * the next generation keeps its tile, which is what makes seeking across a
+   * run redraw only what actually changed.
+   */
   const fleetTiles = new Map<number, { figure: HTMLElement; caption: HTMLElement }>();
   const fleetSnapshot = new Snapshot();
   let picked = -1;
+  /** Where the chart drew itself, and which point the pointer is over. */
+  let chartLayout: ChartLayout = { x: 0, y: 0, width: 0, height: 0, count: 0 };
+  let chartSeries: Series[] = [];
+  let hoverAt: number | null = null;
+  /** Whether a drag across the chart is seeking through the generations. */
+  let seeking = false;
+  /** A selection made since the panel was last rebuilt. */
+  let reselected = false;
   // Where the rolling replay has got to, and how many matches there were when
   // it last chose — a match arriving while one plays jumps the queue.
   let rollingAt = 0;
@@ -166,7 +186,7 @@ export function startEvolution(): void {
   let last = 0;
   // Compiling a hull to weigh it is not free, and the panel is redrawn many
   // times a run; an individual's mass never changes, and its id never repeats.
-  const masses = new Map<number, number>();
+  const designs = new Map<number, ShipDesign>();
   let refreshedAt = 0;
 
   // ---- settings ----------------------------------------------------------
@@ -355,6 +375,7 @@ export function startEvolution(): void {
       canvas.height = Math.round(rect.height * ratio);
     }
     paint();
+    paintChart();
   };
 
   const watch = (match: Match | null): void => {
@@ -457,6 +478,124 @@ export function startEvolution(): void {
     draw(ctx, shot, camera, view.width, view.height, flashes);
   }
 
+  // ---- the chart ---------------------------------------------------------
+
+  /**
+   * Draw the chart, marking what is under the pointer and what is selected.
+   *
+   * Kept apart from `refresh` so a pointer moving over it redraws at once
+   * rather than at the next telemetry sample: a mark that lags the cursor by
+   * a fifth of a second reads as the chart being broken.
+   */
+  function paintChart(): void {
+    chartLayout = drawChart(
+      chartCtx,
+      chartSeries,
+      chart.width,
+      chart.height,
+      window.devicePixelRatio || 1,
+      { hover: hoverAt ?? undefined, picked: markedGeneration() },
+    );
+  }
+
+  /**
+   * The generation the panel is showing, when the chart has a point for it.
+   *
+   * Nothing is marked while the generation being fought is the one on show:
+   * it has no point yet, and marking the one before it would say the chart
+   * and the panel disagree when they do not.
+   */
+  function markedGeneration(): number | undefined {
+    if (run === null) return undefined;
+    const closed = run.generations.length;
+    const newest = run.done ? closed - 1 : closed;
+    const index = shown < 0 ? newest : Math.min(shown, newest);
+    return index >= 0 && index < closed ? index : undefined;
+  }
+
+  /**
+   * What the legend says: the names of the lines, and — while a generation is
+   * under the pointer — what each of them was worth there.
+   *
+   * On the legend rather than in the tooltip because the colours are already
+   * there: a floating box repeating five labelled colours beside five
+   * labelled colours is two things to read where there was one.
+   */
+  function showLegend(): void {
+    legend.replaceChildren();
+    for (const line of chartSeries) {
+      const entry = document.createElement('span');
+      entry.style.color = line.colour;
+      entry.textContent = line.name;
+      const value = hoverAt === null ? undefined : line.values[hoverAt];
+      if (value !== undefined && Number.isFinite(value)) {
+        const reading = document.createElement('b');
+        reading.textContent = value.toFixed(3);
+        entry.append(reading);
+      }
+      legend.append(entry);
+    }
+  }
+
+  /** Which generation the pointer is over, as an index, or null. */
+  const chartPointAt = (event: PointerEvent | MouseEvent, clamp = false): number | null => {
+    const rect = chart.getBoundingClientRect();
+    return indexAt(chartLayout, event.clientX - rect.left, clamp);
+  };
+
+  const hoverChart = (at: number | null): void => {
+    if (at === hoverAt) return;
+    hoverAt = at;
+    chartTip.hidden = at === null;
+    if (at !== null) {
+      chartTip.textContent = `generation ${at + 1}`;
+      chartTip.style.left = `${xOf(chartLayout, at)}px`;
+    }
+    paintChart();
+    showLegend();
+  };
+
+  /**
+   * Go to a generation, as the picker does.
+   *
+   * The same selection, so the table, the matches and the ships all follow —
+   * the chart is another way in to it rather than a second idea of which
+   * generation is being looked at. Marked rather than done: while seeking,
+   * the pointer moves faster than the panel can be rebuilt, and rebuilding it
+   * per *event* rather than per frame would spend the drag redrawing
+   * generations nobody saw.
+   */
+  const goTo = (at: number): void => {
+    if (at === shown) return;
+    shown = at;
+    reselected = true;
+  };
+
+  chart.addEventListener('pointermove', (event) => {
+    const at = chartPointAt(event, seeking);
+    hoverChart(at);
+    if (seeking && at !== null) goTo(at);
+  });
+  chart.addEventListener('pointerleave', () => {
+    if (!seeking) hoverChart(null);
+  });
+  chart.addEventListener('pointerdown', (event) => {
+    const at = chartPointAt(event, true);
+    if (at === null) return;
+    // Captured, so a drag that runs off the end of the plot goes on seeking
+    // to the end of the run rather than stopping where the canvas does.
+    chart.setPointerCapture(event.pointerId);
+    seeking = true;
+    goTo(at);
+  });
+  const stopSeeking = (event: PointerEvent): void => {
+    if (!seeking) return;
+    seeking = false;
+    if (chart.hasPointerCapture(event.pointerId)) chart.releasePointerCapture(event.pointerId);
+  };
+  chart.addEventListener('pointerup', stopSeeking);
+  chart.addEventListener('pointercancel', stopSeeking);
+
   // ---- the fleet ---------------------------------------------------------
 
   /**
@@ -473,12 +612,7 @@ export function startEvolution(): void {
    * generation redraws its hulls when it is bred rather than five times a
    * second for as long as it lasts.
    */
-  const showFleet = (index: number, rows: readonly Row[]): void => {
-    if (index !== fleetOf) {
-      fleetBox.replaceChildren();
-      fleetTiles.clear();
-      fleetOf = index;
-    }
+  const showFleet = (rows: readonly Row[]): void => {
     if (rows.length === 0) {
       if (fleetBox.childElementCount === 0) {
         const note = document.createElement('p');
@@ -538,7 +672,7 @@ export function startEvolution(): void {
     canvas.height = Math.round(96 * ratio);
     const tileCtx = canvas.getContext('2d');
     if (tileCtx !== null) {
-      const design = compileBlueprint(row.blueprint);
+      const design = designOf(row.id, row.blueprint);
       const shot = previewSnapshot(design, fleetSnapshot);
       const eye: Camera = { x: 0, y: 0, scale: 1 };
       frame(eye, shot, canvas.width, canvas.height, 1);
@@ -584,14 +718,34 @@ export function startEvolution(): void {
 
   // ---- reading the run ---------------------------------------------------
 
-  const massOf = (id: number, blueprint: Blueprint): number => {
-    let mass = masses.get(id);
-    if (mass === undefined) {
-      mass = compileBlueprint(blueprint).mass;
-      masses.set(id, mass);
+  /**
+   * A design, compiled once.
+   *
+   * An individual's id never repeats and its layout never changes — a design
+   * is replaced by a child rather than edited — so one compile serves the mass
+   * in the table and the picture in its tile, however many times a run is
+   * seeked back and forth across.
+   *
+   * **Capped, because a run is longer than memory is.** Seeking across a
+   * thousand generations of twelve would otherwise hold twelve thousand
+   * compiled designs, each with its modules, mounts and thrusters, for the
+   * sake of a page that is showing twelve of them. The oldest go first, which
+   * on a seek means the ones already scrolled past.
+   */
+  const designOf = (id: number, blueprint: Blueprint): ShipDesign => {
+    const held = designs.get(id);
+    if (held !== undefined) return held;
+    const design = compileBlueprint(blueprint);
+    designs.set(id, design);
+    while (designs.size > DESIGNS_KEPT) {
+      const oldest = designs.keys().next();
+      if (oldest.done === true) break;
+      designs.delete(oldest.value);
     }
-    return mass;
+    return design;
   };
+
+  const massOf = (id: number, blueprint: Blueprint): number => designOf(id, blueprint).mass;
 
   /** Which generation the panel is showing, and the rows and matches in it. */
   const showing = (): { index: number; rows: Row[]; matches: readonly MatchRecord[] } => {
@@ -654,22 +808,14 @@ export function startEvolution(): void {
 
   const refresh = (): void => {
     const { index, rows, matches } = showing();
-    if (modeSelect.value !== 'battle') showFleet(index, rows);
+    if (modeSelect.value !== 'battle') showFleet(rows);
 
-    // The list of generations to choose from, rebuilt only when it grows.
-    const count = (run?.generations.length ?? 0) + (run !== null && !run.done ? 1 : 0);
-    if (generationSelect.options.length !== count) {
-      generationSelect.replaceChildren();
-      for (let g = 0; g < count; g++) {
-        const option = document.createElement('option');
-        option.value = String(g);
-        const fighting = run !== null && !run.done && g === run.generations.length;
-        option.textContent = fighting ? `${g + 1} (fighting)` : String(g + 1);
-        generationSelect.append(option);
-      }
-      generationSelect.value = String(shown < 0 ? Math.max(0, count - 1) : shown);
-    }
     shownGeneration.textContent = run === null ? '—' : String(index + 1);
+    // Whether what is on show is the generation still being fought, which is
+    // the one that changes while it is looked at.
+    const live = run !== null && !run.done && index >= run.generations.length;
+    fightingLabel.textContent = live ? ' · fighting' : '';
+    latestButton.disabled = run === null || shown < 0;
 
     const ranked = [...rows].sort((a, b) => b.fitness - a.fitness);
     const best = ranked[0];
@@ -736,7 +882,9 @@ export function startEvolution(): void {
       for (const point of points) scores[point.generation] = point.mean;
       series.push({ name: 'vs. yardstick', colour: '#5bd6d6', values: scores });
     }
-    drawChart(chartCtx, series, chart.width, chart.height, window.devicePixelRatio || 1);
+    chartSeries = series;
+    paintChart();
+    showLegend();
 
     const top = run === null ? null : finalist(run.record());
     saveButton.disabled = top === null;
@@ -790,10 +938,17 @@ export function startEvolution(): void {
     yardstickLine.textContent = `Measuring against ${benchmark.name}…`;
   });
 
-  generationSelect.addEventListener('change', () => {
-    const picked = Number(generationSelect.value);
-    // Picking the generation being fought means "keep up with it".
-    shown = run !== null && picked >= run.generations.length ? -1 : picked;
+  /**
+   * Follow the newest generation again.
+   *
+   * Seeking the chart pins the panel to one generation, which is what it is
+   * for — and there has to be a way back, or watching a run means starting it
+   * over. It is a button rather than an entry in a list of generations
+   * because the list was a worse way of doing what the chart already does
+   * better: a thousand of them is not something to pick from.
+   */
+  latestButton.addEventListener('click', () => {
+    shown = -1;
     refresh();
   });
 
@@ -820,14 +975,14 @@ export function startEvolution(): void {
     yardstick = null;
     measured = null;
     yardstickLine.textContent = 'Measure once there is something to measure.';
-    masses.clear();
+    designs.clear();
     shown = -1;
     replay = null;
     replayOf = null;
     editsLine.textContent = '';
-    generationSelect.replaceChildren();
     watch(null);
-    fleetOf = -1;
+    fleetBox.replaceChildren();
+    fleetTiles.clear();
     setPaused(false);
     pauseButton.disabled = false;
     stopButton.disabled = false;
@@ -912,6 +1067,15 @@ export function startEvolution(): void {
     playButton.disabled = replay === null;
     stepButton.disabled = replay === null;
     if (modeSelect.value === 'battle') paint();
+
+    // A generation picked off the chart shows on the next frame rather than at
+    // the next sample: seeking through a run is meant to read as the ships
+    // changing, and a fifth of a second of lag reads as the page being stuck.
+    if (reselected) {
+      reselected = false;
+      refresh();
+      report();
+    }
 
     // Sampled rather than redrawn every frame: the panel is a page of DOM and
     // the run is the thing the frame is for (DESIGN.md non-negotiable 5).
