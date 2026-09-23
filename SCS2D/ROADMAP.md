@@ -362,6 +362,16 @@ Deliberately unresolved; decide when they block something.
   stretching a module costs wall. Damage locality and gun vulnerability are the two intended
   counter-pressures and neither exists yet, so "one enormous module" is currently under-punished.
   Expect the GA to say so.
+- **A turret's mount is its loading machinery too, and does not yet pay like one.** A hull gun's
+  block sets its rate of fire, since that is where the hoist, the rammer and the heat go: depth in
+  calibres of the round, a fixed part of the cycle no machinery shortens, and a ceiling of about four
+  times a turret's rate. A turret's mount holds exactly the same gear, and its reload is calibre-only
+  — a long turret loads no faster than a stubby one of the same width, and its length is presently
+  worth nothing but the barrel the calibre asks for. The asymmetry is deliberate for now rather than
+  overlooked: a turret's barrel is *derived* rather than authored, so the same law would arrive as a
+  side effect of mount size rather than as a knob anybody chose, and every shipped ship's rate of fire
+  would move with it. What settles it is whether the fleet wants rebalancing at the same time — do
+  them together, since one law over both archetypes is the point.
 - **What a barrel should cost.** Splitting a turret's bore across `n` barrels trades weight of shell
   for rate of fire, and at present it does so at a discount: the tubes' steel falls away as `n^-3/2`
   while `MECHANISM_MASS_PER_CALIBRE`, being linear in calibre, holds the loading machinery exactly

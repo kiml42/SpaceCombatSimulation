@@ -183,6 +183,30 @@ export const HULL_MAX_TRAVERSE = 30 * (PI / 180);
 export const DEFAULT_MUZZLE_SHARE = 0.5;
 
 /**
+ * The block depth, in calibres of the round it loads, that a hull gun reloads
+ * at `CYCLE_TIME_PER_CALIBRE` in — the machinery a gun of that bore expects.
+ *
+ * Ten, which is what half the length of an 8x4 mount comes to at the bore that
+ * mount carries. So a hull gun whose layout says nothing about its
+ * proportions loads at exactly a turret's rate for its calibre, and the knob
+ * moves it either way from there rather than up or down from it.
+ */
+export const LOADING_BLOCK_CALIBRES = 10;
+
+/**
+ * The share of a loading cycle no amount of machinery shortens.
+ *
+ * Opening the breech, running the round in, and the barrel coming back out of
+ * recoil all take as long as they take: the hoist behind them can be the size
+ * of a house and the gun still cannot fire until the shell is home. A quarter,
+ * so a block twice the expected depth is worth about a third off the cycle and
+ * a very large one approaches four times the rate rather than an unbounded
+ * one — rate of fire is the figure an evolved design would run away with, and
+ * this is what stops it.
+ */
+export const LOADING_FLOOR = 0.25;
+
+/**
  * Barrel length in calibres. Naval rifles run 45–55; the middle of that range
  * is the usual compromise between muzzle velocity and a barrel that can be
  * trained without the ship's own structure fouling it.
@@ -985,7 +1009,7 @@ export function weldBox(spec: ModuleSpec): ModuleSpec {
  * the traverse it no longer has.
  */
 export function hullGunStats(spec: ModuleSpec): GunStats {
-  const { outlets, outletWidth, barrelLength } = hullMountGeometry(spec);
+  const { outlets, outletWidth, barrelLength, blockLength } = hullMountGeometry(spec);
   const calibre = outletWidth / BARREL_OUTER_CALIBRES;
   const boreArea = PI * 0.25 * calibre * calibre;
   const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
@@ -1004,9 +1028,36 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
     muzzleSpeed,
     muzzleEnergy,
     beamPower: 0,
-    cycleTime: (CYCLE_TIME_PER_CALIBRE * calibre) / outlets,
+    cycleTime: hullCycleTime(calibre, blockLength) / outlets,
     beamOnTime: 0,
   };
+}
+
+/**
+ * How long a hull gun takes to load, seconds.
+ *
+ * **The block is the loading gear**, so how deep it is decides how fast the
+ * gun works: the hoist, the rammer and the heat the breech has to lose all
+ * live in it, and a gun given nothing but a barrel is one being fed by hand.
+ * Measured in calibres of the round rather than in metres, because what the
+ * machinery has to move is the shell — so the same proportions mean the same
+ * rate of fire whatever size the mount is drawn at.
+ *
+ * `LOADING_FLOOR` of the cycle is fixed and the rest scales with the depth,
+ * which is what makes it a trade with the barrel rather than a second way of
+ * saying "bigger is better": every metre given to the barrel is a metre of
+ * muzzle velocity bought with rounds per minute, and the ceiling on what
+ * loading machinery can do stops a stub-barrelled mount being a free
+ * autocannon.
+ */
+function hullCycleTime(calibre: number, blockLength: number): number {
+  const base = CYCLE_TIME_PER_CALIBRE * calibre;
+  const depth = blockLength / (LOADING_BLOCK_CALIBRES * calibre);
+  // A block with no depth at all is a gun with nowhere to load from, and the
+  // arithmetic would say it never fires. It is unreachable — a module needs an
+  // interior to exist — but the law should not depend on that to be finite.
+  if (!(depth > 0)) return base / LOADING_FLOOR;
+  return base * (LOADING_FLOOR + (1 - LOADING_FLOOR) / depth);
 }
 
 /**

@@ -525,6 +525,16 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   limit holds the whole archetype well short of a turret's field of fire however small its barrel,
   since a bed that takes recoil faces one way. On top of that sits the same question every mount is
   asked — what the ship itself is in the way of — and the narrower of the two wins.
+- **The block behind a hull gun's barrel is its loading gear, so how deep it is sets the rate of
+  fire.** Depth is counted in calibres of the round the machinery has to move, so the same
+  proportions mean the same rate whatever size the mount is drawn at, and a share that leaves the
+  expected depth loads at exactly a turret's rate for that bore. Part of a cycle is fixed however
+  much machinery stands behind it — the breech, the ram, the run-out — so the knob approaches a
+  ceiling of about four times that rate rather than running away with it. **That is what makes the
+  barrel/block split a real trade rather than a slider with one good end**: every metre given to the
+  barrel is muzzle velocity bought with rounds per minute, and traverse falls out on the velocity
+  side. Sustained throughput therefore peaks in the middle, at a little over half the module given to
+  the barrel.
 - **A hull mount's outlets are whole weapons rather than shares of one.** A turret's barrels divide
   one bore because they share a barbette and its hoists; a hull mount has neither, so asking for two
   guns asks for two guns and the row simply takes up more of the opening. What stops it is the face

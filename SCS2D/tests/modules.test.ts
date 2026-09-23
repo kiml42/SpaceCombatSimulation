@@ -9,12 +9,15 @@ import {
   BEAM_STORED_ENERGY_PER_VOLUME,
   CALIBRE_FRACTION,
   CORE_MASS_PER_AREA,
+  CYCLE_TIME_PER_CALIBRE,
   CORE_MINIMUM_FITTING_MASS,
   DECK_HEIGHT,
   ENGINE_MASS_PER_NEWTON,
   HULL_BARREL_WIDTH_CAP,
   HULL_MAX_TRAVERSE,
   hullMountGeometry,
+  LOADING_BLOCK_CALIBRES,
+  LOADING_FLOOR,
   gunStats,
   beamGunStats,
   GunType,
@@ -219,6 +222,39 @@ describe('hull mount scaling', () => {
       moduleStats(gun(8, 4, { muzzle: 0.25 })).gun!.muzzleEnergy * 3,
       6,
     );
+  });
+
+  it('loads faster the deeper the block behind the barrel', () => {
+    // The block is the loading gear, so giving length to it buys rounds per
+    // minute the same way giving length to the barrel buys muzzle velocity.
+    const stubby = moduleStats(gun(8, 4, { muzzle: 0.1 })).gun!;
+    const middling = moduleStats(gun(8, 4, { muzzle: 0.5 })).gun!;
+    const lanky = moduleStats(gun(8, 4, { muzzle: 0.9 })).gun!;
+    expect(stubby.cycleTime).toBeLessThan(middling.cycleTime);
+    expect(middling.cycleTime).toBeLessThan(lanky.cycleTime);
+    // The bore is unchanged throughout, so this is the block and nothing else.
+    expect(stubby.calibre).toBeCloseTo(lanky.calibre, 9);
+  });
+
+  it('will not let a very large block fire faster than the floor allows', () => {
+    // Rate of fire is the figure a search would run away with, so the part of
+    // a cycle that machinery cannot shorten is the ceiling on what the knob is
+    // worth: a block two hundred times as deep as the round asks for is still
+    // under four times a turret's rate, not four hundred.
+    const deep = moduleStats(gun(800, 4, { muzzle: 0.001 })).gun!;
+    const floor = CYCLE_TIME_PER_CALIBRE * deep.calibre * LOADING_FLOOR;
+    expect(deep.cycleTime).toBeGreaterThan(floor);
+    expect(deep.cycleTime).toBeLessThan(floor * 1.05);
+  });
+
+  it('loads at a turret\'s rate for its bore when the block is what it expects', () => {
+    // The reference depth: half an 8x4 mount, which is what a layout that says
+    // nothing about its proportions gets. So the knob moves the rate either
+    // way from the turret law rather than up or down from it.
+    const mount = hullMountGeometry(gun(8, 4));
+    const stats = moduleStats(gun(8, 4)).gun!;
+    expect(mount.blockLength / stats.calibre).toBeCloseTo(LOADING_BLOCK_CALIBRES, 9);
+    expect(stats.cycleTime).toBeCloseTo(CYCLE_TIME_PER_CALIBRE * stats.calibre, 9);
   });
 
   it('gives each outlet a whole bore until the row no longer fits the opening', () => {
