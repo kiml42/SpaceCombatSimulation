@@ -56,7 +56,8 @@ editor/     the blueprint editor; only page.ts and overlay.ts touch the DOM,
             so the edit model, the stats and the library are unit-tested
 ui/         React; UI state only
 host/       window lifecycle, the wall clock, and the controls — one entry
-            point and one page shell per page
+            point and one page shell per page; the evolution page lives here
+            too, since driving a run is a clock and a set of controls
 scenarios/  the battles, and the blueprints they fly, under blueprints/
             (battle.ts holds the assembly and the step order they share)
 evolution/  breeding and running a generation; imports sim/, never the host,
@@ -75,8 +76,13 @@ Keep these working — they are the cold-start re-entry path:
 - `npm run typecheck` — all three TS projects (`sim/` has no ambient types; `render/`, `editor/` and
   `host/` have the DOM)
 - `npm run golden` — re-derive golden checksums after a *deliberate* behaviour change
-- `npm run build` — bundle both pages to `dist/index.html` and `dist/editor.html`, one file each with
-  nothing external
+- `npm run evolve` — fight a headless evolution run and write it to `runs/`; `--from`, `--generations`,
+  `--population`, `--group`, `--matches`, `--budget`, `--duration`, `--radius`, `--seed`, `--kinds`,
+  `--out`, and `--config` / `--save-config` for the settings file the evolution page reads and writes
+- `npm run yardstick` — measure a finished run against a ship that does not evolve; `--run`, and
+  `--against latest | founder | <stock ship> | <blueprint file>`
+- `npm run build` — bundle each page to `dist/index.html`, `dist/editor.html` and `dist/evolution.html`,
+  one file each with nothing external
 - `npm run dev` — the same build on every save, for tinkering; refresh the page to see it
 - `npm run test:browser` — drive those bundles in Chromium; needs `npx playwright install chromium` first
 

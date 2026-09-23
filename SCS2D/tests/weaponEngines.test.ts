@@ -8,7 +8,8 @@ import {
   parseBlueprint,
   serialiseBlueprint,
   moduleProblem,
-  plumeReach,
+  nozzleReach,
+  thrusterGeometry,
   type Blueprint,
   type ModuleSpec,
 } from '../sim/index.js';
@@ -37,6 +38,10 @@ function tug(weapon: boolean): Blueprint {
   };
   return {
     name: weapon ? 'Armed tug' : 'Tug',
+    // Nothing to want. A craft keeps out of its neighbours' way by burning at
+    // them, so a hull parked a metre off another one's stern has a reason to
+    // fire quite apart from the flag — and this is a test about the flag.
+    doctrine: { targeting: {}, approach: { separation: 0 } },
     modules: [
       weapon ? { ...engine, weapon: true } : engine,
       { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 6 },
@@ -53,6 +58,7 @@ function tug(weapon: boolean): Blueprint {
  */
 const TARGET: Blueprint = {
   name: 'Target',
+  doctrine: { targeting: {}, approach: { separation: 0 } },
   modules: [
     { kind: 'core', x: 0, y: 0, angle: 0, length: 6, width: 6 },
     // Hung off the far face, so it is not itself the thing standing in the
@@ -82,7 +88,11 @@ function targetNose(): number {
 function usefulReach(): number {
   const design = compileBlueprint(tug(true));
   const t = design.thrusters[0]!;
-  return plumeReach(t.maxThrust, design.modules[t.module!]!.spec.width) * (1 - WEAPON_PLUME_SHARE);
+  // Through the same geometry the burn reads, since a bell decides how far a
+  // flame carries: taking it off the module's width alone would measure a
+  // plume this engine does not throw.
+  const geometry = thrusterGeometry(design.modules[t.module!]!.spec);
+  return nozzleReach(geometry, t.maxThrust) * (1 - WEAPON_PLUME_SHARE);
 }
 
 /**

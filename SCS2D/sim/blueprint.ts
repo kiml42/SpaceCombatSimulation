@@ -40,8 +40,31 @@ import type { TurretSpec } from './turrets.js';
  * it, and a torque computed from a mount position is simply right.
  */
 
-/** Modules closer than this count as touching rather than overlapping, metres. */
-const TOUCH_TOLERANCE = 1e-9;
+/**
+ * How far two modules may run into each other before it counts as overlapping,
+ * metres.
+ *
+ * **A few millimetres is metal, not a mistake.** Where two modules meet there
+ * is a weld, and a weld is thicker than either wall — so a layout whose parts
+ * interpenetrate by a hair is one where the join is a little denser, not one
+ * where two compartments are trying to occupy the same space. Five millimetres
+ * against modules half a metre across at the very smallest is one part in a
+ * hundred, nowhere near enough to eat into what either module holds.
+ *
+ * Small enough to be that, and large enough to absorb arithmetic. A layout is
+ * built out of sines and cosines, so faces that ought to be flush miss by
+ * fractions of a micron; at a nanometre, which is what this was, an angle
+ * rounded for the sake of the file tilts a module eighty nanometres into its
+ * neighbour and the layout is refused. Every thruster a mutation tried to bolt
+ * on was lost that way.
+ *
+ * `hullAhead` proves a thruster is mounted against hull by nudging it forward
+ * and asking whether it now overlaps, so that nudge is this plus
+ * `ATTACHMENT_TOLERANCE`: a module anywhere within the distance that counts as
+ * attached then buries itself deeper than this when it is pushed, and the two
+ * rules cannot disagree about a thruster sitting at the edge of the band.
+ */
+const TOUCH_TOLERANCE = 0.005;
 
 /**
  * How close a module must be to another to count as bolted to it, metres.
@@ -887,12 +910,12 @@ const MOUNTING_FACES: readonly (readonly [number, number])[] = [
  * as surely as one mounted to a girder. A turret is not, since what is beside
  * a mount is its own barrel.
  *
- * Answered by nudging the box towards each face by the attachment tolerance
- * and asking whether it now overlaps — which reuses the separating-axis test
- * and so stays correct at any mounting angle, rather than needing a
- * face-contact test of its own. A neighbour off a face that is not being asked
- * about is unaffected by that nudge and correctly does not count, and nor does
- * one touching only at a corner.
+ * Answered by nudging the box towards each face and asking whether it now
+ * overlaps — which reuses the separating-axis test and so stays correct at any
+ * mounting angle, rather than needing a face-contact test of its own. A
+ * neighbour off a face that is not being asked about is unaffected by that
+ * nudge and correctly does not count, and nor does one touching only at a
+ * corner.
  */
 function hullAgainst(
   box: ModuleSpec,
@@ -903,11 +926,15 @@ function hullAgainst(
   const angle = box.angle ?? 0;
   const c = cos(angle);
   const sn = sin(angle);
+  // Far enough that anything within touching distance is driven further in
+  // than an overlap is forgiven, so a thruster the connectivity graph calls
+  // attached is one this calls mounted.
+  const nudge = ATTACHMENT_TOLERANCE + TOUCH_TOLERANCE;
   for (const [fx, fy] of faces) {
     const probe: ModuleSpec = {
       ...box,
-      x: box.x + (c * fx - sn * fy) * ATTACHMENT_TOLERANCE,
-      y: box.y + (sn * fx + c * fy) * ATTACHMENT_TOLERANCE,
+      x: box.x + (c * fx - sn * fy) * nudge,
+      y: box.y + (sn * fx + c * fy) * nudge,
     };
     for (const other of modules) {
       if (other === owner) continue;

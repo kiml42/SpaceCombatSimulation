@@ -43,6 +43,20 @@ const { cos, sin, max, min, PI, sqrt, TAU } = math;
  * The sweep is deliberately not team-tinted. It marks where a gun *could*
  * point rather than anything belonging to the ship, and colouring it by team
  * made it read as hull.
+ *
+ * **A side differs from the others by hue alone.** Every palette here is the
+ * same three tones — a mid hull, a pale trim, a dark pivot — turned round the
+ * wheel, so the value ordering that makes a turret legible holds for every
+ * side rather than being got right once for blue and approximated afterwards.
+ * The hues are spread as far apart as four will go without colliding with
+ * something that already means a thing: a barrel goes amber when it is on
+ * target, and a beam is a bright green, so the sides take blue, red, green and
+ * magenta and leave the yellows alone.
+ *
+ * Four because that is a free-for-all of a size worth watching — an evolution
+ * match puts every entrant on its own side (DESIGN.md §7). A fifth side is
+ * drawn neutral grey rather than in a colour nobody could name, which is
+ * honest about there being more sides than the picture can tell apart.
  */
 const TEAM_COLOURS = [
   {
@@ -55,6 +69,18 @@ const TEAM_COLOURS = [
     hull: '#d65b5b',
     trim: '#f0a8a8',
     pivot: '#722c2c',
+    ready: '#e9c05f',
+  },
+  {
+    hull: '#5bd66f',
+    trim: '#a8f0b4',
+    pivot: '#2c7238',
+    ready: '#e9c05f',
+  },
+  {
+    hull: '#d65bd6',
+    trim: '#f0a8f0',
+    pivot: '#722c72',
     ready: '#e9c05f',
   },
 ];

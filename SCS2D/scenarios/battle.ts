@@ -2,6 +2,7 @@ import {
   Beams,
   BeamHits,
   Collisions,
+  Credit,
   gravityWell,
   Impacts,
   math,
@@ -92,6 +93,7 @@ export function makeBattle<Extra extends object = Record<never, never>>(
   const beamHits = new BeamHits();
   const impacts = new Impacts();
   const collisions = new Collisions();
+  const credit = new Credit();
 
   const run: Battle & Extra = {
     ...(extra as Extra),
@@ -106,6 +108,7 @@ export function makeBattle<Extra extends object = Record<never, never>>(
     beamHits,
     impacts,
     collisions,
+    credit,
     totalProjectilesFired: 0,
     totalProjectileHits: 0,
     totalBeamsFired: 0,
@@ -125,6 +128,8 @@ export function makeBattle<Extra extends object = Record<never, never>>(
       grid.rebuild(world.bodies);
       beams.clear();
       beamHits.clear();
+      // Filled again by this step's hits, for whatever is scoring the battle.
+      credit.clear();
       const fireReport = ships.fire(world, projectiles, beams, grid, beamHits);
       run.totalProjectilesFired += fireReport.projectilesFired;
       run.totalBeamsFired += fireReport.beamsFired;
@@ -137,8 +142,8 @@ export function makeBattle<Extra extends object = Record<never, never>>(
       // What the hits did. Rounds walk the modules along their path and are
       // killed or sent on their way; beams pour their power into what they are
       // burning through.
-      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits, ships);
-      impacts.beams(ships.damage, beams, beamHits, dt, world.bodies, ships);
+      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits, ships, credit);
+      impacts.beams(ships.damage, beams, beamHits, dt, world.bodies, ships, credit);
       run.totalSevered += ships.sever(world, collisions.contacts);
       run.totalCulled += ships.cull(world);
     },
