@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  blueprintProblem,
   expandBlueprint,
   expandWithOrigins,
   math,
@@ -694,6 +695,30 @@ describe('Library', () => {
 
   it('starts a new ship blank, with no module chosen for the player', () => {
     expect(emptyBlueprint('Blank').modules).toEqual([]);
+  });
+
+  it('opens a saved ship that would not fly, and names what is wrong with it', () => {
+    // Storage holds whatever was last written to it, including a layout left
+    // half-finished and one an older version of the format wrote. The editor
+    // is where such a ship is put right, so refusing to open it is the one
+    // answer that makes it unfixable.
+    const library = new Library(fakeStore());
+    const adrift: Blueprint = {
+      name: 'Adrift',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+        { kind: 'thruster', x: -20, y: 0, angle: 0, length: 3, width: 3 },
+      ],
+    };
+    library.save(adrift);
+    expect(library.load('Adrift')).toEqual(adrift);
+    expect(blueprintProblem(adrift)).toMatch(/no structure to push against/);
+  });
+
+  it('still refuses a saved ship it cannot read at all', () => {
+    const store = fakeStore();
+    store.setItem('scs2d.blueprint.Garbled', JSON.stringify({ formatVersion: 99, name: 'Garbled' }));
+    expect(() => new Library(store).load('Garbled')).toThrow(/formatVersion/);
   });
 });
 
