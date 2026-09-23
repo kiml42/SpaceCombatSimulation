@@ -165,7 +165,9 @@ inside any one file is not contiguous.
   of its box — left alone, the numbers slide the module half its own length into its neighbour, which
   refused every refit into an engine there was. **The grouping is bred as well as the
   modules.** A lineage can make a part of a module, dissolve one back into the layout, take a neighbour into
-  a part, place another instance of one — reflected as often as merely moved, since a ship is symmetric or
+  a part, grow one with a new module — on its outer edge by preference, which is the face likely to be free
+  at every instance rather than at one, and the only way a part placed twice grows at all — place another
+  instance of one — reflected as often as merely moved, since a ship is symmetric or
   it flies crabwise — drop an instance, and turn one over. Making a part and dissolving one change nothing
   about the ship at all: what they change is what the next generation can do, and there is no single
   mutation that both invents a grouping and pays off at once. Every operator has its inverse, because one
