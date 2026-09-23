@@ -509,6 +509,14 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   share one chamber and divide one exit area, so the count is never free power — what a cluster buys is
   that a narrow bell collimates in a fraction of the length a wide one needs, which is how a stubby engine
   gets a good nozzle, and a flame combed into fingers rather than thrown as one sheet.
+- **How hard the nozzle is fed is the machinery's business, so the split has a best answer in the
+  middle.** Thrust is the exit face's area times what the chamber and pumps behind it can drive through
+  the throat, and that machinery is the block the bell was cut out of: a shallow bell leaves a deep
+  chamber and more flow, a deep bell leaves an engine with nothing behind it. A throat chokes rather than
+  passing whatever is pushed at it, which is what stops a long thin engine being unbounded thrust. So the
+  two halves of the knob pull opposite ways — flow gained is aim lost — and the best engine is neither
+  all bell nor all chamber. An engine whose nozzle has fallen off throws its gas sideways however hard it
+  is pumping.
 - **An engine is bolted on like any other module.** It carries the machinery it needs, so it may be held
   on by any face, to anything, the same way a gun mount or a plate of hull is — the only rule about where
   one may go is the one every module obeys, that it is attached to the ship. An engine mounted with its

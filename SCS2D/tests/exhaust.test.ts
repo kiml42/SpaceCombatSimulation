@@ -133,10 +133,12 @@ describe('how far a plume reaches', () => {
     for (const reach of reaches) expect(reach).toBeCloseTo(reaches[0]!, 9);
   });
 
-  it('is longer out of a longer bell, which is the other half of what one buys', () => {
+  it('reaches furthest from the bell that makes the most thrust', () => {
     // Gas leaving a divergent nozzle is already flying apart, so it spreads to
-    // nothing close in. The same number says how much thrust survives and how
-    // far what survives gets.
+    // nothing close in — and what there is to throw is whatever the machinery
+    // behind it can feed. Both are in the flame's length, so it runs out at
+    // the same interior optimum the thrust does: a bare throat sprays what it
+    // has sideways, and a bell with no chamber behind it has nothing to spray.
     const reach = (nozzle: number): number => {
       const d = compileBlueprint({
         name: 'Engine',
@@ -145,8 +147,8 @@ describe('how far a plume reaches', () => {
       const t = d.thrusters[0]!;
       return nozzleReach(thrusterGeometry(d.modules[t.module!]!.spec), t.maxThrust);
     };
-    expect(reach(0.7)).toBeGreaterThan(reach(0.3) * 1.3);
-    expect(reach(0.05)).toBeLessThan(reach(0.7) * 0.4);
+    expect(reach(0.3)).toBeGreaterThan(reach(0.05) * 1.3);
+    expect(reach(0.9)).toBeLessThan(reach(0.3) * 0.4);
   });
 
   it('shortens with the throttle, so a low burn is a short flame', () => {
@@ -371,8 +373,10 @@ describe('an engine firing at somebody else', () => {
 
     const bodies = new Bodies();
     bodies.create({ x: 0, y: 0, angle: 0, mass: firing.mass, inertia: firing.inertia, radius: firing.radius });
-    // Facing the firing ship's stern, close enough to stand in the flame.
-    bodies.create({ x: -12, y: 0, angle: 0, mass: victim.mass, inertia: victim.inertia, radius: victim.radius });
+    // Facing the firing ship's stern, close enough to stand in the flame —
+    // which is a couple of metres rather than ten, an engine's flame being as
+    // long as what its machinery can feed through its bell.
+    bodies.create({ x: -9, y: 0, angle: 0, mass: victim.mass, inertia: victim.inertia, radius: victim.radius });
     const damage = new Damage();
     damage.register(0, firing);
     damage.register(1, victim);

@@ -100,6 +100,40 @@ export const NOZZLE_THROAT_FRACTION = 0.55;
 export const NOZZLE_SKIN_FRACTION = 0.35;
 
 /**
+ * Machinery depth, in the engine's own widths, that feeds the throat at
+ * `THRUST_PER_EXIT_AREA`.
+ *
+ * Measured against the engine's own width because that is what sets the
+ * throat: the chamber and pumps have to fill the hole they are behind, and a
+ * wide engine needs proportionally more machinery to do it. Which makes the
+ * whole law a question of *proportions*, so an engine scaled up bodily
+ * behaves the same.
+ *
+ * A third of a width, which is about what the engines people draw actually
+ * have behind them: a mounting wider than it is deep is the usual shape, and
+ * the reference engine has to be one somebody would draw. Set to a whole
+ * width — the depth a *rocket* has — every ship in the game is starved to a
+ * third of its thrust and stops being able to cross the distances its
+ * scenarios put it at. This is the constant to move if a fleet ought to be
+ * generally faster or slower; it decides nothing about the *shape* of the
+ * knob, which is the throat and the bell arguing.
+ */
+export const PUMP_DEPTH_WIDTHS = 0.35;
+
+/**
+ * The most a chamber may over-feed its own throat, as a multiple of what
+ * `THRUST_PER_EXIT_AREA` passes.
+ *
+ * A throat chokes: past the speed of sound in it, more pressure behind it
+ * stops buying more flow through it, so there is an end to what stacking
+ * machinery behind a hole can do. Without this, a long thin engine is
+ * unbounded thrust for the price of being long — which is the shape of
+ * exploit `§12` warns about for rate of fire, arriving instead through the
+ * engine.
+ */
+export const THROAT_CHOKE = 2;
+
+/**
  * How much of a thruster is bell when its layout does not say.
  *
  * Half and half: enough expansion to be worth having (`divergence` lands near
@@ -771,13 +805,23 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     // Thrust comes out of the nozzle, so it scales with the area of the face
     // the exhaust leaves through — the module's width by the deck height,
     // however many bells that face is divided into. A thruster therefore gets
-    // stronger by being made *wider*, and gains nothing from being made
-    // longer, which is what stops "just stretch it" being the answer to every
-    // propulsion problem.
-    const throughput = THRUST_PER_EXIT_AREA * spec.width * DECK_HEIGHT;
-    // What the bell then keeps pointed the right way. Length is bought here
-    // and nowhere else: a longer engine is not a stronger one, but a longer
-    // *bell* on the same engine is.
+    // stronger by being made *wider*, which is what stops "just stretch it"
+    // being the answer to every propulsion problem.
+    //
+    // **How hard that face is fed is the machinery's business**, and the
+    // machinery is the block the bell was cut out of. A shallow bell leaves a
+    // deep chamber with big pumps and drives more mass through the same
+    // throat; a deep bell leaves an engine with nothing behind it. Bounded by
+    // the throat itself, which chokes rather than passing whatever is pushed
+    // at it.
+    const feed = engine.machineryLength / (PUMP_DEPTH_WIDTHS * spec.width);
+    const supply = feed < THROAT_CHOKE ? feed : THROAT_CHOKE;
+    const throughput = THRUST_PER_EXIT_AREA * spec.width * DECK_HEIGHT * supply;
+    // What the bell then keeps pointed the right way. **The two pull opposite
+    // ways**, which is the whole of the knob: length taken off the bell is
+    // flow gained and aim lost, so the best engine is neither all bell nor all
+    // chamber but somewhere inside, and an engine whose nozzle has fallen off
+    // throws its gas sideways however hard it is pumping.
     thrust = throughput * engine.divergence;
     fittingMass = throughput * ENGINE_MASS_PER_NEWTON;
   } else if (spec.kind === 'turret' || spec.kind === 'beamTurret') {
