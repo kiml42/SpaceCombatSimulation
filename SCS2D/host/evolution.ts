@@ -3,7 +3,7 @@ import { Flashes } from '../render/flashes.js';
 import { draw } from '../render/canvas2d.js';
 import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
 import { frame, moveWithVisibleShips, type Camera } from '../render/camera.js';
-import { Library, toFileText } from '../editor/library.js';
+import { BUILT_IN, Library, toFileText } from '../editor/library.js';
 import { previewSnapshot } from '../editor/preview.js';
 import { compileBlueprint } from '../sim/index.js';
 import { fitness } from '../evolution/generation.js';
@@ -239,10 +239,15 @@ export function startEvolution(): void {
   goalInput.checked = held['goal'] === undefined ? true : held['goal'] !== '';
 
   const wanted = new Set((held['founders'] ?? 'Corvette').split('\n'));
+  // A ship is chosen here by name, and a name opens one layout: the player's
+  // copy where there is one. The editor lists a shadowed shipped ship beside
+  // it because that is a ship to open; a founder picked by name is not.
+  const stockNames = new Set(BUILT_IN.map((blueprint) => blueprint.name));
   for (const entry of library.list()) {
+    if (entry.stock && entry.saved) continue;
     const option = document.createElement('option');
     option.value = entry.name;
-    option.textContent = entry.saved && !entry.builtIn ? `${entry.name} (saved)` : entry.name;
+    option.textContent = stockNames.has(entry.name) ? entry.name : `${entry.name} (saved)`;
     option.selected = wanted.has(entry.name);
     foundersSelect.append(option);
   }
@@ -256,6 +261,7 @@ export function startEvolution(): void {
   ownOption.textContent = 'its own final design';
   benchmarkSelect.append(ownOption);
   for (const entry of library.list()) {
+    if (entry.stock && entry.saved) continue;
     const option = document.createElement('option');
     option.value = entry.name;
     option.textContent = entry.name;
