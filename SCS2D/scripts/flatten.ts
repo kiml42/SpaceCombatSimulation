@@ -2,6 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expandBlueprint, serialiseBlueprint, parseBlueprint } from '../sim/index.js';
+import { MODULE_KINDS } from '../sim/index.js';
 import type { Blueprint, ModuleSpec } from '../sim/index.js';
 import { BLUEPRINTS, type BlueprintName } from '../scenarios/blueprints.js';
 
@@ -25,7 +26,7 @@ const ORDERS = {
   /** All the structure, then all the thrusters, then the guns. Stable, so the
    * only change is which kinds come first. */
   kind: (modules: readonly ModuleSpec[]): readonly ModuleSpec[] => {
-    const rank = ['structure', 'core', 'thruster', 'turret', 'beamTurret', 'hullGun', 'hullBeam'];
+    const rank = MODULE_KINDS;
     return [...modules].sort((a, b) => rank.indexOf(a.kind) - rank.indexOf(b.kind));
   },
 } as const;

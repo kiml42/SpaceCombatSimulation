@@ -8,7 +8,7 @@ import {
   type Blueprint,
   type Placement,
 } from './blueprint.js';
-import type { ModuleKind, ModuleSpec } from './modules.js';
+import { MODULE_KINDS, type ModuleKind, type ModuleSpec } from './modules.js';
 import {
   doctrineProblem,
   serialiseDoctrine,
@@ -51,15 +51,7 @@ import {
  */
 export const BLUEPRINT_FORMAT_VERSION = 1;
 
-const KINDS: readonly ModuleKind[] = [
-  'structure',
-  'core',
-  'thruster',
-  'turret',
-  'beamTurret',
-  'hullGun',
-  'hullBeam',
-];
+
 
 /** Keys a module may carry. Anything else is a typo — see `unknownKeys`. */
 const MODULE_KEYS: readonly string[] = [
@@ -150,8 +142,8 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
   const extra = unknownKeys(value, MODULE_KEYS);
   if (extra.length > 0) return `${where} has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
 
-  if (typeof value['kind'] !== 'string' || !KINDS.includes(value['kind'] as ModuleKind)) {
-    return `${where}: kind must be one of ${KINDS.join(', ')}, got ${JSON.stringify(value['kind'])}`;
+  if (typeof value['kind'] !== 'string' || !MODULE_KINDS.includes(value['kind'] as ModuleKind)) {
+    return `${where}: kind must be one of ${MODULE_KINDS.join(', ')}, got ${JSON.stringify(value['kind'])}`;
   }
 
   return (

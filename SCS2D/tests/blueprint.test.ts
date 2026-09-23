@@ -567,8 +567,20 @@ const FLEET: readonly BlueprintName[] = [
  */
 const SHOWCASE: readonly BlueprintName[] = ['xWing', 'ghost', 'tie', 'starDestroyer'];
 
+/**
+ * Seeds: layouts that are somewhere for evolution to start rather than ships.
+ *
+ * A seed cannot fly, cannot shoot and is not supposed to — everything it ever
+ * has is something selection paid for — so the checks below are inverted for
+ * it and it is asserted to be *inert* rather than excused from being a ship.
+ * A seed that quietly grew an engine is a seed that has been told which way a
+ * ship is meant to go, and that is worth a failing test.
+ */
+const SEEDS: readonly BlueprintName[] = ['bareCore'];
+
 /** Ships in the fleet, by identity, for the per-blueprint checks below. */
 const inFleet = (name: string): boolean => (FLEET as readonly string[]).includes(name);
+const isSeed = (name: string): boolean => (SEEDS as readonly string[]).includes(name);
 
 describe('the authored blueprints', () => {
   for (const [name, blueprint] of Object.entries(BLUEPRINTS)) {
@@ -577,7 +589,20 @@ describe('the authored blueprints', () => {
         expect(blueprintProblem(blueprint)).toBeNull();
       });
 
-      it('compiles to a ship that can fly and shoot', () => {
+      const canFly = !isSeed(name);
+
+      it.skipIf(canFly)('compiles to something inert: a core, and nothing else', () => {
+        const design = compileBlueprint(blueprint);
+        expect(design.mass).toBeGreaterThan(0);
+        expect(design.inertia).toBeGreaterThan(0);
+        expect(design.radius).toBeGreaterThan(0);
+        expect(design.cores.length).toBeGreaterThan(0);
+        expect(design.turrets.length).toBe(0);
+        expect(design.thrusterLayout.maxTorque(1)).toBe(0);
+        expect(design.thrusterLayout.maxTorque(-1)).toBe(0);
+      });
+
+      it.skipIf(!canFly)('compiles to a ship that can fly and shoot', () => {
         const design = compileBlueprint(blueprint);
 
         expect(design.mass).toBeGreaterThan(0);
@@ -640,7 +665,7 @@ describe('the authored blueprints', () => {
       it(
         deliberatelyAsymmetric
           ? 'is asymmetric about its own axis, as a wreck should be'
-          : inFleet(name)
+          : inFleet(name) || isSeed(name)
             ? 'is symmetric about its own axis'
             : 'is balanced closely enough to fly straight',
         () => {
@@ -655,7 +680,7 @@ describe('the authored blueprints', () => {
           const design = compileBlueprint(blueprint);
           if (deliberatelyAsymmetric) {
             expect(Math.abs(design.centreOfMassY)).toBeGreaterThan(0.01);
-          } else if (inFleet(name)) {
+          } else if (inFleet(name) || isSeed(name)) {
             expect(design.centreOfMassY).toBeCloseTo(0, 12);
           } else {
             // A showpiece only has to be near enough that offset thrust can
@@ -669,13 +694,13 @@ describe('the authored blueprints', () => {
     });
   }
 
-  it('sorts every ship into the fleet or the showcase, and no ship into both', () => {
+  it('sorts every layout into the fleet, the showcase or the seeds, and none into two', () => {
     // A new blueprint is classified on purpose or the suite complains. The
     // failure mode this exists for is silent: a ship added to the library and
     // to no list would be held to nothing at all, and a ship flown by a
     // golden but left out of the fleet would have its handling unchecked
     // while a checksum quietly depended on it.
-    const sorted = [...FLEET, ...SHOWCASE].sort();
+    const sorted = [...FLEET, ...SHOWCASE, ...SEEDS].sort();
     expect(sorted).toEqual(Object.keys(BLUEPRINTS).sort());
     expect(new Set(sorted).size).toBe(sorted.length);
   });

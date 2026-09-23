@@ -390,6 +390,28 @@ export type ModuleKind =
   | 'hullBeam';
 
 /**
+ * Every archetype there is, in one order.
+ *
+ * A list rather than a set of literals repeated wherever one is needed: the
+ * file format, a run's mutation weights, the weighted draw itself and the
+ * flattener each want to walk the kinds, and four copies of the same list is
+ * four places to forget when an archetype is added — which is a bug that
+ * shows up as a valid ship being refused, or as a kind nothing ever builds.
+ *
+ * The order is load-bearing in two of them, so it is fixed here rather than
+ * per caller: the draw walks it, and the flattener sorts by it.
+ */
+export const MODULE_KINDS: readonly ModuleKind[] = [
+  'structure',
+  'core',
+  'thruster',
+  'turret',
+  'beamTurret',
+  'hullGun',
+  'hullBeam',
+];
+
+/**
  * One module in a layout: what it is, where it sits, and how big it is.
  *
  * Positions are in the blueprint's own frame with an arbitrary origin;

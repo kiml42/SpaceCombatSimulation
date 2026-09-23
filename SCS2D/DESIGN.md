@@ -62,8 +62,8 @@ inside any one file is not contiguous.
   to the first one through what it touches — and each module a problem names is drawn
   in red on the ship, so the list says what is wrong and the picture says where. Undo and
   redo run throughout. Ships are opened from the built-in library or from browser
-  storage, saved back to it, and exported and imported as blueprint files. Both pages
-  build to one self-contained HTML file each.
+  storage, saved back to it, and exported and imported as blueprint files. Each page
+  builds to one self-contained HTML file.
   A shot's path through a ship is resolved to the modules it crosses, in order,
   with the face each is entered by — the geometry both halves of the damage
   model are built on, and the first thing the bounding circles the broad phase
@@ -161,7 +161,115 @@ inside any one file is not contiguous.
   flush. A module written inside an assembly is written once however many copies are placed, so mutating it
   changes every copy and a wing that grows a gun grows it on both wings. Whether a generation is structural
   is settled before the retrying starts rather than inside it, which is what stops the rare, hard edit being
-  crowded out by the common, easy one; and a child is written back to a file the editor opens.
+  crowded out by the common, easy one; and a child is written back to a file the editor opens. **What it reaches for is
+  weighted by kind, and the weights are a run's to set.** They are not equal things at the half-metre a
+  guess arrives in: thrust follows the nozzle's area, so six small engines are six small engines' worth of
+  push and, spread about the hull, torque as well — where six small guns are six peashooters that one grown
+  mount beats outright, and six small plates are ballast. Guns and hulls want *size*, which the operator
+  reaches by growing one module over many generations rather than by adding more, so engines are what it
+  tries most often. The same weights govern a module *refitted* into another kind, which is the only route
+  to a large module of a new kind; a run that asked for engines and went on turning its engines into gun
+  mounts half the time would be answering a question nobody asked. A refit keeps the space rather than the
+  coordinates, because a thruster's position is where it is attached and every other kind's is the middle
+  of its box — left alone, the numbers slide the module half its own length into its neighbour, which
+  refused every refit into an engine there was. A doctrine number
+  is perturbed by a fraction of its *default* rather than of what is held, so nothing that has reached zero
+  is stuck there — and where the default is zero too, by a fraction of what a number is worth in that half
+  of the doctrine, since otherwise every draw is a fraction of nothing and the field is not slow to find but
+  unreachable. **A run can start from nothing**: the Bare Core is a single control compartment that cannot
+  move, shoot or turn, so everything a lineage from it ever has is something selection paid for — where a
+  seed with an engine on it has already been told which way a ship is meant to go.
+  **A match is fought and scored.** A handful of designs are put in an arena together — every entrant its
+  own side, evenly round a ring, on a heading it did not choose — and the battle is run until one of them is left or
+  the clock runs out. Three things are scored in the one match rather than in separate kinds of match,
+  because the trade between them is the interesting part: surviving, damage done, and and **ground gained** on a point
+  worth reaching — that last measured from where a craft started rather than against the goal outright, so
+  standing still is nothing, closing is positive and drifting away is negative. It falls away with distance
+  for ever rather than stopping at a range, since a flat region is one selection cannot see across and a
+  hull whose engine is too feeble to cross it would score exactly what a hull with no engine scores. Each is scaled to run from nothing to one before it is weighted — a
+  whole match survived, the whole of the opposition destroyed, a match spent sitting on the goal — so a
+  weight says what an outcome is worth rather than what a joule is worth. **What keeps a ship in the match
+  is a working core and nothing else**: not whether it still has a gun or an engine, since those are meant
+  to pay for themselves by doing something, and a score that pays for merely carrying them makes the
+  cheapest possible improvement to any design a weapon it never fires. Survival is weighted by what is left
+  of the core rather than counted while it holds out, so a hull being shot to pieces scores less every step
+  it takes it, and armour and layout are worth something before the moment they save a ship outright. Damage is credited to whoever
+  fired, which is the one thing a fitness function cannot get from what a hull has taken, and it is capped
+  per victim, since a gun must not be paid for firing into something it has already killed. What is left of
+  a match that ends early is credited to whoever is still standing: without it, winning outright scores less
+  than failing to land a shot for the full two minutes. A four-ship match runs in a quarter of a second,
+  about three hundred times faster than the battle it simulates.
+  **The objective is an object, and a ship goes to it because its doctrine says to.** The goal is a marker
+  hull on a side nobody is on and nobody is against: never shot at, and protected, because an objective that
+  can be destroyed stops being one and a doctrine that has learnt to ignore a wreck would learn to ignore
+  this. It is a hull rather than a coordinate so that it is solid — sheltered behind, run into, and shoved
+  out of somebody's way — and so that a ship can be *told* to go to it, every order in this game being
+  relative to an object. What takes a ship there without being told is **escorting**: a weight saying how
+  much a craft would rather be with something it will never shoot at than at the best fight it can find, so
+  covering a consort is one preference argued against the rest rather than a mode the ship is put into.
+  A craft escorting stations on its charge and fights on with whatever its mounts can reach, since where the
+  hull goes and what the guns do are different questions, and it holds a band of its own rather than the
+  gunnery standoff — where you sit to *shoot* at something being the wrong answer by an order of magnitude
+  for something you are covering.
+  **Where a craft goes is several wants added up.** Holding the station it has been given, staying with what
+  it is covering, and keeping out of everybody's way are not alternatives to choose between: each is a
+  velocity it would like to have and how much it would like it, and the pilot flies their weighted average.
+  One want is exactly that want, so a craft with nothing to avoid and nobody to cover flies its orders as it
+  always did. Weighing them as *target scores* instead cannot work, and the reason is worth keeping: a
+  target's score is a ranking rather than a measure of desire — a craft flies at the nearest enemy whether
+  or not its score says it is worth anything, and at four kilometres that score is far below zero, so any
+  positive pull at all wins and a fleet locks in place. Measured, every escort weight from 2 to 200 then
+  produced the identical battle. Added as velocities, in a currency they all share, a craft does both at
+  once: asking for a formation half as tight costs three per cent in closing on the enemy, and the knob
+  means something all the way along instead of having a cliff in it.
+  **A range band is measured from a hull, not from the middle of one.** A gun's reach is how far it can
+  throw a round past its own muzzle and what it is shooting at is the hull, which is the same thing on ships
+  of a size and nothing like it when a fighter attacks a capital: left centre to centre, a TIE's doctrine
+  sent it to 460 metres from the middle of a Star Destroyer whose own radius is 1,073, so the station it was
+  holding was a third of the way inside the ship and it flew into it.
+  **Craft keep out of each other's way by where they will be**, not by where they are: how long until a pair
+  is at its closest and how much room that will leave, since a bubble cannot tell a consort holding station
+  a hull's width away from something crossing at two hundred metres a second. It is never applied to the
+  thing a craft is flying at — where it wants to be relative to *that* is already decided, and a second
+  opinion would have a ship told to ram sheer off at the last moment and call it seamanship. It costs a
+  quarter of the contacts in the Star Wars scene and a third of those between a fighter and a capital, half
+  in the swarm and two thirds in the column; what it does not do is stop fighters flying through each other,
+  whose bubbles are as small as they are.
+  **Generations are bred and run.** A population is seeded from the ships a run is started with and mutants
+  of them; matches are drawn until every design has had its hearing — fewest meetings with whoever is
+  already in the match, then fewest matches played, then the draw, since a design that has only ever met one
+  opponent has been measured against that opponent rather than against its generation; and what breeds is
+  drawn by score against a uniform number rather than taken off the top, so a design that drew a hard group
+  is not thrown away on the strength of one battle and the worst is never impossible. The winners carry over
+  unchanged as well as breeding, so a design that won on a lucky draw has to win again. `npm run evolve`
+  fights a run headlessly and writes it down: every generation, every design in it with the blueprint it
+  flew, and every match with the seed it was fought under — which is all it takes to watch any one of them
+  again, and a test fights every match of a run a second time to prove it. Three hundred matches take twenty
+  seconds.
+  **A run is measured against something that does not evolve.** Fitness is scored against the rest of the
+  generation, so a rising mean says the population beat itself and a flat one says nothing — a fleet getting
+  uniformly worse looks exactly like one getting uniformly better. Every design of every generation is
+  fought one against one against a fixed opponent, under seeds paired by slot so that two generations differ
+  by their designs and by nothing else. It is measured *afterwards and never during*: it must not reach
+  selection, or a run learns to beat that one ship (§7), and a record already holds every design it ever
+  bred, so the measurement can be taken again with a different opponent whenever the question changes. A run
+  measured against the ship it started from says how far it has come; the same run measured against **its
+  own final design** says how bad things used to be, which is the only yardstick available to a run that
+  started from nothing.
+  **A run is set going and watched on a page.** What a run is scored on, how big it is and how long a match
+  lasts are settings on a form rather than flags on a command; it is fought in slices a few milliseconds
+  long between frames, so the page goes on answering while it runs, and what is drawn is the match the run
+  is fighting rather than a re-enactment of it. The three sources of score are plotted apart as well as
+  together, because they move at different times — a population learning to fly reaches the goal long
+  before it learns to shoot, and a total hides that behind one rising line. Any match of any generation is
+  fought again from its seed at whatever speed suits, which is the same match that was scored rather than a
+  second one assembled to look like it, and the best design of a run goes to the editor's library to be
+  looked at and taken apart. **Settings are a file.** A run is decided entirely by its seed and its
+  configuration, so those few numbers are the whole record of what was tried: they are written out and read
+  back as JSON, by the page and by `npm run evolve` alike, so an experiment can be kept beside its result,
+  sent to somebody, or designed on the page and then fought overnight headlessly. Every field is optional
+  and anything left out is the default, angles are degrees as they are in a blueprint file, and no budget is
+  `null` because JSON has no infinity.
   **A weapon can be let into a hull rather than sat on top of it.** A hull gun and a hull beam are a
   block with a barrel or a lens out of the front, welded on by the block alone, training about the
   root of the barrel through whatever angle the opening leaves them — which is single figures for a
@@ -179,7 +287,9 @@ inside any one file is not contiguous.
   acceleration and a fighter 19%. That is the law being right about hulls drawn before it existed — the
   answer for them is a cluster of small bells, which is a change to the ships rather than to the law.
 - **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
-  hemisphere, looking-at and ship-type pickers. After it comes headless evolution and analysis. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
+  hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
+  of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio
+  belongs chief among them. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
   things left in it, neither blocking: unlinking one copy of a shared part while the
   others stay linked, and the word the editor owes the player when an action reorders
   a layout. Restructuring a group — dissolving one, or nesting one inside another —

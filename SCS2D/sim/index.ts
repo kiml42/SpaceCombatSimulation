@@ -56,6 +56,7 @@ export {
   beamGunStats,
   moduleCentre,
   moduleProblem,
+  MODULE_KINDS,
   moduleStats,
   hullBeamStats,
   hullGunStats,
@@ -106,6 +107,7 @@ export {
 } from './doctrine.js';
 export {
   Choice,
+  cohesionUrge,
   look,
   score,
   type Candidate,
@@ -174,6 +176,7 @@ export {
 } from './turrets.js';
 export {
   Ships,
+  NEUTRAL_TEAM,
   NO_TARGET,
   type Order,
   type ShipSpec,
@@ -189,6 +192,7 @@ export {
   type Strike,
 } from './ballistics.js';
 export {
+  Credit,
   DAMAGE_ENERGY_PER_KG,
   DAMAGE_RESPONSES,
   Damage,

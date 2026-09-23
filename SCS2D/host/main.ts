@@ -13,6 +13,7 @@ import { column } from '../scenarios/column.js';
 import { split } from '../scenarios/split.js';
 import { draw } from '../render/canvas2d.js';
 import { frame, gridStep, moveWithVisibleShips, type Camera } from '../render/camera.js';
+import { el } from './dom.js';
 
 /**
  * The browser host: owns the clock, the canvas and the controls, and nothing else.
@@ -28,12 +29,6 @@ import { frame, gridStep, moveWithVisibleShips, type Camera } from '../render/ca
 const MAX_STEPS_PER_FRAME = 16;
 
 const SEED = 20260905;
-
-function el<T extends HTMLElement>(id: string): T {
-  const found = document.getElementById(id);
-  if (found === null) throw new Error(`missing element #${id}`);
-  return found as T;
-}
 
 export function start(): void {
   const canvas = el<HTMLCanvasElement>('view');
