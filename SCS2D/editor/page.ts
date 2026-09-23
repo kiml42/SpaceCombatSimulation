@@ -960,10 +960,21 @@ export function startEditor(): void {
     library.save(doc.blueprint);
     refresh();
   });
+  // Deleting clears the editor rather than leaving the ship on the screen: a
+  // layout that is still there, still named, and no longer anywhere is the one
+  // state where what is drawn and what the library holds disagree.
+  //
+  // It goes on the undo stack, so the way back is the way back from any other
+  // edit — undo brings the ship up again and Save puts it in the library. The
+  // stack rather than an undelete of its own, because the ship is the thing
+  // being restored and saving is the act that keeps it.
   deleteShipButton.addEventListener('click', () => {
     const name = doc.blueprint.name;
     if (!window.confirm(`Delete the saved copy of ${name}?`)) return;
     library.remove(name);
+    doc.apply(emptyBlueprint(unusedName('New ship', taken())));
+    gesture = false;
+    fitPending = true;
     refresh();
   });
   exportButton.addEventListener('click', () => {

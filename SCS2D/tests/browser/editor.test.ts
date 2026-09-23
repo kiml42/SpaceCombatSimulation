@@ -583,6 +583,33 @@ describe('the editor in a browser', () => {
     expect(await page.textContent('#ship')).not.toMatch(/\(stock\)/);
   });
 
+  it('clears the editor when a ship is deleted, and gives it back on undo', async () => {
+    await page.selectOption('#ship', 'Corvette');
+    await page.click('#duplicateShip');
+    await page.click('#saveShip');
+    const name = await page.inputValue('#shipName');
+    const ship = (await page.textContent('#stats')) ?? '';
+
+    page.once('dialog', (dialog) => void dialog.accept());
+    await page.click('#deleteShip');
+    // Blank, and gone from the library: what is drawn and what the library
+    // holds never disagree.
+    expect(await page.inputValue('#shipName')).toMatch(/^New ship/);
+    expect(await page.textContent('#ship')).not.toMatch(new RegExp(`${name}`));
+
+    // The way back is the way back from any other edit, and the ship can be
+    // saved again from there.
+    await page.click('#undo');
+    expect(await page.inputValue('#shipName')).toBe(name);
+    expect(await page.textContent('#stats')).toBe(ship);
+    await page.click('#saveShip');
+    expect(await page.textContent('#ship')).toMatch(new RegExp(`${name}`));
+
+    page.once('dialog', (dialog) => void dialog.accept());
+    await page.click('#deleteShip');
+    await page.reload();
+  });
+
   it('adds a module, and says what is now wrong with the layout', async () => {
     await page.selectOption('#ship', 'Corvette');
     await page.click('[data-add="turret"]');
