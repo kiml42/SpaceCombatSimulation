@@ -117,6 +117,33 @@ const MAX_PASSES = 64;
  */
 const OPPOSED_TOLERANCE = 1e-3;
 
+/**
+ * How far off the centre of mass a thrust line must pass before the pilot will
+ * ask that engine for torque, as a fraction of the layout's own reach.
+ *
+ * **A lever arm is torque bought per newton of unwanted force.** An engine
+ * whose line passes almost through the centre of mass is a dreadful way to
+ * turn: it delivers a sliver of torque and a whole engine's worth of thrust
+ * the rest of the layout then has to cancel. Worth nothing in fuel, and worth
+ * less than nothing once a plume is burning whatever stands behind it.
+ *
+ * The scale is the layout's own reach — the furthest any of its thrusters
+ * sits from the centre of mass — because what counts as a useful arm is a
+ * question about the size of the ship and nothing else. Measured on the ships
+ * as drawn, every deliberate arm is at least 11% of reach and the largest
+ * accidental one is 0.05%, so anything between leaves both sets alone; a
+ * hundredth sits in the middle of that gap and is a figure a person can say.
+ * On every hull but the Star Destroyer it also comes out below the half-metre
+ * grid the editor snaps to, so it cannot discard an arm a designer drew — or
+ * one the search found, which moves on the same grid.
+ *
+ * It bounds only what is *asked for*. What an engine does when it fires is
+ * untouched: the torque is real, the ship feels it, the allocator still
+ * accounts for it and trims it with the engines that turn the ship properly,
+ * and the envelope the editor draws is the same envelope as before.
+ */
+const USEFUL_ARM_FRACTION = 0.01;
+
 
 export class ThrusterLayout {
   readonly count: number;
@@ -169,6 +196,13 @@ export class ThrusterLayout {
   /** Column magnitudes, in the preconditioned units the pairing is judged in. */
   private readonly size: Float64Array;
 
+  /**
+   * Whether each thruster's lever arm is long enough to be worth turning the
+   * ship with — see `USEFUL_ARM_FRACTION`. Read only by `maxTorque`, which is
+   * the ceiling the pilot holds its demand under.
+   */
+  private readonly worthTurning: Uint8Array;
+
   constructor(specs: readonly ThrusterSpec[]) {
     const n = specs.length;
     this.count = n;
@@ -185,6 +219,7 @@ export class ThrusterLayout {
     this.freeIdx = new Int32Array(n);
     this.opposite = new Int32Array(n).fill(-1);
     this.size = new Float64Array(n);
+    this.worthTurning = new Uint8Array(n);
 
     for (let i = 0; i < n; i++) {
       const s = specs[i]!;
@@ -244,6 +279,20 @@ export class ThrusterLayout {
         }
       }
       this.opposite[i] = best;
+    }
+
+    // Which thrusters are worth asking for torque. Taken from the geometry
+    // alone, so damage — which only ever takes thrust off a mount, never moves
+    // one — cannot change the answer mid-battle.
+    let reach = 0;
+    for (let i = 0; i < n; i++) {
+      const r = sqrt(this.px[i]! * this.px[i]! + this.py[i]! * this.py[i]!);
+      if (r > reach) reach = r;
+    }
+    const useful = USEFUL_ARM_FRACTION * reach;
+    for (let i = 0; i < n; i++) {
+      const arm = this.px[i]! * this.dirY[i]! - this.py[i]! * this.dirX[i]!;
+      this.worthTurning[i] = (arm < 0 ? -arm : arm) >= useful ? 1 : 0;
     }
 
     this.buildInverse(this.inv, -1);
@@ -634,9 +683,27 @@ export class ThrusterLayout {
     return this.support(dirX / len, dirY / len, 0);
   }
 
-  /** Greatest torque available in the given sense (+1 or −1), ignoring force. */
+  /**
+   * Greatest torque worth asking this layout for in the given sense (+1 or
+   * −1), ignoring force.
+   *
+   * Counts only the thrusters whose lever arms make them worth turning a ship
+   * with (`USEFUL_ARM_FRACTION`). It is a ceiling on the *demand* rather than a
+   * statement about what the hull can physically be made to do: an engine
+   * almost in line with the centre of mass still makes its sliver of torque
+   * when it fires, and the allocator still sees it and trims it. What this
+   * stops is a pilot asking for that sliver and the layout spending an engine
+   * to produce it.
+   */
   maxTorque(sense: number): number {
-    return this.support(0, 0, sense >= 0 ? 1 : -1);
+    const dir = sense >= 0 ? 1 : -1;
+    let total = 0;
+    for (let i = 0; i < this.count; i++) {
+      if (this.worthTurning[i] === 0) continue;
+      const projection = this.wt[i]! * dir;
+      if (projection > 0) total += projection;
+    }
+    return total;
   }
 
   /**
