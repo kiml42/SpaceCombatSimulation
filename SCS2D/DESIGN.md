@@ -262,8 +262,12 @@ inside any one file is not contiguous.
   together, because they move at different times — a population learning to fly reaches the goal long
   before it learns to shoot, and a total hides that behind one rising line. Any match of any generation is
   fought again from its seed at whatever speed suits, which is the same match that was scored rather than a
-  second one assembled to look like it, and the best design of a run goes to the editor's library to be
-  looked at and taken apart. **Settings are a file.** A run is decided entirely by its seed and its
+  second one assembled to look like it, and the design a run arrived at goes to the editor's library to be
+  looked at and taken apart. **What the page will not do is name a best design across generations**, because
+  no such number exists: a fitness is a score against that generation's opponents, so a population that
+  learns to fly before it learns to shoot peaks while nothing can shoot back and reads as declining while it
+  improves. The yardstick is offered instead, fought on the page in the same slices as the run and drawn as
+  its own line over the ones that only mean something within a generation. **Settings are a file.** A run is decided entirely by its seed and its
   configuration, so those few numbers are the whole record of what was tried: they are written out and read
   back as JSON, by the page and by `npm run evolve` alike, so an experiment can be kept beside its result,
   sent to somebody, or designed on the page and then fought overnight headlessly. Every field is optional
