@@ -42,7 +42,14 @@ import {
   unlinkPlacement,
   updatePlacement,
 } from './edit.js';
-import { emptyBlueprint, Library, toFileText } from './library.js';
+import {
+  emptyBlueprint,
+  Library,
+  nextName,
+  toFileText,
+  unusedName,
+  type LibraryEntry,
+} from './library.js';
 import { Demonstration } from './demonstrate.js';
 import { drawOverlay } from './overlay.js';
 import { facingTo, handleAt, handlesFor, sizedTo, type Handle } from './handles.js';
@@ -545,15 +552,32 @@ export function startEditor(): void {
     moduleStats.innerHTML = `<table>${rows}${gun}</table>`;
   };
 
+  /**
+   * What opening one entry asks for.
+   *
+   * A shipped ship shadowed by a saved copy needs a value of its own, since
+   * the two entries share a name and are different layouts. A saved ship
+   * called `stock:Corvette` would collide with the prefix, which is a name
+   * nobody has and would open the wrong ship rather than break the page.
+   */
+  const STOCK = 'stock:';
+  const optionValue = (entry: LibraryEntry): string =>
+    entry.stock && entry.saved ? STOCK + entry.name : entry.name;
+
   const renderLibrary = (): void => {
     const entries = library.list();
     const selected = doc.blueprint.name;
+    // Opening a name gives the saved copy where there is one, so a shadowed
+    // shipped ship is listed but never the entry shown as selected.
     shipList.innerHTML = entries
-      .map(
-        (entry) =>
-          `<option value="${escapeHtml(entry.name)}"${entry.name === selected ? ' selected' : ''}>` +
-          `${escapeHtml(entry.name)}${entry.saved ? ' •' : ''}</option>`,
-      )
+      .map((entry) => {
+        const chosen = entry.name === selected && !(entry.stock && entry.saved);
+        const label = entry.stock ? (entry.saved ? ' (stock)' : '') : ' •';
+        return (
+          `<option value="${escapeHtml(optionValue(entry))}"${chosen ? ' selected' : ''}>` +
+          `${escapeHtml(entry.name)}${label}</option>`
+        );
+      })
       .join('');
     if (!entries.some((entry) => entry.name === selected)) {
       shipList.insertAdjacentHTML(
@@ -903,8 +927,10 @@ export function startEditor(): void {
 
   // ---- the library --------------------------------------------------------
 
-  const open = (name: string): void => {
-    const blueprint = library.load(name);
+  const open = (value: string): void => {
+    const stock = value.startsWith(STOCK);
+    const name = stock ? value.slice(STOCK.length) : value;
+    const blueprint = stock ? library.loadStock(name) : library.load(name);
     if (blueprint === null) return;
     doc.replace(blueprint);
     demonstration.reset();
@@ -914,9 +940,19 @@ export function startEditor(): void {
   };
 
   shipList.addEventListener('change', () => open(shipList.value));
+  const taken = (): string[] => library.list().map((entry) => entry.name);
   el<HTMLButtonElement>('newShip').addEventListener('click', () => {
-    doc.replace(emptyBlueprint(unusedName(library.list().map((e) => e.name))));
+    doc.replace(emptyBlueprint(unusedName('New ship', taken())));
     fitPending = true;
+    gesture = false;
+    refresh();
+  });
+  // The copy is left unsaved, as a new ship is: what is on the screen is the
+  // player's to keep or abandon until they say otherwise. This is how a
+  // shipped hull becomes the start of a ship of their own without the save
+  // shadowing the hull they started from.
+  el<HTMLButtonElement>('duplicateShip').addEventListener('click', () => {
+    doc.replace({ ...doc.blueprint, name: unusedName(nextName(doc.blueprint.name), taken()) });
     gesture = false;
     refresh();
   });
@@ -1210,14 +1246,6 @@ export function startEditor(): void {
 }
 
 /** A name not already in the library, so a new ship does not shadow a saved one. */
-function unusedName(taken: readonly string[]): string {
-  if (!taken.includes('New ship')) return 'New ship';
-  for (let i = 2; ; i++) {
-    const name = `New ship ${i}`;
-    if (!taken.includes(name)) return name;
-  }
-}
-
 function isModuleSpec(placement: Placement): boolean {
   return !('use' in placement);
 }

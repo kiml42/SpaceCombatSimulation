@@ -45,7 +45,14 @@ import {
   toPlacementFrame,
   updatePlacement,
 } from '../editor/edit.js';
-import { emptyBlueprint, Library, toFileText, type KeyValueStore } from '../editor/library.js';
+import {
+  emptyBlueprint,
+  Library,
+  nextName,
+  toFileText,
+  unusedName,
+  type KeyValueStore,
+} from '../editor/library.js';
 import { Demonstration, ROUND_LIFETIME } from '../editor/demonstrate.js';
 import { MAX_BEAM_LENGTH } from '../sim/beams.js';
 import { GunType } from '../sim/modules.js';
@@ -681,10 +688,32 @@ describe('Library', () => {
     const library = new Library(fakeStore());
     const edited = { ...CORVETTE, notes: 'mine now' };
     library.save(edited);
-    expect(library.list().filter((e) => e.name === CORVETTE.name)).toHaveLength(1);
     expect(library.load(CORVETTE.name)).toEqual(edited);
     library.remove(CORVETTE.name);
     expect(library.load(CORVETTE.name)).toEqual(CORVETTE);
+  });
+
+  it('lists a shadowed ship twice, so the shipped one stays openable', () => {
+    // The whole point of shadowing rather than replacing: a ship saved over a
+    // shipped name must not make the shipped hull unreachable, since that is
+    // what a new ship is most often started from — and reaching it by
+    // deleting the saved copy is no way to offer it.
+    const library = new Library(fakeStore());
+    library.save({ ...CORVETTE, notes: 'mine now' });
+    const both = library.list().filter((e) => e.name === CORVETTE.name);
+    expect(both.map((e) => e.stock)).toEqual([false, true]);
+    expect(library.loadStock(CORVETTE.name)).toEqual(CORVETTE);
+    expect(library.load(CORVETTE.name)).not.toEqual(CORVETTE);
+  });
+
+  it('lists a ship once while nothing shadows it', () => {
+    const library = new Library(fakeStore());
+    expect(library.list().filter((e) => e.name === CORVETTE.name)).toHaveLength(1);
+    library.save({ ...CORVETTE, name: 'Mine' });
+    expect(library.list().filter((e) => e.name === 'Mine')).toEqual([
+      { name: 'Mine', stock: false, saved: true },
+    ]);
+    expect(library.loadStock('Mine')).toBeNull();
   });
 
   it('exports text a parser reads back unchanged', () => {
@@ -694,6 +723,27 @@ describe('Library', () => {
 
   it('starts a new ship blank, with no module chosen for the player', () => {
     expect(emptyBlueprint('Blank').modules).toEqual([]);
+  });
+});
+
+describe('naming a duplicate', () => {
+  it('counts rather than stacking suffixes', () => {
+    expect(nextName('Corvette')).toBe('Corvette 2');
+    expect(nextName('Corvette 2')).toBe('Corvette 3');
+    expect(nextName('Corvette 9')).toBe('Corvette 10');
+  });
+
+  it('puts up whatever number is on the end, however it is written', () => {
+    expect(nextName('Mk2')).toBe('Mk3');
+    expect(nextName('Gunship-7')).toBe('Gunship-8');
+    // A number in the middle is not the one on the end.
+    expect(nextName('Type 2 escort')).toBe('Type 2 escort 2');
+  });
+
+  it('skips a name already in use rather than overwriting it', () => {
+    expect(unusedName('New ship', [])).toBe('New ship');
+    expect(unusedName('New ship', ['New ship'])).toBe('New ship 2');
+    expect(unusedName('Corvette 2', ['Corvette 2', 'Corvette 3'])).toBe('Corvette 4');
   });
 });
 

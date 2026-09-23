@@ -482,10 +482,15 @@ describe('the editor in a browser', () => {
     await page.keyboard.press('f');
     const centre = await canvasCentre(page);
 
+    // Alt to escape the grid: a measuring drag that snapped would put the
+    // error in the scale into every drag worked out from it, and how far out
+    // that lands depends on the canvas size.
+    await page.keyboard.down('Alt');
     await page.mouse.move(centre.x, centre.y);
     await page.mouse.down();
     await page.mouse.move(centre.x + 200, centre.y, { steps: 6 });
     await page.mouse.up();
+    await page.keyboard.up('Alt');
     const scale = 200 / Number(await page.inputValue('#propX'));
     await page.click('#undo');
     expect(await page.inputValue('#propX')).toBe('0');
@@ -541,6 +546,41 @@ describe('the editor in a browser', () => {
     await page.fill('#groupRepeat', '1');
     expect(await page.isHidden('#groupStepRow')).toBe(true);
     await page.click('#undo');
+  });
+
+  it('duplicates a ship under a counted name, leaving the original alone', async () => {
+    await page.selectOption('#ship', 'Corvette');
+    await page.click('#duplicateShip');
+    expect(await page.inputValue('#shipName')).toBe('Corvette 2');
+    // Unsaved until the player says so, like a new ship.
+    expect(await page.textContent('#ship')).toMatch(/Corvette 2 \(unsaved\)/);
+    await page.click('#saveShip');
+    await page.click('#duplicateShip');
+    expect(await page.inputValue('#shipName')).toBe('Corvette 3');
+
+    // The one it was copied from is untouched and still opens.
+    await page.selectOption('#ship', 'Corvette');
+    expect(await page.inputValue('#shipName')).toBe('Corvette');
+    await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Corvette 2'));
+    await page.reload();
+  });
+
+  it('keeps the shipped ship openable after one is saved over its name', async () => {
+    await page.selectOption('#ship', 'Corvette');
+    await page.fill('#shipNotes', 'mine now');
+    await page.click('#saveShip');
+    expect(await page.textContent('#ship')).toMatch(/Corvette \(stock\)/);
+
+    // The name opens the player's copy, and the shipped hull is still there
+    // to start from rather than buried under it.
+    await page.selectOption('#ship', 'stock:Corvette');
+    expect(await page.inputValue('#shipNotes')).not.toBe('mine now');
+    await page.selectOption('#ship', 'Corvette');
+    expect(await page.inputValue('#shipNotes')).toBe('mine now');
+
+    await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Corvette'));
+    await page.reload();
+    expect(await page.textContent('#ship')).not.toMatch(/\(stock\)/);
   });
 
   it('adds a module, and says what is now wrong with the layout', async () => {
