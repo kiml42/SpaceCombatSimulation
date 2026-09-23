@@ -105,7 +105,26 @@ export function startEditor(): void {
   if (ctx === null) throw new Error('no 2d context');
 
   const library = new Library(window.localStorage);
-  const doc = new EditorDocument(library.load('Corvette') ?? emptyBlueprint('New ship'));
+  /**
+   * Open a saved ship, or say so and hand back nothing.
+   *
+   * A layout that breaks the design rules is not this: it opens like any
+   * other and the problems panel names what is wrong, which is the only way
+   * such a ship can be put right. This is for a file that cannot be *read* —
+   * storage holding what an older format wrote, or what someone typed into a
+   * console — and the editor must not be left unusable by one.
+   */
+  const read = (name: string): Blueprint | null => {
+    try {
+      return library.load(name);
+    } catch (error) {
+      window.alert(
+        `Could not read the saved ${name}.\n\n${error instanceof Error ? error.message : error}`,
+      );
+      return null;
+    }
+  };
+  const doc = new EditorDocument(read('Corvette') ?? emptyBlueprint('New ship'));
   const camera: Camera = { x: 0, y: 0, scale: 8 };
   const snapshot = new Snapshot();
   const demonstration = new Demonstration();
@@ -587,17 +606,6 @@ export function startEditor(): void {
     if (document.activeElement !== shipNotes) shipNotes.value = doc.blueprint.notes ?? '';
     undoButton.disabled = !doc.canUndo;
     redoButton.disabled = !doc.canRedo;
-    // A layout is allowed to be invalid while it is being worked on — you often
-    // have to drag one module through another to get it past — but it may not
-    // *leave* in that state. Saving and exporting both write a blueprint file,
-    // and a file is read back by a parser that will refuse it, so writing one
-    // would be handing the player something that cannot be opened again.
-    const blocked = doc.view.problems.length > 0;
-    saveButton.disabled = blocked;
-    exportButton.disabled = blocked;
-    const why = blocked ? 'Fix the problems below first — a file with them cannot be read back.' : '';
-    saveButton.title = why;
-    exportButton.title = why;
     renderLibrary();
     renderProperties();
     renderStats();
@@ -938,7 +946,7 @@ export function startEditor(): void {
   // ---- the library --------------------------------------------------------
 
   const open = (name: string): void => {
-    const blueprint = library.load(name);
+    const blueprint = read(name);
     if (blueprint === null) return;
     doc.replace(blueprint);
     demonstration.reset();

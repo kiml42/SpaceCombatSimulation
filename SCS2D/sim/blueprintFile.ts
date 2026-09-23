@@ -1,6 +1,5 @@
 import { PI } from './math.js';
 import {
-  blueprintProblem,
   isInstance,
   type Assembly,
   type AssemblyInstance,
@@ -240,12 +239,13 @@ function assembliesShapeProblem(value: unknown): string | null {
 }
 
 /**
- * Everything wrong with a parsed file, or null.
+ * What makes a file unreadable, or null.
  *
- * Checks the file's *shape* and then hands the assembled blueprint to
- * `blueprintProblem`, so the geometry rules a hand-written layout already has
- * to satisfy apply to a loaded one too — there is one definition of a valid
- * ship, not two that can drift.
+ * Its *shape* only: the keys, the format version, the types. Whether the
+ * layout it describes is a ship that could fly is `blueprintProblem`'s
+ * question, and deliberately a separate one — a file naming a thruster
+ * welded to nothing is perfectly readable, and refusing to read it is what
+ * makes such a ship impossible to open and put right.
  */
 export function blueprintFileProblem(value: unknown): string | null {
   if (!isObject(value)) return `a blueprint file must be an object, got ${JSON.stringify(value)}`;
@@ -272,10 +272,7 @@ export function blueprintFileProblem(value: unknown): string | null {
   const assemblies = assembliesShapeProblem(value['assemblies']);
   if (assemblies !== null) return assemblies;
 
-  const modules = placementsShapeProblem(value['modules'], 'modules');
-  if (modules !== null) return modules;
-
-  return blueprintProblem(toBlueprint(value));
+  return placementsShapeProblem(value['modules'], 'modules');
 }
 
 /** Assemble a blueprint from a file whose shape has already been checked. */
@@ -347,11 +344,16 @@ function toPlacements(raws: unknown[]): Placement[] {
 }
 
 /**
- * A blueprint from a parsed file, or a throw naming what is wrong with it.
+ * A blueprint from a parsed file, or a throw naming what makes it unreadable.
  *
  * Throwing rather than returning a union follows `moduleStats`: a caller with
  * a file it believes in should not have to unwrap, and one that does not
  * believe in it should ask `blueprintFileProblem` first.
+ *
+ * What comes back is a layout, not a ship: the design rules are not checked
+ * here. `compileBlueprint` is where a blueprint has to be flyable, so nothing
+ * invalid reaches a battle, and an editor can open a broken layout and show
+ * what is wrong with it.
  */
 export function parseBlueprint(value: unknown): Blueprint {
   const problem = blueprintFileProblem(value);
