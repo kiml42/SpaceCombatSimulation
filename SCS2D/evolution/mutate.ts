@@ -838,11 +838,18 @@ function ungroup(draft: Draft, rng: Rng): string | null {
 /**
  * Move a module into an assembly placed beside it.
  *
- * This is how a part grows past the one module it was made from — and it is
- * not a neutral edit, which is the interesting part: a module absorbed into
- * an assembly that is placed twice appears *twice*, so a gun taken into a
- * wing becomes a gun on both wings in one generation. That is the edit an
- * operator working a module at a time can never make.
+ * How a module that has been *grown* joins a part: twenty generations of a
+ * good gun mounting keep their size, their armour and their angle on the way
+ * in, which nothing else here offers.
+ *
+ * **In practice it only ever works on a part placed once, and that is not a
+ * defect so much as the shape of the problem.** Where the module sits is
+ * where it has to fit, so a part placed twice needs that spot free beside
+ * *both* instances — and the second is usually somebody else's hull. Four
+ * thousand children drawn from the shipped catamaran and corvette absorbed a
+ * module into a part placed more than once exactly none of the time. Growing
+ * a shared part is `extend`'s job; this is for the step before, while a part
+ * is still one copy being assembled out of what is already there.
  */
 function absorb(draft: Draft, rng: Rng): string | null {
   const sites: { list: PlacementList; index: number; spec: ModuleSpec; instance: AssemblyInstance }[] = [];
@@ -873,6 +880,74 @@ function absorb(draft: Draft, rng: Rng): string | null {
   chosen.list.placements.splice(chosen.index, 1);
   refresh(draft);
   return `${chosen.list.label}[${chosen.index}] ${chosen.spec.kind}: taken into ${name}`;
+}
+
+/**
+ * Which way is *out* of the ship, in a part's own frame.
+ *
+ * **A new module on a part has to fit at every instance of it, not just one.**
+ * A part is written once and placed several times, so a face pointing inboard
+ * is a face with the hull against it in every copy, and a candidate put there
+ * is refused every time — where a face on the part's outer edge is free in all
+ * of them or none. Nothing in an assembly's own coordinates says which way
+ * that is, so it is read off where the instances sit: the direction from the
+ * middle of the layout placing them to the instance itself, turned back into
+ * the frame the part is written in.
+ *
+ * Averaged over the instances, and the averaging is the point rather than a
+ * detail. A mirrored pair sits on opposite sides of the ship and *agrees*
+ * about which local direction is outboard, since the frame is reflected along
+ * with the position — so a wing and its mirror image both say "away from the
+ * hull is this way" and the average is that way rather than nothing. Copies
+ * that genuinely disagree average towards nothing, which is the honest answer:
+ * there is no face that is outboard for all of them.
+ *
+ * Null for the layout itself, which is placed nowhere and has no outboard.
+ */
+function outwardOf(draft: Draft, list: PlacementList): { x: number; y: number } | null {
+  if (draft.assemblies[list.label] === undefined) return null;
+  let x = 0;
+  let y = 0;
+  let found = 0;
+  for (const site of instanceSites(draft)) {
+    if (site.instance.use !== list.label) continue;
+    const turn = site.instance.angle ?? 0;
+    const c = cos(turn);
+    const sn = sin(turn);
+    const local = {
+      x: site.instance.x * c + site.instance.y * sn,
+      y: -site.instance.x * sn + site.instance.y * c,
+    };
+    x += local.x;
+    y += (site.instance.mirror ?? false) ? -local.y : local.y;
+    found++;
+  }
+  if (found === 0) return null;
+  const size = x * x + y * y;
+  // A part sitting on the middle line has no outboard, and a pair that
+  // disagrees has cancelled itself out. Either way there is nothing to prefer.
+  return size > 1e-12 ? { x: x / found, y: y / found } : null;
+}
+
+/**
+ * The faces of an anchor, outermost first.
+ *
+ * The order is only ever a preference: every face is still tried, since a
+ * candidate refused at the outer edge for some other reason should not stop
+ * the operator finding a place at all.
+ */
+function faces(anchor: ModuleSpec, outward: { x: number; y: number } | null, rng: Rng): number[] {
+  const first = rng.nextInt(4);
+  const order = [0, 1, 2, 3].map((i) => (first + i) % 4);
+  if (outward === null) return order;
+  const angle = anchor.angle ?? 0;
+  // A stable sort, so faces that are equally outboard keep the draw's order.
+  return order.sort((a, b) => outwardness(angle, b, outward) - outwardness(angle, a, outward));
+}
+
+function outwardness(angle: number, face: number, outward: { x: number; y: number }): number {
+  const normal = angle + (face * PI) / 2;
+  return cos(normal) * outward.x + sin(normal) * outward.y;
 }
 
 /**
@@ -962,6 +1037,31 @@ function ceilTo(value: number, step: number): number {
 }
 
 /**
+ * Grow a part by putting a *new* module on it.
+ *
+ * The counterpart to absorbing, and the one to reach for when a part is
+ * placed more than once. Absorbing takes a module that is already on the
+ * ship, so where it sits is where it has to fit — beside the one instance it
+ * was next to, and inside every other instance, which is usually somebody
+ * else's hull. Measured over lineages of the shipped fleet, absorbing into a
+ * part placed twice landed between a seventh and a sixteenth as often per
+ * chance offered as absorbing into one placed once, which is that sentence
+ * in numbers.
+ *
+ * A new module has no such history: it goes where there is room, and going on
+ * the part's outer edge by preference (`outwardOf`) is a place likely to be
+ * free at every instance rather than at one. So a wing grows a gun on both
+ * wings, which is the whole point of the part being one thing.
+ *
+ * Absorbing is kept beside it rather than replaced, because it is still the
+ * only way a module that has been *grown* — twenty generations of a good gun
+ * mounting — joins a part. What it is not is the way to grow a pair.
+ */
+function extend(draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
+  return addModule(draft, rng, bounds, false, true);
+}
+
+/**
  * Take one copy of a part off the ship.
  *
  * The inverse of placing another, and it has to exist for the same reason
@@ -987,15 +1087,18 @@ function dropInstance(draft: Draft, rng: Rng): string | null {
 /**
  * The operators that work on the grouping, drawn between evenly.
  *
- * Evenly, and listed in pairs, because each is another's inverse: what keeps
- * a lineage able to change its mind is that every way of adding structure
- * costs the same draw as the way of taking it back.
+ * Evenly, and listed so that each sits beside its inverse: what keeps a
+ * lineage able to change its mind is that every way of adding structure costs
+ * the same draw as the way of taking it back. Growing a part has no inverse
+ * of its own listed here because it does not need one — a module on a part is
+ * taken off by the ordinary removal, which works through an assembly's list
+ * like any other.
  */
 const ASSEMBLY_OPERATORS: readonly ((
   draft: Draft,
   rng: Rng,
   bounds: MutationLimits,
-) => string | null)[] = [group, ungroup, absorb, instantiate, dropInstance];
+) => string | null)[] = [group, ungroup, absorb, extend, instantiate, dropInstance];
 
 /**
  * Turn an instance over where it stands.
@@ -1027,7 +1130,7 @@ function reflect(site: InstanceSite): string | null {
 function restructure(draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
   // A third of structural generations are about the *grouping* rather than
   // the modules. They are far more often impossible than a module edit — a
-  // ship with no assemblies has four of the five unavailable — so one that
+  // ship with no assemblies has five of the six unavailable — so one that
   // comes to nothing falls back to a module edit rather than costing the
   // generation its structure.
   if (rng.nextInt(3) === 0) {
@@ -1085,9 +1188,16 @@ function removePlacement(draft: Draft, rng: Rng): string | null {
  * is a filter over the obviously hopeless, and without it most of what this
  * operator draws is a module inside its own neighbour.
  */
-function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, copy: boolean): string | null {
+function addModule(
+  draft: Draft,
+  rng: Rng,
+  bounds: MutationLimits,
+  copy: boolean,
+  onlyParts = false,
+): string | null {
   const anchors: { list: PlacementList; spec: ModuleSpec; index: number }[] = [];
   for (const list of draft.lists) {
+    if (onlyParts && draft.assemblies[list.label] === undefined) continue;
     for (let i = 0; i < list.placements.length; i++) {
       const placement = list.placements[i]!;
       if (!isInstance(placement)) anchors.push({ list, spec: placement, index: i });
@@ -1096,7 +1206,6 @@ function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, copy: boolean
   if (anchors.length === 0) return null;
 
   const firstAnchor = rng.nextInt(anchors.length);
-  const firstFace = rng.nextInt(4);
   for (let a = 0; a < anchors.length; a++) {
     const anchor = anchors[(firstAnchor + a) % anchors.length]!;
     const neighbours = anchor.list.placements.filter(
@@ -1104,8 +1213,8 @@ function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, copy: boolean
     );
     const kind = copy ? anchor.spec.kind : pickKind(rng, bounds.kinds);
     if (kind === null) return null;
-    for (let i = 0; i < 4; i++) {
-      const face = (firstFace + i) % 4;
+    const outward = outwardOf(draft, anchor.list);
+    for (const face of faces(anchor.spec, outward, rng)) {
       for (const along of berths(anchor.spec, face, copy, bounds, rng)) {
         const added = against(anchor.spec, face, along, kind, copy, bounds);
         if (neighbours.some((neighbour) => modulesOverlap(added, neighbour))) continue;

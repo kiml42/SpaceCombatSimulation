@@ -164,6 +164,52 @@ function lineage(parent: Blueprint, seed: number, generations: number) {
   return { held, seen };
 }
 
+/** Children drawn from one fixed parent, so nothing drifts between them. */
+function children(parent: Blueprint, seed: number, count: number): string[] {
+  const rng = new Rng(seed);
+  const edits: string[] = [];
+  for (let i = 0; i < count; i++) {
+    edits.push(...mutate(parent, rng, { structural: 1 }).edits);
+  }
+  return edits;
+}
+
+describe('growing a part that is placed more than once', () => {
+  it('puts a new module on one, where absorbing never can', () => {
+    // **The two ways of growing a part are not interchangeable.** Absorbing
+    // moves a module that is already on the ship, so where it sits is where
+    // it has to fit — beside the one instance it was next to, and inside
+    // every other instance, which is usually somebody else's hull. A new
+    // module has no such history and goes where there is room.
+    //
+    // Drawn from one fixed parent rather than down a lineage, so the two
+    // counts are about the operators rather than about where a line happened
+    // to wander.
+    for (const [name, parent] of [
+      ['catamaran', CATAMARAN],
+      ['corvette', CORVETTE],
+    ] as const) {
+      const shared = new Set(
+        [...uses(parent)].filter(([, count]) => count > 1).map(([used]) => used),
+      );
+      expect(shared.size, `${name} places a part more than once`).toBeGreaterThan(0);
+
+      let added = 0;
+      let absorbed = 0;
+      for (const edit of children(parent, 101, 600)) {
+        const arrival = /^(\S+?)\[\d+\] \S+: a \w+ added to/.exec(edit);
+        if (arrival !== null && shared.has(arrival[1]!)) added++;
+        const taken = /taken into (\S+)/.exec(edit);
+        if (taken !== null && shared.has(taken[1]!)) absorbed++;
+      }
+      expect(added, `${name}: new modules onto a shared part`).toBeGreaterThan(10);
+      // Not asserted to be zero — it is only very unlikely, and a test that
+      // says "never" about a draw is a test waiting to fail on a lucky seed.
+      expect(absorbed, `${name}: modules absorbed into a shared part`).toBeLessThan(added / 10);
+    }
+  });
+});
+
 describe('breeding the grouping', () => {
   it('reaches parts, repeats them, grows them and turns them over', () => {
     // One lineage from a bare core, which starts with no assemblies at all, so
