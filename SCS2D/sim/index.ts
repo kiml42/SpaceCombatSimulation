@@ -59,6 +59,12 @@ export {
 } from './modules.js';
 export { HullPath, Hulls, modulesAlong, type HullDesigns } from './hull.js';
 export {
+  PLUME_POWER_PER_NEWTON,
+  PLUME_THRUST_PER_AREA,
+  Plumes,
+  plumeReach,
+} from './exhaust.js';
+export {
   DEFAULT_DOCTRINE,
   APPROACH_FIELDS,
   DOCTRINE_FIELDS,

@@ -65,6 +65,17 @@ export interface ThrusterSpec {
    * compiled, which nothing can damage anyway.
    */
   module?: number;
+  /**
+   * What this engine's exhaust runs into on its own ship: the module it meets,
+   * or -1 for a nozzle in clear air.
+   *
+   * Geometry, and the hull's geometry never changes — damage stops a module
+   * working without moving it (DESIGN.md §4) — so this is worked out once when
+   * the design is compiled, for the same reason the allocation matrix is.
+   */
+  blocks?: number;
+  /** How far aft of the nozzle that module is, metres. */
+  blockedAt?: number;
 }
 
 /** Filled in place by `allocate`, so allocation allocates nothing. */

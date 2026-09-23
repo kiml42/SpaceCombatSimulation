@@ -86,6 +86,10 @@ inside any one file is not contiguous.
   stops working and goes on stopping shells, so a battered ship is sluggish and
   quiet rather than lighter, and a ship that can neither move nor shoot drifts
   as a hulk. Hits flash on the canvas and wrecked modules are drawn as wreckage.
+  **An engine is a weapon at close quarters**: a plume reaches back as far as the thrust it is carrying,
+  and whatever stands in it burns — its own hull if a nozzle was pointed into one, anything that drifts
+  behind a burning stern if not. It is the same flame the renderer draws, so what is on the screen is what
+  is doing the damage.
   **Hulls come apart, and it takes a blow to do it.** A ship is held together by welds derived from where
   its modules touch, each rated by its section. Damage decides how much of a weld is left; what spends it
   is the impulse that has to cross it, so a hit on an outlying module takes it off and the same hit
@@ -182,7 +186,7 @@ inside any one file is not contiguous.
   and hits scored are identical too. Measured by `scenarios/ordering.ts`, which
   flies three gunships of one geometry both stacked in one battle and one to a
   battle each.
-- **Last updated:** 2026-09-22
+- **Last updated:** 2026-09-23
 
 ---
 
@@ -342,6 +346,13 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   through a ship. Half to each hull, which needs no rule about which is the harder: a module's capacity
   goes with its mass, so the same energy that dents a capital ship destroys the fighter that flew into
   it. That is what makes §3's strike craft literal — a torpedo is a fighter that crashes into things.
+- **An engine burns what it is pointed at.** A plume reaches back from the nozzle as far as the thrust
+  being produced, and the first module standing in it takes the engine's power — at full strength against
+  the nozzle, falling off to nothing at the flame's end. What is in the way on the engine's *own* hull
+  never changes, so it is worked out when the design is compiled; anything else is whatever the world has
+  drifted into the exhaust. So an engine firing into its own ship eats it, and a ship that parks behind
+  another's stern is burnt by it, which makes where a nozzle points a thing worth aiming. §12 keeps the
+  other half open: thrust is still produced in full while the flame is buried.
 - **Matter is conserved in a hull, not in the world.** Everything conservation buys — wreckage as free
   armour, a topology damage cannot change, a battered ship that gets sluggish rather than lighter — is
   about what a *hull* keeps, and none of it needs a shard to persist once it has left the ship. So a

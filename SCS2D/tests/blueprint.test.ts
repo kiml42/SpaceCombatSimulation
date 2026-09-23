@@ -603,9 +603,10 @@ describe('the authored blueprints', () => {
     // thruster, which is a stricter rule in one direction and a weaker one in
     // the other: it catches a mount turned round, since that one is held on by
     // its nozzle, but says nothing about a correctly mounted engine whose
-    // plume runs into something further aft. Thrust is still produced whatever
-    // the exhaust hits (ROADMAP.md §12), so that case flies perfectly well and
-    // merely looks absurd, which is exactly how it goes unnoticed.
+    // plume runs into something further aft. That layout is legal and is meant
+    // to be — the plume burns away what it is pointed at rather than the
+    // design being refused (`sim/exhaust.ts`) — so nothing else would tell the
+    // fleet's authors they had drawn a ship that eats itself.
     for (const name of FLEET) {
       const blueprint = BLUEPRINTS[name];
       const design = compileBlueprint(blueprint);

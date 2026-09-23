@@ -3,6 +3,7 @@ import { subDesign, type DesignTurret, type ShipDesign } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
+import { Plumes } from './exhaust.js';
 import { Choice, look, lookFrom, score } from './targeting.js';
 import {
   atan2,
@@ -345,6 +346,8 @@ export class Ships {
   private readonly layoutVersion: number[] = [];
   /** Persistent between steps, per §12: never shared scratch. */
   private readonly throttles: Float64Array[] = [];
+  /** Scratch for the exhaust pass, so that burning allocates nothing. */
+  private readonly plumes = new Plumes();
   /** Turret store indices owned by each ship, and their gun timers. */
   private readonly turretIndex: Int32Array[] = [];
   private readonly cooldown: Float64Array[] = [];
@@ -1351,6 +1354,38 @@ export class Ships {
   }
 
   /**
+   * Burn whatever every burning engine is pointed at.
+   *
+   * Driven after the index is rebuilt, like firing, and with the throttles the
+   * pilot set before the world stepped: an engine damages what is behind it
+   * now, where it is now.
+   *
+   * The thrust it burns with is what the engine is actually producing rather
+   * than what it is rated at, so an engine that damage has already half killed
+   * leaves a shorter, weaker flame — which is also the flame the renderer
+   * draws, since `throttleOf` reports the same fraction.
+   */
+  scorch(world: World, grid: SpatialGrid, dt: number): void {
+    const bodies = world.bodies;
+    this.bodyStore = bodies;
+
+    for (let i = 0; i < this.alive.length; i++) {
+      if (this.alive[i] === 0) continue;
+      const bodyIdx = bodies.indexOf(this.bodyIds[i]!);
+      if (bodyIdx < 0) continue;
+      const design = this.designs[i]!;
+      const layout = this.layoutOf(i);
+      const throttles = this.throttles[i]!;
+
+      for (let t = 0; t < design.thrusters.length; t++) {
+        const force = throttles[t]! * layout.maxThrust[t]!;
+        if (!(force > 0)) continue;
+        this.plumes.burn(design, t, force, this.damage, bodies, bodyIdx, grid, this.hulls, dt);
+      }
+    }
+  }
+
+  /**
    * Drop every order this ship is finished with, wherever it sits in the
    * queue — not only the one it is working on.
    *
@@ -2171,9 +2206,18 @@ export class Ships {
     return this.turretIndex[i]![turret]!;
   }
 
-  /** Throttle actually held by one of a ship's thrusters, 0 to 1. Diagnostic. */
+  /**
+   * What one of a ship's thrusters is producing, as a fraction of its rating.
+   *
+   * The throttle the allocator set, scaled by what damage has left of the
+   * engine — so a half-wrecked engine at full throttle reports a half. That is
+   * the quantity the plume is drawn from, and a burning engine drawing a flame
+   * it is no longer capable of is the picture disagreeing with the burn.
+   */
   throttleOf(i: number, thruster: number): number {
-    return this.throttles[i]![thruster]!;
+    const rated = this.designs[i]!.thrusters[thruster]!.maxThrust;
+    if (!(rated > 0)) return 0;
+    return (this.throttles[i]![thruster]! * this.layoutOf(i).maxThrust[thruster]!) / rated;
   }
 
   /** Seconds until a gun is loaded again. Diagnostic. */

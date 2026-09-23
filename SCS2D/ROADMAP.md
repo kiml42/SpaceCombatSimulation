@@ -716,15 +716,20 @@ Deliberately unresolved; decide when they block something.
   attached, which is precisely the shape of exploit `modules.ts` warns about: the search will find it, and
   every evolved ship will end up with its engines pointing into itself because that packs a layout tighter
   for free.
-  **Settled in direction, open in timing:** a blocked nozzle will lose thrust in proportion to how much of
-  its exhaust is obstructed, *and* deliver damage and heat to whatever is in the way. Not rejecting the
-  layout outright, which would turn a continuous quantity into a hard edge a mutation cannot cross, and the
-  search wants a gradient. That argument is about *obstruction* and does not reach the attachment rule above,
-  which is discrete however it is modelled: a mount is on the hull or it is not, and there is no gradient
-  between. Doing both means a plume becomes something a designer can point deliberately —
-  and something an attacker can exploit — rather than merely a thing to avoid.
-  The deadline is §7's evolution rather than any particular slice: until then a buried nozzle is a drawing
-  error, and afterwards it is an exploit the search will find and build every ship around.
+  **Half built.** A plume now burns what it is pointed at (`sim/exhaust.ts`): the first module in the way
+  takes the engine's power, falling off linearly to nothing at the flame's own length, and it is the same
+  flame the renderer draws. So a buried nozzle costs the module it is buried in, and a plume is something a
+  designer can point deliberately and an attacker can get caught by.
+  **What is left is the other half: thrust lost in proportion to how much of the exhaust is obstructed.**
+  An engine firing into its own hull still produces its full thrust while it eats it, which is the exploit
+  narrowed rather than closed — a layout that packs itself tight is now paying in structure instead of
+  paying nothing. Doing it needs a measure of *how much* of the plume is blocked rather than merely whether
+  its axis is, which the single ray the damage pass casts does not give. Neither half rejects the layout,
+  which would turn a continuous quantity into a hard edge a mutation cannot cross, and the search wants a
+  gradient. That argument is about *obstruction* and does not reach the attachment rule above, which is
+  discrete however it is modelled: a mount is on the hull or it is not, and there is no gradient between.
+  Heat, mentioned when this was settled in direction, waits on there being a heat model to put it in.
+  The deadline for the rest is §7's evolution rather than any particular slice.
 - **A dead zone on the pilot's attitude hold.** A ship parked on its target bearing still twitches its
   thrusters continually, correcting an alignment error of almost nothing. Today that is only cosmetic — the
   ships have no fuel to waste — but it is the same behaviour that will empty a propellant tank while
@@ -761,5 +766,6 @@ Deliberately unresolved; decide when they block something.
 - Whether the mothership's build priorities are a doctrine blob (so async PvP competes on them) or
   a player-driven queue.
 - Concrete values, now that the units are settled: budgets, engagement ranges, timestep, weld
-  velocity threshold, edit-distance bounds, muzzle velocities, armour densities.
+  velocity threshold, edit-distance bounds, muzzle velocities, armour densities, and how hard a plume
+  burns (`PLUME_POWER_PER_NEWTON`, chosen for a timescale rather than derived).
 - Project name.

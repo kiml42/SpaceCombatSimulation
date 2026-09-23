@@ -12,6 +12,7 @@ import {
 } from './modules.js';
 import { DEFAULT_DOCTRINE, resolveTargeting, type Doctrine, type Targeting } from './doctrine.js';
 import { ThrusterLayout, type ThrusterSpec } from './thrusters.js';
+import { HullPath, modulesAlong } from './hull.js';
 import type { TurretSpec } from './turrets.js';
 
 /**
@@ -1384,6 +1385,35 @@ function designFrom(
 
   let reach = 0;
   for (const turret of turrets) reach = max(reach, turret.reach);
+
+  // What each engine exhausts into, which a plume needs every step and which
+  // nothing in a battle can change: an engine firing into its own hull is
+  // firing into it for as long as the hull is one piece, and a piece cut off
+  // is a design of its own that works this out again.
+  const exhaust = new HullPath();
+  const far = radius * 2 + 1;
+  for (const thruster of thrusters) {
+    const engine = modules[thruster.module!]!;
+    // The exhaust leaves by the face opposite the one the engine pushes from.
+    const x = thruster.x - thruster.dirX * engine.spec.length * 0.5;
+    const y = thruster.y - thruster.dirY * engine.spec.length * 0.5;
+    modulesAlong(
+      { modules },
+      x,
+      y,
+      x - thruster.dirX * far,
+      y - thruster.dirY * far,
+      exhaust,
+    );
+    thruster.blocks = -1;
+    thruster.blockedAt = Infinity;
+    for (let k = 0; k < exhaust.count; k++) {
+      if (exhaust.module[k]! === thruster.module) continue;
+      thruster.blocks = exhaust.module[k]!;
+      thruster.blockedAt = exhaust.entry[k]!;
+      break;
+    }
+  }
 
   return {
     name,

@@ -84,7 +84,12 @@ describe('a ship cut in half', () => {
     // window instead and asks two things of every tick with a target — never
     // the hulk, always the corvette — and one thing of the window as a whole:
     // each half locks on at least once.
-    const { run, live } = at(25);
+    //
+    // The window opens at the split rather than later in the battle, because
+    // what is being pinned is the choice each half makes on being cut free.
+    // Sampled deep into the fight it is a claim about attrition instead, and
+    // whether a particular half still has a gun by then is nobody's decision.
+    const { run, live } = at(8);
     const pieces = halves(run, live);
     expect(pieces.length).toBe(2);
 
@@ -92,6 +97,9 @@ describe('a ship cut in half', () => {
     for (let i = 0; i < Math.round(10 * 60); i++) {
       run.step();
       for (const piece of pieces) {
+        // A half can lose its gun to the fight it is in, and a mount that is
+        // no longer there has nothing to be asked about.
+        if (run.ships.design(piece).turrets.length === 0) continue;
         const target = run.ships.targetOfTurret(run.world.bodies, piece, 0);
         if (target < 0) continue;
         expect(run.ships.isDisabled(target)).toBe(false);

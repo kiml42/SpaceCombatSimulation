@@ -1,4 +1,4 @@
-import { math, type ShipView, type Snapshot } from '../sim/index.js';
+import { math, plumeReach, type ShipView, type Snapshot } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth } from './strokes.js';
 import { flashFade, flashPosition, type FlashAnchor, type Flashes } from './flashes.js';
@@ -154,19 +154,6 @@ const ARC_MAX_RADIUS = 40;
 const BARREL = '#8f6f25';
 const PLUME = '#ffd9a0';
 const PLUME_CORE = '#fff4e0';
-
-/**
- * Newtons of thrust per square metre of drawn plume.
- *
- * The plume is a triangle as wide as the engine's exit, stretching with
- * throttle — so its *area* is proportional to the force being produced, which
- * is the quantity worth reading off a picture. It falls out of that: a
- * thruster's thrust scales with its exit area, so thrust per unit width is the
- * same for every engine, and every engine therefore reaches the same plume
- * length at full throttle. That is what it should look like — they share an
- * exhaust velocity, and a bigger engine is a wider flame, not a longer one.
- */
-const PLUME_THRUST_PER_AREA = 0.5e4;
 
 /**
  * How wide a thruster is drawn where it meets the hull, as a fraction of its
@@ -375,7 +362,7 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
     thruster++;
     if (force > 0) {
       const root = -spec.length / 2;
-      const reach = force / (spec.width * PLUME_THRUST_PER_AREA);
+      const reach = plumeReach(force, spec.width);
       ctx.fillStyle = PLUME;
       ctx.globalAlpha = 0.55;
       ctx.beginPath();
