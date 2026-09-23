@@ -221,6 +221,31 @@ describe('the evolution page in a browser', () => {
     }
   }, 60_000);
 
+  it('reads a generation off the chart, and selects it when clicked', async () => {
+    // The chart is the only place a run's whole history is visible, so it is
+    // the natural way in to a generation — pointing at one says what it
+    // scored, and clicking it takes the rest of the page there.
+    const box = await page.locator('#chart').boundingBox();
+    if (box === null) throw new Error('no chart on the page');
+    // Well inside the plot, whose left edge is the y-axis labels' width in.
+    await page.mouse.move(box.x + box.width * 0.85, box.y + box.height / 2);
+    await page.waitForFunction(() => document.getElementById('chartTip')?.hidden === false);
+    expect(await page.textContent('#chartTip')).toMatch(/^generation \d+$/);
+    // The legend gains a reading per line while a generation is under it.
+    expect(await page.$$eval('#legend b', (all) => all.length)).toBeGreaterThan(0);
+
+    const named = /generation (\d+)/.exec((await page.textContent('#chartTip')) ?? '');
+    await page.mouse.click(box.x + box.width * 0.85, box.y + box.height / 2);
+    await page.waitForTimeout(300);
+    expect(await page.textContent('#shownGeneration')).toBe(named?.[1]);
+    expect(await page.inputValue('#generation')).toBe(String(Number(named?.[1]) - 1));
+
+    // And nothing under the pointer once it leaves.
+    await page.mouse.move(box.x + box.width / 2, box.y - 40);
+    await page.waitForFunction(() => document.getElementById('chartTip')?.hidden === true);
+    expect(problems).toEqual([]);
+  }, 60_000);
+
   it('shows the generation as ships rather than as a battle', async () => {
     // A run fights hundreds of times faster than real time, so a window on
     // the match in progress is a picture of nothing, refreshed. What the

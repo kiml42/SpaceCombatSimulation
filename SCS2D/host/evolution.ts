@@ -1,7 +1,7 @@
 import { capture, parseBlueprint, Snapshot, type Blueprint } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
 import { draw } from '../render/canvas2d.js';
-import { drawChart, type Series } from '../render/chart.js';
+import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
 import { frame, moveWithVisibleShips, type Camera } from '../render/camera.js';
 import { Library, toFileText } from '../editor/library.js';
 import { previewSnapshot } from '../editor/preview.js';
@@ -102,6 +102,8 @@ export function startEvolution(): void {
   // cannot see a narrowing made after it in the source.
   const ctx: CanvasRenderingContext2D = context(view);
   const chartCtx: CanvasRenderingContext2D = context(chart);
+  const chartTip = el<HTMLElement>('chartTip');
+  const legend = el<HTMLElement>('legend');
 
   const startButton = el<HTMLButtonElement>('start');
   const pauseButton = el<HTMLButtonElement>('pause');
@@ -152,6 +154,10 @@ export function startEvolution(): void {
   const fleetTiles = new Map<number, { figure: HTMLElement; caption: HTMLElement }>();
   const fleetSnapshot = new Snapshot();
   let picked = -1;
+  /** Where the chart drew itself, and which point the pointer is over. */
+  let chartLayout: ChartLayout = { x: 0, y: 0, width: 0, height: 0, count: 0 };
+  let chartSeries: Series[] = [];
+  let hoverAt: number | null = null;
   // Where the rolling replay has got to, and how many matches there were when
   // it last chose — a match arriving while one plays jumps the queue.
   let rollingAt = 0;
@@ -355,6 +361,7 @@ export function startEvolution(): void {
       canvas.height = Math.round(rect.height * ratio);
     }
     paint();
+    paintChart();
   };
 
   const watch = (match: Match | null): void => {
@@ -456,6 +463,96 @@ export function startEvolution(): void {
     flashes.step(simDt);
     draw(ctx, shot, camera, view.width, view.height, flashes);
   }
+
+  // ---- the chart ---------------------------------------------------------
+
+  /**
+   * Draw the chart, marking what is under the pointer and what is selected.
+   *
+   * Kept apart from `refresh` so a pointer moving over it redraws at once
+   * rather than at the next telemetry sample: a mark that lags the cursor by
+   * a fifth of a second reads as the chart being broken.
+   */
+  function paintChart(): void {
+    chartLayout = drawChart(
+      chartCtx,
+      chartSeries,
+      chart.width,
+      chart.height,
+      window.devicePixelRatio || 1,
+      { hover: hoverAt ?? undefined, picked: markedGeneration() },
+    );
+  }
+
+  /**
+   * The generation the panel is showing, when the chart has a point for it.
+   *
+   * Nothing is marked while the generation being fought is the one on show:
+   * it has no point yet, and marking the one before it would say the chart
+   * and the panel disagree when they do not.
+   */
+  function markedGeneration(): number | undefined {
+    if (run === null) return undefined;
+    const closed = run.generations.length;
+    const newest = run.done ? closed - 1 : closed;
+    const index = shown < 0 ? newest : Math.min(shown, newest);
+    return index >= 0 && index < closed ? index : undefined;
+  }
+
+  /**
+   * What the legend says: the names of the lines, and — while a generation is
+   * under the pointer — what each of them was worth there.
+   *
+   * On the legend rather than in the tooltip because the colours are already
+   * there: a floating box repeating five labelled colours beside five
+   * labelled colours is two things to read where there was one.
+   */
+  function showLegend(): void {
+    legend.replaceChildren();
+    for (const line of chartSeries) {
+      const entry = document.createElement('span');
+      entry.style.color = line.colour;
+      entry.textContent = line.name;
+      const value = hoverAt === null ? undefined : line.values[hoverAt];
+      if (value !== undefined && Number.isFinite(value)) {
+        const reading = document.createElement('b');
+        reading.textContent = value.toFixed(3);
+        entry.append(reading);
+      }
+      legend.append(entry);
+    }
+  }
+
+  /** Which generation the pointer is over, as an index, or null. */
+  const chartPointAt = (event: PointerEvent | MouseEvent): number | null => {
+    const rect = chart.getBoundingClientRect();
+    return indexAt(chartLayout, event.clientX - rect.left);
+  };
+
+  const hoverChart = (at: number | null): void => {
+    if (at === hoverAt) return;
+    hoverAt = at;
+    chartTip.hidden = at === null;
+    if (at !== null) {
+      chartTip.textContent = `generation ${at + 1}`;
+      chartTip.style.left = `${xOf(chartLayout, at)}px`;
+    }
+    paintChart();
+    showLegend();
+  };
+
+  chart.addEventListener('pointermove', (event) => hoverChart(chartPointAt(event)));
+  chart.addEventListener('pointerleave', () => hoverChart(null));
+  chart.addEventListener('click', (event) => {
+    const at = chartPointAt(event);
+    if (at === null) return;
+    // The same selection the picker makes, so the table, the matches and the
+    // ships all follow — the chart is another way in to it rather than a
+    // second idea of which generation is being looked at.
+    shown = at;
+    generationSelect.value = String(at);
+    refresh();
+  });
 
   // ---- the fleet ---------------------------------------------------------
 
@@ -736,7 +833,9 @@ export function startEvolution(): void {
       for (const point of points) scores[point.generation] = point.mean;
       series.push({ name: 'vs. yardstick', colour: '#5bd6d6', values: scores });
     }
-    drawChart(chartCtx, series, chart.width, chart.height, window.devicePixelRatio || 1);
+    chartSeries = series;
+    paintChart();
+    showLegend();
 
     const top = run === null ? null : finalist(run.record());
     saveButton.disabled = top === null;
