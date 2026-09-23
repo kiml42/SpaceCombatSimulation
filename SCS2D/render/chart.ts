@@ -73,12 +73,18 @@ export function xOf(layout: ChartLayout, index: number): number {
  * generations puts its points closer together than a pointer can be aimed —
  * what somebody means by pointing at the chart is the generation *about*
  * there, and every position between two points belongs to one of them.
+ *
+ * `clamp` is for a drag rather than a hover: while seeking, a pointer beyond
+ * either end of the plot means that end rather than nothing.
  */
-export function indexAt(layout: ChartLayout, xCss: number): number | null {
+export function indexAt(layout: ChartLayout, xCss: number, clamp = false): number | null {
   if (layout.count === 0) return null;
   if (layout.count === 1) return 0;
   const along = (xCss - layout.x) / layout.width;
-  if (along < -0.02 || along > 1.02) return null;
+  // Off the plot is nothing to point *at*, but something to drag *to*: a
+  // pointer that has run past the end of the run while seeking means the end
+  // of the run, not that the seek has stopped.
+  if (!clamp && (along < -0.02 || along > 1.02)) return null;
   const index = Math.round(along * (layout.count - 1));
   return Math.max(0, Math.min(layout.count - 1, index));
 }
