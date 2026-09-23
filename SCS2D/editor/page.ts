@@ -525,7 +525,12 @@ export function startEditor(): void {
       else if (key === 'length' || key === 'width') input.value = String(spec[key]);
       else input.value = String(moduleField(spec, key as 'angle' | 'reinforcement' | 'barrels'));
     }
-    el<HTMLElement>('barrelsRow').hidden = spec.kind !== 'turret';
+    // Offered on a beam mount as well as a gun. More of them is worse for a
+    // beam — the aperture is divided between them and only one fires at a
+    // time — but worse is a thing somebody may want: a bank of emitters is a
+    // look, and the editor's job is to say what a layout costs rather than to
+    // refuse the ones it would not have chosen.
+    el<HTMLElement>('barrelsRow').hidden = spec.kind !== 'turret' && spec.kind !== 'beamTurret';
 
     const origin = doc.selectedOrigin();
     const shared = origin === null ? 0 : unlinkable(doc.blueprint, origin);

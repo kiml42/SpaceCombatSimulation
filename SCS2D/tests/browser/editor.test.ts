@@ -472,6 +472,31 @@ describe('the editor in a browser', () => {
     expect(await page.isHidden('#barrelsRow')).toBe(false);
   });
 
+  it('offers barrels on a beam mount too, and charges for them', async () => {
+    // A beam is worse for having several — the aperture is divided between
+    // them and only one fires at a time — which is a reason to say what it
+    // costs rather than a reason to hide the field.
+    await page.click('#newShip');
+    await page.click('[data-add="beamTurret"]');
+    expect(await page.textContent('#propKind')).toBe('beamTurret');
+    expect(await page.isHidden('#barrelsRow')).toBe(false);
+
+    // Off the Gun row by name: the panel's other rows carry millimetres too,
+    // and the first of them is the thickness of the walls.
+    const bore = async (): Promise<number> => {
+      const stats = (await page.textContent('#moduleStats')) ?? '';
+      return Number(/Gun\s*(\d+) mm/.exec(stats)?.[1] ?? 0);
+    };
+    const one = await bore();
+    expect(one).toBeGreaterThan(0);
+
+    await page.fill('#propBarrels', '4');
+    await page.dispatchEvent('#propBarrels', 'input');
+    expect(await page.textContent('#moduleStats')).toMatch(/×4/);
+    // Four apertures share the one the mount had, so each is half as wide.
+    expect(await bore()).toBeLessThan(one);
+  });
+
   it('sizes a module by its corner and turns it by its knob', async () => {
     // A ship of one module, so the camera's fit puts that module's centre at
     // the middle of the canvas and its handles can be worked out rather than
