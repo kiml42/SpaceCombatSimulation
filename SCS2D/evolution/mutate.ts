@@ -526,10 +526,14 @@ function refit(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | nul
     site.spec.x = centre.x;
     site.spec.y = centre.y;
   }
-  // Barrels mean nothing to anything but a gun, and a gun with none is a gun
-  // with one — so the field goes when it stops applying rather than sitting
-  // in the file saying nothing.
-  if (to !== 'turret' && to !== 'beamTurret') delete site.spec.barrels;
+  // Fields go when they stop applying, rather than sitting in the file saying
+  // nothing — and a nozzle share would say something worse than nothing, since
+  // it is refused outright on anything but an engine, which would make every
+  // refit *out* of an engine impossible. Silently, too: a refused candidate is
+  // simply retried. Barrels are the exception and stay, because they count a
+  // gun's barrels and a thruster's nozzles alike.
+  if (to !== 'turret' && to !== 'beamTurret' && to !== 'thruster') delete site.spec.barrels;
+  if (to !== 'thruster') delete site.spec.nozzle;
   return `${site.where}: ${was} refitted as ${to}`;
 }
 

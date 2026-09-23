@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_DOCTRINE,
   Ships,
   SpatialGrid,
   WEAPON_PLUME_SHARE,
@@ -41,7 +42,10 @@ function tug(weapon: boolean): Blueprint {
     // Nothing to want. A craft keeps out of its neighbours' way by burning at
     // them, so a hull parked a metre off another one's stern has a reason to
     // fire quite apart from the flag — and this is a test about the flag.
-    doctrine: { targeting: {}, approach: { separation: 0 } },
+    doctrine: {
+    targeting: { ...DEFAULT_DOCTRINE.targeting },
+    approach: { ...DEFAULT_DOCTRINE.approach, separation: 0 },
+  },
     modules: [
       weapon ? { ...engine, weapon: true } : engine,
       { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 6 },
@@ -58,7 +62,10 @@ function tug(weapon: boolean): Blueprint {
  */
 const TARGET: Blueprint = {
   name: 'Target',
-  doctrine: { targeting: {}, approach: { separation: 0 } },
+  doctrine: {
+    targeting: { ...DEFAULT_DOCTRINE.targeting },
+    approach: { ...DEFAULT_DOCTRINE.approach, separation: 0 },
+  },
   modules: [
     { kind: 'core', x: 0, y: 0, angle: 0, length: 6, width: 6 },
     // Hung off the far face, so it is not itself the thing standing in the

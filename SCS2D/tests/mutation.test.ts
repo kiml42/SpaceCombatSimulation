@@ -219,6 +219,29 @@ describe('mutation', () => {
     expect(moved).toBe(true);
   });
 
+  it('takes an engine\'s bell with it when it stops being an engine', () => {
+    // A nozzle share is refused outright on anything but a thruster, so a
+    // refit that left one behind would not make an odd module — it would make
+    // every refit out of an engine impossible, and silently, since a refused
+    // candidate is simply retried.
+    const rng = new Rng(29);
+    let held: Blueprint = {
+      name: 'Tug',
+      modules: [
+        { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 4 },
+        { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.7 },
+      ],
+    };
+    let refits = 0;
+    for (let i = 0; i < 200; i++) {
+      const child = mutate(held, rng, { structural: 1 });
+      expect(blueprintProblem(child.blueprint), child.edits.join('; ')).toBeNull();
+      if (child.edits.some((edit) => /refitted as/.test(edit))) refits++;
+      held = child.blueprint;
+    }
+    expect(refits).toBeGreaterThan(0);
+  });
+
   it('builds only the kinds it is told to', { timeout: 30_000 }, () => {
     // The weights are what a run says it is interested in, and they have to
     // hold for a module *refitted* as well as one added — a run told to breed
