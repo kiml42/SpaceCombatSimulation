@@ -604,9 +604,15 @@ describe('the authored blueprints', () => {
     // the other: it catches a mount turned round, since that one is held on by
     // its nozzle, but says nothing about a correctly mounted engine whose
     // plume runs into something further aft. That layout is legal and is meant
-    // to be — the plume burns away what it is pointed at rather than the
-    // design being refused (`sim/exhaust.ts`) — so nothing else would tell the
-    // fleet's authors they had drawn a ship that eats itself.
+    // to be — it burns what it is pointed at and loses the thrust it fires
+    // into itself (`sim/exhaust.ts`) rather than being refused — so nothing
+    // else would tell the fleet's authors they had drawn a ship that eats
+    // itself.
+    //
+    // This casts the *axis* only. A plume is three rays wide, so a layout that
+    // passes here can still lose a third of an engine to a side ray grazing
+    // structure; what that costs is in the compiled design's `escaping` and on
+    // the editor's panel, not here.
     for (const name of FLEET) {
       const blueprint = BLUEPRINTS[name];
       const design = compileBlueprint(blueprint);

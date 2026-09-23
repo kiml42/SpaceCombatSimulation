@@ -1,7 +1,10 @@
 import {
   Allocation,
+  HullPath,
+  exhaustObstruction,
   firingArc,
   math,
+  moduleCentre,
   moduleStats,
   radiansToDegrees,
   shortfall,
@@ -177,6 +180,27 @@ export interface ModuleReadout {
  * from, so a group's mass and the change removing it would make to the ship
  * are the same number by construction.
  */
+/**
+ * What share of one engine's exhaust leaves the ship, for a layout the editor
+ * holds as bare specs rather than as a compiled design.
+ *
+ * The same call the compiler makes, over the same geometry — the specs are in
+ * the blueprint's own frame rather than about the centre of mass, and the
+ * question is entirely relative, so the answer is the same.
+ */
+function exhaustEscaping(
+  layout: readonly ModuleSpec[],
+  index: number,
+  rating: number,
+): number {
+  if (index < 0 || index >= layout.length) return 1;
+  const modules = layout.map((spec) => {
+    const centre = moduleCentre(spec);
+    return { spec, stats: moduleStats(spec), x: centre.x, y: centre.y, angle: spec.angle ?? 0, index: 0 };
+  });
+  return exhaustObstruction({ modules }, index, rating, new HullPath(), [], []);
+}
+
 export function groupMass(modules: readonly ModuleSpec[]): number {
   let total = 0;
   for (const spec of modules) total += moduleStats(spec).mass;
@@ -210,7 +234,20 @@ export function moduleReadout(
     ['Hit points', stats.hitPoints.toLocaleString('en-GB', { maximumFractionDigits: 0 })],
   ];
   if (stats.thrust > 0) {
-    rows.push(['Thrust', `${(stats.thrust / 1e6).toLocaleString('en-GB', { maximumFractionDigits: 2 })} MN`]);
+    // What the nozzle throws, and — where some of it runs into the ship — what
+    // is left over to fly on. An engine part-buried in its own hull hands that
+    // share of its momentum straight back, so the two figures differ and the
+    // ship gets the second one. Worth saying here rather than only in the
+    // envelope, because the envelope cannot say *which* engine is paying.
+    const thrown = `${(stats.thrust / 1e6).toLocaleString('en-GB', { maximumFractionDigits: 2 })} MN`;
+    const escaping = index < 0 ? 1 : exhaustEscaping(layout, index, stats.thrust);
+    rows.push([
+      'Thrust',
+      escaping >= 1
+        ? thrown
+        : `${((stats.thrust * escaping) / 1e6).toLocaleString('en-GB', { maximumFractionDigits: 2 })} MN ` +
+          `of ${thrown} — the rest fires into the ship`,
+    ]);
   }
   const gun = stats.gun;
   return {

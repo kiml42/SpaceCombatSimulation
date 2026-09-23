@@ -60,10 +60,14 @@ export {
 export { HullPath, Hulls, modulesAlong, type HullDesigns } from './hull.js';
 export {
   PLUME_POWER_PER_NEWTON,
+  PLUME_RAYS,
+  exhaustObstruction,
   PLUME_THRUST_PER_AREA,
   Plumes,
   WEAPON_PLUME_SHARE,
   plumeReach,
+  rayOffset,
+  rayReach,
 } from './exhaust.js';
 export {
   DEFAULT_DOCTRINE,

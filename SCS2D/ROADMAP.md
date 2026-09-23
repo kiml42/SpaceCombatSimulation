@@ -701,35 +701,14 @@ Deliberately unresolved; decide when they block something.
   non-negotiable 6 turning out to be load-bearing for something other than what it was written for, and it
   is also exactly what a replay file needs (§8's async fleet-vs-fleet), so the two features want the same
   mechanism built once.
-- **What a thruster firing into its own hull should cost.** Narrowed, not closed. A thruster mounted *back to
-  front* is now a rejected layout: `blueprintProblem` requires the face opposite the nozzle to be against a
-  structure module, because an engine held on by its nozzle is not an assembly question about how well the
-  ship runs but about whether it is a ship. That is the same kind of rule as modules not overlapping, and it
-  is discrete for the same reason.
-  What stays open is the continuous case, and it is the one this question was really about: a *correctly
-  mounted* engine whose plume runs into something further aft. Thrust is still produced whatever the exhaust
-  hits, so such a layout flies exactly as well as a clear one and merely looks absurd. Both authored ships
-  were drawn wrong and nobody noticed until the viewer started drawing plumes — which is the argument for the
-  viewer in miniature, and the reason the authored layouts also have a ray-cast test that the attachment rule
-  does not replace.
-  It matters more than tidiness once §7's evolution is running. A buried nozzle is thrust with no penalty
-  attached, which is precisely the shape of exploit `modules.ts` warns about: the search will find it, and
-  every evolved ship will end up with its engines pointing into itself because that packs a layout tighter
-  for free.
-  **Half built.** A plume now burns what it is pointed at (`sim/exhaust.ts`): the first module in the way
-  takes the engine's power, falling off linearly to nothing at the flame's own length, and it is the same
-  flame the renderer draws. So a buried nozzle costs the module it is buried in, and a plume is something a
-  designer can point deliberately and an attacker can get caught by.
-  **What is left is the other half: thrust lost in proportion to how much of the exhaust is obstructed.**
-  An engine firing into its own hull still produces its full thrust while it eats it, which is the exploit
-  narrowed rather than closed — a layout that packs itself tight is now paying in structure instead of
-  paying nothing. Doing it needs a measure of *how much* of the plume is blocked rather than merely whether
-  its axis is, which the single ray the damage pass casts does not give. Neither half rejects the layout,
-  which would turn a continuous quantity into a hard edge a mutation cannot cross, and the search wants a
-  gradient. That argument is about *obstruction* and does not reach the attachment rule above, which is
-  discrete however it is modelled: a mount is on the hull or it is not, and there is no gradient between.
-  Heat, mentioned when this was settled in direction, waits on there being a heat model to put it in.
-  The deadline for the rest is §7's evolution rather than any particular slice.
+- **How finely a plume should be sampled, and whether it carries heat.** Settled in shape: the flame is
+  three rays across the nozzle, each a third of the gas, which is the cheapest count that tells the middle
+  of a jet from its edges and is what gives a buried nozzle a thrust penalty to lose in thirds rather than
+  an on/off. Whether thirds are a fine enough gradient for §7's search to climb is a question for a
+  generation that actually evolves its engine placement; the count is one constant, and nothing but cost
+  argues against raising it. Heat was part of the answer when a plume's bite was first settled in
+  direction and is still owed, but it waits on there being a heat model to put it in rather than on
+  anything about exhaust.
 - **Whether a ship should manoeuvre to bring an engine to bear.** A thruster marked as a weapon fires when
   something worth burning is already behind it, and nothing turns the ship to put it there — so it is a
   weapon for what gets behind you rather than one you attack with. Aiming it is a genuinely different

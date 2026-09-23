@@ -3,7 +3,7 @@ import { subDesign, type DesignTurret, type ShipDesign } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
-import { Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
+import { PLUME_RAYS, Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
 import { Choice, look, lookFrom, score } from './targeting.js';
 import {
   atan2,
@@ -1386,11 +1386,10 @@ export class Ships {
       const bodyIdx = bodies.indexOf(this.bodyIds[i]!);
       if (bodyIdx < 0) continue;
       const design = this.designs[i]!;
-      const layout = this.layoutOf(i);
       const throttles = this.throttles[i]!;
 
       for (let t = 0; t < design.thrusters.length; t++) {
-        const force = throttles[t]! * layout.maxThrust[t]!;
+        const force = throttles[t]! * this.exhaustOf(design, bodyIdx, t);
         if (!(force > 0)) continue;
         this.plumes.burn(design, t, force, this.damage, bodies, bodyIdx, grid, this.hulls, dt);
       }
@@ -1623,16 +1622,26 @@ export class Ships {
     let firing = 0;
     for (let k = 0; k < armed.length; k++) {
       const t = armed[k]!;
-      // What damage has left of the engine, since an engine that cannot burn
+      // What the nozzle throws rather than what the ship gets — a buried engine
+      // has a full flame and no thrust, and it is the flame that burns — less
+      // whatever damage has taken off it, since an engine that cannot burn
       // cannot burn anybody.
-      const force = layout.maxThrust[t]!;
+      const force = this.exhaustOf(design, b, t);
       if (!(force > 0)) continue;
-      if (!this.plumes.cast(design, t, force, bodies, b, grid, this.hulls)) continue;
-      if (this.plumes.share < WEAPON_PLUME_SHARE) continue;
-      if (this.plumes.body === b) continue;
-      const other = this.shipAt(bodies, this.plumes.body);
-      if (other < 0 || this.derelict[other] === 1) continue;
-      if (this.team[other] === this.team[i] || this.isDisabled(other)) continue;
+      // Any ray will do: a hull off to one side of a nozzle is as much worth
+      // burning as one dead astern, and the rays exist precisely so that the
+      // flame's width counts.
+      let worth = false;
+      for (let ray = 0; ray < PLUME_RAYS && !worth; ray++) {
+        if (!this.plumes.cast(design, t, ray, force, bodies, b, grid, this.hulls)) continue;
+        if (this.plumes.share < WEAPON_PLUME_SHARE) continue;
+        if (this.plumes.body === b) continue;
+        const other = this.shipAt(bodies, this.plumes.body);
+        if (other < 0 || this.derelict[other] === 1) continue;
+        if (this.team[other] === this.team[i] || this.isDisabled(other)) continue;
+        worth = true;
+      }
+      if (!worth) continue;
       forced[t] = 1;
       firing++;
     }
@@ -2307,9 +2316,26 @@ export class Ships {
    * it is no longer capable of is the picture disagreeing with the burn.
    */
   throttleOf(i: number, thruster: number): number {
-    const rated = this.designs[i]!.thrusters[thruster]!.maxThrust;
-    if (!(rated > 0)) return 0;
-    return (this.throttles[i]![thruster]! * this.layoutOf(i).maxThrust[thruster]!) / rated;
+    const bodies = this.bodyStore;
+    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return this.throttles[i]![thruster]!;
+    const spec = this.designs[i]!.thrusters[thruster]!;
+    const left = this.damage.remaining(b, spec.module ?? -1, DamageEffect.Thrust);
+    return this.throttles[i]![thruster]! * left;
+  }
+
+  /**
+   * What one of this ship's engines is throwing out of its nozzle at full
+   * throttle, newtons — its rating, less what damage has taken off it.
+   *
+   * Deliberately not the layout's figure, which is what the *ship* gets: an
+   * engine firing into its own hull is throwing just as much gas as a clear
+   * one and simply getting nothing for it, so the flame it burns with is the
+   * rating and the thrust it flies on is not.
+   */
+  private exhaustOf(design: ShipDesign, bodyIndex: number, thruster: number): number {
+    const spec = design.thrusters[thruster]!;
+    return spec.maxThrust * this.damage.remaining(bodyIndex, spec.module ?? -1, DamageEffect.Thrust);
   }
 
   /** Seconds until a gun is loaded again. Diagnostic. */

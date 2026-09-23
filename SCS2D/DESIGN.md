@@ -89,9 +89,12 @@ inside any one file is not contiguous.
   **An engine is a weapon at close quarters**: a plume reaches back as far as the thrust it is carrying,
   and whatever stands in it burns — its own hull if a nozzle was pointed into one, anything that drifts
   behind a burning stern if not. It is the same flame the renderer draws, so what is on the screen is what
-  is doing the damage. An engine can also be *meant* as one: a thruster ticked as a weapon in the editor
-  lights up by itself when an enemy is close enough behind it to take a real share of the flame, and the
-  hull pays for it in the push, which the rest of the layout spends the step cancelling.
+  is doing the damage, and it shoves as well as burns. An engine can also be *meant* as one: a thruster
+  ticked as a weapon in the editor lights up by itself when an enemy is close enough behind it to take a
+  real share of the flame, and the hull pays for it in the push, which the rest of the layout spends the
+  step cancelling. An engine that fires part of its exhaust into its own ship gets no thrust for that
+  part, so a buried nozzle is a weak engine rather than a free one, and the editor says so beside the
+  engine that is paying.
   **Hulls come apart, and it takes a blow to do it.** A ship is held together by welds derived from where
   its modules touch, each rated by its section. Damage decides how much of a weld is left; what spends it
   is the impulse that has to cross it, so a hit on an outlying module takes it off and the same hit
@@ -348,13 +351,23 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   through a ship. Half to each hull, which needs no rule about which is the harder: a module's capacity
   goes with its mass, so the same energy that dents a capital ship destroys the fighter that flew into
   it. That is what makes §3's strike craft literal — a torpedo is a fighter that crashes into things.
-- **An engine burns what it is pointed at.** A plume reaches back from the nozzle as far as the thrust
-  being produced, and the first module standing in it takes the engine's power — at full strength against
-  the nozzle, falling off to nothing at the flame's end. What is in the way on the engine's *own* hull
-  never changes, so it is worked out when the design is compiled; anything else is whatever the world has
-  drifted into the exhaust. So an engine firing into its own ship eats it, and a ship that parks behind
-  another's stern is burnt by it, which makes where a nozzle points a thing worth aiming. §12 keeps the
-  other half open: thrust is still produced in full while the flame is buried.
+- **An engine burns and shoves what it is pointed at.** A plume reaches back from the nozzle as far as the
+  thrust being produced, and the first thing standing in it takes the engine's power — at full strength
+  against the nozzle, falling off to nothing at the flame's end — and the exhaust's momentum with it, so a
+  plume on a hull's flank spins it as well as drives it away. The flame is sampled by **three rays across
+  the nozzle**, each carrying a third of the gas and reaching as far as the drawn plume does at its own
+  offset, which is a third of the way out for the two at the edges. So a plume is wide at the nozzle and a
+  thin core further out, and something beside the axis is burnt rather than missed.
+- **An engine gets no thrust for exhaust it fires into itself.** A ray that runs into the ship's own hull
+  hands its momentum back to the hull it was pushing: the push on the blocked module and the thrust off
+  the nozzle are the same newton-seconds with opposite signs, so that third of the engine is not thrust at
+  all. A nozzle's own obstruction is fixed geometry — damage stops a module working without moving it — so
+  it is worked out when the design is compiled, and what comes out is the fraction of the exhaust that
+  escapes. **`ThrusterLayout` flies the engine at that fraction**, so the allocator, the manoeuvring
+  envelope and everything the editor claims about a ship all read the honest figure without knowing why.
+  A blocked ray still *burns* what it is buried in; what it no longer does is push. That is what makes a
+  buried nozzle cost something instead of being free, and it is why the plume the renderer draws is the
+  rating rather than the delivery: the gas is thrown either way.
 - **An engine can be pointed at things on purpose.** A thruster marked `weapon` in the blueprint burns
   flat out on its own account whenever an enemy is in the half of its plume that still delivers real
   power, whether or not the pilot wanted thrust — and the ship wears the push, which is what the weapon

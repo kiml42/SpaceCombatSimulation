@@ -1,8 +1,8 @@
 import type { Bodies } from './bodies.js';
 import type { ShipDesign } from './blueprint.js';
 import type { Damage } from './damage.js';
-import type { Hulls } from './hull.js';
-import { cos, sin } from './math.js';
+import { HullPath, modulesAlong, type Boxes, type Hulls } from './hull.js';
+import { cos, sin, sqrt } from './math.js';
 import { RayHit, type SpatialGrid } from './spatialGrid.js';
 
 /**
@@ -22,10 +22,14 @@ import { RayHit, type SpatialGrid } from './spatialGrid.js';
  * that gets behind one as to the ship carrying it, so where an engine points
  * is something a designer can aim and an attacker can be caught by.
  *
- * **Only half of ROADMAP.md §12's answer to the buried nozzle.** A blocked
- * engine still produces its full thrust while it eats what it is pointed at;
- * losing thrust in proportion to how much of the exhaust is obstructed needs a
- * measure of *how much*, which the single axial ray below does not give.
+ * **A buried nozzle also costs thrust.** The flame is sampled by three rays
+ * across the exit, and a ray that runs into the ship's own hull hands its
+ * momentum back to the hull it was pushing — the push on the blocked module
+ * and the thrust off the nozzle are the same newton-seconds with opposite
+ * signs, so that third of the engine is not thrust at all. What is in the way
+ * on its own ship is fixed geometry, so it is worked out once when the design
+ * is compiled and lands on `ThrusterSpec.escaping`, which `ThrusterLayout`
+ * flies the engine at.
  *
  * **The plume the simulation burns with is the plume the renderer draws** —
  * both take their length from `plumeReach`, so what is on the screen is what
@@ -58,18 +62,128 @@ export const PLUME_THRUST_PER_AREA = 0.5e4;
  * this is chosen for the timescale and not from the physics. At this figure a
  * full-throttle plume reaches thirty metres and destroys a square structure
  * module as wide as the engine in four to seven seconds at the nozzle, or
- * roughly twice that halfway out. ROADMAP.md §12 keeps it open with the rest
- * of the dials.
+ * roughly twice that halfway out, and in thirds as the rays land. ROADMAP.md
+ * §12 keeps it open with the rest of the dials.
  */
 export const PLUME_POWER_PER_NEWTON = 4;
 
 /**
- * How far a plume reaches from the nozzle, metres. Zero for an engine that is
+ * How far a plume reaches along its axis, metres. Zero for an engine that is
  * not burning.
  */
 export function plumeReach(force: number, exitWidth: number): number {
   if (!(force > 0) || !(exitWidth > 0)) return 0;
   return force / (exitWidth * PLUME_THRUST_PER_AREA);
+}
+
+/**
+ * How many rays a plume is sampled by, across the nozzle.
+ *
+ * One ray down the axis says nothing about a flame's *width*: a hull off to
+ * one side of a nozzle would be missed however close it was, and a nozzle
+ * blocked only at its edge would read as perfectly clear. Three is the
+ * cheapest count that separates the middle of the jet from its edges, which is
+ * the distinction the geometry turns on — and the one that gives a blocked
+ * nozzle a gradient to lose thrust along rather than an on/off.
+ */
+export const PLUME_RAYS = 3;
+
+/**
+ * Where each ray leaves the nozzle, as a fraction of the exit width from the
+ * axis.
+ *
+ * The centroids of three equal bands across the exit, so each ray stands for
+ * the same share of the gas and therefore the same share of the thrust and the
+ * power. Nothing is weighted, because nothing needs to be.
+ */
+const RAY_OFFSET: readonly number[] = [-1 / 3, 0, 1 / 3];
+
+/**
+ * How far one ray reaches, given the reach along the axis.
+ *
+ * **Derived from the drawn plume rather than chosen**, so the picture and the
+ * burn cannot part company: the flame is a triangle as wide as the exit,
+ * narrowing to a point at `reach`, so at an offset `y` from the axis it ends
+ * where the triangle's half-width has shrunk to `y` — a third of the way out
+ * for the rays at a third of the width. A plume is therefore wide at the
+ * nozzle and a thin core further out, which is what a wedge-shaped flame
+ * should do and what a single ray could not express.
+ */
+export function rayReach(ray: number, reach: number): number {
+  const offset = RAY_OFFSET[ray];
+  if (offset === undefined) return 0;
+  const edge = 1 - 2 * (offset < 0 ? -offset : offset);
+  return edge > 0 ? reach * edge : 0;
+}
+
+/** Where a ray leaves the nozzle, in metres across it from the axis. */
+export function rayOffset(ray: number, exitWidth: number): number {
+  return (RAY_OFFSET[ray] ?? 0) * exitWidth;
+}
+
+/**
+ * What one engine's exhaust runs into on its own ship, ray by ray, and what
+ * share of it gets out.
+ *
+ * Pure geometry over the boxes a ship is built from, so the compiler and the
+ * editor can ask the same question of the same layout and get the same answer
+ * — which is what stops a panel claiming a thrust the battle will not deliver.
+ * `blocks` and `blockedAt` are filled with one entry per ray; the return is the
+ * fraction of the exhaust that leaves the ship, in `PLUME_RAYS`ths.
+ *
+ * A ray stopped *beyond* the flame's own end does not count: the gas has spread
+ * to nothing by then, and there is no momentum left to hand back.
+ */
+export function exhaustObstruction(
+  boxes: Boxes,
+  module: number,
+  /** Thrust the nozzle throws at full throttle, newtons. */
+  rating: number,
+  path: HullPath,
+  blocks: number[],
+  blockedAt: number[],
+): number {
+  blocks.length = 0;
+  blockedAt.length = 0;
+
+  const engine = boxes.modules[module];
+  if (engine === undefined) return 1;
+  const width = engine.spec.width;
+  const reach = plumeReach(rating, width);
+  const dirX = cos(engine.angle);
+  const dirY = sin(engine.angle);
+  // The exhaust leaves by the face opposite the one the engine pushes from.
+  const rootX = engine.x - dirX * engine.spec.length * 0.5;
+  const rootY = engine.y - dirY * engine.spec.length * 0.5;
+  // Far enough to leave the ship by any route through it.
+  let far = 0;
+  for (const m of boxes.modules) {
+    const span = m.x * m.x + m.y * m.y;
+    if (span > far) far = span;
+  }
+  far = sqrt(far) * 2 + 1;
+
+  let escaped = 0;
+  for (let ray = 0; ray < PLUME_RAYS; ray++) {
+    // Across the nozzle, which is the exhaust direction turned a quarter.
+    const across = rayOffset(ray, width);
+    const x = rootX - dirY * across;
+    const y = rootY + dirX * across;
+    modulesAlong(boxes, x, y, x - dirX * far, y - dirY * far, path);
+
+    let hit = -1;
+    let at = Infinity;
+    for (let k = 0; k < path.count; k++) {
+      if (path.module[k]! === module) continue;
+      hit = path.module[k]!;
+      at = path.entry[k]!;
+      break;
+    }
+    blocks.push(hit);
+    blockedAt.push(at);
+    if (!(at < rayReach(ray, reach))) escaped++;
+  }
+  return escaped / PLUME_RAYS;
 }
 
 /**
@@ -94,30 +208,41 @@ export const WEAPON_PLUME_SHARE = 0.5;
 export class Plumes {
   private readonly hit = new RayHit();
 
-  /** Body the last `cast` landed on, or -1 if the flame met nothing. */
+  /** Body the last `cast` landed on, or -1 if that ray met nothing. */
   body = -1;
   /** Module on that body, or -1 where the cast met a body with no hull. */
   module = -1;
-  /** Fraction of the engine's power landing there, 1 at the nozzle and 0 at the flame's end. */
+  /**
+   * Fraction of *one ray's* power landing there — 1 at the nozzle and 0 at
+   * that ray's own end. A ray carries a third of the engine, so the share of
+   * the whole plume is this over `PLUME_RAYS`.
+   */
   share = 0;
+  /** Where it landed, world frame, which is where its push acts. */
+  x = 0;
+  y = 0;
+  /** The way the exhaust is travelling, world frame, unit. */
+  dirX = 0;
+  dirY = 0;
 
   /**
-   * Where one engine's plume lands if it burns at `force`, filled into `body`,
-   * `module` and `share`. Returns false if the flame reaches nothing.
+   * Where one ray of one engine's plume lands if it burns at `force`, filled
+   * into `body`, `module`, `share` and the impact. Returns false if that ray
+   * reaches nothing.
+   *
+   * **A ray the ship's own hull blocks never leaves it**, so it is not cast at
+   * all: whatever is beyond is in the hull's shadow, and hulls are solid, so
+   * nothing can be in front of it either. That is also what makes the pass
+   * cheap on a ship whose nozzles are buried — the rays that would cost a cast
+   * are exactly the ones that cannot reach anybody. Such a ray still *burns*
+   * what it is buried in; what it does not do is push anything, because its
+   * momentum has already been counted against the engine's thrust
+   * (`ThrusterSpec.escaping`).
    *
    * **The first thing in the way takes all of it and shields everything
    * behind**, spent or not: a plume is gas, and a wrecked module is still a
    * wall of metal to it. That is how a shell and a ram see a hull, and unlike
    * a beam, which is stopped only by matter it can still boil away.
-   *
-   * What lands falls off linearly to nothing at the plume's own reach, so an
-   * obstruction is cheap at the tip of the flame and ruinous at the throat.
-   * The cast is a single ray along the axis, so what is reached is what sits
-   * *behind* the nozzle rather than everything the triangle covers — the hot
-   * core of the plume, which is where its power is anyway.
-   *
-   * What the engine's own hull puts in the way was worked out when the design
-   * was compiled, so the only cast here is against everything else.
    *
    * Held rather than returned, so that a caller deciding whether to *fire* can
    * ask the same question a burn does and get the same answer.
@@ -125,6 +250,7 @@ export class Plumes {
   cast(
     design: ShipDesign,
     thruster: number,
+    ray: number,
     /** Thrust the engine is producing, or would produce, newtons. */
     force: number,
     bodies: Bodies,
@@ -141,55 +267,69 @@ export class Plumes {
     const engine = design.modules[spec.module ?? -1];
     if (engine === undefined) return false;
 
-    const reach = plumeReach(force, engine.spec.width);
+    const width = engine.spec.width;
+    const reach = rayReach(ray, plumeReach(force, width));
     if (!(reach > 0)) return false;
 
-    // Its own ship first, since that answer is already in hand.
-    let distance = reach;
-    let victimBody = -1;
-    let victimModule = -1;
-    const blockedAt = spec.blockedAt ?? Infinity;
-    if (blockedAt < reach) {
-      distance = blockedAt;
-      victimBody = bodyIndex;
-      victimModule = spec.blocks ?? -1;
-    }
+    // What this ray runs into on its own ship, worked out when the design was
+    // compiled. Inside the flame, it is the end of the ray.
+    const blockedAt = spec.blockedAt?.[ray] ?? Infinity;
+    const blocked = blockedAt < reach;
 
-    // Then everything else, out only as far as its own hull lets the flame
-    // get — so the nearer of the two wins without comparing them.
-    //
-    // The exhaust leaves by the face opposite the one the engine pushes from,
-    // and the world is where everything but this ship lives.
     const angle = bodies.angle[bodyIndex]!;
     const c = cos(angle);
     const s = sin(angle);
-    const nozzleX = spec.x - spec.dirX * engine.spec.length * 0.5;
-    const nozzleY = spec.y - spec.dirY * engine.spec.length * 0.5;
-    const x0 = bodies.x[bodyIndex]! + nozzleX * c - nozzleY * s;
-    const y0 = bodies.y[bodyIndex]! + nozzleX * s + nozzleY * c;
+    const across = rayOffset(ray, width);
+    const rootX = spec.x - spec.dirX * engine.spec.length * 0.5 - spec.dirY * across;
+    const rootY = spec.y - spec.dirY * engine.spec.length * 0.5 + spec.dirX * across;
     const ux = -(spec.dirX * c - spec.dirY * s);
     const uy = -(spec.dirX * s + spec.dirY * c);
-    const dx = ux * distance;
-    const dy = uy * distance;
-    const hit = this.hit;
-    if (distance > 0 && grid.raycast(bodies, x0, y0, x0 + dx, y0 + dy, hit, bodyIndex, hulls)) {
-      distance *= hit.t;
+    const x0 = bodies.x[bodyIndex]! + rootX * c - rootY * s;
+    const y0 = bodies.y[bodyIndex]! + rootX * s + rootY * c;
+
+    let distance: number;
+    let victimBody: number;
+    let victimModule: number;
+    if (blocked) {
+      distance = blockedAt;
+      victimBody = bodyIndex;
+      victimModule = spec.blocks?.[ray] ?? -1;
+    } else {
+      const dx = ux * reach;
+      const dy = uy * reach;
+      const hit = this.hit;
+      if (!grid.raycast(bodies, x0, y0, x0 + dx, y0 + dy, hit, bodyIndex, hulls)) return false;
+      distance = reach * hit.t;
       victimBody = hit.bodyIndex;
       // A body with no hull to cast against has no module to burn, and
       // `Damage.absorb` says so by refusing the index.
       victimModule = hulls.describe(bodies, victimBody, x0, y0, dx, dy) ? hulls.module : -1;
     }
 
-    if (victimBody < 0) return false;
     const share = 1 - distance / reach;
     if (!(share > 0)) return false;
     this.body = victimBody;
     this.module = victimModule;
     this.share = share;
+    this.x = x0 + ux * distance;
+    this.y = y0 + uy * distance;
+    this.dirX = ux;
+    this.dirY = uy;
     return true;
   }
 
-  /** Burn whatever one of a ship's engines is playing on, for one step. */
+  /**
+   * Burn and shove whatever every ray of one engine's plume is playing on, for
+   * one step.
+   *
+   * **The push is the exhaust's momentum arriving**, so it acts along the
+   * exhaust and at the point it lands — which means a plume on a hull's flank
+   * spins it as well as pushing it, and a ship can be shoved off a firing
+   * solution by an engine rather than shot off one. A ray blocked by its own
+   * ship pushes nothing: that momentum was taken off the engine's thrust when
+   * the design was compiled, so paying it again here would be the ship pushing
+   * itself.
+   */
   burn(
     design: ShipDesign,
     thruster: number,
@@ -201,8 +341,42 @@ export class Plumes {
     hulls: Hulls,
     dt: number,
   ): void {
-    if (!(dt > 0)) return;
-    if (!this.cast(design, thruster, force, bodies, bodyIndex, grid, hulls)) return;
-    damage.absorb(this.body, this.module, PLUME_POWER_PER_NEWTON * force * this.share * dt);
+    if (!(dt > 0) || !(force > 0)) return;
+    // A ray is a third of the engine: a third of the gas, so a third of the
+    // power and a third of the momentum.
+    const perRay = force / PLUME_RAYS;
+    for (let ray = 0; ray < PLUME_RAYS; ray++) {
+      if (!this.cast(design, thruster, ray, force, bodies, bodyIndex, grid, hulls)) continue;
+      damage.absorb(this.body, this.module, PLUME_POWER_PER_NEWTON * perRay * this.share * dt);
+      if (this.body === bodyIndex) continue;
+      const impulse = perRay * this.share * dt;
+      shove(bodies, this.body, this.dirX * impulse, this.dirY * impulse, this.x, this.y);
+    }
   }
+}
+
+/**
+ * Push a body at a world-frame point, as an impulse.
+ *
+ * The same thing a round does when it stops in a hull, applied to velocities
+ * rather than through the force providers because this happens after the world
+ * has stepped.
+ */
+function shove(
+  bodies: Bodies,
+  body: number,
+  jx: number,
+  jy: number,
+  px: number,
+  py: number,
+): void {
+  const mass = bodies.mass[body]!;
+  if (!(mass > 0)) return;
+  bodies.vx[body] = bodies.vx[body]! + jx / mass;
+  bodies.vy[body] = bodies.vy[body]! + jy / mass;
+  const inertia = bodies.inertia[body]!;
+  if (!(inertia > 0)) return;
+  const rx = px - bodies.x[body]!;
+  const ry = py - bodies.y[body]!;
+  bodies.angularVel[body] = bodies.angularVel[body]! + (rx * jy - ry * jx) / inertia;
 }
