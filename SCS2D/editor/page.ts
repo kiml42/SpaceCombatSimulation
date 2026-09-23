@@ -525,7 +525,21 @@ export function startEditor(): void {
       else if (key === 'length' || key === 'width') input.value = String(spec[key]);
       else input.value = String(moduleField(spec, key as 'angle' | 'reinforcement' | 'barrels'));
     }
-    el<HTMLElement>('barrelsRow').hidden = spec.kind !== 'turret';
+    // Offered on a beam mount as well as a gun. More of them is worse for a
+    // beam — the aperture is divided between them and only one fires at a
+    // time — but worse is a thing somebody may want: a bank of emitters is a
+    // look, and the editor's job is to say what a layout costs rather than to
+    // refuse the ones it would not have chosen.
+    //
+    // One field, two words for it: a beam has no barrel, it has an aperture
+    // the light leaves by, and calling that a barrel on the one panel that is
+    // supposed to explain a mount would be the tool teaching the wrong thing
+    // about it. The blueprint's own key stays `barrels` whatever it is
+    // labelled, since renaming a field in the format would cost every file
+    // ever saved.
+    el<HTMLElement>('barrelsRow').hidden = spec.kind !== 'turret' && spec.kind !== 'beamTurret';
+    el<HTMLElement>('barrelsLabel').textContent =
+      spec.kind === 'beamTurret' ? 'emitters' : 'barrels';
 
     const origin = doc.selectedOrigin();
     const shared = origin === null ? 0 : unlinkable(doc.blueprint, origin);
