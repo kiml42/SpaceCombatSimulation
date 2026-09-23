@@ -226,11 +226,15 @@ describe('the evolution page in a browser', () => {
     // afterwards while getting better.
     await page.selectOption('#benchmark', 'Dinky');
     await page.click('#measure');
+    // Waited on the line rather than the button, because the line is what
+    // this asserts about — and a wait on something else is a wait that passes
+    // while the thing under test has not happened yet.
     await page.waitForFunction(
-      () => document.getElementById('measure')?.hasAttribute('disabled') === false,
+      () => /beat it/.test(document.getElementById('yardstickLine')?.textContent ?? ''),
       undefined,
       { timeout: 120_000 },
     );
+    expect(await page.getAttribute('#measure', 'disabled')).toBeNull();
     const line = (await page.textContent('#yardstickLine')) ?? '';
     expect(line).toMatch(/generation 1 scored -?\d/);
     expect(line).toMatch(/beat it/);

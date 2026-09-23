@@ -738,6 +738,10 @@ export function startEvolution(): void {
       if (yardstick.done) {
         measured = yardstick.report();
         yardstick = null;
+        // Said before the button comes back, not on the next sample: a button
+        // offering another measurement beside a line still saying "measuring"
+        // is the page contradicting itself, however briefly.
+        reportYardstick();
         measureButton.disabled = false;
       }
     }
