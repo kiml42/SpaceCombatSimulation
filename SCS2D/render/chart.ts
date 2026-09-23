@@ -34,13 +34,69 @@ function nice(rough: number): number {
   return step * 10;
 }
 
+/**
+ * Where the chart put its plot, so a pointer over it can be read back.
+ *
+ * Returned rather than recomputed by the caller, because a second copy of the
+ * padding and the point spacing is a second copy that can disagree — and the
+ * way it would disagree is a tooltip naming the generation next to the one
+ * under the cursor, which looks like nothing at all until somebody trusts it.
+ */
+export interface ChartLayout {
+  /** The plot rectangle, in CSS pixels from the canvas's top left. */
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  /** Points along it. Zero when there is nothing to draw. */
+  readonly count: number;
+}
+
+/** What to mark on the chart: what the pointer is over, and what is selected. */
+export interface ChartMarks {
+  readonly hover?: number | undefined;
+  readonly picked?: number | undefined;
+}
+
+const EMPTY: ChartLayout = { x: 0, y: 0, width: 0, height: 0, count: 0 };
+
+/** Where one point sits along the plot, in CSS pixels. */
+export function xOf(layout: ChartLayout, index: number): number {
+  if (layout.count <= 1) return layout.x + layout.width / 2;
+  return layout.x + (index / (layout.count - 1)) * layout.width;
+}
+
+/**
+ * Which point a pointer is nearest, or null when there is nothing under it.
+ *
+ * Nearest rather than "within a few pixels of", because a run of four hundred
+ * generations puts its points closer together than a pointer can be aimed —
+ * what somebody means by pointing at the chart is the generation *about*
+ * there, and every position between two points belongs to one of them.
+ *
+ * `clamp` is for a drag rather than a hover: while seeking, a pointer beyond
+ * either end of the plot means that end rather than nothing.
+ */
+export function indexAt(layout: ChartLayout, xCss: number, clamp = false): number | null {
+  if (layout.count === 0) return null;
+  if (layout.count === 1) return 0;
+  const along = (xCss - layout.x) / layout.width;
+  // Off the plot is nothing to point *at*, but something to drag *to*: a
+  // pointer that has run past the end of the run while seeking means the end
+  // of the run, not that the seek has stopped.
+  if (!clamp && (along < -0.02 || along > 1.02)) return null;
+  const index = Math.round(along * (layout.count - 1));
+  return Math.max(0, Math.min(layout.count - 1, index));
+}
+
 export function drawChart(
   ctx: CanvasRenderingContext2D,
   series: readonly Series[],
   widthPx: number,
   heightPx: number,
   ratio: number,
-): void {
+  marks: ChartMarks = {},
+): ChartLayout {
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   const width = widthPx / ratio;
   const height = heightPx / ratio;
@@ -71,8 +127,9 @@ export function drawChart(
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('nothing fought yet', width / 2, height / 2);
-    return;
+    return EMPTY;
   }
+  const layout: ChartLayout = { ...plot, count };
 
   // Always include zero: these are scores, and how far above nothing a run has
   // got is the thing being looked at.
@@ -106,6 +163,21 @@ export function drawChart(
   ctx.fillText('generation 1', plot.x + 14, plot.y + plot.height + 4);
   if (count > 1) ctx.fillText(String(count), plot.x + plot.width - 6, plot.y + plot.height + 4);
 
+  // Under the lines, so a rule never hides the value it is pointing at.
+  for (const [at, colour] of [
+    [marks.picked, '#31415a'],
+    [marks.hover, '#5d6f85'],
+  ] as const) {
+    if (at === undefined || at < 0 || at >= count) continue;
+    const x = Math.round(xOf(layout, at)) + 0.5;
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, plot.y);
+    ctx.lineTo(x, plot.y + plot.height);
+    ctx.stroke();
+  }
+
   ctx.lineWidth = 1.5;
   ctx.lineJoin = 'round';
   for (const line of series) {
@@ -126,4 +198,19 @@ export function drawChart(
     ctx.stroke();
   }
   ctx.setLineDash([]);
+
+  // A dot per series on the point being pointed at, so the reading beside the
+  // chart and the place on it are visibly the same generation.
+  if (marks.hover !== undefined && marks.hover >= 0 && marks.hover < count) {
+    for (const line of series) {
+      const value = line.values[marks.hover];
+      if (value === undefined || !Number.isFinite(value)) continue;
+      ctx.fillStyle = line.colour;
+      ctx.beginPath();
+      ctx.arc(atX(marks.hover), atY(value), 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  return layout;
 }

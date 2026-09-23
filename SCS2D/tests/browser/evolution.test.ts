@@ -221,6 +221,70 @@ describe('the evolution page in a browser', () => {
     }
   }, 60_000);
 
+  it('reads a generation off the chart, and selects it when clicked', async () => {
+    // The chart is the only place a run's whole history is visible, so it is
+    // the natural way in to a generation — pointing at one says what it
+    // scored, and clicking it takes the rest of the page there.
+    const box = await page.locator('#chart').boundingBox();
+    if (box === null) throw new Error('no chart on the page');
+    // Well inside the plot, whose left edge is the y-axis labels' width in.
+    await page.mouse.move(box.x + box.width * 0.85, box.y + box.height / 2);
+    await page.waitForFunction(() => document.getElementById('chartTip')?.hidden === false);
+    expect(await page.textContent('#chartTip')).toMatch(/^generation \d+$/);
+    // The legend gains a reading per line while a generation is under it.
+    expect(await page.$$eval('#legend b', (all) => all.length)).toBeGreaterThan(0);
+
+    const named = /generation (\d+)/.exec((await page.textContent('#chartTip')) ?? '');
+    await page.mouse.click(box.x + box.width * 0.85, box.y + box.height / 2);
+    await page.waitForTimeout(300);
+    expect(await page.textContent('#shownGeneration')).toBe(named?.[1]);
+    // Pinned to that generation now, so the way back to the newest is offered.
+    expect(await page.getAttribute('#latest', 'disabled')).toBeNull();
+
+    // And nothing under the pointer once it leaves.
+    await page.mouse.move(box.x + box.width / 2, box.y - 40);
+    await page.waitForFunction(() => document.getElementById('chartTip')?.hidden === true);
+    expect(problems).toEqual([]);
+  }, 60_000);
+
+  it('seeks through the generations while the pointer is held down', async () => {
+    // Dragging across the chart is meant to read as the ships changing over
+    // the run, so the panel has to follow the pointer rather than wait for it
+    // to be let go.
+    const box = await page.locator('#chart').boundingBox();
+    if (box === null) throw new Error('no chart on the page');
+    const y = box.y + box.height / 2;
+    await page.mouse.move(box.x + box.width * 0.9, y);
+    await page.mouse.down();
+    await page.waitForTimeout(200);
+    const late = await page.textContent('#shownGeneration');
+
+    // Still held, dragged back to the start of the run.
+    await page.mouse.move(box.x + box.width * 0.2, y, { steps: 8 });
+    await page.waitForTimeout(200);
+    const early = await page.textContent('#shownGeneration');
+    expect(Number(early)).toBeLessThan(Number(late));
+
+    // Past the left-hand end, which means the first generation rather than
+    // the seek stopping where the canvas does.
+    await page.mouse.move(box.x - 200, y, { steps: 4 });
+    await page.waitForTimeout(200);
+    expect(await page.textContent('#shownGeneration')).toBe('1');
+    await page.mouse.up();
+
+    // Let go, and the panel stays where it was left.
+    await page.waitForTimeout(200);
+    expect(await page.textContent('#shownGeneration')).toBe('1');
+
+    // "Latest" is the way back to the newest generation, and to following it.
+    await page.click('#latest');
+    await page.waitForTimeout(300);
+    expect(await page.textContent('#shownGeneration')).not.toBe('1');
+    // Following the newest again, so there is nowhere to go back to.
+    expect(await page.getAttribute('#latest', 'disabled')).not.toBeNull();
+    expect(problems).toEqual([]);
+  }, 60_000);
+
   it('shows the generation as ships rather than as a battle', async () => {
     // A run fights hundreds of times faster than real time, so a window on
     // the match in progress is a picture of nothing, refreshed. What the

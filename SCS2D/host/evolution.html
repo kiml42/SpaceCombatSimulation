@@ -72,7 +72,25 @@
       #barFill { height: 100%; width: 0; background: #7fd6a0; transition: width 0.1s linear; }
       #readout { color: #7f93aa; margin: 0 0 0.6rem; }
       #chart { width: 100%; height: 170px; display: block; border-radius: 4px; }
+      #chartWrap { position: relative; }
+      #chart { cursor: crosshair; }
+      #chartTip {
+        position: absolute;
+        top: 100%;
+        transform: translateX(-50%);
+        margin-top: 1px;
+        padding: 0 0.35rem;
+        background: #1a2434;
+        border: 1px solid #2b3a50;
+        border-radius: 3px;
+        color: #dbe6f2;
+        white-space: nowrap;
+        pointer-events: none;
+        z-index: 1;
+      }
       #legend { display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 0.35rem 0 0; color: #7f93aa; }
+      #legend b { color: #e6edf5; font-weight: 600; margin-left: 0.25rem; }
+      #fighting { color: #7fd6a0; text-transform: none; letter-spacing: 0; }
       #legend span::before {
         content: '';
         display: inline-block;
@@ -216,7 +234,10 @@
         <div style="padding: 0.7rem 0.9rem 0">
           <div id="bar"><div id="barFill"></div></div>
           <p id="readout">Pick founders and press Start.</p>
-          <canvas id="chart"></canvas>
+          <div id="chartWrap">
+            <canvas id="chart"></canvas>
+            <span id="chartTip" hidden></span>
+          </div>
           <p id="legend">
             <span style="color: #e6edf5">best</span>
             <span style="color: #7fa8e0">mean</span>
@@ -255,10 +276,9 @@
       </section>
       <aside id="results">
         <section>
-          <h2>Generation <span id="shownGeneration">—</span></h2>
-          <div class="field">
-            <label for="generation">showing</label>
-            <select id="generation"></select>
+          <h2>Generation <span id="shownGeneration">—</span><span id="fighting"></span></h2>
+          <div class="buttons">
+            <button id="latest" title="Follow the newest generation again">Latest</button>
           </div>
           <table>
             <thead>
