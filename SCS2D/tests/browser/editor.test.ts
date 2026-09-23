@@ -614,11 +614,36 @@ describe('the editor in a browser', () => {
     await page.selectOption('#ship', 'Corvette');
     await page.click('[data-add="turret"]');
     // The new module lands at the middle of the view, which is inside the
-    // hull — so the layout is invalid, and saving it is refused until it is not.
-    expect(await page.isDisabled('#saveShip')).toBe(true);
+    // hull — so the layout is invalid and the panel says so. It is still a
+    // layout that can be saved and opened again: work in progress is the
+    // normal state of one, and a ship that cannot be reopened cannot be fixed.
     expect(await page.textContent('#problems')).toMatch(/problem/);
+    expect(await page.isDisabled('#saveShip')).toBe(false);
 
     await page.click('#undo');
-    expect(await page.isDisabled('#saveShip')).toBe(false);
+    expect(await page.textContent('#problems')).toMatch(/would fly/);
+  });
+
+  it('opens a saved ship that breaks the design rules, rather than refusing it', async () => {
+    // The layout a player left half-finished, or one an older version of the
+    // format wrote: it has to come back up with its faults named, since the
+    // editor is the only place they can be put right.
+    await page.evaluate(() => {
+      const broken = {
+        formatVersion: 1,
+        name: 'Adrift',
+        modules: [
+          { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+          { kind: 'thruster', x: -20, y: 0, angle: 0, length: 3, width: 3 },
+        ],
+      };
+      window.localStorage.setItem('scs2d.blueprint.Adrift', JSON.stringify(broken));
+    });
+    await page.reload();
+    await page.selectOption('#ship', 'Adrift');
+    expect(await page.textContent('#problems')).toMatch(/no structure to push against/);
+    // Drawn, not merely complained about: the ship is on the canvas to drag.
+    expect(await page.textContent('#stats')).toMatch(/Modules/);
+    await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Adrift'));
   });
 });

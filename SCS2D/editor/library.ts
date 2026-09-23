@@ -94,8 +94,11 @@ export class Library {
    * A saved layout goes through `parseBlueprint` exactly as a stranger's file
    * does. Browser storage is not a trusted store — it holds whatever the last
    * version of the format wrote, and whatever anyone typed into a console —
-   * and a layout that fails to parse is reported as a broken file rather than
-   * allowed to become a broken ship.
+   * so a file that cannot be read at all is thrown on rather than guessed at.
+   *
+   * A layout that *reads* but would not fly comes back like any other, faults
+   * and all: the editor is where such a ship is put right, and it names what
+   * is wrong with it in the problems panel.
    */
   load(name: string): Blueprint | null {
     const raw = this.store.getItem(PREFIX + name);

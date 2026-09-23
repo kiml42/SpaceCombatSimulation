@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BLUEPRINT_FORMAT_VERSION,
   blueprintFileProblem,
+  blueprintProblem,
   degreesToRadians,
   expandBlueprint,
   math,
@@ -147,25 +148,29 @@ describe('rejecting a file that arrived from somewhere else', () => {
       .toMatch(/kind must be one of/);
   });
 
-  it('holds a loaded ship to the same geometry rules as an authored one', () => {
-    // Delegated to blueprintProblem rather than restated, so there is one
-    // definition of a valid ship and not two that can drift apart.
-    expect(blueprintFileProblem(file({ modules: [] }))).toMatch(/at least one module/);
-    expect(
-      blueprintFileProblem(
-        file({
-          modules: [
-            { kind: 'structure', x: 0, y: 0, length: 10, width: 4 },
-            { kind: 'structure', x: 1, y: 0, length: 10, width: 4 },
-          ],
-        }),
-      ),
-    ).toMatch(/overlap/);
-    expect(
-      blueprintFileProblem(
-        file({ modules: [{ kind: 'turret', x: 0, y: 0, length: 8, width: 6, barrels: 2.5 }] }),
-      ),
-    ).toMatch(/whole number/);
+  it('reads a file whose layout breaks the design rules, and leaves them to be reported', () => {
+    // Readability and validity are different questions. A file naming an
+    // overlapping hull or a fractional barrel count says exactly what it
+    // means, so it parses; `blueprintProblem` is what says it would not fly,
+    // and an editor that could not open one could not put it right.
+    const overlapping = file({
+      modules: [
+        { kind: 'structure', x: 0, y: 0, length: 10, width: 4 },
+        { kind: 'structure', x: 1, y: 0, length: 10, width: 4 },
+      ],
+    });
+    expect(blueprintFileProblem(overlapping)).toBeNull();
+    expect(blueprintProblem(parseBlueprint(overlapping))).toMatch(/overlap/);
+
+    const halfBarrelled = file({
+      modules: [{ kind: 'turret', x: 0, y: 0, length: 8, width: 6, barrels: 2.5 }],
+    });
+    expect(blueprintFileProblem(halfBarrelled)).toBeNull();
+    expect(blueprintProblem(parseBlueprint(halfBarrelled))).toMatch(/whole number/);
+
+    const empty = file({ modules: [] });
+    expect(blueprintFileProblem(empty)).toBeNull();
+    expect(blueprintProblem(parseBlueprint(empty))).toMatch(/at least one module/);
   });
 
   it('refuses a malformed repeat or step', () => {
