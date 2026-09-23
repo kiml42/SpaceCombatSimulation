@@ -576,6 +576,11 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   - **The achievable (Fx, Fy, τ) set is a 3D polytope that can be drawn for the player.** For a game
     whose depth is ship design, showing what a thruster layout actually bought is a headline feature.
     In 3D the envelope is 6-dimensional and undisplayable.
+  - **No two thrusters that undo each other ever burn together.** A pair whose whole wrench cancels can
+    do nothing as a pair that either could not do alone, so whatever throttle they are spending on each
+    other comes off — which matters beyond the fuel, since an engine burns what its plume is pointed at.
+    Judged on the wrench and not on which way each pushes: a bow thruster and a stern one pushing
+    opposite ways are a *couple*, which is how a ship turns on the spot, and are left alone.
   - This is the exact problem ("RCS engines") that stalled the old project.
 - **Integrator:** symplectic (velocity Verlet / leapfrog), fixed timestep, with substepping near
   deep gravity wells. Semi-implicit Euler visibly precesses and spirals orbits.

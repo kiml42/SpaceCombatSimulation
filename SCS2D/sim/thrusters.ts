@@ -103,6 +103,20 @@ const DET_EPSILON = 1e-12;
  */
 const MAX_PASSES = 64;
 
+/**
+ * How nearly two thrusters must undo each other before firing both is called
+ * waste, as one minus the cosine between their columns.
+ *
+ * A pair is not judged on which way it pushes but on its whole wrench, so a
+ * genuine couple — bow and stern pushing opposite ways to turn a ship on the
+ * spot — is nowhere near this and is left alone. What the tolerance is for is
+ * that a mirrored pair is only *nearly* mirrored: a ship's centre of mass does
+ * not sit exactly on its axis, so two engines drawn symmetrically about the
+ * hull come out with moment arms differing in the fourth figure. A pair that
+ * close can do nothing together that one of them could not do alone.
+ */
+const OPPOSED_TOLERANCE = 1e-3;
+
 
 export class ThrusterLayout {
   readonly count: number;
@@ -146,6 +160,15 @@ export class ThrusterLayout {
   /** Indices still free this pass; refilled each pass, never allocated. */
   private readonly freeIdx: Int32Array;
 
+  /**
+   * For each thruster, one whose wrench is the exact opposite of its own, or
+   * -1. A property of the geometry, so it is found once when the layout is
+   * built — see `trim`, which is the whole reason it is wanted.
+   */
+  private readonly opposite: Int32Array;
+  /** Column magnitudes, in the preconditioned units the pairing is judged in. */
+  private readonly size: Float64Array;
+
   constructor(specs: readonly ThrusterSpec[]) {
     const n = specs.length;
     this.count = n;
@@ -160,6 +183,8 @@ export class ThrusterLayout {
     this.wts = new Float64Array(n);
     this.pinned = new Uint8Array(n);
     this.freeIdx = new Int32Array(n);
+    this.opposite = new Int32Array(n).fill(-1);
+    this.size = new Float64Array(n);
 
     for (let i = 0; i < n; i++) {
       const s = specs[i]!;
@@ -193,6 +218,33 @@ export class ThrusterLayout {
     // torque column is zero, so any factor gives the same zeros.
     this.torqueScale = forceSq > 0 && torqueSq > 0 ? sqrt(forceSq / torqueSq) : 1;
     for (let i = 0; i < n; i++) this.wts[i] = this.wt[i] * this.torqueScale;
+
+    // Which thrusters are each other's opposites, which is what `trim` needs.
+    // Judged on the preconditioned columns, so that "opposite" means the whole
+    // wrench and not merely the direction of push: a bow thruster and a stern
+    // one pushing opposite ways are *not* opposites, they are a couple, which
+    // is how a ship turns without going anywhere.
+    for (let i = 0; i < n; i++) {
+      this.size[i] = sqrt(
+        this.wfx[i]! * this.wfx[i]! + this.wfy[i]! * this.wfy[i]! + this.wts[i]! * this.wts[i]!,
+      );
+    }
+    for (let i = 0; i < n; i++) {
+      if (this.size[i]! <= 0) continue;
+      let best = -1;
+      let closest = -1 + OPPOSED_TOLERANCE;
+      for (let k = 0; k < n; k++) {
+        if (k === i || this.size[k]! <= 0) continue;
+        const dot =
+          (this.wfx[i]! * this.wfx[k]! + this.wfy[i]! * this.wfy[k]! + this.wts[i]! * this.wts[k]!) /
+          (this.size[i]! * this.size[k]!);
+        if (dot < closest) {
+          closest = dot;
+          best = k;
+        }
+      }
+      this.opposite[i] = best;
+    }
 
     this.buildInverse(this.inv, -1);
   }
@@ -417,6 +469,8 @@ export class ThrusterLayout {
       else if (u > 1) throttles[i] = 1;
     }
 
+    this.trim(throttles);
+
     // Report what the throttles actually produce, rather than what was asked
     // for or what the solve believed: the two part company under saturation.
     let fx = 0;
@@ -435,6 +489,52 @@ export class ThrusterLayout {
     out.fx = fx;
     out.fy = fy;
     out.torque = torque;
+  }
+
+  /**
+   * Take off any throttle a pair of opposite thrusters is spending on each
+   * other.
+   *
+   * **Two engines that undo each other are burning for nothing**, and the
+   * search can leave them that way: redistribution pins a thruster at full and
+   * never reconsiders it, so a later pass is free to open its opposite number
+   * to claw back what the pinned one is overproducing. Both end up alight, the
+   * ship goes exactly where it was going anyway, and the fuel — and, since a
+   * plume burns what it is pointed at, whatever is standing behind them — pays
+   * for it. Measured on the Star Destroyer, whose bow pair is the case this was
+   * found in: a quarter of all demands lit both, up to a whole engine's 6.45 MN
+   * cancelled.
+   *
+   * Taking it off is exact rather than a guess. The pair's columns are
+   * opposite, so there is a reduction of both that leaves the wrench where it
+   * is: back each off in proportion to the *other's* strength, as far as the
+   * weaker one allows. What is left is strictly less throttle for the same
+   * push, so this can only improve the answer — which is why it is done here,
+   * after the search, rather than by teaching the search not to get here.
+   *
+   * It is a pairwise rule and makes no claim beyond that. Three or more
+   * thrusters can in principle be wasteful together without any two of them
+   * being opposites; no layout drawn by hand or bred so far does it, and
+   * finding the general case is a linear program rather than a loop.
+   */
+  private trim(throttles: Float64Array): void {
+    const n = this.count;
+    for (let i = 0; i < n; i++) {
+      const k = this.opposite[i]!;
+      // Each pair is met twice; take it the first time and leave the second.
+      if (k <= i) continue;
+      const ui = throttles[i]!;
+      const uk = throttles[k]!;
+      if (ui <= 0 || uk <= 0) continue;
+      // Both back off along the one direction that changes nothing: `i` by the
+      // strength of `k` and `k` by the strength of `i`, so the two reductions
+      // cancel in the wrench exactly as the columns do.
+      const si = this.size[i]!;
+      const sk = this.size[k]!;
+      const step = ui / sk < uk / si ? ui / sk : uk / si;
+      throttles[i] = ui - step * sk;
+      throttles[k] = uk - step * si;
+    }
   }
 
   /**

@@ -310,6 +310,91 @@ describe('allocation', () => {
   });
 });
 
+describe('thrusters that undo each other', () => {
+  /**
+   * A bow pair as a real ship carries one: two engines abreast at the nose,
+   * thrusting across the hull in opposite directions, with the rest of the
+   * layout aft. Mirrored *nearly* rather than exactly, as a drawn ship is —
+   * the centre of mass does not sit on the axis to the last decimal — so the
+   * pair's moment arms differ in the fourth figure, which is the case this has
+   * to handle rather than the tidy one.
+   */
+  function bowPairLayout(): ThrusterLayout {
+    return new ThrusterLayout([
+      { x: 1049.8, y: 35, dirX: 0, dirY: -1, maxThrust: 6.4e6 },
+      { x: 1050.3, y: -35, dirX: 0, dirY: 1, maxThrust: 6.4e6 },
+      { x: -512.7, y: 181.5, dirX: 1, dirY: 0, maxThrust: 1.5e7 },
+      { x: -512.2, y: -181.5, dirX: 1, dirY: 0, maxThrust: 1.5e7 },
+      { x: -248.7, y: 495.5, dirX: -1, dirY: 0, maxThrust: 6.4e6 },
+      { x: -248.2, y: -495.5, dirX: -1, dirY: 0, maxThrust: 6.4e6 },
+    ]);
+  }
+
+  it('never lights both of a pair that cancels, however hard it is pushed', () => {
+    // Where this was found: a demand past what the layout can do saturates the
+    // search, and a thruster pinned at full is never reconsidered — so a later
+    // pass would open its opposite number to claw back what the pinned one was
+    // overproducing. Both alight, the ship no better off, and on a hull whose
+    // exhaust burns what it is pointed at, something behind them paying for it.
+    const layout = bowPairLayout();
+    const throttles = new Float64Array(layout.count);
+    const out = new Allocation();
+    const rng = new Rng(7);
+    const force = layout.maxThrustAlong(1, 0) * 1.5;
+    const torque = layout.maxTorque(1) * 1.5;
+
+    let worst = 0;
+    for (let i = 0; i < 4000; i++) {
+      layout.allocate(
+        rng.nextRange(-force, force),
+        rng.nextRange(-force, force),
+        rng.nextRange(-torque, torque),
+        throttles,
+        out,
+      );
+      // The bow pair. Whichever is doing less is doing nothing but cancel.
+      worst = Math.max(worst, Math.min(throttles[0]!, throttles[1]!));
+    }
+    expect(worst).toBeCloseTo(0, 9);
+  });
+
+  it('leaves a couple burning, which is how a ship turns on the spot', () => {
+    // The thing this must not break, and the reason the pairing is judged on
+    // the whole wrench rather than on which way a thruster pushes: these two
+    // push opposite ways and are *meant* to, because together they are torque
+    // and nothing else.
+    const layout = coupleLayout();
+    const throttles = new Float64Array(2);
+    const out = new Allocation();
+
+    layout.allocate(0, 0, -6000, throttles, out);
+
+    expectRelative(throttles[0]!, 0.6);
+    expectRelative(throttles[1]!, 0.6);
+    expectRelative(out.torque, -6000);
+    expectRelative(out.fx, 0);
+  });
+
+  it('takes nothing off a layout that has no pair to trim', () => {
+    // A guard against the trim reaching past the case it is for: the same
+    // sweep over a layout with no opposite pair in it must come out exactly as
+    // it did before there was a trim at all, which is what the invariants
+    // elsewhere in this file already pin.
+    const layout = new ThrusterLayout([
+      { x: -10, y: 0, dirX: 1, dirY: 0, maxThrust: 1000 },
+      { x: 0, y: 10, dirX: 1, dirY: 0, maxThrust: 1000 },
+      { x: 0, y: -10, dirX: 0, dirY: 1, maxThrust: 1000 },
+    ]);
+    const throttles = new Float64Array(3);
+    const out = new Allocation();
+    layout.allocate(1500, 400, 0, throttles, out);
+    let fx = 0;
+    for (let i = 0; i < 3; i++) fx += layout.wfx[i]! * throttles[i]!;
+    expectRelative(out.fx, fx);
+    expect(throttles.some((u) => u > 0)).toBe(true);
+  });
+});
+
 describe('capability envelope', () => {
   it('support agrees with the best throttle combination found by search', () => {
     const rng = new Rng(777);

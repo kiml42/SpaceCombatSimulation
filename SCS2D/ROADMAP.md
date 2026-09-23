@@ -568,6 +568,12 @@ Deliberately unresolved; decide when they block something.
   gradient says they would help *with a line search to guarantee progress*; releasing without the line
   search was tried and made the worst case far worse, because the active set oscillates. Neither is worth
   doing until a ship visibly misbehaves or propellant accounting proves too generous.
+  One way it *did* visibly misbehave has been closed in the answer rather than in the search: a pair of
+  thrusters that exactly undo each other could both come out alight, because pinning one at full and never
+  reconsidering it left the other free to claw back what it was overproducing. That is taken off afterwards,
+  where it is exact and cheap. What remains open is the general shape of the same fault — three or more
+  thrusters wasteful together without any two of them being opposites — which no layout drawn or bred so far
+  does, and which is a linear program rather than a loop to find.
 - **Whether capitals may mount hull-layer guns.** Not needed for torpedoes — §3 settles those — but it is
   an appealing separate axis. Deck turrets are **area**-limited: many of them, arcs unconstrained, but they
   can only strip mounts. Edge-mounted hull-layer guns would be **perimeter**-limited: few, narrow arcs, but
