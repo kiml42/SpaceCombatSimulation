@@ -430,27 +430,6 @@ describe('rejecting a layout that cannot be resolved', () => {
     expect(blueprintProblem(bp)).toMatch(/overlap/);
   });
 
-  it('checks a thruster’s attachment after reflection, not before', () => {
-    // A mirrored thruster's facing flips, so whether it has structure to push
-    // against is a question about the copy rather than about the definition.
-    const engine = { kind: 'thruster', x: 0, y: 0, angle: 0, length: 2, width: 4 } as const;
-    const good = ship({
-      assemblies: { e: { modules: [engine] } },
-      // A thruster's position is the face it pushes from, so the instance puts
-      // that face on the hull's own and the engine hangs back off it.
-      modules: [hull, { use: 'e', x: -10, y: 0 }],
-    });
-    expect(blueprintProblem(good)).toBeNull();
-
-    // Same definition, placed the other side of the hull, where pushing +x
-    // means pushing away from it: the engine abuts the hull by its nozzle and
-    // the face it pushes from is out in clear air.
-    const bad = ship({
-      assemblies: { e: { modules: [engine] } },
-      modules: [hull, { use: 'e', x: 12, y: 0 }],
-    });
-    expect(blueprintProblem(bad)).toMatch(/no structure to push against/);
-  });
 });
 
 describe('the ships that ship with the game', () => {

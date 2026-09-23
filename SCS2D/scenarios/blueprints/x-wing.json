@@ -22,13 +22,6 @@
         {
           "kind": "structure",
           "x": 0,
-          "y": 1.25,
-          "length": 4.5,
-          "width": 1.5
-        },
-        {
-          "kind": "structure",
-          "x": 0,
           "y": 4,
           "length": 2.5,
           "width": 4
@@ -42,11 +35,12 @@
         },
         {
           "kind": "thruster",
-          "x": -2.25,
+          "x": 1.75,
           "y": 1.25,
           "angle": 0,
-          "length": 1.5,
-          "width": 2
+          "length": 6,
+          "width": 1.5,
+          "nozzle": 0.25
         },
         {
           "kind": "beamTurret",
@@ -81,8 +75,15 @@
           "y": 1.25,
           "angle": 180,
           "length": 0.5,
-          "width": 0.6,
+          "width": 1,
           "notes": "A retro on the nose of each engine spine, so the ship can slow down as well as run away."
+        },
+        {
+          "kind": "structure",
+          "x": 2,
+          "y": 1.25,
+          "length": 0.5,
+          "width": 1.5
         }
       ]
     },
@@ -138,10 +139,10 @@
   "modules": [
     {
       "kind": "core",
-      "x": 3.25,
+      "x": 1.25,
       "y": 0,
-      "length": 3.5,
-      "width": 1.4,
+      "length": 2.5,
+      "width": 2,
       "notes": "Hard against the rear-facing gun, with the length of the fuselage in front of it: anything shooting at the pilot from ahead has the whole ship to get through first."
     },
     {
@@ -173,10 +174,10 @@
     },
     {
       "kind": "beamTurret",
-      "x": -0.5,
+      "x": -1.5,
       "y": 0,
       "angle": 180,
-      "length": 4,
+      "length": 3,
       "width": 2,
       "barrels": 1
     },
@@ -190,6 +191,13 @@
       "x": 7,
       "y": -0.55,
       "mirror": true
+    },
+    {
+      "kind": "structure",
+      "x": 3.75,
+      "y": 0,
+      "length": 2.5,
+      "width": 1.75
     }
   ]
 }

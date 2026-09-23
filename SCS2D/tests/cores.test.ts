@@ -92,7 +92,7 @@ describe('a layout needs a core', () => {
     expect(blueprintProblems(apart)).toEqual([expect.stringMatching(/module 1 touches nothing/)]);
   });
 
-  it('lets a thruster push against a core, which is hull like any other', () => {
+  it('lets a thruster be bolted straight to a core', () => {
     const flown: Blueprint = {
       name: 'Minimal',
       modules: [core(0, 0, 4, 4), { kind: 'thruster', x: -2, y: 0, angle: 0, length: 2, width: 4 }],

@@ -20,6 +20,7 @@ import {
   type RunConfig,
 } from '../evolution/run.js';
 import { el } from './dom.js';
+import { nextRolling } from './rolling.js';
 
 /**
  * The evolution page: set a run going, watch what it is doing, and fight any
@@ -722,9 +723,8 @@ export function startEvolution(): void {
    */
   function rollOn(): void {
     const { rows, matches } = showing();
-    if (matches.length === 0) return;
-    let at = matches.length > rollingSeen ? matches.length - 1 : rollingAt - 1;
-    if (at < 0) at = matches.length - 1;
+    const at = nextRolling(matches.length, rollingAt, rollingSeen);
+    if (at < 0) return;
     rollingAt = at;
     rollingSeen = matches.length;
     startReplay(matches[at]!, rows);

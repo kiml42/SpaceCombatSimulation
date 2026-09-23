@@ -562,10 +562,19 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   share one chamber and divide one exit area, so the count is never free power — what a cluster buys is
   that a narrow bell collimates in a fraction of the length a wide one needs, which is how a stubby engine
   gets a good nozzle, and a flame combed into fingers rather than thrown as one sheet.
-- **An engine is held on by its machinery, on any face but the one it exhausts through.** Nose or either
-  flank: a block welded to hull along its side delivers its thrust as surely as one bolted on by its
-  front, so an engine can be let into a hull rather than only stuck on an end of it. The exhaust face is
-  the exception because a weld there is a weld in the flame.
+- **How hard the nozzle is fed is the machinery's business, so the split has a best answer in the
+  middle.** Thrust is the exit face's area times what the chamber and pumps behind it can drive through
+  the throat, and that machinery is the block the bell was cut out of: a shallow bell leaves a deep
+  chamber and more flow, a deep bell leaves an engine with nothing behind it. A throat chokes rather than
+  passing whatever is pushed at it, which is what stops a long thin engine being unbounded thrust. So the
+  two halves of the knob pull opposite ways — flow gained is aim lost — and the best engine is neither
+  all bell nor all chamber. An engine whose nozzle has fallen off throws its gas sideways however hard it
+  is pumping.
+- **An engine is bolted on like any other module.** It carries the machinery it needs, so it may be held
+  on by any face, to anything, the same way a gun mount or a plate of hull is — the only rule about where
+  one may go is the one every module obeys, that it is attached to the ship. An engine mounted with its
+  exhaust into its own hull is a bad design rather than an impossible one, and what says so is the plume:
+  it burns what it is pointed at, and the thrust fired into the ship is thrust the ship never gets.
 - **An engine burns and shoves what it is pointed at.** A plume reaches back from each nozzle as far as the
   thrust being produced and the bell allows, and the first thing standing in it takes the engine's power —
   at full strength against the nozzle, falling off to nothing at the flame's end — and the exhaust's

@@ -540,13 +540,27 @@ export function startEditor(): void {
       else if (key === 'length' || key === 'width') input.value = String(spec[key]);
       else input.value = String(moduleField(spec, key as ModuleNumberField));
     }
-    // One field, two things it is called: a gun's outlets are barrels and an
-    // engine's are nozzles, and a designer should not have to know they are
-    // the same number to use either.
+    // Offered on a beam mount as well as a gun, and on an engine. More of
+    // them is worse for a beam — the aperture is divided between them and only
+    // one fires at a time — but worse is a thing somebody may want: a bank of
+    // emitters is a look, and the editor's job is to say what a layout costs
+    // rather than to refuse the ones it would not have chosen.
+    //
+    // One field, three words for it: a gun's outlets are barrels, a beam's are
+    // the apertures the light leaves by, and an engine's are nozzles. Calling
+    // any of them a barrel on the one panel that is supposed to explain a
+    // mount would be the tool teaching the wrong thing about it. The
+    // blueprint's own key stays `barrels` whatever it is labelled, since
+    // renaming a field in the format would cost every file ever saved.
     const nozzles = spec.kind === 'thruster';
     const hullMount = isHullMount(spec.kind);
-    el<HTMLElement>('barrelsRow').hidden = !nozzles && !hullMount && spec.kind !== 'turret';
-    el<HTMLElement>('barrelsLabel').textContent = nozzles ? 'nozzles' : 'barrels';
+    el<HTMLElement>('barrelsRow').hidden =
+      !nozzles && !hullMount && spec.kind !== 'turret' && spec.kind !== 'beamTurret';
+    el<HTMLElement>('barrelsLabel').textContent = nozzles
+      ? 'nozzles'
+      : spec.kind === 'beamTurret'
+        ? 'emitters'
+        : 'barrels';
     el<HTMLElement>('nozzleRow').hidden = !nozzles;
     el<HTMLElement>('muzzleRow').hidden = !hullMount;
     el<HTMLElement>('muzzleLabel').textContent = spec.kind === 'hullBeam' ? 'lens' : 'barrel';

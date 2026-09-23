@@ -224,7 +224,10 @@ describe('breeding the grouping', () => {
     expect(seen.mirrored, 'turned a part over').toBe(true);
   });
 
-  it('takes structure back as well as adding it', () => {
+  // Fourteen lineages of three hundred generations, and the ships they breed
+  // grow as they go, so this is seconds of work rather than milliseconds — the
+  // default timeout is for tests that are quick by nature.
+  it('takes structure back as well as adding it', { timeout: 30_000 }, () => {
     // The inverses matter more than they look: an operator set that can only
     // add assemblies is a ratchet, and a lineage that groups the wrong things
     // has no way down from it.

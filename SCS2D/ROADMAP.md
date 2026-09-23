@@ -485,6 +485,16 @@ Deliberately unresolved; decide when they block something.
   demanded velocity through a linear allocation, and spinning deliberately is the opposite of everything
   else it is for. The choice is between that and accepting that propulsion is assembled rather than
   invented.
+
+  Two suggestions, neither a decision, for making the spin-and-pulse trick *expensive* rather than
+  impossible — so a clever pilot could still find it, but only where it genuinely pays. Both are the
+  author's, recorded here rather than acted on. A **throttle rate limit** on engines, and possibly a
+  **dead band between off and the minimum throttle**, the way a real engine has one: together they would
+  leave the trick working only at lower spin rates and with smaller engines, which throttle deeper and
+  quicker than large ones. And allowing parts to be **damaged or severed by the G force of spinning**,
+  which prices the spin itself rather than the pulsing. Both would also bear on ships that never try the
+  trick, which is the part to think about before building either — a rate limit is a change to every
+  manoeuvre, and a spin load is a change to every hull.
 - **How big an arena should be.** A match's ring is five hundred metres because that is where the shipped
   corvettes fight each other to a finish — put four of them a kilometre apart and they settle at the
   standoff their doctrine asks for and plink, and no match is ever decided however long it runs, so two of
@@ -501,7 +511,7 @@ Deliberately unresolved; decide when they block something.
   than in hull radii, and the urge wants a way to dominate rather than merely to vote. Neither is a large
   change; both want a scene to tune against, and the crowded ones are the Star Wars fleet action and the
   super-swarm.
-- **How severed chunks divide fuel, ammunition and power.**- **How severed chunks divide fuel, ammunition and power.**- **How severed chunks divide fuel, ammunition and power.** Which piece goes on being a ship is settled —
+- **How severed chunks divide fuel, ammunition and power.** Which piece goes on being a ship is settled —
   the one holding a working core, and every other piece with one becomes a ship of its own (DESIGN.md §4)
   — but what a piece takes *with* it is not. The interesting case is a magazine cut off from the gun it
   fed. Nothing consumes either yet, so there is nothing to divide; decide it when stores exist.

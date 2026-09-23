@@ -1406,14 +1406,16 @@ function against(
   const out = copy ? (endOn ? anchor.length : anchor.width) : bounds.grid;
 
   // Which way a module has to face to be *held on* by this face is the
-  // archetype's business, and three of them answer differently.
+  // archetype's business, and two of them answer differently.
   //
-  // A thruster is held on by the face it pushes from, so it is mounted facing
-  // *into* the anchor — which puts its position exactly on the face and its
-  // exhaust pointing out. A hull weapon is the mirror of that: it is held on
-  // by the block behind its barrel, so it faces *out* and the barrel clears
-  // the ship. Everything else has no front and sits on the face, half its own
-  // depth out, lying along it.
+  // A thruster is mounted facing *into* the anchor, which puts its position
+  // exactly on the face and its exhaust pointing out into clear air. Nothing
+  // refuses an engine pointed the other way any more; it is simply the only
+  // way round worth guessing, since the other burns the ship it is bolted to.
+  // A hull weapon is the mirror of that: it is held on by the block behind
+  // its barrel, so it faces *out* and the barrel clears the ship. Everything
+  // else has no front and sits on the face, half its own depth out, lying
+  // along it.
   // **The angle is not rounded, and that is load-bearing.** Positions are
   // tidied because they are worked out through sines and cosines and land on
   // values no file should carry; an angle is not, because a module sits

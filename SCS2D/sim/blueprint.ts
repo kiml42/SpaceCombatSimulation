@@ -6,7 +6,6 @@ import {
   moduleStats,
   isHullMount,
   hullMountGeometry,
-  thrusterMachinery,
   weldBox,
   traverseAccel,
   traverseRate,
@@ -60,12 +59,6 @@ import type { TurretSpec } from './turrets.js';
  * rounded for the sake of the file tilts a module eighty nanometres into its
  * neighbour and the layout is refused. Every thruster a mutation tried to bolt
  * on was lost that way.
- *
- * `hullAhead` proves a thruster is mounted against hull by nudging it forward
- * and asking whether it now overlaps, so that nudge is this plus
- * `ATTACHMENT_TOLERANCE`: a module anywhere within the distance that counts as
- * attached then buries itself deeper than this when it is pushed, and the two
- * rules cannot disagree about a thruster sitting at the edge of the band.
  */
 const TOUCH_TOLERANCE = 0.005;
 
@@ -896,60 +889,6 @@ export function assemblyProblem(blueprint: Blueprint): string | null {
 }
 
 /**
- * The faces an engine may be held on by, in its own frame: the one it pushes
- * through and the two flanks. Not the fourth, which is where the exhaust
- * leaves.
- */
-const MOUNTING_FACES: readonly (readonly [number, number])[] = [
-  [1, 0],
-  [0, 1],
-  [0, -1],
-];
-
-/**
- * Is there hull against any of these faces of this box?
- *
- * Structure or a core: both are boxes of welded plate, and a thruster mounted
- * to the compartment that flies the ship is delivering its thrust to the ship
- * as surely as one mounted to a girder. A turret is not, since what is beside
- * a mount is its own barrel.
- *
- * Answered by nudging the box towards each face and asking whether it now
- * overlaps — which reuses the separating-axis test and so stays correct at any
- * mounting angle, rather than needing a face-contact test of its own. A
- * neighbour off a face that is not being asked about is unaffected by that
- * nudge and correctly does not count, and nor does one touching only at a
- * corner.
- */
-function hullAgainst(
-  box: ModuleSpec,
-  owner: ModuleSpec,
-  modules: readonly ModuleSpec[],
-  faces: readonly (readonly [number, number])[],
-): boolean {
-  const angle = box.angle ?? 0;
-  const c = cos(angle);
-  const sn = sin(angle);
-  // Far enough that anything within touching distance is driven further in
-  // than an overlap is forgiven, so a thruster the connectivity graph calls
-  // attached is one this calls mounted.
-  const nudge = ATTACHMENT_TOLERANCE + TOUCH_TOLERANCE;
-  for (const [fx, fy] of faces) {
-    const probe: ModuleSpec = {
-      ...box,
-      x: box.x + (c * fx - sn * fy) * nudge,
-      y: box.y + (sn * fx + c * fy) * nudge,
-    };
-    for (const other of modules) {
-      if (other === owner) continue;
-      if (other.kind !== 'structure' && other.kind !== 'core') continue;
-      if (modulesOverlap(probe, other)) return true;
-    }
-  }
-  return false;
-}
-
-/**
  * How wide the weld between two modules is: the length of the faces they have
  * in contact, in metres, or zero when they are not joined at all.
  *
@@ -1174,35 +1113,6 @@ export function blueprintFaults(blueprint: Blueprint): BlueprintFault[] {
       if (modulesOverlap(modules[i]!, modules[k]!)) {
         faults.push({ message: `${blueprint.name}: modules ${i} and ${k} overlap`, modules: [i, k] });
       }
-    }
-  }
-
-  // An engine is welded to the ship by its machinery block and exhausts out of
-  // the bell on the back of it, so some face of that block — its nose or
-  // either flank — has to be against hull. Only the exhaust face cannot hold
-  // it on: mount an engine by its bell and the weld is in the flame and the
-  // thrust is being delivered to nothing.
-  //
-  // The block rather than the whole engine, so that a long-belled thruster is
-  // held on by the part of it that is structural. That is also what lets an
-  // engine be let into a hull side-on rather than only bolted to a nose.
-  //
-  // A layout is rejected for this rather than merely penalised, because it is a
-  // question about how the ship is *assembled* and not about how well it runs —
-  // the same kind of rule as modules not overlapping. How much a *blocked* but
-  // correctly mounted nozzle should cost is a different and continuous
-  // question, and ROADMAP.md §12 keeps it that way deliberately.
-  for (let i = 0; i < modules.length; i++) {
-    const spec = modules[i]!;
-    if (spec.kind !== 'thruster') continue;
-    if (!hullAgainst(thrusterMachinery(spec), spec, modules, MOUNTING_FACES)) {
-      faults.push({
-        message:
-          `${blueprint.name}: thruster ${i} at (${spec.x}, ${spec.y}) has no structure to push ` +
-          `against — its machinery must meet a structure or core module on some face ` +
-          `other than the one it exhausts through`,
-        modules: [i],
-      });
     }
   }
 
