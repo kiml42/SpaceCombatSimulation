@@ -1171,7 +1171,9 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
     muzzleSpeed,
     muzzleEnergy,
     beamPower: 0,
-    cycleTime: hullCycleTime(calibre, blockLength) / outlets,
+    // One block loads every tube, so its depth is measured against the bore
+    // they share rather than each tube's own.
+    cycleTime: hullCycleTime(calibre, blockLength, outlets) / outlets,
     beamOnTime: 0,
   };
 }
@@ -1193,9 +1195,9 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
  * loading machinery can do stops a stub-barrelled mount being a free
  * autocannon.
  */
-function hullCycleTime(calibre: number, blockLength: number): number {
+function hullCycleTime(calibre: number, blockLength: number, outlets: number): number {
   const base = CYCLE_TIME_PER_CALIBRE * calibre;
-  const depth = blockLength / (LOADING_BLOCK_CALIBRES * calibre);
+  const depth = blockLength / (LOADING_BLOCK_CALIBRES * calibre * outlets);
   // A block with no depth at all is a gun with nowhere to load from, and the
   // arithmetic would say it never fires. It is unreachable — a module needs an
   // interior to exist — but the law should not depend on that to be finite.

@@ -280,6 +280,9 @@ describe('hull mount scaling', () => {
     // Less metal downrange per second for the same mount: splitting is a discount.
     const weightOfFire = (g: GunStats) => g.roundMass / g.cycleTime;
     expect(weightOfFire(quad)).toBeLessThan(weightOfFire(single));
+    // The block loads all four, so thin tubes do not buy energy for free.
+    const power = (g: GunStats) => g.muzzleEnergy / g.cycleTime;
+    expect(power(quad)).toBeCloseTo(power(single), 6);
   });
 
   it('splits one optic\'s area between its lenses, so total power is unchanged', () => {
