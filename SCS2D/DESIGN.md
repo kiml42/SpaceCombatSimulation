@@ -737,12 +737,8 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   body count multiplied by query count. A uniform grid (rather than a tree) because everything moves every
   step, so the index is rebuilt in one linear pass with no hierarchy to rebalance, and cell traversal is
   plain ascending order, which keeps damage application order reproducible.
-- **Weld on slow contact:** two bodies touching below a relative-velocity threshold (and, where
-  relevant, within an alignment tolerance) merge into one compound body with recomputed mass
-  properties. One rule covers debris clumping into larger salvage, ship-to-ship docking,
-  tractor-beam harvesting terminating cleanly, and strike craft landing on docks — and every case
-  *removes* bodies rather than adding sustained contacts. A tractor beam stops pulling at contact
-  and welds instead.
+- **Weld on slow contact:** Heavily damaged modules are treated as having ragged edges and can become locked together on a slow contact. This merges them into one body for the simulation to track. This will work well with the wreckage harvesting mechanic as it creates larger chunks worth chasing down and harvesting instead of lots of tiny fragments.
+  Similarly, ships can have docking ports that will allow them to connect to each other deliberately by bumping together gently. This could be used for refiling fighters or other larger craft, for example. Every case *removes* bodies rather than adding sustained contacts.
 - **Thruster allocation** is solved **once per blueprint**, not per tick: given desired body-frame
   force and torque, find non-negative throttles minimising propellant, subject to
   `Σ uᵢTᵢdᵢ = F` and `Σ uᵢTᵢ(rᵢ × dᵢ) = τ`. Three constraints in a plane. Per-tick control is then
