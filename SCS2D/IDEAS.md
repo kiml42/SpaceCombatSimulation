@@ -2,7 +2,6 @@
 Ideas that aren't planned to be implemented yet, they may or may not be good ideas.
 
 ## Editor
-- Scale Snap grid based on zoom (0.01m, 0.05m, 0.1m, 0.5m)
 - Hover on the thrust diagram shows engine plumes on the main display for how it would achieve that thrust
 - Test button - switches to the game view, with the ship loaded into a default scene with one other stock ship, each given basic orders to attack each other.
 - Allow dragging copies (when a module or assembly is set to be repeated) to set the offset (might get complicated with more than 2, so might need to restrict to the second one)

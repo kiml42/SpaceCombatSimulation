@@ -202,6 +202,19 @@ describe('snapping and picking', () => {
     expect(snap(1.2, 0)).toBe(1.2);
   });
 
+  it('gives back a number somebody could have typed, at any step', () => {
+    // The step follows the zoom, and most of the ladder below a metre has no
+    // exact binary form — so without rounding to the step's own precision,
+    // dragging on a fine grid writes 3.0000000000000004 into the ship's file.
+    for (const step of [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5]) {
+      for (const value of [3, -7.5, 0.37, 128.64]) {
+        const snapped = snap(value, step);
+        expect(String(snapped).replace('-', '')).toMatch(/^\d+(\.\d{1,4})?$/);
+        expect(Math.abs(snapped - value)).toBeLessThanOrEqual(step / 2 + 1e-9);
+      }
+    }
+  });
+
   it('picks the module under a point', () => {
     const modules: ModuleSpec[] = [hull, { kind: 'turret', x: 8, y: 0, length: 4, width: 4 }];
     expect(moduleAt(modules, 0, 0)).toBe(0);
@@ -476,6 +489,13 @@ describe('sizing a module by a handle', () => {
       dx: -4 + MIN_SIZE / 2,
       dy: -2 + MIN_SIZE / 2,
     });
+  });
+
+  it('will not go below one step of the grid it is snapping to', () => {
+    // Zoomed out far enough that the grid is ten metres, half a metre is not
+    // something the drag could have said — and it would leave the face off the
+    // grid everything around it abuts on.
+    expect(resizedTo(box, face(1, 1), -5, -9, 10)).toMatchObject({ length: 10, width: 10 });
   });
 
   it('keeps a thruster bolted on when its nozzle end is dragged', () => {

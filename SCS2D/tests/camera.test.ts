@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { Snapshot, type ShipView } from '../sim/index.js';
 import {
+  describeStep,
   easeScale,
   fitScale,
   frame,
   gridStep,
   moveWithVisibleShips,
+  snapStep,
   type Camera,
 } from '../render/camera.js';
 
@@ -155,6 +157,25 @@ describe('the camera', () => {
       const mantissa = step / 10 ** Math.round(Math.log10(step / 1.0000001));
       expect([1, 2, 5, 10]).toContain(Math.round(mantissa));
     }
+  });
+
+  it('snaps on a tenth of the grid, so the step suits the ship on screen', () => {
+    for (const scale of [0.001, 0.01, 0.1, 1, 10, 100, 1000]) {
+      expect(snapStep(scale) * 10).toBeCloseTo(gridStep(scale), 12);
+    }
+    // A Star Destroyer filling the view, and a drone filling it. The point of
+    // the whole exercise is that these two are different.
+    expect(snapStep(1.2)).toBe(10);
+    expect(snapStep(640)).toBe(0.02);
+  });
+
+  it('names a step in the unit that makes it a small whole number', () => {
+    expect(describeStep(50)).toBe('50 m');
+    expect(describeStep(1)).toBe('1 m');
+    expect(describeStep(0.5)).toBe('50 cm');
+    expect(describeStep(0.02)).toBe('2 cm');
+    expect(describeStep(0.01)).toBe('1 cm');
+    expect(describeStep(0.005)).toBe('5 mm');
   });
 });
 
