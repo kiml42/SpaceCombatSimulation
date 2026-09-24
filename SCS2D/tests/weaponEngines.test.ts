@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_DOCTRINE,
+  blueprintFileProblem,
   Ships,
   SpatialGrid,
   WEAPON_PLUME_SHARE,
@@ -186,13 +187,26 @@ describe('an engine marked as a weapon', () => {
 });
 
 describe('the flag itself', () => {
-  it('is refused on anything but an engine', () => {
-    expect(
-      moduleProblem({ kind: 'turret', x: 0, y: 0, length: 4, width: 3, weapon: true }),
-    ).toMatch(/only a thruster/);
+  it('lies dormant on anything but an engine, and never reaches a file', () => {
+    // Only an engine has a plume to point, so on anything else the flag is
+    // read by nothing — kept in memory against a refit back to an engine, and
+    // left out of the file so a saved gun does not claim to be a weapon
+    // engine. A file that carries one anyway is a mistake and says so.
+    const gun: ModuleSpec = { kind: 'turret', x: 0, y: 0, length: 4, width: 3, weapon: true };
+    expect(moduleProblem(gun)).toBeNull();
     expect(
       moduleProblem({ kind: 'thruster', x: 0, y: 0, length: 2, width: 2, weapon: true }),
     ).toBeNull();
+
+    const saved = serialiseBlueprint({ name: 'Dormant', modules: [gun] });
+    expect((saved['modules'] as Record<string, unknown>[])[0]!['weapon']).toBeUndefined();
+    expect(
+      blueprintFileProblem({
+        formatVersion: 1,
+        name: 'Claiming',
+        modules: [{ kind: 'turret', x: 0, y: 0, length: 4, width: 3, weapon: true }],
+      }),
+    ).toMatch(/only a thruster can be used as a weapon/);
   });
 
   it('survives a round trip through a blueprint file', () => {

@@ -616,24 +616,14 @@ function refit(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | nul
     site.spec.x = centre.x;
     site.spec.y = centre.y;
   }
-  // Fields go when they stop applying, rather than sitting in the file saying
-  // nothing — and here they would say something worse than nothing, since each
-  // is refused outright on a kind it does not belong to, which would make
-  // every refit away from that kind impossible. Silently, too: a refused
-  // candidate is simply retried. Barrels are the exception and stay, because
-  // they count a gun's barrels, a hull mount's outlets and a thruster's
-  // nozzles, and mean something on all of them.
-  if (!countsOutlets(to)) delete site.spec.barrels;
-  if (to !== 'thruster' && !isHullMount(to)) delete site.spec.nozzle;
-  if (to !== 'thruster') delete site.spec.weapon;
+  // **Fields the new kind does not read are kept, not cleared.** They are what
+  // this module was, and a lineage that refits a tuned engine into a gun
+  // mount and back should get its bell rather than the default: twenty
+  // generations of learning survive the detour. Nothing downstream reads a
+  // dormant field, `moduleProblem` allows it, and `serialiseBlueprint` leaves
+  // it out — so a saved ship still says exactly what it is.
   return `${site.where}: ${was} refitted as ${to}`;
 }
-
-/** Whether `barrels` means anything on this kind. */
-function countsOutlets(kind: ModuleKind): boolean {
-  return kind === 'turret' || kind === 'beamTurret' || kind === 'thruster' || isHullMount(kind);
-}
-
 
 
 /**
