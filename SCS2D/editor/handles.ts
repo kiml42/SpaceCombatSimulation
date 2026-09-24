@@ -7,11 +7,11 @@ import {
 } from '../sim/index.js';
 import { snap } from './edit.js';
 
-const { abs, atan2, cos, sin, max, sqrt } = math;
+const { atan2, cos, sin, max, round, sqrt } = math;
 
 /**
- * The grab points on a selected module: a corner to size it by, and a knob to
- * turn it.
+ * The grab points on a selected module: a corner or an edge to size it by, and
+ * a knob to turn it.
  *
  * Size and facing are properties a module *has a picture of* — a box this long
  * and this wide, pointing that way — so they are the two the panel's number
@@ -28,10 +28,16 @@ const { abs, atan2, cos, sin, max, sqrt } = math;
 
 /** Where a handle sits, in the blueprint's own frame. */
 export interface Handle {
-  /** A corner, which sizes the module; or the knob beyond the bow, which turns it. */
+  /** A corner or edge, which sizes the module; or the knob beyond the bow, which turns it. */
   kind: 'size' | 'rotate';
   x: number;
   y: number;
+  /**
+   * Which face a size handle is on along the module's length and across it:
+   * ±1 for a face, 0 for the middle. A corner has both, an edge one.
+   */
+  along: -1 | 0 | 1;
+  across: -1 | 0 | 1;
 }
 
 /** How big a handle is drawn, pixels. */
@@ -58,9 +64,10 @@ export const MIN_SIZE = 0.5;
 /**
  * The handles for a module, in the blueprint's frame.
  *
- * Corners in the order (+l,+w), (+l,-w), (-l,-w), (-l,+w), and the rotate knob
- * last — beyond the bow, because that is the face a module's facing points out
- * of, so the knob says which way the module is pointing before it is touched.
+ * Corners in the order (+l,+w), (+l,-w), (-l,-w), (-l,+w), then the edges in
+ * the order +l, -w, -l, +w, and the rotate knob last — beyond the bow, because
+ * that is the face a module's facing points out of, so the knob says which way
+ * the module is pointing before it is touched.
  *
  * `scale` is pixels per metre: the handles keep their size on screen rather
  * than in the world, so a small thruster is as grabbable zoomed out as a hull
@@ -73,17 +80,30 @@ export function handlesFor(spec: ModuleSpec, scale: number): Handle[] {
   const hl = spec.length / 2;
   const hw = spec.width / 2;
   const mid = moduleCentre(spec);
-  const at = (dl: number, dw: number, kind: Handle['kind']): Handle => ({
-    kind,
-    x: mid.x + dl * c - dw * s,
-    y: mid.y + dl * s + dw * c,
+  const size = (along: Handle['along'], across: Handle['across']): Handle => ({
+    kind: 'size',
+    x: mid.x + along * hl * c - across * hw * s,
+    y: mid.y + along * hl * s + across * hw * c,
+    along,
+    across,
   });
+  const arm = hl + ROTATE_ARM_PX / scale;
   return [
-    at(hl, hw, 'size'),
-    at(hl, -hw, 'size'),
-    at(-hl, -hw, 'size'),
-    at(-hl, hw, 'size'),
-    at(hl + ROTATE_ARM_PX / scale, 0, 'rotate'),
+    size(1, 1),
+    size(1, -1),
+    size(-1, -1),
+    size(-1, 1),
+    size(1, 0),
+    size(0, -1),
+    size(-1, 0),
+    size(0, 1),
+    {
+      kind: 'rotate',
+      x: mid.x + arm * c,
+      y: mid.y + arm * s,
+      along: 0,
+      across: 0,
+    },
   ];
 }
 
@@ -109,49 +129,63 @@ export function handleAt(
 }
 
 /**
- * The size a module takes when a corner is dragged to a point.
+ * The size a module takes when a size handle is dragged to a point, and how far
+ * its position moves so the opposite corner or edge stays put.
  *
- * **About the module's position**, which keeps that position meaning what it
- * says: a hull grows equally from its middle, and a thruster grows back from
- * the face it is bolted on by, because that face is where a thruster's
- * position is. An engine dragged longer therefore stays bolted where it was
- * and reaches further into its own exhaust, which is the only direction it
- * has room to grow in.
+ * A dimension the handle is not on keeps its size and its middle, so an edge
+ * changes one dimension only. The size snaps rather than the dragged face, so a
+ * module whose faces were on the grid keeps them there.
  *
- * Anchoring the corner *opposite* the one being dragged — what a drawing
- * program does — was rejected for two reasons that both come from what a
- * module is here. A module's position is the thing that belongs to a *copy*
- * where its size belongs to the shared part, so anchoring a corner would make
- * every resize of a shared module also a move of one copy of it, and the other
- * copies would have nothing to anchor. And with size snapping to half a metre,
- * an anchored corner puts the position on a quarter-metre grid, which takes
- * the module off the grid its neighbours abut on.
- *
- * Both dimensions move together, since a corner is a statement about both. A
- * drag along one edge would be the handle for one of them, and there is no
- * edge handle: four corners and a knob is the whole set, deliberately.
+ * `dx`/`dy` are in the blueprint's frame, for `movePlacement` on the module
+ * itself rather than its copy's instance, so every copy of a shared part moves
+ * the same way within its own frame and a mirrored pair stays mirrored.
  */
-export function sizedTo(
+export function resizedTo(
   spec: ModuleSpec,
+  handle: Pick<Handle, 'along' | 'across'>,
   x: number,
   y: number,
   step: number,
-): { length: number; width: number } {
+): { length: number; width: number; dx: number; dy: number } {
   const angle = spec.angle ?? 0;
-  const c = cos(-angle);
-  const s = sin(-angle);
-  const dx = x - spec.x;
-  const dy = y - spec.y;
-  // The pointer in the module's own frame, measured from where the module is
-  // attached. A box centred on that point reaches half its length either side
-  // of it; a thruster hanging back from it reaches the whole of its length one
-  // way, so the same drag buys twice as much engine.
-  const local = { x: dx * c - dy * s, y: dx * s + dy * c };
-  const lengthwise = spec.kind === 'thruster' ? abs(local.x) : abs(local.x) * 2;
-  return {
-    length: max(MIN_SIZE, snap(lengthwise, step)),
-    width: max(MIN_SIZE, snap(abs(local.y) * 2, step)),
+  const c = cos(angle);
+  const s = sin(angle);
+  const mid = moduleCentre(spec);
+  // The pointer in the module's own frame, from its middle.
+  const px = (x - mid.x) * c + (y - mid.y) * s;
+  const py = -(x - mid.x) * s + (y - mid.y) * c;
+
+  const side = (face: number, half: number, pointer: number, held: number) => {
+    if (face === 0) return { size: held, middle: 0 };
+    const anchor = -face * half;
+    const size = max(MIN_SIZE, snap(face * (pointer - anchor), step));
+    return { size, middle: anchor + (face * size) / 2 };
   };
+  const along = side(handle.along, spec.length / 2, px, spec.length);
+  const across = side(handle.across, spec.width / 2, py, spec.width);
+
+  // Where the new box's middle is, then where the position must be to put it
+  // there — a thruster's position is its mounting face rather than its middle.
+  const centreX = mid.x + along.middle * c - across.middle * s;
+  const centreY = mid.y + along.middle * s + across.middle * c;
+  const offset = moduleCentre({
+    ...spec,
+    x: 0,
+    y: 0,
+    length: along.size,
+    width: across.size,
+  });
+  return {
+    length: along.size,
+    width: across.size,
+    dx: tidy(centreX - offset.x - spec.x),
+    dy: tidy(centreY - offset.y - spec.y),
+  };
+}
+
+/** Rounds away the last-bit noise a turned frame leaves, so a file does not gain 1e-16s. */
+function tidy(value: number): number {
+  return round(value * 1e9) / 1e9;
 }
 
 /**

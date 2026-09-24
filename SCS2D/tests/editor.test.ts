@@ -5,6 +5,7 @@ import {
   expandWithOrigins,
   math,
   radiansToDegrees as toDegrees,
+  moduleCentre,
   moduleStats,
   placementAt,
   samePlacement,
@@ -64,7 +65,8 @@ import {
   HANDLE_GRAB_PX,
   MIN_SIZE,
   ROTATE_ARM_PX,
-  sizedTo,
+  resizedTo,
+  type Handle,
 } from '../editor/handles.js';
 import { previewSnapshot } from '../editor/preview.js';
 import { designStats, envelopes, groupMass, headingCost, moduleReadout } from '../editor/stats.js';
@@ -362,19 +364,23 @@ describe('the handles on a selected module', () => {
   // them.
   const box: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 8, width: 4 };
 
-  it('puts one on each corner, and the knob beyond the bow', () => {
+  it('puts one on each corner and edge, and the knob beyond the bow', () => {
     const handles = handlesFor(box, 10);
-    expect(handles.filter((handle) => handle.kind === 'size')).toHaveLength(4);
-    expect(handles.slice(0, 4).map((h) => [h.x, h.y])).toEqual([
+    expect(handles.filter((handle) => handle.kind === 'size')).toHaveLength(8);
+    expect(handles.slice(0, 8).map((h) => [h.x, h.y])).toEqual([
       [4, 2],
       [4, -2],
       [-4, -2],
       [-4, 2],
+      [4, 0],
+      [0, -2],
+      [-4, 0],
+      [0, 2],
     ]);
     // Beyond the +x face, which is the way the module points, and standing off
     // it by a fixed number of pixels rather than metres.
-    expect(handles[4]).toMatchObject({ kind: 'rotate', y: 0 });
-    expect(handles[4]!.x).toBeCloseTo(4 + ROTATE_ARM_PX / 10, 12);
+    expect(handles[8]).toMatchObject({ kind: 'rotate', y: 0 });
+    expect(handles[8]!.x).toBeCloseTo(4 + ROTATE_ARM_PX / 10, 12);
   });
 
   it('turns with the module', () => {
@@ -382,7 +388,7 @@ describe('the handles on a selected module', () => {
     // A quarter turn anticlockwise: the bow corner goes to +y.
     expect(turned[0]!.x).toBeCloseTo(-2, 12);
     expect(turned[0]!.y).toBeCloseTo(4, 12);
-    expect(turned[4]!.y).toBeCloseTo(4 + ROTATE_ARM_PX / 10, 12);
+    expect(turned[8]!.y).toBeCloseTo(4 + ROTATE_ARM_PX / 10, 12);
   });
 
   it('is grabbed within a few pixels of it, whatever the zoom', () => {
@@ -406,37 +412,156 @@ describe('the handles on a selected module', () => {
   });
 });
 
-describe('sizing a module by a corner', () => {
+describe('sizing a module by a handle', () => {
   const box: ModuleSpec = { kind: 'structure', x: 3, y: -2, length: 8, width: 4 };
+  const face = (along: Handle['along'], across: Handle['across']) => ({ along, across });
 
-  it('sizes about the centre, so the module stays where it is', () => {
-    // The corner dragged two metres out along each axis: the box grows by four
-    // in each, because the opposite corner moves with it.
-    expect(sizedTo(box, 3 + 6, -2 + 4, 0.5)).toEqual({ length: 12, width: 8 });
+  it('keeps the opposite corner where it was', () => {
+    // The (+l,+w) corner, at (7, 0), dragged two metres out along each axis:
+    // the (-l,-w) corner stays at (-1, -4), so the middle moves half as far.
+    expect(resizedTo(box, face(1, 1), 9, 2, 0.5)).toEqual({ length: 10, width: 6, dx: 1, dy: 1 });
+    expect(resizedTo(box, face(-1, -1), -3, -6, 0.5)).toEqual({
+      length: 10,
+      width: 6,
+      dx: -1,
+      dy: -1,
+    });
+  });
+
+  it('changes one dimension by an edge, keeping the other and its middle', () => {
+    // However far across the pointer strays, the width and the middle across
+    // stay put.
+    expect(resizedTo(box, face(-1, 0), -3, 3, 0.5)).toEqual({
+      length: 10,
+      width: 4,
+      dx: -1,
+      dy: 0,
+    });
+    expect(resizedTo(box, face(0, 1), 12, 1, 0.5)).toEqual({
+      length: 8,
+      width: 5,
+      dx: 0,
+      dy: 0.5,
+    });
   });
 
   it('measures in the module’s own frame', () => {
+    // Along the module's length is now along the world's +y, so the +l edge is
+    // at (3, 2); dragged two metres further, the middle moves one up.
     const turned = { ...box, angle: math.HALF_PI };
-    // Along the module's length is now along the world's +y.
-    expect(sizedTo(turned, 3, -2 + 6, 0.5)).toEqual({ length: 12, width: 0.5 });
+    expect(resizedTo(turned, face(1, 0), 3, 4, 0.5)).toEqual({
+      length: 10,
+      width: 4,
+      dx: 0,
+      dy: 1,
+    });
   });
 
-  it('snaps to the grid, and Alt escapes it', () => {
-    expect(sizedTo(box, 3 + 3.1, -2, 0.5)).toMatchObject({ length: 6 });
-    expect(sizedTo(box, 3 + 3.1, -2, 0).length).toBeCloseTo(6.2, 12);
+  it('snaps the size to the grid, and Alt escapes it', () => {
+    // The -l edge is at x = -1, so 7.1 is 8.1 from it and 7.6 is 8.6.
+    expect(resizedTo(box, face(1, 0), 7.1, -2, 0.5)).toMatchObject({ length: 8, dx: 0 });
+    expect(resizedTo(box, face(1, 0), 7.6, -2, 0.5)).toMatchObject({ length: 8.5, dx: 0.25 });
+    expect(resizedTo(box, face(1, 0), 7.1, -2, 0).length).toBeCloseTo(8.1, 12);
   });
 
-  it('will not go below the smallest a module may be', () => {
-    expect(sizedTo(box, 3, -2, 0.5)).toEqual({ length: MIN_SIZE, width: MIN_SIZE });
+  it('will not go below the smallest a module may be, nor turn inside out', () => {
+    // Dragged past the anchored corner, the box stops at the minimum against it.
+    expect(resizedTo(box, face(1, 1), -5, -9, 0.5)).toEqual({
+      length: MIN_SIZE,
+      width: MIN_SIZE,
+      dx: -4 + MIN_SIZE / 2,
+      dy: -2 + MIN_SIZE / 2,
+    });
   });
 
-  it('grows a thruster back from its mounting rather than about its middle', () => {
-    // An engine's position is the face it is bolted on by, so a corner dragged
-    // out buys the whole of the extra length astern — where the exhaust is,
-    // and the only direction an engine has room to grow in.
+  it('keeps a thruster bolted on when its nozzle end is dragged', () => {
+    // An engine's position is its mounting face, at +l, so dragging the -l end
+    // does not move it — and dragging the mounting face moves it with the face.
     const engine: ModuleSpec = { kind: 'thruster', x: 0, y: 0, angle: 0, length: 4, width: 4 };
-    // Six metres back from the mounting, three across.
-    expect(sizedTo(engine, -6, 3, 0.5)).toEqual({ length: 6, width: 6 });
+    expect(resizedTo(engine, face(-1, 0), -6, 0, 0.5)).toEqual({
+      length: 6,
+      width: 4,
+      dx: 0,
+      dy: 0,
+    });
+    expect(resizedTo(engine, face(1, 0), 1, 0, 0.5)).toEqual({
+      length: 5,
+      width: 4,
+      dx: 1,
+      dy: 0,
+    });
+  });
+});
+
+describe('sizing a drawn module through the frame it was written in', () => {
+  /** Resize as the page does: size on the placement, then move it within its frame. */
+  function drag(bp: Blueprint, drawn: number, handle: Handle, x: number, y: number): Blueprint {
+    const { modules, origins } = expandWithOrigins(bp);
+    const { length, width, dx, dy } = resizedTo(modules[drawn]!, handle, x, y, 0.5);
+    const origin = origins[drawn]!;
+    const sized = updatePlacement(bp, origin.path, (p) => ({ ...p, length, width }))!;
+    return movePlacement(sized, origin, dx, dy)!;
+  }
+  const handlesOf = (bp: Blueprint, drawn: number) =>
+    handlesFor(expandWithOrigins(bp).modules[drawn]!, 10);
+
+  it('keeps the opposite corner still inside a turned, mirrored group', () => {
+    const pod = {
+      modules: [
+        { kind: 'structure', x: 0, y: 0, length: 4, width: 2 } as const,
+        { kind: 'structure', x: 3, y: 0, length: 2, width: 2 } as const,
+      ],
+    };
+    const bp = ship({
+      assemblies: { pod },
+      modules: [hull, { use: 'pod', x: 0, y: 8, angle: math.HALF_PI, mirror: true }],
+    });
+    const before = handlesOf(bp, 1);
+    // Turned a quarter, the (+l,+w) corner is up and to the left of the middle,
+    // so out is -x, +y.
+    const grabbed = before[0]!;
+    const after = handlesOf(drag(bp, 1, grabbed, grabbed.x - 2, grabbed.y + 2), 1);
+    expect(after[2]!.x).toBeCloseTo(before[2]!.x, 9);
+    expect(after[2]!.y).toBeCloseTo(before[2]!.y, 9);
+    expect(after[0]!.x).toBeCloseTo(grabbed.x - 2, 9);
+    expect(after[0]!.y).toBeCloseTo(grabbed.y + 2, 9);
+  });
+
+  it('widens a mirrored pair outward on both sides', () => {
+    // The corvette's retro thrusters are one part placed twice, the second
+    // mirrored. Widening the port one outward must widen the starboard one
+    // outward too, not into the hull.
+    const { modules } = expandWithOrigins(CORVETTE);
+    const retros = modules
+      .map((m, i) => ({ m, i }))
+      .filter(({ m }) => m.kind === 'thruster' && m.angle === math.PI && m.length === 2);
+    expect(retros).toHaveLength(2);
+    const port = retros.find(({ m }) => moduleCentre(m).y > 0)!.i;
+    const starboard = retros.find(({ m }) => moduleCentre(m).y < 0)!.i;
+    const faces = (bp: Blueprint, drawn: number) => {
+      const m = expandWithOrigins(bp).modules[drawn]!;
+      const y = moduleCentre(m).y;
+      return { inner: Math.abs(y) - m.width / 2, outer: Math.abs(y) + m.width / 2 };
+    };
+    // The edge whose handle is furthest to port.
+    const edge = handlesOf(CORVETTE, port)
+      .filter((h) => h.kind === 'size' && h.along === 0)
+      .reduce((a, b) => (b.y > a.y ? b : a));
+    const after = drag(CORVETTE, port, edge, edge.x, edge.y + 1);
+    for (const drawn of [port, starboard]) {
+      expect(faces(after, drawn).inner).toBeCloseTo(faces(CORVETTE, drawn).inner, 9);
+      expect(faces(after, drawn).outer).toBeCloseTo(faces(CORVETTE, drawn).outer + 1, 9);
+    }
+  });
+
+  it('anchors the copy being dragged of a shared part', () => {
+    const single = ship({ modules: [hull] });
+    const bp = duplicatePlacement(single, expandWithOrigins(single).origins[0]!)!.blueprint;
+    const before = handlesOf(bp, 0);
+    const edge = before[4]!; // +l
+    const after = handlesOf(drag(bp, 0, edge, edge.x + 3, edge.y), 0);
+    expect(after[6]!.x).toBeCloseTo(before[6]!.x, 9);
+    expect(after[4]!.x).toBeCloseTo(edge.x + 3, 9);
   });
 });
 
