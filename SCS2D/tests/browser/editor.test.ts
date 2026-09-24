@@ -500,7 +500,7 @@ describe('the editor in a browser', () => {
     expect(await bore()).toBeLessThan(one);
   });
 
-  it('sizes a module by its corner and turns it by its knob', async () => {
+  it('sizes a module by a corner or an edge and turns it by its knob', async () => {
     // A ship of one module, so the camera's fit puts that module's centre at
     // the middle of the canvas and its handles can be worked out rather than
     // aimed at. Pixels per metre is measured here rather than assumed, since it
@@ -531,24 +531,38 @@ describe('the editor in a browser', () => {
     await page.mouse.down();
     await page.mouse.move(corner.x + 2 * scale, corner.y - 1 * scale, { steps: 6 });
     await page.mouse.up();
-    // Sized about the centre, so two metres of drag adds four to the length.
-    expect(Number(await page.inputValue('#propLength'))).toBe(length + 4);
-    expect(Number(await page.inputValue('#propWidth'))).toBe(width + 2);
-    expect(await page.inputValue('#propX')).toBe('0');
+    // The opposite corner stays put, so the middle moves half as far as the
+    // corner did.
+    expect(Number(await page.inputValue('#propLength'))).toBe(length + 2);
+    expect(Number(await page.inputValue('#propWidth'))).toBe(width + 1);
+    expect(await page.inputValue('#propX')).toBe('1');
+    expect(await page.inputValue('#propY')).toBe('0.5');
+    await page.click('#undo');
 
-    const grown = Number(await page.inputValue('#propLength'));
-    const knob = { x: centre.x + (grown / 2) * scale + ROTATE_ARM_PX, y: centre.y };
+    // The -x edge, dragged three metres out and wandering across as it goes:
+    // only the length changes, and the +x edge stays where it was.
+    const edge = { x: centre.x - (length / 2) * scale, y: centre.y };
+    await page.mouse.move(edge.x, edge.y);
+    await page.mouse.down();
+    await page.mouse.move(edge.x - 3 * scale, edge.y + 2 * scale, { steps: 6 });
+    await page.mouse.up();
+    expect(Number(await page.inputValue('#propLength'))).toBe(length + 3);
+    expect(Number(await page.inputValue('#propWidth'))).toBe(width);
+    expect(await page.inputValue('#propX')).toBe('-1.5');
+    expect(await page.inputValue('#propY')).toBe('0');
+    await page.click('#undo');
+
+    const knob = { x: centre.x + (length / 2) * scale + ROTATE_ARM_PX, y: centre.y };
     await page.mouse.move(knob.x, knob.y);
     await page.mouse.down();
     await page.mouse.move(centre.x, centre.y - 6 * scale, { steps: 6 });
     await page.mouse.up();
     expect(await page.inputValue('#propAngle')).toBe('90');
 
-    // One drag, one undo: a resize is one action to the player however many
+    // One drag, one undo: a turn is one action to the player however many
     // blueprints it took.
     await page.click('#undo');
     expect(await page.inputValue('#propAngle')).toBe('0');
-    await page.click('#undo');
     expect(Number(await page.inputValue('#propLength'))).toBe(length);
   });
 

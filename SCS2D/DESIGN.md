@@ -51,7 +51,7 @@ inside any one file is not contiguous.
   while holding a heading — and each turret's calibre, rate of fire, muzzle
   speed and arc. Modules are
   clicked to select, dragged to move on a snapping grid, sized by dragging a corner
-  and turned by dragging a knob beyond the bow — every snap escaped by holding Alt —
+  or an edge with the opposite one held still, and turned by dragging a knob beyond the bow — every snap escaped by holding Alt —
   with the rest of their values typed into a panel beside the module's own mass,
   capacity, armour and gun, and a selected engine burns and a selected gun fires at the
   rate its own figures claim; a module can be duplicated into a shared part placed

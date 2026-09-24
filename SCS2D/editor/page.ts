@@ -53,7 +53,7 @@ import {
 } from './library.js';
 import { Demonstration } from './demonstrate.js';
 import { drawOverlay } from './overlay.js';
-import { facingTo, handleAt, handlesFor, sizedTo, type Handle } from './handles.js';
+import { facingTo, handleAt, handlesFor, resizedTo, type Handle } from './handles.js';
 import { previewSnapshot } from './preview.js';
 import { designStats, envelopes, groupMass, moduleReadout, type Envelopes } from './stats.js';
 
@@ -1099,9 +1099,11 @@ export function startEditor(): void {
         drill: boolean;
       }
     | {
-        /** A corner is dragged to size the module, the knob to turn it. */
+        /** A corner or edge is dragged to size the module, the knob to turn it. */
         kind: 'size' | 'rotate';
         from: Blueprint;
+        /** The handle grabbed, which says which faces move. */
+        handle: Handle;
         /**
          * The module as it was drawn when the handle was grabbed.
          *
@@ -1120,9 +1122,10 @@ export function startEditor(): void {
    * Written through the same `updatePlacement` the panel's boxes use, so a
    * module sized by dragging and one sized by typing are the same edit — and a
    * shared part's size and facing change every copy, exactly as the panel says
-   * they do. The facing has to be converted on the way in: what the pointer
-   * names is a direction on screen, and a module inside a turned or mirrored
-   * group is written in another frame.
+   * they do. A resize also moves this copy so the opposite face stays put.
+   * The facing has to be converted on the way in: what the pointer names is a
+   * direction on screen, and a module inside a turned or mirrored group is
+   * written in another frame.
    */
   const dragHandle = (event: PointerEvent): void => {
     if (drag === null || (drag.kind !== 'size' && drag.kind !== 'rotate')) return;
@@ -1130,16 +1133,23 @@ export function startEditor(): void {
     const origin = doc.selectedOrigin();
     if (path === null || origin === null) return;
     const world = worldAt(event);
-    const patch =
-      drag.kind === 'size'
-        ? sizedTo(drag.spec, world.x, world.y, event.altKey ? 0 : SNAP_METRES)
-        : {
-            angle: toPlacementAngle(
-              origin,
-              facingTo(drag.spec, world.x, world.y, event.altKey ? 0 : ANGLE_SNAP_DEGREES),
-            ),
-          };
-    const next = updatePlacement(drag.from, path, (placement) => ({ ...placement, ...patch }));
+    let next: Blueprint | null;
+    if (drag.kind === 'size') {
+      const step = event.altKey ? 0 : SNAP_METRES;
+      const { length, width, dx, dy } = resizedTo(drag.spec, drag.handle, world.x, world.y, step);
+      const position = selectedPosition();
+      const sized = updatePlacement(drag.from, path, (p) => ({ ...p, length, width }));
+      next =
+        sized === null || position === null || (dx === 0 && dy === 0)
+          ? sized
+          : movePlacement(sized, position.origin, dx, dy);
+    } else {
+      const angle = toPlacementAngle(
+        origin,
+        facingTo(drag.spec, world.x, world.y, event.altKey ? 0 : ANGLE_SNAP_DEGREES),
+      );
+      next = updatePlacement(drag.from, path, (p) => ({ ...p, angle }));
+    }
     if (next === null) return;
     if (drag.moved) doc.amend(next);
     else doc.apply(next);
@@ -1167,6 +1177,7 @@ export function startEditor(): void {
       drag = {
         kind: handles[grabbed]!.kind === 'rotate' ? 'rotate' : 'size',
         from: doc.blueprint,
+        handle: handles[grabbed]!,
         spec,
         moved: false,
       };
@@ -1303,7 +1314,8 @@ export function startEditor(): void {
   });
 
   hint.textContent =
-    'Click a module to select it, drag to move, drag a corner to size it or the knob to turn it; ' +
+    'Click a module to select it, drag to move, drag a corner or edge to size it ' +
+    'or the knob to turn it; ' +
     `Shift-click to pick several and Group them. Snaps to ${SNAP_METRES} m and ` +
     `${ANGLE_SNAP_DEGREES}° — hold Alt to escape. ` +
     'Drag empty space to pan, scroll to zoom, F to fit, Delete to remove, Ctrl+Z to undo.';

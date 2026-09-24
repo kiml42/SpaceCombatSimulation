@@ -184,8 +184,8 @@ function drawSelection(ctx: CanvasRenderingContext2D, view: OverlayView, camera:
 }
 
 /**
- * The handles on the selected module: a dot at each corner, and the knob that
- * turns it on a short arm beyond the bow.
+ * The handles on the selected module: a dot at each corner, a square on each
+ * edge, and the knob that turns it on a short arm beyond the bow.
  *
  * The arm is drawn, not implied. A knob floating off the module says nothing
  * about which module it belongs to on a busy layout, and the line also shows
@@ -213,7 +213,15 @@ function drawHandles(ctx: CanvasRenderingContext2D, view: OverlayView, camera: C
   for (const handle of view.handles) {
     ctx.save();
     ctx.beginPath();
-    ctx.arc(handle.x, handle.y, radius, 0, TAU);
+    // An edge changes one dimension, so it is drawn differently from a corner.
+    if (handle.kind === 'size' && (handle.along === 0 || handle.across === 0)) {
+      const half = radius * 0.8;
+      ctx.translate(handle.x, handle.y);
+      ctx.rotate(spec?.angle ?? 0);
+      ctx.rect(-half, -half, half * 2, half * 2);
+    } else {
+      ctx.arc(handle.x, handle.y, radius, 0, TAU);
+    }
     ctx.fillStyle = HANDLE_FILL;
     ctx.fill();
     // Outlined in the background's own colour so a handle stays visible over
