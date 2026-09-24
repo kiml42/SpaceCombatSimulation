@@ -1193,7 +1193,9 @@ export function startEditor(): void {
    * Written through the same `updatePlacement` the panel's boxes use, so a
    * module sized by dragging and one sized by typing are the same edit — and a
    * shared part's size and facing change every copy, exactly as the panel says
-   * they do. A resize also moves this copy so the opposite face stays put.
+   * they do. A resize also moves the module within its assembly so the
+   * opposite face stays put, so every copy moves the same way — mirrored where
+   * the copy is.
    * The facing has to be converted on the way in: what the pointer names is a
    * direction on screen, and a module inside a turned or mirrored group is
    * written in another frame.

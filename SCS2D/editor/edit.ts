@@ -274,7 +274,8 @@ export function movePlacement(
 
 /**
  * Resize a drawn module: its size on the part, and `dx`/`dy` (blueprint frame)
- * on whatever carries this copy's position, as `resizedTo` works them out.
+ * on the module within its own frame, as `resizedTo` works them out — so every
+ * copy of a shared part moves alike, mirrored where the copy is.
  *
  * With `push`, whatever sits against a face that moved goes with it, among the
  * placements written beside this copy's position (`pushNeighbours`). A copy
@@ -293,7 +294,7 @@ export function resizePlacement(
   const position = positionHandle(blueprint, origin).origin;
   const sized = updatePlacement(blueprint, origin.path, (p) => ({ ...p, length, width }));
   if (sized === null) return null;
-  const moved = dx === 0 && dy === 0 ? sized : movePlacement(sized, position, dx, dy);
+  const moved = dx === 0 && dy === 0 ? sized : movePlacement(sized, origin, dx, dy);
   if (moved === null || !push) return moved;
 
   const was = containing(blueprint as unknown as MutableBlueprint, position.path);
