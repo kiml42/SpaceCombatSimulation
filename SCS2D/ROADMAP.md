@@ -57,12 +57,10 @@ an entry is either still open or it is gone.
 **Slice 0 — weld on slow contact.** A slow contact is still a gentle bounce; nothing welds. It is what makes a
 dock a dock and decides ram from landing (§4, §3). See the §12 entry.
 
-**Step 1 — Blueprint editor.** Two things, neither blocking:
+**Step 1 — Blueprint editor.** One thing, not blocking:
 
 - **Unlinking one copy of a shared part while the others stay linked.** Unlink today dissolves every copy at
   once, because the editor cannot yet name a single instance.
-- **The word the editor owes the player when an action reorders a layout.** It is about reproducibility, not
-  behaviour — see *Module order* in the notes below.
 
 Deliberately left out of the editor's first iteration, and still unclaimed by any step: **test flight** (the
 editor could have a throwaway sim of its own; it does not need the battle page's), **fleets and budgets**,
@@ -146,9 +144,8 @@ that answers the question most likely to change the design.
   expansion order.
 - **Module order is part of the ship, so restructuring is not bit-free.** Thruster allocation and firing both
   run in list order, so a reordered layout does not check-sum the same — though `scenarios/ordering.ts`
-  measures the behavioural difference as round-off (8.2e-13 m over 3,000 steps, identical shots and hits).
-  So the warning the editor owes is about reproducibility, not about the ship fighting differently. Adding a
-  module appends, which leaves even the bits alone; the authored ships place symmetric *pairs* adjacently for
+  measures the behavioural difference as round-off (8.2e-13 m over 3,000 steps, identical shots and hits),
+  too small to be worth warning about when an edit reorders a layout. Adding a module appends, which leaves even the bits alone; the authored ships place symmetric *pairs* adjacently for
   the same reason.
 - **The editor's animation is not a start on test flight.** A selected engine burns and a selected gun fires
   at its own rate, but nothing integrates or collides, so it cannot grow into a test flight by accident.
@@ -163,9 +160,9 @@ that answers the question most likely to change the design.
 
 #### Damage model (step 2)
 
-- Solid hulls went before severing on purpose, so a severed chunk is a thing that collides rather than a
-  ghost. Anything new that comes off a ship should be a body the same way.
-- What the step leaves open is balance and which piece the crew is on, not mechanism — the dials are in §12.
+- Anything that comes off a ship is a body that collides, as a severed chunk is.
+- Which piece is a ship is settled: a piece with a working core is a ship, and one without is debris,
+  currently only a navigational hazard. What the step leaves open is balance — the dials are in §12.
 
 #### Doctrine and orders (step 3)
 
