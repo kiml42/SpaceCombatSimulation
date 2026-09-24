@@ -754,9 +754,10 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     if (!(spec.nozzle >= 0) || !(spec.nozzle < 1)) {
       return `${spec.kind}: nozzle must be from 0 to under 1, got ${spec.nozzle}`;
     }
-    if (spec.kind !== 'thruster' && !isHullMount(spec.kind)) {
-      return `${spec.kind}: only a thruster or a hull mount has a nozzle`;
-    }
+    // On a kind that does not read it the value is dormant — kept against a
+    // refit back rather than refused, see `readsNozzle` — so only the range
+    // applies there.
+    //
     // Where zero means something different per archetype, so does whether it
     // is allowed: an engine with no bell is a rocket whose nozzle has fallen
     // off, which is a bad engine and a real one, while a weapon with no barrel
@@ -766,18 +767,10 @@ export function moduleProblem(spec: ModuleSpec): string | null {
       return `${spec.kind}: a hull mount needs some barrel, got ${spec.nozzle}`;
     }
   }
-  if (spec.traverse !== undefined) {
-    if (!(spec.traverse >= 0)) {
-      return `${spec.kind}: traverse must be at least 0, got ${spec.traverse}`;
-    }
-    if (!isWeaponMount(spec.kind)) {
-      return `${spec.kind}: only a weapon has a traverse`;
-    }
-  }
-  if (spec.weapon === true && spec.kind !== 'thruster') {
-    // Only an engine has a plume to point. Silently ignoring it on a gun would
-    // leave a blueprint saying something the simulation never reads.
-    return `${spec.kind}: only a thruster can be used as a weapon`;
+  if (spec.traverse !== undefined && !(spec.traverse >= 0)) {
+    // Dormant on a kind that does not train, as a bell is on a gun mount: only
+    // the range applies there. See `isWeaponMount`.
+    return `${spec.kind}: traverse must be at least 0, got ${spec.traverse}`;
   }
   const thickness = BASE_WALL_THICKNESS * reinforcement;
   // For an engine it is the machinery block that has to be a box: the bell is
@@ -1089,6 +1082,35 @@ export function mountTraverse(spec: ModuleSpec): number {
 /** Whether this kind is a weapon let into the hull rather than a turret on it. */
 export function isHullMount(kind: ModuleKind): boolean {
   return kind === 'hullGun' || kind === 'hullBeam';
+}
+
+/**
+ * Which optional fields a kind actually reads.
+ *
+ * **A field a kind does not read is allowed to sit on it, holding its value.**
+ * Mutation refits a module from one archetype to another and back, and a
+ * lineage that has spent twenty generations tuning a bell should not lose it
+ * to a spell as a gun mount — so a dormant field is kept rather than cleared,
+ * and wakes with the value it had. What is *not* allowed is a dormant field in
+ * a file: `serialiseBlueprint` writes only what the kind reads and the file
+ * format refuses the rest, so a saved ship still says exactly what it is and a
+ * hand-written `nozzle` on a turret is still a mistake rather than a secret.
+ *
+ * Ranges are checked on a dormant value all the same, since the point of
+ * keeping one is that it is ready to be used.
+ */
+export function readsNozzle(kind: ModuleKind): boolean {
+  return kind === 'thruster' || isHullMount(kind);
+}
+
+/** Whether `barrels` means anything on this kind: barrels, outlets or nozzles. */
+export function countsOutlets(kind: ModuleKind): boolean {
+  return kind === 'turret' || kind === 'beamTurret' || kind === 'thruster' || isHullMount(kind);
+}
+
+/** Whether `weapon` means anything on this kind. Only an engine has a plume to point. */
+export function readsWeapon(kind: ModuleKind): boolean {
+  return kind === 'thruster';
 }
 
 /**

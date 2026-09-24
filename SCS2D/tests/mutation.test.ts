@@ -4,10 +4,14 @@ import {
   blueprintProblem,
   compileDraft,
   expandBlueprint,
+  moduleProblem,
+  moduleStats,
   parseBlueprint,
   Rng,
   serialiseBlueprint,
+  thrusterGeometry,
   type Blueprint,
+  type ModuleSpec,
 } from '../sim/index.js';
 import { DEFAULT_KINDS, DEFAULT_LIMITS, mutate } from '../evolution/mutate.js';
 import { CATAMARAN, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
@@ -140,7 +144,10 @@ describe('mutation', () => {
     }
   });
 
-  it('adds as much as it takes away', { timeout: 30_000 }, () => {
+  // 2,400 generations of a growing ship, which is the sample the ratio needs
+  // to be stable: 16 s here and over 30 s on a CI runner, so the budget is
+  // wide rather than close.
+  it('adds as much as it takes away', { timeout: 90_000 }, () => {
     // The operator is neutral about how big a ship is; selection is what
     // decides that. An imbalance here is invisible in any one child and
     // fatal over a run — a lineage that loses a module every time it gains
@@ -268,11 +275,12 @@ describe('mutation', () => {
     expect(refitted).toBeGreaterThan(0);
   });
 
-  it('takes a hull weapon\'s fields with it when it stops being one', () => {
-    // A refit keeps the geometry and changes what it is for, so what does not
-    // apply to the new kind has to go rather than sit in the file: `muzzle` on
-    // a turret and `nozzle` on anything but an engine are both refused
-    // outright, so leaving one behind refuses every such refit.
+  it('keeps a hull weapon\'s fields when it stops being one, without refusing it', () => {
+    // A refit keeps the geometry and changes what it is for, and what the new
+    // kind does not read stays put: it is what this module was, and a refit
+    // back should get it rather than the default. The candidate is a ship all
+    // the same, which is the assertion — a dormant field the layout rules
+    // refused would make every such refit impossible, and silently.
     const rng = new Rng(23);
     let held: Blueprint = {
       name: 'Casemate',
@@ -293,11 +301,10 @@ describe('mutation', () => {
     expect(seen).toBeGreaterThan(0);
   });
 
-  it('takes an engine\'s bell with it when it stops being an engine', () => {
-    // A nozzle share is refused outright on anything but a thruster, so a
-    // refit that left one behind would not make an odd module — it would make
-    // every refit out of an engine impossible, and silently, since a refused
-    // candidate is simply retried.
+  it('keeps an engine\'s bell through a spell as something else', () => {
+    // The point of keeping it: a lineage that has spent generations tuning a
+    // bell and then refits the module into a gun mount has not lost the bell,
+    // and a refit back wakes it with the value it had.
     const rng = new Rng(29);
     let held: Blueprint = {
       name: 'Tug',
@@ -314,6 +321,31 @@ describe('mutation', () => {
       held = child.blueprint;
     }
     expect(refits).toBeGreaterThan(0);
+  });
+
+  it('wakes a dormant field when the module is refitted back', () => {
+    // The whole of what dormancy buys, stated on one module rather than in
+    // aggregate: a bell nobody would have picked, a spell as a turret, and
+    // the same bell on the way back.
+    const tuned: ModuleSpec = {
+      kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.37,
+    };
+    const site = { spec: { ...tuned }, where: 'module 1' };
+    // Refitted by hand, since what is being tested is what a refit leaves
+    // behind rather than which kind the draw lands on.
+    site.spec.kind = 'turret';
+    expect(moduleProblem(site.spec)).toBeNull();
+    expect(site.spec.nozzle).toBe(0.37);
+    // Nothing reads it meanwhile: the turret's figures are a turret's.
+    expect(moduleStats(site.spec).thrust).toBe(0);
+    // And a file never carries it, so a ship saved as a turret is a turret.
+    expect(
+      (serialiseBlueprint({ name: 'Saved', modules: [site.spec] })['modules'] as
+        Record<string, unknown>[])[0]!['nozzle'],
+    ).toBeUndefined();
+
+    site.spec.kind = 'thruster';
+    expect(thrusterGeometry(site.spec).share).toBe(0.37);
   });
 
   it('builds only the kinds it is told to', { timeout: 30_000 }, () => {
