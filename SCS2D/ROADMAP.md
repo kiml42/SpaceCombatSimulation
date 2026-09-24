@@ -4,7 +4,7 @@ What is not built yet, and what is not settled yet. The design these serve is in
 [DESIGN.md](DESIGN.md); the record of decisions already taken is in [DECISIONS.md](DECISIONS.md).
 
 **Status — what exists today — lives in [DESIGN.md](DESIGN.md) and is the single source of truth for it.**
-Deliberately not repeated here: two places recording progress means one of them is quietly wrong.
+This file says what is *left*, and only mentions what exists where the work left depends on it.
 
 **Three documents, split by why you would read them.** Section numbers are global and stable across all
 three, so a reference such as "§12" means the same section wherever it is written — which is why the numbering
@@ -18,316 +18,187 @@ inside any one file is not contiguous.
 
 ## How this document is maintained
 
-**Nothing here is ever ticked off.** No "done" markers, no strikethrough, no ✅. Status records what exists,
-and a second progress record in this file would be the one that goes stale — nobody re-reads a roadmap after
-a merge. An entry is either still doing work here or it is gone.
+**§8 is kept in three parts, so that what to build next is the first thing you read.**
 
-The two sections leave by opposite rules, because they are opposite kinds of thing.
-
-**§8 is an ordering argument, not a task list.** Almost every step justifies its position by reference to the
-ones before it — armour properties only exist once modules are parametric, the campaign comes last because it
-is mostly authoring. Delete a completed step and the next step's reasoning dangles from a premise that is no
-longer written down. So a step stays while it still explains something about work *not yet done*, whether or
-not it is finished. It leaves only once that reasoning has been fully cashed: when nothing remaining depends
-on knowing why it came where it did. If the argument has lasting value beyond the sequencing — a statement
-about how this project is approached rather than about what to build next — move it to DESIGN.md §1 or §9
-rather than deleting it. Otherwise DECISIONS.md already has the record.
+- **Partly built** lists only what is *left* of a step that has started. When a piece lands, delete it from
+  here and describe it in Status; when nothing is left, the step moves to the table as built.
+- **Not started** is the plan proper: the steps to come, in order, each with the reason it comes where it
+  does.
+- **Notes on what is built** holds what a finished step settled that later work has to respect — a constraint,
+  a shape to follow, a trap already found. A note earns its place by naming the future work it bears on.
+  It is not a history: measurements and the story of how something was arrived at belong in DECISIONS.md, and
+  a description of what the code does belongs in Status. Delete a note once nothing left depends on it.
 
 **§12 empties on answer, and this one is strict.** An answered question is a decision. Leaving it here does
 not merely clutter, it misinforms: anything in §12 reads as still open, so a settled question left in place
 invites it to be re-litigated — which is the exact failure these documents exist to prevent. Remove it and
-put the answer in DECISIONS.md, in the same change that settles it.
-
-The division across the three files, then, is: **what is not done and not settled** here, **what exists** in
-Status, **what happened and why** in DECISIONS.md. Nothing about the past needs to live in this file once its
-reasoning is spent.
+put the answer in DECISIONS.md, in the same change that settles it. No strikethrough, no "settled" markers:
+an entry is either still open or it is gone.
 
 ---
 
 ## 8. Build order
 
-**Slice 0 — "two ships fight, and I can prove it's deterministic."**
-Pure sim module: fixed timestep, planar bodies, symplectic integrator, uniform-grid broadphase,
-swept-segment projectiles, kinematic turrets, per-blueprint thruster allocation, hit points,
-connectivity severing, weld-on-slow-contact, seeded PRNG, own transcendentals. Two blueprints
-hard-coded. One target-picker stack (proximity, line-of-sight, correct-hemisphere) ported in design
-from the old project. Crude Canvas2D viewer with pause and time scaling. A Node test running a fixed
-battle and asserting the outcome bit-for-bit.
+| Step | What | State |
+| --- | --- | --- |
+| Slice 0 | Two ships fight, deterministically | Built, bar weld on slow contact |
+| 1 | Blueprint editor | Partly built |
+| 2 | Terminal ballistics and the damage model | Built |
+| 3 | Doctrine and orders | Partly built |
+| 4 | Headless evolution and analysis | Built |
+| 5 | v1: skirmish | Not started |
+| 6 | Editor restructuring | Not started |
+| 7 | Salvage and in-battle construction | Not started |
+| 8 | Mining and the two-resource economy | Not started |
+| 9 | Campaign | Not started |
 
-*Why first: it attacks the real risks (does planar Newtonian combat feel good? do the scaling laws
-hold?) rather than the known ones; it keeps the sim boundary pure by construction, because there is
-no DOM to leak; and it puts something on screen within days, which is what buys the next session.*
+### Partly built — what is left
 
-Then, in order:
+**Slice 0 — weld on slow contact.** A slow contact is still a gentle bounce; nothing welds. It is what makes a
+dock a dock and decides ram from landing (§4, §3). See the §12 entry.
 
-1. **Blueprint editor** — parametric modules; ships stop being hard-coded.
-2. **Terminal ballistics and the damage model** — armour properties exist once modules are parametric, so
-   this is the first point at which a real answer is possible. **Built**: `sim/hull.ts` resolves a shot to
-   the modules it crosses, `sim/ballistics.ts` decides penetrate/embed/deflect against each plate, and
-   `sim/damage.ts` spends the result — every module the round crosses takes what its armour stopped, and
-   what a module does about that is a list of responses it carries. **Hulls are also solid now**
-   (`sim/collision.ts`), which was a Slice 0 debt with no step of its own: ships meet module box
-   against module box and come apart tumbling. **Severing is built too** (`sim/connectivity.ts`): a
-   hull is held together by welds derived from its geometry, damage decides how much of a weld is left,
-   and a blow — a collision, or a round crossing it — spends it. What comes off is a body of its own; solid hulls went
-   first deliberately, so a severed chunk is a thing that collides rather than a ghost. **This step is
-   done**; what it leaves open is in §12, and is about balance and about which piece the crew is on rather
-   than about mechanism.
-3. **Doctrine and orders** — make configuration visibly change behaviour. Part-built: a ship holds a queue
-   of orders and each carries the condition that finishes it (disarmed, stranded, either, both, or gone),
-   so a plan survives its targets being put out of the fight. The player's queue is the *top* priority;
-   what is missing is what a craft falls back on when that queue is empty.
+**Step 1 — Blueprint editor.** Two things, neither blocking:
 
-   **The plan, settled and in build order.** Doctrine is a block in the **blueprint file**, so a craft's
-   behaviour ships with its design and one editor edits both; ships share their design's doctrine by
-   reference and take a copy only when something overrides it, the same copy-on-write split the thruster
-   layout uses. Targets are chosen by a **stack of pickers in ascending priority**, each either discarding a
-   candidate or adjusting its score, a low-priority discard hiding a target from everything above it — the
-   shape the old project proved (§10). Four to begin with: proximity, mass as a stand-in for value,
-   closing speed, and **previous-target**, which is not flavour but the hysteresis that stops a ship
-   flip-flopping between two equidistant enemies; turrets get a fifth, a bonus for what their *ship* is
-   fighting, so a hull has some pull over its guns without commanding them. A disabled ship is discarded by
-   default with doctrine able to re-admit it, since §3's mission kill has to mean something, and severed
-   debris is never a target. Different team is hostile, and the allied/neutral mapping waits.
-   **The ship picks a manoeuvre target and each turret picks its own firing target**, both through the same
-   stack: "different turrets, different targets" is then a consequence rather than a feature. Re-picking
-   happens on an interval *derived* rather than configured — from a hull's mass, as a stand-in for how fast
-   it can bring itself round, and from a mount's traverse and fire rates, so a close-in mount reconsiders
-   far more often than an artillery piece — and staggered so the cost spreads across steps. The engagement
-   envelope a player currently types into every order (range band, approach speed) becomes a doctrine
-   default derived from what the ship's own guns are good for.
-   **Built so far**: the standoff scenario, and doctrine with the ship-level pick — a craft with an empty
-   queue chooses its own target and closes to its own engagement band, and `standoff` is two fleets
-   fighting with nobody issuing an order. Only `ordering` and `standoff` moved when it landed, which is
-   the evidence that doctrine is strictly a fallback: every other scenario gives all its ships orders.
-   **Per-turret targets** landed next: every mount picks through the same stack from its own point of
-   view — its own gun's reach, its own arc as an outright discard, and a bonus for what its ship is
-   fighting — on an interval derived from its traverse rate and cycle time. **A targeting block per mount**
-   followed, since mounts sharing a doctrine and a hull agree about everything except what they can see:
-   a mount's block is only its differences from its ship's, so the gunship's close-in guns hunt fighters
-   while its bow gun fights capitals, and a fleet that used to concentrate now splits its fire — 30 of 60
-   sampled multi-mount ships in `standoff`, against none before it. Two things a close-in gun needs
-   turned out to be things it says rather than mechanisms of its own: caring about whether a target can
-   still do something, worth more to it than the whole of its proximity preference, so it passes over a
-   drifting hulk at any range; and *not* caring what the ship as a whole is fighting, which is what
-   leaves a pair of them free to take a threat each. What separates the pair is that a mount measures
-   from itself rather than from the hull — metres, against gunnery range, and enough to order two
-   otherwise identical targets differently.
-   **Firing discipline** followed: a straight cast from the muzzle for a friendly hull, ignoring
-   everyone's velocity — half a second of the round's flight for a gun, since a shell is slow and a battle
-   is wide, and the whole length for a beam, which arrives instantly along all of it. The mount's own
-   target is never in the way, whoever's side it is on, and nor is wreckage; a burst already committed is
-   seen through. **The formation is what decides whether it matters**: two fleets meeting line-abreast
-   keep their friends beside them and their guns looking into clear space, so `standoff` is bit-identical
-   with the rule in place. The `column` scenario is the same fleets turned ninety degrees — line ahead,
-   every ship but the leader with one of its own in front of its guns — and there it takes the first ten
-   seconds from twenty hits on one's own side to none, and stops the beam ships raking their own line.
-   Over a full run the columns dissolve into a melee and the count stops being a measure of the rule
-   (400 against 199), which is why the golden pins the whole run and the test pins the formation.
-   One thing the same work turned up: **a gun fires at what its barrel is pointing at**. Turrets are
-   trained before the world steps and fired after it, and a hull turns in between, so working the target
-   out afresh at the trigger could name one the barrel had never been brought round to — a fighter would
-   put a round out over its own shoulder. What a mount was trained on is recorded when it is trained, and
-   that is what fires.
-   **A picker per module kind** finished the step: `engineWeight`, `gunWeight` and `structureWeight` say
-   which part of a ship to aim at. The default is 100 / 80 / 20 — guns first, engines close behind,
-   structure a long way back — since a ship that cannot shoot has stopped being a threat and one that
-   cannot move has stopped being a problem, in that order. All three at zero is the way out for a
-   doctrine that would rather shoot at the ship than pick a smaller thing to miss. Ties go to whatever is
-   nearest the gun, so a mount does not shoot through a ship to reach the engine on its far side, and an
-   aim point that has been shot away falls back to the hull. **A part is led by its hull's velocity, not by
-   its own**: a part goes round the centre of mass rather than off along the tangent it is travelling
-   down at this instant, so extrapolating that tangent over a long shot throws the aim point clean off
-   the ship, while leading the hull is wrong by at most how far the part sits from the centre of mass,
-   whatever the flight time. The error that leaves grows with a hull's size and its rate of turn, and
-   those pull against each other — and it is the forgiving kind: an aim point held on the hull puts a
-   round that misses the part it was meant for into some other part of the same ship, where a tangent
-   that has run off the ship misses altogether. A fighter firing at a pinned capital spinning at
-   0.4 rad/s lands 0.91 impacts per round at two kilometres against 0.55, and 1.23 against 0.87 at one. The *tracking* rate is still the part's own, since how fast a barrel
-   must turn now and where a thing will be in five seconds are different questions. In `duel` the
-   difference is 0.58 hits per round fired against 1.14, and 78 rounds fired against 321 — a turret
-   chasing a tangent rarely settles enough to read as on target at all. Measured in `standoff`: hits
-   landing on guns go from 37% to 68% and on structure from 55% to 22%, nine of ten survivors are
-   disarmed rather than eight, and it is paid for in accuracy — 1.81 bodies struck per round fired
-   against 1.41, because a module is a smaller thing to hit than a ship. The Dinky sets engines above
-   guns, because a fighter cannot destroy a capital but can strand one.
-   What is left of this step is what it always deferred — withdrawal, and the line-of-sight, hemisphere,
-   looking-at and ship-type pickers — plus one thing using it turned up: **how much a mount cares about
-   its ship's orders, as a weight of its own**. An order is currently a mandate: every mount that can
-   train on the ordered target takes it. That is right for a main battery and wrong for a close-in mount,
-   which should go on swatting whatever is about to hit the ship while the hull is ordered onto something
-   big. The shape is the one the rest of targeting already has: a weight scoring the ordered target
-   alongside every other candidate, defaulted high enough that an ordinary mount obeys and set low on a
-   CIWS. It replaces the mandate rather than sitting beside it, so it moves the goldens of every scenario
-   that issues an order — which is why it is a piece of work of its own rather than a postscript to the
-   one that introduced the mandate.
-4. **Headless evolution and analysis** — balance testing plus sandbox mode.
+- **Unlinking one copy of a shared part while the others stay linked.** Unlink today dissolves every copy at
+  once, because the editor cannot yet name a single instance.
+- **The word the editor owes the player when an action reorders a layout.** It is about reproducibility, not
+  behaviour — see *Module order* in the notes below.
 
-   **The plan, settled and in build order.**
+Deliberately left out of the editor's first iteration, and still unclaimed by any step: **test flight** (the
+editor could have a throwaway sim of its own; it does not need the battle page's), **fleets and budgets**,
+and **interval-based firing arcs** (the §12 entry on traverse and firing permission).
 
-   **What a generation mutates** is a blueprint: the numbers in it — module sizes, positions, angles,
-   barrel counts, reinforcement — and its doctrine block, *and its topology*, since a lineage that can
-   never grow a second gun or shed a wing is a lineage searching a fixed shape. Adding, removing and
-   duplicating modules and assemblies, under a mass budget. **The layout rules are the arbiter**: a
-   mutant that fails `blueprintProblem` — no core, something attached to nothing, boxes overlapping — is
-   resampled rather than repaired, because a repair rule is a second opinion about what a ship is.
-   Edit distance is bounded per generation for §7's reason: at most so many numbers changed, each by so
-   much, and at most one module added or removed, so a descendant is recognisably one.
+**Step 3 — Doctrine and orders.** What the step deferred, plus one thing using it turned up:
 
-   **Where it runs.** One evolution core, in code that imports nothing from the host, driven two ways:
-   `npm run evolve` headless in Node writing a run file, and — later — a third page that loads the same
-   file to show progress and replay matches through the existing viewer. Node first, because "headless"
-   is what makes a generation cheap and because nothing in it needs a canvas. §5's SharedWorker, React
-   and wa-sqlite stack is not built yet and this step does not need it: a run is a JSON file until a
-   campaign needs to query one.
+- **Withdrawal** — a craft breaking off.
+- **More pickers**: line-of-sight, hemisphere, looking-at, and ship-type.
+- **How much a mount cares about its ship's orders, as a weight of its own.** An order is currently a
+  mandate: every mount that can train on the ordered target takes it. That is right for a main battery and
+  wrong for a close-in mount, which should go on swatting whatever is about to hit the ship while the hull is
+  ordered onto something big. The shape is the one the rest of targeting already has: a weight scoring the
+  ordered target alongside every other candidate, defaulted high enough that an ordinary mount obeys and set
+  low on a CIWS. It replaces the mandate rather than sitting beside it, so it moves the goldens of every
+  scenario that issues an order — which is why it is a piece of work of its own.
 
-   **How competitors meet**: small free-for-all groups, picked the way the archive's `Generation` picks
-   them — fewest matches first, avoiding repeat pairings, until everyone has played its minimum. A melee
-   is both cheap per sample and the place doctrine shows.
+### Not started — in order
 
-   **What a match scores**: survival, damage, and proximity to a race goal, all three in the one match,
-   with the weights in the run config. One match rather than two kinds, so that a design has to make the
-   trade the goal exists to force — break off and run for it, or stay and fight.
-
-   **Open, and deliberately**: what the mass budget is measured in (§12's materials, which step 5 also
-   wants); whether a population is seeded from the authored ships or from noise; how a run is persisted
-   and progressed graphed beyond a JSON blob; and whether each individual also fights a fixed benchmark
-   fleet as a yardstick, so the progress graph means something across generations rather than only
-   within one.
 5. **v1: skirmish** — a fixed budget of *materials* rather than of points (§12), designed scenarios,
-   shareable by URL. *This is the first thing worth giving people to play.*
-6. **Editor restructuring — dissolving a group, and grouping what is already grouped.** Making a
-   group is what building a symmetrical ship needs; unmaking one, nesting one inside another and
-   adding a group to a group are what *reworking* a ship needs, and that pressure only arrives once
-   there are ships people want to keep and rebuild rather than replace. Until then the way out of a
-   group is undo and the way to a nested one is the file, which is a poor tool and an adequate
-   stop-gap.
-7. **Salvage and in-battle construction** — wrecks from the current battle as the resource. The
-   natural bridge to an economy: no map features needed, and it ties income directly to combat.
-8. **Mining and the two-resource economy** — metals for hulls, volatiles for propellant, so maps can
-   have economic character and scarcity changes behaviour. *Note: this is a re-balance, not an
-   addition — it lengthens battles and replaces "did I spend 500 points well?" with "did I manage
-   income well?". Scenarios will need revisiting.*
-9. **Campaign** — Homeworld-shaped, with the adaptive enemy. Last, because it's mostly *authoring*
-   (scripted missions, pacing, narrative), which is the largest volume of work in the least-proven
-   discipline.
+   shareable by URL. *This is the first thing worth giving people to play.* Designed
+   scenarios are where the §12 entry on authored data stops being optional, since a scenario to share has
+   to be a file.
+6. **Editor restructuring — dissolving a group, and grouping what is already grouped.** Making a group is
+   what building a symmetrical ship needs; unmaking one, nesting one inside another and adding a group to a
+   group are what *reworking* a ship needs, and that pressure only arrives once there are ships people want
+   to keep and rebuild rather than replace. Until then the way out of a group is undo and the way to a nested
+   one is the file, which is a poor tool and an adequate stop-gap. What is missing today: a group cannot be
+   dissolved (`unlink` takes one module out at a time); grouping modules already in different assemblies is
+   refused, as is grouping a group; and adding to a group takes loose modules only. The format allows nesting
+   — only the editor does not build it. Evolution's mutation operator already dissolves the plain case (one
+   copy, no extras, nothing nested), so what the editor is short of is the interface rather than the
+   arithmetic.
+7. **Salvage and in-battle construction** — wrecks from the current battle as the resource. The natural
+   bridge to an economy: no map features needed, and it ties income directly to combat.
+8. **Mining and the two-resource economy** — metals for hulls, volatiles for propellant, so maps can have
+   economic character and scarcity changes behaviour. *Note: this is a re-balance, not an addition — it
+   lengthens battles and replaces "did I spend 500 points well?" with "did I manage income well?". Scenarios
+   will need revisiting.*
+9. **Campaign** — Homeworld-shaped, with the adaptive enemy. Last, because it's mostly *authoring* (scripted
+   missions, pacing, narrative), which is the largest volume of work in the least-proven discipline.
 
-**Scenario packs** are the cheapest way to make it a game with goals rather than a sandbox, and they
-teach the mechanics. Each scenario is a data file, not code.
+**Scenario packs** are the cheapest way to make it a game with goals rather than a sandbox, and they teach the
+mechanics. Each scenario is a data file, not code.
 
-### Slice 1 — blueprint editor, first iteration
+**Multiplayer** is not a step, and nothing is being built for it — but nothing forecloses it either: the pure
+sim, fixed timestep, explicit seeding and commands-in/snapshots-out contract *are* the lockstep architecture.
 
-§8 step 1, scoped down to one iteration: **lay out a ship, see what the layout bought, save it, get it into
-a file.** Flying what you built is deliberately the *second* iteration. What remains of it is below; Status
-says what the editor already does.
-
-**Assemblies are how a ship stops being edited twice.** A blueprint holds a table of named groups of
-modules, and places them by reference — so the gunship's eight lateral thrusters are one thruster placed
-eight times, and making them all bigger is one edit with no state in which seven of them are. An assembly
-of a single module is the ordinary shared-part case and deliberately not a separate concept; an assembly
-containing other assemblies is what lets a whole wing, or a whole side of a ship, be one thing.
-
-The format has all of this and the editor reads it: selecting one copy of a shared part selects the
-*placement*, says how many copies it draws, and edits every one of them together — except position, which
-belongs to the copy, since a shared module sits at its assembly's origin and each instance carries a pose of
-its own. Duplicate makes a shared part out of a module and unlink dissolves one, so the editor can make and
-unmake an assembly of a single module. What it cannot do is **restructure** anything larger than that.
-Everything below is that gap.
-
-**Grouping exists, and reflection with it.** Several modules are picked with Shift-click and made into an
-assembly placed once where they were; the group is then selectable in its own right, placed again, moved,
-turned and reflected. That is the whole of what replaces a mirrored editing mode: symmetry is structural
-rather than something the editor keeps in step — build a side once, place it twice with one instance
-mirrored, and the two cannot disagree about anything but which side they are on. No mode, no state, and no
-question about a module straddling the centreline.
-
-**A group is built around the first module picked**, not around the centre of the selection. A group is
-usually a thing hanging off one connecting module — a wing off its root — and that module is the one whose
-position means something, so reflection turns the group about the part that joins it to the ship.
-
-**A group is boxed once per copy**, so a group placed twice is two boxes rather than one round both, with the
-copy that was clicked solid and the rest dashed — the same distinction the module highlight makes between the
-copy under the pointer and the ones it moves with. A module selected inside a group keeps its group's box,
-drawn faintly: it says which thing the part belongs to without competing with the part itself. The panel
-shows what the group weighs, and what all its copies weigh together; mass is the only figure that means the
-same thing about a bag of modules as it does about one, since capacity, armour, hit points and thrust each
-describe something a group has no single answer for.
-
-**A group carries a name**, editable on its panel and renamed everywhere it is used at once, since the name
-is a reference rather than a label. It is the only thing about a group that says what it is *for*, and it is
-what a palette of groups to place would list, if one is ever built.
-
-**A group is handled as one thing on the canvas.** Clicking a module inside a group selects the group, not
-the module; clicking again, with that group already selected, drills into the module — so reaching a part is
-deliberate rather than accidental. A selected group drags as a whole, and its own outline is drawn round
-everything it places, which is what distinguishes it at a glance from several modules picked one by one.
-Modules picked alongside a single group can be put into it, which is the other way to build a group up: they
-are re-expressed through the instance's pose on the way in, and a group placed more than once gains one per
-copy, which the panel says out loud.
-
-What a group cannot do is be **restructured**. It cannot be dissolved — `unlink` takes one module out of an
-assembly at a time, and there is no inverse of grouping that puts a whole assembly back inline — and
-grouping several modules already in different assemblies is refused, as is grouping a group; both would
-nest, which the format allows and this does not build. Adding to a group takes loose modules only, for the
-same reason. All of it is §8 step 6, deliberately after v1: it is what reworking a ship needs rather than
-what building one needs. Evolution's mutation operator *does* dissolve a group, which is not a contradiction
-so much as a note about where the difficulty is: it only ever dissolves the plain case — one copy, no
-extras, nothing nested — which is the case the editor's unlink already handles exactly, and what the editor
-is short of is the interface rather than the arithmetic.
-
-**How one copy of a group differs from another is additive.** An instance may carry `extra` modules of its
-own, placed in the same frame as the assembly's, so they move and reflect with it. That is the whole of the divergence
-mechanism, and the editor's unlink is built from it rather than from anything new in the format. Unlink
-takes the shape the layout makes necessary: when the module is the whole of its assembly, each instance is
-replaced by what it expanded to and the assembly goes, which is exact down to module order; when the
-assembly holds other modules too, the module leaves the definition and every instance is handed its own copy
-as an `extra`. The second has a cost the button states — the part is gone from the assembly, so a *new*
-instance will not have it, and extras land after the assembly's own modules, so the part moves down the
-expansion order and the ship changes very slightly even though nothing about its geometry has.
-
-What is *not* built is unlinking **one** copy while the others stay linked. Both shapes above unlink every
-copy at once, because the editor cannot yet name a single instance.
-
-**Module order is part of the ship, so restructuring a layout is not bit-free.** Thruster allocation solves
-over the columns in order and turrets fire in order, so the same modules listed differently compile to a
-ship that is not bit-identical: reordering the gunship moved the duel checksum while leaving the expanded
-geometry identical. It is why the authored ships place symmetric *pairs* adjacently rather than grouping
-each whole side. How much of that is *behaviour* is now measured rather than assumed, by
-`scenarios/ordering.ts`: 8.2e-13 m of drift over 3,000 steps of manoeuvring and gunnery, with identical
-shots fired and hits scored, because both mechanisms are order-independent in substance and merely add their
-numbers up in list order. So the word the
-editor owes the player when a restructuring action reorders something is about reproducibility — a saved
-ship will not check-sum the same — and not about the ship fighting differently. Adding a module appends,
-which is the one placement that leaves even the bits alone.
-
-#### Deliberately not in this iteration
-
-Test flight — putting a ship in a scene and letting it fly. The editor can have its own throwaway sim
-later; it does not need the battle page's. What is there instead is an **animation**, not a start on one: a
-selected engine burns and a selected gun fires at its own rate, with rounds flying straight at the muzzle
-speed and being forgotten. Nothing is integrated, nothing collides, and the ship does not move however hard
-its engine burns — so it cannot grow into a test flight by accident, and it claims nothing the panel beside
-it does not already state.
-Fleets and budgets. The real connectivity graph. Asymmetric or interval-based firing arcs. Any of §12's
-open scaling questions.
-
-**No cost line, now or ever** — see §12. Dry mass is not standing in for a cost until a cost model turns
-up; dry mass *is* the materials a ship is made of, which is one of the three things a ship actually costs.
-The other two are build time, which needs a complexity metric nobody has pinned down, and the propellant
-and raw materials it consumes running, which needs a fuel model. Both are absent, so mass is the whole of
-what the editor can honestly show, and it is not a placeholder.
-
-### Multiplayer
-
-- **Async fleet-vs-fleet is nearly free** and stays open: a fleet file (blueprints + doctrine +
-  build priorities) plus a seed, run deterministically, produces a replay both sides can watch.
-  No server, no netcode, no rollback. The variant where the budget arrives as *starting resources on
-  a mothership with build priorities* is better than a pre-built fleet, because build doctrine
-  becomes part of what's being competed on. Requires portable determinism — hence own transcendentals.
+- **Async fleet-vs-fleet is nearly free** and stays open: a fleet file (blueprints + doctrine + build
+  priorities) plus a seed, run deterministically, produces a replay both sides can watch. No server, no
+  netcode, no rollback. The variant where the budget arrives as *starting resources on a mothership with
+  build priorities* is better than a pre-built fleet, because build doctrine becomes part of what's being
+  competed on. Requires portable determinism — hence own transcendentals.
 - **Real-time PvP is ruled out**: it is incompatible with pause-to-think, which is core.
 - **Co-op** is the only sensible real-time shape, and it's also the easiest — everyone pauses together.
-- Nothing is being built for multiplayer now, but nothing forecloses it: the pure sim, fixed
-  timestep, explicit seeding and commands-in/snapshots-out contract *are* the lockstep architecture.
+
+### Notes on what is built
+
+Only what later work has to respect. What each step built is in Status; how it was arrived at is in
+DECISIONS.md.
+
+**Why the order starts where it does.** Slice 0 went first because it attacked the real risks (does planar
+Newtonian combat feel good? do the scaling laws hold?) rather than the known ones, kept the sim boundary pure
+by construction, and put something on screen within days. The same test still picks the next step: the one
+that answers the question most likely to change the design.
+
+#### Editor (step 1)
+
+- **Assemblies are how a ship stops being edited twice.** A blueprint holds named groups of modules and
+  places them by reference; an assembly of one module is the ordinary shared-part case, not a separate
+  concept. Position belongs to the copy, everything else to all of them. Symmetry is structural — build a
+  side once, place it twice with one copy mirrored — so there is no mirrored editing mode, and none should be
+  added.
+- **A group is built around the first module picked**, not the centre of the selection, because a group is
+  usually a thing hanging off one connecting module and reflection should turn it about that joint.
+- **How one copy differs from another is additive**: an instance may carry `extra` modules in the
+  assembly's frame. That is the whole divergence mechanism, and unlinking one copy (above) should be built
+  from it rather than from anything new in the format. Unlink has two shapes today — a module that is its
+  whole assembly is expanded back inline, exactly; one that shares its assembly leaves the definition and
+  every instance gets it as an `extra`, which drops it from any *new* instance and moves it down the
+  expansion order.
+- **Module order is part of the ship, so restructuring is not bit-free.** Thruster allocation and firing both
+  run in list order, so a reordered layout does not check-sum the same — though `scenarios/ordering.ts`
+  measures the behavioural difference as round-off (8.2e-13 m over 3,000 steps, identical shots and hits).
+  So the warning the editor owes is about reproducibility, not about the ship fighting differently. Adding a
+  module appends, which leaves even the bits alone; the authored ships place symmetric *pairs* adjacently for
+  the same reason.
+- **The editor's animation is not a start on test flight.** A selected engine burns and a selected gun fires
+  at its own rate, but nothing integrates or collides, so it cannot grow into a test flight by accident.
+- **No cost line, now or ever.** Dry mass is not standing in for a cost; it *is* the materials a ship is made
+  of, one of the three real costs (§2). Build time needs a complexity metric and running cost needs a fuel
+  model; until they exist, mass is the whole of what the editor can honestly show.
+- **Firing arcs are measured as sweeps**, how far a mount turns to reach each edge, not as signed bearings: an
+  obstruction wholly to port has both edges at positive bearings, and one dead astern is reached by turning
+  either way. Every consumer must agree which bound is which — the clamp and the renderer once had them
+  transposed consistently, which is invisible while every arc is symmetric. The interval mask in §12 has to
+  keep this.
+
+#### Damage model (step 2)
+
+- Solid hulls went before severing on purpose, so a severed chunk is a thing that collides rather than a
+  ghost. Anything new that comes off a ship should be a body the same way.
+- What the step leaves open is balance and which piece the crew is on, not mechanism — the dials are in §12.
+
+#### Doctrine and orders (step 3)
+
+The remaining pickers and the order weight should follow the shape already there:
+
+- **Doctrine is a block in the blueprint file**, shared by reference and copied only when overridden — the
+  same copy-on-write split the thruster layout uses. A mount's own block holds only its *differences* from
+  its ship's.
+- **Targets are chosen by a stack of preferences**, each discarding a candidate or adjusting its score, with a
+  discard hiding a target from everything above it. A new picker is a new weight, not a new mechanism.
+  Hysteresis (preferring what it is already fighting) is a picker, not flavour.
+- **The ship picks a manoeuvre target and each mount picks its own firing target**, through the same stack,
+  measured from the gun rather than the hull. Re-picking runs on an interval *derived* from the hull or mount
+  rather than configured.
+- **An order always outranks doctrine**, which is strictly a fallback: when doctrine landed, only the
+  scenarios that give no orders moved.
+- **A gun fires at what its barrel was trained on**, recorded when it is trained — the hull turns between
+  training and firing, and working the target out afresh at the trigger once had fighters firing over their
+  own shoulders.
+- **A part is led by its hull's velocity, not its own**; tracking rate is still the part's own.
+
+#### Evolution (step 4)
+
+- **Mutants that fail `blueprintProblem` are refused, not repaired** — a repair rule is a second opinion about
+  what a ship is. Edit distance per generation is bounded (§7), so a descendant is recognisably one.
+- **One evolution core, importing nothing from the host**, driven headlessly by `npm run evolve` and by its
+  page. A run is a JSON file; §5's SharedWorker, React and wa-sqlite stack is not built and nothing so far has
+  needed it. It is wanted when a campaign needs to *query* runs.
+- **One match scores survival, damage and ground gained together**, so a design has to make the trade
+  between fighting and running for the goal. Small free-for-all groups, drawn fewest-meetings-first.
+- **The mass budget is dry mass**, the only real cost that exists (§2). When materials arrive (§12) it will
+  want to become a budget of materials, which is step 5's currency too.
+- What evolution has left open — selection pressure, draw noise, arena size, clever piloting — is in §12.
 
 ---
 
@@ -357,9 +228,9 @@ Deliberately unresolved; decide when they block something.
   spots: rate of fire, which one constant cannot make plausible for both a battleship rifle and a
   light mount, and the counter-pressures against scale. Enclosed area grows faster than the wall that
   encloses it, so bigger is cheaper per cubic metre, and at present the only pushback is that
-  stretching a module costs wall. Damage locality and gun vulnerability are the two intended
-  counter-pressures and neither exists yet, so "one enormous module" is currently under-punished.
-  Expect the GA to say so.
+  stretching a module costs wall. Damage locality and gun vulnerability were the two intended
+  counter-pressures, and both now exist — damage lands module by module and doctrine aims at guns — but
+  whether they punish "one enormous module" enough is unmeasured. Expect the GA to say so.
 - **A turret's mount is its bank and its loading machinery too, and does not yet pay like one.** A hull gun's
   block sets its rate of fire, since that is where the hoist, the rammer and the heat go: depth in
   calibres of the round, a fixed part of the cycle no machinery shortens, and a ceiling of about four
@@ -388,8 +259,8 @@ Deliberately unresolved; decide when they block something.
   barrels at a chosen range (paying for it at every other range) is a genuine design axis rather than
   a correction.
 - **A beam's optics: spot size, intensity, wavelength and what armour does about them.** The beam laws derive an
-  aperture, a power and a dwell, and stop there — because everything past that point needs a damage model to
-  land on. What is deferred is one equation and its consequences. A beam leaving an aperture `D` at wavelength
+  aperture, a power and a dwell, and stop there: the damage model spends a beam's power, not its intensity, so
+  nothing yet consumes a spot size. What is deferred is one equation and its consequences. A beam leaving an aperture `D` at wavelength
   `λ` spreads at `1.22 λ / D`, so its spot at range `R` is `D + 2.44 λ R / D` and the intensity that actually
   burns is `P` over that area.
 
@@ -398,8 +269,8 @@ Deliberately unresolved; decide when they block something.
   For a 100 MW beam at 1.06 µm, a 0.1 m aperture delivers about 5500 MW/m² at 2 km against a 1 m aperture's 126,
   and the two cross over at roughly 40 km — so the choice is a range band rather than a quality. **Wavelength
   moves the same curve**, halving the spread for half the wavelength, and pays for it in the efficiency of
-  generating it, which is waste heat. It is deliberately *not* a parameter yet: with focus unmodelled and armour
-  absent, its only live consequence would be the cost, so every design would pick the longest wavelength going
+  generating it, which is waste heat. It is deliberately *not* a parameter yet: with focus unmodelled and no reflective
+  armour, its only live consequence would be the cost, so every design would pick the longest wavelength going
   and the knob would be dead. It arrives with the optics, and it brings a beam's colour with it. **Reflective
   armour is the counter**, wavelength-dependent and weak to kinetics, which is why `BeamHits` already reports a
   surface normal: incidence angle is half of what decides whether a beam couples in or skids off.
@@ -408,8 +279,9 @@ Deliberately unresolved; decide when they block something.
   range `D²/2.44λ` lands between about 9 km and 190 km across the shipped mounts, which puts the interesting
   part of the curve inside the engagement ranges this game means to reach. It is the number to revisit first
   when intensity acquires a consumer.
-- **What a beam mount's duty cycle should be.** `BEAM_DUTY_CYCLE` is a flat fraction standing in for two
-  systems that do not exist. The bank refills at whatever the ship's plant can spare, which is a power model;
+- **What a beam turret's duty cycle should be.** `BEAM_DUTY_CYCLE` is a flat fraction standing in for two
+  systems that do not exist. (Hull beams have moved off it to a fixed recovery time, `BEAM_RECHARGE_TIME`;
+  the turret entry above says why turrets have not.) The bank refills at whatever the ship's plant can spare, which is a power model;
   and the mount can keep firing until its heat sinks are full, which is a heat model and is properly a
   *cumulative* limit across an engagement rather than a per-shot one — a beam mount should warm up over minutes
   and eventually have to stop, not reload. Worth knowing how large that problem is: radiating 300 MW of waste
@@ -417,8 +289,8 @@ Deliberately unresolved; decide when they block something.
   build and why the heat model will have real consequences for hull layout rather than merely for rate of fire.
 - **Firing several emitters at once.** A mount with `n` emitters currently fires them in turn, which a gun does
   for good reasons — the loading gear and the recoil are both sequential — and a laser does for none. The
-  shared bank then feeds one emitter at `1/n` the power for `n` times as long, so the beam gunship's eight-way
-  mounts hold a weak beam for fifteen seconds and then sit dead for forty-four. Nothing is wrong with the
+  shared bank then feeds one emitter at `1/n` the power for `n` times as long, so a many-emitter mount holds a
+  weak beam for a long time and then sits dead for longer. Nothing is wrong with the
   arithmetic; the sequencing is what a laser has no reason to inherit. Firing them together needs `Ships.fire`
   to emit a salvo rather than a shot, which is a change to the firing loop rather than to the scaling laws.
 - **Reflected beams, and the trap waiting at the surface.** A beam that is deflected rather than absorbed
@@ -543,7 +415,8 @@ Deliberately unresolved; decide when they block something.
 - **A beam aimed at a seam.** A beam cuts the welds its tunnel crosses, but nothing *aims* it at one: the
   gunnery points a mount at a body and the cutting is whatever the line happens to pass through. Deliberately
   choosing a seam — cutting a named piece off a named ship — is a targeting question rather than a damage one,
-  and it wants the target pickers the doctrine slice brings. It is the point at which a beam ship stops being
+  and the shape exists: doctrine already weights which *kind* of module to aim at, and a seam would be one more
+  aim point beside those. It is the point at which a beam ship stops being
   a gun that burns and starts being a surgeon.
 - **Gimballed thrusters** fit, with one change of variable. A gimbal makes the thrust *direction* an
   unknown, and the wrench then depends on sin and cos — nonlinear, and fatal to fixed columns and normal
@@ -598,23 +471,17 @@ Deliberately unresolved; decide when they block something.
   thrusters wasteful together without any two of them being opposites — which no layout drawn or bred so far
   does, and which is a linear program rather than a loop to find.
 - **Whether capitals may mount hull-layer guns.** Not needed for torpedoes — §3 settles those — but it is
-  an appealing separate axis. Deck turrets are **area**-limited: many of them, arcs unconstrained, but they
+  an appealing separate axis. `hullGun` and `hullBeam` exist and have the narrow arcs and heavy bore this
+  imagines, but they fire in the weapons layer like any turret — there are no layers in the sim yet — so
+  what they can hit is still the open part. Deck turrets are **area**-limited: many of them, arcs unconstrained, but they
   can only strip mounts. Edge-mounted hull-layer guns would be **perimeter**-limited: few, narrow arcs, but
   able to hole a hull directly. Big ships would then have to *specialise* rather than simply scale, and the
   "guns mission-kill, ordnance destroys" line in §3 would become "deck turrets mission-kill; edge guns and
-  ordnance destroy", with edge guns paying for it in coverage. The cost is a second mounting concept in the
-  blueprint editor, so decide it when building the editor rather than before.
-- **Whether a turret's traverse limit and its firing permission are the same thing.** Today they are: a
-  mount may fire wherever it may point. That is one of the two things this question was about; the other,
-  asymmetry, is done.
-  - ~~**Asymmetry.**~~ Settled. `firingArc` returns a bound each way and the turret store carries both, so
-    an obstruction off one beam costs the sweep that way alone. Worth recording what made it hard to get
-    right rather than just that it is: the limits have to be measured as *sweeps* — how far the mount must
-    turn to reach an edge — and not as signed bearings, because an obstruction wholly to port has both
-    edges at positive bearings while one dead astern is reached by turning either way. And every consumer
-    has to agree which bound is which. Both the clamp and the renderer had them transposed, consistently
-    with each other, so the picture and the behaviour agreed and were both wrong — which is invisible while
-    every arc is symmetric, and every arc was.
+  ordnance destroy", with edge guns paying for it in coverage. The mounting concept now exists in the editor; what
+  is left to decide is the layer, and it arrives with the raised flag below.
+- **Whether a turret's traverse limit and its firing permission are the same thing.** Today they are, bar
+  firing discipline's friendly-hull cast: a mount may fire wherever it may point. Arcs are asymmetric
+  already — a bound each way, measured as sweeps (see §8's notes on the editor).
   - **Traversing through what you may not fire through.** A barrel can usually sweep *past*
     superstructure or a neighbouring mount and reach clear bearings beyond it — it simply must not shoot
     while crossing them. So these are two different quantities. The **traverse limit** is mechanical:
@@ -630,9 +497,8 @@ Deliberately unresolved; decide when they block something.
   over merely the nearest reachable bearing. Slew is untouched, and it stays compile-time work — the mask
   is a property of the layout, so it costs a build step, not a per-step one.
 
-  Waiting is still right, for the reason the symmetric version gave: this is the mechanism that makes a
-  layout's field of fire legible, and it wants the blueprint editor there to show a player what their
-  arrangement bought.
+  It was waiting on the blueprint editor, to show a player what their arrangement bought; the editor now
+  draws each mount's arc, so nothing blocks it.
 
   **What is implemented is knowingly inconsistent, and the three parts disagree in different directions.**
   §3 already settles the principle — the weapons layer is above the deck, guns fire over friendly and enemy
@@ -699,9 +565,9 @@ Deliberately unresolved; decide when they block something.
   What the split buys is a better mission kill than "disabled". A ship stripped of its main engines still
   has manoeuvring thrusters on long moment arms, so it can still *rotate* well while barely translating: a
   fixed battery that can bring guns to bear but cannot close, break off, or dictate range. That is a state
-  worth fighting rather than a formality, and it is the drifting hulk §3 wants and the salvage §8 step 6
-  feeds on. Worth knowing that `hasFullAuthority()` is called only from tests and never at run time, so a
-  damaged ship failing it costs nothing — it looks like it would matter and does not.
+  worth fighting rather than a formality, and it is the drifting hulk §3 wants and the salvage §8 step 7
+  feeds on. Worth knowing that `hasFullAuthority()` is called by the editor's stats and tests and never by
+  the sim, so a damaged ship failing it costs nothing — it looks like it would matter and does not.
 - **How a gun reaches the hull layer at all: proximity fuses.** §3 says HE shells give small guns light hull
   damage and lasers cannot, which is a stipulated asymmetry with no mechanism under it. A fused round has
   one: it detonates at a point, the blast reaches down into the hull layer, and the damage disperses with
@@ -719,7 +585,7 @@ Deliberately unresolved; decide when they block something.
   exactly when a fuse was supposed to earn its keep; a true proximity fuse costs a check per round per step.
   The cheap middle is to arm on the timer and detonate on first proximity within a short window, so the
   check runs only while armed.
-  Belongs with §8 step 2: a fuse is a delivery mechanism, and the damage model is what it delivers into.
+  A fuse is a delivery mechanism and the damage model it delivers into exists, so nothing blocks it.
 - **Whether the remaining authored data lives in files rather than in code.** Blueprints do: they are JSON,
   parsed by `sim/blueprintFile.ts`, and the shipped ships go through exactly the validation a stranger's file
   does. What has not moved is `tests/fixtures/scenarios.ts`, and §9's promise of
@@ -748,9 +614,9 @@ Deliberately unresolved; decide when they block something.
   There is no abstract cost number anywhere in this game. And a material file is an
   **input to the golden checksums** exactly as a scenario is, so editing one moves pinned results and needs the
   discipline §9 asks for.
-  Earliest sensible point is §8 step 2, terminal ballistics and the damage model: hardness, density and
-  thickness are what it decides penetration against, so that is where per-material properties stop being
-  decoration and start deciding outcomes.
+  The damage model already decides penetration from hardness, density and thickness, so per-material
+  properties would decide outcomes the moment they exist; §8 step 5's budget of materials is the latest it
+  can wait until.
 - **What a weld is worth: `JOINT_IMPULSE_PER_AREA`, and the three constants around it.** A weld's section
   is the faces in contact by the thinner wall meeting there, rated as an impulse; `WRECK_STRENGTH` is how
   much of it survives the metal at its ends being wrecked; `SHOCK_REACH` is how far a blow carries before
