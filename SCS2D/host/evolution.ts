@@ -863,7 +863,8 @@ export function startEvolution(): void {
       const row = rows.find((candidate) => candidate.id === id);
       if (row !== undefined) entrants.push(row.blueprint);
     }
-    if (entrants.length < 2 || run === null) return;
+    // One is enough: a match of one ship is a run's test of its piloting.
+    if (entrants.length === 0 || run === null) return;
     replay = new Match(entrants, { ...run.config.match, seed: record.seed });
     replayOf = record;
     replayPlaying = true;
