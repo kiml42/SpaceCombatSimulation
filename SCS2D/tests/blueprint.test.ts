@@ -12,6 +12,7 @@ import { HALF_PI, PI } from '../sim/math.js';
 import {
   GunType,
   hullMountGeometry,
+  isWeaponMount,
   moduleCentre,
   moduleStats,
   type ModuleSpec,
@@ -723,7 +724,9 @@ describe('the authored blueprints', () => {
         expect(design.thrusters[i]!.y).toBe(thrusterModules[i]!.y);
       }
 
-      const turretModules = design.modules.filter((m) => m.spec.kind === 'turret' || m.spec.kind === 'beamTurret');
+      // Every weapon that trains, hull mounts included: they compile into the
+      // same store and are indexed the same way.
+      const turretModules = design.modules.filter((m) => isWeaponMount(m.spec.kind));
       expect(turretModules.length).toBe(design.turrets.length);
       for (let i = 0; i < design.turrets.length; i++) {
         expect(design.modules[design.turrets[i]!.module]).toBe(turretModules[i]);

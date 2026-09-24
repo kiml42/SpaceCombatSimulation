@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "name": "TIE Fighter",
-  "notes": "A fighter, and a fighter's doctrine: other fighters first, by preferring a target about the size of an X-Wing, and guns and engines rather than hull. What is left over is a capital with its guns stripped, which is more than a TIE could have done to it by shooting at the hull.",
+  "notes": "A fighter, and a fighter's doctrine: other fighters first, by preferring a target about the size of an X-Wing, and guns and engines rather than hull. What is left over is a capital with its guns stripped, which is more than a TIE could have done to it by shooting at the hull. The ball is the whole ship: a spine of cockpit down the middle, a gun let into the hull either side of it, an engine outboard of each gun with its bell out the back, and plating filling the rest out to a circle. Nothing is bolted on to be shot off.",
   "doctrine": {
     "targeting": {
       "preferredMass": 2.5,
@@ -39,44 +39,6 @@
           "y": 1.65,
           "length": 1,
           "width": 0.5
-        },
-        {
-          "kind": "structure",
-          "x": -1.3,
-          "y": -0.8,
-          "length": 0.1,
-          "width": 1
-        },
-        {
-          "kind": "thruster",
-          "x": -1.35,
-          "y": -0.8,
-          "angle": 0,
-          "length": 0.5,
-          "width": 1
-        },
-        {
-          "kind": "turret",
-          "x": 1.5,
-          "y": -1,
-          "angle": 0,
-          "length": 0.5,
-          "width": 1,
-          "barrels": 1
-        },
-        {
-          "kind": "structure",
-          "x": 1.8,
-          "y": -0.8,
-          "length": 0.1,
-          "width": 0.2
-        },
-        {
-          "kind": "structure",
-          "x": 1.8,
-          "y": -1.2,
-          "length": 0.1,
-          "width": 0.2
         },
         {
           "use": "thruster",
@@ -122,8 +84,60 @@
       "x": 0,
       "y": 0,
       "length": 2.5,
-      "width": 2.5,
-      "notes": "The ball is the cockpit, which is what it looks like and what it should be: the pilot sits in the middle of the ship rather than in a compartment tucked behind it, and a TIE's guns are in its wings."
+      "width": 0.5,
+      "notes": "A spine down the middle of the ball rather than the whole of it. The pilot sits amidships as a TIE's does, and what fills the rest of the circle is the guns, the engines and the plating between them \u2014 so a hit on the ball is usually a hit on a weapon rather than on the pilot."
+    },
+    {
+      "kind": "hullGun",
+      "x": 0,
+      "y": 0.5,
+      "angle": 0,
+      "length": 2.5,
+      "width": 0.5,
+      "barrels": 1,
+      "nozzle": 0.5,
+      "notes": "The full length of the ball, let into it either side of the cockpit: a TIE's guns are its own hull rather than a mounting bolted to it, which is how a hull this small carries a bore worth firing."
+    },
+    {
+      "kind": "hullGun",
+      "x": 0,
+      "y": -0.5,
+      "angle": 0,
+      "length": 2.5,
+      "width": 0.5,
+      "barrels": 1,
+      "nozzle": 0.5
+    },
+    {
+      "kind": "thruster",
+      "x": -0.75,
+      "y": 1,
+      "angle": 0,
+      "length": 1.25,
+      "width": 0.5,
+      "notes": "Half the cockpit's length of machinery, with the bell running back past the ball so the flame leaves from where a TIE's engines have always been."
+    },
+    {
+      "kind": "thruster",
+      "x": -0.75,
+      "y": -1,
+      "angle": 0,
+      "length": 1.25,
+      "width": 0.5
+    },
+    {
+      "kind": "structure",
+      "x": 0,
+      "y": 1,
+      "length": 1.5,
+      "width": 0.5
+    },
+    {
+      "kind": "structure",
+      "x": 0,
+      "y": -1,
+      "length": 1.5,
+      "width": 0.5
     },
     {
       "use": "structure",
