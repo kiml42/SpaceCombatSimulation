@@ -265,30 +265,38 @@ describe('hull mount scaling', () => {
     expect(stats.cycleTime).toBeCloseTo(CYCLE_TIME_PER_CALIBRE * stats.calibre, 9);
   });
 
-  it('gives each outlet a whole bore until the row no longer fits the opening', () => {
-    // Not a turret's rule: there is no barbette to share, so asking for two
-    // guns asks for two guns. What stops it is the face running out.
+  it('spreads its outlets as a turret spreads barrels, each a whole bore while there is room', () => {
+    // Not a turret's bore rule: there is no barbette to share, so asking for
+    // two guns asks for two guns. But the same placing rule: the face in
+    // `n + 1` gaps, one outboard of each end, so neighbours stand apart.
     const one = hullMountGeometry(gun(8, 4));
+    const three = hullMountGeometry(gun(8, 4, { barrels: 3 }));
     const four = hullMountGeometry(gun(8, 4, { barrels: 4 }));
-    const six = hullMountGeometry(gun(8, 4, { barrels: 6 }));
 
-    expect(four.outletWidth).toBeCloseTo(one.outletWidth, 9);
-    expect(four.barrelWidth).toBeCloseTo(4 * one.barrelWidth, 9);
-    expect(moduleStats(gun(8, 4, { barrels: 4 })).gun!.calibre).toBeCloseTo(
+    expect(one.outletSpacing).toBe(0);
+    expect(three.outletSpacing).toBeCloseTo(1, 9);
+    expect(moduleStats(gun(8, 4, { barrels: 3 })).gun!.barrelSpacing).toBeCloseTo(1, 9);
+    // Three whole guns fit their gaps, and the row is the spread plus a barrel.
+    expect(three.outletWidth).toBeCloseTo(one.outletWidth, 9);
+    expect(three.barrelWidth).toBeCloseTo(2 * three.outletSpacing + three.outletWidth, 9);
+    expect(moduleStats(gun(8, 4, { barrels: 3 })).gun!.calibre).toBeCloseTo(
       moduleStats(gun(8, 4)).gun!.calibre,
       9,
     );
 
-    // Six will not fit, so all six shrink together and the row stops at the cap.
-    expect(six.barrelWidth).toBeCloseTo(HULL_BARREL_WIDTH_CAP * 4, 9);
-    expect(six.outletWidth).toBeLessThan(one.outletWidth);
+    // Four would fill their gaps, so all four shrink to the cap's share of one.
+    expect(four.outletWidth).toBeCloseTo(HULL_BARREL_WIDTH_CAP * four.outletSpacing, 9);
+    expect(four.outletWidth).toBeLessThan(one.outletWidth);
   });
 
-  it('never lets the barrels fill more than the cap allows', () => {
+  it('never lets neighbouring outlets touch, nor the row overhang the face', () => {
     for (const barrels of [1, 2, 4, 8, 20]) {
-      const geometry = hullMountGeometry(gun(8, 4, { barrels }));
-      expect(geometry.barrelWidth).toBeLessThanOrEqual(HULL_BARREL_WIDTH_CAP * 4 + 1e-9);
-      expect(geometry.outletWidth).toBeGreaterThan(0);
+      for (const kind of ['hullGun', 'hullBeam'] as const) {
+        const geometry = hullMountGeometry(gun(8, 4, { barrels, kind }));
+        expect(geometry.outletWidth).toBeGreaterThan(0);
+        expect(geometry.barrelWidth).toBeLessThan(4);
+        if (barrels > 1) expect(geometry.outletWidth).toBeLessThan(geometry.outletSpacing);
+      }
     }
   });
 

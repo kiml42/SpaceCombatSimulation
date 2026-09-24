@@ -356,7 +356,9 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     // itself, which comes to the same drawn width and wants no special case —
     // and the two read quite differently anyway, a laser's housing being about
     // as deep as it is wide where a barrel is fifty times.
-    const physicalWidth = 2 * gun.calibre;
+    // A hull mount knows its outlets' width outright, and for a lens that is
+    // the lens rather than twice it.
+    const physicalWidth = isHullMount(spec.kind) ? hullMountGeometry(spec).outletWidth : 2 * gun.calibre;
     // Barrels are allowed to overlap once the floor has widened them past their
     // own gaps, which happens only when the whole ship is a hundred-odd pixels
     // across. A row that closes into one solid bar still says where the turret
