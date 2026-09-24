@@ -185,7 +185,10 @@ describe('thruster scaling', () => {
     expect(moduleProblem(engine(6, 2, 0.999))).toMatch(/no interior/);
     expect(moduleProblem({ ...box('thruster', 6, 2), nozzle: 1 })).toMatch(/0 to under 1/);
     expect(moduleProblem({ ...box('thruster', 6, 2), nozzle: -0.1 })).toMatch(/0 to under 1/);
-    expect(moduleProblem({ ...box('structure', 6, 2), nozzle: 0.5 })).toMatch(/only a thruster/);
+    // On a kind that does not read it the value is dormant rather than wrong:
+    // mutation keeps it against a refit back, and only the range applies.
+    expect(moduleProblem({ ...box('structure', 6, 2), nozzle: 0.5 })).toBeNull();
+    expect(moduleProblem({ ...box('structure', 6, 2), nozzle: 1.5 })).toMatch(/0 to under 1/);
   });
 
   it('gives a structure module no thrust and no gun', () => {
@@ -386,8 +389,10 @@ describe('hull mount scaling', () => {
     expect(moduleProblem(gun(8, 4, { nozzle: 0 }))).toMatch(/needs some barrel/);
     expect(moduleProblem({ kind: 'thruster', x: 0, y: 0, length: 8, width: 4, nozzle: 0 })).toBeNull();
     expect(moduleProblem(gun(8, 4, { nozzle: 1 }))).toMatch(/from 0 to under 1/);
-    expect(moduleProblem({ kind: 'turret', x: 0, y: 0, length: 5, width: 4, nozzle: 0.5 }))
-      .toMatch(/only a thruster or a hull mount/);
+    // A turret does not read it, so on one it is dormant and allowed — and a
+    // zero that would be refused on a hull mount says nothing on a turret.
+    expect(moduleProblem({ kind: 'turret', x: 0, y: 0, length: 5, width: 4, nozzle: 0.5 })).toBeNull();
+    expect(moduleProblem({ kind: 'turret', x: 0, y: 0, length: 5, width: 4, nozzle: 0 })).toBeNull();
   });
 });
 
@@ -445,11 +450,11 @@ describe('the gear that trains a weapon', () => {
     expect(mountTraverse(turret({ traverse: 4 * Math.PI }))).toBe(FULL_TRAVERSE);
   });
 
-  it('refuses a traverse on something that does not train', () => {
+  it('refuses a traverse below zero, and lets one lie dormant on what does not train', () => {
     expect(moduleProblem(box('structure', 6, 4, undefined))).toBeNull();
-    expect(moduleProblem({ ...box('structure', 6, 4), traverse: 0.5 })).toMatch(
-      /only a weapon has a traverse/,
-    );
+    // Dormant on a girder as a bell is on a gun mount: kept against a refit
+    // back, read by nothing, and left out of what a save writes.
+    expect(moduleProblem({ ...box('structure', 6, 4), traverse: 0.5 })).toBeNull();
     expect(moduleProblem(turret({ traverse: -0.1 }))).toMatch(/at least 0/);
   });
 });
