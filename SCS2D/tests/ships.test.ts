@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  isWeaponMount,
   compileBlueprint,
   math,
   ProjectileHits,
@@ -656,12 +657,21 @@ describe('beam gunnery', () => {
 
 describe('a queue of orders', () => {
   /** Wreck every module of one kind on a ship, as a battering would. */
-  function wreck(r: Rig, ship: number, kind: string): void {
+  /**
+   * Shoot out everything on a ship that does one job: its engines, or its
+   * weapons whatever kind of mount they are on. A ship whose guns are let
+   * into its hull is disarmed by losing those, and asking for `turret` by
+   * name would quietly disarm nothing at all.
+   */
+  function wreck(r: Rig, ship: number, what: 'thruster' | 'guns'): void {
     const design = r.ships.design(ship);
     const body = r.world.bodies.indexOf(r.ships.body(ship));
     for (let m = 0; m < design.modules.length; m++) {
       const module = design.modules[m]!;
-      if (module.spec.kind !== kind) continue;
+      const hit = what === 'thruster'
+        ? module.spec.kind === 'thruster'
+        : isWeaponMount(module.spec.kind);
+      if (!hit) continue;
       r.ships.damage.absorb(body, m, module.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
     }
   }
@@ -688,14 +698,14 @@ describe('a queue of orders', () => {
     expect(r.ships.getCurrentOrder(ship)?.target).toBe(a);
 
     // Its guns are, so the ship is done with it.
-    wreck(r, a, 'turret');
+    wreck(r, a, 'guns');
     r.ships.command(DT, r.world);
     expect(r.ships.getCurrentOrder(ship)?.target).toBe(b);
   });
 
   it('wants both halves of a mission kill before it leaves one alone', () => {
     const { r, ship, a, b } = squadron(OrderCancelCondition.CompleteDisable);
-    wreck(r, a, 'turret');
+    wreck(r, a, 'guns');
     r.ships.command(DT, r.world);
     expect(r.ships.getCurrentOrder(ship)?.target).toBe(a);
 
@@ -715,7 +725,7 @@ describe('a queue of orders', () => {
     // `None` is the one condition that survives the target being gone
     // altogether: an escort keeps station on the wreck it was escorting.
     const { r, ship, a } = squadron(OrderCancelCondition.None);
-    wreck(r, a, 'turret');
+    wreck(r, a, 'guns');
     wreck(r, a, 'thruster');
     r.ships.command(DT, r.world);
     expect(r.ships.getCurrentOrder(ship)?.target).toBe(a);

@@ -2,7 +2,11 @@
   "formatVersion": 1,
   "name": "Dinky",
   "notes": "A fighter. It cannot hope to destroy anything much larger than itself, so it puts engines above the guns everything else shoots at first: a capital it strands is a capital out of the battle, which is the most a craft this size can do to one.",
-  "doctrine": { "targeting": { "engineWeight": 150 } },
+  "doctrine": {
+    "targeting": {
+      "engineWeight": 150
+    }
+  },
   "assemblies": {
     "thruster": {
       "modules": [
@@ -93,15 +97,6 @@
       "notes": "Half a metre square of computing is a whole control centre, which is the only reason a fighter this size can be flown at all."
     },
     {
-      "kind": "turret",
-      "x": 2,
-      "y": 0,
-      "angle": 0,
-      "length": 0.8,
-      "width": 0.5,
-      "barrels": 1
-    },
-    {
       "use": "thruster3",
       "x": 0.1,
       "y": 0.4
@@ -110,6 +105,17 @@
       "use": "thruster3",
       "x": 0.1,
       "y": -0.4
+    },
+    {
+      "kind": "hullGun",
+      "x": 2.2,
+      "y": 0,
+      "angle": 0,
+      "length": 1.2,
+      "width": 0.2,
+      "reinforcement": 3,
+      "barrels": 1,
+      "nozzle": 0.75
     }
   ]
 }

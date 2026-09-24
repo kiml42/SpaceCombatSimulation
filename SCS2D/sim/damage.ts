@@ -111,6 +111,9 @@ export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly Dama
   thruster: [{ effect: DamageEffect.Thrust, remaining: fadesOutAt(THRUST_CUTOUT) }],
   turret: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
   beamTurret: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
+  // A hull mount is a gun by another route, so it stops shooting the same way.
+  hullGun: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
+  hullBeam: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
 };
 
 /**

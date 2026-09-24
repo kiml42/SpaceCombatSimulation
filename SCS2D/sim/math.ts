@@ -200,6 +200,19 @@ export function atan2(y: number, x: number): number {
   return 0;
 }
 
+/**
+ * asin(x) for x in [-1, 1], through `atan2` so it inherits the same
+ * determinism the bearings do. Outside the range it clamps rather than
+ * returning NaN: the callers reach it through a ratio of two lengths, and a
+ * ratio that has crept past one by a rounding error means "all the way", not
+ * "no answer".
+ */
+export function asin(x: number): number {
+  if (x >= 1) return HALF_PI;
+  if (x <= -1) return -HALF_PI;
+  return atan2(x, sqrt(1 - x * x));
+}
+
 // --- exp / log / pow -------------------------------------------------------
 
 /**
