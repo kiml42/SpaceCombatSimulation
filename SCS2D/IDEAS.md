@@ -5,8 +5,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Hover on the thrust diagram shows engine plumes on the main display for how it would achieve that thrust
 - Test button - switches to the game view, with the ship loaded into a default scene with one other stock ship, each given basic orders to attack each other.
 - Allow dragging copies (when a module or assembly is set to be repeated) to set the offset (might get complicated with more than 2, so might need to restrict to the second one)
-- Allow rotating an assembly
-- Allow scaling an assembly
+- Handle for rotating an assembly
+- Allow scaling an assembly - this could get messy, as it would create a duplicate that behaves differently due to different scaling laws.
 - Snap to hulls
 
 
