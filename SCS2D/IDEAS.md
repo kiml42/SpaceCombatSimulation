@@ -7,6 +7,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Allow dragging copies (when a module or assembly is set to be repeated) to set the offset (might get complicated with more than 2, so might need to restrict to the second one)
 - Allow rotating an assembly
 - Allow scaling an assembly
+- Scale Snap grid based on zoom (0.01m, 0.05m, 0.1m, 0.5m)
+- Snap to hulls
 
 
 ## Turrets
