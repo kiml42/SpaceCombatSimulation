@@ -63,7 +63,6 @@ const MODULE_KEYS: readonly string[] = [
   'reinforcement',
   'barrels',
   'nozzle',
-  'muzzle',
   'weapon',
   'targeting',
   'notes',
@@ -154,7 +153,6 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalNumberProblem(value['reinforcement'], `${where}: reinforcement`) ??
     optionalNumberProblem(value['barrels'], `${where}: barrels`) ??
     optionalNumberProblem(value['nozzle'], `${where}: nozzle`) ??
-    optionalNumberProblem(value['muzzle'], `${where}: muzzle`) ??
     optionalBooleanProblem(value['weapon'], `${where}: weapon`) ??
     targetingProblem(value['targeting'], `${where}: targeting`) ??
     optionalStringProblem(value['notes'], `${where}: notes`)
@@ -338,7 +336,6 @@ function toPlacements(raws: unknown[]): Placement[] {
     if (raw['reinforcement'] !== undefined) spec.reinforcement = raw['reinforcement'] as number;
     if (raw['barrels'] !== undefined) spec.barrels = raw['barrels'] as number;
     if (raw['nozzle'] !== undefined) spec.nozzle = raw['nozzle'] as number;
-    if (raw['muzzle'] !== undefined) spec.muzzle = raw['muzzle'] as number;
     if (raw['weapon'] !== undefined) spec.weapon = raw['weapon'] as boolean;
     if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
     if (raw['notes'] !== undefined) spec.notes = raw['notes'] as string;
@@ -418,7 +415,6 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
   if (placement.reinforcement !== undefined) raw['reinforcement'] = placement.reinforcement;
   if (placement.barrels !== undefined) raw['barrels'] = placement.barrels;
   if (placement.nozzle !== undefined) raw['nozzle'] = placement.nozzle;
-  if (placement.muzzle !== undefined) raw['muzzle'] = placement.muzzle;
   if (placement.weapon !== undefined) raw['weapon'] = placement.weapon;
   // Written as authored: a mount's block is already only its differences from
   // the ship it is on, so there is nothing to subtract.

@@ -1,5 +1,4 @@
 import {
-  DEFAULT_MUZZLE_SHARE,
   DEFAULT_NOZZLE_SHARE,
   degreesToRadians,
   isHullMount,
@@ -102,14 +101,13 @@ function el<T extends HTMLElement>(id: string): T {
   return found as T;
 }
 
-type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle' | 'muzzle';
+type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle';
 
 /** A module's own value for a field, with the default the parser would have applied. */
 function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   if (key === 'angle') return radiansToDegrees(spec.angle ?? 0);
   if (key === 'reinforcement') return spec.reinforcement ?? 1;
   if (key === 'nozzle') return spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
-  if (key === 'muzzle') return spec.muzzle ?? DEFAULT_MUZZLE_SHARE;
   return spec.barrels ?? 1;
 }
 
@@ -201,7 +199,6 @@ export function startEditor(): void {
     reinforcement: el<HTMLInputElement>('propReinforcement'),
     barrels: el<HTMLInputElement>('propBarrels'),
     nozzle: el<HTMLInputElement>('propNozzle'),
-    muzzle: el<HTMLInputElement>('propMuzzle'),
     notes: el<HTMLTextAreaElement>('propNotes'),
   };
 
@@ -561,9 +558,14 @@ export function startEditor(): void {
       : spec.kind === 'beamTurret'
         ? 'emitters'
         : 'barrels';
-    el<HTMLElement>('nozzleRow').hidden = !nozzles;
-    el<HTMLElement>('muzzleRow').hidden = !hullMount;
-    el<HTMLElement>('muzzleLabel').textContent = spec.kind === 'hullBeam' ? 'lens' : 'barrel';
+    // The same field again: what sticks out of the module, named for the kind
+    // showing it — a bell, a barrel, or the housing round a lens.
+    el<HTMLElement>('nozzleRow').hidden = !nozzles && !hullMount;
+    el<HTMLElement>('nozzleLabel').textContent = nozzles
+      ? 'nozzle'
+      : spec.kind === 'hullBeam'
+        ? 'lens'
+        : 'barrel';
     // Only an engine has a plume to point.
     el<HTMLElement>('weaponRow').hidden = spec.kind !== 'thruster';
     weaponInput.checked = spec.weapon === true;

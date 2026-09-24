@@ -809,7 +809,6 @@ function place(
     if (placement.reinforcement !== undefined) spec.reinforcement = placement.reinforcement;
     if (placement.barrels !== undefined) spec.barrels = placement.barrels;
     if (placement.nozzle !== undefined) spec.nozzle = placement.nozzle;
-    if (placement.muzzle !== undefined) spec.muzzle = placement.muzzle;
     if (placement.weapon !== undefined) spec.weapon = placement.weapon;
     if (placement.targeting !== undefined) spec.targeting = placement.targeting;
     if (placement.notes !== undefined) spec.notes = placement.notes;

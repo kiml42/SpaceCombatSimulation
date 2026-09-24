@@ -199,26 +199,15 @@
             <label for="propBarrels" id="barrelsLabel">barrels</label>
             <input id="propBarrels" type="number" step="1" min="1" />
           </div>
-          <div class="field" id="muzzleRow">
-            <label for="propMuzzle" id="muzzleLabel">barrel</label>
-            <input
-              id="propMuzzle"
-              type="number"
-              step="0.05"
-              min="0.05"
-              max="0.95"
-              title="How much of the mount's length is barrel or lens rather than the block behind it. A longer barrel is a faster shell, and leaves the mount less traverse — the barrel has to stay inside its own opening."
-            />
-          </div>
           <div class="field" id="nozzleRow">
-            <label for="propNozzle">nozzle</label>
+            <label for="propNozzle" id="nozzleLabel">nozzle</label>
             <input
               id="propNozzle"
               type="number"
               step="0.05"
               min="0"
               max="0.95"
-              title="How much of the engine's length is bell rather than machinery. A longer bell wastes less thrust sideways and is lighter; the machinery behind it is the chamber and the pumps, and a deeper one drives more gas through the throat. Most thrust comes from a bell somewhere in the middle."
+              title="How much of the module's length is the part that sticks out, rather than the block behind it. On an engine that is the bell: longer wastes less thrust sideways and is lighter, while the chamber and pumps behind it drive the gas, so most thrust comes from a bell in the middle. On a hull weapon it is the barrel or the lens housing: a longer barrel is a faster shell, and leaves less of the block to load from and less traverse, the barrel having to stay inside its own opening."
             />
           </div>
           <div class="field" id="weaponRow">

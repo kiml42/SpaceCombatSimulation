@@ -134,11 +134,13 @@ export const PUMP_DEPTH_WIDTHS = 0.35;
 export const THROAT_CHOKE = 2;
 
 /**
- * How much of a thruster is bell when its layout does not say.
+ * How much of a module is the part that sticks out, when its layout does not
+ * say: an engine's bell, a hull gun's barrel, a hull beam's lens housing.
  *
- * Half and half: enough expansion to be worth having (`divergence` lands near
- * 0.91 on a squarish engine) while leaving a machinery block big enough to
- * bolt to on three sides.
+ * Half and half, which on an engine is enough expansion to be worth having
+ * (`divergence` lands near 0.91 on a squarish one) while leaving a machinery
+ * block big enough to bolt to on three sides, and on a hull mount is enough
+ * barrel to be worth firing and enough block to load it from.
  */
 export const DEFAULT_NOZZLE_SHARE = 0.5;
 
@@ -207,14 +209,6 @@ export const HULL_APERTURE_FRACTION = 0.1;
  * takes its recoil through a bed that faces one way.
  */
 export const HULL_MAX_TRAVERSE = 30 * (PI / 180);
-
-/**
- * How much of a hull mount is barrel or lens when its layout does not say.
- *
- * Half and half, as an engine splits: enough barrel to be worth firing and
- * enough block to bolt to and to load from.
- */
-export const DEFAULT_MUZZLE_SHARE = 0.5;
 
 /**
  * The block depth, in calibres of the round it loads, that a hull gun reloads
@@ -543,31 +537,26 @@ export interface ModuleSpec {
   barrels?: number;
 
   /**
-   * How much of a hull mount's length is barrel or lens, as a fraction from 0
-   * to 1. The rest is the block behind it: breech and loading gear on a gun,
-   * the bank and the plant on a beam, and on both the faces the weapon is
-   * welded to the ship by. `hullGun` and `hullBeam` only;
-   * `DEFAULT_MUZZLE_SHARE` when unsaid.
+   * How much of the module's length is the part that sticks out, as a
+   * fraction from 0 to 1. The rest is the block behind it, which is where the
+   * machinery lives and what the module is welded to the ship by.
+   * `DEFAULT_NOZZLE_SHARE` when unsaid.
    *
-   * It is the archetype's one real knob, and it cuts both ways: barrel length
-   * is what a round is accelerated down, so a long barrel is a fast shell —
-   * and a long barrel sweeps further for the same angle, so it is also a
-   * weapon with almost no traverse left. See `hullMountGeometry`.
-   */
-  muzzle?: number;
-
-  /**
-   * How much of a thruster's length is bell, as a fraction from 0 to 1. The
-   * rest is the machinery: chamber, pumps and the faces the engine is bolted
-   * on by. Thrusters only; `DEFAULT_NOZZLE_SHARE` when unsaid.
+   * **One field for three archetypes, because it is one quantity**, the way
+   * `barrels` counts a turret's barrels and a thruster's nozzles alike: on a
+   * `thruster` the protrusion is the bell and the block is chamber and pumps;
+   * on a `hullGun` it is the barrel and the breech and loading gear; on a
+   * `hullBeam` the lens housing and the bank and the plant. The editor names
+   * it for the kind it is showing. Nothing else has one.
    *
-   * An engine is not a nozzle. Splitting the box in two is what lets the
-   * length of the bell mean something — see `thrusterGeometry` — and what
-   * gives the mounting rule a *structural* part to ask about, so an engine
-   * can be welded on by its flank rather than only by its nose.
+   * It cuts both ways on every kind that has it, which is what makes it a
+   * knob rather than a slider: bell length is aim bought with flow, barrel
+   * length is muzzle velocity bought with rate of fire and with the traverse
+   * the opening leaves. See `thrusterGeometry` and `hullMountGeometry`.
    *
-   * Zero is legal and is a rocket whose bell has blown off: gas thrown in
-   * every direction, about half the thrust, and a flame that goes nowhere.
+   * Zero on an engine is legal and is a rocket whose bell has blown off: gas
+   * thrown in every direction, about half the thrust, and a flame that goes
+   * nowhere.
    */
   nozzle?: number;
 
@@ -706,23 +695,24 @@ export function moduleProblem(spec: ModuleSpec): string | null {
       return `${spec.kind}: barrels must be a whole number of at least 1, got ${spec.barrels}`;
     }
   }
-  if (spec.muzzle !== undefined) {
-    if (!(spec.muzzle > 0) || !(spec.muzzle < 1)) {
-      return `${spec.kind}: muzzle must be over 0 and under 1, got ${spec.muzzle}`;
-    }
-    if (!isHullMount(spec.kind)) {
-      return `${spec.kind}: only a hull mount has a muzzle`;
-    }
-  }
   if (spec.nozzle !== undefined) {
-    // A whole engine of bell has no chamber to burn in and nothing to bolt to
-    // the ship. Nothing of it is legal and continuous — the machinery block
-    // running out of interior is what stops it well before this.
+    // A module that is all protrusion has no block: no chamber to burn in, no
+    // breech to load from, and nothing to bolt to the ship. Nothing of it is
+    // legal and continuous — the block running out of interior is what stops
+    // it well before this.
     if (!(spec.nozzle >= 0) || !(spec.nozzle < 1)) {
       return `${spec.kind}: nozzle must be from 0 to under 1, got ${spec.nozzle}`;
     }
-    if (spec.kind !== 'thruster') {
-      return `${spec.kind}: only a thruster has a nozzle`;
+    if (spec.kind !== 'thruster' && !isHullMount(spec.kind)) {
+      return `${spec.kind}: only a thruster or a hull mount has a nozzle`;
+    }
+    // Where zero means something different per archetype, so does whether it
+    // is allowed: an engine with no bell is a rocket whose nozzle has fallen
+    // off, which is a bad engine and a real one, while a weapon with no barrel
+    // is not a weapon — a bore with no length to accelerate down fires its
+    // shells at nothing a second.
+    if (spec.nozzle === 0 && isHullMount(spec.kind)) {
+      return `${spec.kind}: a hull mount needs some barrel, got ${spec.nozzle}`;
     }
   }
   if (spec.weapon === true && spec.kind !== 'thruster') {
@@ -982,7 +972,7 @@ export interface HullMountGeometry {
 /** A hull mount's halves, its outlets and the arc its own barrel leaves it. */
 export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
   const outlets = spec.barrels ?? 1;
-  const share = spec.muzzle ?? DEFAULT_MUZZLE_SHARE;
+  const share = spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
   const barrelLength = spec.length * share;
   // What one outlet would like to be, and what the row of them may take up.
   // Each is a whole weapon rather than a share of one, so asking for more of

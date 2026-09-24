@@ -116,7 +116,7 @@ describe('blueprint validation', () => {
     it('trains about the root of its barrel, through the narrower of its two limits', () => {
       // A quarter of the length given to the barrel, so the root is well
       // forward of the middle and the two cannot be confused.
-      const stubby = gun({ muzzle: 0.25 });
+      const stubby = gun({ nozzle: 0.25 });
       const design = compileBlueprint({ name: 'Casemate', modules: [hull, stubby] });
       const mount = design.turrets[0]!.mount;
       const geometry = hullMountGeometry(stubby);

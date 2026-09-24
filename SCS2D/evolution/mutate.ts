@@ -19,7 +19,6 @@ import {
 } from '../sim/doctrine.js';
 import { abs, clamp, cos, floor, HALF_PI, max, PI, round, sin } from '../sim/math.js';
 import {
-  DEFAULT_MUZZLE_SHARE,
   DEFAULT_NOZZLE_SHARE,
   isHullMount,
   MODULE_KINDS,
@@ -387,7 +386,6 @@ type Knob =
   | { readonly at: 'kind'; readonly site: ModuleSite }
   | { readonly at: 'barrels'; readonly site: ModuleSite }
   | { readonly at: 'nozzle'; readonly site: ModuleSite }
-  | { readonly at: 'muzzle'; readonly site: ModuleSite }
   | { readonly at: 'weapon'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
@@ -436,8 +434,10 @@ function knobs(draft: Draft): Knob[] {
       }
       if (isHullMount(placement.kind)) {
         // How much of the mount is barrel is the archetype's real knob, and
-        // the outlet count divides the same opening between more of them.
-        out.push({ at: 'barrels', site }, { at: 'muzzle', site });
+        // the outlet count divides the same opening between more of them. The
+        // knob is `nozzle`, the same field an engine's bell is a share in:
+        // one quantity, so one line finds it on either archetype.
+        out.push({ at: 'barrels', site }, { at: 'nozzle', site });
       }
       if (placement.kind === 'thruster') {
         // An engine's outlets are counted by the same field a gun's barrels
@@ -461,8 +461,6 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return rebarrel(knob.site, rng);
     case 'nozzle':
       return rebell(knob.site, rng, bounds);
-    case 'muzzle':
-      return rebarrelLength(knob.site, rng, bounds);
     case 'weapon':
       return rearm(knob.site);
     case 'angle':
@@ -614,11 +612,8 @@ function refit(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | nul
   // they count a gun's barrels, a hull mount's outlets and a thruster's
   // nozzles, and mean something on all of them.
   if (!countsOutlets(to)) delete site.spec.barrels;
-  if (!isHullMount(to)) delete site.spec.muzzle;
-  if (to !== 'thruster') {
-    delete site.spec.nozzle;
-    delete site.spec.weapon;
-  }
+  if (to !== 'thruster' && !isHullMount(to)) delete site.spec.nozzle;
+  if (to !== 'thruster') delete site.spec.weapon;
   return `${site.where}: ${was} refitted as ${to}`;
 }
 
@@ -646,33 +641,28 @@ function rebarrel(site: ModuleSite, rng: Rng): string | null {
 }
 
 /**
- * Lengthen or shorten an engine's bell.
+ * Lengthen or shorten what sticks out of a module: an engine's bell, or a
+ * hull mount's barrel or lens housing.
  *
- * A share of the engine's length rather than a length, so the knob means the
- * same thing on a fighter's thruster and a capital's, and held off both ends:
- * an engine that is all bell has no chamber, and the layout rules would
- * refuse it rather than teach the search anything.
+ * One operator, because it is one field and one quantity — how the module
+ * divides between its protrusion and the block behind it. A share rather than
+ * a length, so the knob means the same thing on a fighter's thruster and a
+ * capital's, and held off both ends: a module that is all protrusion has no
+ * block, and the layout rules would refuse it rather than teach the search
+ * anything.
  */
 function rebell(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const hullMount = isHullMount(site.spec.kind);
   const was = site.spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
-  const now = tidy(clamp(was + bounds.magnitude * rng.nextRange(-1, 1), 0, 0.9), 3);
+  // Held off both ends, and off the far end harder on a weapon: all barrel
+  // leaves nothing to load it from, where an engine with no bell at all is a
+  // rocket whose nozzle has fallen off and is a legal, bad engine.
+  const low = hullMount ? 0.05 : 0;
+  const now = tidy(clamp(was + bounds.magnitude * rng.nextRange(-1, 1), low, 0.9), 3);
   if (now === was) return null;
   site.spec.nozzle = now;
-  return `${site.where} ${site.spec.kind}: nozzle ${was} → ${now}`;
-}
-
-/**
- * Lengthen or shorten a hull mount's barrel.
- *
- * Held off both ends for the reason the bell is: all barrel leaves nothing to
- * load it from, and no barrel leaves nothing to shoot out of.
- */
-function rebarrelLength(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
-  const was = site.spec.muzzle ?? DEFAULT_MUZZLE_SHARE;
-  const now = tidy(clamp(was + bounds.magnitude * rng.nextRange(-1, 1), 0.05, 0.95), 3);
-  if (now === was) return null;
-  site.spec.muzzle = now;
-  return `${site.where} ${site.spec.kind}: barrel ${was} → ${now}`;
+  const what = hullMount ? 'barrel' : 'nozzle';
+  return `${site.where} ${site.spec.kind}: ${what} ${was} → ${now}`;
 }
 
 /**

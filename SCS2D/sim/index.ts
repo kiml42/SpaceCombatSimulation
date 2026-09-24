@@ -44,7 +44,6 @@ export {
 } from './thrusters.js';
 export {
   DECK_HEIGHT,
-  DEFAULT_MUZZLE_SHARE,
   DEFAULT_NOZZLE_SHARE,
   HULL_APERTURE_FRACTION,
   HULL_BARREL_WIDTH_CAP,

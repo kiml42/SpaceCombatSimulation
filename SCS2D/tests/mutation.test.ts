@@ -278,7 +278,7 @@ describe('mutation', () => {
       name: 'Casemate',
       modules: [
         { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 4 },
-        { kind: 'hullGun', x: 8, y: 0, angle: 0, length: 6, width: 4, muzzle: 0.4, barrels: 2 },
+        { kind: 'hullGun', x: 8, y: 0, angle: 0, length: 6, width: 4, nozzle: 0.4, barrels: 2 },
       ],
     };
     let seen = 0;
