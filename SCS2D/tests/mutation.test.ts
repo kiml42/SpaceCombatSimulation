@@ -160,7 +160,10 @@ describe('mutation', () => {
     // The bound is asymmetric because the two failures are not alike. A ratio
     // well under one is the fatal one: a lineage that loses a module whenever
     // it gains one erodes until it cannot shoot, and nothing stops it. Above
-    // one a lineage grows, which the mass budget already bounds.
+    // one a lineage grows, which the mass budget already bounds, so the upper
+    // bound only has to catch a runaway: single lines from seeds 37–46 range
+    // 1.4–2.3, and these three pooled have read 1.7 and 2.1 on changes to the
+    // operator set that barely moved the ten-line mean (1.80 → 1.93).
     let added = 0;
     let removed = 0;
     const budget = compileDraft(GUNSHIP).mass * 2;
@@ -179,7 +182,7 @@ describe('mutation', () => {
     expect(added).toBeGreaterThan(20);
     expect(removed).toBeGreaterThan(20);
     expect(added / removed).toBeGreaterThan(0.6);
-    expect(added / removed).toBeLessThan(2);
+    expect(added / removed).toBeLessThan(2.5);
   });
 
   it('delivers the structural generations it draws', { timeout: 30_000 }, () => {
