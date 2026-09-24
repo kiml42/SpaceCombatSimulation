@@ -1144,7 +1144,9 @@ export function startEditor(): void {
    * Written through the same `updatePlacement` the panel's boxes use, so a
    * module sized by dragging and one sized by typing are the same edit — and a
    * shared part's size and facing change every copy, exactly as the panel says
-   * they do. A resize also moves this copy so the opposite face stays put.
+   * they do. A resize also moves the module within its assembly so the
+   * opposite face stays put, so every copy moves the same way — mirrored where
+   * the copy is.
    * The facing has to be converted on the way in: what the pointer names is a
    * direction on screen, and a module inside a turned or mirrored group is
    * written in another frame.
@@ -1159,12 +1161,9 @@ export function startEditor(): void {
     if (drag.kind === 'size') {
       const step = event.altKey ? 0 : SNAP_METRES;
       const { length, width, dx, dy } = resizedTo(drag.spec, drag.handle, world.x, world.y, step);
-      const position = selectedPosition();
       const sized = updatePlacement(drag.from, path, (p) => ({ ...p, length, width }));
       next =
-        sized === null || position === null || (dx === 0 && dy === 0)
-          ? sized
-          : movePlacement(sized, position.origin, dx, dy);
+        sized === null || (dx === 0 && dy === 0) ? sized : movePlacement(sized, origin, dx, dy);
     } else {
       const angle = toPlacementAngle(
         origin,

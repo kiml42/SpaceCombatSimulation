@@ -5,6 +5,7 @@ import {
   expandWithOrigins,
   math,
   radiansToDegrees as toDegrees,
+  moduleCentre,
   moduleStats,
   placementAt,
   samePlacement,
@@ -493,13 +494,13 @@ describe('sizing a module by a handle', () => {
 });
 
 describe('sizing a drawn module through the frame it was written in', () => {
-  /** Resize as the page does: size on the placement, then move this copy. */
+  /** Resize as the page does: size on the placement, then move it within its frame. */
   function drag(bp: Blueprint, drawn: number, handle: Handle, x: number, y: number): Blueprint {
     const { modules, origins } = expandWithOrigins(bp);
     const { length, width, dx, dy } = resizedTo(modules[drawn]!, handle, x, y, 0.5);
     const origin = origins[drawn]!;
     const sized = updatePlacement(bp, origin.path, (p) => ({ ...p, length, width }))!;
-    return movePlacement(sized, positionHandle(sized, origin).origin, dx, dy)!;
+    return movePlacement(sized, origin, dx, dy)!;
   }
   const handlesOf = (bp: Blueprint, drawn: number) =>
     handlesFor(expandWithOrigins(bp).modules[drawn]!, 10);
@@ -524,6 +525,33 @@ describe('sizing a drawn module through the frame it was written in', () => {
     expect(after[2]!.y).toBeCloseTo(before[2]!.y, 9);
     expect(after[0]!.x).toBeCloseTo(grabbed.x - 2, 9);
     expect(after[0]!.y).toBeCloseTo(grabbed.y + 2, 9);
+  });
+
+  it('widens a mirrored pair outward on both sides', () => {
+    // The corvette's retro thrusters are one part placed twice, the second
+    // mirrored. Widening the port one outward must widen the starboard one
+    // outward too, not into the hull.
+    const { modules } = expandWithOrigins(CORVETTE);
+    const retros = modules
+      .map((m, i) => ({ m, i }))
+      .filter(({ m }) => m.kind === 'thruster' && m.angle === math.PI && m.length === 2);
+    expect(retros).toHaveLength(2);
+    const port = retros.find(({ m }) => moduleCentre(m).y > 0)!.i;
+    const starboard = retros.find(({ m }) => moduleCentre(m).y < 0)!.i;
+    const faces = (bp: Blueprint, drawn: number) => {
+      const m = expandWithOrigins(bp).modules[drawn]!;
+      const y = moduleCentre(m).y;
+      return { inner: Math.abs(y) - m.width / 2, outer: Math.abs(y) + m.width / 2 };
+    };
+    // The edge whose handle is furthest to port.
+    const edge = handlesOf(CORVETTE, port)
+      .filter((h) => h.kind === 'size' && h.along === 0)
+      .reduce((a, b) => (b.y > a.y ? b : a));
+    const after = drag(CORVETTE, port, edge, edge.x, edge.y + 1);
+    for (const drawn of [port, starboard]) {
+      expect(faces(after, drawn).inner).toBeCloseTo(faces(CORVETTE, drawn).inner, 9);
+      expect(faces(after, drawn).outer).toBeCloseTo(faces(CORVETTE, drawn).outer + 1, 9);
+    }
   });
 
   it('anchors the copy being dragged of a shared part', () => {

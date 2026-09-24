@@ -136,9 +136,9 @@ export function handleAt(
  * changes one dimension only. The size snaps rather than the dragged face, so a
  * module whose faces were on the grid keeps them there.
  *
- * `dx`/`dy` are in the blueprint's frame, for `movePlacement`. On a shared part
- * the size changes every copy but the move is this copy's alone, so only the
- * copy being dragged is anchored; the others grow about their own positions.
+ * `dx`/`dy` are in the blueprint's frame, for `movePlacement` on the module
+ * itself rather than its copy's instance, so every copy of a shared part moves
+ * the same way within its own frame and a mirrored pair stays mirrored.
  */
 export function resizedTo(
   spec: ModuleSpec,
