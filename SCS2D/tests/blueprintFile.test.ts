@@ -133,13 +133,25 @@ describe('rejecting a file that arrived from somewhere else', () => {
       nozzle: 0.3,
       barrels: 3,
     });
-    // A bell on a core is readable and not a ship, so it is the design rules
-    // that say so rather than the parser.
+    // A bell on a core is a field that kind never reads. In memory it is a
+    // dormant value mutation is holding against a refit back, and allowed; in
+    // a *file* it is a ship claiming to be something it is not, and the format
+    // refuses it the way it refuses a key it does not know. Nothing
+    // `serialiseBlueprint` writes can land here, since it writes only what the
+    // kind reads.
     const belledCore = file({
       modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4, nozzle: 0.3 }],
     });
-    expect(blueprintFileProblem(belledCore)).toBeNull();
-    expect(blueprintProblem(parseBlueprint(belledCore))).toMatch(/only a thruster/);
+    expect(blueprintFileProblem(belledCore)).toMatch(/only a thruster or a hull mount/);
+    expect(blueprintProblem(parseBlueprint(file({
+      modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4 }],
+    })))).toBeNull();
+    expect(
+      serialiseBlueprint({
+        name: 'Dormant',
+        modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4, nozzle: 0.3 }],
+      })['modules'],
+    ).toEqual([{ kind: 'core', x: 0, y: 0, length: 10, width: 4 }]);
   });
 
   it('refuses a format version it does not understand', () => {

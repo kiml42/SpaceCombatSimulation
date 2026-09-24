@@ -7,7 +7,14 @@ import {
   type Blueprint,
   type Placement,
 } from './blueprint.js';
-import { MODULE_KINDS, type ModuleKind, type ModuleSpec } from './modules.js';
+import {
+  countsOutlets,
+  MODULE_KINDS,
+  readsNozzle,
+  readsWeapon,
+  type ModuleKind,
+  type ModuleSpec,
+} from './modules.js';
 import {
   doctrineProblem,
   serialiseDoctrine,
@@ -155,8 +162,36 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalNumberProblem(value['nozzle'], `${where}: nozzle`) ??
     optionalBooleanProblem(value['weapon'], `${where}: weapon`) ??
     targetingProblem(value['targeting'], `${where}: targeting`) ??
-    optionalStringProblem(value['notes'], `${where}: notes`)
+    optionalStringProblem(value['notes'], `${where}: notes`) ??
+    dormantFieldProblem(value, where)
   );
+}
+
+/**
+ * A field a file's own kind would never read.
+ *
+ * **Kept out of files rather than out of memory.** A running mutation may
+ * leave a field on a module the archetype does not read — a bell on what is
+ * currently a gun mount, waiting for a refit back — because losing it costs a
+ * lineage everything it learned about that part. A *file* is a different
+ * thing: it is read by people and written once, so a `nozzle` on a turret
+ * there is a mistake rather than a memory, and saying nothing about it would
+ * make a ship that quietly is not what it says. `serialiseBlueprint` writes
+ * only the fields the kind reads, so nothing this refuses can be produced by
+ * saving.
+ */
+function dormantFieldProblem(value: Record<string, unknown>, where: string): string | null {
+  const kind = value['kind'] as ModuleKind;
+  if (value['nozzle'] !== undefined && !readsNozzle(kind)) {
+    return `${where}: only a thruster or a hull mount has a nozzle`;
+  }
+  if (value['barrels'] !== undefined && !countsOutlets(kind)) {
+    return `${where}: ${kind} has no barrels`;
+  }
+  if (value['weapon'] !== undefined && !readsWeapon(kind)) {
+    return `${where}: only a thruster can be used as a weapon`;
+  }
+  return null;
 }
 
 function instanceShapeProblem(value: Record<string, unknown>, where: string): string | null {
@@ -413,9 +448,17 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
   raw['length'] = placement.length;
   raw['width'] = placement.width;
   if (placement.reinforcement !== undefined) raw['reinforcement'] = placement.reinforcement;
-  if (placement.barrels !== undefined) raw['barrels'] = placement.barrels;
-  if (placement.nozzle !== undefined) raw['nozzle'] = placement.nozzle;
-  if (placement.weapon !== undefined) raw['weapon'] = placement.weapon;
+  // Only what this kind reads: a dormant field is a running mutation's memory
+  // of what the module used to be, and a file is not the place for it.
+  if (placement.barrels !== undefined && countsOutlets(placement.kind)) {
+    raw['barrels'] = placement.barrels;
+  }
+  if (placement.nozzle !== undefined && readsNozzle(placement.kind)) {
+    raw['nozzle'] = placement.nozzle;
+  }
+  if (placement.weapon !== undefined && readsWeapon(placement.kind)) {
+    raw['weapon'] = placement.weapon;
+  }
   // Written as authored: a mount's block is already only its differences from
   // the ship it is on, so there is nothing to subtract.
   if (placement.targeting !== undefined) raw['targeting'] = { ...placement.targeting };

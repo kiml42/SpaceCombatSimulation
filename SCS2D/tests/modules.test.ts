@@ -182,7 +182,10 @@ describe('thruster scaling', () => {
     expect(moduleProblem(engine(6, 2, 0.999))).toMatch(/no interior/);
     expect(moduleProblem({ ...box('thruster', 6, 2), nozzle: 1 })).toMatch(/0 to under 1/);
     expect(moduleProblem({ ...box('thruster', 6, 2), nozzle: -0.1 })).toMatch(/0 to under 1/);
-    expect(moduleProblem({ ...box('structure', 6, 2), nozzle: 0.5 })).toMatch(/only a thruster/);
+    // On a kind that does not read it the value is dormant rather than wrong:
+    // mutation keeps it against a refit back, and only the range applies.
+    expect(moduleProblem({ ...box('structure', 6, 2), nozzle: 0.5 })).toBeNull();
+    expect(moduleProblem({ ...box('structure', 6, 2), nozzle: 1.5 })).toMatch(/0 to under 1/);
   });
 
   it('gives a structure module no thrust and no gun', () => {
@@ -383,8 +386,10 @@ describe('hull mount scaling', () => {
     expect(moduleProblem(gun(8, 4, { nozzle: 0 }))).toMatch(/needs some barrel/);
     expect(moduleProblem({ kind: 'thruster', x: 0, y: 0, length: 8, width: 4, nozzle: 0 })).toBeNull();
     expect(moduleProblem(gun(8, 4, { nozzle: 1 }))).toMatch(/from 0 to under 1/);
-    expect(moduleProblem({ kind: 'turret', x: 0, y: 0, length: 5, width: 4, nozzle: 0.5 }))
-      .toMatch(/only a thruster or a hull mount/);
+    // A turret does not read it, so on one it is dormant and allowed — and a
+    // zero that would be refused on a hull mount says nothing on a turret.
+    expect(moduleProblem({ kind: 'turret', x: 0, y: 0, length: 5, width: 4, nozzle: 0.5 })).toBeNull();
+    expect(moduleProblem({ kind: 'turret', x: 0, y: 0, length: 5, width: 4, nozzle: 0 })).toBeNull();
   });
 });
 
