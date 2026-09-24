@@ -26,7 +26,6 @@ import {
   type RunConfig,
 } from '../evolution/run.js';
 import { el } from './dom.js';
-import { nextRolling } from './rolling.js';
 
 /**
  * The evolution page: set a run going, watch what it is doing, and fight any
@@ -152,7 +151,6 @@ export function startEvolution(): void {
   const fitButton = el<HTMLButtonElement>('fit');
   const speedSelect = el<HTMLSelectElement>('speed');
   const modeSelect = el<HTMLSelectElement>('mode');
-  const rollingInput = el<HTMLInputElement>('rolling');
   const battleControls = el<HTMLElement>('battleControls');
   const fleetBox = el<HTMLElement>('fleet');
   const watchingLabel = el<HTMLElement>('watching');
@@ -207,10 +205,6 @@ export function startEvolution(): void {
   let seeking = false;
   /** A selection made since the panel was last rebuilt. */
   let reselected = false;
-  // Where the rolling replay has got to, and how many matches there were when
-  // it last chose — a match arriving while one plays jumps the queue.
-  let rollingAt = 0;
-  let rollingSeen = 0;
   const snapshot = new Snapshot();
   const flashes = new Flashes();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
@@ -759,7 +753,7 @@ export function startEvolution(): void {
     if (battle) {
       // The canvas measured nothing while it was hidden.
       resize();
-      if (replay === null && rollingInput.checked) rollOn();
+      if (replay === null) rollOn();
     } else {
       replay = null;
       replayOf = null;
@@ -768,20 +762,23 @@ export function startEvolution(): void {
   }
 
   /**
-   * Put on the next battle: the newest first, then back through the
-   * generation.
+   * Put on the most recently finished match of the run, whichever generation
+   * is on show — or hold on the one just watched if nothing has finished since.
    *
    * A run fights faster than anybody can watch, so this is a sample rather
-   * than a record — what it is for is seeing *some* whole battles rather than
-   * the first tenth of a second of every one of them.
+   * than a record: whole battles, each the latest there is when the one before
+   * it ends. Pausing or switching to the ships stops it; clicking a match
+   * watches that one, and the newest follows it.
    */
   function rollOn(): void {
-    const { rows, matches } = showing();
-    const at = nextRolling(matches.length, rollingAt, rollingSeen);
-    if (at < 0) return;
-    rollingAt = at;
-    rollingSeen = matches.length;
-    startReplay(matches[at]!, rows);
+    if (run === null) return;
+    // The generation being fought has none yet just after it opens, so the
+    // newest may be the last of the one before it.
+    let latest = showing(-1);
+    if (latest.matches.length === 0 && latest.index > 0) latest = showing(latest.index - 1);
+    const newest = latest.matches[latest.matches.length - 1];
+    if (newest === undefined || newest === replayOf) return;
+    startReplay(newest, latest.rows);
   }
 
   // ---- reading the run ---------------------------------------------------
@@ -816,7 +813,9 @@ export function startEvolution(): void {
   const massOf = (id: number, blueprint: Blueprint): number => designOf(id, blueprint).mass;
 
   /** Which generation the panel is showing, and the rows and matches in it. */
-  const showing = (): { index: number; rows: Row[]; matches: readonly MatchRecord[] } => {
+  const showing = (
+    wanted = shown,
+  ): { index: number; rows: Row[]; matches: readonly MatchRecord[] } => {
     const empty = { index: 0, rows: [], matches: [] };
     if (run === null) return empty;
     const closed = run.generations.length;
@@ -824,7 +823,7 @@ export function startEvolution(): void {
     // the last one closed once there is not — a finished run must go on
     // showing what it finished with rather than an empty panel.
     const newest = run.done ? closed - 1 : closed;
-    const index = shown < 0 ? newest : Math.min(shown, newest);
+    const index = wanted < 0 ? newest : Math.min(wanted, newest);
     if (index < 0) return empty;
     if (index >= closed) {
       const rows = run.living.individuals.map((individual) => ({
@@ -1079,9 +1078,6 @@ export function startEvolution(): void {
     applyMode();
     refresh();
   });
-  rollingInput.addEventListener('change', () => {
-    if (rollingInput.checked && (replay === null || replay.done)) rollOn();
-  });
 
   window.addEventListener('resize', resize);
   resize();
@@ -1123,7 +1119,7 @@ export function startEvolution(): void {
       }
     }
 
-    if (replay !== null && replay.done && replayPlaying && rollingInput.checked) {
+    if (replay !== null && replay.done && replayPlaying) {
       rollOn();
     }
 
