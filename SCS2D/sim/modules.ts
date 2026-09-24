@@ -165,10 +165,9 @@ export const BARREL_OUTER_CALIBRES = 2;
  * gap outboard of each end, and a barrel that filled its gap would touch the
  * next one.
  *
- * Outlets on a hull mount do not divide a bore the way a turret's barrels do —
- * there is no barbette and no shell hoist to share, so each is a whole gun —
- * and they go on being whole guns until their gaps get too narrow for them.
- * Past that they all shrink together, which is the opening saying no.
+ * Outlets share one weapon's budget the way a turret's barrels do — a gun's
+ * tubes divide the bore, a beam's lenses divide the optic's area — so the cap
+ * seldom binds: a gun's tubes never do, and a beam's lenses only at dozens.
  */
 export const HULL_BARREL_WIDTH_CAP = 0.8;
 
@@ -1030,13 +1029,14 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
   const outlets = spec.barrels ?? 1;
   const share = spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
   const barrelLength = spec.length * share;
-  // What one outlet would like to be. Each is a whole weapon rather than a
-  // share of one, so asking for more of them asks for more of the face — until
-  // their gaps are too narrow and the cap makes them shrink after all.
-  const each =
+  // What a single outlet would be, and each of several split the way a
+  // turret splits it: tubes divide the bore, so each is `1/n` as wide; lenses
+  // divide the optic's area, so each is `1/√n` as wide.
+  const single =
     spec.kind === 'hullBeam'
       ? HULL_APERTURE_FRACTION * spec.width
       : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * spec.width;
+  const each = spec.kind === 'hullBeam' ? single / sqrt(outlets) : single / outlets;
   // Spread across the face as a turret's barrels are, one gap outboard of
   // each end, so neighbours stand apart rather than touching.
   const outletSpacing = outlets > 1 ? spec.width / (outlets + 1) : 0;
@@ -1179,7 +1179,9 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
     muzzleSpeed,
     muzzleEnergy,
     beamPower: 0,
-    cycleTime: hullCycleTime(calibre, blockLength) / outlets,
+    // One block loads every tube, so its depth is measured against the bore
+    // they share rather than each tube's own.
+    cycleTime: hullCycleTime(calibre, blockLength, outlets) / outlets,
     beamOnTime: 0,
   };
 }
@@ -1201,9 +1203,9 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
  * loading machinery can do stops a stub-barrelled mount being a free
  * autocannon.
  */
-function hullCycleTime(calibre: number, blockLength: number): number {
+function hullCycleTime(calibre: number, blockLength: number, outlets: number): number {
   const base = CYCLE_TIME_PER_CALIBRE * calibre;
-  const depth = blockLength / (LOADING_BLOCK_CALIBRES * calibre);
+  const depth = blockLength / (LOADING_BLOCK_CALIBRES * calibre * outlets);
   // A block with no depth at all is a gun with nowhere to load from, and the
   // arithmetic would say it never fires. It is unreachable — a module needs an
   // interior to exist — but the law should not depend on that to be finite.

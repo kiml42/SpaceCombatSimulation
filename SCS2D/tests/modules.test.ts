@@ -265,28 +265,44 @@ describe('hull mount scaling', () => {
     expect(stats.cycleTime).toBeCloseTo(CYCLE_TIME_PER_CALIBRE * stats.calibre, 9);
   });
 
-  it('spreads its outlets as a turret spreads barrels, each a whole bore while there is room', () => {
-    // Not a turret's bore rule: there is no barbette to share, so asking for
-    // two guns asks for two guns. But the same placing rule: the face in
-    // `n + 1` gaps, one outboard of each end, so neighbours stand apart.
+  it('splits one bore between its tubes rather than adding tubes', () => {
+    // A turret's rule: n tubes share the width one would have had, so asking
+    // for more trades weight of shell for rate of fire rather than buying guns.
+    const one = hullMountGeometry(gun(8, 4));
+    const four = hullMountGeometry(gun(8, 4, { barrels: 4 }));
+    expect(four.outletWidth).toBeCloseTo(one.outletWidth / 4, 9);
+
+    const single = moduleStats(gun(8, 4)).gun!;
+    const quad = moduleStats(gun(8, 4, { barrels: 4 })).gun!;
+    expect(quad.calibre).toBeCloseTo(single.calibre / 4, 9);
+    expect(quad.cycleTime).toBeLessThan(single.cycleTime);
+    // Less metal downrange per second for the same mount: splitting is a discount.
+    const weightOfFire = (g: GunStats) => g.roundMass / g.cycleTime;
+    expect(weightOfFire(quad)).toBeLessThan(weightOfFire(single));
+    // The block loads all four, so thin tubes do not buy energy for free.
+    const power = (g: GunStats) => g.muzzleEnergy / g.cycleTime;
+    expect(power(quad)).toBeCloseTo(power(single), 6);
+  });
+
+  it('splits one optic\'s area between its lenses, so total power is unchanged', () => {
+    const beam = (barrels: number) =>
+      ({ kind: 'hullBeam', x: 0, y: 0, length: 8, width: 4, barrels }) as ModuleSpec;
+    const one = hullMountGeometry(beam(1));
+    const four = hullMountGeometry(beam(4));
+    expect(four.outletWidth).toBeCloseTo(one.outletWidth / 2, 9);
+    expect(moduleStats(beam(4)).gun!.beamPower * 4).toBeCloseTo(moduleStats(beam(1)).gun!.beamPower, 6);
+  });
+
+  it('spreads its outlets across the face as a turret spreads barrels', () => {
+    // The face in `n + 1` gaps, one outboard of each end, so neighbours stand
+    // apart; the row that swings in the opening is the spread plus a barrel.
     const one = hullMountGeometry(gun(8, 4));
     const three = hullMountGeometry(gun(8, 4, { barrels: 3 }));
-    const four = hullMountGeometry(gun(8, 4, { barrels: 4 }));
-
     expect(one.outletSpacing).toBe(0);
     expect(three.outletSpacing).toBeCloseTo(1, 9);
     expect(moduleStats(gun(8, 4, { barrels: 3 })).gun!.barrelSpacing).toBeCloseTo(1, 9);
-    // Three whole guns fit their gaps, and the row is the spread plus a barrel.
-    expect(three.outletWidth).toBeCloseTo(one.outletWidth, 9);
     expect(three.barrelWidth).toBeCloseTo(2 * three.outletSpacing + three.outletWidth, 9);
-    expect(moduleStats(gun(8, 4, { barrels: 3 })).gun!.calibre).toBeCloseTo(
-      moduleStats(gun(8, 4)).gun!.calibre,
-      9,
-    );
-
-    // Four would fill their gaps, so all four shrink to the cap's share of one.
-    expect(four.outletWidth).toBeCloseTo(HULL_BARREL_WIDTH_CAP * four.outletSpacing, 9);
-    expect(four.outletWidth).toBeLessThan(one.outletWidth);
+    expect(three.traverse).toBeLessThan(one.traverse);
   });
 
   it('never lets neighbouring outlets touch, nor the row overhang the face', () => {
@@ -295,7 +311,9 @@ describe('hull mount scaling', () => {
         const geometry = hullMountGeometry(gun(8, 4, { barrels, kind }));
         expect(geometry.outletWidth).toBeGreaterThan(0);
         expect(geometry.barrelWidth).toBeLessThan(4);
-        if (barrels > 1) expect(geometry.outletWidth).toBeLessThan(geometry.outletSpacing);
+        if (barrels > 1) {
+          expect(geometry.outletWidth).toBeLessThanOrEqual(HULL_BARREL_WIDTH_CAP * geometry.outletSpacing + 1e-9);
+        }
       }
     }
   });
@@ -306,11 +324,13 @@ describe('hull mount scaling', () => {
     // closer to the edge, and a wider mount is a wider opening.
     const shortBarrel = hullMountGeometry(gun(8, 4, { nozzle: 0.25 })).traverse;
     const longBarrel = hullMountGeometry(gun(8, 4, { nozzle: 0.75 })).traverse;
-    const fatBarrel = hullMountGeometry(gun(8, 4, { barrels: 4 })).traverse;
+    // Tubes never widen a gun's row, so a beam's row of lenses stands in for fat.
+    const lenses = (barrels: number) =>
+      hullMountGeometry({ kind: 'hullBeam', x: 0, y: 0, length: 8, width: 4, barrels }).traverse;
     const wideMount = hullMountGeometry(gun(8, 8)).traverse;
 
     expect(longBarrel).toBeLessThan(shortBarrel);
-    expect(fatBarrel).toBeLessThan(hullMountGeometry(gun(8, 4)).traverse);
+    expect(lenses(36)).toBeLessThan(lenses(1));
     expect(wideMount).toBeGreaterThan(hullMountGeometry(gun(8, 4)).traverse);
 
     // The corner of the swung barrel lands exactly on the edge of the opening,
