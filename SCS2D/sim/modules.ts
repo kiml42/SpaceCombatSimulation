@@ -767,12 +767,10 @@ export function moduleProblem(spec: ModuleSpec): string | null {
       return `${spec.kind}: a hull mount needs some barrel, got ${spec.nozzle}`;
     }
   }
-  if (spec.traverse !== undefined) {
+  if (spec.traverse !== undefined && !(spec.traverse >= 0)) {
     // Dormant on a kind that does not train, as a bell is on a gun mount: only
     // the range applies there. See `isWeaponMount`.
-    if (!(spec.traverse >= 0)) {
-      return `${spec.kind}: traverse must be at least 0, got ${spec.traverse}`;
-    }
+    return `${spec.kind}: traverse must be at least 0, got ${spec.traverse}`;
   }
   const thickness = BASE_WALL_THICKNESS * reinforcement;
   // For an engine it is the machinery block that has to be a box: the bell is
