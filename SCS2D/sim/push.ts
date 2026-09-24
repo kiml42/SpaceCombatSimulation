@@ -13,18 +13,22 @@ import {
  * Moving a module's face carries its neighbours with it.
  *
  * When a module is resized, whatever sits against a face that moved goes with
- * the face: pushed when it grows, pulled when it shrinks. That keeps a resize
- * from being refused because something is in the way, and keeps a shrink from
- * leaving its neighbours adrift.
+ * the face: pushed when it grows, pulled when it shrinks. It spreads from
+ * there: whatever a moving placement would run into moves too, and so does
+ * whatever hangs off a moving placement — anything that reaches the resized
+ * module only through something that is moving — so a spar pushed aside takes
+ * the engine on its end with it rather than leaving it behind.
  *
  * Only placements in the same list are candidates — the layout, or one
  * assembly's definition — because only those share a frame. A neighbour that is
- * an assembly instance moves as a whole. Nothing chains: a pushed neighbour
- * does not push its own neighbours, so whatever it now overlaps is left for the
- * layout rules to report.
+ * an assembly instance moves as a whole. What still goes wrong is left for the
+ * layout rules to report: a moving placement sliding off one it was welded to
+ * side by side, and anything outside the list.
  */
 
 interface Face {
+  /** Which face of the module, in its own frame. */
+  of: FaceOf;
   /** Outward normal. */
   nx: number;
   ny: number;
@@ -37,10 +41,11 @@ interface Face {
 }
 
 /**
- * `list` with every placement that sat against a face `before` moved from, or
- * in the way of one it grew into, shifted by as far as that face moved.
- * `list[index]` is left as it is; the caller writes the resized module.
- * Everything is in the list's own frame.
+ * `list` with every placement a resize from `before` to `after` carries along
+ * moved by as far as the face that carries it moved. `list[index]` is left as
+ * it is; the caller writes the resized module. Everything is in the list's own
+ * frame. Faces are taken one at a time, so a corner drag pushes one way and
+ * then the other.
  */
 export function pushNeighbours(
   list: readonly Placement[],
@@ -49,23 +54,151 @@ export function pushNeighbours(
   before: ModuleSpec,
   after: ModuleSpec,
 ): Placement[] {
-  const faces = movedFaces(before, after);
-  const out = list.slice();
-  if (faces.length === 0) return out;
+  let out = list.slice();
+  let current = before;
+  for (let i = 0; i < 4; i++) {
+    const face = movedFaces(current, after)[0];
+    if (face === undefined) break;
+    out = pushFace(out, index, assemblies ?? {}, current, face);
+    current = withFaceMoved(current, face.of, face.moved - face.at);
+  }
+  return out;
+}
+
+/** One face's push: what it carries, found and moved. */
+function pushFace(
+  list: Placement[],
+  index: number,
+  assemblies: Readonly<Record<string, Assembly>>,
+  resized: ModuleSpec,
+  face: Face,
+): Placement[] {
+  const shift = face.moved - face.at;
+  const boxes = list.map((placement, j) =>
+    j === index
+      ? [resized]
+      : isInstance(placement)
+        ? expandBlueprint({ name: '', modules: [placement], assemblies })
+        : [placement],
+  );
+
+  const dx = shift > 0 ? face.nx : -face.nx;
+  const dy = shift > 0 ? face.ny : -face.ny;
+  const distance = abs(shift);
+
+  // What sits against the face, and — when it grows — whatever it grows into,
+  // which takes in a module turned so its corner hangs below the face.
+  const moving = new Set<number>();
   for (let j = 0; j < list.length; j++) {
     if (j === index) continue;
+    const mine = boxes[j]!;
+    if (mine.some((box) => against(box, face) || (shift > 0 && sweeps(resized, box, dx, dy, distance)))) {
+      moving.add(j);
+    }
+  }
+  if (moving.size === 0) return list;
+
+  const welded = boxes.map((mine, j) =>
+    boxes.flatMap((theirs, k) =>
+      k !== j && mine.some((a) => theirs.some((b) => contactWidth(a, b) > 0)) ? [k] : [],
+    ),
+  );
+  const joined = reachable(welded, index, new Set());
+
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (let j = 0; j < list.length; j++) {
+      if (j === index || moving.has(j)) continue;
+      const hit = [...moving].some((m) =>
+        boxes[m]!.some((a) => boxes[j]!.some((b) => sweeps(a, b, dx, dy, distance))),
+      );
+      if (hit) {
+        moving.add(j);
+        grew = true;
+      }
+    }
+    // Hanging off what moves: joined to the resized module, but not without it.
+    const free = reachable(welded, index, moving);
+    for (const j of joined) {
+      if (j === index || moving.has(j) || free.has(j)) continue;
+      moving.add(j);
+      grew = true;
+    }
+  }
+
+  const out = list.slice();
+  for (const j of moving) {
     const placement = list[j]!;
-    const boxes = isInstance(placement)
-      ? expandBlueprint({ name: '', modules: [placement], assemblies: assemblies ?? {} })
-      : [placement];
-    const face = faces.find((f) => boxes.some((box) => against(box, f)));
-    if (face === undefined) continue;
-    const shift = face.moved - face.at;
     out[j] = {
       ...placement,
       x: tidy(placement.x + face.nx * shift),
       y: tidy(placement.y + face.ny * shift),
     };
+  }
+  return out;
+}
+
+/** The placements reachable from `from` through welds, never entering `avoid`. */
+function reachable(welded: readonly number[][], from: number, avoid: ReadonlySet<number>): Set<number> {
+  const seen = new Set([from]);
+  const queue = [from];
+  while (queue.length > 0) {
+    for (const next of welded[queue.pop()!]!) {
+      if (seen.has(next) || avoid.has(next)) continue;
+      seen.add(next);
+      queue.push(next);
+    }
+  }
+  return seen;
+}
+
+/**
+ * Whether `b` is in the way of `a` moving `distance` along `(dx, dy)`: whether
+ * it overlaps the region `a` sweeps, by the separating-axis test on that
+ * region. Touching side by side, or at a corner, is not in the way.
+ */
+function sweeps(a: ModuleSpec, b: ModuleSpec, dx: number, dy: number, distance: number): boolean {
+  const ca = corners(a);
+  const cb = corners(b);
+  const aa = a.angle ?? 0;
+  const ba = b.angle ?? 0;
+  const axes = [cos(aa), sin(aa), -sin(aa), cos(aa), cos(ba), sin(ba), -sin(ba), cos(ba), -dy, dx];
+  for (let k = 0; k < axes.length; k += 2) {
+    const ax = axes[k]!;
+    const ay = axes[k + 1]!;
+    const step = (dx * ax + dy * ay) * distance;
+    let aLo = Infinity;
+    let aHi = -Infinity;
+    let bLo = Infinity;
+    let bHi = -Infinity;
+    for (let c = 0; c < 8; c += 2) {
+      const pa = ca[c]! * ax + ca[c + 1]! * ay;
+      aLo = min(aLo, pa, pa + step);
+      aHi = max(aHi, pa, pa + step);
+      const pb = cb[c]! * ax + cb[c + 1]! * ay;
+      bLo = min(bLo, pb);
+      bHi = max(bHi, pb);
+    }
+    if (min(aHi, bHi) - max(aLo, bLo) <= ATTACHMENT_TOLERANCE) return false;
+  }
+  return true;
+}
+
+function corners(box: ModuleSpec): number[] {
+  const mid = moduleCentre(box);
+  const angle = box.angle ?? 0;
+  const c = cos(angle);
+  const s = sin(angle);
+  const hl = box.length / 2;
+  const hw = box.width / 2;
+  const out: number[] = [];
+  for (const [l, w] of [
+    [hl, hw],
+    [hl, -hw],
+    [-hl, -hw],
+    [-hl, hw],
+  ] as const) {
+    out.push(mid.x + l * c - w * s, mid.y + l * s + w * c);
   }
   return out;
 }
@@ -78,15 +211,22 @@ function movedFaces(before: ModuleSpec, after: ModuleSpec): Face[] {
   const was = moduleCentre(before);
   const now = moduleCentre(after);
   const faces: Face[] = [];
-  const add = (nx: number, ny: number, halfBefore: number, halfAfter: number, span: number) => {
+  const add = (
+    of: FaceOf,
+    nx: number,
+    ny: number,
+    halfBefore: number,
+    halfAfter: number,
+    span: number,
+  ) => {
     const at = was.x * nx + was.y * ny + halfBefore;
     const moved = now.x * nx + now.y * ny + halfAfter;
-    if (abs(moved - at) < 1e-9) return;
-    faces.push({ nx, ny, at, moved, middle: was.x * -ny + was.y * nx, half: span });
+    if (abs(moved - at) < 1e-6) return;
+    faces.push({ of, nx, ny, at, moved, middle: was.x * -ny + was.y * nx, half: span });
   };
-  for (const side of [1, -1]) {
-    add(side * ux, side * uy, before.length / 2, after.length / 2, before.width / 2);
-    add(-side * uy, side * ux, before.width / 2, after.width / 2, before.length / 2);
+  for (const side of [1, -1] as const) {
+    add({ along: side, across: 0 }, side * ux, side * uy, before.length / 2, after.length / 2, before.width / 2);
+    add({ along: 0, across: side }, -side * uy, side * ux, before.width / 2, after.width / 2, before.length / 2);
   }
   return faces;
 }

@@ -70,9 +70,9 @@ describe('pushing neighbours with a moved face', () => {
     // y = 2, and growing it one metre that way moves the middle half a metre.
     const turned = { ...hull, angle: math.HALF_PI };
     const grown = { ...turned, y: 0.5, length: 5 };
-    const out = pushNeighbours([turned, box(0, 3), box(1.5, 0)], 0, undefined, turned, grown);
+    const out = pushNeighbours([turned, box(0, 3), box(2, 0)], 0, undefined, turned, grown);
     expect(at(out, 1)).toEqual([0, 4]);
-    expect(at(out, 2)).toEqual([1.5, 0]);
+    expect(at(out, 2)).toEqual([2, 0]);
   });
 
   it('moves each face’s neighbours by that face’s own movement', () => {
@@ -81,6 +81,51 @@ describe('pushing neighbours with a moved face', () => {
     const out = pushNeighbours([hull, box(3, 0), box(0, 2)], 0, undefined, hull, grown);
     expect(at(out, 1)).toEqual([4, 0]);
     expect(at(out, 2)).toEqual([0, 4]);
+  });
+});
+
+describe('what a push carries further', () => {
+  it('pushes along a chain, each pushing what is in its way', () => {
+    // Hull, then a block against it, then one against that with a gap of 0.3
+    // the push is too far to leave.
+    const list = [hull, box(3, 0), box(5.3, 0)];
+    const out = pushNeighbours(list, 0, undefined, hull, grownX(0.5));
+    expect(at(out, 1)).toEqual([3.5, 0]);
+    expect(at(out, 2)).toEqual([5.8, 0]);
+    // With a wider gap, the second is out of reach.
+    const clear = pushNeighbours([hull, box(3, 0), box(5.6, 0)], 0, undefined, hull, grownX(0.5));
+    expect(at(clear, 2)).toEqual([5.6, 0]);
+  });
+
+  it('takes what hangs off a pushed module with it', () => {
+    // A spar off the hull's +x face running up in y, and an engine hung off
+    // the spar's side: widening the hull pushes the spar, and the engine goes
+    // with it rather than staying where it was along the spar.
+    const spar = box(3, 3, 2, 8); // x 2..4, y -1..7
+    const engine = box(5, 6); // against the spar's +x face, clear of the hull
+    const out = pushNeighbours([hull, spar, engine], 0, undefined, hull, grownX(1));
+    expect(at(out, 1)).toEqual([4, 3]);
+    expect(at(out, 2)).toEqual([6, 6]);
+  });
+
+  it('leaves what still has its own way back to the resized module', () => {
+    // The same, but a strut from the hull's +y face also holds the engine, so
+    // it is not hanging off the spar alone.
+    const spar = box(3, 3, 2, 8);
+    const engine = box(1, 6, 2, 2); // x 0..2: against the spar's -x face
+    const strut = box(1, 3, 2, 4); // x 0..2, y 1..5: on the hull and under the engine
+    const out = pushNeighbours([hull, spar, engine, strut], 0, undefined, hull, grownX(1));
+    expect(at(out, 1)).toEqual([4, 3]);
+    expect(at(out, 2)).toEqual([1, 6]);
+    expect(at(out, 3)).toEqual([1, 3]);
+  });
+
+  it('pulls what hangs off a pulled module too', () => {
+    const spar = box(3, 3, 2, 8);
+    const engine = box(5, 6);
+    const out = pushNeighbours([hull, spar, engine], 0, undefined, hull, grownX(-1));
+    expect(at(out, 1)).toEqual([2, 3]);
+    expect(at(out, 2)).toEqual([4, 6]);
   });
 });
 
