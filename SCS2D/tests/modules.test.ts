@@ -17,6 +17,9 @@ import {
   HULL_BARREL_WIDTH_CAP,
   HULL_MAX_TRAVERSE,
   hullMountGeometry,
+  mountTraverse,
+  FULL_TRAVERSE,
+  TRAVERSE_GEAR_FRACTION,
   LOADING_BLOCK_CALIBRES,
   LOADING_FLOOR,
   gunStats,
@@ -34,6 +37,7 @@ import {
   type GunStats,
   type ModuleSpec,
 } from '../sim/modules.js';
+import { blueprintFileProblem, serialiseBlueprint } from '../sim/blueprintFile.js';
 
 /**
  * The scaling laws are the game's balance, so what is worth testing is their
@@ -393,6 +397,78 @@ describe('hull mount scaling', () => {
   });
 });
 
+describe('the gear that trains a weapon', () => {
+  const DEG = Math.PI / 180;
+  const turret = (over: Partial<ModuleSpec> = {}): ModuleSpec =>
+    ({ kind: 'turret', x: 0, y: 0, length: 5, width: 4, barrels: 1, ...over });
+  const hullGun = (over: Partial<ModuleSpec> = {}): ModuleSpec =>
+    ({ kind: 'hullGun', x: 0, y: 0, length: 8, width: 4, barrels: 1, ...over });
+
+  it('is carried by every weapon, and by nothing else', () => {
+    // A mount used to weigh its barrels and the machinery that loads them, as
+    // though it were pointed by hand.
+    expect(moduleStats(turret()).traverseMass).toBeGreaterThan(0);
+    expect(moduleStats(hullGun()).traverseMass).toBeGreaterThan(0);
+    expect(moduleStats(box('structure', 6, 4)).traverseMass).toBe(0);
+    expect(moduleStats(box('thruster', 6, 4)).traverseMass).toBe(0);
+  });
+
+  it('weighs the same on a turret however far it is allowed to train', () => {
+    // A ring goes all the way round whatever it is told to do with it, so a
+    // limit on a turret is programming rather than a simpler machine.
+    const free = moduleStats(turret());
+    const held = moduleStats(turret({ traverse: 20 * DEG }));
+    const fixed = moduleStats(turret({ traverse: 0 }));
+    expect(held.mass).toBeCloseTo(free.mass, 9);
+    expect(fixed.mass).toBeCloseTo(free.mass, 9);
+    // Sized by what it has to move, which is the rest of the mount: the gear
+    // does not pay for itself.
+    expect(free.traverseMass).toBeCloseTo(
+      (free.mass - free.traverseMass) * TRAVERSE_GEAR_FRACTION,
+      6,
+    );
+  });
+
+  it('falls away with the arc on a hull mount, to nothing at all when fixed', () => {
+    // The bed is built for the arc it sweeps, so this is the one place a
+    // weapon gets *lighter* for being told it may do less — and a fixed gun
+    // is how a light hull carries a heavy bore.
+    const free = moduleStats(hullGun());
+    const half = moduleStats(hullGun({ traverse: mountTraverse(hullGun()) / 2 }));
+    const fixed = moduleStats(hullGun({ traverse: 0 }));
+    expect(half.traverseMass).toBeCloseTo(free.traverseMass / 2, 6);
+    expect(fixed.traverseMass).toBe(0);
+    expect(fixed.mass).toBeLessThan(free.mass);
+  });
+
+  it('is a limit and not a capability', () => {
+    // Asking for more than the mount can do changes nothing, so a layout
+    // cannot buy arc with a number.
+    const asked = hullGun({ traverse: Math.PI });
+    expect(mountTraverse(asked)).toBeCloseTo(hullMountGeometry(asked).traverse, 9);
+    expect(moduleStats(asked).mass).toBeCloseTo(moduleStats(hullGun()).mass, 9);
+    // And a turret cannot train further than all the way round.
+    expect(mountTraverse(turret({ traverse: 4 * Math.PI }))).toBe(FULL_TRAVERSE);
+  });
+
+  it('keeps a traverse dormant on something that does not train, but not in a file', () => {
+    const girder = { ...box('structure', 6, 4), traverse: 0.5 };
+    expect(moduleProblem(girder)).toBeNull();
+    expect(moduleProblem({ ...girder, traverse: -0.1 })).toMatch(/at least 0/);
+    expect(moduleProblem(turret({ traverse: -0.1 }))).toMatch(/at least 0/);
+
+    const saved = serialiseBlueprint({ name: 'Dormant', modules: [girder] });
+    expect((saved['modules'] as Record<string, unknown>[])[0]!['traverse']).toBeUndefined();
+    expect(
+      blueprintFileProblem({
+        formatVersion: 1,
+        name: 'Claiming',
+        modules: [{ kind: 'structure', x: 0, y: 0, length: 6, width: 4, traverse: 30 }],
+      }),
+    ).toMatch(/only a weapon has a traverse/);
+  });
+});
+
 describe('core scaling', () => {
   it('charges its machinery by the floor it fills', () => {
     // Control machinery fills the compartment rather than lining its walls,
@@ -523,19 +599,21 @@ describe('gun scaling', () => {
   it('carries loading machinery for every barrel, sized by the round it moves', () => {
     const light = moduleStats(box('turret', 12, 4));
     const heavy = moduleStats(box('turret', 12, 16));
+    // The training gear is neither, so it comes off before the split.
     const barrelSteel = (s: ReturnType<typeof moduleStats>) =>
-      s.fittingMass - MECHANISM_MASS_PER_CALIBRE * s.gun!.calibre * s.gun!.barrelCount;
+      s.fittingMass -
+      s.traverseMass -
+      MECHANISM_MASS_PER_CALIBRE * s.gun!.calibre * s.gun!.barrelCount;
 
     expect(barrelSteel(light)).toBeGreaterThan(0);
     expect(barrelSteel(heavy)).toBeGreaterThan(0);
     // Linear in calibre, so a mount of four times the bore carries four times
     // the machinery — where its barrel steel, being a volume, is up sixty-four
     // fold. Machinery is what a light mount's mass is mostly made of.
-    expect(heavy.fittingMass - barrelSteel(heavy)).toBeCloseTo(
-      4 * (light.fittingMass - barrelSteel(light)),
-      6,
-    );
-    expect(barrelSteel(light)).toBeLessThan(light.fittingMass - barrelSteel(light));
+    const machinery = (s: ReturnType<typeof moduleStats>) =>
+      s.fittingMass - s.traverseMass - barrelSteel(s);
+    expect(machinery(heavy)).toBeCloseTo(4 * machinery(light), 6);
+    expect(barrelSteel(light)).toBeLessThan(machinery(light));
   });
 
   it('sizes the loading machinery by the mount bore budget, not the barrel count', () => {
@@ -690,7 +768,9 @@ describe('beam mount scaling', () => {
     const gun = stats.gun!;
     const optic = OPTIC_AREAL_DENSITY * Math.PI * 0.25 * gun.calibre * gun.calibre;
     const head = BEAM_MASS_PER_WATT * gun.beamPower;
-    expect(stats.fittingMass).toBeCloseTo(optic + head, 6);
+    // Less the ring that trains it, which every weapon carries and which is
+    // about the mount rather than about what the mount fires.
+    expect(stats.fittingMass - stats.traverseMass).toBeCloseTo(optic + head, 6);
     // The plant dominates: an optic is a disc, and the thing behind it is a
     // power station.
     expect(head).toBeGreaterThan(optic);

@@ -12,6 +12,7 @@ import { HALF_PI, PI } from '../sim/math.js';
 import {
   GunType,
   hullMountGeometry,
+  isWeaponMount,
   moduleCentre,
   moduleStats,
   type ModuleSpec,
@@ -132,6 +133,19 @@ describe('blueprint validation', () => {
       expect(mount.leftArc).toBeCloseTo(geometry.traverse, 9);
       expect(mount.rightArc).toBeCloseTo(geometry.traverse, 9);
       expect(geometry.traverse).toBeLessThan(PI / 3);
+    });
+
+    it('trains no further than the layout says, and pays less for the bed', () => {
+      // A limit the layout asks for, narrower than the opening leaves: the
+      // mount trains that far and carries the simpler machine that does it.
+      const held = gun({ traverse: 5 * (PI / 180) });
+      const design = compileBlueprint({ name: 'Held', modules: [hull, held] });
+      const mount = design.turrets[0]!.mount;
+      expect(mount.leftArc).toBeCloseTo(5 * (PI / 180), 9);
+      expect(mount.rightArc).toBeCloseTo(5 * (PI / 180), 9);
+      expect(design.modules[1]!.stats.mass).toBeLessThan(
+        compileBlueprint({ name: 'Free', modules: [hull, gun()] }).modules[1]!.stats.mass,
+      );
     });
 
     it('loses what the ship is in the way of, on top of its own opening', () => {
@@ -710,7 +724,9 @@ describe('the authored blueprints', () => {
         expect(design.thrusters[i]!.y).toBe(thrusterModules[i]!.y);
       }
 
-      const turretModules = design.modules.filter((m) => m.spec.kind === 'turret' || m.spec.kind === 'beamTurret');
+      // Every weapon that trains, hull mounts included: they compile into the
+      // same store and are indexed the same way.
+      const turretModules = design.modules.filter((m) => isWeaponMount(m.spec.kind));
       expect(turretModules.length).toBe(design.turrets.length);
       for (let i = 0; i < design.turrets.length; i++) {
         expect(design.modules[design.turrets[i]!.module]).toBe(turretModules[i]);
