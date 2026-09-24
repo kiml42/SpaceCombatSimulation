@@ -138,6 +138,24 @@ describe('the editor in a browser', () => {
     expect(await page.textContent('#propKind')).toBe('core');
   });
 
+  it('keeps the selection while panning, and clears it on a click in empty space', async () => {
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x, centre.y);
+    const empty = { x: centre.x - 400, y: centre.y - 250 };
+    await page.mouse.move(empty.x, empty.y);
+    await page.mouse.down();
+    await page.mouse.move(empty.x + 60, empty.y + 40, { steps: 6 });
+    await page.mouse.up();
+    expect(await page.isVisible('#properties')).toBe(true);
+    expect(await page.textContent('#propKind')).toBe('core');
+
+    await page.mouse.click(empty.x, empty.y);
+    expect(await page.isVisible('#properties')).toBe(false);
+
+    await page.keyboard.press('f');
+    await page.mouse.click(centre.x, centre.y);
+  });
+
   it('moves the selected module when it is dragged, and undoes it', async () => {
     const centre = await canvasCentre(page);
     await page.mouse.move(centre.x, centre.y);

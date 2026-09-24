@@ -1168,7 +1168,13 @@ export function startEditor(): void {
   };
 
   type Drag =
-    | { kind: 'pan'; x: number; y: number }
+    | {
+        kind: 'pan';
+        x: number;
+        y: number;
+        /** Whether releasing without having panned clears the selection. */
+        deselect: boolean;
+      }
     | {
         kind: 'module';
         from: Blueprint;
@@ -1306,11 +1312,15 @@ export function startEditor(): void {
       refresh();
       return;
     }
+    // Panning leaves the selection alone; only a plain click on empty space
+    // clears it, and that is decided on release.
     if (hit < 0 || event.button === 1 || event.shiftKey) {
-      doc.select(null);
-      drag = { kind: 'pan', x: event.clientX, y: event.clientY };
-      easeFit = false;
-      refresh();
+      drag = {
+        kind: 'pan',
+        x: event.clientX,
+        y: event.clientY,
+        deselect: hit < 0 && event.button === 0 && !event.shiftKey,
+      };
       return;
     }
     // Pressing on something the selection already covers leaves the selection
@@ -1336,10 +1346,12 @@ export function startEditor(): void {
   canvas.addEventListener('pointermove', (event) => {
     if (drag === null) return;
     if (drag.kind === 'pan') {
+      if (event.clientX === drag.x && event.clientY === drag.y) return;
       const ratio = canvas.width / canvas.getBoundingClientRect().width;
       camera.x -= ((event.clientX - drag.x) * ratio) / camera.scale;
       camera.y += ((event.clientY - drag.y) * ratio) / camera.scale;
-      drag = { kind: 'pan', x: event.clientX, y: event.clientY };
+      drag = { kind: 'pan', x: event.clientX, y: event.clientY, deselect: false };
+      easeFit = false;
       render();
       return;
     }
@@ -1374,6 +1386,10 @@ export function startEditor(): void {
     // nothing further.
     if (drag !== null && drag.kind === 'module' && drag.drill && !drag.moved) {
       doc.selectAt(drag.hit, doc.resolveClick(drag.hit));
+      refresh();
+    }
+    if (drag !== null && drag.kind === 'pan' && drag.deselect) {
+      doc.select(null);
       refresh();
     }
     drag = null;
