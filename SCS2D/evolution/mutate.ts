@@ -18,8 +18,13 @@ import {
   type Doctrine,
 } from '../sim/doctrine.js';
 import { abs, clamp, cos, floor, HALF_PI, max, PI, round, sin } from '../sim/math.js';
+import { degreesToRadians, radiansToDegrees } from '../sim/blueprintFile.js';
 import {
   DEFAULT_NOZZLE_SHARE,
+  isWeaponMount,
+  mountTraverse,
+  isHullMount,
+  MODULE_KINDS,
   moduleCentre,
   type ModuleKind,
   type ModuleSpec,
@@ -104,6 +109,13 @@ export const DEFAULT_KINDS: KindWeights = {
   structure: 4,
   turret: 2,
   beamTurret: 1,
+  // A weapon let into the hull is a weapon: it wants size for exactly the
+  // reason a turret does, so it is reached for as often and no more. What it
+  // has over a turret — a far bigger bore for the width — is worth nothing at
+  // half a metre, and what it costs — almost nowhere to point — is a cost at
+  // any size, so a lineage that wants one has to grow it.
+  hullGun: 2,
+  hullBeam: 1,
   core: 1,
 };
 
@@ -378,6 +390,7 @@ type Knob =
   | { readonly at: 'kind'; readonly site: ModuleSite }
   | { readonly at: 'barrels'; readonly site: ModuleSite }
   | { readonly at: 'nozzle'; readonly site: ModuleSite }
+  | { readonly at: 'traverse'; readonly site: ModuleSite }
   | { readonly at: 'weapon'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
@@ -429,6 +442,19 @@ function knobs(draft: Draft): Knob[] {
       if (placement.kind === 'turret' || placement.kind === 'beamTurret') {
         out.push({ at: 'barrels', site });
       }
+      if (isWeaponMount(placement.kind)) {
+        // How much arc a weapon is built for, which on a hull mount is mass
+        // as well as coverage — a fixed gun carries no training gear, and
+        // whether that trade is worth taking is exactly what a run is for.
+        out.push({ at: 'traverse', site });
+      }
+      if (isHullMount(placement.kind)) {
+        // How much of the mount is barrel is the archetype's real knob, and
+        // the outlet count divides the same opening between more of them. The
+        // knob is `nozzle`, the same field an engine's bell is a share in:
+        // one quantity, so one line finds it on either archetype.
+        out.push({ at: 'barrels', site }, { at: 'nozzle', site });
+      }
       if (placement.kind === 'thruster') {
         // An engine's outlets are counted by the same field a gun's barrels
         // are, so a cluster is something a line can find.
@@ -451,6 +477,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return rebarrel(knob.site, rng);
     case 'nozzle':
       return rebell(knob.site, rng, bounds);
+    case 'traverse':
+      return retrain(knob.site, rng, bounds);
     case 'weapon':
       return rearm(knob.site);
     case 'angle':
@@ -598,20 +626,23 @@ function refit(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | nul
   }
   // Fields go when they stop applying, rather than sitting in the file saying
   // nothing — and here they would say something worse than nothing, since each
-  // is refused outright on a kind it does not belong to, which makes every
-  // refit away from that kind impossible. Silently, too: a refused candidate is
-  // simply retried. Barrels are the exception and stay, because they count a
-  // gun's barrels and a thruster's nozzles alike.
-  if (to !== 'turret' && to !== 'beamTurret' && to !== 'thruster') delete site.spec.barrels;
-  if (to !== 'thruster') {
-    delete site.spec.nozzle;
-    delete site.spec.weapon;
-  }
+  // is refused outright on a kind it does not belong to, which would make
+  // every refit away from that kind impossible. Silently, too: a refused
+  // candidate is simply retried. Barrels are the exception and stay, because
+  // they count a gun's barrels, a hull mount's outlets and a thruster's
+  // nozzles, and mean something on all of them.
+  if (!countsOutlets(to)) delete site.spec.barrels;
+  if (to !== 'thruster' && !isHullMount(to)) delete site.spec.nozzle;
+  if (to !== 'thruster') delete site.spec.weapon;
   return `${site.where}: ${was} refitted as ${to}`;
 }
 
-/** Every kind there is, in the order the weighted draw walks them. */
-const KINDS: readonly ModuleKind[] = ['structure', 'core', 'thruster', 'turret', 'beamTurret'];
+/** Whether `barrels` means anything on this kind. */
+function countsOutlets(kind: ModuleKind): boolean {
+  return kind === 'turret' || kind === 'beamTurret' || kind === 'thruster' || isHullMount(kind);
+}
+
+
 
 /**
  * Add or remove a barrel.
@@ -630,19 +661,47 @@ function rebarrel(site: ModuleSite, rng: Rng): string | null {
 }
 
 /**
- * Lengthen or shorten an engine's bell.
+ * Lengthen or shorten what sticks out of a module: an engine's bell, or a
+ * hull mount's barrel or lens housing.
  *
- * A share of the engine's length rather than a length, so the knob means the
- * same thing on a fighter's thruster and a capital's, and held off both ends:
- * an engine that is all bell has no chamber, and the layout rules would
- * refuse it rather than teach the search anything.
+ * One operator, because it is one field and one quantity — how the module
+ * divides between its protrusion and the block behind it. A share rather than
+ * a length, so the knob means the same thing on a fighter's thruster and a
+ * capital's, and held off both ends: a module that is all protrusion has no
+ * block, and the layout rules would refuse it rather than teach the search
+ * anything.
  */
 function rebell(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const hullMount = isHullMount(site.spec.kind);
   const was = site.spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
-  const now = tidy(clamp(was + bounds.magnitude * rng.nextRange(-1, 1), 0, 0.9), 3);
+  // Held off both ends, and off the far end harder on a weapon: all barrel
+  // leaves nothing to load it from, where an engine with no bell at all is a
+  // rocket whose nozzle has fallen off and is a legal, bad engine.
+  const low = hullMount ? 0.05 : 0;
+  const now = tidy(clamp(was + bounds.magnitude * rng.nextRange(-1, 1), low, 0.9), 3);
   if (now === was) return null;
   site.spec.nozzle = now;
-  return `${site.where} ${site.spec.kind}: nozzle ${was} → ${now}`;
+  const what = hullMount ? 'barrel' : 'nozzle';
+  return `${site.where} ${site.spec.kind}: ${what} ${was} → ${now}`;
+}
+
+/**
+ * Widen or narrow the arc a weapon is built for.
+ *
+ * In degrees rather than in radians, because the grid a person edits on is
+ * degrees and a lineage that lands on 17.3° of traverse is describing a mount
+ * nobody would draw. Held at zero from below, which is a real answer — a gun
+ * welded to the ship, carrying no training gear — and unbounded above, where
+ * the mount's own archetype quietly takes over.
+ */
+function retrain(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const step = bounds.turn * rng.nextRange(-1, 1);
+  const was = mountTraverse(site.spec);
+  const now = max(0, tidy(radiansToDegrees(was + step), 3));
+  const asDegrees = tidy(radiansToDegrees(was), 3);
+  if (now === asDegrees) return null;
+  site.spec.traverse = degreesToRadians(now);
+  return `${site.where} ${site.spec.kind}: traverse ${asDegrees}° → ${now}°`;
 }
 
 /**
@@ -1429,11 +1488,17 @@ function against(
   const across = copy ? (endOn ? anchor.width : anchor.length) : bounds.grid;
   const out = copy ? (endOn ? anchor.length : anchor.width) : bounds.grid;
 
-  // A thruster is mounted facing *into* the anchor — which puts its position
+  // Which way a module has to face to be *held on* by this face is the
+  // archetype's business, and two of them answer differently.
+  //
+  // A thruster is mounted facing *into* the anchor, which puts its position
   // exactly on the face and its exhaust pointing out into clear air. Nothing
   // refuses an engine pointed the other way any more; it is simply the only
   // way round worth guessing, since the other burns the ship it is bolted to.
-  // Everything else sits on the face, half its own depth out.
+  // A hull weapon is the mirror of that: it is held on by the block behind
+  // its barrel, so it faces *out* and the barrel clears the ship. Everything
+  // else has no front and sits on the face, half its own depth out, lying
+  // along it.
   // **The angle is not rounded, and that is load-bearing.** Positions are
   // tidied because they are worked out through sines and cosines and land on
   // values no file should carry; an angle is not, because a module sits
@@ -1457,14 +1522,23 @@ function against(
           length: out,
           width: across,
         }
-      : {
-          kind,
-          x: tidy(faceX + (nx * out) / 2, 6),
-          y: tidy(faceY + (ny * out) / 2, 6),
-          angle: endOn ? angle : angle + PI / 2,
-          length: endOn ? out : across,
-          width: endOn ? across : out,
-        };
+      : isHullMount(kind)
+        ? {
+            kind,
+            x: tidy(faceX + (nx * out) / 2, 6),
+            y: tidy(faceY + (ny * out) / 2, 6),
+            angle: normalAngle,
+            length: out,
+            width: across,
+          }
+        : {
+            kind,
+            x: tidy(faceX + (nx * out) / 2, 6),
+            y: tidy(faceY + (ny * out) / 2, 6),
+            angle: endOn ? angle : angle + PI / 2,
+            length: endOn ? out : across,
+            width: endOn ? across : out,
+          };
   if (copy && anchor.reinforcement !== undefined) added.reinforcement = anchor.reinforcement;
   if (copy && anchor.barrels !== undefined) added.barrels = anchor.barrels;
   return added;
@@ -1485,18 +1559,18 @@ function faceName(outward: number): string {
  */
 function pickKind(rng: Rng, weights: KindWeights, except?: ModuleKind): ModuleKind | null {
   let total = 0;
-  for (const kind of KINDS) if (kind !== except) total += max(0, weights[kind]);
+  for (const kind of MODULE_KINDS) if (kind !== except) total += max(0, weights[kind]);
   if (total <= 0) return null;
   let draw = rng.nextRange(0, total);
-  for (const kind of KINDS) {
+  for (const kind of MODULE_KINDS) {
     if (kind === except) continue;
     draw -= max(0, weights[kind]);
     if (draw < 0) return kind;
   }
   // Only reachable when the draw lands exactly on the total, which a float
   // range can do at its top end.
-  for (let i = KINDS.length - 1; i >= 0; i--) {
-    const kind = KINDS[i]!;
+  for (let i = MODULE_KINDS.length - 1; i >= 0; i--) {
+    const kind = MODULE_KINDS[i]!;
     if (kind !== except && weights[kind] > 0) return kind;
   }
   return null;

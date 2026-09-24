@@ -1,4 +1,6 @@
 import {
+  hullMountGeometry,
+  isHullMount,
   math,
   nozzleOffset,
   nozzleReach,
@@ -260,6 +262,12 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         ctx.closePath();
         ctx.fill();
       }
+    } else if (isHullMount(spec.kind)) {
+      // Only the block. The barrel is drawn by the turret pass, from the root
+      // it trains about and at the bearing it is actually pointing — which is
+      // the whole reason it is a separate piece rather than part of the box.
+      const mount = hullMountGeometry(spec);
+      ctx.fillRect(-halfLength, -halfWidth, mount.blockLength, spec.width);
     } else {
       ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
     }
@@ -322,12 +330,16 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     }
 
     // The rotating part itself: a disc at the mount, sized to the module it
-    // sits in so a heavy mount looks heavy.
-    const pivot = face * 0.5;
-    ctx.fillStyle = colours.pivot;
-    ctx.beginPath();
-    ctx.arc(mx, my, pivot, 0, TAU);
-    ctx.fill();
+    // sits in so a heavy mount looks heavy. A hull mount has none — what turns
+    // there is a barrel on trunnions, not a ring carrying a house, and a disc
+    // drawn at its root would say it was a turret let into the hull.
+    if (!isHullMount(spec.kind)) {
+      const pivot = face * 0.5;
+      ctx.fillStyle = colours.pivot;
+      ctx.beginPath();
+      ctx.arc(mx, my, pivot, 0, TAU);
+      ctx.fill();
+    }
 
     const ready = ship.turretReady[t] === true;
     const bearing = ship.turretBearings[t] ?? 0;

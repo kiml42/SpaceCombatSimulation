@@ -1,5 +1,5 @@
 import { PI } from '../sim/math.js';
-import type { ModuleKind } from '../sim/modules.js';
+import { MODULE_KINDS } from '../sim/modules.js';
 import { DEFAULT_MATCH, type GoalSpec, type MatchConfig, type ScoreWeights } from './match.js';
 import { DEFAULT_KINDS, type KindWeights } from './mutate.js';
 import { DEFAULT_RUN, type RunConfig } from './run.js';
@@ -57,7 +57,6 @@ const FILE_KEYS: readonly string[] = [
 const MATCH_KEYS: readonly string[] = ['duration', 'radius', 'scatter', 'goal', 'weights'];
 const GOAL_KEYS: readonly string[] = ['x', 'y', 'scale', 'size'];
 const WEIGHT_KEYS: readonly (keyof ScoreWeights)[] = ['survival', 'damage', 'race'];
-const KINDS: readonly ModuleKind[] = ['structure', 'core', 'thruster', 'turret', 'beamTurret'];
 
 /** The settings a run is given, as the object a file holds. */
 export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
@@ -200,11 +199,11 @@ function budgetProblem(value: unknown): string | null {
 function kindsProblem(value: unknown): string | null {
   if (value === undefined) return null;
   if (!isRecord(value)) return 'kinds must be an object of weights, one per module kind';
-  const extra = unknownKeys(value, KINDS);
+  const extra = unknownKeys(value, MODULE_KINDS);
   if (extra.length > 0) {
-    return `kinds has unknown ${extra.length > 1 ? 'kinds' : 'kind'} ${extra.join(', ')} — try ${KINDS.join(', ')}`;
+    return `kinds has unknown ${extra.length > 1 ? 'kinds' : 'kind'} ${extra.join(', ')} — try ${MODULE_KINDS.join(', ')}`;
   }
-  for (const kind of KINDS) {
+  for (const kind of MODULE_KINDS) {
     const problem = numberProblem(value[kind], `kinds.${kind}`);
     if (problem !== null) return problem;
     if (value[kind] !== undefined && (value[kind] as number) < 0) {

@@ -2,6 +2,9 @@ import {
   DEFAULT_NOZZLE_SHARE,
   degreesToRadians,
   isInstance,
+  isHullMount,
+  isWeaponMount,
+  mountTraverse,
   MAX_REPEAT,
   math,
   parseBlueprint,
@@ -100,6 +103,10 @@ const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
   thruster: { kind: 'thruster', angle: 0, length: 3, width: 3 },
   turret: { kind: 'turret', angle: 0, length: 4, width: 3, barrels: 1 },
   beamTurret: { kind: 'beamTurret', angle: 0, length: 4, width: 3, barrels: 1 },
+  // Longer than they are wide: a hull mount's length is mostly barrel, and one
+  // drawn square would train through an angle worth nothing.
+  hullGun: { kind: 'hullGun', angle: 0, length: 8, width: 4, barrels: 1 },
+  hullBeam: { kind: 'hullBeam', angle: 0, length: 6, width: 4, barrels: 1 },
 };
 
 function el<T extends HTMLElement>(id: string): T {
@@ -108,13 +115,16 @@ function el<T extends HTMLElement>(id: string): T {
   return found as T;
 }
 
-type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle';
+type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle' | 'traverse';
 
 /** A module's own value for a field, with the default the parser would have applied. */
 function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   if (key === 'angle') return radiansToDegrees(spec.angle ?? 0);
   if (key === 'reinforcement') return spec.reinforcement ?? 1;
   if (key === 'nozzle') return spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
+  // What the mount would do if the layout said nothing, so the box shows the
+  // arc it actually has rather than a blank.
+  if (key === 'traverse') return radiansToDegrees(mountTraverse(spec));
   return spec.barrels ?? 1;
 }
 
@@ -206,6 +216,7 @@ export function startEditor(): void {
     reinforcement: el<HTMLInputElement>('propReinforcement'),
     barrels: el<HTMLInputElement>('propBarrels'),
     nozzle: el<HTMLInputElement>('propNozzle'),
+    traverse: el<HTMLInputElement>('propTraverse'),
     notes: el<HTMLTextAreaElement>('propNotes'),
   };
 
@@ -587,14 +598,23 @@ export function startEditor(): void {
     // blueprint's own key stays `barrels` whatever it is labelled, since
     // renaming a field in the format would cost every file ever saved.
     const nozzles = spec.kind === 'thruster';
+    const hullMount = isHullMount(spec.kind);
     el<HTMLElement>('barrelsRow').hidden =
-      !nozzles && spec.kind !== 'turret' && spec.kind !== 'beamTurret';
+      !nozzles && !hullMount && spec.kind !== 'turret' && spec.kind !== 'beamTurret';
     el<HTMLElement>('barrelsLabel').textContent = nozzles
       ? 'nozzles'
       : spec.kind === 'beamTurret'
         ? 'emitters'
         : 'barrels';
-    el<HTMLElement>('nozzleRow').hidden = !nozzles;
+    // The same field again: what sticks out of the module, named for the kind
+    // showing it — a bell, a barrel, or the housing round a lens.
+    el<HTMLElement>('traverseRow').hidden = !isWeaponMount(spec.kind);
+    el<HTMLElement>('nozzleRow').hidden = !nozzles && !hullMount;
+    el<HTMLElement>('nozzleLabel').textContent = nozzles
+      ? 'nozzle'
+      : spec.kind === 'hullBeam'
+        ? 'lens'
+        : 'barrel';
     // Only an engine has a plume to point.
     el<HTMLElement>('weaponRow').hidden = spec.kind !== 'thruster';
     weaponInput.checked = spec.weapon === true;
@@ -761,7 +781,9 @@ export function startEditor(): void {
         );
         return;
       }
-      if (key === 'angle') editSelected({ angle: degreesToRadians(value) }, true);
+      if (key === 'angle' || key === 'traverse') {
+        editSelected({ [key]: degreesToRadians(value) } as Partial<ModuleSpec>, true);
+      }
       else editSelected({ [key]: value } as Partial<ModuleSpec>, true);
     });
   }

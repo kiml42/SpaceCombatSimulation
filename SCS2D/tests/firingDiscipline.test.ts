@@ -16,7 +16,6 @@ import {
 } from '../sim/index.js';
 import { BEAM_CORVETTE, CORVETTE, DINKY } from '../scenarios/blueprints.js';
 import { column } from '../scenarios/column.js';
-import { swarm } from '../scenarios/swarm.js';
 
 /**
  * Not shooting through your own side.
@@ -255,7 +254,14 @@ describe('a gun and the target it was trained on', () => {
     // because what it is on is the bearing it was *commanded*, and sampling
     // those makes this a test of where a fighter's nose happens to be
     // pointing. What the rule is about is the round.
-    const run = swarm();
+    //
+    // Flown as a column rather than a swarm because a swarm of fighters whose
+    // guns are let into their hulls barely fires: a mount that trains five
+    // degrees waits for the nose to come round, and a few rounds in a
+    // thousand steps cannot say where rounds go. Turreted ships shooting
+    // steadily are what this needs, and what they are shooting at is the
+    // same question.
+    const run = column();
     const bodies = run.world.bodies;
     const projectiles = run.projectiles;
     const seen = new Set<number>();
