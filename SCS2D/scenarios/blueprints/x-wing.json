@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "name": "X Wing",
-  "notes": "A fighter. It goes after other fighters, and shoots at what makes one dangerous rather than at what holds it together: a laser this light does nothing useful to a capital's plating, but it can strip the guns and engines off anything its own size — and off a capital, once its own size has run out.",
+  "notes": "A fighter. It goes after other fighters, and shoots at what makes one dangerous rather than at what holds it together: a laser this light does nothing useful to a capital's plating, but it can strip the guns and engines off anything its own size \u2014 and off a capital, once its own size has run out.",
   "doctrine": {
     "targeting": {
       "preferredMass": 0.4,
@@ -28,9 +28,9 @@
         },
         {
           "kind": "structure",
-          "x": 1,
+          "x": 0,
           "y": 6.5,
-          "length": 5.5,
+          "length": 3.5,
           "width": 1
         },
         {
@@ -41,25 +41,6 @@
           "length": 6,
           "width": 1.5,
           "nozzle": 0.25
-        },
-        {
-          "kind": "beamTurret",
-          "x": 5.75,
-          "y": 6.5,
-          "angle": 0,
-          "length": 4,
-          "width": 0.5,
-          "barrels": 1
-        },
-        {
-          "use": "structure3",
-          "x": 5.5,
-          "y": 6.8
-        },
-        {
-          "use": "structure3",
-          "x": 5.5,
-          "y": 6.2
         },
         {
           "kind": "thruster",
@@ -84,6 +65,17 @@
           "y": 1.25,
           "length": 0.5,
           "width": 1.5
+        },
+        {
+          "kind": "hullBeam",
+          "x": 5.5,
+          "y": 6.5,
+          "angle": 0,
+          "length": 7.5,
+          "width": 0.6,
+          "barrels": 1,
+          "nozzle": 0.05,
+          "traverse": 5
         }
       ]
     },
@@ -98,38 +90,13 @@
         }
       ]
     },
-    "structure3": {
-      "modules": [
-        {
-          "kind": "structure",
-          "x": 0,
-          "y": 0,
-          "length": 3.5,
-          "width": 0.1
-        }
-      ]
-    },
     "structure4": {
       "modules": [
-        {
-          "kind": "structure",
-          "x": 0,
-          "y": 0,
-          "length": 1,
-          "width": 0.1
-        },
-        {
-          "kind": "structure",
-          "x": 0.55,
-          "y": -0.3,
-          "length": 0.1,
-          "width": 0.2
-        },
         {
           "kind": "thruster",
           "x": -0.5,
           "y": 0.15,
-          "angle": -135,
+          "angle": -105,
           "length": 0.2,
           "width": 0.2
         }
@@ -146,13 +113,6 @@
       "notes": "Hard against the rear-facing gun, with the length of the fuselage in front of it: anything shooting at the pilot from ahead has the whole ship to get through first."
     },
     {
-      "kind": "structure",
-      "x": 5.75,
-      "y": 0,
-      "length": 1.5,
-      "width": 1.4
-    },
-    {
       "use": "structure",
       "x": -0.5,
       "y": 1.5
@@ -162,15 +122,6 @@
       "x": -0.5,
       "y": -1.5,
       "mirror": true
-    },
-    {
-      "kind": "turret",
-      "x": 7,
-      "y": 0,
-      "angle": 0,
-      "length": 1,
-      "width": 1,
-      "barrels": 1
     },
     {
       "kind": "beamTurret",
@@ -183,13 +134,13 @@
     },
     {
       "use": "structure4",
-      "x": 7,
-      "y": 0.55
+      "x": 7.5,
+      "y": 0.58
     },
     {
       "use": "structure4",
-      "x": 7,
-      "y": -0.55,
+      "x": 7.5,
+      "y": -0.58,
       "mirror": true
     },
     {
@@ -198,6 +149,17 @@
       "y": 0,
       "length": 2.5,
       "width": 1.75
+    },
+    {
+      "kind": "hullGun",
+      "x": 7,
+      "y": 0,
+      "angle": 0,
+      "length": 4,
+      "width": 1.4,
+      "barrels": 1,
+      "nozzle": 0.45,
+      "traverse": 10
     }
   ]
 }

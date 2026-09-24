@@ -297,6 +297,14 @@ inside any one file is not contiguous.
   sent to somebody, or designed on the page and then fought overnight headlessly. Every field is optional
   and anything left out is the default, angles are degrees as they are in a blueprint file, and no budget is
   `null` because JSON has no infinity.
+  **A weapon can be let into a hull rather than sat on top of it.** A hull gun and a hull beam are a
+  block with a barrel or a lens out of the front, welded on by the block alone, training about the
+  root of the barrel through whatever angle the opening leaves them — which is single figures for a
+  row of guns and twenty-odd degrees for one. They carry two and a half times a turret's bore on the
+  same width and five times its muzzle energy, and they can point it almost nowhere. Measured on a
+  beam, the opening turns out barely to constrain one at all: a lens is a fraction of the width a row
+  of tubes is, so what holds a hull beam is the mounting limit until its housing runs most of the
+  length of the module.
   **An engine has a nozzle rather than being one.** A thruster's length divides between a machinery block
   and a bell, and the bell's share is the knob: a long one is lighter, keeps more of the thrust pointed
   the right way and throws a longer flame, while the block is what has hit points and what the engine is
@@ -400,6 +408,12 @@ Rules:
   ROADMAP.md §12.
 - A **turret module includes the bit of hull it mounts to**, so the blueprint editor stays a single
   2D view and "is this shootable by guns" is a property of the module you picked.
+- **A weapon may be let into the hull instead of sitting on it.** A hull gun and a hull beam are a
+  block with a barrel or a lens out of the front of it, and the block is the only part other modules
+  may be welded to — a gun is not a girder. They carry a far bigger bore than a turret of the same
+  width, because a turret's is small in order to fit inside a ring and then be swung, and they pay for
+  it in having almost nowhere to point: a hull mount trains about the root of its barrel, and the
+  barrel has to stay inside the opening it comes out of.
 - Large modules may be flagged as **protruding** into the weapons layer: useful, but gun-vulnerable.
   *Not implemented.* Firing arcs, traverse limits and projectile hits currently treat every module as
   though it were in the weapons layer, which contradicts this section in three different ways —
@@ -496,6 +510,54 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   through a ship. Half to each hull, which needs no rule about which is the harder: a module's capacity
   goes with its mass, so the same energy that dents a capital ship destroys the fighter that flew into
   it. That is what makes §3's strike craft literal — a torpedo is a fighter that crashes into things.
+- **A hull weapon is a block with a barrel out of the front of it**, which is an engine the other way
+  round and answers the same questions the same way. The block is the breech and the loading gear, or
+  the bank and the plant; it is what has walls, an interior and hit points, and it is the only part
+  the ship may be welded to. How the length divides between the two is the designer's, and it is the
+  archetype's one real knob: barrel length is what a charge accelerates a shell down, so a long barrel
+  is a fast shell — and a long barrel sweeps further for the same angle, so it is also a weapon with
+  almost no traverse left.
+- **A hull weapon trains about the root of its barrel**, because that is where the trunnions of such a
+  mount are: the block is welded into the ship and only the tube moves, so it trains briskly through
+  very little. **How little is geometry rather than a number** — the barrel has to stay inside the
+  opening it comes out of, so the far corner of the swung tube must not pass the mount's own edge.
+  A longer barrel trains less, a fatter one trains less, a wider mount trains more, and a mounting
+  limit holds the whole archetype well short of a turret's field of fire however small its barrel,
+  since a bed that takes recoil faces one way. On top of that sits the same question every mount is
+  asked — what the ship itself is in the way of — and the narrower of the two wins.
+- **The block behind a hull gun's barrel is its loading gear, so how deep it is sets the rate of
+  fire.** Depth is counted in calibres of the round the machinery has to move, so the same
+  proportions mean the same rate whatever size the mount is drawn at, and a share that leaves the
+  expected depth loads at exactly a turret's rate for that bore. Part of a cycle is fixed however
+  much machinery stands behind it — the breech, the ram, the run-out — so the knob approaches a
+  ceiling of about four times that rate rather than running away with it. **That is what makes the
+  barrel/block split a real trade rather than a slider with one good end**: every metre given to the
+  barrel is muzzle velocity bought with rounds per minute, and traverse falls out on the velocity
+  side. Sustained throughput therefore peaks in the middle, at a little over half the module given to
+  the barrel.
+- **A hull beam's block is its bank and its cooling, so depth buys duty rather than only burst.** The
+  burn grows with the bank behind it and the recovery does not — the plant and heat sinks that refill
+  it scale with the same machinery, so the volume cancels and the recovery is a property of the
+  technology rather than of the mount. A deep mount therefore spends more of its time firing, which is
+  the only figure that matters over a battle; a flat duty cycle would have made a bigger bank buy a
+  longer shot and an exactly proportionally longer wait, and so buy nothing. The lens housing earns
+  the beam nothing in return, since the aperture comes from the mount's width — so the knob on a hull
+  beam is one-sided today, the minimum housing being the best housing, and what would make it a trade
+  is the housing buying focus, which ROADMAP.md §12 holds with the rest of the optics.
+- **A weapon carries the gear that trains it, and a layout may say how much arc to build for.** Until
+  this a mount weighed its barrels and the machinery that loads them, as though it were pointed by hand.
+  The `traverse` a layout asks for is a *limit* — the archetype's own arc and whatever the ship is in the
+  way of still apply on top — and what it costs is where the two archetypes differ, by the machine rather
+  than by a rule. **A turret's ring goes all the way round whatever it is told to do with it**, so
+  limiting one is programming and weighs exactly the same. **A hull weapon's bed is built for the arc it
+  sweeps**, so a narrower one is a simpler machine and a lighter one, and a mount told to train nothing at
+  all is a gun welded to the ship carrying no training gear — which is how a very light hull affords a
+  very large bore.
+- **A hull mount's outlets are whole weapons rather than shares of one.** A turret's barrels divide
+  one bore because they share a barbette and its hoists; a hull mount has neither, so asking for two
+  guns asks for two guns and the row simply takes up more of the opening. What stops it is the face
+  running out: past a capped fraction of the mount's width they all shrink together, which is also
+  what keeps room for the barrel to swing into.
 - **An engine is a machinery block with a bell on the back of it**, not a nozzle with a plume coming out.
   The block holds the chamber and the pumps, is what the engine is welded to the ship by, and is the part
   that has walls, an interior and hit points; the bell is sheet metal in the exhaust that can be bolted to

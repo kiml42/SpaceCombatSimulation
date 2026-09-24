@@ -64,6 +64,8 @@ const FIELDS = [
   'kindStructure',
   'kindTurret',
   'kindBeamTurret',
+  'kindHullGun',
+  'kindHullBeam',
   'kindCore',
   'effort',
 ] as const;
@@ -210,6 +212,8 @@ export function startEvolution(): void {
     kindStructure: String(DEFAULT_KINDS.structure),
     kindTurret: String(DEFAULT_KINDS.turret),
     kindBeamTurret: String(DEFAULT_KINDS.beamTurret),
+    kindHullGun: String(DEFAULT_KINDS.hullGun),
+    kindHullBeam: String(DEFAULT_KINDS.hullBeam),
     kindCore: String(DEFAULT_KINDS.core),
     effort: '12',
   };
@@ -289,6 +293,8 @@ export function startEvolution(): void {
           structure: Math.max(0, number(inputs.kindStructure, DEFAULT_KINDS.structure)),
           turret: Math.max(0, number(inputs.kindTurret, DEFAULT_KINDS.turret)),
           beamTurret: Math.max(0, number(inputs.kindBeamTurret, DEFAULT_KINDS.beamTurret)),
+          hullGun: Math.max(0, number(inputs.kindHullGun, DEFAULT_KINDS.hullGun)),
+          hullBeam: Math.max(0, number(inputs.kindHullBeam, DEFAULT_KINDS.hullBeam)),
           core: Math.max(0, number(inputs.kindCore, DEFAULT_KINDS.core)),
         },
       },
@@ -340,6 +346,8 @@ export function startEvolution(): void {
     inputs.kindStructure.value = String(kinds.structure);
     inputs.kindTurret.value = String(kinds.turret);
     inputs.kindBeamTurret.value = String(kinds.beamTurret);
+    inputs.kindHullGun.value = String(kinds.hullGun);
+    inputs.kindHullBeam.value = String(kinds.hullBeam);
     inputs.kindCore.value = String(kinds.core);
     goalInput.checked = match.goal !== null;
     if (setup.founders.length > 0) {

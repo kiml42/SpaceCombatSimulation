@@ -7,7 +7,7 @@ import {
   type Blueprint,
   type Placement,
 } from './blueprint.js';
-import type { ModuleKind, ModuleSpec } from './modules.js';
+import { MODULE_KINDS, type ModuleKind, type ModuleSpec } from './modules.js';
 import {
   doctrineProblem,
   serialiseDoctrine,
@@ -50,7 +50,7 @@ import {
  */
 export const BLUEPRINT_FORMAT_VERSION = 1;
 
-const KINDS: readonly ModuleKind[] = ['structure', 'core', 'thruster', 'turret', 'beamTurret'];
+
 
 /** Keys a module may carry. Anything else is a typo — see `unknownKeys`. */
 const MODULE_KEYS: readonly string[] = [
@@ -63,6 +63,7 @@ const MODULE_KEYS: readonly string[] = [
   'reinforcement',
   'barrels',
   'nozzle',
+  'traverse',
   'weapon',
   'targeting',
   'notes',
@@ -140,8 +141,8 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
   const extra = unknownKeys(value, MODULE_KEYS);
   if (extra.length > 0) return `${where} has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
 
-  if (typeof value['kind'] !== 'string' || !KINDS.includes(value['kind'] as ModuleKind)) {
-    return `${where}: kind must be one of ${KINDS.join(', ')}, got ${JSON.stringify(value['kind'])}`;
+  if (typeof value['kind'] !== 'string' || !MODULE_KINDS.includes(value['kind'] as ModuleKind)) {
+    return `${where}: kind must be one of ${MODULE_KINDS.join(', ')}, got ${JSON.stringify(value['kind'])}`;
   }
 
   return (
@@ -153,6 +154,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalNumberProblem(value['reinforcement'], `${where}: reinforcement`) ??
     optionalNumberProblem(value['barrels'], `${where}: barrels`) ??
     optionalNumberProblem(value['nozzle'], `${where}: nozzle`) ??
+    optionalNumberProblem(value['traverse'], `${where}: traverse`) ??
     optionalBooleanProblem(value['weapon'], `${where}: weapon`) ??
     targetingProblem(value['targeting'], `${where}: targeting`) ??
     optionalStringProblem(value['notes'], `${where}: notes`)
@@ -336,6 +338,8 @@ function toPlacements(raws: unknown[]): Placement[] {
     if (raw['reinforcement'] !== undefined) spec.reinforcement = raw['reinforcement'] as number;
     if (raw['barrels'] !== undefined) spec.barrels = raw['barrels'] as number;
     if (raw['nozzle'] !== undefined) spec.nozzle = raw['nozzle'] as number;
+    // Degrees in the file and radians in the simulation, as every other angle.
+    if (raw['traverse'] !== undefined) spec.traverse = degreesToRadians(raw['traverse'] as number);
     if (raw['weapon'] !== undefined) spec.weapon = raw['weapon'] as boolean;
     if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
     if (raw['notes'] !== undefined) spec.notes = raw['notes'] as string;
@@ -415,6 +419,7 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
   if (placement.reinforcement !== undefined) raw['reinforcement'] = placement.reinforcement;
   if (placement.barrels !== undefined) raw['barrels'] = placement.barrels;
   if (placement.nozzle !== undefined) raw['nozzle'] = placement.nozzle;
+  if (placement.traverse !== undefined) raw['traverse'] = radiansToDegrees(placement.traverse);
   if (placement.weapon !== undefined) raw['weapon'] = placement.weapon;
   // Written as authored: a mount's block is already only its differences from
   // the ship it is on, so there is nothing to subtract.

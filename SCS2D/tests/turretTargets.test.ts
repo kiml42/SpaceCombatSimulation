@@ -3,11 +3,13 @@ import {
   blueprintFileProblem,
   compileBlueprint,
   DEFAULT_DOCTRINE,
+  isWeaponMount,
   NO_TARGET,
   parseBlueprint,
   serialiseBlueprint,
   Ships,
   World,
+  type ModuleKind,
   type ShipDesign,
 } from '../sim/index.js';
 import { BEAM_GUNSHIP, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
@@ -225,7 +227,9 @@ describe('a mount with a doctrine of its own', () => {
   it('is refused when it says something nobody can read, and named where', () => {
     const file = serialiseBlueprint(DINKY) as Record<string, unknown>;
     const modules = file['modules'] as Record<string, unknown>[];
-    const mount = modules.find((m) => m['kind'] === 'turret')!;
+    // Whatever the Dinky's gun is mounted on: a mount's own targeting is a
+    // property of the weapon rather than of the kind of mounting.
+    const mount = modules.find((m) => isWeaponMount(m['kind'] as ModuleKind))!;
     mount['targeting'] = { aggression: 4 };
     expect(blueprintFileProblem(file)).toMatch(/targeting has unknown key aggression/);
     mount['targeting'] = { preferredMass: 0 };

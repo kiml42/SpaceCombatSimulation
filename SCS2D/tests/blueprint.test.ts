@@ -9,7 +9,14 @@ import {
   type Blueprint,
 } from '../sim/blueprint.js';
 import { HALF_PI, PI } from '../sim/math.js';
-import { GunType, moduleCentre, moduleStats, type ModuleSpec } from '../sim/modules.js';
+import {
+  GunType,
+  hullMountGeometry,
+  isWeaponMount,
+  moduleCentre,
+  moduleStats,
+  type ModuleSpec,
+} from '../sim/modules.js';
 import { BLUEPRINTS, type BlueprintName } from '../scenarios/blueprints.js';
 
 /**
@@ -77,6 +84,91 @@ describe('blueprint validation', () => {
     };
     expect(blueprintProblem(bp)).toMatch(/modules 0 and 1 overlap/);
     expect(() => compileBlueprint(bp)).toThrow(/overlap/);
+  });
+
+  describe('a hull weapon is held on by its block and not by its barrel', () => {
+    // The hull spans x -5..5 and y -2..2. The gun sits off its bow, block
+    // against the hull and barrel out into clear air, which is the only way
+    // round that holds it on.
+    const hull = core(0, 0, 10, 4);
+    const gun = (over: Partial<ModuleSpec> = {}): ModuleSpec => ({
+      kind: 'hullGun',
+      x: 8,
+      y: 0,
+      angle: 0,
+      length: 6,
+      width: 4,
+      ...over,
+    });
+
+    it('accepts one whose block is against the hull', () => {
+      expect(blueprintProblem({ name: 'Casemate', modules: [hull, gun()] })).toBeNull();
+    });
+
+    it('refuses one touching the hull only by its barrel', () => {
+      // Turned round, so what meets the hull is the muzzle. Nothing is
+      // overlapping and the boxes touch exactly as before — what has changed
+      // is which part of the module is doing the touching.
+      expect(blueprintProblem({ name: 'Backwards', modules: [hull, gun({ angle: PI })] })).toMatch(
+        /touches nothing/,
+      );
+    });
+
+    it('trains about the root of its barrel, through the narrower of its two limits', () => {
+      // A quarter of the length given to the barrel, so the root is well
+      // forward of the middle and the two cannot be confused.
+      const stubby = gun({ nozzle: 0.25 });
+      const design = compileBlueprint({ name: 'Casemate', modules: [hull, stubby] });
+      const mount = design.turrets[0]!.mount;
+      const geometry = hullMountGeometry(stubby);
+      const centre = design.modules[1]!;
+
+      // The mount point is the barrel's root rather than the middle of the
+      // module, which is what the trunnions of such a gun are.
+      expect(geometry.pivot).toBeGreaterThan(0);
+      expect(mount.x).toBeCloseTo(centre.x + geometry.pivot, 9);
+      expect(mount.muzzleOffset).toBeCloseTo(geometry.barrelLength, 9);
+
+      // Nothing is beside this gun, so what limits it is its own opening.
+      expect(mount.leftArc).toBeCloseTo(geometry.traverse, 9);
+      expect(mount.rightArc).toBeCloseTo(geometry.traverse, 9);
+      expect(geometry.traverse).toBeLessThan(PI / 3);
+    });
+
+    it('trains no further than the layout says, and pays less for the bed', () => {
+      // A limit the layout asks for, narrower than the opening leaves: the
+      // mount trains that far and carries the simpler machine that does it.
+      const held = gun({ traverse: 5 * (PI / 180) });
+      const design = compileBlueprint({ name: 'Held', modules: [hull, held] });
+      const mount = design.turrets[0]!.mount;
+      expect(mount.leftArc).toBeCloseTo(5 * (PI / 180), 9);
+      expect(mount.rightArc).toBeCloseTo(5 * (PI / 180), 9);
+      expect(design.modules[1]!.stats.mass).toBeLessThan(
+        compileBlueprint({ name: 'Free', modules: [hull, gun()] }).modules[1]!.stats.mass,
+      );
+    });
+
+    it('loses what the ship is in the way of, on top of its own opening', () => {
+      // A spur of hull running forward past the muzzle, down the port side.
+      // The opening would allow more than this; the ship does not, and the
+      // mount gets the smaller of the two — and only on the side it is on.
+      const clear = compileBlueprint({ name: 'Clear', modules: [hull, gun()] }).turrets[0]!.mount;
+      const fouled = compileBlueprint({
+        name: 'Fouled',
+        modules: [hull, gun(), structure(7.5, 3, 15, 2)],
+      }).turrets[0]!.mount;
+      expect(fouled.leftArc!).toBeLessThan(clear.leftArc!);
+      expect(fouled.rightArc!).toBeCloseTo(clear.rightArc!, 9);
+    });
+
+    it('will not let a barrel hold another module on either', () => {
+      // A gun is not a girder. The far module is flush against the muzzle and
+      // against nothing else, so the ship is in two pieces.
+      const hanger = structure(14, 0, 4, 4);
+      expect(
+        blueprintProblem({ name: 'Hung', modules: [hull, gun(), hanger] }),
+      ).toMatch(/separate piece|touches nothing/);
+    });
   });
 
   describe('an engine may be held on any way round', () => {
@@ -632,7 +724,9 @@ describe('the authored blueprints', () => {
         expect(design.thrusters[i]!.y).toBe(thrusterModules[i]!.y);
       }
 
-      const turretModules = design.modules.filter((m) => m.spec.kind === 'turret' || m.spec.kind === 'beamTurret');
+      // Every weapon that trains, hull mounts included: they compile into the
+      // same store and are indexed the same way.
+      const turretModules = design.modules.filter((m) => isWeaponMount(m.spec.kind));
       expect(turretModules.length).toBe(design.turrets.length);
       for (let i = 0; i < design.turrets.length; i++) {
         expect(design.modules[design.turrets[i]!.module]).toBe(turretModules[i]);

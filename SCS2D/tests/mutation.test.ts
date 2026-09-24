@@ -243,6 +243,56 @@ describe('mutation', () => {
     expect(moved).toBe(true);
   });
 
+  it('can reach a hull weapon, by adding one and by refitting into one', { timeout: 30_000 }, () => {
+    // A kind nothing ever builds is a kind that is not in the game, and there
+    // are four lists an archetype has to appear in before a run can have one.
+    // Both routes matter: adding is how a lineage gets its first, and refitting
+    // is the only way it gets a *large* one without growing it from half a
+    // metre.
+    const rng = new Rng(11);
+    let held: Blueprint = CORVETTE;
+    let added = 0;
+    let refitted = 0;
+    for (let i = 0; i < 400; i++) {
+      const child = mutate(held, rng, {
+        structural: 1,
+        kinds: { thruster: 0, structure: 0, turret: 0, beamTurret: 0, hullGun: 3, hullBeam: 1, core: 0 },
+      });
+      held = child.blueprint;
+      for (const edit of child.edits) {
+        if (/a hull(Gun|Beam) added to/.test(edit)) added++;
+        if (/refitted as hull(Gun|Beam)/.test(edit)) refitted++;
+      }
+    }
+    expect(added).toBeGreaterThan(0);
+    expect(refitted).toBeGreaterThan(0);
+  });
+
+  it('takes a hull weapon\'s fields with it when it stops being one', () => {
+    // A refit keeps the geometry and changes what it is for, so what does not
+    // apply to the new kind has to go rather than sit in the file: `muzzle` on
+    // a turret and `nozzle` on anything but an engine are both refused
+    // outright, so leaving one behind refuses every such refit.
+    const rng = new Rng(23);
+    let held: Blueprint = {
+      name: 'Casemate',
+      modules: [
+        { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 4 },
+        { kind: 'hullGun', x: 8, y: 0, angle: 0, length: 6, width: 4, nozzle: 0.4, barrels: 2 },
+      ],
+    };
+    let seen = 0;
+    for (let i = 0; i < 200; i++) {
+      const child = mutate(held, rng, { structural: 1 });
+      // Every child is a ship, which is the whole assertion: a stale field
+      // would have had `mutate` refuse the candidate rather than deliver it.
+      expect(blueprintProblem(child.blueprint), child.edits.join('; ')).toBeNull();
+      if (child.edits.some((edit) => /refitted as/.test(edit))) seen++;
+      held = child.blueprint;
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+
   it('takes an engine\'s bell with it when it stops being an engine', () => {
     // A nozzle share is refused outright on anything but a thruster, so a
     // refit that left one behind would not make an odd module — it would make
@@ -278,7 +328,7 @@ describe('mutation', () => {
     for (let i = 0; i < 400; i++) {
       const child = mutate(held, rng, {
         structural: 1,
-        kinds: { thruster: 1, structure: 0, turret: 0, beamTurret: 0, core: 0 },
+        kinds: { thruster: 1, structure: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0 },
       });
       held = child.blueprint;
       for (const edit of child.edits) {
@@ -323,7 +373,7 @@ describe('mutation', () => {
     let held: Blueprint = CORVETTE;
     for (let i = 0; i < 50; i++) {
       const child = mutate(held, rng, {
-        kinds: { thruster: 0, structure: 0, turret: 0, beamTurret: 0, core: 0 },
+        kinds: { thruster: 0, structure: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0 },
       });
       expect(child.edits.length, `child ${i}`).toBeGreaterThan(0);
       expect(child.edits.some((edit) => /added to/.test(edit))).toBe(false);
