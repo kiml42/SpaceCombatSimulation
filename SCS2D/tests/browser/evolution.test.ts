@@ -311,31 +311,54 @@ describe('the evolution page in a browser', () => {
     expect(problems).toEqual([]);
   }, 60_000);
 
-  it('puts on another battle when one finishes', async () => {
-    // A sample rather than a record: whole battles, one after another, which
-    // is the thing watching the run live could never be.
+  it('follows a battle with the newest one, and holds when there is none newer', async () => {
+    // A sample rather than a record: whole battles, each the latest the run
+    // has fought when the one before it ends, whichever generation is on show.
+    const box = await page.locator('#chart').boundingBox();
+    if (box === null) throw new Error('no chart on the page');
+    const y = box.y + box.height / 2;
+    await page.mouse.move(box.x + box.width * 0.2, y);
+    await page.mouse.down();
+    await page.mouse.move(box.x - 200, y, { steps: 4 });
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    expect(await page.textContent('#shownGeneration')).toBe('1');
+
     await page.selectOption('#mode', 'battle');
+    // The list names a match's competitors by id, and the label joins them with "v".
+    const clicked = ((await page.textContent('#matches tr td:nth-child(2)')) ?? '').split(' ').join(' v ');
     await page.click('#matches tr');
-    const progress = async (): Promise<number> =>
-      Number(/(\d+)%/.exec((await page.textContent('#watching')) ?? '')?.[1] ?? -1);
+    const who = async (): Promise<string> =>
+      ((await page.textContent('#watching')) ?? '').split(' · ')[0] ?? '';
     await page.waitForFunction(
-      () => /9\d%|100%/.test(document.getElementById('watching')?.textContent ?? ''),
-      undefined,
-      { timeout: 60_000 },
+      (name) => (document.getElementById('watching')?.textContent ?? '').startsWith(name),
+      clicked,
     );
-    // Back to the start of another one rather than sitting on the last frame
-    // of that one for ever.
+    const first = await who();
+    // Generation one's match plays out, and the run's newest follows it.
     await page.waitForFunction(
-      () => {
-        const at = /(\d+)%/.exec(document.getElementById('watching')?.textContent ?? '');
-        return at !== null && Number(at[1]) < 50;
+      (was) => {
+        const text = document.getElementById('watching')?.textContent ?? '';
+        return text.split(' · ')[0] !== was;
       },
-      undefined,
-      { timeout: 60_000 },
+      first,
+      { timeout: 90_000 },
     );
-    expect(await progress()).toBeLessThan(50);
+    const newest = await who();
+    // Which, once it is over, is watched to its end and left there: nothing
+    // newer has finished, and replaying the same one again shows nothing new.
+    await page.waitForFunction(
+      () => /over/.test(document.getElementById('watching')?.textContent ?? ''),
+      undefined,
+      { timeout: 90_000 },
+    );
+    await page.waitForTimeout(500);
+    expect(await who()).toBe(newest);
+    expect(await page.textContent('#watching')).toMatch(/over/);
+
+    await page.click('#latest');
     expect(problems).toEqual([]);
-  }, 120_000);
+  }, 200_000);
 
   it('measures every generation against one fixed ship', async () => {
     // The one number on the page that means the same thing at both ends of a
