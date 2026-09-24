@@ -25,6 +25,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 ## Evolution
 - Fleet evolution - one JSON file to define a formation of multiple ships.
 - Boss Battle - All evolving ships are on the same side competing to do the most damage (and take the least) from the "Boss" ship or fleet (defined in the config).
+- Mutate to change the whole scale of the ship
 
 ## Fleet Definition
 - A single file to define an entire fleet formation. an array of objects saying which ship, what orientation and what position it starts at. (ships can be external references, or included)
