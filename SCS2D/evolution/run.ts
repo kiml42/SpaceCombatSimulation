@@ -162,8 +162,8 @@ export class Run {
   private readonly onGeneration: OnGeneration | undefined;
   private readonly rng: Rng;
   /**
-   * A cap on a loop that is otherwise governed by a draw: a population smaller
-   * than a group, or a group of one, would never settle.
+   * A cap on a loop that is otherwise governed by a draw, so a population
+   * that could never settle still ends its generation.
    */
   private readonly limit: number;
   private generation: Generation;
@@ -266,8 +266,10 @@ export class Run {
       this.roll();
       return;
     }
+    // One is a match too: with the goal to fly for, a ship alone is a test of
+    // its piloting.
     const competitors = this.generation.pickCompetitors(this.rng, settings.group);
-    if (competitors.length < 2) {
+    if (competitors.length === 0) {
       this.roll();
       return;
     }

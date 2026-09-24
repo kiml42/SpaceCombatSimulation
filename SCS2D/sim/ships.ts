@@ -314,6 +314,12 @@ export interface ShipSpec {
   team?: number;
   /** Nothing can hurt it: no damage taken, no weld cut. See `Damage.protect`. */
   invulnerable?: boolean;
+  /**
+   * A marker rather than a hull: nothing collides with it, nothing it is in
+   * front of is shielded by it, and nothing moves it. It can still be seen,
+   * escorted and scored against. See `BodySpec.ghost`.
+   */
+  ghost?: boolean;
 }
 
 export interface FireReport {
@@ -732,9 +738,10 @@ export class Ships {
       vx: spec.vx ?? 0,
       vy: spec.vy ?? 0,
       angularVel: spec.angularVel ?? 0,
-      mass: design.mass,
-      inertia: design.inertia,
+      mass: spec.ghost === true ? 0 : design.mass,
+      inertia: spec.ghost === true ? 0 : design.inertia,
       radius: design.radius,
+      ghost: spec.ghost === true,
     });
 
     const bodyIdx = world.bodies.indexOf(id);
@@ -1904,7 +1911,8 @@ export class Ships {
       // last moment and call it seamanship.
       if (t === flying) continue;
       const ob = bodies.indexOf(this.bodyIds[t]!);
-      if (ob < 0) continue;
+      // Nothing to keep clear of in something that cannot be hit.
+      if (ob < 0 || bodies.ghost[ob] === 1) continue;
 
       const touching = mine + this.designs[t]!.radius;
       const room = touching * approach.separationRadii;

@@ -194,7 +194,7 @@
           <div class="field"><label for="generations">generations</label><input id="generations" type="number" min="1" step="1" /></div>
           <div class="field"><label for="population">population</label><input id="population" type="number" min="2" step="1" /></div>
           <div class="field"><label for="winners">bred from</label><input id="winners" type="number" min="1" step="1" /></div>
-          <div class="field"><label for="group">ships per match</label><input id="group" type="number" min="2" step="1" /></div>
+          <div class="field"><label for="group">ships per match</label><input id="group" type="number" min="1" step="1" /></div>
           <div class="field"><label for="minMatches">matches each</label><input id="minMatches" type="number" min="1" step="1" /></div>
           <div class="field"><label for="massBudget">mass budget t</label><input id="massBudget" type="number" min="0" step="1" placeholder="none" /></div>
           <div class="field"><label for="seed">seed</label><input id="seed" type="number" step="1" /></div>
@@ -204,7 +204,11 @@
           <div class="field"><label for="duration">seconds</label><input id="duration" type="number" min="1" step="5" /></div>
           <div class="field"><label for="radius">arena m</label><input id="radius" type="number" min="10" step="50" /></div>
           <div class="field"><label for="scatter">scatter °</label><input id="scatter" type="number" min="0" max="180" step="15" /></div>
-          <div class="field"><label for="goal">goal to hold</label><input id="goal" type="checkbox" /></div>
+          <div class="field"><label for="goal">goal</label><select id="goal" title="Solid blocks shots and can be run into; a ghost is only somewhere to be">
+            <option value="solid">solid</option>
+            <option value="ghost">ghost</option>
+            <option value="none">none</option>
+          </select></div>
         </section>
         <section>
           <h2>What it is scored on</h2>

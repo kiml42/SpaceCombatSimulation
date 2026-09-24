@@ -214,14 +214,18 @@ inside any one file is not contiguous.
   fired, which is the one thing a fitness function cannot get from what a hull has taken, and it is capped
   per victim, since a gun must not be paid for firing into something it has already killed. What is left of
   a match that ends early is credited to whoever is still standing: without it, winning outright scores less
-  than failing to land a shot for the full two minutes. A four-ship match runs in a quarter of a second,
+  than failing to land a shot for the full two minutes. **A match ends early only when nothing more can be
+  scored**: with nobody left, or with one left and the goal not counting. While the goal counts, a survivor
+  still has it to fly, and is scored on flying it rather than frozen where the last kill left it. One ship to
+  a match is allowed, and is a test of piloting alone. A four-ship match runs in a quarter of a second,
   about three hundred times faster than the battle it simulates.
   **The objective is an object, and a ship goes to it because its doctrine says to.** The goal is a marker
   hull on a side nobody is on and nobody is against: never shot at, and protected, because an objective that
   can be destroyed stops being one and a doctrine that has learnt to ignore a wreck would learn to ignore
   this. It is a hull rather than a coordinate so that it is solid — sheltered behind, run into, and shoved
   out of somebody's way — and so that a ship can be *told* to go to it, every order in this game being
-  relative to an object. What takes a ship there without being told is **escorting**: a weight saying how
+  relative to an object. It can instead be a **ghost**, a ship still there to be escorted and scored against
+  that nothing collides with, shoots through or moves, so ships either side of it can still fight across it. What takes a ship there without being told is **escorting**: a weight saying how
   much a craft would rather be with something it will never shoot at than at the best fight it can find, so
   covering a consort is one preference argued against the rest rather than a mode the ship is put into.
   A craft escorting stations on its charge and fights on with whatever its mounts can reach, since where the
