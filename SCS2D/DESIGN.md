@@ -565,11 +565,10 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   sweeps**, so a narrower one is a simpler machine and a lighter one, and a mount told to train nothing at
   all is a gun welded to the ship carrying no training gear — which is how a very light hull affords a
   very large bore.
-- **A hull mount's outlets are whole weapons rather than shares of one.** A turret's barrels divide
-  one bore because they share a barbette and its hoists; a hull mount has neither, so asking for two
-  guns asks for two guns and the row simply takes up more of the opening. What stops it is the face
-  running out: past a capped fraction of the mount's width they all shrink together, which is also
-  what keeps room for the barrel to swing into.
+- **A hull mount's outlets share one weapon, as a turret's barrels do.** Tubes divide the bore, so
+  more of them trade weight of shell for rate of fire and muzzle speed; lenses divide the optic's
+  area, so total power is unchanged and each lens is `1/√n` as wide. A capped fraction of the mount's
+  width still bounds the row, and keeps room for the barrel to swing into.
 - **An engine is a machinery block with a bell on the back of it**, not a nozzle with a plume coming out.
   The block holds the chamber and the pumps, is what the engine is welded to the ship by, and is the part
   that has walls, an interior and hit points; the bell is sheet metal in the exhaust that can be bolted to

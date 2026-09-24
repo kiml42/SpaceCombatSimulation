@@ -162,11 +162,9 @@ export const BARREL_OUTER_CALIBRES = 2;
  * as wide as its own mount cannot move at all. The rest of the face is the
  * mounting, and the room to train.
  *
- * It binds where a designer asks for **several** weapons in one opening.
- * Outlets on a hull mount do not divide a bore the way a turret's barrels do —
- * there is no barbette and no shell hoist to share, so each is a whole gun —
- * and they go on being whole guns until the row no longer fits. Past that they
- * all shrink together, which is the opening saying no.
+ * Outlets share one weapon's budget the way a turret's barrels do, so the row
+ * rarely reaches it: a gun's tubes divide the bore and never widen the row,
+ * and a beam's lenses divide the optic's area, reaching the cap only at dozens.
  */
 export const HULL_BARREL_WIDTH_CAP = 0.8;
 
@@ -1026,14 +1024,14 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
   const outlets = spec.barrels ?? 1;
   const share = spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
   const barrelLength = spec.length * share;
-  // What one outlet would like to be, and what the row of them may take up.
-  // Each is a whole weapon rather than a share of one, so asking for more of
-  // them asks for more of the face — until the cap makes them share after all.
-  const each =
+  // What a single outlet would be, split the way a turret splits it: tubes
+  // divide the bore, so the row is as wide as the one tube would have been;
+  // lenses divide the optic's area, so the row grows as `√n`.
+  const single =
     spec.kind === 'hullBeam'
       ? HULL_APERTURE_FRACTION * spec.width
       : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * spec.width;
-  const wanted = each * outlets;
+  const wanted = spec.kind === 'hullBeam' ? single * sqrt(outlets) : single;
   const cap = HULL_BARREL_WIDTH_CAP * spec.width;
   const barrelWidth = wanted < cap ? wanted : cap;
   const blockLength = spec.length - barrelLength;
