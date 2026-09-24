@@ -11,6 +11,7 @@ import {
   samePlacement,
   parseBlueprint,
   serialiseBlueprint,
+  type AssemblyInstance,
   type Blueprint,
   type ModulePath,
   type ModuleSpec,
@@ -646,6 +647,32 @@ describe('sizing a drawn module through the frame it was written in', () => {
     const next = drag(bp, 1, edge, edge.x, edge.y + 2, true);
     expect(positions(next)[2]![0]).toBeCloseTo(positions(bp)[2]![0], 9);
     expect(positions(next)[2]![1]).toBeCloseTo(positions(bp)[2]![1] + 2, 9);
+  });
+});
+
+describe('pushing through the corvette’s bow', () => {
+  it('keeps the turret against the engine that pushes it, step after step', () => {
+    // The bow structure's front face drawn back two metres, so the turret is
+    // pulled in between the two retro engines with a metre clear of each.
+    const bow = expandWithOrigins(CORVETTE).origins[0]!;
+    const drawnBack = resizePlacement(CORVETTE, bow, 4, 6, -1, 0, true)!;
+    const turret = (bp: Blueprint) => placementAt(bp, [{ index: 3, copy: 0 }]) as ModuleSpec;
+    expect(turret(drawnBack).x).toBe(8.5);
+
+    // Then its +y side pulled in, as a drag does: each step applied afresh to
+    // the layout the drag started from.
+    for (const by of [0.5, 1, 1.5, 2, 2.5]) {
+      const next = resizePlacement(drawnBack, bow, 4, 6 - by, 0, -by / 2, true)!;
+      const retro = next.modules[13] as AssemblyInstance;
+      const lower = next.modules[14] as AssemblyInstance;
+      const retroBottom = retro.y - 1.5;
+      const turretTop = turret(next).y + 2;
+      const turretBottom = turret(next).y - 2;
+      // The retro closes on the turret, then pushes it without a gap opening.
+      expect(retroBottom - turretTop).toBeCloseTo(Math.max(0, 1 - by), 9);
+      // The turret closes on the lower retro before it pushes that in turn.
+      expect(turretBottom - (lower.y + 1.5)).toBeCloseTo(Math.min(1, Math.max(0, 2 - by)), 9);
+    }
   });
 });
 

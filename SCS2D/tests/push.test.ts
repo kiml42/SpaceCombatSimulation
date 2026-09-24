@@ -42,9 +42,10 @@ describe('pushing neighbours with a moved face', () => {
     expect(at(out, 1)).toEqual([2, 0]);
   });
 
-  it('pushes something the face grows into, keeping the gap', () => {
+  it('pushes something the face grows into only once the gap has closed', () => {
+    // 0.3 clear of the face, which grows 0.5: pushed the last 0.2.
     const out = pushNeighbours([hull, box(3.3, 0)], 0, undefined, hull, grownX(0.5));
-    expect(at(out, 1)).toEqual([3.8, 0]);
+    expect(at(out, 1)).toEqual([3.5, 0]);
   });
 
   it('leaves what is beyond the face’s reach, or only meets it at a corner', () => {
@@ -86,12 +87,12 @@ describe('pushing neighbours with a moved face', () => {
 
 describe('what a push carries further', () => {
   it('pushes along a chain, each pushing what is in its way', () => {
-    // Hull, then a block against it, then one against that with a gap of 0.3
-    // the push is too far to leave.
+    // Hull, then a block against it, then one 0.3 clear of that: the push of
+    // 0.5 closes the gap and moves the far block the 0.2 left over.
     const list = [hull, box(3, 0), box(5.3, 0)];
     const out = pushNeighbours(list, 0, undefined, hull, grownX(0.5));
     expect(at(out, 1)).toEqual([3.5, 0]);
-    expect(at(out, 2)).toEqual([5.8, 0]);
+    expect(at(out, 2)).toEqual([5.5, 0]);
     // With a wider gap, the second is out of reach.
     const clear = pushNeighbours([hull, box(3, 0), box(5.6, 0)], 0, undefined, hull, grownX(0.5));
     expect(at(clear, 2)).toEqual([5.6, 0]);
@@ -126,6 +127,42 @@ describe('what a push carries further', () => {
     const out = pushNeighbours([hull, spar, engine], 0, undefined, hull, grownX(-1));
     expect(at(out, 1)).toEqual([2, 3]);
     expect(at(out, 2)).toEqual([4, 6]);
+  });
+});
+
+describe('pushing only as far as it takes', () => {
+  // A 4×4 hull with an engine on its top and bottom faces, both overhanging
+  // its +x end, and a turret against that end between them with a metre
+  // clear above and below — the corvette's bow, pulled back between its
+  // engines.
+  const square = box(0, 0, 4, 4);
+  const top = box(2, 3); // x 1..3, y 2..4
+  const turret = box(3, 0); // x 2..4, y -1..1
+  const bottom = box(2, -3);
+  const list = [square, top, turret, bottom];
+  /** The hull's +y face pulled in by `by`. */
+  const pulled = (by: number): ModuleSpec => ({ ...square, y: -by / 2, width: 4 - by });
+
+  it('closes a gap before pushing across it, so the pushed module ends up touching', () => {
+    // The engine comes down 1.5, meeting the turret after 1: the turret is
+    // pushed the remaining half metre and ends against the engine.
+    const out = pushNeighbours(list, 0, undefined, square, pulled(1.5));
+    expect(at(out, 1)).toEqual([2, 1.5]);
+    expect(at(out, 2)).toEqual([3, -0.5]);
+    // Which leaves it touching the bottom engine, not pushing it.
+    expect(at(out, 3)).toEqual([2, -3]);
+  });
+
+  it('agrees with itself however far the drag has gone', () => {
+    // A drag re-applies the whole resize to the layout it started from, so
+    // each step's answer must be where the steps before it would have led.
+    for (const by of [0.5, 1, 1.5]) {
+      const out = pushNeighbours(list, 0, undefined, square, pulled(by));
+      const engineBottom = out[1]!.y - 1;
+      const turretTop = out[2]!.y + 1;
+      expect(engineBottom).toBeGreaterThanOrEqual(turretTop - 1e-9);
+      expect(engineBottom - turretTop).toBeCloseTo(Math.max(0, 1 - by), 9);
+    }
   });
 });
 
