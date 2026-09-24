@@ -9,6 +9,7 @@ import {
   parseBlueprint,
   radiansToDegrees,
   serialiseBlueprint,
+  type ModuleSpec,
 } from '../sim/index.js';
 import corvetteFile from '../scenarios/blueprints/corvette.json' with { type: 'json' };
 import damagedCorvetteFile from '../scenarios/blueprints/damaged-corvette.json' with { type: 'json' };
@@ -152,6 +153,32 @@ describe('rejecting a file that arrived from somewhere else', () => {
         modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4, nozzle: 0.3 }],
       })['modules'],
     ).toEqual([{ kind: 'core', x: 0, y: 0, length: 10, width: 4 }]);
+  });
+
+  it('carries a weapon\'s traverse limit out and back, in degrees', () => {
+    // Degrees in the file and radians in the simulation, as every other angle
+    // — a layout is written by a person and read by arithmetic.
+    const raw = file({
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 10, width: 4 },
+        { kind: 'turret', x: 6, y: 0, angle: 0, length: 5, width: 4, barrels: 1, traverse: 30 },
+      ],
+    });
+    expect(blueprintFileProblem(raw)).toBeNull();
+    const back = parseBlueprint(raw);
+    expect((back.modules[1] as ModuleSpec).traverse).toBeCloseTo(degreesToRadians(30), 12);
+    expect(serialiseBlueprint(back)).toEqual(raw);
+    // And a girder that says how far it trains is a mistake here, as a bell on
+    // a core is, though mutation may hold one in memory against a refit back.
+    expect(blueprintFileProblem(file({
+      modules: [{ kind: 'structure', x: 0, y: 0, length: 10, width: 4, traverse: 30 }],
+    }))).toMatch(/only a weapon has a traverse/);
+    expect(
+      serialiseBlueprint({
+        name: 'Dormant',
+        modules: [{ kind: 'structure', x: 0, y: 0, length: 10, width: 4, traverse: 0.5 }],
+      })['modules'],
+    ).toEqual([{ kind: 'structure', x: 0, y: 0, length: 10, width: 4 }]);
   });
 
   it('refuses a format version it does not understand', () => {

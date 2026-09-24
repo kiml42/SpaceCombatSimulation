@@ -5,6 +5,7 @@ import {
   moduleProblem,
   moduleStats,
   isHullMount,
+  mountTraverse,
   hullMountGeometry,
   weldBox,
   traverseAccel,
@@ -809,6 +810,7 @@ function place(
     if (placement.reinforcement !== undefined) spec.reinforcement = placement.reinforcement;
     if (placement.barrels !== undefined) spec.barrels = placement.barrels;
     if (placement.nozzle !== undefined) spec.nozzle = placement.nozzle;
+    if (placement.traverse !== undefined) spec.traverse = placement.traverse;
     if (placement.weapon !== undefined) spec.weapon = placement.weapon;
     if (placement.targeting !== undefined) spec.targeting = placement.targeting;
     if (placement.notes !== undefined) spec.notes = placement.notes;
@@ -1326,12 +1328,14 @@ function designFrom(
       const py = y + sin(angle) * mount.pivot;
       radius = max(radius, sqrt(px * px + py * py) + gun.barrelLength);
 
-      // Two limits, and the narrower wins. The barrel has to stay inside the
-      // opening it comes out of, which is the archetype's own bound and is
-      // usually single figures; and the ship may be in the way of even that,
+      // Three limits, and the narrowest wins. The barrel has to stay inside
+      // the opening it comes out of, which is the archetype's own bound and is
+      // usually single figures; the layout may ask for less than that, and
+      // pays less for the bed; and the ship may be in the way of even that,
       // which is the question every mount is asked.
       const reach = gun.type === GunType.Beam ? Infinity : gun.barrelLength;
       const arc = firingArc(specs, i, reach);
+      const limit = mountTraverse(spec);
       // Only the barrels swing, so that is what the drive is sized against.
       const accel = traverseAccel(s.mass, s.swingInertia);
 
@@ -1341,8 +1345,8 @@ function designFrom(
           x: px,
           y: py,
           restBearing: angle,
-          leftArc: min(arc.left, mount.traverse),
-          rightArc: min(arc.right, mount.traverse),
+          leftArc: min(arc.left, limit),
+          rightArc: min(arc.right, limit),
           maxRate: traverseRate(accel),
           maxAccel: accel,
           inertia: s.swingInertia,
@@ -1389,8 +1393,8 @@ function designFrom(
           x,
           y,
           restBearing: angle,
-          leftArc: arc.left,
-          rightArc: arc.right,
+          leftArc: min(arc.left, mountTraverse(spec)),
+          rightArc: min(arc.right, mountTraverse(spec)),
           maxRate: traverseRate(accel),
           maxAccel: accel,
           inertia: s.inertia,

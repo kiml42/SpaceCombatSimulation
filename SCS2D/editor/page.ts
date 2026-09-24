@@ -2,6 +2,8 @@ import {
   DEFAULT_NOZZLE_SHARE,
   degreesToRadians,
   isHullMount,
+  isWeaponMount,
+  mountTraverse,
   MAX_REPEAT,
   math,
   parseBlueprint,
@@ -101,13 +103,16 @@ function el<T extends HTMLElement>(id: string): T {
   return found as T;
 }
 
-type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle';
+type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle' | 'traverse';
 
 /** A module's own value for a field, with the default the parser would have applied. */
 function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   if (key === 'angle') return radiansToDegrees(spec.angle ?? 0);
   if (key === 'reinforcement') return spec.reinforcement ?? 1;
   if (key === 'nozzle') return spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
+  // What the mount would do if the layout said nothing, so the box shows the
+  // arc it actually has rather than a blank.
+  if (key === 'traverse') return radiansToDegrees(mountTraverse(spec));
   return spec.barrels ?? 1;
 }
 
@@ -199,6 +204,7 @@ export function startEditor(): void {
     reinforcement: el<HTMLInputElement>('propReinforcement'),
     barrels: el<HTMLInputElement>('propBarrels'),
     nozzle: el<HTMLInputElement>('propNozzle'),
+    traverse: el<HTMLInputElement>('propTraverse'),
     notes: el<HTMLTextAreaElement>('propNotes'),
   };
 
@@ -560,6 +566,7 @@ export function startEditor(): void {
         : 'barrels';
     // The same field again: what sticks out of the module, named for the kind
     // showing it — a bell, a barrel, or the housing round a lens.
+    el<HTMLElement>('traverseRow').hidden = !isWeaponMount(spec.kind);
     el<HTMLElement>('nozzleRow').hidden = !nozzles && !hullMount;
     el<HTMLElement>('nozzleLabel').textContent = nozzles
       ? 'nozzle'
@@ -732,7 +739,9 @@ export function startEditor(): void {
         );
         return;
       }
-      if (key === 'angle') editSelected({ angle: degreesToRadians(value) }, true);
+      if (key === 'angle' || key === 'traverse') {
+        editSelected({ [key]: degreesToRadians(value) } as Partial<ModuleSpec>, true);
+      }
       else editSelected({ [key]: value } as Partial<ModuleSpec>, true);
     });
   }

@@ -9,6 +9,8 @@ import {
   radiansToDegrees,
   hullMountGeometry,
   isHullMount,
+  isWeaponMount,
+  mountTraverse,
   shortfall,
   thrusterGeometry,
   traverseAccel,
@@ -262,6 +264,21 @@ export function moduleReadout(
       `${radiansToDegrees(mount.traverse).toLocaleString('en-GB', { maximumFractionDigits: 1 })}° ` +
         `either way, with ${((mount.barrelWidth / spec.width) * 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })}% ` +
         `of the face filled`,
+    ]);
+  }
+  if (isWeaponMount(spec.kind)) {
+    // What it may train through and what that machine weighs — the second
+    // being the number a designer is trading when they narrow the first, and
+    // on a hull mount the reason to.
+    const gear = stats.traverseMass;
+    rows.push([
+      'Trains',
+      `${radiansToDegrees(mountTraverse(spec)).toLocaleString('en-GB', { maximumFractionDigits: 1 })}° ` +
+        `either way, on ${
+          gear > 0
+            ? `${(gear / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t of gear`
+            : 'no gear at all'
+        }`,
     ]);
   }
   if (spec.kind === 'thruster') {

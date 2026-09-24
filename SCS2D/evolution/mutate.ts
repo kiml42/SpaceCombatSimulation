@@ -18,8 +18,11 @@ import {
   type Doctrine,
 } from '../sim/doctrine.js';
 import { abs, clamp, cos, floor, HALF_PI, max, PI, round, sin } from '../sim/math.js';
+import { degreesToRadians, radiansToDegrees } from '../sim/blueprintFile.js';
 import {
   DEFAULT_NOZZLE_SHARE,
+  isWeaponMount,
+  mountTraverse,
   isHullMount,
   MODULE_KINDS,
   moduleCentre,
@@ -386,6 +389,7 @@ type Knob =
   | { readonly at: 'kind'; readonly site: ModuleSite }
   | { readonly at: 'barrels'; readonly site: ModuleSite }
   | { readonly at: 'nozzle'; readonly site: ModuleSite }
+  | { readonly at: 'traverse'; readonly site: ModuleSite }
   | { readonly at: 'weapon'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
@@ -432,6 +436,12 @@ function knobs(draft: Draft): Knob[] {
       if (placement.kind === 'turret' || placement.kind === 'beamTurret') {
         out.push({ at: 'barrels', site });
       }
+      if (isWeaponMount(placement.kind)) {
+        // How much arc a weapon is built for, which on a hull mount is mass
+        // as well as coverage — a fixed gun carries no training gear, and
+        // whether that trade is worth taking is exactly what a run is for.
+        out.push({ at: 'traverse', site });
+      }
       if (isHullMount(placement.kind)) {
         // How much of the mount is barrel is the archetype's real knob, and
         // the outlet count divides the same opening between more of them. The
@@ -461,6 +471,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return rebarrel(knob.site, rng);
     case 'nozzle':
       return rebell(knob.site, rng, bounds);
+    case 'traverse':
+      return retrain(knob.site, rng, bounds);
     case 'weapon':
       return rearm(knob.site);
     case 'angle':
@@ -653,6 +665,25 @@ function rebell(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | nu
   site.spec.nozzle = now;
   const what = hullMount ? 'barrel' : 'nozzle';
   return `${site.where} ${site.spec.kind}: ${what} ${was} → ${now}`;
+}
+
+/**
+ * Widen or narrow the arc a weapon is built for.
+ *
+ * In degrees rather than in radians, because the grid a person edits on is
+ * degrees and a lineage that lands on 17.3° of traverse is describing a mount
+ * nobody would draw. Held at zero from below, which is a real answer — a gun
+ * welded to the ship, carrying no training gear — and unbounded above, where
+ * the mount's own archetype quietly takes over.
+ */
+function retrain(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const step = bounds.turn * rng.nextRange(-1, 1);
+  const was = mountTraverse(site.spec);
+  const now = max(0, tidy(radiansToDegrees(was + step), 3));
+  const asDegrees = tidy(radiansToDegrees(was), 3);
+  if (now === asDegrees) return null;
+  site.spec.traverse = degreesToRadians(now);
+  return `${site.where} ${site.spec.kind}: traverse ${asDegrees}° → ${now}°`;
 }
 
 /**

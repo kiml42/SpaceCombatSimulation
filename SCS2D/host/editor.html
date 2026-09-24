@@ -210,6 +210,16 @@
               title="How much of the module's length is the part that sticks out, rather than the block behind it. On an engine that is the bell: longer wastes less thrust sideways and is lighter, while the chamber and pumps behind it drive the gas, so most thrust comes from a bell in the middle. On a hull weapon it is the barrel or the lens housing: a longer barrel is a faster shell, and leaves less of the block to load from and less traverse, the barrel having to stay inside its own opening."
             />
           </div>
+          <div class="field" id="traverseRow">
+            <label for="propTraverse">traverse °</label>
+            <input
+              id="propTraverse"
+              type="number"
+              step="5"
+              min="0"
+              title="How far the weapon may train either way from its resting bearing. A limit only: the mount's own arc and whatever the ship is in the way of still apply. A turret's ring goes all the way round whatever it is told, so limiting one weighs the same; a hull weapon's bed is built for the arc it sweeps, so a narrower one is lighter and a fixed one carries no training gear at all."
+            />
+          </div>
           <div class="field" id="weaponRow">
             <label for="propWeapon">weapon</label>
             <input

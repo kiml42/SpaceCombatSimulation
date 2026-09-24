@@ -544,6 +544,15 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   the beam nothing in return, since the aperture comes from the mount's width — so the knob on a hull
   beam is one-sided today, the minimum housing being the best housing, and what would make it a trade
   is the housing buying focus, which ROADMAP.md §12 holds with the rest of the optics.
+- **A weapon carries the gear that trains it, and a layout may say how much arc to build for.** Until
+  this a mount weighed its barrels and the machinery that loads them, as though it were pointed by hand.
+  The `traverse` a layout asks for is a *limit* — the archetype's own arc and whatever the ship is in the
+  way of still apply on top — and what it costs is where the two archetypes differ, by the machine rather
+  than by a rule. **A turret's ring goes all the way round whatever it is told to do with it**, so
+  limiting one is programming and weighs exactly the same. **A hull weapon's bed is built for the arc it
+  sweeps**, so a narrower one is a simpler machine and a lighter one, and a mount told to train nothing at
+  all is a gun welded to the ship carrying no training gear — which is how a very light hull affords a
+  very large bore.
 - **A hull mount's outlets are whole weapons rather than shares of one.** A turret's barrels divide
   one bore because they share a barbette and its hoists; a hull mount has neither, so asking for two
   guns asks for two guns and the row simply takes up more of the opening. What stops it is the face

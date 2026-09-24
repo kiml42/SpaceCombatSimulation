@@ -197,6 +197,32 @@ export const HULL_CALIBRE_FRACTION = 0.1;
 export const HULL_APERTURE_FRACTION = 0.1;
 
 /**
+ * Mass of a weapon's training gear, as a fraction of what it has to move.
+ *
+ * Every weapon that trains carries the ring, the drive and the bearings that
+ * train it, and until this it carried none of them: a mount's mass was its
+ * barrels and the machinery that loads them, as though it were pointed by
+ * hand. A tenth, which is the right order for a roller path and a drive under
+ * a turret and is the constant to move if mounts come out too heavy.
+ *
+ * **What it is a fraction of is what actually swings.** A turret turns bodily,
+ * so its gear is sized by the whole mount; a hull weapon swings its barrels
+ * in a bed that does not move, so its gear is sized by the barrels alone.
+ * That is most of why a hull mount is the cheaper way to carry a big bore,
+ * and it is what makes a *fixed* one free.
+ */
+export const TRAVERSE_GEAR_FRACTION = 0.1;
+
+/**
+ * The traverse a full ring buys, radians either way: all the way round.
+ *
+ * A hull weapon's bed sweeps a fraction of that, and pays that fraction of
+ * the gear — so a mount limited to a few degrees carries a few per cent of
+ * what a turret's ring costs, and one limited to nothing carries none of it.
+ */
+export const FULL_TRAVERSE = PI;
+
+/**
  * The most a hull mount may train either way whatever its proportions,
  * radians.
  *
@@ -561,6 +587,25 @@ export interface ModuleSpec {
   nozzle?: number;
 
   /**
+   * How far a weapon may train either way from where it rests, radians. The
+   * archetype's own limit when unsaid: all the way round for a turret, and
+   * whatever its opening leaves for a hull mount.
+   *
+   * **It is a limit and not a capability** — asking for more than the mount
+   * can do changes nothing, and what the ship itself is in the way of still
+   * applies on top. Weapons only.
+   *
+   * What it costs is where the two archetypes differ, and the difference is
+   * the machine rather than the rule. A turret's ring goes all the way round
+   * whatever it is told to do with it, so limiting one is programming and
+   * weighs exactly the same. A hull weapon's bed is built for the arc it
+   * sweeps, so a narrower one is a simpler machine and a lighter one — and a
+   * mount told to train nothing at all is a gun welded to the ship, which is
+   * how a very light hull carries a very large bore.
+   */
+  traverse?: number;
+
+  /**
    * What this mount goes after, where it differs from its ship's doctrine.
    *
    * Only the differences: a gun says what it wants differently and its hull's
@@ -663,6 +708,12 @@ export interface ModuleStats {
   /** Gun derived from the mount, or null unless the module is a weapon. */
   gun: GunStats | null;
   /**
+   * Mass of the gear that trains this weapon, kg, and zero for everything
+   * else. Part of `fittingMass`, named separately because it is the one part
+   * of a mount that its *arc* decides rather than its bore.
+   */
+  traverseMass: number;
+  /**
    * Moment the traverse drive has to swing, about the point it swings it,
    * kg·m². The whole module for anything that turns bodily, and the barrels
    * alone about their root for a hull mount — which is why a gun let into a
@@ -714,6 +765,13 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     // shells at nothing a second.
     if (spec.nozzle === 0 && isHullMount(spec.kind)) {
       return `${spec.kind}: a hull mount needs some barrel, got ${spec.nozzle}`;
+    }
+  }
+  if (spec.traverse !== undefined) {
+    // Dormant on a kind that does not train, as a bell is on a gun mount: only
+    // the range applies there. See `isWeaponMount`.
+    if (!(spec.traverse >= 0)) {
+      return `${spec.kind}: traverse must be at least 0, got ${spec.traverse}`;
     }
   }
   const thickness = BASE_WALL_THICKNESS * reinforcement;
@@ -1003,6 +1061,26 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
   };
 }
 
+/** Whether this kind trains a weapon, and so carries gear to train it with. */
+export function isWeaponMount(kind: ModuleKind): boolean {
+  return kind === 'turret' || kind === 'beamTurret' || isHullMount(kind);
+}
+
+/**
+ * How far this mount may train either way, radians: what it was told, what its
+ * archetype allows, and the narrower of the two.
+ *
+ * What the *ship* is in the way of is a separate question and a later one —
+ * it belongs to the layout rather than to the module, so `compileBlueprint`
+ * asks it, and this stays a property of the mount alone.
+ */
+export function mountTraverse(spec: ModuleSpec): number {
+  const archetype = isHullMount(spec.kind) ? hullMountGeometry(spec).traverse : FULL_TRAVERSE;
+  const asked = spec.traverse;
+  if (asked === undefined) return archetype;
+  return asked < archetype ? asked : archetype;
+}
+
 /** Whether this kind is a weapon let into the hull rather than a turret on it. */
 export function isHullMount(kind: ModuleKind): boolean {
   return kind === 'hullGun' || kind === 'hullBeam';
@@ -1207,6 +1285,7 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
   // the inertia it accounts for. Barrels, and nothing else so far.
   let rodMass = 0;
   let rodInertia = 0;
+  let traverseMass = 0;
   // What the traverse drive actually has to swing, about the point it swings
   // it. The same as the module for a turret, which turns bodily; the barrels
   // alone for a hull mount, whose block is welded to the ship.
@@ -1263,6 +1342,19 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     // Each is a rod running out from that root, so it carries `m L²/3` there,
     // plus `m d²` for sitting off the centreline.
     rodMass = protrudingMass * gun.barrelCount;
+    // **The bed is built for the arc it sweeps**, and what has to be built to
+    // move is the whole weapon: the trunnions and the drive, but also a feed
+    // and a recoil path that work at every angle the gun is allowed. So the
+    // gear is a share of the weapon's own machinery, times how much of its
+    // own archetype's arc it asks for — and a mount told to train nothing is
+    // a gun welded to the ship, carrying none of it. That is how a light hull
+    // affords a heavy bore.
+    // A mount whose barrel does not fit its own opening trains nothing and is
+    // refused elsewhere; here it simply carries no gear rather than dividing
+    // by its own zero.
+    const sweep = mount.traverse > 0 ? mountTraverse(spec) / mount.traverse : 0;
+    traverseMass = fittingMass * TRAVERSE_GEAR_FRACTION * sweep;
+    fittingMass += traverseMass;
     const spin = (protrudingMass * gun.barrelLength * gun.barrelLength) / 3;
     const middle = (protrudingMass * gun.barrelLength * gun.barrelLength) / 12;
     const ahead = mount.pivot + gun.barrelLength * 0.5;
@@ -1311,6 +1403,12 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     // and under it a long gun and a stubby one of the same weight came round
     // equally fast.
     rodMass = protrudingMass * gun.barrelCount;
+    // **A turret's ring goes all the way round whatever it is told.** The gear
+    // is sized by the whole mount, since that is what turns, and a limit on
+    // where it may point is programming rather than a simpler machine — so
+    // unlike a hull mount's bed this does not shrink when the arc does.
+    traverseMass = (structureMass + fittingMass) * TRAVERSE_GEAR_FRACTION;
+    fittingMass += traverseMass;
     const spin = (protrudingMass * gun.barrelLength * gun.barrelLength) / 3;
     for (let barrel = 0; barrel < gun.barrelCount; barrel++) {
       const offset = (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing;
@@ -1345,6 +1443,7 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     hitPoints: structureMass,
     thrust,
     gun,
+    traverseMass,
     swingInertia: mount === null ? inertia : swing,
   };
 }
