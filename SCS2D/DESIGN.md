@@ -165,7 +165,8 @@ inside any one file is not contiguous.
   repair rule would be a second opinion about what a ship is. Two things make that affordable on a hull
   that is a tight packing of boxes: a size changes by moving *one* face, so the opposite face stays against
   whatever it was attached to, and whatever sits against the face that moves goes with it, so a module can
-  grow into a neighbour rather than be refused; and everything moves in whole grid steps, so faces that were
+  grow into a neighbour rather than be refused; two touching modules can also trade the face between them,
+  one growing into space the other gives up; and everything moves in whole grid steps, so faces that were
   flush land flush. A module written inside an assembly is written once however many copies are placed, so mutating it
   changes every copy and a wing that grows a gun grows it on both wings. Whether a generation is structural
   is settled before the retrying starts rather than inside it, which is what stops the rare, hard edit being

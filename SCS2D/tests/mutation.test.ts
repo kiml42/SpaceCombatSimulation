@@ -340,6 +340,19 @@ describe('mutation', () => {
     expect(pushed).toBeGreaterThan(0);
   });
 
+  it('trades a face between two touching modules', () => {
+    const rng = new Rng(11);
+    let seams = 0;
+    for (let i = 0; i < 300 && seams < 5; i++) {
+      const child = mutate(CORVETTE, rng, { structural: 0, numbers: 1 });
+      if (!child.edits.some((edit) => /: seam with /.test(edit))) continue;
+      seams++;
+      expect(blueprintProblem(child.blueprint)).toBeNull();
+      expect(expandBlueprint(child.blueprint)).toHaveLength(expandBlueprint(CORVETTE).length);
+    }
+    expect(seams).toBeGreaterThan(0);
+  });
+
   it('keeps breeding when no kind is allowed at all', () => {
     // Every weight zero is a thing a form can be set to, and it means "add
     // nothing new": the numbers still move, and a module can still be taken

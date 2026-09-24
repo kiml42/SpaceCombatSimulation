@@ -149,7 +149,14 @@ export {
   type DesignTurret,
   type ShipDesign,
 } from './blueprint.js';
-export { pushNeighbours } from './push.js';
+export {
+  pushNeighbours,
+  sharedFace,
+  shiftSeam,
+  withFaceMoved,
+  type FaceOf,
+  type SharedFace,
+} from './push.js';
 export {
   BLUEPRINT_FORMAT_VERSION,
   blueprintFileProblem,

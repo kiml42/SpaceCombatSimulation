@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { math, pushNeighbours, type ModuleSpec, type Placement } from '../sim/index.js';
+import {
+  math,
+  pushNeighbours,
+  sharedFace,
+  shiftSeam,
+  type ModuleSpec,
+  type Placement,
+} from '../sim/index.js';
 
 /**
  * A resize carrying its neighbours: what sits against a face that moved goes
@@ -74,5 +81,34 @@ describe('pushing neighbours with a moved face', () => {
     const out = pushNeighbours([hull, box(3, 0), box(0, 2)], 0, undefined, hull, grown);
     expect(at(out, 1)).toEqual([4, 0]);
     expect(at(out, 2)).toEqual([0, 4]);
+  });
+});
+
+describe('moving the face two modules share', () => {
+  // The hull, and a 2×2 block against its +x face covering y = -1..1.
+  const block = box(3, 0);
+
+  it('says whose face lies within whose', () => {
+    const seam = sharedFace(hull, block)!;
+    // The block's face and the hull's +x face are the same two metres.
+    expect(seam).toMatchObject({ aWithinB: true, bWithinA: true });
+    const wide = sharedFace(box(0, 0, 4, 6), block)!;
+    expect(wide).toMatchObject({ aWithinB: false, bWithinA: true });
+  });
+
+  it('grows one as the other shrinks, their outer faces held', () => {
+    const moved = shiftSeam(hull, block, sharedFace(hull, block)!, 0.5, 0.5);
+    expect(moved.a).toMatchObject({ x: 0.25, length: 4.5 });
+    expect(moved.b).toMatchObject({ x: 3.25, length: 1.5 });
+  });
+
+  it('never shrinks a module below the floor, nor one already under it', () => {
+    const seam = sharedFace(hull, block)!;
+    expect(shiftSeam(hull, block, seam, 5, 0.5).b.length).toBe(0.5);
+    // A block smaller than the floor may still grow, but may not shrink.
+    const tiny = box(2.05, 0, 0.1, 2);
+    const small = sharedFace(hull, tiny)!;
+    expect(shiftSeam(hull, tiny, small, 0.5, 0.5).b.length).toBe(0.1);
+    expect(shiftSeam(hull, tiny, small, -0.5, 0.5).b.length).toBe(0.6);
   });
 });

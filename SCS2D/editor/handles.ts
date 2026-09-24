@@ -1,7 +1,8 @@
 import {
-  ATTACHMENT_TOLERANCE,
-  contactWidth,
   degreesToRadians,
+  sharedFace,
+  shiftSeam,
+  type SharedFace,
   math,
   moduleCentre,
   radiansToDegrees,
@@ -9,7 +10,7 @@ import {
 } from '../sim/index.js';
 import { snap } from './edit.js';
 
-const { abs, atan2, cos, sin, max, min, round, sqrt, HALF_PI } = math;
+const { atan2, cos, sin, max, round, sqrt } = math;
 
 /**
  * The grab points on a selected module: a corner or an edge to size it by, and
@@ -191,16 +192,9 @@ export function resizedTo(
   };
 }
 
-/**
- * The face two modules share, for moving it: where its handle sits, the normal
- * from `a` into `b`, and which face of each it is.
- */
-export interface Seam {
+/** A seam as the editor draws and drags it: `sim`'s seam with a handle on it. */
+export interface Seam extends SharedFace {
   handle: Handle;
-  nx: number;
-  ny: number;
-  a: Pick<Handle, 'along' | 'across'>;
-  b: Pick<Handle, 'along' | 'across'>;
 }
 
 /**
@@ -208,58 +202,12 @@ export interface Seam {
  * and joined along a face. The handle is at the middle of the part they share.
  */
 export function seamBetween(a: ModuleSpec, b: ModuleSpec): Seam | null {
-  const angleA = a.angle ?? 0;
-  const turn = ((((b.angle ?? 0) - angleA) % HALF_PI) + HALF_PI) % HALF_PI;
-  if (min(turn, HALF_PI - turn) > 1e-9) return null;
-  if (contactWidth(a, b) <= 0) return null;
-
-  const ca = moduleCentre(a);
-  const cb = moduleCentre(b);
-  const c = cos(angleA);
-  const s = sin(angleA);
-  for (const [along, across] of [
-    [1, 0],
-    [-1, 0],
-    [0, 1],
-    [0, -1],
-  ] as const) {
-    const nx = along * c - across * s;
-    const ny = along * s + across * c;
-    const face = ca.x * nx + ca.y * ny + (along !== 0 ? a.length : a.width) / 2;
-    const depthB = boxReach(b, nx, ny);
-    const near = cb.x * nx + cb.y * ny - depthB;
-    if (abs(near - face) > ATTACHMENT_TOLERANCE) continue;
-
-    // Along the seam: the middle of the stretch both faces cover.
-    const tx = -ny;
-    const ty = nx;
-    const halfA = (along !== 0 ? a.width : a.length) / 2;
-    const halfB = boxReach(b, tx, ty);
-    const midA = ca.x * tx + ca.y * ty;
-    const midB = cb.x * tx + cb.y * ty;
-    const middle = (max(midA - halfA, midB - halfB) + min(midA + halfA, midB + halfB)) / 2;
-
-    // The face of b looking back at a, in b's own frame.
-    const cbA = cos(b.angle ?? 0);
-    const sbA = sin(b.angle ?? 0);
-    const bx = -(nx * cbA + ny * sbA);
-    const by = -(-nx * sbA + ny * cbA);
-    return {
-      handle: {
-        kind: 'seam',
-        x: face * nx + middle * tx,
-        y: face * ny + middle * ty,
-        along: 0,
-        across: 0,
-        angle: atan2(ty, tx),
-      },
-      nx,
-      ny,
-      a: { along, across },
-      b: { along: sign(bx), across: sign(by) },
-    };
-  }
-  return null;
+  const seam = sharedFace(a, b);
+  if (seam === null) return null;
+  return {
+    ...seam,
+    handle: { kind: 'seam', x: seam.x, y: seam.y, along: 0, across: 0, angle: seam.angle },
+  };
 }
 
 /**
@@ -275,23 +223,15 @@ export function seamTo(
   y: number,
   step: number,
 ): { a: ReturnType<typeof resizedTo>; b: ReturnType<typeof resizedTo> } {
-  const sizeA = seam.a.along !== 0 ? a.length : a.width;
-  const sizeB = seam.b.along !== 0 ? b.length : b.width;
-  const wanted = snap((x - seam.handle.x) * seam.nx + (y - seam.handle.y) * seam.ny, step);
-  const delta = max(MIN_SIZE - sizeA, min(sizeB - MIN_SIZE, wanted));
-  const tx = seam.handle.x + seam.nx * delta;
-  const ty = seam.handle.y + seam.ny * delta;
-  return { a: resizedTo(a, seam.a, tx, ty, 0), b: resizedTo(b, seam.b, tx, ty, 0) };
-}
-
-function boxReach(box: ModuleSpec, nx: number, ny: number): number {
-  const c = cos(box.angle ?? 0);
-  const s = sin(box.angle ?? 0);
-  return (abs(c * nx + s * ny) * box.length + abs(-s * nx + c * ny) * box.width) / 2;
-}
-
-function sign(value: number): -1 | 0 | 1 {
-  return value > 0.5 ? 1 : value < -0.5 ? -1 : 0;
+  const wanted = snap((x - seam.x) * seam.nx + (y - seam.y) * seam.ny, step);
+  const moved = shiftSeam(a, b, seam, wanted, MIN_SIZE);
+  const change = (was: ModuleSpec, now: ModuleSpec) => ({
+    length: now.length,
+    width: now.width,
+    dx: tidy(now.x - was.x),
+    dy: tidy(now.y - was.y),
+  });
+  return { a: change(a, moved.a), b: change(b, moved.b) };
 }
 
 /** Rounds away the last-bit noise a turned frame leaves, so a file does not gain 1e-16s. */

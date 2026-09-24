@@ -1,7 +1,8 @@
-import { abs, cos, max, min, round, sin } from './math.js';
+import { abs, atan2, cos, HALF_PI, max, min, round, sin } from './math.js';
 import { moduleCentre, type ModuleSpec } from './modules.js';
 import {
   ATTACHMENT_TOLERANCE,
+  contactWidth,
   expandBlueprint,
   isInstance,
   type Assembly,
@@ -120,4 +121,128 @@ function extent(box: ModuleSpec, c: number, s: number, nx: number, ny: number): 
 
 function tidy(value: number): number {
   return round(value * 1e9) / 1e9;
+}
+
+/** A face of a module: ±1 along its length or across it, the other 0. */
+export interface FaceOf {
+  along: -1 | 0 | 1;
+  across: -1 | 0 | 1;
+}
+
+/**
+ * The face two modules share: the middle of the stretch both cover, the normal
+ * from `a` into `b` and which way the seam runs, and which face of each it is.
+ */
+export interface SharedFace {
+  x: number;
+  y: number;
+  nx: number;
+  ny: number;
+  angle: number;
+  a: FaceOf;
+  b: FaceOf;
+  /**
+   * Whether each module's face lies wholly within the other's. Only then can
+   * that module grow across the seam without reaching past the other one.
+   */
+  aWithinB: boolean;
+  bWithinA: boolean;
+}
+
+/** The face two modules share, or null unless they are square to each other and joined along one. */
+export function sharedFace(a: ModuleSpec, b: ModuleSpec): SharedFace | null {
+  const angleA = a.angle ?? 0;
+  const turn = ((((b.angle ?? 0) - angleA) % HALF_PI) + HALF_PI) % HALF_PI;
+  if (min(turn, HALF_PI - turn) > 1e-9) return null;
+  if (contactWidth(a, b) <= 0) return null;
+
+  const ca = moduleCentre(a);
+  const cb = moduleCentre(b);
+  const c = cos(angleA);
+  const s = sin(angleA);
+  const cbA = cos(b.angle ?? 0);
+  const sbA = sin(b.angle ?? 0);
+  for (const [along, across] of [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ] as const) {
+    const nx = along * c - across * s;
+    const ny = along * s + across * c;
+    const face = ca.x * nx + ca.y * ny + (along !== 0 ? a.length : a.width) / 2;
+    const near = cb.x * nx + cb.y * ny - extent(b, cbA, sbA, nx, ny);
+    if (abs(near - face) > ATTACHMENT_TOLERANCE) continue;
+
+    const tx = -ny;
+    const ty = nx;
+    const halfA = (along !== 0 ? a.width : a.length) / 2;
+    const halfB = extent(b, cbA, sbA, tx, ty);
+    const midA = ca.x * tx + ca.y * ty;
+    const midB = cb.x * tx + cb.y * ty;
+    const middle = (max(midA - halfA, midB - halfB) + min(midA + halfA, midB + halfB)) / 2;
+
+    // The face of b looking back at a, in b's own frame.
+    const bx = -(nx * cbA + ny * sbA);
+    const by = -(-nx * sbA + ny * cbA);
+    return {
+      x: face * nx + middle * tx,
+      y: face * ny + middle * ty,
+      nx,
+      ny,
+      angle: atan2(ty, tx),
+      a: { along, across },
+      b: { along: unit(bx), across: unit(by) },
+      aWithinB:
+        midA - halfA >= midB - halfB - ATTACHMENT_TOLERANCE &&
+        midA + halfA <= midB + halfB + ATTACHMENT_TOLERANCE,
+      bWithinA:
+        midB - halfB >= midA - halfA - ATTACHMENT_TOLERANCE &&
+        midB + halfB <= midA + halfA + ATTACHMENT_TOLERANCE,
+    };
+  }
+  return null;
+}
+
+/**
+ * The modules with their shared face moved `delta` from `a` into `b`, `a`
+ * growing as `b` shrinks and neither going below `smallest`. Each keeps its
+ * other faces where they were.
+ */
+export function shiftSeam(
+  a: ModuleSpec,
+  b: ModuleSpec,
+  seam: SharedFace,
+  delta: number,
+  smallest: number,
+): { a: ModuleSpec; b: ModuleSpec } {
+  const sizeA = seam.a.along !== 0 ? a.length : a.width;
+  const sizeB = seam.b.along !== 0 ? b.length : b.width;
+  // A module already below `smallest` may grow but not shrink.
+  const moved = max(min(0, smallest - sizeA), min(max(0, sizeB - smallest), delta));
+  return { a: withFaceMoved(a, seam.a, moved), b: withFaceMoved(b, seam.b, -moved) };
+}
+
+/** A module with one face moved outward by `delta`, the opposite face held. */
+export function withFaceMoved(spec: ModuleSpec, face: FaceOf, delta: number): ModuleSpec {
+  const length = face.along !== 0 ? tidy(spec.length + delta) : spec.length;
+  const width = face.across !== 0 ? tidy(spec.width + delta) : spec.width;
+  const angle = spec.angle ?? 0;
+  const c = cos(angle);
+  const s = sin(angle);
+  const lx = (face.along * delta) / 2;
+  const ly = (face.across * delta) / 2;
+  const was = moduleCentre(spec);
+  const offset = moduleCentre({ ...spec, x: 0, y: 0, length, width });
+  return {
+    ...spec,
+    length,
+    width,
+    x: tidy(was.x + lx * c - ly * s - offset.x),
+    y: tidy(was.y + lx * s + ly * c - offset.y),
+  };
+}
+
+function unit(value: number): -1 | 0 | 1 {
+  return value > 0.5 ? 1 : value < -0.5 ? -1 : 0;
 }

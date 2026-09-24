@@ -24,7 +24,7 @@ import {
   type ModuleKind,
   type ModuleSpec,
 } from '../sim/modules.js';
-import { pushNeighbours } from '../sim/push.js';
+import { pushNeighbours, sharedFace, shiftSeam, type SharedFace } from '../sim/push.js';
 import type { Rng } from '../sim/rng.js';
 
 /**
@@ -381,6 +381,7 @@ type Knob =
   | { readonly at: 'weapon'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
+  | { readonly at: 'seam'; readonly site: ModuleSite }
   | { readonly at: 'slide'; readonly site: ModuleSite }
   | { readonly at: 'place'; readonly site: InstanceSite }
   | { readonly at: 'mirror'; readonly site: InstanceSite }
@@ -391,6 +392,7 @@ interface ModuleSite {
   readonly where: string;
   /** The list it is written in, whose other placements a face can push. */
   readonly list: Placement[];
+  readonly label: string;
 }
 
 interface InstanceSite {
@@ -413,10 +415,11 @@ function knobs(draft: Draft): Knob[] {
         if (placement.step !== undefined) out.push({ at: 'repeat', site });
         continue;
       }
-      const site: ModuleSite = { spec: placement, where, list: list.placements };
+      const site: ModuleSite = { spec: placement, where, list: list.placements, label: list.label };
       out.push(
         { at: 'reinforcement', site },
         { at: 'face', site },
+        { at: 'seam', site },
         { at: 'slide', site },
         { at: 'kind', site },
       );
@@ -454,6 +457,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return turnModule(knob.site, rng, bounds);
     case 'face':
       return moveFace(knob.site, draft, rng, bounds);
+    case 'seam':
+      return moveSeam(knob.site, rng, bounds);
     case 'slide':
       return slide(knob.site, rng, bounds);
     case 'place':
@@ -728,6 +733,40 @@ function moveFace(site: ModuleSite, draft: Draft, rng: Rng, bounds: MutationLimi
 
   const change = `${site.where} ${spec.kind}: ${along ? 'length' : 'width'} ${was} → ${now}`;
   return pushed === 0 ? change : `${change}, moving ${pushed} alongside`;
+}
+
+/**
+ * Move the face a module shares with a neighbour, one growing by a grid step
+ * as the other shrinks by it.
+ *
+ * It trades space between two modules — hull for engine, say — without the
+ * ship getting any bigger, which otherwise takes a shrink and a grow, each of
+ * which can be refused. The module that grows must have its whole face
+ * against the other, so it only moves into space the other gives up.
+ */
+function moveSeam(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const spec = site.spec;
+  const partners: { index: number; other: ModuleSpec; seam: SharedFace }[] = [];
+  for (let j = 0; j < site.list.length; j++) {
+    const other = site.list[j]!;
+    if (other === spec || isInstance(other)) continue;
+    const seam = sharedFace(spec, other);
+    if (seam !== null && (seam.aWithinB || seam.bWithinA)) partners.push({ index: j, other, seam });
+  }
+  if (partners.length === 0) return null;
+  const { index, other, seam } = partners[rng.nextInt(partners.length)]!;
+  // This module grows when its face is within the other's, the other when
+  // its is; when both are, either.
+  const grow = seam.aWithinB && (!seam.bWithinA || rng.chance(0.5));
+  const delta = grow ? bounds.grid : -bounds.grid;
+  const moved = shiftSeam(spec, other, seam, delta, bounds.grid);
+  if (moved.a.length === spec.length && moved.a.width === spec.width) return null;
+
+  const was = seam.a.along !== 0 ? spec.length : spec.width;
+  Object.assign(spec, moved.a);
+  Object.assign(other, moved.b);
+  const now = seam.a.along !== 0 ? spec.length : spec.width;
+  return `${site.where} ${spec.kind}: seam with ${site.label}[${index}] ${other.kind}, ${was} → ${now}`;
 }
 
 function slide(site: ModuleSite, rng: Rng, bounds: MutationLimits): string {
