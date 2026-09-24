@@ -20,7 +20,7 @@ const { cos, sin, min, max } = math;
  * and the ship does not move however hard its engine burns. Rounds fly
  * straight, ignore gravity, and are forgotten when their time is up. The
  * editor's *test flight* — the thing that would put a ship in a scene and let
- * it fly — is a separate piece of work (ROADMAP.md §8, Slice 1), and this is
+ * it fly — is a separate piece of work (ROADMAP.md §8, step 1), and this is
  * deliberately not a start on it: a straight line at a constant speed cannot
  * grow into one by accident.
  */

@@ -329,10 +329,9 @@ inside any one file is not contiguous.
 - **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio
-  belongs chief among them. ROADMAP.md §8 carries the settled plan and what is deliberately after it. Slice 1 has two
-  things left in it, neither blocking: unlinking one copy of a shared part while the
-  others stay linked, and the word the editor owes the player when an action reorders
-  a layout. Restructuring a group — dissolving one, or nesting one inside another —
+  belongs chief among them. ROADMAP.md §8 lists what is left of each partly built step, then the steps not started. Slice 1 has one
+  thing left in it, not blocking: unlinking one copy of a shared part while the
+  others stay linked. Restructuring a group — dissolving one, or nesting one inside another —
   is deliberately not part of it and is §8 step 6, after v1.
 - **Blocked on:** nothing.
 - **Owed:** nothing outstanding. The `duel` golden scenario discharges the coverage that was owed

@@ -1594,18 +1594,14 @@ export class Ships {
   }
 
   /**
-   * One ship's pilot: hold the ordered range band, and face the target.
+   * One ship's pilot: hold the range band of its order, or of what doctrine
+   * chose, and face the target.
    *
    * It eases into the band, holds station by matching the target's velocity,
-   * and points the bow at whatever it is fighting. That is enough to make two
-   * ships fight and to drive every number a blueprint derives.
-   *
-   * **A stop-gap until doctrine and orders (ROADMAP.md §8 step 3), which
-   * replace it.** There is no evasion here, no approach angle, no propellant
-   * budget and no formation keeping — all of which are per-craft configuration
-   * (§2) rather than anything a pilot should decide for itself. What survives
-   * that replacement is the shape of the thing: a demand wrench handed to the
-   * allocator, and a target handed to the turrets.
+   * and points the bow at whatever it is fighting, blended with escorting and
+   * keeping clear. What to fight and how close to sit are doctrine's to say
+   * (§2), not the pilot's; it only turns them into a demand wrench for the
+   * allocator. There is no evasion, approach angle or propellant budget.
    */
   private flyOne(dt: number, bodies: Bodies, i: number, grid?: SpatialGrid): void {
     const b = bodies.indexOf(this.bodyIds[i]!);
