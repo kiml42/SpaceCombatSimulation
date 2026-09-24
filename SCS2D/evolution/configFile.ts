@@ -56,6 +56,7 @@ const FILE_KEYS: readonly string[] = [
 
 const MATCH_KEYS: readonly string[] = ['duration', 'radius', 'scatter', 'goal', 'weights'];
 const GOAL_KEYS: readonly string[] = ['x', 'y', 'scale', 'size'];
+const GOAL_OPTIONAL_KEYS: readonly string[] = ['solid'];
 const WEIGHT_KEYS: readonly (keyof ScoreWeights)[] = ['survival', 'damage', 'race'];
 
 /** The settings a run is given, as the object a file holds. */
@@ -237,9 +238,12 @@ function matchProblem(value: unknown): string | null {
 function goalProblem(value: unknown): string | null {
   if (value === undefined || value === null) return null;
   if (!isRecord(value)) return 'match.goal must be an object, or null for a match that is only a fight';
-  const extra = unknownKeys(value, GOAL_KEYS);
+  const extra = unknownKeys(value, [...GOAL_KEYS, ...GOAL_OPTIONAL_KEYS]);
   if (extra.length > 0) {
     return `match.goal has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
+  }
+  if (value['solid'] !== undefined && typeof value['solid'] !== 'boolean') {
+    return `match.goal.solid must be true or false, got ${JSON.stringify(value['solid'])}`;
   }
   for (const key of GOAL_KEYS) {
     if (value[key] === undefined) return `match.goal is missing ${key}`;

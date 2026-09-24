@@ -211,7 +211,7 @@ export class SpatialGrid {
 
     const inv = this.invCellSize;
     for (let i = 0; i < bodies.highWater; i++) {
-      if (bodies.alive[i] === 0) continue;
+      if (bodies.alive[i] === 0 || bodies.ghost[i] === 1) continue;
       const r = bodies.radius[i];
       const x = bodies.x[i];
       const y = bodies.y[i];

@@ -50,6 +50,11 @@ export interface BodySpec {
   inertia?: number;
   /** Bounding-circle radius, used by the broadphase. */
   radius?: number;
+  /**
+   * Takes part in nothing: never indexed for a shot or a query to find, and
+   * never collided with. Give it no mass as well and nothing moves it.
+   */
+  ghost?: boolean;
 }
 
 export class Bodies {
@@ -83,6 +88,8 @@ export class Bodies {
   radius!: Float64Array;
 
   alive!: Uint8Array;
+  /** 1 for a body nothing can meet; see `BodySpec.ghost`. */
+  ghost!: Uint8Array;
   generation!: Uint32Array;
 
   capacity = 0;
@@ -125,6 +132,10 @@ export class Bodies {
     const alive = new Uint8Array(capacity);
     if (this.alive) alive.set(this.alive);
     this.alive = alive;
+
+    const ghost = new Uint8Array(capacity);
+    if (this.ghost) ghost.set(this.ghost);
+    this.ghost = ghost;
 
     const generation = new Uint32Array(capacity);
     if (this.generation) generation.set(this.generation);
@@ -171,6 +182,7 @@ export class Bodies {
     this.fy[i] = 0;
     this.torque[i] = 0;
     this.radius[i] = spec.radius ?? 0;
+    this.ghost[i] = spec.ghost === true ? 1 : 0;
     this.alive[i] = 1;
     this.count++;
 

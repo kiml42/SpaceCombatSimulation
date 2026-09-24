@@ -68,6 +68,10 @@ describe('the run config file', () => {
     expect(parseRunConfig({ match: { goal } }).config.match.goal).toEqual(goal);
     expect(parseRunConfig({ match: { goal: null } }).config.match.goal).toBeNull();
     expect(parseRunConfig({}).config.match.goal).toEqual(DEFAULT_MATCH.goal);
+    // A ghost says so; a goal that does not say is solid, as files written
+    // before there was a choice meant.
+    const ghost = { ...goal, solid: false };
+    expect(parseRunConfig({ match: { goal: ghost } }).config.match.goal).toEqual(ghost);
   });
 
   it('refuses a file that is not one, and says why', () => {
@@ -86,6 +90,7 @@ describe('the run config file', () => {
       [{ match: { durations: 10 } }, /unknown key durations/],
       [{ match: { duration: 0 } }, /more than nothing/],
       [{ match: { goal: { x: 0, y: 0, scale: 1 } } }, /missing size/],
+      [{ match: { goal: { x: 0, y: 0, scale: 1, size: 1, solid: 'no' } } }, /solid must be true or false/],
       [{ match: { weights: { survival: 'lots' } } }, /weights.survival/],
     ];
     for (const [value, expected] of problems) {

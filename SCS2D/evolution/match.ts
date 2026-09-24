@@ -42,6 +42,11 @@ import type { Battle } from '../scenarios/types.js';
  * Nothing can hurt it because an objective that can be destroyed stops being
  * an objective, and a doctrine that has learnt to ignore a wreck would learn
  * to ignore this too.
+ *
+ * **It can be a ghost instead** (`solid: false`): still there to be flown to
+ * and scored against, but nothing collides with it, it shields nothing behind
+ * it, and nothing moves it — so ships either side of it can still shoot at
+ * each other across it.
  */
 export interface GoalSpec {
   readonly x: number;
@@ -67,6 +72,8 @@ export interface GoalSpec {
   readonly scale: number;
   /** How big the marker is, metres square. Its mass follows from its size. */
   readonly size: number;
+  /** False for a marker nothing can meet or move. Solid when left out. */
+  readonly solid?: boolean;
 }
 
 /**
@@ -281,6 +288,7 @@ export class Match {
                 y: goal.y,
                 team: NEUTRAL_TEAM,
                 invulnerable: true,
+                ghost: goal.solid === false,
               });
         for (let i = 0; i < count; i++) {
           // Evenly round a ring. Every entrant is the same distance from every
@@ -330,9 +338,15 @@ export class Match {
     }
   }
 
-  /** Whether the match is over, by the clock or by there being one left. */
+  /**
+   * Whether the match is over: by the clock, by nobody being left, or by one
+   * being left — unless getting to the goal still counts, since a survivor
+   * still has the goal to fly, and scoring it as though it stopped where the
+   * last kill left it pays for where it happened to be at that moment.
+   */
   get done(): boolean {
-    return this.step >= this.total || this.ending !== 'timeout';
+    if (this.step >= this.total || this.ending === 'annihilated') return true;
+    return this.ending === 'decided' && !(this.measured && this.settings.weights.race !== 0);
   }
 
   /** How far through it is, from nothing to one. */
@@ -386,9 +400,8 @@ export class Match {
     }
 
     this.step++;
-    if (this.count > 1 && fighting <= 1) {
-      this.ending = fighting === 0 ? 'annihilated' : 'decided';
-    }
+    if (fighting === 0) this.ending = 'annihilated';
+    else if (this.count > 1 && fighting === 1) this.ending = 'decided';
   }
 
   /** What every entrant was worth. Call once it is `done`. */

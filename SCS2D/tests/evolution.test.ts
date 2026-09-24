@@ -162,6 +162,17 @@ describe('a run', () => {
     }
   });
 
+  it('fights one ship to a match, as a test of piloting', () => {
+    const run = runEvolution([CORVETTE], { ...settings, group: 1 });
+    expect(run.generations.length).toEqual(3);
+    for (const generation of run.generations) {
+      for (const match of generation.matches) expect(match.competitors).toHaveLength(1);
+      for (const individual of generation.individuals) {
+        expect(individual.matches).toBeGreaterThanOrEqual(settings.minMatches);
+      }
+    }
+  });
+
   it('writes down enough to fight any match again', () => {
     // The point of recording a seed rather than a transcript. A sample of a
     // run is watched by fighting it a second time, which only works if the

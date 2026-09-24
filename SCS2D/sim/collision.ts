@@ -299,7 +299,7 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
   solid.length = 0;
   solidDesigns.length = 0;
   for (let i = 0; i < bodies.highWater; i++) {
-    if (bodies.alive[i] === 0) continue;
+    if (bodies.alive[i] === 0 || bodies.ghost[i] === 1) continue;
     const design = hulls.designOf(i);
     if (design === null) continue;
     solid.push(i);

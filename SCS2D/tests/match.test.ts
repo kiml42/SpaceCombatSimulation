@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { compileBlueprint } from '../sim/index.js';
-import { DEFAULT_MATCH, hullCapacity, runMatch } from '../evolution/match.js';
+import { DEFAULT_MATCH, hullCapacity, Match, runMatch } from '../evolution/match.js';
 import { BEAM_CORVETTE, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 import type { Blueprint } from '../sim/index.js';
 
@@ -69,15 +69,48 @@ describe('match', () => {
   });
 
   it('pays a decisive win as well as a stalemate', () => {
-    // The match stops when one entrant is left, and what is left of it is
-    // credited to whoever is still standing. Without that, killing everything
-    // in ten seconds of a two-minute match scores a twelfth of what failing
-    // to land a shot for two minutes scores.
-    const result = runMatch([GUNSHIP, DINKY], { seed: 11 });
+    // With the goal not counting, the match stops when one entrant is left,
+    // and what is left of it is credited to whoever is still standing.
+    // Without that, killing everything in ten seconds of a two-minute match
+    // scores a twelfth of what failing to land a shot for two minutes scores.
+    const weights = { survival: 1, damage: 1, race: 0 };
+    const result = runMatch([GUNSHIP, DINKY], { seed: 11, weights });
     expect(result.ending).toEqual('decided');
     expect(result.elapsed).toBeLessThan(DEFAULT_MATCH.duration);
     const winner = result.scores.reduce((best, score) => (score.total > best.total ? score : best));
     expect(winner.survival).toEqual(1);
+  });
+
+  it('plays on after the last kill while the goal still counts', () => {
+    // The survivor still has the goal to fly: stopping would score it as
+    // though it stayed wherever the last kill left it.
+    const result = runMatch([GUNSHIP, DINKY], { seed: 11 });
+    expect(result.ending).toEqual('decided');
+    expect(result.elapsed).toBeCloseTo(DEFAULT_MATCH.duration, 9);
+    const early = runMatch([GUNSHIP, DINKY], { seed: 11, weights: { survival: 1, damage: 1, race: 0 } });
+    // The same fight up to the kill, then flown rather than frozen.
+    const winner = result.scores.findIndex((score) => score.survival === 1);
+    expect(winner).toBeGreaterThanOrEqual(0);
+    expect(result.scores[winner]!.race).not.toBeCloseTo(early.scores[winner]!.race, 6);
+  });
+
+  it('makes the goal a ghost when told it is not solid', () => {
+    const ghostOf = (solid: boolean | undefined): number => {
+      const goal = { ...DEFAULT_MATCH.goal!, ...(solid === undefined ? {} : { solid }) };
+      const { battle } = new Match([CORVETTE, DINKY], { seed: 3, goal });
+      return battle.world.bodies.ghost[battle.world.bodies.indexOf(battle.ships.body(battle.marker))]!;
+    };
+    expect(ghostOf(undefined)).toBe(0);
+    expect(ghostOf(true)).toBe(0);
+    expect(ghostOf(false)).toBe(1);
+  });
+
+  it('flies a lone ship to the clock, as a test of piloting alone', () => {
+    const result = runMatch([CORVETTE], { seed: 5, duration: 20 });
+    expect(result.ending).toEqual('timeout');
+    expect(result.elapsed).toBeCloseTo(20, 9);
+    expect(result.scores).toHaveLength(1);
+    expect(result.scores[0]!.damage).toEqual(0);
   });
 
   it('credits damage to whoever did it', () => {

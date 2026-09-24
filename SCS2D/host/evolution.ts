@@ -146,7 +146,7 @@ export function startEvolution(): void {
   const readout = el<HTMLElement>('readout');
   const barFill = el<HTMLElement>('barFill');
   const foundersSelect = el<HTMLSelectElement>('founders');
-  const goalInput = el<HTMLInputElement>('goal');
+  const goalInput = el<HTMLSelectElement>('goal');
   const playButton = el<HTMLButtonElement>('play');
   const stepButton = el<HTMLButtonElement>('step');
   const fitButton = el<HTMLButtonElement>('fit');
@@ -251,7 +251,7 @@ export function startEvolution(): void {
   };
 
   const saveSetup = (): void => {
-    const held: Record<string, string> = { goal: goalInput.checked ? '1' : '' };
+    const held: Record<string, string> = { goal: goalInput.value };
     for (const name of FIELDS) held[name] = inputs[name].value;
     held['founders'] = [...foundersSelect.selectedOptions].map((o) => o.value).join('\n');
     try {
@@ -273,7 +273,9 @@ export function startEvolution(): void {
 
   const held = loadSetup();
   for (const name of FIELDS) inputs[name].value = held[name] ?? defaults[name];
-  goalInput.checked = held['goal'] === undefined ? true : held['goal'] !== '';
+  // Settings saved when this was a checkbox held '1' or ''.
+  const heldGoal = held['goal'] === '' ? 'none' : held['goal'] === '1' ? 'solid' : held['goal'];
+  goalInput.value = heldGoal === 'ghost' || heldGoal === 'none' ? heldGoal : 'solid';
 
   const wanted = new Set((held['founders'] ?? 'Corvette').split('\n'));
   // A ship is chosen here by name, and a name opens one layout: the player's
@@ -316,7 +318,7 @@ export function startEvolution(): void {
       generations: Math.max(1, Math.round(number(inputs.generations, DEFAULT_RUN.generations))),
       population: Math.max(2, Math.round(number(inputs.population, DEFAULT_RUN.population))),
       winners: Math.max(1, Math.round(number(inputs.winners, DEFAULT_RUN.winners))),
-      group: Math.max(2, Math.round(number(inputs.group, DEFAULT_RUN.group))),
+      group: Math.max(1, Math.round(number(inputs.group, DEFAULT_RUN.group))),
       minMatches: Math.max(1, Math.round(number(inputs.minMatches, DEFAULT_RUN.minMatches))),
       massBudget: tonnes > 0 ? tonnes * 1000 : Infinity,
       mutation: {
@@ -334,7 +336,10 @@ export function startEvolution(): void {
         duration: Math.max(1, number(inputs.duration, DEFAULT_MATCH.duration)),
         radius: Math.max(10, number(inputs.radius, DEFAULT_MATCH.radius)),
         scatter: (number(inputs.scatter, 180) * Math.PI) / 180,
-        goal: goalInput.checked ? DEFAULT_MATCH.goal : null,
+        goal:
+          goalInput.value === 'none' || DEFAULT_MATCH.goal === null
+            ? null
+            : { ...DEFAULT_MATCH.goal, solid: goalInput.value !== 'ghost' },
         weights: {
           survival: number(inputs.survivalWeight, 1),
           damage: number(inputs.damageWeight, 1),
@@ -381,7 +386,7 @@ export function startEvolution(): void {
     inputs.kindHullGun.value = String(kinds.hullGun);
     inputs.kindHullBeam.value = String(kinds.hullBeam);
     inputs.kindCore.value = String(kinds.core);
-    goalInput.checked = match.goal !== null;
+    goalInput.value = match.goal === null ? 'none' : match.goal.solid === false ? 'ghost' : 'solid';
     if (setup.founders.length > 0) {
       const named = new Set(setup.founders);
       for (const option of foundersSelect.options) option.selected = named.has(option.value);
