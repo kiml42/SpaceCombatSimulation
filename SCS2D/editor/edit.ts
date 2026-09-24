@@ -5,6 +5,7 @@ import {
   samePlacement,
   math,
   placementAt,
+  pushNeighbours,
   type Assembly,
   type AssemblyInstance,
   type Blueprint,
@@ -269,6 +270,53 @@ export function movePlacement(
     x: placement.x + local.dx,
     y: placement.y + local.dy,
   }));
+}
+
+/**
+ * Resize a drawn module: its size on the part, and `dx`/`dy` (blueprint frame)
+ * on whatever carries this copy's position, as `resizedTo` works them out.
+ *
+ * With `push`, whatever sits against a face that moved goes with it, among the
+ * placements written beside this copy's position (`pushNeighbours`). A copy
+ * that is one of a repeated row pushes nothing, since its neighbours differ
+ * from copy to copy.
+ */
+export function resizePlacement(
+  blueprint: Blueprint,
+  origin: ModuleOrigin,
+  length: number,
+  width: number,
+  dx: number,
+  dy: number,
+  push: boolean,
+): Blueprint | null {
+  const position = positionHandle(blueprint, origin).origin;
+  const sized = updatePlacement(blueprint, origin.path, (p) => ({ ...p, length, width }));
+  if (sized === null) return null;
+  const moved = dx === 0 && dy === 0 ? sized : movePlacement(sized, position, dx, dy);
+  if (moved === null || !push) return moved;
+
+  const was = containing(blueprint as unknown as MutableBlueprint, position.path);
+  const copy = cloneBlueprint(moved) as unknown as MutableBlueprint;
+  const now = containing(copy, position.path);
+  if (was === null || now === null) return moved;
+  const before = boxOf(was.list[was.index]!, blueprint.assemblies);
+  const after = boxOf(now.list[now.index]!, copy.assemblies);
+  if (before === null || after === null) return moved;
+  const pushed = pushNeighbours(now.list, now.index, copy.assemblies, before, after);
+  now.list.splice(0, now.list.length, ...pushed);
+  return copy as unknown as Blueprint;
+}
+
+/** A placement as the one box it draws in its list's frame, or null if it is not one. */
+function boxOf(
+  placement: Placement,
+  assemblies: Readonly<Record<string, Assembly>> | undefined,
+): ModuleSpec | null {
+  if (!isInstance(placement)) return placement;
+  if ((placement.repeat ?? 1) > 1) return null;
+  const drawn = expandBlueprint({ name: '', modules: [placement], assemblies: assemblies ?? {} });
+  return drawn.length === 1 ? drawn[0]! : null;
 }
 
 /**

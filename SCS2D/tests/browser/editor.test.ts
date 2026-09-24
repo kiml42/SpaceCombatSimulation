@@ -666,6 +666,78 @@ describe('the editor in a browser', () => {
     expect(await page.textContent('#problems')).toMatch(/would fly/);
   });
 
+  it('pushes a neighbour with an edge, and moves the face two modules share', async () => {
+    // Two equal blocks side by side, so the fit centres the canvas on the face
+    // between them at x = 0.
+    await page.evaluate(() => {
+      const pair = {
+        formatVersion: 1,
+        name: 'Pair',
+        modules: [
+          { kind: 'structure', x: -2, y: 0, length: 4, width: 4 },
+          { kind: 'structure', x: 2, y: 0, length: 4, width: 4 },
+        ],
+      };
+      window.localStorage.setItem('scs2d.blueprint.Pair', JSON.stringify(pair));
+    });
+    await page.reload();
+    await page.selectOption('#ship', 'Pair');
+    await page.keyboard.press('f');
+    const centre = await canvasCentre(page);
+
+    // Pixels per metre, from an unsnapped drag of the left block.
+    await page.keyboard.down('Alt');
+    await page.mouse.move(centre.x - 20, centre.y);
+    await page.mouse.down();
+    await page.mouse.move(centre.x - 20 + 100, centre.y, { steps: 4 });
+    await page.mouse.up();
+    await page.keyboard.up('Alt');
+    const scale = 100 / (Number(await page.inputValue('#propX')) + 2);
+    await page.click('#undo');
+    const xOf = async (worldX: number) => {
+      await page.mouse.click(centre.x + worldX * scale, centre.y + 1.5 * scale);
+      return [Number(await page.inputValue('#propX')), Number(await page.inputValue('#propLength'))];
+    };
+
+    // The left block's +x edge, at the middle, dragged a metre right: the
+    // right block goes with it.
+    const edge = async (modifier: boolean) => {
+      await page.mouse.click(centre.x - 2 * scale, centre.y);
+      if (modifier) await page.keyboard.down('Control');
+      await page.mouse.move(centre.x, centre.y);
+      await page.mouse.down();
+      await page.mouse.move(centre.x + scale, centre.y, { steps: 4 });
+      await page.mouse.up();
+      if (modifier) await page.keyboard.up('Control');
+    };
+    await edge(false);
+    expect(await xOf(-2)).toEqual([-1.5, 5]);
+    expect(await xOf(3)).toEqual([3, 4]);
+    await page.click('#undo');
+    // With Ctrl, the left block grows into the right one alone.
+    await edge(true);
+    expect(await xOf(3.5)).toEqual([2, 4]);
+    expect(await page.textContent('#problems')).toMatch(/overlap/);
+    await page.click('#undo');
+
+    // Both selected: the bar on the face between them moves it, one block
+    // growing as the other shrinks.
+    await page.mouse.click(centre.x - 2 * scale, centre.y);
+    await page.keyboard.down('Shift');
+    await page.mouse.click(centre.x + 2 * scale, centre.y);
+    await page.keyboard.up('Shift');
+    await page.mouse.move(centre.x, centre.y);
+    await page.mouse.down();
+    await page.mouse.move(centre.x + scale, centre.y, { steps: 4 });
+    await page.mouse.up();
+    expect(await xOf(-2)).toEqual([-1.5, 5]);
+    expect(await xOf(3)).toEqual([2.5, 3]);
+    // One drag, one undo.
+    await page.click('#undo');
+    expect(await xOf(2)).toEqual([2, 4]);
+    await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Pair'));
+  });
+
   it('opens a saved ship that breaks the design rules, rather than refusing it', async () => {
     // The layout a player left half-finished, or one an older version of the
     // format wrote: it has to come back up with its faults named, since the

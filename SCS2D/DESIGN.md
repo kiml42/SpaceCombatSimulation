@@ -51,7 +51,10 @@ inside any one file is not contiguous.
   while holding a heading — and each turret's calibre, rate of fire, muzzle
   speed and arc. Modules are
   clicked to select, dragged to move on a snapping grid, sized by dragging a corner
-  or an edge with the opposite one held still, and turned by dragging a knob beyond the bow — every snap escaped by holding Alt —
+  or an edge with the opposite one held still — carrying whatever sits against the moving face along with it,
+  unless Ctrl is held — and turned by dragging a knob beyond the bow, while two touching modules selected
+  together get a bar on their shared face that grows one as it shrinks the other; every snap is escaped by
+  holding Alt —
   with the rest of their values typed into a panel beside the module's own mass,
   capacity, armour and gun, and a selected engine burns and a selected gun fires at the
   rate its own figures claim; a module can be duplicated into a shared part placed
@@ -161,8 +164,9 @@ inside any one file is not contiguous.
   mutant is a ship is the layout rules themselves, which refuse a candidate rather than repair it, since a
   repair rule would be a second opinion about what a ship is. Two things make that affordable on a hull
   that is a tight packing of boxes: a size changes by moving *one* face, so the opposite face stays against
-  whatever it was attached to, and everything moves in whole grid steps, so faces that were flush land
-  flush. A module written inside an assembly is written once however many copies are placed, so mutating it
+  whatever it was attached to, and whatever sits against the face that moves goes with it, so a module can
+  grow into a neighbour rather than be refused; and everything moves in whole grid steps, so faces that were
+  flush land flush. A module written inside an assembly is written once however many copies are placed, so mutating it
   changes every copy and a wing that grows a gun grows it on both wings. Whether a generation is structural
   is settled before the retrying starts rather than inside it, which is what stops the rare, hard edit being
   crowded out by the common, easy one; and a child is written back to a file the editor opens. **What it reaches for is

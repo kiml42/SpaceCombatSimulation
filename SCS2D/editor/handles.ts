@@ -1,4 +1,6 @@
 import {
+  ATTACHMENT_TOLERANCE,
+  contactWidth,
   degreesToRadians,
   math,
   moduleCentre,
@@ -7,7 +9,7 @@ import {
 } from '../sim/index.js';
 import { snap } from './edit.js';
 
-const { atan2, cos, sin, max, round, sqrt } = math;
+const { abs, atan2, cos, sin, max, min, round, sqrt, HALF_PI } = math;
 
 /**
  * The grab points on a selected module: a corner or an edge to size it by, and
@@ -28,8 +30,12 @@ const { atan2, cos, sin, max, round, sqrt } = math;
 
 /** Where a handle sits, in the blueprint's own frame. */
 export interface Handle {
-  /** A corner or edge, which sizes the module; or the knob beyond the bow, which turns it. */
-  kind: 'size' | 'rotate';
+  /**
+   * A corner or edge, which sizes the module; the knob beyond the bow, which
+   * turns it; or the seam between two selected modules, which moves the face
+   * they share.
+   */
+  kind: 'size' | 'rotate' | 'seam';
   x: number;
   y: number;
   /**
@@ -38,6 +44,8 @@ export interface Handle {
    */
   along: -1 | 0 | 1;
   across: -1 | 0 | 1;
+  /** Which way a seam runs, radians, so it can be drawn along it. */
+  angle?: number;
 }
 
 /** How big a handle is drawn, pixels. */
@@ -176,11 +184,114 @@ export function resizedTo(
     width: across.size,
   });
   return {
-    length: along.size,
-    width: across.size,
+    length: tidy(along.size),
+    width: tidy(across.size),
     dx: tidy(centreX - offset.x - spec.x),
     dy: tidy(centreY - offset.y - spec.y),
   };
+}
+
+/**
+ * The face two modules share, for moving it: where its handle sits, the normal
+ * from `a` into `b`, and which face of each it is.
+ */
+export interface Seam {
+  handle: Handle;
+  nx: number;
+  ny: number;
+  a: Pick<Handle, 'along' | 'across'>;
+  b: Pick<Handle, 'along' | 'across'>;
+}
+
+/**
+ * The seam between two modules, or null unless they are square to each other
+ * and joined along a face. The handle is at the middle of the part they share.
+ */
+export function seamBetween(a: ModuleSpec, b: ModuleSpec): Seam | null {
+  const angleA = a.angle ?? 0;
+  const turn = ((((b.angle ?? 0) - angleA) % HALF_PI) + HALF_PI) % HALF_PI;
+  if (min(turn, HALF_PI - turn) > 1e-9) return null;
+  if (contactWidth(a, b) <= 0) return null;
+
+  const ca = moduleCentre(a);
+  const cb = moduleCentre(b);
+  const c = cos(angleA);
+  const s = sin(angleA);
+  for (const [along, across] of [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ] as const) {
+    const nx = along * c - across * s;
+    const ny = along * s + across * c;
+    const face = ca.x * nx + ca.y * ny + (along !== 0 ? a.length : a.width) / 2;
+    const depthB = boxReach(b, nx, ny);
+    const near = cb.x * nx + cb.y * ny - depthB;
+    if (abs(near - face) > ATTACHMENT_TOLERANCE) continue;
+
+    // Along the seam: the middle of the stretch both faces cover.
+    const tx = -ny;
+    const ty = nx;
+    const halfA = (along !== 0 ? a.width : a.length) / 2;
+    const halfB = boxReach(b, tx, ty);
+    const midA = ca.x * tx + ca.y * ty;
+    const midB = cb.x * tx + cb.y * ty;
+    const middle = (max(midA - halfA, midB - halfB) + min(midA + halfA, midB + halfB)) / 2;
+
+    // The face of b looking back at a, in b's own frame.
+    const cbA = cos(b.angle ?? 0);
+    const sbA = sin(b.angle ?? 0);
+    const bx = -(nx * cbA + ny * sbA);
+    const by = -(-nx * sbA + ny * cbA);
+    return {
+      handle: {
+        kind: 'seam',
+        x: face * nx + middle * tx,
+        y: face * ny + middle * ty,
+        along: 0,
+        across: 0,
+        angle: atan2(ty, tx),
+      },
+      nx,
+      ny,
+      a: { along, across },
+      b: { along: sign(bx), across: sign(by) },
+    };
+  }
+  return null;
+}
+
+/**
+ * Both modules' new sizes and moves when their seam is dragged to a point: the
+ * shared face moves along its normal by a snapped amount, one module growing
+ * as the other shrinks, and neither going below `MIN_SIZE`.
+ */
+export function seamTo(
+  a: ModuleSpec,
+  b: ModuleSpec,
+  seam: Seam,
+  x: number,
+  y: number,
+  step: number,
+): { a: ReturnType<typeof resizedTo>; b: ReturnType<typeof resizedTo> } {
+  const sizeA = seam.a.along !== 0 ? a.length : a.width;
+  const sizeB = seam.b.along !== 0 ? b.length : b.width;
+  const wanted = snap((x - seam.handle.x) * seam.nx + (y - seam.handle.y) * seam.ny, step);
+  const delta = max(MIN_SIZE - sizeA, min(sizeB - MIN_SIZE, wanted));
+  const tx = seam.handle.x + seam.nx * delta;
+  const ty = seam.handle.y + seam.ny * delta;
+  return { a: resizedTo(a, seam.a, tx, ty, 0), b: resizedTo(b, seam.b, tx, ty, 0) };
+}
+
+function boxReach(box: ModuleSpec, nx: number, ny: number): number {
+  const c = cos(box.angle ?? 0);
+  const s = sin(box.angle ?? 0);
+  return (abs(c * nx + s * ny) * box.length + abs(-s * nx + c * ny) * box.width) / 2;
+}
+
+function sign(value: number): -1 | 0 | 1 {
+  return value > 0.5 ? 1 : value < -0.5 ? -1 : 0;
 }
 
 /** Rounds away the last-bit noise a turned frame leaves, so a file does not gain 1e-16s. */

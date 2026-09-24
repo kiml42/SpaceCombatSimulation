@@ -42,6 +42,7 @@ import {
   removePlacement,
   renameAssembly,
   renameProblem,
+  resizePlacement,
   snap,
   toPlacementFrame,
   updatePlacement,
@@ -65,6 +66,8 @@ import {
   MIN_SIZE,
   ROTATE_ARM_PX,
   resizedTo,
+  seamBetween,
+  seamTo,
   type Handle,
 } from '../editor/handles.js';
 import { previewSnapshot } from '../editor/preview.js';
@@ -492,14 +495,59 @@ describe('sizing a module by a handle', () => {
   });
 });
 
+describe('the seam between two modules', () => {
+  // An 8×4 hull, and a 4×2 block against its +x face covering y = 0..2.
+  const a: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 8, width: 4 };
+  const b: ModuleSpec = { kind: 'structure', x: 6, y: 1, length: 4, width: 2 };
+
+  it('sits at the middle of the face the two share', () => {
+    const seam = seamBetween(a, b)!;
+    expect([seam.handle.x, seam.handle.y]).toEqual([4, 1]);
+    expect([seam.nx, seam.ny]).toEqual([1, 0]);
+    expect(seam.a).toEqual({ along: 1, across: 0 });
+    expect(seam.b).toEqual({ along: -1, across: 0 });
+  });
+
+  it('grows one module as the other shrinks, their outer faces still', () => {
+    const moved = seamTo(a, b, seamBetween(a, b)!, 5.1, 3, 0.5);
+    expect(moved.a).toEqual({ length: 9, width: 4, dx: 0.5, dy: 0 });
+    expect(moved.b).toEqual({ length: 3, width: 2, dx: 0.5, dy: 0 });
+  });
+
+  it('stops before either module goes below the smallest size', () => {
+    const moved = seamTo(a, b, seamBetween(a, b)!, 20, 1, 0.5);
+    expect(moved.b.length).toBe(MIN_SIZE);
+    expect(moved.a.length).toBe(8 + 4 - MIN_SIZE);
+  });
+
+  it('finds the face of a module turned a quarter', () => {
+    // The same footprint written turned: its +w face is the one against a.
+    const turned = { ...b, angle: math.HALF_PI, length: 2, width: 4 };
+    const seam = seamBetween(a, turned)!;
+    expect(seam.b).toEqual({ along: 0, across: 1 });
+    expect(seamTo(a, turned, seam, 5, 1, 0.5).b).toMatchObject({ length: 2, width: 3 });
+  });
+
+  it('is not offered at an angle, apart, or corner to corner', () => {
+    expect(seamBetween(a, { ...b, angle: math.PI / 6 })).toBeNull();
+    expect(seamBetween(a, { ...b, x: 7 })).toBeNull();
+    expect(seamBetween(a, { ...b, y: 3 })).toBeNull();
+  });
+});
+
 describe('sizing a drawn module through the frame it was written in', () => {
-  /** Resize as the page does: size on the placement, then move this copy. */
-  function drag(bp: Blueprint, drawn: number, handle: Handle, x: number, y: number): Blueprint {
+  /** Resize as the page does. */
+  function drag(
+    bp: Blueprint,
+    drawn: number,
+    handle: Handle,
+    x: number,
+    y: number,
+    push = false,
+  ): Blueprint {
     const { modules, origins } = expandWithOrigins(bp);
     const { length, width, dx, dy } = resizedTo(modules[drawn]!, handle, x, y, 0.5);
-    const origin = origins[drawn]!;
-    const sized = updatePlacement(bp, origin.path, (p) => ({ ...p, length, width }))!;
-    return movePlacement(sized, positionHandle(sized, origin).origin, dx, dy)!;
+    return resizePlacement(bp, origins[drawn]!, length, width, dx, dy, push)!;
   }
   const handlesOf = (bp: Blueprint, drawn: number) =>
     handlesFor(expandWithOrigins(bp).modules[drawn]!, 10);
@@ -534,6 +582,40 @@ describe('sizing a drawn module through the frame it was written in', () => {
     const after = handlesOf(drag(bp, 0, edge, edge.x + 3, edge.y), 0);
     expect(after[6]!.x).toBeCloseTo(before[6]!.x, 9);
     expect(after[4]!.x).toBeCloseTo(edge.x + 3, 9);
+  });
+
+  // The hull's +l edge is at x = 10; a block sits against it.
+  const block = { kind: 'structure', x: 12, y: 0, length: 4, width: 4 } as const;
+
+  it('pushes a neighbour along with the face, unless asked not to', () => {
+    const bp = ship({ modules: [hull, block] });
+    const edge = handlesOf(bp, 0)[4]!;
+    expect(positions(drag(bp, 0, edge, 12, 0, true))[1]).toEqual([14, 0]);
+    expect(positions(drag(bp, 0, edge, 12, 0, false))[1]).toEqual([12, 0]);
+    // And pulls it when the face comes back.
+    expect(positions(drag(bp, 0, edge, 8, 0, true))[1]).toEqual([10, 0]);
+  });
+
+  it('pushes from a copy of a shared part among the copy’s own neighbours', () => {
+    const single = ship({ modules: [hull, block] });
+    const bp = duplicatePlacement(single, expandWithOrigins(single).origins[0]!)!.blueprint;
+    const edge = handlesOf(bp, 0)[4]!;
+    const next = drag(bp, 0, edge, 12, 0, true);
+    expect(positions(next)[1]).toEqual([14, 0]);
+  });
+
+  it('pushes neighbours inside a group in the group’s own frame', () => {
+    const pod = { modules: [{ ...hull, length: 4, width: 2 }, { ...block, x: 3, length: 2, width: 2 }] };
+    const bp = ship({
+      assemblies: { pod },
+      modules: [hull, { use: 'pod', x: 0, y: 8, angle: math.HALF_PI, mirror: true }],
+    });
+    // Drawn turned a quarter, the pod's first module's +l edge is at y = 10
+    // and its neighbour beyond it; dragged two metres, the neighbour follows.
+    const edge = handlesOf(bp, 1)[4]!;
+    const next = drag(bp, 1, edge, edge.x, edge.y + 2, true);
+    expect(positions(next)[2]![0]).toBeCloseTo(positions(bp)[2]![0], 9);
+    expect(positions(next)[2]![1]).toBeCloseTo(positions(bp)[2]![1] + 2, 9);
   });
 });
 

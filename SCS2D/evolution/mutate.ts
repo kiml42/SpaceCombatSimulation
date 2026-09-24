@@ -24,6 +24,7 @@ import {
   type ModuleKind,
   type ModuleSpec,
 } from '../sim/modules.js';
+import { pushNeighbours } from '../sim/push.js';
 import type { Rng } from '../sim/rng.js';
 
 /**
@@ -388,6 +389,8 @@ type Knob =
 interface ModuleSite {
   readonly spec: ModuleSpec;
   readonly where: string;
+  /** The list it is written in, whose other placements a face can push. */
+  readonly list: Placement[];
 }
 
 interface InstanceSite {
@@ -410,7 +413,7 @@ function knobs(draft: Draft): Knob[] {
         if (placement.step !== undefined) out.push({ at: 'repeat', site });
         continue;
       }
-      const site: ModuleSite = { spec: placement, where };
+      const site: ModuleSite = { spec: placement, where, list: list.placements };
       out.push(
         { at: 'reinforcement', site },
         { at: 'face', site },
@@ -450,7 +453,7 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
     case 'angle':
       return turnModule(knob.site, rng, bounds);
     case 'face':
-      return moveFace(knob.site, rng, bounds);
+      return moveFace(knob.site, draft, rng, bounds);
     case 'slide':
       return slide(knob.site, rng, bounds);
     case 'place':
@@ -670,9 +673,14 @@ function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits): string 
  * neighbour on one side and drives into the neighbour on the other, and
  * essentially every draw is refused. Moving one face keeps half the module's
  * attachments by construction.
+ *
+ * Whatever sits against the face moves with it (`pushNeighbours`), so growing
+ * into a neighbour pushes it aside rather than being refused, and shrinking
+ * away from one pulls it along rather than leaving it adrift.
  */
-function moveFace(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+function moveFace(site: ModuleSite, draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
   const spec = site.spec;
+  const before = { ...spec };
   const along = rng.chance(0.5);
   const side = rng.chance(0.5) ? 1 : -1;
   const delta = rng.chance(0.5) ? bounds.grid : -bounds.grid;
@@ -704,7 +712,22 @@ function moveFace(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | 
   if (along) spec.length = now;
   else spec.width = now;
 
-  return `${site.where} ${spec.kind}: ${along ? 'length' : 'width'} ${was} → ${now}`;
+  // Moved in place, because other knobs drawn for this candidate hold the
+  // neighbours by reference.
+  let pushed = 0;
+  const index = site.list.indexOf(spec);
+  if (index >= 0) {
+    const moved = pushNeighbours(site.list, index, draft.assemblies, before, spec);
+    for (let j = 0; j < moved.length; j++) {
+      if (moved[j] === site.list[j]) continue;
+      site.list[j]!.x = moved[j]!.x;
+      site.list[j]!.y = moved[j]!.y;
+      pushed++;
+    }
+  }
+
+  const change = `${site.where} ${spec.kind}: ${along ? 'length' : 'width'} ${was} → ${now}`;
+  return pushed === 0 ? change : `${change}, moving ${pushed} alongside`;
 }
 
 function slide(site: ModuleSite, rng: Rng, bounds: MutationLimits): string {

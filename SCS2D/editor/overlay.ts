@@ -184,8 +184,9 @@ function drawSelection(ctx: CanvasRenderingContext2D, view: OverlayView, camera:
 }
 
 /**
- * The handles on the selected module: a dot at each corner, a square on each
- * edge, and the knob that turns it on a short arm beyond the bow.
+ * The handles on the selection: on one module a dot at each corner, a square
+ * on each edge, and the knob that turns it on a short arm beyond the bow; on
+ * two touching modules, a bar on the face they share.
  *
  * The arm is drawn, not implied. A knob floating off the module says nothing
  * about which module it belongs to on a busy layout, and the line also shows
@@ -213,8 +214,13 @@ function drawHandles(ctx: CanvasRenderingContext2D, view: OverlayView, camera: C
   for (const handle of view.handles) {
     ctx.save();
     ctx.beginPath();
-    // An edge changes one dimension, so it is drawn differently from a corner.
-    if (handle.kind === 'size' && (handle.along === 0 || handle.across === 0)) {
+    // A seam is a bar along the face it moves; an edge changes one dimension,
+    // so it is a square rather than a corner's dot.
+    if (handle.kind === 'seam') {
+      ctx.translate(handle.x, handle.y);
+      ctx.rotate(handle.angle ?? 0);
+      ctx.rect(-radius * 2, -radius * 0.7, radius * 4, radius * 1.4);
+    } else if (handle.kind === 'size' && (handle.along === 0 || handle.across === 0)) {
       const half = radius * 0.8;
       ctx.translate(handle.x, handle.y);
       ctx.rotate(spec?.angle ?? 0);

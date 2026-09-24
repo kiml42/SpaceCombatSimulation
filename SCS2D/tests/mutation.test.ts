@@ -315,6 +315,31 @@ describe('mutation', () => {
     expect(engines).toBeGreaterThan(0);
   });
 
+  it('grows a module into its neighbour by pushing the neighbour along', () => {
+    // A hull with a block against each end, so neither length face can grow
+    // without moving something: every accepted length change must have moved
+    // the block alongside.
+    const packed = parseBlueprint({
+      formatVersion: 1,
+      name: 'Packed',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 2 },
+        { kind: 'structure', x: 3, y: 0, length: 2, width: 2 },
+        { kind: 'structure', x: -3, y: 0, length: 2, width: 2 },
+      ],
+    });
+    const rng = new Rng(7);
+    let pushed = 0;
+    for (let i = 0; i < 200; i++) {
+      const child = mutate(packed, rng, { structural: 0, numbers: 1 });
+      if (child.edits.some((edit) => /layout\[0\] core: length 4 → 4\.5, moving 1 alongside/.test(edit))) {
+        pushed++;
+        expect(blueprintProblem(child.blueprint)).toBeNull();
+      }
+    }
+    expect(pushed).toBeGreaterThan(0);
+  });
+
   it('keeps breeding when no kind is allowed at all', () => {
     // Every weight zero is a thing a form can be set to, and it means "add
     // nothing new": the numbers still move, and a module can still be taken
