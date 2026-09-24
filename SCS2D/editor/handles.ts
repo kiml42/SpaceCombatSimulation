@@ -64,9 +64,10 @@ export const ROTATE_ARM_PX = 26;
 /**
  * The smallest a module can be dragged to, metres.
  *
- * The same floor the size boxes carry, and on the same half-metre grid as
- * every other snap, so a module sized by dragging and one sized by typing can
- * hold exactly the same values.
+ * A floor on the drag, under which no zoom can take it. The grid is the other
+ * floor and usually the higher one — a drag cannot make a module smaller than
+ * one step of the grid it is snapping to — so this only bites when the zoom is
+ * fine enough that the grid has stopped being the binding constraint.
  */
 export const MIN_SIZE = 0.5;
 
@@ -164,10 +165,13 @@ export function resizedTo(
   const px = (x - mid.x) * c + (y - mid.y) * s;
   const py = -(x - mid.x) * s + (y - mid.y) * c;
 
+  // Never below one step of the grid either: at a zoom where the grid is ten
+  // metres, half a metre is not something the drag could have said, and it
+  // would put the face off the grid its neighbours abut on.
   const side = (face: number, half: number, pointer: number, held: number) => {
     if (face === 0) return { size: held, middle: 0 };
     const anchor = -face * half;
-    const size = max(MIN_SIZE, snap(face * (pointer - anchor), step));
+    const size = max(MIN_SIZE, step, snap(face * (pointer - anchor), step));
     return { size, middle: anchor + (face * size) / 2 };
   };
   const along = side(handle.along, spec.length / 2, px, spec.length);

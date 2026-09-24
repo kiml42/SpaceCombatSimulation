@@ -459,12 +459,43 @@ describe('the editor in a browser', () => {
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x, centre.y);
     await page.fill('#propLength', '8');
+    // Whatever the grid is worth at this zoom: the box's arrows and a drag on
+    // the canvas are two ways of saying the same thing, so the box follows it.
+    const step = Number(await page.getAttribute('#propLength', 'step'));
+    expect(step).toBeGreaterThan(0);
     const steps: number[] = [];
     for (let i = 0; i < 3; i++) {
       await page.locator('#propLength').press('ArrowUp');
       steps.push(Number(await page.inputValue('#propLength')));
     }
-    expect(steps).toEqual([8.5, 9, 9.5]);
+    expect(steps).toEqual([8 + step, 8 + step * 2, 8 + step * 3]);
+  });
+
+  it('snaps at a step that suits the ship on screen, not a fixed half metre', async () => {
+    // The whole point: the two ends of the fleet are three orders of magnitude
+    // apart, so one step cannot serve both.
+    // The camera eases onto a newly opened ship rather than jumping, so the
+    // step is still the last ship's for a few frames — wait for it to settle.
+    const stepFitTo = async (ship: string): Promise<number> => {
+      await page.selectOption('#ship', ship);
+      const centre = await canvasCentre(page);
+      await page.mouse.click(centre.x, centre.y);
+      const step = async (): Promise<number> =>
+        Number(await page.getAttribute('#propLength', 'step'));
+      let settled = await step();
+      for (let i = 0; i < 40; i++) {
+        await page.waitForTimeout(50);
+        const now = await step();
+        if (now === settled) return settled;
+        settled = now;
+      }
+      return settled;
+    };
+    const dinky = await stepFitTo('Dinky');
+    const destroyer = await stepFitTo('Star Destroyer');
+    expect(dinky).toBeLessThan(1);
+    expect(destroyer).toBeGreaterThan(1);
+    expect(destroyer / dinky).toBeGreaterThan(50);
   });
 
   it('draws a module that broke a rule in red, and clears the mark when it is fixed', async () => {

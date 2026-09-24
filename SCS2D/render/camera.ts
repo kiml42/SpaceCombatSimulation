@@ -13,6 +13,8 @@ const { abs, max, min } = math;
 
 /** Roughly how far apart grid lines should sit on screen, pixels. */
 export const TARGET_GRID_PX = 90;
+/** How many snap positions the editor puts across one drawn grid square. */
+const SNAPS_PER_SQUARE = 10;
 
 export interface Camera {
   /** Centre of the view, world coordinates. */
@@ -181,7 +183,39 @@ function contain(
  * it is actually drawing.
  */
 export function gridStep(scale: number): number {
-  const raw = TARGET_GRID_PX / scale;
+  return roundStep(TARGET_GRID_PX / scale);
+}
+
+/**
+ * The step the editor's edits snap to, metres: the same ladder of round
+ * numbers, a tenth of the drawn grid.
+ *
+ * It follows the zoom because no fixed step is right for more than one size of
+ * ship — half a metre is uselessly coarse on a three-metre drone and uselessly
+ * fine on a Star Destroyer, and which of the two is being worked on is exactly
+ * what the zoom says. Tying it to the *drawn* grid rather than picking a
+ * second scale of its own means the step is something already on screen: ten
+ * snaps to a square, at every zoom.
+ */
+export function snapStep(scale: number): number {
+  return roundStep(TARGET_GRID_PX / scale / SNAPS_PER_SQUARE);
+}
+
+/** The roundest number at or above `raw`: 1, 2, 5 or 10 times a power of ten. */
+function roundStep(raw: number): number {
   const power = 10 ** Math.floor(Math.log10(raw));
   return [1, 2, 5, 10].map((m) => m * power).find((s) => s >= raw) ?? power * 10;
+}
+
+/**
+ * A snap step in the unit that makes it a small whole number — millimetres,
+ * centimetres or metres — since the ladder runs from a Star Destroyer's fifty
+ * metres down to a drone's centimetre and "0.02 m" is a worse way of saying
+ * two of them.
+ */
+export function describeStep(step: number): string {
+  const round3 = (value: number): string => String(Number(value.toPrecision(3)));
+  if (step < 0.01) return `${round3(step * 1000)} mm`;
+  if (step < 1) return `${round3(step * 100)} cm`;
+  return `${round3(step)} m`;
 }

@@ -1,5 +1,5 @@
 import { math, moduleCentre, type ModuleSpec, type ShipDesign } from '../sim/index.js';
-import type { Camera } from '../render/camera.js';
+import { describeStep, snapStep, type Camera } from '../render/camera.js';
 import { headingCost, type Envelopes } from './stats.js';
 import type { GroupOutline } from './document.js';
 import { HANDLE_RADIUS_PX, type Handle } from './handles.js';
@@ -15,6 +15,15 @@ const { cos, sin, max, TAU } = math;
  * code the battle uses, so what the editor shows is what the player will see
  * flying — and the only things added are the ones that exist because somebody
  * is editing.
+ *
+ * **These marks are measured in pixels, not metres.** None of them is a thing
+ * in the world: an outline says *this one is selected*, and that statement is
+ * the same statement on a three-metre drone as on a Star Destroyer. A width
+ * held in metres says it differently at every zoom — a hairline nobody can see
+ * on the big ship, a stripe wider than the module on the small one — so every
+ * line width and standoff below is divided by `camera.scale` on the way out
+ * and none of them has a floor in world units. The one thing that must stay in
+ * metres is which module a mark is *on*, and that comes from the layout.
  */
 
 const SELECTION = '#e9c05f';
@@ -35,24 +44,33 @@ const GROUP_SELECTION = '#7fd4ff';
 const GROUP_LINKED = '#7fd4ffcc';
 /** The group a selected module sits in: context rather than selection, so it is faint. */
 const GROUP_CONTEXT = '#7fd4ff66';
-/** How far the group's box stands off what it contains, metres. */
-const GROUP_BOX_MARGIN = 0.6;
+/** How far the group's box stands off what it contains, pixels. */
+const GROUP_BOX_MARGIN_PX = 7;
 /**
- * A module some problem names. Red, filled as well as outlined, and drawn
- * under the selection so that picking a broken module does not hide why it is
- * broken.
+ * A module some problem names, tinted red over its own shape.
  *
  * The problems list already says what is wrong; what it cannot say is *which*
  * module, on a ship of forty where "module 23" is a number nobody can count
  * to. The two halves are deliberately different kinds of statement — the list
  * explains, the canvas points.
+ *
+ * A tint rather than a ring, because a tint is the one mark that has no size
+ * to get wrong: it covers the module whatever the zoom, and being a fill
+ * rather than an outline it cannot be painted over by the selection outline
+ * that sits on the very same box — which is what a ring had to be pushed
+ * outside the module to survive, at a standoff that was itself a distance in
+ * metres and so wrong at every zoom but one.
  */
-const FAULT = '#ff6b5e';
-const FAULT_FILL = 'rgba(255, 107, 94, 0.18)';
+const FAULT_FILL = 'rgba(255, 107, 94, 0.32)';
 /** The grab points on the selected module, in the selection's own colour. */
 const HANDLE_FILL = '#e9c05f';
 const HANDLE_EDGE = '#1b1f27';
 const CENTRE_OF_MASS = '#7fd6a0';
+/** How thick the editor's own lines are drawn, pixels. */
+const SELECTION_WIDTH_PX = 1.5;
+const HANDLE_EDGE_WIDTH_PX = 1;
+/** Radius of the centre-of-mass ring, pixels; its arms reach 1.6 times that. */
+const CENTRE_OF_MASS_RADIUS_PX = 6;
 const ENVELOPE = '#5b8dd6';
 const ENVELOPE_FILL = 'rgba(91, 141, 214, 0.22)';
 /** The outer curve is a reference rather than a capability, so it is drawn as one. */
@@ -106,7 +124,7 @@ export function drawOverlay(
   widthPx: number,
   heightPx: number,
 ): void {
-  drawFaults(ctx, view, camera);
+  drawFaults(ctx, view);
   drawSelection(ctx, view, camera);
   drawHandles(ctx, view, camera);
   if (view.design !== null) drawCentreOfMass(ctx, view.design, camera);
@@ -115,27 +133,41 @@ export function drawOverlay(
   // before it is drawn — and with it the y flip, which would otherwise draw
   // every label upside down.
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  drawGridCaption(ctx, camera, heightPx);
   if (view.envelope !== null) drawEnvelope(ctx, view.envelope, widthPx, heightPx);
 }
 
 /**
- * Mark every module a problem names: filled, and ringed just outside its own
- * edge.
+ * What the snap grid is currently worth, in the corner.
  *
- * Outside rather than on the edge so that the mark survives being selected.
- * The selection outline sits exactly on the module's box, and two outlines in
- * the same place are one outline in whichever colour was drawn second — which
- * would hide the fault at the very moment the player has picked the module up
- * to do something about it.
+ * The step follows the zoom, so it is the one number on the page that the
+ * player changes without meaning to — and a drag that moves in five-metre
+ * jumps when they expected centimetres is baffling until they know why. The
+ * footer cannot hold it: text that changes length there rewraps and resizes
+ * the canvas under the ship.
  */
-function drawFaults(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Camera): void {
-  const lineWidth = max(2 / camera.scale, 0.1);
-  const standoff = max(3 / camera.scale, 0.2);
+function drawGridCaption(
+  ctx: CanvasRenderingContext2D,
+  camera: Camera,
+  heightPx: number,
+): void {
+  ctx.fillStyle = ENVELOPE_LABEL;
+  ctx.font = '11px ui-monospace, monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(
+    `snaps to ${describeStep(snapStep(camera.scale))}`,
+    ENVELOPE_MARGIN_PX,
+    heightPx - ENVELOPE_MARGIN_PX,
+  );
+}
+
+/** Tint every module a problem names, over the module's own shape. */
+function drawFaults(ctx: CanvasRenderingContext2D, view: OverlayView): void {
   for (const index of view.faulty) {
     const spec = view.modules[index];
     if (spec === undefined) continue;
     // A module with no interior is one of the things complained about, and it
-    // has no box to draw. It is named in the list instead.
+    // has no box to tint. It is named in the list instead.
     if (!(spec.length > 0) || !(spec.width > 0)) continue;
     const mid = moduleCentre(spec);
     ctx.save();
@@ -143,14 +175,6 @@ function drawFaults(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Ca
     ctx.rotate(spec.angle ?? 0);
     ctx.fillStyle = FAULT_FILL;
     ctx.fillRect(-spec.length / 2, -spec.width / 2, spec.length, spec.width);
-    ctx.strokeStyle = FAULT;
-    ctx.lineWidth = lineWidth;
-    ctx.strokeRect(
-      -spec.length / 2 - standoff,
-      -spec.width / 2 - standoff,
-      spec.length + standoff * 2,
-      spec.width + standoff * 2,
-    );
     ctx.restore();
   }
 }
@@ -164,7 +188,7 @@ function drawFaults(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Ca
  * at all.
  */
 function drawSelection(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Camera): void {
-  const lineWidth = max(1.5 / camera.scale, 0.08);
+  const lineWidth = SELECTION_WIDTH_PX / camera.scale;
   for (let i = 0; i < view.selected.length; i++) {
     const spec = view.modules[view.selected[i]!];
     if (spec === undefined) continue;
@@ -180,7 +204,7 @@ function drawSelection(ctx: CanvasRenderingContext2D, view: OverlayView, camera:
     ctx.restore();
   }
 
-  drawGroups(ctx, view, lineWidth);
+  drawGroups(ctx, view, lineWidth, GROUP_BOX_MARGIN_PX / camera.scale);
 }
 
 /**
@@ -195,7 +219,7 @@ function drawSelection(ctx: CanvasRenderingContext2D, view: OverlayView, camera:
 function drawHandles(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Camera): void {
   if (view.handles.length === 0) return;
   const radius = HANDLE_RADIUS_PX / camera.scale;
-  const lineWidth = max(1 / camera.scale, 0.05);
+  const lineWidth = HANDLE_EDGE_WIDTH_PX / camera.scale;
   const spec = view.modules[view.selected[0] ?? -1];
 
   const knob = view.handles.find((handle) => handle.kind === 'rotate');
@@ -247,7 +271,12 @@ function drawHandles(ctx: CanvasRenderingContext2D, view: OverlayView, camera: C
  * rotation, so a group of turned parts is boxed by what it actually covers
  * rather than by a rectangle its contents stick out of.
  */
-function drawGroups(ctx: CanvasRenderingContext2D, view: OverlayView, lineWidth: number): void {
+function drawGroups(
+  ctx: CanvasRenderingContext2D,
+  view: OverlayView,
+  lineWidth: number,
+  margin: number,
+): void {
   for (const group of view.groups) {
     let minX = Infinity;
     let minY = Infinity;
@@ -289,10 +318,10 @@ function drawGroups(ctx: CanvasRenderingContext2D, view: OverlayView, lineWidth:
     // drag would move reads as solid the way a grabbed module does.
     if (!group.primary) ctx.setLineDash([lineWidth * 4, lineWidth * 3]);
     ctx.strokeRect(
-      minX - GROUP_BOX_MARGIN,
-      minY - GROUP_BOX_MARGIN,
-      maxX - minX + GROUP_BOX_MARGIN * 2,
-      maxY - minY + GROUP_BOX_MARGIN * 2,
+      minX - margin,
+      minY - margin,
+      maxX - minX + margin * 2,
+      maxY - minY + margin * 2,
     );
     ctx.setLineDash([]);
     ctx.restore();
@@ -344,8 +373,8 @@ function drawCentreOfMass(
     ctx,
     design.centreOfMassX,
     design.centreOfMassY,
-    max(6 / camera.scale, design.radius * 0.02),
-    max(1.5 / camera.scale, 0.05),
+    CENTRE_OF_MASS_RADIUS_PX / camera.scale,
+    SELECTION_WIDTH_PX / camera.scale,
   );
 }
 

@@ -20,7 +20,7 @@ import {
   type Placement,
 } from '../sim/index.js';
 import { draw } from '../render/canvas2d.js';
-import { easeScale, fitScale, frame, type Camera } from '../render/camera.js';
+import { easeScale, fitScale, frame, snapStep, type Camera } from '../render/camera.js';
 import { EditorDocument } from './document.js';
 import {
   addModule,
@@ -94,9 +94,12 @@ const { max } = math;
 /** How much of the way a refit to another ship closes on its scale each frame. */
 const FIT_EASE = 0.15;
 
-/** Grid the drag snaps to, metres, and the modifier that escapes it. */
-const SNAP_METRES = 0.5;
-/** Rotation snap for the angle box, degrees. */
+/**
+ * Rotation snap, degrees.
+ *
+ * Fixed where the position grid is not, because a right angle is a right angle
+ * on any size of ship: an angle has no scale for the zoom to tell us about.
+ */
 const ANGLE_SNAP_DEGREES = 15;
 
 /** What a freshly added module of each kind starts as, metres. */
@@ -158,6 +161,12 @@ export function startEditor(): void {
   };
   const doc = new EditorDocument(read('Corvette') ?? emptyBlueprint('New ship'));
   const camera: Camera = { x: 0, y: 0, scale: 8 };
+  /**
+   * The grid an edit snaps to, metres: a tenth of the grid on screen, so it
+   * always suits the ship being looked at rather than the ship the constant
+   * was picked for. Alt passes 0 instead, which is no snapping at all.
+   */
+  const snapMetres = (): number => snapStep(camera.scale);
   const snapshot = new Snapshot();
   const demonstration = new Demonstration();
   let fitPending = true;
@@ -284,7 +293,27 @@ export function startEditor(): void {
     return spec === undefined ? [] : handlesFor(spec, camera.scale);
   };
 
+  /**
+   * Put the spatial number boxes on the same grid the canvas snaps to.
+   *
+   * A box's arrows and a drag are two ways of saying the same thing, so they
+   * have to move by the same amount — otherwise a module nudged with an arrow
+   * key lands off the grid its neighbours abut on, which is the one failure
+   * the snap exists to prevent. The size boxes take it as their floor as well,
+   * since a module smaller than one step of the grid cannot sit on it.
+   */
+  const matchBoxesToGrid = (): void => {
+    const step = String(snapMetres());
+    for (const key of ['x', 'y', 'length', 'width'] as const) {
+      const input = propInputs[key];
+      if (!(input instanceof HTMLInputElement) || input.step === step) continue;
+      input.step = step;
+      if (key === 'length' || key === 'width') input.min = step;
+    }
+  };
+
   const render = (): void => {
+    matchBoxesToGrid();
     const view = doc.view;
     if (view.design !== null) {
       previewSnapshot(view.design, snapshot);
@@ -942,7 +971,8 @@ export function startEditor(): void {
     const specs = (outline?.modules ?? []).map((index) => doc.view.modules[index]!);
     const rotation = doc.selectedOrigin()?.rotation ?? 0;
     const along = specs.length === 0 ? 0 : extentAlong(specs, rotation);
-    return { x: max(SNAP_METRES, snap(along, SNAP_METRES)), y: 0 };
+    const step = snapMetres();
+    return { x: max(step, snap(along, step)), y: 0 };
   };
 
   const repeatOf = (): { repeat: number; step: { x: number; y: number; angle?: number } } => {
@@ -1228,7 +1258,7 @@ export function startEditor(): void {
     if (drag.kind === 'seam') {
       const { a, b, seam } = drag.pair;
       const world = worldAt(event);
-      const moved = seamTo(a.spec, b.spec, seam, world.x, world.y, event.altKey ? 0 : SNAP_METRES);
+      const moved = seamTo(a.spec, b.spec, seam, world.x, world.y, event.altKey ? 0 : snapMetres());
       const one = resizePlacement(drag.from, a.origin, ...sizes(moved.a), false);
       const both = one === null ? null : resizePlacement(one, b.origin, ...sizes(moved.b), false);
       if (both === null) return;
@@ -1244,7 +1274,7 @@ export function startEditor(): void {
     const world = worldAt(event);
     let next: Blueprint | null;
     if (drag.kind === 'size') {
-      const step = event.altKey ? 0 : SNAP_METRES;
+      const step = event.altKey ? 0 : snapMetres();
       const { length, width, dx, dy } = resizedTo(drag.spec, drag.handle, world.x, world.y, step);
       // Neighbours move with the face unless Ctrl (⌘) asks for this module alone.
       const push = !(event.ctrlKey || event.metaKey);
@@ -1368,7 +1398,7 @@ export function startEditor(): void {
     // would be dragged onto whole metres by an absolute grid and every abutting
     // face would part company. Snapping the movement keeps whatever offsets a
     // ship was designed with, and Alt escapes it entirely.
-    const step = event.altKey ? 0 : SNAP_METRES;
+    const step = event.altKey ? 0 : snapMetres();
     const dx = snap(world.x - moving.startX, step);
     const dy = snap(world.y - moving.startY, step);
     if (dx === 0 && dy === 0 && !moving.moved) return;
@@ -1444,12 +1474,15 @@ export function startEditor(): void {
     render();
   });
 
+  // Fixed text, although the position snap is not: the footer's height is part
+  // of the canvas's, so a line that grows and shrinks resizes the view under
+  // the ship. The live figure is drawn in the canvas corner instead.
   hint.textContent =
     'Click a module to select it, drag to move, drag a corner or edge to size it ' +
     '(pushing its neighbours; Ctrl alone) or the knob to turn it; ' +
     'select two touching modules to drag the face between them; ' +
-    `Shift-click to pick several and Group them. Snaps to ${SNAP_METRES} m and ` +
-    `${ANGLE_SNAP_DEGREES}° — hold Alt to escape. ` +
+    'Shift-click to pick several and Group them. Positions snap to a tenth of the grid on ' +
+    `screen and facings to ${ANGLE_SNAP_DEGREES}° — hold Alt to escape. ` +
     'Drag empty space to pan, scroll to zoom, F to fit, Delete to remove, Ctrl+Z to undo.';
 
   resize();

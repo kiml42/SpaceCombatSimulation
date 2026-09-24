@@ -16,7 +16,7 @@ import {
   type Placement,
 } from '../sim/index.js';
 
-const { cos, sin, round, abs, normalizeAngle } = math;
+const { cos, sin, round, ceil, min, max, abs, normalizeAngle } = math;
 
 /**
  * Edits to a layout, as values.
@@ -998,10 +998,19 @@ function unusedAssemblyName(blueprint: MutableBlueprint, kind: string): string {
   }
 }
 
-/** Round to the nearest multiple of `step`, which is what the grid is for. */
+/**
+ * Round to the nearest multiple of `step`, which is what the grid is for.
+ *
+ * The answer is then rounded to the step's own precision as well. A step like
+ * 0.02 has no exact binary form, so the multiplication alone lands on
+ * 3.0000000000000004 — a number nobody typed, appearing in the box beside the
+ * ship and in the file it saves to.
+ */
 export function snap(value: number, step: number): number {
   if (!(step > 0)) return value;
-  return round(value / step) * step;
+  const places = min(12, max(0, ceil(-Math.log10(step))));
+  const unit = 10 ** places;
+  return round(round(value / step) * step * unit) / unit;
 }
 
 /**
