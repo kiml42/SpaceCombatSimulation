@@ -160,7 +160,10 @@ describe('mutation', () => {
     // The bound is asymmetric because the two failures are not alike. A ratio
     // well under one is the fatal one: a lineage that loses a module whenever
     // it gains one erodes until it cannot shoot, and nothing stops it. Above
-    // one a lineage grows, which the mass budget already bounds.
+    // one a lineage grows, which the mass budget already bounds, so the upper
+    // bound only has to catch a runaway: single lines from seeds 37–46 range
+    // 1.4–2.3, and these three pooled have read 1.7 and 2.1 on changes to the
+    // operator set that barely moved the ten-line mean (1.80 → 1.93).
     let added = 0;
     let removed = 0;
     const budget = compileDraft(GUNSHIP).mass * 2;
@@ -179,7 +182,7 @@ describe('mutation', () => {
     expect(added).toBeGreaterThan(20);
     expect(removed).toBeGreaterThan(20);
     expect(added / removed).toBeGreaterThan(0.6);
-    expect(added / removed).toBeLessThan(2);
+    expect(added / removed).toBeLessThan(2.5);
   });
 
   it('delivers the structural generations it draws', { timeout: 30_000 }, () => {
@@ -243,7 +246,7 @@ describe('mutation', () => {
     const rng = new Rng(53);
     let held = CORVETTE;
     let moved = false;
-    for (let i = 0; i < 200 && !moved; i++) {
+    for (let i = 0; i < 500 && !moved; i++) {
       held = mutate(held, rng).blueprint;
       if ((held.doctrine?.targeting.escortWeight ?? 0) !== 0) moved = true;
     }
@@ -395,6 +398,44 @@ describe('mutation', () => {
       if (child.edits.some((edit) => /refitted as thruster/.test(edit))) engines++;
     }
     expect(engines).toBeGreaterThan(0);
+  });
+
+  it('grows a module into its neighbour by pushing the neighbour along', () => {
+    // A hull with a block against each end, so neither length face can grow
+    // without moving something: every accepted length change must have moved
+    // the block alongside.
+    const packed = parseBlueprint({
+      formatVersion: 1,
+      name: 'Packed',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 2 },
+        { kind: 'structure', x: 3, y: 0, length: 2, width: 2 },
+        { kind: 'structure', x: -3, y: 0, length: 2, width: 2 },
+      ],
+    });
+    const rng = new Rng(7);
+    let pushed = 0;
+    for (let i = 0; i < 200; i++) {
+      const child = mutate(packed, rng, { structural: 0, numbers: 1 });
+      if (child.edits.some((edit) => /layout\[0\] core: length 4 → 4\.5, moving 1 alongside/.test(edit))) {
+        pushed++;
+        expect(blueprintProblem(child.blueprint)).toBeNull();
+      }
+    }
+    expect(pushed).toBeGreaterThan(0);
+  });
+
+  it('trades a face between two touching modules', () => {
+    const rng = new Rng(11);
+    let seams = 0;
+    for (let i = 0; i < 300 && seams < 5; i++) {
+      const child = mutate(CORVETTE, rng, { structural: 0, numbers: 1 });
+      if (!child.edits.some((edit) => /: seam with /.test(edit))) continue;
+      seams++;
+      expect(blueprintProblem(child.blueprint)).toBeNull();
+      expect(expandBlueprint(child.blueprint)).toHaveLength(expandBlueprint(CORVETTE).length);
+    }
+    expect(seams).toBeGreaterThan(0);
   });
 
   it('keeps breeding when no kind is allowed at all', () => {

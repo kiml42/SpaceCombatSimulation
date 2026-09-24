@@ -135,6 +135,7 @@ export {
 } from './collision.js';
 export {
   ATTACHMENT_TOLERANCE,
+  contactWidth,
   assemblyProblem,
   blueprintFaults,
   blueprintProblem,
@@ -166,6 +167,14 @@ export {
   type DesignTurret,
   type ShipDesign,
 } from './blueprint.js';
+export {
+  pushNeighbours,
+  sharedFace,
+  shiftSeam,
+  withFaceMoved,
+  type FaceOf,
+  type SharedFace,
+} from './push.js';
 export {
   BLUEPRINT_FORMAT_VERSION,
   blueprintFileProblem,

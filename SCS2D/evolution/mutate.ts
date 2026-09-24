@@ -29,6 +29,7 @@ import {
   type ModuleKind,
   type ModuleSpec,
 } from '../sim/modules.js';
+import { pushNeighbours, sharedFace, shiftSeam, type SharedFace } from '../sim/push.js';
 import type { Rng } from '../sim/rng.js';
 
 /**
@@ -393,6 +394,7 @@ type Knob =
   | { readonly at: 'weapon'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
+  | { readonly at: 'seam'; readonly site: ModuleSite }
   | { readonly at: 'slide'; readonly site: ModuleSite }
   | { readonly at: 'place'; readonly site: InstanceSite }
   | { readonly at: 'mirror'; readonly site: InstanceSite }
@@ -401,6 +403,9 @@ type Knob =
 interface ModuleSite {
   readonly spec: ModuleSpec;
   readonly where: string;
+  /** The list it is written in, whose other placements a face can push. */
+  readonly list: Placement[];
+  readonly label: string;
 }
 
 interface InstanceSite {
@@ -423,10 +428,11 @@ function knobs(draft: Draft): Knob[] {
         if (placement.step !== undefined) out.push({ at: 'repeat', site });
         continue;
       }
-      const site: ModuleSite = { spec: placement, where };
+      const site: ModuleSite = { spec: placement, where, list: list.placements, label: list.label };
       out.push(
         { at: 'reinforcement', site },
         { at: 'face', site },
+        { at: 'seam', site },
         { at: 'slide', site },
         { at: 'kind', site },
       );
@@ -478,7 +484,9 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
     case 'angle':
       return turnModule(knob.site, rng, bounds);
     case 'face':
-      return moveFace(knob.site, rng, bounds);
+      return moveFace(knob.site, draft, rng, bounds);
+    case 'seam':
+      return moveSeam(knob.site, rng, bounds);
     case 'slide':
       return slide(knob.site, rng, bounds);
     case 'place':
@@ -719,9 +727,14 @@ function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits): string 
  * neighbour on one side and drives into the neighbour on the other, and
  * essentially every draw is refused. Moving one face keeps half the module's
  * attachments by construction.
+ *
+ * Whatever sits against the face moves with it (`pushNeighbours`), so growing
+ * into a neighbour pushes it aside rather than being refused, and shrinking
+ * away from one pulls it along rather than leaving it adrift.
  */
-function moveFace(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+function moveFace(site: ModuleSite, draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
   const spec = site.spec;
+  const before = { ...spec };
   const along = rng.chance(0.5);
   const side = rng.chance(0.5) ? 1 : -1;
   const delta = rng.chance(0.5) ? bounds.grid : -bounds.grid;
@@ -753,7 +766,56 @@ function moveFace(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | 
   if (along) spec.length = now;
   else spec.width = now;
 
-  return `${site.where} ${spec.kind}: ${along ? 'length' : 'width'} ${was} → ${now}`;
+  // Moved in place, because other knobs drawn for this candidate hold the
+  // neighbours by reference.
+  let pushed = 0;
+  const index = site.list.indexOf(spec);
+  if (index >= 0) {
+    const moved = pushNeighbours(site.list, index, draft.assemblies, before, spec);
+    for (let j = 0; j < moved.length; j++) {
+      if (moved[j] === site.list[j]) continue;
+      site.list[j]!.x = moved[j]!.x;
+      site.list[j]!.y = moved[j]!.y;
+      pushed++;
+    }
+  }
+
+  const change = `${site.where} ${spec.kind}: ${along ? 'length' : 'width'} ${was} → ${now}`;
+  return pushed === 0 ? change : `${change}, moving ${pushed} alongside`;
+}
+
+/**
+ * Move the face a module shares with a neighbour, one growing by a grid step
+ * as the other shrinks by it.
+ *
+ * It trades space between two modules — hull for engine, say — without the
+ * ship getting any bigger, which otherwise takes a shrink and a grow, each of
+ * which can be refused. The module that grows must have its whole face
+ * against the other, so it only moves into space the other gives up.
+ */
+function moveSeam(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const spec = site.spec;
+  const partners: { index: number; other: ModuleSpec; seam: SharedFace }[] = [];
+  for (let j = 0; j < site.list.length; j++) {
+    const other = site.list[j]!;
+    if (other === spec || isInstance(other)) continue;
+    const seam = sharedFace(spec, other);
+    if (seam !== null && (seam.aWithinB || seam.bWithinA)) partners.push({ index: j, other, seam });
+  }
+  if (partners.length === 0) return null;
+  const { index, other, seam } = partners[rng.nextInt(partners.length)]!;
+  // This module grows when its face is within the other's, the other when
+  // its is; when both are, either.
+  const grow = seam.aWithinB && (!seam.bWithinA || rng.chance(0.5));
+  const delta = grow ? bounds.grid : -bounds.grid;
+  const moved = shiftSeam(spec, other, seam, delta, bounds.grid);
+  if (moved.a.length === spec.length && moved.a.width === spec.width) return null;
+
+  const was = seam.a.along !== 0 ? spec.length : spec.width;
+  Object.assign(spec, moved.a);
+  Object.assign(other, moved.b);
+  const now = seam.a.along !== 0 ? spec.length : spec.width;
+  return `${site.where} ${spec.kind}: seam with ${site.label}[${index}] ${other.kind}, ${was} → ${now}`;
 }
 
 function slide(site: ModuleSite, rng: Rng, bounds: MutationLimits): string {

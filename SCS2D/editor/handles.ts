@@ -1,5 +1,8 @@
 import {
   degreesToRadians,
+  sharedFace,
+  shiftSeam,
+  type SharedFace,
   math,
   moduleCentre,
   radiansToDegrees,
@@ -28,8 +31,12 @@ const { atan2, cos, sin, max, round, sqrt } = math;
 
 /** Where a handle sits, in the blueprint's own frame. */
 export interface Handle {
-  /** A corner or edge, which sizes the module; or the knob beyond the bow, which turns it. */
-  kind: 'size' | 'rotate';
+  /**
+   * A corner or edge, which sizes the module; the knob beyond the bow, which
+   * turns it; or the seam between two selected modules, which moves the face
+   * they share.
+   */
+  kind: 'size' | 'rotate' | 'seam';
   x: number;
   y: number;
   /**
@@ -38,6 +45,8 @@ export interface Handle {
    */
   along: -1 | 0 | 1;
   across: -1 | 0 | 1;
+  /** Which way a seam runs, radians, so it can be drawn along it. */
+  angle?: number;
 }
 
 /** How big a handle is drawn, pixels. */
@@ -176,11 +185,53 @@ export function resizedTo(
     width: across.size,
   });
   return {
-    length: along.size,
-    width: across.size,
+    length: tidy(along.size),
+    width: tidy(across.size),
     dx: tidy(centreX - offset.x - spec.x),
     dy: tidy(centreY - offset.y - spec.y),
   };
+}
+
+/** A seam as the editor draws and drags it: `sim`'s seam with a handle on it. */
+export interface Seam extends SharedFace {
+  handle: Handle;
+}
+
+/**
+ * The seam between two modules, or null unless they are square to each other
+ * and joined along a face. The handle is at the middle of the part they share.
+ */
+export function seamBetween(a: ModuleSpec, b: ModuleSpec): Seam | null {
+  const seam = sharedFace(a, b);
+  if (seam === null) return null;
+  return {
+    ...seam,
+    handle: { kind: 'seam', x: seam.x, y: seam.y, along: 0, across: 0, angle: seam.angle },
+  };
+}
+
+/**
+ * Both modules' new sizes and moves when their seam is dragged to a point: the
+ * shared face moves along its normal by a snapped amount, one module growing
+ * as the other shrinks, and neither going below `MIN_SIZE`.
+ */
+export function seamTo(
+  a: ModuleSpec,
+  b: ModuleSpec,
+  seam: Seam,
+  x: number,
+  y: number,
+  step: number,
+): { a: ReturnType<typeof resizedTo>; b: ReturnType<typeof resizedTo> } {
+  const wanted = snap((x - seam.x) * seam.nx + (y - seam.y) * seam.ny, step);
+  const moved = shiftSeam(a, b, seam, wanted, MIN_SIZE);
+  const change = (was: ModuleSpec, now: ModuleSpec) => ({
+    length: now.length,
+    width: now.width,
+    dx: tidy(now.x - was.x),
+    dy: tidy(now.y - was.y),
+  });
+  return { a: change(a, moved.a), b: change(b, moved.b) };
 }
 
 /** Rounds away the last-bit noise a turned frame leaves, so a file does not gain 1e-16s. */

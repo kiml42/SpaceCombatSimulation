@@ -1,6 +1,7 @@
 import {
   DEFAULT_NOZZLE_SHARE,
   degreesToRadians,
+  isInstance,
   isHullMount,
   isWeaponMount,
   mountTraverse,
@@ -13,6 +14,7 @@ import {
   Snapshot,
   type AssemblyInstance,
   type Blueprint,
+  type ModuleOrigin,
   type ModulePath,
   type ModuleSpec,
   type Placement,
@@ -32,6 +34,7 @@ import {
   instanceOf,
   moduleAt,
   removePlacement,
+  resizePlacement,
   renameAssembly,
   renameProblem,
   setMirror,
@@ -56,7 +59,16 @@ import {
 } from './library.js';
 import { Demonstration } from './demonstrate.js';
 import { drawOverlay } from './overlay.js';
-import { facingTo, handleAt, handlesFor, resizedTo, type Handle } from './handles.js';
+import {
+  facingTo,
+  handleAt,
+  handlesFor,
+  resizedTo,
+  seamBetween,
+  seamTo,
+  type Handle,
+  type Seam,
+} from './handles.js';
 import { previewSnapshot } from './preview.js';
 import { designStats, envelopes, groupMass, moduleReadout, type Envelopes } from './stats.js';
 
@@ -218,6 +230,34 @@ export function startEditor(): void {
   };
 
   /**
+   * Two selected modules that share a face, and the seam between them — or
+   * null. Each is the exact copy picked, and two copies of one shared part are
+   * not offered, since sizing one sizes the other.
+   */
+  const seamPair = (): {
+    a: { spec: ModuleSpec; origin: ModuleOrigin };
+    b: { spec: ModuleSpec; origin: ModuleOrigin };
+    seam: Seam;
+  } | null => {
+    if (doc.selections.length !== 2) return null;
+    const [first, second] = doc.selections as [ModulePath, ModulePath];
+    if (samePlacement(first, second)) return null;
+    const picked = (path: ModulePath) => {
+      const placement = placementAt(doc.blueprint, path);
+      if (placement === null || isInstance(placement)) return null;
+      const key = JSON.stringify(path);
+      const drawn = doc.view.origins.findIndex((o) => JSON.stringify(o.path) === key);
+      if (drawn < 0) return null;
+      return { spec: doc.view.modules[drawn]!, origin: doc.view.origins[drawn]! };
+    };
+    const a = picked(first);
+    const b = picked(second);
+    if (a === null || b === null) return null;
+    const seam = seamBetween(a.spec, b.spec);
+    return seam === null ? null : { a, b, seam };
+  };
+
+  /**
    * The grab points on the selection, or none.
    *
    * Only for a single module: a group has no size, and several modules picked
@@ -226,6 +266,8 @@ export function startEditor(): void {
    * one a drag would move.
    */
   const currentHandles = (): Handle[] => {
+    const seam = seamPair();
+    if (seam !== null) return [seam.seam.handle];
     if (doc.selections.length !== 1) return [];
     const drawn = doc.selectedLoose()[0];
     if (drawn === undefined) return [];
@@ -1121,6 +1163,13 @@ export function startEditor(): void {
         drill: boolean;
       }
     | {
+        /** The face two selected modules share, moved to size both. */
+        kind: 'seam';
+        from: Blueprint;
+        pair: NonNullable<ReturnType<typeof seamPair>>;
+        moved: boolean;
+      }
+    | {
         /** A corner or edge is dragged to size the module, the knob to turn it. */
         kind: 'size' | 'rotate';
         from: Blueprint;
@@ -1152,7 +1201,20 @@ export function startEditor(): void {
    * written in another frame.
    */
   const dragHandle = (event: PointerEvent): void => {
-    if (drag === null || (drag.kind !== 'size' && drag.kind !== 'rotate')) return;
+    if (drag === null || drag.kind === 'pan' || drag.kind === 'module') return;
+    if (drag.kind === 'seam') {
+      const { a, b, seam } = drag.pair;
+      const world = worldAt(event);
+      const moved = seamTo(a.spec, b.spec, seam, world.x, world.y, event.altKey ? 0 : SNAP_METRES);
+      const one = resizePlacement(drag.from, a.origin, ...sizes(moved.a), false);
+      const both = one === null ? null : resizePlacement(one, b.origin, ...sizes(moved.b), false);
+      if (both === null) return;
+      if (drag.moved) doc.amend(both);
+      else doc.apply(both);
+      drag = { ...drag, moved: true };
+      refresh();
+      return;
+    }
     const path = doc.selection;
     const origin = doc.selectedOrigin();
     if (path === null || origin === null) return;
@@ -1161,9 +1223,9 @@ export function startEditor(): void {
     if (drag.kind === 'size') {
       const step = event.altKey ? 0 : SNAP_METRES;
       const { length, width, dx, dy } = resizedTo(drag.spec, drag.handle, world.x, world.y, step);
-      const sized = updatePlacement(drag.from, path, (p) => ({ ...p, length, width }));
-      next =
-        sized === null || (dx === 0 && dy === 0) ? sized : movePlacement(sized, origin, dx, dy);
+      // Neighbours move with the face unless Ctrl (⌘) asks for this module alone.
+      const push = !(event.ctrlKey || event.metaKey);
+      next = resizePlacement(drag.from, origin, length, width, dx, dy, push);
     } else {
       const angle = toPlacementAngle(
         origin,
@@ -1177,6 +1239,13 @@ export function startEditor(): void {
     drag = { ...drag, moved: true };
     refresh();
   };
+
+  const sizes = (r: ReturnType<typeof resizedTo>): [number, number, number, number] => [
+    r.length,
+    r.width,
+    r.dx,
+    r.dy,
+  ];
 
   canvas.addEventListener('pointerdown', (event) => {
     // A canvas is not focusable, so clicking it does not move focus off a
@@ -1192,6 +1261,12 @@ export function startEditor(): void {
     // resize or a drag of something else began.
     const handles = currentHandles();
     const grabbed = event.button === 1 ? -1 : handleAt(handles, world.x, world.y, camera.scale);
+    const pair = seamPair();
+    if (grabbed >= 0 && pair !== null) {
+      gesture = false;
+      drag = { kind: 'seam', from: doc.blueprint, pair, moved: false };
+      return;
+    }
     const spec = doc.view.modules[doc.selectedLoose()[0] ?? -1];
     if (grabbed >= 0 && spec !== undefined) {
       gesture = false;
@@ -1336,7 +1411,8 @@ export function startEditor(): void {
 
   hint.textContent =
     'Click a module to select it, drag to move, drag a corner or edge to size it ' +
-    'or the knob to turn it; ' +
+    '(pushing its neighbours; Ctrl alone) or the knob to turn it; ' +
+    'select two touching modules to drag the face between them; ' +
     `Shift-click to pick several and Group them. Snaps to ${SNAP_METRES} m and ` +
     `${ANGLE_SNAP_DEGREES}° — hold Alt to escape. ` +
     'Drag empty space to pan, scroll to zoom, F to fit, Delete to remove, Ctrl+Z to undo.';
