@@ -270,7 +270,6 @@ describe('hull mount scaling', () => {
     // for more trades weight of shell for rate of fire rather than buying guns.
     const one = hullMountGeometry(gun(8, 4));
     const four = hullMountGeometry(gun(8, 4, { barrels: 4 }));
-    expect(four.barrelWidth).toBeCloseTo(one.barrelWidth, 9);
     expect(four.outletWidth).toBeCloseTo(one.outletWidth / 4, 9);
 
     const single = moduleStats(gun(8, 4)).gun!;
@@ -291,15 +290,31 @@ describe('hull mount scaling', () => {
     const one = hullMountGeometry(beam(1));
     const four = hullMountGeometry(beam(4));
     expect(four.outletWidth).toBeCloseTo(one.outletWidth / 2, 9);
-    expect(four.barrelWidth).toBeCloseTo(one.barrelWidth * 2, 9);
     expect(moduleStats(beam(4)).gun!.beamPower * 4).toBeCloseTo(moduleStats(beam(1)).gun!.beamPower, 6);
   });
 
-  it('never lets the barrels fill more than the cap allows', () => {
+  it('spreads its outlets across the face as a turret spreads barrels', () => {
+    // The face in `n + 1` gaps, one outboard of each end, so neighbours stand
+    // apart; the row that swings in the opening is the spread plus a barrel.
+    const one = hullMountGeometry(gun(8, 4));
+    const three = hullMountGeometry(gun(8, 4, { barrels: 3 }));
+    expect(one.outletSpacing).toBe(0);
+    expect(three.outletSpacing).toBeCloseTo(1, 9);
+    expect(moduleStats(gun(8, 4, { barrels: 3 })).gun!.barrelSpacing).toBeCloseTo(1, 9);
+    expect(three.barrelWidth).toBeCloseTo(2 * three.outletSpacing + three.outletWidth, 9);
+    expect(three.traverse).toBeLessThan(one.traverse);
+  });
+
+  it('never lets neighbouring outlets touch, nor the row overhang the face', () => {
     for (const barrels of [1, 2, 4, 8, 20]) {
-      const geometry = hullMountGeometry(gun(8, 4, { barrels }));
-      expect(geometry.barrelWidth).toBeLessThanOrEqual(HULL_BARREL_WIDTH_CAP * 4 + 1e-9);
-      expect(geometry.outletWidth).toBeGreaterThan(0);
+      for (const kind of ['hullGun', 'hullBeam'] as const) {
+        const geometry = hullMountGeometry(gun(8, 4, { barrels, kind }));
+        expect(geometry.outletWidth).toBeGreaterThan(0);
+        expect(geometry.barrelWidth).toBeLessThan(4);
+        if (barrels > 1) {
+          expect(geometry.outletWidth).toBeLessThanOrEqual(HULL_BARREL_WIDTH_CAP * geometry.outletSpacing + 1e-9);
+        }
+      }
     }
   });
 

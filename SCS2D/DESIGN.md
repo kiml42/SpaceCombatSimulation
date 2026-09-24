@@ -297,8 +297,9 @@ inside any one file is not contiguous.
   same way. The battle view is still there
   and is for *whole* battles: any match of any generation is
   fought again from its seed at whatever speed suits, which is the same match that was scored rather than a
-  second one assembled to look like it, and one finishing puts on another, so what it shows is a sample of
-  recent battles rather than the opening moment of all of them; and the design a run arrived at goes to the editor's library to be
+  second one assembled to look like it, and one finishing puts on the run's most recently finished match —
+  or holds, if nothing newer has finished — so what it shows is a sample of recent battles rather than the
+  opening moment of all of them; and the design a run arrived at goes to the editor's library to be
   looked at and taken apart. **What the page will not do is name a best design across generations**, because
   no such number exists: a fitness is a score against that generation's opponents, so a population that
   learns to fly before it learns to shoot peaks while nothing can shoot back and reads as declining while it
