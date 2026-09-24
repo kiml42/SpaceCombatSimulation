@@ -287,7 +287,10 @@ inside any one file is not contiguous.
   grinds is the population, not the fight.** A run fights hundreds of times faster than real time, so a window
   on whichever match is in progress is a fraction of a second of each and a flicker to the next — a picture of
   nothing, refreshed. A generation drawn as its ships, best first, changes at a pace worth watching: bare cores
-  growing an engine, a wing appearing on one design and then on half of them. The battle view is still there
+  growing an engine, a wing appearing on one design and then on half of them. Every ship is drawn at one
+  scale, the one that fits the largest on show, and it eases rather than jumps, so seeking through a run
+  shows the ships growing rather than each refitting to its own tile; the editor eases between ships the
+  same way. The battle view is still there
   and is for *whole* battles: any match of any generation is
   fought again from its seed at whatever speed suits, which is the same match that was scored rather than a
   second one assembled to look like it, and one finishing puts on another, so what it shows is a sample of

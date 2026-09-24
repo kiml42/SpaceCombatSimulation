@@ -67,10 +67,7 @@ export function frame(
   heightPx: number,
   ease = 0.08,
 ): void {
-  const margin = 1.25;
-  const spanX = max(snapshot.maxX - snapshot.minX, 1) * margin;
-  const spanY = max(snapshot.maxY - snapshot.minY, 1) * margin;
-  const wantScale = min(widthPx / spanX, heightPx / spanY);
+  const wantScale = fitScale(snapshot, widthPx, heightPx);
   const wantX = (snapshot.minX + snapshot.maxX) * 0.5;
   const wantY = (snapshot.minY + snapshot.maxY) * 0.5;
 
@@ -80,10 +77,28 @@ export function frame(
   // so zooming in from 10 m/px and from 0.1 m/px feel the same — and snaps
   // when it has to widen, because a frame that has already cropped is worse
   // than a frame that moved abruptly.
-  camera.scale =
-    wantScale < camera.scale ? wantScale : camera.scale * (wantScale / camera.scale) ** ease;
+  camera.scale = wantScale < camera.scale ? wantScale : easeScale(camera.scale, wantScale, ease);
 
   contain(camera, snapshot, widthPx, heightPx);
+}
+
+/** Pixels per metre at which a snapshot's bounds fill a view, with a margin round them. */
+export function fitScale(snapshot: Snapshot, widthPx: number, heightPx: number): number {
+  const margin = 1.25;
+  const spanX = max(snapshot.maxX - snapshot.minX, 1) * margin;
+  const spanY = max(snapshot.maxY - snapshot.minY, 1) * margin;
+  return min(widthPx / spanX, heightPx / spanY);
+}
+
+/**
+ * A scale moved `ease` of the way to `target` as a ratio rather than a
+ * difference, so a zoom takes as long from 10 px/m as from 0.1. It lands on
+ * `target` once within a fraction of a percent, so an easing can finish.
+ */
+export function easeScale(current: number, target: number, ease: number): number {
+  if (!(current > 0)) return target;
+  const next = current * (target / current) ** ease;
+  return abs(next / target - 1) < 0.002 ? target : next;
 }
 
 /**

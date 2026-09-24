@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { Snapshot, type ShipView } from '../sim/index.js';
-import { frame, gridStep, moveWithVisibleShips, type Camera } from '../render/camera.js';
+import {
+  easeScale,
+  fitScale,
+  frame,
+  gridStep,
+  moveWithVisibleShips,
+  type Camera,
+} from '../render/camera.js';
 
 /**
  * The camera is arithmetic over a snapshot, so it can be tested without a
@@ -200,5 +207,34 @@ describe('what the camera keeps up with', () => {
     for (let n = 0; n < 600; n++) frame(camera, snapshotOf(hulks), WIDTH, HEIGHT);
     expect(Number.isFinite(camera.x)).toBe(true);
     expect(camera.x).toBeCloseTo(1200, 0);
+  });
+});
+
+describe('a shared scale', () => {
+  it('fits the bounds with a margin, whichever way is tighter', () => {
+    const shot = new Snapshot();
+    shot.minX = -50;
+    shot.maxX = 50;
+    shot.minY = -10;
+    shot.maxY = 10;
+    // 100 m wide with a 1.25 margin across 1000 px: 8 px/m, tighter than the height allows.
+    expect(fitScale(shot, WIDTH, HEIGHT)).toBeCloseTo(8, 12);
+  });
+
+  it('eases by ratio, the same number of steps zooming in as out', () => {
+    const steps = (from: number, to: number): number => {
+      let scale = from;
+      let n = 0;
+      while (scale !== to && n < 1000) {
+        scale = easeScale(scale, to, 0.15);
+        n++;
+      }
+      return n;
+    };
+    expect(steps(1, 10)).toBe(steps(10, 1));
+    expect(steps(1, 10)).toBeGreaterThan(5);
+    expect(steps(1, 10)).toBeLessThan(100);
+    // Lands on the target exactly, so an easing can tell that it has finished.
+    expect(easeScale(0, 4, 0.15)).toBe(4);
   });
 });

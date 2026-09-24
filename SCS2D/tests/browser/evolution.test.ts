@@ -368,4 +368,42 @@ describe('the evolution page in a browser', () => {
     );
     expect(saved.length).toBeGreaterThan(0);
   });
+  it('draws every ship in a generation at one scale, so sizes compare', async () => {
+    // A Dinky and a corvette in one generation: fitted each to its own tile
+    // they would fill it alike, and at one scale the corvette is far bigger.
+    if (await page.isEnabled('#stop')) await page.click('#stop');
+    await page.selectOption('#founders', ['Dinky', 'Corvette']);
+    await set(page, 'generations', '1');
+    await page.click('#start');
+    await page.selectOption('#mode', 'fleet');
+    await page.waitForFunction(() => document.querySelectorAll('#fleet figure').length >= 2);
+    // Long enough for the shared scale to settle.
+    await page.waitForTimeout(1500);
+    const widths = await page.evaluate(() =>
+      [...document.querySelectorAll('#fleet figure canvas')].map((node) => {
+        const canvas = node as HTMLCanvasElement;
+        const ctx = canvas.getContext('2d');
+        if (ctx === null) return 0;
+        const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        // The ship is whatever differs from the corner's background.
+        const bg = [data[0], data[1], data[2]];
+        let lo = width;
+        let hi = -1;
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 4;
+            const d = Math.abs(data[i]! - bg[0]!) + Math.abs(data[i + 1]! - bg[1]!) + Math.abs(data[i + 2]! - bg[2]!);
+            if (d > 60) {
+              lo = Math.min(lo, x);
+              hi = Math.max(hi, x);
+            }
+          }
+        }
+        return hi - lo;
+      }),
+    );
+    expect(Math.min(...widths)).toBeGreaterThan(0);
+    expect(Math.max(...widths) / Math.min(...widths)).toBeGreaterThan(2);
+    expect(problems).toEqual([]);
+  }, 60_000);
 });
