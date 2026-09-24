@@ -44,8 +44,6 @@ reasoning is spent.
 
 ---
 
-### Quick fixes to do next
-
 ## 8. Build order
 
 **Slice 0 — "two ships fight, and I can prove it's deterministic."**
