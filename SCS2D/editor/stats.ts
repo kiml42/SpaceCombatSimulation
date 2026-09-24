@@ -262,7 +262,7 @@ export function moduleReadout(
     rows.push([
       'Opening',
       `${radiansToDegrees(mount.traverse).toLocaleString('en-GB', { maximumFractionDigits: 1 })}° ` +
-        `either way, with ${((mount.barrelWidth / spec.width) * 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })}% ` +
+        `either way, with ${(((mount.outlets * mount.outletWidth) / spec.width) * 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })}% ` +
         `of the face filled`,
     ]);
   }

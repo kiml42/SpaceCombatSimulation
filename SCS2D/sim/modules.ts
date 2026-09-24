@@ -155,18 +155,20 @@ export const CALIBRE_FRACTION = 0.04;
 export const BARREL_OUTER_CALIBRES = 2;
 
 /**
- * The most of a hull mount's face its barrels or lenses may fill.
+ * The most of its room a hull mount's barrel or lens may fill: of the face,
+ * for one; of the gap between neighbours, for several.
  *
- * A rail rather than a price. What it is protecting is the traverse rule: the
- * barrel has to stay inside the opening it comes out of as it swings, and one
- * as wide as its own mount cannot move at all. The rest of the face is the
- * mounting, and the room to train.
+ * A rail rather than a price. For one outlet, what it protects is the traverse
+ * rule: the barrel has to stay inside the opening it comes out of as it swings,
+ * and one as wide as its own mount cannot move at all. For several, it keeps
+ * them apart: they spread across the face the way a turret's barrels do, one
+ * gap outboard of each end, and a barrel that filled its gap would touch the
+ * next one.
  *
- * It binds where a designer asks for **several** weapons in one opening.
  * Outlets on a hull mount do not divide a bore the way a turret's barrels do —
  * there is no barbette and no shell hoist to share, so each is a whole gun —
- * and they go on being whole guns until the row no longer fits. Past that they
- * all shrink together, which is the opening saying no.
+ * and they go on being whole guns until their gaps get too narrow for them.
+ * Past that they all shrink together, which is the opening saying no.
  */
 export const HULL_BARREL_WIDTH_CAP = 0.8;
 
@@ -1011,9 +1013,11 @@ export interface HullMountGeometry {
   blockLength: number;
   /** Length of the barrel or lens housing, metres. */
   barrelLength: number;
-  /** Width of one barrel or lens, metres. The outlets tile the capped face. */
+  /** Width of one barrel or lens, metres, after `HULL_BARREL_WIDTH_CAP`. */
   outletWidth: number;
-  /** Width of all of them together, metres, after `HULL_BARREL_WIDTH_CAP`. */
+  /** Centre to centre, metres: the face in `outlets + 1` gaps, as a turret's barrels. Zero for one. */
+  outletSpacing: number;
+  /** Across the whole row, outer edge to outer edge, metres. What swings in the opening. */
   barrelWidth: number;
   /** How far ahead of the module's centre the barrels pivot, metres. */
   pivot: number;
@@ -1026,16 +1030,19 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
   const outlets = spec.barrels ?? 1;
   const share = spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
   const barrelLength = spec.length * share;
-  // What one outlet would like to be, and what the row of them may take up.
-  // Each is a whole weapon rather than a share of one, so asking for more of
-  // them asks for more of the face — until the cap makes them share after all.
+  // What one outlet would like to be. Each is a whole weapon rather than a
+  // share of one, so asking for more of them asks for more of the face — until
+  // their gaps are too narrow and the cap makes them shrink after all.
   const each =
     spec.kind === 'hullBeam'
       ? HULL_APERTURE_FRACTION * spec.width
       : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * spec.width;
-  const wanted = each * outlets;
-  const cap = HULL_BARREL_WIDTH_CAP * spec.width;
-  const barrelWidth = wanted < cap ? wanted : cap;
+  // Spread across the face as a turret's barrels are, one gap outboard of
+  // each end, so neighbours stand apart rather than touching.
+  const outletSpacing = outlets > 1 ? spec.width / (outlets + 1) : 0;
+  const cap = HULL_BARREL_WIDTH_CAP * (outlets > 1 ? outletSpacing : spec.width);
+  const outletWidth = each < cap ? each : cap;
+  const barrelWidth = (outlets - 1) * outletSpacing + outletWidth;
   const blockLength = spec.length - barrelLength;
 
   // The corner of the swung barrel against the edge of the opening.
@@ -1052,7 +1059,8 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
     share,
     blockLength,
     barrelLength,
-    outletWidth: barrelWidth / outlets,
+    outletWidth,
+    outletSpacing,
     barrelWidth,
     pivot: spec.length * 0.5 - barrelLength,
     traverse: limit > 0 ? (limit < HULL_MAX_TRAVERSE ? limit : HULL_MAX_TRAVERSE) : 0,
@@ -1154,7 +1162,7 @@ export function weldBox(spec: ModuleSpec): ModuleSpec {
  * the traverse it no longer has.
  */
 export function hullGunStats(spec: ModuleSpec): GunStats {
-  const { outlets, outletWidth, barrelLength, blockLength } = hullMountGeometry(spec);
+  const { outlets, outletWidth, outletSpacing, barrelLength, blockLength } = hullMountGeometry(spec);
   const calibre = outletWidth / BARREL_OUTER_CALIBRES;
   const boreArea = PI * 0.25 * calibre * calibre;
   const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
@@ -1166,9 +1174,7 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
     calibre,
     barrelLength,
     barrelCount: outlets,
-    // The tubes tile the opening rather than being spaced out across the
-    // mount: there is no ship in between them to leave room for.
-    barrelSpacing: outlets > 1 ? outletWidth : 0,
+    barrelSpacing: outletSpacing,
     roundMass,
     muzzleSpeed,
     muzzleEnergy,
@@ -1216,7 +1222,7 @@ function hullCycleTime(calibre: number, blockLength: number): number {
  * inventing a second one.
  */
 export function hullBeamStats(spec: ModuleSpec): GunStats {
-  const { outlets, outletWidth, barrelLength, blockLength } = hullMountGeometry(spec);
+  const { outlets, outletWidth, outletSpacing, barrelLength, blockLength } = hullMountGeometry(spec);
   const aperture = outletWidth;
   const apertureArea = PI * 0.25 * aperture * aperture;
   const power = OPTIC_INTENSITY_LIMIT * apertureArea;
@@ -1235,7 +1241,7 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
     calibre: aperture,
     barrelLength,
     barrelCount: outlets,
-    barrelSpacing: outlets > 1 ? outletWidth : 0,
+    barrelSpacing: outletSpacing,
     roundMass: 0,
     muzzleSpeed: -1,
     muzzleEnergy: 0,
