@@ -2,7 +2,13 @@ import { capture, parseBlueprint, Snapshot, type Blueprint, type ShipDesign } fr
 import { Flashes } from '../render/flashes.js';
 import { draw } from '../render/canvas2d.js';
 import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
-import { frame, moveWithVisibleShips, type Camera } from '../render/camera.js';
+import {
+  easeScale,
+  fitScale,
+  frame,
+  moveWithVisibleShips,
+  type Camera,
+} from '../render/camera.js';
 import { BUILT_IN, Library, toFileText } from '../editor/library.js';
 import { previewSnapshot } from '../editor/preview.js';
 import { compileBlueprint } from '../sim/index.js';
@@ -43,6 +49,12 @@ const DESIGNS_KEPT = 512;
 /** Cap on replay steps per frame, so a tab left in the background cannot catch up in one lurch. */
 const MAX_STEPS_PER_FRAME = 16;
 
+/** A fleet tile's size, CSS pixels. */
+const TILE_WIDTH = 152;
+const TILE_HEIGHT = 96;
+/** How much of the way the fleet's scale closes on its target each frame. */
+const FLEET_EASE = 0.15;
+
 /** What the settings are saved under, so a refresh does not cost them. */
 const SETUP_KEY = 'scs2d.evolution.setup';
 
@@ -82,6 +94,19 @@ interface Row {
   readonly mass: number;
   readonly edits: readonly string[];
   readonly blueprint: Blueprint;
+}
+
+/** A ship's tile in the fleet, and the scale it was last drawn at. */
+interface Tile {
+  readonly figure: HTMLElement;
+  readonly caption: HTMLElement;
+  readonly canvas: HTMLCanvasElement;
+  readonly design: ShipDesign;
+  drawnAt: number;
+}
+
+function ratio(): number {
+  return window.devicePixelRatio || 1;
 }
 
 function context(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
@@ -164,8 +189,15 @@ export function startEvolution(): void {
    * the next generation keeps its tile, which is what makes seeking across a
    * run redraw only what actually changed.
    */
-  const fleetTiles = new Map<number, { figure: HTMLElement; caption: HTMLElement }>();
+  const fleetTiles = new Map<number, Tile>();
   const fleetSnapshot = new Snapshot();
+  /**
+   * Pixels per metre, shared by every tile so their sizes compare. It eases
+   * towards whatever fits the largest ship on show, so seeking through a run
+   * shows the ships growing rather than each tile refitting to its own.
+   */
+  let fleetScale = 0;
+  let fleetTarget = 0;
   let picked = -1;
   /** Where the chart drew itself, and which point the pointer is over. */
   let chartLayout: ChartLayout = { x: 0, y: 0, width: 0, height: 0, count: 0 };
@@ -623,9 +655,10 @@ export function startEvolution(): void {
    * pace worth watching is the population: a generation of bare cores growing
    * an engine, a wing appearing on one design and then on half of them.
    *
-   * Tiles are made once per design and only reordered afterwards, so a
-   * generation redraws its hulls when it is bred rather than five times a
-   * second for as long as it lasts.
+   * Tiles are made once per design and only reordered afterwards, and
+   * redrawn only while the shared scale is easing, so a generation redraws
+   * its hulls when it is bred rather than five times a second for as long as
+   * it lasts.
    */
   const showFleet = (rows: readonly Row[]): void => {
     if (rows.length === 0) {
@@ -637,6 +670,13 @@ export function startEvolution(): void {
       }
       return;
     }
+
+    fleetTarget = Infinity;
+    for (const row of rows) {
+      const shot = previewSnapshot(designOf(row.id, row.blueprint), fleetSnapshot);
+      fleetTarget = Math.min(fleetTarget, fitScale(shot, TILE_WIDTH * ratio(), TILE_HEIGHT * ratio()));
+    }
+    if (fleetScale === 0) fleetScale = fleetTarget;
 
     const ranked = [...rows].sort((a, b) => b.fitness - a.fitness);
     const living = new Set(ranked.map((row) => row.id));
@@ -668,7 +708,7 @@ export function startEvolution(): void {
     }
   };
 
-  const makeTile = (row: Row): { figure: HTMLElement; caption: HTMLElement } => {
+  const makeTile = (row: Row): Tile => {
     const figure = document.createElement('figure');
     const canvas = document.createElement('canvas');
     const caption = document.createElement('figcaption');
@@ -679,21 +719,30 @@ export function startEvolution(): void {
         row.edits.length > 0 ? `#${row.id}: ${row.edits.join('; ')}` : `#${row.id}: a founder`;
       for (const [id, tile] of fleetTiles) tile.figure.classList.toggle('picked', id === picked);
     });
-    // Sized and drawn once. The ship is standing still and the tile is a fixed
-    // size, so there is nothing to redraw until the design itself changes —
-    // and a design never changes, it is replaced by a child.
-    const ratio = window.devicePixelRatio || 1;
-    canvas.width = Math.round(152 * ratio);
-    canvas.height = Math.round(96 * ratio);
-    const tileCtx = canvas.getContext('2d');
-    if (tileCtx !== null) {
-      const design = designOf(row.id, row.blueprint);
-      const shot = previewSnapshot(design, fleetSnapshot);
-      const eye: Camera = { x: 0, y: 0, scale: 1 };
-      frame(eye, shot, canvas.width, canvas.height, 1);
-      draw(tileCtx, shot, eye, canvas.width, canvas.height);
-    }
-    return { figure, caption };
+    canvas.width = Math.round(TILE_WIDTH * ratio());
+    canvas.height = Math.round(TILE_HEIGHT * ratio());
+    const tile: Tile = { figure, caption, canvas, design: designOf(row.id, row.blueprint), drawnAt: 0 };
+    drawTile(tile);
+    return tile;
+  };
+
+  /**
+   * Draw a tile at the fleet's scale, centred on its own ship. Only when that
+   * scale has moved since it was last drawn: a design never changes, it is
+   * replaced by a child.
+   */
+  const drawTile = (tile: Tile): void => {
+    if (tile.drawnAt === fleetScale) return;
+    const tileCtx = tile.canvas.getContext('2d');
+    if (tileCtx === null) return;
+    const shot = previewSnapshot(tile.design, fleetSnapshot);
+    const eye: Camera = {
+      x: (shot.minX + shot.maxX) / 2,
+      y: (shot.minY + shot.maxY) / 2,
+      scale: fleetScale,
+    };
+    draw(tileCtx, shot, eye, tile.canvas.width, tile.canvas.height);
+    tile.drawnAt = fleetScale;
   };
 
   /** Show the ships or a battle, and make the controls match. */
@@ -830,6 +879,13 @@ export function startEvolution(): void {
     const live = run !== null && !run.done && index >= run.generations.length;
     fightingLabel.textContent = live ? ' · fighting' : '';
     latestButton.disabled = run === null || shown < 0;
+
+    fleetTarget = Infinity;
+    for (const row of rows) {
+      const shot = previewSnapshot(designOf(row.id, row.blueprint), fleetSnapshot);
+      fleetTarget = Math.min(fleetTarget, fitScale(shot, TILE_WIDTH * ratio(), TILE_HEIGHT * ratio()));
+    }
+    if (fleetScale === 0) fleetScale = fleetTarget;
 
     const ranked = [...rows].sort((a, b) => b.fitness - a.fitness);
     const best = ranked[0];
@@ -997,6 +1053,7 @@ export function startEvolution(): void {
     watch(null);
     fleetBox.replaceChildren();
     fleetTiles.clear();
+    fleetScale = 0;
     setPaused(false);
     pauseButton.disabled = false;
     stopButton.disabled = false;
@@ -1075,6 +1132,11 @@ export function startEvolution(): void {
         steps++;
       }
       if (steps === MAX_STEPS_PER_FRAME) accumulator = 0;
+    }
+
+    if (!fleetBox.hidden && fleetScale !== fleetTarget && fleetTarget > 0) {
+      fleetScale = easeScale(fleetScale, fleetTarget, FLEET_EASE);
+      for (const tile of fleetTiles.values()) drawTile(tile);
     }
 
     watch(replay);

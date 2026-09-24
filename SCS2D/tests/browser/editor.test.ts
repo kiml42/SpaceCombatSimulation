@@ -63,6 +63,17 @@ async function redPixels(p: Page): Promise<number> {
 }
 
 /** The middle of the canvas, where a framed ship's hull sits. */
+/**
+ * Open a ship and snap the view to it. Switching ships eases the scale over a
+ * few frames, and a test that clicks at a worked-out point cannot wait for it.
+ * The list is left first, since F in a focused list picks an entry by letter.
+ */
+async function openShip(p: Page, name: string): Promise<void> {
+  await p.selectOption('#ship', name);
+  await p.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await p.keyboard.press('f');
+}
+
 async function canvasCentre(p: Page): Promise<{ x: number; y: number }> {
   const box = await p.locator('#view').boundingBox();
   if (box === null) throw new Error('the canvas has no box');
@@ -197,7 +208,7 @@ describe('the editor in a browser', () => {
   });
 
   it('unlinks a shared part, leaving the ship as it was', async () => {
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     // Made shared here rather than hunting for one of the corvette's own by
     // pixel: where a given module lands on screen depends on how the camera
     // framed the ship, which depends on the viewport.
@@ -217,7 +228,7 @@ describe('the editor in a browser', () => {
   });
 
   it('shows the selected module’s own figures', async () => {
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x + 168, centre.y);
     const module = (await page.textContent('#moduleStats')) ?? '';
@@ -270,7 +281,7 @@ describe('the editor in a browser', () => {
     // The whole reason grouping exists, driven the way a person would: this is
     // what replaces a mirrored editing mode, so symmetry is structural rather
     // than something the editor has to keep in step.
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
 
     await page.mouse.click(centre.x + 168, centre.y);
@@ -305,7 +316,7 @@ describe('the editor in a browser', () => {
     // A group is a part, so clicking it selects the part. Reaching what is
     // inside is deliberate rather than accidental: click it again, once the
     // group it belongs to is already the selection.
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x + 168, centre.y);
     await page.keyboard.down('Shift');
@@ -327,7 +338,7 @@ describe('the editor in a browser', () => {
     // Dragging has to move what is selected. Drilling into the group on the
     // press would have moved one module out of it instead, which is both the
     // wrong thing and hard to notice until the ship is wrong.
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x + 168, centre.y);
     await page.keyboard.down('Shift');
@@ -346,7 +357,7 @@ describe('the editor in a browser', () => {
   });
 
   it('adds a loose module to a group that is already placed', async () => {
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x + 168, centre.y);
     await page.keyboard.down('Shift');
@@ -370,7 +381,7 @@ describe('the editor in a browser', () => {
   });
 
   it('reaches a group from a module inside it', async () => {
-    await page.selectOption('#ship', 'Gunship');
+    await openShip(page, 'Gunship');
     const centre = await canvasCentre(page);
     // The gunship's lateral thrusters are one thruster placed eight times, so
     // any of them is inside an assembly.
@@ -382,7 +393,7 @@ describe('the editor in a browser', () => {
   });
 
   it('shows what a selected group weighs, and what all its copies weigh', async () => {
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x + 168, centre.y);
     await page.keyboard.down('Shift');
@@ -401,7 +412,7 @@ describe('the editor in a browser', () => {
   });
 
   it('renames a group, and keeps the ship it names', async () => {
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x + 168, centre.y);
     await page.keyboard.down('Shift');
@@ -426,7 +437,7 @@ describe('the editor in a browser', () => {
     // A number input's steps are counted from its minimum, so a minimum off
     // the step grid puts every arrow press off it too — 8 became 8.1 and then
     // moved in halves.
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x, centre.y);
     await page.fill('#propLength', '8');
@@ -439,7 +450,7 @@ describe('the editor in a browser', () => {
   });
 
   it('draws a module that broke a rule in red, and clears the mark when it is fixed', async () => {
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     expect(await redPixels(page)).toBe(0);
 
     // The bow turret, dragged clear of the ship: attached to nothing.
@@ -461,7 +472,7 @@ describe('the editor in a browser', () => {
     // laid out by this stylesheet stays on screen when hidden unless the
     // stylesheet says otherwise. Checked here because nothing else would
     // notice: the panel simply offers a field that means nothing.
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x, centre.y);
     expect(await page.textContent('#propKind')).toBe('core');
@@ -567,7 +578,7 @@ describe('the editor in a browser', () => {
   });
 
   it('repeats a group, and takes the step away when it drops back to one', async () => {
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
     // The hull, made into a shared part so that there is a group to place in a
     // row, and then selected as the group rather than as the module.
@@ -591,7 +602,7 @@ describe('the editor in a browser', () => {
   });
 
   it('duplicates a ship under a counted name, leaving the original alone', async () => {
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     await page.click('#duplicateShip');
     expect(await page.inputValue('#shipName')).toBe('Corvette 2');
     // Unsaved until the player says so, like a new ship.
@@ -601,23 +612,23 @@ describe('the editor in a browser', () => {
     expect(await page.inputValue('#shipName')).toBe('Corvette 3');
 
     // The one it was copied from is untouched and still opens.
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     expect(await page.inputValue('#shipName')).toBe('Corvette');
     await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Corvette 2'));
     await page.reload();
   });
 
   it('keeps the shipped ship openable after one is saved over its name', async () => {
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     await page.fill('#shipNotes', 'mine now');
     await page.click('#saveShip');
     expect(await page.textContent('#ship')).toMatch(/Corvette \(stock\)/);
 
     // The name opens the player's copy, and the shipped hull is still there
     // to start from rather than buried under it.
-    await page.selectOption('#ship', 'stock:Corvette');
+    await openShip(page, 'stock:Corvette');
     expect(await page.inputValue('#shipNotes')).not.toBe('mine now');
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     expect(await page.inputValue('#shipNotes')).toBe('mine now');
 
     await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Corvette'));
@@ -626,7 +637,7 @@ describe('the editor in a browser', () => {
   });
 
   it('clears the editor when a ship is deleted, and gives it back on undo', async () => {
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     await page.click('#duplicateShip');
     await page.click('#saveShip');
     const name = await page.inputValue('#shipName');
@@ -653,7 +664,7 @@ describe('the editor in a browser', () => {
   });
 
   it('adds a module, and says what is now wrong with the layout', async () => {
-    await page.selectOption('#ship', 'Corvette');
+    await openShip(page, 'Corvette');
     await page.click('[data-add="turret"]');
     // The new module lands at the middle of the view, which is inside the
     // hull — so the layout is invalid and the panel says so. It is still a
@@ -681,7 +692,7 @@ describe('the editor in a browser', () => {
       window.localStorage.setItem('scs2d.blueprint.Pair', JSON.stringify(pair));
     });
     await page.reload();
-    await page.selectOption('#ship', 'Pair');
+    await openShip(page, 'Pair');
     await page.keyboard.press('f');
     const centre = await canvasCentre(page);
 
@@ -738,6 +749,32 @@ describe('the editor in a browser', () => {
     await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Pair'));
   });
 
+  it('eases to a different ship’s scale, so switching shows which is bigger', async () => {
+    // Pixels bright enough to be hull, which the grid and the background are not.
+    const hull = (): Promise<number> =>
+      page.evaluate(() => {
+        const canvas = document.getElementById('view') as HTMLCanvasElement;
+        const ctx = canvas.getContext('2d');
+        if (ctx === null) return 0;
+        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let n = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i]! + data[i + 1]! + data[i + 2]! > 450) n++;
+        }
+        return n;
+      });
+    await openShip(page, 'Corvette');
+    await page.waitForTimeout(100);
+    await page.selectOption('#ship', 'Dinky');
+    // The Dinky first appears at the corvette's scale, and grows into frame.
+    const early = await hull();
+    await page.waitForTimeout(1500);
+    const late = await hull();
+    expect(early).toBeGreaterThan(0);
+    expect(late / early).toBeGreaterThan(2);
+    await openShip(page, 'Corvette');
+  });
+
   it('opens a saved ship that breaks the design rules, rather than refusing it', async () => {
     // The layout a player left half-finished, or one an older version of the
     // format wrote: it has to come back up with its faults named, since the
@@ -754,7 +791,7 @@ describe('the editor in a browser', () => {
       window.localStorage.setItem('scs2d.blueprint.Adrift', JSON.stringify(broken));
     });
     await page.reload();
-    await page.selectOption('#ship', 'Adrift');
+    await openShip(page, 'Adrift');
     expect(await page.textContent('#problems')).toMatch(/touches nothing/);
     // Drawn, not merely complained about: the ship is on the canvas to drag.
     expect(await page.textContent('#stats')).toMatch(/Modules/);

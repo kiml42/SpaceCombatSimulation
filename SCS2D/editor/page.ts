@@ -20,7 +20,7 @@ import {
   type Placement,
 } from '../sim/index.js';
 import { draw } from '../render/canvas2d.js';
-import { frame, type Camera } from '../render/camera.js';
+import { easeScale, fitScale, frame, type Camera } from '../render/camera.js';
 import { EditorDocument } from './document.js';
 import {
   addModule,
@@ -91,6 +91,9 @@ import { designStats, envelopes, groupMass, moduleReadout, type Envelopes } from
 
 const { max } = math;
 
+/** How much of the way a refit to another ship closes on its scale each frame. */
+const FIT_EASE = 0.15;
+
 /** Grid the drag snaps to, metres, and the modifier that escapes it. */
 const SNAP_METRES = 0.5;
 /** Rotation snap for the angle box, degrees. */
@@ -158,6 +161,12 @@ export function startEditor(): void {
   const snapshot = new Snapshot();
   const demonstration = new Demonstration();
   let fitPending = true;
+  /**
+   * Refit to a different ship by easing the scale from the one before, so
+   * switching between two ships shows which is bigger. The first fit, and F,
+   * snap.
+   */
+  let easeFit = false;
   /** Wall time of the last animated frame, or 0 when nothing is animating. */
   let lastFrame = 0;
   let frameRequested = false;
@@ -283,6 +292,14 @@ export function startEditor(): void {
         // Snap rather than ease: a layout being fitted has no motion to follow.
         frame(camera, snapshot, canvas.width, canvas.height, 1);
         fitPending = false;
+        easeFit = false;
+      } else if (easeFit) {
+        const want = fitScale(snapshot, canvas.width, canvas.height);
+        camera.x = (snapshot.minX + snapshot.maxX) / 2;
+        camera.y = (snapshot.minY + snapshot.maxY) / 2;
+        camera.scale = easeScale(camera.scale, want, FIT_EASE);
+        easeFit = camera.scale !== want;
+        if (easeFit) requestFrame();
       }
     } else {
       snapshot.shipCount = 0;
@@ -1054,7 +1071,7 @@ export function startEditor(): void {
     if (blueprint === null) return;
     doc.replace(blueprint);
     demonstration.reset();
-    fitPending = true;
+    easeFit = true;
     gesture = false;
     refresh();
   };
@@ -1063,7 +1080,7 @@ export function startEditor(): void {
   const taken = (): string[] => library.list().map((entry) => entry.name);
   el<HTMLButtonElement>('newShip').addEventListener('click', () => {
     doc.replace(emptyBlueprint(unusedName('New ship', taken())));
-    fitPending = true;
+    easeFit = true;
     gesture = false;
     refresh();
   });
@@ -1094,7 +1111,7 @@ export function startEditor(): void {
     library.remove(name);
     doc.apply(emptyBlueprint(unusedName('New ship', taken())));
     gesture = false;
-    fitPending = true;
+    easeFit = true;
     refresh();
   });
   exportButton.addEventListener('click', () => {
@@ -1133,7 +1150,7 @@ export function startEditor(): void {
         blueprint = { ...blueprint, name: answer.trim() || blueprint.name };
       }
       doc.replace(blueprint);
-      fitPending = true;
+      easeFit = true;
       gesture = false;
       refresh();
     });
@@ -1292,6 +1309,7 @@ export function startEditor(): void {
     if (hit < 0 || event.button === 1 || event.shiftKey) {
       doc.select(null);
       drag = { kind: 'pan', x: event.clientX, y: event.clientY };
+      easeFit = false;
       refresh();
       return;
     }
@@ -1368,6 +1386,7 @@ export function startEditor(): void {
     'wheel',
     (event) => {
       event.preventDefault();
+      easeFit = false;
       const before = worldAt(event);
       camera.scale *= Math.exp(-event.deltaY * 0.0015);
       const after = worldAt(event);
