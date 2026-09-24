@@ -406,4 +406,19 @@ describe('the evolution page in a browser', () => {
     expect(Math.max(...widths) / Math.min(...widths)).toBeGreaterThan(2);
     expect(problems).toEqual([]);
   }, 60_000);
+  it('replays a match of one ship', async () => {
+    if (await page.isEnabled('#stop')) await page.click('#stop');
+    await page.selectOption('#founders', ['Dinky']);
+    await set(page, 'group', '1');
+    await set(page, 'generations', '1');
+    await page.click('#start');
+    await page.waitForFunction(() => document.querySelectorAll('#matches tr').length > 0);
+    await page.selectOption('#mode', 'battle');
+    await page.click('#matches tr');
+    // A match being watched says who is in it and how far through it is.
+    await page.waitForFunction(() => /%/.test(document.getElementById('watching')?.textContent ?? ''));
+    expect(await page.textContent('#watching')).not.toMatch(/pick a match/);
+    await set(page, 'group', '4');
+    expect(problems).toEqual([]);
+  }, 60_000);
 });
