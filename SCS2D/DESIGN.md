@@ -176,11 +176,14 @@ inside any one file is not contiguous.
   for a ship's guns and engines because it arrives where it is pointed and can afford to be particular.
   **A weapon fires when its shot would land on what its doctrine asked for**, which is the target's own
   angular size rather than a fixed tolerance: a gun no longer waits to be trained on the exact centre of a
-  capital it could not miss, and a fighter with five degrees of traverse gets its shots away. `spreadRadii`
-  says which thing has to be hit — the part it aimed at, or anywhere on the ship carrying it. Zero is what
-  makes an aim weight mean something, and is a beam's default; a gun's is one, since a round that misses a
-  mount and hits the hull beside it has still done a day's work. It is the trigger and not the aim, so a
-  loose weapon still walks its fire onto what it wanted.
+  capital it could not miss, and a fighter with five degrees of traverse gets its shots away. **Which thing
+  has to be hit is the doctrine's own refusals rather than a setting beside them**: the question is whether
+  the shot would land on something the weapon is allowed to shoot at, and a mount that has refused nothing
+  is allowed to hit any part of that ship, so anywhere on the hull will do. One that has refused something
+  is sure only of the part it picked, and holds until that is under the muzzle. So a refusal says *mind
+  what you hit* in both senses at once, and a beam — which refuses plating — is selective without being
+  told twice. It is the trigger and not the aim, so a weapon that fires freely still walks its fire onto
+  what its doctrine wanted.
   **A ship is flown from a core** (§4), and one whose cores have been shot out is a hulk with sound
   engines and sound guns — so a mission kill is a place on the hull rather than a tally of mounts, and a
   ship worth its mass carries a second core, because a hull cut between two of them is two ships. The

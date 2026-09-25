@@ -15,7 +15,7 @@ import {
   type ShipDesign,
   type Targeting,
 } from '../sim/index.js';
-import { BARE_CORE, CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
+import { BARE_CORE, BEAM_GUNSHIP, CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
  * When a weapon pulls the trigger.
@@ -28,8 +28,10 @@ import { BARE_CORE, CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
  * thing its doctrine asked for — which is the target's angular size, and
  * therefore a different number every step.
  *
- * `spreadRadii` says which thing that is: the part it aimed at, or the ship
- * carrying it.
+ * Which thing that is comes from the doctrine's own refusals rather than a
+ * setting beside them: a mount that refuses nothing may hit any part of the
+ * ship it is shooting at, and one that has refused something is sure only of
+ * the part it picked.
  */
 
 const DT = 1 / 60;
@@ -120,24 +122,25 @@ describe('how much of a target counts as on target', () => {
 });
 
 describe('what a doctrine will accept hitting', () => {
-  it('allows the part it aimed at, or the whole ship, as it was told', () => {
-    // The same ship twice, differing in one number: what it will accept
-    // hitting. A capital at 700 m is several degrees wide and the mount one
-    // aims at is a fraction of that, so the two answers are far apart.
+  it('is the whole ship for a mount that refuses nothing, and the part for one that does', () => {
+    // The same ship twice, differing only in whether it has written something
+    // off. A capital at 700 m is several degrees wide and the mount one aims
+    // at is a fraction of that, so the two answers are far apart — and no
+    // number said so: the refusal did.
     const range = 700;
-    const strict = slackAgainst(armed({ spreadRadii: 0 }), range);
-    const loose = slackAgainst(armed({ spreadRadii: 1 }), range);
-    expect(strict).toBeGreaterThan(0);
-    expect(loose).toBeGreaterThan(strict * 2);
+    const selective = slackAgainst(armed({ structureWeight: -1 }), range);
+    const indiscriminate = slackAgainst(armed({ structureWeight: 20 }), range);
+    expect(selective).toBeGreaterThan(0);
+    expect(indiscriminate).toBeGreaterThan(selective * 2);
     // And both are far looser than the twentieth of a degree a mount used to
     // be held to, which is the point of the change.
-    expect(strict).toBeGreaterThan(0.001);
+    expect(selective).toBeGreaterThan(0.001);
   });
 
   it('gives a distant target less slack than a near one', () => {
     // Angular size, so the same ship twice as far away is half as forgiving.
-    const near = slackAgainst(armed({ spreadRadii: 1 }), 500);
-    const far = slackAgainst(armed({ spreadRadii: 1 }), 1000);
+    const near = slackAgainst(armed({ structureWeight: 20 }), 500);
+    const far = slackAgainst(armed({ structureWeight: 20 }), 1000);
     expect(far).toBeLessThan(near);
     expect(far).toBeGreaterThan(near / 3);
   });
@@ -152,14 +155,16 @@ describe('a beam’s default', () => {
       // Negative rather than zero: a beam with nothing better left shoots at
       // the ship instead of boiling a hole in a girder.
       expect(beam.structureWeight).toBeLessThan(0);
-      // And it holds its shot until it has one of them, which it can afford
-      // to do because a beam arrives where it is pointed.
-      expect(beam.spreadRadii).toBe(0);
     }
-    // A gun is the other way about: a round that misses the mount and hits
-    // the ship beside it has still done a day's work.
-    expect(defaultTargeting('turret').spreadRadii).toBeGreaterThan(0);
-    expect(defaultTargeting('hullGun').spreadRadii).toBeGreaterThan(0);
+    // And that refusal is also what makes a beam hold its shot until it has
+    // a gun or an engine under the emitter, which it can afford to do
+    // because a beam arrives where it is pointed. A gun refuses nothing, so
+    // it fires at anything on the hull: a round that misses the mount and
+    // hits the ship beside it has still done a day's work.
+    const range = 700;
+    expect(slackAgainst(compileBlueprint(BEAM_GUNSHIP), range)).toBeLessThan(
+      slackAgainst(armed({}), range),
+    );
   });
 });
 

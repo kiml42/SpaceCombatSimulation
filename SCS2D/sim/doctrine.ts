@@ -136,25 +136,6 @@ export interface Targeting {
    * fleet in the game would huddle.
    */
   readonly escortWeight: number;
-  /**
-   * How far from the part it is aiming at a shot may land, in multiples of the
-   * whole target's radius.
-   *
-   * **Zero is "hit what I aimed at or do not fire".** A weapon holds until its
-   * firing solution is inside the part's own angular size, which is what makes
-   * an aim weight mean something: a beam told to take a ship's guns off waits
-   * for a gun rather than boiling a hole in the plating beside one.
-   *
-   * One is "anywhere on that ship will do", and is what a weapon wants when a
-   * round that misses a mount and hits the hull beside it has still done a
-   * day's work. In between is the honest middle: near the part, but not
-   * insisting on it.
-   *
-   * **It is the trigger and not the aim.** The gun goes on pointing at the
-   * part it chose either way, so a loose weapon still walks its fire onto what
-   * its doctrine wants — it simply does not hold its shot while it gets there.
-   */
-  readonly spreadRadii: number;
 }
 
 /** How to fight it, once it has been chosen. */
@@ -253,7 +234,6 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     gunWeight: 100,
     structureWeight: 20,
     escortWeight: 0,
-    spreadRadii: 1,
   },
   approach: {
     standoffRadii: 50,
@@ -320,7 +300,6 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
     engineWeight: 120,
     coreWeight: 40,
     structureWeight: -1,
-    spreadRadii: 0,
   },
   /**
    * A hull gun is aimed by the hull: a few degrees of training either side,
@@ -348,7 +327,6 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
     engineWeight: 120,
     coreWeight: 40,
     structureWeight: -1,
-    spreadRadii: 0,
   },
 };
 
@@ -385,7 +363,6 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
   'gunWeight',
   'structureWeight',
   'escortWeight',
-  'spreadRadii',
 ];
 
 /**
@@ -397,9 +374,9 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
  * and two fields belong to only one of them:
  *
  * - `escortWeight` is a steering urge, and a mount steers nothing.
- * - the four aim weights choose a *part* of a target, which only a gun does,
- *   and `spreadRadii` says how near that part a shot has to land — a hull
- *   pulls no trigger.
+ * - the four aim weights choose a *part* of a target, which only a gun does —
+ *   and with it how near that part a shot has to land, since a mount that has
+ *   refused something has to be sure of what it would hit.
  *
  * Stated here rather than filtered wherever it matters, because the editor
  * offering a field, mutation turning it and the simulation reading it have to
@@ -415,8 +392,7 @@ export const SHIP_TARGETING_FIELDS: readonly (keyof Targeting)[] = TARGETING_FIE
     field !== 'coreWeight' &&
     field !== 'engineWeight' &&
     field !== 'gunWeight' &&
-    field !== 'structureWeight' &&
-    field !== 'spreadRadii',
+    field !== 'structureWeight',
 );
 
 export const APPROACH_FIELDS: readonly (keyof Approach)[] = [

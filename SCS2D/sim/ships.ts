@@ -2112,20 +2112,29 @@ export class Ships {
    * nothing, while the same tolerance on a fighter two kilometres off is
    * looser than the target is wide.
    *
-   * `spreadRadii` chooses which thing has to be hit. At zero it is the part —
-   * a beam told to take a ship's guns off holds until a gun is under the
-   * emitter. Above zero the ship will do, and the allowance is measured from
-   * the ship's centre rather than from the part, so a mount aiming at
-   * something out on a wing is not thereby allowed to shoot a ship's width
-   * past it: what is returned is the distance from the aim point to the
-   * nearer edge of the ship's cone, which is the most that can be allowed
-   * symmetrically and still land on the hull.
+   * **Which thing has to be hit is the doctrine's own refusals, rather than a
+   * setting of its own.** The question a gunner is asking is "would this shot
+   * land on something I am allowed to shoot at", and the aim weights already
+   * answer it. A doctrine that refuses nothing is allowed to hit any part of
+   * that ship, so anywhere on the hull will do. One that refuses something is
+   * not: the part it chose is the only piece it is sure of, so it holds until
+   * that part is under the muzzle. A refusal therefore says two things at
+   * once, and they are the same thing — *mind what you hit*.
+   *
+   * Where the ship will do, the allowance is measured from the ship's centre
+   * rather than from the part, so a mount aiming at something out on a wing
+   * is not thereby allowed to shoot a ship's width past it: what is returned
+   * is the distance from the aim point to the nearer edge of the ship's cone,
+   * which is the most that can be allowed symmetrically and still land on the
+   * hull.
    *
    * Approximate on purpose, and in the forgiving direction: a bounding circle
    * is not a silhouette, so a target seen end-on is taken to be as wide as it
    * is long. What that costs is a shot sent at a ship that has presented its
    * bow, which is a shot at a ship rather than a shot at nothing. ROADMAP §12
-   * holds the presented aspect.
+   * holds the presented aspect, and with it the finer answer this
+   * approximates — which of a target's *neighbouring* parts a stray shot
+   * would land on, rather than whether any of them might be refused.
    */
   private firingSlack(
     bodies: Bodies,
@@ -2143,13 +2152,13 @@ export class Ships {
       part === WHOLE_SHIP ? design.radius : moduleRadius(design.modules[part]!.spec);
     const slack = atan2(partRadius, range);
 
-    const spread = doctrine.spreadRadii;
-    if (!(spread > 0)) return slack;
+    // Selective, so the part it picked is the whole of what it will accept.
+    if (refusesAnything(doctrine)) return slack;
 
     // How much of the ship's own cone is left once the aim point has been
     // walked off its centre, which is what keeps a loose shot on the hull.
     const offset = length(aimX - bodies.x[tb]!, aimY - bodies.y[tb]!);
-    const reach = spread * design.radius - offset;
+    const reach = design.radius - offset;
     const loose = reach > 0 ? atan2(reach, range) : 0;
     return loose > slack ? loose : slack;
   }
