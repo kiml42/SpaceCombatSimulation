@@ -5,6 +5,8 @@ import {
   BEAM_MIN_ALPHA,
   flooredFade,
   legibleWidth,
+  plumeAlpha,
+  PLUME_MIN_ALPHA,
 } from '../render/strokes.js';
 
 /**
@@ -49,6 +51,19 @@ describe('beam brightness', () => {
   it('clamps at full opacity rather than running past it', () => {
     expect(beamAlpha(1e9)).toBe(1);
     expect(beamAlpha(1e30)).toBe(1);
+  });
+});
+
+describe('flame brightness', () => {
+  it('rises a step for every decade of intensity, and never vanishes', () => {
+    // A capital's gentle flame and a fighter's fierce one are three decades
+    // apart, so equal steps per decade are what keep both readable.
+    expect(plumeAlpha(0)).toBe(PLUME_MIN_ALPHA);
+    expect(plumeAlpha(1e3)).toBe(PLUME_MIN_ALPHA);
+    const steps = [1e4, 1e5, 1e6].map(plumeAlpha);
+    expect(steps[1]! - steps[0]!).toBeCloseTo(steps[2]! - steps[1]!, 9);
+    expect(plumeAlpha(1e9)).toBe(plumeAlpha(1e6));
+    expect(plumeAlpha(1e6)).toBeLessThanOrEqual(1);
   });
 });
 

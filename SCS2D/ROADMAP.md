@@ -203,6 +203,10 @@ The remaining pickers and the order weight should follow the shape already there
 
 Deliberately unresolved; decide when they block something.
 
+- **Whether a flame should grow with its nozzle's width or with the square root of it.** Linear is the
+  physics — a jet runs a fixed number of its own widths — and is what is built, to be looked at before it is
+  argued with. It gives the Star Destroyer's mains a 2.4 km flame and a Dinky's thrusters under 2 m. The
+  square root keeps every trend and squashes both ends, to about 400 m and 12 m. One line in `plumeReach`.
 - **Turning to brake.** A craft brakes facing whatever it is fighting, on what it has pointing that way,
   because targeting alone decides its heading. One whose big engines are all at the back plans on a sliver
   of retro, so it creeps in, and one with no retro at all has only `BRAKE_FLOOR` in `sim/ships.ts` to set

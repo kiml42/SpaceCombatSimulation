@@ -11,6 +11,8 @@ import {
   isHullMount,
   isWeaponMount,
   mountTraverse,
+  nozzleReach,
+  plumeIntensity,
   shortfall,
   thrusterGeometry,
   traverseAccel,
@@ -291,6 +293,13 @@ export function moduleReadout(
       `${radiansToDegrees(engine.halfAngle).toLocaleString('en-GB', { maximumFractionDigits: 0 })}° ` +
         `half-angle, keeping ${(engine.divergence * 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })}% ` +
         `of the thrust${engine.nozzles > 1 ? ` across ${engine.nozzles} nozzles` : ''}`,
+    ]);
+    // How far it throws and how fiercely, at full throttle: the trade between
+    // one long flame and a cluster of short hot ones.
+    rows.push([
+      'Flame',
+      `${nozzleReach(engine, stats.thrust).toLocaleString('en-GB', { maximumFractionDigits: 0 })} m, ` +
+        `${(plumeIntensity(engine, stats.thrust) / 1000).toLocaleString('en-GB', { maximumFractionDigits: 1 })} kW/m²`,
     ]);
   }
   const gun = stats.gun;

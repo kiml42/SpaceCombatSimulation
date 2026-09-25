@@ -4,12 +4,13 @@ import {
   math,
   nozzleOffset,
   nozzleReach,
+  plumeIntensity,
   thrusterGeometry,
   type ShipView,
   type Snapshot,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
-import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth } from './strokes.js';
+import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha } from './strokes.js';
 import { flashFade, flashPosition, type FlashAnchor, type Flashes } from './flashes.js';
 import { iconAlpha, ICON_OUTLINE, ICON_PX } from './icons.js';
 
@@ -187,8 +188,9 @@ const ARC_MAX_RADIUS = 40;
 
 /** A barrel that is not clear to fire. Dark, because it sits on the pale sweep. */
 const BARREL = '#8f6f25';
-const PLUME = '#ffd9a0';
-const PLUME_CORE = '#fff4e0';
+/** Flame colours, as the RGB a gradient fades to transparent from. */
+const PLUME = '255, 217, 160';
+const PLUME_CORE = '255, 244, 224';
 
 
 function shipColours(team: number): (typeof TEAM_COLOURS)[number] {
@@ -410,27 +412,29 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
     const force = throttle * (design.thrusters[thruster]?.maxThrust ?? 0);
     thruster++;
     if (force > 0) {
-      // One flame per nozzle, each as long as the single flame a whole-face
-      // nozzle would throw and a share of its width — the same triangles the
-      // burn samples its rays across.
+      // One flame per nozzle, the same triangles the burn samples its rays
+      // across. How hot it burns is its opacity, and it fades to nothing at
+      // its tip the way its share of the power does, so the brightest part of
+      // the picture is the part doing the most damage.
       const engine = thrusterGeometry(spec);
       const root = -spec.length / 2;
       const reach = nozzleReach(engine, force);
+      const alpha = plumeAlpha(plumeIntensity(engine, force));
       const half = engine.exitWidth / 2;
+      const flame = fade(ctx, root, reach, PLUME, alpha);
+      // A brighter core, a third the width, so a hard burn reads as hotter
+      // rather than merely longer.
+      const core = fade(ctx, root, reach * 0.55, PLUME_CORE, min(1, alpha * 1.4));
       for (let n = 0; n < engine.nozzles; n++) {
         const across = nozzleOffset(engine, n);
-        ctx.fillStyle = PLUME;
-        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = flame;
         ctx.beginPath();
         ctx.moveTo(root, across - half);
         ctx.lineTo(root, across + half);
         ctx.lineTo(root - reach, across);
         ctx.closePath();
         ctx.fill();
-        // A brighter core, a third the width, so a hard burn reads as hotter
-        // rather than merely longer.
-        ctx.fillStyle = PLUME_CORE;
-        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = core;
         ctx.beginPath();
         ctx.moveTo(root, across - half / 3);
         ctx.lineTo(root, across + half / 3);
@@ -438,11 +442,24 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
         ctx.closePath();
         ctx.fill();
       }
-      ctx.globalAlpha = 1;
     }
     ctx.restore();
   }
   ctx.restore();
+}
+
+/** A flame's fill: `alpha` at the nozzle, fading to nothing `length` aft of it. */
+function fade(
+  ctx: CanvasRenderingContext2D,
+  root: number,
+  length: number,
+  rgb: string,
+  alpha: number,
+): CanvasGradient {
+  const gradient = ctx.createLinearGradient(root, 0, root - length, 0);
+  gradient.addColorStop(0, `rgba(${rgb}, ${alpha})`);
+  gradient.addColorStop(1, `rgba(${rgb}, 0)`);
+  return gradient;
 }
 
 /**

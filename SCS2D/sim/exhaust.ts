@@ -3,7 +3,13 @@ import type { ShipDesign } from './blueprint.js';
 import type { Damage } from './damage.js';
 import { HullPath, modulesAlong, type Boxes, type Hulls } from './hull.js';
 import { cos, sin, sqrt } from './math.js';
-import { nozzleOffset, thrusterGeometry, type ThrusterGeometry } from './modules.js';
+import {
+  DECK_HEIGHT,
+  nozzleOffset,
+  THRUST_PER_EXIT_AREA,
+  thrusterGeometry,
+  type ThrusterGeometry,
+} from './modules.js';
 import { RayHit, type SpatialGrid } from './spatialGrid.js';
 
 /**
@@ -33,23 +39,26 @@ import { RayHit, type SpatialGrid } from './spatialGrid.js';
  * flies the engine at.
  *
  * **The plume the simulation burns with is the plume the renderer draws** —
- * both take their length from `plumeReach`, so what is on the screen is what
- * is doing the damage.
+ * both take their length from `plumeReach`, and the renderer's opacity from
+ * `plumeIntensity`, so what is on the screen is what is doing the damage.
  */
 
 /**
- * Newtons of thrust per square metre of plume.
+ * How far a flame carries, in widths of the nozzle it leaves, when the throat
+ * is fed at the pressure `THRUST_PER_EXIT_AREA` assumes and the bell is
+ * perfect.
  *
- * The plume is a triangle as wide as the engine's exit and as long as this
- * makes it, so its *area* is proportional to the force being produced — the
- * quantity worth reading off a picture. A pleasing consequence falls out of
- * the scaling laws rather than being arranged: thrust scales with exit area,
- * so thrust per unit width is the same for every engine, and every engine
- * therefore reaches the same plume length at full throttle. A bigger engine is
- * a wider flame, not a longer one, which is what a shared exhaust velocity
- * should look like.
+ * **A jet runs a roughly fixed number of its own widths** before it has mixed
+ * into the dark, so a bigger nozzle throws a longer flame and an engine scaled
+ * up bodily reaches proportionally further. Machinery that feeds the throat
+ * harder lengthens it in proportion, being more gas at higher pressure, and a
+ * cluster of nozzles throws flames as short as each nozzle is narrow.
+ *
+ * Seventeen widths, so a choked two-metre nozzle through a good bell throws
+ * the fifty-odd metres every full engine used to, and everything larger
+ * throws further.
  */
-export const PLUME_THRUST_PER_AREA = 0.5e4;
+export const PLUME_CORE_WIDTHS = 17;
 
 /**
  * How much of an engine's power a plume delivers to what it plays on, watts
@@ -61,32 +70,58 @@ export const PLUME_THRUST_PER_AREA = 0.5e4;
  * lasts, and nearly all of that gas flows past rather than into what it hits.
  * What is wanted is a timescale a player can see and manoeuvre against, so
  * this is chosen for the timescale and not from the physics. At this figure a
- * full-throttle plume reaches thirty metres and destroys a square structure
- * module as wide as the engine in four to seven seconds at the nozzle, or
- * roughly twice that halfway out, and in thirds as the rays land. ROADMAP.md
- * §12 keeps it open with the rest of the dials.
+ * full-throttle plume destroys a square structure module as wide as the
+ * engine in four to seven seconds at the nozzle, or roughly twice that
+ * halfway out, and in thirds as the rays land. ROADMAP.md §12 keeps it open
+ * with the rest of the dials.
  */
 export const PLUME_POWER_PER_NEWTON = 4;
+
+/**
+ * How much of its length a flame keeps for the shape of its bell, 0 to 1.
+ *
+ * Gas leaving a divergent nozzle is already flying apart, and a flame spreads
+ * out of existence far faster than the thrust it has lost, so this is the
+ * eighth power of `divergence`: a good bell keeps most of its flame, a short
+ * one loses a third, and a bare throat sprays what it has sideways and throws
+ * almost nothing. Steep enough that more bell on the same machinery is a
+ * visibly longer flame, which is the collimation a longer nozzle buys.
+ */
+export function collimation(divergence: number): number {
+  const d2 = divergence * divergence;
+  const d4 = d2 * d2;
+  return d4 * d4;
+}
 
 /**
  * How far a plume reaches along its axis, metres. Zero for an engine that is
  * not burning.
  *
- * **The bell sets the rest of it.** Gas leaving a divergent nozzle is already
- * flying apart as it goes, so it spreads to nothing in a fraction of the
- * distance a collimated jet carries — the same `divergence` that says how much
- * of the thrust survives says how far what does survive gets. A well-belled
- * engine therefore throws the long, thin flame, and one with the bell blown
- * off a stub of fire it can barely burn its own hull with.
- *
- * Engines of the same bell still all reach the same length at full throttle,
- * whatever their size and however many nozzles they are divided into: thrust
- * scales with exit area, so thrust per unit width is a constant of the
- * technology. That is what a shared exhaust velocity should look like.
+ * `PLUME_CORE_WIDTHS` of the nozzle's width, times how hard the throat is fed
+ * — machinery and throttle together, read back off the force it is making —
+ * times what the bell keeps of it. So a bigger nozzle, deeper machinery and a
+ * longer bell each throw further, and a half-throttle burn is half the flame.
  */
 export function plumeReach(force: number, exitWidth: number, divergence = 1): number {
-  if (!(force > 0) || !(exitWidth > 0)) return 0;
-  return (force * divergence) / (exitWidth * PLUME_THRUST_PER_AREA);
+  if (!(force > 0) || !(exitWidth > 0) || !(divergence > 0)) return 0;
+  const pressure = force / (exitWidth * DECK_HEIGHT * THRUST_PER_EXIT_AREA * divergence);
+  return PLUME_CORE_WIDTHS * exitWidth * pressure * collimation(divergence);
+}
+
+/**
+ * How hot a flame burns where it leaves the nozzle, watts per square metre
+ * of plume: one nozzle's power spread over its own triangle.
+ *
+ * What the renderer draws a flame's opacity from, so its size and its
+ * brightness can say different things — a big engine throws a long flame
+ * that is not especially fierce anywhere, and a cluster throws short ones
+ * that are. Nothing in the simulation reads it: the burn goes by each ray's
+ * share of the power, which fades along the flame the way the drawing does.
+ */
+export function plumeIntensity(geometry: ThrusterGeometry, force: number): number {
+  const reach = nozzleReach(geometry, force);
+  if (!(reach > 0)) return 0;
+  return (PLUME_POWER_PER_NEWTON * (force / geometry.nozzles)) / (0.5 * geometry.exitWidth * reach);
 }
 
 /**
@@ -132,8 +167,9 @@ function rayNozzle(ray: number): { nozzle: number; across: number } {
 /** How far one flame reaches, given what the whole engine is producing. */
 export function nozzleReach(geometry: ThrusterGeometry, force: number): number {
   // Every nozzle gets an equal share of the gas through an equal share of the
-  // face, so the count cancels and a cluster's flames are each as long as the
-  // single flame they replace — just narrower.
+  // face, so each is fed at the same pressure the single nozzle was — and so
+  // throws a flame as much shorter as it is narrower, less what its better
+  // bell gives back.
   return plumeReach(force / geometry.nozzles, geometry.exitWidth, geometry.divergence);
 }
 

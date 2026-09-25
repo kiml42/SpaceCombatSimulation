@@ -28,8 +28,8 @@
     { "use": "wingSegment", "x": 2, "y": 7, "repeat": 3, "step": { "x": -1, "y": 8 } },
     { "use": "wingSegment", "x": 2, "y": -7, "mirror": true, "repeat": 3, "step": { "x": -1, "y": 8 } },
 
-    { "use": "rcs", "x": -15, "y": 4, "angle": -90 },
-    { "use": "rcs", "x": -15, "y": -4, "angle": 90 },
+    { "use": "rcs", "x": -19, "y": 1.5, "angle": -90 },
+    { "use": "rcs", "x": -19, "y": -1.5, "angle": 90 },
     { "use": "rcs", "x": 15, "y": 4, "angle": -90 },
     { "use": "rcs", "x": 15, "y": -4, "angle": 90 }
   ]
