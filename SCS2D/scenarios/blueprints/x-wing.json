@@ -1,12 +1,11 @@
 {
   "formatVersion": 1,
   "name": "X Wing",
-  "notes": "A fighter. It goes after other fighters, and shoots at what makes one dangerous rather than at what holds it together: a laser this light does nothing useful to a capital's plating, but it can strip the guns and engines off anything its own size \u2014 and off a capital, once its own size has run out.",
+  "notes": "A fighter. It goes after other fighters, and shoots at what makes one dangerous rather than at what holds it together: a laser this light does nothing useful to a capital's plating, but it can strip the guns and engines off anything its own size — and off a capital, once its own size has run out.",
   "doctrine": {
     "targeting": {
       "preferredMass": 0.4,
-      "massWeight": 120,
-      "structureWeight": 0
+      "massWeight": 120
     }
   },
   "assemblies": {
@@ -75,7 +74,10 @@
           "width": 0.6,
           "barrels": 1,
           "nozzle": 0.05,
-          "traverse": 5
+          "traverse": 5,
+          "targeting": {
+            "structureWeight": 0
+          }
         }
       ]
     },
@@ -130,7 +132,10 @@
       "angle": 180,
       "length": 3,
       "width": 2,
-      "barrels": 1
+      "barrels": 1,
+      "targeting": {
+        "structureWeight": 0
+      }
     },
     {
       "use": "structure4",
@@ -159,7 +164,10 @@
       "width": 1.4,
       "barrels": 1,
       "nozzle": 0.45,
-      "traverse": 10
+      "traverse": 10,
+      "targeting": {
+        "structureWeight": 0
+      }
     }
   ]
 }

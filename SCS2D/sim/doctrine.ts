@@ -237,6 +237,85 @@ export const DEFAULT_DOCTRINE: Doctrine = {
 };
 
 /**
+ * What a weapon goes after when its layout says nothing.
+ *
+ * **A mount does not inherit its ship's doctrine.** It used to, and the
+ * inheritance was doing two jobs that pull apart: a hull's doctrine answers
+ * "which ship do I fly at", and a mount's answers "which of the things I can
+ * actually train on do I shoot". A capital that hunts capitals is not saying
+ * its point-defence beams should ignore the fighters in front of them, and it
+ * had to say so mount by mount to get its own guns back. What the fleet
+ * wanted from the inheritance is concentration, and `focusWeight` already
+ * buys that directly — so it is high here rather than implied, and highest on
+ * a mount that can barely train, since a gun the ship has to be pointed
+ * anyway should shoot at what the ship is pointed at.
+ *
+ * **The point of the table is that a layout can say nothing.** A ship drawn
+ * without one doctrine number on it fights sensibly, because each archetype
+ * starts from what that archetype is for: a turret is a general-purpose gun,
+ * a beam turret is what answers something small and quick, and a hull weapon
+ * is a heavy piece aimed by the hull.
+ */
+const MOUNT_TARGETING: Record<string, Targeting> = {
+  /**
+   * A gun turret trains all the way round and picks its own fight, so it
+   * differs from a ship only in wanting to be part of the ship's.
+   */
+  turret: { ...DEFAULT_DOCTRINE.targeting, focusWeight: 150 },
+  /**
+   * A beam turret is the fleet's answer to what is small and quick: it hits
+   * instantly, so nothing it shoots at can outrun its shot, and it does too
+   * little at a time to trouble something big. Hence a target a tenth its
+   * ship's mass, weighted hard, and the loosest focus of the four — a mount
+   * that exists to swat fighters is no use held on the capital everyone else
+   * is shooting at.
+   *
+   * **It has no opinion about where on a target it lands**, which is the
+   * doctrine saying that picking a part costs accuracy and a fighter is
+   * already small enough to miss.
+   */
+  beamTurret: {
+    ...DEFAULT_DOCTRINE.targeting,
+    proximityWeight: 150,
+    preferredMass: 0.1,
+    massWeight: 120,
+    mobileWeight: 100,
+    focusWeight: 30,
+  },
+  /**
+   * A hull gun is aimed by the hull: a few degrees of training either side,
+   * and a bore that wants something worth the shell. So it goes after the
+   * ship's fight harder than anything else does, and after size rather than
+   * proximity — what is close is already what its arc has decided.
+   */
+  hullGun: {
+    ...DEFAULT_DOCTRINE.targeting,
+    massWeight: 80,
+    focusWeight: 300,
+  },
+  /** The same mount with a beam in it: aimed by the hull, so focused like one. */
+  hullBeam: {
+    ...DEFAULT_DOCTRINE.targeting,
+    proximityWeight: 150,
+    preferredMass: 0.5,
+    massWeight: 80,
+    mobileWeight: 60,
+    focusWeight: 250,
+  },
+};
+
+/**
+ * What a mount of this kind goes after before its layout says anything.
+ *
+ * Anything that is not a weapon gets the ship's own default, which costs
+ * nothing and means a caller need not ask whether the kind it is holding has
+ * guns on it.
+ */
+export function defaultTargeting(kind: string): Targeting {
+  return MOUNT_TARGETING[kind] ?? DEFAULT_DOCTRINE.targeting;
+}
+
+/**
  * The fields of each half, in the order evolution walks them.
  *
  * Fixed and explicit rather than derived from the object, because the order a
@@ -259,6 +338,34 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
   'structureWeight',
   'escortWeight',
 ];
+
+/**
+ * The fields a *mount's* targeting reads, and the ones a *ship's* does.
+ *
+ * The two halves of `Targeting` used to be one list because a mount inherited
+ * its ship's, so every field reached both. They are now separate questions —
+ * which ship to fly at, and which of the things a gun can train on to shoot —
+ * and two fields belong to only one of them:
+ *
+ * - `escortWeight` is a steering urge, and a mount steers nothing.
+ * - the four aim weights choose a *part* of a target, which only a gun does.
+ *
+ * Stated here rather than filtered wherever it matters, because the editor
+ * offering a field, mutation turning it and the simulation reading it have to
+ * agree — and a number a panel offers that nothing reads is the worst of the
+ * three to discover.
+ */
+export const MOUNT_TARGETING_FIELDS: readonly (keyof Targeting)[] = TARGETING_FIELDS.filter(
+  (field) => field !== 'escortWeight',
+);
+
+export const SHIP_TARGETING_FIELDS: readonly (keyof Targeting)[] = TARGETING_FIELDS.filter(
+  (field) =>
+    field !== 'coreWeight' &&
+    field !== 'engineWeight' &&
+    field !== 'gunWeight' &&
+    field !== 'structureWeight',
+);
 
 export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'standoffRadii',

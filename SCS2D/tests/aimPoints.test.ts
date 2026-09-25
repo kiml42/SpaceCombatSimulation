@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   compileBlueprint,
   DEFAULT_DOCTRINE,
+  isWeaponMount,
   math,
   Ships,
-  toDoctrine,
   World,
   type ShipDesign,
+  type Targeting,
 } from '../sim/index.js';
 import { DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 
@@ -25,24 +26,32 @@ const DT = 1 / 60;
 const gunship = compileBlueprint(GUNSHIP);
 
 /**
+ * The Dinky with one opinion on its gun, since where a shot lands is the
+ * gun's business and not its hull's — a ship's doctrine says which ship to
+ * fly at, and no part of it reaches the aim point. Passing nothing strips
+ * the preference the file carries back to what the archetype does.
+ */
+function armed(targeting?: Partial<Targeting>): ShipDesign {
+  return compileBlueprint({
+    ...DINKY,
+    modules: DINKY.modules.map((placement) => {
+      if (!('kind' in placement) || !isWeaponMount(placement.kind)) return placement;
+      const spec = { ...placement };
+      if (targeting === undefined) delete spec.targeting;
+      else spec.targeting = targeting;
+      return spec;
+    }),
+  });
+}
+
+/**
  * A fighter that puts engines above the guns the default shoots at first, and
  * one that has opted out of picking parts altogether.
  */
-const sniper = compileBlueprint({
-  ...DINKY,
-  doctrine: toDoctrine({ targeting: { engineWeight: 150 } }),
-});
-const indifferent = compileBlueprint({
-  ...DINKY,
-  doctrine: toDoctrine({
-    targeting: { coreWeight: 0, engineWeight: 0, gunWeight: 0, structureWeight: 0 },
-  }),
-});
+const sniper = armed({ engineWeight: 150 });
+const indifferent = armed({ coreWeight: 0, engineWeight: 0, gunWeight: 0, structureWeight: 0 });
 /** A fighter that would rather cripple a ship than go for what flies it. */
-const crippler = compileBlueprint({
-  ...DINKY,
-  doctrine: toDoctrine({ targeting: { coreWeight: 0 } }),
-});
+const crippler = armed({ coreWeight: 0 });
 
 interface Aim {
   /** Where the gun ends up pointing, world frame. */
@@ -138,7 +147,7 @@ describe('where a gun aims on a ship', () => {
 
     // And it trains on whichever of the two is nearer to it, which on this
     // capital is a mount on the skin rather than the core well inside it.
-    const a = aim(compileBlueprint({ ...DINKY, doctrine: DEFAULT_DOCTRINE }));
+    const a = aim(armed());
     expect(a.rangeOf('gun')).toBeLessThan(a.rangeOf('core'));
     expect(off(a.bearing, a.toNearestGun)).toBeLessThan(0.01);
   });

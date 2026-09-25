@@ -82,6 +82,26 @@
       .ok { color: #7fd6a0; margin: 0; }
       .warn { color: #e6a45b; margin: 0; }
       .none { color: #7f93aa; margin: 0; }
+      /*
+        Shut by default and quiet when shut: building a ship is the common
+        case, and a summary line is all the panel owes someone who is not
+        setting doctrine today.
+      */
+      details.doctrine { margin-top: 0.7rem; padding-top: 0.6rem; border-top: 1px solid #1c2533; }
+      details.doctrine summary { cursor: pointer; color: #7f93aa; list-style-position: outside; }
+      details.doctrine summary:hover { color: #c8d3e0; }
+      details.doctrine .summaryValue { color: #e6edf5; }
+      details.doctrine h3 {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #7f93aa;
+        font-weight: 400;
+        margin: 0.8rem 0 0.4rem;
+      }
+      details.doctrine .note { color: #5d6f85; margin: 0.5rem 0 0; }
+      /* A stated number stands out from the ones still at their default. */
+      details.doctrine input.stated { color: #e9c05f; border-color: #4a3f24; }
       #linked { color: #e9c05f; margin: 0 0 0.5rem; }
       #kindRow { color: #7f93aa; margin: 0 0 0.5rem; }
       #propKind { color: #e6edf5; }
@@ -233,6 +253,25 @@
             <textarea id="propNotes" placeholder="why this module is here"></textarea>
           </div>
           <div id="moduleStats"></div>
+          <details class="doctrine" id="mountDoctrine" hidden>
+            <summary>What it shoots at — <span class="summaryValue" id="mountDoctrineSummary"></span></summary>
+            <div id="mountDoctrineFields"></div>
+            <p class="note">Empty is this archetype's own default. Clear a box to go back to it.</p>
+            <div class="buttons">
+              <button id="mountDoctrineReset">Back to default</button>
+            </div>
+          </details>
+          <details class="doctrine" id="shipDoctrine" hidden>
+            <summary>What the ship does — <span class="summaryValue" id="shipDoctrineSummary"></span></summary>
+            <h3>What it picks a fight with</h3>
+            <div id="shipTargetingFields"></div>
+            <h3>How it flies the fight</h3>
+            <div id="shipApproachFields"></div>
+            <p class="note">The ship's own doctrine, not this core's. Empty is the default.</p>
+            <div class="buttons">
+              <button id="shipDoctrineReset">Back to default</button>
+            </div>
+          </details>
           <div class="buttons">
             <button id="propDuplicate" title="Make this a shared part and place a second copy">Duplicate</button>
             <button id="propUnlink">Unlink</button>

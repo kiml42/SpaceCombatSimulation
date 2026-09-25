@@ -203,6 +203,23 @@ The remaining pickers and the order weight should follow the shape already there
 
 Deliberately unresolved; decide when they block something.
 
+- **Whether a beam should have an opinion about where it hits.** Each archetype now carries its own
+  targeting, and a beam turret's is the one where the obvious default was left untaken. The argument for
+  taking it is good: picking a part costs accuracy, a beam turret is the mount that answers what is small
+  and quick, and a fighter is already a small thing to miss — so all four aim weights at zero, meaning
+  *shoot at the ship*, reads as the honest default for the archetype. Measured, it is not a small change:
+  `beamVGun` goes from 123 rounds and 204 hits to 262 and 451, because a beam that stops stripping mounts
+  starts boiling through seams and cutting hulls into pieces, and there are then more things to shoot at.
+  That is a balance decision about what beams are *for*, and it wants the fleet in front of it rather than
+  a place in a change about where a mount's defaults come from. The same question hangs over `hullBeam`,
+  which has the same physics and a hull's aiming.
+- **Whether each core should carry a doctrine of its own.** The editor edits a ship's one doctrine from
+  whichever core is selected, which is where it belongs for a ship that has one. A hull cut between two
+  cores is two ships (§3's `split`), and those two halves currently fly away with the same doctrine — so a
+  ship whose halves are meant to fight differently cannot say so. The shape is already there, since a core
+  is a module and could carry a block like any mount; what is not settled is which doctrine a ship with two
+  sound cores then flies by, and whether that is worth a rule.
+
 - **How hard armour is: `DE_MARRE_K`.** De Marre's exponents are the physics and are not ours to choose;
   its constant is the *material*, and it is the one number in terminal ballistics that is a decision. It
   stands at 91,460, calibrated so that a 16-inch rifle — a 1,225 kg shell of 0.406 m calibre at 700 m/s —
