@@ -136,6 +136,16 @@ const TIMER_SETTLE = 1e-9;
  */
 const AVOID_HORIZON = 6;
 
+/**
+ * The sideways speed a craft asks for to get out of the way, m/s. Asked for
+ * within one response time, that is far more than any hull can push sideways,
+ * so it is a demand for everything it has that way. It is a want in the blend
+ * rather than a push on top, deliberately: a craft dodging stops pressing on
+ * towards its band, which is what keeps a crowd from piling up. A push on top
+ * measured six times the contacts in `superSwarm`.
+ */
+const DODGE_SPEED = 60;
+
 /** No order, or an order whose target has gone. */
 /**
  * How much of a weld survives the metal at its ends being wrecked.
@@ -1998,8 +2008,8 @@ export class Ships {
       const soon = 1 - when / AVOID_HORIZON;
       this.urge(
         approach.separation * crowding * soon,
-        vx + awayX * approach.approachSpeed,
-        vy + awayY * approach.approachSpeed,
+        vx + awayX * DODGE_SPEED,
+        vy + awayY * DODGE_SPEED,
       );
     }
   }

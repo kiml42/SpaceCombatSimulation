@@ -10,10 +10,11 @@
     },
     "approach": {
       "standoffRadii": 5,
-      "standoff": 0.15,
+      "standoff": 0.05,
+      "separation": 100,
       "tolerance": 0.3,
       "approachSpeed": 200,
-      "brake": 0.7
+      "brake": 1
     }
   },
   "assemblies": {

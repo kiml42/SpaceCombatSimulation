@@ -37,7 +37,7 @@ const GOLDEN: Record<ScenarioName, string> = {
   column: '85de49be',
   standoff: '34379465',
   ram: '1506ce58',
-  torchRun: '9e3b2a99',
+  torchRun: 'c54c1289',
 };
 
 describe('golden scenarios', () => {

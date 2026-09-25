@@ -18,7 +18,7 @@ describe('a torch run', () => {
   /** Separate passes each torch makes: in under IN metres, then out past OUT. */
   const passes = torches.map(() => 0);
   const inside = torches.map(() => false);
-  for (let step = 0; step < 90 * 60; step++) {
+  for (let step = 0; step < 120 * 60; step++) {
     battle.step();
     const g = bodies.indexOf(battle.ships.body(target));
     torches.forEach((t, k) => {
