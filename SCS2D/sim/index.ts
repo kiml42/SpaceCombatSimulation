@@ -95,6 +95,7 @@ export {
   WEAPON_PLUME_SHARE,
   nozzleReach,
   plumeRays,
+  plumeRayStarts,
   plumeReach,
   rayOffset,
   rayReach,

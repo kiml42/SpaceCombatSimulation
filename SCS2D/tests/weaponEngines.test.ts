@@ -177,6 +177,16 @@ describe('an engine marked as a weapon', () => {
     expect(standOff({ weapon: true, gap: 1, team: 0 }).hurt).toBe(0);
   });
 
+  it('says where its flame is landing, for the glow to be drawn at', () => {
+    // A second of burning has shoved the target some way back, so the core
+    // lands with less than all of its power; unmarked, it does not fire and
+    // so lands nowhere.
+    const fired = standOff({ weapon: true, gap: 1, team: 1 });
+    expect(fired.ships.landedShare(fired.mine, 0, 1)).toBeGreaterThan(0);
+    const held = standOff({ weapon: false, gap: 1, team: 1 });
+    expect([...held.ships.landedRays(held.mine)].every((share) => share === 0)).toBe(true);
+  });
+
   it('shoves the ship that fires it, which is what it costs', () => {
     // An engine is an engine. Burning it drives the hull away from what it is
     // burning, and the rest of the layout spends the step fighting that.

@@ -48,6 +48,7 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
     turretBearings: [],
     turretReady: [],
     throttles: [],
+    landed: [],
     integrity: [],
   };
   out.ships[0] = view;

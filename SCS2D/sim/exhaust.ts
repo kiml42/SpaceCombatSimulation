@@ -158,6 +158,24 @@ export function plumeRays(geometry: ThrusterGeometry): number {
   return PLUME_RAYS * geometry.nozzles;
 }
 
+const RAY_STARTS = new WeakMap<ShipDesign, Int32Array>();
+
+/**
+ * Where each of a design's thrusters' rays start in one flat list of all of
+ * them, with the total at the end. Cached per design, which never changes.
+ */
+export function plumeRayStarts(design: ShipDesign): Int32Array {
+  const known = RAY_STARTS.get(design);
+  if (known !== undefined) return known;
+  const starts = new Int32Array(design.thrusters.length + 1);
+  for (let t = 0; t < design.thrusters.length; t++) {
+    const engine = design.modules[design.thrusters[t]!.module ?? -1];
+    starts[t + 1] = starts[t]! + (engine === undefined ? 0 : plumeRays(thrusterGeometry(engine.spec)));
+  }
+  RAY_STARTS.set(design, starts);
+  return starts;
+}
+
 /** Which nozzle a ray belongs to, and which of its three it is. */
 function rayNozzle(ray: number): { nozzle: number; across: number } {
   const nozzle = (ray / PLUME_RAYS) | 0;
@@ -415,6 +433,9 @@ export class Plumes {
     grid: SpatialGrid,
     hulls: Hulls,
     dt: number,
+    /** Where to write each ray's `share` landing on anything, 0 where it met nothing. */
+    landed?: Float64Array,
+    landedAt = 0,
   ): void {
     if (!(dt > 0) || !(force > 0)) return;
     const engine = design.modules[design.thrusters[thruster]?.module ?? -1];
@@ -425,6 +446,7 @@ export class Plumes {
     const perRay = force / rays;
     for (let ray = 0; ray < rays; ray++) {
       if (!this.cast(design, thruster, ray, force, bodies, bodyIndex, grid, hulls)) continue;
+      if (landed !== undefined) landed[landedAt + ray] = this.share;
       damage.absorb(this.body, this.module, PLUME_POWER_PER_NEWTON * perRay * this.share * dt);
       if (this.body === bodyIndex) continue;
       const impulse = perRay * this.share * dt;
