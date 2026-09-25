@@ -213,13 +213,13 @@ Deliberately unresolved; decide when they block something.
   Both are the same missing idea — that where a ship points is a decision, not a consequence of where it is
   going. **The Dinky is the worked example**: its gun trains five degrees and its doctrine says engines, so
   what it actually shoots is whatever the *hull* is pointed at, and the hull points at its target's centre.
-  Two ways to close that, and they want different mechanisms. Either a hull carries the preference, points
-  at an engine and the gun follows it on `focusWeight` alone — which hands a hull back the aim weights it
-  was deliberately given up, on the grounds that a ship chooses a ship and only a gun chooses a part of one.
-  Or the gun keeps the preference and the pilot serves the gun: a mount already picks its aim module every
-  rethink, so the pilot reads what its narrow-arc weapons want to hit and steers to put it under them. The
-  second keeps one place to write the preference and generalises past the Dinky to any fixed-mount ship,
-  which is what an attack orientation is for.
+  **Which part a hull points at is a setting on the ship**, decided by the author against the alternative of
+  deriving it from what the ship's weapons want: a hull with several limited-traverse guns has no single
+  answer to derive from, and picking one would mean guessing which the designer meant as the main battery.
+  So a hull gets an aim preference of its own — the thing this codebase deliberately does *not* have today,
+  a ship choosing a part of another ship rather than a ship — and a gun that cannot train far follows it on
+  `focusWeight` alone, which is what that weight already does. Until it lands, such a preference belongs on
+  the gun, since on a hull it would be a number nothing reads.
 - **What a target's presented aspect is worth.** A weapon decides whether to fire from the bounding circle
   of what it is shooting at, so a ship end-on is taken to be as wide as it is long. The error is in the
   forgiving direction — a shot at a hull rather than a shot at nothing — but it means a fleet in line ahead
