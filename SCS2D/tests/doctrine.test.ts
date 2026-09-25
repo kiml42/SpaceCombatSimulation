@@ -3,6 +3,7 @@ import {
   APPROACH_FIELDS,
   Choice,
   DEFAULT_DOCTRINE,
+  defaultTargeting,
   DOCTRINE_FIELDS,
   TARGETING_FIELDS,
   Ships,
@@ -109,15 +110,17 @@ describe('a doctrine as written down', () => {
     expect(design.doctrine.approach.standoff).toBe(1.4);
     // The Dinky has an opinion about where to shoot and none at all about
     // what to shoot: the adaptable default already sends a fighter after
-    // fighters, so its block says one thing — engines above the guns the
-    // default puts first — and inherits the rest.
-    expect(compileBlueprint(DINKY).doctrine).toEqual({
-      ...DEFAULT_DOCTRINE,
-      targeting: { ...DEFAULT_DOCTRINE.targeting, engineWeight: 150 },
-    });
-    expect(compileBlueprint(DINKY).doctrine.targeting.engineWeight).toBeGreaterThan(
-      DEFAULT_DOCTRINE.targeting.gunWeight,
-    );
+    // fighters, so it says nothing at all about flying and one thing about
+    // gunnery — engines above the guns the default puts first.
+    //
+    // That one thing is on its gun rather than on its hull, which is where a
+    // doctrine's aim weights have to live: a ship chooses a ship, and only a
+    // mount chooses a part of one, so a hull block saying `engineWeight`
+    // would be a number nothing ever read.
+    expect(compileBlueprint(DINKY).doctrine).toEqual(DEFAULT_DOCTRINE);
+    const gun = compileBlueprint(DINKY).turrets[0]!.targeting;
+    expect(gun).toEqual({ ...defaultTargeting('hullGun'), engineWeight: 150 });
+    expect(gun.engineWeight).toBeGreaterThan(gun.gunWeight);
   });
 });
 

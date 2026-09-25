@@ -69,6 +69,19 @@ import {
   type Handle,
   type Seam,
 } from './handles.js';
+import {
+  kindName,
+  mountDefault,
+  mountSummary,
+  shipDefault,
+  shipSummary,
+  withMountField,
+  withShipField,
+  MOUNT_ROWS,
+  SHIP_APPROACH_ROWS,
+  SHIP_TARGETING_ROWS,
+  type DoctrineRow,
+} from './doctrine.js';
 import { previewSnapshot } from './preview.js';
 import { designStats, envelopes, groupMass, moduleReadout, type Envelopes } from './stats.js';
 
@@ -224,6 +237,13 @@ export function startEditor(): void {
   const exportButton = el<HTMLButtonElement>('exportShip');
 
   const weaponInput = el<HTMLInputElement>('propWeapon');
+
+  const mountDoctrine = el<HTMLDetailsElement>('mountDoctrine');
+  const mountDoctrineSummary = el<HTMLElement>('mountDoctrineSummary');
+  const mountDoctrineReset = el<HTMLButtonElement>('mountDoctrineReset');
+  const shipDoctrine = el<HTMLDetailsElement>('shipDoctrine');
+  const shipDoctrineSummary = el<HTMLElement>('shipDoctrineSummary');
+  const shipDoctrineReset = el<HTMLButtonElement>('shipDoctrineReset');
 
   const propInputs: Record<string, HTMLInputElement | HTMLTextAreaElement> = {
     x: el<HTMLInputElement>('propX'),
@@ -687,7 +707,104 @@ export function startEditor(): void {
         : `Shared: drawn ${copies} times. Size, facing and notes change every copy; ` +
           `position moves this one.`;
 
+    renderDoctrine(spec, sameModule);
     renderModuleStats(spec, doc.selectedModules()[0] ?? -1);
+  };
+
+  /**
+   * The doctrine boxes, built from the field lists rather than written out in
+   * the page.
+   *
+   * A doctrine number added in `sim/doctrine.ts` then appears here by itself,
+   * which is the only way a panel of twenty-one numbers stays in step with the
+   * thing it is editing. The half a box belongs to is part of its key, since
+   * the two halves are separate objects with no field names in common to rely
+   * on.
+   */
+  const doctrineInputs = new Map<string, HTMLInputElement>();
+
+  const buildDoctrine = (into: HTMLElement, rows: readonly DoctrineRow[], half: string): void => {
+    for (const row of rows) {
+      const field = document.createElement('div');
+      field.className = 'field';
+      const label = document.createElement('label');
+      const id = `doctrine-${half}-${row.field}`;
+      label.htmlFor = id;
+      label.textContent = row.label;
+      const input = document.createElement('input');
+      input.id = id;
+      input.type = 'number';
+      input.step = String(row.step);
+      input.title = row.hint;
+      label.title = row.hint;
+      field.append(label, input);
+      into.append(field);
+      doctrineInputs.set(`${half}.${row.field}`, input);
+    }
+  };
+
+  buildDoctrine(el<HTMLElement>('mountDoctrineFields'), MOUNT_ROWS, 'mount');
+  buildDoctrine(el<HTMLElement>('shipTargetingFields'), SHIP_TARGETING_ROWS, 'targeting');
+  buildDoctrine(el<HTMLElement>('shipApproachFields'), SHIP_APPROACH_ROWS, 'approach');
+
+  /**
+   * Show a doctrine box: the stated value, or nothing over a placeholder of
+   * what would happen anyway.
+   *
+   * Empty meaning "the default" rather than zero is the whole of what makes
+   * the panel optional, so the placeholder is not decoration — it is the box
+   * saying what it will do if left alone.
+   */
+  const showDoctrineValue = (
+    input: HTMLInputElement,
+    held: number | undefined,
+    fallback: number,
+    sameThing: boolean,
+  ): void => {
+    input.placeholder = String(fallback);
+    if (sameThing && document.activeElement === input) return;
+    input.value = held === undefined || held === fallback ? '' : String(held);
+    input.classList.toggle('stated', input.value !== '');
+  };
+
+  /**
+   * Which doctrine the selection is about, if any.
+   *
+   * A weapon is asked what it shoots at, and a core is asked what its *ship*
+   * does — which is the ship's one doctrine rather than that core's, since a
+   * ship has one and a core is simply where it is edited from. Everything
+   * else is asked nothing, and neither section appears.
+   */
+  const renderDoctrine = (spec: ModuleSpec, sameThing: boolean): void => {
+    const weapon = isWeaponMount(spec.kind);
+    const core = spec.kind === 'core';
+    mountDoctrine.hidden = !weapon;
+    shipDoctrine.hidden = !core;
+    if (weapon) {
+      const held = (spec.targeting ?? {}) as Record<string, number | undefined>;
+      mountDoctrineSummary.textContent = mountSummary(spec.kind, spec.targeting);
+      mountDoctrineReset.disabled = spec.targeting === undefined;
+      mountDoctrineReset.title = `Take this ${kindName(spec.kind)} back to what its archetype does`;
+      for (const row of MOUNT_ROWS) {
+        const input = doctrineInputs.get(`mount.${row.field}`)!;
+        showDoctrineValue(input, held[row.field], mountDefault(spec.kind, row.field), sameThing);
+      }
+    }
+    if (core) {
+      const doctrine = doc.blueprint.doctrine;
+      shipDoctrineSummary.textContent = shipSummary(doctrine);
+      shipDoctrineReset.disabled = doctrine === undefined;
+      for (const [half, rows] of [
+        ['targeting', SHIP_TARGETING_ROWS],
+        ['approach', SHIP_APPROACH_ROWS],
+      ] as const) {
+        const held = doctrine?.[half] as unknown as Record<string, number> | undefined;
+        for (const row of rows) {
+          const input = doctrineInputs.get(`${half}.${row.field}`)!;
+          showDoctrineValue(input, held?.[row.field], shipDefault(half, row.field), sameThing);
+        }
+      }
+    }
   };
 
   const renderModuleStats = (spec: ModuleSpec, index: number): void => {
@@ -793,6 +910,70 @@ export function startEditor(): void {
       continues,
     );
   };
+
+  /**
+   * A doctrine field being typed into.
+   *
+   * An empty box is not a number and not zero: it is the statement being
+   * taken back out, so the blueprint stops saying anything about that field
+   * and the archetype covers it again.
+   */
+  const editDoctrine = (half: string, field: string, input: HTMLInputElement): void => {
+    const text = input.value.trim();
+    if (text !== '' && !Number.isFinite(Number(text))) return;
+    let value = text === '' ? null : Number(text);
+    if (half === 'mount') {
+      const path = doc.selection;
+      if (path === null) return;
+      // Typing what the archetype already does is not a statement, so the
+      // blueprint stops carrying one rather than freezing today's value into
+      // the file. The box goes back to showing it as a placeholder.
+      const spec = doc.selectedPlacement as ModuleSpec | null;
+      if (spec !== null && value === mountDefault(spec.kind, field)) value = null;
+      change(
+        updatePlacement(doc.blueprint, path, (placement) => {
+          const next = { ...placement } as ModuleSpec;
+          const targeting = withMountField(next.targeting, field, value);
+          if (targeting === undefined) delete next.targeting;
+          else next.targeting = targeting;
+          return next as Placement;
+        }),
+        true,
+      );
+      return;
+    }
+    const doctrine = withShipField(doc.blueprint.doctrine, half as 'targeting' | 'approach', field, value);
+    const next = { ...doc.blueprint };
+    if (doctrine === undefined) delete next.doctrine;
+    else next.doctrine = doctrine;
+    change(next, true);
+  };
+
+  for (const [key, input] of doctrineInputs) {
+    const [half, field] = key.split('.') as [string, string];
+    input.addEventListener('focus', () => {
+      gesture = false;
+    });
+    input.addEventListener('input', () => editDoctrine(half, field, input));
+  }
+
+  mountDoctrineReset.addEventListener('click', () => {
+    const path = doc.selection;
+    if (path === null) return;
+    change(
+      updatePlacement(doc.blueprint, path, (placement) => {
+        const next = { ...placement } as ModuleSpec;
+        delete next.targeting;
+        return next as Placement;
+      }),
+    );
+  });
+
+  shipDoctrineReset.addEventListener('click', () => {
+    const next = { ...doc.blueprint };
+    delete next.doctrine;
+    change(next);
+  });
 
   for (const [key, input] of Object.entries(propInputs)) {
     input.addEventListener('focus', () => {

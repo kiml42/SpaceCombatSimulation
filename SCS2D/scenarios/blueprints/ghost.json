@@ -5,8 +5,7 @@
   "doctrine": {
     "targeting": {
       "proximityWeight": 250,
-      "massWeight": 0,
-      "structureWeight": 0
+      "massWeight": 0
     }
   },
   "assemblies": {
@@ -26,7 +25,10 @@
           "angle": 0,
           "length": 4,
           "width": 2,
-          "barrels": 1
+          "barrels": 1,
+          "targeting": {
+            "structureWeight": 0
+          }
         },
         {
           "kind": "structure",
@@ -143,7 +145,10 @@
       "angle": 0,
       "length": 4,
       "width": 4,
-      "barrels": 1
+      "barrels": 1,
+      "targeting": {
+        "structureWeight": 0
+      }
     },
     {
       "use": "structure2",
@@ -164,7 +169,10 @@
       "length": 5,
       "width": 5,
       "barrels": 1,
-      "notes": "Aesthetic for now: sat in the middle of the hull, it is boxed in on every side and its firing arc comes out empty, so it never trains on anything. It earns its keep once a turret can be masked by what it can shoot *over* rather than by what is beside it (ROADMAP.md §12)."
+      "notes": "Aesthetic for now: sat in the middle of the hull, it is boxed in on every side and its firing arc comes out empty, so it never trains on anything. It earns its keep once a turret can be masked by what it can shoot *over* rather than by what is beside it (ROADMAP.md §12).",
+      "targeting": {
+        "structureWeight": 0
+      }
     },
     {
       "use": "structure",
@@ -178,7 +186,10 @@
       "angle": 180,
       "length": 4,
       "width": 3,
-      "barrels": 2
+      "barrels": 2,
+      "targeting": {
+        "structureWeight": 0
+      }
     }
   ]
 }

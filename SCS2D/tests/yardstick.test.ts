@@ -22,7 +22,20 @@ const settings = {
   match: { duration: 30 },
 };
 
-describe('the yardstick', () => {
+/**
+ * Per-test budget, milliseconds.
+ *
+ * Every test here breeds a run and then fights every design in it, which is
+ * seconds of simulation rather than the milliseconds vitest's default is set
+ * for — and the cost moves whenever gunnery or the pilot does, since what it
+ * measures is battles. Wide rather than tuned: it is a backstop against a
+ * hang, not an assertion about speed, and a budget set just above today's
+ * cost is one that goes red on a slow runner for no reason anybody can act
+ * on.
+ */
+const BUDGET = 60_000;
+
+describe('the yardstick', { timeout: BUDGET }, () => {
   it('measures every generation against the same opponent', () => {
     const run = runEvolution([CORVETTE], settings);
     const report = measure(run, GUNSHIP, { match: { duration: 30 } });

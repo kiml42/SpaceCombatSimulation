@@ -4,6 +4,7 @@ import {
   blueprintProblem,
   compileDraft,
   expandBlueprint,
+  isWeaponMount,
   moduleProblem,
   moduleStats,
   parseBlueprint,
@@ -222,7 +223,7 @@ describe('mutation', () => {
     const parent: Blueprint = {
       ...CORVETTE,
       doctrine: {
-        targeting: { ...CORVETTE.doctrine!.targeting, gunWeight: 0 },
+        targeting: { ...CORVETTE.doctrine!.targeting, massWeight: 0 },
         approach: { ...CORVETTE.doctrine!.approach },
       },
     };
@@ -233,9 +234,25 @@ describe('mutation', () => {
     // the cap is generous: the claim is only that zero is not a trap.
     for (let i = 0; i < 400 && !moved; i++) {
       held = mutate(held, rng).blueprint;
-      if (held.doctrine!.targeting.gunWeight !== 0) moved = true;
+      if (held.doctrine!.targeting.massWeight !== 0) moved = true;
     }
     expect(moved).toBe(true);
+  });
+
+  it('reaches a gun\u2019s own preferences, which is where an aim point lives', () => {
+    // A ship's doctrine cannot say where a shot lands — only a mount's can —
+    // so a lineage that could not turn a mount's numbers could never find a
+    // crippler, whatever the match was scoring.
+    const rng = new Rng(51);
+    let held: Blueprint = CORVETTE;
+    let found = false;
+    for (let i = 0; i < 400 && !found; i++) {
+      held = mutate(held, rng).blueprint;
+      found = expandBlueprint(held).some(
+        (spec) => isWeaponMount(spec.kind) && spec.targeting !== undefined,
+      );
+    }
+    expect(found).toBe(true);
   });
 
   it('finds a weight whose own default is zero', () => {

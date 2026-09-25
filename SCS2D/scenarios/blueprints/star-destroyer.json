@@ -4,8 +4,7 @@
   "notes": "A capital. Its batteries go for the biggest thing on the board — nothing in the battle outweighs it, so a preference for its own mass is a preference for whatever is largest — and they shoot to disable rather than to destroy: guns, then engines, and never the hull while either is left.",
   "doctrine": {
     "targeting": {
-      "massWeight": 150,
-      "structureWeight": 0
+      "massWeight": 150
     }
   },
   "assemblies": {
@@ -161,7 +160,10 @@
           "angle": 0,
           "length": 160,
           "width": 60,
-          "barrels": 4
+          "barrels": 4,
+          "targeting": {
+            "structureWeight": 0
+          }
         }
       ]
     },
