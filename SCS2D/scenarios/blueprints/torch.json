@@ -4,9 +4,9 @@
   "notes": "A small craft whose weapon is an engine. The big engine on the bow faces forwards, so the same burn that scorches a target brakes the approach and then shoves the ship back out: it closes fast to stop against the hull, braking on the bow engine, burns, is pushed away, and comes round again.",
   "doctrine": {
     "targeting": {
+      "proximityWeight": 60,
       "preferredMass": 20,
-      "massWeight": 150,
-      "proximityWeight": 60
+      "massWeight": 150
     },
     "approach": {
       "standoffRadii": 5,
@@ -22,11 +22,11 @@
       "modules": [
         {
           "kind": "thruster",
-          "x": 0,
-          "y": 0,
+          "x": 0.6000000000000001,
+          "y": 4.898587196589413e-17,
           "angle": -90,
           "length": 0.5,
-          "width": 0.6
+          "width": 1.8
         }
       ]
     },
@@ -34,11 +34,13 @@
       "modules": [
         {
           "kind": "thruster",
-          "x": 0,
-          "y": 0,
+          "x": 0.1,
+          "y": 0.05,
           "angle": 0,
-          "length": 2,
-          "width": 1.4
+          "length": 2.1,
+          "width": 1.6,
+          "reinforcement": 1,
+          "barrels": 1
         }
       ]
     }
@@ -46,7 +48,7 @@
   "modules": [
     {
       "kind": "core",
-      "x": 0,
+      "x": 2,
       "y": 0,
       "length": 1.5,
       "width": 3,
@@ -54,62 +56,56 @@
       "notes": "Armoured, because the bow is always pointed at something with guns."
     },
     {
-      "kind": "structure",
-      "x": 1.75,
-      "y": 0,
-      "length": 2,
-      "width": 3,
-      "reinforcement": 3
-    },
-    {
-      "kind": "structure",
-      "x": -1.75,
-      "y": 0,
-      "length": 2,
-      "width": 3
-    },
-    {
       "kind": "thruster",
       "x": 2.75,
       "y": 0,
       "angle": 180,
-      "length": 6,
-      "width": 4,
+      "length": 16,
+      "width": 6,
+      "reinforcement": 1.5,
+      "barrels": 1,
+      "nozzle": 0.5,
       "weapon": true,
-      "notes": "The weapon. Its thrust points aft, so firing it at a target is also braking, and holding it on is being pushed away.",
-      "reinforcement": 3
+      "notes": "The weapon. Its thrust points aft, so firing it at a target is also braking, and holding it on is being pushed away."
     },
     {
       "use": "main",
-      "x": -2.75,
-      "y": 0.75
+      "x": 2.65,
+      "y": 2.25
     },
     {
       "use": "main",
-      "x": -2.75,
-      "y": -0.75
+      "x": 2.65,
+      "y": -2.3499999999999996
     },
     {
       "use": "lateral",
-      "x": 2,
-      "y": 1.5
+      "x": 9.4,
+      "y": 3.0000000000000004
     },
     {
       "use": "lateral",
-      "x": 2,
-      "y": -1.5,
-      "angle": 180
+      "x": 9.4,
+      "y": -3,
+      "angle": 0,
+      "mirror": true
     },
     {
       "use": "lateral",
-      "x": -2,
-      "y": 1.5
+      "x": 3.05,
+      "y": 3
     },
     {
       "use": "lateral",
-      "x": -2,
-      "y": -1.5,
-      "angle": 180
+      "x": 3.05,
+      "y": -3,
+      "angle": 0,
+      "mirror": true
+    },
+    {
+      "use": "main",
+      "x": 1.15,
+      "y": 0
     }
   ]
 }

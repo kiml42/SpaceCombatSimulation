@@ -116,8 +116,10 @@ inside any one file is not contiguous.
   the inner half of the flame, where the burn is worth firing — so a craft whose only weapon is an engine
   closes to where it burns rather than parking against the hull or sitting out at the plume's tip. The
   `torchRun` scenario is the demonstration: small Torch ships with a big engine on the bow close fast on a
-  gunship, planning to stop against its hull on that engine, and the burn that brakes them scorches it
-  and then shoves them back out, so they hit and run without any rule saying so.
+  laser frigate, planning to stop against its hull on that engine, and the burn that brakes them scorches it
+  and then shoves them back out, so they hit and run without any rule saying so. A torch points its whole
+  hull at the frigate's centre, so most of its flame lands on armour; the engines and point defence it
+  catches go quickly, which is what aiming a hull at a chosen part will make deliberate.
   **Hulls come apart, and it takes a blow to do it.** A ship is held together by welds derived from where
   its modules touch, each rated by its section. Damage decides how much of a weld is left; what spends it
   is the impulse that has to cross it, so a hit on an outlying module takes it off and the same hit

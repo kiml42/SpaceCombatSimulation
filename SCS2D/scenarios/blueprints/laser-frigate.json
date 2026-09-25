@@ -1,0 +1,184 @@
+{
+  "formatVersion": 1,
+  "name": "Laser Frigate",
+  "doctrine": {
+    "targeting": {
+      "proximityWeight": 50,
+      "preferredMass": 2,
+      "massWeight": 60,
+      "loyaltyWeight": 80,
+      "armedWeight": 60
+    }
+  },
+  "assemblies": {
+    "structure": {
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 13.75,
+          "y": 0,
+          "length": 60,
+          "width": 1.5,
+          "reinforcement": 3
+        }
+      ]
+    },
+    "structure2": {
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 0,
+          "y": 1.5,
+          "length": 7,
+          "width": 8
+        },
+        {
+          "use": "thruster",
+          "x": 0,
+          "y": 5.5
+        },
+        {
+          "use": "thruster",
+          "x": 3.5,
+          "y": 3,
+          "angle": -90
+        }
+      ]
+    },
+    "thruster": {
+      "modules": [
+        {
+          "kind": "thruster",
+          "x": 0,
+          "y": 0,
+          "angle": -90,
+          "length": 2.5,
+          "width": 7,
+          "barrels": 2
+        }
+      ]
+    },
+    "thruster2": {
+      "modules": [
+        {
+          "kind": "thruster",
+          "x": 0,
+          "y": 0,
+          "angle": -90,
+          "length": 2.5,
+          "width": 7,
+          "barrels": 2
+        },
+        {
+          "kind": "structure",
+          "x": 4.5,
+          "y": 2,
+          "length": 2,
+          "width": 4,
+          "reinforcement": 5
+        },
+        {
+          "kind": "structure",
+          "x": 7.5,
+          "y": -2.5,
+          "length": 9,
+          "width": 2,
+          "reinforcement": 5
+        },
+        {
+          "use": "turret",
+          "x": -5.5,
+          "y": 1.25
+        },
+        {
+          "use": "turret",
+          "x": -59.5,
+          "y": 1.25
+        }
+      ]
+    },
+    "turret": {
+      "modules": [
+        {
+          "kind": "turret",
+          "x": 0.5,
+          "y": -0.25,
+          "angle": 90,
+          "length": 2,
+          "width": 3,
+          "barrels": 2,
+          "targeting": {
+            "focusWeight": 0
+          }
+        }
+      ]
+    }
+  },
+  "modules": [
+    {
+      "kind": "core",
+      "x": -1,
+      "y": 0,
+      "length": 5,
+      "width": 8,
+      "reinforcement": 1.5
+    },
+    {
+      "kind": "hullBeam",
+      "x": 26.5,
+      "y": 0,
+      "angle": 0,
+      "length": 50,
+      "width": 8,
+      "barrels": 1,
+      "nozzle": 0.05,
+      "targeting": {
+        "coreWeight": 80,
+        "proximityWeight": 100
+      }
+    },
+    {
+      "use": "structure",
+      "x": 12.75,
+      "y": 4.75
+    },
+    {
+      "use": "structure",
+      "x": 12.75,
+      "y": -4.75,
+      "mirror": true
+    },
+    {
+      "kind": "thruster",
+      "x": -3.5,
+      "y": 0,
+      "angle": 0,
+      "length": 18,
+      "width": 11,
+      "nozzle": 0.5
+    },
+    {
+      "use": "structure2",
+      "x": -5.5,
+      "y": 8
+    },
+    {
+      "use": "structure2",
+      "x": -5.5,
+      "y": -8,
+      "mirror": true
+    },
+    {
+      "use": "thruster2",
+      "x": 48.5,
+      "y": 5.5
+    },
+    {
+      "use": "thruster2",
+      "x": 48.5,
+      "y": -5.5,
+      "angle": 0,
+      "mirror": true
+    }
+  ]
+}

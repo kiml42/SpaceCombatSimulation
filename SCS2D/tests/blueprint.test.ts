@@ -496,7 +496,6 @@ const FLEET: readonly BlueprintName[] = [
   'flatGunshipGrouped',
   'dinky',
   'catamaran',
-  'torch',
 ];
 
 /**
@@ -514,7 +513,7 @@ const FLEET: readonly BlueprintName[] = [
  * group or the other on purpose — see the test below that checks the two
  * cover every ship exactly once.
  */
-const SHOWCASE: readonly BlueprintName[] = ['xWing', 'ghost', 'tie', 'starDestroyer'];
+const SHOWCASE: readonly BlueprintName[] = ['xWing', 'ghost', 'tie', 'starDestroyer', 'torch', 'laserFrigate'];
 
 /**
  * Seeds: layouts that are somewhere for evolution to start rather than ships.
