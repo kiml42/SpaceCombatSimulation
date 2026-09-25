@@ -148,6 +148,7 @@ export function startEvolution(): void {
   const goalInput = el<HTMLSelectElement>('goal');
   const playButton = el<HTMLButtonElement>('play');
   const stepButton = el<HTMLButtonElement>('step');
+  const skipButton = el<HTMLButtonElement>('skip');
   const fitButton = el<HTMLButtonElement>('fit');
   const speedSelect = el<HTMLSelectElement>('speed');
   const modeSelect = el<HTMLSelectElement>('mode');
@@ -177,6 +178,11 @@ export function startEvolution(): void {
   let replay: Match | null = null;
   let replayOf: MatchRecord | null = null;
   let replayPlaying = true;
+  /**
+   * Whether the match being watched has been given up on, and the next one
+   * the run finishes should go on in its place.
+   */
+  let skipping = false;
   let watchedMatch: Match | null = null;
   // Which generation the results panel is showing, or -1 to follow the newest.
   let shown = -1;
@@ -446,6 +452,32 @@ export function startEvolution(): void {
     replayPlaying = false;
     playButton.textContent = 'Play';
     if (replay !== null && !replay.done) replay.advance();
+  });
+
+  /**
+   * Give up on the match being watched and put another on.
+   *
+   * Plenty of matches are nothing to watch — early on, two ships that cannot
+   * steer drifting apart until the clock runs out — and without this the only
+   * way past one is to sit through it at whatever speed the viewer allows.
+   * Skip takes the next match of the generation on show; if the run has not
+   * fought one yet, it waits and takes whatever the run finishes next, rather
+   * than holding on a battle already given up on.
+   */
+  skipButton.addEventListener('click', () => {
+    if (run === null) return;
+    const { rows, matches } = showing();
+    const at = replayOf === null ? -1 : matches.indexOf(replayOf);
+    // Round the list when there will be no later match: a finished or
+    // paused run is a fixed set to look through rather than a stream.
+    const next = matches[at + 1] ?? (run.done || paused ? matches[0] : undefined);
+    if (next !== undefined && next !== replayOf) {
+      startReplay(next, rows);
+      return;
+    }
+    skipping = true;
+    replayPlaying = true;
+    playButton.textContent = 'Pause';
   });
 
   view.addEventListener('wheel', (event) => {
@@ -867,6 +899,7 @@ export function startEvolution(): void {
     replay = new Match(entrants, { ...run.config.match, seed: record.seed });
     replayOf = record;
     replayPlaying = true;
+    skipping = false;
     playButton.textContent = 'Pause';
     // Asked for a battle, so show one: a match clicked in the list is the
     // whole reason the viewer is there.
@@ -884,6 +917,9 @@ export function startEvolution(): void {
     const live = run !== null && !run.done && index >= run.generations.length;
     fightingLabel.textContent = live ? ' · fighting' : '';
     latestButton.disabled = run === null || shown < 0;
+    // Nothing to skip to once a run is over and the generation on show
+    // fought one match: the list is all there will ever be.
+    skipButton.disabled = run === null || (run.done && matches.length < 2);
 
     fleetTarget = Infinity;
     for (const row of rows) {
@@ -1054,6 +1090,7 @@ export function startEvolution(): void {
     shown = -1;
     replay = null;
     replayOf = null;
+    skipping = false;
     editsLine.textContent = '';
     watch(null);
     fleetBox.replaceChildren();
@@ -1119,11 +1156,11 @@ export function startEvolution(): void {
       }
     }
 
-    if (replay !== null && replay.done && replayPlaying) {
+    if (replay !== null && replayPlaying && (replay.done || skipping)) {
       rollOn();
     }
 
-    if (replay !== null && replayPlaying && !replay.done) {
+    if (replay !== null && replayPlaying && !replay.done && !skipping) {
       const speed = Number(speedSelect.value);
       accumulator += elapsed * speed;
       let steps = 0;
@@ -1202,6 +1239,8 @@ export function startEvolution(): void {
     if (modeSelect.value !== 'battle') {
       const shown = showing();
       watchingLabel.textContent = `${shown.rows.length} ships of generation ${shown.index + 1}`;
+    } else if (skipping) {
+      watchingLabel.textContent = 'skipped · waiting for the next match';
     } else if (replay !== null) {
       watchingLabel.textContent =
         `${(replayOf?.competitors ?? []).join(' v ')} · ${(replay.progress * 100).toFixed(0)}%` +

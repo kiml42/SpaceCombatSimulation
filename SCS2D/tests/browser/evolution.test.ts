@@ -429,6 +429,36 @@ describe('the evolution page in a browser', () => {
     expect(Math.max(...widths) / Math.min(...widths)).toBeGreaterThan(2);
     expect(problems).toEqual([]);
   }, 60_000);
+  it('skips a match nobody wants to watch, and puts another on', async () => {
+    // Most of what a run fights is not worth watching — two ships that
+    // cannot steer drifting apart until the clock runs out — and the page
+    // otherwise had no way out of one but to sit through it.
+    if (await page.isEnabled('#stop')) await page.click('#stop');
+    await page.selectOption('#founders', ['Dinky']);
+    await set(page, 'group', '2');
+    await set(page, 'minMatches', '2');
+    await set(page, 'generations', '1');
+    await page.click('#start');
+    await page.waitForFunction(() => document.querySelectorAll('#matches tr').length > 1);
+    await page.selectOption('#mode', 'battle');
+    await page.click('#matches tr');
+    const who = async (): Promise<string> =>
+      ((await page.textContent('#watching')) ?? '').split(' \u00b7 ')[0] ?? '';
+    await page.waitForFunction(() => /%/.test(document.getElementById('watching')?.textContent ?? ''));
+    const first = await who();
+
+    await page.click('#skip');
+    await page.waitForFunction(
+      (was) => (document.getElementById('watching')?.textContent ?? '').split(' \u00b7 ')[0] !== was,
+      first,
+      { timeout: 30_000 },
+    );
+    expect(await who()).not.toBe(first);
+    await set(page, 'group', '4');
+    await set(page, 'minMatches', '1');
+    expect(problems).toEqual([]);
+  }, 60_000);
+
   it('replays a match of one ship', async () => {
     if (await page.isEnabled('#stop')) await page.click('#stop');
     await page.selectOption('#founders', ['Dinky']);
