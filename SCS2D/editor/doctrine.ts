@@ -49,7 +49,7 @@ const TARGETING_ROWS: readonly DoctrineRow[] = [
   { field: 'coreWeight', label: 'aim: core', hint: 'How much it would rather hit the core it is flown from. Below zero is never', step: 10 },
   { field: 'engineWeight', label: 'aim: engines', hint: 'How much it would rather hit an engine. Below zero is never', step: 10 },
   { field: 'gunWeight', label: 'aim: guns', hint: 'How much it would rather hit a gun. Below zero is never', step: 10 },
-  { field: 'structureWeight', label: 'aim: structure', hint: 'How much it would rather hit plating. All four at zero shoots at the ship rather than a part of it; below zero is never — a ship with nothing else left is not a target for this mount at all, and refusing anything also makes it hold its fire until the part it aims at is under the muzzle rather than firing at the hull', step: 10 },
+  { field: 'structureWeight', label: 'aim: structure', hint: 'How much it would rather hit plating. All four at zero shoots at the ship rather than a part of it; zero is leave it alone — never aimed at, and a ship with nothing else left stops being a target — and below zero adds care at the trigger, holding fire until the part it aims at is under the muzzle rather than firing at anything on the hull', step: 10 },
 ];
 
 const APPROACH_ROWS: readonly DoctrineRow[] = [

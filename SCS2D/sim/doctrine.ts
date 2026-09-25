@@ -97,16 +97,29 @@ export interface Targeting {
    * the ship as a whole rather than at a part of it. That is the way out for
    * a doctrine that would rather not pick a smaller thing to miss.
    *
-   * **A negative weight means never**, which is a different statement from a
-   * small one: a beam that would rather not spend a shot on plating says so
-   * with a negative `structureWeight`, and then does not aim at plating even
-   * when there is nothing else left. A ship it has nothing left to shoot at
-   * stops being one of its targets — the mount takes another or trains back
-   * to rest — because a hull *is* its modules, and firing at the hull would
-   * be firing at what was refused. Zero is still "no preference, but
-   * allowed", so the two ends of "I do not care about this" stay
-   * distinguishable, which is what lets a lineage discover the difference
-   * rather than being given it.
+   * **A weight says one of three things, and the sign is which.**
+   *
+   * - *Above zero*: destroy this, and the more the sooner.
+   * - *Zero*: leave it alone. Not a poor ranking but a different statement —
+   *   the mount never aims at such a module, and a ship with nothing else
+   *   standing stops being one of its targets, since there is nothing on it
+   *   worth a shot. It is not being *careful*, though: against a ship that
+   *   does have something worth shooting it fires at anything on the hull.
+   * - *Below zero*: mind not to hit this. Everything zero says, and in
+   *   addition the mount stops firing at a hull and holds until the part it
+   *   chose is under the muzzle, so a stray round does not land on the thing
+   *   it is trying to spare.
+   *
+   * The distinction between the last two is what a laser fighter and a
+   * salvage tug both need and cannot share: one has no use for plating and
+   * will happily put rounds through it on the way to a gun, the other is
+   * trying not to cut the hull it means to tow home.
+   *
+   * **All four zero still means no opinion**, and a gun with no opinion
+   * shoots at the ship as a whole rather than at a part of it — there is
+   * nothing to be selective about when nothing has been chosen, so this stays
+   * the way out for a doctrine that would rather not pick a smaller thing to
+   * miss.
    */
   readonly coreWeight: number;
   readonly engineWeight: number;

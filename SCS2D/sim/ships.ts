@@ -259,12 +259,14 @@ function partWeight(doctrine: Targeting, kind: ModuleKind): number {
 }
 
 /**
- * Whether this doctrine refuses any kind of module outright.
+ * Whether this doctrine would rather not damage some kind of module.
  *
- * Asked before walking a target's modules, because refusing something is rare
- * — a beam's plating, and otherwise nothing — and the walk is per candidate
- * per mount. A doctrine that refuses nothing can shoot at any ship it can
- * reach, which is the answer without looking.
+ * The strongest of the three things an aim weight says, and the only one that
+ * reaches the trigger: **above zero is destroy this, zero is leave it alone,
+ * and below zero is mind not to hit it.** The first two are about what a
+ * mount aims at; the third is about what it might hit by accident, so a mount
+ * holding one waits until the part it chose is under the muzzle rather than
+ * firing at anything on the hull.
  */
 function refusesAnything(doctrine: Targeting): boolean {
   return (
@@ -1105,12 +1107,10 @@ export class Ships {
     for (let k = 0; k < design.modules.length; k++) {
       if (this.damage.spent(tb, k)) continue;
       const weight = partWeight(doctrine, design.modules[k]!.spec.kind);
-      // A negative weight is a refusal rather than a low ranking, which
-      // nothing else here can express: the best of a bad list is still chosen
-      // however bad the list is. A mount that refuses everything still
-      // standing on a ship has refused the ship, and the caller sends it
-      // elsewhere rather than to the hull.
-      if (weight < 0) continue;
+      // Only what this doctrine wants destroyed. Zero is not a poor ranking
+      // but a different statement — *not worth a shot* — and the best of a
+      // bad list would otherwise still be chosen however bad the list is.
+      if (weight <= 0) continue;
       const mx = bodies.x[tb]! + design.modules[k]!.x * c - design.modules[k]!.y * s;
       const my = bodies.y[tb]! + design.modules[k]!.x * s + design.modules[k]!.y * c;
       const range = length(mx - fromX, my - fromY);
@@ -1121,9 +1121,9 @@ export class Ships {
       bestWeight = weight;
       bestRange = range;
     }
-    // Everything left was refused, so there is nothing here to shoot at: not
-    // the hull either, since the hull is the modules this doctrine has just
-    // turned down.
+    // Nothing left that this doctrine wants destroyed, so there is nothing
+    // here to shoot at — not the hull either, since the hull is the modules
+    // it has just passed over.
     return best === WHOLE_SHIP ? NOTHING_AIMABLE : best;
   }
 
@@ -1137,11 +1137,11 @@ export class Ships {
    * fire, which is a gun taken out of the battle by its own doctrine.
    */
   private canAimAt(doctrine: Targeting, target: number, tb: number): boolean {
-    if (!refusesAnything(doctrine) || !picksParts(doctrine)) return true;
+    if (!picksParts(doctrine)) return true;
     const design = this.designs[target]!;
     for (let k = 0; k < design.modules.length; k++) {
       if (this.damage.spent(tb, k)) continue;
-      if (partWeight(doctrine, design.modules[k]!.spec.kind) >= 0) return true;
+      if (partWeight(doctrine, design.modules[k]!.spec.kind) > 0) return true;
     }
     return false;
   }

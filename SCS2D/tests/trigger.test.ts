@@ -217,6 +217,27 @@ describe('a part a doctrine refuses', () => {
     expect(willing.target).not.toBe(NO_TARGET);
   });
 
+  it('tells zero from below zero: leave it alone, against mind not to hit it', () => {
+    // Three meanings, and the middle one is the point. Zero is *not worth a
+    // shot*: the mount will not aim at such a module and a ship with nothing
+    // else left stops being a target, but it is not being careful — it goes
+    // on firing at anything on a hull that does have something worth
+    // shooting. Below zero is the careful one.
+    const onlyCore = [{ design: bareCore, x: 600, y: 0 }];
+    expect(facing({ coreWeight: 100 }, onlyCore).target).not.toBe(NO_TARGET);
+    expect(facing({ coreWeight: 0, gunWeight: 100 }, onlyCore).target).toBe(NO_TARGET);
+    expect(facing({ coreWeight: -1, gunWeight: 100 }, onlyCore).target).toBe(NO_TARGET);
+
+    // And the difference between the two of them is at the trigger, against a
+    // ship there *is* something to shoot at: the one that only declines to
+    // aim fires at anything on the hull, the one that minds fires at its
+    // part.
+    const range = 700;
+    const declines = slackAgainst(armed({ structureWeight: 0 }), range);
+    const minds = slackAgainst(armed({ structureWeight: -1 }), range);
+    expect(declines).toBeGreaterThan(minds * 2);
+  });
+
   it('sends the mount to something it will shoot at instead', () => {
     // Two marks, the nearer one nothing but a core it has refused. Proximity
     // would take the near one on every other measure, so this is the refusal

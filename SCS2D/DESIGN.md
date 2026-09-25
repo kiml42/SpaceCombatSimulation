@@ -166,11 +166,15 @@ inside any one file is not contiguous.
   hits that matter, and a core is the smallest and best-buried target of the four. It is also amidships,
   which is where the seams are: aiming there cuts spines, so hulls come apart far more often than they
   did when everyone shot at the guns. A doctrine that would rather not choose sets all four weights to
-  zero and shoots at the ship, and **a negative weight is a refusal rather than a low ranking** — a beam told
-  never to shoot at plating does not shoot at plating, and a ship with nothing else left standing is not a
-  target for that mount at all: it finds another, or trains back to its rest bearing. A hull is its modules,
-  so refusing every one of them refuses the ship, and firing at the hull instead would be firing at exactly
-  what was turned down. **It is a mount's to say and not a hull's**, since a ship chooses a ship and
+  zero and shoots at the ship. **The sign of a weight says which of three things it means**: above zero is
+  destroy this, zero is leave it alone, and below zero is mind not to hit it. A module rated zero is never
+  aimed at and does not keep a ship on the list — a hull with nothing else standing stops being a target,
+  and the mount finds another or trains back to its rest bearing, because a hull is its modules and firing
+  at the hull would be firing at what was passed over. Below zero adds care at the trigger: the mount stops
+  firing at anything on the hull and holds until the part it chose is under the muzzle, so a stray round
+  does not land on the thing it is sparing. That is the difference between a laser fighter, which has no use
+  for plating and will happily put rounds through it on the way to a gun, and something trying not to cut
+  open the hull it means to keep. **It is a mount's to say and not a hull's**, since a ship chooses a ship and
   only a gun chooses a part of one. Away from the default is where crippling beats killing: the Dinky's gun
   puts engines first, because a fighter that cannot destroy a capital can still strand one, and a beam goes
   for a ship's guns and engines because it arrives where it is pointed and can afford to be particular.
