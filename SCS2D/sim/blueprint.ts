@@ -7,6 +7,7 @@ import {
   isHullMount,
   mountTraverse,
   hullMountGeometry,
+  thrusterGeometry,
   weldBox,
   traverseAccel,
   traverseRate,
@@ -17,7 +18,7 @@ import {
 import { DEFAULT_DOCTRINE, resolveTargeting, type Doctrine, type Targeting } from './doctrine.js';
 import { ThrusterLayout, type ThrusterSpec } from './thrusters.js';
 import { HullPath } from './hull.js';
-import { exhaustObstruction } from './exhaust.js';
+import { exhaustObstruction, nozzleReach, WEAPON_PLUME_SHARE } from './exhaust.js';
 import type { TurretSpec } from './turrets.js';
 
 /**
@@ -342,7 +343,9 @@ export interface ShipDesign {
    * Derived from the guns themselves rather than configured: a round is worth
    * firing while the lead it needs is still a guess worth making, which is a
    * couple of seconds of flight, and a beam arrives instantly and is limited
-   * by how long it has to be held on one spot. Zero for a ship with no guns.
+   * by how long it has to be held on one spot. An engine marked as a weapon
+   * counts too, for as far as its flame is worth firing. Zero for a ship with
+   * neither.
    *
    * Doctrine's ranges are fractions of this, so one doctrine means the same
    * thing on a fighter and on a capital.
@@ -1413,7 +1416,14 @@ function designFrom(
 
   const weaponThrusters: number[] = [];
   for (let t = 0; t < thrusters.length; t++) {
-    if (thrusters[t]!.weapon === true) weaponThrusters.push(t);
+    const thruster = thrusters[t]!;
+    if (thruster.weapon !== true) continue;
+    weaponThrusters.push(t);
+    // As far as the flame lands the share it fires for, so a torch ship's
+    // doctrine closes to where its engine burns rather than to the skin.
+    const spec = modules[thruster.module ?? -1]?.spec;
+    if (spec === undefined) continue;
+    reach = max(reach, nozzleReach(thrusterGeometry(spec), thruster.maxThrust) * (1 - WEAPON_PLUME_SHARE));
   }
 
   // What each engine exhausts into, ray by ray. A plume needs it every step

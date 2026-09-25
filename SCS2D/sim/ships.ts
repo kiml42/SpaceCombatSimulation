@@ -110,13 +110,6 @@ const URGE_REFERENCE = 100;
 
 const TIMER_SETTLE = 1e-9;
 
-/**
- * Seconds over which a pilot aims to close the distance to its ordered band.
- * With `approachSpeed` as a cap, this is what makes the approach ease in
- * rather than arrive at full speed — the same reason a turret brakes into its
- * bearing instead of slamming against it.
- */
-const APPROACH_TIME = 8;
 
 /**
  * How far ahead a pilot looks for something it is about to run into, seconds.
@@ -626,7 +619,7 @@ export class Ships {
     return false;
   }
 
-  /** Returns true when the ship has no active weapons left */
+  /** Returns true when the ship has no active weapons left: no gun, and no weapon engine. */
   isDisarmed(i: number): boolean {
     if (this.alive[i] === 0) return true;
     if (this.derelict[i] === 1) return true;
@@ -639,6 +632,11 @@ export class Ships {
     const design = this.designs[i]!;
     for (let t = 0; t < design.turrets.length; t++) {
       if (!this.isTurretDisabled(i, t)) return false;
+    }
+    // An engine meant as a weapon is one while it can still burn.
+    for (const t of design.weaponThrusters) {
+      const module = design.thrusters[t]?.module ?? -1;
+      if (this.damage.remaining(b, module, DamageEffect.Thrust) > 0) return false;
     }
     return true;
   }
@@ -1631,7 +1629,8 @@ export class Ships {
       const tb = bodies.indexOf(this.bodyIds[target]!);
       if (tb >= 0) {
         wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!);
-        this.hold(bodies, b, tb, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE);
+        const time = this.designs[i]!.doctrine.approach.approachTime;
+        this.hold(bodies, b, tb, order.minRange, order.maxRange, order.approachSpeed, time, URGE_REFERENCE);
       }
     }
 
@@ -1811,6 +1810,7 @@ export class Ships {
     minRange: number,
     maxRange: number,
     approachSpeed: number,
+    approachTime: number,
     weight: number,
   ): void {
     if (!(weight > 0)) return;
@@ -1824,7 +1824,10 @@ export class Ships {
       const outside =
         range > maxRange ? range - maxRange : range < minRange ? range - minRange : 0;
       if (outside !== 0) {
-        const radial = clamp(outside / APPROACH_TIME, -approachSpeed, approachSpeed);
+        // Closing over `approachTime` rather than at the cap is what makes an
+        // approach ease in rather than arrive at full speed — the same reason
+        // a turret brakes into its bearing instead of slamming against it.
+        const radial = clamp(outside / approachTime, -approachSpeed, approachSpeed);
         vx += (dx / range) * radial;
         vy += (dy / range) * radial;
       }
@@ -1859,6 +1862,7 @@ export class Ships {
       0,
       station,
       approach.approachSpeed,
+      approach.approachTime,
       weight,
     );
     return consort;

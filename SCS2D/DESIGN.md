@@ -104,6 +104,12 @@ inside any one file is not contiguous.
   step cancelling. An engine that fires part of its exhaust into its own ship gets no thrust for that
   part, so a buried nozzle is a weak engine rather than a free one, and the editor says so beside the
   engine that is paying.
+  A weapon engine counts as armament to doctrine: a ship with one is not a hulk, and its reach includes
+  the inner half of the flame, where the burn is worth firing — so a craft whose only weapon is an engine
+  closes to where it burns rather than parking against the hull or sitting out at the plume's tip. The
+  `torchRun` scenario is the demonstration: small Torch ships with a big engine on the bow close fast on a
+  gunship, and the burn that scorches it brakes them, holds them off and shoves them back out, so they
+  hit and run without any rule saying so.
   **Hulls come apart, and it takes a blow to do it.** A ship is held together by welds derived from where
   its modules touch, each rated by its section. Damage decides how much of a weld is left; what spends it
   is the impulse that has to cross it, so a hit on an outlying module takes it off and the same hit
@@ -124,7 +130,9 @@ inside any one file is not contiguous.
   would otherwise park on one forever. What size of target a craft goes for is a ratio to its own mass — one meaning
   "something my own size", which sends a fighter after fighters and a capital after capitals without
   either being told. An order given always outranks it, so doctrine is a fallback and never
-  a second voice. The `standoff` scenario is the evidence: two fleets a kilometre apart, not one order
+  a second voice. How briskly it closes is doctrine too: `approachTime` is roughly the seconds it takes to
+  shut the gap to its band, so a long one eases in and a short one comes in fast and brakes late. The
+  `standoff` scenario is the evidence: two fleets a kilometre apart, not one order
   between them, and a battle anyway.
   **Every mount picks its own target**, through the same preferences the hull uses but from the mount's
   point of view: its own gun's reach, and nothing outside the arc it can train through — so a ship with an

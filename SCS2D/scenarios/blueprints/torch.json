@@ -1,0 +1,114 @@
+{
+  "formatVersion": 1,
+  "name": "Torch",
+  "notes": "A small craft whose weapon is an engine. The big engine on the bow faces forwards, so the same burn that scorches a target brakes the approach and then shoves the ship back out: it closes fast, burns, is pushed away, and comes round again.",
+  "doctrine": {
+    "targeting": {
+      "preferredMass": 20,
+      "massWeight": 150,
+      "proximityWeight": 60
+    },
+    "approach": {
+      "standoffRadii": 5,
+      "standoff": 0.5,
+      "tolerance": 0.3,
+      "approachSpeed": 120,
+      "approachTime": 3
+    }
+  },
+  "assemblies": {
+    "lateral": {
+      "modules": [
+        {
+          "kind": "thruster",
+          "x": 0,
+          "y": 0,
+          "angle": -90,
+          "length": 0.5,
+          "width": 0.6
+        }
+      ]
+    },
+    "main": {
+      "modules": [
+        {
+          "kind": "thruster",
+          "x": 0,
+          "y": 0,
+          "angle": 0,
+          "length": 2,
+          "width": 1.4
+        }
+      ]
+    }
+  },
+  "modules": [
+    {
+      "kind": "core",
+      "x": 0,
+      "y": 0,
+      "length": 1.5,
+      "width": 3,
+      "reinforcement": 2,
+      "notes": "Armoured, because the bow is always pointed at something with guns."
+    },
+    {
+      "kind": "structure",
+      "x": 1.75,
+      "y": 0,
+      "length": 2,
+      "width": 3,
+      "reinforcement": 3
+    },
+    {
+      "kind": "structure",
+      "x": -1.75,
+      "y": 0,
+      "length": 2,
+      "width": 3
+    },
+    {
+      "kind": "thruster",
+      "x": 2.75,
+      "y": 0,
+      "angle": 180,
+      "length": 6,
+      "width": 4,
+      "weapon": true,
+      "notes": "The weapon. Its thrust points aft, so firing it at a target is also braking, and holding it on is being pushed away.",
+      "reinforcement": 3
+    },
+    {
+      "use": "main",
+      "x": -2.75,
+      "y": 0.75
+    },
+    {
+      "use": "main",
+      "x": -2.75,
+      "y": -0.75
+    },
+    {
+      "use": "lateral",
+      "x": 2,
+      "y": 1.5
+    },
+    {
+      "use": "lateral",
+      "x": 2,
+      "y": -1.5,
+      "angle": 180
+    },
+    {
+      "use": "lateral",
+      "x": -2,
+      "y": 1.5
+    },
+    {
+      "use": "lateral",
+      "x": -2,
+      "y": -1.5,
+      "angle": 180
+    }
+  ]
+}

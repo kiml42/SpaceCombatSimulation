@@ -188,6 +188,12 @@ export interface Approach {
   readonly tolerance: number;
   /** How briskly to close the difference, metres per second. */
   readonly approachSpeed: number;
+  /**
+   * Seconds it aims to take closing the gap to its band, `approachSpeed` being
+   * the cap. Long eases in and arrives gently; short comes in fast and brakes
+   * late, which is what a craft that fights at arm's length wants.
+   */
+  readonly approachTime: number;
 }
 
 export interface Doctrine {
@@ -233,6 +239,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     separationRadii: 3,
     tolerance: 0.2,
     approachSpeed: 60,
+    approachTime: 8,
   },
 };
 
@@ -269,6 +276,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'separationRadii',
   'tolerance',
   'approachSpeed',
+  'approachTime',
 ];
 
 /**
@@ -284,6 +292,7 @@ export const POSITIVE_FIELDS: readonly string[] = [
   'standoffRadii',
   'escortRadii',
   'separationRadii',
+  'approachTime',
 ];
 
 /** Every number in a doctrine, named by its path, in a fixed order. */

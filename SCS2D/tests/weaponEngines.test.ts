@@ -186,6 +186,25 @@ describe('an engine marked as a weapon', () => {
   });
 });
 
+describe('an engine as the only weapon aboard', () => {
+  it('gives a ship a reach, out to where its flame is worth firing', () => {
+    // Doctrine's ranges are fractions of reach, so a gunless ship with a
+    // weapon engine has to have one or it is sent to sit against the hull.
+    expect(compileBlueprint(tug(true)).reach).toBeCloseTo(usefulReach(), 9);
+    expect(compileBlueprint(tug(false)).reach).toBe(0);
+  });
+
+  it('counts as armed, so it picks fights and is picked on', () => {
+    const world = new World({ dt: DT, seed: 4 });
+    const ships = new Ships();
+    const armed = ships.spawn(world, { design: compileBlueprint(tug(true)), x: 0, y: 0, team: 0 });
+    const unarmed = ships.spawn(world, { design: compileBlueprint(tug(false)), x: 50, y: 0, team: 0 });
+    world.step();
+    expect(ships.isDisarmed(armed)).toBe(false);
+    expect(ships.isDisarmed(unarmed)).toBe(true);
+  });
+});
+
 describe('the flag itself', () => {
   it('lies dormant on anything but an engine, and never reaches a file', () => {
     // Only an engine has a plume to point, so on anything else the flag is

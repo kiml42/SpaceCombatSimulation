@@ -18,6 +18,7 @@ import { beamDuel } from '../../scenarios/beamDuel.js';
 import { soloOrdering } from '../../scenarios/ordering.js';
 import { ram } from '../../scenarios/ram.js';
 import { standoff } from '../../scenarios/standoff.js';
+import { torchRun } from '../../scenarios/torchRun.js';
 import { column } from '../../scenarios/column.js';
 import { split } from '../../scenarios/split.js';
 import { swarm } from '../../scenarios/swarm.js';
@@ -385,6 +386,19 @@ export function standoffScenario(seed = 20260905): ScenarioRun {
   };
 }
 
+export function torchRunScenario(seed = 20260905): ScenarioRun {
+  const run = torchRun(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function splitScenario(seed = 20260905): ScenarioRun {
   const run = split(seed);
   return {
@@ -468,6 +482,7 @@ export const SCENARIOS = {
   standoff: { steps: 3_000, build: () => standoffScenario() },
   column: { steps: 3_000, build: () => columnScenario() },
   split: { steps: 3_000, build: () => splitScenario() },
+  torchRun: { steps: 3_000, build: () => torchRunScenario() },
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;

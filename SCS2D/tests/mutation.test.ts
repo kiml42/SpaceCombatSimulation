@@ -229,7 +229,9 @@ describe('mutation', () => {
     const rng = new Rng(43);
     let moved = false;
     let held = parent;
-    for (let i = 0; i < 200 && !moved; i++) {
+    // How long it takes depends on how many knobs there are to draw from, so
+    // the cap is generous: the claim is only that zero is not a trap.
+    for (let i = 0; i < 400 && !moved; i++) {
       held = mutate(held, rng).blueprint;
       if (held.doctrine!.targeting.gunWeight !== 0) moved = true;
     }
