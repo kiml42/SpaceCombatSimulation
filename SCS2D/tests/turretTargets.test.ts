@@ -3,6 +3,7 @@ import {
   blueprintFileProblem,
   compileBlueprint,
   DEFAULT_DOCTRINE,
+  defaultTargeting,
   isWeaponMount,
   NO_TARGET,
   parseBlueprint,
@@ -192,21 +193,27 @@ describe('a mount choosing its own target', () => {
 });
 
 describe('a mount with a doctrine of its own', () => {
-  it('says only what it wants differently, and its ship covers the rest', () => {
-    // The whole reason a mount's block is a partial: a hull whose doctrine
-    // changes takes its guns with it, except where a gun has an opinion.
+  it('says only what it wants differently, and its archetype covers the rest', () => {
+    // The whole reason a mount's block is a partial — and what it is a
+    // partial *over*: the kind of weapon it is, not the hull it is bolted to.
     const design = compileBlueprint(GUNSHIP);
+    const archetype = defaultTargeting('turret');
     const close = design.turrets[PORT]!.targeting;
-    expect(close.preferredMass).toBeLessThan(design.doctrine.targeting.preferredMass);
-    expect(close.proximityWeight).toBeGreaterThan(design.doctrine.targeting.proximityWeight);
-    expect(close.massWeight).toBe(design.doctrine.targeting.massWeight);
-    expect(close.closingWeight).toBe(design.doctrine.targeting.closingWeight);
+    expect(close.preferredMass).toBeLessThan(archetype.preferredMass);
+    expect(close.proximityWeight).toBeGreaterThan(archetype.proximityWeight);
+    expect(close.massWeight).toBe(archetype.massWeight);
+    expect(close.closingWeight).toBe(archetype.closingWeight);
     // And where it does have an opinion, it overrides: a close-in gun takes
     // no interest in what the ship as a whole is fighting.
     expect(close.focusWeight).toBe(0);
-    expect(design.doctrine.targeting.focusWeight).toBeGreaterThan(0);
-    // And a mount with nothing to say is its ship, exactly.
-    expect(design.turrets[NOSE]!.targeting).toEqual(design.doctrine.targeting);
+    expect(archetype.focusWeight).toBeGreaterThan(0);
+    // A mount with nothing to say is its archetype exactly — and that is not
+    // its ship, which is the change: the gunship's nose gun holds the fleet
+    // together through `focusWeight` rather than by inheriting the hull.
+    expect(design.turrets[NOSE]!.targeting).toEqual(defaultTargeting('turret'));
+    expect(design.turrets[NOSE]!.targeting.focusWeight).toBeGreaterThan(
+      design.doctrine.targeting.focusWeight,
+    );
   });
 
   it('reaches every copy of a shared mount', () => {

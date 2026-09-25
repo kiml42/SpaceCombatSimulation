@@ -5,8 +5,7 @@
   "doctrine": {
     "targeting": {
       "preferredMass": 2.5,
-      "massWeight": 120,
-      "structureWeight": 0
+      "massWeight": 120
     }
   },
   "assemblies": {
@@ -88,7 +87,10 @@
           "width": 0.5,
           "barrels": 1,
           "nozzle": 0.15,
-          "traverse": 5
+          "traverse": 5,
+          "targeting": {
+            "structureWeight": 0
+          }
         }
       ]
     },

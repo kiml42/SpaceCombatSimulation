@@ -607,13 +607,15 @@ export interface ModuleSpec {
   traverse?: number;
 
   /**
-   * What this mount goes after, where it differs from its ship's doctrine.
+   * What this mount goes after, where it differs from its archetype's default.
    *
-   * Only the differences: a gun says what it wants differently and its hull's
-   * doctrine covers the rest, so a ship whose doctrine changes takes its guns
-   * with it. This is what makes a close-in mount a close-in mount — "go for
-   * something a twentieth my ship's mass" on the same hull whose main battery
-   * wants something its own size — rather than a second kind of turret.
+   * Only the differences, and the rest comes from the kind rather than from
+   * the hull: a mount answers "which of the things I can train on do I
+   * shoot", which is not the question its ship answers about where to fly,
+   * and `focusWeight` is what ties the two together. This is what makes a
+   * close-in mount a close-in mount — "go for something a twentieth my ship's
+   * mass" on the same hull whose main battery wants something its own size —
+   * rather than a second kind of turret.
    */
   targeting?: Partial<Targeting>;
 

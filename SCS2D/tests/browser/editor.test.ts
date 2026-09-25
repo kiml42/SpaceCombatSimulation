@@ -560,6 +560,72 @@ describe('the editor in a browser', () => {
     expect(await bore()).toBeLessThan(one);
   });
 
+  it('keeps doctrine shut and out of the way until it is asked for', async () => {
+    // The feature is meant to be ignorable: a ship can be drawn without this
+    // section ever being opened, and what it says while shut is which
+    // archetype is deciding rather than a number anyone has to read.
+    await openShip(page, 'Corvette');
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x, centre.y);
+    expect(await page.textContent('#propKind')).toBe('core');
+    // A core is asked what its ship does; it is not asked what it shoots at.
+    expect(await page.isHidden('#mountDoctrine')).toBe(true);
+    expect(await page.isHidden('#shipDoctrine')).toBe(false);
+    expect(await page.isHidden('#shipTargetingFields')).toBe(true);
+
+    await page.mouse.click(centre.x + 168, centre.y);
+    expect(await page.textContent('#propKind')).toBe('turret');
+    expect(await page.isHidden('#shipDoctrine')).toBe(true);
+    expect(await page.textContent('#mountDoctrineSummary')).toBe('turret default');
+    // Shut, so none of its thirteen boxes is between anyone and the layout.
+    expect(await page.isHidden('#mountDoctrineFields')).toBe(true);
+  });
+
+  it('states a gun’s preference, and takes it back out of the ship', async () => {
+    await openShip(page, 'Corvette');
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x + 168, centre.y);
+    await page.click('#mountDoctrine > summary');
+    expect(await page.isHidden('#mountDoctrineFields')).toBe(false);
+
+    // Empty over a placeholder of what happens anyway, which is how a box
+    // says "the archetype decides this" rather than "zero".
+    const box = page.locator('#doctrine-mount-focusWeight');
+    expect(await box.inputValue()).toBe('');
+    expect(await box.getAttribute('placeholder')).toBe('150');
+
+    await box.fill('0');
+    await page.dispatchEvent('#doctrine-mount-focusWeight', 'input');
+    expect(await page.textContent('#mountDoctrineSummary')).toBe('turret, 1 change');
+
+    // Clearing it takes the statement back out rather than writing a zero, so
+    // the ship goes back to carrying no opinion at all.
+    await box.fill('');
+    await page.dispatchEvent('#doctrine-mount-focusWeight', 'input');
+    expect(await page.textContent('#mountDoctrineSummary')).toBe('turret default');
+  });
+
+  it('edits the ship’s own doctrine from its core', async () => {
+    await openShip(page, 'Corvette');
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x, centre.y);
+    await page.click('#shipDoctrine > summary');
+    // The Corvette already says one thing — it fights above its weight — so
+    // the count is what the file states rather than nothing.
+    expect(await page.textContent('#shipDoctrineSummary')).toBe('1 change');
+    expect(await page.locator('#doctrine-targeting-preferredMass').inputValue()).toBe('3');
+
+    const box = page.locator('#doctrine-approach-standoff');
+    expect(await box.inputValue()).toBe('');
+    await box.fill('0.9');
+    await page.dispatchEvent('#doctrine-approach-standoff', 'input');
+    expect(await page.textContent('#shipDoctrineSummary')).toBe('2 changes');
+
+    await page.click('#shipDoctrineReset');
+    expect(await page.textContent('#shipDoctrineSummary')).toBe('default');
+    expect(await box.inputValue()).toBe('');
+  });
+
   it('sizes a module by a corner or an edge and turns it by its knob', async () => {
     // A ship of one module, so the camera's fit puts that module's centre at
     // the middle of the canvas and its handles can be worked out rather than

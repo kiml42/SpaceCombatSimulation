@@ -71,7 +71,13 @@ inside any one file is not contiguous.
   to the first one through what it touches — and each module a problem names is drawn
   in red on the ship, so the list says what is wrong and the picture says where. Undo and
   redo run throughout. Ships are opened from the built-in library or from browser
-  storage, saved back to it, and exported and imported as blueprint files. Each page
+  storage, saved back to it, and exported and imported as blueprint files.
+  **Doctrine is edited there too, and is meant to be ignorable**: a section that stays shut, on a weapon for
+  what it shoots at and on a core for what its ship does, saying while it is shut only whether this is the
+  archetype's own doctrine or how many numbers have been changed. Every box is empty over a placeholder of
+  what would happen anyway, so stating nothing is the ordinary case and clearing a box takes the statement
+  back out of the blueprint rather than freezing a number into it. A weapon is not offered the one field
+  only a hull reads, nor a hull the four only a gun reads. Each page
   builds to one self-contained HTML file.
   A shot's path through a ship is resolved to the modules it crosses, in order,
   with the face each is entered by — the geometry both halves of the damage
@@ -133,12 +139,19 @@ inside any one file is not contiguous.
   is fighting, is what keeps a broadside concentrated without tying it together; an order given is still
   obeyed by every mount that can train on it. How often a mount reconsiders is derived from the mount:
   half a circle of traverse plus a firing cycle, which is what it costs to swing onto something new and
-  get a shot away. **A mount can carry targeting preferences of its own**, written beside it in the
-  blueprint as only what it wants differently from its ship — so the gunship's eight-barrelled beam guns go
-  after whatever is small, close and still dangerous while its bow gun fights its own weight class, and a
-  hull whose doctrine changes takes its guns with it except where a gun has an opinion. Everything a mount
-  asks is measured from the gun rather than from the hull it is bolted to, which is both the truth and
-  what leaves a pair of beam guns taking a threat each rather than both piling onto one.
+  get a shot away. **A weapon starts from its archetype rather than from its ship**: a turret, a beam
+  turret, a hull gun and a hull beam each have a doctrine of their own, so a ship drawn without a doctrine
+  number on it still fights sensibly — a beam turret after what is small and quick, a hull gun after
+  something worth the shell. **A mount can carry targeting preferences of its own** on top of that, written
+  beside it in the blueprint as only what it wants differently from its archetype, so the gunship's
+  eight-barrelled guns go after whatever is small, close and still dangerous while its bow gun fights its
+  own weight class. What ties a fleet's guns to the fight its ships have picked is one preference rather
+  than inheritance — a mount would rather shoot at what its ship is fighting — and it is strongest on a
+  hull weapon, which the hull has to be pointed at something anyway. Everything a mount asks is measured
+  from the gun rather than from the hull it is bolted to, which is both the truth and what leaves a pair of
+  beam guns taking a threat each rather than both piling onto one. A hull's own doctrine answers a
+  different question — which ship to fly at — so the two halves no longer have to be written as one
+  compromise.
   **A gun holds its fire rather than shoot through its own side**: a straight cast from the muzzle at
   this instant, ignoring everyone's velocity, out to a moment of the round's flight for a gun and the
   whole length for a beam — which arrives instantly along all of it. What it is shooting at is never in
@@ -153,8 +166,9 @@ inside any one file is not contiguous.
   hits that matter, and a core is the smallest and best-buried target of the four. It is also amidships,
   which is where the seams are: aiming there cuts spines, so hulls come apart far more often than they
   did when everyone shot at the guns. A doctrine that would rather not choose sets all four weights to
-  zero and shoots at the ship. Away from the default is where crippling beats killing: the Dinky puts
-  engines first, because a fighter that cannot destroy a capital can still strand one.
+  zero and shoots at the ship. **It is a mount's to say and not a hull's**, since a ship chooses a ship and
+  only a gun chooses a part of one. Away from the default is where crippling beats killing: the Dinky's gun
+  puts engines first, because a fighter that cannot destroy a capital can still strand one.
   **A ship is flown from a core** (§4), and one whose cores have been shot out is a hulk with sound
   engines and sound guns — so a mission kill is a place on the hull rather than a tally of mounts, and a
   ship worth its mass carries a second core, because a hull cut between two of them is two ships. The

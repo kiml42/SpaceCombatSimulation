@@ -14,7 +14,13 @@ import {
   type ModuleSpec,
   type ModuleStats,
 } from './modules.js';
-import { DEFAULT_DOCTRINE, resolveTargeting, type Doctrine, type Targeting } from './doctrine.js';
+import {
+  DEFAULT_DOCTRINE,
+  defaultTargeting,
+  resolveTargeting,
+  type Doctrine,
+  type Targeting,
+} from './doctrine.js';
 import { ThrusterLayout, type ThrusterSpec } from './thrusters.js';
 import { HullPath } from './hull.js';
 import { exhaustObstruction } from './exhaust.js';
@@ -300,7 +306,7 @@ export interface DesignTurret {
   readonly gun: GunStats;
   /** How far this mount alone is worth shooting at, metres. */
   readonly reach: number;
-  /** What this mount goes after: its ship's doctrine, with its own overrides. */
+  /** What this mount goes after: its archetype's doctrine, with its own overrides. */
   readonly targeting: Targeting;
 }
 
@@ -1355,7 +1361,7 @@ function designFrom(
         },
         gun,
         reach: gunReach(gun),
-        targeting: resolveTargeting(spec.targeting, doctrine.targeting),
+        targeting: resolveTargeting(spec.targeting, defaultTargeting(spec.kind)),
       });
     } else if ((spec.kind === 'turret' || spec.kind === 'beamTurret') && s.gun !== null) {
       const gun = s.gun;
@@ -1403,7 +1409,7 @@ function designFrom(
         },
         gun,
         reach: gunReach(gun),
-        targeting: resolveTargeting(spec.targeting, doctrine.targeting),
+        targeting: resolveTargeting(spec.targeting, defaultTargeting(spec.kind)),
       });
     }
   }

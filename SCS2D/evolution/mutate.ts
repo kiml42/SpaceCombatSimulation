@@ -12,10 +12,14 @@ import {
 import {
   APPROACH_FIELDS,
   DEFAULT_DOCTRINE,
+  defaultTargeting,
+  MOUNT_TARGETING_FIELDS,
   POSITIVE_FIELDS,
+  SHIP_TARGETING_FIELDS,
   TARGETING_FIELDS,
   toDoctrine,
   type Doctrine,
+  type Targeting,
 } from '../sim/doctrine.js';
 import { abs, clamp, cos, floor, HALF_PI, max, PI, round, sin } from '../sim/math.js';
 import { degreesToRadians, radiansToDegrees } from '../sim/blueprintFile.js';
@@ -391,6 +395,7 @@ type Knob =
   | { readonly at: 'barrels'; readonly site: ModuleSite }
   | { readonly at: 'nozzle'; readonly site: ModuleSite }
   | { readonly at: 'traverse'; readonly site: ModuleSite }
+  | { readonly at: 'gunnery'; readonly site: ModuleSite }
   | { readonly at: 'weapon'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
@@ -415,7 +420,10 @@ interface InstanceSite {
 
 function knobs(draft: Draft): Knob[] {
   const out: Knob[] = [];
-  for (const field of TARGETING_FIELDS) out.push({ at: 'doctrine', half: 'targeting', field });
+  // Only what a hull reads: a ship's aim weights choose a part of a target,
+  // and nothing but a mount does that — a knob on one would be a draw that
+  // cannot change the battle, and an edit accepted for changing nothing.
+  for (const field of SHIP_TARGETING_FIELDS) out.push({ at: 'doctrine', half: 'targeting', field });
   for (const field of APPROACH_FIELDS) out.push({ at: 'doctrine', half: 'approach', field });
 
   for (const list of draft.lists) {
@@ -446,7 +454,7 @@ function knobs(draft: Draft): Knob[] {
         // How much arc a weapon is built for, which on a hull mount is mass
         // as well as coverage — a fixed gun carries no training gear, and
         // whether that trade is worth taking is exactly what a run is for.
-        out.push({ at: 'traverse', site });
+        out.push({ at: 'traverse', site }, { at: 'gunnery', site });
       }
       if (isHullMount(placement.kind)) {
         // How much of the mount is barrel is the archetype's real knob, and
@@ -465,6 +473,38 @@ function knobs(draft: Draft): Knob[] {
   return out;
 }
 
+/**
+ * Turn one of a mount's own targeting numbers.
+ *
+ * **One knob with the field drawn inside it, rather than a knob per field.**
+ * Everywhere else in here a knob is a field, so that a ship with more
+ * geometry has its geometry mutated more often — but a mount has twelve
+ * numbers of its own, so a broadside of eight would have its gunnery turned
+ * five times as often as everything about the hull put together.
+ *
+ * A value that lands back on what the archetype does is taken out rather than
+ * written down, so a lineage that has wandered back to the default says so,
+ * and the block a mount carries stays the list of things it actually wants
+ * differently.
+ */
+function retarget(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const field = MOUNT_TARGETING_FIELDS[rng.nextInt(MOUNT_TARGETING_FIELDS.length)]!;
+  const base = defaultTargeting(site.spec.kind) as unknown as Record<string, number>;
+  const held = site.spec.targeting as Record<string, number> | undefined;
+  const was = held?.[field] ?? base[field]!;
+  const scale = max(abs(was), abs(base[field]!)) || TYPICAL.targeting;
+  let now = was + bounds.magnitude * scale * rng.nextRange(-1, 1);
+  if (POSITIVE_FIELDS.includes(field)) now = max(now, 0.01);
+  const tidied = tidy(now, 3);
+  if (tidied === was) return null;
+  const next: Record<string, number> = { ...held };
+  if (tidied === base[field]) delete next[field];
+  else next[field] = tidied;
+  if (Object.keys(next).length === 0) delete site.spec.targeting;
+  else site.spec.targeting = next as Partial<Targeting>;
+  return `${site.where} ${site.spec.kind}: ${field} ${was} → ${tidied}`;
+}
+
 function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
   switch (knob.at) {
     case 'doctrine':
@@ -477,6 +517,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return rebarrel(knob.site, rng);
     case 'nozzle':
       return rebell(knob.site, rng, bounds);
+    case 'gunnery':
+      return retarget(knob.site, rng, bounds);
     case 'traverse':
       return retrain(knob.site, rng, bounds);
     case 'weapon':
