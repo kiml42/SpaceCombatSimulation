@@ -370,9 +370,13 @@ describe('the evolution page in a browser', () => {
     await page.click('#measure');
     // Waited on the line rather than the button, because the line is what
     // this asserts about — and a wait on something else is a wait that passes
-    // while the thing under test has not happened yet.
+    // while the thing under test has not happened yet. It says "beat it"
+    // while still measuring too, so the wait is for it to stop saying so.
     await page.waitForFunction(
-      () => /beat it/.test(document.getElementById('yardstickLine')?.textContent ?? ''),
+      () => {
+        const text = document.getElementById('yardstickLine')?.textContent ?? '';
+        return /beat it/.test(text) && !/measuring/.test(text);
+      },
       undefined,
       { timeout: 120_000 },
     );

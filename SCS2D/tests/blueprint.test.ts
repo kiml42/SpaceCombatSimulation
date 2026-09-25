@@ -496,6 +496,7 @@ const FLEET: readonly BlueprintName[] = [
   'flatGunshipGrouped',
   'dinky',
   'catamaran',
+  'torch',
 ];
 
 /**
@@ -550,7 +551,7 @@ describe('the authored blueprints', () => {
         expect(design.thrusterLayout.maxTorque(-1)).toBe(0);
       });
 
-      it.skipIf(!canFly)('compiles to a ship that can fly and shoot', () => {
+      it.skipIf(!canFly)('compiles to a ship that can fly and fight', () => {
         const design = compileBlueprint(blueprint);
 
         expect(design.mass).toBeGreaterThan(0);
@@ -578,8 +579,10 @@ describe('the authored blueprints', () => {
           expect(design.thrusterLayout.hasFullAuthority()).toBe(true);
         }
 
-        expect(design.turrets.length).toBeGreaterThan(0);
-        // Something aboard has to be able to shoot; on a fleet ship, every
+        // Something to fight with: a gun, or an engine meant as a weapon.
+        expect(design.turrets.length + design.weaponThrusters.length).toBeGreaterThan(0);
+        if (design.turrets.length === 0) return;
+        // A gun aboard has to be able to shoot; on a fleet ship, every
         // mount does. A showpiece is allowed a gun that is boxed in and
         // trains on nothing — the Ghost's dorsal turret is exactly that, and
         // says so in its own notes — because what fixes it is masking by what

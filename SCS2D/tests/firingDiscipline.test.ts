@@ -207,6 +207,9 @@ describe('a fleet in line ahead', () => {
 
     let ownSide = 0;
     let landed = 0;
+    // Rounds rather than hits: one that goes on through a hull into the next
+    // step's module registers twice, and it is one decision to fire.
+    const lastHit = new Map<number, number>();
     // Ten seconds: long enough for the columns to open fire on each other,
     // short enough that they are still columns. After that it is a melee, and
     // what a melee does to a fleet's own side is a question about the melee.
@@ -217,7 +220,10 @@ describe('a fleet in line ahead', () => {
         const victim = shipOf(run, run.hits.body[h]!);
         if (shooter < 0 || victim < 0) continue;
         landed++;
-        if (run.ships.teamOf(shooter) === run.ships.teamOf(victim)) ownSide++;
+        const round = run.hits.projectile[h]!;
+        const again = lastHit.get(round) === step - 1;
+        lastHit.set(round, step);
+        if (!again && run.ships.teamOf(shooter) === run.ships.teamOf(victim)) ownSide++;
       }
     }
 

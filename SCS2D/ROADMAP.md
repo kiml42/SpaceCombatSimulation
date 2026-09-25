@@ -203,6 +203,23 @@ The remaining pickers and the order weight should follow the shape already there
 
 Deliberately unresolved; decide when they block something.
 
+- **Turning to brake.** A craft brakes facing whatever it is fighting, on what it has pointing that way,
+  because targeting alone decides its heading. One whose big engines are all at the back plans on a sliver
+  of retro, so it creeps in, and one with no retro at all has only `BRAKE_FLOOR` in `sim/ships.ts` to set
+  out on, which overshoots. The alternative is a pilot that turns its mains towards the target when the
+  stopping curve asks for more than its retros give, losing its guns while it does — likely a doctrine
+  choice, "flip to brake" against "brake facing", since which is better depends on the layout. It needs
+  heading logic of its own, and `BRAKE_FLOOR` goes when it lands.
+- **Whether a beam should have an opinion about where it hits.** Each archetype now carries its own
+  targeting, and a beam turret's is the one where the obvious default was left untaken. The argument for
+  taking it is good: picking a part costs accuracy, a beam turret is the mount that answers what is small
+  and quick, and a fighter is already a small thing to miss — so all four aim weights at zero, meaning
+  *shoot at the ship*, reads as the honest default for the archetype. Measured, it is not a small change:
+  `beamVGun` goes from 123 rounds and 204 hits to 262 and 451, because a beam that stops stripping mounts
+  starts boiling through seams and cutting hulls into pieces, and there are then more things to shoot at.
+  That is a balance decision about what beams are *for*, and it wants the fleet in front of it rather than
+  a place in a change about where a mount's defaults come from. The same question hangs over `hullBeam`,
+  which has the same physics and a hull's aiming.
 - **A ship should say which way it fights as well as which way it accelerates.** A blueprint has one
   orientation, so the heading a pilot holds is the heading its engines push along — which is exactly wrong
   for a broadside, whose guns bear ninety degrees off the line it wants to travel. Two orientations in the

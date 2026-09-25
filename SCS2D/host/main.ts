@@ -11,6 +11,7 @@ import { ram } from '../scenarios/ram.js';
 import { standoff } from '../scenarios/standoff.js';
 import { column } from '../scenarios/column.js';
 import { split } from '../scenarios/split.js';
+import { torchRun } from '../scenarios/torchRun.js';
 import { draw } from '../render/canvas2d.js';
 import { frame, gridStep, moveWithVisibleShips, type Camera } from '../render/camera.js';
 import { el } from './dom.js';
@@ -55,6 +56,7 @@ export function start(): void {
     { name: 'Standoff', create: () => standoff(SEED) },
     { name: 'Line Ahead', create: () => column(SEED) },
     { name: 'Split', create: () => split(SEED) },
+    { name: 'Torch Run', create: () => torchRun(SEED) },
   ];
   let sceneIndex = 0;
   let state: Battle = scenes[sceneIndex].create();

@@ -476,6 +476,8 @@ describe('the editor in a browser', () => {
     // apart, so one step cannot serve both.
     // The camera eases onto a newly opened ship rather than jumping, so the
     // step is still the last ship's for a few frames — wait for it to settle.
+    // The step changes in jumps, so it can read the same twice mid-ease:
+    // settled means unchanged for a whole second.
     const stepFitTo = async (ship: string): Promise<number> => {
       await page.selectOption('#ship', ship);
       const centre = await canvasCentre(page);
@@ -483,10 +485,11 @@ describe('the editor in a browser', () => {
       const step = async (): Promise<number> =>
         Number(await page.getAttribute('#propLength', 'step'));
       let settled = await step();
-      for (let i = 0; i < 40; i++) {
+      let unchanged = 0;
+      for (let i = 0; i < 100 && unchanged < 20; i++) {
         await page.waitForTimeout(50);
         const now = await step();
-        if (now === settled) return settled;
+        unchanged = now === settled ? unchanged + 1 : 0;
         settled = now;
       }
       return settled;

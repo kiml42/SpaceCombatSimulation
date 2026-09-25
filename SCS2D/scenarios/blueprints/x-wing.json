@@ -1,11 +1,19 @@
 {
   "formatVersion": 1,
   "name": "X Wing",
-  "notes": "A fighter. It goes after other fighters, and shoots at what makes one dangerous rather than at what holds it together: a laser this light does nothing useful to a capital's plating, but it can strip the guns and engines off anything its own size — and off a capital, once its own size has run out.",
+  "notes": "A fighter. It goes after other fighters, and shoots at what makes one dangerous rather than at what holds it together: a laser this light does nothing useful to a capital's plating, but it can strip the guns and engines off anything its own size — and off a capital, once its own size has run out. It goes in fast and close, since a fighter that stands off from a capital is only a slower target.",
   "doctrine": {
     "targeting": {
-      "preferredMass": 0.4,
-      "massWeight": 120
+      "massWeight": 120,
+      "loyaltyWeight": 40,
+      "mobileWeight": 5,
+      "escortWeight": 4
+    },
+    "approach": {
+      "standoffRadii": 10,
+      "standoff": 0.2,
+      "approachSpeed": 250,
+      "brake": 1
     }
   },
   "assemblies": {
@@ -34,7 +42,7 @@
         },
         {
           "kind": "thruster",
-          "x": 1.75,
+          "x": 1.65,
           "y": 1.25,
           "angle": 0,
           "length": 6,
@@ -51,19 +59,14 @@
         },
         {
           "kind": "thruster",
-          "x": 2.25,
+          "x": 1.65,
           "y": 1.25,
           "angle": 180,
-          "length": 0.5,
-          "width": 1,
+          "length": 1,
+          "width": 1.4,
+          "barrels": 2,
+          "nozzle": 0.35,
           "notes": "A retro on the nose of each engine spine, so the ship can slow down as well as run away."
-        },
-        {
-          "kind": "structure",
-          "x": 2,
-          "y": 1.25,
-          "length": 0.5,
-          "width": 1.5
         },
         {
           "kind": "hullBeam",

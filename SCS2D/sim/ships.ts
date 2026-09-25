@@ -86,6 +86,22 @@ const ROUND_FLIGHT_TIME = 30;
 const VELOCITY_RESPONSE_TIME = 2;
 
 /**
+ * What a craft with nothing pointing the way it would brake plans to stop on,
+ * as a share of what it has pointing the other way. It has no such thing, so
+ * it overshoots and comes about; without it, it would never set out. A
+ * stop-gap until a craft can turn to brake (ROADMAP.md §12).
+ */
+const BRAKE_FLOOR = 0.25;
+
+/**
+ * How long a hull takes to settle the last few degrees onto its heading,
+ * seconds. Landing in a single step instead asks for full torque over a
+ * hundredth of a degree, and the hull rocks either side of its bearing with a
+ * pair of its engines at full — which is thrust the ship meant to brake with.
+ */
+const HEADING_SETTLE_TIME = 0.25;
+
+/**
  * How near zero a countdown has to get before it counts as finished, seconds.
  *
  * A timer set to a whole number of timesteps does not reach exactly zero by
@@ -110,13 +126,6 @@ const URGE_REFERENCE = 100;
 
 const TIMER_SETTLE = 1e-9;
 
-/**
- * Seconds over which a pilot aims to close the distance to its ordered band.
- * With `approachSpeed` as a cap, this is what makes the approach ease in
- * rather than arrive at full speed — the same reason a turret brakes into its
- * bearing instead of slamming against it.
- */
-const APPROACH_TIME = 8;
 
 /**
  * How far ahead a pilot looks for something it is about to run into, seconds.
@@ -126,6 +135,16 @@ const APPROACH_TIME = 8;
  * everybody's manoeuvring will have changed anyway.
  */
 const AVOID_HORIZON = 6;
+
+/**
+ * The sideways speed a craft asks for to get out of the way, m/s. Asked for
+ * within one response time, that is far more than any hull can push sideways,
+ * so it is a demand for everything it has that way. It is a want in the blend
+ * rather than a push on top, deliberately: a craft dodging stops pressing on
+ * towards its band, which is what keeps a crowd from piling up. A push on top
+ * measured six times the contacts in `superSwarm`.
+ */
+const DODGE_SPEED = 60;
 
 /** No order, or an order whose target has gone. */
 /**
@@ -664,7 +683,7 @@ export class Ships {
     return false;
   }
 
-  /** Returns true when the ship has no active weapons left */
+  /** Returns true when the ship has no active weapons left: no gun, and no weapon engine. */
   isDisarmed(i: number): boolean {
     if (this.alive[i] === 0) return true;
     if (this.derelict[i] === 1) return true;
@@ -677,6 +696,11 @@ export class Ships {
     const design = this.designs[i]!;
     for (let t = 0; t < design.turrets.length; t++) {
       if (!this.isTurretDisabled(i, t)) return false;
+    }
+    // An engine meant as a weapon is one while it can still burn.
+    for (const t of design.weaponThrusters) {
+      const module = design.thrusters[t]?.module ?? -1;
+      if (this.damage.remaining(b, module, DamageEffect.Thrust) > 0) return false;
     }
     return true;
   }
@@ -1657,7 +1681,7 @@ export class Ships {
    * One ship's pilot: hold the range band of its order, or of what doctrine
    * chose, and face the target.
    *
-   * It eases into the band, holds station by matching the target's velocity,
+   * It brakes into the band, holds station by matching the target's velocity,
    * and points the bow at whatever it is fighting, blended with escorting and
    * keeping clear. What to fight and how close to sit are doctrine's to say
    * (§2), not the pilot's; it only turns them into a demand wrench for the
@@ -1691,7 +1715,7 @@ export class Ships {
       const tb = bodies.indexOf(this.bodyIds[target]!);
       if (tb >= 0) {
         wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!);
-        this.hold(bodies, b, tb, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE);
+        this.hold(bodies, i, b, tb, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE);
       }
     }
 
@@ -1727,9 +1751,8 @@ export class Ships {
     const layout = this.layoutOf(i);
     const maxTorque = layout.maxTorque(error >= 0 ? 1 : -1);
     const maxAlpha = inertia > 0 ? maxTorque / inertia : 0;
-    const wantRate = error >= 0
-      ? brakingRate(error, maxAlpha, dt)
-      : -brakingRate(error, maxAlpha, dt);
+    const turn = min(brakingRate(error, maxAlpha, dt), (error >= 0 ? error : -error) / HEADING_SETTLE_TIME);
+    const wantRate = error >= 0 ? turn : -turn;
     const localTorque =
       dt > 0 ? (inertia * (wantRate - bodies.angularVel[b]!)) / dt : 0;
 
@@ -1853,19 +1876,22 @@ export class Ships {
    * Station-keeping is matching the other's velocity; closing or opening is
    * that plus a radial component. Inside the band a craft simply keeps pace,
    * which is what makes a range band a place to sit rather than a line to
-   * oscillate across. The closing speed tapers with how far outside the band
-   * it is instead of being the full approach speed right up to the edge, which
-   * is what stops a ship arriving at the band still doing 150 m/s, sailing
-   * through it, and settling into a limit cycle across it: `approachSpeed`
-   * is the cap rather than the demand.
+   * oscillate across.
    *
-   * Every positional want in the game is this one — an order, a charge to
-   * cover, and a neighbour to keep clear of are the same shape with different
-   * bands, and a craft that is avoiding something is station-keeping on it
-   * with a minimum range and no maximum.
+   * **The radial part is flown down a stopping curve.** A craft speeds up
+   * towards the band on `accelerate` of the thrust it has that way, holds
+   * `approachSpeed`, and starts braking where `brake` of what it has the
+   * other way will just stop it at the edge — so it arrives rather than
+   * sailing through, however far out it started. Both are read off the layout
+   * in the heading it is holding, since that is what it will have to do it
+   * with: a hull whose guns keep it facing its target brakes on its retros.
+   *
+   * Every positional want in the game is this one — an order and a charge to
+   * cover are the same shape with different bands.
    */
   private hold(
     bodies: Bodies,
+    i: number,
     b: number,
     other: number,
     minRange: number,
@@ -1884,12 +1910,48 @@ export class Ships {
       const outside =
         range > maxRange ? range - maxRange : range < minRange ? range - minRange : 0;
       if (outside !== 0) {
-        const radial = clamp(outside / APPROACH_TIME, -approachSpeed, approachSpeed);
-        vx += (dx / range) * radial;
-        vy += (dy / range) * radial;
+        // The way the band lies, and how fast this craft is already heading
+        // that way relative to the other.
+        const sense = outside > 0 ? 1 : -1;
+        const ux = (sense * dx) / range;
+        const uy = (sense * dy) / range;
+        const making = (bodies.vx[b]! - vx) * ux + (bodies.vy[b]! - vy) * uy;
+
+        const approach = this.designs[i]!.doctrine.approach;
+        const push = this.accelerationAlong(bodies, i, b, ux, uy);
+        const retro = max(this.accelerationAlong(bodies, i, b, -ux, -uy), BRAKE_FLOOR * push);
+        const accelerate = approach.accelerate * push;
+        const brake = approach.brake * retro;
+
+        // The fastest it can be making and still stop in the gap, allowing for
+        // the pilot taking its response time to answer. Braking itself is
+        // never capped: `brake` is what the curve plans on, and a craft that
+        // has fallen behind it spends whatever it has.
+        const lag = brake * VELOCITY_RESPONSE_TIME;
+        const gap = outside * sense;
+        const stopping = sqrt(2 * brake * gap + lag * lag) - lag;
+        let radial = min(approachSpeed, stopping);
+        // A share below one caps how much faster it asks to be going within
+        // one response time, which caps the push the pilot demands. At one it
+        // is left alone, since the layout is the cap then, and capping the want
+        // as well would only let a sideways correction crowd it out.
+        if (approach.accelerate < 1) {
+          radial = min(radial, max(making, 0) + accelerate * VELOCITY_RESPONSE_TIME);
+        }
+        vx += ux * radial;
+        vy += uy * radial;
       }
     }
     this.urge(weight, vx, vy);
+  }
+
+  /** How hard this craft can accelerate along a world direction as it lies, m/s². */
+  private accelerationAlong(bodies: Bodies, i: number, b: number, dirX: number, dirY: number): number {
+    const angle = bodies.angle[b]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    const force = this.layoutOf(i).maxThrustAlong(dirX * c + dirY * s, -dirX * s + dirY * c);
+    return force / bodies.mass[b]!;
   }
 
   /**
@@ -1912,15 +1974,7 @@ export class Ships {
     const gap = length(bodies.x[cb]! - bodies.x[b]!, bodies.y[cb]! - bodies.y[b]!);
     const weight = cohesionUrge(design.doctrine.targeting, gap, station);
     const approach = design.doctrine.approach;
-    this.hold(
-      bodies,
-      b,
-      cb,
-      0,
-      station,
-      approach.approachSpeed,
-      weight,
-    );
+    this.hold(bodies, i, b, cb, 0, station, approach.approachSpeed, weight);
     return consort;
   }
 
@@ -2014,8 +2068,8 @@ export class Ships {
       const soon = 1 - when / AVOID_HORIZON;
       this.urge(
         approach.separation * crowding * soon,
-        vx + awayX * approach.approachSpeed,
-        vy + awayY * approach.approachSpeed,
+        vx + awayX * DODGE_SPEED,
+        vy + awayY * DODGE_SPEED,
       );
     }
   }
