@@ -173,9 +173,10 @@ inside any one file is not contiguous.
   and the mount finds another or trains back to its rest bearing, because a hull is its modules and firing
   at the hull would be firing at what was passed over. Below zero adds care at the trigger: the mount stops
   firing at anything on the hull and holds until the part it chose is under the muzzle, so a stray round
-  does not land on the thing it is sparing. That is the difference between a laser fighter, which has no use
-  for plating and will happily put rounds through it on the way to a gun, and something trying not to cut
-  open the hull it means to keep. **It is a mount's to say and not a hull's**, since a ship chooses a ship and
+  does not land on the thing it is sparing. **That last one is for wanting a beaten ship rather than a dead
+  one** — more of a hull left to harvest, or a ship a player would rather disable than cut in half — which
+  is a campaign's concern rather than a battle's, and it is paid for in rate of fire, since a mount waiting
+  for one part is a mount not shooting at the rest. **It is a mount's to say and not a hull's**, since a ship chooses a ship and
   only a gun chooses a part of one. Away from the default is where crippling beats killing: the Dinky's gun
   puts engines first, because a fighter that cannot destroy a capital can still strand one, and a beam goes
   for a ship's guns and engines because it arrives where it is pointed and can afford to be particular.

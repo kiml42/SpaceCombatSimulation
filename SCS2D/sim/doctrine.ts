@@ -112,10 +112,13 @@ export interface Targeting {
    *   chose is under the muzzle, so a stray round does not land on the thing
    *   it is trying to spare.
    *
-   * The distinction between the last two is what a laser fighter and a
-   * salvage tug both need and cannot share: one has no use for plating and
-   * will happily put rounds through it on the way to a gun, the other is
-   * trying not to cut the hull it means to tow home.
+   * **The last is for wanting a beaten ship rather than a dead one**, which
+   * is a campaign's concern rather than a battle's: sparing a hull leaves
+   * more of it to harvest (§8's salvage), and there are ships a player would
+   * rather disable than cut in half. It costs rate of fire to ask for, since
+   * a mount waiting for one part is a mount not shooting at the rest — which
+   * is why nothing fights this way by default and why it is worth having as
+   * a choice.
    *
    * **All four zero still means no opinion**, and a gun with no opinion
    * shoots at the ship as a whole rather than at a part of it — there is
