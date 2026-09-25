@@ -282,8 +282,15 @@ export const DEFAULT_DOCTRINE: Doctrine = {
  */
 const MOUNT_TARGETING: Record<string, Targeting> = {
   /**
-   * A gun turret trains all the way round and picks its own fight, so it
-   * differs from a ship only in wanting to be part of the ship's.
+   * A gun turret trains all the way round and picks its own fight, so what it
+   * differs from a ship in is wanting to be part of the ship's — and being
+   * careful where its rounds land.
+   *
+   * **A shot costs a reload**, which is the whole of why a gun is selective
+   * where a beam is not: a mount that has come round onto a target and is
+   * still loading has one round to spend when it is ready, and spending it on
+   * plating is spending the cycle it waited through. So it holds until what
+   * it chose is under the muzzle, and rates plating below nothing to say so.
    */
   turret: { ...DEFAULT_DOCTRINE.targeting, focusWeight: 150 },
   /**
@@ -294,13 +301,13 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
    * that exists to swat fighters is no use held on the capital everyone else
    * is shooting at.
    *
-   * **It takes a ship's teeth and legs off**, and holds its shot until it has
-   * one of them under the emitter. A beam arrives instantly along its whole
-   * length, so where it is pointed is where it lands — there is no flight
-   * time for a target to move out of, and no reason to accept a hole in the
-   * plating instead of the gun beside it. Plating is refused outright rather
-   * than merely rated low: a beam that has nothing better left shoots at the
-   * ship, which is worth more than boiling a hole in a girder.
+   * **It takes a ship's teeth and legs off**, and does not hold its fire to
+   * do it. Plating is rated zero — not worth aiming at, and not worth staying
+   * on a hull that has nothing else left — but no lower, because a beam that
+   * lights up while it is still training sweeps across everything between
+   * where it started and what it wants. That sweep is free: a beam burns
+   * continuously rather than in shots, so the burn spent getting there costs
+   * nothing that holding fire would have saved.
    */
   beamTurret: {
     ...DEFAULT_DOCTRINE.targeting,
@@ -312,13 +319,15 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
     gunWeight: 150,
     engineWeight: 120,
     coreWeight: 40,
-    structureWeight: -1,
+    structureWeight: 0,
   },
   /**
    * A hull gun is aimed by the hull: a few degrees of training either side,
    * and a bore that wants something worth the shell. So it goes after the
    * ship's fight harder than anything else does, and after size rather than
-   * proximity — what is close is already what its arc has decided.
+   * proximity — what is close is already what its arc has decided. It is as
+   * careful with a round as any gun, and more so by disposition: the shell is
+   * bigger and the cycle longer.
    */
   hullGun: {
     ...DEFAULT_DOCTRINE.targeting,
@@ -327,7 +336,7 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
   },
   /**
    * The same mount with a beam in it: aimed by the hull, so focused like one,
-   * and as unwilling as any beam to spend a shot on plating.
+   * and lighting up early like any beam.
    */
   hullBeam: {
     ...DEFAULT_DOCTRINE.targeting,
@@ -339,7 +348,7 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
     gunWeight: 150,
     engineWeight: 120,
     coreWeight: 40,
-    structureWeight: -1,
+    structureWeight: 0,
   },
 };
 

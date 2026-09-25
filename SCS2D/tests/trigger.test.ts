@@ -15,7 +15,7 @@ import {
   type ShipDesign,
   type Targeting,
 } from '../sim/index.js';
-import { BARE_CORE, BEAM_GUNSHIP, CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
+import { BARE_CORE, CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
  * When a weapon pulls the trigger.
@@ -147,24 +147,28 @@ describe('what a doctrine will accept hitting', () => {
 });
 
 describe('a beam’s default', () => {
-  it('goes for guns and engines, and refuses plating outright', () => {
+  it('goes for guns and engines, and lights up while it is still training', () => {
     for (const kind of ['beamTurret', 'hullBeam'] as const) {
       const beam = defaultTargeting(kind);
       expect(beam.gunWeight).toBeGreaterThan(beam.coreWeight);
       expect(beam.engineWeight).toBeGreaterThan(beam.coreWeight);
-      // Negative rather than zero: a beam with nothing better left shoots at
-      // the ship instead of boiling a hole in a girder.
-      expect(beam.structureWeight).toBeLessThan(0);
+      // Zero rather than below it: plating is not worth aiming at and not
+      // worth staying on a stripped hull for, but a beam holding its fire
+      // until a gun is under the emitter would throw away the sweep it makes
+      // on the way there — and that sweep costs it nothing, since a beam
+      // burns continuously rather than in shots.
+      expect(beam.structureWeight).toBe(0);
     }
-    // And that refusal is also what makes a beam hold its shot until it has
-    // a gun or an engine under the emitter, which it can afford to do
-    // because a beam arrives where it is pointed. A gun refuses nothing, so
-    // it fires at anything on the hull: a round that misses the mount and
-    // hits the ship beside it has still done a day's work.
-    const range = 700;
-    expect(slackAgainst(compileBlueprint(BEAM_GUNSHIP), range)).toBeLessThan(
-      slackAgainst(armed({}), range),
-    );
+    // Which is to say a beam refuses nothing, and so is no more selective at
+    // the trigger than a gun: both fire at anything on the hull they are
+    // pointed at. Stated over every weight rather than the one, since it is
+    // the absence of *any* refusal that leaves the trigger loose.
+    for (const kind of ['beamTurret', 'hullBeam'] as const) {
+      const beam = defaultTargeting(kind);
+      for (const weight of [beam.coreWeight, beam.engineWeight, beam.gunWeight, beam.structureWeight]) {
+        expect(weight).toBeGreaterThanOrEqual(0);
+      }
+    }
   });
 });
 
