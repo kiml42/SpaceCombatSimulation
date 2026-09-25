@@ -159,16 +159,37 @@ inside any one file is not contiguous.
   formation: fleets meeting line abreast have their friends beside them, and the `column` scenario is the
   same fleets in line ahead, where the opening ten seconds go from twenty hits on one's own side to none.
   **A doctrine also says which part of a ship to shoot at**, as a weight per kind of module. The default
-  is the core first, then guns, then engines, and structure a long way behind all three: a ship whose core
+  is the core first, then guns, then engines, and structure worth nothing at all: a ship whose core
   is out has stopped fighting altogether, one that cannot shoot has stopped being a threat, one that cannot
-  move has stopped being a problem, and structure is what is left when there is nothing better to hit.
+  move has stopped being a problem, and cutting plating stops a ship doing nothing — so no weapon aims at
+  it, and a hull with nothing else left standing is one every weapon turns away from.
   Picking a part costs accuracy — a part is a smaller thing to miss — so a fleet trades fewer hits for
   hits that matter, and a core is the smallest and best-buried target of the four. It is also amidships,
   which is where the seams are: aiming there cuts spines, so hulls come apart far more often than they
   did when everyone shot at the guns. A doctrine that would rather not choose sets all four weights to
-  zero and shoots at the ship. **It is a mount's to say and not a hull's**, since a ship chooses a ship and
+  zero and shoots at the ship. **The sign of a weight says which of three things it means**: above zero is
+  destroy this, zero is leave it alone, and below zero is mind not to hit it. A module rated zero is never
+  aimed at and does not keep a ship on the list — a hull with nothing else standing stops being a target,
+  and the mount finds another or trains back to its rest bearing, because a hull is its modules and firing
+  at the hull would be firing at what was passed over. Below zero adds care at the trigger: the mount stops
+  firing at anything on the hull and holds until the part it chose is under the muzzle, so a stray round
+  does not land on the thing it is sparing. **That last one is for wanting a beaten ship rather than a dead
+  one** — more of a hull left to harvest, or a ship a player would rather disable than cut in half — which
+  is a campaign's concern rather than a battle's, and it is paid for in rate of fire, since a mount waiting
+  for one part is a mount not shooting at the rest. **It is a mount's to say and not a hull's**, since a ship chooses a ship and
   only a gun chooses a part of one. Away from the default is where crippling beats killing: the Dinky's gun
-  puts engines first, because a fighter that cannot destroy a capital can still strand one.
+  puts engines first, because a fighter that cannot destroy a capital can still strand one, and a beam goes
+  for a ship's guns and engines because it arrives where it is pointed and can afford to be particular.
+  **A weapon fires when its shot would land on what its doctrine asked for**, which is the target's own
+  angular size rather than a fixed tolerance: a gun no longer waits to be trained on the exact centre of a
+  capital it could not miss, and a fighter with five degrees of traverse gets its shots away. **Which thing
+  has to be hit is the doctrine's own refusals rather than a setting beside them**: the question is whether
+  the shot would land on something the weapon is allowed to shoot at, and a mount that has refused nothing
+  is allowed to hit any part of that ship, so anywhere on the hull will do. One that has refused something
+  is sure only of the part it picked, and holds until that is under the muzzle. So a refusal says *mind
+  what you hit* in both senses at once, and a beam — which refuses plating — is selective without being
+  told twice. It is the trigger and not the aim, so a weapon that fires freely still walks its fire onto
+  what its doctrine wanted.
   **A ship is flown from a core** (§4), and one whose cores have been shot out is a hulk with sound
   engines and sound guns — so a mission kill is a place on the hull rather than a tally of mounts, and a
   ship worth its mass carries a second core, because a hull cut between two of them is two ships. The

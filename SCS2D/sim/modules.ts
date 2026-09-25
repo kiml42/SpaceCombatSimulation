@@ -816,6 +816,21 @@ export function moduleProblem(spec: ModuleSpec): string | null {
 
 /** The scaling laws, applied. Throws if the module could not exist. */
 /**
+ * How big a module is to something shooting at it: half its diagonal.
+ *
+ * A bounding circle rather than the box, because what asks is gunnery, where
+ * a target's *angular* size is the question and a box has no single one — it
+ * depends which way the module is turned relative to the gun. The circle is
+ * the box's worst case, so a weapon judging whether it would hit is generous
+ * by at most the difference between a square and the circle round it, and
+ * generous in the direction of a shot that lands somewhere on the ship rather
+ * than one held back over a rounding.
+ */
+export function moduleRadius(spec: ModuleSpec): number {
+  return sqrt(spec.length * spec.length + spec.width * spec.width) / 2;
+}
+
+/**
  * Where a module's box sits, which is its position for every kind but a
  * thruster — see `ModuleSpec.x`.
  *

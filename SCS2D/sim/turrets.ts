@@ -205,6 +205,21 @@ export class Turrets {
    */
   tolerance!: Float64Array;
   /**
+   * How far off the commanded bearing this mount will still fire, radians.
+   *
+   * **The size of what it is shooting at, rather than a constant.** A gun is
+   * on target when its shot would land on the thing it is aiming at, and how
+   * much error that allows is a question about the target: a capital at four
+   * hundred metres is degrees wide and a fighter at two kilometres is not.
+   * Held here rather than worked out at the trigger so that the barrel drawn
+   * as ready and the barrel that fires are the same barrel.
+   *
+   * Set by whoever aims the mount, since only they know what it is pointed
+   * at, and cleared when it gives up on a target. `onTarget` is the mechanical
+   * fact underneath — pointing where it was told — and stays exact.
+   */
+  fireSlack!: Float64Array;
+  /**
    * 1 when the last aim command lay outside the traverse arc. The turret slews
    * as close as it can, but a caller must not read `onTarget` as "may fire":
    * both have to hold.
@@ -256,6 +271,7 @@ export class Turrets {
     this.commandedRate = f64(this.commandedRate);
     this.onTarget = u8(this.onTarget);
     this.tolerance = f64(this.tolerance);
+    this.fireSlack = f64(this.fireSlack);
     this.blocked = u8(this.blocked);
     this.alive = u8(this.alive);
 
@@ -290,6 +306,7 @@ export class Turrets {
     this.commandedRate[i] = 0;
     this.onTarget[i] = 1;
     this.tolerance[i] = ON_TARGET_FLOOR;
+    this.fireSlack[i] = 0;
     this.blocked[i] = 0;
     this.alive[i] = 1;
     this.count++;
@@ -394,6 +411,17 @@ export class Turrets {
   returnToRest(i: number): void {
     this.setCommand(i, this.restBearing[i]!, 0);
     this.blocked[i] = 0;
+    this.fireSlack[i] = 0;
+  }
+
+  /**
+   * How far off the commanded bearing this mount may fire, this step.
+   *
+   * Whoever aims the mount says so, because the answer is the angular size of
+   * what it is pointed at and the mount does not know what that is.
+   */
+  allowSlack(i: number, radians: number): void {
+    this.fireSlack[i] = radians > 0 ? radians : 0;
   }
 
   /**
@@ -598,8 +626,19 @@ export class Turrets {
     out.vy = w * (out.x - bodies.x[b]!);
   }
 
-  /** Whether this turret may shoot: on target, and the target within its arc. */
+  /**
+   * Whether this turret may shoot: pointing closely enough at what it was
+   * aimed at, and that within its arc.
+   *
+   * "Closely enough" is the target's own angular size (`fireSlack`) rather
+   * than a constant, so a gun stops waiting to be trained on the exact centre
+   * of something it would hit anywhere. With no slack set it falls back to the
+   * mechanical tolerance, which is a mount pointing where it was told.
+   */
   readyToFire(i: number): boolean {
-    return this.alive[i] === 1 && this.onTarget[i] === 1 && this.blocked[i] === 0;
+    if (this.alive[i] !== 1 || this.blocked[i] === 1) return false;
+    if (this.onTarget[i] === 1) return true;
+    const slack = this.fireSlack[i]!;
+    return slack > 0 && abs(angleDelta(this.bearing[i]!, this.commanded[i]!)) <= slack;
   }
 }

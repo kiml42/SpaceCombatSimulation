@@ -138,12 +138,13 @@ describe('where a gun aims on a ship', () => {
     // is worth more only if you can reach it, and the tie-break — whatever is
     // nearest the gun — is what stops a ship drilling the length of a hull to
     // reach a core when there is a turret on the skin in front of it. After
-    // those, one that cannot move has stopped being a problem, and structure
-    // is what is left when there is nothing better to hit.
+    // those, one that cannot move has stopped being a problem — and plating
+    // is worth nothing at all, since cutting it stops a ship doing nothing.
     const parts = DEFAULT_DOCTRINE.targeting;
     expect(parts.coreWeight).toBe(parts.gunWeight);
     expect(parts.gunWeight).toBeGreaterThan(parts.engineWeight);
-    expect(parts.engineWeight).toBeGreaterThan(parts.structureWeight * 2);
+    expect(parts.engineWeight).toBeGreaterThan(0);
+    expect(parts.structureWeight).toBe(0);
 
     // And it trains on whichever of the two is nearer to it, which on this
     // capital is a mount on the skin rather than the core well inside it.

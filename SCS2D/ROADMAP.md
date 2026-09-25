@@ -203,16 +203,29 @@ The remaining pickers and the order weight should follow the shape already there
 
 Deliberately unresolved; decide when they block something.
 
-- **Whether a beam should have an opinion about where it hits.** Each archetype now carries its own
-  targeting, and a beam turret's is the one where the obvious default was left untaken. The argument for
-  taking it is good: picking a part costs accuracy, a beam turret is the mount that answers what is small
-  and quick, and a fighter is already a small thing to miss — so all four aim weights at zero, meaning
-  *shoot at the ship*, reads as the honest default for the archetype. Measured, it is not a small change:
-  `beamVGun` goes from 123 rounds and 204 hits to 262 and 451, because a beam that stops stripping mounts
-  starts boiling through seams and cutting hulls into pieces, and there are then more things to shoot at.
-  That is a balance decision about what beams are *for*, and it wants the fleet in front of it rather than
-  a place in a change about where a mount's defaults come from. The same question hangs over `hullBeam`,
-  which has the same physics and a hull's aiming.
+- **A ship should say which way it fights as well as which way it accelerates.** A blueprint has one
+  orientation, so the heading a pilot holds is the heading its engines push along — which is exactly wrong
+  for a broadside, whose guns bear ninety degrees off the line it wants to travel. Two orientations in the
+  design, an attack one and an acceleration one, would let a hull be flown along one and pointed along the
+  other. It also subsumes a case that otherwise wants a mechanism of its own: **a small ship with fixed guns
+  cannot currently choose a module on a large one**, because aiming a fixed gun is a question for the pilot
+  rather than the mount, and a pilot that knew what its guns wanted to hit would steer to put it under them.
+  Both are the same missing idea — that where a ship points is a decision, not a consequence of where it is
+  going. **The Dinky is the worked example**: its gun trains five degrees and its doctrine says engines, so
+  what it actually shoots is whatever the *hull* is pointed at, and the hull points at its target's centre.
+  **Which part a hull points at is a setting on the ship**, decided by the author against the alternative of
+  deriving it from what the ship's weapons want: a hull with several limited-traverse guns has no single
+  answer to derive from, and picking one would mean guessing which the designer meant as the main battery.
+  So a hull gets an aim preference of its own — the thing this codebase deliberately does *not* have today,
+  a ship choosing a part of another ship rather than a ship — and a gun that cannot train far follows it on
+  `focusWeight` alone, which is what that weight already does. Until it lands, such a preference belongs on
+  the gun, since on a hull it would be a number nothing reads.
+- **What a target's presented aspect is worth.** A weapon decides whether to fire from the bounding circle
+  of what it is shooting at, so a ship end-on is taken to be as wide as it is long. The error is in the
+  forgiving direction — a shot at a hull rather than a shot at nothing — but it means a fleet in line ahead
+  is no harder to hit than one abeam, which is a difference that ought to exist. What it needs is the
+  silhouette of a hull from a bearing, which the damage model's geometry can already answer for a ray and
+  would have to answer for a cone.
 - **Whether each core should carry a doctrine of its own.** The editor edits a ship's one doctrine from
   whichever core is selected, which is where it belongs for a ship that has one. A hull cut between two
   cores is two ships (§3's `split`), and those two halves currently fly away with the same doctrine — so a
