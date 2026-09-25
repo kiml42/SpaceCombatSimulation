@@ -96,6 +96,14 @@ export interface Targeting {
    * **All four zero means no opinion**, and a gun with no opinion shoots at
    * the ship as a whole rather than at a part of it. That is the way out for
    * a doctrine that would rather not pick a smaller thing to miss.
+   *
+   * **A negative weight means never**, which is a different statement from a
+   * small one: a beam that would rather not spend a shot on plating says so
+   * with a negative `structureWeight`, and then does not aim at plating even
+   * when there is nothing else left — it shoots at the ship instead. Zero is
+   * still "no preference, but allowed", so the two ends of "I do not care
+   * about this" stay distinguishable, which is what lets a lineage discover
+   * the difference rather than being given it.
    */
   readonly coreWeight: number;
   readonly engineWeight: number;
@@ -125,6 +133,25 @@ export interface Targeting {
    * fleet in the game would huddle.
    */
   readonly escortWeight: number;
+  /**
+   * How far from the part it is aiming at a shot may land, in multiples of the
+   * whole target's radius.
+   *
+   * **Zero is "hit what I aimed at or do not fire".** A weapon holds until its
+   * firing solution is inside the part's own angular size, which is what makes
+   * an aim weight mean something: a beam told to take a ship's guns off waits
+   * for a gun rather than boiling a hole in the plating beside one.
+   *
+   * One is "anywhere on that ship will do", and is what a weapon wants when a
+   * round that misses a mount and hits the hull beside it has still done a
+   * day's work. In between is the honest middle: near the part, but not
+   * insisting on it.
+   *
+   * **It is the trigger and not the aim.** The gun goes on pointing at the
+   * part it chose either way, so a loose weapon still walks its fire onto what
+   * its doctrine wants — it simply does not hold its shot while it gets there.
+   */
+  readonly spreadRadii: number;
 }
 
 /** How to fight it, once it has been chosen. */
@@ -223,6 +250,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     gunWeight: 100,
     structureWeight: 20,
     escortWeight: 0,
+    spreadRadii: 1,
   },
   approach: {
     standoffRadii: 50,
@@ -270,9 +298,13 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
    * that exists to swat fighters is no use held on the capital everyone else
    * is shooting at.
    *
-   * **It has no opinion about where on a target it lands**, which is the
-   * doctrine saying that picking a part costs accuracy and a fighter is
-   * already small enough to miss.
+   * **It takes a ship's teeth and legs off**, and holds its shot until it has
+   * one of them under the emitter. A beam arrives instantly along its whole
+   * length, so where it is pointed is where it lands — there is no flight
+   * time for a target to move out of, and no reason to accept a hole in the
+   * plating instead of the gun beside it. Plating is refused outright rather
+   * than merely rated low: a beam that has nothing better left shoots at the
+   * ship, which is worth more than boiling a hole in a girder.
    */
   beamTurret: {
     ...DEFAULT_DOCTRINE.targeting,
@@ -281,6 +313,11 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
     massWeight: 120,
     mobileWeight: 100,
     focusWeight: 30,
+    gunWeight: 150,
+    engineWeight: 120,
+    coreWeight: 40,
+    structureWeight: -1,
+    spreadRadii: 0,
   },
   /**
    * A hull gun is aimed by the hull: a few degrees of training either side,
@@ -293,7 +330,10 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
     massWeight: 80,
     focusWeight: 300,
   },
-  /** The same mount with a beam in it: aimed by the hull, so focused like one. */
+  /**
+   * The same mount with a beam in it: aimed by the hull, so focused like one,
+   * and as unwilling as any beam to spend a shot on plating.
+   */
   hullBeam: {
     ...DEFAULT_DOCTRINE.targeting,
     proximityWeight: 150,
@@ -301,6 +341,11 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
     massWeight: 80,
     mobileWeight: 60,
     focusWeight: 250,
+    gunWeight: 150,
+    engineWeight: 120,
+    coreWeight: 40,
+    structureWeight: -1,
+    spreadRadii: 0,
   },
 };
 
@@ -337,6 +382,7 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
   'gunWeight',
   'structureWeight',
   'escortWeight',
+  'spreadRadii',
 ];
 
 /**
@@ -348,7 +394,9 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
  * and two fields belong to only one of them:
  *
  * - `escortWeight` is a steering urge, and a mount steers nothing.
- * - the four aim weights choose a *part* of a target, which only a gun does.
+ * - the four aim weights choose a *part* of a target, which only a gun does,
+ *   and `spreadRadii` says how near that part a shot has to land — a hull
+ *   pulls no trigger.
  *
  * Stated here rather than filtered wherever it matters, because the editor
  * offering a field, mutation turning it and the simulation reading it have to
@@ -364,7 +412,8 @@ export const SHIP_TARGETING_FIELDS: readonly (keyof Targeting)[] = TARGETING_FIE
     field !== 'coreWeight' &&
     field !== 'engineWeight' &&
     field !== 'gunWeight' &&
-    field !== 'structureWeight',
+    field !== 'structureWeight' &&
+    field !== 'spreadRadii',
 );
 
 export const APPROACH_FIELDS: readonly (keyof Approach)[] = [

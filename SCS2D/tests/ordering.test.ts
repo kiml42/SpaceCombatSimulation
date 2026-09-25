@@ -49,8 +49,13 @@ describe('module ordering, one battle each', () => {
     for (const outcome of [control!, kinds!, assembled!]) {
       expect(outcome.fired).toBeGreaterThan(100);
       expect(outcome.hits).toBeGreaterThan(100);
-      // Started at x = -1800: a ship that never manoeuvred could not be here.
-      expect(outcome.x).toBeGreaterThan(0);
+      // Started at (-1800, -240): a ship that never manoeuvred could not be a
+      // kilometre and a half from there. Distance rather than a crossing of
+      // the origin, because how far it has to *close* is a consequence of how
+      // soon its guns start telling — this ship stops short now, having done
+      // its shooting on the way in.
+      const travelled = Math.hypot(outcome.x + 1800, outcome.y + 240);
+      expect(travelled).toBeGreaterThan(1500);
     }
   });
 

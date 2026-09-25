@@ -5,7 +5,7 @@ import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
 import { plumeRays, Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
 import { Choice, cohesionUrge, look, lookFrom, score } from './targeting.js';
-import { thrusterGeometry } from './modules.js';
+import { moduleRadius, thrusterGeometry } from './modules.js';
 import {
   atan2,
   angleDelta,
@@ -1073,6 +1073,12 @@ export class Ships {
     for (let k = 0; k < design.modules.length; k++) {
       if (this.damage.spent(tb, k)) continue;
       const weight = partWeight(doctrine, design.modules[k]!.spec.kind);
+      // A negative weight is a refusal rather than a low ranking: a beam told
+      // never to shoot at plating does not shoot at plating when the guns and
+      // engines are gone — it shoots at the ship, which is worth more than a
+      // hole in a girder. Nothing else here can express that, since the best
+      // of a bad list is still chosen however bad the list is.
+      if (weight < 0) continue;
       const mx = bodies.x[tb]! + design.modules[k]!.x * c - design.modules[k]!.y * s;
       const my = bodies.y[tb]! + design.modules[k]!.x * s + design.modules[k]!.y * c;
       const range = length(mx - fromX, my - fromY);
@@ -1964,6 +1970,8 @@ export class Ships {
   private trainOne(bodies: Bodies, i: number): void {
     const indices = this.turretIndex[i]!;
     const aiming = this.turretAiming[i]!;
+    const own = bodies.indexOf(this.bodyIds[i]!);
+    const mounts = this.designs[i]!.turrets;
     for (let t = 0; t < indices.length; t++) {
       const ti = indices[t]!;
       const target = this.turretAim(bodies, i, t);
@@ -2021,7 +2029,66 @@ export class Ships {
         sweepVy += spin * rx;
       }
       this.turrets.aimAt(bodies, ti, x, y, bodies.vx[tb]!, bodies.vy[tb]!, sweepVx, sweepVy);
+      // Measured from the gun, as everything a mount asks is: how big the
+      // target looks depends on how far away it is from the barrel.
+      this.locateMount(bodies, own, mounts[t]!);
+      this.turrets.allowSlack(
+        ti,
+        this.firingSlack(bodies, mounts[t]!.targeting, target, tb, part, x, y),
+      );
     }
+  }
+
+  /**
+   * How far off its aim point a mount may fire and still do what its doctrine
+   * asked, radians.
+   *
+   * **The angular size of what it is shooting at**, which is the whole of why
+   * a fixed tolerance was wrong: a gun trained to within a twentieth of a
+   * degree of the centre of a capital it could not miss was waiting for
+   * nothing, while the same tolerance on a fighter two kilometres off is
+   * looser than the target is wide.
+   *
+   * `spreadRadii` chooses which thing has to be hit. At zero it is the part —
+   * a beam told to take a ship's guns off holds until a gun is under the
+   * emitter. Above zero the ship will do, and the allowance is measured from
+   * the ship's centre rather than from the part, so a mount aiming at
+   * something out on a wing is not thereby allowed to shoot a ship's width
+   * past it: what is returned is the distance from the aim point to the
+   * nearer edge of the ship's cone, which is the most that can be allowed
+   * symmetrically and still land on the hull.
+   *
+   * Approximate on purpose, and in the forgiving direction: a bounding circle
+   * is not a silhouette, so a target seen end-on is taken to be as wide as it
+   * is long. What that costs is a shot sent at a ship that has presented its
+   * bow, which is a shot at a ship rather than a shot at nothing. ROADMAP §12
+   * holds the presented aspect.
+   */
+  private firingSlack(
+    bodies: Bodies,
+    doctrine: Targeting,
+    target: number,
+    tb: number,
+    part: number,
+    aimX: number,
+    aimY: number,
+  ): number {
+    const design = this.designs[target]!;
+    const range = length(aimX - this.gunPoint.x, aimY - this.gunPoint.y);
+    if (!(range > 0)) return 0;
+    const partRadius =
+      part === WHOLE_SHIP ? design.radius : moduleRadius(design.modules[part]!.spec);
+    const slack = atan2(partRadius, range);
+
+    const spread = doctrine.spreadRadii;
+    if (!(spread > 0)) return slack;
+
+    // How much of the ship's own cone is left once the aim point has been
+    // walked off its centre, which is what keeps a loose shot on the hull.
+    const offset = length(aimX - bodies.x[tb]!, aimY - bodies.y[tb]!);
+    const reach = spread * design.radius - offset;
+    const loose = reach > 0 ? atan2(reach, range) : 0;
+    return loose > slack ? loose : slack;
   }
 
   /**

@@ -166,9 +166,19 @@ inside any one file is not contiguous.
   hits that matter, and a core is the smallest and best-buried target of the four. It is also amidships,
   which is where the seams are: aiming there cuts spines, so hulls come apart far more often than they
   did when everyone shot at the guns. A doctrine that would rather not choose sets all four weights to
-  zero and shoots at the ship. **It is a mount's to say and not a hull's**, since a ship chooses a ship and
+  zero and shoots at the ship, and **a negative weight is a refusal rather than a low ranking** — a beam told
+  never to shoot at plating goes for the ship instead when the guns and engines are gone, rather than boiling
+  a hole in a girder. **It is a mount's to say and not a hull's**, since a ship chooses a ship and
   only a gun chooses a part of one. Away from the default is where crippling beats killing: the Dinky's gun
-  puts engines first, because a fighter that cannot destroy a capital can still strand one.
+  puts engines first, because a fighter that cannot destroy a capital can still strand one, and a beam goes
+  for a ship's guns and engines because it arrives where it is pointed and can afford to be particular.
+  **A weapon fires when its shot would land on what its doctrine asked for**, which is the target's own
+  angular size rather than a fixed tolerance: a gun no longer waits to be trained on the exact centre of a
+  capital it could not miss, and a fighter with five degrees of traverse gets its shots away. `spreadRadii`
+  says which thing has to be hit — the part it aimed at, or anywhere on the ship carrying it. Zero is what
+  makes an aim weight mean something, and is a beam's default; a gun's is one, since a round that misses a
+  mount and hits the hull beside it has still done a day's work. It is the trigger and not the aim, so a
+  loose weapon still walks its fire onto what it wanted.
   **A ship is flown from a core** (§4), and one whose cores have been shot out is a hulk with sound
   engines and sound guns — so a mission kill is a place on the hull rather than a tally of mounts, and a
   ship worth its mass carries a second core, because a hull cut between two of them is two ships. The

@@ -46,10 +46,11 @@ const TARGETING_ROWS: readonly DoctrineRow[] = [
   { field: 'mobileWeight', label: 'still mobile', hint: 'Prefer what can still get away', step: 10 },
   { field: 'focusWeight', label: "ship's fight", hint: 'Prefer what the ship as a whole is fighting: large, and the ship concentrates', step: 10 },
   { field: 'escortWeight', label: 'escort', hint: 'How much it would rather stay with a consort than go to the best fight it can find', step: 20 },
-  { field: 'coreWeight', label: 'aim: core', hint: 'How much it would rather hit the core it is flown from', step: 10 },
-  { field: 'engineWeight', label: 'aim: engines', hint: 'How much it would rather hit an engine', step: 10 },
-  { field: 'gunWeight', label: 'aim: guns', hint: 'How much it would rather hit a gun', step: 10 },
-  { field: 'structureWeight', label: 'aim: structure', hint: 'How much it would rather hit plating. All four at zero shoots at the ship rather than a part of it', step: 10 },
+  { field: 'coreWeight', label: 'aim: core', hint: 'How much it would rather hit the core it is flown from. Below zero is never', step: 10 },
+  { field: 'engineWeight', label: 'aim: engines', hint: 'How much it would rather hit an engine. Below zero is never', step: 10 },
+  { field: 'gunWeight', label: 'aim: guns', hint: 'How much it would rather hit a gun. Below zero is never', step: 10 },
+  { field: 'structureWeight', label: 'aim: structure', hint: 'How much it would rather hit plating. All four at zero shoots at the ship rather than a part of it; below zero is never, even when nothing else is left', step: 10 },
+  { field: 'spreadRadii', label: 'may stray', hint: 'How far from the part it aims at a shot may land, in multiples of the whole target\u2019s radius. 0 holds fire until it would hit that part; 1 fires whenever it would hit the ship', step: 0.25 },
 ];
 
 const APPROACH_ROWS: readonly DoctrineRow[] = [
