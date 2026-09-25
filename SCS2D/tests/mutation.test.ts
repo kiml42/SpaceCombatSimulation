@@ -415,9 +415,11 @@ describe('mutation', () => {
         { kind: 'structure', x: -3, y: 0, length: 2, width: 2 },
       ],
     });
+    // Every doctrine field is somewhere else a numeric edit can land, so this
+    // needs more draws the more of them there are.
     const rng = new Rng(7);
     let pushed = 0;
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 400; i++) {
       const child = mutate(packed, rng, { structural: 0, numbers: 1 });
       if (child.edits.some((edit) => /layout\[0\] core: length 4 → 4\.5, moving 1 alongside/.test(edit))) {
         pushed++;

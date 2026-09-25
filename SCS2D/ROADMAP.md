@@ -203,6 +203,13 @@ The remaining pickers and the order weight should follow the shape already there
 
 Deliberately unresolved; decide when they block something.
 
+- **Turning to brake.** A craft brakes facing whatever it is fighting, on what it has pointing that way,
+  because targeting alone decides its heading. One whose big engines are all at the back plans on a sliver
+  of retro, so it creeps in, and one with no retro at all has only `BRAKE_FLOOR` in `sim/ships.ts` to set
+  out on, which overshoots. The alternative is a pilot that turns its mains towards the target when the
+  stopping curve asks for more than its retros give, losing its guns while it does — likely a doctrine
+  choice, "flip to brake" against "brake facing", since which is better depends on the layout. It needs
+  heading logic of its own, and `BRAKE_FLOOR` goes when it lands.
 - **How hard armour is: `DE_MARRE_K`.** De Marre's exponents are the physics and are not ours to choose;
   its constant is the *material*, and it is the one number in terminal ballistics that is a decision. It
   stands at 91,460, calibrated so that a 16-inch rifle — a 1,225 kg shell of 0.406 m calibre at 700 m/s —

@@ -15,11 +15,14 @@ import {
   serialiseBlueprint,
   serialiseDoctrine,
   toDoctrine,
+  type Blueprint,
   type Candidate,
+  type Doctrine,
   type Targeting,
 } from '../sim/index.js';
 import { CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 import { makeBattle } from '../scenarios/battle.js';
+import { OrderCancelCondition } from '../sim/ships.js';
 
 /**
  * What a craft does when nobody is telling it anything.
@@ -71,7 +74,8 @@ describe('a doctrine as written down', () => {
     expect(doctrineProblem({ aggression: 3 })).toMatch(/unknown key/);
     expect(doctrineProblem({ targeting: { preferredMass: 0 } })).toMatch(/greater than zero/);
     expect(doctrineProblem({ approach: { standoffRadii: -2 } })).toMatch(/greater than zero/);
-    expect(doctrineProblem({ approach: { approachTime: 0 } })).toMatch(/greater than zero/);
+    expect(doctrineProblem({ approach: { accelerate: 0 } })).toMatch(/greater than zero/);
+    expect(doctrineProblem({ approach: { brake: 0 } })).toMatch(/greater than zero/);
     expect(doctrineProblem([])).toMatch(/object/);
   });
 
@@ -341,43 +345,67 @@ describe('a ship deciding for itself', () => {
   });
 });
 
-describe('how briskly a craft closes', () => {
-  /** How far a corvette still is from its band after `seconds`, told to close on a dinky. */
-  function gapAfter(approachTime: number, seconds: number): number {
-    const mover = { ...CORVETTE, doctrine: { ...CORVETTE.doctrine, approach: { ...CORVETTE.doctrine?.approach, approachTime } } };
+describe('how a craft closes on its band', () => {
+  const MIN = 300;
+  const MAX = 350;
+
+  /** The gap to a stationary mark, once a second, as a corvette closes from 1500 m. */
+  function closing(approach: Partial<Doctrine['approach']>, seconds = 60): number[] {
+    const mover: Blueprint = {
+      ...CORVETTE,
+      doctrine: {
+        targeting: { ...DEFAULT_DOCTRINE.targeting, ...CORVETTE.doctrine?.targeting },
+        approach: { ...DEFAULT_DOCTRINE.approach, ...CORVETTE.doctrine?.approach, ...approach },
+      },
+    };
+    // Something to close on that stays put: an engine it never uses, and no
+    // wish to keep out of anyone's way.
+    const mark: Blueprint = {
+      name: 'Mark',
+      doctrine: {
+        targeting: { ...DEFAULT_DOCTRINE.targeting },
+        approach: { ...DEFAULT_DOCTRINE.approach, separation: 0 },
+      },
+      modules: [
+        { kind: 'core', x: 0, y: 0, angle: 0, length: 6, width: 6 },
+        { kind: 'thruster', x: -3, y: 0, angle: 0, length: 2, width: 4 },
+      ],
+    };
     const battle = makeBattle({ seed: 5 }, (ships, world) => {
-      const mine = ships.spawn(world, { design: compileBlueprint(mover as typeof CORVETTE), x: 0, y: 0, team: 0 });
-      // Something to close on that stays put: an engine it never uses, and no
-      // wish to keep out of anyone's way.
-      const mark = {
-        name: 'Mark',
-        doctrine: {
-          targeting: { ...DEFAULT_DOCTRINE.targeting },
-          approach: { ...DEFAULT_DOCTRINE.approach, separation: 0 },
-        },
-        modules: [
-          { kind: 'core' as const, x: 0, y: 0, length: 6, width: 6 },
-          { kind: 'thruster' as const, x: -3, y: 0, angle: 0, length: 2, width: 4 },
-        ],
-      };
+      const mine = ships.spawn(world, { design: compileBlueprint(mover), x: 0, y: 0, team: 0 });
       const theirs = ships.spawn(world, { design: compileBlueprint(mark), x: 1500, y: 0, team: 1 });
-      ships.pushOrder(mine, theirs, 300, 350, 200);
+      // Kept however it goes: an unarmed mark would otherwise count as done.
+      ships.pushOrder(mine, theirs, MIN, MAX, 200, OrderCancelCondition.None);
       return { mine, theirs };
     });
-    for (let i = 0; i < Math.round(seconds * 60); i++) battle.step();
     const bodies = battle.world.bodies;
-    const a = bodies.indexOf(battle.ships.body(battle.mine));
-    const b = bodies.indexOf(battle.ships.body(battle.theirs));
-    return Math.hypot(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!) - 350;
+    const gaps: number[] = [];
+    for (let i = 0; i < seconds * 60; i++) {
+      battle.step();
+      if ((i + 1) % 60 !== 0) continue;
+      const a = bodies.indexOf(battle.ships.body(battle.mine));
+      const b = bodies.indexOf(battle.ships.body(battle.theirs));
+      gaps.push(Math.hypot(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!));
+    }
+    return gaps;
   }
 
-  it('defaults to eight seconds', () => {
-    expect(DEFAULT_DOCTRINE.approach.approachTime).toBe(8);
+  it('arrives at the band and stops there, rather than sailing through', () => {
+    const gaps = closing({});
+    expect(Math.min(...gaps)).toBeGreaterThan(MIN);
+    expect(gaps.at(-1)!).toBeLessThan(MAX * 1.05);
   });
 
-  it('closes sooner the shorter its approach time', () => {
-    // The same distance and the same cap on speed: only how hard it presses
-    // the last stretch differs.
-    expect(gapAfter(2, 20)).toBeLessThan(gapAfter(8, 20));
+  it('gets there sooner the harder it plans to brake', () => {
+    const arrival = (gaps: number[]) => gaps.findIndex((gap) => gap < MAX * 1.05);
+    const hard = arrival(closing({ brake: 1 }));
+    const soft = arrival(closing({ brake: 0.3 }));
+    expect(hard).toBeGreaterThanOrEqual(0);
+    expect(soft === -1 || soft > hard).toBe(true);
+  });
+
+  it('picks up speed more gently on a smaller share of its thrust', () => {
+    // Ten seconds in, before either has had to brake.
+    expect(closing({ accelerate: 0.25 }, 10).at(-1)!).toBeGreaterThan(closing({}, 10).at(-1)!);
   });
 });

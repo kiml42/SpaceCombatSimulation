@@ -189,11 +189,16 @@ export interface Approach {
   /** How briskly to close the difference, metres per second. */
   readonly approachSpeed: number;
   /**
-   * Seconds it aims to take closing the gap to its band, `approachSpeed` being
-   * the cap. Long eases in and arrives gently; short comes in fast and brakes
-   * late, which is what a craft that fights at arm's length wants.
+   * How hard to speed up towards the band, as a fraction of the thrust the
+   * layout has that way in the heading it is holding.
    */
-  readonly approachTime: number;
+  readonly accelerate: number;
+  /**
+   * How hard to plan on braking, as the same fraction the other way. The
+   * approach is flown down the curve that stops at the band on this much, so
+   * one means every retro it has and less keeps a margin in hand.
+   */
+  readonly brake: number;
 }
 
 export interface Doctrine {
@@ -239,7 +244,8 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     separationRadii: 3,
     tolerance: 0.2,
     approachSpeed: 60,
-    approachTime: 8,
+    accelerate: 1,
+    brake: 0.8,
   },
 };
 
@@ -276,11 +282,13 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'separationRadii',
   'tolerance',
   'approachSpeed',
-  'approachTime',
+  'accelerate',
+  'brake',
 ];
 
 /**
- * The fields that mean nothing at or below zero: a size, and two distances.
+ * The fields that mean nothing at or below zero: a size, three distances and
+ * two shares of thrust.
  *
  * Stated once and read by everything that writes a doctrine rather than being
  * repeated wherever one is made up — the parser that refuses a bad file and
@@ -292,7 +300,8 @@ export const POSITIVE_FIELDS: readonly string[] = [
   'standoffRadii',
   'escortRadii',
   'separationRadii',
-  'approachTime',
+  'accelerate',
+  'brake',
 ];
 
 /** Every number in a doctrine, named by its path, in a fixed order. */

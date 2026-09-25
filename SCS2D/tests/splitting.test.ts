@@ -92,7 +92,8 @@ describe('a ship cut in half', () => {
     //
     // A single instant is the wrong thing to assert on either way: a mount
     // tracking a far target loses and regains bearing as its ship holds
-    // station, so this samples a window.
+    // station, so this samples a window — twenty seconds, since a half has
+    // little to brake with facing forwards and so closes into reach slowly.
     const { run, live } = at(25);
     const pieces = halves(run, live);
     expect(pieces.length).toBe(2);
@@ -100,7 +101,7 @@ describe('a ship cut in half', () => {
     const lockedOn = new Set<number>();
     let onTheLiveOne = 0;
     let onAnything = 0;
-    for (let i = 0; i < Math.round(10 * 60); i++) {
+    for (let i = 0; i < Math.round(20 * 60); i++) {
       run.step();
       for (const piece of pieces) {
         const target = run.ships.targetOfTurret(run.world.bodies, piece, 0);

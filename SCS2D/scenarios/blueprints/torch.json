@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "name": "Torch",
-  "notes": "A small craft whose weapon is an engine. The big engine on the bow faces forwards, so the same burn that scorches a target brakes the approach and then shoves the ship back out: it closes fast, burns, is pushed away, and comes round again.",
+  "notes": "A small craft whose weapon is an engine. The big engine on the bow faces forwards, so the same burn that scorches a target brakes the approach and then shoves the ship back out: it closes fast to stop against the hull, braking on the bow engine, burns, is pushed away, and comes round again.",
   "doctrine": {
     "targeting": {
       "preferredMass": 20,
@@ -10,10 +10,10 @@
     },
     "approach": {
       "standoffRadii": 5,
-      "standoff": 0.5,
+      "standoff": 0.15,
       "tolerance": 0.3,
-      "approachSpeed": 120,
-      "approachTime": 3
+      "approachSpeed": 200,
+      "brake": 0.7
     }
   },
   "assemblies": {
