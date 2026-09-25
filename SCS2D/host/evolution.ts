@@ -440,19 +440,23 @@ export function startEvolution(): void {
     accumulator = 0;
   };
 
-  fitButton.addEventListener('click', () => {
-    autoFrame = true;
-  });
-  playButton.addEventListener('click', () => {
+  const togglePlay = (): void => {
     replayPlaying = !replayPlaying;
     playButton.textContent = replayPlaying ? 'Pause' : 'Play';
     last = 0;
-  });
-  stepButton.addEventListener('click', () => {
+  };
+
+  const stepOnce = (): void => {
     replayPlaying = false;
     playButton.textContent = 'Play';
     if (replay !== null && !replay.done) replay.advance();
+  };
+
+  fitButton.addEventListener('click', () => {
+    autoFrame = true;
   });
+  playButton.addEventListener('click', togglePlay);
+  stepButton.addEventListener('click', stepOnce);
 
   /**
    * Give up on the match being watched and put another on.
@@ -464,7 +468,7 @@ export function startEvolution(): void {
    * fought one yet, it waits and takes whatever the run finishes next, rather
    * than holding on a battle already given up on.
    */
-  skipButton.addEventListener('click', () => {
+  const skipMatch = (): void => {
     if (run === null) return;
     const { rows, matches } = showing();
     const at = replayOf === null ? -1 : matches.indexOf(replayOf);
@@ -478,6 +482,41 @@ export function startEvolution(): void {
     skipping = true;
     replayPlaying = true;
     playButton.textContent = 'Pause';
+  };
+
+  skipButton.addEventListener('click', skipMatch);
+
+  /**
+   * The viewer's keys, on the battle this page shows: space to pause, full
+   * stop to single-step, F to re-fit, N for another match.
+   *
+   * Only while a battle is on show and nothing is being typed into — the page
+   * is mostly a form, and a run's settings are numbers with full stops in
+   * them.
+   */
+  window.addEventListener('keydown', (event) => {
+    if (modeSelect.value !== 'battle') return;
+    const active = document.activeElement;
+    if (
+      active instanceof HTMLInputElement ||
+      active instanceof HTMLTextAreaElement ||
+      active instanceof HTMLSelectElement
+    ) {
+      return;
+    }
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.key === ' ') {
+      // Also stops a focused button being pressed by the same key, which
+      // would undo the toggle this is making.
+      event.preventDefault();
+      togglePlay();
+    } else if (event.key === '.') {
+      stepOnce();
+    } else if (event.key === 'f' || event.key === 'F') {
+      autoFrame = true;
+    } else if (event.key === 'n' || event.key === 'N') {
+      if (!skipButton.disabled) skipMatch();
+    }
   });
 
   view.addEventListener('wheel', (event) => {

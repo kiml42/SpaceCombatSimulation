@@ -459,6 +459,51 @@ describe('the evolution page in a browser', () => {
     expect(problems).toEqual([]);
   }, 60_000);
 
+  it('drives a battle from the keyboard, as the viewer does', async () => {
+    // The same keys as the viewer page, because it is the same battle in the
+    // same canvas — and single-stepping is the only way to read a fight
+    // closely. The page is mostly a form, so they are off while a box has
+    // the focus.
+    if (await page.isEnabled('#stop')) await page.click('#stop');
+    await page.selectOption('#founders', ['Dinky']);
+    await set(page, 'generations', '1');
+    await page.click('#start');
+    await page.waitForFunction(() => document.querySelectorAll('#matches tr').length > 0);
+    await page.selectOption('#mode', 'battle');
+    await page.click('#matches tr');
+    await page.waitForFunction(() => /%/.test(document.getElementById('watching')?.textContent ?? ''));
+
+    // A number box has the focus, so the keys belong to it rather than to
+    // the battle: the full stop is part of a figure somebody is typing.
+    await page.focus('#duration');
+    await page.keyboard.press('Space');
+    expect(await page.textContent('#play')).toBe('Pause');
+    await page.locator('#view').click({ position: { x: 5, y: 5 } });
+
+    // Space pauses, and the battle stops where it was.
+    await page.keyboard.press('Space');
+    expect(await page.textContent('#play')).toBe('Play');
+    await page.waitForTimeout(300);
+    const held = await page.textContent('#watching');
+    await page.waitForTimeout(400);
+    expect(await page.textContent('#watching')).toBe(held);
+
+    // A full stop advances it one step, which is a step of simulation
+    // rather than a frame — so it is read off the progress the label gives.
+    const progress = async (): Promise<number> =>
+      Number(/(\d+)%/.exec((await page.textContent('#watching')) ?? '')?.[1] ?? '-1');
+    const before = await progress();
+    for (let i = 0; i < 200; i++) await page.keyboard.press('.');
+    await page.waitForTimeout(300);
+    expect(await progress()).toBeGreaterThan(before);
+    expect(await page.textContent('#play')).toBe('Play');
+
+    // And space again sets it going.
+    await page.keyboard.press('Space');
+    expect(await page.textContent('#play')).toBe('Pause');
+    expect(problems).toEqual([]);
+  }, 60_000);
+
   it('replays a match of one ship', async () => {
     if (await page.isEnabled('#stop')) await page.click('#stop');
     await page.selectOption('#founders', ['Dinky']);
