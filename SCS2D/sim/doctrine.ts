@@ -77,11 +77,13 @@ export interface Targeting {
    * Where on a target to aim, by what the module is for: the core it is flown
    * from, its engines, its guns, or the structure between them.
    *
-   * **A core and a gun are worth the same, then engines, then structure a
-   * long way behind all three.** A ship whose core is out stops fighting
+   * **A core and a gun are worth the same, then engines, and structure is
+   * worth nothing at all.** A ship whose core is out stops fighting
    * altogether and one that cannot shoot has stopped being a threat; a ship
-   * that cannot move has merely stopped being a problem, and structure is
-   * what is left when there is nothing better to hit.
+   * that cannot move has merely stopped being a problem. Plating is none of
+   * those: cutting it does not stop a ship doing anything, so no weapon aims
+   * at it, and a hull with nothing else left standing is one every weapon
+   * turns away from rather than grinding down.
    *
    * The core is not rated above the gun, though it ends a fight outright,
    * because a weight is not the whole story: a core is small and usually
@@ -96,6 +98,33 @@ export interface Targeting {
    * **All four zero means no opinion**, and a gun with no opinion shoots at
    * the ship as a whole rather than at a part of it. That is the way out for
    * a doctrine that would rather not pick a smaller thing to miss.
+   *
+   * **A weight says one of three things, and the sign is which.**
+   *
+   * - *Above zero*: destroy this, and the more the sooner.
+   * - *Zero*: leave it alone. Not a poor ranking but a different statement —
+   *   the mount never aims at such a module, and a ship with nothing else
+   *   standing stops being one of its targets, since there is nothing on it
+   *   worth a shot. It is not being *careful*, though: against a ship that
+   *   does have something worth shooting it fires at anything on the hull.
+   * - *Below zero*: mind not to hit this. Everything zero says, and in
+   *   addition the mount stops firing at a hull and holds until the part it
+   *   chose is under the muzzle, so a stray round does not land on the thing
+   *   it is trying to spare.
+   *
+   * **The last is for wanting a beaten ship rather than a dead one**, which
+   * is a campaign's concern rather than a battle's: sparing a hull leaves
+   * more of it to harvest (§8's salvage), and there are ships a player would
+   * rather disable than cut in half. It costs rate of fire to ask for, since
+   * a mount waiting for one part is a mount not shooting at the rest — which
+   * is why nothing fights this way by default and why it is worth having as
+   * a choice.
+   *
+   * **All four zero still means no opinion**, and a gun with no opinion
+   * shoots at the ship as a whole rather than at a part of it — there is
+   * nothing to be selective about when nothing has been chosen, so this stays
+   * the way out for a doctrine that would rather not pick a smaller thing to
+   * miss.
    */
   readonly coreWeight: number;
   readonly engineWeight: number;
@@ -232,7 +261,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     coreWeight: 100,
     engineWeight: 80,
     gunWeight: 100,
-    structureWeight: 20,
+    structureWeight: 0,
     escortWeight: 0,
   },
   approach: {
@@ -271,8 +300,15 @@ export const DEFAULT_DOCTRINE: Doctrine = {
  */
 const MOUNT_TARGETING: Record<string, Targeting> = {
   /**
-   * A gun turret trains all the way round and picks its own fight, so it
-   * differs from a ship only in wanting to be part of the ship's.
+   * A gun turret trains all the way round and picks its own fight, so what it
+   * differs from a ship in is wanting to be part of the ship's — and being
+   * careful where its rounds land.
+   *
+   * **A shot costs a reload**, which is the whole of why a gun is selective
+   * where a beam is not: a mount that has come round onto a target and is
+   * still loading has one round to spend when it is ready, and spending it on
+   * plating is spending the cycle it waited through. So it holds until what
+   * it chose is under the muzzle, and rates plating below nothing to say so.
    */
   turret: { ...DEFAULT_DOCTRINE.targeting, focusWeight: 150 },
   /**
@@ -283,9 +319,13 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
    * that exists to swat fighters is no use held on the capital everyone else
    * is shooting at.
    *
-   * **It has no opinion about where on a target it lands**, which is the
-   * doctrine saying that picking a part costs accuracy and a fighter is
-   * already small enough to miss.
+   * **It takes a ship's teeth and legs off**, and does not hold its fire to
+   * do it. Plating is rated zero — not worth aiming at, and not worth staying
+   * on a hull that has nothing else left — but no lower, because a beam that
+   * lights up while it is still training sweeps across everything between
+   * where it started and what it wants. That sweep is free: a beam burns
+   * continuously rather than in shots, so the burn spent getting there costs
+   * nothing that holding fire would have saved.
    */
   beamTurret: {
     ...DEFAULT_DOCTRINE.targeting,
@@ -294,19 +334,27 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
     massWeight: 120,
     mobileWeight: 100,
     focusWeight: 30,
+    gunWeight: 150,
+    engineWeight: 120,
+    coreWeight: 40,
   },
   /**
    * A hull gun is aimed by the hull: a few degrees of training either side,
    * and a bore that wants something worth the shell. So it goes after the
    * ship's fight harder than anything else does, and after size rather than
-   * proximity — what is close is already what its arc has decided.
+   * proximity — what is close is already what its arc has decided. It is as
+   * careful with a round as any gun, and more so by disposition: the shell is
+   * bigger and the cycle longer.
    */
   hullGun: {
     ...DEFAULT_DOCTRINE.targeting,
     massWeight: 80,
     focusWeight: 300,
   },
-  /** The same mount with a beam in it: aimed by the hull, so focused like one. */
+  /**
+   * The same mount with a beam in it: aimed by the hull, so focused like one,
+   * and lighting up early like any beam.
+   */
   hullBeam: {
     ...DEFAULT_DOCTRINE.targeting,
     proximityWeight: 150,
@@ -314,6 +362,9 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
     massWeight: 80,
     mobileWeight: 60,
     focusWeight: 250,
+    gunWeight: 150,
+    engineWeight: 120,
+    coreWeight: 40,
   },
 };
 
@@ -361,7 +412,9 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
  * and two fields belong to only one of them:
  *
  * - `escortWeight` is a steering urge, and a mount steers nothing.
- * - the four aim weights choose a *part* of a target, which only a gun does.
+ * - the four aim weights choose a *part* of a target, which only a gun does —
+ *   and with it how near that part a shot has to land, since a mount that has
+ *   refused something has to be sure of what it would hit.
  *
  * Stated here rather than filtered wherever it matters, because the editor
  * offering a field, mutation turning it and the simulation reading it have to
