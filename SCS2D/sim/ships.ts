@@ -240,6 +240,15 @@ function bearing(fromX: number, fromY: number, toX: number, toY: number): number
 
 /** Aiming at a ship rather than at any part of it. */
 const WHOLE_SHIP = -1;
+/**
+ * Nothing on this ship that this mount's doctrine will shoot at.
+ *
+ * Distinct from `WHOLE_SHIP`, which is a mount with no opinion about parts
+ * firing at the hull: a ship is made of its modules, so a doctrine that has
+ * refused every one left has refused the ship. Aiming at the hull instead
+ * would hit exactly what was refused.
+ */
+const NOTHING_AIMABLE = -2;
 
 /** What a doctrine thinks one kind of module is worth shooting at. */
 function partWeight(doctrine: Targeting, kind: ModuleKind): number {
@@ -247,6 +256,33 @@ function partWeight(doctrine: Targeting, kind: ModuleKind): number {
   if (kind === 'thruster') return doctrine.engineWeight;
   if (kind === 'structure') return doctrine.structureWeight;
   return doctrine.gunWeight;
+}
+
+/**
+ * Whether this doctrine refuses any kind of module outright.
+ *
+ * Asked before walking a target's modules, because refusing something is rare
+ * — a beam's plating, and otherwise nothing — and the walk is per candidate
+ * per mount. A doctrine that refuses nothing can shoot at any ship it can
+ * reach, which is the answer without looking.
+ */
+function refusesAnything(doctrine: Targeting): boolean {
+  return (
+    doctrine.coreWeight < 0 ||
+    doctrine.engineWeight < 0 ||
+    doctrine.gunWeight < 0 ||
+    doctrine.structureWeight < 0
+  );
+}
+
+/** Whether a doctrine has any opinion about which part of a ship to hit. */
+function picksParts(doctrine: Targeting): boolean {
+  return (
+    doctrine.coreWeight !== 0 ||
+    doctrine.engineWeight !== 0 ||
+    doctrine.gunWeight !== 0 ||
+    doctrine.structureWeight !== 0
+  );
 }
 
 /**
@@ -995,6 +1031,9 @@ export class Ships {
         if (!this.turrets.bearsOn(bodies, ti, bearing(gunX, gunY, bodies.x[tb]!, bodies.y[tb]!))) {
           continue;
         }
+        // A ship with nothing left this mount will shoot at is not a target
+        // for it, however good it looks by every other measure.
+        if (!this.canAimAt(doctrine, e, tb)) continue;
         const candidate = lookFrom(
           bodies,
           gunX,
@@ -1052,14 +1091,7 @@ export class Ships {
     fromX: number,
     fromY: number,
   ): number {
-    if (
-      doctrine.coreWeight === 0 &&
-      doctrine.engineWeight === 0 &&
-      doctrine.gunWeight === 0 &&
-      doctrine.structureWeight === 0
-    ) {
-      return WHOLE_SHIP;
-    }
+    if (!picksParts(doctrine)) return WHOLE_SHIP;
     const tb = bodies.indexOf(this.bodyIds[target]!);
     if (tb < 0) return WHOLE_SHIP;
     const design = this.designs[target]!;
@@ -1073,11 +1105,11 @@ export class Ships {
     for (let k = 0; k < design.modules.length; k++) {
       if (this.damage.spent(tb, k)) continue;
       const weight = partWeight(doctrine, design.modules[k]!.spec.kind);
-      // A negative weight is a refusal rather than a low ranking: a beam told
-      // never to shoot at plating does not shoot at plating when the guns and
-      // engines are gone — it shoots at the ship, which is worth more than a
-      // hole in a girder. Nothing else here can express that, since the best
-      // of a bad list is still chosen however bad the list is.
+      // A negative weight is a refusal rather than a low ranking, which
+      // nothing else here can express: the best of a bad list is still chosen
+      // however bad the list is. A mount that refuses everything still
+      // standing on a ship has refused the ship, and the caller sends it
+      // elsewhere rather than to the hull.
       if (weight < 0) continue;
       const mx = bodies.x[tb]! + design.modules[k]!.x * c - design.modules[k]!.y * s;
       const my = bodies.y[tb]! + design.modules[k]!.x * s + design.modules[k]!.y * c;
@@ -1089,7 +1121,29 @@ export class Ships {
       bestWeight = weight;
       bestRange = range;
     }
-    return best;
+    // Everything left was refused, so there is nothing here to shoot at: not
+    // the hull either, since the hull is the modules this doctrine has just
+    // turned down.
+    return best === WHOLE_SHIP ? NOTHING_AIMABLE : best;
+  }
+
+  /**
+   * Whether this mount's doctrine would shoot at anything still standing on
+   * that ship.
+   *
+   * Asked while choosing a target rather than after, because a ship a mount
+   * may not fire at is not a worse target than the rest — it is not a target.
+   * A mount that scored it anyway would pick it, train on it and hold its
+   * fire, which is a gun taken out of the battle by its own doctrine.
+   */
+  private canAimAt(doctrine: Targeting, target: number, tb: number): boolean {
+    if (!refusesAnything(doctrine) || !picksParts(doctrine)) return true;
+    const design = this.designs[target]!;
+    for (let k = 0; k < design.modules.length; k++) {
+      if (this.damage.spent(tb, k)) continue;
+      if (partWeight(doctrine, design.modules[k]!.spec.kind) >= 0) return true;
+    }
+    return false;
   }
 
   /**
@@ -1985,7 +2039,10 @@ export class Ships {
         this.turrets.returnToRest(ti);
         continue;
       }
-      aiming[t] = target;
+      // Measured from the gun, as everything a mount asks is: how big the
+      // target looks, and which of its parts is nearest, both depend on where
+      // the barrel is rather than where the hull is.
+      this.locateMount(bodies, own, mounts[t]!);
 
       // Where on it: a part, when the doctrine has an opinion about parts and
       // that part is still there, and otherwise the ship.
@@ -2008,7 +2065,16 @@ export class Ships {
       // that misses the part it was meant for into some other part of the
       // same ship, where a tangent that has run off the ship misses
       // altogether.
-      const part = this.aimPart(i, t, target, tb);
+      const part = this.aimPart(bodies, i, t, target, tb);
+      // Nothing on it this mount will shoot at — including under an order,
+      // which can say which ship to fight but cannot make a gun fire at the
+      // one thing its doctrine refused. It stands down until it looks again,
+      // by which time the battle or the target will have changed.
+      if (part === NOTHING_AIMABLE) {
+        this.turrets.returnToRest(ti);
+        continue;
+      }
+      aiming[t] = target;
       const design = this.designs[target]!;
       let x = bodies.x[tb]!;
       let y = bodies.y[tb]!;
@@ -2029,9 +2095,6 @@ export class Ships {
         sweepVy += spin * rx;
       }
       this.turrets.aimAt(bodies, ti, x, y, bodies.vx[tb]!, bodies.vy[tb]!, sweepVx, sweepVy);
-      // Measured from the gun, as everything a mount asks is: how big the
-      // target looks depends on how far away it is from the barrel.
-      this.locateMount(bodies, own, mounts[t]!);
       this.turrets.allowSlack(
         ti,
         this.firingSlack(bodies, mounts[t]!.targeting, target, tb, part, x, y),
@@ -2101,13 +2164,31 @@ export class Ships {
    * at the wrong part of it until it next looks; that is a fraction of a
    * second of pointing at the same ship, which is why it is left alone.
    */
-  private aimPart(i: number, t: number, target: number, targetBody: number): number {
+  private aimPart(bodies: Bodies, i: number, t: number, target: number, targetBody: number): number {
+    const doctrine = this.designs[i]!.turrets[t]!.targeting;
     const part = this.turretAimModule[i]![t]!;
-    if (part === WHOLE_SHIP) return WHOLE_SHIP;
-    if (this.turretTarget[i]![t] !== target) return WHOLE_SHIP;
-    const design = this.designs[target]!;
-    if (part >= design.modules.length) return WHOLE_SHIP;
-    return this.damage.spent(targetBody, part) ? WHOLE_SHIP : part;
+    const held =
+      this.turretTarget[i]![t] !== target ||
+      part === WHOLE_SHIP ||
+      part === NOTHING_AIMABLE ||
+      part >= this.designs[target]!.modules.length ||
+      this.damage.spent(targetBody, part)
+        ? -1
+        : part;
+    if (held >= 0) return held;
+
+    // Nothing usable held: the part has been shot away, or this is a target
+    // the mount was ordered onto rather than one it chose. A doctrine with no
+    // refusals can fall back on the hull, which is where a mount with no
+    // opinion about parts aims anyway.
+    if (!refusesAnything(doctrine)) return WHOLE_SHIP;
+
+    // One that *has* refused something cannot: a ship's centre is whatever is
+    // amidships, which on most hulls is the plating a beam has just turned
+    // down. So it chooses again from what is actually left, now, and only
+    // stands down when the answer is that there is nothing it will shoot at.
+    // The mount is already located by the caller.
+    return this.aimModule(bodies, doctrine, target, this.gunPoint.x, this.gunPoint.y);
   }
 
   /**

@@ -167,8 +167,10 @@ inside any one file is not contiguous.
   which is where the seams are: aiming there cuts spines, so hulls come apart far more often than they
   did when everyone shot at the guns. A doctrine that would rather not choose sets all four weights to
   zero and shoots at the ship, and **a negative weight is a refusal rather than a low ranking** — a beam told
-  never to shoot at plating goes for the ship instead when the guns and engines are gone, rather than boiling
-  a hole in a girder. **It is a mount's to say and not a hull's**, since a ship chooses a ship and
+  never to shoot at plating does not shoot at plating, and a ship with nothing else left standing is not a
+  target for that mount at all: it finds another, or trains back to its rest bearing. A hull is its modules,
+  so refusing every one of them refuses the ship, and firing at the hull instead would be firing at exactly
+  what was turned down. **It is a mount's to say and not a hull's**, since a ship chooses a ship and
   only a gun chooses a part of one. Away from the default is where crippling beats killing: the Dinky's gun
   puts engines first, because a fighter that cannot destroy a capital can still strand one, and a beam goes
   for a ship's guns and engines because it arrives where it is pointed and can afford to be particular.

@@ -6,6 +6,7 @@ import {
   isWeaponMount,
   math,
   moduleRadius,
+  NO_TARGET,
   Ships,
   Turrets,
   World,
@@ -14,7 +15,7 @@ import {
   type ShipDesign,
   type Targeting,
 } from '../sim/index.js';
-import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
+import { BARE_CORE, CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
  * When a weapon pulls the trigger.
@@ -159,6 +160,69 @@ describe('a beam’s default', () => {
     // the ship beside it has still done a day's work.
     expect(defaultTargeting('turret').spreadRadii).toBeGreaterThan(0);
     expect(defaultTargeting('hullGun').spreadRadii).toBeGreaterThan(0);
+  });
+});
+
+describe('a part a doctrine refuses', () => {
+  /**
+   * A mount with one instruction, against one mark, and what it does about it.
+   *
+   * Returns which ship the mount settled on and whether it is pointing at its
+   * own rest bearing — which is what standing down looks like from outside.
+   */
+  function facing(
+    targeting: Partial<Targeting>,
+    marks: readonly { design: ShipDesign; x: number; y: number }[],
+  ): { target: number; resting: boolean } {
+    const world = new World({ dt: DT, seed: 7 });
+    const ships = new Ships();
+    world.addForceProvider(ships.forceProvider());
+    const mine = ships.spawn(world, { design: armed(targeting), x: 0, y: 0, team: 0 });
+    for (const mark of marks) {
+      ships.spawn(world, { design: mark.design, x: mark.x, y: mark.y, angle: math.HALF_PI, team: 1 });
+    }
+    // Long enough for the mount to have chosen and trained.
+    for (let i = 0; i < 240; i++) {
+      ships.command(DT, world);
+      world.step();
+    }
+    const ti = ships.turretIndexOf(mine, 0);
+    return {
+      target: ships.targetOfTurret(world.bodies, mine, 0),
+      resting: ships.turrets.fireSlack[ti] === 0,
+    };
+  }
+
+  const bareCore = compileBlueprint(BARE_CORE);
+  const gunship = compileBlueprint(GUNSHIP);
+
+  it('is not a target, rather than a target shot at anyway', () => {
+    // A doctrine that will shoot at nothing but engines, against a ship that
+    // has none. Shooting at the hull instead would be shooting at exactly the
+    // modules it just refused, so there is nothing here for it.
+    const refused = facing(
+      { coreWeight: -1, gunWeight: -1, structureWeight: -1, engineWeight: 100 },
+      [{ design: bareCore, x: 600, y: 0 }],
+    );
+    expect(refused.target).toBe(NO_TARGET);
+    expect(refused.resting).toBe(true);
+
+    // The same mount against the same ship, minus the refusal: it engages.
+    const willing = facing({ engineWeight: 100 }, [{ design: bareCore, x: 600, y: 0 }]);
+    expect(willing.target).not.toBe(NO_TARGET);
+  });
+
+  it('sends the mount to something it will shoot at instead', () => {
+    // Two marks, the nearer one nothing but a core it has refused. Proximity
+    // would take the near one on every other measure, so this is the refusal
+    // deciding rather than the ranking.
+    const near = facing({ coreWeight: -1, gunWeight: 100, engineWeight: 100 }, [
+      { design: bareCore, x: 500, y: 0 },
+      { design: gunship, x: 1100, y: 0 },
+    ]);
+    expect(near.target).not.toBe(NO_TARGET);
+    // The second spawn is the bare core, the third the gunship.
+    expect(near.target).toBe(2);
   });
 });
 

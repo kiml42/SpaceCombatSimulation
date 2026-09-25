@@ -100,10 +100,13 @@ export interface Targeting {
    * **A negative weight means never**, which is a different statement from a
    * small one: a beam that would rather not spend a shot on plating says so
    * with a negative `structureWeight`, and then does not aim at plating even
-   * when there is nothing else left — it shoots at the ship instead. Zero is
-   * still "no preference, but allowed", so the two ends of "I do not care
-   * about this" stay distinguishable, which is what lets a lineage discover
-   * the difference rather than being given it.
+   * when there is nothing else left. A ship it has nothing left to shoot at
+   * stops being one of its targets — the mount takes another or trains back
+   * to rest — because a hull *is* its modules, and firing at the hull would
+   * be firing at what was refused. Zero is still "no preference, but
+   * allowed", so the two ends of "I do not care about this" stay
+   * distinguishable, which is what lets a lineage discover the difference
+   * rather than being given it.
    */
   readonly coreWeight: number;
   readonly engineWeight: number;
