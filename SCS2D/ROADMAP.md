@@ -211,7 +211,15 @@ Deliberately unresolved; decide when they block something.
   cannot currently choose a module on a large one**, because aiming a fixed gun is a question for the pilot
   rather than the mount, and a pilot that knew what its guns wanted to hit would steer to put it under them.
   Both are the same missing idea — that where a ship points is a decision, not a consequence of where it is
-  going.
+  going. **The Dinky is the worked example**: its gun trains five degrees and its doctrine says engines, so
+  what it actually shoots is whatever the *hull* is pointed at, and the hull points at its target's centre.
+  Two ways to close that, and they want different mechanisms. Either a hull carries the preference, points
+  at an engine and the gun follows it on `focusWeight` alone — which hands a hull back the aim weights it
+  was deliberately given up, on the grounds that a ship chooses a ship and only a gun chooses a part of one.
+  Or the gun keeps the preference and the pilot serves the gun: a mount already picks its aim module every
+  rethink, so the pilot reads what its narrow-arc weapons want to hit and steers to put it under them. The
+  second keeps one place to write the preference and generalises past the Dinky to any fixed-mount ship,
+  which is what an attack orientation is for.
 - **What a target's presented aspect is worth.** A weapon decides whether to fire from the bounding circle
   of what it is shooting at, so a ship end-on is taken to be as wide as it is long. The error is in the
   forgiving direction — a shot at a hull rather than a shot at nothing — but it means a fleet in line ahead
