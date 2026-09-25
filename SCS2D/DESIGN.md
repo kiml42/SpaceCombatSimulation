@@ -159,9 +159,10 @@ inside any one file is not contiguous.
   formation: fleets meeting line abreast have their friends beside them, and the `column` scenario is the
   same fleets in line ahead, where the opening ten seconds go from twenty hits on one's own side to none.
   **A doctrine also says which part of a ship to shoot at**, as a weight per kind of module. The default
-  is the core first, then guns, then engines, and structure a long way behind all three: a ship whose core
+  is the core first, then guns, then engines, and structure worth nothing at all: a ship whose core
   is out has stopped fighting altogether, one that cannot shoot has stopped being a threat, one that cannot
-  move has stopped being a problem, and structure is what is left when there is nothing better to hit.
+  move has stopped being a problem, and cutting plating stops a ship doing nothing — so no weapon aims at
+  it, and a hull with nothing else left standing is one every weapon turns away from.
   Picking a part costs accuracy — a part is a smaller thing to miss — so a fleet trades fewer hits for
   hits that matter, and a core is the smallest and best-buried target of the four. It is also amidships,
   which is where the seams are: aiming there cuts spines, so hulls come apart far more often than they

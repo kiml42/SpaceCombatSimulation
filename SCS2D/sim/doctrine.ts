@@ -77,11 +77,13 @@ export interface Targeting {
    * Where on a target to aim, by what the module is for: the core it is flown
    * from, its engines, its guns, or the structure between them.
    *
-   * **A core and a gun are worth the same, then engines, then structure a
-   * long way behind all three.** A ship whose core is out stops fighting
+   * **A core and a gun are worth the same, then engines, and structure is
+   * worth nothing at all.** A ship whose core is out stops fighting
    * altogether and one that cannot shoot has stopped being a threat; a ship
-   * that cannot move has merely stopped being a problem, and structure is
-   * what is left when there is nothing better to hit.
+   * that cannot move has merely stopped being a problem. Plating is none of
+   * those: cutting it does not stop a ship doing anything, so no weapon aims
+   * at it, and a hull with nothing else left standing is one every weapon
+   * turns away from rather than grinding down.
    *
    * The core is not rated above the gun, though it ends a fight outright,
    * because a weight is not the whole story: a core is small and usually
@@ -245,7 +247,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     coreWeight: 100,
     engineWeight: 80,
     gunWeight: 100,
-    structureWeight: 20,
+    structureWeight: 0,
     escortWeight: 0,
   },
   approach: {
@@ -319,7 +321,6 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
     gunWeight: 150,
     engineWeight: 120,
     coreWeight: 40,
-    structureWeight: 0,
   },
   /**
    * A hull gun is aimed by the hull: a few degrees of training either side,
@@ -348,7 +349,6 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
     gunWeight: 150,
     engineWeight: 120,
     coreWeight: 40,
-    structureWeight: 0,
   },
 };
 

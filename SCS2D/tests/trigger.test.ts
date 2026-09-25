@@ -152,12 +152,17 @@ describe('a beam’s default', () => {
       const beam = defaultTargeting(kind);
       expect(beam.gunWeight).toBeGreaterThan(beam.coreWeight);
       expect(beam.engineWeight).toBeGreaterThan(beam.coreWeight);
-      // Zero rather than below it: plating is not worth aiming at and not
-      // worth staying on a stripped hull for, but a beam holding its fire
-      // until a gun is under the emitter would throw away the sweep it makes
-      // on the way there — and that sweep costs it nothing, since a beam
-      // burns continuously rather than in shots.
       expect(beam.structureWeight).toBe(0);
+    }
+    // Zero rather than below it, on every archetype there is. Plating is not
+    // worth aiming at and not worth staying on a stripped hull for, but
+    // nothing holds its fire to spare it: a beam that waited for a gun to
+    // come under the emitter would throw away the sweep it makes on the way
+    // there, which costs it nothing since a beam burns continuously rather
+    // than in shots — and a gun that waited would be buying a precision it
+    // cannot have, since its round has to fly while the target moves.
+    for (const kind of ['turret', 'beamTurret', 'hullGun', 'hullBeam'] as const) {
+      expect(defaultTargeting(kind).structureWeight).toBe(0);
     }
     // Which is to say a beam refuses nothing, and so is no more selective at
     // the trigger than a gun: both fire at anything on the hull they are
