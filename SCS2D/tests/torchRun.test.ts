@@ -13,8 +13,11 @@ describe('a torch run', () => {
   const bodies = battle.world.bodies;
   const { torches, target } = battle;
 
-  const IN = 60;
-  const OUT = 120;
+  // Measured from the target's centre, so scaled by its size: a torch burning
+  // a long hull's flank is further from its middle than one at a short one's.
+  const radius = compileBlueprint(LASER_FRIGATE).radius;
+  const IN = radius + 50;
+  const OUT = IN + 40;
   /** Separate passes each torch makes: in under IN metres, then out past OUT. */
   const passes = torches.map(() => 0);
   const inside = torches.map(() => false);
