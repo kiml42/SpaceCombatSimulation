@@ -380,8 +380,13 @@ inside any one file is not contiguous.
   named groups of ships — reflected, turned and nested — flattened to a plain list on load, so nothing past
   the parser knows groups exist. A battle is built from fleets round a ring, one team each, with no orders;
   the `standoff` scenario is one fleet file flown by both sides, and its checksum did not move.
-- **Next:** §8 step 5 has begun with the fleet format; the fleet editor, a custom battle on the viewer and
-  fleet evolution follow it, planned in ROADMAP.md §8.
+  **A fleet editor on a page of its own** places ships from the ship library — each design embedded once —
+  and drags, turns, duplicates and lays them out in rows and arcs on the same snapping grid and through the
+  same renderer as the ship editor, with undo throughout. It counts ships and dry mass by design, and lists
+  rather than enforces what is wrong: hulls overlapping at the start, a design that would not fly, and an
+  embedded design that has drifted from the library's copy of the same name, which one button brings up to
+  date. Fleets are saved to browser storage and exported and imported as fleet files.
+- **Next:** §8 step 5 — a custom battle on the viewer, then fleet evolution, planned in ROADMAP.md §8.
   §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight, §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio

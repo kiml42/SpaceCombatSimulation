@@ -64,6 +64,8 @@ export interface PlacedShip {
    * the same name, so adding a Gunship does not rename every Dinky.
    */
   path: string;
+  /** Which of the fleet's own `ships` it came from. */
+  entry: number;
 }
 
 export const MAX_GROUP_DEPTH = 8;
@@ -77,7 +79,7 @@ export const MAX_FLEET_SHIPS = 512;
  */
 export function expandFleet(fleet: Fleet): PlacedShip[] {
   const out: PlacedShip[] = [];
-  place(fleet, fleet.ships, 0, 0, 0, false, [], '', out);
+  place(fleet, fleet.ships, 0, 0, 0, false, [], '', out, -1);
   return out;
 }
 
@@ -104,11 +106,14 @@ function place(
   within: string[],
   prefix: string,
   out: PlacedShip[],
+  entryOf: number,
 ): void {
   const [c, s] = exactTurn(rotation);
   const seen = new Map<string, number>();
 
-  for (const entry of entries) {
+  for (let index = 0; index < entries.length; index++) {
+    const entry = entries[index]!;
+    const top = entryOf < 0 ? index : entryOf;
     // Reflect, then turn, then move, as assemblies are placed.
     const localY = mirrored ? -entry.y : entry.y;
     const x = originX + entry.x * c - localY * s;
@@ -125,7 +130,7 @@ function place(
       if (fleet.designs[entry.design] === undefined) {
         throw new Error(`${fleet.name}: no design named ${entry.design}`);
       }
-      out.push({ design: entry.design, x, y, angle, path });
+      out.push({ design: entry.design, x, y, angle, path, entry: top });
       if (out.length > MAX_FLEET_SHIPS) {
         throw new Error(`${fleet.name}: more than ${MAX_FLEET_SHIPS} ships`);
       }
@@ -141,7 +146,7 @@ function place(
       throw new Error(`${fleet.name}: groups nested more than ${MAX_GROUP_DEPTH} deep`);
     }
     within.push(entry.group);
-    place(fleet, group.ships, x, y, angle, mirrored !== (entry.mirror ?? false), within, `${path}/`, out);
+    place(fleet, group.ships, x, y, angle, mirrored !== (entry.mirror ?? false), within, `${path}/`, out, top);
     within.pop();
   }
 }

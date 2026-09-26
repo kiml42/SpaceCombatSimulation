@@ -82,26 +82,17 @@ and **interval-based firing arcs** (the §12 entry on traverse and firing permis
 shareable by URL. *This is the first thing worth giving people to play.* Designed scenarios are where the §12
 entry on authored data stops being optional, since a scenario to share has to be a file.
 
-Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`) and **a battle from fleets**
-(`scenarios/fleetBattle.ts`), proved by `standoff` flying a fleet file with its checksum unchanged. The rest,
-in order, one pull request each:
+Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`), **a battle from fleets**
+(`scenarios/fleetBattle.ts`), proved by `standoff` flying a fleet file with its checksum unchanged, and **the
+fleet editor** (`dist/fleet.html`). Left in the editor: building and editing groups, which it reads, draws and
+moves as one but cannot make — later, as ship groups were. The rest, in order, one pull request each:
 
-1. **Fleet editor**, a page of its own (`dist/fleet.html`), reusing the renderer, camera and pan/zoom. The
-   editor's undo history is pulled out of `EditorDocument` into a generic one, and the library and store
-   made generic over their key prefix (`scs2d.fleet.`). Ships are added from the ship library — which embeds
-   a copy — then dragged on a snap grid, turned by a knob, duplicated, deleted, and placed in a row or round
-   an arc by a count and a step (written out as plain ships; the format has no repeat). Import and export as
-   fleet files. Stats: ship count, total dry mass, and a breakdown by design — no cost line until budgets.
-   **Problems are listed, not enforced**: hulls overlapping at the start, a design failing
-   `blueprintProblem`, and an embedded design that differs from the library copy of the same name, with a
-   button to refresh it from the library. That warning is what makes embedding safe (DECISIONS.md). Groups
-   are read, drawn and kept by it, but building and editing them is later, as ship groups were.
-2. **Custom battle** on the viewer page: two or more fleets, from the library or a file, a starting range,
+1. **Custom battle** on the viewer page: two or more fleets, from the library or a file, a starting range,
    closing and crossing speeds, and a seed. The setup is serialisable as `{ fleets, range, speeds, seed }`,
    which is the scenario format §12 asks for. Minimal results: the battle stops when one team alone has a
    ship that is not a hulk, and shows mass lost and ships left per side. One fleet is one team; more than two
    is a free-for-all.
-3. **Fleet evolution.** A match takes fleets as entrants, a lone blueprint being a fleet of one. Operators,
+2. **Fleet evolution.** A match takes fleets as entrants, a lone blueprint being a fleet of one. Operators,
    each with its inverse: mutate a design (every copy of it), fork one copy into a design of its own and merge
    two designs, add and remove a copy of a design or of a group, and jitter a position or heading. Limits are
    total dry mass and a deployment radius, and a mutant whose hulls overlap is refused. Headless first; a

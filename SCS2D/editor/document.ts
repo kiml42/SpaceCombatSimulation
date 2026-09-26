@@ -14,6 +14,7 @@ import {
   type ShipDesign,
 } from '../sim/index.js';
 import { cloneBlueprint, instanceChain } from './edit.js';
+import { History } from './history.js';
 
 /**
  * The layout being worked on, everything derived from it, and the way back to
@@ -51,8 +52,7 @@ function enclosingAssembly(path: ModulePath): string | null {
   return null;
 }
 
-/** How many steps back an editor can go. */
-export const HISTORY_LIMIT = 100;
+export { HISTORY_LIMIT } from './history.js';
 
 /** Everything read off the current layout, recomputed whenever it changes. */
 export interface Derived {
@@ -128,10 +128,8 @@ function derive(blueprint: Blueprint): Derived {
 }
 
 export class EditorDocument {
-  private current: Blueprint;
+  private readonly history: History<Blueprint>;
   private derived: Derived;
-  private readonly past: Blueprint[] = [];
-  private readonly future: Blueprint[] = [];
 
   /**
    * The placements being edited, in the order they were picked. A *placement*
@@ -159,12 +157,16 @@ export class EditorDocument {
   private grabbed = 0;
 
   constructor(blueprint: Blueprint) {
-    this.current = cloneBlueprint(blueprint);
-    this.derived = derive(this.current);
+    this.history = new History(cloneBlueprint(blueprint));
+    this.derived = derive(this.history.current);
   }
 
   get blueprint(): Blueprint {
-    return this.current;
+    return this.history.current;
+  }
+
+  private get current(): Blueprint {
+    return this.history.current;
   }
 
   get view(): Derived {
@@ -172,18 +174,16 @@ export class EditorDocument {
   }
 
   get canUndo(): boolean {
-    return this.past.length > 0;
+    return this.history.canUndo;
   }
 
   get canRedo(): boolean {
-    return this.future.length > 0;
+    return this.history.canRedo;
   }
 
   /** Make a change, keeping the layout as it was on the undo stack. */
   apply(next: Blueprint): void {
-    this.past.push(this.current);
-    if (this.past.length > HISTORY_LIMIT) this.past.shift();
-    this.future.length = 0;
+    this.history.apply(next);
     this.set(next);
   }
 
@@ -195,30 +195,26 @@ export class EditorDocument {
    * at a time — technically a faithful history, and useless.
    */
   amend(next: Blueprint): void {
+    this.history.amend(next);
     this.set(next);
   }
 
   /** Load a different ship. The history does not follow: it belonged to the old one. */
   replace(blueprint: Blueprint): void {
-    this.past.length = 0;
-    this.future.length = 0;
     this.selected = [];
-    this.set(cloneBlueprint(blueprint));
+    this.history.replace(cloneBlueprint(blueprint));
+    this.set(this.history.current);
   }
 
   undo(): boolean {
-    const previous = this.past.pop();
-    if (previous === undefined) return false;
-    this.future.push(this.current);
-    this.set(previous);
+    if (!this.history.undo()) return false;
+    this.set(this.history.current);
     return true;
   }
 
   redo(): boolean {
-    const next = this.future.pop();
-    if (next === undefined) return false;
-    this.past.push(this.current);
-    this.set(next);
+    if (!this.history.redo()) return false;
+    this.set(this.history.current);
     return true;
   }
 
@@ -556,7 +552,6 @@ export class EditorDocument {
   }
 
   private set(blueprint: Blueprint): void {
-    this.current = blueprint;
     this.derived = derive(blueprint);
     // A selection that no longer draws anything is gone, not merely stale.
     // Keeping it would leave the properties panel editing a placement the

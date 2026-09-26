@@ -1,5 +1,6 @@
-import { parseBlueprint, serialiseBlueprint, type Blueprint } from '../sim/index.js';
+import { parseBlueprint, parseFleet, serialiseBlueprint, serialiseFleet, type Blueprint, type Fleet } from '../sim/index.js';
 import { BLUEPRINTS } from '../scenarios/blueprints.js';
+import { FLEETS } from '../scenarios/fleets.js';
 
 /**
  * The ships available to open, from two places at once: the ones that ship
@@ -26,11 +27,31 @@ export interface KeyValueStore {
   removeItem(key: string): void;
 }
 
-/** Namespaced so the editor shares an origin with anything else politely. */
-const PREFIX = 'scs2d.blueprint.';
+/** What one kind of saved file needs: where it is kept, and how it is read and written. */
+export interface LibraryKind<T extends { name: string }> {
+  /** Namespaced so the editor shares an origin with anything else politely. */
+  readonly prefix: string;
+  readonly builtIn: readonly T[];
+  parse(value: unknown): T;
+  serialise(value: T): Record<string, unknown>;
+}
 
 /** The ships that come with the game, by name. */
 export const BUILT_IN: readonly Blueprint[] = Object.values(BLUEPRINTS);
+
+export const SHIPS: LibraryKind<Blueprint> = {
+  prefix: 'scs2d.blueprint.',
+  builtIn: BUILT_IN,
+  parse: parseBlueprint,
+  serialise: serialiseBlueprint,
+};
+
+export const FLEET_FILES: LibraryKind<Fleet> = {
+  prefix: 'scs2d.fleet.',
+  builtIn: Object.values(FLEETS),
+  parse: parseFleet,
+  serialise: serialiseFleet,
+};
 
 /**
  * One openable ship, which is a *copy* rather than a name.
@@ -49,8 +70,15 @@ export interface LibraryEntry {
   saved: boolean;
 }
 
-export class Library {
-  constructor(private readonly store: KeyValueStore) {}
+export class Library<T extends { name: string } = Blueprint> {
+  private readonly kind: LibraryKind<T>;
+
+  constructor(
+    private readonly store: KeyValueStore,
+    kind?: LibraryKind<T>,
+  ) {
+    this.kind = kind ?? (SHIPS as unknown as LibraryKind<T>);
+  }
 
   /**
    * Everything openable: the shipped ships first, then the saved ones.
@@ -65,14 +93,14 @@ export class Library {
   list(): LibraryEntry[] {
     const saved = this.savedNames();
     const out: LibraryEntry[] = [];
-    for (const blueprint of BUILT_IN) {
+    for (const blueprint of this.kind.builtIn) {
       const shadowed = saved.includes(blueprint.name);
       // The player's copy first: it is the one the name means.
       if (shadowed) out.push({ name: blueprint.name, stock: false, saved: true });
       out.push({ name: blueprint.name, stock: true, saved: shadowed });
     }
     for (const name of saved) {
-      if (!BUILT_IN.some((blueprint) => blueprint.name === name)) {
+      if (!this.kind.builtIn.some((blueprint) => blueprint.name === name)) {
         out.push({ name, stock: false, saved: true });
       }
     }
@@ -83,7 +111,7 @@ export class Library {
     const names: string[] = [];
     for (let i = 0; i < this.store.length; i++) {
       const key = this.store.key(i);
-      if (key !== null && key.startsWith(PREFIX)) names.push(key.slice(PREFIX.length));
+      if (key !== null && key.startsWith(this.kind.prefix)) names.push(key.slice(this.kind.prefix.length));
     }
     return names.sort();
   }
@@ -100,9 +128,9 @@ export class Library {
    * and all: the editor is where such a ship is put right, and it names what
    * is wrong with it in the problems panel.
    */
-  load(name: string): Blueprint | null {
-    const raw = this.store.getItem(PREFIX + name);
-    if (raw !== null) return parseBlueprint(JSON.parse(raw));
+  load(name: string): T | null {
+    const raw = this.store.getItem(this.kind.prefix + name);
+    if (raw !== null) return this.kind.parse(JSON.parse(raw));
     return this.loadStock(name);
   }
 
@@ -110,17 +138,17 @@ export class Library {
    * The ship as it ships with the game, whatever the player has saved under
    * that name. Nothing to parse: a shipped ship is already a blueprint.
    */
-  loadStock(name: string): Blueprint | null {
-    return BUILT_IN.find((blueprint) => blueprint.name === name) ?? null;
+  loadStock(name: string): T | null {
+    return this.kind.builtIn.find((blueprint) => blueprint.name === name) ?? null;
   }
 
-  save(blueprint: Blueprint): void {
-    this.store.setItem(PREFIX + blueprint.name, JSON.stringify(serialiseBlueprint(blueprint), null, 2));
+  save(value: T): void {
+    this.store.setItem(this.kind.prefix + value.name, JSON.stringify(this.kind.serialise(value), null, 2));
   }
 
-  /** Delete the saved copy. A built-in ship of the same name reappears. */
+  /** Delete the saved copy. A built-in one of the same name reappears. */
   remove(name: string): void {
-    this.store.removeItem(PREFIX + name);
+    this.store.removeItem(this.kind.prefix + name);
   }
 }
 
