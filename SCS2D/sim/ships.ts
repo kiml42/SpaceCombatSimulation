@@ -3,7 +3,7 @@ import { subDesign, type DesignTurret, type ShipDesign } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
-import { plumeRays, Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
+import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
 import { Choice, cohesionUrge, look, lookFrom, score } from './targeting.js';
 import { moduleRadius, thrusterGeometry } from './modules.js';
 import {
@@ -437,6 +437,12 @@ export class Ships {
   private readonly layoutVersion: number[] = [];
   /** Persistent between steps, per §12: never shared scratch. */
   private readonly throttles: Float64Array[] = [];
+  /**
+   * How much of each of a ship's flame rays landed on something last step,
+   * as the ray's `share`: what a renderer draws the burn's glow from, and
+   * where it cuts the flame off. Indexed by `plumeRayStarts`.
+   */
+  private readonly landed: Float64Array[] = [];
   /** Scratch for the exhaust pass, so that burning allocates nothing. */
   private readonly plumes = new Plumes();
   /**
@@ -823,6 +829,7 @@ export class Ships {
     this.designs.push(design);
     this.bodyIds.push(id);
     this.throttles.push(new Float64Array(design.thrusters.length));
+    this.landed.push(new Float64Array(plumeRayStarts(design)[design.thrusters.length]!));
     this.turretIndex.push(indices);
     this.cooldown.push(new Float64Array(mounts.length));
     this.turretStates.push(new Uint8Array(mounts.length));
@@ -1611,11 +1618,14 @@ export class Ships {
       if (bodyIdx < 0) continue;
       const design = this.designs[i]!;
       const throttles = this.throttles[i]!;
+      const landed = this.landed[i]!;
+      const starts = plumeRayStarts(design);
+      landed.fill(0);
 
       for (let t = 0; t < design.thrusters.length; t++) {
         const force = throttles[t]! * this.exhaustOf(design, bodyIdx, t);
         if (!(force > 0)) continue;
-        this.plumes.burn(design, t, force, this.damage, bodies, bodyIdx, grid, this.hulls, dt);
+        this.plumes.burn(design, t, force, this.damage, bodies, bodyIdx, grid, this.hulls, dt, landed, starts[t]!);
       }
     }
   }
@@ -2749,6 +2759,7 @@ export class Ships {
     this.turretAimModule[i] = aims;
     this.turretRethinkAt[i] = schedule;
     this.throttles[i] = new Float64Array(design.thrusters.length);
+    this.landed[i] = new Float64Array(plumeRayStarts(design)[design.thrusters.length]!);
     this.layouts[i] = null;
     this.layoutVersion[i] = -1;
     this.damage.register(b, design, scars, weldScars);
@@ -2838,6 +2849,19 @@ export class Ships {
    * the quantity the plume is drawn from, and a burning engine drawing a flame
    * it is no longer capable of is the picture disagreeing with the burn.
    */
+  /**
+   * How much of one flame ray landed on something last step, as its share of
+   * the ray's power: 1 at the nozzle, 0 for a ray that met nothing.
+   */
+  landedShare(i: number, thruster: number, ray: number): number {
+    return this.landed[i]![plumeRayStarts(this.designs[i]!)[thruster]! + ray] ?? 0;
+  }
+
+  /** Every ray's `landedShare` for one ship, flat. Read-only. */
+  landedRays(i: number): Float64Array {
+    return this.landed[i]!;
+  }
+
   throttleOf(i: number, thruster: number): number {
     const bodies = this.bodyStore;
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);

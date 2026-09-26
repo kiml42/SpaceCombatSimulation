@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { compileBlueprint } from '../sim/index.js';
-import { GUNSHIP } from '../scenarios/blueprints.js';
+import { LASER_FRIGATE } from '../scenarios/blueprints.js';
 import { torchRun } from '../scenarios/torchRun.js';
 
 /**
@@ -13,8 +13,11 @@ describe('a torch run', () => {
   const bodies = battle.world.bodies;
   const { torches, target } = battle;
 
-  const IN = 60;
-  const OUT = 120;
+  // Measured from the target's centre, so scaled by its size: a torch burning
+  // a long hull's flank is further from its middle than one at a short one's.
+  const radius = compileBlueprint(LASER_FRIGATE).radius;
+  const IN = radius + 50;
+  const OUT = IN + 40;
   /** Separate passes each torch makes: in under IN metres, then out past OUT. */
   const passes = torches.map(() => 0);
   const inside = torches.map(() => false);
@@ -33,10 +36,10 @@ describe('a torch run', () => {
     });
   }
 
-  it('burns the gunship', () => {
+  it('burns the frigate', () => {
     const g = bodies.indexOf(battle.ships.body(target));
     let worst = 1;
-    const modules = compileBlueprint(GUNSHIP).modules.length;
+    const modules = compileBlueprint(LASER_FRIGATE).modules.length;
     for (let m = 0; m < modules; m++) worst = Math.min(worst, battle.ships.damage.integrity(g, m));
     expect(worst).toBeLessThan(1);
   });

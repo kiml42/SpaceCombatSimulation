@@ -57,6 +57,28 @@ export function beamAlpha(power: number): number {
 }
 
 /**
+ * Flame opacity at the nozzle, for a flame burning at `intensity` watts per
+ * square metre (`plumeIntensity`).
+ *
+ * Logarithmic for the reason a beam's is: the fleet runs from a capital's
+ * main engines at about a kilowatt per square metre to a fighter's thrusters
+ * at over a megawatt, and a flame's size already says how far it reaches, so
+ * its opacity is free to say how fiercely. `PLUME_MIN_ALPHA` keeps a burning
+ * engine visible however gentle its flame.
+ */
+const PLUME_DIM_INTENSITY = 1e3;
+const PLUME_BRIGHT_INTENSITY = 1e6;
+export const PLUME_MIN_ALPHA = 0.2;
+const PLUME_MAX_ALPHA = 0.95;
+const PLUME_DECADES = Math.log(PLUME_BRIGHT_INTENSITY / PLUME_DIM_INTENSITY);
+
+export function plumeAlpha(intensity: number): number {
+  if (!(intensity > PLUME_DIM_INTENSITY)) return PLUME_MIN_ALPHA;
+  const t = Math.log(intensity / PLUME_DIM_INTENSITY) / PLUME_DECADES;
+  return t >= 1 ? PLUME_MAX_ALPHA : PLUME_MIN_ALPHA + (PLUME_MAX_ALPHA - PLUME_MIN_ALPHA) * t;
+}
+
+/**
  * How far to dim a beam that the on-screen floor has drawn wider than life.
  *
  * The floors exist so that detail does not vanish when it falls below a pixel,

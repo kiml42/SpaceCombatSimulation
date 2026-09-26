@@ -28,16 +28,16 @@ const GOLDEN: Record<ScenarioName, string> = {
   gunnery: 'cf408adc',
   duel: '02c3e16c',
   beamDuel: '626bd642',
-  beamVGun: 'e3c7d6bb',
-  swarm: 'c1837318',
-  superSwarm: 'd4bed266',
-  fractal: '5d00f639',
+  beamVGun: 'cc31e308',
+  swarm: '6dbdc7b4',
+  superSwarm: 'e99e7b8f',
+  fractal: 'd80b0eed',
   ordering: '8da73911',
-  split: 'ada136e6',
+  split: '2eb34f7a',
   column: '6f06657e',
-  standoff: 'e42b75ed',
+  standoff: '7bd821cd',
   ram: '1506ce58',
-  torchRun: 'f84bf9d6',
+  torchRun: '8dd36843',
 };
 
 describe('golden scenarios', () => {

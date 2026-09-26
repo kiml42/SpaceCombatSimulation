@@ -4,12 +4,16 @@ import {
   math,
   nozzleOffset,
   nozzleReach,
+  plumeIntensity,
+  plumeRayStarts,
+  PLUME_POWER_PER_NEWTON,
+  PLUME_RAYS,
   thrusterGeometry,
   type ShipView,
   type Snapshot,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
-import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth } from './strokes.js';
+import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha } from './strokes.js';
 import { flashFade, flashPosition, type FlashAnchor, type Flashes } from './flashes.js';
 import { iconAlpha, ICON_OUTLINE, ICON_PX } from './icons.js';
 
@@ -187,8 +191,12 @@ const ARC_MAX_RADIUS = 40;
 
 /** A barrel that is not clear to fire. Dark, because it sits on the pale sweep. */
 const BARREL = '#8f6f25';
-const PLUME = '#ffd9a0';
-const PLUME_CORE = '#fff4e0';
+/** Flame colours, as the RGB a gradient fades to transparent from. */
+const PLUME = '255, 217, 160';
+const PLUME_CORE = '255, 244, 224';
+/** A burn on a hull: the flame's colour, hotter at the middle. */
+const BURN = '255, 170, 90';
+const BURN_CORE = '255, 236, 200';
 
 
 function shipColours(team: number): (typeof TEAM_COLOURS)[number] {
@@ -388,10 +396,125 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
  * turret sweeps, which dimmed a burning engine to the colour of a shadow.
  */
 function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
+  eachNozzle(ctx, ship, (engine, force, reach, across, landed) => {
+    // One flame per nozzle, the same triangles the burn samples its rays
+    // across. How hot it burns is its opacity, and it fades to nothing at its
+    // tip the way its share of the power does, so the brightest part of the
+    // picture is the part doing the most damage.
+    const root = -engine.length / 2;
+    const alpha = plumeAlpha(plumeIntensity(engine.geometry, force));
+    const half = engine.geometry.exitWidth / 2;
+
+    // Cut off where its core lands on a hull, inside the glow that marks it.
+    const cut = landed[1]! > 0 ? (1 - landed[1]!) * reach : Infinity;
+    ctx.save();
+    if (cut < reach) {
+      ctx.beginPath();
+      ctx.rect(root - cut, across - half, cut, half * 2);
+      ctx.clip();
+    }
+    ctx.fillStyle = fade(ctx, root, reach, PLUME, alpha);
+    ctx.beginPath();
+    ctx.moveTo(root, across - half);
+    ctx.lineTo(root, across + half);
+    ctx.lineTo(root - reach, across);
+    ctx.closePath();
+    ctx.fill();
+    // A brighter core, a third the width, so a hard burn reads as hotter
+    // rather than merely longer.
+    ctx.fillStyle = fade(ctx, root, reach * 0.55, PLUME_CORE, min(1, alpha * 1.4));
+    ctx.beginPath();
+    ctx.moveTo(root, across - half / 3);
+    ctx.lineTo(root, across + half / 3);
+    ctx.lineTo(root - reach * 0.55, across);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+/**
+ * Where flames are burning something: a soft glow on the hull, as wide as
+ * the flame is there and spread along the surface rather than round, and as
+ * bright as the power landing on it per square metre — a little brighter
+ * than the flame itself, for the hull it is boiling off.
+ *
+ * In a pass of its own after every hull, so a glow on a ship drawn later is
+ * not painted over by it, and additive, so it lights the hull rather than
+ * covering it.
+ */
+function drawBurns(ctx: CanvasRenderingContext2D, snapshot: Snapshot): void {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < snapshot.shipCount; i++) {
+    eachNozzle(ctx, snapshot.ships[i]!, (engine, force, reach, across, landed) => {
+      // What of this nozzle's power is landing, and roughly where: the core's
+      // landing if it has one, otherwise wherever its edges met something.
+      const perRay = (PLUME_POWER_PER_NEWTON * force) / (engine.geometry.nozzles * PLUME_RAYS);
+      let power = 0;
+      let at = 0;
+      let off = 0;
+      let count = 0;
+      for (let k = 0; k < PLUME_RAYS; k++) {
+        const share = landed[k]!;
+        if (!(share > 0)) continue;
+        power += perRay * share;
+        // A side ray reaches a third as far, so its landing is a third as deep.
+        const rayReach = k === 1 ? reach : reach / 3;
+        at += (1 - share) * rayReach;
+        off += (k - 1) / 3;
+        count++;
+      }
+      if (count === 0) return;
+      at /= count;
+      off /= count;
+      const root = -engine.length / 2;
+      const exit = engine.geometry.exitWidth;
+      // As wide as the flame is where it lands, and never a speck.
+      const along = max(exit * (1 - at / reach), exit * 0.5) * 1.8;
+      const deep = along * 0.55;
+      const alpha = min(1, plumeAlpha(power / (PI * along * deep)) * 1.3);
+
+      ctx.save();
+      ctx.translate(root - at, across + off * exit);
+      ctx.scale(deep, along);
+      const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+      glow.addColorStop(0, `rgba(${BURN_CORE}, ${alpha})`);
+      glow.addColorStop(0.25, `rgba(${BURN}, ${alpha * 0.7})`);
+      glow.addColorStop(0.6, `rgba(${BURN}, ${alpha * 0.25})`);
+      glow.addColorStop(1, `rgba(${BURN}, 0)`);
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(0, 0, 1, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+  ctx.restore();
+}
+
+/** An engine as the flame passes need it: its bell geometry and its length. */
+interface Engine {
+  geometry: ReturnType<typeof thrusterGeometry>;
+  length: number;
+}
+
+/**
+ * Every burning nozzle on a ship, in its own module's frame with the exhaust
+ * running along -x: what the flame and burn passes both draw from, so they
+ * cannot disagree about where a flame is.
+ */
+function eachNozzle(
+  ctx: CanvasRenderingContext2D,
+  ship: ShipView,
+  visit: (engine: Engine, force: number, reach: number, across: number, landed: readonly number[]) => void,
+): void {
   const design = ship.design;
+  const starts = plumeRayStarts(design);
   // Thrusters are counted as they are met, because a design lists its
   // thrusters in the order its modules appear.
   let thruster = 0;
+  const landed = [0, 0, 0];
 
   ctx.save();
   ctx.translate(ship.x, ship.y);
@@ -400,49 +523,35 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
     const m = design.modules[i]!;
     const spec = m.spec;
     if (spec.kind !== 'thruster') continue;
+    const t = thruster++;
+    const force = (ship.throttles[t] ?? 0) * (design.thrusters[t]?.maxThrust ?? 0);
+    if (!(force > 0)) continue;
+    const geometry = thrusterGeometry(spec);
+    const reach = nozzleReach(geometry, force);
     ctx.save();
     ctx.translate(m.x, m.y);
     ctx.rotate(m.angle);
-
-    // Exhaust leaves the way the thruster does not push, so the plume is
-    // drawn along -x in the module's own frame.
-    const throttle = ship.throttles[thruster] ?? 0;
-    const force = throttle * (design.thrusters[thruster]?.maxThrust ?? 0);
-    thruster++;
-    if (force > 0) {
-      // One flame per nozzle, each as long as the single flame a whole-face
-      // nozzle would throw and a share of its width — the same triangles the
-      // burn samples its rays across.
-      const engine = thrusterGeometry(spec);
-      const root = -spec.length / 2;
-      const reach = nozzleReach(engine, force);
-      const half = engine.exitWidth / 2;
-      for (let n = 0; n < engine.nozzles; n++) {
-        const across = nozzleOffset(engine, n);
-        ctx.fillStyle = PLUME;
-        ctx.globalAlpha = 0.55;
-        ctx.beginPath();
-        ctx.moveTo(root, across - half);
-        ctx.lineTo(root, across + half);
-        ctx.lineTo(root - reach, across);
-        ctx.closePath();
-        ctx.fill();
-        // A brighter core, a third the width, so a hard burn reads as hotter
-        // rather than merely longer.
-        ctx.fillStyle = PLUME_CORE;
-        ctx.globalAlpha = 0.8;
-        ctx.beginPath();
-        ctx.moveTo(root, across - half / 3);
-        ctx.lineTo(root, across + half / 3);
-        ctx.lineTo(root - reach * 0.55, across);
-        ctx.closePath();
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
+    for (let n = 0; n < geometry.nozzles; n++) {
+      for (let k = 0; k < PLUME_RAYS; k++) landed[k] = ship.landed[starts[t]! + n * PLUME_RAYS + k] ?? 0;
+      visit({ geometry, length: spec.length }, force, reach, nozzleOffset(geometry, n), landed);
     }
     ctx.restore();
   }
   ctx.restore();
+}
+
+/** A flame's fill: `alpha` at the nozzle, fading to nothing `length` aft of it. */
+function fade(
+  ctx: CanvasRenderingContext2D,
+  root: number,
+  length: number,
+  rgb: string,
+  alpha: number,
+): CanvasGradient {
+  const gradient = ctx.createLinearGradient(root, 0, root - length, 0);
+  gradient.addColorStop(0, `rgba(${rgb}, ${alpha})`);
+  gradient.addColorStop(1, `rgba(${rgb}, 0)`);
+  return gradient;
 }
 
 /**
@@ -530,6 +639,7 @@ export function draw(
     drawIcon(ctx, snapshot.ships[i]!, camera.scale);
   }
 
+  drawBurns(ctx, snapshot);
   drawProjectiles(ctx, snapshot, camera);
   drawBeams(ctx, snapshot, camera);
   if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera);

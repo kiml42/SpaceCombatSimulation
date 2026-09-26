@@ -35,6 +35,7 @@ function ship(x: number, y: number, vx = 0, vy = 0, hasControl = true): ShipView
     turretBearings: [],
     turretReady: [],
     throttles: [],
+    landed: [],
     integrity: [],
     body: -1,
     hasControl,

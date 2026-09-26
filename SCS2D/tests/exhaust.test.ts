@@ -3,8 +3,11 @@ import { Bodies } from '../sim/bodies.js';
 import {
   Damage,
   Hulls,
-  PLUME_THRUST_PER_AREA,
+  DECK_HEIGHT,
+  PLUME_CORE_WIDTHS,
   Plumes,
+  collimation,
+  plumeIntensity,
   SpatialGrid,
   compileBlueprint,
   nozzleReach,
@@ -16,6 +19,7 @@ import {
   type ShipDesign,
 } from '../sim/index.js';
 import { moduleReadout } from '../editor/stats.js';
+import { THRUST_PER_EXIT_AREA } from '../sim/modules.js';
 
 /**
  * What an exhaust does to what it is pointed at.
@@ -57,6 +61,11 @@ const engine = (x: number, angle: number): ModuleSpec => ({
  * The engine is module 0 and the block, where there is one, is module 3 — the
  * indices the tests below name.
  */
+/** How far the engine on a `design` throws at full throttle. */
+function fullReach(d: ShipDesign): number {
+  return nozzleReach(thrusterGeometry(d.modules[0]!.spec), d.thrusters[0]!.maxThrust);
+}
+
 function design(gap?: number): ShipDesign {
   const spar: ModuleSpec = {
     kind: 'structure',
@@ -117,11 +126,11 @@ function burn(w: ReturnType<typeof world>, d: ShipDesign, body: number, seconds:
 }
 
 describe('how far a plume reaches', () => {
-  it('gives engines of the same shape the same reach at full throttle', () => {
-    // Thrust scales with exit area, so thrust per unit width is the same for
-    // every engine: a bigger engine is a wider flame, not a longer one. Scaled
-    // rather than merely widened, because the bell is part of the shape now —
-    // a wide flare on a short engine is a different nozzle, not a big one.
+  it('throws a flame as long as its nozzle is wide, so a bigger engine reaches further', () => {
+    // A jet runs a fixed number of its own widths before it mixes away, so an
+    // engine scaled up bodily throws a proportionally longer flame. Scaled
+    // rather than merely widened, because the bell is part of the shape — a
+    // wide flare on a short engine is a different nozzle, not a big one.
     const reaches = [1, 2, 4, 8].map((scale) => {
       const d = compileBlueprint({
         name: 'Engine',
@@ -130,15 +139,52 @@ describe('how far a plume reaches', () => {
       const t = d.thrusters[0]!;
       return nozzleReach(thrusterGeometry(d.modules[t.module!]!.spec), t.maxThrust);
     });
-    for (const reach of reaches) expect(reach).toBeCloseTo(reaches[0]!, 9);
+    reaches.forEach((reach, i) => expect(reach).toBeCloseTo(reaches[0]! * [1, 2, 4, 8][i]!, 9));
   });
 
-  it('reaches furthest from the bell that makes the most thrust', () => {
+  it('carries further for more bell on the same machinery', () => {
+    // A longer bell collimates the gas, so the flame holds together further
+    // out — bought with length, since the machinery behind it is unchanged.
+    const reach = (bell: number): number => {
+      const spec: ModuleSpec = { ...engine(-5, 0), length: 1 + bell, width: 2, nozzle: bell / (1 + bell) };
+      const d = compileBlueprint({ name: 'Engine', modules: [spec, hull(0, 10)] });
+      const t = d.thrusters[0]!;
+      return nozzleReach(thrusterGeometry(d.modules[t.module!]!.spec), t.maxThrust);
+    };
+    expect(reach(2)).toBeGreaterThan(reach(0.5) * 1.3);
+    expect(reach(4)).toBeGreaterThan(reach(2));
+  });
+
+  it('splits into shorter, fiercer flames across more nozzles, and loses no thrust doing it', () => {
+    // Each nozzle is fed at the same pressure through a narrower exit, so its
+    // flame is shorter; its bell is narrower for the same length, so the gas
+    // is better aimed and the engine as a whole pushes a little harder.
+    const built = (barrels: number) => {
+      const d = compileBlueprint({
+        name: 'Engine',
+        modules: [{ ...engine(-5, 0), length: 4, width: 4, barrels }, hull(0, 10)],
+      });
+      const t = d.thrusters[0]!;
+      const geometry = thrusterGeometry(d.modules[t.module!]!.spec);
+      return {
+        thrust: t.maxThrust,
+        reach: nozzleReach(geometry, t.maxThrust),
+        intensity: plumeIntensity(geometry, t.maxThrust),
+      };
+    };
+    const one = built(1);
+    const four = built(4);
+    expect(four.reach).toBeLessThan(one.reach * 0.5);
+    expect(four.intensity).toBeGreaterThan(one.intensity * 2);
+    expect(four.thrust).toBeGreaterThanOrEqual(one.thrust);
+  });
+
+  it('reaches furthest from a long bell, but not from one with nothing behind it', () => {
     // Gas leaving a divergent nozzle is already flying apart, so it spreads to
     // nothing close in — and what there is to throw is whatever the machinery
-    // behind it can feed. Both are in the flame's length, so it runs out at
-    // the same interior optimum the thrust does: a bare throat sprays what it
-    // has sideways, and a bell with no chamber behind it has nothing to spray.
+    // behind it can feed. Collimation counts for more in the flame than in the
+    // thrust, so the flame peaks at a longer bell than the thrust does, but
+    // still inside: a bell with no chamber behind it has nothing to throw.
     const reach = (nozzle: number): number => {
       const d = compileBlueprint({
         name: 'Engine',
@@ -148,7 +194,8 @@ describe('how far a plume reaches', () => {
       return nozzleReach(thrusterGeometry(d.modules[t.module!]!.spec), t.maxThrust);
     };
     expect(reach(0.3)).toBeGreaterThan(reach(0.05) * 1.3);
-    expect(reach(0.9)).toBeLessThan(reach(0.3) * 0.4);
+    expect(reach(0.6)).toBeGreaterThan(reach(0.3));
+    expect(reach(0.9)).toBeLessThan(reach(0.6) * 0.5);
   });
 
   it('shortens with the throttle, so a low burn is a short flame', () => {
@@ -184,7 +231,7 @@ describe('what an engine exhausts into', () => {
   it('costs the thrust of every ray it stops, and no more', () => {
     // A ray that runs into the ship hands its momentum back to the hull it was
     // pushing, so that third of the engine is not thrust at all.
-    const reach = plumeReach(design().thrusters[0]!.maxThrust, 4);
+    const reach = fullReach(design());
     // Well inside the side rays' own reach, so all three are stopped.
     expect(design(reach * 0.1).thrusters[0]!.escaping).toBe(0);
     // Past where the side rays end but inside the core's, so only the core is.
@@ -194,7 +241,7 @@ describe('what an engine exhausts into', () => {
   });
 
   it('is what the layout flies on, so a buried engine is a weak one', () => {
-    const reach = plumeReach(design().thrusters[0]!.maxThrust, 4);
+    const reach = fullReach(design());
     const clear = design().thrusterLayout.maxThrustAlong(1, 0);
     const buried = design(reach * 0.1).thrusterLayout.maxThrustAlong(1, 0);
     expect(clear).toBeGreaterThan(0);
@@ -219,7 +266,7 @@ describe('an engine firing into its own ship', () => {
   });
 
   it('burns harder the nearer the obstruction is to the nozzle', () => {
-    const reach = plumeReach(design().thrusters[0]!.maxThrust, 4);
+    const reach = fullReach(design());
     const at = (gap: number): number => {
       const d = design(gap);
       const w = world([d]);
@@ -354,7 +401,7 @@ describe('the push a plume carries', () => {
   it('pushes nothing when the ray is buried in its own ship', () => {
     // That momentum was taken off the engine's thrust when the design was
     // compiled, so paying it again here would be a ship pushing itself.
-    const reach = plumeReach(design().thrusters[0]!.maxThrust, 4);
+    const reach = fullReach(design());
     const d = design(reach * 0.1);
     const w = world([d]);
     const before = w.bodies.vx[0]!;
@@ -402,9 +449,12 @@ describe('an engine firing at somebody else', () => {
 describe('the plume the renderer draws', () => {
   it('is the plume the simulation burns with', () => {
     // Both take their length from `plumeReach` and their width from the
-    // engine's exit, so what is on the screen is what is doing the damage.
-    expect(PLUME_THRUST_PER_AREA).toBeGreaterThan(0);
-    expect(plumeReach(1e5, 2)).toBe(1e5 / (2 * PLUME_THRUST_PER_AREA));
+    // engine's exit, so what is on the screen is what is doing the damage: at
+    // design pressure through a perfect bell, the constant's own widths.
+    const width = 2;
+    const force = width * DECK_HEIGHT * THRUST_PER_EXIT_AREA;
+    expect(plumeReach(force, width)).toBeCloseTo(PLUME_CORE_WIDTHS * width, 9);
+    expect(plumeReach(force * 0.9, width, 0.9)).toBeCloseTo(PLUME_CORE_WIDTHS * width * collimation(0.9), 9);
   });
 });
 

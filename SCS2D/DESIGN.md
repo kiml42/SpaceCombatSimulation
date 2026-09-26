@@ -101,8 +101,10 @@ inside any one file is not contiguous.
   stops working and goes on stopping shells, so a battered ship is sluggish and
   quiet rather than lighter, and a ship that can neither move nor shoot drifts
   as a hulk. Hits flash on the canvas and wrecked modules are drawn as wreckage.
-  **An engine is a weapon at close quarters**: a plume reaches back as far as the thrust it is carrying,
-  and whatever stands in it burns — its own hull if a nozzle was pointed into one, anything that drifts
+  **An engine is a weapon at close quarters**: a plume reaches back a fixed number of its own nozzle's
+  widths, further for machinery that feeds it harder and for a longer bell that collimates it, so a big
+  engine throws a long flame and a cluster of nozzles throws short ones. How fiercely it burns — its power
+  over its area — is drawn as its opacity, fading to its tip as its bite does. Whatever stands in it burns — its own hull if a nozzle was pointed into one, anything that drifts
   behind a burning stern if not. It is the same flame the renderer draws, so what is on the screen is what
   is doing the damage, and it shoves as well as burns. An engine can also be *meant* as one: a thruster
   ticked as a weapon in the editor lights up by itself when an enemy is close enough behind it to take a
@@ -114,8 +116,10 @@ inside any one file is not contiguous.
   the inner half of the flame, where the burn is worth firing — so a craft whose only weapon is an engine
   closes to where it burns rather than parking against the hull or sitting out at the plume's tip. The
   `torchRun` scenario is the demonstration: small Torch ships with a big engine on the bow close fast on a
-  gunship, planning to stop against its hull on that engine, and the burn that brakes them scorches it
-  and then shoves them back out, so they hit and run without any rule saying so.
+  laser frigate, planning to stop against its hull on that engine, and the burn that brakes them scorches it
+  and then shoves them back out, so they hit and run without any rule saying so. A torch points its whole
+  hull at the frigate's centre, so most of its flame lands on armour; the engines and point defence it
+  catches go quickly, which is what aiming a hull at a chosen part will make deliberate.
   **Hulls come apart, and it takes a blow to do it.** A ship is held together by welds derived from where
   its modules touch, each rated by its section. Damage decides how much of a weld is left; what spends it
   is the impulse that has to cross it, so a hit on an outlying module takes it off and the same hit

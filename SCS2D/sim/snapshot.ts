@@ -50,6 +50,12 @@ export interface ShipView {
   /** Throttle held by each thruster, 0 to 1, in the design's thruster order. */
   throttles: number[];
   /**
+   * How much of each flame ray landed on a hull last step, as that ray's
+   * share of its power — 0 where it met nothing. Every thruster's rays in
+   * turn, three per nozzle, starting where `plumeRayStarts` says.
+   */
+  landed: number[];
+  /**
    * How much of each module is left, 1 untouched and 0 spent, in the design's
    * module order. A spent module is still there and still stops shells — it is
    * drawn as wreckage rather than not drawn.
@@ -196,6 +202,7 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
     turretBearings: [],
     turretReady: [],
     throttles: [],
+    landed: [],
     integrity: [],
     hasControl: true,
     isDerelict: false,
@@ -260,6 +267,10 @@ export function capture(
     for (let t = 0; t < design.thrusters.length; t++) {
       view.throttles[t] = ships.throttleOf(i, t);
     }
+
+    const rays = ships.landedRays(i);
+    view.landed.length = rays.length;
+    for (let r = 0; r < rays.length; r++) view.landed[r] = rays[r]!;
 
     view.integrity.length = design.modules.length;
     for (let m = 0; m < design.modules.length; m++) {

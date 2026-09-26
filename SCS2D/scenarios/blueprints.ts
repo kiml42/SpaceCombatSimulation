@@ -12,6 +12,7 @@ import dinkyFile from './blueprints/dinky.json' with { type: 'json' };
 import catamaranFile from './blueprints/catamaran.json' with { type: 'json' };
 import bareCoreFile from './blueprints/bare-core.json' with { type: 'json' };
 import torchFile from './blueprints/torch.json' with { type: 'json' };
+import laserFrigateFile from './blueprints/laser-frigate.json' with { type: 'json' };
 
 // --- Star Wars ---
 import xWingFile from './blueprints/x-wing.json' with { type: 'json' };
@@ -59,6 +60,7 @@ export const DINKY: Blueprint = parseBlueprint(dinkyFile);
 export const CATAMARAN: Blueprint = parseBlueprint(catamaranFile);
 export const BARE_CORE: Blueprint = parseBlueprint(bareCoreFile);
 export const TORCH: Blueprint = parseBlueprint(torchFile);
+export const LASER_FRIGATE: Blueprint = parseBlueprint(laserFrigateFile);
 
 export const X_WING: Blueprint = parseBlueprint(xWingFile);
 export const GHOST: Blueprint = parseBlueprint(ghostFile);
@@ -79,6 +81,7 @@ export const BLUEPRINTS = {
     flatGunshipGrouped: FLAT_GUNSHIP_GROUPED,
     bareCore: BARE_CORE,
     torch: TORCH,
+    laserFrigate: LASER_FRIGATE,
 
     xWing: X_WING,
     ghost: GHOST,
