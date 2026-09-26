@@ -1,6 +1,7 @@
 import { parseFleet, type Fleet } from '../sim/index.js';
 import { teamColour } from '../render/canvas2d.js';
 import { FLEET_FILES, Library } from '../editor/library.js';
+import { shipFleet } from '../editor/handoff.js';
 import {
   DEFAULT_SETUP,
   parseBattleSetup,
@@ -20,12 +21,18 @@ import { el } from './dom.js';
 /** The sides' colours by name, as the footer calls them. */
 const SIDE_NAMES = ['blue', 'red', 'green', 'magenta'];
 
-/** Where a fleet in a slot came from: the library by name, or a file. */
+/**
+ * A side: its fleet, and where that came from — a fleet or a single ship from
+ * a library, by name, or somewhere the libraries cannot give back (a file, an
+ * editor), described.
+ */
 interface Slot {
   fleet: Fleet;
-  /** Null for a fleet read from a file, which the library cannot give back. */
-  library: string | null;
+  source: { kind: 'fleet' | 'ship'; name: string } | { kind: 'other'; label: string };
 }
+
+const valueOf = (source: Slot['source']): string =>
+  source.kind === 'other' ? 'other:' : `${source.kind}:${source.name}`;
 
 export interface CustomPanel {
   show(visible: boolean): void;
@@ -34,6 +41,8 @@ export interface CustomPanel {
   update(battle: CustomBattle, time: number): void;
   /** Forget any result, for a battle starting again. */
   reset(): void;
+  /** Start the setup from this fleet alone, as the first side. */
+  load(fleet: Fleet, label: string): void;
 }
 
 /**
@@ -51,9 +60,12 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
   const seed = el<HTMLInputElement>('battleSeed');
 
   const fleets = new Library(window.localStorage, FLEET_FILES);
-  const read = (name: string): Fleet | null => {
+  const ships = new Library(window.localStorage);
+  const read = (kind: 'fleet' | 'ship', name: string): Fleet | null => {
     try {
-      return fleets.load(name);
+      if (kind === 'fleet') return fleets.load(name);
+      const blueprint = ships.load(name);
+      return blueprint === null ? null : shipFleet(blueprint);
     } catch (error) {
       window.alert(`Could not read the saved ${name}.\n\n${error instanceof Error ? error.message : error}`);
       return null;
@@ -74,8 +86,8 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
   fill(DEFAULT_SETUP);
 
   const renderSlots = (): void => {
-    const names = fleets.list().map((entry) => entry.name);
-    const unique = [...new Set(names)];
+    const fleetNames = [...new Set(fleets.list().map((entry) => entry.name))];
+    const shipNames = [...new Set(ships.list().map((entry) => entry.name))];
     slotsBox.innerHTML = '';
     slots.forEach((slot, i) => {
       const row = document.createElement('div');
@@ -84,17 +96,22 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
       swatch.className = 'swatch';
       swatch.style.background = teamColour(i);
       const select = document.createElement('select');
-      const options = slot.library === null ? [`${slot.fleet.name} (file)`, ...unique] : unique;
-      for (const name of options) {
-        const option = document.createElement('option');
-        option.textContent = name;
-        option.value = name;
-        select.append(option);
-      }
-      select.value = slot.library ?? `${slot.fleet.name} (file)`;
+      if (slot.source.kind === 'other') select.append(new Option(slot.source.label, 'other:'));
+      const group = (label: string, kind: 'fleet' | 'ship', names: readonly string[]): void => {
+        const box = document.createElement('optgroup');
+        box.label = label;
+        for (const name of names) box.append(new Option(name, `${kind}:${name}`));
+        select.append(box);
+      };
+      group('Fleets', 'fleet', fleetNames);
+      group('Single ships', 'ship', shipNames);
+      select.value = valueOf(slot.source);
       select.addEventListener('change', () => {
-        const fleet = read(select.value);
-        if (fleet !== null) slots[i] = { fleet, library: select.value };
+        const [kind, ...rest] = select.value.split(':');
+        const name = rest.join(':');
+        if (kind !== 'fleet' && kind !== 'ship') return;
+        const fleet = read(kind, name);
+        if (fleet !== null) slots[i] = { fleet, source: { kind, name } };
         renderSlots();
         changed();
       });
@@ -109,15 +126,19 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
       row.append(swatch, select, remove);
       slotsBox.append(row);
     });
-    fightButton.disabled = slots.length < 2;
-    fightButton.title = slots.length < 2 ? 'Choose at least two fleets' : 'Start the battle';
+    // One side is enough: a fleet with nobody to fight is how an escort is watched.
+    fightButton.disabled = slots.length < 1;
+    fightButton.title = slots.length < 1 ? 'Choose a fleet first' : 'Start the battle';
   };
 
   el<HTMLButtonElement>('addFleet').addEventListener('click', () => {
+    // Another of whatever the last side was, as a start; its list changes it.
     const last = slots[slots.length - 1];
-    const name = last?.library ?? firstName;
-    const fleet = read(name);
-    if (fleet !== null) slots.push({ fleet, library: name });
+    if (last !== undefined) slots.push({ ...last });
+    else {
+      const fleet = read('fleet', firstName);
+      if (fleet !== null) slots.push({ fleet, source: { kind: 'fleet', name: firstName } });
+    }
     renderSlots();
     changed();
   });
@@ -141,7 +162,10 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
 
   const fleetFile = el<HTMLInputElement>('fleetFile');
   el<HTMLButtonElement>('fleetFromFile').addEventListener('click', () => fleetFile.click());
-  pick(fleetFile, (text) => slots.push({ fleet: parseFleet(JSON.parse(text)), library: null }));
+  pick(fleetFile, (text) => {
+    const fleet = parseFleet(JSON.parse(text));
+    slots.push({ fleet, source: { kind: 'other', label: `${fleet.name} (file)` } });
+  });
 
   const number = (input: HTMLInputElement, fallback: number): number => {
     const value = Number(input.value);
@@ -172,7 +196,7 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
   pick(battleFile, (text) => {
     const loaded = parseBattleSetup(JSON.parse(text));
     slots.length = 0;
-    for (const fleet of loaded.fleets) slots.push({ fleet, library: null });
+    for (const fleet of loaded.fleets) slots.push({ fleet, source: { kind: 'other', label: `${fleet.name} (file)` } });
     fill(loaded);
   });
 
@@ -220,6 +244,11 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
       decided = false;
       lastDrawn = -Infinity;
       outcome.textContent = '';
+    },
+    load(fleet, label) {
+      slots.length = 0;
+      slots.push({ fleet, source: { kind: 'other', label } });
+      renderSlots();
     },
   };
 }

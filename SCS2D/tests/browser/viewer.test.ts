@@ -227,6 +227,12 @@ describe('the viewer in a browser', () => {
     expect(await page.isDisabled('#fight')).toBe(true);
 
     await page.click('#addFleet');
+    // One side is enough to start.
+    expect(await page.isDisabled('#fight')).toBe(false);
+    // A single ship can be a side too.
+    await page.locator('#fleetSlots select').first().selectOption('ship:Star Destroyer');
+    expect(await page.textContent('#sides')).toMatch(/Star Destroyer.*1\/1 ships/);
+    await page.locator('#fleetSlots select').first().selectOption('fleet:Line of Battle');
     // A lone fighter from a file against the stock line: decided in seconds.
     const lone = {
       formatVersion: 1,
@@ -240,7 +246,7 @@ describe('the viewer in a browser', () => {
       buffer: Buffer.from(JSON.stringify(lone)),
     });
     await page.waitForFunction(() => document.querySelectorAll('#fleetSlots .slot').length === 2);
-    expect(await page.locator('#fleetSlots select').nth(1).inputValue()).toBe('Lone (file)');
+    expect(await page.locator('#fleetSlots select').nth(1).locator('option:checked').textContent()).toBe('Lone (file)');
 
     // Changing the setup rebuilds it where it stands, still paused at step 0.
     await page.fill('#battleRange', '1000');

@@ -11,7 +11,7 @@ import type { Battle } from './types.js';
 export const BATTLE_FORMAT_VERSION = 1;
 
 export interface BattleSetup {
-  /** Two or more; each is its own side. */
+  /** Each its own side. One alone is a battle with nobody to fight, which is how an escort is watched. */
   fleets: Fleet[];
   /** Across the ring the fleets start on, metres. */
   range: number;
@@ -48,7 +48,7 @@ export function battleSetupProblem(value: unknown): string | null {
     return `formatVersion must be ${BATTLE_FORMAT_VERSION}, got ${JSON.stringify(value['formatVersion'])}`;
   }
   const fleets = value['fleets'];
-  if (!Array.isArray(fleets) || fleets.length < 2) return 'fleets must be a list of at least two fleets';
+  if (!Array.isArray(fleets) || fleets.length < 1) return 'fleets must be a list of at least one fleet';
   for (let i = 0; i < fleets.length; i++) {
     try {
       parseFleet(fleets[i]);

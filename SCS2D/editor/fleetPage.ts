@@ -28,6 +28,7 @@ import {
   refreshDesign,
   updateEntry,
 } from './fleetEdit.js';
+import { battleHref } from './handoff.js';
 import { centreOf, FleetDocument, toFrame, toFrameAngle, type EntryFrame } from './fleetDocument.js';
 import { drawFleetOverlay, knobFor, type FleetOverlayView } from './fleetOverlay.js';
 import { fleetSnapshot } from './fleetPreview.js';
@@ -692,6 +693,11 @@ export function startFleetEditor(): void {
     resize();
     render();
   }).observe(canvas);
+
+  // The fleet as it stands, saved or not, goes with the link.
+  el<HTMLAnchorElement>('battleLink').addEventListener('click', (event) => {
+    (event.currentTarget as HTMLAnchorElement).href = battleHref(doc.fleet);
+  });
 
   el<HTMLElement>('hint').textContent =
     'Add ships from the library; click to select, Shift-click for several, drag to move, drag the knob to turn. ' +

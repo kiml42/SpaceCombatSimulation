@@ -387,8 +387,10 @@ inside any one file is not contiguous.
   rather than enforces what is wrong: hulls overlapping at the start, a design that would not fly, and an
   embedded design that has drifted from the library's copy of the same name, which one button brings up to
   date. Fleets are saved to browser storage and exported and imported as fleet files.
-  **A custom battle** on the viewer sets two or more fleets round a ring at a chosen range, closing and
-  crossing speed and seed, saved and loaded as a battle file. It is set up paused at its first step, the
+  **A custom battle** on the viewer sets fleets — or single ships, as fleets of one — round a ring at a
+  chosen range, closing and crossing speed and seed, saved and loaded as a battle file; one side alone is
+  allowed, for watching an escort. Both editors' Battle links open it with what is being edited as the
+  first side. It is set up paused at its first step, the
   picture following every change, and started with Fight. It says how each side stands — ships still
   crewed, how many armed and how many mobile, and the share of its mass lost — and names the winner once no
   more than one side can fight on, without stopping the battle.

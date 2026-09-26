@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { serialiseFleet, type Fleet } from '../sim/index.js';
+import { type Fleet } from '../sim/index.js';
 import { DINKY } from '../scenarios/blueprints.js';
 import { LINE_OF_BATTLE } from '../scenarios/fleets.js';
 import {
@@ -22,7 +22,7 @@ describe('the battle file', () => {
   });
 
   it.each([
-    ['one fleet', { fleets: [serialiseFleet(LINE_OF_BATTLE)] }, /at least two/],
+    ['no fleets', { fleets: [] }, /at least one/],
     ['no range', { range: 0 }, /range must be greater/],
     ['a fractional seed', { seed: 1.5 }, /whole number/],
   ])('refuses %s', (_what, change, message) => {

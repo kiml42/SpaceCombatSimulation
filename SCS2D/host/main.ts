@@ -14,6 +14,7 @@ import { split } from '../scenarios/split.js';
 import { torchRun } from '../scenarios/torchRun.js';
 import { customBattle, type CustomBattle } from '../scenarios/customBattle.js';
 import { customPanel } from './customPanel.js';
+import { handedFleet } from '../editor/handoff.js';
 import { draw } from '../render/canvas2d.js';
 import { frame, gridStep, moveWithVisibleShips, type Camera } from '../render/camera.js';
 import { el } from './dom.js';
@@ -275,6 +276,19 @@ export function start(): void {
 
     window.requestAnimationFrame(tick);
   };
+
+  // An editor's Battle link carries what it holds: open straight into a custom
+  // battle with it as the first side, paused for the rest to be chosen.
+  try {
+    const handed = handedFleet(window.location.hash);
+    if (handed !== null) {
+      panel.load(handed, `${handed.name} (from the editor)`);
+      openCustom();
+    }
+  } catch (error) {
+    window.alert(`Could not read the fleet handed over.\n\n${error instanceof Error ? error.message : error}`);
+  }
+  if (window.location.hash !== '') history.replaceState(null, '', window.location.pathname);
 
   window.requestAnimationFrame(tick);
 }
