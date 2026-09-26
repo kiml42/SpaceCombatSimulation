@@ -203,6 +203,11 @@ function shipColours(team: number): (typeof TEAM_COLOURS)[number] {
   return TEAM_COLOURS[team] ?? NEUTRAL;
 }
 
+/** A side's hull colour, for anything that names the side outside the picture. */
+export function teamColour(team: number): string {
+  return shipColours(team).hull;
+}
+
 function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
   const colours = shipColours(ship.team);
   const design = ship.design;

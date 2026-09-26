@@ -12,6 +12,8 @@ import { standoff } from '../scenarios/standoff.js';
 import { column } from '../scenarios/column.js';
 import { split } from '../scenarios/split.js';
 import { torchRun } from '../scenarios/torchRun.js';
+import { customBattle, type CustomBattle } from '../scenarios/customBattle.js';
+import { customPanel } from './customPanel.js';
 import { draw } from '../render/canvas2d.js';
 import { frame, gridStep, moveWithVisibleShips, type Camera } from '../render/camera.js';
 import { el } from './dom.js';
@@ -58,9 +60,25 @@ export function start(): void {
     { name: 'Line Ahead', create: () => column(SEED) },
     { name: 'Split', create: () => split(SEED) },
     { name: 'Torch Run', create: () => torchRun(SEED) },
+    // Last, and built from the panel's setup rather than from code.
+    { name: 'Custom battle', create: (): Battle => customBattle(panel.setup()) },
   ];
+  const CUSTOM = scenes.length - 1;
+  const restart = (): void => {
+    state = scenes[sceneIndex]!.create();
+    panel.reset();
+    flashes.clear();
+    framed = false;
+    autoFrame = true;
+    setRunning(true);
+  };
+  const panel = customPanel(() => {
+    sceneIndex = CUSTOM;
+    sceneSelect.selectedIndex = CUSTOM;
+    restart();
+  });
   let sceneIndex = 0;
-  let state: Battle = scenes[sceneIndex].create();
+  let state: Battle = scenes[sceneIndex]!.create();
   let snapshot = new Snapshot();
   const flashes = new Flashes();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
@@ -93,7 +111,8 @@ export function start(): void {
     canvas.width = Math.round(rect.width * ratio);
     canvas.height = Math.round(rect.height * ratio);
   };
-  window.addEventListener('resize', resize);
+  // The canvas rather than the window: showing the custom battle panel resizes it too.
+  new ResizeObserver(resize).observe(canvas);
   resize();
 
   const setRunning = (next: boolean): void => {
@@ -109,20 +128,11 @@ export function start(): void {
     setRunning(false);
     state.step();
   });
-  resetButton.addEventListener('click', () => {
-    state = scenes[sceneIndex].create();
-    flashes.clear();
-    framed = false;
-    autoFrame = true;
-    setRunning(true);
-  });
+  resetButton.addEventListener('click', restart);
   sceneSelect.addEventListener('change', () => {
     sceneIndex = sceneSelect.selectedIndex;
-    state = scenes[sceneIndex].create();
-    flashes.clear();
-    framed = false;
-    autoFrame = true;
-    setRunning(true);
+    panel.show(sceneIndex === CUSTOM);
+    restart();
   });
   fitButton.addEventListener('click', () => {
     autoFrame = true;
@@ -233,6 +243,9 @@ export function start(): void {
     }
     flashes.step(simDt);
     draw(ctx, view, camera, canvas.width, canvas.height, flashes);
+
+    // A custom battle stops itself once only one side is left fighting.
+    if (sceneIndex === CUSTOM && panel.update(state as CustomBattle, view.time)) setRunning(false);
 
     // Between the first two ships, whatever the scenario holds — but only if
     // there are two. A single survivor has nothing to measure against, and

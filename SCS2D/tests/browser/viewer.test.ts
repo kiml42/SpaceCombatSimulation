@@ -12,6 +12,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import type { Browser, Page } from 'playwright';
 import { launchChromium } from './launch.js';
+import { serialiseBlueprint } from '../../sim/index.js';
+import { DINKY } from '../../scenarios/blueprints.js';
 
 /**
  * The viewer, driven in a real browser.
@@ -213,6 +215,43 @@ describe('the viewer in a browser', () => {
     expect(range).toBeGreaterThan(900);
     expect(range).toBeLessThan(1100);
     expect(await advanced(page)).toBeGreaterThan(0);
+  });
+
+  it('fights a custom battle between fleets and says who won', async () => {
+    expect(await page.isHidden('#custom')).toBe(true);
+    await page.selectOption('#scene', { label: 'Custom battle' });
+    expect(await page.isVisible('#custom')).toBe(true);
+    expect(await page.locator('#fleetSlots .slot').count()).toBe(2);
+
+    // A lone fighter from a file against the stock line: decided in seconds.
+    const lone = {
+      formatVersion: 1,
+      name: 'Lone',
+      designs: { Dinky: serialiseBlueprint(DINKY) },
+      ships: [{ design: 'Dinky', x: 0, y: 0 }],
+    };
+    await page.setInputFiles('#fleetFile', {
+      name: 'lone.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(lone)),
+    });
+    await page.waitForFunction(() => document.querySelectorAll('#fleetSlots .slot').length === 3);
+    await page.locator('#fleetSlots .slot').nth(1).locator('button').click();
+    expect(await page.locator('#fleetSlots select').nth(1).inputValue()).toBe('Lone (file)');
+
+    await page.fill('#battleRange', '1000');
+    await page.click('#fight');
+    await page.fill('#speed', '8');
+    await page.dispatchEvent('#speed', 'input');
+    await page.waitForFunction(() => (document.getElementById('outcome')?.textContent ?? '') !== '', null, {
+      timeout: 20_000,
+    });
+    expect(await page.textContent('#outcome')).toMatch(/^Line of Battle \(blue\) wins at/);
+    expect(await page.textContent('#sides')).toMatch(/Lone.*\/1 ships · 0 armed/);
+    // Deciding it pauses the battle.
+    expect(await page.textContent('#play')).toBe('Play');
+    await page.fill('#speed', '1');
+    await page.dispatchEvent('#speed', 'input');
   });
 
   it('reports no errors after all of that', () => {
