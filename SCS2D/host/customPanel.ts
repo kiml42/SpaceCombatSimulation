@@ -1,0 +1,258 @@
+import { parseFleet, type Fleet } from '../sim/index.js';
+import { teamColour } from '../render/canvas2d.js';
+import { FLEET_FILES, Library } from '../editor/library.js';
+import { shipFleet } from '../editor/handoff.js';
+import {
+  DEFAULT_SETUP,
+  parseBattleSetup,
+  serialiseBattleSetup,
+  tally,
+  winner,
+  type BattleSetup,
+  type CustomBattle,
+} from '../scenarios/customBattle.js';
+import { el } from './dom.js';
+
+/**
+ * The viewer's custom battle panel: which fleets, how far apart, how fast, and
+ * how each side is doing. Owns the setup; the viewer asks it for one to fight.
+ */
+
+/** The sides' colours by name, as the footer calls them. */
+const SIDE_NAMES = ['blue', 'red', 'green', 'magenta'];
+
+/**
+ * A side: its fleet, and where that came from — a fleet or a single ship from
+ * a library, by name, or somewhere the libraries cannot give back (a file, an
+ * editor), described.
+ */
+interface Slot {
+  fleet: Fleet;
+  source: { kind: 'fleet' | 'ship'; name: string } | { kind: 'other'; label: string };
+}
+
+const valueOf = (source: Slot['source']): string =>
+  source.kind === 'other' ? 'other:' : `${source.kind}:${source.name}`;
+
+export interface CustomPanel {
+  show(visible: boolean): void;
+  setup(): BattleSetup;
+  /** Refresh the sides table, and name the winner once there is one. */
+  update(battle: CustomBattle, time: number): void;
+  /** Forget any result, for a battle starting again. */
+  reset(): void;
+  /** Start the setup from this fleet alone, as the first side. */
+  load(fleet: Fleet, label: string): void;
+}
+
+/**
+ * `changed` is called whenever the setup changes, so the viewer can show it
+ * paused at its first step; `fight` when the battle should start.
+ */
+export function customPanel(changed: () => void, fight: () => void): CustomPanel {
+  const panel = el<HTMLElement>('custom');
+  const slotsBox = el<HTMLElement>('fleetSlots');
+  const sidesBox = el<HTMLElement>('sides');
+  const outcome = el<HTMLElement>('outcome');
+  const range = el<HTMLInputElement>('battleRange');
+  const closing = el<HTMLInputElement>('battleClosing');
+  const crossing = el<HTMLInputElement>('battleCrossing');
+  const seed = el<HTMLInputElement>('battleSeed');
+
+  const fleets = new Library(window.localStorage, FLEET_FILES);
+  const ships = new Library(window.localStorage);
+  const read = (kind: 'fleet' | 'ship', name: string): Fleet | null => {
+    try {
+      if (kind === 'fleet') return fleets.load(name);
+      const blueprint = ships.load(name);
+      return blueprint === null ? null : shipFleet(blueprint);
+    } catch (error) {
+      window.alert(`Could not read the saved ${name}.\n\n${error instanceof Error ? error.message : error}`);
+      return null;
+    }
+  };
+  const firstName = fleets.list()[0]?.name ?? '';
+  // Blank: the fleets are the first thing chosen.
+  const slots: Slot[] = [];
+  let decided = false;
+  const fightButton = el<HTMLButtonElement>('fight');
+
+  const fill = (setup: Omit<BattleSetup, 'fleets'>): void => {
+    range.value = String(setup.range);
+    closing.value = String(setup.closingSpeed);
+    crossing.value = String(setup.crossingSpeed);
+    seed.value = String(setup.seed);
+  };
+  fill(DEFAULT_SETUP);
+
+  const renderSlots = (): void => {
+    const fleetNames = [...new Set(fleets.list().map((entry) => entry.name))];
+    const shipNames = [...new Set(ships.list().map((entry) => entry.name))];
+    slotsBox.innerHTML = '';
+    slots.forEach((slot, i) => {
+      const row = document.createElement('div');
+      row.className = 'slot';
+      const swatch = document.createElement('span');
+      swatch.className = 'swatch';
+      swatch.style.background = teamColour(i);
+      const select = document.createElement('select');
+      if (slot.source.kind === 'other') select.append(new Option(slot.source.label, 'other:'));
+      const group = (label: string, kind: 'fleet' | 'ship', names: readonly string[]): void => {
+        const box = document.createElement('optgroup');
+        box.label = label;
+        for (const name of names) box.append(new Option(name, `${kind}:${name}`));
+        select.append(box);
+      };
+      group('Fleets', 'fleet', fleetNames);
+      group('Single ships', 'ship', shipNames);
+      select.value = valueOf(slot.source);
+      select.addEventListener('change', () => {
+        const [kind, ...rest] = select.value.split(':');
+        const name = rest.join(':');
+        if (kind !== 'fleet' && kind !== 'ship') return;
+        const fleet = read(kind, name);
+        if (fleet !== null) slots[i] = { fleet, source: { kind, name } };
+        renderSlots();
+        changed();
+      });
+      const remove = document.createElement('button');
+      remove.textContent = '×';
+      remove.title = 'Take this side out';
+      remove.addEventListener('click', () => {
+        slots.splice(i, 1);
+        renderSlots();
+        changed();
+      });
+      row.append(swatch, select, remove);
+      slotsBox.append(row);
+    });
+    // One side is enough: a fleet with nobody to fight is how an escort is watched.
+    fightButton.disabled = slots.length < 1;
+    fightButton.title = slots.length < 1 ? 'Choose a fleet first' : 'Start the battle';
+  };
+
+  el<HTMLButtonElement>('addFleet').addEventListener('click', () => {
+    // Another of whatever the last side was, as a start; its list changes it.
+    const last = slots[slots.length - 1];
+    if (last !== undefined) slots.push({ ...last });
+    else {
+      const fleet = read('fleet', firstName);
+      if (fleet !== null) slots.push({ fleet, source: { kind: 'fleet', name: firstName } });
+    }
+    renderSlots();
+    changed();
+  });
+
+  const pick = (input: HTMLInputElement, use: (text: string) => void): void => {
+    input.addEventListener('change', () => {
+      const file = input.files?.[0];
+      if (file === undefined) return;
+      void file.text().then((text) => {
+        try {
+          use(text);
+        } catch (error) {
+          window.alert(`Could not read that file.\n\n${error instanceof Error ? error.message : error}`);
+        }
+        renderSlots();
+        changed();
+      });
+      input.value = '';
+    });
+  };
+
+  const fleetFile = el<HTMLInputElement>('fleetFile');
+  el<HTMLButtonElement>('fleetFromFile').addEventListener('click', () => fleetFile.click());
+  pick(fleetFile, (text) => {
+    const fleet = parseFleet(JSON.parse(text));
+    slots.push({ fleet, source: { kind: 'other', label: `${fleet.name} (file)` } });
+  });
+
+  const number = (input: HTMLInputElement, fallback: number): number => {
+    const value = Number(input.value);
+    return input.value.trim() === '' || !Number.isFinite(value) ? fallback : value;
+  };
+  const setup = (): BattleSetup => ({
+    fleets: slots.map((slot) => slot.fleet),
+    range: Math.max(1, number(range, DEFAULT_SETUP.range)),
+    closingSpeed: number(closing, DEFAULT_SETUP.closingSpeed),
+    crossingSpeed: number(crossing, DEFAULT_SETUP.crossingSpeed),
+    seed: Math.round(number(seed, DEFAULT_SETUP.seed)),
+  });
+
+  fightButton.addEventListener('click', fight);
+  for (const input of [range, closing, crossing, seed]) input.addEventListener('input', changed);
+
+  el<HTMLButtonElement>('exportBattle').addEventListener('click', () => {
+    const text = `${JSON.stringify(serialiseBattleSetup(setup()), null, 2)}\n`;
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'battle.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  });
+  const battleFile = el<HTMLInputElement>('battleFile');
+  el<HTMLButtonElement>('importBattle').addEventListener('click', () => battleFile.click());
+  pick(battleFile, (text) => {
+    const loaded = parseBattleSetup(JSON.parse(text));
+    slots.length = 0;
+    for (const fleet of loaded.fleets) slots.push({ fleet, source: { kind: 'other', label: `${fleet.name} (file)` } });
+    fill(loaded);
+  });
+
+  renderSlots();
+
+  let lastDrawn = -Infinity;
+  return {
+    show(visible) {
+      panel.hidden = !visible;
+    },
+    setup,
+    update(battle, time) {
+      if (battle.start.length === 0) {
+        sidesBox.innerHTML = '<p class="none">No fleets yet.</p>';
+        return;
+      }
+      // Sampled a few times a simulated second: it is a table to read, not an animation.
+      if (time - lastDrawn < 0.2 && time >= lastDrawn) return;
+      lastDrawn = time;
+      const now = tally(battle, battle.start.length);
+      sidesBox.innerHTML = battle.start
+        .map((start, i) => {
+          const side = now[i]!;
+          const lost = start.mass > 0 ? (1 - side.mass / start.mass) * 100 : 0;
+          const name = battle.setup.fleets[i]?.name ?? `Side ${i + 1}`;
+          return (
+            `<div class="side"><span class="swatch" style="background:${teamColour(i)}"></span>` +
+            `<span class="sideName">${escapeHtml(name)}</span></div>` +
+            `<div class="sideStats">${side.ships}/${start.ships} ships · ${side.armed} armed · ` +
+            `${side.mobile} mobile · ${Math.round(lost)}% of mass lost</div>`
+          );
+        })
+        .join('');
+      // Named once, and the battle goes on: the ships settling afterwards are worth watching.
+      const result = battle.start.length < 2 ? null : winner(now);
+      if (result === null || decided) return;
+      decided = true;
+      const who =
+        result < 0
+          ? 'No side can fight on'
+          : `${escapeHtml(battle.setup.fleets[result]?.name ?? '')} (${SIDE_NAMES[result] ?? 'grey'}) wins`;
+      outcome.innerHTML = `${who} at ${time.toFixed(1)} s.`;
+    },
+    reset() {
+      decided = false;
+      lastDrawn = -Infinity;
+      outcome.textContent = '';
+    },
+    load(fleet, label) {
+      slots.length = 0;
+      slots.push({ fleet, source: { kind: 'other', label } });
+      renderSlots();
+    },
+  };
+}
+
+function escapeHtml(text: string): string {
+  return text.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+}

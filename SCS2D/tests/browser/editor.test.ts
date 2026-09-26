@@ -915,4 +915,15 @@ describe('the editor in a browser', () => {
     expect(await page.textContent('#stats')).toMatch(/Modules/);
     await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Adrift'));
   });
+
+  it('hands the ship being edited to a custom battle as a fleet of one', async () => {
+    await openShip(page, 'Corvette');
+    await page.click('#battleLink');
+    await page.waitForFunction(() => document.getElementById('custom')?.hidden === false);
+    expect(await page.locator('#fleetSlots select option:checked').first().textContent()).toBe(
+      'Corvette (from the editor)',
+    );
+    await page.waitForFunction(() => /Corvette.*1\/1 ships/.test(document.getElementById('sides')?.textContent ?? ''));
+    await page.goBack();
+  });
 });
