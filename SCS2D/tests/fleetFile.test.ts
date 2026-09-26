@@ -37,7 +37,8 @@ describe('the fleet file format', () => {
       groups: { Wing: { notes: 'w', ...wing } },
       ships: [
         { design: 'Gunship', x: 0, y: 0, angle: 90, notes: 's' },
-        { group: 'Wing', x: 60, y: -80, angle: 0, mirror: true },
+        { group: 'Wing', x: 60, y: -80, angle: 0, mirror: true, repeat: 2, step: { x: 0, y: -40, angle: 15 } },
+        { design: 'Dinky', x: -50, y: 0, repeat: 3, step: { x: 0, y: 10 } },
       ],
     });
     expect(serialiseFleet(parseFleet(raw))).toEqual(raw);
@@ -50,6 +51,8 @@ describe('the fleet file format', () => {
     ['an unknown group', file({ ships: [{ group: 'Nope', x: 0, y: 0 }] }), /no group named Nope/],
     ['both design and group', file({ ships: [{ design: 'Dinky', group: 'Wing', x: 0, y: 0 }] }), /both/],
     ['a missing position', file({ ships: [{ design: 'Dinky', x: 0 }] }), /y must be/],
+    ['a repeat that is not a whole number', file({ ships: [{ design: 'Dinky', x: 0, y: 0, repeat: 1.5 }] }), /repeat/],
+    ['a step with an unknown key', file({ ships: [{ design: 'Dinky', x: 0, y: 0, step: { x: 0, y: 1, z: 2 } }] }), /unknown key z/],
     ['a mirrored single ship', file({ ships: [{ design: 'Dinky', x: 0, y: 0, mirror: true }] }), /unknown key mirror/],
     ['a design named differently inside', file({ designs: { Big: serialiseBlueprint(GUNSHIP) } }), /named "Gunship"/],
     ['a broken design', file({ designs: { Dinky: { formatVersion: 1, name: 'Dinky' } } }), /design Dinky: modules/],
@@ -129,5 +132,29 @@ describe('flattening a fleet', () => {
 
   it('nests groups', () => {
     expect(ships[7]).toMatchObject({ x: -100, y: 40 });
+  });
+
+  it('steps each copy of a repeat from the one before, in its own frame', () => {
+    const arc = expandFleet(
+      parseFleet(file({ ships: [{ design: 'Dinky', x: 0, y: 0, repeat: 3, step: { x: 10, y: 0, angle: 90 } }] })),
+    );
+    expect(arc.map((s) => s.path)).toEqual(['Dinky#1', 'Dinky#2', 'Dinky#3']);
+    expect(arc[1]).toMatchObject({ x: 10, y: 0 });
+    expect(arc[2]!.x).toBeCloseTo(10, 9);
+    expect(arc[2]!.y).toBeCloseTo(10, 9);
+    expect(arc[2]!.angle).toBeCloseTo(math.PI, 9);
+    expect(arc[2]!.trail.map((step) => step.copy)).toEqual([2]);
+  });
+
+  it('runs a mirrored group’s repeat the other way', () => {
+    const rows = expandFleet(
+      parseFleet(
+        file({
+          groups: { One: { ships: [{ design: 'Dinky', x: 0, y: 0 }] } },
+          ships: [{ group: 'One', x: 0, y: 0, mirror: true, repeat: 2, step: { x: 0, y: 30 } }],
+        }),
+      ),
+    );
+    expect(rows[1]).toMatchObject({ x: 0, y: -30 });
   });
 });

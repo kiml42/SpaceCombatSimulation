@@ -196,13 +196,16 @@ export {
   fleetProblem,
   isGroupUse,
   MAX_FLEET_SHIPS,
+  MAX_FLEET_REPEAT,
   MAX_GROUP_DEPTH,
   type Fleet,
   type FleetEntry,
   type FleetGroup,
   type FleetGroupUse,
   type FleetShip,
+  type FleetStep,
   type PlacedShip,
+  type TrailStep,
 } from './fleet.js';
 export { FLEET_FORMAT_VERSION, fleetFileProblem, parseFleet, serialiseFleet } from './fleetFile.js';
 export {

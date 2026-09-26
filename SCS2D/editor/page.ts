@@ -1372,9 +1372,8 @@ export function startEditor(): void {
 
   const worldAt = (event: PointerEvent | WheelEvent): { x: number; y: number } => {
     const rect = canvas.getBoundingClientRect();
-    const ratio = canvas.width / rect.width;
-    const px = (event.clientX - rect.left) * ratio - canvas.width / 2;
-    const py = (event.clientY - rect.top) * ratio - canvas.height / 2;
+    const px = ((event.clientX - rect.left) * canvas.width) / rect.width - canvas.width / 2;
+    const py = ((event.clientY - rect.top) * canvas.height) / rect.height - canvas.height / 2;
     return { x: camera.x + px / camera.scale, y: camera.y - py / camera.scale };
   };
 
@@ -1650,10 +1649,11 @@ export function startEditor(): void {
     }
   });
 
-  window.addEventListener('resize', () => {
+  // The canvas, not the window: the header rewrapping resizes it too.
+  new ResizeObserver(() => {
     resize();
     render();
-  });
+  }).observe(canvas);
 
   // Fixed text, although the position snap is not: the footer's height is part
   // of the canvas's, so a line that grows and shrinks resizes the view under

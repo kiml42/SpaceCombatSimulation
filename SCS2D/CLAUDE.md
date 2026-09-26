@@ -52,8 +52,9 @@ amendment.
 sim/        pure TS simulation (see non-negotiables 1–4)
 render/     the view; consumes snapshots, knows no game rules
             (camera.ts is DOM-free arithmetic, so it is unit-tested)
-editor/     the blueprint editor; only page.ts and overlay.ts touch the DOM,
-            so the edit model, the stats and the library are unit-tested
+editor/     the blueprint and fleet editors; only page.ts, overlay.ts,
+            fleetPage.ts and fleetOverlay.ts touch the DOM, so the edit
+            models, the stats and the library are unit-tested
 ui/         React; UI state only
 host/       window lifecycle, the wall clock, and the controls — one entry
             point and one page shell per page; the evolution page lives here
@@ -81,8 +82,8 @@ Keep these working — they are the cold-start re-entry path:
   `--out`, and `--config` / `--save-config` for the settings file the evolution page reads and writes
 - `npm run yardstick` — measure a finished run against a ship that does not evolve; `--run`, and
   `--against latest | founder | <stock ship> | <blueprint file>`
-- `npm run build` — bundle each page to `dist/index.html`, `dist/editor.html` and `dist/evolution.html`,
-  one file each with nothing external
+- `npm run build` — bundle each page to `dist/index.html`, `dist/editor.html`, `dist/fleet.html` and
+  `dist/evolution.html`, one file each with nothing external
 - `npm run dev` — the same build on every save, for tinkering; refresh the page to see it
 - `npm run test:browser` — drive those bundles in Chromium; needs `npx playwright install chromium` first
 

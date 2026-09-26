@@ -14,6 +14,7 @@ import {
   type FleetGroup,
   type FleetGroupUse,
   type FleetShip,
+  type FleetStep,
 } from './fleet.js';
 
 /**
@@ -25,8 +26,9 @@ import {
 export const FLEET_FORMAT_VERSION = 1;
 
 const FILE_KEYS: readonly string[] = ['formatVersion', 'name', 'notes', 'designs', 'groups', 'ships'];
-const SHIP_KEYS: readonly string[] = ['design', 'x', 'y', 'angle', 'notes'];
-const USE_KEYS: readonly string[] = ['group', 'x', 'y', 'angle', 'mirror', 'notes'];
+const SHIP_KEYS: readonly string[] = ['design', 'x', 'y', 'angle', 'repeat', 'step', 'notes'];
+const USE_KEYS: readonly string[] = ['group', 'x', 'y', 'angle', 'mirror', 'repeat', 'step', 'notes'];
+const STEP_KEYS: readonly string[] = ['x', 'y', 'angle'];
 const GROUP_KEYS: readonly string[] = ['ships', 'notes'];
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -77,6 +79,20 @@ function entryProblem(value: unknown, where: string): string | null {
 
   if (isUse && value['mirror'] !== undefined && typeof value['mirror'] !== 'boolean') {
     return `${where}: mirror must be true or false, got ${JSON.stringify(value['mirror'])}`;
+  }
+  const repeat = value['repeat'];
+  if (repeat !== undefined && (typeof repeat !== 'number' || !Number.isInteger(repeat) || repeat < 1)) {
+    return `${where}: repeat must be a whole number of at least 1, got ${JSON.stringify(repeat)}`;
+  }
+  const step = value['step'];
+  if (step !== undefined) {
+    if (!isObject(step)) return `${where}: step must be an object, got ${JSON.stringify(step)}`;
+    const problem =
+      unknownKeysProblem(step, STEP_KEYS, `${where}: step`) ??
+      numberProblem(step['x'], `${where}: step x`) ??
+      numberProblem(step['y'], `${where}: step y`) ??
+      optionalNumberProblem(step['angle'], `${where}: step angle`);
+    if (problem !== null) return problem;
   }
   return (
     numberProblem(value['x'], `${where}: x`) ??
@@ -186,6 +202,13 @@ function toEntries(raws: unknown[]): FleetEntry[] {
       entry = { design: raw['design'] as string, x: raw['x'] as number, y: raw['y'] as number };
     }
     if (raw['angle'] !== undefined) entry.angle = degreesToRadians(raw['angle'] as number);
+    if (raw['repeat'] !== undefined) entry.repeat = raw['repeat'] as number;
+    if (raw['step'] !== undefined) {
+      const rawStep = raw['step'] as Record<string, unknown>;
+      const step: FleetStep = { x: rawStep['x'] as number, y: rawStep['y'] as number };
+      if (rawStep['angle'] !== undefined) step.angle = degreesToRadians(rawStep['angle'] as number);
+      entry.step = step;
+    }
     if (raw['notes'] !== undefined) entry.notes = raw['notes'] as string;
     return entry;
   });
@@ -228,6 +251,12 @@ function serialiseEntry(entry: FleetEntry): Record<string, unknown> {
   raw['y'] = entry.y;
   if (entry.angle !== undefined) raw['angle'] = radiansToDegrees(entry.angle);
   if (isGroupUse(entry) && entry.mirror !== undefined) raw['mirror'] = entry.mirror;
+  if (entry.repeat !== undefined) raw['repeat'] = entry.repeat;
+  if (entry.step !== undefined) {
+    const step: Record<string, unknown> = { x: entry.step.x, y: entry.step.y };
+    if (entry.step.angle !== undefined) step['angle'] = radiansToDegrees(entry.step.angle);
+    raw['step'] = step;
+  }
   if (entry.notes !== undefined) raw['notes'] = entry.notes;
   return raw;
 }

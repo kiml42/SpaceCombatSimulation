@@ -208,8 +208,8 @@ describe('the viewer in a browser', () => {
     // The standoff's two lines start exactly a kilometre apart, which no
     // other scene does — so this says the page is running the scene that was
     // picked rather than merely showing its name in the box.
-    const readout = (await page.textContent('#readout')) ?? '';
-    const range = Number(/range (\d+)/.exec(readout)?.[1] ?? 0);
+    const metrics = (await page.textContent('#metrics')) ?? '';
+    const range = Number(/range (\d+)/.exec(metrics)?.[1] ?? 0);
     expect(range).toBeGreaterThan(900);
     expect(range).toBeLessThan(1100);
     expect(await advanced(page)).toBeGreaterThan(0);

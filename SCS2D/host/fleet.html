@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Space Combat Simulation — Fleet Editor</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        background: #0b0f16;
+        color: #c8d3e0;
+        font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        display: flex;
+        flex-direction: column;
+      }
+      header, footer { padding: 0.6rem 0.9rem; }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+        border-bottom: 1px solid #1c2533;
+      }
+      h1 { font-size: 13px; font-weight: 600; margin: 0 0.5rem 0 0; color: #e6edf5; }
+      button, input, select, textarea { font: inherit; }
+      button, select, input[type='text'], input[type='number'], textarea {
+        background: #1a2434;
+        color: #dbe6f2;
+        border: 1px solid #2b3a50;
+        border-radius: 4px;
+        padding: 0.2rem 0.5rem;
+      }
+      button { cursor: pointer; padding-inline: 0.7rem; }
+      button:hover:not(:disabled) { background: #223044; }
+      button:disabled { opacity: 0.4; cursor: default; }
+      .grow { flex: 1; }
+      /*
+        Fixed, because a select sizes itself to its widest option and the
+        current ship's name is one of them — so without this the whole header
+        jumps about a character at a time while the name is being typed.
+      */
+      #ship { width: 11rem; }
+      a { color: #7fa8e0; }
+      main { flex: 1; display: flex; min-height: 0; }
+      #view { flex: 1; display: block; touch-action: none; cursor: crosshair; min-width: 0; }
+      #panel {
+        width: 22rem;
+        max-width: 45vw;
+        border-left: 1px solid #1c2533;
+        overflow-y: auto;
+        padding: 0.7rem 0.9rem 2rem;
+      }
+      #panel h2 {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #7f93aa;
+        margin: 1.2rem 0 0.4rem;
+      }
+      #panel section:first-of-type h2 { margin-top: 0; }
+      table { width: 100%; border-collapse: collapse; }
+      th { text-align: left; font-weight: 400; color: #7f93aa; padding: 0.1rem 0.6rem 0.1rem 0; vertical-align: top; }
+      td { text-align: right; padding: 0.1rem 0; }
+      #stats td { color: #e6edf5; }
+      /* A display rule of our own outranks the browser's for [hidden], so
+         anything laid out here would stay on screen when hidden without this. */
+      [hidden] { display: none !important; }
+      .field { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.3rem; }
+      .field label { flex: 0 0 6.5rem; color: #7f93aa; }
+      .field input, .field textarea { flex: 1; min-width: 0; }
+      .field input[type="checkbox"] { flex: 0 0 auto; }
+      .pair { display: flex; gap: 0.4rem; }
+      .buttons { display: flex; gap: 0.4rem; margin-top: 0.6rem; }
+      .buttons button { flex: 1; padding-inline: 0.3rem; }
+      #moduleStats, #groupStats { margin-top: 0.7rem; padding-top: 0.6rem; border-top: 1px solid #1c2533; }
+      #moduleStats td, #groupStats td { color: #c8d3e0; }
+      textarea { width: 100%; resize: vertical; min-height: 3.2rem; }
+      ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
+      li { color: #e6a45b; margin-bottom: 0.2rem; word-break: break-word; }
+      .ok { color: #7fd6a0; margin: 0; }
+      .warn { color: #e6a45b; margin: 0; }
+      .none { color: #7f93aa; margin: 0; }
+      /*
+        Shut by default and quiet when shut: building a ship is the common
+        case, and a summary line is all the panel owes someone who is not
+        setting doctrine today.
+      */
+      details.doctrine { margin-top: 0.7rem; padding-top: 0.6rem; border-top: 1px solid #1c2533; }
+      details.doctrine summary { cursor: pointer; color: #7f93aa; list-style-position: outside; }
+      details.doctrine summary:hover { color: #c8d3e0; }
+      details.doctrine .summaryValue { color: #e6edf5; }
+      details.doctrine h3 {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #7f93aa;
+        font-weight: 400;
+        margin: 0.8rem 0 0.4rem;
+      }
+      details.doctrine .note { color: #5d6f85; margin: 0.5rem 0 0; }
+      /* A stated number stands out from the ones still at their default. */
+      details.doctrine input.stated { color: #e9c05f; border-color: #4a3f24; }
+      #linked { color: #e9c05f; margin: 0 0 0.5rem; }
+      #kindRow { color: #7f93aa; margin: 0 0 0.5rem; }
+      #propKind { color: #e6edf5; }
+      footer { color: #5d6f85; border-top: 1px solid #1c2533; }
+      @media (max-width: 800px) {
+        main { flex-direction: column; }
+        #panel { width: auto; max-width: none; border-left: none; border-top: 1px solid #1c2533; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Fleet editor</h1>
+      <select id="fleet" title="Open a fleet"></select>
+      <input id="fleetName" type="text" size="12" title="The fleet's name, which is its identity" />
+      <button id="newFleet">New</button>
+      <button id="duplicateFleet" title="Start a copy of this fleet under a new name">Copy</button>
+      <button id="saveFleet">Save</button>
+      <button id="deleteFleet">Delete</button>
+      <button id="exportFleet">Export</button>
+      <button id="importTrigger">Import</button>
+      <input id="importFleet" type="file" accept="application/json,.json" hidden />
+      <span class="grow"></span>
+      <button id="undo">Undo</button>
+      <button id="redo">Redo</button>
+      <a href="index.html">Battle</a>
+      <a href="editor.html">Ships</a>
+      <a href="evolution.html">Evolution</a>
+    </header>
+    <main>
+      <canvas id="view"></canvas>
+      <aside id="panel">
+        <section>
+          <h2>Add a ship</h2>
+          <div class="pair">
+            <select id="addDesign" title="A ship from the library; the fleet carries its own copy"></select>
+            <button id="addShip">Add</button>
+          </div>
+          <div class="buttons">
+            <button id="addFromFile" title="Add a ship from a blueprint file">Add from file…</button>
+          </div>
+          <input id="addShipFile" type="file" accept="application/json,.json" hidden />
+        </section>
+        <section id="selection" hidden>
+          <h2 id="selectionTitle">Selected</h2>
+          <div id="single">
+            <div class="field">
+              <label for="entryX">position</label>
+              <input id="entryX" type="number" step="1" />
+              <input id="entryY" type="number" step="1" />
+            </div>
+            <div class="field">
+              <label for="entryAngle">facing °</label>
+              <input id="entryAngle" type="number" step="15" />
+            </div>
+            <div class="field" id="mirrorRow">
+              <label for="entryMirror">mirrored</label>
+              <input id="entryMirror" type="checkbox" />
+            </div>
+            <div class="field">
+              <label for="repeatCount">copies</label>
+              <input id="repeatCount" type="number" step="1" min="1" />
+            </div>
+            <div class="field" id="stepRow">
+              <label for="stepX">step m</label>
+              <input id="stepX" type="number" step="1" />
+              <input id="stepY" type="number" step="1" />
+            </div>
+            <div class="field" id="stepAngleRow">
+              <label for="stepAngle">step turn °</label>
+              <input id="stepAngle" type="number" step="5" />
+            </div>
+          </div>
+          <div class="buttons">
+            <button id="upLevel" title="Select the group this is in">Select group</button>
+            <button id="duplicateEntry">Duplicate</button>
+            <button id="deleteEntry">Delete</button>
+          </div>
+        </section>
+        <section>
+          <h2>What it works out to</h2>
+          <div id="stats"></div>
+        </section>
+        <section>
+          <h2>Problems</h2>
+          <div id="problems"></div>
+        </section>
+        <section>
+          <h2>Fleet notes</h2>
+          <textarea id="fleetNotes" placeholder="what this fleet is for"></textarea>
+        </section>
+      </aside>
+    </main>
+    <footer id="hint"></footer>
+  </body>
+</html>

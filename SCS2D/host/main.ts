@@ -37,6 +37,7 @@ export function start(): void {
   if (ctx === null) throw new Error('no 2d context');
 
   const readout = el<HTMLElement>('readout');
+  const metrics = el<HTMLElement>('metrics');
   const playButton = el<HTMLButtonElement>('play');
   const stepButton = el<HTMLButtonElement>('step');
   const resetButton = el<HTMLButtonElement>('reset');
@@ -242,15 +243,13 @@ export function start(): void {
       first !== undefined && second !== undefined
         ? math.distance(first.x, first.y, second.x, second.y)
         : 0;
-    readout.textContent =
-      `t ${view.time.toFixed(1)} s · step ${view.tick} · ` +
-      // Metres suit a duel and tell you nothing about two near-identical
-      // designs flying almost on top of each other.
+    readout.textContent = `t ${view.time.toFixed(1)} s · step ${view.tick} · grid ${gridStep(camera.scale)} m`;
+    // Not shown: kept for the browser tests and anyone inspecting the page.
+    metrics.textContent =
       `range ${range.toFixed(range < 10 ? 3 : 0)} m · in flight ${view.projectileCount} · ` +
       `p.fired ${state.totalProjectilesFired} · p.hits ${state.totalProjectileHits} · ` +
       `b.fired ${state.totalBeamsFired} · b.hits ${state.totalBeamHits} · ` +
-      `severed ${state.totalSevered} · scrap ${(state.ships.discarded / 1000).toFixed(1)} t · ` +
-      `grid ${gridStep(camera.scale)} m`;
+      `severed ${state.totalSevered} · scrap ${(state.ships.discarded / 1000).toFixed(1)} t`;
 
     window.requestAnimationFrame(tick);
   };
