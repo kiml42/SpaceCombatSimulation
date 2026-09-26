@@ -191,6 +191,21 @@ export {
   serialiseBlueprint,
 } from './blueprintFile.js';
 export {
+  expandFleet,
+  exactTurn,
+  fleetProblem,
+  isGroupUse,
+  MAX_FLEET_SHIPS,
+  MAX_GROUP_DEPTH,
+  type Fleet,
+  type FleetEntry,
+  type FleetGroup,
+  type FleetGroupUse,
+  type FleetShip,
+  type PlacedShip,
+} from './fleet.js';
+export { FLEET_FORMAT_VERSION, fleetFileProblem, parseFleet, serialiseFleet } from './fleetFile.js';
+export {
   Turrets,
   FiringSolution,
   interceptTime,

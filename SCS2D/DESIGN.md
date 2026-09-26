@@ -376,7 +376,13 @@ inside any one file is not contiguous.
   fleet thrust: their engines are wide and short, which is a bad bell, and a corvette lost 3% of its
   acceleration and a fighter 19%. That is the law being right about hulls drawn before it existed — the
   answer for them is a cluster of small bells, which is a change to the ships rather than to the law.
-- **Next:** §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
+  **A fleet is a file too**: its designs embedded whole, its ships placed in the fleet's own frame, and
+  named groups of ships — reflected, turned and nested — flattened to a plain list on load, so nothing past
+  the parser knows groups exist. A battle is built from fleets round a ring, one team each, with no orders;
+  the `standoff` scenario is one fleet file flown by both sides, and its checksum did not move.
+- **Next:** §8 step 5 has begun with the fleet format; the fleet editor, a custom battle on the viewer and
+  fleet evolution follow it, planned in ROADMAP.md §8.
+  §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight, §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio
   belongs chief among them. ROADMAP.md §8 lists what is left of each partly built step, then the steps not started. Slice 1 has one
@@ -406,7 +412,7 @@ inside any one file is not contiguous.
   and hits scored are identical too. Measured by `scenarios/ordering.ts`, which
   flies three gunships of one geometry both stacked in one battle and one to a
   battle each.
-- **Last updated:** 2026-09-23
+- **Last updated:** 2026-09-26
 
 ---
 

@@ -1,0 +1,644 @@
+{
+  "formatVersion": 1,
+  "name": "Line of Battle",
+  "notes": "The capital in the middle, a beam ship and a gun ship on the wings, and a pair of fighters ahead of them — enough of a mix that a doctrine will have something to disagree about.",
+  "designs": {
+    "Gunship": {
+      "formatVersion": 1,
+      "name": "Gunship",
+      "notes": "A heavy gunship: a bow gun firing a shell an order of magnitude heavier than the corvette's, and a broadside turret on each beam for anything that gets inside it. Twice the corvette's engines move four times its mass, so it is markedly more sluggish — which is the point of having two ships to compare.",
+      "assemblies": {
+        "outrigger": {
+          "notes": "An outrigger, holding a small fast-firing multi-barrelled gun clear of the spine. A gun flat against the hull has almost no traverse worth the mass it costs.",
+          "modules": [
+            {
+              "kind": "structure",
+              "x": 0,
+              "y": 0,
+              "length": 8,
+              "width": 8
+            },
+            {
+              "kind": "turret",
+              "x": 0,
+              "y": 8,
+              "angle": 90,
+              "length": 8,
+              "width": 6,
+              "barrels": 8,
+              "targeting": {
+                "preferredMass": 0.02,
+                "proximityWeight": 200,
+                "armedWeight": 250,
+                "mobileWeight": 150,
+                "focusWeight": 0
+              },
+              "notes": "Many narrow barrels rather than one wide one: the same bore budget spent on rate of fire instead of weight of shell. It goes after whatever is small, close and still dangerous while the main battery fights its own weight class — a shell this light is wasted on a capital, and a close-in gun exists for what can still do something rather than for what is already out of the fight. Caring about that is worth more than the whole of its proximity preference, so it passes over a drifting hulk at any range. It also takes no interest in what the ship as a whole is fighting, which leaves each of the pair free to take whichever threat is nearer to it rather than both piling onto one."
+            }
+          ]
+        },
+        "mainEngine": {
+          "notes": "One of the pair that drives the ship forward.",
+          "modules": [
+            {
+              "kind": "thruster",
+              "x": 4,
+              "y": 0,
+              "angle": 0,
+              "length": 8,
+              "width": 4
+            }
+          ]
+        },
+        "wingBox": {
+          "notes": "A stub holding a manoeuvring thruster out where its moment arm is worth having.",
+          "modules": [
+            {
+              "kind": "structure",
+              "x": 0,
+              "y": 0,
+              "length": 6,
+              "width": 4
+            }
+          ]
+        },
+        "lateral": {
+          "notes": "A manoeuvring thruster pushing inboard, so its exhaust leaves into clear air rather than into the stub it is bolted to.",
+          "modules": [
+            {
+              "kind": "thruster",
+              "x": 0,
+              "y": -1,
+              "angle": -90,
+              "length": 2,
+              "width": 4
+            }
+          ]
+        },
+        "retro": {
+          "notes": "Braking thrust, pushing aft.",
+          "modules": [
+            {
+              "kind": "thruster",
+              "x": -1.5,
+              "y": 0,
+              "angle": 180,
+              "length": 3,
+              "width": 4
+            }
+          ]
+        }
+      },
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 11,
+          "y": 0,
+          "length": 18,
+          "width": 10
+        },
+        {
+          "kind": "core",
+          "x": 0,
+          "y": 0,
+          "length": 4,
+          "width": 10,
+          "notes": "A bay amidships, where the spine is thickest and everything else is in the way. Cutting the spine here is what would part the ship, so it is also the last place a shell reaches."
+        },
+        {
+          "kind": "structure",
+          "x": -11,
+          "y": 0,
+          "length": 18,
+          "width": 10
+        },
+        {
+          "kind": "turret",
+          "x": 26,
+          "y": 0,
+          "angle": 0,
+          "length": 12,
+          "width": 8,
+          "barrels": 1
+        },
+        {
+          "use": "outrigger",
+          "x": 0,
+          "y": 9
+        },
+        {
+          "use": "outrigger",
+          "x": 0,
+          "y": -9,
+          "mirror": true
+        },
+        {
+          "use": "mainEngine",
+          "x": -24,
+          "y": 3
+        },
+        {
+          "use": "mainEngine",
+          "x": -24,
+          "y": -3,
+          "mirror": true
+        },
+        {
+          "use": "wingBox",
+          "x": 12,
+          "y": 7
+        },
+        {
+          "use": "wingBox",
+          "x": 12,
+          "y": -7,
+          "mirror": true
+        },
+        {
+          "use": "wingBox",
+          "x": -12,
+          "y": 7
+        },
+        {
+          "use": "wingBox",
+          "x": -12,
+          "y": -7,
+          "mirror": true
+        },
+        {
+          "use": "lateral",
+          "x": 12,
+          "y": 10
+        },
+        {
+          "use": "lateral",
+          "x": 12,
+          "y": -10,
+          "mirror": true
+        },
+        {
+          "use": "lateral",
+          "x": -12,
+          "y": 10
+        },
+        {
+          "use": "lateral",
+          "x": -12,
+          "y": -10,
+          "mirror": true
+        },
+        {
+          "use": "retro",
+          "x": 16.5,
+          "y": 7
+        },
+        {
+          "use": "retro",
+          "x": 16.5,
+          "y": -7,
+          "mirror": true
+        }
+      ]
+    },
+    "Corvette": {
+      "formatVersion": 1,
+      "name": "Corvette",
+      "notes": "A light escort: one main engine, one gun, and enough manoeuvring thrust to turn faster than anything can track it. Drawn as a deck plan on round numbers, +x the bow and +y to port, with modules abutting exactly.",
+      "doctrine": {
+        "targeting": {
+          "preferredMass": 3
+        }
+      },
+      "assemblies": {
+        "wingBox": {
+          "notes": "The wings exist to hold the manoeuvring thrusters out where their moment arm is worth having. That they also foul the bow gun's traverse is the trade this layout makes, and it is visible in the arc the design compiles to.",
+          "modules": [
+            {
+              "kind": "structure",
+              "x": 0,
+              "y": 0,
+              "length": 4,
+              "width": 3
+            }
+          ]
+        },
+        "lateral": {
+          "modules": [
+            {
+              "kind": "thruster",
+              "x": 0,
+              "y": -1,
+              "angle": -90,
+              "length": 2,
+              "width": 3
+            }
+          ]
+        },
+        "retro": {
+          "modules": [
+            {
+              "kind": "thruster",
+              "x": -1,
+              "y": 0,
+              "angle": 180,
+              "length": 2,
+              "width": 3
+            }
+          ]
+        }
+      },
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 5,
+          "y": 0,
+          "length": 6,
+          "width": 6
+        },
+        {
+          "kind": "core",
+          "x": 0,
+          "y": 0,
+          "length": 4,
+          "width": 6,
+          "notes": "Amidships, with a section of hull either side of it: the compartment the ship is flown from is the one thing worth putting the rest of the ship in front of."
+        },
+        {
+          "kind": "structure",
+          "x": -5,
+          "y": 0,
+          "length": 6,
+          "width": 6
+        },
+        {
+          "kind": "turret",
+          "x": 10.5,
+          "y": 0,
+          "angle": 0,
+          "length": 5,
+          "width": 4,
+          "barrels": 1
+        },
+        {
+          "kind": "thruster",
+          "x": -8,
+          "y": 0,
+          "angle": 0,
+          "length": 4,
+          "width": 6
+        },
+        {
+          "use": "wingBox",
+          "x": 4,
+          "y": 4.5
+        },
+        {
+          "use": "wingBox",
+          "x": 4,
+          "y": -4.5,
+          "mirror": true
+        },
+        {
+          "use": "wingBox",
+          "x": -4,
+          "y": 4.5
+        },
+        {
+          "use": "wingBox",
+          "x": -4,
+          "y": -4.5,
+          "mirror": true
+        },
+        {
+          "use": "lateral",
+          "x": 4,
+          "y": 7
+        },
+        {
+          "use": "lateral",
+          "x": 4,
+          "y": -7,
+          "mirror": true
+        },
+        {
+          "use": "lateral",
+          "x": -4,
+          "y": 7
+        },
+        {
+          "use": "lateral",
+          "x": -4,
+          "y": -7,
+          "mirror": true
+        },
+        {
+          "use": "retro",
+          "x": 7,
+          "y": 4.5
+        },
+        {
+          "use": "retro",
+          "x": 7,
+          "y": -4.5,
+          "mirror": true
+        }
+      ]
+    },
+    "Beam Corvette": {
+      "formatVersion": 1,
+      "name": "Beam Corvette",
+      "notes": "A light escort: one main engine, one gun, and enough manoeuvring thrust to turn faster than anything can track it. Drawn as a deck plan on round numbers, +x the bow and +y to port, with modules abutting exactly.",
+      "assemblies": {
+        "wingBox": {
+          "notes": "The wings exist to hold the manoeuvring thrusters out where their moment arm is worth having. That they also foul the bow gun's traverse is the trade this layout makes, and it is visible in the arc the design compiles to.",
+          "modules": [
+            {
+              "kind": "structure",
+              "x": 0,
+              "y": 0,
+              "length": 4,
+              "width": 3
+            }
+          ]
+        },
+        "lateral": {
+          "modules": [
+            {
+              "kind": "thruster",
+              "x": 0,
+              "y": -1,
+              "angle": -90,
+              "length": 2,
+              "width": 3
+            }
+          ]
+        },
+        "retro": {
+          "modules": [
+            {
+              "kind": "thruster",
+              "x": -1,
+              "y": 0,
+              "angle": 180,
+              "length": 2,
+              "width": 3
+            }
+          ]
+        }
+      },
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 5,
+          "y": 0,
+          "length": 6,
+          "width": 6
+        },
+        {
+          "kind": "core",
+          "x": 0,
+          "y": 0,
+          "length": 4,
+          "width": 6,
+          "notes": "Amidships, with a section of hull either side of it: the compartment the ship is flown from is the one thing worth putting the rest of the ship in front of."
+        },
+        {
+          "kind": "structure",
+          "x": -5,
+          "y": 0,
+          "length": 6,
+          "width": 6
+        },
+        {
+          "kind": "thruster",
+          "x": -8,
+          "y": 0,
+          "angle": 0,
+          "length": 4,
+          "width": 6
+        },
+        {
+          "use": "wingBox",
+          "x": 4,
+          "y": 4.5
+        },
+        {
+          "use": "wingBox",
+          "x": 4,
+          "y": -4.5,
+          "mirror": true
+        },
+        {
+          "use": "wingBox",
+          "x": -4,
+          "y": 4.5
+        },
+        {
+          "use": "wingBox",
+          "x": -4,
+          "y": -4.5,
+          "mirror": true
+        },
+        {
+          "use": "lateral",
+          "x": 4,
+          "y": 7
+        },
+        {
+          "use": "lateral",
+          "x": 4,
+          "y": -7,
+          "mirror": true
+        },
+        {
+          "use": "lateral",
+          "x": -4,
+          "y": 7
+        },
+        {
+          "use": "lateral",
+          "x": -4,
+          "y": -7,
+          "mirror": true
+        },
+        {
+          "use": "retro",
+          "x": 7,
+          "y": 4.5
+        },
+        {
+          "use": "retro",
+          "x": 7,
+          "y": -4.5,
+          "mirror": true
+        },
+        {
+          "kind": "beamTurret",
+          "x": 10,
+          "y": 0,
+          "angle": 0,
+          "length": 4,
+          "width": 3.6,
+          "barrels": 1
+        }
+      ]
+    },
+    "Dinky": {
+      "formatVersion": 1,
+      "name": "Dinky",
+      "notes": "A fighter. It cannot hope to destroy anything much larger than itself, so it puts engines above the guns everything else shoots at first: a capital it strands is a capital out of the battle, which is the most a craft this size can do to one.",
+      "assemblies": {
+        "thruster": {
+          "modules": [
+            {
+              "kind": "thruster",
+              "x": 0,
+              "y": 0,
+              "angle": -180,
+              "length": 0.2,
+              "width": 0.5
+            }
+          ]
+        },
+        "thruster2": {
+          "modules": [
+            {
+              "kind": "thruster",
+              "x": 0,
+              "y": 0,
+              "angle": -90,
+              "length": 0.1,
+              "width": 0.4
+            }
+          ]
+        },
+        "thruster3": {
+          "modules": [
+            {
+              "kind": "thruster",
+              "x": 0,
+              "y": 0,
+              "angle": 180,
+              "length": 0.1,
+              "width": 0.1
+            }
+          ]
+        }
+      },
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 0.85,
+          "y": 0,
+          "length": 1.5,
+          "width": 0.5,
+          "reinforcement": 1
+        },
+        {
+          "use": "thruster",
+          "x": -0.1,
+          "y": 0.25,
+          "angle": 180
+        },
+        {
+          "use": "thruster2",
+          "x": 0.01,
+          "y": 0.5
+        },
+        {
+          "use": "thruster2",
+          "x": 0.01,
+          "y": -0.5,
+          "angle": 180
+        },
+        {
+          "use": "thruster2",
+          "x": 1.4,
+          "y": 0.25
+        },
+        {
+          "use": "thruster2",
+          "x": 1.4,
+          "y": -0.25,
+          "angle": 180
+        },
+        {
+          "use": "thruster",
+          "x": -0.1,
+          "y": -0.25,
+          "angle": 180
+        },
+        {
+          "kind": "core",
+          "x": 0,
+          "y": 0,
+          "length": 0.2,
+          "width": 1,
+          "notes": "Half a metre square of computing is a whole control centre, which is the only reason a fighter this size can be flown at all."
+        },
+        {
+          "use": "thruster3",
+          "x": 0.1,
+          "y": 0.4
+        },
+        {
+          "use": "thruster3",
+          "x": 0.1,
+          "y": -0.4
+        },
+        {
+          "kind": "hullGun",
+          "x": 2.2,
+          "y": 0,
+          "angle": 0,
+          "length": 1.2,
+          "width": 0.2,
+          "reinforcement": 3,
+          "barrels": 1,
+          "nozzle": 0.75,
+          "targeting": {
+            "engineWeight": 150
+          }
+        }
+      ]
+    }
+  },
+  "groups": {
+    "Fighter Pair": {
+      "ships": [
+        {
+          "design": "Dinky",
+          "x": 0,
+          "y": 120
+        },
+        {
+          "design": "Dinky",
+          "x": 0,
+          "y": -120
+        }
+      ]
+    }
+  },
+  "ships": [
+    {
+      "design": "Gunship",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "design": "Corvette",
+      "x": 0,
+      "y": 260
+    },
+    {
+      "design": "Beam Corvette",
+      "x": 0,
+      "y": -260
+    },
+    {
+      "group": "Fighter Pair",
+      "x": 0,
+      "y": 0
+    }
+  ]
+}
