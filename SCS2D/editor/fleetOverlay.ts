@@ -22,8 +22,18 @@ export interface FleetOverlayView {
   /** Each ship's centre and radius, null where it will not compile. */
   circles: readonly ({ x: number; y: number; radius: number } | null)[];
   faulty: readonly number[];
-  /** Per selected entry: its origin, facing, reach and ships, first picked first. */
-  selected: readonly { x: number; y: number; angle: number; reach: number; ships: readonly number[] }[];
+  /**
+   * Per selected entry, first picked first: the copy that was clicked — its
+   * origin, facing, reach and ships — and the ships of every copy.
+   */
+  selected: readonly {
+    x: number;
+    y: number;
+    angle: number;
+    reach: number;
+    ships: readonly number[];
+    copy: readonly number[];
+  }[];
   /** Where the turning knob is, or null when there is none to show. */
   knob: { x: number; y: number } | null;
 }
@@ -57,9 +67,10 @@ export function drawFleetOverlay(
   }
 
   view.selected.forEach((entry, n) => {
-    ctx.strokeStyle = n === 0 ? SELECTION : SELECTION_OTHERS;
     ctx.lineWidth = LINE_PX * px;
     for (const i of entry.ships) {
+      // The copy clicked is the one an edit is framed by; the rest move with it.
+      ctx.strokeStyle = n === 0 && entry.copy.includes(i) ? SELECTION : SELECTION_OTHERS;
       for (const spec of view.hulls[i] ?? []) {
         const mid = moduleCentre(spec);
         ctx.save();
@@ -71,7 +82,8 @@ export function drawFleetOverlay(
       ring(ctx, view.circles[i], camera, null);
     }
     // A group is one thing, so it gets one ring round the lot.
-    if (entry.ships.length > 1) {
+    if (entry.copy.length > 1) {
+      ctx.strokeStyle = n === 0 ? SELECTION : SELECTION_OTHERS;
       ctx.setLineDash([6 * px, 4 * px]);
       ctx.beginPath();
       ctx.arc(entry.x, entry.y, entry.reach, 0, TAU);

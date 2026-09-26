@@ -2,12 +2,16 @@ import {
   degreesToRadians,
   isGroupUse,
   math,
+  MAX_FLEET_REPEAT,
+  parseBlueprint,
   parseFleet,
   radiansToDegrees,
   serialiseFleet,
   Snapshot,
   type Blueprint,
   type Fleet,
+  type FleetEntry,
+  type FleetStep,
 } from '../sim/index.js';
 import { draw } from '../render/canvas2d.js';
 import { frame, snapStep, type Camera } from '../render/camera.js';
@@ -17,12 +21,12 @@ import {
   deleteEntries,
   duplicateEntries,
   emptyFleet,
+  entryAt,
   moveEntries,
   refreshDesign,
-  repeatEntry,
   updateEntry,
 } from './fleetEdit.js';
-import { centreOf, FleetDocument } from './fleetDocument.js';
+import { centreOf, FleetDocument, toFrame, toFrameAngle, type EntryFrame } from './fleetDocument.js';
 import { drawFleetOverlay, knobFor } from './fleetOverlay.js';
 import { fleetSnapshot } from './fleetPreview.js';
 import { HANDLE_GRAB_PX } from './handles.js';
@@ -87,10 +91,12 @@ export function startFleetEditor(): void {
   const mirrorRow = el<HTMLElement>('mirrorRow');
   const entryMirror = el<HTMLInputElement>('entryMirror');
   const repeatCount = el<HTMLInputElement>('repeatCount');
-  const repeatX = el<HTMLInputElement>('repeatX');
-  const repeatY = el<HTMLInputElement>('repeatY');
-  const repeatAngle = el<HTMLInputElement>('repeatAngle');
-  const repeatButton = el<HTMLButtonElement>('repeatEntry');
+  const stepRow = el<HTMLElement>('stepRow');
+  const stepAngleRow = el<HTMLElement>('stepAngleRow');
+  const stepX = el<HTMLInputElement>('stepX');
+  const stepY = el<HTMLInputElement>('stepY');
+  const stepAngle = el<HTMLInputElement>('stepAngle');
+  const upLevel = el<HTMLButtonElement>('upLevel');
   const statsPanel = el<HTMLElement>('stats');
   const problemsPanel = el<HTMLElement>('problems');
   const undoButton = el<HTMLButtonElement>('undo');
@@ -105,9 +111,9 @@ export function startFleetEditor(): void {
   };
 
   const selectedEntries = () =>
-    doc.selection.map((i) => {
-      const entry = doc.fleet.ships[i]!;
-      return { x: entry.x, y: entry.y, angle: entry.angle ?? 0, reach: doc.reachOf(i), ships: doc.shipsOf(i) };
+    doc.selection.map((path) => {
+      const at = doc.frameOf(path) ?? { x: 0, y: 0, angle: 0 };
+      return { x: at.x, y: at.y, angle: at.angle, reach: doc.reachOf(path), ships: doc.shipsOf(path), copy: doc.copyShips(path) };
     });
 
   const currentKnob = (): { x: number; y: number } | null => {
@@ -166,7 +172,12 @@ export function startFleetEditor(): void {
     }
     deleteFleetButton.disabled = !fleets.savedNames().includes(name);
     const keep = addDesign.value;
-    addDesign.innerHTML = options(ships.list(), null);
+    // The player's own ships first: they are the ones most often wanted.
+    const all = ships.list();
+    const saved = all.filter((entry) => !entry.stock);
+    addDesign.innerHTML =
+      (saved.length > 0 ? `<optgroup label="Saved">${options(saved, null)}</optgroup>` : '') +
+      `<optgroup label="Stock">${options(all.filter((entry) => entry.stock), null)}</optgroup>`;
     if (keep !== '') addDesign.value = keep;
   };
 
@@ -214,24 +225,35 @@ export function startFleetEditor(): void {
     const picked = doc.selection;
     selection.hidden = picked.length === 0;
     if (picked.length === 0) return;
-    const entry = doc.fleet.ships[picked[0]!]!;
+    const path = picked[0]!;
+    const entry = entryAt(doc.fleet, path);
+    if (entry === null) return;
     single.hidden = picked.length !== 1;
-    repeatButton.hidden = picked.length !== 1;
+    upLevel.hidden = picked.length !== 1 || path.length < 2;
+    const inside = path.length > 1 ? entryAt(doc.fleet, path.slice(0, -1)) : null;
     selectionTitle.textContent =
       picked.length > 1
         ? `${picked.length} selected`
-        : isGroupUse(entry)
-          ? `Group: ${entry.group}`
-          : `Ship: ${entry.design}`;
+        : (isGroupUse(entry) ? `Group: ${entry.group}` : `Ship: ${entry.design}`) +
+          (inside !== null && isGroupUse(inside) ? ` in ${inside.group}` : '');
     mirrorRow.hidden = !isGroupUse(entry);
+    const repeated = (entry.repeat ?? 1) > 1;
+    stepRow.hidden = !repeated;
+    stepAngleRow.hidden = !repeated;
     const typing = document.activeElement;
-    if (typing !== entryX) entryX.value = String(round(entry.x));
-    if (typing !== entryY) entryY.value = String(round(entry.y));
-    if (typing !== entryAngle) entryAngle.value = String(round(radiansToDegrees(entry.angle ?? 0)));
+    const show = (input: HTMLInputElement, value: number): void => {
+      if (typing !== input) input.value = String(round(value));
+    };
+    show(entryX, entry.x);
+    show(entryY, entry.y);
+    show(entryAngle, radiansToDegrees(entry.angle ?? 0));
+    show(repeatCount, entry.repeat ?? 1);
+    show(stepX, entry.step?.x ?? 0);
+    show(stepY, entry.step?.y ?? 0);
+    show(stepAngle, radiansToDegrees(entry.step?.angle ?? 0));
     entryMirror.checked = isGroupUse(entry) && entry.mirror === true;
     const step = String(snapStep(camera.scale));
-    entryX.step = step;
-    entryY.step = step;
+    for (const input of [entryX, entryY, stepX, stepY]) input.step = step;
   };
 
   const refresh = (): void => {
@@ -248,6 +270,13 @@ export function startFleetEditor(): void {
 
   // ---- the panel ----------------------------------------------------------
 
+  const place = (blueprint: Blueprint): void => {
+    // In the middle of the view, on the grid.
+    const step = snapStep(camera.scale);
+    doc.apply(addShip(doc.fleet, blueprint, snap(camera.x, step), snap(camera.y, step)));
+    doc.select([[doc.fleet.ships.length - 1]]);
+    refresh();
+  };
   el<HTMLButtonElement>('addShip').addEventListener('click', () => {
     const value = addDesign.value;
     const stock = value.startsWith(STOCK);
@@ -259,37 +288,83 @@ export function startFleetEditor(): void {
       window.alert(`Could not read the saved ${name}.\n\n${error instanceof Error ? error.message : error}`);
       return;
     }
-    if (blueprint === null) return;
-    // In the middle of the view, on the grid.
-    const step = snapStep(camera.scale);
-    doc.apply(addShip(doc.fleet, blueprint, snap(camera.x, step), snap(camera.y, step)));
-    doc.select([doc.fleet.ships.length - 1]);
-    refresh();
+    if (blueprint !== null) place(blueprint);
+  });
+  const addShipFile = el<HTMLInputElement>('addShipFile');
+  el<HTMLButtonElement>('addFromFile').addEventListener('click', () => addShipFile.click());
+  addShipFile.addEventListener('change', () => {
+    const file = addShipFile.files?.[0];
+    if (file === undefined) return;
+    void file.text().then((text) => {
+      try {
+        place(parseBlueprint(JSON.parse(text)));
+      } catch (error) {
+        window.alert(`Could not read that file.\n\n${error instanceof Error ? error.message : error}`);
+      }
+    });
+    addShipFile.value = '';
   });
 
-  const editSelected = (change: Parameters<typeof updateEntry>[2]): void => {
-    const index = doc.selection[0];
-    if (index === undefined || doc.selection.length !== 1) return;
-    doc.apply(updateEntry(doc.fleet, index, change));
+  /**
+   * Typing in a box is one edit, not one per keystroke: the first change is
+   * an undo step and the rest amend it, until the box loses focus.
+   */
+  let gesture = false;
+  const editSelected = (change: (entry: FleetEntry) => FleetEntry): void => {
+    const path = doc.selection[0];
+    if (path === undefined || doc.selection.length !== 1) return;
+    const next = updateEntry(doc.fleet, path, change);
+    if (gesture) doc.amend(next);
+    else doc.apply(next);
+    gesture = true;
     refresh();
   };
   const numberOf = (input: HTMLInputElement): number | null => {
     const value = Number(input.value);
     return input.value.trim() === '' || !Number.isFinite(value) ? null : value;
   };
-  entryX.addEventListener('change', () => {
-    const x = numberOf(entryX);
-    if (x !== null) editSelected((e) => ({ ...e, x }));
+  const live = (input: HTMLInputElement, change: (value: number, entry: FleetEntry) => FleetEntry): void => {
+    input.addEventListener('focus', () => {
+      gesture = false;
+    });
+    input.addEventListener('input', () => {
+      const value = numberOf(input);
+      if (value !== null) editSelected((e) => change(value, e));
+    });
+    input.addEventListener('change', () => {
+      gesture = false;
+      refresh();
+    });
+  };
+  live(entryX, (x, e) => ({ ...e, x }));
+  live(entryY, (y, e) => ({ ...e, y }));
+  live(entryAngle, (degrees, e) => ({ ...e, angle: degreesToRadians(degrees) }));
+  live(repeatCount, (count, e) => {
+    const next = { ...e };
+    const copies = Math.max(1, Math.min(MAX_FLEET_REPEAT, Math.round(count)));
+    if (copies === 1) delete next.repeat;
+    else {
+      next.repeat = copies;
+      // A row with no step stacks every copy on the first; start it a ship's width apart.
+      if (next.step === undefined) next.step = { x: 0, y: defaultStep(e) };
+    }
+    return next;
   });
-  entryY.addEventListener('change', () => {
-    const y = numberOf(entryY);
-    if (y !== null) editSelected((e) => ({ ...e, y }));
+  const withStep = (e: FleetEntry, change: (step: FleetStep) => FleetStep): FleetEntry => ({
+    ...e,
+    step: change({ ...(e.step ?? { x: 0, y: 0 }) }),
   });
-  entryAngle.addEventListener('change', () => {
-    const degrees = numberOf(entryAngle);
-    if (degrees !== null) editSelected((e) => ({ ...e, angle: degreesToRadians(degrees) }));
-  });
+  live(stepX, (x, e) => withStep(e, (step) => ({ ...step, x })));
+  live(stepY, (y, e) => withStep(e, (step) => ({ ...step, y })));
+  live(stepAngle, (degrees, e) =>
+    withStep(e, (step) => {
+      if (degrees === 0) delete step.angle;
+      else step.angle = degreesToRadians(degrees);
+      return step;
+    }),
+  );
   entryMirror.addEventListener('change', () => {
+    gesture = false;
     editSelected((e) => {
       if (!isGroupUse(e)) return e;
       const next = { ...e };
@@ -297,29 +372,28 @@ export function startFleetEditor(): void {
       else delete next.mirror;
       return next;
     });
+    gesture = false;
   });
 
-  repeatButton.addEventListener('click', () => {
-    const index = doc.selection[0];
-    const count = numberOf(repeatCount);
-    if (index === undefined || count === null || count < 2) return;
-    const before = doc.fleet.ships.length;
-    doc.apply(
-      repeatEntry(doc.fleet, index, Math.round(count), {
-        x: numberOf(repeatX) ?? 0,
-        y: numberOf(repeatY) ?? 0,
-        angle: degreesToRadians(numberOf(repeatAngle) ?? 0),
-      }),
-    );
-    doc.select([index, ...range(before, doc.fleet.ships.length)]);
+  /** A starting step for a new row: the width of what is being repeated, plus a margin. */
+  const defaultStep = (_entry: FleetEntry): number => {
+    const path = doc.selection[0];
+    const reach = path === undefined ? 0 : doc.reachOf(path);
+    return Math.max(snapStep(camera.scale), Math.ceil(reach * 2.5));
+  };
+
+  upLevel.addEventListener('click', () => {
+    const path = doc.selection[0];
+    if (path === undefined || path.length < 2) return;
+    doc.select([path.slice(0, -1)]);
     refresh();
   });
 
   el<HTMLButtonElement>('duplicateEntry').addEventListener('click', () => {
-    const before = doc.fleet.ships.length;
     const offset = snapStep(camera.scale) * 20;
-    doc.apply(duplicateEntries(doc.fleet, doc.selection, 0, -offset));
-    doc.select(range(before, doc.fleet.ships.length));
+    const result = duplicateEntries(doc.fleet, doc.selection, 0, -offset);
+    doc.apply(result.fleet);
+    doc.select(result.paths);
     refresh();
   });
 
@@ -434,8 +508,19 @@ export function startFleetEditor(): void {
 
   type Drag =
     | { kind: 'pan'; x: number; y: number; deselect: boolean }
-    | { kind: 'move'; from: Fleet; startX: number; startY: number; moved: boolean }
-    | { kind: 'rotate'; from: Fleet; moved: boolean };
+    | {
+        kind: 'move';
+        from: Fleet;
+        startX: number;
+        startY: number;
+        moved: boolean;
+        /** The ship pressed on, and whether releasing without a drag steps in a level. */
+        hit: number;
+        drill: boolean;
+        /** Each selected entry's frame, held so the drag measures against where it began. */
+        frames: (EntryFrame | null)[];
+      }
+    | { kind: 'rotate'; from: Fleet; moved: boolean; frame: EntryFrame };
   let drag: Drag | null = null;
 
   canvas.addEventListener('pointerdown', (event) => {
@@ -443,17 +528,17 @@ export function startFleetEditor(): void {
     canvas.setPointerCapture(event.pointerId);
     const world = worldAt(event);
     const knob = currentKnob();
-    if (knob !== null && event.button === 0) {
-      const dx = world.x - knob.x;
-      const dy = world.y - knob.y;
-      if (sqrt(dx * dx + dy * dy) <= HANDLE_GRAB_PX / camera.scale) {
-        drag = { kind: 'rotate', from: doc.fleet, moved: false };
+    const knobFrame = doc.selection.length === 1 ? doc.frameOf(doc.selection[0]!) : null;
+    if (knob !== null && knobFrame !== null && event.button === 0) {
+      if (sqrt((world.x - knob.x) ** 2 + (world.y - knob.y) ** 2) <= HANDLE_GRAB_PX / camera.scale) {
+        drag = { kind: 'rotate', from: doc.fleet, moved: false, frame: knobFrame };
         return;
       }
     }
-    const hit = event.button === 1 ? -1 : doc.entryAt(world.x, world.y, HANDLE_GRAB_PX / camera.scale);
+    const hit = event.button === 1 ? -1 : doc.shipAt(world.x, world.y, HANDLE_GRAB_PX / camera.scale);
     if (hit >= 0 && event.shiftKey) {
-      doc.toggle(hit);
+      const path = doc.resolveClick(hit);
+      if (path !== null) doc.toggle(path, hit);
       refresh();
       return;
     }
@@ -461,8 +546,23 @@ export function startFleetEditor(): void {
       drag = { kind: 'pan', x: event.clientX, y: event.clientY, deselect: hit < 0 && event.button === 0 };
       return;
     }
-    if (!doc.selection.includes(hit)) doc.select([hit]);
-    drag = { kind: 'move', from: doc.fleet, startX: world.x, startY: world.y, moved: false };
+    // Pressing on what is already selected leaves it alone, so a group drags as
+    // a group; a click that does not become a drag steps in a level on release.
+    const drill = doc.covers(hit);
+    if (!drill) {
+      const path = doc.resolveClick(hit);
+      doc.select(path === null ? [] : [path], hit);
+    }
+    drag = {
+      kind: 'move',
+      from: doc.fleet,
+      startX: world.x,
+      startY: world.y,
+      moved: false,
+      hit,
+      drill,
+      frames: doc.selection.map((path) => doc.frameOf(path)),
+    };
     refresh();
   });
 
@@ -485,14 +585,21 @@ export function startFleetEditor(): void {
       const dx = snap(world.x - drag.startX, step);
       const dy = snap(world.y - drag.startY, step);
       if (dx === 0 && dy === 0 && !drag.moved) return;
-      next = moveEntries(drag.from, doc.selection, dx, dy);
+      const frames = drag.frames;
+      next = moveEntries(
+        drag.from,
+        doc.selection.flatMap((path, i) => {
+          const frame = frames[i];
+          return frame == null ? [] : [{ path, ...toFrame(frame, dx, dy) }];
+        }),
+      );
     } else {
-      const index = doc.selection[0]!;
-      const entry = drag.from.ships[index]!;
-      let degrees = radiansToDegrees(atan2(world.y - entry.y, world.x - entry.x));
+      const path = doc.selection[0]!;
+      const frame = drag.frame;
+      let degrees = radiansToDegrees(atan2(world.y - frame.y, world.x - frame.x));
       if (!event.altKey) degrees = Math.round(degrees / ANGLE_SNAP_DEGREES) * ANGLE_SNAP_DEGREES;
-      const angle = degreesToRadians(degrees);
-      next = updateEntry(drag.from, index, (e) => ({ ...e, angle: angle === 0 ? 0 : angle }));
+      const angle = foldAngle(toFrameAngle(frame, degreesToRadians(degrees)));
+      next = updateEntry(drag.from, path, (e) => ({ ...e, angle }));
     }
     if (drag.moved) doc.amend(next);
     else doc.apply(next);
@@ -501,6 +608,11 @@ export function startFleetEditor(): void {
   });
 
   const endDrag = (): void => {
+    if (drag !== null && drag.kind === 'move' && drag.drill && !drag.moved) {
+      const path = doc.resolveClick(drag.hit);
+      doc.select(path === null ? [] : [path], drag.hit);
+      refresh();
+    }
     if (drag !== null && drag.kind === 'pan' && drag.deselect) {
       doc.select([]);
       refresh();
@@ -576,10 +688,11 @@ function el<T extends HTMLElement>(id: string): T {
   return found as T;
 }
 
-function range(from: number, to: number): number[] {
-  const out: number[] = [];
-  for (let i = from; i < to; i++) out.push(i);
-  return out;
+function foldAngle(a: number): number {
+  let r = math.normalizeAngle(a);
+  if (r <= -math.PI) r += math.TAU;
+  else if (r > math.PI) r -= math.TAU;
+  return r === 0 ? 0 : r;
 }
 
 function round(value: number): number {

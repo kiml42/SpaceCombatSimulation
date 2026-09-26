@@ -1,12 +1,10 @@
-import { isGroupUse, math, serialiseBlueprint, type Blueprint, type Fleet, type FleetEntry } from '../sim/index.js';
+import { isGroupUse, serialiseBlueprint, type Blueprint, type Fleet, type FleetEntry } from '../sim/index.js';
 
 /**
  * Edits to a fleet, as pure functions from one fleet to the next — the fleet
  * editor's counterpart to `edit.ts`. Indices are into the fleet's own `ships`,
  * the things a player places; a group is moved as one.
  */
-
-const { cos, sin } = math;
 
 export function cloneFleet(fleet: Fleet): Fleet {
   return JSON.parse(JSON.stringify(fleet)) as Fleet;
@@ -30,79 +28,94 @@ export function addShip(fleet: Fleet, blueprint: Blueprint, x: number, y: number
   return next;
 }
 
-export function moveEntries(fleet: Fleet, indices: readonly number[], dx: number, dy: number): Fleet {
-  const next = cloneFleet(fleet);
-  for (const i of indices) {
-    const entry = next.ships[i];
-    if (entry === undefined) continue;
-    entry.x += dx;
-    entry.y += dy;
+/**
+ * Where an entry is written: indices from the fleet's own `ships` down through
+ * the groups it is in. The last names the entry; the ones before, the group
+ * uses that lead to it.
+ */
+export type EntryPath = readonly number[];
+
+export function samePath(a: EntryPath, b: EntryPath): boolean {
+  return a.length === b.length && a.every((index, i) => index === b[i]);
+}
+
+/** Whether `inner` is `outer` or written somewhere inside it. */
+export function isWithin(inner: EntryPath, outer: EntryPath): boolean {
+  return outer.length <= inner.length && outer.every((index, i) => index === inner[i]);
+}
+
+/** The list a path's last index is into, in the fleet given, or null. */
+function listOf(fleet: Fleet, path: EntryPath): FleetEntry[] | null {
+  let list = fleet.ships;
+  for (let depth = 0; depth < path.length - 1; depth++) {
+    const entry = list[path[depth]!];
+    if (entry === undefined || !isGroupUse(entry)) return null;
+    const group = fleet.groups?.[entry.group];
+    if (group === undefined) return null;
+    list = group.ships;
   }
-  return next;
+  return list;
 }
 
-export function updateEntry(fleet: Fleet, index: number, change: (entry: FleetEntry) => FleetEntry): Fleet {
-  const next = cloneFleet(fleet);
-  const entry = next.ships[index];
-  if (entry !== undefined) next.ships[index] = change(entry);
-  return next;
-}
-
-/** Copies placed at an offset, appended in order. */
-export function duplicateEntries(fleet: Fleet, indices: readonly number[], dx: number, dy: number): Fleet {
-  const next = cloneFleet(fleet);
-  for (const i of indices) {
-    const entry = fleet.ships[i];
-    if (entry === undefined) continue;
-    const copy = JSON.parse(JSON.stringify(entry)) as FleetEntry;
-    copy.x += dx;
-    copy.y += dy;
-    next.ships.push(copy);
-  }
-  return next;
-}
-
-/** Remove entries, and any design nothing flies any more. */
-export function deleteEntries(fleet: Fleet, indices: readonly number[]): Fleet {
-  const next = cloneFleet(fleet);
-  next.ships = next.ships.filter((_, i) => !indices.includes(i));
-  return pruneDesigns(next);
-}
-
-export interface RepeatStep {
-  x: number;
-  y: number;
-  /** Radians. A turn walks the row round an arc. */
-  angle: number;
+export function entryAt(fleet: Fleet, path: EntryPath): FleetEntry | null {
+  if (path.length === 0) return null;
+  return listOf(fleet, path)?.[path[path.length - 1]!] ?? null;
 }
 
 /**
- * Lay an entry out as a row or an arc of `count`, each copy stepped from the
- * one before in that copy's own frame, as a repeated assembly is. Written out
- * as plain entries: the format has no repeat of its own.
+ * Change one entry. An entry inside a group is the group's, so every use of
+ * that group changes with it, as a shared part does in a ship.
  */
-export function repeatEntry(fleet: Fleet, index: number, count: number, step: RepeatStep): Fleet {
-  const first = fleet.ships[index];
-  if (first === undefined || count < 2) return fleet;
+export function updateEntry(fleet: Fleet, path: EntryPath, change: (entry: FleetEntry) => FleetEntry): Fleet {
   const next = cloneFleet(fleet);
-  let x = first.x;
-  let y = first.y;
-  let angle = first.angle ?? 0;
-  const mirrored = isGroupUse(first) && first.mirror === true;
-  for (let k = 1; k < count; k++) {
-    const c = cos(angle);
-    const s = sin(angle);
-    const stepY = mirrored ? -step.y : step.y;
-    x += step.x * c - stepY * s;
-    y += step.x * s + stepY * c;
-    angle = foldAngle(angle + step.angle);
-    const copy = JSON.parse(JSON.stringify(first)) as FleetEntry;
-    copy.x = x;
-    copy.y = y;
-    if (angle !== 0 || first.angle !== undefined) copy.angle = angle;
-    next.ships.push(copy);
-  }
+  const list = listOf(next, path);
+  const index = path[path.length - 1]!;
+  if (list !== null && list[index] !== undefined) list[index] = change(list[index]);
   return next;
+}
+
+/** Move entries, each by a displacement already in the frame it is written in. */
+export function moveEntries(fleet: Fleet, moves: readonly { path: EntryPath; dx: number; dy: number }[]): Fleet {
+  let next = fleet;
+  for (const { path, dx, dy } of moves) next = updateEntry(next, path, (e) => ({ ...e, x: e.x + dx, y: e.y + dy }));
+  return next;
+}
+
+/** A copy of each entry beside it in its own list, offset in that list's frame. Returns the copies' paths too. */
+export function duplicateEntries(
+  fleet: Fleet,
+  paths: readonly EntryPath[],
+  dx: number,
+  dy: number,
+): { fleet: Fleet; paths: EntryPath[] } {
+  const next = cloneFleet(fleet);
+  const out: EntryPath[] = [];
+  for (const path of paths) {
+    const list = listOf(next, path);
+    const entry = entryAt(fleet, path);
+    if (list === null || entry === null) continue;
+    const copy = JSON.parse(JSON.stringify(entry)) as FleetEntry;
+    copy.x += dx;
+    copy.y += dy;
+    list.push(copy);
+    out.push([...path.slice(0, -1), list.length - 1]);
+  }
+  return { fleet: next, paths: out };
+}
+
+/** Remove entries, and any design nothing flies any more. */
+export function deleteEntries(fleet: Fleet, paths: readonly EntryPath[]): Fleet {
+  const next = cloneFleet(fleet);
+  // Latest first, so an earlier removal cannot shift a later index.
+  const ordered = [...paths].sort((a, b) => {
+    for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] !== b[i]) return b[i]! - a[i]!;
+    return b.length - a.length;
+  });
+  for (const path of ordered) {
+    const list = listOf(next, path);
+    if (list !== null) list.splice(path[path.length - 1]!, 1);
+  }
+  return pruneDesigns(next);
 }
 
 /** Replace the embedded copy of a design with this one. */
@@ -126,11 +139,4 @@ function pruneDesigns(fleet: Fleet): Fleet {
   for (const group of Object.values(fleet.groups ?? {})) visit(group.ships);
   for (const name of Object.keys(fleet.designs)) if (!used.has(name)) delete fleet.designs[name];
   return fleet;
-}
-
-function foldAngle(a: number): number {
-  let r = math.normalizeAngle(a);
-  if (r <= -math.PI) r += math.TAU;
-  else if (r > math.PI) r -= math.TAU;
-  return r === 0 ? 0 : r;
 }

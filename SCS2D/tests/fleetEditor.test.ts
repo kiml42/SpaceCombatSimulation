@@ -9,11 +9,12 @@ import {
   deleteEntries,
   duplicateEntries,
   emptyFleet,
+  entryAt,
   moveEntries,
   refreshDesign,
-  repeatEntry,
+  updateEntry,
 } from '../editor/fleetEdit.js';
-import { FleetDocument } from '../editor/fleetDocument.js';
+import { FleetDocument, toFrame, toFrameAngle } from '../editor/fleetDocument.js';
 import { fleetSnapshot } from '../editor/fleetPreview.js';
 
 function fakeStore(): KeyValueStore {
@@ -70,23 +71,35 @@ describe('editing a fleet', () => {
 
   it('drops a design nothing flies any more', () => {
     const fleet = addShip(addShip(emptyFleet('F'), DINKY, 0, 0), GUNSHIP, 100, 0);
-    expect(Object.keys(deleteEntries(fleet, [1]).designs)).toEqual(['Dinky']);
+    expect(Object.keys(deleteEntries(fleet, [[1]]).designs)).toEqual(['Dinky']);
   });
 
-  it('moves and duplicates by entry', () => {
+  it('moves and duplicates by path', () => {
     const fleet = addShip(emptyFleet('F'), DINKY, 0, 0);
-    expect(moveEntries(fleet, [0], 5, -5).ships[0]).toMatchObject({ x: 5, y: -5 });
-    expect(duplicateEntries(fleet, [0], 0, 30).ships[1]).toMatchObject({ x: 0, y: 30 });
+    expect(moveEntries(fleet, [{ path: [0], dx: 5, dy: -5 }]).ships[0]).toMatchObject({ x: 5, y: -5 });
+    const copied = duplicateEntries(fleet, [[0]], 0, 30);
+    expect(copied.fleet.ships[1]).toMatchObject({ x: 0, y: 30 });
+    expect(copied.paths).toEqual([[1]]);
   });
 
-  it('lays out a row stepped in each copy’s own frame', () => {
-    const fleet = addShip(emptyFleet('F'), DINKY, 0, 0);
-    const row = repeatEntry(fleet, 0, 3, { x: 10, y: 0, angle: math.HALF_PI });
-    expect(row.ships).toHaveLength(3);
-    expect(row.ships[1]).toMatchObject({ x: 10, y: 0 });
-    expect(row.ships[2]!.x).toBeCloseTo(10, 9);
-    expect(row.ships[2]!.y).toBeCloseTo(10, 9);
-    expect(row.ships[2]!.angle).toBeCloseTo(math.PI, 9);
+  it('edits and deletes a member inside a group, for every use of the group', () => {
+    const group = LINE_OF_BATTLE.ships.findIndex((entry) => 'group' in entry);
+    const moved = moveEntries(LINE_OF_BATTLE, [{ path: [group, 1], dx: 10, dy: 0 }]);
+    expect(entryAt(moved, [group, 1])).toMatchObject({ x: 10, y: -120 });
+    expect(moved.groups!['Fighter Pair']!.ships[1]).toMatchObject({ x: 10 });
+    const fewer = deleteEntries(LINE_OF_BATTLE, [[group, 0], [group, 1]]);
+    expect(fewer.groups!['Fighter Pair']!.ships).toEqual([]);
+    expect(fewer.designs['Dinky']).toBeUndefined();
+  });
+
+  it('keeps a repeat as a setting on the entry', () => {
+    const fleet = updateEntry(addShip(emptyFleet('F'), DINKY, 0, 0), [0], (e) => ({ ...e, repeat: 3, step: { x: 0, y: 20 } }));
+    const doc = new FleetDocument(fleet, noLibrary);
+    expect(doc.view.ships.map((s) => s.y)).toEqual([0, 20, 40]);
+    doc.apply(updateEntry(doc.fleet, [0], (e) => ({ ...e, step: { x: 0, y: 30 } })));
+    expect(doc.view.ships.map((s) => s.y)).toEqual([0, 30, 60]);
+    // Every copy picks the one entry.
+    expect(doc.resolveClick(2)).toEqual([0]);
   });
 });
 
@@ -117,19 +130,43 @@ describe('FleetDocument', () => {
     expect(doc.fleet.designs['Dinky']!.notes).toBe('refitted');
   });
 
-  it('picks a whole group by any ship in it', () => {
+  it('picks a whole group first, and a member of it on the next click', () => {
     const doc = new FleetDocument(LINE_OF_BATTLE, noLibrary);
     const group = LINE_OF_BATTLE.ships.findIndex((entry) => 'group' in entry);
-    expect(doc.entryAt(0, 120)).toBe(group);
-    expect(doc.entryAt(0, -120)).toBe(group);
-    expect(doc.shipsOf(group)).toHaveLength(2);
-    expect(doc.entryAt(1000, 1000)).toBe(-1);
+    const lower = doc.shipAt(0, -120);
+    expect(doc.resolveClick(lower)).toEqual([group]);
+    expect(doc.shipsOf([group])).toHaveLength(2);
+    doc.select([[group]], lower);
+    expect(doc.covers(lower)).toBe(true);
+    expect(doc.resolveClick(lower)).toEqual([group, 1]);
+    // Once inside, a sibling is reached directly rather than going back out.
+    doc.select([[group, 1]], lower);
+    expect(doc.resolveClick(doc.shipAt(0, 120))).toEqual([group, 0]);
+    expect(doc.shipAt(1000, 1000)).toBe(-1);
+  });
+
+  it('frames a member of a mirrored, turned group by the copy clicked', () => {
+    const fleet: Fleet = {
+      name: 'F',
+      designs: { Dinky: DINKY },
+      groups: { Pair: { ships: [{ design: 'Dinky', x: 0, y: 20 }] } },
+      ships: [{ group: 'Pair', x: 100, y: 0, angle: math.HALF_PI, mirror: true }],
+    };
+    const doc = new FleetDocument(fleet, noLibrary);
+    doc.select([[0, 0]], 0);
+    const frame = doc.frameOf([0, 0])!;
+    // Turned a quarter and reflected: +y on the field is +x in the group, and +x is +y.
+    const local = toFrame(frame, 0, 10);
+    expect(local.dx).toBeCloseTo(10, 9);
+    expect(local.dy).toBeCloseTo(0, 9);
+    expect(toFrame(frame, 10, 0).dy).toBeCloseTo(10, 9);
+    expect(toFrameAngle(frame, math.HALF_PI)).toBeCloseTo(0, 9);
   });
 
   it('forgets a selection an undo took away', () => {
     const doc = new FleetDocument(emptyFleet('F'), noLibrary);
     doc.apply(addShip(doc.fleet, DINKY, 0, 0));
-    doc.select([0]);
+    doc.select([[0]]);
     doc.undo();
     expect(doc.selection).toEqual([]);
   });

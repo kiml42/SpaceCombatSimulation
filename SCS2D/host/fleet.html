@@ -140,6 +140,10 @@
             <select id="addDesign" title="A ship from the library; the fleet carries its own copy"></select>
             <button id="addShip">Add</button>
           </div>
+          <div class="buttons">
+            <button id="addFromFile" title="Add a ship from a blueprint file">Add from file…</button>
+          </div>
+          <input id="addShipFile" type="file" accept="application/json,.json" hidden />
         </section>
         <section id="selection" hidden>
           <h2 id="selectionTitle">Selected</h2>
@@ -158,21 +162,21 @@
               <input id="entryMirror" type="checkbox" />
             </div>
             <div class="field">
-              <label for="repeatCount">row of</label>
-              <input id="repeatCount" type="number" step="1" min="2" value="3" />
+              <label for="repeatCount">copies</label>
+              <input id="repeatCount" type="number" step="1" min="1" />
             </div>
-            <div class="field">
-              <label for="repeatX">step m</label>
-              <input id="repeatX" type="number" step="1" value="0" />
-              <input id="repeatY" type="number" step="1" value="40" />
+            <div class="field" id="stepRow">
+              <label for="stepX">step m</label>
+              <input id="stepX" type="number" step="1" />
+              <input id="stepY" type="number" step="1" />
             </div>
-            <div class="field">
-              <label for="repeatAngle">step turn °</label>
-              <input id="repeatAngle" type="number" step="5" value="0" />
+            <div class="field" id="stepAngleRow">
+              <label for="stepAngle">step turn °</label>
+              <input id="stepAngle" type="number" step="5" />
             </div>
           </div>
           <div class="buttons">
-            <button id="repeatEntry" title="Lay copies out in a row, or round an arc with a turn">Make row</button>
+            <button id="upLevel" title="Select the group this is in">Select group</button>
             <button id="duplicateEntry">Duplicate</button>
             <button id="deleteEntry">Delete</button>
           </div>

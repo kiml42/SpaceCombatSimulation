@@ -84,8 +84,8 @@ entry on authored data stops being optional, since a scenario to share has to be
 
 Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`), **a battle from fleets**
 (`scenarios/fleetBattle.ts`), proved by `standoff` flying a fleet file with its checksum unchanged, and **the
-fleet editor** (`dist/fleet.html`). Left in the editor: building and editing groups, which it reads, draws and
-moves as one but cannot make — later, as ship groups were. The rest, in order, one pull request each:
+fleet editor** (`dist/fleet.html`). Left in the editor: making, dissolving and renaming groups — it steps
+into and edits the ones a file brings, but cannot make one — later, as ship groups were. The rest, in order, one pull request each:
 
 1. **Custom battle** on the viewer page: two or more fleets, from the library or a file, a starting range,
    closing and crossing speeds, and a seed. The setup is serialisable as `{ fleets, range, speeds, seed }`,

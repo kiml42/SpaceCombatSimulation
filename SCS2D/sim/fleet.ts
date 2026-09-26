@@ -27,23 +27,34 @@ export interface FleetGroup {
   notes?: string;
 }
 
-export interface FleetShip {
-  design: string;
+/** What every entry has: where it stands, and how many copies of it stand in a row. */
+interface Placed {
   x: number;
   y: number;
   /** Radians here, degrees in the file. */
   angle?: number;
+  /** Copies in a row or an arc, one `step` apart. One when absent. */
+  repeat?: number;
+  /** From each copy to the next, in that copy's own frame, as an assembly's step is. */
+  step?: FleetStep;
   notes?: string;
 }
 
-export interface FleetGroupUse {
-  group: string;
+export interface FleetStep {
   x: number;
   y: number;
+  /** Radians. A turn walks the row round an arc. */
   angle?: number;
+}
+
+export interface FleetShip extends Placed {
+  design: string;
+}
+
+export interface FleetGroupUse extends Placed {
+  group: string;
   /** Reflect across the group's own x-axis: positions and headings, not designs. */
   mirror?: boolean;
-  notes?: string;
 }
 
 export type FleetEntry = FleetShip | FleetGroupUse;
@@ -66,10 +77,27 @@ export interface PlacedShip {
   path: string;
   /** Which of the fleet's own `ships` it came from. */
   entry: number;
+  /** How it was reached, outermost first; the last step is the ship's own entry. */
+  trail: readonly TrailStep[];
+}
+
+/** One level of how a flattened ship was reached: which entry, which copy, and where. */
+export interface TrailStep {
+  /** Into the list this level is written in: the fleet's `ships` or a group's. */
+  index: number;
+  copy: number;
+  /** Where this copy of the entry stands and faces, in the fleet's frame. */
+  x: number;
+  y: number;
+  angle: number;
+  /** The frame the entry is written in, which an edit to it must be expressed in. */
+  rotation: number;
+  mirrored: boolean;
 }
 
 export const MAX_GROUP_DEPTH = 8;
 export const MAX_FLEET_SHIPS = 512;
+export const MAX_FLEET_REPEAT = 64;
 
 /**
  * The fleet as the plain list of ships a battle spawns.
@@ -79,7 +107,7 @@ export const MAX_FLEET_SHIPS = 512;
  */
 export function expandFleet(fleet: Fleet): PlacedShip[] {
   const out: PlacedShip[] = [];
-  place(fleet, fleet.ships, 0, 0, 0, false, [], '', out, -1);
+  place(fleet, fleet.ships, 0, 0, 0, false, [], '', out, []);
   return out;
 }
 
@@ -106,48 +134,63 @@ function place(
   within: string[],
   prefix: string,
   out: PlacedShip[],
-  entryOf: number,
+  trail: TrailStep[],
 ): void {
   const [c, s] = exactTurn(rotation);
   const seen = new Map<string, number>();
 
   for (let index = 0; index < entries.length; index++) {
     const entry = entries[index]!;
-    const top = entryOf < 0 ? index : entryOf;
     // Reflect, then turn, then move, as assemblies are placed.
     const localY = mirrored ? -entry.y : entry.y;
-    const x = originX + entry.x * c - localY * s;
-    const y = originY + entry.x * s + localY * c;
+    let x = originX + entry.x * c - localY * s;
+    let y = originY + entry.x * s + localY * c;
     const own = entry.angle ?? 0;
-    const angle = foldAngle(rotation + (mirrored ? -own : own));
-
+    let angle = foldAngle(rotation + (mirrored ? -own : own));
+    const flipped = isGroupUse(entry) ? mirrored !== (entry.mirror ?? false) : mirrored;
     const name = isGroupUse(entry) ? entry.group : entry.design;
-    const count = (seen.get(name) ?? 0) + 1;
-    seen.set(name, count);
-    const path = `${prefix}${name}#${count}`;
 
-    if (!isGroupUse(entry)) {
-      if (fleet.designs[entry.design] === undefined) {
-        throw new Error(`${fleet.name}: no design named ${entry.design}`);
-      }
-      out.push({ design: entry.design, x, y, angle, path, entry: top });
-      if (out.length > MAX_FLEET_SHIPS) {
-        throw new Error(`${fleet.name}: more than ${MAX_FLEET_SHIPS} ships`);
-      }
-      continue;
-    }
+    const copies = entry.repeat ?? 1;
+    if (copies > MAX_FLEET_REPEAT) throw new Error(`${fleet.name}: ${name} asks for ${copies} copies, more than ${MAX_FLEET_REPEAT}`);
 
-    const group = fleet.groups?.[entry.group];
-    if (group === undefined) throw new Error(`${fleet.name}: no group named ${entry.group}`);
-    if (within.includes(entry.group)) {
-      throw new Error(`${fleet.name}: group ${entry.group} contains itself (${[...within, entry.group].join(' → ')})`);
+    for (let copy = 0; copy < copies; copy++) {
+      const count = (seen.get(name) ?? 0) + 1;
+      seen.set(name, count);
+      const path = `${prefix}${name}#${count}`;
+      trail.push({ index, copy, x, y, angle, rotation, mirrored });
+
+      if (!isGroupUse(entry)) {
+        if (fleet.designs[entry.design] === undefined) {
+          throw new Error(`${fleet.name}: no design named ${entry.design}`);
+        }
+        out.push({ design: entry.design, x, y, angle, path, entry: trail[0]!.index, trail: [...trail] });
+        if (out.length > MAX_FLEET_SHIPS) {
+          throw new Error(`${fleet.name}: more than ${MAX_FLEET_SHIPS} ships`);
+        }
+      } else {
+        const group = fleet.groups?.[entry.group];
+        if (group === undefined) throw new Error(`${fleet.name}: no group named ${entry.group}`);
+        if (within.includes(entry.group)) {
+          throw new Error(`${fleet.name}: group ${entry.group} contains itself (${[...within, entry.group].join(' → ')})`);
+        }
+        if (within.length >= MAX_GROUP_DEPTH) {
+          throw new Error(`${fleet.name}: groups nested more than ${MAX_GROUP_DEPTH} deep`);
+        }
+        within.push(entry.group);
+        place(fleet, group.ships, x, y, angle, flipped, within, `${path}/`, out, trail);
+        within.pop();
+      }
+      trail.pop();
+
+      const step = entry.step;
+      if (step === undefined || copy + 1 >= copies) continue;
+      const [sc, ss] = exactTurn(angle);
+      const stepY = flipped ? -step.y : step.y;
+      const stepAngle = step.angle ?? 0;
+      x += step.x * sc - stepY * ss;
+      y += step.x * ss + stepY * sc;
+      angle = foldAngle(angle + (flipped ? -stepAngle : stepAngle));
     }
-    if (within.length >= MAX_GROUP_DEPTH) {
-      throw new Error(`${fleet.name}: groups nested more than ${MAX_GROUP_DEPTH} deep`);
-    }
-    within.push(entry.group);
-    place(fleet, group.ships, x, y, angle, mirrored !== (entry.mirror ?? false), within, `${path}/`, out, top);
-    within.pop();
   }
 }
 

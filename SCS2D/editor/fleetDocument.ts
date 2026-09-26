@@ -12,7 +12,7 @@ import {
   type PlacedShip,
   type ShipDesign,
 } from '../sim/index.js';
-import { cloneFleet, differs } from './fleetEdit.js';
+import { cloneFleet, differs, entryAt, isWithin, samePath, type EntryPath } from './fleetEdit.js';
 import { History } from './history.js';
 import { moduleAt } from './edit.js';
 
@@ -157,11 +157,26 @@ function hullsOverlap(
   return false;
 }
 
+/** The pose of one drawn copy of an entry, and the frame it is written in. */
+export interface EntryFrame {
+  x: number;
+  y: number;
+  angle: number;
+  rotation: number;
+  mirrored: boolean;
+}
+
+function indicesOf(ship: PlacedShip, depth = ship.trail.length): number[] {
+  return ship.trail.slice(0, depth).map((step) => step.index);
+}
+
 export class FleetDocument {
   private readonly history: History<Fleet>;
   private derived: FleetView;
-  /** Picked entries of the fleet's own `ships`, first picked first. */
-  private selected: number[] = [];
+  /** Picked entries, first picked first. */
+  private selected: EntryPath[] = [];
+  /** The drawn ship that was clicked, which decides which copy an edit is framed by. */
+  private grabbed = -1;
 
   constructor(
     fleet: Fleet,
@@ -187,7 +202,7 @@ export class FleetDocument {
     return this.history.canRedo;
   }
 
-  get selection(): readonly number[] {
+  get selection(): readonly EntryPath[] {
     return this.selected;
   }
 
@@ -224,25 +239,55 @@ export class FleetDocument {
     this.set();
   }
 
-  select(entries: readonly number[]): void {
-    this.selected = [...entries];
+  /** Select these entries; `grabbed` is the drawn ship that was clicked, if any. */
+  select(paths: readonly EntryPath[], grabbed = -1): void {
+    this.selected = paths.map((path) => [...path]);
+    this.grabbed = grabbed;
   }
 
-  toggle(entry: number): void {
-    const at = this.selected.indexOf(entry);
+  toggle(path: EntryPath, grabbed = -1): void {
+    const at = this.selected.findIndex((each) => samePath(each, path));
     if (at >= 0) this.selected.splice(at, 1);
-    else this.selected.push(entry);
+    else {
+      this.selected.push([...path]);
+      this.grabbed = grabbed;
+    }
   }
 
   /**
-   * The entry a point on the field would pick, or -1: a hull under it, else
-   * the nearest ship within `slop` metres, so a fighter too small to see can
-   * still be clicked.
+   * What clicking a drawn ship selects: the outermost group it is in, or one
+   * level further in once the selection is already inside that level — the
+   * ship editor's rule, so a second click steps into a group.
    */
-  entryAt(x: number, y: number, slop = 0): number {
+  resolveClick(ship: number): EntryPath | null {
+    const placed = this.derived.ships[ship];
+    if (placed === undefined) return null;
+    const chain: EntryPath[] = [];
+    for (let depth = 1; depth <= placed.trail.length; depth++) chain.push(indicesOf(placed, depth));
+    let depth = 0;
+    chain.forEach((level, i) => {
+      if (this.selected.some((path) => isWithin(path, level))) depth = i + 1;
+    });
+    return chain[Math.min(depth, chain.length - 1)] ?? null;
+  }
+
+  /** Whether the selection already accounts for this drawn ship. */
+  covers(ship: number): boolean {
+    const placed = this.derived.ships[ship];
+    if (placed === undefined) return false;
+    const indices = indicesOf(placed);
+    return this.selected.some((path) => isWithin(indices, path));
+  }
+
+  /**
+   * The drawn ship a point would pick, or -1: a hull under it, else the
+   * nearest ship within `slop` metres, so a fighter too small to see can still
+   * be clicked.
+   */
+  shipAt(x: number, y: number, slop = 0): number {
     const { ships, hulls, designs } = this.derived;
     for (let i = ships.length - 1; i >= 0; i--) {
-      if (moduleAt(hulls[i]!, x, y) >= 0) return ships[i]!.entry;
+      if (moduleAt(hulls[i]!, x, y) >= 0) return i;
     }
     let best = -1;
     let bestDistance = slop;
@@ -252,41 +297,82 @@ export class FleetDocument {
       const centre = centreOf(ship, design);
       const distance = sqrt((centre.x - x) ** 2 + (centre.y - y) ** 2);
       if (distance <= bestDistance) {
-        best = ship.entry;
+        best = i;
         bestDistance = distance;
       }
     });
     return best;
   }
 
-  /** The flattened ships an entry puts on the field. */
-  shipsOf(entry: number): number[] {
+  /** Every drawn ship an entry accounts for, in every copy of it. */
+  shipsOf(path: EntryPath): number[] {
     const out: number[] = [];
     this.derived.ships.forEach((ship, i) => {
-      if (ship.entry === entry) out.push(i);
+      if (isWithin(indicesOf(ship), path)) out.push(i);
     });
     return out;
   }
 
-  /** How far an entry's ships reach from its origin, metres. */
-  reachOf(entry: number): number {
-    const origin = this.fleet.ships[entry];
-    if (origin === undefined) return 0;
+  /** The drawn ship that frames an edit to this entry: the one clicked if it is under it, else its first. */
+  private framingShip(path: EntryPath): PlacedShip | null {
+    const grabbed = this.derived.ships[this.grabbed];
+    if (grabbed !== undefined && isWithin(indicesOf(grabbed), path)) return grabbed;
+    const first = this.shipsOf(path)[0];
+    return first === undefined ? null : this.derived.ships[first]!;
+  }
+
+  /** Where the framing copy of an entry stands, and the frame it is written in. */
+  frameOf(path: EntryPath): EntryFrame | null {
+    const ship = this.framingShip(path);
+    const step = ship?.trail[path.length - 1];
+    if (step === undefined) return null;
+    return { x: step.x, y: step.y, angle: step.angle, rotation: step.rotation, mirrored: step.mirrored };
+  }
+
+  /** The drawn ships of the framing copy alone. */
+  copyShips(path: EntryPath): number[] {
+    const ship = this.framingShip(path);
+    if (ship === null) return [];
+    const copy = ship.trail.slice(0, path.length);
+    const out: number[] = [];
+    this.derived.ships.forEach((other, i) => {
+      if (copy.every((step, d) => other.trail[d]?.index === step.index && other.trail[d]?.copy === step.copy)) out.push(i);
+    });
+    return out;
+  }
+
+  /** How far the framing copy's ships reach from its origin, metres. */
+  reachOf(path: EntryPath): number {
+    const frame = this.frameOf(path);
+    if (frame === null) return 0;
     let reach = 0;
-    for (const i of this.shipsOf(entry)) {
+    for (const i of this.copyShips(path)) {
       const design = this.derived.designs[i];
       if (design == null) continue;
       const centre = centreOf(this.derived.ships[i]!, design);
-      const dx = centre.x - origin.x;
-      const dy = centre.y - origin.y;
-      reach = Math.max(reach, sqrt(dx * dx + dy * dy) + design.radius);
+      reach = Math.max(reach, sqrt((centre.x - frame.x) ** 2 + (centre.y - frame.y) ** 2) + design.radius);
     }
     return reach;
   }
 
   private set(): void {
     this.derived = derive(this.history.current, this.lookup);
-    const count = this.history.current.ships.length;
-    this.selected = this.selected.filter((i) => i < count);
+    // An entry that no longer exists is gone, not merely stale.
+    this.selected = this.selected.filter((path) => entryAt(this.history.current, path) !== null);
   }
+}
+
+/** A displacement on the field, as the frame an entry is written in sees it. */
+export function toFrame(frame: EntryFrame, dx: number, dy: number): { dx: number; dy: number } {
+  const c = cos(frame.rotation);
+  const s = sin(frame.rotation);
+  const x = dx * c + dy * s;
+  const y = -dx * s + dy * c;
+  return { dx: x, dy: frame.mirrored ? -y : y };
+}
+
+/** A heading on the field, as the frame an entry is written in sees it. */
+export function toFrameAngle(frame: EntryFrame, angle: number): number {
+  const local = angle - frame.rotation;
+  return frame.mirrored ? -local : local;
 }

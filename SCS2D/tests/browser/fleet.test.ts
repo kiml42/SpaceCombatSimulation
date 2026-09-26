@@ -8,6 +8,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import type { Browser, Page } from 'playwright';
 import { launchChromium } from './launch.js';
+import { frame, type Camera } from '../../render/camera.js';
+import { FleetDocument } from '../../editor/fleetDocument.js';
+import { fleetSnapshot } from '../../editor/fleetPreview.js';
+import { LINE_OF_BATTLE } from '../../scenarios/fleets.js';
 
 /**
  * The fleet editor, driven in a real browser: the wiring between the page and
@@ -26,6 +30,26 @@ async function canvasCentre(p: Page): Promise<{ x: number; y: number }> {
   const box = await p.locator('#view').boundingBox();
   if (box === null) throw new Error('the canvas has no box');
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+/**
+ * Where a point of the stock fleet lands on screen, worked out the way the
+ * page fits its view, so a test can click a fighter too small to find by eye.
+ */
+async function onScreen(p: Page, x: number, y: number): Promise<{ x: number; y: number }> {
+  const box = await p.locator('#view').boundingBox();
+  const size = await p.evaluate(() => {
+    const canvas = document.getElementById('view') as HTMLCanvasElement;
+    return { width: canvas.width, height: canvas.height };
+  });
+  if (box === null) throw new Error('the canvas has no box');
+  const camera: Camera = { x: 0, y: 0, scale: 1 };
+  frame(camera, fleetSnapshot(new FleetDocument(LINE_OF_BATTLE, () => null).view), size.width, size.height, 1);
+  const cssPerPx = box.width / size.width;
+  return {
+    x: box.x + (size.width / 2 + (x - camera.x) * camera.scale) * cssPerPx,
+    y: box.y + (size.height / 2 - (y - camera.y) * camera.scale) * cssPerPx,
+  };
 }
 
 const shipCount = async (p: Page): Promise<string> =>
@@ -75,6 +99,24 @@ describe('the fleet editor in a browser', () => {
     expect(await page.inputValue('#entryX')).toBe('0');
   });
 
+  it('steps into a group on a second click and moves one member within it', async () => {
+    const lower = await onScreen(page, 0, -120);
+    await page.mouse.click(lower.x, lower.y);
+    expect(await page.textContent('#selectionTitle')).toBe('Group: Fighter Pair');
+    await page.mouse.click(lower.x, lower.y);
+    expect(await page.textContent('#selectionTitle')).toBe('Ship: Dinky in Fighter Pair');
+    expect(await page.inputValue('#entryY')).toBe('-120');
+    await page.mouse.move(lower.x, lower.y);
+    await page.mouse.down();
+    await page.mouse.move(lower.x - 60, lower.y, { steps: 5 });
+    await page.mouse.up();
+    expect(Number(await page.inputValue('#entryX'))).toBeLessThan(0);
+    await page.click('#upLevel');
+    expect(await page.textContent('#selectionTitle')).toBe('Group: Fighter Pair');
+    expect(await page.inputValue('#entryX')).toBe('0');
+    await page.click('#undo');
+  });
+
   it('adds a ship from the library and lists it overlapping', async () => {
     await page.selectOption('#addDesign', { label: 'Dinky' });
     await page.click('#addShip');
@@ -82,13 +124,15 @@ describe('the fleet editor in a browser', () => {
     expect(await page.textContent('#problems')).toMatch(/Gunship#1 and Dinky#\d overlap at the start/);
   });
 
-  it('lays a selected ship out in a row', async () => {
+  it('repeats a ship as a setting that updates as it is typed', async () => {
     await page.fill('#entryX', '-300');
-    await page.dispatchEvent('#entryX', 'change');
     await page.fill('#repeatCount', '4');
-    await page.click('#repeatEntry');
     expect(await shipCount(page)).toBe('ships9');
-    expect(await page.textContent('#selectionTitle')).toBe('4 selected');
+    expect(await page.isVisible('#stepRow')).toBe(true);
+    await page.fill('#stepY', '50');
+    expect(await page.textContent('#problems')).toBe('None.');
+    await page.fill('#repeatCount', '1');
+    expect(await shipCount(page)).toBe('ships6');
     await page.click('#deleteEntry');
     expect(await shipCount(page)).toBe('ships5');
   });
