@@ -46,7 +46,7 @@ an entry is either still open or it is gone.
 | 2 | Terminal ballistics and the damage model | Built |
 | 3 | Doctrine and orders | Partly built |
 | 4 | Headless evolution and analysis | Built |
-| 5 | v1: skirmish | Not started |
+| 5 | v1: skirmish | Partly built |
 | 6 | Editor restructuring | Not started |
 | 7 | Salvage and in-battle construction | Not started |
 | 8 | Mining and the two-resource economy | Not started |
@@ -63,7 +63,7 @@ dock a dock and decides ram from landing (§4, §3). See the §12 entry.
   once, because the editor cannot yet name a single instance.
 
 Deliberately left out of the editor's first iteration, and still unclaimed by any step: **test flight** (the
-editor could have a throwaway sim of its own; it does not need the battle page's), **fleets and budgets**,
+editor could have a throwaway sim of its own; it does not need the battle page's), budgets (fleets are step 5),
 and **interval-based firing arcs** (the §12 entry on traverse and firing permission).
 
 **Step 3 — Doctrine and orders.** What the step deferred, plus one thing using it turned up:
@@ -78,12 +78,40 @@ and **interval-based firing arcs** (the §12 entry on traverse and firing permis
   low on a CIWS. It replaces the mandate rather than sitting beside it, so it moves the goldens of every
   scenario that issues an order — which is why it is a piece of work of its own.
 
+**Step 5 — v1: skirmish.** A fixed budget of *materials* rather than of points (§12), designed scenarios,
+shareable by URL. *This is the first thing worth giving people to play.* Designed scenarios are where the §12
+entry on authored data stops being optional, since a scenario to share has to be a file.
+
+Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`) and **a battle from fleets**
+(`scenarios/fleetBattle.ts`), proved by `standoff` flying a fleet file with its checksum unchanged. The rest,
+in order, one pull request each:
+
+1. **Fleet editor**, a page of its own (`dist/fleet.html`), reusing the renderer, camera and pan/zoom. The
+   editor's undo history is pulled out of `EditorDocument` into a generic one, and the library and store
+   made generic over their key prefix (`scs2d.fleet.`). Ships are added from the ship library — which embeds
+   a copy — then dragged on a snap grid, turned by a knob, duplicated, deleted, and placed in a row or round
+   an arc by a count and a step (written out as plain ships; the format has no repeat). Import and export as
+   fleet files. Stats: ship count, total dry mass, and a breakdown by design — no cost line until budgets.
+   **Problems are listed, not enforced**: hulls overlapping at the start, a design failing
+   `blueprintProblem`, and an embedded design that differs from the library copy of the same name, with a
+   button to refresh it from the library. That warning is what makes embedding safe (DECISIONS.md). Groups
+   are read, drawn and kept by it, but building and editing them is later, as ship groups were.
+2. **Custom battle** on the viewer page: two or more fleets, from the library or a file, a starting range,
+   closing and crossing speeds, and a seed. The setup is serialisable as `{ fleets, range, speeds, seed }`,
+   which is the scenario format §12 asks for. Minimal results: the battle stops when one team alone has a
+   ship that is not a hulk, and shows mass lost and ships left per side. One fleet is one team; more than two
+   is a free-for-all.
+3. **Fleet evolution.** A match takes fleets as entrants, a lone blueprint being a fleet of one. Operators,
+   each with its inverse: mutate a design (every copy of it), fork one copy into a design of its own and merge
+   two designs, add and remove a copy of a design or of a group, and jitter a position or heading. Limits are
+   total dry mass and a deployment radius, and a mutant whose hulls overlap is refused. Headless first; a
+   boss battle — evolving against a fixed fleet — follows.
+
+Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
+lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
+
 ### Not started — in order
 
-5. **v1: skirmish** — a fixed budget of *materials* rather than of points (§12), designed scenarios,
-   shareable by URL. *This is the first thing worth giving people to play.* Designed
-   scenarios are where the §12 entry on authored data stops being optional, since a scenario to share has
-   to be a file.
 6. **Editor restructuring — dissolving a group, and grouping what is already grouped.** Making a group is
    what building a symmetrical ship needs; unmaking one, nesting one inside another and adding a group to a
    group are what *reworking* a ship needs, and that pressure only arrives once there are ships people want

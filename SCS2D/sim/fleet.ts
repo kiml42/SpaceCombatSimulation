@@ -1,0 +1,168 @@
+import { cos, normalizeAngle, PI, sin, TAU } from './math.js';
+import type { Blueprint } from './blueprint.js';
+
+/**
+ * A fleet: which ships, and where they stand relative to each other.
+ *
+ * Positions are in the fleet's own frame, +x forward, so the same fleet can be
+ * set down anywhere facing anything. Velocity is not part of it — how fast a
+ * fleet arrives is the battle's business, not the fleet's.
+ *
+ * Designs are **embedded**, not referenced: a fleet file is the whole of what
+ * it takes to fight it, and editing a ship in the library cannot quietly
+ * change a fleet built from it. See DECISIONS.md.
+ */
+export interface Fleet {
+  name: string;
+  notes?: string;
+  /** By name. Every ship entry names one of these. */
+  designs: Record<string, Blueprint>;
+  groups?: Record<string, FleetGroup>;
+  ships: FleetEntry[];
+}
+
+/** A named formation, placed as a unit and flattened away on load. */
+export interface FleetGroup {
+  ships: FleetEntry[];
+  notes?: string;
+}
+
+export interface FleetShip {
+  design: string;
+  x: number;
+  y: number;
+  /** Radians here, degrees in the file. */
+  angle?: number;
+  notes?: string;
+}
+
+export interface FleetGroupUse {
+  group: string;
+  x: number;
+  y: number;
+  angle?: number;
+  /** Reflect across the group's own x-axis: positions and headings, not designs. */
+  mirror?: boolean;
+  notes?: string;
+}
+
+export type FleetEntry = FleetShip | FleetGroupUse;
+
+export function isGroupUse(entry: FleetEntry): entry is FleetGroupUse {
+  return 'group' in entry;
+}
+
+/** One ship of a flattened fleet, in the fleet's frame. */
+export interface PlacedShip {
+  design: string;
+  x: number;
+  y: number;
+  angle: number;
+  /**
+   * Which ship this is, by name rather than position: `Fighter Wing#2/Dinky#1`
+   * is the first Dinky in the second Fighter Wing. Counted among siblings of
+   * the same name, so adding a Gunship does not rename every Dinky.
+   */
+  path: string;
+}
+
+export const MAX_GROUP_DEPTH = 8;
+export const MAX_FLEET_SHIPS = 512;
+
+/**
+ * The fleet as the plain list of ships a battle spawns.
+ *
+ * Throws on an unknown design or group, a group that contains itself, or a
+ * fleet too large to fight. `fleetProblem` asks the same without throwing.
+ */
+export function expandFleet(fleet: Fleet): PlacedShip[] {
+  const out: PlacedShip[] = [];
+  place(fleet, fleet.ships, 0, 0, 0, false, [], '', out);
+  return out;
+}
+
+/** What stops a fleet expanding, or null. Unused groups are checked too. */
+export function fleetProblem(fleet: Fleet): string | null {
+  try {
+    expandFleet(fleet);
+    for (const group of Object.keys(fleet.groups ?? {})) {
+      expandFleet({ ...fleet, ships: [{ group, x: 0, y: 0 }] });
+    }
+    return null;
+  } catch (error) {
+    return (error as Error).message;
+  }
+}
+
+function place(
+  fleet: Fleet,
+  entries: readonly FleetEntry[],
+  originX: number,
+  originY: number,
+  rotation: number,
+  mirrored: boolean,
+  within: string[],
+  prefix: string,
+  out: PlacedShip[],
+): void {
+  const [c, s] = exactTurn(rotation);
+  const seen = new Map<string, number>();
+
+  for (const entry of entries) {
+    // Reflect, then turn, then move, as assemblies are placed.
+    const localY = mirrored ? -entry.y : entry.y;
+    const x = originX + entry.x * c - localY * s;
+    const y = originY + entry.x * s + localY * c;
+    const own = entry.angle ?? 0;
+    const angle = foldAngle(rotation + (mirrored ? -own : own));
+
+    const name = isGroupUse(entry) ? entry.group : entry.design;
+    const count = (seen.get(name) ?? 0) + 1;
+    seen.set(name, count);
+    const path = `${prefix}${name}#${count}`;
+
+    if (!isGroupUse(entry)) {
+      if (fleet.designs[entry.design] === undefined) {
+        throw new Error(`${fleet.name}: no design named ${entry.design}`);
+      }
+      out.push({ design: entry.design, x, y, angle, path });
+      if (out.length > MAX_FLEET_SHIPS) {
+        throw new Error(`${fleet.name}: more than ${MAX_FLEET_SHIPS} ships`);
+      }
+      continue;
+    }
+
+    const group = fleet.groups?.[entry.group];
+    if (group === undefined) throw new Error(`${fleet.name}: no group named ${entry.group}`);
+    if (within.includes(entry.group)) {
+      throw new Error(`${fleet.name}: group ${entry.group} contains itself (${[...within, entry.group].join(' → ')})`);
+    }
+    if (within.length >= MAX_GROUP_DEPTH) {
+      throw new Error(`${fleet.name}: groups nested more than ${MAX_GROUP_DEPTH} deep`);
+    }
+    within.push(entry.group);
+    place(fleet, group.ships, x, y, angle, mirrored !== (entry.mirror ?? false), within, `${path}/`, out);
+    within.pop();
+  }
+}
+
+/**
+ * `cos` and `sin`, exact on the axes.
+ *
+ * `sin(PI)` is 1.2e-16, not 0, which would nudge every ship of a fleet turned
+ * to face west off where the same fleet written out by hand stands.
+ */
+export function exactTurn(angle: number): readonly [number, number] {
+  if (angle === 0) return [1, 0];
+  if (angle === PI || angle === -PI) return [-1, 0];
+  if (angle === PI / 2) return [0, 1];
+  if (angle === -PI / 2) return [0, -1];
+  return [cos(angle), sin(angle)];
+}
+
+function foldAngle(a: number): number {
+  let r = normalizeAngle(a);
+  if (r <= -PI) r += TAU;
+  else if (r > PI) r -= TAU;
+  return r === 0 ? 0 : r;
+}
