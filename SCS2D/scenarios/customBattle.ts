@@ -100,6 +100,8 @@ export interface SideTally {
   mass: number;
   /** Of those, the ones with a gun or a weapon engine still working. */
   armed: number;
+  /** And the ones with an engine still working. */
+  mobile: number;
 }
 
 export interface CustomBattle extends Battle {
@@ -127,7 +129,7 @@ export function customBattle(setup: BattleSetup): CustomBattle {
  */
 export function tally(battle: Battle, sides: number): SideTally[] {
   const out: SideTally[] = [];
-  for (let team = 0; team < sides; team++) out.push({ team, ships: 0, mass: 0, armed: 0 });
+  for (let team = 0; team < sides; team++) out.push({ team, ships: 0, mass: 0, armed: 0, mobile: 0 });
   const { ships, world } = battle;
   for (let i = 0; i < ships.highWater; i++) {
     if (!ships.isAlive(i) || !ships.hasControl(i)) continue;
@@ -136,6 +138,7 @@ export function tally(battle: Battle, sides: number): SideTally[] {
     const body = world.bodies.indexOf(ships.body(i));
     out[team]!.ships++;
     if (!ships.isDisarmed(i)) out[team]!.armed++;
+    if (!ships.hasNoEngines(i)) out[team]!.mobile++;
     out[team]!.mass += body >= 0 ? world.bodies.mass[body]! : 0;
   }
   return out;

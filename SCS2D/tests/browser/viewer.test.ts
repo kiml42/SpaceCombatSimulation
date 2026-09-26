@@ -217,12 +217,16 @@ describe('the viewer in a browser', () => {
     expect(await advanced(page)).toBeGreaterThan(0);
   });
 
-  it('fights a custom battle between fleets and says who won', async () => {
+  it('sets up a custom battle paused, live, and fights it without stopping at the end', async () => {
     expect(await page.isHidden('#custom')).toBe(true);
-    await page.selectOption('#scene', { label: 'Custom battle' });
+    await page.click('#customBattle');
     expect(await page.isVisible('#custom')).toBe(true);
-    expect(await page.locator('#fleetSlots .slot').count()).toBe(2);
+    // Blank, held at the first step, and not ready to fight.
+    expect(await page.locator('#fleetSlots .slot').count()).toBe(0);
+    expect(await page.textContent('#play')).toBe('Play');
+    expect(await page.isDisabled('#fight')).toBe(true);
 
+    await page.click('#addFleet');
     // A lone fighter from a file against the stock line: decided in seconds.
     const lone = {
       formatVersion: 1,
@@ -235,11 +239,16 @@ describe('the viewer in a browser', () => {
       mimeType: 'application/json',
       buffer: Buffer.from(JSON.stringify(lone)),
     });
-    await page.waitForFunction(() => document.querySelectorAll('#fleetSlots .slot').length === 3);
-    await page.locator('#fleetSlots .slot').nth(1).locator('button').click();
+    await page.waitForFunction(() => document.querySelectorAll('#fleetSlots .slot').length === 2);
     expect(await page.locator('#fleetSlots select').nth(1).inputValue()).toBe('Lone (file)');
 
+    // Changing the setup rebuilds it where it stands, still paused at step 0.
     await page.fill('#battleRange', '1000');
+    await page.waitForFunction(() => /range 1000 m/.test(document.getElementById('metrics')?.textContent ?? ''));
+    expect(await step(page)).toBe(0);
+    expect(await page.textContent('#play')).toBe('Play');
+    expect(await page.textContent('#sides')).toMatch(/Lone.*1\/1 ships · 1 armed · 1 mobile/);
+
     await page.click('#fight');
     await page.fill('#speed', '8');
     await page.dispatchEvent('#speed', 'input');
@@ -247,9 +256,10 @@ describe('the viewer in a browser', () => {
       timeout: 20_000,
     });
     expect(await page.textContent('#outcome')).toMatch(/^Line of Battle \(blue\) wins at/);
-    expect(await page.textContent('#sides')).toMatch(/Lone.*\/1 ships · 0 armed/);
-    // Deciding it pauses the battle.
-    expect(await page.textContent('#play')).toBe('Play');
+    // The battle goes on after it is decided.
+    expect(await page.textContent('#play')).toBe('Pause');
+    const decidedAt = await step(page);
+    expect(await advanced(page, decidedAt)).toBeGreaterThan(decidedAt);
     await page.fill('#speed', '1');
     await page.dispatchEvent('#speed', 'input');
   });

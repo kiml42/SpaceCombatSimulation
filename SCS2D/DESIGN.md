@@ -388,9 +388,10 @@ inside any one file is not contiguous.
   embedded design that has drifted from the library's copy of the same name, which one button brings up to
   date. Fleets are saved to browser storage and exported and imported as fleet files.
   **A custom battle** on the viewer sets two or more fleets round a ring at a chosen range, closing and
-  crossing speed and seed, saved and loaded as a battle file, and says how each side stands — ships still
-  crewed, how many still armed, and the share of its mass lost — until no more than one side can fight on,
-  when it stops and names the winner.
+  crossing speed and seed, saved and loaded as a battle file. It is set up paused at its first step, the
+  picture following every change, and started with Fight. It says how each side stands — ships still
+  crewed, how many armed and how many mobile, and the share of its mass lost — and names the winner once no
+  more than one side can fight on, without stopping the battle.
 - **Next:** §8 step 5 — fleet evolution, planned in ROADMAP.md §8.
   §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page

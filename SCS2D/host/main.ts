@@ -64,19 +64,24 @@ export function start(): void {
     { name: 'Custom battle', create: (): Battle => customBattle(panel.setup()) },
   ];
   const CUSTOM = scenes.length - 1;
-  const restart = (): void => {
+  /** Build the current scene afresh, running or held at its first step. */
+  const restart = (run = true): void => {
     state = scenes[sceneIndex]!.create();
     panel.reset();
     flashes.clear();
     framed = false;
     autoFrame = true;
-    setRunning(true);
+    setRunning(run);
   };
-  const panel = customPanel(() => {
+  // A custom battle is set up paused at its first step, so the opening
+  // positions can be seen as they are chosen, and started with Fight.
+  const openCustom = (): void => {
     sceneIndex = CUSTOM;
     sceneSelect.selectedIndex = CUSTOM;
-    restart();
-  });
+    panel.show(true);
+    restart(false);
+  };
+  const panel = customPanel(openCustom, () => restart(true));
   let sceneIndex = 0;
   let state: Battle = scenes[sceneIndex]!.create();
   let snapshot = new Snapshot();
@@ -128,12 +133,17 @@ export function start(): void {
     setRunning(false);
     state.step();
   });
-  resetButton.addEventListener('click', restart);
+  resetButton.addEventListener('click', () => restart(sceneIndex !== CUSTOM));
   sceneSelect.addEventListener('change', () => {
+    if (sceneSelect.selectedIndex === CUSTOM) {
+      openCustom();
+      return;
+    }
     sceneIndex = sceneSelect.selectedIndex;
-    panel.show(sceneIndex === CUSTOM);
+    panel.show(false);
     restart();
   });
+  el<HTMLButtonElement>('customBattle').addEventListener('click', openCustom);
   fitButton.addEventListener('click', () => {
     autoFrame = true;
   });
@@ -244,8 +254,7 @@ export function start(): void {
     flashes.step(simDt);
     draw(ctx, view, camera, canvas.width, canvas.height, flashes);
 
-    // A custom battle stops itself once only one side is left fighting.
-    if (sceneIndex === CUSTOM && panel.update(state as CustomBattle, view.time)) setRunning(false);
+    if (sceneIndex === CUSTOM) panel.update(state as CustomBattle, view.time);
 
     // Between the first two ships, whatever the scenario holds — but only if
     // there are two. A single survivor has nothing to measure against, and

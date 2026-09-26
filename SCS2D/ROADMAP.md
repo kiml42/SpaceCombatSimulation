@@ -86,7 +86,7 @@ Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`), **a battle from 
 (`scenarios/fleetBattle.ts`), proved by `standoff` flying a fleet file with its checksum unchanged, **the
 fleet editor** (`dist/fleet.html`), and **a custom battle** on the viewer — fleets from the library or a file,
 range, closing and crossing speeds and a seed, saved and loaded as a battle file (`scenarios/customBattle.ts`),
-stopping once no more than one side can still fight. Left in the editor: making, dissolving and renaming
+set up paused and live, and decided once no more than one side can still fight. Left in the editor: making, dissolving and renaming
 groups — it steps into and edits the ones a file brings, but cannot make one — later, as ship groups were.
 What remains:
 

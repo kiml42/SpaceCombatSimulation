@@ -40,9 +40,9 @@ describe('the battle file', () => {
 describe('a custom battle', () => {
   it('starts with every side whole and armed', () => {
     const battle = customBattle(setup);
-    expect(battle.start.map((side) => [side.ships, side.armed])).toEqual([
-      [5, 5],
-      [1, 1],
+    expect(battle.start.map((side) => [side.ships, side.armed, side.mobile])).toEqual([
+      [5, 5, 5],
+      [1, 1, 1],
     ]);
     expect(tally(battle, 2)).toEqual(battle.start);
     expect(winner(battle.start)).toBeNull();
@@ -59,7 +59,7 @@ describe('a custom battle', () => {
   });
 
   it('calls it for nobody when no side can fight on', () => {
-    expect(winner([{ team: 0, ships: 1, mass: 1, armed: 0 }, { team: 1, ships: 2, mass: 1, armed: 0 }])).toBe(-1);
-    expect(winner([{ team: 0, ships: 1, mass: 1, armed: 1 }, { team: 1, ships: 2, mass: 1, armed: 1 }])).toBeNull();
+    expect(winner([{ team: 0, ships: 1, mass: 1, armed: 0, mobile: 1 }, { team: 1, ships: 2, mass: 1, armed: 0, mobile: 0 }])).toBe(-1);
+    expect(winner([{ team: 0, ships: 1, mass: 1, armed: 1, mobile: 1 }, { team: 1, ships: 2, mass: 1, armed: 1, mobile: 1 }])).toBeNull();
   });
 });

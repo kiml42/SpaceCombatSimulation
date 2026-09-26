@@ -30,13 +30,17 @@ interface Slot {
 export interface CustomPanel {
   show(visible: boolean): void;
   setup(): BattleSetup;
-  /** Refresh the sides table; returns true the first time the battle is decided. */
-  update(battle: CustomBattle, time: number): boolean;
+  /** Refresh the sides table, and name the winner once there is one. */
+  update(battle: CustomBattle, time: number): void;
   /** Forget any result, for a battle starting again. */
   reset(): void;
 }
 
-export function customPanel(fight: () => void): CustomPanel {
+/**
+ * `changed` is called whenever the setup changes, so the viewer can show it
+ * paused at its first step; `fight` when the battle should start.
+ */
+export function customPanel(changed: () => void, fight: () => void): CustomPanel {
   const panel = el<HTMLElement>('custom');
   const slotsBox = el<HTMLElement>('fleetSlots');
   const sidesBox = el<HTMLElement>('sides');
@@ -56,10 +60,10 @@ export function customPanel(fight: () => void): CustomPanel {
     }
   };
   const firstName = fleets.list()[0]?.name ?? '';
-  const first = read(firstName);
-  const slots: Slot[] =
-    first === null ? [] : [{ fleet: first, library: firstName }, { fleet: first, library: firstName }];
+  // Blank: the fleets are the first thing chosen.
+  const slots: Slot[] = [];
   let decided = false;
+  const fightButton = el<HTMLButtonElement>('fight');
 
   const fill = (setup: Omit<BattleSetup, 'fleets'>): void => {
     range.value = String(setup.range);
@@ -92,18 +96,21 @@ export function customPanel(fight: () => void): CustomPanel {
         const fleet = read(select.value);
         if (fleet !== null) slots[i] = { fleet, library: select.value };
         renderSlots();
+        changed();
       });
       const remove = document.createElement('button');
       remove.textContent = '×';
       remove.title = 'Take this side out';
-      remove.disabled = slots.length <= 2;
       remove.addEventListener('click', () => {
         slots.splice(i, 1);
         renderSlots();
+        changed();
       });
       row.append(swatch, select, remove);
       slotsBox.append(row);
     });
+    fightButton.disabled = slots.length < 2;
+    fightButton.title = slots.length < 2 ? 'Choose at least two fleets' : 'Start the battle';
   };
 
   el<HTMLButtonElement>('addFleet').addEventListener('click', () => {
@@ -112,6 +119,7 @@ export function customPanel(fight: () => void): CustomPanel {
     const fleet = read(name);
     if (fleet !== null) slots.push({ fleet, library: name });
     renderSlots();
+    changed();
   });
 
   const pick = (input: HTMLInputElement, use: (text: string) => void): void => {
@@ -125,6 +133,7 @@ export function customPanel(fight: () => void): CustomPanel {
           window.alert(`Could not read that file.\n\n${error instanceof Error ? error.message : error}`);
         }
         renderSlots();
+        changed();
       });
       input.value = '';
     });
@@ -146,7 +155,8 @@ export function customPanel(fight: () => void): CustomPanel {
     seed: Math.round(number(seed, DEFAULT_SETUP.seed)),
   });
 
-  el<HTMLButtonElement>('fight').addEventListener('click', fight);
+  fightButton.addEventListener('click', fight);
+  for (const input of [range, closing, crossing, seed]) input.addEventListener('input', changed);
 
   el<HTMLButtonElement>('exportBattle').addEventListener('click', () => {
     const text = `${JSON.stringify(serialiseBattleSetup(setup()), null, 2)}\n`;
@@ -164,7 +174,6 @@ export function customPanel(fight: () => void): CustomPanel {
     slots.length = 0;
     for (const fleet of loaded.fleets) slots.push({ fleet, library: null });
     fill(loaded);
-    fight();
   });
 
   renderSlots();
@@ -176,33 +185,36 @@ export function customPanel(fight: () => void): CustomPanel {
     },
     setup,
     update(battle, time) {
-      const now = tally(battle, battle.start.length);
-      const result = winner(now);
-      // Sampled a few times a simulated second rather than every frame: it is a
-      // table to read, not an animation.
-      if (result === null || decided) {
-        if (time - lastDrawn < 0.2 && time >= lastDrawn) return false;
+      if (battle.start.length === 0) {
+        sidesBox.innerHTML = '<p class="none">No fleets yet.</p>';
+        return;
       }
+      // Sampled a few times a simulated second: it is a table to read, not an animation.
+      if (time - lastDrawn < 0.2 && time >= lastDrawn) return;
       lastDrawn = time;
-      const rows = battle.start.map((start, i) => {
-        const side = now[i]!;
-        const lost = start.mass > 0 ? (1 - side.mass / start.mass) * 100 : 0;
-        const name = battle.setup.fleets[i]?.name ?? `Side ${i + 1}`;
-        return (
-          `<div class="side"><span class="swatch" style="background:${teamColour(i)}"></span>` +
-          `<span class="sideName">${escapeHtml(name)}</span></div>` +
-          `<div class="sideStats">${side.ships}/${start.ships} ships · ${side.armed} armed · ${Math.round(lost)}% of mass lost</div>`
-        );
-      });
-      sidesBox.innerHTML = rows.join('');
-      if (result === null || decided) return false;
+      const now = tally(battle, battle.start.length);
+      sidesBox.innerHTML = battle.start
+        .map((start, i) => {
+          const side = now[i]!;
+          const lost = start.mass > 0 ? (1 - side.mass / start.mass) * 100 : 0;
+          const name = battle.setup.fleets[i]?.name ?? `Side ${i + 1}`;
+          return (
+            `<div class="side"><span class="swatch" style="background:${teamColour(i)}"></span>` +
+            `<span class="sideName">${escapeHtml(name)}</span></div>` +
+            `<div class="sideStats">${side.ships}/${start.ships} ships · ${side.armed} armed · ` +
+            `${side.mobile} mobile · ${Math.round(lost)}% of mass lost</div>`
+          );
+        })
+        .join('');
+      // Named once, and the battle goes on: the ships settling afterwards are worth watching.
+      const result = battle.start.length < 2 ? null : winner(now);
+      if (result === null || decided) return;
       decided = true;
       const who =
         result < 0
           ? 'No side can fight on'
           : `${escapeHtml(battle.setup.fleets[result]?.name ?? '')} (${SIDE_NAMES[result] ?? 'grey'}) wins`;
       outcome.innerHTML = `${who} at ${time.toFixed(1)} s.`;
-      return true;
     },
     reset() {
       decided = false;
