@@ -923,7 +923,7 @@ describe('the editor in a browser', () => {
     expect(await page.locator('#fleetSlots select option:checked').first().textContent()).toBe(
       'Corvette (from the editor)',
     );
-    expect(await page.textContent('#sides')).toMatch(/Corvette.*1\/1 ships/);
+    await page.waitForFunction(() => /Corvette.*1\/1 ships/.test(document.getElementById('sides')?.textContent ?? ''));
     await page.goBack();
   });
 });

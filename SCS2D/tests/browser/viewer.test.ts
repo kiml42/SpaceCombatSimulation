@@ -231,7 +231,8 @@ describe('the viewer in a browser', () => {
     expect(await page.isDisabled('#fight')).toBe(false);
     // A single ship can be a side too.
     await page.locator('#fleetSlots select').first().selectOption('ship:Star Destroyer');
-    expect(await page.textContent('#sides')).toMatch(/Star Destroyer.*1\/1 ships/);
+    // The table is redrawn on the next frame, so wait for it rather than racing it.
+    await page.waitForFunction(() => /Star Destroyer.*1\/1 ships/.test(document.getElementById('sides')?.textContent ?? ''));
     await page.locator('#fleetSlots select').first().selectOption('fleet:Line of Battle');
     // A lone fighter from a file against the stock line: decided in seconds.
     const lone = {
@@ -253,7 +254,9 @@ describe('the viewer in a browser', () => {
     await page.waitForFunction(() => /range 1000 m/.test(document.getElementById('metrics')?.textContent ?? ''));
     expect(await step(page)).toBe(0);
     expect(await page.textContent('#play')).toBe('Play');
-    expect(await page.textContent('#sides')).toMatch(/Lone.*1\/1 ships · 1 armed · 1 mobile/);
+    await page.waitForFunction(() =>
+      /Lone.*1\/1 ships · 1 armed · 1 mobile/.test(document.getElementById('sides')?.textContent ?? ''),
+    );
 
     await page.click('#fight');
     await page.fill('#speed', '8');
