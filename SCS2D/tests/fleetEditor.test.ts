@@ -163,6 +163,17 @@ describe('FleetDocument', () => {
     expect(toFrameAngle(frame, math.HALF_PI)).toBeCloseTo(0, 9);
   });
 
+  it('splits a repeated group into one box per copy, the clicked copy primary', () => {
+    const group = LINE_OF_BATTLE.ships.findIndex((entry) => 'group' in entry);
+    const fleet = updateEntry(LINE_OF_BATTLE, [group], (e) => ({ ...e, repeat: 3, step: { x: -60, y: 0 } }));
+    const doc = new FleetDocument(fleet, noLibrary);
+    const second = doc.shipsOf([group])[2]!;
+    doc.select([[group]], second);
+    const copies = doc.copiesOf([group]);
+    expect(copies.map((copy) => copy.ships.length)).toEqual([2, 2, 2]);
+    expect(copies.map((copy) => copy.primary)).toEqual([false, true, false]);
+  });
+
   it('forgets a selection an undo took away', () => {
     const doc = new FleetDocument(emptyFleet('F'), noLibrary);
     doc.apply(addShip(doc.fleet, DINKY, 0, 0));

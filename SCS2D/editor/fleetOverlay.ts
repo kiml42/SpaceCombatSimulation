@@ -6,8 +6,14 @@ import { HANDLE_RADIUS_PX, ROTATE_ARM_PX } from './handles.js';
 
 const { cos, sin, TAU } = math;
 
+// The ship editor's colours, so a selected ship reads as a selected module
+// does and a group of ships as a group of modules.
 const SELECTION = '#e9c05f';
-const SELECTION_OTHERS = '#e9c05f88';
+const SELECTION_LINKED = '#e9c05fcc';
+const GROUP_SELECTION = '#7fd4ff';
+const GROUP_LINKED = '#7fd4ffcc';
+const GROUP_CONTEXT = '#7fd4ff66';
+const GROUP_BOX_MARGIN_PX = 7;
 const FAULT_FILL = 'rgba(255, 107, 94, 0.32)';
 const HANDLE_EDGE = '#1b1f27';
 const FORWARD = '#7fd6a0';
@@ -22,20 +28,16 @@ export interface FleetOverlayView {
   /** Each ship's centre and radius, null where it will not compile. */
   circles: readonly ({ x: number; y: number; radius: number } | null)[];
   faulty: readonly number[];
+  /** Selected ships, one entry per drawn copy; the primary one is the copy an edit is framed by. */
+  ships: readonly { ships: readonly number[]; primary: boolean }[];
   /**
-   * Per selected entry, first picked first: the copy that was clicked — its
-   * origin, facing, reach and ships — and the ships of every copy.
+   * Boxes round groups: the selected one (solid where it is the copy being
+   * edited, dashed for its other copies) and, faintly, the one a selection
+   * has stepped into.
    */
-  selected: readonly {
-    x: number;
-    y: number;
-    angle: number;
-    reach: number;
-    ships: readonly number[];
-    copy: readonly number[];
-  }[];
-  /** Where the turning knob is, or null when there is none to show. */
-  knob: { x: number; y: number } | null;
+  boxes: readonly { ships: readonly number[]; angle: number; style: 'primary' | 'linked' | 'context' }[];
+  /** The knob and the origin its arm runs from, or null when there is none to show. */
+  knob: { x: number; y: number; fromX: number; fromY: number } | null;
 }
 
 /** Where the knob sits for an entry: ahead of it, just beyond its reach. */
@@ -66,11 +68,12 @@ export function drawFleetOverlay(
     ring(ctx, view.circles[i], camera, FAULT_FILL);
   }
 
-  view.selected.forEach((entry, n) => {
-    ctx.lineWidth = LINE_PX * px;
-    for (const i of entry.ships) {
-      // The copy clicked is the one an edit is framed by; the rest move with it.
-      ctx.strokeStyle = n === 0 && entry.copy.includes(i) ? SELECTION : SELECTION_OTHERS;
+  const line = LINE_PX * px;
+  ctx.lineWidth = line;
+  for (const copy of view.ships) {
+    ctx.strokeStyle = copy.primary ? SELECTION : SELECTION_LINKED;
+    if (!copy.primary) ctx.setLineDash([line * 4, line * 3]);
+    for (const i of copy.ships) {
       for (const spec of view.hulls[i] ?? []) {
         const mid = moduleCentre(spec);
         ctx.save();
@@ -81,23 +84,16 @@ export function drawFleetOverlay(
       }
       ring(ctx, view.circles[i], camera, null);
     }
-    // A group is one thing, so it gets one ring round the lot.
-    if (entry.copy.length > 1) {
-      ctx.strokeStyle = n === 0 ? SELECTION : SELECTION_OTHERS;
-      ctx.setLineDash([6 * px, 4 * px]);
-      ctx.beginPath();
-      ctx.arc(entry.x, entry.y, entry.reach, 0, TAU);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-  });
+    ctx.setLineDash([]);
+  }
 
-  const first = view.selected[0];
-  if (view.knob !== null && first !== undefined) {
+  for (const box of view.boxes) drawBox(ctx, view.hulls, box, line, GROUP_BOX_MARGIN_PX * px);
+
+  if (view.knob !== null) {
     ctx.strokeStyle = SELECTION;
-    ctx.lineWidth = LINE_PX * px;
+    ctx.lineWidth = line;
     ctx.beginPath();
-    ctx.moveTo(first.x, first.y);
+    ctx.moveTo(view.knob.fromX, view.knob.fromY);
     ctx.lineTo(view.knob.x, view.knob.y);
     ctx.stroke();
     ctx.beginPath();
@@ -143,4 +139,56 @@ function ring(
     ctx.fillStyle = fill;
     ctx.fill();
   }
+}
+
+/**
+ * A rectangle round everything a copy of a group holds, square to that copy's
+ * heading, so a turned line of ships gets a box its own shape rather than one
+ * as wide as its diagonal.
+ */
+function drawBox(
+  ctx: CanvasRenderingContext2D,
+  hulls: readonly (readonly ModuleSpec[])[],
+  box: FleetOverlayView['boxes'][number],
+  line: number,
+  margin: number,
+): void {
+  const c = cos(box.angle);
+  const s = sin(box.angle);
+  let minU = Infinity;
+  let minV = Infinity;
+  let maxU = -Infinity;
+  let maxV = -Infinity;
+  for (const i of box.ships) {
+    for (const spec of hulls[i] ?? []) {
+      const angle = spec.angle ?? 0;
+      const mc = cos(angle);
+      const ms = sin(angle);
+      const mid = moduleCentre(spec);
+      for (const [ol, ow] of [
+        [1, 1],
+        [1, -1],
+        [-1, 1],
+        [-1, -1],
+      ] as const) {
+        const x = mid.x + (ol * spec.length * mc - ow * spec.width * ms) / 2;
+        const y = mid.y + (ol * spec.length * ms + ow * spec.width * mc) / 2;
+        // Into the box's own frame.
+        const u = x * c + y * s;
+        const v = -x * s + y * c;
+        minU = Math.min(minU, u);
+        maxU = Math.max(maxU, u);
+        minV = Math.min(minV, v);
+        maxV = Math.max(maxV, v);
+      }
+    }
+  }
+  if (!(maxU >= minU)) return;
+  ctx.save();
+  ctx.rotate(box.angle);
+  ctx.strokeStyle = box.style === 'primary' ? GROUP_SELECTION : box.style === 'linked' ? GROUP_LINKED : GROUP_CONTEXT;
+  ctx.lineWidth = line;
+  if (box.style !== 'primary') ctx.setLineDash([line * 4, line * 3]);
+  ctx.strokeRect(minU - margin, minV - margin, maxU - minU + margin * 2, maxV - minV + margin * 2);
+  ctx.restore();
 }

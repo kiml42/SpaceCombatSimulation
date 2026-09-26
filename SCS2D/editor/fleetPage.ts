@@ -23,11 +23,13 @@ import {
   emptyFleet,
   entryAt,
   moveEntries,
+  samePath,
+  type EntryPath,
   refreshDesign,
   updateEntry,
 } from './fleetEdit.js';
 import { centreOf, FleetDocument, toFrame, toFrameAngle, type EntryFrame } from './fleetDocument.js';
-import { drawFleetOverlay, knobFor } from './fleetOverlay.js';
+import { drawFleetOverlay, knobFor, type FleetOverlayView } from './fleetOverlay.js';
 import { fleetSnapshot } from './fleetPreview.js';
 import { HANDLE_GRAB_PX } from './handles.js';
 import { FLEET_FILES, Library, nextName, unusedName, type LibraryEntry } from './library.js';
@@ -110,16 +112,34 @@ export function startFleetEditor(): void {
     canvas.height = max(1, Math.round(rect.height * ratio));
   };
 
-  const selectedEntries = () =>
-    doc.selection.map((path) => {
-      const at = doc.frameOf(path) ?? { x: 0, y: 0, angle: 0 };
-      return { x: at.x, y: at.y, angle: at.angle, reach: doc.reachOf(path), ships: doc.shipsOf(path), copy: doc.copyShips(path) };
-    });
-
-  const currentKnob = (): { x: number; y: number } | null => {
+  const currentKnob = (): { x: number; y: number; fromX: number; fromY: number } | null => {
     if (doc.selection.length !== 1) return null;
-    const entry = selectedEntries()[0]!;
-    return knobFor(entry.x, entry.y, entry.angle, entry.reach, camera.scale);
+    const path = doc.selection[0]!;
+    const at = doc.frameOf(path);
+    if (at === null) return null;
+    return { ...knobFor(at.x, at.y, at.angle, doc.reachOf(path), camera.scale), fromX: at.x, fromY: at.y };
+  };
+
+  /** What the overlay outlines: selected ships, selected groups' boxes, and the group stepped into. */
+  const selectionMarks = (): Pick<FleetOverlayView, 'ships' | 'boxes'> => {
+    const ships: FleetOverlayView['ships'][number][] = [];
+    const boxes: FleetOverlayView['boxes'][number][] = [];
+    const contexts: EntryPath[] = [];
+    doc.selection.forEach((path, n) => {
+      const entry = entryAt(doc.fleet, path);
+      if (entry === null) return;
+      for (const copy of doc.copiesOf(path)) {
+        if (isGroupUse(entry)) boxes.push({ ships: copy.ships, angle: copy.angle, style: copy.primary ? 'primary' : 'linked' });
+        else ships.push({ ships: copy.ships, primary: copy.primary && n === 0 });
+      }
+      const parent = path.slice(0, -1);
+      if (parent.length > 0 && !contexts.some((each) => samePath(each, parent))) contexts.push(parent);
+    });
+    for (const parent of contexts) {
+      if (doc.selection.some((path) => samePath(path, parent))) continue;
+      for (const copy of doc.copiesOf(parent)) boxes.push({ ships: copy.ships, angle: copy.angle, style: 'context' });
+    }
+    return { ships, boxes };
   };
 
   const render = (): void => {
@@ -138,7 +158,7 @@ export function startFleetEditor(): void {
           return design == null ? null : { ...centreOf(ship, design), radius: design.radius };
         }),
         faulty: doc.view.faulty,
-        selected: selectedEntries(),
+        ...selectionMarks(),
         knob: currentKnob(),
       },
       camera,

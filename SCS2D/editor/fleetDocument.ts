@@ -329,6 +329,24 @@ export class FleetDocument {
     return { x: step.x, y: step.y, angle: step.angle, rotation: step.rotation, mirrored: step.mirrored };
   }
 
+  /**
+   * The drawn ships of an entry split by copy — one list per copy of it, and
+   * of every group it is in — each with the heading its box is drawn square
+   * to, and whether it is the copy an edit is framed by.
+   */
+  copiesOf(path: EntryPath): { ships: number[]; angle: number; primary: boolean }[] {
+    const framing = this.copyShips(path);
+    const byCopy = new Map<string, { ships: number[]; angle: number; primary: boolean }>();
+    for (const i of this.shipsOf(path)) {
+      const trail = this.derived.ships[i]!.trail.slice(0, path.length);
+      const key = trail.map((step) => `${step.index}.${step.copy}`).join('/');
+      const found = byCopy.get(key);
+      if (found !== undefined) found.ships.push(i);
+      else byCopy.set(key, { ships: [i], angle: trail[trail.length - 1]!.angle, primary: framing.includes(i) });
+    }
+    return [...byCopy.values()];
+  }
+
   /** The drawn ships of the framing copy alone. */
   copyShips(path: EntryPath): number[] {
     const ship = this.framingShip(path);
