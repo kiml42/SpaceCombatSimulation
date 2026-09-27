@@ -1,4 +1,4 @@
-import { parseFleet, type Fleet } from '../sim/index.js';
+import { parseBlueprint, parseFleet, type Fleet } from '../sim/index.js';
 import { teamColour } from '../render/canvas2d.js';
 import { FLEET_FILES, Library } from '../editor/library.js';
 import { shipFleet } from '../editor/handoff.js';
@@ -71,7 +71,6 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
       return null;
     }
   };
-  const firstName = fleets.list()[0]?.name ?? '';
   // Blank: the fleets are the first thing chosen.
   const slots: Slot[] = [];
   let decided = false;
@@ -132,12 +131,14 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
   };
 
   el<HTMLButtonElement>('addFleet').addEventListener('click', () => {
-    // Another of whatever the last side was, as a start; its list changes it.
+    // Another of whatever the last side was, as a start; its list changes it
+    // to any fleet or single ship.
     const last = slots[slots.length - 1];
     if (last !== undefined) slots.push({ ...last });
     else {
-      const fleet = read('fleet', firstName);
-      if (fleet !== null) slots.push({ fleet, source: { kind: 'fleet', name: firstName } });
+      const name = fleets.list()[0]?.name;
+      const fleet = name === undefined ? null : read('fleet', name);
+      if (fleet !== null && name !== undefined) slots.push({ fleet, source: { kind: 'fleet', name } });
     }
     renderSlots();
     changed();
@@ -160,11 +161,26 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
     });
   };
 
+  // A fleet file or a blueprint file, told apart by what they carry; several at once.
   const fleetFile = el<HTMLInputElement>('fleetFile');
   el<HTMLButtonElement>('fleetFromFile').addEventListener('click', () => fleetFile.click());
-  pick(fleetFile, (text) => {
-    const fleet = parseFleet(JSON.parse(text));
-    slots.push({ fleet, source: { kind: 'other', label: `${fleet.name} (file)` } });
+  fleetFile.addEventListener('change', () => {
+    const files = [...(fleetFile.files ?? [])];
+    fleetFile.value = '';
+    void Promise.all(files.map((file) => file.text().then((text) => ({ name: file.name, text })))).then((read) => {
+      for (const { name, text } of read) {
+        try {
+          const value: unknown = JSON.parse(text);
+          const isFleet = typeof value === 'object' && value !== null && 'designs' in value;
+          const fleet = isFleet ? parseFleet(value) : shipFleet(parseBlueprint(value));
+          slots.push({ fleet, source: { kind: 'other', label: `${fleet.name} (file)` } });
+        } catch (error) {
+          window.alert(`Could not read ${name}.\n\n${error instanceof Error ? error.message : error}`);
+        }
+      }
+      renderSlots();
+      changed();
+    });
   });
 
   const number = (input: HTMLInputElement, fallback: number): number => {
