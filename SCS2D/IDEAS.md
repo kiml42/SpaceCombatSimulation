@@ -1,5 +1,12 @@
+# Bugs
+Things that are obviously wrong.
+
+## Simulation
+- Shots teleport through structural modules - ISD v ISD is a great example because they're so long it should take an appreciable time for the shot to travel through.
+
 # Ideas
 Ideas that aren't planned to be implemented yet, they may or may not be good ideas.
+
 
 ## Editor
 - Hover on the thrust diagram shows engine plumes on the main display for how it would achieve that thrust
@@ -20,6 +27,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 
 ## Maneuvering
 - Command ships with a max tangential velocity, also for doctrines
+- Ships need to have a max allowed rotational speed.
+- Ships need to be able to know when they're already turning towards the target, so not push themselves to turn faster.
 
 ## Evolution
 - Fleet evolution - one JSON file to define a formation of multiple ships.
@@ -27,6 +36,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Mutate to change the whole scale of the ship
 - Crossing and closing velocity settings
 - Show first battle as a preview while changing settings
+- Measure yardstick should remember what it previously measured if it's the same ship as the yardstick.
+  - Should be able to see a yardstick battle.
 
 ## Fleet Editor
 - Allow grouping ships.
@@ -37,3 +48,5 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - Thumbnails indicate the exact current state, possibly even a live view with its own camera tracking the ship (possibly rotated to match)
   - Click a ship to focus the main camera on it
 - If there are no live ships in the current view, track the dead ones - prevents sudden loss of tracking when the ship dies.
+- Rotation setting in custom battle
+- Randomisation settings for all parameters of a custom battle
