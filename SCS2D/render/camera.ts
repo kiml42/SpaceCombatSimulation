@@ -168,8 +168,10 @@ export function moveWithVisibleShips(
 
       // weight by whichever is further out
       const furthestProportion = max(proportionalXDistance, proportionalYDistance);
-      const weight = max(0, min(1, 1 - furthestProportion * FULL_SPEED_WEIGHTING_PROPORTION));
-      // TODO consider weighting based on mass so it tracks bigger ships over smaller
+      // weight larger ships higher, they're more likely to be the focus of the battle.
+      const weight = max(0, min(1, 1 - furthestProportion * FULL_SPEED_WEIGHTING_PROPORTION)) * ship.design.radius;
+
+      // TODO adjust how the arrow fades in, make it based on radius, and make it fade in a bit later.
       totalVx += ship.vx * weight;
       totalVy += ship.vy * weight;
       weightedCount += weight;
