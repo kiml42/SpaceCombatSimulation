@@ -130,20 +130,19 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
     fightButton.title = slots.length < 1 ? 'Choose a fleet first' : 'Start the battle';
   };
 
-  /** Another side of this kind: the last one of that kind again, as a start, or the library's first. */
-  const addSide = (kind: 'fleet' | 'ship'): void => {
-    const last = [...slots].reverse().find((slot) => slot.source.kind === kind);
+  el<HTMLButtonElement>('addFleet').addEventListener('click', () => {
+    // Another of whatever the last side was, as a start; its list changes it
+    // to any fleet or single ship.
+    const last = slots[slots.length - 1];
     if (last !== undefined) slots.push({ ...last });
     else {
-      const name = (kind === 'fleet' ? fleets : ships).list()[0]?.name;
-      const fleet = name === undefined ? null : read(kind, name);
-      if (fleet !== null && name !== undefined) slots.push({ fleet, source: { kind, name } });
+      const name = fleets.list()[0]?.name;
+      const fleet = name === undefined ? null : read('fleet', name);
+      if (fleet !== null && name !== undefined) slots.push({ fleet, source: { kind: 'fleet', name } });
     }
     renderSlots();
     changed();
-  };
-  el<HTMLButtonElement>('addFleet').addEventListener('click', () => addSide('fleet'));
-  el<HTMLButtonElement>('addShip').addEventListener('click', () => addSide('ship'));
+  });
 
   const pick = (input: HTMLInputElement, use: (text: string) => void): void => {
     input.addEventListener('change', () => {

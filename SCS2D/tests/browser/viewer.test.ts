@@ -234,9 +234,9 @@ describe('the viewer in a browser', () => {
     // The table is redrawn on the next frame, so wait for it rather than racing it.
     await page.waitForFunction(() => /Star Destroyer.*1\/1 ships/.test(document.getElementById('sides')?.textContent ?? ''));
     await page.locator('#fleetSlots select').first().selectOption('fleet:Line of Battle');
-    // Add ship adds a side of one ship straight away.
-    await page.click('#addShip');
-    expect(await page.locator('#fleetSlots select').nth(1).inputValue()).toMatch(/^ship:/);
+    // Another side starts as a copy of the last, and its list makes it anything.
+    await page.click('#addFleet');
+    expect(await page.locator('#fleetSlots select').nth(1).inputValue()).toBe('fleet:Line of Battle');
     // A blueprint file is a side of one ship too.
     await page.setInputFiles('#fleetFile', {
       name: 'dinky.json',
