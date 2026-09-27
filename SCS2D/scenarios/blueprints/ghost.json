@@ -19,32 +19,6 @@
           "width": 8
         },
         {
-          "kind": "turret",
-          "x": 27.5,
-          "y": -1.5,
-          "angle": 0,
-          "length": 4,
-          "width": 2,
-          "barrels": 1,
-          "targeting": {
-            "structureWeight": 0
-          }
-        },
-        {
-          "kind": "structure",
-          "x": 30,
-          "y": -1,
-          "length": 1,
-          "width": 0.5
-        },
-        {
-          "kind": "structure",
-          "x": 30,
-          "y": -2,
-          "length": 1,
-          "width": 0.5
-        },
-        {
           "kind": "structure",
           "x": 7.5,
           "y": 5.5,
@@ -68,11 +42,12 @@
         },
         {
           "kind": "thruster",
-          "x": -11.5,
-          "y": 0,
+          "x": 4.5,
+          "y": 1.05,
           "angle": 0,
-          "length": 3,
-          "width": 4
+          "length": 18.5,
+          "width": 5.9,
+          "nozzle": 0.2
         },
         {
           "kind": "structure",
@@ -84,9 +59,9 @@
         {
           "kind": "structure",
           "x": -10,
-          "y": -1.5,
+          "y": -3.35,
           "length": 3,
-          "width": 6.5
+          "width": 2.8
         },
         {
           "kind": "thruster",
@@ -95,6 +70,41 @@
           "angle": -90,
           "length": 1,
           "width": 1
+        },
+        {
+          "kind": "hullGun",
+          "x": 28.25,
+          "y": -0.5,
+          "angle": 0,
+          "length": 5.5,
+          "width": 4,
+          "barrels": 1,
+          "nozzle": 0.3
+        },
+        {
+          "kind": "thruster",
+          "x": 17.5,
+          "y": 5.25,
+          "angle": 180,
+          "length": 1.5,
+          "width": 2.5,
+          "barrels": 2
+        },
+        {
+          "kind": "structure",
+          "x": 13.5,
+          "y": 1.75,
+          "length": 8,
+          "width": 4.5
+        },
+        {
+          "kind": "hullGun",
+          "x": 12,
+          "y": 8.5,
+          "angle": 90,
+          "length": 3,
+          "width": 3,
+          "barrels": 3
         }
       ]
     },
@@ -105,38 +115,27 @@
           "x": 0,
           "y": 0,
           "length": 13,
-          "width": 21
+          "width": 9.2
         }
       ]
     }
   },
   "modules": [
     {
-      "use": "structure",
-      "x": 8.5,
-      "y": 0
-    },
-    {
       "kind": "core",
-      "x": 16.5,
+      "x": 6,
       "y": 0,
-      "length": 3,
-      "width": 4,
+      "length": 8,
+      "width": 12,
+      "reinforcement": 2,
       "notes": "The cockpit in the middle of the nose, where the Ghost's is."
     },
     {
       "kind": "structure",
       "x": 16.5,
-      "y": 5,
+      "y": 0,
       "length": 3,
-      "width": 6
-    },
-    {
-      "kind": "structure",
-      "x": 16.5,
-      "y": -5,
-      "length": 3,
-      "width": 6
+      "width": 16
     },
     {
       "kind": "beamTurret",
@@ -169,10 +168,10 @@
       "length": 5,
       "width": 5,
       "barrels": 1,
-      "notes": "Aesthetic for now: sat in the middle of the hull, it is boxed in on every side and its firing arc comes out empty, so it never trains on anything. It earns its keep once a turret can be masked by what it can shoot *over* rather than by what is beside it (ROADMAP.md §12).",
       "targeting": {
         "structureWeight": 0
-      }
+      },
+      "notes": "Aesthetic for now: sat in the middle of the hull, it is boxed in on every side and its firing arc comes out empty, so it never trains on anything. It earns its keep once a turret can be masked by what it can shoot *over* rather than by what is beside it (ROADMAP.md §12)."
     },
     {
       "use": "structure",
@@ -190,6 +189,13 @@
       "targeting": {
         "structureWeight": 0
       }
+    },
+    {
+      "kind": "structure",
+      "x": 12.5,
+      "y": 0,
+      "length": 5,
+      "width": 21
     }
   ]
 }
