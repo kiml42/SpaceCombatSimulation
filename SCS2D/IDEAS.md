@@ -25,6 +25,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Fleet evolution - one JSON file to define a formation of multiple ships.
 - Boss Battle - All evolving ships are on the same side competing to do the most damage (and take the least) from the "Boss" ship or fleet (defined in the config).
 - Mutate to change the whole scale of the ship
+- Crossing and closing velocity settings
+- Show first battle as a preview while changing settings
 
 ## Fleet Editor
 - Allow grouping ships.
