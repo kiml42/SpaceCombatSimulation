@@ -118,9 +118,10 @@
         <div id="fleetSlots"></div>
         <div class="buttons">
           <button id="addFleet" title="Another side, from the fleet library">Add fleet</button>
-          <button id="fleetFromFile" title="Another side, from a fleet file">From file…</button>
+          <button id="addShip" title="Another side of one ship, from the ship library">Add ship</button>
+          <button id="fleetFromFile" title="Another side from a fleet file, or a ship from a blueprint file">From file…</button>
         </div>
-        <input id="fleetFile" type="file" accept="application/json,.json" hidden />
+        <input id="fleetFile" type="file" accept="application/json,.json" multiple hidden />
         <h2>Setup</h2>
         <label class="field"><span>range m</span><input id="battleRange" type="number" min="1" step="100" /></label>
         <label class="field"><span>closing m/s</span><input id="battleClosing" type="number" step="5" /></label>

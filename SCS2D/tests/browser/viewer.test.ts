@@ -234,6 +234,19 @@ describe('the viewer in a browser', () => {
     // The table is redrawn on the next frame, so wait for it rather than racing it.
     await page.waitForFunction(() => /Star Destroyer.*1\/1 ships/.test(document.getElementById('sides')?.textContent ?? ''));
     await page.locator('#fleetSlots select').first().selectOption('fleet:Line of Battle');
+    // Add ship adds a side of one ship straight away.
+    await page.click('#addShip');
+    expect(await page.locator('#fleetSlots select').nth(1).inputValue()).toMatch(/^ship:/);
+    // A blueprint file is a side of one ship too.
+    await page.setInputFiles('#fleetFile', {
+      name: 'dinky.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(serialiseBlueprint(DINKY))),
+    });
+    await page.waitForFunction(() => document.querySelectorAll('#fleetSlots .slot').length === 3);
+    expect(await page.locator('#fleetSlots select').nth(2).locator('option:checked').textContent()).toBe('Dinky (file)');
+    await page.locator('#fleetSlots .slot').nth(2).locator('button').click();
+    await page.locator('#fleetSlots .slot').nth(1).locator('button').click();
     // A lone fighter from a file against the stock line: decided in seconds.
     const lone = {
       formatVersion: 1,
