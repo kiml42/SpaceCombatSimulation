@@ -62,7 +62,7 @@ export interface ShipView {
    */
   integrity: number[];
   /**
-   * Whether anybody is still aboard: a core with control left in it (§4).
+   * Whether the ship still has a core with control in it (§4).
    *
    * **This, and not whether the ship can fight, is what the view asks.** A
    * hull with a sound core and nothing else is a ship — it can be pushed, it
