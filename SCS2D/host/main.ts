@@ -12,6 +12,9 @@ import { standoff } from '../scenarios/standoff.js';
 import { column } from '../scenarios/column.js';
 import { split } from '../scenarios/split.js';
 import { torchRun } from '../scenarios/torchRun.js';
+import { customBattle, type CustomBattle } from '../scenarios/customBattle.js';
+import { customPanel } from './customPanel.js';
+import { handedFleet } from '../editor/handoff.js';
 import { draw } from '../render/canvas2d.js';
 import { frame, gridStep, moveWithVisibleShips, type Camera } from '../render/camera.js';
 import { el } from './dom.js';
@@ -58,9 +61,30 @@ export function start(): void {
     { name: 'Line Ahead', create: () => column(SEED) },
     { name: 'Split', create: () => split(SEED) },
     { name: 'Torch Run', create: () => torchRun(SEED) },
+    // Last, and built from the panel's setup rather than from code.
+    { name: 'Custom battle', create: (): Battle => customBattle(panel.setup()) },
   ];
+  const CUSTOM = scenes.length - 1;
+  /** Build the current scene afresh, running or held at its first step. */
+  const restart = (run = true): void => {
+    state = scenes[sceneIndex]!.create();
+    panel.reset();
+    flashes.clear();
+    framed = false;
+    autoFrame = true;
+    setRunning(run);
+  };
+  // A custom battle is set up paused at its first step, so the opening
+  // positions can be seen as they are chosen, and started with Fight.
+  const openCustom = (): void => {
+    sceneIndex = CUSTOM;
+    sceneSelect.selectedIndex = CUSTOM;
+    panel.show(true);
+    restart(false);
+  };
+  const panel = customPanel(openCustom, () => restart(true));
   let sceneIndex = 0;
-  let state: Battle = scenes[sceneIndex].create();
+  let state: Battle = scenes[sceneIndex]!.create();
   let snapshot = new Snapshot();
   const flashes = new Flashes();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
@@ -93,7 +117,8 @@ export function start(): void {
     canvas.width = Math.round(rect.width * ratio);
     canvas.height = Math.round(rect.height * ratio);
   };
-  window.addEventListener('resize', resize);
+  // The canvas rather than the window: showing the custom battle panel resizes it too.
+  new ResizeObserver(resize).observe(canvas);
   resize();
 
   const setRunning = (next: boolean): void => {
@@ -109,21 +134,17 @@ export function start(): void {
     setRunning(false);
     state.step();
   });
-  resetButton.addEventListener('click', () => {
-    state = scenes[sceneIndex].create();
-    flashes.clear();
-    framed = false;
-    autoFrame = true;
-    setRunning(true);
-  });
+  resetButton.addEventListener('click', () => restart(sceneIndex !== CUSTOM));
   sceneSelect.addEventListener('change', () => {
+    if (sceneSelect.selectedIndex === CUSTOM) {
+      openCustom();
+      return;
+    }
     sceneIndex = sceneSelect.selectedIndex;
-    state = scenes[sceneIndex].create();
-    flashes.clear();
-    framed = false;
-    autoFrame = true;
-    setRunning(true);
+    panel.show(false);
+    restart();
   });
+  el<HTMLButtonElement>('customBattle').addEventListener('click', openCustom);
   fitButton.addEventListener('click', () => {
     autoFrame = true;
   });
@@ -234,6 +255,8 @@ export function start(): void {
     flashes.step(simDt);
     draw(ctx, view, camera, canvas.width, canvas.height, flashes);
 
+    if (sceneIndex === CUSTOM) panel.update(state as CustomBattle, view.time);
+
     // Between the first two ships, whatever the scenario holds — but only if
     // there are two. A single survivor has nothing to measure against, and
     // reading past the end of the list would take the viewer down with it.
@@ -253,6 +276,19 @@ export function start(): void {
 
     window.requestAnimationFrame(tick);
   };
+
+  // An editor's Battle link carries what it holds: open straight into a custom
+  // battle with it as the first side, paused for the rest to be chosen.
+  try {
+    const handed = handedFleet(window.location.hash);
+    if (handed !== null) {
+      panel.load(handed, `${handed.name} (from the editor)`);
+      openCustom();
+    }
+  } catch (error) {
+    window.alert(`Could not read the fleet handed over.\n\n${error instanceof Error ? error.message : error}`);
+  }
+  if (window.location.hash !== '') history.replaceState(null, '', window.location.pathname);
 
   window.requestAnimationFrame(tick);
 }

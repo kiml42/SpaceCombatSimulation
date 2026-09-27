@@ -387,7 +387,14 @@ inside any one file is not contiguous.
   rather than enforces what is wrong: hulls overlapping at the start, a design that would not fly, and an
   embedded design that has drifted from the library's copy of the same name, which one button brings up to
   date. Fleets are saved to browser storage and exported and imported as fleet files.
-- **Next:** §8 step 5 — a custom battle on the viewer, then fleet evolution, planned in ROADMAP.md §8.
+  **A custom battle** on the viewer sets fleets — or single ships, as fleets of one — round a ring at a
+  chosen range, closing and crossing speed and seed, saved and loaded as a battle file; one side alone is
+  allowed, for watching an escort. Both editors' Battle links open it with what is being edited as the
+  first side. It is set up paused at its first step, the
+  picture following every change, and started with Fight. It says how each side stands — ships still
+  crewed, how many armed and how many mobile, and the share of its mass lost — and names the winner once no
+  more than one side can fight on, without stopping the battle.
+- **Next:** §8 step 5 — fleet evolution, planned in ROADMAP.md §8.
   §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio

@@ -162,4 +162,17 @@ describe('the fleet editor in a browser', () => {
     expect(saved?.ships).toHaveLength(4);
     expect(problems).toEqual([]);
   });
+
+  it('hands the fleet being edited to a custom battle as its first side', async () => {
+    await page.click('#battleLink');
+    await page.waitForFunction(() => document.getElementById('custom')?.hidden === false);
+    expect(await page.locator('#fleetSlots select option:checked').first().textContent()).toBe(
+      'Saved Fleet (from the editor)',
+    );
+    expect(await page.textContent('#play')).toBe('Play');
+    expect(await page.isDisabled('#fight')).toBe(false);
+    // The address is tidied, so a reload does not hand it over again.
+    expect(page.url()).not.toContain('#');
+    expect(problems).toEqual([]);
+  });
 });

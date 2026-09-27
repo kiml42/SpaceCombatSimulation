@@ -12,6 +12,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import type { Browser, Page } from 'playwright';
 import { launchChromium } from './launch.js';
+import { serialiseBlueprint } from '../../sim/index.js';
+import { DINKY } from '../../scenarios/blueprints.js';
 
 /**
  * The viewer, driven in a real browser.
@@ -213,6 +215,62 @@ describe('the viewer in a browser', () => {
     expect(range).toBeGreaterThan(900);
     expect(range).toBeLessThan(1100);
     expect(await advanced(page)).toBeGreaterThan(0);
+  });
+
+  it('sets up a custom battle paused, live, and fights it without stopping at the end', async () => {
+    expect(await page.isHidden('#custom')).toBe(true);
+    await page.click('#customBattle');
+    expect(await page.isVisible('#custom')).toBe(true);
+    // Blank, held at the first step, and not ready to fight.
+    expect(await page.locator('#fleetSlots .slot').count()).toBe(0);
+    expect(await page.textContent('#play')).toBe('Play');
+    expect(await page.isDisabled('#fight')).toBe(true);
+
+    await page.click('#addFleet');
+    // One side is enough to start.
+    expect(await page.isDisabled('#fight')).toBe(false);
+    // A single ship can be a side too.
+    await page.locator('#fleetSlots select').first().selectOption('ship:Star Destroyer');
+    // The table is redrawn on the next frame, so wait for it rather than racing it.
+    await page.waitForFunction(() => /Star Destroyer.*1\/1 ships/.test(document.getElementById('sides')?.textContent ?? ''));
+    await page.locator('#fleetSlots select').first().selectOption('fleet:Line of Battle');
+    // A lone fighter from a file against the stock line: decided in seconds.
+    const lone = {
+      formatVersion: 1,
+      name: 'Lone',
+      designs: { Dinky: serialiseBlueprint(DINKY) },
+      ships: [{ design: 'Dinky', x: 0, y: 0 }],
+    };
+    await page.setInputFiles('#fleetFile', {
+      name: 'lone.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(lone)),
+    });
+    await page.waitForFunction(() => document.querySelectorAll('#fleetSlots .slot').length === 2);
+    expect(await page.locator('#fleetSlots select').nth(1).locator('option:checked').textContent()).toBe('Lone (file)');
+
+    // Changing the setup rebuilds it where it stands, still paused at step 0.
+    await page.fill('#battleRange', '1000');
+    await page.waitForFunction(() => /range 1000 m/.test(document.getElementById('metrics')?.textContent ?? ''));
+    expect(await step(page)).toBe(0);
+    expect(await page.textContent('#play')).toBe('Play');
+    await page.waitForFunction(() =>
+      /Lone.*1\/1 ships · 1 armed · 1 mobile/.test(document.getElementById('sides')?.textContent ?? ''),
+    );
+
+    await page.click('#fight');
+    await page.fill('#speed', '8');
+    await page.dispatchEvent('#speed', 'input');
+    await page.waitForFunction(() => (document.getElementById('outcome')?.textContent ?? '') !== '', null, {
+      timeout: 20_000,
+    });
+    expect(await page.textContent('#outcome')).toMatch(/^Line of Battle \(blue\) wins at/);
+    // The battle goes on after it is decided.
+    expect(await page.textContent('#play')).toBe('Pause');
+    const decidedAt = await step(page);
+    expect(await advanced(page, decidedAt)).toBeGreaterThan(decidedAt);
+    await page.fill('#speed', '1');
+    await page.dispatchEvent('#speed', 'input');
   });
 
   it('reports no errors after all of that', () => {

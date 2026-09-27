@@ -57,6 +57,7 @@ import {
   unusedName,
   type LibraryEntry,
 } from './library.js';
+import { battleHref, shipFleet } from './handoff.js';
 import { Demonstration } from './demonstrate.js';
 import { drawOverlay } from './overlay.js';
 import {
@@ -1654,6 +1655,11 @@ export function startEditor(): void {
     resize();
     render();
   }).observe(canvas);
+
+  // The ship as it stands, as a fleet of one, goes with the link.
+  el<HTMLAnchorElement>('battleLink').addEventListener('click', (event) => {
+    (event.currentTarget as HTMLAnchorElement).href = battleHref(shipFleet(doc.blueprint));
+  });
 
   // Fixed text, although the position snap is not: the footer's height is part
   // of the canvas's, so a line that grows and shrinks resizes the view under

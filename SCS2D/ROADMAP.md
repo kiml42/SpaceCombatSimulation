@@ -83,16 +83,15 @@ shareable by URL. *This is the first thing worth giving people to play.* Designe
 entry on authored data stops being optional, since a scenario to share has to be a file.
 
 Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`), **a battle from fleets**
-(`scenarios/fleetBattle.ts`), proved by `standoff` flying a fleet file with its checksum unchanged, and **the
-fleet editor** (`dist/fleet.html`). Left in the editor: making, dissolving and renaming groups — it steps
-into and edits the ones a file brings, but cannot make one — later, as ship groups were. The rest, in order, one pull request each:
+(`scenarios/fleetBattle.ts`), proved by `standoff` flying a fleet file with its checksum unchanged, **the
+fleet editor** (`dist/fleet.html`), and **a custom battle** on the viewer — fleets or single ships from the
+libraries, a file, or handed over by either editor's Battle link,
+range, closing and crossing speeds and a seed, saved and loaded as a battle file (`scenarios/customBattle.ts`),
+set up paused and live, and decided once no more than one side can still fight. Left in the editor: making, dissolving and renaming
+groups — it steps into and edits the ones a file brings, but cannot make one — later, as ship groups were.
+What remains:
 
-1. **Custom battle** on the viewer page: two or more fleets, from the library or a file, a starting range,
-   closing and crossing speeds, and a seed. The setup is serialisable as `{ fleets, range, speeds, seed }`,
-   which is the scenario format §12 asks for. Minimal results: the battle stops when one team alone has a
-   ship that is not a hulk, and shows mass lost and ships left per side. One fleet is one team; more than two
-   is a free-for-all.
-2. **Fleet evolution.** A match takes fleets as entrants, a lone blueprint being a fleet of one. Operators,
+1. **Fleet evolution.** A match takes fleets as entrants, a lone blueprint being a fleet of one. Operators,
    each with its inverse: mutate a design (every copy of it), fork one copy into a design of its own and merge
    two designs, add and remove a copy of a design or of a group, and jitter a position or heading. Limits are
    total dry mass and a deployment radius, and a mutant whose hulls overlap is refused. Headless first; a
@@ -658,6 +657,8 @@ Deliberately unresolved; decide when they block something.
   does. What has not moved is `tests/fixtures/scenarios.ts`, and §9's promise of
   `npm run battle -- scenarios/duel.json` — a *scenario* is more than a list of modules, since it also carries
   spawn poses, teams, wells and a seed, so it needs a format of its own rather than a reuse of this one.
+  The battle file (`scenarios/customBattle.ts`) is the start of one — fleets, a range, speeds and a seed —
+  but has no wells and no orders, so the scripted scenarios cannot be written in it yet.
   No hurry: a fixture that is a compile error when malformed is not costing anything.
 - **Whether a module's properties come from its material rather than from a universal constant.** `modules.ts`
   currently fixes both halves of every scaling law: the *form* (structure mass is wall volume times density) and
