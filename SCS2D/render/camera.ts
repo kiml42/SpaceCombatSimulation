@@ -104,6 +104,11 @@ export function easeScale(current: number, target: number, ease: number): number
 }
 
 /**
+ * Up to half the distance out from the centre, still consider the ship's velocity at full weight.
+ */
+const FULL_SPEED_WEIGHTING_PROPORTION = 0.5;
+
+/**
  * Carry the camera along with the mean velocity of the ships it is looking at.
  *
  * With one ship this holds it perfectly still on screen; with several it
@@ -132,12 +137,12 @@ export function moveWithVisibleShips(
   const halfWidth = widthPx / (2 * camera.scale);
   const halfHeight = heightPx / (2 * camera.scale);
 
-  let vx = 0;
-  let vy = 0;
-  let counted = 0;
+  let totalVx = 0;
+  let totalVy = 0;
+  let weightedCount = 0;
 
   sumOverShipsInFrame(false);
-  if (counted === 0) {
+  if (weightedCount === 0) {
     sumOverShipsInFrame(true);
   }
   // TODO add further fall back to even follow completely dead ships.
@@ -145,22 +150,29 @@ export function moveWithVisibleShips(
   // Nothing in shot to keep up with: hold still rather than drift after ships
   // the viewer has deliberately left behind — and rather than divide by none
   // of them, which would put the camera at NaN and take the view with it.
-  if (counted === 0) return;
-  camera.x += (vx / counted) * dt;
-  camera.y += (vy / counted) * dt;
+  if (weightedCount === 0) return;
+  camera.x += (totalVx / weightedCount) * dt;
+  camera.y += (totalVy / weightedCount) * dt;
 
   function sumOverShipsInFrame(includeDisabled: Boolean) {
     for (let i = 0; i < snapshot.shipCount; i++) {
       const ship = snapshot.ships[i]!;
       if (!includeDisabled && !ship.hasControl) continue;
       const r = ship.design.radius;
-      if (abs(ship.x - camera.x) > halfWidth + r) continue;
-      if (abs(ship.y - camera.y) > halfHeight + r) continue;
+      const xDistance = abs(ship.x - camera.x);
+      if (xDistance > halfWidth + r) continue;
+      const yDistance = abs(ship.y - camera.y);
+      if (yDistance > halfHeight + r) continue;
+      const proportionalXDistance = xDistance/halfWidth;
+      const proportionalYDistance = yDistance/halfHeight;
+
+      // weight by whichever is further out
+      const furthestProportion = max(proportionalXDistance, proportionalYDistance);
+      const weight = max(0, min(1, 1 - furthestProportion * FULL_SPEED_WEIGHTING_PROPORTION));
       // TODO consider weighting based on mass so it tracks bigger ships over smaller
-      // TODO consider weighting based on distance to the center of the view so the camera doesn't suddenly change speed when something comes on screen
-      vx += ship.vx;
-      vy += ship.vy;
-      counted++;
+      totalVx += ship.vx * weight;
+      totalVy += ship.vy * weight;
+      weightedCount += weight;
     }
   }
 }
