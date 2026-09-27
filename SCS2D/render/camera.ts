@@ -135,22 +135,31 @@ export function moveWithVisibleShips(
   let vx = 0;
   let vy = 0;
   let counted = 0;
-  for (let i = 0; i < snapshot.shipCount; i++) {
-    const ship = snapshot.ships[i]!;
-    if (!ship.hasControl) continue;
-    const r = ship.design.radius;
-    if (abs(ship.x - camera.x) > halfWidth + r) continue;
-    if (abs(ship.y - camera.y) > halfHeight + r) continue;
-    vx += ship.vx;
-    vy += ship.vy;
-    counted++;
+
+  sumOverShipsInFrame(false);
+  if (counted === 0) {
+    sumOverShipsInFrame(true);
   }
+
   // Nothing in shot to keep up with: hold still rather than drift after ships
   // the viewer has deliberately left behind — and rather than divide by none
   // of them, which would put the camera at NaN and take the view with it.
   if (counted === 0) return;
   camera.x += (vx / counted) * dt;
   camera.y += (vy / counted) * dt;
+
+  function sumOverShipsInFrame(includeDisabled: Boolean) {
+    for (let i = 0; i < snapshot.shipCount; i++) {
+      const ship = snapshot.ships[i]!;
+      if (!includeDisabled && !ship.hasControl) continue;
+      const r = ship.design.radius;
+      if (abs(ship.x - camera.x) > halfWidth + r) continue;
+      if (abs(ship.y - camera.y) > halfHeight + r) continue;
+      vx += ship.vx;
+      vy += ship.vy;
+      counted++;
+    }
+  }
 }
 
 /**
