@@ -140,6 +140,7 @@ export function moveWithVisibleShips(
   if (counted === 0) {
     sumOverShipsInFrame(true);
   }
+  // TODO add further fall back to even follow completely dead ships.
 
   // Nothing in shot to keep up with: hold still rather than drift after ships
   // the viewer has deliberately left behind — and rather than divide by none
@@ -155,6 +156,8 @@ export function moveWithVisibleShips(
       const r = ship.design.radius;
       if (abs(ship.x - camera.x) > halfWidth + r) continue;
       if (abs(ship.y - camera.y) > halfHeight + r) continue;
+      // TODO consider weighting based on mass so it tracks bigger ships over smaller
+      // TODO consider weighting based on distance to the center of the view so the camera doesn't suddenly change speed when something comes on screen
       vx += ship.vx;
       vy += ship.vy;
       counted++;
