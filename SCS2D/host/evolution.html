@@ -58,6 +58,7 @@
       .field { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem; }
       .field label { flex: 1; color: #7f93aa; }
       .field input, .field select { flex: 0 0 5.5rem; }
+      .field input { width: 5.5rem; min-width: 0; }
       .field input[type='checkbox'] { flex: 0 0 auto; }
       .buttons { display: flex; gap: 0.4rem; margin: 0.7rem 0; }
       .buttons button { flex: 1; padding-inline: 0.3rem; }
@@ -132,6 +133,7 @@
         text-overflow: ellipsis;
       }
       #fleet figcaption b { color: #e6edf5; font-weight: 600; }
+      #fleet figcaption span { display: block; }
       #fleet p.none { padding: 0.5rem 0.2rem; }
       #viewBar { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; padding: 0.4rem 0; }
       #panelBody { padding: 0.7rem 0.9rem; display: flex; flex-direction: column; min-height: 0; flex: 1; }
@@ -187,15 +189,21 @@
         </section>
         <section>
           <h2>Founders</h2>
-          <select id="founders" multiple title="The ships the run starts from"></select>
-          <p class="note">Ctrl-click for several. The rest of the first generation is mutants of these.</p>
+          <select id="founders" multiple title="The ships and fleets the run starts from"></select>
+          <p class="note">Ctrl-click for several. The rest of the first generation is mutants of these. One fleet makes it a run of fleets, any ship picked with it joining as a fleet of one.</p>
+        </section>
+        <section id="fleetSettings" hidden>
+          <h2>The fleets</h2>
+          <div class="field"><label for="fleetRadius">spread m</label><input id="fleetRadius" type="number" min="1" step="50" title="How far from its origin any hull may reach" /></div>
+          <div class="field"><label for="fleetShips">most ships</label><input id="fleetShips" type="number" min="1" step="1" /></div>
+          <p class="note">A mutant that spreads further, fields more ships, outweighs the mass budget or overlaps its own hulls is refused. The budget is the whole fleet's.</p>
         </section>
         <section>
           <h2>The run</h2>
           <div class="field"><label for="generations">generations</label><input id="generations" type="number" min="1" step="1" /></div>
           <div class="field"><label for="population">population</label><input id="population" type="number" min="2" step="1" /></div>
           <div class="field"><label for="winners">bred from</label><input id="winners" type="number" min="1" step="1" /></div>
-          <div class="field"><label for="group">ships per match</label><input id="group" type="number" min="1" step="1" /></div>
+          <div class="field"><label for="group">per match</label><input id="group" type="number" min="1" step="1" /></div>
           <div class="field"><label for="minMatches">matches each</label><input id="minMatches" type="number" min="1" step="1" /></div>
           <div class="field"><label for="massBudget">mass budget t</label><input id="massBudget" type="number" min="0" step="1" placeholder="none" /></div>
           <div class="field"><label for="seed">seed</label><input id="seed" type="number" step="1" /></div>
@@ -248,14 +256,16 @@
           <p id="legend">
             <span style="color: #e6edf5">best</span>
             <span style="color: #7fa8e0">mean</span>
-            <span style="color: #7fd6a0">surviving</span>
+            <span style="color: #7fd6a0">hull kept</span>
+            <span style="color: #b48ee0">function kept</span>
             <span style="color: #e0655f">damage</span>
+            <span style="color: #e08ec0">function taken</span>
             <span style="color: #e9c05f">ground</span>
             <span style="color: #5bd6d6">vs. yardstick</span>
           </p>
           <div id="viewBar">
             <label>showing <select id="mode">
-              <option value="fleet" selected>the ships</option>
+              <option value="fleet" selected>the combatants</option>
               <option value="battle">a battle</option>
             </select></label>
             <span id="battleControls">
@@ -287,7 +297,7 @@
           </div>
           <table>
             <thead>
-              <tr><th>ship</th><th>from</th><th>score</th><th>surv</th><th>dmg</th><th>grnd</th><th>t</th></tr>
+              <tr><th>#</th><th>from</th><th>score</th><th title="hull kept">hull</th><th title="function kept">func</th><th title="damage done">dmg</th><th title="function taken">dis</th><th title="ground gained">grnd</th><th>t</th></tr>
             </thead>
             <tbody id="ships"></tbody>
           </table>
@@ -317,7 +327,7 @@
           </p>
         </section>
         <section>
-          <h2>Measured against one ship</h2>
+          <h2>Measured against one opponent</h2>
           <div class="field">
             <label for="benchmark">opponent</label>
             <select id="benchmark"></select>
@@ -326,9 +336,9 @@
             <button id="measure" disabled>Measure</button>
           </div>
           <p id="yardstickLine" class="note">
-            Every design of every generation, one against one against the same ship under the same
+            Every design of every generation, one against one against the same opponent under the same
             seeds — the one number here that means the same thing in generation one and generation four
-            hundred. Fought afterwards and never during, or a run would learn to beat that one ship.
+            hundred. Fought afterwards and never during, or a run would learn to beat that one opponent.
           </p>
         </section>
       </aside>

@@ -402,9 +402,11 @@ inside any one file is not contiguous.
   picture following every change, and started with Fight. It says how each side stands — ships still
   crewed, how many armed and how many mobile, and the share of its mass lost — and names the winner once no
   more than one side can fight on, without stopping the battle.
-  **Fleet evolution** runs headless: `npm run evolve -- --fleet` breeds fleets, scored as one entrant each,
-  under a total mass budget, a deployment radius and a ship count.
-- **Next:** §8 step 5 — a boss battle, and fleets on the evolution page, planned in ROADMAP.md §8.
+  **Fleet evolution** breeds fleets, scored as one entrant each, under a total mass budget, a deployment
+  radius and a ship count — headless with `npm run evolve -- --fleet`, and on the evolution page, whose
+  founders are ships and fleets alike. Before a run the page shows the founders unmutated and the run's
+  first match paused at its start.
+- **Next:** §8 step 5 — a boss battle, planned in ROADMAP.md §8.
   §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio

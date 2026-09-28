@@ -291,6 +291,23 @@ export class Run {
     return { config: this.config, generations: this.generations };
   }
 
+  /**
+   * The run's first match, unfought, with each competitor as the founder it
+   * was bred from: what the run is about to try, before mutation has touched
+   * it. Draws the match, so it is for a run that will not be fought.
+   */
+  unmutatedOpening(): Match | null {
+    if (this.match === null && !this.over) this.open();
+    if (this.match === null) return null;
+    const individuals = this.generation.individuals;
+    const founderOf = (index: number): Entrant => {
+      const individual = individuals[index]!;
+      if (individual.parent < 0) return individual.entrant;
+      return (individuals.find((other) => other.id === individual.parent) ?? individual).entrant;
+    };
+    return new Match(this.competitors.map(founderOf), { ...this.config.match, seed: this.seed });
+  }
+
   /** Draw the next match, or close the generation if it has had enough. */
   private open(): void {
     const settings = this.config;

@@ -134,6 +134,21 @@ describe('a run', () => {
     match: { duration: 30 },
   };
 
+  it('previews its first match with every competitor as its founder', () => {
+    const founders = [CORVETTE, DINKY];
+    const opening = new Run(founders, settings).unmutatedOpening()!;
+    const record = new Run(founders, { ...settings, generations: 1 }).finish().generations[0]!;
+    const first = record.matches[0]!;
+    // The same pairing and seed as the match fought first, each entrant put back to where it started.
+    const entrants = first.competitors.map((id) => {
+      const individual = record.individuals.find((i) => i.id === id)!;
+      return founders[individual.parent < 0 ? individual.id : individual.parent]!;
+    });
+    while (!opening.done) opening.advance();
+    const fought = runMatch(entrants, { ...settings.match, seed: first.seed });
+    expect(JSON.stringify(opening.result())).toEqual(JSON.stringify(fought));
+  });
+
   it('seeds a population from what it was given', () => {
     const rng = new Rng(1);
     const seeded = seedPopulation([CORVETTE, DINKY], rng, { ...DEFAULT_RUN, population: 5 });
