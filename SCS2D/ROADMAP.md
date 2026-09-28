@@ -222,6 +222,15 @@ The remaining pickers and the order weight should follow the shape already there
 
 Deliberately unresolved; decide when they block something.
 
+- **How far a gun should look for a consort in its line of fire.** It casts for half a second of the
+  round's flight, on the reasoning that a gun asking about the whole flight would never fire. That covers
+  the consort that has just crossed the muzzle and not the one holding station three intervals ahead: in
+  `column`, a gunship's pom-poms look 596 m and their own leader is 627 m in front, so they shoot it. The
+  alternative is to cast the whole way to the target, which is honest — the round really does go there —
+  and would mean the rear ships of a file genuinely cannot shoot, which is what a line ahead costs in
+  reality. It would want measuring against the fleet scenarios before it is taken, since it holds fire
+  much more widely than the present rule.
+
 - **Whether a flame should grow with its nozzle's width or with the square root of it.** Linear is the
   physics — a jet runs a fixed number of its own widths — and is what is built, to be looked at before it is
   argued with. It gives the Star Destroyer's mains a 2.4 km flame and a Dinky's thrusters under 2 m. The

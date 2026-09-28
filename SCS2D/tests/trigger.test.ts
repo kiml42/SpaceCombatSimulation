@@ -225,6 +225,11 @@ describe('a part a doctrine refuses', () => {
    *
    * Returns which ship the mount settled on and whether it is pointing at its
    * own rest bearing — which is what standing down looks like from outside.
+   *
+   * The marks are put close in because a bare core is barely two metres
+   * across, and a gun's reach is measured against what it is shooting at: the
+   * corvette's is 298 m against one of those. Further off and every case here
+   * would read the same way for the wrong reason.
    */
   function facing(
     targeting: Partial<Targeting>,
@@ -258,13 +263,13 @@ describe('a part a doctrine refuses', () => {
     // modules it just refused, so there is nothing here for it.
     const refused = facing(
       { coreWeight: -1, gunWeight: -1, structureWeight: -1, engineWeight: 100 },
-      [{ design: bareCore, x: 600, y: 0 }],
+      [{ design: bareCore, x: 250, y: 0 }],
     );
     expect(refused.target).toBe(NO_TARGET);
     expect(refused.resting).toBe(true);
 
     // The same mount against the same ship, minus the refusal: it engages.
-    const willing = facing({ engineWeight: 100 }, [{ design: bareCore, x: 600, y: 0 }]);
+    const willing = facing({ engineWeight: 100 }, [{ design: bareCore, x: 250, y: 0 }]);
     expect(willing.target).not.toBe(NO_TARGET);
   });
 
@@ -274,7 +279,7 @@ describe('a part a doctrine refuses', () => {
     // else left stops being a target, but it is not being careful — it goes
     // on firing at anything on a hull that does have something worth
     // shooting. Below zero is the careful one.
-    const onlyCore = [{ design: bareCore, x: 600, y: 0 }];
+    const onlyCore = [{ design: bareCore, x: 250, y: 0 }];
     expect(facing({ coreWeight: 100 }, onlyCore).target).not.toBe(NO_TARGET);
     expect(facing({ coreWeight: 0, gunWeight: 100 }, onlyCore).target).toBe(NO_TARGET);
     expect(facing({ coreWeight: -1, gunWeight: 100 }, onlyCore).target).toBe(NO_TARGET);
@@ -294,7 +299,7 @@ describe('a part a doctrine refuses', () => {
     // would take the near one on every other measure, so this is the refusal
     // deciding rather than the ranking.
     const near = facing({ coreWeight: -1, gunWeight: 100, engineWeight: 100 }, [
-      { design: bareCore, x: 500, y: 0 },
+      { design: bareCore, x: 250, y: 0 },
       { design: gunship, x: 1100, y: 0 },
     ]);
     expect(near.target).not.toBe(NO_TARGET);

@@ -1,5 +1,5 @@
 import { Bodies, type BodyId } from './bodies.js';
-import { subDesign, type DesignTurret, type ShipDesign } from './blueprint.js';
+import { reachAgainst, subDesign, type DesignTurret, type ShipDesign } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
@@ -1084,10 +1084,16 @@ export class Ships {
         // something far outside what its own gun is good for and shoot at it
         // all battle — every round short, and for a beam not even arriving,
         // since a beam is only cast as far as it is worth casting.
-        if (candidate.range > mount.reach) continue;
+        //
+        // Against *this* target's size rather than the one the doctrine
+        // expects: a capital is worth shooting at from far further off than a
+        // fighter, and a gun that used one figure for both would either let
+        // the fighters alone or waste its shells on them.
+        const against = reachAgainst(mount.gun, this.designs[e]!.radius);
+        if (candidate.range > against) continue;
         this.choice.offer(
           candidate,
-          score(doctrine, candidate, mount.reach, design.mass, targets[t]!, focus),
+          score(doctrine, candidate, against, design.mass, targets[t]!, focus),
         );
       }
       targets[t] = this.choice.ship;
@@ -1521,7 +1527,17 @@ export class Ships {
         // there is nothing to hold. Discipline is about pulling the trigger.
         if (
           state != TurretState.CommittedOn &&
-          this.friendlyInTheWay(bodies, grid, i, bodyIdx, gun, design.turrets[t]!.reach, target)
+          this.friendlyInTheWay(
+            bodies,
+            grid,
+            i,
+            bodyIdx,
+            gun,
+            target === NO_TARGET
+              ? design.turrets[t]!.reach
+              : reachAgainst(gun, this.designs[target]!.radius),
+            target,
+          )
         ) {
           continue;
         }
@@ -2123,7 +2139,8 @@ export class Ships {
       // what this gun can do is one there is no point holding.
       this.locateMount(bodies, own, mounts[t]!);
       if (
-        length(bodies.x[tb]! - this.gunPoint.x, bodies.y[tb]! - this.gunPoint.y) > mounts[t]!.reach
+        length(bodies.x[tb]! - this.gunPoint.x, bodies.y[tb]! - this.gunPoint.y) >
+        reachAgainst(mounts[t]!.gun, this.designs[target]!.radius)
       ) {
         this.turrets.returnToRest(ti);
         continue;
