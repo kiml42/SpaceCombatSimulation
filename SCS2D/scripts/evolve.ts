@@ -5,7 +5,7 @@ import { BLUEPRINTS, type BlueprintName } from '../scenarios/blueprints.js';
 import { FLEETS } from '../scenarios/fleets.js';
 import { finalist, matchCount, runEvolution, DEFAULT_RUN, type RunConfig } from '../evolution/run.js';
 import type { Entrant } from '../evolution/match.js';
-import { DEFAULT_KINDS } from '../evolution/mutate.js';
+import { DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS } from '../evolution/mutate.js';
 import { parseRunConfig, serialiseRunConfig } from '../evolution/configFile.js';
 import type { ModuleKind } from '../sim/modules.js';
 
@@ -75,6 +75,7 @@ function parse(argv: readonly string[]): Options {
   const match: Record<string, unknown> = {};
   const fleet: Record<string, unknown> = {};
   const kinds: Partial<Record<ModuleKind, number>> = {};
+  const doctrine: Record<string, number> = {};
   let out = 'runs/run.json';
   let saveConfig = '';
   let quiet = false;
@@ -131,6 +132,18 @@ function parse(argv: readonly string[]): Options {
           kinds[kind as ModuleKind] = number;
         }
         break;
+      // How often doctrine numbers change, as `targeting=0,approach=2`.
+      case '--doctrine':
+        for (const pair of value().split(',')) {
+          const [part, weight] = pair.split('=');
+          if (part === undefined || !(part in DEFAULT_DOCTRINE_WEIGHTS)) {
+            throw new Error(`no such doctrine part: ${part}. Try ${Object.keys(DEFAULT_DOCTRINE_WEIGHTS).join(', ')}`);
+          }
+          const number = Number(weight);
+          if (!Number.isFinite(number) || number < 0) throw new Error(`${part} wants a weight of zero or more, not ${weight}`);
+          doctrine[part] = number;
+        }
+        break;
       // Settings written by the evolution page, or by `--save-config`.
       case '--config': {
         const setup = parseRunConfig(JSON.parse(readFileSync(value(), 'utf8')));
@@ -153,9 +166,13 @@ function parse(argv: readonly string[]): Options {
   if (Object.keys(fleet).length > 0) {
     config['fleet'] = { ...(config['fleet'] as object | undefined), ...fleet };
   }
-  if (Object.keys(kinds).length > 0) {
-    const held = (config['mutation'] as { kinds?: object } | undefined)?.kinds;
-    config['mutation'] = { kinds: { ...held, ...kinds } };
+  if (Object.keys(kinds).length > 0 || Object.keys(doctrine).length > 0) {
+    const held = config['mutation'] as { kinds?: object; doctrine?: object } | undefined;
+    config['mutation'] = {
+      ...held,
+      kinds: { ...held?.kinds, ...kinds },
+      doctrine: { ...held?.doctrine, ...doctrine },
+    };
   }
   if (budget > 0) {
     let heaviest = 0;

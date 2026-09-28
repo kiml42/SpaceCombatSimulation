@@ -221,6 +221,21 @@ describe('the evolution page in a browser', () => {
     expect(problems).toEqual([]);
   }, 60_000);
 
+  it('folds a section away, and writes the doctrine weights with the rest', async () => {
+    await page.click('details[data-key="therun"] > summary');
+    expect(await page.isVisible('#generations')).toBe(false);
+    await page.click('details[data-key="therun"] > summary');
+    expect(await page.isVisible('#generations')).toBe(true);
+
+    await set(page, 'doctrineApproach', '0');
+    const saving = page.waitForEvent('download');
+    await page.click('#exportConfig');
+    const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
+    expect(file['doctrine']).toEqual({ targeting: 1, approach: 0, gunnery: 1 });
+    await set(page, 'doctrineApproach', '1');
+    expect(problems).toEqual([]);
+  });
+
   it('draws a third and fourth side in colours of their own', async () => {
     // A match is a free-for-all, so four entrants are four sides — and two of
     // them are sides the renderer only ever had to draw once evolution

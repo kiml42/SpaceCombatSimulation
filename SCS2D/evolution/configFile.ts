@@ -1,7 +1,7 @@
 import { PI } from '../sim/math.js';
 import { MODULE_KINDS } from '../sim/modules.js';
 import { DEFAULT_MATCH, SCORE_PARTS, type GoalSpec, type MatchConfig, type ScoreWeights } from './match.js';
-import { DEFAULT_KINDS, type KindWeights } from './mutate.js';
+import { DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS, type DoctrineWeights, type KindWeights } from './mutate.js';
 import { DEFAULT_RUN, type RunConfig } from './run.js';
 import { DEFAULT_FLEET_LIMITS, type FleetOperator } from './fleetMutate.js';
 
@@ -54,6 +54,7 @@ const FILE_KEYS: readonly string[] = [
   'minMatches',
   'massBudget',
   'kinds',
+  'doctrine',
   'match',
   'fleets',
   'fleet',
@@ -83,6 +84,7 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
     minMatches: config.minMatches,
     massBudget: Number.isFinite(config.massBudget) ? config.massBudget : null,
     kinds: { ...kinds },
+    doctrine: { ...DEFAULT_DOCTRINE_WEIGHTS, ...config.mutation.doctrine },
     ...((setup.fleets ?? []).length > 0 ? { fleets: [...setup.fleets!] } : {}),
     fleet: {
       radius: config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius,
@@ -155,6 +157,7 @@ export function runConfigFileProblem(value: unknown): string | null {
     numberProblem(value['seed'], 'seed') ??
     budgetProblem(value['massBudget']) ??
     kindsProblem(value['kinds']) ??
+    doctrineProblem(value['doctrine']) ??
     matchProblem(value['match'])
   );
 }
@@ -185,7 +188,10 @@ export function parseRunConfig(value: unknown): RunSetup {
       group: read(file['group'], DEFAULT_RUN.group),
       minMatches: read(file['minMatches'], DEFAULT_RUN.minMatches),
       massBudget: budget === undefined || budget === null ? Infinity : (budget as number),
-      mutation: { kinds: { ...DEFAULT_KINDS, ...(file['kinds'] as Partial<KindWeights>) } },
+      mutation: {
+        kinds: { ...DEFAULT_KINDS, ...(file['kinds'] as Partial<KindWeights>) },
+        doctrine: { ...DEFAULT_DOCTRINE_WEIGHTS, ...(file['doctrine'] as Partial<DoctrineWeights>) },
+      },
       fleet: {
         radius: read(fleet['radius'], DEFAULT_FLEET_LIMITS.radius),
         // A file with no fleet settings and no fleets predates ships growing into
@@ -272,6 +278,21 @@ function kindsProblem(value: unknown): string | null {
     if (value[kind] !== undefined && (value[kind] as number) < 0) {
       return `kinds.${kind} must be zero or more, got ${JSON.stringify(value[kind])}`;
     }
+  }
+  return null;
+}
+
+const DOCTRINE_KEYS = Object.keys(DEFAULT_DOCTRINE_WEIGHTS);
+
+function doctrineProblem(value: unknown): string | null {
+  if (value === undefined) return null;
+  if (!isRecord(value)) return 'doctrine must be an object of weights: targeting, approach, gunnery';
+  const extra = unknownKeys(value, DOCTRINE_KEYS);
+  if (extra.length > 0) return `doctrine has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
+  for (const key of DOCTRINE_KEYS) {
+    const problem = numberProblem(value[key], `doctrine.${key}`);
+    if (problem !== null) return problem;
+    if (value[key] !== undefined && (value[key] as number) < 0) return `doctrine.${key} must be zero or more`;
   }
   return null;
 }

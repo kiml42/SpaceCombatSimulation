@@ -54,7 +54,14 @@
         color: #7f93aa;
         margin: 1.1rem 0 0.4rem;
       }
-      aside section:first-of-type h2, #middle h2 { margin-top: 0; }
+      aside > details:first-of-type h2, #middle h2 { margin-top: 0; }
+      summary { cursor: pointer; list-style: none; }
+      summary::-webkit-details-marker { display: none; }
+      summary h2, summary h3 { display: inline-block; }
+      summary::before { content: '▸'; display: inline-block; width: 0.9rem; color: #5d6f85; }
+      details[open] > summary::before { content: '▾'; }
+      h3 { font-size: 11px; font-weight: 400; color: #9fb0c4; margin: 0.7rem 0 0.35rem; }
+      details details { margin-left: 0.4rem; }
       .field { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem; }
       .field label { flex: 1; color: #7f93aa; }
       .field input, .field select { flex: 0 0 5.5rem; }
@@ -179,38 +186,38 @@
     </header>
     <main>
       <aside id="setup">
-        <section>
-          <h2>Settings</h2>
+        <details open data-key="settings">
+          <summary><h2>Settings</h2></summary>
           <div class="buttons">
             <button id="exportConfig" title="Write these settings out as a file">Export</button>
             <button id="importConfig" title="Read settings back from a file">Import</button>
             <input id="importConfigFile" type="file" accept="application/json,.json" hidden />
           </div>
           <p class="note">A run is decided by its seed and these numbers, so the file is the whole of what was tried.</p>
-        </section>
-        <section>
-          <h2>Founders</h2>
+        </details>
+        <details open data-key="founders">
+          <summary><h2>Founders</h2></summary>
           <select id="founders" multiple title="The ships and fleets the run starts from"></select>
           <p class="note">Ctrl-click for several. The rest of the first generation is mutants of these. A ship starts as a fleet of one, and grows into more unless the most ships is one.</p>
-        </section>
-        <section>
-          <h2>The run</h2>
+        </details>
+        <details open data-key="therun">
+          <summary><h2>The run</h2></summary>
           <div class="field"><label for="generations">generations</label><input id="generations" type="number" min="1" step="1" /></div>
           <div class="field"><label for="population">population</label><input id="population" type="number" min="2" step="1" /></div>
           <div class="field"><label for="winners">bred from</label><input id="winners" type="number" min="1" step="1" /></div>
           <div class="field"><label for="group">per match</label><input id="group" type="number" min="1" step="1" /></div>
           <div class="field"><label for="minMatches">matches each</label><input id="minMatches" type="number" min="1" step="1" /></div>
           <div class="field"><label for="seed">seed</label><input id="seed" type="number" step="1" /></div>
-        </section>
-        <section>
-          <h2>Limits</h2>
+        </details>
+        <details open data-key="limits">
+          <summary><h2>Limits</h2></summary>
           <div class="field"><label for="massBudget">mass budget t</label><input id="massBudget" type="number" min="0" step="1" placeholder="none" /></div>
           <div class="field"><label for="fleetShips">most ships</label><input id="fleetShips" type="number" min="1" step="1" title="One keeps a run of ships breeding ships" /></div>
           <div class="field fleetOnly"><label for="fleetRadius">spread m</label><input id="fleetRadius" type="number" min="1" step="50" title="How far from its origin any hull may reach" /></div>
           <p class="note">A mutant over any of these is refused. <span class="fleetOnly">They are the whole fleet's, and a fleet whose hulls overlap is refused too.</span> More than one ship lets a ship grow into a fleet; one keeps it a ship.</p>
-        </section>
-        <section>
-          <h2>The match</h2>
+        </details>
+        <details open data-key="thematch">
+          <summary><h2>The match</h2></summary>
           <div class="field"><label for="duration">seconds</label><input id="duration" type="number" min="1" step="5" /></div>
           <div class="field"><label for="radius">arena m</label><input id="radius" type="number" min="10" step="50" /></div>
           <div class="field"><label for="scatter">scatter °</label><input id="scatter" type="number" min="0" max="180" step="15" /></div>
@@ -219,18 +226,20 @@
             <option value="ghost">ghost</option>
             <option value="none">none</option>
           </select></div>
-        </section>
-        <section>
-          <h2>What it is scored on</h2>
+        </details>
+        <details open data-key="whatitisscoredon">
+          <summary><h2>What it is scored on</h2></summary>
           <div class="field"><label for="survivalWeight">hull kept</label><input id="survivalWeight" type="number" step="0.5" /></div>
           <div class="field"><label for="functionalWeight">function kept</label><input id="functionalWeight" type="number" step="0.5" /></div>
           <div class="field"><label for="damageWeight">damage done</label><input id="damageWeight" type="number" step="0.5" /></div>
           <div class="field"><label for="disablingWeight">function taken</label><input id="disablingWeight" type="number" step="0.5" /></div>
           <div class="field"><label for="raceWeight">ground gained</label><input id="raceWeight" type="number" step="0.5" /></div>
           <p class="note">Zero a weight to breed for the others alone.</p>
-        </section>
-        <section>
-          <h2>Ship mutations</h2>
+        </details>
+        <details open data-key="mutations">
+          <summary><h2>Mutations</h2></summary>
+          <details open data-key="shipMutations">
+          <summary><h3>Ship mutations</h3></summary>
           <div class="field" title="Odds that a new or refitted module is a thruster: pushes the ship, and can be steered by firing on one side."><label for="kindThruster">engines</label><input id="kindThruster" type="number" min="0" step="1" /></div>
           <div class="field" title="Odds that a new or refitted module is plain structure: holds the ship together and stops shells, as armour."><label for="kindStructure">structure</label><input id="kindStructure" type="number" min="0" step="1" /></div>
           <div class="field" title="Odds that a new or refitted module is a gun turret: turns to aim, firing shells."><label for="kindTurret">turrets</label><input id="kindTurret" type="number" min="0" step="1" /></div>
@@ -239,9 +248,9 @@
           <div class="field" title="Odds that a new or refitted module is a hull beam: fixed in the hull, firing a beam, aimed by turning the whole ship."><label for="kindHullBeam">hull beams</label><input id="kindHullBeam" type="number" min="0" step="1" /></div>
           <div class="field" title="Odds that a new or refitted module is a core: what flies the ship. It is out of the fight once every core is."><label for="kindCore">cores</label><input id="kindCore" type="number" min="0" step="1" /></div>
           <p class="note">Relative odds of each kind, when a module is added or refitted into something else; hover one for what it is. Zero shuts a kind out altogether.</p>
-        </section>
-        <section class="fleetOnly">
-          <h2>Fleets mutations</h2>
+          </details>
+          <details open class="fleetOnly" data-key="fleetMutations">
+          <summary><h3>Fleets mutations</h3></summary>
           <div class="field" title="Odds of mutating one of the fleet's designs, the way a single ship is mutated. Every ship built to that design changes with it."><label for="opDesign">design mutated</label><input id="opDesign" type="number" min="0" step="0.5" /></div>
           <div class="field" title="Odds of moving one of the fleet's ships or groups a few metres, or turning it, where it starts the battle."><label for="opMove">ship moved/turned</label><input id="opMove" type="number" min="0" step="0.5" /></div>
           <div class="field" title="Odds of adding a copy of one of the fleet's ships or groups, a little way off from it."><label for="opAdd">ship added</label><input id="opAdd" type="number" min="0" step="0.5" /></div>
@@ -249,12 +258,20 @@
           <div class="field" title="Odds of giving one ship its own copy of a design it shares, so it can go on changing separately. The opposite of a merge."><label for="opFork">design forked</label><input id="opFork" type="number" min="0" step="0.5" /></div>
           <div class="field" title="Odds of building every ship of one design to another of the fleet's designs instead, dropping the first. The opposite of a fork."><label for="opMerge">designs merged</label><input id="opMerge" type="number" min="0" step="0.5" /></div>
           <p class="note">Relative odds of each change to a fleet; hover one for what it does. A design being mutated uses the odds above.</p>
-        </section>
-        <section>
-          <h2>Effort</h2>
+          </details>
+          <details open data-key="doctrineMutations">
+          <summary><h3>Doctrine mutations</h3></summary>
+          <div class="field" title="How often the ship's own targeting numbers are the ones changed — what it goes after: how big, how near, how armed or how fast a target it prefers. At 1, each is as likely to change as any number in the build; 0 leaves them as they are."><label for="doctrineTargeting">targeting</label><input id="doctrineTargeting" type="number" min="0" step="0.5" /></div>
+          <div class="field" title="How often the ship's approach numbers are the ones changed — how it flies to a fight: the range it holds off at, how close it keeps to what it escorts, how far it keeps from friends, and how hard it accelerates and brakes. At 1, each is as likely to change as any number in the build; 0 leaves them as they are."><label for="doctrineApproach">approach</label><input id="doctrineApproach" type="number" min="0" step="0.5" /></div>
+          <div class="field" title="How often a weapon's own target preferences are the ones changed, so one mount can learn to pick targets differently from the rest of the ship. At 1, each weapon is as likely to change as any number in the build; 0 leaves them as they are."><label for="doctrineGunnery">weapon gunnery</label><input id="doctrineGunnery" type="number" min="0" step="0.5" /></div>
+          <p class="note">How often each part of a ship's doctrine changes, against a number in its build at 1; hover one for what it covers.</p>
+          </details>
+        </details>
+        <details open data-key="effort">
+          <summary><h2>Effort</h2></summary>
           <div class="field"><label for="effort">ms per frame</label><input id="effort" type="number" min="1" max="200" step="1" /></div>
           <p class="note">How long each frame is spent fighting. Higher is faster and less responsive.</p>
-        </section>
+        </details>
       </aside>
       <section id="middle">
         <div style="padding: 0.7rem 0.9rem 0">
@@ -301,8 +318,8 @@
         </div>
       </section>
       <aside id="results">
-        <section>
-          <h2>Generation <span id="shownGeneration">—</span><span id="fighting"></span></h2>
+        <details open data-key="generation">
+          <summary><h2>Generation <span id="shownGeneration">—</span><span id="fighting"></span></h2></summary>
           <div class="buttons">
             <button id="latest" title="Follow the newest generation again">Latest</button>
           </div>
@@ -313,9 +330,9 @@
             <tbody id="ships"></tbody>
           </table>
           <p class="note" id="edits"></p>
-        </section>
-        <section>
-          <h2>Matches</h2>
+        </details>
+        <details open data-key="matches">
+          <summary><h2>Matches</h2></summary>
           <table>
             <thead>
               <tr><th>#</th><th>entrants</th><th>ended</th><th>s</th></tr>
@@ -323,9 +340,9 @@
             <tbody id="matches"></tbody>
           </table>
           <p class="note">Click one to watch it again — a match is replayed from its seed, so it is the match that was scored.</p>
-        </section>
-        <section>
-          <h2>What it arrived at</h2>
+        </details>
+        <details open data-key="whatitarrivedat">
+          <summary><h2>What it arrived at</h2></summary>
           <p id="championLine" class="note">—</p>
           <div class="buttons">
             <button id="saveChampion" disabled>Save to editor</button>
@@ -336,9 +353,9 @@
             cannot be compared with one from another generation — a population that learns to fly before
             it learns to shoot scores superbly until guns appear, then far less while getting better.
           </p>
-        </section>
-        <section>
-          <h2>Measured against one opponent</h2>
+        </details>
+        <details open data-key="measuredagainstoneopponent">
+          <summary><h2>Measured against one opponent</h2></summary>
           <div class="field">
             <label for="benchmark">opponent</label>
             <select id="benchmark"></select>
@@ -351,7 +368,7 @@
             seeds — the one number here that means the same thing in generation one and generation four
             hundred. Fought afterwards and never during, or a run would learn to beat that one opponent.
           </p>
-        </section>
+        </details>
       </aside>
     </main>
     <footer id="hint">A run is decided entirely by its seed: the same settings give the same run, and any match in it can be fought again from the record. Watching a battle: space to pause, full stop to single-step, F to re-fit, N for another match. Scroll to zoom, drag to pan.</footer>

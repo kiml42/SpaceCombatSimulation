@@ -25,7 +25,7 @@ import type { FleetView } from '../editor/fleetDocument.js';
 import { fitness } from '../evolution/generation.js';
 import { DEFAULT_MATCH, isFleet, Match, type Entrant, type MatchConfig } from '../evolution/match.js';
 import { DEFAULT_FLEET_LIMITS } from '../evolution/fleetMutate.js';
-import { DEFAULT_KINDS, type KindWeights } from '../evolution/mutate.js';
+import { DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS, type KindWeights } from '../evolution/mutate.js';
 import { parseRunConfig, serialiseRunConfig, type RunSetup } from '../evolution/configFile.js';
 import { latest, Yardstick, type YardstickReport } from '../evolution/yardstick.js';
 import {
@@ -68,6 +68,8 @@ const FLEET_EASE = 0.15;
 
 /** What the settings are saved under, so a refresh does not cost them. */
 const SETUP_KEY = 'scs2d.evolution.setup';
+/** Which panel sections are folded away, so a refresh keeps them so. */
+const FOLDED_KEY = 'scs2d.evolution.folded';
 
 const FIELDS = [
   'generations',
@@ -100,6 +102,9 @@ const FIELDS = [
   'kindHullGun',
   'kindHullBeam',
   'kindCore',
+  'doctrineTargeting',
+  'doctrineApproach',
+  'doctrineGunnery',
   'effort',
 ] as const;
 
@@ -239,6 +244,8 @@ export function startEvolution(): void {
   let previewMatch: Match | null = null;
   /** What saving the best said, and which individual it was. */
   let savedAs: { id: number; text: string } | null = null;
+  /** Said in place of the run's progress until the next Start, so the next report does not wipe it. */
+  let notice = '';
   let paused = false;
   let replay: Match | null = null;
   let replayOf: MatchRecord | null = null;
@@ -322,6 +329,9 @@ export function startEvolution(): void {
     kindHullGun: String(DEFAULT_KINDS.hullGun),
     kindHullBeam: String(DEFAULT_KINDS.hullBeam),
     kindCore: String(DEFAULT_KINDS.core),
+    doctrineTargeting: String(DEFAULT_DOCTRINE_WEIGHTS.targeting),
+    doctrineApproach: String(DEFAULT_DOCTRINE_WEIGHTS.approach),
+    doctrineGunnery: String(DEFAULT_DOCTRINE_WEIGHTS.gunnery),
     effort: '12',
   };
 
@@ -383,6 +393,27 @@ export function startEvolution(): void {
     }
     return {};
   };
+
+  // Sections fold as the player left them.
+  const folded = new Set<string>();
+  try {
+    for (const key of JSON.parse(window.localStorage.getItem(FOLDED_KEY) ?? '[]') as string[]) folded.add(key);
+  } catch {
+    // Unreadable is as good as nothing folded.
+  }
+  for (const section of document.querySelectorAll<HTMLDetailsElement>('details[data-key]')) {
+    const key = section.dataset['key']!;
+    if (folded.has(key)) section.open = false;
+    section.addEventListener('toggle', () => {
+      if (section.open) folded.delete(key);
+      else folded.add(key);
+      try {
+        window.localStorage.setItem(FOLDED_KEY, JSON.stringify([...folded]));
+      } catch {
+        // Costs the folding, not the run.
+      }
+    });
+  }
 
   const held = loadSetup();
   for (const name of FIELDS) inputs[name].value = held[name] ?? defaults[name];
@@ -470,6 +501,11 @@ export function startEvolution(): void {
           hullBeam: Math.max(0, number(inputs.kindHullBeam, DEFAULT_KINDS.hullBeam)),
           core: Math.max(0, number(inputs.kindCore, DEFAULT_KINDS.core)),
         },
+        doctrine: {
+          targeting: Math.max(0, number(inputs.doctrineTargeting, DEFAULT_DOCTRINE_WEIGHTS.targeting)),
+          approach: Math.max(0, number(inputs.doctrineApproach, DEFAULT_DOCTRINE_WEIGHTS.approach)),
+          gunnery: Math.max(0, number(inputs.doctrineGunnery, DEFAULT_DOCTRINE_WEIGHTS.gunnery)),
+        },
       },
       match: {
         duration: Math.max(1, number(inputs.duration, DEFAULT_MATCH.duration)),
@@ -542,6 +578,10 @@ export function startEvolution(): void {
     inputs.kindHullGun.value = String(kinds.hullGun);
     inputs.kindHullBeam.value = String(kinds.hullBeam);
     inputs.kindCore.value = String(kinds.core);
+    const doctrine = { ...DEFAULT_DOCTRINE_WEIGHTS, ...config.mutation.doctrine };
+    inputs.doctrineTargeting.value = String(doctrine.targeting);
+    inputs.doctrineApproach.value = String(doctrine.approach);
+    inputs.doctrineGunnery.value = String(doctrine.gunnery);
     goalInput.value = match.goal === null ? 'none' : match.goal.solid === false ? 'ghost' : 'solid';
     const fleets = setup.fleets ?? [];
     if (setup.founders.length + fleets.length > 0) {
@@ -571,7 +611,8 @@ export function startEvolution(): void {
         return;
       }
       readout.className = '';
-      readout.textContent = 'Settings read from a file. Press Start when you are ready.';
+      notice = 'Settings read from a file. Press Start when you are ready.';
+      readout.textContent = notice;
     });
     // Cleared so that choosing the same file twice is two imports rather
     // than one, which matters while a file is being edited beside the page.
@@ -1309,6 +1350,7 @@ export function startEvolution(): void {
     previewMatch = null;
     previewRows = [];
     savedAs = null;
+    notice = '';
     yardstick = null;
     measured = null;
     yardstickLine.textContent = 'Measure once there is something to measure.';
@@ -1466,8 +1508,10 @@ export function startEvolution(): void {
     for (const generation of run.generations) fought += generation.matches.length;
     fought += run.done ? 0 : run.played.length;
     readout.textContent =
-      `generation ${Math.min(done + 1, total)} of ${total} · ` +
-      `${fought} matches fought · ${(run.progress * 100).toFixed(0)}%`;
+      notice !== ''
+        ? notice
+        : `generation ${Math.min(done + 1, total)} of ${total} · ` +
+          `${fought} matches fought · ${(run.progress * 100).toFixed(0)}%`;
     if (modeSelect.value !== 'battle') {
       const shown = showing();
       watchingLabel.textContent = `${shown.rows.length} combatants of generation ${shown.index + 1}`;
