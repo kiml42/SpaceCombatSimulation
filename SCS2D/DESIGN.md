@@ -150,7 +150,24 @@ inside any one file is not contiguous.
   is a limit rather than a preference, so a mount with nothing in range trains back to its rest bearing
   instead of firing at something it cannot hurt, and an order does not repeal it. The same distance bounds
   the check for a consort in the line of fire, since a friend beyond where the shot goes is in the way of
-  nothing. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
+  nothing.
+  **A gun's reach is a property of the target as much as of the gun.** Against something that does not
+  manoeuvre a shot is accurate at any range: the solution is exact and the round merely takes a while. What
+  spoils it is the target changing velocity after the trigger, and the spread of where it might then be
+  grows as `½·a·t²` — so a shot is worth taking while that cloud is still smaller than the target and not
+  once it is bigger. Setting the two equal gives the flight time worth taking, `√(2r/a)`, and the muzzle
+  velocity turns it into a distance. A big ship is therefore worth shooting at from far further off than a
+  small one — twice the radius is `√2` the range — which is why a fighter has to close and a capital does
+  not. The assumed evasion `a` is a statement about the class of thing being shot at rather than a
+  measurement of it, since a gunner cannot know what an enemy has left in its engines; it is set a little
+  above what the shipped fleet manages, which errs towards holding fire. **Where there is no target there
+  is still a nominal reach**, for a pilot deciding how close to fly and an editor drawing a ring round a
+  ship it has never fought: the doctrine's `preferredMass` already names the sort of enemy expected, as a
+  multiple of the chooser's own mass, and a hull of `n` times the mass is taken to be `√n` times the
+  radius. That last is an approximation — across the shipped fleet the implied constant spans a factor of
+  three, mostly because a long thin hull has a large bounding radius for its mass — but it is an
+  approximation in service of a nominal figure, and the real reach is worked out against the real target
+  wherever there is one. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
   fighting fights what it can instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
   is fighting, is what keeps a broadside concentrated without tying it together; an order given is still
   obeyed by every mount that can train on it. How often a mount reconsiders is derived from the mount:
