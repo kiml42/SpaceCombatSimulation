@@ -48,6 +48,11 @@ interface Shot {
  *
  * The world is never stepped: turrets train, and the hulls stay exactly where
  * they were placed, so what is in the line of fire is what the test says is.
+ *
+ * The enemy stands inside the reach of every gun tested here — a mount
+ * ignores what lies beyond its own range, so a mark further off would measure
+ * that rather than the discipline this file is about. The Dinky's is the
+ * shortest at 1,344 m.
  */
 function salvo(design: ShipDesign, between: { design: ShipDesign; x: number; team: number }[]): Shot {
   const world = new World({ dt: DT, seed: 6 });
@@ -60,11 +65,11 @@ function salvo(design: ShipDesign, between: { design: ShipDesign; x: number; tea
   const grid = new SpatialGrid(64);
 
   const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
-  const enemy = ships.spawn(world, { design: corvette, x: 1500, y: 0, team: 1 });
+  const enemy = ships.spawn(world, { design: corvette, x: 1100, y: 0, team: 1 });
   for (const other of between) {
     ships.spawn(world, { design: other.design, x: other.x, y: 0, team: other.team });
   }
-  ships.pushOrder(mine, enemy, 1400, 1600, 10);
+  ships.pushOrder(mine, enemy, 1000, 1200, 10);
 
   let rounds = 0;
   let beamsLit = 0;
@@ -118,7 +123,9 @@ describe('a gun with somebody in the way', () => {
     const beamHits = new BeamHits();
 
     const mine = ships.spawn(world, { design: dinky, x: 0, y: 0, team: 0 });
-    const enemy = ships.spawn(world, { design: corvette, x: 1500, y: 0, team: 1 });
+    // Inside the Dinky's 1,344 m reach, as above: past it the gun ignores the
+    // mark and there is no shot for the wreckage to fail to stop.
+    const enemy = ships.spawn(world, { design: corvette, x: 1100, y: 0, team: 1 });
     // A consort well clear of the line, broken in two, with the piece pushed
     // into the line — which is how wreckage gets in the way for real.
     const consort = ships.spawn(world, { design: dinky, x: 0, y: 2000, team: 0 });
@@ -132,7 +139,7 @@ describe('a gun with somebody in the way', () => {
     world.bodies.x[chunkBody] = 200;
     world.bodies.y[chunkBody] = 0;
 
-    ships.pushOrder(mine, enemy, 1400, 1600, 10);
+    ships.pushOrder(mine, enemy, 1000, 1200, 10);
 
     let rounds = 0;
     for (let i = 0; i < 60 * 20; i++) {

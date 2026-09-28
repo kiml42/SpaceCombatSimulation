@@ -146,9 +146,12 @@ inside any one file is not contiguous.
   holding, so a hull that keeps its guns on target brakes on its retros. The `standoff` scenario is the evidence: two fleets a kilometre apart, not one order
   between them, and a battle anyway.
   **Every mount picks its own target**, through the same preferences the hull uses but from the mount's
-  point of view: its own gun's reach, and nothing outside the arc it can train through — so a ship with an
-  enemy on each beam fights both, and a gun that cannot reach what its ship is fighting fights what it can
-  instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
+  point of view: nothing outside the arc it can train through, and **nothing beyond its own reach** — which
+  is a limit rather than a preference, so a mount with nothing in range trains back to its rest bearing
+  instead of firing at something it cannot hurt, and an order does not repeal it. The same distance bounds
+  the check for a consort in the line of fire, since a friend beyond where the shot goes is in the way of
+  nothing. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
+  fighting fights what it can instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
   is fighting, is what keeps a broadside concentrated without tying it together; an order given is still
   obeyed by every mount that can train on it. How often a mount reconsiders is derived from the mount:
   half a circle of traverse plus a firing cycle, which is what it costs to swing onto something new and

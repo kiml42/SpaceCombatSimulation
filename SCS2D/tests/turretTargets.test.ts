@@ -158,7 +158,9 @@ describe('a mount choosing its own target', () => {
   });
 
   it('drops a target the moment it stops being one', () => {
-    const s = scene(gunship, [{ design: corvette, x: 2000, y: 0 }]);
+    // Inside the nose gun's 1,227 m reach: past that it ignores the mark, and
+    // this is about a target that has *gone* rather than one out of range.
+    const s = scene(gunship, [{ design: corvette, x: 1000, y: 0 }]);
     s.run(60);
     expect(s.aim(NOSE)).toBe(1);
     s.ships.remove(1);
@@ -279,9 +281,12 @@ describe('a mount with a doctrine of its own', () => {
     // eight-barrelled pom-pom is wasted on a capital, and the bow gun has
     // nothing better to do with a fighter than miss it.
     const capital = compileBlueprint(GUNSHIP);
+    // Both marks inside the reach of both kinds of mount, so what decides is
+    // the doctrine rather than the range: the bow gun could take the fighter
+    // and the pom-poms could take the capital, and neither does.
     const s = scene(capital, [
-      { design: corvette, x: 1400, y: 0 },
-      { design: dinky, x: 1000, y: 260 },
+      { design: corvette, x: 1100, y: 0 },
+      { design: dinky, x: 800, y: 260 },
     ]);
     s.run(60);
     expect(s.aim(NOSE)).toBe(1);

@@ -4,7 +4,9 @@ import {
   compileBlueprint,
   defaultTargeting,
   isWeaponMount,
+  castableBeamLength,
   math,
+  MAX_BEAM_LENGTH,
   moduleRadius,
   NO_TARGET,
   Ships,
@@ -15,6 +17,7 @@ import {
   type ShipDesign,
   type Targeting,
 } from '../sim/index.js';
+import { MAX_CELLS_PER_RAY } from '../sim/spatialGrid.js';
 import { BARE_CORE, CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
@@ -174,6 +177,45 @@ describe('a beam’s default', () => {
         expect(weight).toBeGreaterThanOrEqual(0);
       }
     }
+  });
+});
+
+describe('what a mount will not reach', () => {
+  it('is not a target at all, and not a friend in the way either', () => {
+    // A mount used to rank a distant target low and then shoot at it anyway
+    // for want of anything nearer, which is how a capital came to fire on
+    // fighters kilometres past what its guns could touch.
+    const gunship = compileBlueprint(GUNSHIP);
+    const reach = gunship.turrets[0]!.reach;
+    expect(reach).toBeGreaterThan(0);
+
+    const inRange = slackAgainst(armed({}), reach * 0.5);
+    expect(inRange).toBeGreaterThan(0);
+
+    // Out past it there is nothing to aim at, so no slack is set and the
+    // mount is back at its rest bearing rather than tracking.
+    const world = new World({ dt: DT, seed: 5 });
+    const ships = new Ships();
+    world.addForceProvider(ships.forceProvider());
+    const mine = ships.spawn(world, { design: armed({}), x: 0, y: 0, team: 0 });
+    ships.spawn(world, { design: gunship, x: reach * 3, y: 0, team: 1 });
+    for (let i = 0; i < 240; i++) {
+      ships.command(DT, world);
+      world.step();
+    }
+    expect(ships.targetOfTurret(world.bodies, mine, 0)).toBe(NO_TARGET);
+  });
+
+  it('bounds how far a beam is drawn, and the index can cast that far', () => {
+    // A beam past what the index will walk is cut short without a word, which
+    // is a weapon that quietly stops working at range. The margin is smaller
+    // than length over cell size suggests: a cast at 45° crosses √2 times as
+    // many cells as one along an axis.
+    expect(castableBeamLength(64)).toBeLessThan(MAX_CELLS_PER_RAY * 64);
+    expect(MAX_BEAM_LENGTH).toBeLessThan(castableBeamLength(64));
+    // And far enough that a shell is always the shorter-ranged of the two: a
+    // round lives 30 s, so at the ~1 km/s these guns reach it is gone by 30 km.
+    expect(MAX_BEAM_LENGTH).toBeGreaterThan(30_000);
   });
 });
 
