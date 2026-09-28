@@ -5,7 +5,7 @@ import { fleetFits, mutateFleet, type FleetOperator } from '../evolution/fleetMu
 import { entrantOf, runEvolution } from '../evolution/run.js';
 import { parseRunConfig, serialiseRunConfig } from '../evolution/configFile.js';
 import { DEFAULT_RUN } from '../evolution/run.js';
-import { CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import { BARE_CORE, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 import { LINE_OF_BATTLE } from '../scenarios/fleets.js';
 
 /** Fleets as entrants, bred as fleets. */
@@ -47,6 +47,47 @@ describe('a match of fleets', () => {
       expect(score.survival).toBeGreaterThanOrEqual(0);
       expect(score.survival).toBeLessThanOrEqual(1);
     }
+  });
+
+  it('scores survival as one fraction per fleet, not per ship', () => {
+    const alone = runMatch([shipFleet(DINKY)], { ...SHORT, seed: 2 });
+    const two = runMatch([pair()], { ...SHORT, seed: 2 });
+    expect(alone.scores[0]!.survival).toBeCloseTo(1, 9);
+    expect(two.scores[0]!.survival).toBeCloseTo(1, 9);
+  });
+
+  it('races by the nearest ship, so a straggler costs nothing', () => {
+    const straggler: Fleet = {
+      name: 'Straggler',
+      designs: { Dinky: DINKY, Core: BARE_CORE },
+      ships: [
+        { design: 'Dinky', x: 0, y: 0 },
+        { design: 'Core', x: -150, y: 0 },
+      ],
+    };
+    const match = new Match([straggler, CORVETTE], { ...SHORT, seed: 2 });
+    const { ships, world, slots, owners, marker } = match.battle;
+    const nearest = (): number => {
+      const goal = world.bodies.indexOf(ships.body(marker));
+      let best = 0;
+      slots.forEach((slot, k) => {
+        if (owners[k] !== 0 || !ships.isAlive(slot) || !ships.hasControl(slot)) return;
+        const body = world.bodies.indexOf(ships.body(slot));
+        const d = Math.sqrt((world.bodies.x[body]! - world.bodies.x[goal]!) ** 2 + (world.bodies.y[body]! - world.bodies.y[goal]!) ** 2);
+        best = Math.max(best, 500 / (500 + d));
+      });
+      return best;
+    };
+    const start = nearest();
+    let sum = 0;
+    let steps = 0;
+    while (!match.done) {
+      match.advance();
+      steps++;
+      const best = nearest();
+      if (best > 0) sum += best - start;
+    }
+    expect(match.result().scores[0]!.race).toBeCloseTo(sum / steps, 6);
   });
 
   it('widens the ring rather than start two fleets on top of each other', () => {

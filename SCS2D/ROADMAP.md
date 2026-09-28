@@ -90,8 +90,8 @@ range, closing and crossing speeds and a seed, saved and loaded as a battle file
 set up paused and live, and decided once no more than one side can still fight. Left in the editor: making, dissolving and renaming
 groups — it steps into and edits the ones a file brings, but cannot make one — later, as ship groups were.
 **Fleet evolution** is built headless (`evolution/fleetMutate.ts`, `npm run evolve -- --fleet`): a match
-takes fleets as entrants, a lone blueprint being a fleet of one, scored by each ship's share of its fleet's hull
-capacity. Every operator has its inverse — mutate a design, fork and merge, add and remove, move and turn —
+takes fleets as entrants, a lone blueprint being a fleet of one, survival scored on the whole fleet's hull
+capacity left and ground gained by its nearest ship. Every operator has its inverse — mutate a design, fork and merge, add and remove, move and turn —
 and a mutant over the total dry mass, the deployment radius or the ship count, or with hulls overlapping, is
 refused. What remains:
 
@@ -433,6 +433,10 @@ Deliberately unresolved; decide when they block something.
   which prices the spin itself rather than the pulsing. Both would also bear on ships that never try the
   trick, which is the part to think about before building either — a rate limit is a change to every
   manoeuvre, and a spin load is a change to every hull.
+- **Whether damage to what works should cost survival more than damage to armour.** Survival counts
+  every joule a hull loses alike, so a hit on structure worn as armour costs what a hit on a core, a gun or
+  an engine does. Weighting modules by kind is the obvious shape; the risk is the one core-only survival
+  avoided, of paying a design for carrying what it never uses.
 - **How big an arena should be.** A match's ring is five hundred metres because that is where the shipped
   corvettes fight each other to a finish — put four of them a kilometre apart and they settle at the
   standoff their doctrine asks for and plink, and no match is ever decided however long it runs, so two of
