@@ -134,19 +134,23 @@ describe('a run', () => {
     match: { duration: 30 },
   };
 
-  it('previews its first match with every competitor as its founder', () => {
-    const founders = [CORVETTE, DINKY];
-    const opening = new Run(founders, settings).unmutatedOpening()!;
-    const record = new Run(founders, { ...settings, generations: 1 }).finish().generations[0]!;
-    const first = record.matches[0]!;
-    // The same pairing and seed as the match fought first, each entrant put back to where it started.
-    const entrants = first.competitors.map((id) => {
-      const individual = record.individuals.find((i) => i.id === id)!;
-      return founders[individual.parent < 0 ? individual.id : individual.parent]!;
-    });
-    while (!opening.done) opening.advance();
-    const fought = runMatch(entrants, { ...settings.match, seed: first.seed });
-    expect(JSON.stringify(opening.result())).toEqual(JSON.stringify(fought));
+  it('previews its first match with each founder once, unless the match needs more', () => {
+    const designs = (founders: readonly Blueprint[], group: number): string[] => {
+      const opening = new Run(founders, { ...settings, group }).unmutatedOpening()!;
+      const { ships, slots } = opening.battle;
+      return slots.map((slot) => ships.design(slot).name);
+    };
+    expect(designs([CORVETTE, DINKY], 2).sort()).toEqual([CORVETTE.name, DINKY.name].sort());
+    const four = designs([CORVETTE, DINKY], 4);
+    expect(four.filter((name) => name === CORVETTE.name)).toHaveLength(2);
+    expect(four.filter((name) => name === DINKY.name)).toHaveLength(2);
+  });
+
+  it('previews on the seed of the match the run fights first', () => {
+    const opening = new Run([CORVETTE, DINKY], settings).unmutatedOpening()!;
+    const first = new Run([CORVETTE, DINKY], { ...settings, generations: 1 }).finish().generations[0]!.matches[0]!;
+    expect(opening.battle.slots).toHaveLength(first.competitors.length);
+    expect(opening.result().seed).toEqual(first.seed);
   });
 
   it('seeds a population from what it was given', () => {

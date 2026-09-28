@@ -3,7 +3,7 @@ import { MODULE_KINDS } from '../sim/modules.js';
 import { DEFAULT_MATCH, SCORE_PARTS, type GoalSpec, type MatchConfig, type ScoreWeights } from './match.js';
 import { DEFAULT_KINDS, type KindWeights } from './mutate.js';
 import { DEFAULT_RUN, type RunConfig } from './run.js';
-import { DEFAULT_FLEET_LIMITS } from './fleetMutate.js';
+import { DEFAULT_FLEET_LIMITS, type FleetOperator } from './fleetMutate.js';
 
 /**
  * The run-config file: what a set of evolution settings looks like written
@@ -59,7 +59,8 @@ const FILE_KEYS: readonly string[] = [
   'fleet',
 ];
 
-const FLEET_KEYS: readonly string[] = ['radius', 'maxShips'];
+const FLEET_KEYS: readonly string[] = ['radius', 'maxShips', 'operators'];
+const OPERATOR_KEYS = Object.keys(DEFAULT_FLEET_LIMITS.operators) as FleetOperator[];
 
 const MATCH_KEYS: readonly string[] = ['duration', 'radius', 'scatter', 'goal', 'weights'];
 const GOAL_KEYS: readonly string[] = ['x', 'y', 'scale', 'size'];
@@ -89,6 +90,7 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
           fleet: {
             radius: config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius,
             maxShips: config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips,
+            operators: { ...DEFAULT_FLEET_LIMITS.operators, ...config.fleet.operators },
           },
         }
       : {}),
@@ -135,6 +137,18 @@ export function runConfigFileProblem(value: unknown): string | null {
     const problem = numberProblem(fleet['radius'], 'fleet.radius') ?? countProblem(fleet['maxShips'], 'fleet.maxShips');
     if (problem !== null) return problem;
     if (fleet['radius'] !== undefined && (fleet['radius'] as number) <= 0) return 'fleet.radius must be more than nothing';
+    const operators = fleet['operators'];
+    if (operators !== undefined) {
+      if (!isRecord(operators)) return 'fleet.operators must be an object of weights, one per change';
+      const unknown = unknownKeys(operators, OPERATOR_KEYS);
+      if (unknown.length > 0) return `fleet.operators has unknown ${unknown.length > 1 ? 'keys' : 'key'} ${unknown.join(', ')}`;
+      for (const key of OPERATOR_KEYS) {
+        const weight = operators[key];
+        const bad = numberProblem(weight, `fleet.operators.${key}`);
+        if (bad !== null) return bad;
+        if (weight !== undefined && (weight as number) < 0) return `fleet.operators.${key} must be zero or more`;
+      }
+    }
   }
 
   return (
@@ -180,6 +194,10 @@ export function parseRunConfig(value: unknown): RunSetup {
       fleet: {
         radius: read(fleet['radius'], DEFAULT_FLEET_LIMITS.radius),
         maxShips: read(fleet['maxShips'], DEFAULT_FLEET_LIMITS.maxShips),
+        operators: {
+          ...DEFAULT_FLEET_LIMITS.operators,
+          ...(isRecord(fleet['operators']) ? (fleet['operators'] as Partial<Record<FleetOperator, number>>) : {}),
+        },
       },
       match: {
         duration: read(match['duration'], DEFAULT_MATCH.duration),

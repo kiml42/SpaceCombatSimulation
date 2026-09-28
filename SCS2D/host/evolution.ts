@@ -78,6 +78,12 @@ const FIELDS = [
   'massBudget',
   'fleetRadius',
   'fleetShips',
+  'opDesign',
+  'opMove',
+  'opAdd',
+  'opRemove',
+  'opFork',
+  'opMerge',
   'seed',
   'duration',
   'radius',
@@ -294,6 +300,12 @@ export function startEvolution(): void {
     massBudget: '',
     fleetRadius: String(DEFAULT_FLEET_LIMITS.radius),
     fleetShips: String(DEFAULT_FLEET_LIMITS.maxShips),
+    opDesign: String(DEFAULT_FLEET_LIMITS.operators.design),
+    opMove: String(DEFAULT_FLEET_LIMITS.operators.move),
+    opAdd: String(DEFAULT_FLEET_LIMITS.operators.add),
+    opRemove: String(DEFAULT_FLEET_LIMITS.operators.remove),
+    opFork: String(DEFAULT_FLEET_LIMITS.operators.fork),
+    opMerge: String(DEFAULT_FLEET_LIMITS.operators.merge),
     seed: String(DEFAULT_RUN.seed),
     duration: String(DEFAULT_MATCH.duration),
     radius: String(DEFAULT_MATCH.radius),
@@ -413,9 +425,8 @@ export function startEvolution(): void {
 
   /** Whether a fleet is among the founders, which makes it a run of fleets. */
   const fleetRun = (): boolean => [...foundersSelect.selectedOptions].some((o) => pickOf(o.value).kind === 'fleet');
-  const fleetSettings = el<HTMLElement>('fleetSettings');
   const showFleetSettings = (): void => {
-    fleetSettings.hidden = !fleetRun();
+    document.body.classList.toggle('fleetRun', fleetRun());
   };
   showFleetSettings();
   foundersSelect.addEventListener('change', showFleetSettings);
@@ -437,6 +448,14 @@ export function startEvolution(): void {
       fleet: {
         radius: Math.max(1, number(inputs.fleetRadius, DEFAULT_FLEET_LIMITS.radius)),
         maxShips: Math.max(1, Math.round(number(inputs.fleetShips, DEFAULT_FLEET_LIMITS.maxShips))),
+        operators: {
+          design: Math.max(0, number(inputs.opDesign, DEFAULT_FLEET_LIMITS.operators.design)),
+          move: Math.max(0, number(inputs.opMove, DEFAULT_FLEET_LIMITS.operators.move)),
+          add: Math.max(0, number(inputs.opAdd, DEFAULT_FLEET_LIMITS.operators.add)),
+          remove: Math.max(0, number(inputs.opRemove, DEFAULT_FLEET_LIMITS.operators.remove)),
+          fork: Math.max(0, number(inputs.opFork, DEFAULT_FLEET_LIMITS.operators.fork)),
+          merge: Math.max(0, number(inputs.opMerge, DEFAULT_FLEET_LIMITS.operators.merge)),
+        },
       },
       mutation: {
         kinds: {
@@ -498,6 +517,13 @@ export function startEvolution(): void {
     inputs.massBudget.value = Number.isFinite(config.massBudget) ? String(config.massBudget / 1000) : '';
     inputs.fleetRadius.value = String(config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius);
     inputs.fleetShips.value = String(config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips);
+    const operators = { ...DEFAULT_FLEET_LIMITS.operators, ...config.fleet.operators };
+    inputs.opDesign.value = String(operators.design);
+    inputs.opMove.value = String(operators.move);
+    inputs.opAdd.value = String(operators.add);
+    inputs.opRemove.value = String(operators.remove);
+    inputs.opFork.value = String(operators.fork);
+    inputs.opMerge.value = String(operators.merge);
     inputs.duration.value = String(match.duration);
     inputs.radius.value = String(match.radius);
     inputs.scatter.value = String((match.scatter * 180) / Math.PI);

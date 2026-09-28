@@ -292,20 +292,26 @@ export class Run {
   }
 
   /**
-   * The run's first match, unfought, with each competitor as the founder it
-   * was bred from: what the run is about to try, before mutation has touched
-   * it. Draws the match, so it is for a run that will not be fought.
+   * The run's first match, unfought and unmutated: its seed and its number of
+   * entrants, fought by the founders themselves. Each founder once — the ones
+   * the first match drew first — and round again only when a match holds more
+   * entrants than there are founders. Draws the match, so it is for a run that
+   * will not be fought.
    */
   unmutatedOpening(): Match | null {
     if (this.match === null && !this.over) this.open();
     if (this.match === null) return null;
     const individuals = this.generation.individuals;
-    const founderOf = (index: number): Entrant => {
+    const founders = individuals.filter((individual) => individual.parent < 0);
+    const drawn: Individual[] = [];
+    for (const index of this.competitors) {
       const individual = individuals[index]!;
-      if (individual.parent < 0) return individual.entrant;
-      return (individuals.find((other) => other.id === individual.parent) ?? individual).entrant;
-    };
-    return new Match(this.competitors.map(founderOf), { ...this.config.match, seed: this.seed });
+      const founder = individual.parent < 0 ? individual : founders.find((f) => f.id === individual.parent);
+      if (founder !== undefined && !drawn.includes(founder)) drawn.push(founder);
+    }
+    for (const founder of founders) if (!drawn.includes(founder)) drawn.push(founder);
+    const entrants = this.competitors.map((_, k) => drawn[k % drawn.length]!.entrant);
+    return new Match(entrants, { ...this.config.match, seed: this.seed });
   }
 
   /** Draw the next match, or close the generation if it has had enough. */

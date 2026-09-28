@@ -156,6 +156,7 @@
       .note { color: #5d6f85; margin: 0.3rem 0 0; }
       .warn { color: #e6a45b; }
       [hidden] { display: none !important; }
+      body:not(.fleetRun) .fleetOnly { display: none; }
       footer { padding: 0.5rem 0.9rem; color: #5d6f85; border-top: 1px solid #1c2533; }
       @media (max-width: 1100px) {
         main { flex-direction: column; overflow-y: auto; }
@@ -192,12 +193,6 @@
           <select id="founders" multiple title="The ships and fleets the run starts from"></select>
           <p class="note">Ctrl-click for several. The rest of the first generation is mutants of these. One fleet makes it a run of fleets, any ship picked with it joining as a fleet of one.</p>
         </section>
-        <section id="fleetSettings" hidden>
-          <h2>The fleets</h2>
-          <div class="field"><label for="fleetRadius">spread m</label><input id="fleetRadius" type="number" min="1" step="50" title="How far from its origin any hull may reach" /></div>
-          <div class="field"><label for="fleetShips">most ships</label><input id="fleetShips" type="number" min="1" step="1" /></div>
-          <p class="note">A mutant that spreads further, fields more ships, outweighs the mass budget or overlaps its own hulls is refused. The budget is the whole fleet's.</p>
-        </section>
         <section>
           <h2>The run</h2>
           <div class="field"><label for="generations">generations</label><input id="generations" type="number" min="1" step="1" /></div>
@@ -205,8 +200,16 @@
           <div class="field"><label for="winners">bred from</label><input id="winners" type="number" min="1" step="1" /></div>
           <div class="field"><label for="group">per match</label><input id="group" type="number" min="1" step="1" /></div>
           <div class="field"><label for="minMatches">matches each</label><input id="minMatches" type="number" min="1" step="1" /></div>
-          <div class="field"><label for="massBudget">mass budget t</label><input id="massBudget" type="number" min="0" step="1" placeholder="none" /></div>
           <div class="field"><label for="seed">seed</label><input id="seed" type="number" step="1" /></div>
+        </section>
+        <section>
+          <h2>Limits</h2>
+          <div class="field"><label for="massBudget">mass budget t</label><input id="massBudget" type="number" min="0" step="1" placeholder="none" /></div>
+          <div class="fleetOnly">
+            <div class="field"><label for="fleetRadius">spread m</label><input id="fleetRadius" type="number" min="1" step="50" title="How far from its origin any hull may reach" /></div>
+            <div class="field"><label for="fleetShips">most ships</label><input id="fleetShips" type="number" min="1" step="1" /></div>
+          </div>
+          <p class="note">A mutant over any of these is refused. <span class="fleetOnly">In a run of fleets they are the whole fleet's, and a fleet whose hulls overlap is refused too.</span></p>
         </section>
         <section>
           <h2>The match</h2>
@@ -238,6 +241,16 @@
           <div class="field"><label for="kindHullBeam">hull beams</label><input id="kindHullBeam" type="number" min="0" step="1" /></div>
           <div class="field"><label for="kindCore">cores</label><input id="kindCore" type="number" min="0" step="1" /></div>
           <p class="note">Relative odds of each kind, when a module is added or refitted into something else. Zero shuts a kind out altogether.</p>
+        </section>
+        <section class="fleetOnly">
+          <h2>How fleets change</h2>
+          <div class="field"><label for="opDesign">a design bred</label><input id="opDesign" type="number" min="0" step="0.5" title="Mutate one design, in every ship built to it" /></div>
+          <div class="field"><label for="opMove">moved or turned</label><input id="opMove" type="number" min="0" step="0.5" /></div>
+          <div class="field"><label for="opAdd">ship added</label><input id="opAdd" type="number" min="0" step="0.5" title="A copy of one of the fleet's ships or groups, beside it" /></div>
+          <div class="field"><label for="opRemove">ship removed</label><input id="opRemove" type="number" min="0" step="0.5" /></div>
+          <div class="field"><label for="opFork">design forked</label><input id="opFork" type="number" min="0" step="0.5" title="One ship given a copy of its design to evolve on its own" /></div>
+          <div class="field"><label for="opMerge">designs merged</label><input id="opMerge" type="number" min="0" step="0.5" title="Every ship of one design built to another instead" /></div>
+          <p class="note">Relative odds of each change to a fleet. A design being bred uses the odds above.</p>
         </section>
         <section>
           <h2>Effort</h2>

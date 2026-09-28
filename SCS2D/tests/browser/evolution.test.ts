@@ -538,11 +538,14 @@ describe('the evolution page in a browser', () => {
 
   it('runs from a fleet, with its limits, and replays a match of fleets', async () => {
     if (await page.isEnabled('#stop')) await page.click('#stop');
-    expect(await page.isVisible('#fleetSettings')).toBe(false);
+    expect(await page.isVisible('#fleetRadius')).toBe(false);
+    expect(await page.isVisible('#opAdd')).toBe(false);
     await page.selectOption('#founders', [{ label: 'Line of Battle' }]);
-    expect(await page.isVisible('#fleetSettings')).toBe(true);
+    expect(await page.isVisible('#fleetRadius')).toBe(true);
+    expect(await page.isVisible('#opAdd')).toBe(true);
     await set(page, 'fleetRadius', '400');
     await set(page, 'fleetShips', '8');
+    await set(page, 'opAdd', '3');
     await set(page, 'group', '2');
     await set(page, 'generations', '1');
 
@@ -550,7 +553,7 @@ describe('the evolution page in a browser', () => {
     await page.click('#exportConfig');
     const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
     expect(file['fleets']).toEqual(['Line of Battle']);
-    expect(file['fleet']).toEqual({ radius: 400, maxShips: 8 });
+    expect(file['fleet']).toMatchObject({ radius: 400, maxShips: 8, operators: { add: 3 } });
 
     await page.click('#start');
     await page.selectOption('#mode', 'fleet');
