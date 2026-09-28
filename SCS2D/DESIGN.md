@@ -425,8 +425,11 @@ inside any one file is not contiguous.
   **Fleet evolution** breeds fleets, scored as one entrant each, under a total mass budget, a deployment
   radius and a ship count — headless with `npm run evolve -- --fleet`, and on the evolution page, whose
   founders are ships and fleets alike; a ship grows into a fleet unless the most ships allowed is one. Before a run the page shows the founders unmutated and the run's
-  first match paused at its start.
-- **Next:** §8 step 5 — a boss battle, planned in ROADMAP.md §8.
+  first match paused at its start. **A boss battle** sets every entrant on one side against a ship or fleet
+  that does not evolve, at the middle of the ring where the goal would be, each scored for what it does to
+  the boss alone.
+- **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL — or step 6,
+  in ROADMAP.md §8.
   §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio

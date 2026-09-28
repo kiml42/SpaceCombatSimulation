@@ -236,6 +236,26 @@ describe('the evolution page in a browser', () => {
     expect(problems).toEqual([]);
   });
 
+  it('sets a boss for every entrant to fight, and writes it down', async () => {
+    expect(await page.isDisabled('#boss')).toBe(true);
+    await page.selectOption('#goal', 'boss');
+    expect(await page.isDisabled('#boss')).toBe(false);
+    await page.selectOption('#boss', { label: 'Gunship' });
+    const saving = page.waitForEvent('download');
+    await page.click('#exportConfig');
+    const written = await (await saving).path();
+    const file = JSON.parse(await readFile(written, 'utf8')) as Record<string, unknown>;
+    expect((file['match'] as Record<string, unknown>)['boss']).toEqual({ ship: 'Gunship' });
+    await page.selectOption('#goal', 'solid');
+    expect(await page.isDisabled('#boss')).toBe(true);
+    // Read back, a file with a boss sets the goal to it.
+    await page.setInputFiles('#importConfigFile', written);
+    await page.waitForFunction(() => (document.getElementById('goal') as HTMLSelectElement).value === 'boss');
+    expect(await page.inputValue('#boss')).toBe('ship:Gunship');
+    await page.selectOption('#goal', 'solid');
+    expect(problems).toEqual([]);
+  });
+
   it('draws a third and fourth side in colours of their own', async () => {
     // A match is a free-for-all, so four entrants are four sides — and two of
     // them are sides the renderer only ever had to draw once evolution

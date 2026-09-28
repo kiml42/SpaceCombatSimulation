@@ -94,9 +94,8 @@ evolution page: a match
 takes fleets as entrants, a lone blueprint being a fleet of one, survival scored on the whole fleet's hull
 capacity left and ground gained by its nearest ship. Every operator has its inverse — mutate a design, fork and merge, add and remove, move and turn —
 and a mutant over the total dry mass, the deployment radius or the ship count, or with hulls overlapping, is
-refused. What remains:
-
-1. **A boss battle** — evolving against a fixed fleet.
+refused. **A boss battle** evolves against a fixed ship or fleet: every entrant on one side against it,
+scored for what it does to the boss alone (`match.boss`, `--boss`, and a boss picker on the page).
 
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
 lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
