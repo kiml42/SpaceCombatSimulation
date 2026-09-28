@@ -433,10 +433,11 @@ Deliberately unresolved; decide when they block something.
   which prices the spin itself rather than the pulsing. Both would also bear on ships that never try the
   trick, which is the part to think about before building either — a rate limit is a change to every
   manoeuvre, and a spin load is a change to every hull.
-- **Whether damage to what works should cost survival more than damage to armour.** Survival counts
-  every joule a hull loses alike, so a hit on structure worn as armour costs what a hit on a core, a gun or
-  an engine does. Weighting modules by kind is the obvious shape; the risk is the one core-only survival
-  avoided, of paying a design for carrying what it never uses.
+- **Whether every effect should count alike in the functional scores.** Thrust, firepower and control are
+  each a third, so losing a small gun battery costs what losing every engine does. A design with no guns
+  averages over two effects and has none to lose, which it pays for only in damage it cannot do.
+- **Function lost to severing is barely credited.** A piece cut off takes its hull capacity with it, and
+  that counts as loss nobody delivered, which dilutes the credit of whoever cut the weld.
 - **How big an arena should be.** A match's ring is five hundred metres because that is where the shipped
   corvettes fight each other to a finish — put four of them a kilometre apart and they settle at the
   standoff their doctrine asks for and plink, and no match is ever decided however long it runs, so two of

@@ -204,8 +204,9 @@ const run = runEvolution(founders, options.config, (generation) => {
     `gen ${String(generation.index).padStart(3)}  ` +
       `${String(generation.matches.length).padStart(3)} matches  ` +
       `mean ${generation.meanFitness.toFixed(3)}  best ${generation.bestFitness.toFixed(3)}  ` +
-      `| survival ${generation.mean.survival.toFixed(2)}  ` +
-      `damage ${generation.mean.damage.toFixed(3)}  race ${generation.mean.race.toFixed(2)}`,
+      `| hull ${generation.mean.survival.toFixed(2)}  function ${generation.mean.functional.toFixed(2)}  ` +
+      `damage ${generation.mean.damage.toFixed(3)}  disabling ${generation.mean.disabling.toFixed(3)}  ` +
+      `race ${generation.mean.race.toFixed(2)}`,
   );
 });
 const spent = (Date.now() - started) / 1000;
@@ -223,7 +224,8 @@ if (!options.quiet) {
         `${(best.individual.mass / 1000).toFixed(1)} tonnes`,
     );
     console.log(
-      `  survival ${best.individual.survival.toFixed(2)}  ` +
+      `  hull ${best.individual.survival.toFixed(2)}  function ${(best.individual.functional ?? 0).toFixed(2)}  ` +
+        `disabling ${(best.individual.disabling ?? 0).toFixed(2)}  ` +
         `damage ${best.individual.damage.toFixed(2)}  race ${best.individual.race.toFixed(2)}`,
     );
     for (const edit of best.individual.edits) console.log(`  ${edit}`);

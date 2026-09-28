@@ -261,7 +261,13 @@ inside any one file is not contiguous.
   cheapest possible improvement to any design a weapon it never fires. Survival is what an entrant's hulls
   could still absorb as a share of what they started with, averaged over the match — a hull whose cores are
   out counting for nothing — so a hull being shot to pieces scores less every step it takes it, being hurt
-  later beats being hurt sooner, and a fleet scores one fraction however many ships it has. Ground gained
+  later beats being hurt sooner, and a fleet scores one fraction however many ships it has. Beside it,
+  **what still works**: thrust, firepower and control, each as a share of what the entrant started with,
+  averaged across the three — read through the damage model's own cutouts, so a gun that has stopped firing
+  counts for nothing — so armour counts there only for what it keeps working. Its mirror is **function
+  taken** from the opposition, credited to each attacker by its share of everything the victim's hulls lost
+  that step; a ship's own fire and exhaust are part of that and nobody's credit, so hurting yourself never
+  pays. Ground gained
   is by an entrant's nearest ship, so more ships help only by covering the one that gets there. Damage is credited to whoever
   fired, which is the one thing a fitness function cannot get from what a hull has taken, and it is capped
   per victim, since a gun must not be paid for firing into something it has already killed. What is left of
