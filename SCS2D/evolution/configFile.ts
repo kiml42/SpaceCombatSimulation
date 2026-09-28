@@ -1,6 +1,6 @@
 import { PI } from '../sim/math.js';
 import { MODULE_KINDS } from '../sim/modules.js';
-import { DEFAULT_MATCH, type GoalSpec, type MatchConfig, type ScoreWeights } from './match.js';
+import { DEFAULT_MATCH, SCORE_PARTS, type GoalSpec, type MatchConfig, type ScoreWeights } from './match.js';
 import { DEFAULT_KINDS, type KindWeights } from './mutate.js';
 import { DEFAULT_RUN, type RunConfig } from './run.js';
 import { DEFAULT_FLEET_LIMITS } from './fleetMutate.js';
@@ -64,7 +64,7 @@ const FLEET_KEYS: readonly string[] = ['radius', 'maxShips'];
 const MATCH_KEYS: readonly string[] = ['duration', 'radius', 'scatter', 'goal', 'weights'];
 const GOAL_KEYS: readonly string[] = ['x', 'y', 'scale', 'size'];
 const GOAL_OPTIONAL_KEYS: readonly string[] = ['solid'];
-const WEIGHT_KEYS: readonly (keyof ScoreWeights)[] = ['survival', 'damage', 'race'];
+const WEIGHT_KEYS: readonly (keyof ScoreWeights)[] = SCORE_PARTS;
 
 /** The settings a run is given, as the object a file holds. */
 export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
@@ -191,7 +191,11 @@ export function parseRunConfig(value: unknown): RunSetup {
             : match['goal'] === null
               ? null
               : ({ ...(match['goal'] as GoalSpec) } as GoalSpec),
-        weights: { ...DEFAULT_MATCH.weights, ...(match['weights'] as Partial<ScoreWeights>) },
+        // Weights written without `functional` and `disabling` predate them, so they meant nought.
+        weights:
+          match['weights'] === undefined
+            ? { ...DEFAULT_MATCH.weights }
+            : { ...DEFAULT_MATCH.weights, functional: 0, disabling: 0, ...(match['weights'] as Partial<ScoreWeights>) },
       },
     },
   };

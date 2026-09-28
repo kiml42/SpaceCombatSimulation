@@ -48,23 +48,28 @@ describe('match', () => {
         const where = `seed ${seed}, entrant ${i}`;
         expect(score.survival, where).toBeGreaterThanOrEqual(0);
         expect(score.survival, where).toBeLessThanOrEqual(1);
-        expect(score.damage, where).toBeGreaterThanOrEqual(0);
-        expect(score.damage, where).toBeLessThanOrEqual(1);
+        for (const part of ['functional', 'damage', 'disabling'] as const) {
+          expect(score[part], where).toBeGreaterThanOrEqual(0);
+          expect(score[part], where).toBeLessThanOrEqual(1);
+        }
         // Signed: ground gained on the goal, so losing ground is negative.
         expect(score.race, where).toBeGreaterThanOrEqual(-1);
         expect(score.race, where).toBeLessThanOrEqual(1);
         expect(score.taken, where).toBeGreaterThanOrEqual(0);
         expect(score.taken, where).toBeLessThanOrEqual(1);
-        expect(score.total, where).toBeCloseTo(score.survival + score.damage + score.race, 10);
+        expect(score.total, where).toBeCloseTo(
+          score.survival + score.functional + score.damage + score.disabling + score.race,
+          10,
+        );
       }
     }
   });
 
   it('weighs the three parts as it is told to', () => {
-    const weights = { survival: 3, damage: 0, race: 0.5 };
+    const weights = { survival: 3, functional: 0.25, damage: 0, disabling: 2, race: 0.5 };
     const result = runMatch(FLEET, { seed: 7, weights });
     for (const score of result.scores) {
-      expect(score.total).toBeCloseTo(score.survival * 3 + score.race * 0.5, 10);
+      expect(score.total).toBeCloseTo(score.survival * 3 + score.functional * 0.25 + score.disabling * 2 + score.race * 0.5, 10);
     }
   });
 
@@ -73,7 +78,7 @@ describe('match', () => {
     // and what is left of it is credited to whoever is still standing.
     // Without that, killing everything in ten seconds of a two-minute match
     // scores a twelfth of what failing to land a shot for two minutes scores.
-    const weights = { survival: 1, damage: 1, race: 0 };
+    const weights = { survival: 1, functional: 1, damage: 1, disabling: 1, race: 0 };
     const result = runMatch([GUNSHIP, DINKY], { seed: 11, weights });
     expect(result.ending).toEqual('decided');
     expect(result.elapsed).toBeLessThan(DEFAULT_MATCH.duration);
@@ -89,7 +94,7 @@ describe('match', () => {
     const result = runMatch([GUNSHIP, DINKY], { seed: 11 });
     expect(result.ending).toEqual('decided');
     expect(result.elapsed).toBeCloseTo(DEFAULT_MATCH.duration, 9);
-    const early = runMatch([GUNSHIP, DINKY], { seed: 11, weights: { survival: 1, damage: 1, race: 0 } });
+    const early = runMatch([GUNSHIP, DINKY], { seed: 11, weights: { survival: 1, functional: 1, damage: 1, disabling: 1, race: 0 } });
     // The same fight up to the kill, then flown rather than frozen.
     const last = Math.max(...result.scores.map((score) => score.lifetime));
     const winner = result.scores.findIndex((score) => score.lifetime === last);

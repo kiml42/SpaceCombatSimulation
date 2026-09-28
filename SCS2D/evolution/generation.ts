@@ -26,7 +26,9 @@ export interface Individual {
   /** Totals across every match played, divided by `matches` to rank. */
   score: number;
   survival: number;
+  functional: number;
   damage: number;
+  disabling: number;
   race: number;
   /** How often this individual has met each other one, by id. */
   readonly met: Map<number, number>;
@@ -108,7 +110,9 @@ export class Generation {
       individual.matches += 1;
       individual.score += score.total;
       individual.survival += score.survival;
+      individual.functional += score.functional;
       individual.damage += score.damage;
+      individual.disabling += score.disabling;
       individual.race += score.race;
       for (const other of competitors) {
         if (other === competitors[c]) continue;
@@ -245,7 +249,9 @@ export function blank(
     matches: 0,
     score: 0,
     survival: 0,
+    functional: 0,
     damage: 0,
+    disabling: 0,
     race: 0,
     met: new Map(),
   };

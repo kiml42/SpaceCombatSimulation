@@ -31,7 +31,9 @@ function award(generation: Generation, competitors: readonly number[], totals: r
     ending: 'timeout',
     scores: totals.map((total) => ({
       survival: 0,
+      functional: 0,
       damage: 0,
+      disabling: 0,
       race: 0,
       total,
       lifetime: 1,

@@ -10,7 +10,7 @@ import {
   shipFleet,
 } from '../sim/index.js';
 import { max, min } from '../sim/math.js';
-import { isFleet, Match, type Entrant, type MatchConfig, type MatchResult } from './match.js';
+import { isFleet, Match, SCORE_PARTS, type Entrant, type MatchConfig, type MatchResult } from './match.js';
 import { type MutationLimits } from './mutate.js';
 import { type FleetMutationLimits } from './fleetMutate.js';
 import { blank, breed, fitness, Generation, offspring, type Individual } from './generation.js';
@@ -74,7 +74,10 @@ export interface IndividualRecord {
   readonly matches: number;
   readonly fitness: number;
   readonly survival: number;
+  /** Absent from runs recorded before it was scored. */
+  readonly functional?: number;
   readonly damage: number;
+  readonly disabling?: number;
   readonly race: number;
   /** Dry mass, kg — what the design cost. */
   readonly mass: number;
@@ -123,12 +126,8 @@ export interface GenerationRecord {
   readonly best: ScoreParts;
 }
 
-/** The three sources of score, apart. */
-export interface ScoreParts {
-  readonly survival: number;
-  readonly damage: number;
-  readonly race: number;
-}
+/** The sources of score, apart. */
+export type ScoreParts = Readonly<Record<(typeof SCORE_PARTS)[number], number>>;
 
 export interface RunRecord {
   readonly config: RunConfig;
@@ -374,9 +373,7 @@ function describe(generation: Generation, matches: readonly MatchRecord[]): Gene
     edits: individual.edits,
     matches: individual.matches,
     fitness: fitness(individual),
-    survival: individual.matches > 0 ? individual.survival / individual.matches : 0,
-    damage: individual.matches > 0 ? individual.damage / individual.matches : 0,
-    race: individual.matches > 0 ? individual.race / individual.matches : 0,
+    ...perMatch(individual),
     ...(isFleet(individual.entrant)
       ? { mass: fleetMass(fleetHulls(individual.entrant)), fleet: serialiseFleet(individual.entrant) }
       : { mass: compileBlueprint(individual.entrant).mass, blueprint: serialiseBlueprint(individual.entrant) }),
@@ -384,28 +381,45 @@ function describe(generation: Generation, matches: readonly MatchRecord[]): Gene
 
   let total = 0;
   let best = -Infinity;
-  const sum = { survival: 0, damage: 0, race: 0 };
-  const most = { survival: -Infinity, damage: -Infinity, race: -Infinity };
+  const sum = parts(0);
+  const most = parts(-Infinity);
   for (const individual of individuals) {
     total += individual.fitness;
     best = max(best, individual.fitness);
-    for (const part of ['survival', 'damage', 'race'] as const) {
+    for (const part of SCORE_PARTS) {
       sum[part] += individual[part];
       most[part] = max(most[part], individual[part]);
     }
   }
   const count = individuals.length;
-  const mean = (part: keyof ScoreParts): number => (count > 0 ? sum[part] / count : 0);
-  const peak = (part: keyof ScoreParts): number => (count > 0 ? most[part] : 0);
+  const mean = parts(0);
+  const peak = parts(0);
+  if (count > 0) {
+    for (const part of SCORE_PARTS) {
+      mean[part] = sum[part] / count;
+      peak[part] = most[part];
+    }
+  }
   return {
     index: generation.index,
     individuals,
     matches,
     meanFitness: count > 0 ? total / count : 0,
     bestFitness: count > 0 ? best : 0,
-    mean: { survival: mean('survival'), damage: mean('damage'), race: mean('race') },
-    best: { survival: peak('survival'), damage: peak('damage'), race: peak('race') },
+    mean,
+    best: peak,
   };
+}
+
+function parts(value: number): Record<(typeof SCORE_PARTS)[number], number> {
+  return { survival: value, functional: value, damage: value, disabling: value, race: value };
+}
+
+/** Each part of an individual's score, per match played. */
+function perMatch(individual: Individual): ScoreParts {
+  const out = parts(0);
+  if (individual.matches > 0) for (const part of SCORE_PARTS) out[part] = individual[part] / individual.matches;
+  return out;
 }
 
 /**

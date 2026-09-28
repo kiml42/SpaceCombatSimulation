@@ -11,6 +11,7 @@ import {
   type ShipDesign,
   type WellSpec,
 } from '../sim/index.js';
+import { addCapability, EFFECTS, workingShare } from './capability.js';
 import { makeBattle } from '../scenarios/battle.js';
 import type { Battle } from '../scenarios/types.js';
 
@@ -102,9 +103,14 @@ export interface GoalSpec {
  */
 export interface ScoreWeights {
   readonly survival: number;
+  readonly functional: number;
   readonly damage: number;
+  readonly disabling: number;
   readonly race: number;
 }
+
+/** The parts of a score, in the order they are listed. */
+export const SCORE_PARTS = ['survival', 'functional', 'damage', 'disabling', 'race'] as const;
 
 export interface MatchConfig {
   readonly seed: number;
@@ -171,7 +177,7 @@ export const DEFAULT_MATCH: MatchConfig = {
   duration: 120,
   radius: 500,
   goal: { x: 0, y: 0, scale: 500, size: 12 },
-  weights: { survival: 1, damage: 1, race: 1 },
+  weights: { survival: 1, functional: 1, damage: 1, disabling: 1, race: 1 },
   wells: [],
   scatter: math.PI,
 };
@@ -185,15 +191,23 @@ export interface Score {
    * being hurt sooner. More ships do not score more: it is one fraction per fleet.
    */
   readonly survival: number;
+  /**
+   * What the entrant can still do — thrust, firepower, control — as a share
+   * of what it started with, each effect alike, averaged over the match.
+   * Armour counts here only for what it keeps working.
+   */
+  readonly functional: number;
   /** Fraction of the opposition destroyed, by what its hulls could absorb. */
   readonly damage: number;
+  /** Fraction of the opposition's `functional` share this entrant took away. */
+  readonly disabling: number;
   /**
    * Ground gained on the goal over the match by the entrant's nearest ship, as
    * a share of what there was to gain. Zero for a design that stayed where it was put, and negative for one
    * that ended further off than it started.
    */
   readonly race: number;
-  /** The three, weighted and added. */
+  /** The parts, weighted and added. */
   readonly total: number;
   /** Seconds it lasted, for reading a result rather than for scoring one. */
   readonly lifetime: number;
@@ -275,6 +289,19 @@ export class Match {
   private readonly best: Float64Array;
   private readonly lifetime: Float64Array;
   private readonly dealt: Float64Array[];
+  /** Per entrant, by effect: what it could do at the start, and this step. */
+  private readonly startCapability: Float64Array;
+  private readonly capability: Float64Array;
+  /** Per entrant: its `functional` share last step, and summed over the match. */
+  private readonly working: Float64Array;
+  private readonly functional: Float64Array;
+  /** Per ship: what its hull could absorb last step. */
+  private readonly hull: Float64Array;
+  /** Per entrant this step: joules its hulls lost, and joules each attacker put in, by attacker * count + victim. */
+  private readonly lost: Float64Array;
+  private readonly delivered: Float64Array;
+  /** Per attacker, by victim: share of the victim's function taken away. */
+  private readonly disabled: Float64Array[];
   /** Which entrants still have a ship under command this step. */
   private readonly fightingNow: Uint8Array;
   private readonly entrantOf = new Map<number, number>();
@@ -381,7 +408,24 @@ export class Match {
     this.lifetime = new Float64Array(count);
     this.fightingNow = new Uint8Array(count);
     this.dealt = [];
-    for (let i = 0; i < count; i++) this.dealt.push(new Float64Array(count));
+    this.disabled = [];
+    for (let i = 0; i < count; i++) {
+      this.dealt.push(new Float64Array(count));
+      this.disabled.push(new Float64Array(count));
+    }
+    this.startCapability = new Float64Array(count * EFFECTS);
+    this.capability = new Float64Array(count * EFFECTS);
+    this.hull = new Float64Array(fielded);
+    for (let k = 0; k < fielded; k++) {
+      const design = this.battle.ships.design(this.battle.slots[k]!);
+      addCapability(this.startCapability, this.battle.owners[k]! * EFFECTS, design, null, -1);
+      this.hull[k] = hullCapacity(design);
+    }
+    this.working = new Float64Array(count);
+    for (let i = 0; i < count; i++) this.working[i] = workingShare(this.startCapability, this.startCapability, i * EFFECTS);
+    this.functional = new Float64Array(count);
+    this.lost = new Float64Array(count);
+    this.delivered = new Float64Array(count * count);
 
     // Where everyone began, taken before a single step so that nothing has had
     // a chance to shove anybody: a craft knocked off its mark by a neighbour in
@@ -431,18 +475,25 @@ export class Match {
     fightingNow.fill(0);
     const best = this.best;
     best.fill(0);
+    this.capability.fill(0);
+    this.lost.fill(0);
     for (let k = 0; k < this.battle.slots.length; k++) {
       const ship = this.battle.slots[k]!;
       const i = this.battle.owners[k]!;
       if (!ships.isAlive(ship)) continue;
       const body = world.bodies.indexOf(ships.body(ship));
       this.entrantOf.set(body, i);
+      const design = ships.design(ship);
+      const hull = hullLeft(ships, design, body);
+      this.lost[i]! += math.max(0, this.hull[k]! - hull);
+      this.hull[k] = hull;
       if (!ships.hasControl(ship)) continue;
 
       // Nobody is flying a hull whose cores have gone (DESIGN.md §4), and it
       // scores nothing more for being wreckage that has not been finished off.
       fightingNow[i] = 1;
-      this.survival[i]! += hullLeft(ships, ships.design(ship), body) / this.capacities[i]!;
+      this.survival[i]! += hull / this.capacities[i]!;
+      addCapability(this.capability, i * EFFECTS, design, ships, body);
       this.lifetime[i]! = this.step + 1;
 
       const goal = settings.goal;
@@ -467,11 +518,32 @@ export class Match {
     // competitor — wreckage, or a piece that has come off something — is
     // nobody's credit: it is neither a ship damaged nor an entrant doing it.
     const credit = this.battle.credit;
+    const count = this.count;
+    this.delivered.fill(0);
     for (let h = 0; h < credit.count; h++) {
       const attacker = this.entrantOf.get(credit.attacker[h]!);
       const victim = this.entrantOf.get(credit.victim[h]!);
-      if (attacker === undefined || victim === undefined || attacker === victim) continue;
-      this.dealt[attacker]![victim]! += credit.energy[h]!;
+      if (attacker === undefined || victim === undefined) continue;
+      this.delivered[attacker * count + victim]! += credit.energy[h]!;
+      if (attacker !== victim) this.dealt[attacker]![victim]! += credit.energy[h]!;
+    }
+
+    // Function lost this step goes to each attacker by its share of everything
+    // the victim took — its own fire and its own exhaust included, which are
+    // nobody's credit — so hurting yourself never pays anyone, least of all you.
+    for (let v = 0; v < count; v++) {
+      const now = workingShare(this.capability, this.startCapability, v * EFFECTS);
+      const drop = this.working[v]! - now;
+      this.working[v] = now;
+      this.functional[v]! += now;
+      if (!(drop > 0)) continue;
+      let credited = 0;
+      for (let a = 0; a < count; a++) credited += this.delivered[a * count + v]!;
+      const taken = math.max(this.lost[v]!, credited);
+      if (!(taken > 0)) continue;
+      for (let a = 0; a < count; a++) {
+        if (a !== v) this.disabled[a]![v]! += (drop * this.delivered[a * count + v]!) / taken;
+      }
     }
 
     this.step++;
@@ -496,9 +568,11 @@ export class Match {
     // formality, so it is scored as though it had been played out and gone on
     // the way it was going.
     const survival = Float64Array.from(this.survival);
+    const functional = Float64Array.from(this.functional);
     const race = Float64Array.from(this.race);
     const left = this.total - this.step;
     if (left > 0) {
+      for (let i = 0; i < count; i++) functional[i]! += this.working[i]! * left;
       const best = new Float64Array(count);
       const fighting = new Uint8Array(count);
       for (let k = 0; k < this.battle.slots.length; k++) {
@@ -518,6 +592,7 @@ export class Match {
     const scores: Score[] = [];
     for (let i = 0; i < count; i++) {
       let hurt = 0;
+      let disabling = 0;
       for (let v = 0; v < count; v++) {
         if (v === i) continue;
         // Capped per victim: a ship can only be destroyed once, and without the
@@ -525,12 +600,15 @@ export class Match {
         // already stopped — which is exactly the habit a fitness function must
         // not pay for.
         hurt += math.min(1, this.dealt[i]![v]! / this.capacities[v]!);
+        disabling += math.min(1, this.disabled[i]![v]!);
         taken[i]! += this.dealt[v]![i]!;
       }
       const opposition = math.max(1, count - 1);
       const parts = {
         survival: survival[i]! / this.total,
+        functional: functional[i]! / this.total,
         damage: hurt / opposition,
+        disabling: disabling / opposition,
         // Signed, and bounded by how much ground there was to gain or lose.
         race: this.measured ? race[i]! / this.total : 0,
       };
@@ -538,7 +616,9 @@ export class Match {
         ...parts,
         total:
           parts.survival * settings.weights.survival +
+          parts.functional * settings.weights.functional +
           parts.damage * settings.weights.damage +
+          parts.disabling * settings.weights.disabling +
           parts.race * settings.weights.race,
         lifetime: this.lifetime[i]! * settings.dt,
         taken: math.min(1, taken[i]! / this.capacities[i]!),
