@@ -1,12 +1,12 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { compileBlueprint, fleetHulls, fleetMass, parseFleet, type Fleet } from '../sim/index.js';
+import { compileBlueprint, fleetHulls, fleetMass, parseBlueprint, parseFleet, type Fleet } from '../sim/index.js';
 import { BLUEPRINTS, type BlueprintName } from '../scenarios/blueprints.js';
 import { FLEETS } from '../scenarios/fleets.js';
 import { finalist, matchCount, runEvolution, DEFAULT_RUN, type RunConfig } from '../evolution/run.js';
 import type { Entrant } from '../evolution/match.js';
 import { DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS } from '../evolution/mutate.js';
-import { parseRunConfig, serialiseRunConfig } from '../evolution/configFile.js';
+import { parseRunConfig, serialiseRunConfig, type BossName } from '../evolution/configFile.js';
 import type { ModuleKind } from '../sim/modules.js';
 
 /**
@@ -23,6 +23,8 @@ interface Options {
   readonly from: readonly BlueprintName[];
   /** Fleet founders, by the name a config file would give them. Any makes it a run of fleets. */
   readonly fleets: readonly { name: string; fleet: Fleet }[];
+  /** What every entrant fights together, by the name a config file gives it, or null. */
+  readonly boss: BossName | null;
   readonly out: string;
   /** Where to write the settings this run was given, or '' for nowhere. */
   readonly saveConfig: string;
@@ -64,9 +66,32 @@ function fleetFrom(name: string): Fleet {
   }
 }
 
+/** A boss by stock ship, stock fleet or file, and the name a config file will give it. */
+function bossFrom(name: string): { boss: Entrant; named: BossName } {
+  for (const [key, blueprint] of Object.entries(BLUEPRINTS)) {
+    if (blueprint.name === name || key === name) return { boss: blueprint, named: { kind: 'ship', name: blueprint.name } };
+  }
+  const stock = FLEETS[name];
+  if (stock !== undefined) return { boss: stock, named: { kind: 'fleet', name } };
+  let value: unknown;
+  try {
+    value = JSON.parse(readFileSync(name, 'utf8'));
+  } catch (error) {
+    if ((error as { code?: string }).code !== 'ENOENT') throw error;
+    throw new Error(`no such ship, fleet or file for a boss: ${name}`);
+  }
+  if (typeof value === 'object' && value !== null && 'designs' in value) {
+    const fleet = parseFleet(value);
+    return { boss: fleet, named: { kind: 'fleet', name: fleet.name } };
+  }
+  const blueprint = parseBlueprint(value);
+  return { boss: blueprint, named: { kind: 'ship', name: blueprint.name } };
+}
+
 function parse(argv: readonly string[]): Options {
   const from: BlueprintName[] = [];
   const fleets: { name: string; fleet: Fleet }[] = [];
+  let boss: BossName | null = null;
   // Whatever a `--config` file said, which every flag then overrides: a saved
   // experiment with one number changed is the commonest thing to want, and
   // having to edit the file to get it would mean editing the record of what
@@ -105,6 +130,13 @@ function parse(argv: readonly string[]): Options {
       // How far from its origin a fleet may spread, and how many ships it may field.
       case '--deploy': fleet['radius'] = Number(value()); break;
       case '--ships': fleet['maxShips'] = Number(value()); break;
+      // A ship or fleet every entrant fights together.
+      case '--boss': {
+        const found = bossFrom(value());
+        match['boss'] = found.boss;
+        boss = found.named;
+        break;
+      }
       case '--out': out = value(); break;
       case '--seed': config['seed'] = Number(value()); break;
       case '--generations': config['generations'] = Number(value()); break;
@@ -150,6 +182,11 @@ function parse(argv: readonly string[]): Options {
         for (const name of setup.founders) from.push(resolve(name));
         for (const name of setup.fleets ?? []) fleets.push({ name, fleet: fleetFrom(name) });
         config = { ...setup.config };
+        if (setup.boss != null) {
+          const found = bossFrom(setup.boss.name);
+          config['match'] = { ...setup.config.match, boss: found.boss };
+          boss = found.named;
+        }
         break;
       }
       case '--save-config': saveConfig = value(); break;
@@ -180,7 +217,7 @@ function parse(argv: readonly string[]): Options {
     for (const { fleet } of fleets) heaviest = Math.max(heaviest, fleetMass(fleetHulls(fleet)));
     config['massBudget'] = heaviest * budget;
   }
-  return { from, fleets, out, saveConfig, config, quiet };
+  return { from, fleets, boss, out, saveConfig, config, quiet };
 }
 
 const options = parse(process.argv.slice(2));
@@ -193,7 +230,8 @@ const settings: RunConfig = { ...DEFAULT_RUN, ...options.config };
 if (!options.quiet) {
   console.log(
     `${[...options.from, ...options.fleets.map(({ name }) => name)].join(', ')} — ${settings.generations} generations of ` +
-      `${settings.population}, ${settings.group} to a match, ${settings.minMatches} matches each`,
+      `${settings.population}, ${settings.group} to a match, ${settings.minMatches} matches each` +
+      (options.boss === null ? '' : `, all against ${options.boss.name}`),
   );
 }
 
@@ -205,6 +243,7 @@ if (options.saveConfig !== '') {
       serialiseRunConfig({
         founders: options.from.map((name) => BLUEPRINTS[name]!.name),
         fleets: options.fleets.map(({ name }) => name),
+        boss: options.boss,
         config: settings,
       }),
       null,

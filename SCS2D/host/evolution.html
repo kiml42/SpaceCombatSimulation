@@ -221,11 +221,13 @@
           <div class="field"><label for="duration">seconds</label><input id="duration" type="number" min="1" step="5" /></div>
           <div class="field"><label for="radius">arena m</label><input id="radius" type="number" min="10" step="50" /></div>
           <div class="field"><label for="scatter">scatter °</label><input id="scatter" type="number" min="0" max="180" step="15" /></div>
-          <div class="field"><label for="goal">goal</label><select id="goal" title="Solid blocks shots and can be run into; a ghost is only somewhere to be">
+          <div class="field"><label for="goal">goal</label><select id="goal" title="Solid blocks shots and can be run into; a ghost is only somewhere to be; boss puts a ship or fleet there for every entrant to fight together">
             <option value="solid">solid</option>
             <option value="ghost">ghost</option>
             <option value="none">none</option>
+            <option value="boss">boss</option>
           </select></div>
+          <div class="field" title="With the goal set to boss: a ship or fleet every entrant fights together, where the goal would be. Each is scored for what it does to the boss, and a hit on another entrant earns nothing."><label for="boss">boss</label><select id="boss" disabled></select></div>
         </details>
         <details open data-key="whatitisscoredon">
           <summary><h2>What it is scored on</h2></summary>
