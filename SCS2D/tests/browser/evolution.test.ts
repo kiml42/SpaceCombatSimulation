@@ -115,6 +115,8 @@ beforeAll(async () => {
   // A run small enough to finish inside a test: two short matches' worth of
   // ships, two generations, and as much of each frame as the page will spend.
   await page.selectOption('#founders', ['Dinky']);
+  // Kept a run of ships; the fleet test lets them grow.
+  await set(page, 'fleetShips', '1');
   await set(page, 'generations', '2');
   await set(page, 'population', '4');
   await set(page, 'winners', '2');
@@ -538,8 +540,14 @@ describe('the evolution page in a browser', () => {
 
   it('runs from a fleet, with its limits, and replays a match of fleets', async () => {
     if (await page.isEnabled('#stop')) await page.click('#stop');
+    // A ship limited to one ship stays a ship; allowed more, it may grow into a fleet.
+    await page.selectOption('#founders', ['Dinky']);
     expect(await page.isVisible('#fleetRadius')).toBe(false);
     expect(await page.isVisible('#opAdd')).toBe(false);
+    await set(page, 'fleetShips', '2');
+    expect(await page.isVisible('#opAdd')).toBe(true);
+    await set(page, 'fleetShips', '1');
+    // So does picking a fleet, whatever the limit.
     await page.selectOption('#founders', [{ label: 'Line of Battle' }]);
     expect(await page.isVisible('#fleetRadius')).toBe(true);
     expect(await page.isVisible('#opAdd')).toBe(true);

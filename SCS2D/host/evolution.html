@@ -191,7 +191,7 @@
         <section>
           <h2>Founders</h2>
           <select id="founders" multiple title="The ships and fleets the run starts from"></select>
-          <p class="note">Ctrl-click for several. The rest of the first generation is mutants of these. One fleet makes it a run of fleets, any ship picked with it joining as a fleet of one.</p>
+          <p class="note">Ctrl-click for several. The rest of the first generation is mutants of these. A ship starts as a fleet of one, and grows into more unless the most ships is one.</p>
         </section>
         <section>
           <h2>The run</h2>
@@ -205,11 +205,9 @@
         <section>
           <h2>Limits</h2>
           <div class="field"><label for="massBudget">mass budget t</label><input id="massBudget" type="number" min="0" step="1" placeholder="none" /></div>
-          <div class="fleetOnly">
-            <div class="field"><label for="fleetRadius">spread m</label><input id="fleetRadius" type="number" min="1" step="50" title="How far from its origin any hull may reach" /></div>
-            <div class="field"><label for="fleetShips">most ships</label><input id="fleetShips" type="number" min="1" step="1" /></div>
-          </div>
-          <p class="note">A mutant over any of these is refused. <span class="fleetOnly">In a run of fleets they are the whole fleet's, and a fleet whose hulls overlap is refused too.</span></p>
+          <div class="field"><label for="fleetShips">most ships</label><input id="fleetShips" type="number" min="1" step="1" title="One keeps a run of ships breeding ships" /></div>
+          <div class="field fleetOnly"><label for="fleetRadius">spread m</label><input id="fleetRadius" type="number" min="1" step="50" title="How far from its origin any hull may reach" /></div>
+          <p class="note">A mutant over any of these is refused. <span class="fleetOnly">They are the whole fleet's, and a fleet whose hulls overlap is refused too.</span> More than one ship lets a ship grow into a fleet; one keeps it a ship.</p>
         </section>
         <section>
           <h2>The match</h2>

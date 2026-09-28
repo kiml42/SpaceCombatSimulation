@@ -83,17 +83,12 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
     minMatches: config.minMatches,
     massBudget: Number.isFinite(config.massBudget) ? config.massBudget : null,
     kinds: { ...kinds },
-    // Only for a run of fleets, so a run of ships reads as it always did.
-    ...((setup.fleets ?? []).length > 0
-      ? {
-          fleets: [...setup.fleets!],
-          fleet: {
-            radius: config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius,
-            maxShips: config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips,
-            operators: { ...DEFAULT_FLEET_LIMITS.operators, ...config.fleet.operators },
-          },
-        }
-      : {}),
+    ...((setup.fleets ?? []).length > 0 ? { fleets: [...setup.fleets!] } : {}),
+    fleet: {
+      radius: config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius,
+      maxShips: config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips,
+      operators: { ...DEFAULT_FLEET_LIMITS.operators, ...config.fleet.operators },
+    },
     match: {
       duration: match.duration,
       radius: match.radius,
@@ -193,7 +188,14 @@ export function parseRunConfig(value: unknown): RunSetup {
       mutation: { kinds: { ...DEFAULT_KINDS, ...(file['kinds'] as Partial<KindWeights>) } },
       fleet: {
         radius: read(fleet['radius'], DEFAULT_FLEET_LIMITS.radius),
-        maxShips: read(fleet['maxShips'], DEFAULT_FLEET_LIMITS.maxShips),
+        // A file with no fleet settings and no fleets predates ships growing into
+        // fleets, so it meant ships.
+        maxShips: read(
+          fleet['maxShips'],
+          file['fleet'] === undefined && ((file['fleets'] as unknown[] | undefined) ?? []).length === 0
+            ? 1
+            : DEFAULT_FLEET_LIMITS.maxShips,
+        ),
         operators: {
           ...DEFAULT_FLEET_LIMITS.operators,
           ...(isRecord(fleet['operators']) ? (fleet['operators'] as Partial<Record<FleetOperator, number>>) : {}),

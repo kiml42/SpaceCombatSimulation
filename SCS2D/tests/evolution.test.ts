@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { blueprintProblem, parseBlueprint, Rng, type Blueprint } from '../sim/index.js';
+import { blueprintProblem, Rng, type Blueprint } from '../sim/index.js';
 import { blank, breed, Generation, fitness } from '../evolution/generation.js';
 import { runMatch } from '../evolution/match.js';
-import { finalist, Run, runEvolution, seedPopulation, DEFAULT_RUN } from '../evolution/run.js';
+import { entrantOf, finalist, Run, runEvolution, seedPopulation, DEFAULT_RUN } from '../evolution/run.js';
 import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
 
 /**
@@ -155,7 +155,7 @@ describe('a run', () => {
 
   it('seeds a population from what it was given', () => {
     const rng = new Rng(1);
-    const seeded = seedPopulation([CORVETTE, DINKY], rng, { ...DEFAULT_RUN, population: 5 });
+    const seeded = seedPopulation([CORVETTE, DINKY], rng, { ...DEFAULT_RUN, population: 5, fleet: { maxShips: 1 } });
     expect(seeded.individuals.length).toEqual(5);
     // The founders go in as they are, so a run always contains what it was
     // asked about rather than only things bred from it.
@@ -203,9 +203,7 @@ describe('a run', () => {
     for (const generation of run.generations) {
       const byId = new Map(generation.individuals.map((individual) => [individual.id, individual]));
       for (const match of generation.matches) {
-        const entrants: Blueprint[] = match.competitors.map((id) =>
-          parseBlueprint(byId.get(id)!.blueprint),
-        );
+        const entrants = match.competitors.map((id) => entrantOf(byId.get(id)!));
         const again = runMatch(entrants, { ...settings.match, seed: match.seed });
         expect(again.ending).toEqual(match.ending);
         expect(again.scores).toEqual(match.scores);

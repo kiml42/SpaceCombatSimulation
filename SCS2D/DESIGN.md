@@ -404,7 +404,7 @@ inside any one file is not contiguous.
   more than one side can fight on, without stopping the battle.
   **Fleet evolution** breeds fleets, scored as one entrant each, under a total mass budget, a deployment
   radius and a ship count — headless with `npm run evolve -- --fleet`, and on the evolution page, whose
-  founders are ships and fleets alike. Before a run the page shows the founders unmutated and the run's
+  founders are ships and fleets alike; a ship grows into a fleet unless the most ships allowed is one. Before a run the page shows the founders unmutated and the run's
   first match paused at its start.
 - **Next:** §8 step 5 — a boss battle, planned in ROADMAP.md §8.
   §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,

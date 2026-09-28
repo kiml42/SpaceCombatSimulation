@@ -330,6 +330,7 @@ export function startEvolution(): void {
    * has been fought, its results are what the panel is for.
    */
   const refreshPreview = (): void => {
+    showFleetSettings();
     if (run !== null) return;
     for (const id of [...pictures.keys()]) if (id < 0) pictures.delete(id);
     for (const [id, tile] of [...fleetTiles]) {
@@ -424,7 +425,9 @@ export function startEvolution(): void {
   fillList(benchmarkSelect, (_, name) => name);
 
   /** Whether a fleet is among the founders, which makes it a run of fleets. */
-  const fleetRun = (): boolean => [...foundersSelect.selectedOptions].some((o) => pickOf(o.value).kind === 'fleet');
+  const fleetRun = (): boolean =>
+    [...foundersSelect.selectedOptions].some((o) => pickOf(o.value).kind === 'fleet') ||
+    Math.round(number(inputs.fleetShips, DEFAULT_FLEET_LIMITS.maxShips)) > 1;
   const showFleetSettings = (): void => {
     document.body.classList.toggle('fleetRun', fleetRun());
   };

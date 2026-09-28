@@ -193,8 +193,15 @@ describe('a run of fleets', () => {
     expect(fleetMass(fleetHulls(fleet))).toBeCloseTo(compileBlueprint(CORVETTE).mass);
   });
 
-  it('stays a run of ships when no founder is a fleet', () => {
-    const run = runEvolution([DINKY], { ...settings, generations: 1 });
+  it('lets a ship founder grow into a fleet', () => {
+    const run = runEvolution([DINKY], { ...settings, generations: 3 });
+    for (const generation of run.generations) {
+      for (const individual of generation.individuals) expect(isFleet(entrantOf(individual))).toBe(true);
+    }
+  });
+
+  it('stays a run of ships when a ship may not grow', () => {
+    const run = runEvolution([DINKY], { ...settings, generations: 1, fleet: { maxShips: 1 } });
     for (const individual of run.generations[0]!.individuals) {
       expect(individual.fleet).toBeUndefined();
       expect(isFleet(entrantOf(individual))).toBe(false);
@@ -219,9 +226,14 @@ describe('a run-config file with fleets', () => {
     expect(runConfigFileProblem({ fleet: { operators: { add: -1 } } })).toMatch(/zero or more/);
   });
 
-  it('writes nothing about fleets for a run of ships', () => {
+  it('writes the fleet limits for a run of ships, which may grow into fleets', () => {
     const file = serialiseRunConfig({ founders: ['Corvette'], config: DEFAULT_RUN });
     expect(file['fleets']).toBeUndefined();
-    expect(file['fleet']).toBeUndefined();
+    expect(file['fleet']).toMatchObject({ maxShips: DEFAULT_FLEET_LIMITS.maxShips });
+  });
+
+  it('reads a file from before fleets as a run of ships', () => {
+    expect(parseRunConfig({ founders: ['Corvette'] }).config.fleet.maxShips).toEqual(1);
+    expect(parseRunConfig({ founders: ['Corvette'], fleet: {} }).config.fleet.maxShips).toEqual(DEFAULT_FLEET_LIMITS.maxShips);
   });
 });
