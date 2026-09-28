@@ -1,9 +1,9 @@
 import { PI } from '../sim/math.js';
 import { MODULE_KINDS } from '../sim/modules.js';
 import { DEFAULT_MATCH, SCORE_PARTS, type GoalSpec, type MatchConfig, type ScoreWeights } from './match.js';
-import { DEFAULT_KINDS, type KindWeights } from './mutate.js';
+import { DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS, type DoctrineWeights, type KindWeights } from './mutate.js';
 import { DEFAULT_RUN, type RunConfig } from './run.js';
-import { DEFAULT_FLEET_LIMITS } from './fleetMutate.js';
+import { DEFAULT_FLEET_LIMITS, type FleetOperator } from './fleetMutate.js';
 
 /**
  * The run-config file: what a set of evolution settings looks like written
@@ -54,12 +54,14 @@ const FILE_KEYS: readonly string[] = [
   'minMatches',
   'massBudget',
   'kinds',
+  'doctrine',
   'match',
   'fleets',
   'fleet',
 ];
 
-const FLEET_KEYS: readonly string[] = ['radius', 'maxShips'];
+const FLEET_KEYS: readonly string[] = ['radius', 'maxShips', 'operators'];
+const OPERATOR_KEYS = Object.keys(DEFAULT_FLEET_LIMITS.operators) as FleetOperator[];
 
 const MATCH_KEYS: readonly string[] = ['duration', 'radius', 'scatter', 'goal', 'weights'];
 const GOAL_KEYS: readonly string[] = ['x', 'y', 'scale', 'size'];
@@ -82,16 +84,13 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
     minMatches: config.minMatches,
     massBudget: Number.isFinite(config.massBudget) ? config.massBudget : null,
     kinds: { ...kinds },
-    // Only for a run of fleets, so a run of ships reads as it always did.
-    ...((setup.fleets ?? []).length > 0
-      ? {
-          fleets: [...setup.fleets!],
-          fleet: {
-            radius: config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius,
-            maxShips: config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips,
-          },
-        }
-      : {}),
+    doctrine: { ...DEFAULT_DOCTRINE_WEIGHTS, ...config.mutation.doctrine },
+    ...((setup.fleets ?? []).length > 0 ? { fleets: [...setup.fleets!] } : {}),
+    fleet: {
+      radius: config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius,
+      maxShips: config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips,
+      operators: { ...DEFAULT_FLEET_LIMITS.operators, ...config.fleet.operators },
+    },
     match: {
       duration: match.duration,
       radius: match.radius,
@@ -135,6 +134,18 @@ export function runConfigFileProblem(value: unknown): string | null {
     const problem = numberProblem(fleet['radius'], 'fleet.radius') ?? countProblem(fleet['maxShips'], 'fleet.maxShips');
     if (problem !== null) return problem;
     if (fleet['radius'] !== undefined && (fleet['radius'] as number) <= 0) return 'fleet.radius must be more than nothing';
+    const operators = fleet['operators'];
+    if (operators !== undefined) {
+      if (!isRecord(operators)) return 'fleet.operators must be an object of weights, one per change';
+      const unknown = unknownKeys(operators, OPERATOR_KEYS);
+      if (unknown.length > 0) return `fleet.operators has unknown ${unknown.length > 1 ? 'keys' : 'key'} ${unknown.join(', ')}`;
+      for (const key of OPERATOR_KEYS) {
+        const weight = operators[key];
+        const bad = numberProblem(weight, `fleet.operators.${key}`);
+        if (bad !== null) return bad;
+        if (weight !== undefined && (weight as number) < 0) return `fleet.operators.${key} must be zero or more`;
+      }
+    }
   }
 
   return (
@@ -146,6 +157,7 @@ export function runConfigFileProblem(value: unknown): string | null {
     numberProblem(value['seed'], 'seed') ??
     budgetProblem(value['massBudget']) ??
     kindsProblem(value['kinds']) ??
+    doctrineProblem(value['doctrine']) ??
     matchProblem(value['match'])
   );
 }
@@ -176,10 +188,24 @@ export function parseRunConfig(value: unknown): RunSetup {
       group: read(file['group'], DEFAULT_RUN.group),
       minMatches: read(file['minMatches'], DEFAULT_RUN.minMatches),
       massBudget: budget === undefined || budget === null ? Infinity : (budget as number),
-      mutation: { kinds: { ...DEFAULT_KINDS, ...(file['kinds'] as Partial<KindWeights>) } },
+      mutation: {
+        kinds: { ...DEFAULT_KINDS, ...(file['kinds'] as Partial<KindWeights>) },
+        doctrine: { ...DEFAULT_DOCTRINE_WEIGHTS, ...(file['doctrine'] as Partial<DoctrineWeights>) },
+      },
       fleet: {
         radius: read(fleet['radius'], DEFAULT_FLEET_LIMITS.radius),
-        maxShips: read(fleet['maxShips'], DEFAULT_FLEET_LIMITS.maxShips),
+        // A file with no fleet settings and no fleets predates ships growing into
+        // fleets, so it meant ships.
+        maxShips: read(
+          fleet['maxShips'],
+          file['fleet'] === undefined && ((file['fleets'] as unknown[] | undefined) ?? []).length === 0
+            ? 1
+            : DEFAULT_FLEET_LIMITS.maxShips,
+        ),
+        operators: {
+          ...DEFAULT_FLEET_LIMITS.operators,
+          ...(isRecord(fleet['operators']) ? (fleet['operators'] as Partial<Record<FleetOperator, number>>) : {}),
+        },
       },
       match: {
         duration: read(match['duration'], DEFAULT_MATCH.duration),
@@ -252,6 +278,21 @@ function kindsProblem(value: unknown): string | null {
     if (value[kind] !== undefined && (value[kind] as number) < 0) {
       return `kinds.${kind} must be zero or more, got ${JSON.stringify(value[kind])}`;
     }
+  }
+  return null;
+}
+
+const DOCTRINE_KEYS = Object.keys(DEFAULT_DOCTRINE_WEIGHTS);
+
+function doctrineProblem(value: unknown): string | null {
+  if (value === undefined) return null;
+  if (!isRecord(value)) return 'doctrine must be an object of weights: targeting, approach, gunnery';
+  const extra = unknownKeys(value, DOCTRINE_KEYS);
+  if (extra.length > 0) return `doctrine has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
+  for (const key of DOCTRINE_KEYS) {
+    const problem = numberProblem(value[key], `doctrine.${key}`);
+    if (problem !== null) return problem;
+    if (value[key] !== undefined && (value[key] as number) < 0) return `doctrine.${key} must be zero or more`;
   }
   return null;
 }

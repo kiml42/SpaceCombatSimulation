@@ -1,4 +1,13 @@
-import { capture, parseBlueprint, Snapshot, type Blueprint, type ShipDesign } from '../sim/index.js';
+import {
+  capture,
+  compileBlueprint,
+  expandFleet,
+  serialiseFleet,
+  shipFleet,
+  Snapshot,
+  type Fleet,
+  type ShipDesign,
+} from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
 import { draw } from '../render/canvas2d.js';
 import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
@@ -9,12 +18,14 @@ import {
   moveWithVisibleShips,
   type Camera,
 } from '../render/camera.js';
-import { BUILT_IN, Library, toFileText } from '../editor/library.js';
-import { previewSnapshot } from '../editor/preview.js';
-import { compileBlueprint } from '../sim/index.js';
+import { BUILT_IN, FLEET_FILES, Library, toFileText } from '../editor/library.js';
+import { NO_TEAM } from '../editor/preview.js';
+import { fleetSnapshot } from '../editor/fleetPreview.js';
+import type { FleetView } from '../editor/fleetDocument.js';
 import { fitness } from '../evolution/generation.js';
-import { DEFAULT_MATCH, Match, type MatchConfig } from '../evolution/match.js';
-import { DEFAULT_KINDS, type KindWeights } from '../evolution/mutate.js';
+import { DEFAULT_MATCH, isFleet, Match, type Entrant, type MatchConfig } from '../evolution/match.js';
+import { DEFAULT_FLEET_LIMITS } from '../evolution/fleetMutate.js';
+import { DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS, type KindWeights } from '../evolution/mutate.js';
 import { parseRunConfig, serialiseRunConfig, type RunSetup } from '../evolution/configFile.js';
 import { latest, Yardstick, type YardstickReport } from '../evolution/yardstick.js';
 import {
@@ -22,6 +33,7 @@ import {
   DEFAULT_RUN,
   Run,
   type GenerationRecord,
+  entrantOf,
   type MatchRecord,
   type RunConfig,
 } from '../evolution/run.js';
@@ -56,6 +68,8 @@ const FLEET_EASE = 0.15;
 
 /** What the settings are saved under, so a refresh does not cost them. */
 const SETUP_KEY = 'scs2d.evolution.setup';
+/** Which panel sections are folded away, so a refresh keeps them so. */
+const FOLDED_KEY = 'scs2d.evolution.folded';
 
 const FIELDS = [
   'generations',
@@ -64,6 +78,14 @@ const FIELDS = [
   'group',
   'minMatches',
   'massBudget',
+  'fleetRadius',
+  'fleetShips',
+  'opDesign',
+  'opMove',
+  'opAdd',
+  'opRemove',
+  'opFork',
+  'opMerge',
   'seed',
   'duration',
   'radius',
@@ -80,6 +102,9 @@ const FIELDS = [
   'kindHullGun',
   'kindHullBeam',
   'kindCore',
+  'doctrineTargeting',
+  'doctrineApproach',
+  'doctrineGunnery',
   'effort',
 ] as const;
 
@@ -90,20 +115,41 @@ interface Row {
   readonly matches: number;
   readonly fitness: number;
   readonly survival: number;
+  readonly functional: number;
   readonly damage: number;
+  readonly disabling: number;
   readonly race: number;
   readonly mass: number;
   readonly edits: readonly string[];
-  readonly blueprint: Blueprint;
+  readonly entrant: Entrant;
 }
 
-/** A ship's tile in the fleet, and the scale it was last drawn at. */
+/** An individual laid out to draw — a ship as a fleet of one — and what it weighs. */
+interface Picture {
+  readonly view: Pick<FleetView, 'ships' | 'designs'>;
+  readonly mass: number;
+}
+
+/** A design's tile in the population, and the scale it was last drawn at. */
 interface Tile {
   readonly figure: HTMLElement;
   readonly caption: HTMLElement;
   readonly canvas: HTMLCanvasElement;
-  readonly design: ShipDesign;
+  readonly picture: Picture;
   drawnAt: number;
+}
+
+/** A founder or benchmark in a list, as its option's value: `ship:Name` or `fleet:Name`. */
+type Choice = { kind: 'ship' | 'fleet'; name: string };
+const valueOf = (kind: Choice['kind'], name: string): string => `${kind}:${name}`;
+function pickOf(value: string): Choice {
+  // Settings saved before fleets could found a run hold bare ship names.
+  if (value.startsWith('fleet:')) return { kind: 'fleet', name: value.slice(6) };
+  return { kind: 'ship', name: value.startsWith('ship:') ? value.slice(5) : value };
+}
+
+function fleetFileText(fleet: Fleet): string {
+  return `${JSON.stringify(serialiseFleet(fleet), null, 2)}\n`;
 }
 
 function ratio(): number {
@@ -174,8 +220,32 @@ export function startEvolution(): void {
   ) as Record<(typeof FIELDS)[number], HTMLInputElement>;
 
   const library = new Library(window.localStorage);
+  const fleetLibrary = new Library(window.localStorage, FLEET_FILES);
+  const load = (value: string): Entrant | null => {
+    const { kind, name } = pickOf(value);
+    return kind === 'fleet' ? fleetLibrary.load(name) : library.load(name);
+  };
+  const chosenFounders = (): Entrant[] => {
+    const founders: Entrant[] = [];
+    for (const option of foundersSelect.selectedOptions) {
+      try {
+        const founder = load(option.value);
+        if (founder !== null) founders.push(founder);
+      } catch {
+        // An unreadable saved file is left out, as a missing one is.
+      }
+    }
+    return founders;
+  };
 
   let run: Run | null = null;
+  /** Before a run: the founders as chosen, and the first match they would fight, paused at its start. */
+  let previewRows: Row[] = [];
+  let previewMatch: Match | null = null;
+  /** What saving the best said, and which individual it was. */
+  let savedAs: { id: number; text: string } | null = null;
+  /** Said in place of the run's progress until the next Start, so the next report does not wipe it. */
+  let notice = '';
   let paused = false;
   let replay: Match | null = null;
   let replayOf: MatchRecord | null = null;
@@ -196,7 +266,7 @@ export function startEvolution(): void {
    * run redraw only what actually changed.
    */
   const fleetTiles = new Map<number, Tile>();
-  const fleetSnapshot = new Snapshot();
+  const tileSnapshot = new Snapshot();
   /**
    * Pixels per metre, shared by every tile so their sizes compare. It eases
    * towards whatever fits the largest ship on show, so seeking through a run
@@ -223,7 +293,7 @@ export function startEvolution(): void {
   let last = 0;
   // Compiling a hull to weigh it is not free, and the panel is redrawn many
   // times a run; an individual's mass never changes, and its id never repeats.
-  const designs = new Map<number, ShipDesign>();
+  const pictures = new Map<number, Picture>();
   let refreshedAt = 0;
 
   // ---- settings ----------------------------------------------------------
@@ -235,6 +305,14 @@ export function startEvolution(): void {
     group: String(DEFAULT_RUN.group),
     minMatches: String(DEFAULT_RUN.minMatches),
     massBudget: '',
+    fleetRadius: String(DEFAULT_FLEET_LIMITS.radius),
+    fleetShips: String(DEFAULT_FLEET_LIMITS.maxShips),
+    opDesign: String(DEFAULT_FLEET_LIMITS.operators.design),
+    opMove: String(DEFAULT_FLEET_LIMITS.operators.move),
+    opAdd: String(DEFAULT_FLEET_LIMITS.operators.add),
+    opRemove: String(DEFAULT_FLEET_LIMITS.operators.remove),
+    opFork: String(DEFAULT_FLEET_LIMITS.operators.fork),
+    opMerge: String(DEFAULT_FLEET_LIMITS.operators.merge),
     seed: String(DEFAULT_RUN.seed),
     duration: String(DEFAULT_MATCH.duration),
     radius: String(DEFAULT_MATCH.radius),
@@ -251,7 +329,47 @@ export function startEvolution(): void {
     kindHullGun: String(DEFAULT_KINDS.hullGun),
     kindHullBeam: String(DEFAULT_KINDS.hullBeam),
     kindCore: String(DEFAULT_KINDS.core),
+    doctrineTargeting: String(DEFAULT_DOCTRINE_WEIGHTS.targeting),
+    doctrineApproach: String(DEFAULT_DOCTRINE_WEIGHTS.approach),
+    doctrineGunnery: String(DEFAULT_DOCTRINE_WEIGHTS.gunnery),
     effort: '12',
+  };
+
+  /**
+   * Show what Start would begin with. Only while there is no run: once one
+   * has been fought, its results are what the panel is for.
+   */
+  const refreshPreview = (): void => {
+    showFleetSettings();
+    if (run !== null) return;
+    for (const id of [...pictures.keys()]) if (id < 0) pictures.delete(id);
+    for (const [id, tile] of [...fleetTiles]) {
+      if (id >= 0) continue;
+      tile.figure.remove();
+      fleetTiles.delete(id);
+    }
+    const founders = chosenFounders();
+    previewRows = founders.map((entrant, k) => ({
+      id: -(k + 1),
+      parent: -1,
+      matches: 0,
+      fitness: 0,
+      survival: 0,
+      functional: 0,
+      damage: 0,
+      disabling: 0,
+      race: 0,
+      mass: pictureOf(-(k + 1), entrant).mass,
+      edits: [],
+      entrant,
+    }));
+    try {
+      previewMatch = founders.length === 0 ? null : new Run(founders, readSetup().config).unmutatedOpening();
+    } catch {
+      // A founder that will not compile has nothing to show.
+      previewMatch = null;
+    }
+    refresh();
   };
 
   const saveSetup = (): void => {
@@ -263,6 +381,7 @@ export function startEvolution(): void {
     } catch {
       // Storage being full or refused costs the settings, not the run.
     }
+    refreshPreview();
   };
 
   const loadSetup = (): Record<string, string> => {
@@ -275,41 +394,76 @@ export function startEvolution(): void {
     return {};
   };
 
+  // Sections fold as the player left them.
+  const folded = new Set<string>();
+  try {
+    for (const key of JSON.parse(window.localStorage.getItem(FOLDED_KEY) ?? '[]') as string[]) folded.add(key);
+  } catch {
+    // Unreadable is as good as nothing folded.
+  }
+  for (const section of document.querySelectorAll<HTMLDetailsElement>('details[data-key]')) {
+    const key = section.dataset['key']!;
+    if (folded.has(key)) section.open = false;
+    section.addEventListener('toggle', () => {
+      if (section.open) folded.delete(key);
+      else folded.add(key);
+      try {
+        window.localStorage.setItem(FOLDED_KEY, JSON.stringify([...folded]));
+      } catch {
+        // Costs the folding, not the run.
+      }
+    });
+  }
+
   const held = loadSetup();
   for (const name of FIELDS) inputs[name].value = held[name] ?? defaults[name];
   // Settings saved when this was a checkbox held '1' or ''.
   const heldGoal = held['goal'] === '' ? 'none' : held['goal'] === '1' ? 'solid' : held['goal'];
   goalInput.value = heldGoal === 'ghost' || heldGoal === 'none' ? heldGoal : 'solid';
 
-  const wanted = new Set((held['founders'] ?? 'Corvette').split('\n'));
-  // A ship is chosen here by name, and a name opens one layout: the player's
-  // copy where there is one. The editor lists a shadowed shipped ship beside
-  // it because that is a ship to open; a founder picked by name is not.
-  const stockNames = new Set(BUILT_IN.map((blueprint) => blueprint.name));
-  for (const entry of library.list()) {
-    if (entry.stock && entry.saved) continue;
-    const option = document.createElement('option');
-    option.value = entry.name;
-    option.textContent = stockNames.has(entry.name) ? entry.name : `${entry.name} (saved)`;
-    option.selected = wanted.has(entry.name);
-    foundersSelect.append(option);
-  }
+  const wanted = new Set((held['founders'] ?? 'Corvette').split('\n').map((value) => {
+    const { kind, name } = pickOf(value);
+    return valueOf(kind, name);
+  }));
+  // Chosen by name, and a name opens one layout: the player's copy where there
+  // is one. The editors list a shadowed shipped one beside it because that is
+  // something to open; a founder picked by name is not.
+  const stockShips = new Set(BUILT_IN.map((blueprint) => blueprint.name));
+  const stockFleets = new Set(FLEET_FILES.builtIn.map((fleet) => fleet.name));
+  const fillList = (select: HTMLSelectElement, label: (stock: boolean, name: string) => string): void => {
+    for (const [kind, title, entries, stock] of [
+      ['ship', 'Ships', library.list(), stockShips],
+      ['fleet', 'Fleets', fleetLibrary.list(), stockFleets],
+    ] as const) {
+      const group = document.createElement('optgroup');
+      group.label = title;
+      for (const entry of entries) {
+        if (entry.stock && entry.saved) continue;
+        const option = new Option(label(stock.has(entry.name), entry.name), valueOf(kind, entry.name));
+        group.append(option);
+      }
+      select.append(group);
+    }
+  };
+  fillList(foundersSelect, (stock, name) => (stock ? name : `${name} (saved)`));
+  for (const option of foundersSelect.options) option.selected = wanted.has(option.value);
   if (foundersSelect.selectedOptions.length === 0 && foundersSelect.options.length > 0) {
     foundersSelect.options[0]!.selected = true;
   }
 
   const OWN_FINAL = '';
-  const ownOption = document.createElement('option');
-  ownOption.value = OWN_FINAL;
-  ownOption.textContent = 'its own final design';
-  benchmarkSelect.append(ownOption);
-  for (const entry of library.list()) {
-    if (entry.stock && entry.saved) continue;
-    const option = document.createElement('option');
-    option.value = entry.name;
-    option.textContent = entry.name;
-    benchmarkSelect.append(option);
-  }
+  benchmarkSelect.append(new Option('its own final design', OWN_FINAL));
+  fillList(benchmarkSelect, (_, name) => name);
+
+  /** Whether a fleet is among the founders, which makes it a run of fleets. */
+  const fleetRun = (): boolean =>
+    [...foundersSelect.selectedOptions].some((o) => pickOf(o.value).kind === 'fleet') ||
+    Math.round(number(inputs.fleetShips, DEFAULT_FLEET_LIMITS.maxShips)) > 1;
+  const showFleetSettings = (): void => {
+    document.body.classList.toggle('fleetRun', fleetRun());
+  };
+  showFleetSettings();
+  foundersSelect.addEventListener('change', showFleetSettings);
 
   for (const name of FIELDS) inputs[name].addEventListener('change', saveSetup);
   goalInput.addEventListener('change', saveSetup);
@@ -325,6 +479,18 @@ export function startEvolution(): void {
       group: Math.max(1, Math.round(number(inputs.group, DEFAULT_RUN.group))),
       minMatches: Math.max(1, Math.round(number(inputs.minMatches, DEFAULT_RUN.minMatches))),
       massBudget: tonnes > 0 ? tonnes * 1000 : Infinity,
+      fleet: {
+        radius: Math.max(1, number(inputs.fleetRadius, DEFAULT_FLEET_LIMITS.radius)),
+        maxShips: Math.max(1, Math.round(number(inputs.fleetShips, DEFAULT_FLEET_LIMITS.maxShips))),
+        operators: {
+          design: Math.max(0, number(inputs.opDesign, DEFAULT_FLEET_LIMITS.operators.design)),
+          move: Math.max(0, number(inputs.opMove, DEFAULT_FLEET_LIMITS.operators.move)),
+          add: Math.max(0, number(inputs.opAdd, DEFAULT_FLEET_LIMITS.operators.add)),
+          remove: Math.max(0, number(inputs.opRemove, DEFAULT_FLEET_LIMITS.operators.remove)),
+          fork: Math.max(0, number(inputs.opFork, DEFAULT_FLEET_LIMITS.operators.fork)),
+          merge: Math.max(0, number(inputs.opMerge, DEFAULT_FLEET_LIMITS.operators.merge)),
+        },
+      },
       mutation: {
         kinds: {
           thruster: Math.max(0, number(inputs.kindThruster, DEFAULT_KINDS.thruster)),
@@ -334,6 +500,11 @@ export function startEvolution(): void {
           hullGun: Math.max(0, number(inputs.kindHullGun, DEFAULT_KINDS.hullGun)),
           hullBeam: Math.max(0, number(inputs.kindHullBeam, DEFAULT_KINDS.hullBeam)),
           core: Math.max(0, number(inputs.kindCore, DEFAULT_KINDS.core)),
+        },
+        doctrine: {
+          targeting: Math.max(0, number(inputs.doctrineTargeting, DEFAULT_DOCTRINE_WEIGHTS.targeting)),
+          approach: Math.max(0, number(inputs.doctrineApproach, DEFAULT_DOCTRINE_WEIGHTS.approach)),
+          gunnery: Math.max(0, number(inputs.doctrineGunnery, DEFAULT_DOCTRINE_WEIGHTS.gunnery)),
         },
       },
       match: {
@@ -356,10 +527,14 @@ export function startEvolution(): void {
   };
 
   /** Everything the form says, as a run's settings. */
-  const readSetup = (): RunSetup => ({
-    founders: [...foundersSelect.selectedOptions].map((option) => option.value),
-    config: { ...DEFAULT_RUN, ...configure() },
-  });
+  const readSetup = (): RunSetup => {
+    const picked = [...foundersSelect.selectedOptions].map((option) => pickOf(option.value));
+    return {
+      founders: picked.filter((p) => p.kind === 'ship').map((p) => p.name),
+      fleets: picked.filter((p) => p.kind === 'fleet').map((p) => p.name),
+      config: { ...DEFAULT_RUN, ...configure() },
+    };
+  };
 
   /**
    * Put a setup into the form.
@@ -379,6 +554,15 @@ export function startEvolution(): void {
     inputs.group.value = String(config.group);
     inputs.minMatches.value = String(config.minMatches);
     inputs.massBudget.value = Number.isFinite(config.massBudget) ? String(config.massBudget / 1000) : '';
+    inputs.fleetRadius.value = String(config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius);
+    inputs.fleetShips.value = String(config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips);
+    const operators = { ...DEFAULT_FLEET_LIMITS.operators, ...config.fleet.operators };
+    inputs.opDesign.value = String(operators.design);
+    inputs.opMove.value = String(operators.move);
+    inputs.opAdd.value = String(operators.add);
+    inputs.opRemove.value = String(operators.remove);
+    inputs.opFork.value = String(operators.fork);
+    inputs.opMerge.value = String(operators.merge);
     inputs.duration.value = String(match.duration);
     inputs.radius.value = String(match.radius);
     inputs.scatter.value = String((match.scatter * 180) / Math.PI);
@@ -394,11 +578,20 @@ export function startEvolution(): void {
     inputs.kindHullGun.value = String(kinds.hullGun);
     inputs.kindHullBeam.value = String(kinds.hullBeam);
     inputs.kindCore.value = String(kinds.core);
+    const doctrine = { ...DEFAULT_DOCTRINE_WEIGHTS, ...config.mutation.doctrine };
+    inputs.doctrineTargeting.value = String(doctrine.targeting);
+    inputs.doctrineApproach.value = String(doctrine.approach);
+    inputs.doctrineGunnery.value = String(doctrine.gunnery);
     goalInput.value = match.goal === null ? 'none' : match.goal.solid === false ? 'ghost' : 'solid';
-    if (setup.founders.length > 0) {
-      const named = new Set(setup.founders);
+    const fleets = setup.fleets ?? [];
+    if (setup.founders.length + fleets.length > 0) {
+      const named = new Set([
+        ...setup.founders.map((name) => valueOf('ship', name)),
+        ...fleets.map((name) => valueOf('fleet', name)),
+      ]);
       for (const option of foundersSelect.options) option.selected = named.has(option.value);
     }
+    showFleetSettings();
     saveSetup();
   };
 
@@ -418,7 +611,8 @@ export function startEvolution(): void {
         return;
       }
       readout.className = '';
-      readout.textContent = 'Settings read from a file. Press Start when you are ready.';
+      notice = 'Settings read from a file. Press Start when you are ready.';
+      readout.textContent = notice;
     });
     // Cleared so that choosing the same file twice is two imports rather
     // than one, which matters while a file is being edited beside the page.
@@ -739,19 +933,24 @@ export function startEvolution(): void {
    * it lasts.
    */
   const showFleet = (rows: readonly Row[]): void => {
+    const empty = fleetBox.querySelector('p.none');
     if (rows.length === 0) {
-      if (fleetBox.childElementCount === 0) {
+      for (const tile of fleetTiles.values()) tile.figure.remove();
+      fleetTiles.clear();
+      const text = run === null ? 'Pick founders to see them here.' : 'Nothing bred yet.';
+      if (empty === null) {
         const note = document.createElement('p');
         note.className = 'none';
-        note.textContent = 'Nothing bred yet.';
+        note.textContent = text;
         fleetBox.append(note);
-      }
+      } else empty.textContent = text;
       return;
     }
+    empty?.remove();
 
     fleetTarget = Infinity;
     for (const row of rows) {
-      const shot = previewSnapshot(designOf(row.id, row.blueprint), fleetSnapshot);
+      const shot = fleetSnapshot(pictureOf(row.id, row.entrant).view, tileSnapshot, NO_TEAM);
       fleetTarget = Math.min(fleetTarget, fitScale(shot, TILE_WIDTH * ratio(), TILE_HEIGHT * ratio()));
     }
     if (fleetScale === 0) fleetScale = fleetTarget;
@@ -776,13 +975,14 @@ export function startEvolution(): void {
       tile.figure.classList.toggle('picked', row.id === picked);
       tile.caption.replaceChildren();
       const name = document.createElement('b');
-      name.textContent = `${rank + 1}. #${row.id}`;
-      tile.caption.append(
-        name,
-        ` ${row.matches > 0 ? row.fitness.toFixed(3) : '—'} · ${(row.mass / 1000).toFixed(1)} t`,
-      );
-      tile.figure.title =
-        row.edits.length > 0 ? row.edits.join('\n') : 'a ship the run started from';
+      // A preview's founders have no id yet; their names say more.
+      name.textContent = row.id < 0 ? row.entrant.name : `${rank + 1}. #${row.id}`;
+      const ships = tile.picture.view.ships.length;
+      const weight = document.createElement('span');
+      weight.textContent =
+        `${(row.mass / 1000).toFixed(1)} t` + (isFleet(row.entrant) ? ` · ${ships} ship${ships === 1 ? '' : 's'}` : '');
+      tile.caption.append(name, row.id < 0 ? '' : ` ${row.matches > 0 ? row.fitness.toFixed(3) : '—'}`, weight);
+      tile.figure.title = row.edits.length > 0 ? row.edits.join('\n') : 'a founder of the run';
     }
   };
 
@@ -799,7 +999,7 @@ export function startEvolution(): void {
     });
     canvas.width = Math.round(TILE_WIDTH * ratio());
     canvas.height = Math.round(TILE_HEIGHT * ratio());
-    const tile: Tile = { figure, caption, canvas, design: designOf(row.id, row.blueprint), drawnAt: 0 };
+    const tile: Tile = { figure, caption, canvas, picture: pictureOf(row.id, row.entrant), drawnAt: 0 };
     drawTile(tile);
     return tile;
   };
@@ -813,7 +1013,7 @@ export function startEvolution(): void {
     if (tile.drawnAt === fleetScale) return;
     const tileCtx = tile.canvas.getContext('2d');
     if (tileCtx === null) return;
-    const shot = previewSnapshot(tile.design, fleetSnapshot);
+    const shot = fleetSnapshot(tile.picture.view, tileSnapshot, NO_TEAM);
     const eye: Camera = {
       x: (shot.minX + shot.maxX) / 2,
       y: (shot.minY + shot.maxY) / 2,
@@ -876,27 +1076,36 @@ export function startEvolution(): void {
    * sake of a page that is showing twelve of them. The oldest go first, which
    * on a seek means the ones already scrolled past.
    */
-  const designOf = (id: number, blueprint: Blueprint): ShipDesign => {
-    const held = designs.get(id);
+  const pictureOf = (id: number, entrant: Entrant): Picture => {
+    const held = pictures.get(id);
     if (held !== undefined) return held;
-    const design = compileBlueprint(blueprint);
-    designs.set(id, design);
-    while (designs.size > DESIGNS_KEPT) {
-      const oldest = designs.keys().next();
+    const fleet = isFleet(entrant) ? entrant : shipFleet(entrant);
+    const compiled = new Map<string, ShipDesign>();
+    const ships = expandFleet(fleet);
+    const designs = ships.map((ship) => {
+      let design = compiled.get(ship.design);
+      if (design === undefined) {
+        design = compileBlueprint(fleet.designs[ship.design]!);
+        compiled.set(ship.design, design);
+      }
+      return design;
+    });
+    const picture: Picture = { view: { ships, designs }, mass: designs.reduce((sum, d) => sum + d.mass, 0) };
+    pictures.set(id, picture);
+    while (pictures.size > DESIGNS_KEPT) {
+      const oldest = pictures.keys().next();
       if (oldest.done === true) break;
-      designs.delete(oldest.value);
+      pictures.delete(oldest.value);
     }
-    return design;
+    return picture;
   };
-
-  const massOf = (id: number, blueprint: Blueprint): number => designOf(id, blueprint).mass;
 
   /** Which generation the panel is showing, and the rows and matches in it. */
   const showing = (
     wanted = shown,
   ): { index: number; rows: Row[]; matches: readonly MatchRecord[] } => {
     const empty = { index: 0, rows: [], matches: [] };
-    if (run === null) return empty;
+    if (run === null) return { ...empty, rows: previewRows };
     const closed = run.generations.length;
     // The newest generation is the one being fought while there is one, and
     // the last one closed once there is not — a finished run must go on
@@ -911,12 +1120,13 @@ export function startEvolution(): void {
         matches: individual.matches,
         fitness: fitness(individual),
         survival: individual.matches > 0 ? individual.survival / individual.matches : 0,
+        functional: individual.matches > 0 ? individual.functional / individual.matches : 0,
         damage: individual.matches > 0 ? individual.damage / individual.matches : 0,
+        disabling: individual.matches > 0 ? individual.disabling / individual.matches : 0,
         race: individual.matches > 0 ? individual.race / individual.matches : 0,
-        // The page runs ships only; fleets are bred headlessly.
-        mass: massOf(individual.id, individual.entrant as Blueprint),
+        mass: pictureOf(individual.id, individual.entrant).mass,
         edits: individual.edits,
-        blueprint: individual.entrant as Blueprint,
+        entrant: individual.entrant,
       }));
       return { index, rows, matches: run.played };
     }
@@ -927,20 +1137,22 @@ export function startEvolution(): void {
       matches: individual.matches,
       fitness: individual.fitness,
       survival: individual.survival,
+      functional: individual.functional ?? 0,
       damage: individual.damage,
+      disabling: individual.disabling ?? 0,
       race: individual.race,
       mass: individual.mass,
       edits: individual.edits,
-      blueprint: parseBlueprint(individual.blueprint),
+      entrant: entrantOf(individual),
     }));
     return { index, rows, matches: record.matches };
   };
 
   const startReplay = (record: MatchRecord, rows: readonly Row[]): void => {
-    const entrants: Blueprint[] = [];
+    const entrants: Entrant[] = [];
     for (const id of record.competitors) {
       const row = rows.find((candidate) => candidate.id === id);
-      if (row !== undefined) entrants.push(row.blueprint);
+      if (row !== undefined) entrants.push(row.entrant);
     }
     // One is enough: a match of one ship is a run's test of its piloting.
     if (entrants.length === 0 || run === null) return;
@@ -969,17 +1181,10 @@ export function startEvolution(): void {
     // fought one match: the list is all there will ever be.
     skipButton.disabled = run === null || (run.done && matches.length < 2);
 
-    fleetTarget = Infinity;
-    for (const row of rows) {
-      const shot = previewSnapshot(designOf(row.id, row.blueprint), fleetSnapshot);
-      fleetTarget = Math.min(fleetTarget, fitScale(shot, TILE_WIDTH * ratio(), TILE_HEIGHT * ratio()));
-    }
-    if (fleetScale === 0) fleetScale = fleetTarget;
-
     const ranked = [...rows].sort((a, b) => b.fitness - a.fitness);
     const best = ranked[0];
     shipsBody.replaceChildren();
-    for (const row of ranked) {
+    for (const row of run === null ? [] : ranked) {
       const tr = document.createElement('tr');
       if (row === best) tr.className = 'champion';
       for (const cell of [
@@ -987,7 +1192,9 @@ export function startEvolution(): void {
         row.parent < 0 ? '—' : String(row.parent),
         row.fitness.toFixed(3),
         row.survival.toFixed(2),
+        row.functional.toFixed(2),
         row.damage.toFixed(2),
+        row.disabling.toFixed(2),
         row.race.toFixed(2),
         (row.mass / 1000).toFixed(1),
       ]) {
@@ -995,7 +1202,7 @@ export function startEvolution(): void {
         td.textContent = cell;
         tr.append(td);
       }
-      tr.title = row.edits.length > 0 ? row.edits.join('\n') : 'a ship the run started from';
+      tr.title = row.edits.length > 0 ? row.edits.join('\n') : 'a founder of the run';
       tr.addEventListener('click', () => {
         editsLine.textContent =
           row.edits.length > 0 ? `#${row.id}: ${row.edits.join('; ')}` : `#${row.id}: a founder`;
@@ -1028,8 +1235,10 @@ export function startEvolution(): void {
       series.push(
         { name: 'best', colour: '#e6edf5', values: of((g) => g.bestFitness) },
         { name: 'mean', colour: '#7fa8e0', values: of((g) => g.meanFitness) },
-        { name: 'surviving', colour: '#7fd6a0', values: of((g) => g.mean.survival), dashed: true },
+        { name: 'hull kept', colour: '#7fd6a0', values: of((g) => g.mean.survival), dashed: true },
+        { name: 'function kept', colour: '#b48ee0', values: of((g) => g.mean.functional), dashed: true },
         { name: 'damage', colour: '#e0655f', values: of((g) => g.mean.damage), dashed: true },
+        { name: 'function taken', colour: '#e08ec0', values: of((g) => g.mean.disabling), dashed: true },
         { name: 'ground', colour: '#e9c05f', values: of((g) => g.mean.race), dashed: true },
       );
     }
@@ -1052,38 +1261,49 @@ export function startEvolution(): void {
     championLine.textContent =
       top === null
         ? '—'
-        : `#${top.individual.id}, best of generation ${top.generation + 1}: ` +
+        : savedAs?.id === top.individual.id
+          ? savedAs.text
+          : `#${top.individual.id}, best of generation ${top.generation + 1}: ` +
           `${top.individual.fitness.toFixed(3)} over ${top.individual.matches} matches, ` +
           `${(top.individual.mass / 1000).toFixed(1)} t`;
   };
 
-  const bestBlueprint = (): { blueprint: Blueprint; generation: number } | null => {
+  /** The run's best, renamed for the generation it came from, and its id. */
+  const champion = (): { entrant: Entrant; id: number } | null => {
     if (run === null) return null;
     const top = finalist(run.record());
     if (top === null) return null;
-    const blueprint = parseBlueprint(top.individual.blueprint);
-    return {
-      blueprint: { ...blueprint, name: `${blueprint.name} g${top.generation + 1}` },
-      generation: top.generation,
-    };
+    const entrant = entrantOf(top.individual);
+    return { entrant: { ...entrant, name: `${entrant.name} g${top.generation + 1}` }, id: top.individual.id };
   };
 
   saveButton.addEventListener('click', () => {
-    const best = bestBlueprint();
+    const best = champion();
     if (best === null) return;
-    library.save(best.blueprint);
-    championLine.textContent = `saved as "${best.blueprint.name}" — open it in the ship editor`;
+    const { entrant } = best;
+    if (isFleet(entrant)) fleetLibrary.save(entrant);
+    else library.save(entrant);
+    // Kept until there is a new best, so the next refresh does not wipe it.
+    savedAs = {
+      id: best.id,
+      text: `saved as "${entrant.name}" — open it in the ${isFleet(entrant) ? 'fleet' : 'ship'} editor`,
+    };
+    championLine.textContent = savedAs.text;
   });
   exportButton.addEventListener('click', () => {
-    const best = bestBlueprint();
+    const best = champion();
     if (best === null) return;
-    download(`${best.blueprint.name.replace(/[^\w.-]+/g, '_')}.json`, toFileText(best.blueprint));
+    const { entrant } = best;
+    download(
+      `${entrant.name.replace(/[^\w.-]+/g, '_')}.json`,
+      isFleet(entrant) ? fleetFileText(entrant) : toFileText(entrant),
+    );
   });
   measureButton.addEventListener('click', () => {
     if (run === null || run.generations.length === 0) return;
     const record = run.record();
     const chosen = benchmarkSelect.value;
-    const benchmark = chosen === OWN_FINAL ? latest(record) : library.load(chosen);
+    const benchmark = chosen === OWN_FINAL ? latest(record) : load(chosen);
     if (benchmark === null) {
       yardstickLine.textContent = 'Nothing to measure against yet.';
       return;
@@ -1119,22 +1339,22 @@ export function startEvolution(): void {
   };
 
   startButton.addEventListener('click', () => {
-    const founders: Blueprint[] = [];
-    for (const option of foundersSelect.selectedOptions) {
-      const blueprint = library.load(option.value);
-      if (blueprint !== null) founders.push(blueprint);
-    }
+    const founders = chosenFounders();
     if (founders.length === 0) {
-      readout.textContent = 'Pick at least one ship to start from.';
+      readout.textContent = 'Pick at least one ship or fleet to start from.';
       readout.className = 'warn';
       return;
     }
     readout.className = '';
     run = new Run(founders, readSetup().config);
+    previewMatch = null;
+    previewRows = [];
+    savedAs = null;
+    notice = '';
     yardstick = null;
     measured = null;
     yardstickLine.textContent = 'Measure once there is something to measure.';
-    designs.clear();
+    pictures.clear();
     shown = -1;
     replay = null;
     replayOf = null;
@@ -1167,7 +1387,7 @@ export function startEvolution(): void {
   window.addEventListener('resize', resize);
   resize();
   applyMode();
-  refresh();
+  refreshPreview();
 
   const tick = (now: number): void => {
     if (last === 0) last = now;
@@ -1226,7 +1446,7 @@ export function startEvolution(): void {
       for (const tile of fleetTiles.values()) drawTile(tile);
     }
 
-    watch(replay);
+    watch(replay ?? (run === null ? previewMatch : null));
     playButton.disabled = replay === null;
     stepButton.disabled = replay === null;
     if (modeSelect.value === 'battle') paint();
@@ -1271,6 +1491,12 @@ export function startEvolution(): void {
     if (run === null) {
       stateLabel.textContent = 'idle';
       barFill.style.width = '0';
+      watchingLabel.textContent =
+        modeSelect.value === 'battle'
+          ? previewMatch === null
+            ? 'nothing to fight'
+            : 'first match, unmutated'
+          : `${previewRows.length} founders, unmutated`;
       return;
     }
     const done = run.generations.length;
@@ -1282,11 +1508,13 @@ export function startEvolution(): void {
     for (const generation of run.generations) fought += generation.matches.length;
     fought += run.done ? 0 : run.played.length;
     readout.textContent =
-      `generation ${Math.min(done + 1, total)} of ${total} · ` +
-      `${fought} matches fought · ${(run.progress * 100).toFixed(0)}%`;
+      notice !== ''
+        ? notice
+        : `generation ${Math.min(done + 1, total)} of ${total} · ` +
+          `${fought} matches fought · ${(run.progress * 100).toFixed(0)}%`;
     if (modeSelect.value !== 'battle') {
       const shown = showing();
-      watchingLabel.textContent = `${shown.rows.length} ships of generation ${shown.index + 1}`;
+      watchingLabel.textContent = `${shown.rows.length} combatants of generation ${shown.index + 1}`;
     } else if (skipping) {
       watchingLabel.textContent = 'skipped · waiting for the next match';
     } else if (replay !== null) {

@@ -12,7 +12,7 @@ import {
 import { max, min } from '../sim/math.js';
 import { isFleet, Match, SCORE_PARTS, type Entrant, type MatchConfig, type MatchResult } from './match.js';
 import { type MutationLimits } from './mutate.js';
-import { type FleetMutationLimits } from './fleetMutate.js';
+import { DEFAULT_FLEET_LIMITS, type FleetMutationLimits } from './fleetMutate.js';
 import { blank, breed, fitness, Generation, offspring, type Individual } from './generation.js';
 
 /**
@@ -150,9 +150,7 @@ export function seedPopulation(
   rng: Rng,
   config: RunConfig,
 ): Generation {
-  // A run is of ships or of fleets. One fleet among the founders makes it a
-  // run of fleets, and a ship among them joins as a fleet of one.
-  const fleets = founders.some(isFleet);
+  const fleets = isFleetRun(founders, config);
   const entrants = fleets ? founders.map((founder) => (isFleet(founder) ? founder : shipFleet(founder))) : founders;
   const individuals: Individual[] = [];
   let id = 0;
@@ -168,6 +166,15 @@ export function seedPopulation(
     individuals.push(blank(id++, child.entrant, source.id, child.edits));
   }
   return new Generation(0, individuals);
+}
+
+/**
+ * Whether a run breeds fleets: whenever a fleet founds it, or a ship may grow
+ * into one. A ship joins as a fleet of one; allowing one ship at most keeps a
+ * run of ships breeding ships.
+ */
+export function isFleetRun(founders: readonly Entrant[], config: Pick<RunConfig, 'fleet'>): boolean {
+  return founders.some(isFleet) || (config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips) > 1;
 }
 
 /** How a ship is bred. In a run of fleets the budget is the fleet's, so it is not applied to one ship. */
@@ -289,6 +296,29 @@ export class Run {
 
   record(): RunRecord {
     return { config: this.config, generations: this.generations };
+  }
+
+  /**
+   * The run's first match, unfought and unmutated: its seed and its number of
+   * entrants, fought by the founders themselves. Each founder once — the ones
+   * the first match drew first — and round again only when a match holds more
+   * entrants than there are founders. Draws the match, so it is for a run that
+   * will not be fought.
+   */
+  unmutatedOpening(): Match | null {
+    if (this.match === null && !this.over) this.open();
+    if (this.match === null) return null;
+    const individuals = this.generation.individuals;
+    const founders = individuals.filter((individual) => individual.parent < 0);
+    const drawn: Individual[] = [];
+    for (const index of this.competitors) {
+      const individual = individuals[index]!;
+      const founder = individual.parent < 0 ? individual : founders.find((f) => f.id === individual.parent);
+      if (founder !== undefined && !drawn.includes(founder)) drawn.push(founder);
+    }
+    for (const founder of founders) if (!drawn.includes(founder)) drawn.push(founder);
+    const entrants = this.competitors.map((_, k) => drawn[k % drawn.length]!.entrant);
+    return new Match(entrants, { ...this.config.match, seed: this.seed });
   }
 
   /** Draw the next match, or close the generation if it has had enough. */

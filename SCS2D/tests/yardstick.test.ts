@@ -20,6 +20,8 @@ const settings = {
   minMatches: 2,
   generations: 3,
   match: { duration: 30 },
+  // Ships measured as ships, never grown into fleets.
+  fleet: { maxShips: 1 },
 };
 
 /**

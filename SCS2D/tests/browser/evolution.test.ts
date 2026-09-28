@@ -115,6 +115,8 @@ beforeAll(async () => {
   // A run small enough to finish inside a test: two short matches' worth of
   // ships, two generations, and as much of each frame as the page will spend.
   await page.selectOption('#founders', ['Dinky']);
+  // Kept a run of ships; the fleet test lets them grow.
+  await set(page, 'fleetShips', '1');
   await set(page, 'generations', '2');
   await set(page, 'population', '4');
   await set(page, 'winners', '2');
@@ -130,6 +132,18 @@ afterAll(async () => {
 
 describe('the evolution page in a browser', () => {
   it('loads without errors', () => {
+    expect(problems).toEqual([]);
+  });
+
+  it('previews the founders, and the first match paused at its start, before a run', async () => {
+    await page.selectOption('#mode', 'fleet');
+    await page.waitForFunction(() => document.querySelectorAll('#fleet figure').length === 1);
+    expect(await page.textContent('#fleet figcaption b')).toBe('Dinky');
+    expect(await rows(page, 'ships')).toBe(0);
+    await page.selectOption('#mode', 'battle');
+    await page.waitForFunction(() => /unmutated/.test(document.getElementById('watching')?.textContent ?? ''));
+    expect(await distinctColours(page, 'view')).toBeGreaterThan(2);
+    await page.selectOption('#mode', 'fleet');
     expect(problems).toEqual([]);
   });
 
@@ -203,9 +217,24 @@ describe('the evolution page in a browser', () => {
     expect(await page.inputValue('#kindTurret')).toEqual('0');
     expect(await page.evaluate(() =>
       [...(document.getElementById('founders') as HTMLSelectElement).selectedOptions].map((o) => o.value),
-    )).toEqual(['Dinky']);
+    )).toEqual(['ship:Dinky']);
     expect(problems).toEqual([]);
   }, 60_000);
+
+  it('folds a section away, and writes the doctrine weights with the rest', async () => {
+    await page.click('details[data-key="therun"] > summary');
+    expect(await page.isVisible('#generations')).toBe(false);
+    await page.click('details[data-key="therun"] > summary');
+    expect(await page.isVisible('#generations')).toBe(true);
+
+    await set(page, 'doctrineApproach', '0');
+    const saving = page.waitForEvent('download');
+    await page.click('#exportConfig');
+    const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
+    expect(file['doctrine']).toEqual({ targeting: 1, approach: 0, gunnery: 1 });
+    await set(page, 'doctrineApproach', '1');
+    expect(problems).toEqual([]);
+  });
 
   it('draws a third and fourth side in colours of their own', async () => {
     // A match is a free-for-all, so four entrants are four sides — and two of
@@ -523,4 +552,42 @@ describe('the evolution page in a browser', () => {
     await set(page, 'group', '4');
     expect(problems).toEqual([]);
   }, 60_000);
+
+  it('runs from a fleet, with its limits, and replays a match of fleets', async () => {
+    if (await page.isEnabled('#stop')) await page.click('#stop');
+    // A ship limited to one ship stays a ship; allowed more, it may grow into a fleet.
+    await page.selectOption('#founders', ['Dinky']);
+    expect(await page.isVisible('#fleetRadius')).toBe(false);
+    expect(await page.isVisible('#opAdd')).toBe(false);
+    await set(page, 'fleetShips', '2');
+    expect(await page.isVisible('#opAdd')).toBe(true);
+    await set(page, 'fleetShips', '1');
+    // So does picking a fleet, whatever the limit.
+    await page.selectOption('#founders', [{ label: 'Line of Battle' }]);
+    expect(await page.isVisible('#fleetRadius')).toBe(true);
+    expect(await page.isVisible('#opAdd')).toBe(true);
+    await set(page, 'fleetRadius', '400');
+    await set(page, 'fleetShips', '8');
+    await set(page, 'opAdd', '3');
+    await set(page, 'group', '2');
+    await set(page, 'generations', '1');
+
+    const saving = page.waitForEvent('download');
+    await page.click('#exportConfig');
+    const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
+    expect(file['fleets']).toEqual(['Line of Battle']);
+    expect(file['fleet']).toMatchObject({ radius: 400, maxShips: 8, operators: { add: 3 } });
+
+    await page.click('#start');
+    await page.selectOption('#mode', 'fleet');
+    await page.waitForFunction(() =>
+      [...document.querySelectorAll('#fleet figcaption')].some((c) => / ships$/.test(c.textContent ?? '')),
+    );
+    await page.waitForFunction(() => document.querySelectorAll('#matches tr').length > 0, undefined, { timeout: 60_000 });
+    await page.selectOption('#mode', 'battle');
+    await page.click('#matches tr');
+    await page.waitForFunction(() => /%/.test(document.getElementById('watching')?.textContent ?? ''));
+    await set(page, 'group', '4');
+    expect(problems).toEqual([]);
+  }, 120_000);
 });
