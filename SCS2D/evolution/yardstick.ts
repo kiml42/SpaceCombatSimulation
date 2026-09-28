@@ -96,7 +96,8 @@ export class Yardstick {
     config?: Partial<YardstickConfig>,
   ) {
     this.settings = { ...DEFAULT_YARDSTICK, ...config };
-    this.match = { ...run.config.match, ...this.settings.match };
+    // One against one, always: a boss run is measured against the boss by naming it.
+    this.match = { ...run.config.match, boss: null, ...this.settings.match };
     this.draw = new Rng(this.settings.seed);
     this.seedFor(longest(run) - 1);
   }
