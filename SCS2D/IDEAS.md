@@ -31,13 +31,14 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Ships need to be able to know when they're already turning towards the target, so not push themselves to turn faster.
 
 ## Evolution
-- Fleet evolution - one JSON file to define a formation of multiple ships.
 - Boss Battle - All evolving ships are on the same side competing to do the most damage (and take the least) from the "Boss" ship or fleet (defined in the config).
 - Mutate to change the whole scale of the ship
 - Crossing and closing velocity settings
-- Show first battle as a preview while changing settings
 - Measure yardstick should remember what it previously measured if it's the same ship as the yardstick.
   - Should be able to see a yardstick battle.
+- Mass and ship count graphs below score graph
+- Show score for both sides in the battle preview (including breakdown)
+- When mutation between gun and engine, the module should be rotates 180, to maintain the correct outward face.
 
 ## Fleet Editor
 - Allow grouping ships.
