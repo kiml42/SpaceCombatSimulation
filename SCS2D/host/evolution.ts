@@ -227,7 +227,7 @@ export function startEvolution(): void {
     return kind === 'fleet' ? fleetLibrary.load(name) : library.load(name);
   };
   const chosenBoss = (): Entrant | null => {
-    if (bossSelect.value === '') return null;
+    if (goalInput.value !== 'boss' || bossSelect.value === '') return null;
     try {
       return load(bossSelect.value);
     } catch {
@@ -428,7 +428,7 @@ export function startEvolution(): void {
   for (const name of FIELDS) inputs[name].value = held[name] ?? defaults[name];
   // Settings saved when this was a checkbox held '1' or ''.
   const heldGoal = held['goal'] === '' ? 'none' : held['goal'] === '1' ? 'solid' : held['goal'];
-  goalInput.value = heldGoal === 'ghost' || heldGoal === 'none' ? heldGoal : 'solid';
+  goalInput.value = heldGoal === 'ghost' || heldGoal === 'none' || heldGoal === 'boss' ? heldGoal : 'solid';
 
   const wanted = new Set((held['founders'] ?? 'Corvette').split('\n').map((value) => {
     const { kind, name } = pickOf(value);
@@ -460,22 +460,16 @@ export function startEvolution(): void {
     foundersSelect.options[0]!.selected = true;
   }
 
-  bossSelect.append(new Option('none', ''));
   fillList(bossSelect, (_, name) => name);
-  bossSelect.value = held['boss'] ?? '';
-  if (bossSelect.selectedIndex < 0) bossSelect.value = '';
-  /** A boss makes the goal moot, which the form shows rather than leaves to be found out. */
+  if (held['boss'] !== undefined && held['boss'] !== '') bossSelect.value = held['boss'];
+  if (bossSelect.selectedIndex < 0) bossSelect.selectedIndex = 0;
+  /** The boss is chosen only once the goal is to be one. */
   const showBoss = (): void => {
-    goalInput.disabled = bossSelect.value !== '';
-    goalInput.title = goalInput.disabled
-      ? 'A boss match has no goal: the boss is where it would be'
-      : 'Solid blocks shots and can be run into; a ghost is only somewhere to be';
+    bossSelect.disabled = goalInput.value !== 'boss';
   };
   showBoss();
-  bossSelect.addEventListener('change', () => {
-    showBoss();
-    saveSetup();
-  });
+  bossSelect.addEventListener('change', saveSetup);
+  goalInput.addEventListener('change', showBoss);
 
   const OWN_FINAL = '';
   benchmarkSelect.append(new Option('its own final design', OWN_FINAL));
@@ -538,7 +532,7 @@ export function startEvolution(): void {
         radius: Math.max(10, number(inputs.radius, DEFAULT_MATCH.radius)),
         scatter: (number(inputs.scatter, 180) * Math.PI) / 180,
         goal:
-          goalInput.value === 'none' || DEFAULT_MATCH.goal === null
+          goalInput.value === 'none' || goalInput.value === 'boss' || DEFAULT_MATCH.goal === null
             ? null
             : { ...DEFAULT_MATCH.goal, solid: goalInput.value !== 'ghost' },
         boss: chosenBoss(),
@@ -559,7 +553,7 @@ export function startEvolution(): void {
     return {
       founders: picked.filter((p) => p.kind === 'ship').map((p) => p.name),
       fleets: picked.filter((p) => p.kind === 'fleet').map((p) => p.name),
-      boss: bossSelect.value === '' ? null : pickOf(bossSelect.value),
+      boss: goalInput.value !== 'boss' || bossSelect.value === '' ? null : pickOf(bossSelect.value),
       config: { ...DEFAULT_RUN, ...configure() },
     };
   };
@@ -619,9 +613,14 @@ export function startEvolution(): void {
       ]);
       for (const option of foundersSelect.options) option.selected = named.has(option.value);
     }
-    bossSelect.value = setup.boss == null ? '' : valueOf(setup.boss.kind, setup.boss.name);
-    // A boss this library has not got is dropped, like a founder it has not got.
-    if (bossSelect.selectedIndex < 0) bossSelect.value = '';
+    if (setup.boss != null) {
+      const wanted = valueOf(setup.boss.kind, setup.boss.name);
+      // A boss this library has not got is dropped, like a founder it has not got.
+      if ([...bossSelect.options].some((option) => option.value === wanted)) {
+        bossSelect.value = wanted;
+        goalInput.value = 'boss';
+      }
+    }
     showBoss();
     showFleetSettings();
     saveSetup();

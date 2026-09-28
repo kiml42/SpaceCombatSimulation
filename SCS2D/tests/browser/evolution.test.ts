@@ -237,14 +237,22 @@ describe('the evolution page in a browser', () => {
   });
 
   it('sets a boss for every entrant to fight, and writes it down', async () => {
+    expect(await page.isDisabled('#boss')).toBe(true);
+    await page.selectOption('#goal', 'boss');
+    expect(await page.isDisabled('#boss')).toBe(false);
     await page.selectOption('#boss', { label: 'Gunship' });
-    expect(await page.isDisabled('#goal')).toBe(true);
     const saving = page.waitForEvent('download');
     await page.click('#exportConfig');
-    const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
+    const written = await (await saving).path();
+    const file = JSON.parse(await readFile(written, 'utf8')) as Record<string, unknown>;
     expect((file['match'] as Record<string, unknown>)['boss']).toEqual({ ship: 'Gunship' });
-    await page.selectOption('#boss', '');
-    expect(await page.isDisabled('#goal')).toBe(false);
+    await page.selectOption('#goal', 'solid');
+    expect(await page.isDisabled('#boss')).toBe(true);
+    // Read back, a file with a boss sets the goal to it.
+    await page.setInputFiles('#importConfigFile', written);
+    await page.waitForFunction(() => (document.getElementById('goal') as HTMLSelectElement).value === 'boss');
+    expect(await page.inputValue('#boss')).toBe('ship:Gunship');
+    await page.selectOption('#goal', 'solid');
     expect(problems).toEqual([]);
   });
 
