@@ -198,6 +198,7 @@ export {
   MAX_FLEET_SHIPS,
   MAX_FLEET_REPEAT,
   MAX_GROUP_DEPTH,
+  shipFleet,
   type Fleet,
   type FleetEntry,
   type FleetGroup,
@@ -208,6 +209,16 @@ export {
   type TrailStep,
 } from './fleet.js';
 export { FLEET_FORMAT_VERSION, fleetFileProblem, parseFleet, serialiseFleet } from './fleetFile.js';
+export {
+  centreOf,
+  firstOverlap,
+  fleetHulls,
+  fleetMass,
+  fleetReach,
+  hullsOverlap,
+  placeModules,
+  type FleetHull,
+} from './fleetHulls.js';
 export {
   Turrets,
   FiringSolution,

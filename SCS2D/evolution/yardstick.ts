@@ -1,7 +1,7 @@
-import { parseBlueprint, Rng, type Blueprint } from '../sim/index.js';
+import { Rng } from '../sim/index.js';
 import { max } from '../sim/math.js';
-import { Match, type MatchConfig } from './match.js';
-import type { GenerationRecord, RunRecord } from './run.js';
+import { Match, type Entrant, type MatchConfig } from './match.js';
+import { entrantOf, type GenerationRecord, type RunRecord } from './run.js';
 
 /**
  * Measuring a run against something that does not evolve.
@@ -92,7 +92,7 @@ export class Yardstick {
 
   constructor(
     private readonly run: RunRecord,
-    private readonly benchmark: Blueprint,
+    private readonly benchmark: Entrant,
     config?: Partial<YardstickConfig>,
   ) {
     this.settings = { ...DEFAULT_YARDSTICK, ...config };
@@ -163,7 +163,7 @@ export class Yardstick {
       return;
     }
     const individual = generation.individuals[this.slot]!;
-    this.fighting = new Match([parseBlueprint(individual.blueprint), this.benchmark], {
+    this.fighting = new Match([entrantOf(individual), this.benchmark], {
       ...this.match,
       seed: this.seedFor(this.slot),
     });
@@ -210,7 +210,7 @@ export class Yardstick {
  */
 export function measure(
   run: RunRecord,
-  benchmark: Blueprint,
+  benchmark: Entrant,
   config?: Partial<YardstickConfig>,
 ): YardstickReport {
   return new Yardstick(run, benchmark, config).finish();
@@ -224,14 +224,14 @@ export function measure(
  * highest fitness it ever recorded may belong to a design three hundred
  * generations ago that got lucky in one group.
  */
-export function latest(run: RunRecord): Blueprint | null {
+export function latest(run: RunRecord): Entrant | null {
   const generation = run.generations[run.generations.length - 1];
   if (generation === undefined || generation.individuals.length === 0) return null;
   let best = generation.individuals[0]!;
   for (const individual of generation.individuals) {
     if (individual.fitness > best.fitness) best = individual;
   }
-  return parseBlueprint(best.blueprint);
+  return entrantOf(best);
 }
 
 function longest(run: RunRecord): number {
@@ -249,6 +249,6 @@ export function trend(report: YardstickReport): { first: number; last: number; g
 }
 
 /** A generation record's individuals, for a caller that wants the designs. */
-export function designsOf(generation: GenerationRecord): Blueprint[] {
-  return generation.individuals.map((individual) => parseBlueprint(individual.blueprint));
+export function designsOf(generation: GenerationRecord): Entrant[] {
+  return generation.individuals.map(entrantOf);
 }

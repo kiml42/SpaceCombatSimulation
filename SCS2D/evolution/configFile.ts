@@ -3,6 +3,7 @@ import { MODULE_KINDS } from '../sim/modules.js';
 import { DEFAULT_MATCH, type GoalSpec, type MatchConfig, type ScoreWeights } from './match.js';
 import { DEFAULT_KINDS, type KindWeights } from './mutate.js';
 import { DEFAULT_RUN, type RunConfig } from './run.js';
+import { DEFAULT_FLEET_LIMITS } from './fleetMutate.js';
 
 /**
  * The run-config file: what a set of evolution settings looks like written
@@ -34,9 +35,11 @@ import { DEFAULT_RUN, type RunConfig } from './run.js';
 
 export const RUN_CONFIG_FORMAT_VERSION = 1;
 
-/** A run's settings, and the ships it starts from, by name. */
+/** A run's settings, and the ships and fleets it starts from, by name. */
 export interface RunSetup {
   readonly founders: readonly string[];
+  /** Fleets among the founders, which make it a run of fleets. */
+  readonly fleets?: readonly string[];
   readonly config: RunConfig;
 }
 
@@ -52,7 +55,11 @@ const FILE_KEYS: readonly string[] = [
   'massBudget',
   'kinds',
   'match',
+  'fleets',
+  'fleet',
 ];
+
+const FLEET_KEYS: readonly string[] = ['radius', 'maxShips'];
 
 const MATCH_KEYS: readonly string[] = ['duration', 'radius', 'scatter', 'goal', 'weights'];
 const GOAL_KEYS: readonly string[] = ['x', 'y', 'scale', 'size'];
@@ -75,6 +82,16 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
     minMatches: config.minMatches,
     massBudget: Number.isFinite(config.massBudget) ? config.massBudget : null,
     kinds: { ...kinds },
+    // Only for a run of fleets, so a run of ships reads as it always did.
+    ...((setup.fleets ?? []).length > 0
+      ? {
+          fleets: [...setup.fleets!],
+          fleet: {
+            radius: config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius,
+            maxShips: config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips,
+          },
+        }
+      : {}),
     match: {
       duration: match.duration,
       radius: match.radius,
@@ -104,6 +121,21 @@ export function runConfigFileProblem(value: unknown): string | null {
       return 'founders must be a list of ship names';
     }
   }
+  const fleets = value['fleets'];
+  if (fleets !== undefined) {
+    if (!Array.isArray(fleets) || fleets.some((name) => typeof name !== 'string')) {
+      return 'fleets must be a list of fleet names';
+    }
+  }
+  const fleet = value['fleet'];
+  if (fleet !== undefined) {
+    if (!isRecord(fleet)) return 'fleet must be an object';
+    const extra = unknownKeys(fleet, FLEET_KEYS);
+    if (extra.length > 0) return `fleet has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
+    const problem = numberProblem(fleet['radius'], 'fleet.radius') ?? countProblem(fleet['maxShips'], 'fleet.maxShips');
+    if (problem !== null) return problem;
+    if (fleet['radius'] !== undefined && (fleet['radius'] as number) <= 0) return 'fleet.radius must be more than nothing';
+  }
 
   return (
     countProblem(value['generations'], 'generations') ??
@@ -132,8 +164,10 @@ export function parseRunConfig(value: unknown): RunSetup {
   const match = isRecord(file['match']) ? file['match'] : {};
   const budget = file['massBudget'];
 
+  const fleet = isRecord(file['fleet']) ? file['fleet'] : {};
   return {
     founders: (file['founders'] as string[] | undefined) ?? [],
+    fleets: (file['fleets'] as string[] | undefined) ?? [],
     config: {
       seed: read(file['seed'], DEFAULT_RUN.seed),
       generations: read(file['generations'], DEFAULT_RUN.generations),
@@ -143,6 +177,10 @@ export function parseRunConfig(value: unknown): RunSetup {
       minMatches: read(file['minMatches'], DEFAULT_RUN.minMatches),
       massBudget: budget === undefined || budget === null ? Infinity : (budget as number),
       mutation: { kinds: { ...DEFAULT_KINDS, ...(file['kinds'] as Partial<KindWeights>) } },
+      fleet: {
+        radius: read(fleet['radius'], DEFAULT_FLEET_LIMITS.radius),
+        maxShips: read(fleet['maxShips'], DEFAULT_FLEET_LIMITS.maxShips),
+      },
       match: {
         duration: read(match['duration'], DEFAULT_MATCH.duration),
         radius: read(match['radius'], DEFAULT_MATCH.radius),

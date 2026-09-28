@@ -905,9 +905,10 @@ export function startEvolution(): void {
         survival: individual.matches > 0 ? individual.survival / individual.matches : 0,
         damage: individual.matches > 0 ? individual.damage / individual.matches : 0,
         race: individual.matches > 0 ? individual.race / individual.matches : 0,
-        mass: massOf(individual.id, individual.blueprint),
+        // The page runs ships only; fleets are bred headlessly.
+        mass: massOf(individual.id, individual.entrant as Blueprint),
         edits: individual.edits,
-        blueprint: individual.blueprint,
+        blueprint: individual.entrant as Blueprint,
       }));
       return { index, rows, matches: run.played };
     }

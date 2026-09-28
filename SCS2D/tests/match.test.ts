@@ -78,7 +78,9 @@ describe('match', () => {
     expect(result.ending).toEqual('decided');
     expect(result.elapsed).toBeLessThan(DEFAULT_MATCH.duration);
     const winner = result.scores.reduce((best, score) => (score.total > best.total ? score : best));
-    expect(winner.survival).toEqual(1);
+    // Far more than the share of the clock it took, which is all it would get uncredited.
+    expect(winner.survival).toBeGreaterThan(0.9);
+    expect(result.elapsed / DEFAULT_MATCH.duration).toBeLessThan(0.9);
   });
 
   it('plays on after the last kill while the goal still counts', () => {
@@ -89,7 +91,8 @@ describe('match', () => {
     expect(result.elapsed).toBeCloseTo(DEFAULT_MATCH.duration, 9);
     const early = runMatch([GUNSHIP, DINKY], { seed: 11, weights: { survival: 1, damage: 1, race: 0 } });
     // The same fight up to the kill, then flown rather than frozen.
-    const winner = result.scores.findIndex((score) => score.survival === 1);
+    const last = Math.max(...result.scores.map((score) => score.lifetime));
+    const winner = result.scores.findIndex((score) => score.lifetime === last);
     expect(winner).toBeGreaterThanOrEqual(0);
     expect(result.scores[winner]!.race).not.toBeCloseTo(early.scores[winner]!.race, 6);
   });
