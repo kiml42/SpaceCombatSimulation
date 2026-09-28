@@ -231,24 +231,24 @@
         </section>
         <section>
           <h2>What it tries to build</h2>
-          <div class="field"><label for="kindThruster">engines</label><input id="kindThruster" type="number" min="0" step="1" /></div>
-          <div class="field"><label for="kindStructure">structure</label><input id="kindStructure" type="number" min="0" step="1" /></div>
-          <div class="field"><label for="kindTurret">turrets</label><input id="kindTurret" type="number" min="0" step="1" /></div>
-          <div class="field"><label for="kindBeamTurret">beam turrets</label><input id="kindBeamTurret" type="number" min="0" step="1" /></div>
-          <div class="field"><label for="kindHullGun">hull guns</label><input id="kindHullGun" type="number" min="0" step="1" /></div>
-          <div class="field"><label for="kindHullBeam">hull beams</label><input id="kindHullBeam" type="number" min="0" step="1" /></div>
-          <div class="field"><label for="kindCore">cores</label><input id="kindCore" type="number" min="0" step="1" /></div>
-          <p class="note">Relative odds of each kind, when a module is added or refitted into something else. Zero shuts a kind out altogether.</p>
+          <div class="field" title="Odds that a new or refitted module is a thruster: pushes the ship, and can be steered by firing on one side."><label for="kindThruster">engines</label><input id="kindThruster" type="number" min="0" step="1" /></div>
+          <div class="field" title="Odds that a new or refitted module is plain structure: holds the ship together and stops shells, as armour."><label for="kindStructure">structure</label><input id="kindStructure" type="number" min="0" step="1" /></div>
+          <div class="field" title="Odds that a new or refitted module is a gun turret: turns to aim, firing shells."><label for="kindTurret">turrets</label><input id="kindTurret" type="number" min="0" step="1" /></div>
+          <div class="field" title="Odds that a new or refitted module is a beam turret: turns to aim, burning through what it holds on."><label for="kindBeamTurret">beam turrets</label><input id="kindBeamTurret" type="number" min="0" step="1" /></div>
+          <div class="field" title="Odds that a new or refitted module is a hull gun: fixed in the hull, firing shells, aimed by turning the whole ship."><label for="kindHullGun">hull guns</label><input id="kindHullGun" type="number" min="0" step="1" /></div>
+          <div class="field" title="Odds that a new or refitted module is a hull beam: fixed in the hull, firing a beam, aimed by turning the whole ship."><label for="kindHullBeam">hull beams</label><input id="kindHullBeam" type="number" min="0" step="1" /></div>
+          <div class="field" title="Odds that a new or refitted module is a core: what flies the ship. It is out of the fight once every core is."><label for="kindCore">cores</label><input id="kindCore" type="number" min="0" step="1" /></div>
+          <p class="note">Relative odds of each kind, when a module is added or refitted into something else; hover one for what it is. Zero shuts a kind out altogether.</p>
         </section>
         <section class="fleetOnly">
           <h2>How fleets change</h2>
-          <div class="field"><label for="opDesign">a design bred</label><input id="opDesign" type="number" min="0" step="0.5" title="Mutate one design, in every ship built to it" /></div>
-          <div class="field"><label for="opMove">moved or turned</label><input id="opMove" type="number" min="0" step="0.5" /></div>
-          <div class="field"><label for="opAdd">ship added</label><input id="opAdd" type="number" min="0" step="0.5" title="A copy of one of the fleet's ships or groups, beside it" /></div>
-          <div class="field"><label for="opRemove">ship removed</label><input id="opRemove" type="number" min="0" step="0.5" /></div>
-          <div class="field"><label for="opFork">design forked</label><input id="opFork" type="number" min="0" step="0.5" title="One ship given a copy of its design to evolve on its own" /></div>
-          <div class="field"><label for="opMerge">designs merged</label><input id="opMerge" type="number" min="0" step="0.5" title="Every ship of one design built to another instead" /></div>
-          <p class="note">Relative odds of each change to a fleet. A design being bred uses the odds above.</p>
+          <div class="field" title="Odds of mutating one of the fleet's designs, the way a single ship is mutated. Every ship built to that design changes with it."><label for="opDesign">design mutated</label><input id="opDesign" type="number" min="0" step="0.5" /></div>
+          <div class="field" title="Odds of moving one of the fleet's ships or groups a few metres, or turning it, where it starts the battle."><label for="opMove">ship moved/turned</label><input id="opMove" type="number" min="0" step="0.5" /></div>
+          <div class="field" title="Odds of adding a copy of one of the fleet's ships or groups, a little way off from it."><label for="opAdd">ship added</label><input id="opAdd" type="number" min="0" step="0.5" /></div>
+          <div class="field" title="Odds of taking out one of the fleet's ships or groups. The last one is never removed."><label for="opRemove">ship removed</label><input id="opRemove" type="number" min="0" step="0.5" /></div>
+          <div class="field" title="Odds of giving one ship its own copy of a design it shares, so it can go on changing separately. The opposite of a merge."><label for="opFork">design forked</label><input id="opFork" type="number" min="0" step="0.5" /></div>
+          <div class="field" title="Odds of building every ship of one design to another of the fleet's designs instead, dropping the first. The opposite of a fork."><label for="opMerge">designs merged</label><input id="opMerge" type="number" min="0" step="0.5" /></div>
+          <p class="note">Relative odds of each change to a fleet; hover one for what it does. A design being mutated uses the odds above.</p>
         </section>
         <section>
           <h2>Effort</h2>
