@@ -31,7 +31,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Ships need to be able to know when they're already turning towards the target, so not push themselves to turn faster.
 
 ## Evolution
-- Boss Battle - All evolving ships are on the same side competing to do the most damage (and take the least) from the "Boss" ship or fleet (defined in the config).
 - Mutate to change the whole scale of the ship
 - Crossing and closing velocity settings
 - Measure yardstick should remember what it previously measured if it's the same ship as the yardstick.

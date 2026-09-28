@@ -236,6 +236,18 @@ describe('the evolution page in a browser', () => {
     expect(problems).toEqual([]);
   });
 
+  it('sets a boss for every entrant to fight, and writes it down', async () => {
+    await page.selectOption('#boss', { label: 'Gunship' });
+    expect(await page.isDisabled('#goal')).toBe(true);
+    const saving = page.waitForEvent('download');
+    await page.click('#exportConfig');
+    const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
+    expect((file['match'] as Record<string, unknown>)['boss']).toEqual({ ship: 'Gunship' });
+    await page.selectOption('#boss', '');
+    expect(await page.isDisabled('#goal')).toBe(false);
+    expect(problems).toEqual([]);
+  });
+
   it('draws a third and fourth side in colours of their own', async () => {
     // A match is a free-for-all, so four entrants are four sides — and two of
     // them are sides the renderer only ever had to draw once evolution

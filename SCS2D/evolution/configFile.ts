@@ -40,7 +40,17 @@ export interface RunSetup {
   readonly founders: readonly string[];
   /** Fleets among the founders, which make it a run of fleets. */
   readonly fleets?: readonly string[];
+  /**
+   * What every entrant fights together, by name, or null for a free-for-all.
+   * A file names it; whoever reads the file finds it and sets `match.boss`.
+   */
+  readonly boss?: BossName | null;
   readonly config: RunConfig;
+}
+
+export interface BossName {
+  readonly kind: 'ship' | 'fleet';
+  readonly name: string;
 }
 
 const FILE_KEYS: readonly string[] = [
@@ -63,7 +73,7 @@ const FILE_KEYS: readonly string[] = [
 const FLEET_KEYS: readonly string[] = ['radius', 'maxShips', 'operators'];
 const OPERATOR_KEYS = Object.keys(DEFAULT_FLEET_LIMITS.operators) as FleetOperator[];
 
-const MATCH_KEYS: readonly string[] = ['duration', 'radius', 'scatter', 'goal', 'weights'];
+const MATCH_KEYS: readonly string[] = ['duration', 'radius', 'scatter', 'goal', 'weights', 'boss'];
 const GOAL_KEYS: readonly string[] = ['x', 'y', 'scale', 'size'];
 const GOAL_OPTIONAL_KEYS: readonly string[] = ['solid'];
 const WEIGHT_KEYS: readonly (keyof ScoreWeights)[] = SCORE_PARTS;
@@ -97,6 +107,7 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
       scatter: (match.scatter * 180) / PI,
       goal: match.goal === null ? null : { ...match.goal },
       weights: { ...match.weights },
+      boss: setup.boss == null ? null : { [setup.boss.kind]: setup.boss.name },
     },
   };
 }
@@ -180,6 +191,7 @@ export function parseRunConfig(value: unknown): RunSetup {
   return {
     founders: (file['founders'] as string[] | undefined) ?? [],
     fleets: (file['fleets'] as string[] | undefined) ?? [],
+    boss: isRecord(match['boss']) ? bossName(match['boss']) : null,
     config: {
       seed: read(file['seed'], DEFAULT_RUN.seed),
       generations: read(file['generations'], DEFAULT_RUN.generations),
@@ -315,7 +327,22 @@ function matchProblem(value: unknown): string | null {
   if (value['radius'] !== undefined && (value['radius'] as number) <= 0) {
     return 'match.radius must be more than nothing';
   }
-  return goalProblem(value['goal']) ?? weightsProblem(value['weights']);
+  return goalProblem(value['goal']) ?? weightsProblem(value['weights']) ?? bossProblem(value['boss']);
+}
+
+function bossProblem(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  const named = isRecord(value) ? bossName(value) : null;
+  return named === null ? 'match.boss must be null, or { "ship": name } or { "fleet": name }' : null;
+}
+
+function bossName(value: Record<string, unknown>): BossName | null {
+  const keys = Object.keys(value);
+  if (keys.length !== 1) return null;
+  const kind = keys[0];
+  const name = value[kind!];
+  if ((kind !== 'ship' && kind !== 'fleet') || typeof name !== 'string') return null;
+  return { kind, name };
 }
 
 function goalProblem(value: unknown): string | null {
