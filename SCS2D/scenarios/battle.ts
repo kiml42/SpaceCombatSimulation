@@ -1,6 +1,8 @@
 import {
   Beams,
   BeamHits,
+  castableBeamLength,
+  MAX_BEAM_LENGTH,
   Collisions,
   Credit,
   gravityWell,
@@ -45,6 +47,26 @@ export const SIDE_WELL: WellSpec = { x: 0, y: -1500, gm: 2.5e6, softening: 200 }
  * bears. Their velocity is mostly crossing too, so closing means killing that
  * first — which is what a range band actually asks of a pilot.
  */
+/**
+ * The index's cell size for every battle, metres.
+ *
+ * Named here rather than written into the call because a beam's length has to
+ * stay inside what a grid of this size will cast, and the check below is only
+ * honest if both numbers come from one place.
+ */
+const CELL_SIZE = 64;
+
+// A beam longer than the index will cast is cut short without a word — a
+// weapon that silently stops working at range, which is the hardest kind of
+// bug to see from a battle. Checked once here, where the cell size is chosen,
+// rather than per shot.
+if (MAX_BEAM_LENGTH > castableBeamLength(CELL_SIZE)) {
+  throw new Error(
+    `a ${MAX_BEAM_LENGTH} m beam cannot be cast through ${CELL_SIZE} m cells: ` +
+      `the index gives up at ${castableBeamLength(CELL_SIZE).toFixed(0)} m`,
+  );
+}
+
 export const CROSSING = {
   west: { x: -1800, y: -240, angle: math.HALF_PI, vx: 0, vy: 90 },
   east: { x: 1800, y: 240, angle: -math.HALF_PI, vx: 0, vy: -60 },
@@ -86,7 +108,7 @@ export function makeBattle<Extra extends object = Record<never, never>>(
   const extra = setup(ships, world) ?? ({} as Extra);
 
   const pilots = options.pilots ?? true;
-  const grid = new SpatialGrid(64);
+  const grid = new SpatialGrid(CELL_SIZE);
   const projectiles = new Projectiles(options.projectiles ?? 512);
   const beams = new Beams(options.beams ?? 512);
   const hits = new ProjectileHits();

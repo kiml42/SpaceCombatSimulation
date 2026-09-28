@@ -1079,6 +1079,12 @@ export class Ships {
           !this.isDisarmed(e),
           !this.hasNoEngines(e),
         );
+        // Out of reach is out of the question, rather than merely a poor
+        // score. Proximity alone would let a mount with nothing near it pick
+        // something far outside what its own gun is good for and shoot at it
+        // all battle — every round short, and for a beam not even arriving,
+        // since a beam is only cast as far as it is worth casting.
+        if (candidate.range > mount.reach) continue;
         this.choice.offer(
           candidate,
           score(doctrine, candidate, mount.reach, design.mass, targets[t]!, focus),
@@ -1244,10 +1250,16 @@ export class Ships {
     i: number,
     bodyIdx: number,
     gun: GunStats,
+    reach: number,
     target: number,
   ): boolean {
-    const range =
+    // Never further than the shot itself goes: a consort beyond what this gun
+    // is willing to shoot at is not in the way of anything, and a cast that
+    // looked past it would hold fire for a ship in no danger — as well as
+    // walking grid cells to learn nothing.
+    const lookahead =
       gun.type === GunType.Beam ? MAX_BEAM_LENGTH : gun.muzzleSpeed * FRIENDLY_LOOKAHEAD;
+    const range = lookahead < reach ? lookahead : reach;
     if (!(range > 0)) return false;
     const hit = this.lineOfFire;
     const found = grid.raycast(
@@ -1507,7 +1519,10 @@ export class Ships {
 
         // A burst already committed is seen through: the emitter is lit and
         // there is nothing to hold. Discipline is about pulling the trigger.
-        if (state != TurretState.CommittedOn && this.friendlyInTheWay(bodies, grid, i, bodyIdx, gun, target)) {
+        if (
+          state != TurretState.CommittedOn &&
+          this.friendlyInTheWay(bodies, grid, i, bodyIdx, gun, design.turrets[t]!.reach, target)
+        ) {
           continue;
         }
 
@@ -2103,11 +2118,16 @@ export class Ships {
         this.turrets.returnToRest(ti);
         continue;
       }
-      // Measured from the gun, as everything a mount asks is: how big the
-      // target looks, and which of its parts is nearest, both depend on where
-      // the barrel is rather than where the hull is.
+      // And still in reach. The choice above is only remade every rethink, and
+      // an order does not repeal arithmetic: a target that has opened past
+      // what this gun can do is one there is no point holding.
       this.locateMount(bodies, own, mounts[t]!);
-
+      if (
+        length(bodies.x[tb]! - this.gunPoint.x, bodies.y[tb]! - this.gunPoint.y) > mounts[t]!.reach
+      ) {
+        this.turrets.returnToRest(ti);
+        continue;
+      }
       // Where on it: a part, when the doctrine has an opinion about parts and
       // that part is still there, and otherwise the ship.
       //

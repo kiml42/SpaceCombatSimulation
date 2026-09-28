@@ -33,6 +33,8 @@ export {
 export {
   Beams,
   BeamHits,
+  castableBeamLength,
+  MAX_BEAM_LENGTH,
   type BeamSpec,
 } from './beams.js';
 export {

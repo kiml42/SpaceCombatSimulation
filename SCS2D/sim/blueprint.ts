@@ -573,8 +573,14 @@ const ENGAGEMENT_FLIGHT_TIME = 2;
  * A beam arrives instantly at any range, so nothing about its flight limits
  * it; what limits it is having to hold the emitter on one spot long enough to
  * burn through, which gets harder the further off the target is.
+ *
+ * It is a hard limit rather than a preference — a mount ignores what lies
+ * beyond it — so it has to be generous enough to cover the fight rather than
+ * tuned to where a beam is most effective. Five kilometres is twice the
+ * longest a gun turret is willing to shoot at these muzzle velocities, which
+ * keeps a beam mount from standing down while the guns beside it are working.
  */
-const BEAM_REACH = 1500;
+const BEAM_REACH = 5000;
 
 /**
  * How far one gun is worth shooting at, metres.

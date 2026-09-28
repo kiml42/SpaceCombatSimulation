@@ -188,7 +188,10 @@ describe('a damaged ship flies and shoots worse', () => {
     const ships = new Ships();
     world.addForceProvider(ships.forceProvider());
     const ship = ships.spawn(world, { design: corvette, x: 0, y: 0, team: 0 });
-    const mark = ships.spawn(world, { design: corvette, x: 2000, y: 0, team: 1 });
+    // Inside the corvette's 1,120 m reach from the start: a mount ignores what
+    // lies beyond its range, and these tests are about what a battering does
+    // to a gun rather than about how long a ship takes to close.
+    const mark = ships.spawn(world, { design: corvette, x: 1000, y: 0, team: 1 });
     ships.pushOrder(ship, mark, 300, 500, 120);
     return { world, ships, ship, mark, body: world.bodies.indexOf(ships.body(ship)) };
   }

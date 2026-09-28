@@ -258,6 +258,17 @@ describe('the pilot', () => {
   });
 });
 
+/**
+ * How far off a mark stands in the gunnery tests, metres.
+ *
+ * Inside the reach of every mount on the ships these tests fly — the
+ * gunship's close-in turret is the shortest at 1,227 m — because a mount
+ * ignores what lies beyond its own range, so a mark further off would have
+ * some of the guns holding their fire and the tests measuring that instead of
+ * what they are about.
+ */
+const MARK_RANGE = 1000;
+
 describe('gunnery', () => {
   function duel(design: ShipDesign, range: number): Rig {
     const r = rig();
@@ -314,8 +325,8 @@ describe('gunnery', () => {
     // carries no hull momentum away with it.
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: gunship, x: 0, y: 0 });
-    const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
+    const enemy = r.ships.spawn(r.world, { design: corvette, x: MARK_RANGE, y: 0 });
+    r.ships.pushOrder(ship, enemy, MARK_RANGE - 100, MARK_RANGE + 100, 10, OrderCancelCondition.None);
 
     const bodies = r.world.bodies;
     const b = bodyOf(r, ship);
@@ -346,8 +357,8 @@ describe('gunnery', () => {
     const r = rig();
     const spin = 0.2;
     const ship = r.ships.spawn(r.world, { design: gunship, x: 0, y: 0 });
-    const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
+    const enemy = r.ships.spawn(r.world, { design: corvette, x: MARK_RANGE, y: 0 });
+    r.ships.pushOrder(ship, enemy, MARK_RANGE - 100, MARK_RANGE + 100, 10, OrderCancelCondition.None);
 
     const bodies = r.world.bodies;
     const b = bodyOf(r, ship);
@@ -414,8 +425,8 @@ describe('gunnery', () => {
     });
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: twin, x: 0, y: 0 });
-    const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
+    const enemy = r.ships.spawn(r.world, { design: corvette, x: MARK_RANGE, y: 0 });
+    r.ships.pushOrder(ship, enemy, MARK_RANGE - 100, MARK_RANGE + 100, 10, OrderCancelCondition.None);
 
     // Fire 1st round (barrel 0): should be at -0.5 * spacing in y
     train(r);
@@ -505,8 +516,8 @@ describe('beam gunnery', () => {
     // carries no hull momentum away with it.
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: beamGunship, x: 0, y: 0 });
-    const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
+    const enemy = r.ships.spawn(r.world, { design: corvette, x: MARK_RANGE, y: 0 });
+    r.ships.pushOrder(ship, enemy, MARK_RANGE - 100, MARK_RANGE + 100, 10, OrderCancelCondition.None);
 
     const bodies = r.world.bodies;
     const b = bodyOf(r, ship);
@@ -535,8 +546,8 @@ describe('beam gunnery', () => {
     });
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: twin, x: 0, y: 0 });
-    const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.None);
+    const enemy = r.ships.spawn(r.world, { design: corvette, x: MARK_RANGE, y: 0 });
+    r.ships.pushOrder(ship, enemy, MARK_RANGE - 100, MARK_RANGE + 100, 10, OrderCancelCondition.None);
 
     // Fire 1st round (barrel 0): should be at -0.5 * spacing in y
     train(r);
@@ -601,8 +612,8 @@ describe('beam gunnery', () => {
     });
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: ship1, x: 0, y: 0 });
-    const enemy = r.ships.spawn(r.world, { design: corvette, x: 2000, y: 0 });
-    r.ships.pushOrder(ship, enemy, 1900, 2100, 10, OrderCancelCondition.CompletelyDead);
+    const enemy = r.ships.spawn(r.world, { design: corvette, x: MARK_RANGE, y: 0 });
+    r.ships.pushOrder(ship, enemy, MARK_RANGE - 100, MARK_RANGE + 100, 10, OrderCancelCondition.CompletelyDead);
 
     // Open fire on a target that is still there: a ship does not shoot at
     // something it has been told is gone, which is what the rest of this is
