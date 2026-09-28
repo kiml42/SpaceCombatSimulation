@@ -258,9 +258,17 @@ inside any one file is not contiguous.
   weight says what an outcome is worth rather than what a joule is worth. **What keeps a ship in the match
   is a working core and nothing else**: not whether it still has a gun or an engine, since those are meant
   to pay for themselves by doing something, and a score that pays for merely carrying them makes the
-  cheapest possible improvement to any design a weapon it never fires. Survival is weighted by what is left
-  of the core rather than counted while it holds out, so a hull being shot to pieces scores less every step
-  it takes it, and armour and layout are worth something before the moment they save a ship outright. Damage is credited to whoever
+  cheapest possible improvement to any design a weapon it never fires. Survival is what an entrant's hulls
+  could still absorb as a share of what they started with, averaged over the match — a hull whose cores are
+  out counting for nothing — so a hull being shot to pieces scores less every step it takes it, being hurt
+  later beats being hurt sooner, and a fleet scores one fraction however many ships it has. Beside it,
+  **what still works**: thrust, firepower and control, each as a share of what the entrant started with,
+  averaged across the three — read through the damage model's own cutouts, so a gun that has stopped firing
+  counts for nothing — so armour counts there only for what it keeps working. Its mirror is **function
+  taken** from the opposition, credited to each attacker by its share of everything the victim's hulls lost
+  that step; a ship's own fire and exhaust are part of that and nobody's credit, so hurting yourself never
+  pays. Ground gained
+  is by an entrant's nearest ship, so more ships help only by covering the one that gets there. Damage is credited to whoever
   fired, which is the one thing a fitness function cannot get from what a hull has taken, and it is capped
   per victim, since a gun must not be paid for firing into something it has already killed. What is left of
   a match that ends early is credited to whoever is still standing: without it, winning outright scores less
@@ -394,7 +402,9 @@ inside any one file is not contiguous.
   picture following every change, and started with Fight. It says how each side stands — ships still
   crewed, how many armed and how many mobile, and the share of its mass lost — and names the winner once no
   more than one side can fight on, without stopping the battle.
-- **Next:** §8 step 5 — fleet evolution, planned in ROADMAP.md §8.
+  **Fleet evolution** runs headless: `npm run evolve -- --fleet` breeds fleets, scored as one entrant each,
+  under a total mass budget, a deployment radius and a ship count.
+- **Next:** §8 step 5 — a boss battle, and fleets on the evolution page, planned in ROADMAP.md §8.
   §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio

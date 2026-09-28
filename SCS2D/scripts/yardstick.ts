@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
-import { parseBlueprint, type Blueprint } from '../sim/index.js';
+import { parseBlueprint, parseFleet } from '../sim/index.js';
+import type { Entrant } from '../evolution/match.js';
 import { BLUEPRINTS } from '../scenarios/blueprints.js';
 import { latest, measure, trend } from '../evolution/yardstick.js';
-import type { RunRecord } from '../evolution/run.js';
+import { entrantOf, type RunRecord } from '../evolution/run.js';
 
 /**
  * Measure a finished run against a ship that does not evolve.
@@ -31,7 +32,7 @@ function parse(argv: readonly string[]): { run: string; against: string } {
 const options = parse(process.argv.slice(2));
 const record = JSON.parse(readFileSync(options.run, 'utf8')) as RunRecord;
 
-let benchmark: Blueprint | null;
+let benchmark: Entrant | null;
 if (options.against === 'latest') {
   benchmark = latest(record);
 } else if (options.against === 'founder') {
@@ -39,11 +40,13 @@ if (options.against === 'latest') {
   // generation — the population is seeded with the founders before anything
   // is bred from them.
   const first = record.generations[0]?.individuals[0];
-  benchmark = first === undefined ? null : parseBlueprint(first.blueprint);
+  benchmark = first === undefined ? null : entrantOf(first);
 } else if (options.against in BLUEPRINTS) {
   benchmark = BLUEPRINTS[options.against as keyof typeof BLUEPRINTS];
 } else {
-  benchmark = parseBlueprint(JSON.parse(readFileSync(options.against, 'utf8')));
+  // A fleet file or a blueprint file, told apart by what it carries.
+  const file: unknown = JSON.parse(readFileSync(options.against, 'utf8'));
+  benchmark = typeof file === 'object' && file !== null && 'designs' in file ? parseFleet(file) : parseBlueprint(file);
 }
 
 if (benchmark === null) throw new Error(`nothing to measure against in ${options.run}`);

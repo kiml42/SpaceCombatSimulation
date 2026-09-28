@@ -77,11 +77,12 @@ Keep these working — they are the cold-start re-entry path:
 - `npm run typecheck` — all three TS projects (`sim/` has no ambient types; `render/`, `editor/` and
   `host/` have the DOM)
 - `npm run golden` — re-derive golden checksums after a *deliberate* behaviour change
-- `npm run evolve` — fight a headless evolution run and write it to `runs/`; `--from`, `--generations`,
+- `npm run evolve` — fight a headless evolution run and write it to `runs/`; `--from`, `--fleet <stock fleet
+  or fleet file>` (a run of fleets, with `--deploy <radius>` and `--ships <most>`), `--generations`,
   `--population`, `--group`, `--matches`, `--budget`, `--duration`, `--radius`, `--seed`, `--kinds`,
   `--out`, and `--config` / `--save-config` for the settings file the evolution page reads and writes
 - `npm run yardstick` — measure a finished run against a ship that does not evolve; `--run`, and
-  `--against latest | founder | <stock ship> | <blueprint file>`
+  `--against latest | founder | <stock ship> | <blueprint or fleet file>`
 - `npm run build` — bundle each page to `dist/index.html`, `dist/editor.html`, `dist/fleet.html` and
   `dist/evolution.html`, one file each with nothing external
 - `npm run dev` — the same build on every save, for tinkering; refresh the page to see it

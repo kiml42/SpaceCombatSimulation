@@ -1,9 +1,19 @@
-import { Rng, serialiseBlueprint, type Blueprint } from '../sim/index.js';
-import { compileBlueprint } from '../sim/index.js';
+import {
+  compileBlueprint,
+  fleetHulls,
+  fleetMass,
+  parseBlueprint,
+  parseFleet,
+  Rng,
+  serialiseBlueprint,
+  serialiseFleet,
+  shipFleet,
+} from '../sim/index.js';
 import { max, min } from '../sim/math.js';
-import { Match, type MatchConfig, type MatchResult } from './match.js';
-import { mutate, type MutationLimits } from './mutate.js';
-import { blank, breed, fitness, Generation, type Individual } from './generation.js';
+import { isFleet, Match, SCORE_PARTS, type Entrant, type MatchConfig, type MatchResult } from './match.js';
+import { type MutationLimits } from './mutate.js';
+import { type FleetMutationLimits } from './fleetMutate.js';
+import { blank, breed, fitness, Generation, offspring, type Individual } from './generation.js';
 
 /**
  * A run: generations of designs, each fought in groups and bred from what
@@ -38,6 +48,8 @@ export interface RunConfig {
    */
   readonly massBudget: number;
   readonly mutation: Partial<MutationLimits>;
+  /** How fleets are bred, in a run started from one. The mass budget above is the whole fleet's. */
+  readonly fleet: Partial<FleetMutationLimits>;
   readonly match: Partial<MatchConfig>;
 }
 
@@ -50,6 +62,7 @@ export const DEFAULT_RUN: RunConfig = {
   generations: 10,
   massBudget: Infinity,
   mutation: {},
+  fleet: {},
   match: {},
 };
 
@@ -61,12 +74,26 @@ export interface IndividualRecord {
   readonly matches: number;
   readonly fitness: number;
   readonly survival: number;
+  /** Absent from runs recorded before it was scored. */
+  readonly functional?: number;
   readonly damage: number;
+  readonly disabling?: number;
   readonly race: number;
   /** Dry mass, kg — what the design cost. */
   readonly mass: number;
-  /** The design itself, so a run can be read without the ships it started from. */
-  readonly blueprint: Record<string, unknown>;
+  /**
+   * The design itself, so a run can be read without the ships it started
+   * from: a blueprint file in a run of ships, a fleet file in a run of fleets.
+   */
+  readonly blueprint?: Record<string, unknown>;
+  readonly fleet?: Record<string, unknown>;
+}
+
+/** What a recorded individual was: the ship or fleet it fought as. */
+export function entrantOf(record: IndividualRecord): Entrant {
+  if (record.fleet !== undefined) return parseFleet(record.fleet);
+  if (record.blueprint !== undefined) return parseBlueprint(record.blueprint);
+  throw new Error(`individual ${record.id} records no design`);
 }
 
 /** One match, and enough to fight it again. */
@@ -99,12 +126,8 @@ export interface GenerationRecord {
   readonly best: ScoreParts;
 }
 
-/** The three sources of score, apart. */
-export interface ScoreParts {
-  readonly survival: number;
-  readonly damage: number;
-  readonly race: number;
-}
+/** The sources of score, apart. */
+export type ScoreParts = Readonly<Record<(typeof SCORE_PARTS)[number], number>>;
 
 export interface RunRecord {
   readonly config: RunConfig;
@@ -123,28 +146,37 @@ export type OnGeneration = (record: GenerationRecord) => void;
  * already in it.
  */
 export function seedPopulation(
-  founders: readonly Blueprint[],
+  founders: readonly Entrant[],
   rng: Rng,
   config: RunConfig,
 ): Generation {
+  // A run is of ships or of fleets. One fleet among the founders makes it a
+  // run of fleets, and a ship among them joins as a fleet of one.
+  const fleets = founders.some(isFleet);
+  const entrants = fleets ? founders.map((founder) => (isFleet(founder) ? founder : shipFleet(founder))) : founders;
   const individuals: Individual[] = [];
   let id = 0;
-  for (const founder of founders) {
+  for (const founder of entrants) {
     if (individuals.length >= config.population) break;
     individuals.push(blank(id++, founder, -1, []));
   }
   let parent = 0;
-  while (individuals.length < config.population && founders.length > 0) {
-    const source = individuals[parent % founders.length]!;
+  while (individuals.length < config.population && entrants.length > 0) {
+    const source = individuals[parent % entrants.length]!;
     parent++;
-    const child = mutate(source.blueprint, rng, mutationLimits(config));
-    individuals.push(blank(id++, child.blueprint, source.id, child.edits));
+    const child = offspring(source.entrant, rng, mutationLimits(config), fleetLimits(config));
+    individuals.push(blank(id++, child.entrant, source.id, child.edits));
   }
   return new Generation(0, individuals);
 }
 
+/** How a ship is bred. In a run of fleets the budget is the fleet's, so it is not applied to one ship. */
 function mutationLimits(config: RunConfig): Partial<MutationLimits> {
   return { massBudget: config.massBudget, ...config.mutation };
+}
+
+function fleetLimits(config: RunConfig): Partial<FleetMutationLimits> {
+  return { massBudget: config.massBudget, ...config.fleet };
 }
 
 /**
@@ -175,7 +207,7 @@ export class Run {
   private over = false;
 
   constructor(
-    founders: readonly Blueprint[],
+    founders: readonly Entrant[],
     config?: Partial<RunConfig>,
     onGeneration?: OnGeneration,
   ) {
@@ -276,7 +308,7 @@ export class Run {
     this.competitors = competitors;
     this.seed = this.rng.nextUint32();
     this.match = new Match(
-      competitors.map((c) => this.generation.individuals[c]!.blueprint),
+      competitors.map((c) => this.generation.individuals[c]!.entrant),
       { ...settings.match, seed: this.seed },
     );
   }
@@ -311,6 +343,7 @@ export class Run {
         population: settings.population,
         winners: settings.winners,
         limits: mutationLimits(settings),
+        fleetLimits: fleetLimits(settings),
       },
       () => this.nextId++,
     );
@@ -326,7 +359,7 @@ export class Run {
  * group size.
  */
 export function runEvolution(
-  founders: readonly Blueprint[],
+  founders: readonly Entrant[],
   config?: Partial<RunConfig>,
   onGeneration?: OnGeneration,
 ): RunRecord {
@@ -340,37 +373,53 @@ function describe(generation: Generation, matches: readonly MatchRecord[]): Gene
     edits: individual.edits,
     matches: individual.matches,
     fitness: fitness(individual),
-    survival: individual.matches > 0 ? individual.survival / individual.matches : 0,
-    damage: individual.matches > 0 ? individual.damage / individual.matches : 0,
-    race: individual.matches > 0 ? individual.race / individual.matches : 0,
-    mass: compileBlueprint(individual.blueprint).mass,
-    blueprint: serialiseBlueprint(individual.blueprint),
+    ...perMatch(individual),
+    ...(isFleet(individual.entrant)
+      ? { mass: fleetMass(fleetHulls(individual.entrant)), fleet: serialiseFleet(individual.entrant) }
+      : { mass: compileBlueprint(individual.entrant).mass, blueprint: serialiseBlueprint(individual.entrant) }),
   }));
 
   let total = 0;
   let best = -Infinity;
-  const sum = { survival: 0, damage: 0, race: 0 };
-  const most = { survival: -Infinity, damage: -Infinity, race: -Infinity };
+  const sum = parts(0);
+  const most = parts(-Infinity);
   for (const individual of individuals) {
     total += individual.fitness;
     best = max(best, individual.fitness);
-    for (const part of ['survival', 'damage', 'race'] as const) {
+    for (const part of SCORE_PARTS) {
       sum[part] += individual[part];
       most[part] = max(most[part], individual[part]);
     }
   }
   const count = individuals.length;
-  const mean = (part: keyof ScoreParts): number => (count > 0 ? sum[part] / count : 0);
-  const peak = (part: keyof ScoreParts): number => (count > 0 ? most[part] : 0);
+  const mean = parts(0);
+  const peak = parts(0);
+  if (count > 0) {
+    for (const part of SCORE_PARTS) {
+      mean[part] = sum[part] / count;
+      peak[part] = most[part];
+    }
+  }
   return {
     index: generation.index,
     individuals,
     matches,
     meanFitness: count > 0 ? total / count : 0,
     bestFitness: count > 0 ? best : 0,
-    mean: { survival: mean('survival'), damage: mean('damage'), race: mean('race') },
-    best: { survival: peak('survival'), damage: peak('damage'), race: peak('race') },
+    mean,
+    best: peak,
   };
+}
+
+function parts(value: number): Record<(typeof SCORE_PARTS)[number], number> {
+  return { survival: value, functional: value, damage: value, disabling: value, race: value };
+}
+
+/** Each part of an individual's score, per match played. */
+function perMatch(individual: Individual): ScoreParts {
+  const out = parts(0);
+  if (individual.matches > 0) for (const part of SCORE_PARTS) out[part] = individual[part] / individual.matches;
+  return out;
 }
 
 /**

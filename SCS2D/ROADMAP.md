@@ -89,13 +89,15 @@ libraries, a file, or handed over by either editor's Battle link,
 range, closing and crossing speeds and a seed, saved and loaded as a battle file (`scenarios/customBattle.ts`),
 set up paused and live, and decided once no more than one side can still fight. Left in the editor: making, dissolving and renaming
 groups — it steps into and edits the ones a file brings, but cannot make one — later, as ship groups were.
-What remains:
+**Fleet evolution** is built headless (`evolution/fleetMutate.ts`, `npm run evolve -- --fleet`): a match
+takes fleets as entrants, a lone blueprint being a fleet of one, survival scored on the whole fleet's hull
+capacity left and ground gained by its nearest ship. Every operator has its inverse — mutate a design, fork and merge, add and remove, move and turn —
+and a mutant over the total dry mass, the deployment radius or the ship count, or with hulls overlapping, is
+refused. What remains:
 
-1. **Fleet evolution.** A match takes fleets as entrants, a lone blueprint being a fleet of one. Operators,
-   each with its inverse: mutate a design (every copy of it), fork one copy into a design of its own and merge
-   two designs, add and remove a copy of a design or of a group, and jitter a position or heading. Limits are
-   total dry mass and a deployment radius, and a mutant whose hulls overlap is refused. Headless first; a
-   boss battle — evolving against a fixed fleet — follows.
+1. **A boss battle** — evolving against a fixed fleet.
+2. **Fleets on the evolution page**, which runs ships only: choosing fleet founders, and drawing a fleet's
+   tile and replay.
 
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
 lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
@@ -431,6 +433,11 @@ Deliberately unresolved; decide when they block something.
   which prices the spin itself rather than the pulsing. Both would also bear on ships that never try the
   trick, which is the part to think about before building either — a rate limit is a change to every
   manoeuvre, and a spin load is a change to every hull.
+- **Whether every effect should count alike in the functional scores.** Thrust, firepower and control are
+  each a third, so losing a small gun battery costs what losing every engine does. A design with no guns
+  averages over two effects and has none to lose, which it pays for only in damage it cannot do.
+- **Function lost to severing is barely credited.** A piece cut off takes its hull capacity with it, and
+  that counts as loss nobody delivered, which dilutes the credit of whoever cut the weld.
 - **How big an arena should be.** A match's ring is five hundred metres because that is where the shipped
   corvettes fight each other to a finish — put four of them a kilometre apart and they settle at the
   standoff their doctrine asks for and plink, and no match is ever decided however long it runs, so two of

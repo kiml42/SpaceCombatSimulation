@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseBlueprint, serialiseBlueprint } from '../sim/index.js';
+import { parseBlueprint, serialiseBlueprint, type Blueprint } from '../sim/index.js';
 import { runEvolution } from '../evolution/run.js';
 import { latest, measure, trend, Yardstick } from '../evolution/yardstick.js';
 import { CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
@@ -104,7 +104,7 @@ describe('the yardstick', { timeout: BUDGET }, () => {
     for (const individual of last.individuals) {
       if (individual.fitness > best.fitness) best = individual;
     }
-    expect(serialiseBlueprint(arrived)).toEqual(serialiseBlueprint(parseBlueprint(best.blueprint)));
+    expect(serialiseBlueprint(arrived as Blueprint)).toEqual(serialiseBlueprint(parseBlueprint(best.blueprint)));
   });
 
   it('reports which way a run went', () => {

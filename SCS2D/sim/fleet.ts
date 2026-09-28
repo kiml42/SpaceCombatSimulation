@@ -95,6 +95,11 @@ export interface TrailStep {
   mirrored: boolean;
 }
 
+/** A fleet of one ship, named after it, for a design fought on its own. */
+export function shipFleet(blueprint: Blueprint): Fleet {
+  return { name: blueprint.name, designs: { [blueprint.name]: blueprint }, ships: [{ design: blueprint.name, x: 0, y: 0 }] };
+}
+
 export const MAX_GROUP_DEPTH = 8;
 export const MAX_FLEET_SHIPS = 512;
 export const MAX_FLEET_REPEAT = 64;

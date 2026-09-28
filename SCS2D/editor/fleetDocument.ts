@@ -4,8 +4,10 @@ import {
   expandBlueprint,
   expandFleet,
   fleetProblem,
+  centreOf,
+  hullsOverlap,
   math,
-  modulesOverlap,
+  placeModules,
   type Blueprint,
   type Fleet,
   type ModuleSpec,
@@ -15,6 +17,8 @@ import {
 import { cloneFleet, differs, entryAt, isWithin, samePath, type EntryPath } from './fleetEdit.js';
 import { History } from './history.js';
 import { moduleAt } from './edit.js';
+
+export { centreOf };
 
 /**
  * The fleet being worked on, what it works out to, and the way back — the
@@ -87,7 +91,9 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
 
   for (let i = 0; i < ships.length; i++) {
     for (let k = i + 1; k < ships.length; k++) {
-      if (!hullsOverlap(ships[i]!, designs[i]!, hulls[i]!, ships[k]!, designs[k]!, hulls[k]!)) continue;
+      const di = designs[i];
+      const dk = designs[k];
+      if (di == null || dk == null || !hullsOverlap(ships[i]!, di, hulls[i]!, ships[k]!, dk, hulls[k]!)) continue;
       problems.push(`${ships[i]!.path} and ${ships[k]!.path} overlap at the start`);
       faulty.add(i);
       faulty.add(k);
@@ -115,46 +121,6 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
     mass,
     lines,
   };
-}
-
-/** A design's modules, turned and moved to where this ship stands. */
-function placeModules(modules: readonly ModuleSpec[], ship: PlacedShip): ModuleSpec[] {
-  const c = cos(ship.angle);
-  const s = sin(ship.angle);
-  return modules.map((m) => ({
-    ...m,
-    x: ship.x + m.x * c - m.y * s,
-    y: ship.y + m.x * s + m.y * c,
-    angle: (m.angle ?? 0) + ship.angle,
-  }));
-}
-
-/** Where a ship's centre of mass stands in the fleet's frame. */
-export function centreOf(ship: PlacedShip, design: ShipDesign): { x: number; y: number } {
-  const c = cos(ship.angle);
-  const s = sin(ship.angle);
-  return {
-    x: ship.x + design.centreOfMassX * c - design.centreOfMassY * s,
-    y: ship.y + design.centreOfMassX * s + design.centreOfMassY * c,
-  };
-}
-
-function hullsOverlap(
-  a: PlacedShip,
-  da: ShipDesign | null,
-  ha: readonly ModuleSpec[],
-  b: PlacedShip,
-  db: ShipDesign | null,
-  hb: readonly ModuleSpec[],
-): boolean {
-  if (da === null || db === null) return false;
-  const ca = centreOf(a, da);
-  const cb = centreOf(b, db);
-  const dx = ca.x - cb.x;
-  const dy = ca.y - cb.y;
-  if (sqrt(dx * dx + dy * dy) >= da.radius + db.radius) return false;
-  for (const ma of ha) for (const mb of hb) if (modulesOverlap(ma, mb)) return true;
-  return false;
 }
 
 /** The pose of one drawn copy of an entry, and the frame it is written in. */

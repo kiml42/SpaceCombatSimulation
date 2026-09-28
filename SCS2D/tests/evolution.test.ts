@@ -31,7 +31,9 @@ function award(generation: Generation, competitors: readonly number[], totals: r
     ending: 'timeout',
     scores: totals.map((total) => ({
       survival: 0,
+      functional: 0,
       damage: 0,
+      disabling: 0,
       race: 0,
       total,
       lifetime: 1,
@@ -99,7 +101,7 @@ describe('a generation', () => {
       if (individual.id < 100) continue;
       expect(carried.some((winner) => winner.id === individual.parent)).toBe(true);
       expect(individual.edits.length).toBeGreaterThan(0);
-      expect(blueprintProblem(individual.blueprint)).toBeNull();
+      expect(blueprintProblem(individual.entrant as Blueprint)).toBeNull();
     }
   });
 
@@ -138,10 +140,10 @@ describe('a run', () => {
     expect(seeded.individuals.length).toEqual(5);
     // The founders go in as they are, so a run always contains what it was
     // asked about rather than only things bred from it.
-    expect(seeded.individuals[0]!.blueprint).toBe(CORVETTE);
-    expect(seeded.individuals[1]!.blueprint).toBe(DINKY);
+    expect(seeded.individuals[0]!.entrant).toBe(CORVETTE);
+    expect(seeded.individuals[1]!.entrant).toBe(DINKY);
     for (const individual of seeded.individuals) {
-      expect(blueprintProblem(individual.blueprint)).toBeNull();
+      expect(blueprintProblem(individual.entrant as Blueprint)).toBeNull();
     }
   });
 

@@ -69,7 +69,9 @@ const FIELDS = [
   'radius',
   'scatter',
   'survivalWeight',
+  'functionalWeight',
   'damageWeight',
+  'disablingWeight',
   'raceWeight',
   'kindThruster',
   'kindStructure',
@@ -238,7 +240,9 @@ export function startEvolution(): void {
     radius: String(DEFAULT_MATCH.radius),
     scatter: String(Math.round((DEFAULT_MATCH.scatter * 180) / Math.PI)),
     survivalWeight: String(DEFAULT_MATCH.weights.survival),
+    functionalWeight: String(DEFAULT_MATCH.weights.functional),
     damageWeight: String(DEFAULT_MATCH.weights.damage),
+    disablingWeight: String(DEFAULT_MATCH.weights.disabling),
     raceWeight: String(DEFAULT_MATCH.weights.race),
     kindThruster: String(DEFAULT_KINDS.thruster),
     kindStructure: String(DEFAULT_KINDS.structure),
@@ -342,7 +346,9 @@ export function startEvolution(): void {
             : { ...DEFAULT_MATCH.goal, solid: goalInput.value !== 'ghost' },
         weights: {
           survival: number(inputs.survivalWeight, 1),
+          functional: number(inputs.functionalWeight, 1),
           damage: number(inputs.damageWeight, 1),
+          disabling: number(inputs.disablingWeight, 1),
           race: number(inputs.raceWeight, 1),
         },
       },
@@ -377,7 +383,9 @@ export function startEvolution(): void {
     inputs.radius.value = String(match.radius);
     inputs.scatter.value = String((match.scatter * 180) / Math.PI);
     inputs.survivalWeight.value = String(match.weights.survival);
+    inputs.functionalWeight.value = String(match.weights.functional);
     inputs.damageWeight.value = String(match.weights.damage);
+    inputs.disablingWeight.value = String(match.weights.disabling);
     inputs.raceWeight.value = String(match.weights.race);
     inputs.kindThruster.value = String(kinds.thruster);
     inputs.kindStructure.value = String(kinds.structure);
@@ -905,9 +913,10 @@ export function startEvolution(): void {
         survival: individual.matches > 0 ? individual.survival / individual.matches : 0,
         damage: individual.matches > 0 ? individual.damage / individual.matches : 0,
         race: individual.matches > 0 ? individual.race / individual.matches : 0,
-        mass: massOf(individual.id, individual.blueprint),
+        // The page runs ships only; fleets are bred headlessly.
+        mass: massOf(individual.id, individual.entrant as Blueprint),
         edits: individual.edits,
-        blueprint: individual.blueprint,
+        blueprint: individual.entrant as Blueprint,
       }));
       return { index, rows, matches: run.played };
     }
