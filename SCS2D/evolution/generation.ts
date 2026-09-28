@@ -1,7 +1,8 @@
-import type { Blueprint, Rng } from '../sim/index.js';
+import type { Rng } from '../sim/index.js';
 import { min } from '../sim/math.js';
 import { mutate, type MutationLimits } from './mutate.js';
-import type { MatchResult } from './match.js';
+import { mutateFleet, type FleetMutationLimits } from './fleetMutate.js';
+import { isFleet, type Entrant, type MatchResult } from './match.js';
 
 /**
  * A generation: the individuals in it, who has fought whom, and what is bred
@@ -13,10 +14,10 @@ import type { MatchResult } from './match.js';
  * spread the samples evenly and then not over-read them.
  */
 
-/** One design under test, and what has happened to it so far. */
+/** One design — a ship or a fleet — under test, and what has happened to it so far. */
 export interface Individual {
   readonly id: number;
-  readonly blueprint: Blueprint;
+  readonly entrant: Entrant;
   /** The individual it was bred from, or -1 for one that started the run. */
   readonly parent: number;
   /** What was done to the parent to get it. Empty for a founder. */
@@ -182,6 +183,23 @@ export interface BreedingConfig {
   /** How many of them are bred from, the rest being their children. */
   readonly winners: number;
   readonly limits: Partial<MutationLimits>;
+  /** How a fleet is bred; its ships' designs by `limits`. */
+  readonly fleetLimits?: Partial<FleetMutationLimits>;
+}
+
+/** A child of either kind, bred by the operators for its kind. */
+export function offspring(
+  parent: Entrant,
+  rng: Rng,
+  limits: Partial<MutationLimits>,
+  fleetLimits?: Partial<FleetMutationLimits>,
+): { entrant: Entrant; edits: readonly string[] } {
+  if (isFleet(parent)) {
+    const child = mutateFleet(parent, rng, { ...fleetLimits, ship: limits });
+    return { entrant: child.fleet, edits: child.edits };
+  }
+  const child = mutate(parent, rng, limits);
+  return { entrant: child.blueprint, edits: child.edits };
 }
 
 /**
@@ -199,14 +217,14 @@ export function breed(
   nextId: () => number,
 ): Generation {
   const winners = generation.winners(rng, min(config.winners, config.population));
-  const individuals: Individual[] = winners.map((winner) => blank(winner.id, winner.blueprint, winner.parent, winner.edits));
+  const individuals: Individual[] = winners.map((winner) => blank(winner.id, winner.entrant, winner.parent, winner.edits));
 
   let parent = 0;
   while (individuals.length < config.population && winners.length > 0) {
     const source = winners[parent % winners.length]!;
     parent++;
-    const child = mutate(source.blueprint, rng, config.limits);
-    individuals.push(blank(nextId(), child.blueprint, source.id, child.edits));
+    const child = offspring(source.entrant, rng, config.limits, config.fleetLimits);
+    individuals.push(blank(nextId(), child.entrant, source.id, child.edits));
   }
 
   return new Generation(generation.index + 1, individuals);
@@ -215,13 +233,13 @@ export function breed(
 /** An individual with nothing recorded against it yet. */
 export function blank(
   id: number,
-  blueprint: Blueprint,
+  entrant: Entrant,
   parent: number,
   edits: readonly string[],
 ): Individual {
   return {
     id,
-    blueprint,
+    entrant,
     parent,
     edits,
     matches: 0,

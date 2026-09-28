@@ -1,4 +1,4 @@
-import { parseFleet, serialiseFleet, type Blueprint, type Fleet } from '../sim/index.js';
+import { parseFleet, serialiseFleet, shipFleet, type Fleet } from '../sim/index.js';
 
 /**
  * Handing what an editor holds to the battle page, to try it out.
@@ -14,10 +14,7 @@ export function battleHref(fleet: Fleet): string {
   return `index.html${KEY}${encodeURIComponent(JSON.stringify(serialiseFleet(fleet)))}`;
 }
 
-/** A fleet of one ship, named after it, for trying a design on its own. */
-export function shipFleet(blueprint: Blueprint): Fleet {
-  return { name: blueprint.name, designs: { [blueprint.name]: blueprint }, ships: [{ design: blueprint.name, x: 0, y: 0 }] };
-}
+export { shipFleet };
 
 /** The fleet a battle page address carries, or null. Throws on one that is there but unreadable. */
 export function handedFleet(hash: string): Fleet | null {

@@ -89,13 +89,15 @@ libraries, a file, or handed over by either editor's Battle link,
 range, closing and crossing speeds and a seed, saved and loaded as a battle file (`scenarios/customBattle.ts`),
 set up paused and live, and decided once no more than one side can still fight. Left in the editor: making, dissolving and renaming
 groups — it steps into and edits the ones a file brings, but cannot make one — later, as ship groups were.
-What remains:
+**Fleet evolution** is built headless (`evolution/fleetMutate.ts`, `npm run evolve -- --fleet`): a match
+takes fleets as entrants, a lone blueprint being a fleet of one, scored by each ship's share of its fleet's hull
+capacity. Every operator has its inverse — mutate a design, fork and merge, add and remove, move and turn —
+and a mutant over the total dry mass, the deployment radius or the ship count, or with hulls overlapping, is
+refused. What remains:
 
-1. **Fleet evolution.** A match takes fleets as entrants, a lone blueprint being a fleet of one. Operators,
-   each with its inverse: mutate a design (every copy of it), fork one copy into a design of its own and merge
-   two designs, add and remove a copy of a design or of a group, and jitter a position or heading. Limits are
-   total dry mass and a deployment radius, and a mutant whose hulls overlap is refused. Headless first; a
-   boss battle — evolving against a fixed fleet — follows.
+1. **A boss battle** — evolving against a fixed fleet.
+2. **Fleets on the evolution page**, which runs ships only: choosing fleet founders, and drawing a fleet's
+   tile and replay.
 
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
 lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
