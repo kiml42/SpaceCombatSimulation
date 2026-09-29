@@ -60,7 +60,8 @@ inside any one file is not contiguous.
   clicked to select, dragged to move on a snapping grid a tenth of the grid drawn on screen —
   so the step follows the zoom, from tens of metres on a Star Destroyer down to centimetres on a
   drone — sized by dragging a corner
-  or an edge with the opposite one held still — carrying whatever sits against the moving face along with it,
+  or an edge with the opposite one held still, or with Shift held about its middle, so a module on the
+  centre line stays on it — carrying whatever sits against the moving face along with it,
   unless Ctrl is held — and turned by dragging a knob beyond the bow, while two touching modules selected
   together get a bar on their shared face that grows one as it shrinks the other; every snap is escaped by
   holding Alt —

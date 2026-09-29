@@ -1477,7 +1477,8 @@ export function startEditor(): void {
     let next: Blueprint | null;
     if (drag.kind === 'size') {
       const step = event.altKey ? 0 : snapMetres();
-      const { length, width, dx, dy } = resizedTo(drag.spec, drag.handle, world.x, world.y, step);
+      // Shift sizes about the middle, keeping it where it was.
+      const { length, width, dx, dy } = resizedTo(drag.spec, drag.handle, world.x, world.y, step, event.shiftKey);
       // Neighbours move with the face unless Ctrl (⌘) asks for this module alone.
       const push = !(event.ctrlKey || event.metaKey);
       next = resizePlacement(drag.from, origin, length, width, dx, dy, push);
@@ -1688,7 +1689,7 @@ export function startEditor(): void {
   // the ship. The live figure is drawn in the canvas corner instead.
   hint.textContent =
     'Click a module to select it, drag to move, drag a corner or edge to size it ' +
-    '(pushing its neighbours; Ctrl alone) or the knob to turn it; ' +
+    '(pushing its neighbours; Ctrl alone; Shift about its middle) or the knob to turn it; ' +
     'select two touching modules to drag the face between them; ' +
     'Shift-click to pick several and Create assembly, or Add them to the last assembly picked. Positions snap to a tenth of the grid on ' +
     `screen and facings to ${ANGLE_SNAP_DEGREES}° — hold Alt to escape. ` +
