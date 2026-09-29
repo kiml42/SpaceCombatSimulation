@@ -17,6 +17,7 @@ import type { Battle } from '../../scenarios/types.js';
 import { beamDuel } from '../../scenarios/beamDuel.js';
 import { soloOrdering } from '../../scenarios/ordering.js';
 import { ram } from '../../scenarios/ram.js';
+import { hooked } from '../../scenarios/hooked.js';
 import { standoff } from '../../scenarios/standoff.js';
 import { torchRun } from '../../scenarios/torchRun.js';
 import { column } from '../../scenarios/column.js';
@@ -438,6 +439,19 @@ export function ramScenario(seed = 20260905): ScenarioRun {
   };
 }
 
+export function hookedScenario(seed = 20260929): ScenarioRun {
+  const run = hooked(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function orderingScenario(seed = 20260905): ScenarioRun {
   const run = soloOrdering(0, seed);
   return {
@@ -483,6 +497,7 @@ export const SCENARIOS = {
   column: { steps: 3_000, build: () => columnScenario() },
   split: { steps: 3_000, build: () => splitScenario() },
   torchRun: { steps: 3_000, build: () => torchRunScenario() },
+  hooked: { steps: 3_000, build: () => hookedScenario() },
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;

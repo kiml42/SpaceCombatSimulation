@@ -800,15 +800,18 @@ export class Credit {
   victim = new Int32Array(64);
   /** Joules the victim took, as delivered — a module already spent takes it too. */
   energy = new Float64Array(64);
+  /** The victim's module it landed on first, or -1. */
+  module = new Int32Array(64);
   count = 0;
 
-  push(attacker: number, victim: number, energy: number): void {
+  push(attacker: number, victim: number, energy: number, module = -1): void {
     if (attacker < 0 || !(energy > 0)) return;
     if (this.count === this.attacker.length) this.grow();
     const i = this.count++;
     this.attacker[i] = attacker;
     this.victim[i] = victim;
     this.energy[i] = energy;
+    this.module[i] = module;
   }
 
   clear(): void {
@@ -826,6 +829,9 @@ export class Credit {
     const energy = new Float64Array(size);
     energy.set(this.energy);
     this.energy = energy;
+    const module = new Int32Array(size);
+    module.set(this.module);
+    this.module = module;
   }
 }
 
@@ -1080,7 +1086,7 @@ export class Impacts {
       const px = bx + out.firstX * c - out.firstY * s;
       const py = by + out.firstX * s + out.firstY * c;
       this.log.push(px, py, out.energy, IMPACT_ROUND, bodies, body);
-      credit?.push(projectiles.owner[round]!, body, out.energy);
+      credit?.push(projectiles.owner[round]!, body, out.energy, out.first);
       // The momentum the round lost is the momentum the ship gained, which is
       // a shove and — where it lands — a blow the hull has to hold together
       // under.
@@ -1141,7 +1147,7 @@ export class Impacts {
       const energy = beams.power[hits.beam[i]!]! * dt;
       damage.absorb(hits.body[i]!, hits.module[i]!, energy);
       this.log.push(hits.x[i]!, hits.y[i]!, energy, IMPACT_BEAM, bodies, hits.body[i]!);
-      credit?.push(beams.owner[hits.beam[i]!]!, hits.body[i]!, energy);
+      credit?.push(beams.owner[hits.beam[i]!]!, hits.body[i]!, energy, hits.module[i]!);
       if (bodies !== undefined && designs !== undefined) {
         this.burnSeams(damage, designs, bodies, beams, hits, i, energy);
       }

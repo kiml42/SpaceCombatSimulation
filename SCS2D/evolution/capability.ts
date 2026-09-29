@@ -30,8 +30,10 @@ function rating(stats: ModuleStats, effect: DamageEffect): number {
 }
 
 /** Add what a hull can still do to `into`, indexed by effect from `offset`. Undamaged when `ships` is null. */
-export function addCapability(into: Float64Array, offset: number, design: ShipDesign, ships: Ships | null, body: number): void {
+export function addCapability(into: Float64Array, offset: number, design: ShipDesign, ships: Ships | null, body: number, ship = -1): void {
   for (let m = 0; m < design.modules.length; m++) {
+    // A hull shared with another ship counts only what this one works.
+    if (ships !== null && ship >= 0 && !ships.owns(ship, m)) continue;
     const module = design.modules[m]!;
     const integrity = ships === null ? 1 : ships.damage.integrity(body, m);
     for (const response of DAMAGE_RESPONSES[module.spec.kind]) {
