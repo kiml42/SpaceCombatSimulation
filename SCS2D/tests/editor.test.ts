@@ -22,6 +22,7 @@ import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 import { EditorDocument } from '../editor/document.js';
 import {
   addModule,
+  addModuleTo,
   addToAssembly,
   addToAssemblyProblem,
   cloneBlueprint,
@@ -2062,6 +2063,32 @@ describe('nesting assemblies', () => {
     const twice = duplicateInstance(before, at(1))!;
     expect(addToAssemblyProblem(twice.blueprint, at(1), [twice.path])).toMatch(/inside itself/);
     expect(addToAssemblyProblem(before, at(1), [at(1)])).toMatch(/itself/);
+  });
+});
+
+describe('adding a module to an assembly', () => {
+  it('puts it in the definition, at the origin, so every copy gains one', () => {
+    const bp: Blueprint = {
+      name: 'Pods',
+      assemblies: { pod: { modules: [{ kind: 'structure', x: 1, y: 0, length: 2, width: 2 }] } },
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+        { use: 'pod', x: 3, y: 0 },
+        { use: 'pod', x: -3, y: 0, angle: Math.PI, mirror: true },
+      ],
+    };
+    const spec: ModuleSpec = { kind: 'turret', x: 0, y: 0, angle: 0, length: 1, width: 1 };
+    const added = addModuleTo(bp, [{ index: 1, copy: 0 }], spec)!;
+    expect(placementAt(added.blueprint, added.path)).toEqual(spec);
+    expect(added.blueprint.assemblies!['pod']!.modules).toHaveLength(2);
+    const turrets = expandBlueprint(added.blueprint).filter((m) => m.kind === 'turret');
+    expect(turrets.map((m) => [m.x, m.y])).toEqual([[3, 0], [-3, 0]]);
+    expect(new EditorDocument(added.blueprint).accountedFor(added.path)).toBe(2);
+  });
+
+  it('adds nothing to what is not an assembly', () => {
+    const spec: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 1, width: 1 };
+    expect(addModuleTo(CORVETTE, [{ index: 0, copy: 0 }], spec)).toBeNull();
   });
 });
 

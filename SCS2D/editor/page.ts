@@ -27,6 +27,7 @@ import { easeScale, fitScale, frame, snapStep, type Camera } from '../render/cam
 import { EditorDocument } from './document.js';
 import {
   addModule,
+  addModuleTo,
   addToAssembly,
   addToAssemblyProblem,
   duplicateInstance,
@@ -244,6 +245,7 @@ export function startEditor(): void {
 
   const weaponInput = el<HTMLInputElement>('propWeapon');
   const kindSelect = el<HTMLSelectElement>('propKind');
+  const addHeading = el<HTMLElement>('addHeading');
   kindSelect.innerHTML = MODULE_KINDS.map(
     (kind) => `<option value="${kind}">${kindName(kind)}</option>`,
   ).join('');
@@ -607,6 +609,12 @@ export function startEditor(): void {
   };
 
   const renderProperties = (): void => {
+    const into = doc.selectedAssemblyPath();
+    const target = into === null ? null : placementAt(doc.blueprint, into);
+    addHeading.textContent =
+      target !== null && !isModuleSpec(target)
+        ? `Add a module to ${(target as AssemblyInstance).use}`
+        : 'Add a module';
     const placement = doc.selectedPlacement;
     const copies = doc.selectedModules().length;
 
@@ -1248,6 +1256,39 @@ export function startEditor(): void {
     change(unlinkPlacement(doc.blueprint, origin));
   });
 
+  /**
+   * A module a member of the selected copy was written beside: its frame is the
+   * assembly's on screen, so a new module can face the way it would on the ship.
+   */
+  const memberOf = (instance: ModulePath): number => {
+    const own = (i: number) => {
+      const inner = instanceOf(doc.view.origins[i]!);
+      return inner !== null && samePlacement(inner, instance);
+    };
+    const grabbed = doc.highlightedModules().find(own);
+    return grabbed ?? doc.view.origins.findIndex((_, i) => own(i));
+  };
+
+  const addInto = (instance: ModulePath, spec: ModuleSpec): void => {
+    const member = memberOf(instance);
+    const frame = member < 0 ? null : doc.view.origins[member]!;
+    const written = frame === null ? spec : { ...spec, angle: toPlacementAngle(frame, spec.angle ?? 0) };
+    const added = addModuleTo(doc.blueprint, instance, written);
+    if (added === null) return;
+    doc.apply(added.blueprint);
+    // The copy that was selected, not whichever one the layout drew first.
+    const depth = instance.length;
+    const same = (a: ModulePath, b: ModulePath) =>
+      a.slice(0, depth).every((step, k) => step.index === b[k]?.index && step.copy === b[k]?.copy);
+    const drawn = doc.view.origins.findIndex(
+      (origin) => samePlacement(origin.path, added.path) && (frame === null || same(origin.path, frame.path)),
+    );
+    if (drawn >= 0) doc.selectAt(drawn, added.path);
+    else doc.select(added.path);
+    gesture = false;
+    refresh();
+  };
+
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-add]')) {
     button.addEventListener('click', () => {
       const kind = button.dataset['add'] as ModuleSpec['kind'];
@@ -1257,6 +1298,12 @@ export function startEditor(): void {
       // wherever the camera happened to be left builds a ship quietly off
       // centre, and the first module of a new ship decides where the rest go.
       const spec: ModuleSpec = { ...DEFAULTS[kind], x: 0, y: 0 };
+      // With an assembly selected, the module goes into it, at its origin.
+      const into = doc.selectedAssemblyPath();
+      if (into !== null) {
+        addInto(into, spec);
+        return;
+      }
       const added = addModule(doc.blueprint, spec);
       doc.apply(added.blueprint);
       doc.select(added.path);
@@ -1690,7 +1737,8 @@ export function startEditor(): void {
     'Click a module to select it, drag to move, drag a corner or edge to size it ' +
     '(pushing its neighbours; Ctrl alone) or the knob to turn it; ' +
     'select two touching modules to drag the face between them; ' +
-    'Shift-click to pick several and Create assembly, or Add them to the last assembly picked. Positions snap to a tenth of the grid on ' +
+    'Shift-click to pick several and Create assembly, or Add them to the last assembly picked; ' +
+    'with an assembly selected, a new module goes into it. Positions snap to a tenth of the grid on ' +
     `screen and facings to ${ANGLE_SNAP_DEGREES}° — hold Alt to escape. ` +
     'Drag empty space to pan, scroll to zoom, F to fit, Delete to remove, Ctrl+Z to undo.';
 

@@ -65,8 +65,6 @@ dock a dock and decides ram from landing (§4, §3). See the §12 entry.
 
 **Step 1 — Blueprint editor.** Planned, in this order, each its own change:
 
-- **Adding a module with an assembly selected adds it to that assembly**, at the assembly's origin, and
-  every copy of it gains one — said in the hint, as adding to a group already is.
 - **A rotate knob on a single selected assembly**, as a module has, turning the instance about its origin with
   the same 15° snap and Alt to escape.
 - **A handle between an engine's machinery and its bell, or a hull weapon's and its barrel or lens**, drawn
