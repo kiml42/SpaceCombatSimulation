@@ -449,9 +449,8 @@ inside any one file is not contiguous.
   first match paused at its start. **A boss battle** sets every entrant on one side against a ship or fleet
   that does not evolve, at the middle of the ring where the goal would be, each scored for what it does to
   the boss alone.
-- **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL — or the rest of
-  step 6, assembling across assemblies; then step 7, the two layers, and step 8, fuel, which starts the
-  resource system.
+- **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL; then step 7,
+  the two layers, and step 8, fuel, which starts the resource system.
   See ROADMAP.md §8.
   §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page

@@ -47,7 +47,7 @@ an entry is either still open or it is gone.
 | 3 | Doctrine and orders | Partly built |
 | 4 | Headless evolution and analysis | Built |
 | 5 | v1: skirmish | Partly built |
-| 6 | Editor restructuring | Partly built |
+| 6 | Editor restructuring | Built |
 | 7 | Two layers | Not started |
 | 8 | Fuel | Not started |
 | 9 | Fuel harvesting | Not started |
@@ -94,13 +94,6 @@ scored for what it does to the boss alone (`match.boss`, `--boss`, and a boss pi
 
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
 lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
-
-**Step 6 — Editor restructuring.** Dissolving an assembly and taking a part out of one are built; one thing
-is left:
-
-- **Assembling across assemblies.** Making an assembly of things written in different assemblies is
-  refused. Until there are ships people rebuild rather than replace, the way round is to dissolve or take
-  parts out down to a common list first.
 
 ### Not started — in order
 

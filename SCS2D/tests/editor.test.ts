@@ -1196,9 +1196,9 @@ describe('taking a module out of its assembly', () => {
     const before = expandBlueprint(CORVETTE);
     const wing = before.findIndex((m) => m.length === 4 && m.width === 3);
     const origins = expandWithOrigins(CORVETTE).origins;
-    expect(takeOutCount(CORVETTE, origins[wing]!)).toBe(4);
+    expect(takeOutCount(CORVETTE, origins[wing]!.path)).toBe(4);
 
-    const taken = takeOutOfAssembly(CORVETTE, origins[wing]!)!;
+    const taken = takeOutOfAssembly(CORVETTE, origins[wing]!.path)!.blueprint;
     // Exact, down to module order — which is part of the ship, since engine
     // allocation and firing both run over it.
     expect(expandBlueprint(taken)).toEqual(before);
@@ -1210,7 +1210,7 @@ describe('taking a module out of its assembly', () => {
     const wing = expandWithOrigins(CORVETTE).modules.findIndex(
       (m) => m.length === 4 && m.width === 3,
     );
-    const doc = new EditorDocument(takeOutOfAssembly(CORVETTE, origins[wing]!)!);
+    const doc = new EditorDocument(takeOutOfAssembly(CORVETTE, origins[wing]!.path)!.blueprint);
     doc.selectModule(wing);
     expect(doc.selectedModules()).toHaveLength(1);
     doc.apply(updatePlacement(doc.blueprint, doc.selection!, (p) => ({ ...p, width: 5 }))!);
@@ -1230,7 +1230,7 @@ describe('taking a module out of its assembly', () => {
       modules: [hull, { use: 'wing', x: 0, y: 6 }, { use: 'wing', x: 0, y: -6, mirror: true }],
     });
     const origins = expandWithOrigins(bp).origins;
-    const taken = takeOutOfAssembly(bp, origins[2]!)!;
+    const taken = takeOutOfAssembly(bp, origins[2]!.path)!.blueprint;
     expect(taken.assemblies?.['wing']?.modules).toHaveLength(1);
     // Written straight after each copy, in the ship's own list, so it no longer
     // moves with the copy and each is separately editable.
@@ -1260,7 +1260,7 @@ describe('taking a module out of its assembly', () => {
       modules: [hull, { use: 'rib', x: 5, y: 2, angle: 0.7, mirror: true, repeat: 3, step: { x: 0, y: 3, angle: 0.2 } }],
     });
     const engine = expandWithOrigins(bp).modules.findIndex((m) => m.kind === 'engine');
-    const taken = takeOutOfAssembly(bp, expandWithOrigins(bp).origins[engine]!)!;
+    const taken = takeOutOfAssembly(bp, expandWithOrigins(bp).origins[engine]!.path)!.blueprint;
     const pose = (m: { x: number; y: number; angle?: number }): number[] => [m.x, m.y, m.angle ?? 0];
     const engines = (b: Blueprint): number[][] => expandBlueprint(b).filter((m) => m.kind === 'engine').map(pose);
     const was = engines(bp);
@@ -1269,14 +1269,48 @@ describe('taking a module out of its assembly', () => {
     for (let k = 0; k < 3; k++) for (let j = 0; j < 3; j++) expect(now[k]![j]).toBeCloseTo(was[k]![j]!, 9);
   });
 
+  it('takes a nested assembly out whole, still an assembly, beside each copy', () => {
+    const bp = ship({
+      assemblies: {
+        pod: { modules: [{ kind: 'structure', x: 0, y: 0, length: 2, width: 2 }, { kind: 'structure', x: 2, y: 0, length: 2, width: 2 }] },
+        wing: {
+          modules: [
+            { kind: 'structure', x: 0, y: 0, length: 4, width: 3 },
+            { use: 'pod', x: 3, y: 2.5, angle: 0.3 },
+          ],
+        },
+      },
+      modules: [hull, { use: 'wing', x: 0, y: 6, angle: 0.5 }, { use: 'wing', x: 0, y: -6, mirror: true }],
+    });
+    // The pod as the second wing draws it: path through that copy, ending at the pod.
+    const podPath: ModulePath = [
+      { index: 2, copy: 0, into: 'assembly', assembly: 'wing' },
+      { index: 1, copy: 0 },
+    ];
+    expect(takeOutCount(bp, podPath)).toBe(2);
+    const taken = takeOutOfAssembly(bp, podPath)!;
+    expect(taken.blueprint.assemblies?.['wing']?.modules).toHaveLength(1);
+    expect(taken.blueprint.modules.map((m) => ('use' in m ? m.use : m.kind))).toEqual([
+      'structure',
+      'wing',
+      'pod',
+      'wing',
+      'pod',
+    ]);
+    const key = (m: { x: number; y: number }): string => `${m.x.toFixed(9)},${m.y.toFixed(9)}`;
+    expect(expandBlueprint(taken.blueprint).map(key).sort()).toEqual(expandBlueprint(bp).map(key).sort());
+    // What was picked stays picked: the pod that came out of the second wing.
+    expect(taken.path).toEqual([{ index: 4, copy: 0 }]);
+  });
+
   it('is offered for any part of an assembly, and not for a loose one', () => {
     const once = ship({
       assemblies: { pod: { modules: [{ kind: 'structure', x: 0, y: 0, length: 2, width: 2 }] } },
       modules: [hull, { use: 'pod', x: 0, y: 5 }],
     });
     const origins = expandWithOrigins(once).origins;
-    expect(takeOutCount(once, origins[0]!)).toBe(0);
-    expect(takeOutCount(once, origins[1]!)).toBe(1);
+    expect(takeOutCount(once, origins[0]!.path)).toBe(0);
+    expect(takeOutCount(once, origins[1]!.path)).toBe(1);
   });
 });
 

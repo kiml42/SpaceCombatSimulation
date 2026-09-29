@@ -517,7 +517,7 @@ export function createAssemblyProblem(
     if (placementAt(blueprint, path) === null) return 'One of them is no longer there';
     const here = writtenIn(path);
     if (!here.direct || here.root !== first.root) {
-      return 'All of them have to be in the same assembly already';
+      return 'All of them have to be in the same assembly: take the others out first';
     }
   }
   return null;
@@ -720,7 +720,7 @@ export function addToAssemblyProblem(
     }
     const here = writtenIn(path);
     if (!here.direct || here.root !== where.root) {
-      return 'They have to be written alongside the assembly';
+      return 'They have to be written alongside the assembly: take them out first';
     }
   }
   return null;
@@ -921,96 +921,101 @@ export function extentAlong(specs: readonly ModuleSpec[], rotation: number): num
 }
 
 /**
- * How many copies taking this module out of its assembly would leave behind —
- * one per placed copy of the assembly, counting a repeat's — or 0 when it is
- * not written directly in an assembly and there is nothing to take it out of.
+ * How many copies taking this placement out of its assembly would leave
+ * behind — one per placed copy of the assembly, counting a repeat's — or 0 when
+ * it is not written in an assembly and there is nothing to take it out of.
  */
-export function takeOutCount(blueprint: Blueprint, origin: ModuleOrigin): number {
-  const entered = enteredAssembly(origin.path);
-  if (entered === null || origin.path.length - entered.at !== 2) return 0;
+export function takeOutCount(blueprint: Blueprint, path: ModulePath): number {
+  const entered = enteredAssembly(path);
+  if (entered === null || path.length - entered.at !== 2) return 0;
   const name = entered.step.assembly ?? '';
   if (blueprint.assemblies?.[name] === undefined) return 0;
   return countInstances(blueprint, name);
 }
 
 /**
- * Take a module out of the assembly it is written in, leaving a loose copy of
- * it beside every placed copy of that assembly.
+ * Take a module, or an assembly placed inside another, out of the assembly it
+ * is written in, leaving a loose copy of it beside every placed copy of that
+ * assembly.
  *
- * The part leaves the definition, so a *new* copy of the assembly will not have
- * it, and each copy it was in gets one of its own, written in the list that
- * copy sits in and in the same place — so the ship's geometry is unchanged and
- * every copy of the part is separately editable. A loose copy does not move with
- * the assembly afterwards; wrapping the two in a new assembly is how to have that.
+ * It leaves the definition, so a *new* copy of the assembly will not have it,
+ * and each copy it was in gets one of its own, written straight after that
+ * copy in the list it sits in and in the same place — so the ship's geometry
+ * is unchanged and each is separately editable. A loose copy does not move
+ * with the assembly afterwards; wrapping the two in a new assembly is how to
+ * have that.
  *
- * Written straight after the copy it came out of, so it moves down the
- * expansion order a little: module order is part of the ship, since engine
- * allocation and firing run over it. An assembly left empty goes, and its
- * copies are replaced by what came out of them, which is exact.
+ * Written after the copy it came out of, so it moves down the expansion order
+ * a little: module order is part of the ship, since engine allocation and
+ * firing run over it. An assembly left empty goes, and its copies are replaced
+ * by what came out of them. Returns the path of the loose copy left by the copy
+ * `path` came through, so what was picked can stay picked.
  */
-export function takeOutOfAssembly(blueprint: Blueprint, origin: ModuleOrigin): Blueprint | null {
-  const entered = enteredAssembly(origin.path);
-  if (entered === null || origin.path.length - entered.at !== 2) return null;
+export function takeOutOfAssembly(
+  blueprint: Blueprint,
+  path: ModulePath,
+): { blueprint: Blueprint; path: ModulePath } | null {
+  const entered = enteredAssembly(path);
+  if (entered === null || path.length - entered.at !== 2) return null;
   const name = entered.step.assembly ?? '';
   const assembly = blueprint.assemblies?.[name];
   if (assembly === undefined) return null;
-
-  const moduleIndex = origin.path[origin.path.length - 1]!.index;
-  const spec = assembly.modules[moduleIndex];
-  if (spec === undefined || isInstance(spec)) return null;
+  const index = path[path.length - 1]!.index;
+  const member = assembly.modules[index];
+  if (member === undefined) return null;
 
   const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
-  const definition = copy.assemblies![name]!;
-  definition.modules.splice(moduleIndex, 1);
-  const emptied = definition.modules.length === 0;
+  const through = containing(copy, path.slice(0, -1));
+  if (through === null) return null;
+  const picked = through.list[through.index];
+  const copyOf = path[path.length - 2]!.copy;
+  let left: Placement | undefined;
 
-  // Expanded through each copy as an assembly of just this module, which
-  // reuses the one walk that knows how an instance's turn, reflection and
-  // repeat compose with what it places. It lands in the frame the copy was
-  // written in, which is the list it is being written into.
+  const definition = copy.assemblies![name]!;
+  definition.modules.splice(index, 1);
+  const emptied = definition.modules.length === 0;
   eachList(copy, (list) => {
     for (let i = list.length - 1; i >= 0; i--) {
       const entry = list[i]!;
       if (!isInstance(entry) || entry.use !== name) continue;
-      const loose = expandBlueprint({
-        name: blueprint.name,
-        assemblies: { [name]: { modules: [spec] } },
-        modules: [entry],
-      });
+      const loose = loosen(entry, [member]);
+      if (entry === picked) left = loose[copyOf];
       if (emptied) list.splice(i, 1, ...loose);
       else list.splice(i + 1, 0, ...loose);
     }
   });
   if (emptied) delete copy.assemblies![name];
-  return copy as unknown as Blueprint;
+  const found = left === undefined ? null : pathTo(copy as unknown as Blueprint, left);
+  if (found === null) return null;
+  return { blueprint: copy as unknown as Blueprint, path: found };
+}
+
+/** A path to this very placement object, through the first copy that reaches it. */
+function pathTo(blueprint: Blueprint, target: Placement): ModulePath | null {
+  const search = (list: readonly Placement[], trail: PathStep[], seen: Set<string>): ModulePath | null => {
+    for (let index = 0; index < list.length; index++) {
+      const entry = list[index]!;
+      if (entry === target) return [...trail, { index, copy: 0 }];
+      if (!isInstance(entry) || seen.has(entry.use)) continue;
+      const inner = blueprint.assemblies?.[entry.use];
+      if (inner === undefined) continue;
+      seen.add(entry.use);
+      const found = search(inner.modules, [...trail, { index, copy: 0, into: 'assembly', assembly: entry.use }], seen);
+      seen.delete(entry.use);
+      if (found !== null) return found;
+    }
+    return null;
+  };
+  return search(blueprint.modules, [], new Set());
 }
 
 /**
- * Replace one placed copy of an assembly with what it is made of, written
- * where the copy was: its modules and the assemblies it places.
- *
- * One level only — an assembly inside stays an assembly, so taking a ship
- * apart is one step at a time. Every other copy stays linked, which makes this
- * the way to free one copy of a shared part. A repeat comes out as each of its
- * copies, in turn.
- *
- * The contents land in expansion order, so the ship flies the same; geometry
- * is exact up to round-off from composing the frames. The definition goes if
- * nothing else places it. Returns the new placements' paths, first to last.
+ * `members`, written in the frame of the list `placed` sits in rather than in
+ * its assembly's — once per copy of a repeat, in expansion order. An assembly
+ * among them stays an assembly, with this copy's turn and reflection folded in.
+ * Exact up to round-off from composing the frames.
  */
-export function dissolveInstance(
-  blueprint: Blueprint,
-  path: ModulePath,
-): { blueprint: Blueprint; paths: ModulePath[] } | null {
-  const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
-  const found = containing(copy, path);
-  if (found === null) return null;
-  const placed = found.list[found.index]!;
-  if (!isInstance(placed)) return null;
-  const definition = copy.assemblies?.[placed.use];
-  if (definition === undefined) return null;
-
-  const members = definition.modules;
+function loosen(placed: AssemblyInstance, members: readonly Placement[]): Placement[] {
   const out: Placement[] = [];
   const flipped = placed.mirror === true;
   let cx = placed.x;
@@ -1046,6 +1051,35 @@ export function dissolveInstance(
     turn = foldAngle(turn + (flipped ? -(step.angle ?? 0) : (step.angle ?? 0)));
   }
 
+  return out;
+}
+
+/**
+ * Replace one placed copy of an assembly with what it is made of, written
+ * where the copy was: its modules and the assemblies it places.
+ *
+ * One level only — an assembly inside stays an assembly, so taking a ship
+ * apart is one step at a time. Every other copy stays linked, which makes this
+ * the way to free one copy of a shared part. A repeat comes out as each of its
+ * copies, in turn.
+ *
+ * The contents land in expansion order, so the ship flies the same; geometry
+ * is exact up to round-off from composing the frames. The definition goes if
+ * nothing else places it. Returns the new placements' paths, first to last.
+ */
+export function dissolveInstance(
+  blueprint: Blueprint,
+  path: ModulePath,
+): { blueprint: Blueprint; paths: ModulePath[] } | null {
+  const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
+  const found = containing(copy, path);
+  if (found === null) return null;
+  const placed = found.list[found.index]!;
+  if (!isInstance(placed)) return null;
+  const definition = copy.assemblies?.[placed.use];
+  if (definition === undefined) return null;
+
+  const out = loosen(placed, definition.modules);
   found.list.splice(found.index, 1, ...out);
   if (countInstances(copy as unknown as Blueprint, placed.use) === 0) delete copy.assemblies![placed.use];
   return {

@@ -224,6 +224,7 @@ export function startEditor(): void {
   const moduleStats = el<HTMLElement>('moduleStats');
   const duplicateButton = el<HTMLButtonElement>('propDuplicate');
   const takeOutButton = el<HTMLButtonElement>('propTakeOut');
+  const assemblyTakeOut = el<HTMLButtonElement>('assemblyTakeOut');
   const selectAssemblyButton = el<HTMLButtonElement>('propSelectAssembly');
   const assemblySelection = el<HTMLElement>('assemblySelection');
   const assemblyCount = el<HTMLElement>('assemblyCount');
@@ -525,6 +526,18 @@ export function startEditor(): void {
    * reason it is worth reaching is `mirror` — the flag that makes a second
    * copy of a wing the other wing rather than the same one again.
    */
+  /** Enable a Take out button for what `path` names, saying what it will leave. */
+  const offerTakeOut = (button: HTMLButtonElement, path: ModulePath | null, what: string): void => {
+    const leaving = path === null ? 0 : takeOutCount(doc.blueprint, path);
+    button.disabled = leaving === 0;
+    button.title =
+      leaving === 0
+        ? `This ${what} is not inside an assembly`
+        : leaving === 1
+          ? `Take this ${what} out of its assembly, leaving it where it is`
+          : `Take this ${what} out of its assembly, leaving a separate one beside each of its ${leaving} copies`;
+  };
+
   const renderAssembly = (instance: AssemblyInstance): void => {
     const members = doc.blueprint.assemblies?.[instance.use]?.modules ?? [];
     const nested = members.filter((member) => !isModuleSpec(member)).length;
@@ -539,6 +552,7 @@ export function startEditor(): void {
     assemblyOf.textContent =
       parts.join(' and ') + (drawn > members.length ? `, and this copy draws ${drawn}` : '');
     if (document.activeElement !== assemblyName) assemblyName.value = instance.use;
+    offerTakeOut(assemblyTakeOut, path, 'assembly');
     renderAssemblyStats();
     for (const [input, value] of [
       [assemblyX, instance.x],
@@ -729,14 +743,7 @@ export function startEditor(): void {
     weaponInput.checked = spec.weapon === true;
 
     const origin = doc.selectedOrigin();
-    const leaving = origin === null ? 0 : takeOutCount(doc.blueprint, origin);
-    takeOutButton.disabled = leaving === 0;
-    takeOutButton.title =
-      leaving === 0
-        ? 'Only a part of an assembly can be taken out of one'
-        : leaving === 1
-          ? 'Take this part out of its assembly, leaving it where it is'
-          : `Take this part out of its assembly, leaving a separate copy beside each of its ${leaving} copies`;
+    offerTakeOut(takeOutButton, origin === null ? null : origin.path, 'module');
 
     const within = origin === null ? null : instanceOf(origin);
     selectAssemblyButton.disabled = within === null;
@@ -1291,27 +1298,17 @@ export function startEditor(): void {
 
   assemblyDelete.addEventListener('click', deleteSelected);
 
-  takeOutButton.addEventListener('click', () => {
-    const origin = doc.selectedOrigin();
-    const picked = doc.view.modules[doc.selectedModules()[0] ?? -1];
-    if (origin === null || picked === undefined) return;
-    const next = takeOutOfAssembly(doc.blueprint, origin);
-    if (next === null) return;
-    doc.apply(next);
-    // The part picked stays picked, as the loose copy it became: the nearest of
-    // its kind, since a copy re-expressed in a new frame is exact only to round-off.
-    let nearest = -1;
-    let best = Infinity;
-    doc.view.modules.forEach((m, i) => {
-      const d = (m.x - picked.x) ** 2 + (m.y - picked.y) ** 2;
-      if (m.kind === picked.kind && d < best) {
-        best = d;
-        nearest = i;
-      }
-    });
-    doc.selectModule(nearest);
+  /** Take what `path` names out of its assembly, keeping the loose copy it leaves picked. */
+  const takeOut = (path: ModulePath | null): void => {
+    if (path === null) return;
+    const taken = takeOutOfAssembly(doc.blueprint, path);
+    if (taken === null) return;
+    doc.apply(taken.blueprint);
+    doc.select(taken.path);
     refresh();
-  });
+  };
+  takeOutButton.addEventListener('click', () => takeOut(doc.selectedOrigin()?.path ?? null));
+  assemblyTakeOut.addEventListener('click', () => takeOut(doc.selection));
 
   /**
    * A module a member of the selected copy was written beside: its frame is the
