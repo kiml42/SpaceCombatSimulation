@@ -65,7 +65,7 @@ interface Aim {
   /** Bearing to the core it is flown from. */
   toCore: number;
   /** How far off the shooter each of those is, for "which did it pick". */
-  rangeOf: (kind: 'thruster' | 'core' | 'gun') => number;
+  rangeOf: (kind: 'engine' | 'core' | 'gun') => number;
   ships: Ships;
   world: World;
   mark: number;
@@ -103,7 +103,7 @@ function aim(design: ShipDesign, seconds = 20): Aim {
       const kind = module.spec.kind;
       const isGun = kind === 'turret' || kind === 'beamTurret';
       const wantedHere =
-        wanted === 'thruster' ? kind === 'thruster' : wanted === 'core' ? kind === 'core' : isGun;
+        wanted === 'engine' ? kind === 'engine' : wanted === 'core' ? kind === 'core' : isGun;
       if (!wantedHere) continue;
       const x = bodies.x[b]! + module.x * Math.cos(angle) - module.y * Math.sin(angle);
       const y = bodies.y[b]! + module.x * Math.sin(angle) + module.y * Math.cos(angle);
@@ -118,7 +118,7 @@ function aim(design: ShipDesign, seconds = 20): Aim {
   return {
     bearing: ships.turrets.worldBearing(bodies, ships.turretIndexOf(shooter, 0)),
     toCentre: bearingTo(bodies.x[b]!, bodies.y[b]!),
-    toNearestEngine: nearestOf('thruster').bearing,
+    toNearestEngine: nearestOf('engine').bearing,
     toNearestGun: nearestOf('turret').bearing,
     toCore: nearestOf('core').bearing,
     rangeOf: (kind) => nearestOf(kind === 'gun' ? 'turret' : kind).range,
@@ -185,7 +185,7 @@ describe('where a gun aims on a ship', () => {
     let furthest = 0;
     let toFurthest = 0;
     for (const module of gunship.modules) {
-      if (module.spec.kind !== 'thruster') continue;
+      if (module.spec.kind !== 'engine') continue;
       const x = bodies.x[b]! + module.x * Math.cos(angle) - module.y * Math.sin(angle);
       const y = bodies.y[b]! + module.x * Math.sin(angle) + module.y * Math.cos(angle);
       const range = Math.hypot(x, y);
@@ -247,7 +247,7 @@ describe('where a gun aims on a ship', () => {
     const b = bodies.indexOf(a.ships.body(a.mark));
     const design = a.ships.design(a.mark);
     for (let k = 0; k < design.modules.length; k++) {
-      if (design.modules[k]!.spec.kind !== 'thruster') continue;
+      if (design.modules[k]!.spec.kind !== 'engine') continue;
       a.ships.damage.absorb(b, k, a.ships.damage.capacityLeft(b, k));
       expect(a.ships.damage.spent(b, k)).toBe(true);
     }

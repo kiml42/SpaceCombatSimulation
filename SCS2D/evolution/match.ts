@@ -77,7 +77,7 @@ export interface GoalSpec {
    * no engine at all scores, so the first step towards moving is worth
    * nothing and is never taken. Falling away for ever instead means any
    * closing at all is an improvement, however small, which is what lets a
-   * half-metre thruster be an advantage rather than a rounding error.
+   * half-metre engine be an advantage rather than a rounding error.
    *
    * The price is a gentler slope near the goal than a ramp would give — half
    * the weight is spent on the first `scale` metres and the rest is spread
@@ -156,7 +156,7 @@ export interface MatchConfig {
    * asked of a hull but to go forwards: a design with no way to turn is never
    * found out, and one that can turn is never rewarded for it. Scattered, the
    * first thing every craft must do is come round — so the pilot asks for
-   * torque, and a thruster that can supply some is worth firing where one
+   * torque, and an engine that can supply some is worth firing where one
    * bolted to a hull that is already aimed would never be.
    *
    * Measured on three hundred generations bred from a bare core against the

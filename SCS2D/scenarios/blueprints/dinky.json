@@ -3,37 +3,37 @@
   "name": "Dinky",
   "notes": "A fighter. It cannot hope to destroy anything much larger than itself, so it puts engines above the guns everything else shoots at first: a capital it strands is a capital out of the battle, which is the most a craft this size can do to one.",
   "assemblies": {
-    "thruster": {
+    "engine": {
       "modules": [
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": 0,
           "y": 0,
-          "angle": -180,
+          "angle": 0,
           "length": 0.2,
           "width": 0.5
         }
       ]
     },
-    "thruster2": {
+    "engine2": {
       "modules": [
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": 0,
           "y": 0,
-          "angle": -90,
+          "angle": 90,
           "length": 0.1,
           "width": 0.4
         }
       ]
     },
-    "thruster3": {
+    "engine3": {
       "modules": [
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": 0,
           "y": 0,
-          "angle": 180,
+          "angle": 0,
           "length": 0.1,
           "width": 0.1
         }
@@ -50,35 +50,35 @@
       "reinforcement": 1
     },
     {
-      "use": "thruster",
+      "use": "engine",
       "x": -0.1,
       "y": 0.25,
       "angle": 180
     },
     {
-      "use": "thruster2",
+      "use": "engine2",
       "x": 0.01,
       "y": 0.5
     },
     {
-      "use": "thruster2",
+      "use": "engine2",
       "x": 0.01,
       "y": -0.5,
       "angle": 180
     },
     {
-      "use": "thruster2",
+      "use": "engine2",
       "x": 1.4,
       "y": 0.25
     },
     {
-      "use": "thruster2",
+      "use": "engine2",
       "x": 1.4,
       "y": -0.25,
       "angle": 180
     },
     {
-      "use": "thruster",
+      "use": "engine",
       "x": -0.1,
       "y": -0.25,
       "angle": 180
@@ -92,12 +92,12 @@
       "notes": "Half a metre square of computing is a whole control centre, which is the only reason a fighter this size can be flown at all."
     },
     {
-      "use": "thruster3",
+      "use": "engine3",
       "x": 0.1,
       "y": 0.4
     },
     {
-      "use": "thruster3",
+      "use": "engine3",
       "x": 0.1,
       "y": -0.4
     },

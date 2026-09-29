@@ -2,11 +2,11 @@ import type { Bodies, BodyId } from './bodies.js';
 import { sqrt } from './math.js';
 
 /**
- * Thruster allocation: turning a desired body-frame wrench into throttles.
+ * Engine allocation: turning a desired body-frame wrench into throttles.
  *
  * A ship asks for a force and a torque — "push me this way while turning me
- * that way" — and this decides how hard each thruster burns to deliver it.
- * Formally, given thrusters at fixed mount points with fixed directions, find
+ * that way" — and this decides how hard each engine burns to deliver it.
+ * Formally, given engines at fixed mount points with fixed directions, find
  * throttles `u` in [0, 1] with
  *
  *     Σ uᵢ Tᵢ dᵢ        = (Fx, Fy)          the force asked for
@@ -16,24 +16,24 @@ import { sqrt } from './math.js';
  * dimensions it would be six, with an inertia tensor that changes as modules
  * are shot away, and attitude expressed as a quaternion. That difference is one
  * of the reasons the game is planar at all (DESIGN.md §3), and it is why the
- * old Unity prototype stalled here: it drove jointed thrusters through a
+ * old Unity prototype stalled here: it drove jointed engines through a
  * physics solver with gains found by a genetic algorithm, and got the huge
  * torques and damping forces that approach guarantees.
  *
  * **The geometry is fixed per blueprint, so the expensive part is precomputed
- * once.** Each thruster contributes a fixed column — its full-throttle wrench —
+ * once.** Each engine contributes a fixed column — its full-throttle wrench —
  * and the normal-equations inverse over all of them is built at construction.
- * Recomputing is needed only when the set of *working* thrusters changes, which
+ * Recomputing is needed only when the set of *working* engines changes, which
  * is when one is destroyed, not when the ship manoeuvres or takes damage
- * elsewhere (DESIGN.md §4: mass properties and thruster geometry have different
+ * elsewhere (DESIGN.md §4: mass properties and engine geometry have different
  * triggers).
  *
  * **The torque row is preconditioned**, and it matters more than it sounds.
- * Mount arms are metres, so a thruster's torque column is tens of times its
+ * Mount arms are metres, so an engine's torque column is tens of times its
  * force column and *hundreds* of times larger once squared into the normal
  * equations. Left alone, the least-squares solve then weights torque error
  * thousands of times more heavily than force error — and while that is harmless
- * when the system is exactly solvable, it is ruinous once thrusters pin at their
+ * when the system is exactly solvable, it is ruinous once engines pin at their
  * bounds and fewer than three remain free. The solve becomes overdetermined and
  * quietly fits torque while ignoring force: measured at a 75% shortfall on
  * demands that were perfectly achievable, with torque *overshooting* its target.
@@ -42,15 +42,15 @@ import { sqrt } from './math.js';
  * and the residual split sensible.
  *
  * **What is minimised is Σuᵢ², not propellant.** Least squares spreads demand
- * across the thrusters that can serve it, giving smooth, predictable control.
+ * across the engines that can serve it, giving smooth, predictable control.
  * Genuinely propellant-optimal allocation is a linear program whose solutions
- * sit on vertices, so it burns fewer thrusters harder and switches abruptly
+ * sit on vertices, so it burns fewer engines harder and switches abruptly
  * between them as the demand rotates — cheaper in fuel, worse to fly and to
  * watch. The difference is small next to whether the ship's *layout* is any
  * good, which is the thing the player actually controls. Recorded in §12.
  */
 
-export interface ThrusterSpec {
+export interface EngineSpec {
   /** Mount point in body frame, metres from the centre of mass. */
   x: number;
   y: number;
@@ -60,7 +60,7 @@ export interface ThrusterSpec {
   /**
    * Thrust at full throttle, newtons: what the nozzle throws, which is also
    * what sets the plume's size and what it burns with. What the *ship* gets is
-   * this times `escaping`, and `ThrusterLayout` does that multiplication.
+   * this times `escaping`, and `EngineLayout` does that multiplication.
    */
   maxThrust: number;
   /**
@@ -87,7 +87,7 @@ export interface ThrusterSpec {
    * A ray that runs into the ship's own hull delivers its momentum back to the
    * hull it was pushing, so that share of the thrust never happens — the push
    * on the blocked module and the thrust off the nozzle are the same
-   * newton-seconds with opposite signs. `ThrusterLayout` therefore flies the
+   * newton-seconds with opposite signs. `EngineLayout` therefore flies the
    * engine at this fraction of its rating, which is what makes a buried nozzle
    * cost thrust rather than being free (ROADMAP.md §12).
    *
@@ -110,9 +110,9 @@ export class Allocation {
   fy = 0;
   torque = 0;
   /**
-   * True if any thruster ended at *full* throttle — the layout ran out of
-   * thrust for what was asked. Deliberately not set for a thruster at zero:
-   * most thrusters are off in most allocations, so a flag covering both bounds
+   * True if any engine ended at *full* throttle — the layout ran out of
+   * thrust for what was asked. Deliberately not set for an engine at zero:
+   * most engines are off in most allocations, so a flag covering both bounds
    * would be true almost always and mean nothing.
    */
   saturated = false;
@@ -133,14 +133,14 @@ const RIDGE = 1e-9;
 const DET_EPSILON = 1e-12;
 
 /**
- * Hard ceiling on solver passes. Each pass pins exactly one thruster, so a
- * layout needs no more passes than it has thrusters; this only guards against a
+ * Hard ceiling on solver passes. Each pass pins exactly one engine, so a
+ * layout needs no more passes than it has engines; this only guards against a
  * pathological layout on a very large ship.
  */
 const MAX_PASSES = 64;
 
 /**
- * How nearly two thrusters must undo each other before firing both is called
+ * How nearly two engines must undo each other before firing both is called
  * waste, as one minus the cosine between their columns.
  *
  * A pair is not judged on which way it pushes but on its whole wrench, so a
@@ -163,7 +163,7 @@ const OPPOSED_TOLERANCE = 1e-3;
  * the rest of the layout then has to cancel. Worth nothing in fuel, and worth
  * less than nothing once a plume is burning whatever stands behind it.
  *
- * The scale is the layout's own reach — the furthest any of its thrusters
+ * The scale is the layout's own reach — the furthest any of its engines
  * sits from the centre of mass — because what counts as a useful arm is a
  * question about the size of the ship and nothing else. Measured on the ships
  * as drawn, every deliberate arm is at least 11% of reach and the largest
@@ -181,7 +181,7 @@ const OPPOSED_TOLERANCE = 1e-3;
 const USEFUL_ARM_FRACTION = 0.01;
 
 
-export class ThrusterLayout {
+export class EngineLayout {
   readonly count: number;
 
   /** Mount points and directions, body frame. */
@@ -192,7 +192,7 @@ export class ThrusterLayout {
   readonly maxThrust: Float64Array;
 
   /**
-   * Full-throttle wrench per thruster — the columns of the allocation matrix.
+   * Full-throttle wrench per engine — the columns of the allocation matrix.
    * Precomputed because the geometry cannot change without rebuilding.
    */
   readonly wfx: Float64Array;
@@ -209,7 +209,7 @@ export class ThrusterLayout {
   /** Reciprocal of that characteristic length. */
   readonly torqueScale: number;
 
-  /** Inverse normal equations over every thruster, for the unsaturated case. */
+  /** Inverse normal equations over every engine, for the unsaturated case. */
   private readonly inv = new Float64Array(6);
 
   /**
@@ -224,7 +224,7 @@ export class ThrusterLayout {
   private readonly freeIdx: Int32Array;
 
   /**
-   * For each thruster, one whose wrench is the exact opposite of its own, or
+   * For each engine, one whose wrench is the exact opposite of its own, or
    * -1. A property of the geometry, so it is found once when the layout is
    * built — see `trim`, which is the whole reason it is wanted.
    */
@@ -233,13 +233,13 @@ export class ThrusterLayout {
   private readonly size: Float64Array;
 
   /**
-   * Whether each thruster's lever arm is long enough to be worth turning the
+   * Whether each engine's lever arm is long enough to be worth turning the
    * ship with — see `USEFUL_ARM_FRACTION`. Read only by `maxTorque`, which is
    * the ceiling the pilot holds its demand under.
    */
   private readonly worthTurning: Uint8Array;
 
-  constructor(specs: readonly ThrusterSpec[]) {
+  constructor(specs: readonly EngineSpec[]) {
     const n = specs.length;
     this.count = n;
     this.px = new Float64Array(n);
@@ -260,7 +260,7 @@ export class ThrusterLayout {
     for (let i = 0; i < n; i++) {
       const s = specs[i]!;
       const len = sqrt(s.dirX * s.dirX + s.dirY * s.dirY);
-      // A thruster with no direction produces nothing rather than a NaN.
+      // An engine with no direction produces nothing rather than a NaN.
       const ux = len > 0 ? s.dirX / len : 0;
       const uy = len > 0 ? s.dirY / len : 0;
       // What the ship actually gets: an engine firing part of its exhaust into
@@ -295,9 +295,9 @@ export class ThrusterLayout {
     this.torqueScale = forceSq > 0 && torqueSq > 0 ? sqrt(forceSq / torqueSq) : 1;
     for (let i = 0; i < n; i++) this.wts[i] = this.wt[i] * this.torqueScale;
 
-    // Which thrusters are each other's opposites, which is what `trim` needs.
+    // Which engines are each other's opposites, which is what `trim` needs.
     // Judged on the preconditioned columns, so that "opposite" means the whole
-    // wrench and not merely the direction of push: a bow thruster and a stern
+    // wrench and not merely the direction of push: a bow engine and a stern
     // one pushing opposite ways are *not* opposites, they are a couple, which
     // is how a ship turns without going anywhere.
     for (let i = 0; i < n; i++) {
@@ -322,7 +322,7 @@ export class ThrusterLayout {
       this.opposite[i] = best;
     }
 
-    // Which thrusters are worth asking for torque. Taken from the geometry
+    // Which engines are worth asking for torque. Taken from the geometry
     // alone, so damage — which only ever takes thrust off a mount, never moves
     // one — cannot change the answer mid-battle.
     let reach = 0;
@@ -340,8 +340,8 @@ export class ThrusterLayout {
   }
 
   /**
-   * Invert the normal equations `A Aᵀ + λI` over the thrusters not pinned this
-   * pass. `pass < 0` means "every thruster", used for the precomputed case.
+   * Invert the normal equations `A Aᵀ + λI` over the engines not pinned this
+   * pass. `pass < 0` means "every engine", used for the precomputed case.
    */
   private buildInverse(out: Float64Array, pass: number): void {
     let a = 0;
@@ -404,10 +404,10 @@ export class ThrusterLayout {
    * Choose throttles delivering as much of the demanded body-frame wrench as
    * the layout can, writing them into `throttles` and the result into `out`.
    *
-   * Least squares first, then **redistribution**: any thruster whose throttle
+   * Least squares first, then **redistribution**: any engine whose throttle
    * came out below 0 or above 1 is pinned at that bound, its contribution is
    * taken off the demand, and the rest are solved again. Each pass pins at
-   * least one thruster, so this terminates.
+   * least one engine, so this terminates.
    *
    * When the demand is beyond the layout, the result is whatever the clamped
    * solve produced — which is *not* the same as the demand scaled down, and may
@@ -415,17 +415,17 @@ export class ThrusterLayout {
    * actually produced, so a pilot that cares can compare and reduce its ask.
    *
    * Redistribution is a **heuristic, not an exact solver**, and it can fall
-   * short of a demand that is strictly achievable. A thruster pinned at a bound
+   * short of a demand that is strictly achievable. An engine pinned at a bound
    * is never released, so an early guess is never revisited. Measured across
    * randomised layouts with full authority: **mean shortfall 0.016%, worst
    * 5.4%** of the demand. Randomised geometry is close to adversarial — real
-   * layouts, where thrusters are placed on purpose, sit far better than that.
+   * layouts, where engines are placed on purpose, sit far better than that.
    *
    * Making it exact means bounded-variable least squares: releasing pinned
-   * thrusters when the gradient says they would help, with a line search to
+   * engines when the gradient says they would help, with a line search to
    * guarantee progress. Releasing *without* the line search was tried and is
    * worse than not releasing at all — the active set oscillates, pinning and
-   * unpinning the same thruster until the pass budget runs out, which took the
+   * unpinning the same engine until the pass budget runs out, which took the
    * worst case from 5% to 234%. Recorded in §12.
    */
   allocate(
@@ -463,7 +463,7 @@ export class ThrusterLayout {
       for (let i = 0; i < n; i++) if (this.pinned[i] === 0) this.freeIdx[k++] = i;
       if (k === 0) break;
 
-      // Which normal equations apply depends on how many thrusters are left.
+      // Which normal equations apply depends on how many engines are left.
       //
       //   k >= 3  the system is underdetermined: many throttle combinations
       //           give the demanded wrench, and the minimum-norm one is wanted.
@@ -505,7 +505,7 @@ export class ThrusterLayout {
       const y2 = m[2]! * rx + m[4]! * ry + m[5]! * rt;
 
       // Pin only the *worst* violator, then solve again. Pinning every
-      // violator at once collapses a nine-thruster layout to two in a single
+      // violator at once collapses a nine-engine layout to two in a single
       // pass and never reconsiders them, which is how an easily achievable
       // demand ended up missed by more than 100%. One at a time is what makes
       // this an active-set method rather than a guess.
@@ -582,11 +582,11 @@ export class ThrusterLayout {
   }
 
   /**
-   * Take off any throttle a pair of opposite thrusters is spending on each
+   * Take off any throttle a pair of opposite engines is spending on each
    * other.
    *
    * **Two engines that undo each other are burning for nothing**, and the
-   * search can leave them that way: redistribution pins a thruster at full and
+   * search can leave them that way: redistribution pins an engine at full and
    * never reconsiders it, so a later pass is free to open its opposite number
    * to claw back what the pinned one is overproducing. Both end up alight, the
    * ship goes exactly where it was going anyway, and the fuel — and, since a
@@ -603,7 +603,7 @@ export class ThrusterLayout {
    * after the search, rather than by teaching the search not to get here.
    *
    * It is a pairwise rule and makes no claim beyond that. Three or more
-   * thrusters can in principle be wasteful together without any two of them
+   * engines can in principle be wasteful together without any two of them
    * being opposites; no layout drawn by hand or bred so far does it, and
    * finding the general case is a linear program rather than a loop.
    */
@@ -628,7 +628,7 @@ export class ThrusterLayout {
   }
 
   /**
-   * Least squares over one or two free thrusters: minimise ‖A u − r‖² rather
+   * Least squares over one or two free engines: minimise ‖A u − r‖² rather
    * than ‖u‖². Returns true if any throttle had to be pinned at a bound.
    */
   private solveOverdetermined(
@@ -700,9 +700,9 @@ export class ThrusterLayout {
    * the support function of the achievable set.
    *
    * The achievable wrenches form a **zonotope**: the set of `A u` for `u` in
-   * the unit cube, which is the Minkowski sum of one segment per thruster. Its
+   * the unit cube, which is the Minkowski sum of one segment per engine. Its
    * support function is therefore just `Σ max(0, aᵢ · d)`, exact and linear in
-   * the thruster count, with no vertices to enumerate.
+   * the engine count, with no vertices to enumerate.
    *
    * This is what draws the manoeuvring envelope for the player (DESIGN.md §4):
    * sample directions, and each answer is a supporting plane of the true shape.
@@ -728,7 +728,7 @@ export class ThrusterLayout {
    * Greatest torque worth asking this layout for in the given sense (+1 or
    * −1), ignoring force.
    *
-   * Counts only the thrusters whose lever arms make them worth turning a ship
+   * Counts only the engines whose lever arms make them worth turning a ship
    * with (`USEFUL_ARM_FRACTION`). It is a ceiling on the *demand* rather than a
    * statement about what the hull can physically be made to do: an engine
    * almost in line with the centre of mass still makes its sliver of torque
@@ -768,9 +768,9 @@ export class ThrusterLayout {
 /**
  * Apply an allocated body-frame wrench to a body.
  *
- * One rotation for the whole ship rather than one per thruster: the allocation
+ * One rotation for the whole ship rather than one per engine: the allocation
  * has already summed them, and `Bodies.applyLocalForceAtLocalPoint` would take
- * a sine and cosine of the same angle for every thruster in the layout.
+ * a sine and cosine of the same angle for every engine in the layout.
  */
 export function applyAllocation(bodies: Bodies, id: BodyId, allocation: Allocation): void {
   bodies.applyLocalWrench(id, allocation.fx, allocation.fy, allocation.torque);

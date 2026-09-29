@@ -40,24 +40,24 @@
           "width": 0.5
         },
         {
-          "use": "thruster",
+          "use": "engine",
           "x": -3.6,
           "y": 2
         },
         {
-          "use": "thruster",
+          "use": "engine",
           "x": 3.6,
           "y": 2,
           "angle": 180
         },
         {
-          "use": "thruster",
+          "use": "engine",
           "x": -3.4,
           "y": 2.1,
           "angle": -90
         },
         {
-          "use": "thruster",
+          "use": "engine",
           "x": 3.4,
           "y": 2.1,
           "angle": -90
@@ -70,10 +70,10 @@
           "width": 0.5
         },
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": 0.25,
           "y": -0.5,
-          "angle": 0,
+          "angle": 180,
           "length": 2,
           "width": 0.5,
           "nozzle": 0.3
@@ -94,13 +94,13 @@
         }
       ]
     },
-    "thruster": {
+    "engine": {
       "modules": [
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": 0,
           "y": 0,
-          "angle": 0,
+          "angle": 180,
           "length": 0.2,
           "width": 0.3,
           "barrels": 1,

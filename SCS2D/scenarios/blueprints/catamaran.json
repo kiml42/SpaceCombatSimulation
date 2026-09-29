@@ -4,7 +4,7 @@
   "notes": "Two hulls and a footbridge. Each hull is a whole ship — core, gun, engines — and what joins them is four sections of thin structure, so the pair is held together by welds a fraction of the width of the ones inside either hull. Built to be cut in half: what the two halves then do is what tells you whether a piece with a core of its own is a ship or wreckage.",
   "assemblies": {
     "wingBox": {
-      "notes": "Holds a manoeuvring thruster out where its moment arm is worth having. Outboard only: a thruster on the inboard face would exhaust across the bridge and into the other hull.",
+      "notes": "Holds a manoeuvring engine out where its moment arm is worth having. Outboard only: an engine on the inboard face would exhaust across the bridge and into the other hull.",
       "modules": [
         {
           "kind": "structure",
@@ -18,10 +18,10 @@
     "lateral": {
       "modules": [
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": 0,
           "y": -1,
-          "angle": -90,
+          "angle": 90,
           "length": 2,
           "width": 3
         }
@@ -30,10 +30,10 @@
     "retro": {
       "modules": [
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": -1,
           "y": 0,
-          "angle": 180,
+          "angle": 0,
           "length": 2,
           "width": 3
         }
@@ -77,10 +77,10 @@
           "barrels": 1
         },
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": -8,
           "y": 0,
-          "angle": 0,
+          "angle": 180,
           "length": 4,
           "width": 6
         },

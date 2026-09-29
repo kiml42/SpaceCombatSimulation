@@ -201,7 +201,7 @@ export function parseRunConfig(value: unknown): RunSetup {
       minMatches: read(file['minMatches'], DEFAULT_RUN.minMatches),
       massBudget: budget === undefined || budget === null ? Infinity : (budget as number),
       mutation: {
-        kinds: { ...DEFAULT_KINDS, ...(file['kinds'] as Partial<KindWeights>) },
+        kinds: { ...DEFAULT_KINDS, ...(currentKinds(file['kinds']) as Partial<KindWeights>) },
         doctrine: { ...DEFAULT_DOCTRINE_WEIGHTS, ...(file['doctrine'] as Partial<DoctrineWeights>) },
       },
       fleet: {
@@ -277,8 +277,16 @@ function budgetProblem(value: unknown): string | null {
   return null;
 }
 
-function kindsProblem(value: unknown): string | null {
-  if (value === undefined) return null;
+/** Kind weights keyed as the format names kinds now: older files say `thruster`. */
+function currentKinds(value: unknown): unknown {
+  if (!isRecord(value) || !('thruster' in value)) return value;
+  const { thruster, ...rest } = value;
+  return { engine: thruster, ...rest };
+}
+
+function kindsProblem(raw: unknown): string | null {
+  if (raw === undefined) return null;
+  const value = currentKinds(raw);
   if (!isRecord(value)) return 'kinds must be an object of weights, one per module kind';
   const extra = unknownKeys(value, MODULE_KINDS);
   if (extra.length > 0) {

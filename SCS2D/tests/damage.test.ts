@@ -139,18 +139,18 @@ describe('what damage takes away', () => {
     // a simpler thing and keeps going longer. Neither stops absorbing damage
     // when it stops working.
     const r = ship();
-    const thruster = corvette.modules.findIndex((m) => m.spec.kind === 'thruster');
+    const engine = corvette.modules.findIndex((m) => m.spec.kind === 'engine');
     const turret = corvette.modules.findIndex((m) => m.spec.kind === 'turret');
     const capacity = (m: number) => corvette.modules[m]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG;
 
-    r.damage.absorb(0, thruster, capacity(thruster) * 0.5);
+    r.damage.absorb(0, engine, capacity(engine) * 0.5);
     r.damage.absorb(0, turret, capacity(turret) * 0.5);
-    expect(r.damage.remaining(0, thruster, DamageEffect.Thrust)).toBeLessThan(1);
-    expect(r.damage.remaining(0, thruster, DamageEffect.Thrust)).toBeGreaterThan(0);
+    expect(r.damage.remaining(0, engine, DamageEffect.Thrust)).toBeLessThan(1);
+    expect(r.damage.remaining(0, engine, DamageEffect.Thrust)).toBeGreaterThan(0);
 
-    r.damage.absorb(0, thruster, capacity(thruster) * 0.25);
-    expect(r.damage.remaining(0, thruster, DamageEffect.Thrust)).toBe(0);
-    expect(r.damage.spent(0, thruster)).toBe(false);
+    r.damage.absorb(0, engine, capacity(engine) * 0.25);
+    expect(r.damage.remaining(0, engine, DamageEffect.Thrust)).toBe(0);
+    expect(r.damage.spent(0, engine)).toBe(false);
 
     // A gun with a fifth of itself left still fires, where an engine gave out
     // at a third: 0.3 against 0.15.
@@ -207,7 +207,7 @@ describe('a damaged ship flies and shoots worse', () => {
   it('pushes less hard with its engines wrecked', () => {
     const healthy = fleet();
     const hurt = fleet();
-    wreck(hurt, 'thruster');
+    wreck(hurt, 'engine');
 
     for (let i = 0; i < 120; i++) {
       healthy.ships.command(1 / 60, healthy.world);
@@ -226,7 +226,7 @@ describe('a damaged ship flies and shoots worse', () => {
   it('is a hulk once it can neither move nor shoot', () => {
     const f = fleet();
     expect(f.ships.isDisabled(f.ship)).toBe(false);
-    wreck(f, 'thruster');
+    wreck(f, 'engine');
     expect(f.ships.isDisabled(f.ship)).toBe(false);
     wreck(f, 'turret');
     expect(f.ships.isDisabled(f.ship)).toBe(true);

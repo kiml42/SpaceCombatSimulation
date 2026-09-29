@@ -30,6 +30,7 @@ import {
   isHullMount,
   MODULE_KINDS,
   moduleCentre,
+  refitModule,
   type ModuleKind,
   type ModuleSpec,
 } from '../sim/modules.js';
@@ -44,7 +45,7 @@ import type { Rng } from '../sim/rng.js';
  * assembly is written once however many copies are placed, so mutating it
  * changes every copy — which is the point of assemblies and the reason a
  * lineage stays legible instead of drifting into eight slightly different
- * thrusters. The same holds in reverse: a placement moved is one copy moved.
+ * engines. The same holds in reverse: a placement moved is one copy moved.
  *
  * **The layout rules are the arbiter.** Nothing here knows what makes a ship
  * buildable; it makes a candidate and asks `blueprintProblem`. A candidate
@@ -119,7 +120,7 @@ export const DEFAULT_DOCTRINE_WEIGHTS: DoctrineWeights = { targeting: 1, approac
  * being cut in half, so the chance is not zero.
  */
 export const DEFAULT_KINDS: KindWeights = {
-  thruster: 5,
+  engine: 5,
   structure: 4,
   turret: 2,
   beamTurret: 1,
@@ -499,7 +500,7 @@ function knobs(draft: Draft): Knob[] {
         // one quantity, so one line finds it on either archetype.
         out.push({ at: 'barrels', site }, { at: 'nozzle', site });
       }
-      if (placement.kind === 'thruster') {
+      if (placement.kind === 'engine') {
         // An engine's outlets are counted by the same field a gun's barrels
         // are, so a cluster is something a line can find.
         out.push({ at: 'weapon', site }, { at: 'barrels', site }, { at: 'nozzle', site });
@@ -672,16 +673,13 @@ function reinforce(site: ModuleSite, rng: Rng, bounds: MutationLimits): string |
  * position, the size, the facing, the armour — and changes only what it is
  * for.
  *
- * **An engine is the awkward one, and it is worth saying why.** A thruster's
- * position is where it is *attached* — the face opposite the nozzle — where
- * every other kind's is the middle of its box, so changing the kind and
- * leaving the numbers alone slides the module half its own length and lands
- * it inside its neighbour. What is kept is therefore the space, not the
- * coordinates: the centre is measured before and put back afterwards. Which
- * way a new engine points is a free choice besides, since nothing about the
- * module it was says which face should push, so that is drawn here and the
- * attempts try different ones. Every other kind keeps the facing it had,
- * because for those it means something.
+ * **An engine is the awkward one.** Its position is its mounting face rather
+ * than the middle of its box, so `refitModule` keeps the centre rather than
+ * the coordinates. Every kind faces the way what sticks out of it points, so
+ * a weapon refitted as an engine keeps its facing and its bell goes where the
+ * barrel was. Refitted from a structure or a core, which have no outward
+ * face, which way a new engine points is a free choice, so a quarter turn is
+ * drawn here and the attempts try different ones.
  *
  * Neither is a nicety: without them a refit into an engine is refused every
  * time, so the one route to a *large* engine is closed and a lineage can only
@@ -691,17 +689,8 @@ function refit(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | nul
   const was = site.spec.kind;
   const to = pickKind(rng, bounds.kinds, was);
   if (to === null) return null;
-  const centre = moduleCentre(site.spec);
-  site.spec.kind = to;
-  if (to === 'thruster') {
-    const angle = (site.spec.angle ?? 0) + rng.nextInt(4) * HALF_PI;
-    site.spec.angle = angle;
-    site.spec.x = centre.x + cos(angle) * (site.spec.length / 2);
-    site.spec.y = centre.y + sin(angle) * (site.spec.length / 2);
-  } else if (was === 'thruster') {
-    site.spec.x = centre.x;
-    site.spec.y = centre.y;
-  }
+  const turn = to === 'engine' && !isWeaponMount(was) ? rng.nextInt(4) * HALF_PI : 0;
+  Object.assign(site.spec, refitModule(site.spec, to, turn));
   // **Fields the new kind does not read are kept, not cleared.** They are what
   // this module was, and a lineage that refits a tuned engine into a gun
   // mount and back should get its bell rather than the default: twenty
@@ -734,7 +723,7 @@ function rebarrel(site: ModuleSite, rng: Rng): string | null {
  *
  * One operator, because it is one field and one quantity — how the module
  * divides between its protrusion and the block behind it. A share rather than
- * a length, so the knob means the same thing on a fighter's thruster and a
+ * a length, so the knob means the same thing on a fighter's engine and a
  * capital's, and held off both ends: a module that is all protrusion has no
  * block, and the layout rules would refuse it rather than teach the search
  * anything.
@@ -824,13 +813,13 @@ function moveFace(site: ModuleSite, draft: Draft, rng: Rng, bounds: MutationLimi
   if (now <= 0) return null;
 
   // Where the module's *position* has to go for the other face to stay put.
-  // A thruster is held on by the face it pushes from and its position is the
-  // middle of that face, so lengthening one from the nozzle end moves nothing
-  // at all — every other case moves the box's centre by half the change.
+  // An engine is held on by the face behind it, at -x, and its position is
+  // the middle of that face, so lengthening one from the bell end moves
+  // nothing at all — every other case moves the box's centre by half the change.
   let localX = 0;
   let localY = 0;
   if (along) {
-    if (spec.kind === 'thruster') localX = side > 0 ? delta : 0;
+    if (spec.kind === 'engine') localX = side > 0 ? 0 : -delta;
     else localX = (side * delta) / 2;
   } else {
     localY = (side * delta) / 2;
@@ -1559,14 +1548,13 @@ function against(
   // Which way a module has to face to be *held on* by this face is the
   // archetype's business, and two of them answer differently.
   //
-  // A thruster is mounted facing *into* the anchor, which puts its position
-  // exactly on the face and its exhaust pointing out into clear air. Nothing
-  // refuses an engine pointed the other way any more; it is simply the only
-  // way round worth guessing, since the other burns the ship it is bolted to.
-  // A hull weapon is the mirror of that: it is held on by the block behind
-  // its barrel, so it faces *out* and the barrel clears the ship. Everything
-  // else has no front and sits on the face, half its own depth out, lying
-  // along it.
+  // An engine and a hull weapon both face *out*, bell or barrel into clear
+  // air, held on by the block behind it. An engine's position is the middle
+  // of the face it is bolted on by, so it sits exactly on the anchor's face;
+  // a hull weapon's is its middle, half its depth out. Nothing refuses an
+  // engine pointed the other way; it is simply the only way round worth
+  // guessing, since the other burns the ship it is bolted to. Everything else
+  // has no front and sits on the face, half its own depth out, lying along it.
   // **The angle is not rounded, and that is load-bearing.** Positions are
   // tidied because they are worked out through sines and cosines and land on
   // values no file should carry; an angle is not, because a module sits
@@ -1574,19 +1562,18 @@ function against(
   // count as overlapping. Rounding a right angle to six places tilts a module
   // by three ten-millionths of a radian, which puts a corner of it some
   // eighty nanometres inside the hull it is bolted to — and the overlap test
-  // is exact, so the layout is refused. It cost every thruster: mounted
-  // facing *into* its anchor, a thruster's angle is a right angle plus half a
-  // turn and so was never one of the two values that survive rounding, and
-  // not one could be added to any face of any ship. Angles are exact in
+  // is exact, so the layout is refused. It once cost every engine, whose angle
+  // was then a right angle plus half a turn and so never one of the two values
+  // that survive rounding: not one could be added to any face of any ship. Angles are exact in
   // radians here and exact in degrees in the file, which is where legibility
   // was the concern in the first place.
   const added: ModuleSpec =
-    kind === 'thruster'
+    kind === 'engine'
       ? {
           kind,
           x: tidy(faceX, 6),
           y: tidy(faceY, 6),
-          angle: normalAngle + PI,
+          angle: normalAngle,
           length: out,
           width: across,
         }

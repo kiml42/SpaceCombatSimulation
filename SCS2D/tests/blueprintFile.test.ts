@@ -50,6 +50,24 @@ function file(overrides: Record<string, unknown> = {}): Record<string, unknown> 
 }
 
 describe('blueprint files', () => {
+  it('reads a thruster, which faced the way it pushed, as an engine facing along its bell', () => {
+    const file = serialiseBlueprint({
+      name: 'Old',
+      modules: [
+        { kind: 'engine', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.4 },
+        { kind: 'engine', x: 0, y: 3, angle: degreesToRadians(-90), length: 2, width: 2 },
+        { kind: 'engine', x: 5, y: 0, length: 2, width: 2 },
+      ],
+    });
+    for (const module of file['modules'] as Record<string, unknown>[]) module['kind'] = 'thruster';
+    expect(blueprintFileProblem(file)).toBeNull();
+    const [aft, lateral, bare] = parseBlueprint(file).modules as ModuleSpec[];
+    expect(aft).toMatchObject({ kind: 'engine', x: -5, angle: Math.PI, nozzle: 0.4 });
+    expect(lateral!.angle).toBe(degreesToRadians(90));
+    // No angle was a thruster pushing along +x, so its bell faces aft.
+    expect(bare!.angle).toBe(Math.PI);
+  });
+
   it('accepts every ship that ships with the game', () => {
     for (const [name, raw] of FILES) {
       expect(blueprintFileProblem(raw), name).toBeNull();
@@ -119,13 +137,13 @@ describe('rejecting a file that arrived from somewhere else', () => {
   });
 
   it('carries an engine\'s bell and its nozzle count out and back', () => {
-    // Both are a thruster's own geometry rather than something derived, so
+    // Both are an engine's own geometry rather than something derived, so
     // they have to survive the file: a ship saved and loaded with a different
     // nozzle is a different ship.
     const raw = file({
       modules: [
         { kind: 'core', x: 0, y: 0, length: 10, width: 4 },
-        { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.3, barrels: 3 },
+        { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4, nozzle: 0.3, barrels: 3 },
       ],
     }) as Record<string, unknown>;
     expect(blueprintFileProblem(raw)).toBeNull();
@@ -143,7 +161,7 @@ describe('rejecting a file that arrived from somewhere else', () => {
     const belledCore = file({
       modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4, nozzle: 0.3 }],
     });
-    expect(blueprintFileProblem(belledCore)).toMatch(/only a thruster or a hull mount/);
+    expect(blueprintFileProblem(belledCore)).toMatch(/only an engine or a hull mount/);
     expect(blueprintProblem(parseBlueprint(file({
       modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4 }],
     })))).toBeNull();

@@ -11,7 +11,7 @@ import {
   serialiseBlueprint,
   moduleProblem,
   nozzleReach,
-  thrusterGeometry,
+  engineGeometry,
   type Blueprint,
   type ModuleSpec,
 } from '../sim/index.js';
@@ -31,10 +31,10 @@ const DT = 1 / 60;
 /** A ship that is one engine on a hull, pointing its exhaust along -x. */
 function tug(weapon: boolean): Blueprint {
   const engine: ModuleSpec = {
-    kind: 'thruster',
+    kind: 'engine',
     x: -5,
     y: 0,
-    angle: 0,
+    angle: Math.PI,
     length: 2,
     width: 4,
   };
@@ -52,7 +52,7 @@ function tug(weapon: boolean): Blueprint {
       { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 6 },
       // Something to push the other way with, so the hull is not obliged to
       // fire the weapon engine merely to hold station.
-      { kind: 'thruster', x: 5, y: 0, angle: Math.PI, length: 2, width: 4 },
+      { kind: 'engine', x: 5, y: 0, angle: 0, length: 2, width: 4 },
     ],
   };
 }
@@ -70,17 +70,17 @@ const TARGET: Blueprint = {
   modules: [
     { kind: 'core', x: 0, y: 0, angle: 0, length: 6, width: 6 },
     // Hung off the far face, so it is not itself the thing standing in the
-    // plume — a thruster's position is the face it pushes from and its body
-    // runs back from there, so this one lies beyond the core rather than in
+    // plume — an engine's position is the face it pushes from and its body
+    // runs out from there, bell last, so this one lies beyond the core rather than in
     // front of it.
-    { kind: 'thruster', x: -3, y: 0, angle: 0, length: 2, width: 4 },
+    { kind: 'engine', x: -3, y: 0, angle: Math.PI, length: 2, width: 4 },
   ],
 };
 
 /** Where the armed engine's nozzle sits in its ship's own frame, metres. */
 function nozzleX(): number {
   const design = compileBlueprint(tug(true));
-  const t = design.thrusters[0]!;
+  const t = design.engines[0]!;
   return t.x - t.dirX * design.modules[t.module!]!.spec.length * 0.5;
 }
 
@@ -95,11 +95,11 @@ function targetNose(): number {
 /** How far behind the nozzle the useful part of the plume ends. */
 function usefulReach(): number {
   const design = compileBlueprint(tug(true));
-  const t = design.thrusters[0]!;
+  const t = design.engines[0]!;
   // Through the same geometry the burn reads, since a bell decides how far a
   // flame carries: taking it off the module's width alone would measure a
   // plume this engine does not throw.
-  const geometry = thrusterGeometry(design.modules[t.module!]!.spec);
+  const geometry = engineGeometry(design.modules[t.module!]!.spec);
   return nozzleReach(geometry, t.maxThrust) * (1 - WEAPON_PLUME_SHARE);
 }
 
@@ -224,7 +224,7 @@ describe('the flag itself', () => {
     const gun: ModuleSpec = { kind: 'turret', x: 0, y: 0, length: 4, width: 3, weapon: true };
     expect(moduleProblem(gun)).toBeNull();
     expect(
-      moduleProblem({ kind: 'thruster', x: 0, y: 0, length: 2, width: 2, weapon: true }),
+      moduleProblem({ kind: 'engine', angle: Math.PI, x: 0, y: 0, length: 2, width: 2, weapon: true }),
     ).toBeNull();
 
     const saved = serialiseBlueprint({ name: 'Dormant', modules: [gun] });
@@ -235,7 +235,7 @@ describe('the flag itself', () => {
         name: 'Claiming',
         modules: [{ kind: 'turret', x: 0, y: 0, length: 4, width: 3, weapon: true }],
       }),
-    ).toMatch(/only a thruster can be used as a weapon/);
+    ).toMatch(/only an engine can be used as a weapon/);
   });
 
   it('survives a round trip through a blueprint file', () => {

@@ -5,9 +5,9 @@ import {
   Allocation,
   applyAllocation,
   shortfall,
-  ThrusterLayout,
-  type ThrusterSpec,
-} from '../sim/thrusters.js';
+  EngineLayout,
+  type EngineSpec,
+} from '../sim/engines.js';
 
 /**
  * A wrong allocator does not crash; it produces ships that fly slightly
@@ -18,9 +18,9 @@ import {
  * randomised layouts rather than hand-picked cases.
  */
 
-/** Four thrusters on the axes, each pushing inward: full authority, no torque. */
-function crossLayout(thrust = 1000): ThrusterLayout {
-  return new ThrusterLayout([
+/** Four engines on the axes, each pushing inward: full authority, no torque. */
+function crossLayout(thrust = 1000): EngineLayout {
+  return new EngineLayout([
     { x: -10, y: 0, dirX: 1, dirY: 0, maxThrust: thrust },
     { x: 10, y: 0, dirX: -1, dirY: 0, maxThrust: thrust },
     { x: 0, y: -10, dirX: 0, dirY: 1, maxThrust: thrust },
@@ -28,16 +28,16 @@ function crossLayout(thrust = 1000): ThrusterLayout {
   ]);
 }
 
-/** Two thrusters forming a couple: pure torque, no net force. */
-function coupleLayout(thrust = 500): ThrusterLayout {
-  return new ThrusterLayout([
+/** Two engines forming a couple: pure torque, no net force. */
+function coupleLayout(thrust = 500): EngineLayout {
+  return new EngineLayout([
     { x: 0, y: 10, dirX: 1, dirY: 0, maxThrust: thrust },
     { x: 0, y: -10, dirX: -1, dirY: 0, maxThrust: thrust },
   ]);
 }
 
-function randomLayout(rng: Rng, count: number): ThrusterLayout {
-  const specs: ThrusterSpec[] = [];
+function randomLayout(rng: Rng, count: number): EngineLayout {
+  const specs: EngineSpec[] = [];
   for (let i = 0; i < count; i++) {
     specs.push({
       x: rng.nextRange(-30, 30),
@@ -47,7 +47,7 @@ function randomLayout(rng: Rng, count: number): ThrusterLayout {
       maxThrust: rng.nextRange(100, 5000),
     });
   }
-  return new ThrusterLayout(specs);
+  return new EngineLayout(specs);
 }
 
 /**
@@ -63,7 +63,7 @@ function expectRelative(actual: number, expected: number, tolerance = 1e-7): voi
 }
 
 /** The wrench a throttle vector really produces, summed straight from the columns. */
-function producedWrench(layout: ThrusterLayout, throttles: Float64Array) {
+function producedWrench(layout: EngineLayout, throttles: Float64Array) {
   let fx = 0;
   let fy = 0;
   let torque = 0;
@@ -77,7 +77,7 @@ function producedWrench(layout: ThrusterLayout, throttles: Float64Array) {
 
 describe('layout construction', () => {
   it('normalises thrust directions', () => {
-    const layout = new ThrusterLayout([
+    const layout = new EngineLayout([
       { x: 0, y: 0, dirX: 3, dirY: 4, maxThrust: 100 },
     ]);
     expect(layout.dirX[0]).toBeCloseTo(0.6, 12);
@@ -89,21 +89,21 @@ describe('layout construction', () => {
 
   it('computes torque as r cross F', () => {
     // Mounted 10 above the centre, pushing along +x: turns the ship clockwise.
-    const layout = new ThrusterLayout([
+    const layout = new EngineLayout([
       { x: 0, y: 10, dirX: 1, dirY: 0, maxThrust: 100 },
     ]);
     expect(layout.wt[0]).toBeCloseTo(-1000, 9);
   });
 
-  it('survives a thruster with no direction', () => {
-    const layout = new ThrusterLayout([{ x: 1, y: 2, dirX: 0, dirY: 0, maxThrust: 100 }]);
+  it('survives an engine with no direction', () => {
+    const layout = new EngineLayout([{ x: 1, y: 2, dirX: 0, dirY: 0, maxThrust: 100 }]);
     expect(layout.wfx[0]).toBe(0);
     expect(layout.wfy[0]).toBe(0);
     expect(layout.wt[0]).toBe(0);
   });
 
   it('survives an empty layout', () => {
-    const layout = new ThrusterLayout([]);
+    const layout = new EngineLayout([]);
     const out = new Allocation();
     expect(() => layout.allocate(100, 0, 0, new Float64Array(0), out)).not.toThrow();
     expect(out.fx).toBe(0);
@@ -122,7 +122,7 @@ describe('allocation', () => {
     expectRelative(out.fx, 400);
     expectRelative(out.fy, 0);
     expectRelative(out.torque, 0);
-    // Only the +x thruster should be burning.
+    // Only the +x engine should be burning.
     expectRelative(throttles[0]!, 0.4);
     expectRelative(throttles[1]!, 0);
     expect(out.saturated).toBe(false);
@@ -133,7 +133,7 @@ describe('allocation', () => {
     const throttles = new Float64Array(2);
     const out = new Allocation();
 
-    // Each thruster at full throttle gives -5000; together -10000.
+    // Each engine at full throttle gives -5000; together -10000.
     layout.allocate(0, 0, -5000, throttles, out);
 
     expectRelative(out.torque, -5000);
@@ -151,7 +151,7 @@ describe('allocation', () => {
 
     layout.allocate(1000, 0, 0, throttles, out);
 
-    // A couple is only force-free when *both* thrusters burn equally, because
+    // A couple is only force-free when *both* engines burn equally, because
     // throttles cannot go negative. Firing one alone is the most +x force the
     // layout has, and it necessarily comes with torque — which is precisely the
     // trap the envelope exists to show a player before they fly the thing.
@@ -261,7 +261,7 @@ describe('allocation', () => {
     layout.allocate(1e9, 0, 0, throttles, out);
 
     expect(out.saturated).toBe(true);
-    // At most the one thruster that points that way, at full throttle.
+    // At most the one engine that points that way, at full throttle.
     expectRelative(out.fx, 1000);
     expect(throttles[0]).toBe(1);
   });
@@ -310,7 +310,7 @@ describe('allocation', () => {
   });
 });
 
-describe('thrusters that undo each other', () => {
+describe('engines that undo each other', () => {
   /**
    * A bow pair as a real ship carries one: two engines abreast at the nose,
    * thrusting across the hull in opposite directions, with the rest of the
@@ -319,8 +319,8 @@ describe('thrusters that undo each other', () => {
    * pair's moment arms differ in the fourth figure, which is the case this has
    * to handle rather than the tidy one.
    */
-  function bowPairLayout(): ThrusterLayout {
-    return new ThrusterLayout([
+  function bowPairLayout(): EngineLayout {
+    return new EngineLayout([
       { x: 1049.8, y: 35, dirX: 0, dirY: -1, maxThrust: 6.4e6 },
       { x: 1050.3, y: -35, dirX: 0, dirY: 1, maxThrust: 6.4e6 },
       { x: -512.7, y: 181.5, dirX: 1, dirY: 0, maxThrust: 1.5e7 },
@@ -332,7 +332,7 @@ describe('thrusters that undo each other', () => {
 
   it('never lights both of a pair that cancels, however hard it is pushed', () => {
     // Where this was found: a demand past what the layout can do saturates the
-    // search, and a thruster pinned at full is never reconsidered — so a later
+    // search, and an engine pinned at full is never reconsidered — so a later
     // pass would open its opposite number to claw back what the pinned one was
     // overproducing. Both alight, the ship no better off, and on a hull whose
     // exhaust burns what it is pointed at, something behind them paying for it.
@@ -360,7 +360,7 @@ describe('thrusters that undo each other', () => {
 
   it('leaves a couple burning, which is how a ship turns on the spot', () => {
     // The thing this must not break, and the reason the pairing is judged on
-    // the whole wrench rather than on which way a thruster pushes: these two
+    // the whole wrench rather than on which way an engine pushes: these two
     // push opposite ways and are *meant* to, because together they are torque
     // and nothing else.
     const layout = coupleLayout();
@@ -380,7 +380,7 @@ describe('thrusters that undo each other', () => {
     // sweep over a layout with no opposite pair in it must come out exactly as
     // it did before there was a trim at all, which is what the invariants
     // elsewhere in this file already pin.
-    const layout = new ThrusterLayout([
+    const layout = new EngineLayout([
       { x: -10, y: 0, dirX: 1, dirY: 0, maxThrust: 1000 },
       { x: 0, y: 10, dirX: 1, dirY: 0, maxThrust: 1000 },
       { x: 0, y: -10, dirX: 0, dirY: 1, maxThrust: 1000 },
@@ -403,8 +403,8 @@ describe('torque worth asking for', () => {
    * bargain: a sliver of turn for a whole engine's worth of thrust the rest of
    * the layout has to cancel.
    */
-  function nearCentrelineLayout(scale = 1): ThrusterLayout {
-    return new ThrusterLayout([
+  function nearCentrelineLayout(scale = 1): EngineLayout {
+    return new EngineLayout([
       { x: -100 * scale, y: 0.05 * scale, dirX: 1, dirY: 0, maxThrust: 1e7 },
       { x: 0, y: 40 * scale, dirX: 1, dirY: 0, maxThrust: 1e5 },
       { x: 0, y: -40 * scale, dirX: 1, dirY: 0, maxThrust: 1e5 },
@@ -468,7 +468,7 @@ describe('torque worth asking for', () => {
     // that genuinely cannot turn. Its arms are floating-point dust, and a
     // ceiling taken from them had the pilot demanding half a nanonewton-metre
     // and the layout running both engines flat out to make it.
-    const layout = new ThrusterLayout([
+    const layout = new EngineLayout([
       { x: -6, y: 0, dirX: 1, dirY: 0, maxThrust: 6e5 },
       { x: 6, y: -0, dirX: -1, dirY: -0, maxThrust: 6e5 },
     ]);
@@ -480,7 +480,7 @@ describe('torque worth asking for', () => {
   it('keeps a deliberately offset engine, however small the offset looks', () => {
     // A metre off the centreline of a ten-metre boat is a real bargain, and
     // the rule must not take it away just because a metre is a small number.
-    const layout = new ThrusterLayout([
+    const layout = new EngineLayout([
       { x: -5, y: 1, dirX: 1, dirY: 0, maxThrust: 1000 },
       { x: -5, y: -1, dirX: 1, dirY: 0, maxThrust: 1000 },
     ]);
@@ -508,7 +508,7 @@ describe('capability envelope', () => {
 
       const supported = layout.support(dx, dy, dt);
 
-      // The maximum over the unit cube is attained at a vertex: each thruster
+      // The maximum over the unit cube is attained at a vertex: each engine
       // is either off or full, depending on the sign of its projection. Search
       // random vertices and interior points; none may beat the support value.
       const throttles = new Float64Array(n);
@@ -531,9 +531,9 @@ describe('capability envelope', () => {
     expectRelative(layout.maxThrustAlong(1, 0), 1000);
     expectRelative(layout.maxThrustAlong(-1, 0), 1000);
     expectRelative(layout.maxThrustAlong(0, 1), 1000);
-    // Diagonal: two thrusters contribute their components.
+    // Diagonal: two engines contribute their components.
     expect(layout.maxThrustAlong(1, 1)).toBeCloseTo(2000 / Math.SQRT2, 6);
-    // Every thruster points at the centre, so none of them can turn the ship.
+    // Every engine points at the centre, so none of them can turn the ship.
     expect(layout.maxTorque(1)).toBeCloseTo(0, 9);
     expect(layout.maxTorque(-1)).toBeCloseTo(0, 9);
   });
@@ -542,9 +542,9 @@ describe('capability envelope', () => {
     expect(crossLayout().hasFullAuthority()).toBe(false);
     expect(coupleLayout().hasFullAuthority()).toBe(false);
     // Two opposed couples are needed, not one. Throttles cannot go negative, so
-    // a single pair of thrusters spins the ship one way only — which is exactly
+    // a single pair of engines spins the ship one way only — which is exactly
     // the design trap the envelope is there to expose.
-    const oneCouple = new ThrusterLayout([
+    const oneCouple = new EngineLayout([
       { x: -10, y: 0, dirX: 1, dirY: 0, maxThrust: 1000 },
       { x: 10, y: 0, dirX: -1, dirY: 0, maxThrust: 1000 },
       { x: 0, y: -10, dirX: 0, dirY: 1, maxThrust: 1000 },
@@ -556,7 +556,7 @@ describe('capability envelope', () => {
     expect(oneCouple.maxTorque(1)).toBe(0);
     expect(oneCouple.hasFullAuthority()).toBe(false);
 
-    const full = new ThrusterLayout([
+    const full = new EngineLayout([
       { x: -10, y: 0, dirX: 1, dirY: 0, maxThrust: 1000 },
       { x: 10, y: 0, dirX: -1, dirY: 0, maxThrust: 1000 },
       { x: 0, y: -10, dirX: 0, dirY: 1, maxThrust: 1000 },
@@ -570,8 +570,8 @@ describe('capability envelope', () => {
   });
 
   it('support is zero in a direction nothing can serve', () => {
-    // One thruster pushing +x only.
-    const layout = new ThrusterLayout([
+    // One engine pushing +x only.
+    const layout = new EngineLayout([
       { x: 0, y: 0, dirX: 1, dirY: 0, maxThrust: 100 },
     ]);
     expect(layout.support(1, 0, 0)).toBeCloseTo(100, 9);

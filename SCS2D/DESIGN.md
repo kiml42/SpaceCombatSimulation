@@ -27,8 +27,8 @@ inside any one file is not contiguous.
   structure-of-arrays body store with generational handles, kick-drift-kick leapfrog
   integrator, gravity wells, state checksums, a uniform-grid spatial index with segment
   and circle queries, swept-segment projectiles with impact reporting, per-blueprint
-  thruster allocation, kinematic turrets with lead and traverse arcs, parametric modules
-  with their scaling laws, blueprint compilation — mass properties, thruster layout
+  engine allocation, kinematic turrets with lead and traverse arcs, parametric modules
+  with their scaling laws, blueprint compilation — mass properties, engine layout
   and firing arcs all derived from a layout, with four ships authored to it as validated
   JSON files, one of them built from a repeated wing segment — and ships
   built from those blueprints fighting: flying their layouts to hold an ordered range
@@ -65,7 +65,8 @@ inside any one file is not contiguous.
   together get a bar on their shared face that grows one as it shrinks the other; every snap is escaped by
   holding Alt —
   with the rest of their values typed into a panel beside the module's own mass,
-  capacity, armour and gun, and a selected engine burns and a selected gun fires at the
+  capacity, armour and gun — its kind among them, swapped for another in the same space and facing the same
+  way, so a gun made an engine has its bell where the barrel was — and a selected engine burns and a selected gun fires at the
   rate its own figures claim; a module can be duplicated into a shared part placed
   twice, and a shared part unlinked back into separate modules, with position, dragging
   and deletion belonging to the copy and everything else to all of them; several modules can be
@@ -114,7 +115,7 @@ inside any one file is not contiguous.
   engine throws a long flame and a cluster of nozzles throws short ones. How fiercely it burns — its power
   over its area — is drawn as its opacity, fading to its tip as its bite does. Whatever stands in it burns — its own hull if a nozzle was pointed into one, anything that drifts
   behind a burning stern if not. It is the same flame the renderer draws, so what is on the screen is what
-  is doing the damage, and it shoves as well as burns. An engine can also be *meant* as one: a thruster
+  is doing the damage, and it shoves as well as burns. An engine can also be *meant* as one: an engine
   ticked as a weapon in the editor lights up by itself when an enemy is close enough behind it to take a
   real share of the flame, and the hull pays for it in the push, which the rest of the layout spends the
   step cancelling. An engine that fires part of its exhaust into its own ship gets no thrust for that
@@ -257,9 +258,11 @@ inside any one file is not contiguous.
   tries most often. The same weights govern a module *refitted* into another kind, which is the only route
   to a large module of a new kind; a run that asked for engines and went on turning its engines into gun
   mounts half the time would be answering a question nobody asked. A refit keeps the space rather than the
-  coordinates, because a thruster's position is where it is attached and every other kind's is the middle
+  coordinates, because an engine's position is where it is attached and every other kind's is the middle
   of its box — left alone, the numbers slide the module half its own length into its neighbour, which
-  refused every refit into an engine there was. **The grouping is bred as well as the
+  refused every refit into an engine there was. The facing is kept, since every kind faces the way whatever sticks out
+  of it points — an engine's bell as much as a gun's barrel — so whatever faced outboard still does. The editor's
+  kind swap is the same rule (`refitModule`). **The grouping is bred as well as the
   modules.** A lineage can make a part of a module, dissolve one back into the layout, take a neighbour into
   a part, grow one with a new module — on its outer edge by preference, which is the face likely to be free
   at every instance rather than at one, and the only way a part placed twice grows at all — place another
@@ -404,7 +407,7 @@ inside any one file is not contiguous.
   beam, the opening turns out barely to constrain one at all: a lens is a fraction of the width a row
   of tubes is, so what holds a hull beam is the mounting limit until its housing runs most of the
   length of the module.
-  **An engine has a nozzle rather than being one.** A thruster's length divides between a machinery block
+  **An engine has a nozzle rather than being one.** An engine's length divides between a machinery block
   and a bell, and the bell's share is the knob: a long one is lighter, keeps more of the thrust pointed
   the right way and throws a longer flame, while the block is what has hit points and what the engine is
   welded on by — on any face but the exhaust. The exit may be divided between several nozzles, on the same
@@ -448,7 +451,7 @@ inside any one file is not contiguous.
   is deliberately not part of it and is §8 step 6, after v1.
 - **Blocked on:** nothing.
 - **Owed:** nothing outstanding. The `duel` golden scenario discharges the coverage that was owed
-  for thruster allocation and turrets: it drives both through the same loop the game uses, so a
+  for engine allocation and turrets: it drives both through the same loop the game uses, so a
   change in either moves its checksum. Blueprint compilation is not owed one — it is pure derivation
   with no state to drift, and is pinned by unit tests against independently worked values.
 - **Measured:** breeding is neutral about how big a ship is — 800 generations deep, a gunship's line
@@ -464,7 +467,7 @@ inside any one file is not contiguous.
   rebuild, and projectiles under gravity — costs ~7 microseconds with 9 bodies and
   ~65 rounds in the air. Listing a ship's modules in a different order moves it
   8.2e-13 m over 3,000 steps of manoeuvring and gunnery, and grouping them into
-  assemblies moves it not at all, bit for bit: module order reaches thruster
+  assemblies moves it not at all, bit for bit: module order reaches engine
   allocation and firing, but both are order-independent in substance. Shots fired
   and hits scored are identical too. Measured by `scenarios/ordering.ts`, which
   flies three gunships of one geometry both stacked in one battle and one to a
@@ -598,7 +601,7 @@ Rules:
 - RTS control in 3D space remains unsolved 25 years after Homeworld's move-disc.
 - Legibility: occlusion and depth ambiguity hide exactly the information needed to judge a design —
   range bands, arcs, who is shooting whom.
-- Thruster allocation is 3 constraint equations instead of 6, with a scalar moment of inertia
+- Engine allocation is 3 constraint equations instead of 6, with a scalar moment of inertia
   instead of a tensor. See §4.
 - **Accepted loss:** strike craft have one lateral evasion axis instead of two, and the
   three-dimensional shell of fighters around a capital is gone. Mitigated by nested range bands,
@@ -686,7 +689,7 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   The block holds the chamber and the pumps, is what the engine is welded to the ship by, and is the part
   that has walls, an interior and hit points; the bell is sheet metal in the exhaust that can be bolted to
   nothing. How the engine's length divides between them is the designer's, and it is the one knob on a
-  thruster that is not simply "make it bigger". **Its length buys expansion**: gas leaving a bell of
+  engine that is not simply "make it bigger". **Its length buys expansion**: gas leaving a bell of
   half-angle `a` keeps `(1 + cos a) / 2` of its momentum along the axis and throws the rest sideways, so a
   bare throat loses half of everything and length recovers it — steeply at first and then barely, which is
   what stops an engine being all nozzle. The same number sets how far the flame carries, since a jet
@@ -722,12 +725,12 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   the nozzle are the same newton-seconds with opposite signs, so that third of the engine is not thrust at
   all. A nozzle's own obstruction is fixed geometry — damage stops a module working without moving it — so
   it is worked out when the design is compiled, and what comes out is the fraction of the exhaust that
-  escapes. **`ThrusterLayout` flies the engine at that fraction**, so the allocator, the manoeuvring
+  escapes. **`EngineLayout` flies the engine at that fraction**, so the allocator, the manoeuvring
   envelope and everything the editor claims about a ship all read the honest figure without knowing why.
   A blocked ray still *burns* what it is buried in; what it no longer does is push. That is what makes a
   buried nozzle cost something instead of being free, and it is why the plume the renderer draws is the
   rating rather than the delivery: the gas is thrown either way.
-- **An engine can be pointed at things on purpose.** A thruster marked `weapon` in the blueprint burns
+- **An engine can be pointed at things on purpose.** An engine marked `weapon` in the blueprint burns
   flat out on its own account whenever an enemy is in the half of its plume that still delivers real
   power, whether or not the pilot wanted thrust — and the ship wears the push, which is what the weapon
   costs. A flag rather than a kind of module, because an engine used this way is the same engine: it is
@@ -758,7 +761,7 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   - **Damage never changes topology.** The connectivity graph is only edited by severing, so it cannot be
     invalidated by a hit — and mass properties, which are expensive to recompute, change only when a chunk
     actually detaches.
-  - **The thruster allocation matrix does still need recomputing** when a thruster is destroyed, since the
+  - **The engine allocation matrix does still need recomputing** when an engine is destroyed, since the
     geometry of what can push is what changed. Mass properties do not. Two different triggers.
   - **A battered ship gets sluggish rather than lighter**, because it is carrying its own wreckage. That is
     both correct and a better feel than a ship growing nimbler as it loses modules.
@@ -853,14 +856,14 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   plain ascending order, which keeps damage application order reproducible.
 - **Weld on slow contact:** Heavily damaged modules are treated as having ragged edges and can become locked together on a slow contact. This merges them into one body for the simulation to track. This will work well with the wreckage harvesting mechanic as it creates larger chunks worth chasing down and harvesting instead of lots of tiny fragments.
   Similarly, ships can have docking ports that will allow them to connect to each other deliberately by bumping together gently. This could be used for refiling fighters or other larger craft, for example. Every case *removes* bodies rather than adding sustained contacts.
-- **Thruster allocation** is solved **once per blueprint**, not per tick: given desired body-frame
+- **Engine allocation** is solved **once per blueprint**, not per tick: given desired body-frame
   force and torque, find non-negative throttles minimising propellant, subject to
   `Σ uᵢTᵢdᵢ = F` and `Σ uᵢTᵢ(rᵢ × dᵢ) = τ`. Three constraints in a plane. Per-tick control is then
   a matrix multiply; recompute only when modules are lost. This is what makes 100 strike craft cheap.
   - **The achievable (Fx, Fy, τ) set is a 3D polytope that can be drawn for the player.** For a game
-    whose depth is ship design, showing what a thruster layout actually bought is a headline feature.
+    whose depth is ship design, showing what an engine layout actually bought is a headline feature.
     In 3D the envelope is 6-dimensional and undisplayable.
-  - **A pilot only asks for torque from thrusters whose lever arms make it worth having.** An arm is
+  - **A pilot only asks for torque from engines whose lever arms make it worth having.** An arm is
     torque bought per newton of unwanted force, so an engine nearly in line with the centre of mass is
     a dreadful way to turn: a sliver of twist, and a whole engine's thrust for the rest of the layout to
     cancel. Worth less than nothing once there is fuel to burn and a plume that burns what stands behind
@@ -868,10 +871,10 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
     the same thing on a fighter and on a capital. It bounds the *demand* and nothing else: the arm is
     real, the ship feels it, the allocator still trims it with the engines that do turn the ship, and the
     envelope drawn for the player is the same envelope.
-  - **No two thrusters that undo each other ever burn together.** A pair whose whole wrench cancels can
+  - **No two engines that undo each other ever burn together.** A pair whose whole wrench cancels can
     do nothing as a pair that either could not do alone, so whatever throttle they are spending on each
     other comes off — which matters beyond the fuel, since an engine burns what its plume is pointed at.
-    Judged on the wrench and not on which way each pushes: a bow thruster and a stern one pushing
+    Judged on the wrench and not on which way each pushes: a bow engine and a stern one pushing
     opposite ways are a *couple*, which is how a ship turns on the spot, and are left alone.
   - This is the exact problem ("RCS engines") that stalled the old project.
 - **Integrator:** symplectic (velocity Verlet / leapfrog), fixed timestep, with substepping near
@@ -904,11 +907,11 @@ Mass from wall volume, capacity from interior area, strength from thickness and 
   mounts, which is what makes a hit amidships worth more than stripping a battery one mount at a time;
   the floor on a core's machinery is low enough that half a metre square is a working one, since every
   craft here is computer-flown.
-- **A module's position is where it is attached, which is its middle for every kind but a thruster.**
-  A thruster is the one module with a side that means something: it is held on by the face it pushes
-  from and exhausts out of the other, and a layout only cares where that mounting face is. So a
-  thruster's position is the middle of that face and the engine runs back from it along its own
-  facing — which is what makes an engine scalable by one number, since a longer one grows into its
+- **A module's position is where it is attached, which is its middle for every kind but an engine.**
+  An engine is the one module with a side that means something: it is held on by the face it pushes
+  from and exhausts out of the other, and a layout only cares where that mounting face is. So an
+  engine's position is the middle of that face and the engine runs out from it along its own
+  facing, bell last — which is what makes an engine scalable by one number, since a longer one grows into its
   exhaust rather than half into the hull it is bolted to. Everything geometric goes through
   `moduleCentre`; the mounting face and the box's middle lie on the same line of action, so which of
   them thrust is applied at makes no difference to the force or the torque.
@@ -938,7 +941,7 @@ The practical consequence is that the target above is conservative: portable rep
 work today, and the fixed-point option may never need to be exercised.
 
 Treat this as strong evidence, not proof. CI verifies the *current* fixture scenarios, which do not yet exercise
-`atan2`, collisions or the thruster solver. The claim gets stronger as scenarios are added — which is a reason to
+`atan2`, collisions or the engine solver. The claim gets stronger as scenarios are added — which is a reason to
 add a golden scenario alongside each new subsystem rather than at the end.
 
 **Deferred:** light structural stress simulation for plastic buckling under load. Cheap to add later
@@ -978,7 +981,7 @@ SCS2D/
   start two simulations at least once.)
 - **Rendering:** procedural 2D vector art generated from each module's shape data, colour and
   metadata. **Triangulate a blueprint once, instance per ship** — the same precompute pattern as the
-  thruster matrix. WebGL, because ~4,000 filled paths per frame is beyond Canvas2D.
+  engine matrix. WebGL, because ~4,000 filled paths per frame is beyond Canvas2D.
   - **Exception:** the Slice 0 debug viewer uses Canvas2D. At twenty bodies it's fine and it's a
     tenth of the code. Keep the renderer behind an interface so the swap is contained.
   - Procedural art means **adding a module type costs zero art**, and module variety *is* the
@@ -1185,7 +1188,7 @@ Recorded so they aren't reopened without new information.
 | Rejected | Why |
 | --- | --- |
 | Modernise the Unity project | Nothing ports; the RTS is ~100% new work regardless; the 2022.3 → 6.3 upgrade is an unrewarding slog paid for a codebase being replaced. |
-| Stay 3D | Player-facing 3D modular ship design is unsolved; 3D RTS control is unsolved; occlusion hides the information needed to judge designs; 6-DOF thruster allocation and an undisplayable envelope. |
+| Stay 3D | Player-facing 3D modular ship design is unsolved; 3D RTS control is unsolved; occlusion hides the information needed to judge designs; 6-DOF engine allocation and an undisplayable envelope. |
 | Strict single plane, perimeter weapons only | Weapon frontage grows as r while internal area grows as r², so big ships end up worse-armed per tonne — directly attacking the "another capital is a big deal" fantasy. |
 | Two genuinely separate physics planes | Collapses to one sim plus an internals structure with identical expressive power and a fraction of the machinery. |
 | The largest piece of a severed hull keeps being the ship | Size says nothing about which piece is still a ship; a core does. The piece holding the lowest-numbered working core is the ship, and every other piece with one becomes a ship too. |

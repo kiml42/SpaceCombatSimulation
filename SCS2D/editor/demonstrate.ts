@@ -8,7 +8,7 @@ const { cos, sin, min, max } = math;
  * The selected module, shown doing its job: an engine burns, a gun fires.
  *
  * A module's figures are hard to feel. "9.4 rounds per minute" and "600" are
- * both just numbers until you watch the gun cycle, and a thruster's share of
+ * both just numbers until you watch the gun cycle, and an engine's share of
  * the ship's thrust is a plume's length rather than a fraction. This animates
  * exactly the figures already on the panel, so it adds nothing that is not
  * already claimed — the rate is the gun's `cycleTime`, the rounds leave at its
@@ -70,7 +70,7 @@ interface Beams {
 }
 
 export class Demonstration {
-  /** Throttle each of the design's thrusters is showing, 0 to 1. */
+  /** Throttle each of the design's engines is showing, 0 to 1. */
   private throttles = new Float64Array(0);
   /** Seconds until each of the design's turrets fires its next round. */
   private cycles = new Float64Array(0);
@@ -138,8 +138,8 @@ export class Demonstration {
     this.fit(design);
     let busy = false;
 
-    for (let t = 0; t < design.thrusters.length; t++) {
-      const module = design.modules[this.thrusterModule(design, t)];
+    for (let t = 0; t < design.engines.length; t++) {
+      const module = design.modules[this.engineModule(design, t)];
       const wanted = module !== undefined && selected.includes(module.index) ? 1 : 0;
       const step = dt / SPOOL_TIME;
       const at = this.throttles[t]!;
@@ -229,8 +229,8 @@ export class Demonstration {
 
   /** Resize the per-module state when a different design is being shown. */
   private fit(design: ShipDesign): void {
-    if (this.throttles.length !== design.thrusters.length) {
-      this.throttles = new Float64Array(design.thrusters.length);
+    if (this.throttles.length !== design.engines.length) {
+      this.throttles = new Float64Array(design.engines.length);
     }
     if (this.cycles.length !== design.turrets.length) {
       this.cycles = new Float64Array(design.turrets.length);
@@ -238,11 +238,11 @@ export class Demonstration {
     }
   }
 
-  /** Which module the `t`th thruster is, the design listing them in module order. */
-  private thrusterModule(design: ShipDesign, t: number): number {
+  /** Which module the `t`th engine is, the design listing them in module order. */
+  private engineModule(design: ShipDesign, t: number): number {
     let seen = 0;
     for (let i = 0; i < design.modules.length; i++) {
-      if (design.modules[i]!.spec.kind !== 'thruster') continue;
+      if (design.modules[i]!.spec.kind !== 'engine') continue;
       if (seen === t) return i;
       seen++;
     }

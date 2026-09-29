@@ -21,7 +21,7 @@ import { BLUEPRINTS, type BlueprintName } from '../scenarios/blueprints.js';
 
 /**
  * What a compiled design has to get right is arithmetic that nothing
- * downstream can check: a wrong centre of mass makes every thruster's moment
+ * downstream can check: a wrong centre of mass makes every engine's moment
  * arm wrong, and a wrong inertia makes every ship turn at the wrong rate.
  * Neither looks broken — the ships still fly — so these are checked against
  * values worked out independently rather than against the compiler's own
@@ -177,11 +177,12 @@ describe('blueprint validation', () => {
     // and the only rule left about where one may go is the one every module
     // obeys — it has to be attached to the ship.
     const hull = core(0, 0, 10, 4);
-    const engine = (angle: number): ModuleSpec => ({
-      kind: 'thruster',
+    // Given the way it pushes; an engine faces the other way, along its bell.
+    const engine = (pushing: number): ModuleSpec => ({
+      kind: 'engine',
       x: -5,
       y: 0,
-      angle,
+      angle: pushing > 0 ? pushing - Math.PI : pushing + Math.PI,
       length: 2,
       width: 4,
     });
@@ -198,17 +199,17 @@ describe('blueprint validation', () => {
       expect(
         blueprintProblem({ name: 'Backwards', modules: [hull, { ...engine(PI), x: -7 }] }),
       ).toBeNull();
-      const bellFirst: ModuleSpec = { kind: 'thruster', x: -9, y: 0, angle: PI, length: 4, width: 4 };
+      const bellFirst: ModuleSpec = { kind: 'engine', x: -9, y: 0, angle: 0, length: 4, width: 4 };
       expect(blueprintProblem({ name: 'Bell', modules: [hull, bellFirst] })).toBeNull();
     });
 
     it('accepts one bolted to another engine or to a gun', () => {
-      const stack: ModuleSpec = { kind: 'thruster', x: -7, y: 0, angle: 0, length: 2, width: 4 };
+      const stack: ModuleSpec = { kind: 'engine', x: -7, y: 0, angle: Math.PI, length: 2, width: 4 };
       expect(blueprintProblem({ name: 'Stacked', modules: [hull, engine(0), stack] })).toBeNull();
     });
 
     it('still rejects one floating free of the ship', () => {
-      const adrift: ModuleSpec = { kind: 'thruster', x: -20, y: 0, angle: 0, length: 2, width: 4 };
+      const adrift: ModuleSpec = { kind: 'engine', x: -20, y: 0, angle: Math.PI, length: 2, width: 4 };
       expect(blueprintProblem({ name: 'Adrift', modules: [hull, adrift] })).toMatch(
         /touches nothing/,
       );
@@ -231,7 +232,7 @@ describe('blueprint validation', () => {
  * is the same derivation without the rules about how a ship goes together.
  */
 describe('where a module sits', () => {
-  // A thruster is the one module with a side that means something: it is held
+  // An engine is the one module with a side that means something: it is held
   // on by the face it pushes from, so that face is what its position names.
   // The hull it is bolted to is the core, so each of these layouts is a ship.
   const hull = core(0, 0, 10, 4);
@@ -240,17 +241,17 @@ describe('where a module sits', () => {
     expect(moduleCentre(structure(3, -2, 8, 4))).toEqual({ x: 3, y: -2 });
   });
 
-  it('hangs a thruster back from its mounting face', () => {
-    const engine: ModuleSpec = { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4 };
+  it('hangs an engine back from its mounting face', () => {
+    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4 };
     expect(moduleCentre(engine).x).toBeCloseTo(-7, 12);
-    // Turned, it hangs back along its own facing rather than along the world's.
-    expect(moduleCentre({ ...engine, angle: HALF_PI }).y).toBeCloseTo(-2, 12);
+    // Turned, it runs out along its own facing, bell last, rather than along the world's.
+    expect(moduleCentre({ ...engine, angle: HALF_PI }).y).toBeCloseTo(2, 12);
   });
 
   it('measures overlap and attachment from the box, not from the mounting', () => {
     // Bolted flush to the hull's -x face: the position is *on* the hull and
     // the engine is entirely clear of it.
-    const engine: ModuleSpec = { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4 };
+    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4 };
     expect(blueprintProblem({ name: 'Flush', modules: [hull, engine] })).toBeNull();
     expect(modulesOverlap(hull, engine)).toBe(false);
   });
@@ -258,19 +259,19 @@ describe('where a module sits', () => {
   it('says the same about an engine and its hull whichever is listed first', () => {
     // Attachment is tested by growing one module and asking whether it now
     // overlaps the other, and the answer has to be the same either way round.
-    // Growing a thruster from its *mounting* would add the length astern, so
+    // Growing an engine from its *mounting* would add the length astern, so
     // an engine would reach towards its own exhaust and a ship listed engine
     // first would look like two pieces.
-    const engine: ModuleSpec = { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4 };
+    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4 };
     expect(blueprintProblem({ name: 'Hull first', modules: [hull, engine] })).toBeNull();
     expect(blueprintProblem({ name: 'Engine first', modules: [engine, hull] })).toBeNull();
   });
 
-  it('lengthens a thruster into its exhaust, leaving the mounting where it was', () => {
+  it('lengthens an engine into its exhaust, leaving the mounting where it was', () => {
     // The point of measuring an engine from its mounting face: making it
     // bigger is one number, and it stays bolted where it was rather than
     // growing half into the hull.
-    const engine: ModuleSpec = { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4 };
+    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4 };
     const longer: ModuleSpec = { ...engine, length: 9 };
     expect(blueprintProblem({ name: 'Longer', modules: [hull, longer] })).toBeNull();
     expect(moduleCentre(longer).x).toBeCloseTo(-9.5, 12);
@@ -294,7 +295,7 @@ describe('every module attached to the ship', () => {
 
   it('accepts modules that touch within the attachment tolerance', () => {
     // A hand-typed file misses exact abutment; a centimetre is nothing at ship
-    // scale, and it is the same tolerance a thruster's mounting is judged by.
+    // scale, and it is the same tolerance an engine's mounting is judged by.
     const bp: Blueprint = { name: 'Near', modules: [hull, structure(7.005, 0, 4, 4)] };
     expect(blueprintProblem(bp)).toBeNull();
   });
@@ -395,18 +396,18 @@ describe('mass properties', () => {
   });
 });
 
-describe('derived thrusters', () => {
-  it('gives the layout each thruster where it sits and facing where it pushes', () => {
+describe('derived engines', () => {
+  it('gives the layout each engine where it sits and facing where it pushes', () => {
     const design = compileBlueprint({
       name: 'Pusher',
       modules: [
         core(0, 0, 10, 4),
-        { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4 },
+        { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4 },
       ],
     });
 
-    expect(design.thrusters).toHaveLength(1);
-    const t = design.thrusters[0]!;
+    expect(design.engines).toHaveLength(1);
+    const t = design.engines[0]!;
     expect(t.dirX).toBeCloseTo(1, 12);
     expect(t.dirY).toBeCloseTo(0, 12);
     // Bolted on at -5 and four long, so the box's middle — which is what a
@@ -415,10 +416,10 @@ describe('derived thrusters', () => {
     expect(t.maxThrust).toBeCloseTo(design.modules[1]!.stats.thrust, 6);
   });
 
-  it('builds a layout that can push the ship the way its thrusters point', () => {
+  it('builds a layout that can push the ship the way its engines point', () => {
     const design = compileBlueprint(BLUEPRINTS.corvette);
-    expect(design.thrusterLayout.maxThrustAlong(1, 0)).toBeGreaterThan(0);
-    expect(design.thrusterLayout.hasFullAuthority()).toBe(true);
+    expect(design.engineLayout.maxThrustAlong(1, 0)).toBeGreaterThan(0);
+    expect(design.engineLayout.hasFullAuthority()).toBe(true);
   });
 });
 
@@ -548,8 +549,8 @@ describe('the authored blueprints', () => {
         expect(design.radius).toBeGreaterThan(0);
         expect(design.cores.length).toBeGreaterThan(0);
         expect(design.turrets.length).toBe(0);
-        expect(design.thrusterLayout.maxTorque(1)).toBe(0);
-        expect(design.thrusterLayout.maxTorque(-1)).toBe(0);
+        expect(design.engineLayout.maxTorque(1)).toBe(0);
+        expect(design.engineLayout.maxTorque(-1)).toBe(0);
       });
 
       it.skipIf(!canFly)('compiles to a ship that can fly and fight', () => {
@@ -563,25 +564,25 @@ describe('the authored blueprints', () => {
         // along at least one heading. A craft that can do that can get where
         // it is going and point at what it is shooting at, which is the whole
         // of what flying one asks.
-        expect(design.thrusterLayout.maxTorque(1)).toBeGreaterThan(0);
-        expect(design.thrusterLayout.maxTorque(-1)).toBeGreaterThan(0);
+        expect(design.engineLayout.maxTorque(1)).toBeGreaterThan(0);
+        expect(design.engineLayout.maxTorque(-1)).toBeGreaterThan(0);
         const along = [
           [1, 0],
           [-1, 0],
           [0, 1],
           [0, -1],
-        ].map(([x, y]) => design.thrusterLayout.maxThrustAlong(x!, y!));
+        ].map(([x, y]) => design.engineLayout.maxThrustAlong(x!, y!));
         expect(Math.max(...along)).toBeGreaterThan(0);
 
         // And what the fleet has to manage on top: force in *every* direction,
         // so it can hold a heading while translating. A showpiece is allowed
         // to have no reverse thrust and fly like an aeroplane.
         if (inFleet(name)) {
-          expect(design.thrusterLayout.hasFullAuthority()).toBe(true);
+          expect(design.engineLayout.hasFullAuthority()).toBe(true);
         }
 
         // Something to fight with: a gun, or an engine meant as a weapon.
-        expect(design.turrets.length + design.weaponThrusters.length).toBeGreaterThan(0);
+        expect(design.turrets.length + design.weaponEngines.length).toBeGreaterThan(0);
         if (design.turrets.length === 0) return;
         // A gun aboard has to be able to shoot; on a fleet ship, every
         // mount does. A showpiece is allowed a gun that is boxed in and
@@ -657,15 +658,15 @@ describe('the authored blueprints', () => {
     expect(new Set(sorted).size).toBe(sorted.length);
   });
 
-  // Slow: it samples every thruster's plume along its whole length against
+  // Slow: it samples every engine's plume along its whole length against
   // every other module, and the default 5s timeout is marginal on Windows CI.
-  it('points every thruster so its exhaust leaves clear air', { timeout: 30_000 }, () => {
-    // A thruster pushes along its facing and exhausts the other way, so a
+  it('points every engine so its exhaust leaves clear air', { timeout: 30_000 }, () => {
+    // An engine pushes along its facing and exhausts the other way, so a
     // mount out on a wing has to push *inboard* or it fires into the wing it
     // is bolted to.
     //
     // Not made redundant by `blueprintProblem` rejecting an unattached
-    // thruster, which is a stricter rule in one direction and a weaker one in
+    // engine, which is a stricter rule in one direction and a weaker one in
     // the other: it catches a mount turned round, since that one is held on by
     // its nozzle, but says nothing about a correctly mounted engine whose
     // plume runs into something further aft. That layout is legal and is meant
@@ -681,9 +682,9 @@ describe('the authored blueprints', () => {
     for (const name of FLEET) {
       const blueprint = BLUEPRINTS[name];
       const design = compileBlueprint(blueprint);
-      const thrusters = design.modules.filter((m) => m.spec.kind === 'thruster');
+      const engines = design.modules.filter((m) => m.spec.kind === 'engine');
 
-      for (const t of thrusters) {
+      for (const t of engines) {
         const dx = -Math.cos(t.angle);
         const dy = -Math.sin(t.angle);
         const startX = t.x + dx * (t.spec.length / 2);
@@ -703,7 +704,7 @@ describe('the authored blueprints', () => {
               Math.abs(localY) <= other.spec.width / 2;
             expect(
               inside,
-              `${blueprint.name}: thruster at (${t.spec.x}, ${t.spec.y}) exhausts into ` +
+              `${blueprint.name}: engine at (${t.spec.x}, ${t.spec.y}) exhausts into ` +
                 `${other.spec.kind} at (${other.spec.x}, ${other.spec.y})`,
             ).toBe(false);
           }
@@ -712,20 +713,20 @@ describe('the authored blueprints', () => {
     }
   });
 
-  it('lists thrusters and turrets in the order their modules appear', () => {
-    // Anything holding per-thruster or per-turret state alongside a design —
+  it('lists engines and turrets in the order their modules appear', () => {
+    // Anything holding per-engine or per-turret state alongside a design —
     // throttles, gun timers, a renderer drawing exhaust — indexes these arrays
     // and walks the modules. If the two orders ever diverged, a ship would
     // show one engine's flame on another engine's mount, and the pilot would
-    // steer with the wrong thruster.
+    // steer with the wrong engine.
     for (const blueprint of Object.values(BLUEPRINTS)) {
       const design = compileBlueprint(blueprint);
 
-      const thrusterModules = design.modules.filter((m) => m.spec.kind === 'thruster');
-      expect(thrusterModules.length).toBe(design.thrusters.length);
-      for (let i = 0; i < design.thrusters.length; i++) {
-        expect(design.thrusters[i]!.x).toBe(thrusterModules[i]!.x);
-        expect(design.thrusters[i]!.y).toBe(thrusterModules[i]!.y);
+      const engineModules = design.modules.filter((m) => m.spec.kind === 'engine');
+      expect(engineModules.length).toBe(design.engines.length);
+      for (let i = 0; i < design.engines.length; i++) {
+        expect(design.engines[i]!.x).toBe(engineModules[i]!.x);
+        expect(design.engines[i]!.y).toBe(engineModules[i]!.y);
       }
 
       // Every weapon that trains, hull mounts included: they compile into the
@@ -743,8 +744,8 @@ describe('the authored blueprints', () => {
     const gunship = compileBlueprint(BLUEPRINTS.gunship);
 
     const accel = (d: typeof corvette): number =>
-      d.thrusterLayout.maxThrustAlong(1, 0) / d.mass;
-    const angularAccel = (d: typeof corvette): number => d.thrusterLayout.maxTorque(1) / d.inertia;
+      d.engineLayout.maxThrustAlong(1, 0) / d.mass;
+    const angularAccel = (d: typeof corvette): number => d.engineLayout.maxTorque(1) / d.inertia;
     const heaviestShell = (d: typeof corvette): number =>
       d.turrets.reduce((m, t) => Math.max(m, t.gun.roundMass), 0);
 

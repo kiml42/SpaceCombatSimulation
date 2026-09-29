@@ -54,7 +54,7 @@ describe('placing an assembly', () => {
 
   it('reflects a mirrored copy across the instance frame’s own axis', () => {
     const bp = ship({
-      assemblies: { pod: { modules: [{ kind: 'thruster', x: 3, y: 4, angle: math.HALF_PI, length: 2, width: 2 }] } },
+      assemblies: { pod: { modules: [{ kind: 'engine', x: 3, y: 4, angle: math.HALF_PI, length: 2, width: 2 }] } },
       modules: [hull, { use: 'pod', x: 0, y: 0, mirror: true }],
     });
     const [, pod] = expandBlueprint(bp);
@@ -85,9 +85,9 @@ describe('mirroring, and the two ways floating point spoils it', () => {
   it('reflects a module facing aft onto exactly the same angle, not its negative', () => {
     // PI and -PI are the same direction and different numbers: `sin(-PI)` is
     // -1.2e-16 where `sin(PI)` is +1.2e-16. Left alone, a reflected aft
-    // thruster would compile a hair differently from its unreflected twin.
+    // engine would compile a hair differently from its unreflected twin.
     const bp = ship({
-      assemblies: { aft: { modules: [{ kind: 'thruster', x: 0, y: 0, angle: math.PI, length: 2, width: 2 }] } },
+      assemblies: { aft: { modules: [{ kind: 'engine', x: 0, y: 0, angle: math.PI, length: 2, width: 2 }] } },
       modules: [hull, { use: 'aft', x: 11, y: 2 }, { use: 'aft', x: 11, y: -2, mirror: true }],
     });
     const [, port, starboard] = expandBlueprint(bp);
@@ -100,7 +100,7 @@ describe('mirroring, and the two ways floating point spoils it', () => {
     // checksum taken over raw doubles — so it would surface as a golden test
     // failing for no reason anybody could see in the ship.
     const bp = ship({
-      assemblies: { fwd: { modules: [{ kind: 'thruster', x: 0, y: 0, angle: 0, length: 2, width: 2 }] } },
+      assemblies: { fwd: { modules: [{ kind: 'engine', x: 0, y: 0, angle: 0, length: 2, width: 2 }] } },
       modules: [hull, { use: 'fwd', x: -11, y: 2 }, { use: 'fwd', x: -11, y: -2, mirror: true }],
     });
     const [, , starboard] = expandBlueprint(bp);
@@ -129,7 +129,7 @@ describe('nesting', () => {
     // an inner assembly and the facings within that.
     const bp = ship({
       assemblies: {
-        boss: { modules: [{ kind: 'thruster', x: 0, y: 1, angle: math.HALF_PI, length: 2, width: 2 }] },
+        boss: { modules: [{ kind: 'engine', x: 0, y: 1, angle: math.HALF_PI, length: 2, width: 2 }] },
         wing: { modules: [{ use: 'boss', x: 0, y: 4 }] },
       },
       modules: [hull, { use: 'wing', x: 0, y: 0 }, { use: 'wing', x: 0, y: 0, mirror: true }],
@@ -142,7 +142,7 @@ describe('nesting', () => {
   it('mirroring twice is not mirroring at all', () => {
     const bp = ship({
       assemblies: {
-        boss: { modules: [{ kind: 'thruster', x: 0, y: 1, angle: math.HALF_PI, length: 2, width: 2 }] },
+        boss: { modules: [{ kind: 'engine', x: 0, y: 1, angle: math.HALF_PI, length: 2, width: 2 }] },
         wing: { modules: [{ use: 'boss', x: 0, y: 4, mirror: true }] },
       },
       modules: [hull, { use: 'wing', x: 0, y: 0, mirror: true }],
@@ -175,7 +175,7 @@ describe('extras: how one copy differs from another', () => {
     // The reason an extra is not simply a module placed in the parent: its
     // coordinates are written once, in the assembly's frame, and mean the same
     // thing on either beam.
-    const extra = [{ kind: 'thruster', x: 0, y: 5, angle: math.HALF_PI, length: 2, width: 2 } as const];
+    const extra = [{ kind: 'engine', x: 0, y: 5, angle: math.HALF_PI, length: 2, width: 2 } as const];
     const bp = ship({
       assemblies: { wing },
       modules: [
@@ -219,24 +219,24 @@ describe('extras: how one copy differs from another', () => {
   it('places extras after what the assembly defines, which is what unlinking costs', () => {
     // Unlinking a part hands every instance its own copy, and a copy lands at
     // the end of the instance's block rather than where the definition had it.
-    // The geometry is untouched and the *order* is not, which for thrusters
+    // The geometry is untouched and the *order* is not, which for engines
     // and turrets means a slightly different ship — so the editor has to say
     // so rather than present unlinking as free.
     const linked = ship({
       assemblies: { pair: { modules: [
-        { kind: 'thruster', x: 0, y: 1, angle: 0, length: 2, width: 2 },
-        { kind: 'thruster', x: 0, y: -1, angle: 0, length: 2, width: 2 },
+        { kind: 'engine', x: 0, y: 1, angle: 0, length: 2, width: 2 },
+        { kind: 'engine', x: 0, y: -1, angle: 0, length: 2, width: 2 },
       ] } },
       modules: [hull, { use: 'pair', x: -11, y: 0 }],
     });
     // The same ship after unlinking the first of the pair.
     const unlinked = ship({
       assemblies: { pair: { modules: [
-        { kind: 'thruster', x: 0, y: -1, angle: 0, length: 2, width: 2 },
+        { kind: 'engine', x: 0, y: -1, angle: 0, length: 2, width: 2 },
       ] } },
       modules: [
         hull,
-        { use: 'pair', x: -11, y: 0, extra: [{ kind: 'thruster', x: 0, y: 1, angle: 0, length: 2, width: 2 }] },
+        { use: 'pair', x: -11, y: 0, extra: [{ kind: 'engine', x: 0, y: 1, angle: 0, length: 2, width: 2 }] },
       ],
     });
 
@@ -434,7 +434,7 @@ describe('rejecting a layout that cannot be resolved', () => {
 
 describe('the ships that ship with the game', () => {
   it('build their symmetric parts from shared assemblies', () => {
-    // The motivating case: eight lateral thrusters described once, so making
+    // The motivating case: eight lateral engines described once, so making
     // them all bigger is one edit and there is no state in which seven are.
     expect(Object.keys(GUNSHIP.assemblies ?? {})).toContain('lateral');
     expect(Object.keys(CORVETTE.assemblies ?? {})).toContain('wingBox');
@@ -444,7 +444,7 @@ describe('the ships that ship with the game', () => {
 
   it('still compile to a ship, with every mirrored copy accounted for', () => {
     const design = compileBlueprint(GUNSHIP);
-    expect(design.thrusters).toHaveLength(8);
+    expect(design.engines).toHaveLength(8);
     expect(design.turrets).toHaveLength(3);
     // Symmetric about the spine, so the centre of mass sits on it. This is
     // what would break first if a reflection were subtly wrong.

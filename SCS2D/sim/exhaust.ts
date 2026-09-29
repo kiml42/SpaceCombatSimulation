@@ -7,15 +7,15 @@ import {
   DECK_HEIGHT,
   nozzleOffset,
   THRUST_PER_EXIT_AREA,
-  thrusterGeometry,
-  type ThrusterGeometry,
+  engineGeometry,
+  type EngineGeometry,
 } from './modules.js';
 import { RayHit, type SpatialGrid } from './spatialGrid.js';
 
 /**
  * What a rocket exhaust does to whatever is standing in it.
  *
- * A thruster produces its thrust whatever its nozzle is pointed at, so without
+ * An engine produces its thrust whatever its nozzle is pointed at, so without
  * this a plume is scenery: an engine buried in its own hull flies exactly as
  * well as one in clear air and merely looks absurd. That is free thrust with
  * no penalty attached, which is the shape of exploit `modules.ts` warns about
@@ -35,7 +35,7 @@ import { RayHit, type SpatialGrid } from './spatialGrid.js';
  * and the thrust off the nozzle are the same newton-seconds with opposite
  * signs, so that third of the engine is not thrust at all. What is in the way
  * on its own ship is fixed geometry, so it is worked out once when the design
- * is compiled and lands on `ThrusterSpec.escaping`, which `ThrusterLayout`
+ * is compiled and lands on `EngineSpec.escaping`, which `EngineLayout`
  * flies the engine at.
  *
  * **The plume the simulation burns with is the plume the renderer draws** —
@@ -118,7 +118,7 @@ export function plumeReach(force: number, exitWidth: number, divergence = 1): nu
  * that are. Nothing in the simulation reads it: the burn goes by each ray's
  * share of the power, which fades along the flame the way the drawing does.
  */
-export function plumeIntensity(geometry: ThrusterGeometry, force: number): number {
+export function plumeIntensity(geometry: EngineGeometry, force: number): number {
   const reach = nozzleReach(geometry, force);
   if (!(reach > 0)) return 0;
   return (PLUME_POWER_PER_NEWTON * (force / geometry.nozzles)) / (0.5 * geometry.exitWidth * reach);
@@ -154,23 +154,23 @@ const RAY_OFFSET: readonly number[] = [-1 / 3, 0, 1 / 3];
  * flames with ship's-eye gaps between them, and three rays stretched across
  * the whole face would fall where the fire is not.
  */
-export function plumeRays(geometry: ThrusterGeometry): number {
+export function plumeRays(geometry: EngineGeometry): number {
   return PLUME_RAYS * geometry.nozzles;
 }
 
 const RAY_STARTS = new WeakMap<ShipDesign, Int32Array>();
 
 /**
- * Where each of a design's thrusters' rays start in one flat list of all of
+ * Where each of a design's engines' rays start in one flat list of all of
  * them, with the total at the end. Cached per design, which never changes.
  */
 export function plumeRayStarts(design: ShipDesign): Int32Array {
   const known = RAY_STARTS.get(design);
   if (known !== undefined) return known;
-  const starts = new Int32Array(design.thrusters.length + 1);
-  for (let t = 0; t < design.thrusters.length; t++) {
-    const engine = design.modules[design.thrusters[t]!.module ?? -1];
-    starts[t + 1] = starts[t]! + (engine === undefined ? 0 : plumeRays(thrusterGeometry(engine.spec)));
+  const starts = new Int32Array(design.engines.length + 1);
+  for (let t = 0; t < design.engines.length; t++) {
+    const engine = design.modules[design.engines[t]!.module ?? -1];
+    starts[t + 1] = starts[t]! + (engine === undefined ? 0 : plumeRays(engineGeometry(engine.spec)));
   }
   RAY_STARTS.set(design, starts);
   return starts;
@@ -183,7 +183,7 @@ function rayNozzle(ray: number): { nozzle: number; across: number } {
 }
 
 /** How far one flame reaches, given what the whole engine is producing. */
-export function nozzleReach(geometry: ThrusterGeometry, force: number): number {
+export function nozzleReach(geometry: EngineGeometry, force: number): number {
   // Every nozzle gets an equal share of the gas through an equal share of the
   // face, so each is fed at the same pressure the single nozzle was — and so
   // throws a flame as much shorter as it is narrower, less what its better
@@ -202,14 +202,14 @@ export function nozzleReach(geometry: ThrusterGeometry, force: number): number {
  * therefore wide at the nozzle and a thin core further out, which is what a
  * wedge-shaped flame should do and what a single ray could not express.
  */
-export function rayReach(ray: number, geometry: ThrusterGeometry, force: number): number {
+export function rayReach(ray: number, geometry: EngineGeometry, force: number): number {
   const { across } = rayNozzle(ray);
   const edge = 1 - 2 * (across < 0 ? -across : across);
   return edge > 0 ? nozzleReach(geometry, force) * edge : 0;
 }
 
 /** Where a ray leaves the engine, in metres across the exit face from its middle. */
-export function rayOffset(ray: number, geometry: ThrusterGeometry): number {
+export function rayOffset(ray: number, geometry: EngineGeometry): number {
   const { nozzle, across } = rayNozzle(ray);
   return nozzleOffset(geometry, nozzle) + across * geometry.exitWidth;
 }
@@ -241,7 +241,7 @@ export function exhaustObstruction(
 
   const engine = boxes.modules[module];
   if (engine === undefined) return 1;
-  const geometry = thrusterGeometry(engine.spec);
+  const geometry = engineGeometry(engine.spec);
   const rays = plumeRays(geometry);
   const dirX = cos(engine.angle);
   const dirY = sin(engine.angle);
@@ -330,7 +330,7 @@ export class Plumes {
    * are exactly the ones that cannot reach anybody. Such a ray still *burns*
    * what it is buried in; what it does not do is push anything, because its
    * momentum has already been counted against the engine's thrust
-   * (`ThrusterSpec.escaping`).
+   * (`EngineSpec.escaping`).
    *
    * **The first thing in the way takes all of it and shields everything
    * behind**, spent or not: a plume is gas, and a wrecked module is still a
@@ -342,7 +342,7 @@ export class Plumes {
    */
   cast(
     design: ShipDesign,
-    thruster: number,
+    slot: number,
     ray: number,
     /** Thrust the engine is producing, or would produce, newtons. */
     force: number,
@@ -355,12 +355,12 @@ export class Plumes {
     this.module = -1;
     this.share = 0;
 
-    const spec = design.thrusters[thruster];
+    const spec = design.engines[slot];
     if (spec === undefined || !(force > 0)) return false;
     const engine = design.modules[spec.module ?? -1];
     if (engine === undefined) return false;
 
-    const geometry = thrusterGeometry(engine.spec);
+    const geometry = engineGeometry(engine.spec);
     const reach = rayReach(ray, geometry, force);
     if (!(reach > 0)) return false;
 
@@ -425,7 +425,7 @@ export class Plumes {
    */
   burn(
     design: ShipDesign,
-    thruster: number,
+    slot: number,
     force: number,
     damage: Damage,
     bodies: Bodies,
@@ -438,14 +438,14 @@ export class Plumes {
     landedAt = 0,
   ): void {
     if (!(dt > 0) || !(force > 0)) return;
-    const engine = design.modules[design.thrusters[thruster]?.module ?? -1];
+    const engine = design.modules[design.engines[slot]?.module ?? -1];
     if (engine === undefined) return;
     // A ray is one equal slice of the engine: a third of one of its nozzles,
     // so that share of the gas, the power and the momentum.
-    const rays = plumeRays(thrusterGeometry(engine.spec));
+    const rays = plumeRays(engineGeometry(engine.spec));
     const perRay = force / rays;
     for (let ray = 0; ray < rays; ray++) {
-      if (!this.cast(design, thruster, ray, force, bodies, bodyIndex, grid, hulls)) continue;
+      if (!this.cast(design, slot, ray, force, bodies, bodyIndex, grid, hulls)) continue;
       if (landed !== undefined) landed[landedAt + ray] = this.share;
       damage.absorb(this.body, this.module, PLUME_POWER_PER_NEWTON * perRay * this.share * dt);
       if (this.body === bodyIndex) continue;

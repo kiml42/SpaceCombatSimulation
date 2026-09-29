@@ -80,7 +80,7 @@ export const MIN_SIZE = 0.5;
  * the module is pointing before it is touched.
  *
  * `scale` is pixels per metre: the handles keep their size on screen rather
- * than in the world, so a small thruster is as grabbable zoomed out as a hull
+ * than in the world, so a small engine is as grabbable zoomed out as a hull
  * is zoomed in.
  */
 export function handlesFor(spec: ModuleSpec, scale: number): Handle[] {
@@ -178,7 +178,7 @@ export function resizedTo(
   const across = side(handle.across, spec.width / 2, py, spec.width);
 
   // Where the new box's middle is, then where the position must be to put it
-  // there — a thruster's position is its mounting face rather than its middle.
+  // there — an engine's position is its mounting face rather than its middle.
   const centreX = mid.x + along.middle * c - across.middle * s;
   const centreY = mid.y + along.middle * s + across.middle * c;
   const offset = moduleCentre({
@@ -240,7 +240,9 @@ export function seamTo(
 
 /** Rounds away the last-bit noise a turned frame leaves, so a file does not gain 1e-16s. */
 function tidy(value: number): number {
-  return round(value * 1e9) / 1e9;
+  const tidied = round(value * 1e9) / 1e9;
+  // A negative zero is a frame turned half round, not a direction.
+  return tidied === 0 ? 0 : tidied;
 }
 
 /**

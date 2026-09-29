@@ -133,8 +133,8 @@ export class EditorDocument {
 
   /**
    * The placements being edited, in the order they were picked. A *placement*
-   * and not a drawn module: selecting one of eight copies of a thruster
-   * selects the thruster, because that is the thing an edit would change.
+   * and not a drawn module: selecting one of eight copies of an engine
+   * selects the engine, because that is the thing an edit would change.
    *
    * An ordered list rather than a set, and the order is load-bearing: the
    * first one picked is the module a group is built around, so which module

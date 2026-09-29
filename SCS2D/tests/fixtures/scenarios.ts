@@ -131,7 +131,7 @@ export function tumbleScenario(seed = 12345): World {
     );
   }
 
-  // A fixed thruster layout per body, decided once from the seeded stream so
+  // A fixed engine layout per body, decided once from the seeded stream so
   // that the forces are reproducible without consuming randomness per step.
   const thrust = ids.map(() => ({
     fx: world.rng.nextRange(-2000, 2000),
@@ -168,7 +168,7 @@ export interface GunneryRun extends ScenarioRun {
  * swept-segment casting, impact reporting, expiry and slot recycling.
  *
  * The batteries are immovable bodies so that recoil does not enter into it —
- * what is being pinned here is gunnery, not thruster response.
+ * what is being pinned here is gunnery, not engine response.
  */
 export function gunneryScenario(seed = 777): GunneryRun {
   const dt = 1 / 60;
@@ -283,9 +283,9 @@ export function gunneryScenario(seed = 777): GunneryRun {
  * viewer and this checksum run the same code rather than two copies of it.
  * What pins it is that both drive `Duel.step`.
  *
- * It is what pins thruster allocation and turrets *together*. Unit tests check
+ * It is what pins engine allocation and turrets *together*. Unit tests check
  * a subsystem in isolation and so cannot catch two of them drifting apart; a
- * duel drives every number a blueprint derives — mass and inertia, the thruster
+ * duel drives every number a blueprint derives — mass and inertia, the engine
  * matrix, traverse rates, firing arcs, gun ballistics — through the loop the
  * game itself uses.
  */

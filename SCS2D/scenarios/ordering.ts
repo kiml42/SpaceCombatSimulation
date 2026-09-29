@@ -8,7 +8,7 @@ import { CORVETTE, FLAT_GUNSHIP, FLAT_GUNSHIP_GROUPED, GUNSHIP } from './bluepri
 /**
  * What listing a ship's modules in a different order costs, flown two ways.
  *
- * Module order reaches the simulation twice: thrusters are allocated in it and
+ * Module order reaches the simulation twice: engines are allocated in it and
  * guns fire in it. The three layouts here are the same eighteen modules in the
  * same places, differing only in the list — flat in expansion order (the
  * control, which should track the assembled ship exactly), flat listed kind by
@@ -59,11 +59,11 @@ function battle(which: readonly number[], seed: number): OrderingBattle {
   return makeBattle({ seed, wells: [SIDE_WELL] }, (ships, world) => {
     // Facing across the engagement with a crossing velocity, as the duel does.
     // A ship flying straight down a bearing barely uses its manoeuvring
-    // thrusters, and thruster allocation is half of what is being measured.
+    // engines, and engine allocation is half of what is being measured.
     // Half the crossing's usual separation, and that is the rig rather than a
     // detail: a mount ignores what lies beyond its reach, and from the full
     // 3.6 km these ships spend the whole run closing and never fire a shot.
-    // What is being measured is what module order does to thruster allocation
+    // What is being measured is what module order does to engine allocation
     // and gunnery, so both have to actually happen.
     const contenders = which.map((i) => ({
       name: ORDERINGS[i]!.name,

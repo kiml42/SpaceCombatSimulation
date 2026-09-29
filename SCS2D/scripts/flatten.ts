@@ -23,7 +23,7 @@ import { BLUEPRINTS, type BlueprintName } from '../scenarios/blueprints.js';
 const ORDERS = {
   /** Exactly what expansion produces: depth-first through the assemblies. */
   expansion: (modules: readonly ModuleSpec[]): readonly ModuleSpec[] => modules,
-  /** All the structure, then all the thrusters, then the guns. Stable, so the
+  /** All the structure, then all the engines, then the guns. Stable, so the
    * only change is which kinds come first. */
   kind: (modules: readonly ModuleSpec[]): readonly ModuleSpec[] => {
     const rank = MODULE_KINDS;

@@ -21,10 +21,10 @@
     "lateral": {
       "modules": [
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": 0.6,
           "y": 0,
-          "angle": -90,
+          "angle": 90,
           "length": 0.5,
           "width": 1.8
         }
@@ -33,10 +33,10 @@
     "main": {
       "modules": [
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": 0.1,
           "y": 0,
-          "angle": 0,
+          "angle": 180,
           "length": 2.1,
           "width": 1.6,
           "reinforcement": 1,
@@ -56,10 +56,10 @@
       "notes": "Armoured, because the bow is always pointed at something with guns."
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": 2.75,
       "y": 0,
-      "angle": 180,
+      "angle": 0,
       "length": 16,
       "width": 6,
       "reinforcement": 1.5,

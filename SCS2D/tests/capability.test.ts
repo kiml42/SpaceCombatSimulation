@@ -36,9 +36,9 @@ describe('scoring what works', () => {
     const { ships, world, slots } = match.battle;
     const body = world.bodies.indexOf(ships.body(slots[0]!));
     const design = ships.design(slots[0]!);
-    // Spend every thruster, as a ship cooking itself would, with no shooter to credit.
+    // Spend every engine, as a ship cooking itself would, with no shooter to credit.
     design.modules.forEach((module, m) => {
-      if (module.spec.kind === 'thruster') ships.damage.absorb(body, m, module.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
+      if (module.spec.kind === 'engine') ships.damage.absorb(body, m, module.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
     });
     while (!match.done) match.advance();
     const [hurt, other] = match.result().scores;

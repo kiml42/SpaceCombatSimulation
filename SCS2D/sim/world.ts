@@ -4,7 +4,7 @@ import { Rng } from './rng.js';
 
 /**
  * A source of forces, run once per step after positions have been advanced.
- * Gravity wells, thrusters, drag zones and tractor beams are all providers.
+ * Gravity wells, engines, drag zones and tractor beams are all providers.
  */
 export type ForceProvider = (world: World) => void;
 

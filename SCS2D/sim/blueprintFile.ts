@@ -145,11 +145,29 @@ function optionalStringProblem(value: unknown, what: string): string | null {
   return null;
 }
 
+/**
+ * A kind as the format names it now. Files written before engines faced along
+ * their bells call one a `thruster` and give the way it pushes, so the name is
+ * also the marker for turning it half round (`currentAngle`).
+ */
+function currentKind(kind: unknown): unknown {
+  return kind === 'thruster' ? 'engine' : kind;
+}
+
+/** A module's facing in degrees, turned half round for a `thruster` written the old way. */
+function currentAngle(raw: Record<string, unknown>): number | undefined {
+  const angle = raw['angle'] as number | undefined;
+  if (raw['kind'] !== 'thruster') return angle;
+  const turned = (angle ?? 0) + 180;
+  return turned > 180 ? turned - 360 : turned;
+}
+
 function moduleShapeProblem(value: Record<string, unknown>, where: string): string | null {
   const extra = unknownKeys(value, MODULE_KEYS);
   if (extra.length > 0) return `${where} has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
 
-  if (typeof value['kind'] !== 'string' || !MODULE_KINDS.includes(value['kind'] as ModuleKind)) {
+  const kind = currentKind(value['kind']);
+  if (typeof kind !== 'string' || !MODULE_KINDS.includes(kind as ModuleKind)) {
     return `${where}: kind must be one of ${MODULE_KINDS.join(', ')}, got ${JSON.stringify(value['kind'])}`;
   }
 
@@ -184,9 +202,9 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
  * saving.
  */
 function dormantFieldProblem(value: Record<string, unknown>, where: string): string | null {
-  const kind = value['kind'] as ModuleKind;
+  const kind = currentKind(value['kind']) as ModuleKind;
   if (value['nozzle'] !== undefined && !readsNozzle(kind)) {
-    return `${where}: only a thruster or a hull mount has a nozzle`;
+    return `${where}: only an engine or a hull mount has a nozzle`;
   }
   if (value['barrels'] !== undefined && !countsOutlets(kind)) {
     return `${where}: ${kind} has no barrels`;
@@ -195,7 +213,7 @@ function dormantFieldProblem(value: Record<string, unknown>, where: string): str
     return `${where}: only a weapon has a traverse`;
   }
   if (value['weapon'] !== undefined && !readsWeapon(kind)) {
-    return `${where}: only a thruster can be used as a weapon`;
+    return `${where}: only an engine can be used as a weapon`;
   }
   return null;
 }
@@ -284,7 +302,7 @@ function assembliesShapeProblem(value: unknown): string | null {
  *
  * Its *shape* only: the keys, the format version, the types. Whether the
  * layout it describes is a ship that could fly is `blueprintProblem`'s
- * question, and deliberately a separate one — a file naming a thruster
+ * question, and deliberately a separate one — a file naming an engine
  * welded to nothing is perfectly readable, and refusing to read it is what
  * makes such a ship impossible to open and put right.
  */
@@ -367,13 +385,14 @@ function toPlacements(raws: unknown[]): Placement[] {
     }
 
     const spec: ModuleSpec = {
-      kind: raw['kind'] as ModuleKind,
+      kind: currentKind(raw['kind']) as ModuleKind,
       x: raw['x'] as number,
       y: raw['y'] as number,
       length: raw['length'] as number,
       width: raw['width'] as number,
     };
-    if (raw['angle'] !== undefined) spec.angle = degreesToRadians(raw['angle'] as number);
+    const angle = currentAngle(raw);
+    if (angle !== undefined) spec.angle = degreesToRadians(angle);
     if (raw['reinforcement'] !== undefined) spec.reinforcement = raw['reinforcement'] as number;
     if (raw['barrels'] !== undefined) spec.barrels = raw['barrels'] as number;
     if (raw['nozzle'] !== undefined) spec.nozzle = raw['nozzle'] as number;

@@ -149,7 +149,7 @@ function parse(argv: readonly string[]): Options {
       case '--budget': budget = Number(value()); break;
       case '--duration': match['duration'] = Number(value()); break;
       case '--radius': match['radius'] = Number(value()); break;
-      // A weight per module kind, as `thruster=5,turret=0` — only the kinds
+      // A weight per module kind, as `engine=5,turret=0` — only the kinds
       // named are changed, the rest keeping their defaults.
       case '--kinds':
         for (const pair of value().split(',')) {

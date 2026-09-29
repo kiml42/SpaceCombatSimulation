@@ -75,8 +75,8 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
 
   // Engines are cold. A design is not running, and a plume drawn on a ship
   // standing still would be saying something untrue about it.
-  view.throttles.length = design.thrusters.length;
-  for (let t = 0; t < design.thrusters.length; t++) view.throttles[t] = 0;
+  view.throttles.length = design.engines.length;
+  for (let t = 0; t < design.engines.length; t++) view.throttles[t] = 0;
 
   // A design has taken nothing: the editor draws the ship as it would be built,
   // not as one that has been somewhere.

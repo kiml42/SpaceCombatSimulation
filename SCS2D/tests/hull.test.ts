@@ -159,7 +159,7 @@ describe('the modules a shot crosses', () => {
     modulesAlong(design, 100, 0, -100, 0, path);
     const kinds = [];
     for (let i = 0; i < path.count; i++) kinds.push(design.modules[path.module[i]!]!.spec.kind);
-    expect(kinds).toEqual(['turret', 'structure', 'core', 'structure', 'thruster']);
+    expect(kinds).toEqual(['turret', 'structure', 'core', 'structure', 'engine']);
     // In order, and each entered after the last was left.
     for (let i = 1; i < path.count; i++) {
       expect(path.entry[i]!).toBeGreaterThanOrEqual(path.entry[i - 1]!);

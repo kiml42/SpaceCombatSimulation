@@ -199,7 +199,7 @@ export function removePlacement(blueprint: Blueprint, path: ModulePath): Bluepri
  * Add a module to the end of the layout's own list, and say where it landed.
  *
  * The end, and not anywhere else, because module order is part of the ship:
- * thrusters are allocated over the columns in order and turrets fire in order,
+ * engines are allocated over the columns in order and turrets fire in order,
  * so inserting into the middle of a working layout changes how every module
  * after it behaves. Appending is the one placement that leaves the existing
  * ship alone.
@@ -447,7 +447,7 @@ export function groupProblem(
  * they can be.
  *
  * **The instance is appended**, like every other placement this editor makes,
- * because module order is part of the ship: thrusters are allocated over the
+ * because module order is part of the ship: engines are allocated over the
  * columns in order and turrets fire in order. Grouping therefore moves the
  * grouped modules to the end of the expansion, and a ship whose layout is
  * order-sensitive will fly slightly differently afterwards. Nothing about its
@@ -828,7 +828,7 @@ export function unlinkable(blueprint: Blueprint, origin: ModuleOrigin): number {
  * and the assembly goes. That is exact: the modules come out of the same
  * expansion the ship is built from, in the same order and at the same
  * coordinates, so the ship does not change at all — not its geometry, and not
- * the order that decides thruster allocation and firing.
+ * the order that decides engine allocation and firing.
  *
  * **When the assembly holds other modules too**, the module is taken out of
  * the definition and handed to every instance as an `extra` of its own, which

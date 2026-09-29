@@ -3,7 +3,7 @@
 // "Did this change move any ship?" answered exactly rather than by eye: it
 // compiles all the authored blueprints on two checkouts and compares every
 // derived figure with `Object.is`, so a difference in the last bit is a
-// difference. It is what showed the thruster-origin change to be bit-identical
+// difference. It is what showed the engine-origin change to be bit-identical
 // across nine ships, where the golden checksums only say that the battles came
 // out the same.
 //
@@ -36,10 +36,10 @@ for (const name of Object.keys(NEW) as (keyof typeof NEW)[]) {
     diff(a.modules[i]!.y, b.modules[i]!.y);
     diff(a.modules[i]!.angle, b.modules[i]!.angle);
   }
-  for (let i = 0; i < a.thrusters.length; i++) {
-    diff(a.thrusters[i]!.x, b.thrusters[i]!.x);
-    diff(a.thrusters[i]!.y, b.thrusters[i]!.y);
-    diff(a.thrusters[i]!.maxThrust, b.thrusters[i]!.maxThrust);
+  for (let i = 0; i < a.engines.length; i++) {
+    diff(a.engines[i]!.x, b.engines[i]!.x);
+    diff(a.engines[i]!.y, b.engines[i]!.y);
+    diff(a.engines[i]!.maxThrust, b.engines[i]!.maxThrust);
   }
   for (let i = 0; i < a.turrets.length; i++) {
     diff(a.turrets[i]!.mount.leftArc, b.turrets[i]!.mount.leftArc);

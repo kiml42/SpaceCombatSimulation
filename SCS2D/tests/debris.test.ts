@@ -15,7 +15,7 @@ import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
 const dinky: ShipDesign = compileBlueprint(DINKY);
 const corvette: ShipDesign = compileBlueprint(CORVETTE);
 
-/** A fighter's smallest thruster, and the weld holding it on. */
+/** A fighter's smallest engine, and the weld holding it on. */
 const SHARD = 9;
 const SHARD_JOINT = joints(dinky).findIndex((j) => j.a === 7 && j.b === SHARD);
 /** One worth keeping, held on by a weld of its own. */

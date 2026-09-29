@@ -39,7 +39,7 @@ export function fleetSnapshot(
       shipView.turretBearings[t] = (design.turrets[t]!.mount.restBearing ?? 0) + ship.angle;
       shipView.turretReady[t] = false;
     }
-    shipView.throttles.length = design.thrusters.length;
+    shipView.throttles.length = design.engines.length;
     shipView.throttles.fill(0);
     shipView.landed.length = 0;
     shipView.integrity.length = design.modules.length;

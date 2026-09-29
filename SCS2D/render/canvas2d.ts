@@ -8,7 +8,7 @@ import {
   plumeRayStarts,
   PLUME_POWER_PER_NEWTON,
   PLUME_RAYS,
-  thrusterGeometry,
+  engineGeometry,
   type ShipView,
   type Snapshot,
 } from '../sim/index.js';
@@ -250,7 +250,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     ctx.globalAlpha = integrity <= 0 ? 1 : 0.45 + 0.55 * integrity;
     const halfLength = spec.length / 2;
     const halfWidth = spec.width / 2;
-    if (spec.kind === 'thruster') {
+    if (spec.kind === 'engine') {
       // An engine is a machinery block with bells on the back of it, and it is
       // drawn as exactly that: the block a box like any other module, each
       // bell flaring from its throat to the exit. Local +x is the way it
@@ -261,7 +261,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       // This is the one drawing that is not an approximation of the module:
       // the throat fraction it tapers from is the number the thrust is worked
       // out from, so what the bell looks like is what it does.
-      const engine = thrusterGeometry(spec);
+      const engine = engineGeometry(spec);
       ctx.fillRect(
         halfLength - engine.machineryLength,
         -halfWidth,
@@ -506,7 +506,7 @@ function drawBurns(ctx: CanvasRenderingContext2D, snapshot: Snapshot): void {
 
 /** An engine as the flame passes need it: its bell geometry and its length. */
 interface Engine {
-  geometry: ReturnType<typeof thrusterGeometry>;
+  geometry: ReturnType<typeof engineGeometry>;
   length: number;
 }
 
@@ -522,9 +522,9 @@ function eachNozzle(
 ): void {
   const design = ship.design;
   const starts = plumeRayStarts(design);
-  // Thrusters are counted as they are met, because a design lists its
-  // thrusters in the order its modules appear.
-  let thruster = 0;
+  // Engines are counted as they are met, because a design lists its
+  // engines in the order its modules appear.
+  let engine = 0;
   const landed = [0, 0, 0];
 
   ctx.save();
@@ -533,11 +533,11 @@ function eachNozzle(
   for (let i = 0; i < design.modules.length; i++) {
     const m = design.modules[i]!;
     const spec = m.spec;
-    if (spec.kind !== 'thruster') continue;
-    const t = thruster++;
-    const force = (ship.throttles[t] ?? 0) * (design.thrusters[t]?.maxThrust ?? 0);
+    if (spec.kind !== 'engine') continue;
+    const t = engine++;
+    const force = (ship.throttles[t] ?? 0) * (design.engines[t]?.maxThrust ?? 0);
     if (!(force > 0)) continue;
-    const geometry = thrusterGeometry(spec);
+    const geometry = engineGeometry(spec);
     const reach = nozzleReach(geometry, force);
     ctx.save();
     ctx.translate(m.x, m.y);

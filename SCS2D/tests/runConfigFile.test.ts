@@ -33,6 +33,14 @@ const SETUP = {
 };
 
 describe('the run config file', () => {
+  it('reads engine weights written before the kind was renamed from thruster', () => {
+    const file = serialiseRunConfig(SETUP) as Record<string, unknown>;
+    const { engine, ...rest } = file['kinds'] as Record<string, number>;
+    file['kinds'] = { thruster: 7, ...rest };
+    expect(engine).toBeDefined();
+    expect(parseRunConfig(file).config.mutation.kinds!.engine).toBe(7);
+  });
+
   it('round-trips a setup without changing it', () => {
     const back = parseRunConfig(serialiseRunConfig(SETUP));
     expect(back.founders).toEqual(SETUP.founders);
@@ -61,7 +69,7 @@ describe('the run config file', () => {
     expect(setup.config.generations).toEqual(DEFAULT_RUN.generations);
     expect(setup.config.match.duration).toEqual(DEFAULT_MATCH.duration);
     expect(setup.config.mutation.kinds!.beamTurret).toEqual(0);
-    expect(setup.config.mutation.kinds!.thruster).toEqual(DEFAULT_KINDS.thruster);
+    expect(setup.config.mutation.kinds!.engine).toEqual(DEFAULT_KINDS.engine);
   });
 
   it('keeps a goal it is given, and a match told to have none', () => {
@@ -86,8 +94,8 @@ describe('the run config file', () => {
       [{ seed: 'one' }, /seed must be a finite number/],
       [{ massBudget: -1 }, /more than nothing/],
       [{ founders: 'Corvette' }, /list of ship names/],
-      [{ kinds: { thrusters: 1 } }, /unknown kind thrusters/],
-      [{ kinds: { thruster: -1 } }, /zero or more/],
+      [{ kinds: { engines: 1 } }, /unknown kind engines/],
+      [{ kinds: { engine: -1 } }, /zero or more/],
       [{ match: { durations: 10 } }, /unknown key durations/],
       [{ match: { duration: 0 } }, /more than nothing/],
       [{ match: { goal: { x: 0, y: 0, scale: 1 } } }, /missing size/],
