@@ -22,13 +22,13 @@ import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 import { EditorDocument } from '../editor/document.js';
 import {
   addModule,
-  addToGroup,
-  addToGroupProblem,
+  addToAssembly,
+  addToAssemblyProblem,
   cloneBlueprint,
   duplicateInstance,
   duplicatePlacement,
-  groupPlacements,
-  groupProblem,
+  createAssembly,
+  createAssemblyProblem,
   instanceHandle,
   instanceOf,
   setMirror,
@@ -37,6 +37,7 @@ import {
   toPlacementAngle,
   positionHandle,
   removeCopy,
+  removeInstance,
   unlinkable,
   unlinkPlacement,
   moduleAt,
@@ -73,7 +74,7 @@ import {
   type Handle,
 } from '../editor/handles.js';
 import { previewSnapshot } from '../editor/preview.js';
-import { designStats, envelopes, groupMass, headingCost, moduleReadout } from '../editor/stats.js';
+import { designStats, envelopes, assemblyMass, headingCost, moduleReadout } from '../editor/stats.js';
 
 /**
  * The editor's half: what an edit does to a layout, and what the page reads
@@ -575,7 +576,7 @@ describe('sizing a drawn module through the frame it was written in', () => {
   const handlesOf = (bp: Blueprint, drawn: number) =>
     handlesFor(expandWithOrigins(bp).modules[drawn]!, 10);
 
-  it('keeps the opposite corner still inside a turned, mirrored group', () => {
+  it('keeps the opposite corner still inside a turned, mirrored assembly', () => {
     const pod = {
       modules: [
         { kind: 'structure', x: 0, y: 0, length: 4, width: 2 } as const,
@@ -656,7 +657,7 @@ describe('sizing a drawn module through the frame it was written in', () => {
     expect(positions(next)[1]).toEqual([14, 0]);
   });
 
-  it('pushes neighbours inside a group in the group’s own frame', () => {
+  it('pushes neighbours inside an assembly in the assembly’s own frame', () => {
     const pod = { modules: [{ ...hull, length: 4, width: 2 }, { ...block, x: 3, length: 2, width: 2 }] };
     const bp = ship({
       assemblies: { pod },
@@ -719,7 +720,7 @@ describe('turning a module by its knob', () => {
   });
 
   it('is written in the frame the module was written in', () => {
-    // A module in a mirrored group is drawn turned one way and written the
+    // A module in a mirrored assembly is drawn turned one way and written the
     // other, so a knob dragged clockwise on screen writes an anticlockwise
     // facing.
     const origin = { path: [], rotation: 0, mirrored: true, instanceFrame: null };
@@ -729,7 +730,7 @@ describe('turning a module by its knob', () => {
   });
 });
 
-describe('repeating a group', () => {
+describe('repeating an assembly', () => {
   const wing = { modules: [{ kind: 'structure', x: 0, y: 0, length: 4, width: 4 } as const] };
   const bp = ship({ assemblies: { wing }, modules: [hull, { use: 'wing', x: 12, y: 0 }] });
   const path = [{ index: 1, copy: 0 }];
@@ -760,12 +761,12 @@ describe('repeating a group', () => {
     expect(drawn[2]!.angle).toBeCloseTo(math.HALF_PI, 12);
   });
 
-  it('refuses a placement that is not a group', () => {
+  it('refuses a placement that is not an assembly', () => {
     expect(setRepetition(bp, [{ index: 0, copy: 0 }], 3, { x: 4, y: 0 })).toBeNull();
   });
 });
 
-describe('how far a group reaches', () => {
+describe('how far an assembly reaches', () => {
   it('measures the whole of what it covers, along a direction', () => {
     const specs: ModuleSpec[] = [
       { kind: 'structure', x: 0, y: 0, length: 4, width: 2 },
@@ -1113,7 +1114,7 @@ describe('the placement that carries a copy’s position', () => {
       modules: [hull, { use: 'wing', x: 0, y: 6 }, { use: 'wing', x: 0, y: -6 }],
     });
     const origins = expandWithOrigins(bp).origins;
-    // Dragging one part of a group has to move the part, not the whole group.
+    // Dragging one part of an assembly has to move the part, not the whole assembly.
     expect(positionHandle(bp, origins[1]!).perCopy).toBe(false);
   });
 });
@@ -1217,7 +1218,7 @@ describe('deleting a copy', () => {
     expect(Object.keys(current.assemblies ?? {})).toHaveLength(0);
   });
 
-  it('takes a module out of every copy of a group it is part of', () => {
+  it('takes a module out of every copy of an assembly it is part of', () => {
     const bp = ship({
       assemblies: {
         wing: {
@@ -1231,7 +1232,7 @@ describe('deleting a copy', () => {
     });
     const origins = expandWithOrigins(bp).origins;
     const cut = removeCopy(bp, origins[1]!)!;
-    // Deleting part of a group deletes it from the group, which is both wings.
+    // Deleting part of an assembly deletes it from the assembly, which is both wings.
     expect(expandWithOrigins(cut).modules).toHaveLength(3);
   });
 });
@@ -1432,7 +1433,7 @@ describe('Demonstration', () => {
   });
 });
 
-describe('grouping modules into an assembly', () => {
+describe('assembling modules into an assembly', () => {
   /** A wing: a root that joins it to the hull, and two things hanging off it. */
   const wing = (): Blueprint =>
     ship({
@@ -1448,55 +1449,55 @@ describe('grouping modules into an assembly', () => {
   function pick(doc: EditorDocument, ...indices: number[]) {
     doc.selectModule(indices[0]!);
     for (const index of indices.slice(1)) doc.toggleModule(index);
-    return doc.selectedOrigins();
+    return doc.selections;
   }
 
-  it('refuses a selection it cannot make a group out of', () => {
+  it('refuses a selection it cannot make an assembly out of', () => {
     const doc = new EditorDocument(wing());
-    expect(groupProblem(doc.blueprint, pick(doc, 1))).toMatch(/two or more/);
+    expect(createAssemblyProblem(doc.blueprint, pick(doc, 1))).toMatch(/two or more/);
 
-    const grouped = groupPlacements(doc.blueprint, pick(doc, 1, 2))!;
-    const after = new EditorDocument(grouped.blueprint);
+    const assembled = createAssembly(doc.blueprint, pick(doc, 1, 2))!;
+    const after = new EditorDocument(assembled.blueprint);
     // The hull is written in the layout; the wing's modules are now written
     // inside the assembly, so the two are not in the same list.
     const across = pick(after, 0, after.view.modules.length - 1);
-    expect(groupProblem(after.blueprint, across)).toMatch(/same group/);
+    expect(createAssemblyProblem(after.blueprint, across)).toMatch(/same assembly/);
   });
 
-  it('builds the group around the first module picked', () => {
+  it('builds the assembly around the first module picked', () => {
     // Not the centre of the selection: a wing hangs off one connecting module,
     // and that module is the one whose position means something.
     const doc = new EditorDocument(wing());
-    const grouped = groupPlacements(doc.blueprint, pick(doc, 1, 2, 3))!;
-    const assemblies = grouped.blueprint.assemblies!;
+    const assembled = createAssembly(doc.blueprint, pick(doc, 1, 2, 3))!;
+    const assemblies = assembled.blueprint.assemblies!;
     const definition = Object.values(assemblies)[0]!;
 
     expect(Object.keys(assemblies)).toHaveLength(1);
     // The root was picked first, so it sits at the assembly's origin and the
     // instance carries where that origin lands.
     expect(definition.modules[0]).toMatchObject({ kind: 'structure', x: 0, y: 0 });
-    const instance = grouped.blueprint.modules[grouped.blueprint.modules.length - 1]!;
+    const instance = assembled.blueprint.modules[assembled.blueprint.modules.length - 1]!;
     expect(instance).toMatchObject({ x: 0, y: 6 });
   });
 
   it('puts the same ship back, in the same places', () => {
-    // The whole safety property: grouping is a change to how a layout is
+    // The whole safety property: assembling is a change to how a layout is
     // *written* and not to what it builds, so every module comes out where it
     // went in. Order is the one thing that moves, and it moves knowingly.
     const before = wing();
     const doc = new EditorDocument(before);
-    const grouped = groupPlacements(before, pick(doc, 1, 2, 3))!;
+    const assembled = createAssembly(before, pick(doc, 1, 2, 3))!;
 
-    expect(positions(grouped.blueprint).sort()).toEqual(positions(before).sort());
-    expect(expandBlueprint(grouped.blueprint)).toHaveLength(expandBlueprint(before).length);
+    expect(positions(assembled.blueprint).sort()).toEqual(positions(before).sort());
+    expect(expandBlueprint(assembled.blueprint)).toHaveLength(expandBlueprint(before).length);
   });
 
   it('keeps the members in the order they were written, not the order picked', () => {
-    // Clicked back to front. Inside the group they stay as the file had them,
-    // so the group's own internals are as close to the original as they can be.
+    // Clicked back to front. Inside the assembly they stay as the file had them,
+    // so the assembly's own internals are as close to the original as they can be.
     const doc = new EditorDocument(wing());
-    const grouped = groupPlacements(doc.blueprint, pick(doc, 3, 2, 1))!;
-    const definition = Object.values(grouped.blueprint.assemblies!)[0]!;
+    const assembled = createAssembly(doc.blueprint, pick(doc, 3, 2, 1))!;
+    const definition = Object.values(assembled.blueprint.assemblies!)[0]!;
     expect(definition.modules.map((m) => (m as ModuleSpec).kind)).toEqual([
       'structure',
       'turret',
@@ -1507,30 +1508,30 @@ describe('grouping modules into an assembly', () => {
     expect(definition.modules[2]).toMatchObject({ x: 0, y: 0 });
   });
 
-  it('appends the instance, which moves the group down the firing order', () => {
+  it('appends the instance, which moves the assembly down the firing order', () => {
     // Stated because it is a real consequence and not a detail: engines are
     // allocated over the columns in order and turrets fire in order, so a
     // layout that depended on the old order flies slightly differently.
     const doc = new EditorDocument(wing());
-    const grouped = groupPlacements(doc.blueprint, pick(doc, 1, 2))!;
-    const last = grouped.blueprint.modules[grouped.blueprint.modules.length - 1]!;
+    const assembled = createAssembly(doc.blueprint, pick(doc, 1, 2))!;
+    const last = assembled.blueprint.modules[assembled.blueprint.modules.length - 1]!;
     expect('use' in last).toBe(true);
     // The hull, untouched, keeps its place at the front.
-    expect(grouped.blueprint.modules[0]).toMatchObject({ length: 20, width: 6 });
+    expect(assembled.blueprint.modules[0]).toMatchObject({ length: 20, width: 6 });
   });
 
-  it('selects the new group, so its pose can be edited straight away', () => {
+  it('selects the new assembly, so its pose can be edited straight away', () => {
     const doc = new EditorDocument(wing());
-    const grouped = groupPlacements(doc.blueprint, pick(doc, 1, 2))!;
-    doc.apply(grouped.blueprint);
-    doc.select(grouped.path);
+    const assembled = createAssembly(doc.blueprint, pick(doc, 1, 2))!;
+    doc.apply(assembled.blueprint);
+    doc.select(assembled.path);
     const placement = doc.selectedPlacement!;
     expect(placement).not.toBeNull();
     expect('use' in placement).toBe(true);
   });
 });
 
-describe('mirroring a group', () => {
+describe('mirroring an assembly', () => {
   const wing = (): Blueprint =>
     ship({
       modules: [
@@ -1546,8 +1547,8 @@ describe('mirroring a group', () => {
     const doc = new EditorDocument(wing());
     doc.selectModule(1);
     doc.toggleModule(2);
-    const grouped = groupPlacements(doc.blueprint, doc.selectedOrigins())!;
-    doc.apply(grouped.blueprint);
+    const assembled = createAssembly(doc.blueprint, doc.selections)!;
+    doc.apply(assembled.blueprint);
 
     const inside = doc.view.origins.findIndex((o) => o.path.length > 1);
     expect(inside).toBeGreaterThanOrEqual(0);
@@ -1558,41 +1559,41 @@ describe('mirroring a group', () => {
     expect('use' in placement).toBe(true);
   });
 
-  it('reflects a placed group, and stops reflecting it again', () => {
+  it('reflects a placed assembly, and stops reflecting it again', () => {
     const doc = new EditorDocument(wing());
     doc.selectModule(1);
     doc.toggleModule(2);
-    const grouped = groupPlacements(doc.blueprint, doc.selectedOrigins())!;
+    const assembled = createAssembly(doc.blueprint, doc.selections)!;
 
-    const mirrored = setMirror(grouped.blueprint, grouped.path, true)!;
+    const mirrored = setMirror(assembled.blueprint, assembled.path, true)!;
     const turret = expandBlueprint(mirrored).find((m) => m.kind === 'turret')!;
-    const wasAt = expandBlueprint(grouped.blueprint).find((m) => m.kind === 'turret')!;
+    const wasAt = expandBlueprint(assembled.blueprint).find((m) => m.kind === 'turret')!;
     // Reflected across the instance's own x-axis: the turret was 3 m outboard
     // of the wing root, and is now 3 m the other way.
     expect(turret.x).toBeCloseTo(wasAt.x, 9);
     expect(turret.y - 6).toBeCloseTo(-(wasAt.y - 6), 9);
 
-    const back = setMirror(mirrored, grouped.path, false)!;
+    const back = setMirror(mirrored, assembled.path, false)!;
     expect(expandBlueprint(back).map((m) => [m.x, m.y])).toEqual(
-      expandBlueprint(grouped.blueprint).map((m) => [m.x, m.y]),
+      expandBlueprint(assembled.blueprint).map((m) => [m.x, m.y]),
     );
     // Cleared rather than written false, so a layout that was never mirrored
     // round-trips through the file unchanged.
     expect('mirror' in (back.modules[back.modules.length - 1] as object)).toBe(false);
   });
 
-  it('keeps a group selected through an edit to the group itself', () => {
+  it('keeps an assembly selected through an edit to the assembly itself', () => {
     // An instance draws nothing of its own — its assembly's modules do — so a
     // "does this still draw anything" test that only asked which placement
-    // wrote each module called every group selection dead. The panel would
+    // wrote each module called every assembly selection dead. The panel would
     // then close on the first edit made from it, which is the one moment it
     // must not.
     const doc = new EditorDocument(wing());
     doc.selectModule(1);
     doc.toggleModule(2);
-    const grouped = groupPlacements(doc.blueprint, doc.selectedOrigins())!;
-    doc.apply(grouped.blueprint);
-    doc.select(grouped.path);
+    const assembled = createAssembly(doc.blueprint, doc.selections)!;
+    doc.apply(assembled.blueprint);
+    doc.select(assembled.path);
     expect(doc.selectedPlacement).not.toBeNull();
 
     doc.apply(setMirror(doc.blueprint, doc.selection!, true)!);
@@ -1607,14 +1608,14 @@ describe('mirroring a group', () => {
     expect(doc.highlightedModules()).toHaveLength(2);
   });
 
-  it('forgets a group that an edit removed', () => {
+  it('forgets an assembly that an edit removed', () => {
     // The other half of the same rule: still gone when it is genuinely gone.
     const doc = new EditorDocument(wing());
     doc.selectModule(1);
     doc.toggleModule(2);
-    const grouped = groupPlacements(doc.blueprint, doc.selectedOrigins())!;
-    doc.apply(grouped.blueprint);
-    doc.select(grouped.path);
+    const assembled = createAssembly(doc.blueprint, doc.selections)!;
+    doc.apply(assembled.blueprint);
+    doc.select(assembled.path);
 
     doc.apply(removePlacement(doc.blueprint, doc.selection!)!);
 
@@ -1622,16 +1623,16 @@ describe('mirroring a group', () => {
   });
 
   it('builds a symmetrical ship out of one side and a reflection', () => {
-    // The workflow this exists for. Draw one wing, group it, place the group
+    // The workflow this exists for. Draw one wing, assembly it, place the assembly
     // again reflected, and the two sides cannot drift apart.
     const doc = new EditorDocument(wing());
     doc.selectModule(1);
     doc.toggleModule(2);
-    const grouped = groupPlacements(doc.blueprint, doc.selectedOrigins())!;
+    const assembled = createAssembly(doc.blueprint, doc.selections)!;
 
     // Place it again, and reflect the copy. Three operations, which is the
     // whole workflow.
-    const placed = duplicateInstance(grouped.blueprint, grouped.path)!;
+    const placed = duplicateInstance(assembled.blueprint, assembled.path)!;
     const ship2 = setMirror(placed.blueprint, placed.path, true)!;
 
     // One definition serving both sides is the property that makes them unable
@@ -1713,9 +1714,9 @@ describe('picking several modules', () => {
   });
 });
 
-describe('clicking a grouped module', () => {
-  /** A hull, and a wing of two modules grouped and placed twice. */
-  function twoWings(): { doc: EditorDocument; group: ModulePath } {
+describe('clicking an assembled module', () => {
+  /** A hull, and a wing of two modules assembled and placed twice. */
+  function twoWings(): { doc: EditorDocument; assembly: ModulePath } {
     const doc = new EditorDocument(
       ship({
         modules: [
@@ -1727,26 +1728,26 @@ describe('clicking a grouped module', () => {
     );
     doc.selectModule(1);
     doc.toggleModule(2);
-    const grouped = groupPlacements(doc.blueprint, doc.selectedOrigins())!;
-    doc.apply(grouped.blueprint);
-    const placed = duplicateInstance(doc.blueprint, grouped.path)!;
+    const assembled = createAssembly(doc.blueprint, doc.selections)!;
+    doc.apply(assembled.blueprint);
+    const placed = duplicateInstance(doc.blueprint, assembled.path)!;
     doc.apply(setMirror(placed.blueprint, placed.path, true)!);
     doc.select(null);
-    return { doc, group: grouped.path };
+    return { doc, assembly: assembled.path };
   }
 
   /** The first drawn module that came through an assembly. */
-  function inAGroup(doc: EditorDocument): number {
+  function inAnAssembly(doc: EditorDocument): number {
     const at = doc.view.origins.findIndex((o) => o.path.length > 1);
     expect(at).toBeGreaterThanOrEqual(0);
     return at;
   }
 
-  it('selects the group, not the module', () => {
-    // A grouped module is part of a thing before it is a module, and the thing
+  it('selects the assembly, not the module', () => {
+    // An assembled module is part of a thing before it is a module, and the thing
     // is what you usually want: dragging a wing should move the wing.
     const { doc } = twoWings();
-    const index = inAGroup(doc);
+    const index = inAnAssembly(doc);
 
     doc.selectAt(index, doc.resolveClick(index));
 
@@ -1754,9 +1755,9 @@ describe('clicking a grouped module', () => {
     expect('use' in placement).toBe(true);
   });
 
-  it('goes in a level when the group is already selected', () => {
+  it('goes in a level when the assembly is already selected', () => {
     const { doc } = twoWings();
-    const index = inAGroup(doc);
+    const index = inAnAssembly(doc);
     doc.selectAt(index, doc.resolveClick(index));
 
     doc.selectAt(index, doc.resolveClick(index));
@@ -1766,7 +1767,7 @@ describe('clicking a grouped module', () => {
     expect((placement as ModuleSpec).kind).toBeDefined();
   });
 
-  it('reaches a sibling directly once you are inside the group', () => {
+  it('reaches a sibling directly once you are inside the assembly', () => {
     // Otherwise working on a wing means clicking twice for every part of it,
     // being thrown back out to the wing each time.
     const { doc } = twoWings();
@@ -1784,78 +1785,78 @@ describe('clicking a grouped module', () => {
     expect('use' in placement).toBe(false);
   });
 
-  it('selects a loose module directly, having no group to stop at', () => {
+  it('selects a loose module directly, having no assembly to stop at', () => {
     const { doc } = twoWings();
     const loose = doc.view.origins.findIndex((o) => o.path.length === 1);
     doc.selectAt(loose, doc.resolveClick(loose));
     expect('use' in doc.selectedPlacement!).toBe(false);
   });
 
-  it('tells a selected group apart from several picked modules', () => {
-    // What the overlay draws from: a group is outlined as a group, several
+  it('tells a selected assembly apart from several picked modules', () => {
+    // What the overlay draws from: an assembly is outlined as an assembly, several
     // modules separately, and reading it off the selection means the picture
     // cannot disagree with what an edit would do.
     const { doc } = twoWings();
-    const index = inAGroup(doc);
+    const index = inAnAssembly(doc);
     doc.selectAt(index, doc.resolveClick(index));
 
-    const groups = doc.selectedGroups();
-    expect(groups.every((group) => group.context)).toBe(false);
-    expect(groups.find((group) => group.primary)!.modules).toHaveLength(2);
+    const assemblies = doc.selectedAssemblies();
+    expect(assemblies.every((assembly) => assembly.context)).toBe(false);
+    expect(assemblies.find((assembly) => assembly.primary)!.modules).toHaveLength(2);
     expect(doc.selectedLoose()).toHaveLength(0);
 
     doc.selectModule(0);
     doc.toggleModule(1);
-    // Loose modules: any box drawn is the group one of them sits in, which is
+    // Loose modules: any box drawn is the assembly one of them sits in, which is
     // context rather than the selection.
-    expect(doc.selectedGroups().every((group) => group.context)).toBe(true);
+    expect(doc.selectedAssemblies().every((assembly) => assembly.context)).toBe(true);
     expect(doc.selectedLoose().length).toBeGreaterThan(1);
   });
 
-  it('boxes every copy of the selected group, the clicked one as the selection', () => {
-    // A group placed twice is two things in two places: one box round both
+  it('boxes every copy of the selected assembly, the clicked one as the selection', () => {
+    // An assembly placed twice is two things in two places: one box round both
     // would enclose most of the ship, and the copies a drag would leave alone
     // have to look different from the one it would move.
     const { doc } = twoWings();
-    const index = inAGroup(doc);
+    const index = inAnAssembly(doc);
     doc.selectAt(index, doc.resolveClick(index));
 
-    const groups = doc.selectedGroups();
-    expect(groups).toHaveLength(2);
-    expect(groups.filter((group) => group.primary)).toHaveLength(1);
-    expect(groups.find((group) => group.primary)!.modules).toContain(index);
+    const assemblies = doc.selectedAssemblies();
+    expect(assemblies).toHaveLength(2);
+    expect(assemblies.filter((assembly) => assembly.primary)).toHaveLength(1);
+    expect(assemblies.find((assembly) => assembly.primary)!.modules).toContain(index);
     // No module is boxed twice: each copy holds its own.
-    const all = groups.flatMap((group) => group.modules);
+    const all = assemblies.flatMap((assembly) => assembly.modules);
     expect(new Set(all).size).toBe(all.length);
   });
 
-  it('keeps the group’s box while a module inside it is selected', () => {
+  it('keeps the assembly’s box while a module inside it is selected', () => {
     const { doc } = twoWings();
-    const index = inAGroup(doc);
+    const index = inAnAssembly(doc);
     doc.selectAt(index, doc.resolveClick(index));
     doc.selectAt(index, doc.resolveClick(index));
 
     expect('use' in doc.selectedPlacement!).toBe(false);
-    const groups = doc.selectedGroups();
-    expect(groups.length).toBeGreaterThan(0);
+    const assemblies = doc.selectedAssemblies();
+    expect(assemblies.length).toBeGreaterThan(0);
     // Context, not selection: nothing is drawn as the thing being edited.
-    expect(groups.every((group) => group.context && !group.primary)).toBe(true);
-    expect(groups.some((group) => group.modules.includes(index))).toBe(true);
+    expect(assemblies.every((assembly) => assembly.context && !assembly.primary)).toBe(true);
+    expect(assemblies.some((assembly) => assembly.modules.includes(index))).toBe(true);
   });
 
-  it('drags the whole group, in the frame the instance was written in', () => {
+  it('drags the whole assembly, in the frame the instance was written in', () => {
     const { doc } = twoWings();
-    const index = inAGroup(doc);
+    const index = inAnAssembly(doc);
     doc.selectAt(index, doc.resolveClick(index));
-    const group = doc.selectedGroupPath()!;
-    const handle = instanceHandle(doc.view.origins, group)!;
+    const assembly = doc.selectedAssemblyPath()!;
+    const handle = instanceHandle(doc.view.origins, assembly)!;
     expect(handle).not.toBeNull();
 
     const before = expandBlueprint(doc.blueprint).map((m) => [m.x, m.y]);
     const moved = movePlacement(doc.blueprint, handle, 3, 0)!;
     const after = expandBlueprint(moved).map((m) => [m.x, m.y]);
 
-    // Only the modules this copy of the group placed have moved, and all of
+    // Only the modules this copy of the assembly placed have moved, and all of
     // them have, together and by the same amount.
     const shifted = after.filter(([x, y], i) => x !== before[i]![0] || y !== before[i]![1]);
     expect(shifted).toHaveLength(2);
@@ -1866,8 +1867,8 @@ describe('clicking a grouped module', () => {
   });
 });
 
-describe('adding modules to a group', () => {
-  function wingAndSpare(): { doc: EditorDocument; group: ModulePath } {
+describe('adding modules to an assembly', () => {
+  function wingAndSpare(): { doc: EditorDocument; assembly: ModulePath } {
     const doc = new EditorDocument(
       ship({
         modules: [
@@ -1881,47 +1882,46 @@ describe('adding modules to a group', () => {
     );
     doc.selectModule(1);
     doc.toggleModule(2);
-    const grouped = groupPlacements(doc.blueprint, doc.selectedOrigins())!;
-    doc.apply(grouped.blueprint);
-    return { doc, group: grouped.path };
+    const assembled = createAssembly(doc.blueprint, doc.selections)!;
+    doc.apply(assembled.blueprint);
+    return { doc, assembly: assembled.path };
   }
 
   it('refuses what it cannot add', () => {
-    const { doc, group } = wingAndSpare();
-    expect(addToGroupProblem(doc.blueprint, group, [])).toMatch(/some modules/);
-    // A group cannot be put inside a group here, which would nest.
-    expect(addToGroupProblem(doc.blueprint, group, [group])).toMatch(/not other groups/);
+    const { doc, assembly } = wingAndSpare();
+    expect(addToAssemblyProblem(doc.blueprint, assembly, [])).toMatch(/something to add/);
+    expect(addToAssemblyProblem(doc.blueprint, assembly, [assembly])).toMatch(/itself/);
   });
 
   it('moves the module into the definition, leaving the ship where it was', () => {
-    const { doc, group } = wingAndSpare();
+    const { doc, assembly } = wingAndSpare();
     const spare = doc.view.origins.findIndex(
       (_, i) => doc.view.modules[i]!.kind === 'engine',
     );
     const before = positions(doc.blueprint).sort();
 
-    const added = addToGroup(doc.blueprint, group, [doc.view.origins[spare]!.path])!;
+    const added = addToAssembly(doc.blueprint, assembly, [doc.view.origins[spare]!.path])!;
     const next = added.blueprint;
 
     expect(positions(next).sort()).toEqual(before);
     const definition = Object.values(next.assemblies!)[0]!;
     expect(definition.modules).toHaveLength(3);
-    // Out of the layout's own list, into the group's.
+    // Out of the layout's own list, into the assembly's.
     expect(next.modules).toHaveLength(2);
-    // The group moved up the list as the module left it, so the path handed
+    // The assembly moved up the list as the module left it, so the path handed
     // back has to be the one that still names it.
     expect(placementAt(next, added.path)).toHaveProperty('use');
   });
 
-  it('re-expresses the module through a turned and mirrored group', () => {
+  it('re-expresses the module through a turned and mirrored assembly', () => {
     // The whole reason this is not a list operation. A module is written in the
-    // parent's frame and the group's are written in the group's, so getting the
-    // transform wrong moves the ship — and only on a posed group, which is
+    // parent's frame and the assembly's are written in the assembly's, so getting the
+    // transform wrong moves the ship — and only on a posed assembly, which is
     // exactly the kind that gets built once and trusted.
-    const { doc, group } = wingAndSpare();
+    const { doc, assembly } = wingAndSpare();
     const posed = setMirror(
-      updatePlacement(doc.blueprint, group, (p) => ({ ...p, angle: Math.PI / 2 }) as Placement)!,
-      group,
+      updatePlacement(doc.blueprint, assembly, (p) => ({ ...p, angle: Math.PI / 2 }) as Placement)!,
+      assembly,
       true,
     )!;
     const withSpare = new EditorDocument(posed);
@@ -1930,44 +1930,175 @@ describe('adding modules to a group', () => {
     );
     const before = positions(posed).sort();
 
-    const next = addToGroup(posed, group, [withSpare.view.origins[spare]!.path])!.blueprint;
+    const next = addToAssembly(posed, assembly, [withSpare.view.origins[spare]!.path])!.blueprint;
 
     expect(positions(next).sort()).toEqual(before);
   });
 
-  it('gives every copy of the group the new module', () => {
-    // The bargain rather than a surprise: the part joins the group, and the
-    // group is what is placed twice.
-    const { doc, group } = wingAndSpare();
-    const twice = duplicateInstance(doc.blueprint, group)!;
+  it('gives every copy of the assembly the new module', () => {
+    // The bargain rather than a surprise: the part joins the assembly, and the
+    // assembly is what is placed twice.
+    const { doc, assembly } = wingAndSpare();
+    const twice = duplicateInstance(doc.blueprint, assembly)!;
     const withSpare = new EditorDocument(twice.blueprint);
     const spare = withSpare.view.origins.findIndex(
       (_, i) => withSpare.view.modules[i]!.kind === 'engine',
     );
     const enginesBefore = expandBlueprint(twice.blueprint).filter((m) => m.kind === 'engine');
 
-    const next = addToGroup(twice.blueprint, group, [withSpare.view.origins[spare]!.path])!.blueprint;
+    const next = addToAssembly(twice.blueprint, assembly, [withSpare.view.origins[spare]!.path])!.blueprint;
 
     expect(enginesBefore).toHaveLength(1);
     expect(expandBlueprint(next).filter((m) => m.kind === 'engine')).toHaveLength(2);
   });
 
-  it('offers the operation only when one group and some modules are picked', () => {
-    const { doc, group } = wingAndSpare();
-    doc.select(group);
-    expect(doc.groupAndLooseSelection()).toBeNull();
+  it('adds everything else picked to the last assembly picked, whichever order they came in', () => {
+    const { doc, assembly } = wingAndSpare();
+    doc.select(assembly);
+    expect(doc.additionTarget()).toBeNull();
 
-    const spare = doc.view.origins.findIndex((_, i) => doc.view.modules[i]!.kind === 'engine');
-    doc.togglePath(doc.view.origins[spare]!.path);
-    const both = doc.groupAndLooseSelection()!;
-    expect(both).not.toBeNull();
-    expect(both.modules).toHaveLength(1);
+    const spare = doc.view.origins[doc.view.origins.findIndex((_, i) => doc.view.modules[i]!.kind === 'engine')]!.path;
+    doc.togglePath(spare);
+    expect(doc.additionTarget()).toEqual({ assembly, members: [spare] });
+
+    doc.select(spare);
+    doc.togglePath(assembly);
+    expect(doc.additionTarget()).toEqual({ assembly, members: [spare] });
+
+    // Only modules picked: nothing to add them to.
+    doc.select(spare);
+    expect(doc.additionTarget()).toBeNull();
+  });
+
+  it('takes the last of several assemblies as the target, and the others as members', () => {
+    const doc = new EditorDocument({
+      name: 'Three',
+      assemblies: { a: { modules: [{ kind: 'structure', x: 0, y: 0, length: 1, width: 1 }] } },
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 2, width: 2 },
+        { use: 'a', x: 2, y: 0 },
+        { use: 'a', x: 4, y: 0 },
+        { kind: 'structure', x: -2, y: 0, length: 2, width: 2 },
+      ],
+    });
+    const at = (index: number): ModulePath => [{ index, copy: 0 }];
+    doc.select(at(1));
+    doc.togglePath(at(2));
+    doc.togglePath(at(3));
+    expect(doc.additionTarget()).toEqual({ assembly: at(2), members: [at(1), at(3)] });
   });
 });
 
-describe('naming a group', () => {
-  /** A layout with two groups, so a name can collide with one that exists. */
-  function twoGroups(): { doc: EditorDocument; first: ModulePath; second: ModulePath } {
+/** A ship's modules as a set, rounded, so two layouts can be compared however they are written. */
+function drawn(blueprint: Blueprint): string[] {
+  const r = (v: number) => Math.round(v * 1e6) / 1e6 + 0;
+  return expandBlueprint(blueprint)
+    .map((m) => {
+      const mid = moduleCentre(m);
+      const turn = ((((m.angle ?? 0) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
+      return `${m.kind} ${r(mid.x)} ${r(mid.y)} ${r(turn)} ${m.length}x${m.width}`;
+    })
+    .sort();
+}
+
+describe('nesting assemblies', () => {
+  const bar: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 2, width: 1 };
+  /**
+   * A hull, an assembly `pod` placed turned and reflected, and an assembly
+   * `boom` that already places `pod` inside it.
+   */
+  const layout = (): Blueprint => ({
+    name: 'Nest',
+    assemblies: {
+      pod: {
+        modules: [
+          { ...bar, x: 1 },
+          { kind: 'engine', x: 2, y: 0.5, angle: math.HALF_PI, length: 1, width: 1 },
+        ],
+      },
+      boom: { modules: [{ ...bar, x: 0, y: 0 }, { use: 'pod', x: 0, y: 2, angle: 0.5 }] },
+    },
+    modules: [
+      { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+      { use: 'pod', x: 6, y: 1, angle: math.HALF_PI, mirror: true },
+      { use: 'boom', x: -6, y: 0, angle: 1, mirror: true, repeat: 2, step: { x: 0, y: 3 } },
+      { ...bar, x: 3, y: -3 },
+    ],
+  });
+  const at = (index: number): ModulePath => [{ index, copy: 0 }];
+
+  it('makes an assembly out of assemblies and modules together, leaving the ship where it was', () => {
+    const before = layout();
+    expect(createAssemblyProblem(before, [at(1), at(2), at(3)])).toBeNull();
+    const made = createAssembly(before, [at(1), at(2), at(3)])!;
+    expect(drawn(made.blueprint)).toEqual(drawn(before));
+    const instance = placementAt(made.blueprint, made.path) as AssemblyInstance;
+    const inside = made.blueprint.assemblies![instance.use]!.modules;
+    expect(inside.filter((m) => 'use' in m)).toHaveLength(2);
+  });
+
+  it('adds an assembly to another, through a turned and reflected pose, leaving the ship where it was', () => {
+    const before = layout();
+    expect(addToAssemblyProblem(before, at(2), [at(1), at(3)])).toBeNull();
+    const added = addToAssembly(before, at(2), [at(1), at(3)])!;
+    // `boom` is placed twice, so it gains a copy of each in each of them.
+    const once = new Set(drawn(before));
+    const after = drawn(added.blueprint);
+    for (const line of drawn(before)) expect(after).toContain(line);
+    expect(after.length).toBe(once.size + 3);
+    expect(placementAt(added.blueprint, added.path)).toMatchObject({ use: 'boom' });
+  });
+
+  it('adds an assembly placed once without changing the ship at all', () => {
+    const before = layout();
+    const single = { ...before, modules: before.modules.map((m) => ('use' in m && m.use === 'boom' ? { ...m, repeat: undefined, step: undefined } : m)) } as Blueprint;
+    const added = addToAssembly(single, at(2), [at(1), at(3)])!;
+    expect(drawn(added.blueprint)).toEqual(drawn(single));
+  });
+
+  it('never puts an assembly inside itself, however deep', () => {
+    const before = layout();
+    expect(addToAssemblyProblem(before, at(1), [at(2)])).toMatch(/boom would end up inside itself/);
+    const twice = duplicateInstance(before, at(1))!;
+    expect(addToAssemblyProblem(twice.blueprint, at(1), [twice.path])).toMatch(/inside itself/);
+    expect(addToAssemblyProblem(before, at(1), [at(1)])).toMatch(/itself/);
+  });
+});
+
+describe('deleting an assembly', () => {
+  const bp: Blueprint = {
+    name: 'Pods',
+    assemblies: {
+      pod: { modules: [{ kind: 'structure', x: 0, y: 0, length: 1, width: 1 }] },
+      boom: { modules: [{ use: 'pod', x: 0, y: 0 }] },
+      spare: { modules: [{ kind: 'structure', x: 0, y: 0, length: 1, width: 1 }] },
+    },
+    modules: [
+      { kind: 'core', x: 0, y: 0, length: 2, width: 2 },
+      { use: 'boom', x: 2, y: 0 },
+      { use: 'pod', x: -2, y: 0 },
+    ],
+  };
+  const at = (index: number): ModulePath => [{ index, copy: 0 }];
+
+  it('takes the definition with its last copy, and what only it placed', () => {
+    const once = removeInstance(bp, at(2))!;
+    // The boom still places a pod, so the pod stays.
+    expect(Object.keys(once.assemblies!)).toEqual(['pod', 'boom', 'spare']);
+    const twice = removeInstance(once, at(1))!;
+    expect(twice.modules).toHaveLength(1);
+    // One nobody placed to begin with is not this delete's business.
+    expect(Object.keys(twice.assemblies!)).toEqual(['spare']);
+  });
+
+  it('deletes nothing that is not an assembly', () => {
+    expect(removeInstance(bp, at(0))).toBeNull();
+  });
+});
+
+describe('naming an assembly', () => {
+  /** A layout with two assemblies, so a name can collide with one that exists. */
+  function twoAssemblies(): { doc: EditorDocument; first: ModulePath; second: ModulePath } {
     const doc = new EditorDocument(
       ship({
         modules: [
@@ -1981,9 +2112,9 @@ describe('naming a group', () => {
     );
     doc.selectModule(1);
     doc.toggleModule(2);
-    const one = groupPlacements(doc.blueprint, doc.selectedOrigins())!;
+    const one = createAssembly(doc.blueprint, doc.selections)!;
     doc.apply(one.blueprint);
-    // The other side, which the first grouping left where it was.
+    // The other side, which the first assembling left where it was.
     const after = new EditorDocument(doc.blueprint);
     const lower = after.view.modules
       .map((module, i) => ({ module, i }))
@@ -1991,9 +2122,9 @@ describe('naming a group', () => {
       .map(({ i }) => i);
     after.selectModule(lower[0]!);
     after.toggleModule(lower[1]!);
-    const two = groupPlacements(after.blueprint, after.selectedOrigins())!;
+    const two = createAssembly(after.blueprint, after.selections)!;
     after.apply(two.blueprint);
-    // Found afterwards rather than kept: the second grouping took modules out
+    // Found afterwards rather than kept: the second assembling took modules out
     // of the same list the first instance sits in, so the path it was made
     // with no longer names it.
     const instances = after.blueprint.modules
@@ -2004,7 +2135,7 @@ describe('naming a group', () => {
   }
 
   it('renames the definition and every instance that names it', () => {
-    const { doc, first } = twoGroups();
+    const { doc, first } = twoAssemblies();
     const before = positions(doc.blueprint).sort();
     const next = renameAssembly(doc.blueprint, first, 'port wing')!;
 
@@ -2015,8 +2146,8 @@ describe('naming a group', () => {
     expect(positions(next).sort()).toEqual(before);
   });
 
-  it('refuses a name that is blank or already another group’s', () => {
-    const { doc, first, second } = twoGroups();
+  it('refuses a name that is blank or already another assembly’s', () => {
+    const { doc, first, second } = twoAssemblies();
     const taken = (placementAt(doc.blueprint, second) as { use: string }).use;
     expect(renameProblem(doc.blueprint, first, '  ')).toMatch(/needs a name/);
     expect(renameProblem(doc.blueprint, first, taken)).toMatch(/already called/);
@@ -2026,14 +2157,14 @@ describe('naming a group', () => {
     expect(renameProblem(doc.blueprint, first, own)).toBeNull();
   });
 
-  it('is offered for a group and not for a module', () => {
-    const { doc } = twoGroups();
+  it('is offered for an assembly and not for a module', () => {
+    const { doc } = twoAssemblies();
     const loose = doc.view.origins[0]!.path;
-    expect(renameProblem(doc.blueprint, loose, 'anything')).toMatch(/Only a group/);
+    expect(renameProblem(doc.blueprint, loose, 'anything')).toMatch(/Only an assembly/);
   });
 
   it('keeps the table in order, so a rename is one line of a diff', () => {
-    const { doc, first, second } = twoGroups();
+    const { doc, first, second } = twoAssemblies();
     const order = Object.keys(doc.blueprint.assemblies!);
     const at = order.indexOf((placementAt(doc.blueprint, first) as { use: string }).use);
     const next = renameAssembly(doc.blueprint, first, 'nose')!;
@@ -2043,14 +2174,14 @@ describe('naming a group', () => {
   });
 });
 
-describe('what a group weighs', () => {
+describe('what an assembly weighs', () => {
   it('sums the same masses the ship totals are summed from', () => {
     const parts: ModuleSpec[] = [
       { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
       { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
     ];
     const each = parts.map((spec) => moduleStats(spec).mass);
-    expect(groupMass(parts)).toBeCloseTo(each[0]! + each[1]!, 9);
-    expect(groupMass([])).toBe(0);
+    expect(assemblyMass(parts)).toBeCloseTo(each[0]! + each[1]!, 9);
+    expect(assemblyMass([])).toBe(0);
   });
 });

@@ -27,16 +27,16 @@ import { easeScale, fitScale, frame, snapStep, type Camera } from '../render/cam
 import { EditorDocument } from './document.js';
 import {
   addModule,
-  addToGroup,
-  addToGroupProblem,
+  addToAssembly,
+  addToAssemblyProblem,
   duplicateInstance,
   duplicatePlacement,
-  groupPlacements,
-  groupProblem,
+  countInstances,
+  createAssembly,
+  createAssemblyProblem,
   instanceHandle,
   instanceOf,
   moduleAt,
-  removePlacement,
   resizePlacement,
   renameAssembly,
   renameProblem,
@@ -47,6 +47,7 @@ import {
   toPlacementAngle,
   positionHandle,
   removeCopy,
+  removeInstance,
   snap,
   unlinkable,
   unlinkPlacement,
@@ -87,7 +88,7 @@ import {
   type DoctrineRow,
 } from './doctrine.js';
 import { previewSnapshot } from './preview.js';
-import { designStats, envelopes, groupMass, moduleReadout, type Envelopes } from './stats.js';
+import { designStats, envelopes, assemblyMass, moduleReadout, type Envelopes } from './stats.js';
 
 /**
  * The blueprint editor's page: the canvas, the panels and the pointer.
@@ -217,27 +218,27 @@ export function startEditor(): void {
   const moduleStats = el<HTMLElement>('moduleStats');
   const duplicateButton = el<HTMLButtonElement>('propDuplicate');
   const unlinkButton = el<HTMLButtonElement>('propUnlink');
-  const selectGroupButton = el<HTMLButtonElement>('propSelectGroup');
-  const groupSelection = el<HTMLElement>('groupSelection');
-  const groupCount = el<HTMLElement>('groupCount');
-  const groupButton = el<HTMLButtonElement>('propGroup');
-  const addToGroupButton = el<HTMLButtonElement>('propAddToGroup');
-  const groupPanel = el<HTMLElement>('groupPanel');
-  const groupOf = el<HTMLElement>('groupOf');
-  const groupName = el<HTMLInputElement>('groupName');
-  const groupStats = el<HTMLElement>('groupStats');
-  const groupX = el<HTMLInputElement>('groupX');
-  const groupY = el<HTMLInputElement>('groupY');
-  const groupAngle = el<HTMLInputElement>('groupAngle');
-  const groupMirror = el<HTMLInputElement>('groupMirror');
-  const groupRepeat = el<HTMLInputElement>('groupRepeat');
-  const groupStepRow = el<HTMLElement>('groupStepRow');
-  const groupStepAngleRow = el<HTMLElement>('groupStepAngleRow');
-  const groupStepX = el<HTMLInputElement>('groupStepX');
-  const groupStepY = el<HTMLInputElement>('groupStepY');
-  const groupStepAngle = el<HTMLInputElement>('groupStepAngle');
-  const groupDuplicate = el<HTMLButtonElement>('groupDuplicate');
-  const groupDelete = el<HTMLButtonElement>('groupDelete');
+  const selectAssemblyButton = el<HTMLButtonElement>('propSelectAssembly');
+  const assemblySelection = el<HTMLElement>('assemblySelection');
+  const assemblyCount = el<HTMLElement>('assemblyCount');
+  const assemblyButton = el<HTMLButtonElement>('propAssembly');
+  const addToAssemblyButton = el<HTMLButtonElement>('propAddToAssembly');
+  const assemblyPanel = el<HTMLElement>('assemblyPanel');
+  const assemblyOf = el<HTMLElement>('assemblyOf');
+  const assemblyName = el<HTMLInputElement>('assemblyName');
+  const assemblyStats = el<HTMLElement>('assemblyStats');
+  const assemblyX = el<HTMLInputElement>('assemblyX');
+  const assemblyY = el<HTMLInputElement>('assemblyY');
+  const assemblyAngle = el<HTMLInputElement>('assemblyAngle');
+  const assemblyMirror = el<HTMLInputElement>('assemblyMirror');
+  const assemblyRepeat = el<HTMLInputElement>('assemblyRepeat');
+  const assemblyStepRow = el<HTMLElement>('assemblyStepRow');
+  const assemblyStepAngleRow = el<HTMLElement>('assemblyStepAngleRow');
+  const assemblyStepX = el<HTMLInputElement>('assemblyStepX');
+  const assemblyStepY = el<HTMLInputElement>('assemblyStepY');
+  const assemblyStepAngle = el<HTMLInputElement>('assemblyStepAngle');
+  const assemblyDuplicate = el<HTMLButtonElement>('assemblyDuplicate');
+  const assemblyDelete = el<HTMLButtonElement>('assemblyDelete');
   const saveButton = el<HTMLButtonElement>('saveShip');
   const exportButton = el<HTMLButtonElement>('exportShip');
 
@@ -307,7 +308,7 @@ export function startEditor(): void {
   /**
    * The grab points on the selection, or none.
    *
-   * Only for a single module: a group has no size, and several modules picked
+   * Only for a single module: an assembly has no size, and several modules picked
    * at once have no one box to size or turn. The copy they sit on is the one
    * under the pointer, which is the copy the highlight draws brightest and the
    * one a drag would move.
@@ -370,7 +371,7 @@ export function startEditor(): void {
         design: view.design,
         modules: view.modules,
         selected: doc.selectedLoose(),
-        groups: doc.selectedGroups(),
+        assemblies: doc.selectedAssemblies(),
         faulty: view.faulty,
         handles: currentHandles(),
         envelope,
@@ -477,11 +478,11 @@ export function startEditor(): void {
 
   /** Where the selected copy's position is written, and in what frame. */
   const selectedPosition = (): ReturnType<typeof positionHandle> | null => {
-    // A selected group is dragged as one thing, which is the point of having
-    // selected the group rather than a part of it.
-    const group = doc.selectedGroupPath();
-    if (group !== null) {
-      const handle = instanceHandle(doc.view.origins, group);
+    // A selected assembly is dragged as one thing, which is the point of having
+    // selected the assembly rather than a part of it.
+    const assembly = doc.selectedAssemblyPath();
+    if (assembly !== null) {
+      const handle = instanceHandle(doc.view.origins, assembly);
       return handle === null ? null : { origin: handle, perCopy: true };
     }
     const origin = doc.selectedOrigin();
@@ -489,45 +490,51 @@ export function startEditor(): void {
   };
 
   /**
-   * A placed group: where it sits, how far it is turned, and which way round.
+   * A placed assembly: where it sits, how far it is turned, and which way round.
    *
    * Separate from the module panel because it edits a different thing. A
    * module has a size and a kind; an instance has only a *pose*, and the whole
    * reason it is worth reaching is `mirror` — the flag that makes a second
    * copy of a wing the other wing rather than the same one again.
    */
-  const renderGroup = (instance: AssemblyInstance): void => {
-    const members = doc.blueprint.assemblies?.[instance.use]?.modules.length ?? 0;
+  const renderAssembly = (instance: AssemblyInstance): void => {
+    const members = doc.blueprint.assemblies?.[instance.use]?.modules ?? [];
+    const nested = members.filter((member) => !isModuleSpec(member)).length;
+    const modules = members.length - nested;
     const path = doc.selection;
     const drawn = path === null ? 0 : doc.accountedFor(path);
-    groupOf.textContent =
-      `${members} ${members === 1 ? 'module' : 'modules'}` +
-      (drawn > members ? `, and this copy draws ${drawn}` : '');
-    if (document.activeElement !== groupName) groupName.value = instance.use;
-    renderGroupStats();
+    const counted = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+    const parts = [
+      ...(modules > 0 || nested === 0 ? [counted(modules, 'module', 'modules')] : []),
+      ...(nested > 0 ? [counted(nested, 'assembly', 'assemblies')] : []),
+    ];
+    assemblyOf.textContent =
+      parts.join(' and ') + (drawn > members.length ? `, and this copy draws ${drawn}` : '');
+    if (document.activeElement !== assemblyName) assemblyName.value = instance.use;
+    renderAssemblyStats();
     for (const [input, value] of [
-      [groupX, instance.x],
-      [groupY, instance.y],
-      [groupAngle, radiansToDegrees(instance.angle ?? 0)],
+      [assemblyX, instance.x],
+      [assemblyY, instance.y],
+      [assemblyAngle, radiansToDegrees(instance.angle ?? 0)],
     ] as const) {
       if (document.activeElement !== input) input.value = String(value);
     }
-    groupMirror.checked = instance.mirror === true;
+    assemblyMirror.checked = instance.mirror === true;
 
     const copies = instance.repeat ?? 1;
-    if (document.activeElement !== groupRepeat) groupRepeat.value = String(copies);
-    groupRepeat.max = String(MAX_REPEAT);
+    if (document.activeElement !== assemblyRepeat) assemblyRepeat.value = String(copies);
+    assemblyRepeat.max = String(MAX_REPEAT);
     // A step with one copy places nothing, so the boxes are not there to be
-    // filled in: the count is what turns a group into a row, and the step is
+    // filled in: the count is what turns an assembly into a row, and the step is
     // what that row is made of.
-    groupStepRow.hidden = copies < 2;
-    groupStepAngleRow.hidden = copies < 2;
+    assemblyStepRow.hidden = copies < 2;
+    assemblyStepAngleRow.hidden = copies < 2;
     const step = instance.step;
     if (step !== undefined) {
       for (const [input, value] of [
-        [groupStepX, step.x],
-        [groupStepY, step.y],
-        [groupStepAngle, radiansToDegrees(step.angle ?? 0)],
+        [assemblyStepX, step.x],
+        [assemblyStepY, step.y],
+        [assemblyStepAngle, radiansToDegrees(step.angle ?? 0)],
       ] as const) {
         if (document.activeElement !== input) input.value = String(value);
       }
@@ -535,75 +542,68 @@ export function startEditor(): void {
   };
 
   /**
-   * What a group weighs.
+   * What an assembly weighs.
    *
-   * The one figure that bubbles up from modules to the group: a sum means the
+   * The one figure that bubbles up from modules to the assembly: a sum means the
    * same thing about a part of a ship as it does about a module, where
    * capacity, armour, hit points and thrust each describe something a bag of
    * modules has no single answer for. Every copy is counted separately when
-   * there is more than one, because what a group costs the ship is what all of
+   * there is more than one, because what an assembly costs the ship is what all of
    * it costs.
    */
-  const renderGroupStats = (): void => {
-    const outlines = doc.selectedGroups().filter((group) => !group.context);
-    const own = outlines.find((group) => group.primary) ?? outlines[0];
+  const renderAssemblyStats = (): void => {
+    const outlines = doc.selectedAssemblies().filter((assembly) => !assembly.context);
+    const own = outlines.find((assembly) => assembly.primary) ?? outlines[0];
     if (own === undefined) {
-      groupStats.innerHTML = '';
+      assemblyStats.innerHTML = '';
       return;
     }
     const specs = own.modules.map((index) => doc.view.modules[index]!);
-    const mass = groupMass(specs);
+    const mass = assemblyMass(specs);
     const rows = [['Mass', `${numbers(mass / 1000, 2)} t`]];
     if (outlines.length > 1) {
-      const all = outlines.flatMap((group) => group.modules).map((i) => doc.view.modules[i]!);
-      rows.push([`All ${outlines.length} copies`, `${numbers(groupMass(all) / 1000, 2)} t`]);
+      const all = outlines.flatMap((assembly) => assembly.modules).map((i) => doc.view.modules[i]!);
+      rows.push([`All ${outlines.length} copies`, `${numbers(assemblyMass(all) / 1000, 2)} t`]);
     }
-    groupStats.innerHTML = `<table>${rows
+    assemblyStats.innerHTML = `<table>${rows
       .map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`)
       .join('')}</table>`;
   };
 
   /**
-   * What can be done with several things picked at once: make a group of them,
-   * or put them into one that exists.
-   *
-   * The two are mutually exclusive by what is picked rather than by a mode —
-   * a selection that is all modules can be grouped, and a selection with
-   * exactly one group in it can be added to — so the panel says which of the
-   * two this selection is, and why when it is neither.
+   * What can be done with several things picked at once: make an assembly of
+   * them, or put the rest of them into the last assembly picked.
+   * Both are offered whenever both are possible, and the panel says what each
+   * would do, or why it cannot.
    */
   const renderSelectionOfSeveral = (picked: number): void => {
-    const why = groupProblem(doc.blueprint, doc.selectedOrigins());
-    groupButton.disabled = why !== null;
+    const why = createAssemblyProblem(doc.blueprint, doc.selections);
+    assemblyButton.disabled = why !== null;
 
-    const adding = doc.groupAndLooseSelection();
+    const adding = doc.additionTarget();
+    const into = adding === null ? null : placementAt(doc.blueprint, adding.assembly);
+    const name = into !== null && !isModuleSpec(into) ? (into as AssemblyInstance).use : null;
     const addWhy =
       adding === null
-        ? 'Pick one group and the modules to put into it'
-        : addToGroupProblem(doc.blueprint, adding.group, adding.modules);
-    addToGroupButton.disabled = adding === null || addWhy !== null;
+        ? 'Pick an assembly to add the rest of the selection to'
+        : addToAssemblyProblem(doc.blueprint, adding.assembly, adding.members);
+    addToAssemblyButton.disabled = adding === null || addWhy !== null;
+    addToAssemblyButton.textContent = name === null ? 'Add to assembly' : `Add to ${name}`;
+    addToAssemblyButton.title = addWhy ?? `Move the rest of the selection into ${name}`;
 
-    if (why === null) {
-      groupCount.textContent =
-        `${picked} modules picked. Grouping makes them one part, built around the first one picked.`;
-      return;
-    }
-    if (adding !== null && addWhy === null) {
-      const into = placementAt(doc.blueprint, adding.group);
-      const name = into !== null && !isModuleSpec(into) ? (into as AssemblyInstance).use : 'the group';
-      const copies = doc.accountedFor(adding.group);
-      const members = adding.modules.length;
-      // Said out loud because it is the bargain rather than a surprise: the
-      // part joins every copy of the group, so the ship gains one per copy.
+    const lines = [
+      why === null
+        ? `${picked} picked. Create assembly makes them one part, built around the first one picked.`
+        : why,
+    ];
+    if (adding !== null && addWhy === null && name !== null) {
+      // Said out loud because it is the bargain rather than a surprise: what
+      // goes in joins every copy of the assembly, so the ship gains it per copy.
       const spread =
-        copies > members
-          ? ` The group is placed more than once, so each copy gains ${members === 1 ? 'it' : 'them'}.`
-          : '';
-      groupCount.textContent =
-        `${members} ${members === 1 ? 'module' : 'modules'} to add to ${name}.${spread}`;
-      return;
+        countInstances(doc.blueprint, name) > 1 ? ' It is placed more than once, and every copy gains them.' : '';
+      lines.push(`Add to ${name} moves the other ${adding.members.length} into it.${spread}`);
     }
-    groupCount.textContent = why;
+    assemblyCount.textContent = lines.join(' ');
   };
 
   const renderProperties = (): void => {
@@ -611,18 +611,18 @@ export function startEditor(): void {
     const copies = doc.selectedModules().length;
 
     // Three panels, one selection: several modules picked offers only what can
-    // be done to a set, an instance is a group's pose rather than a module's
+    // be done to a set, an instance is an assembly's pose rather than a module's
     // properties, and a single module is the ordinary case.
     const picked = doc.selections.length;
-    groupSelection.hidden = picked < 2;
+    assemblySelection.hidden = picked < 2;
     if (picked >= 2) renderSelectionOfSeveral(picked);
 
     // With several things picked, only what can be done to a *set* is offered:
     // a panel editing one of them would be editing whichever happened to be
     // first, which is not a thing anybody asked for.
     const single = picked < 2;
-    groupPanel.hidden = !single || placement === null || isModuleSpec(placement) === true;
-    if (!groupPanel.hidden) renderGroup(placement as AssemblyInstance);
+    assemblyPanel.hidden = !single || placement === null || isModuleSpec(placement) === true;
+    if (!assemblyPanel.hidden) renderAssembly(placement as AssemblyInstance);
 
     if (!single || placement === null || isModuleSpec(placement) === false) {
       properties.hidden = true;
@@ -703,11 +703,11 @@ export function startEditor(): void {
         : `Give each of the ${shared} copies its own module, so they stop changing together`;
 
     const within = origin === null ? null : instanceOf(origin);
-    selectGroupButton.disabled = within === null;
-    selectGroupButton.title =
+    selectAssemblyButton.disabled = within === null;
+    selectAssemblyButton.title =
       within === null
-        ? 'This module is not in a group'
-        : 'Edit where the group sits, how far it is turned, and whether it is mirrored';
+        ? 'This module is not in an assembly'
+        : 'Edit where the assembly sits, how far it is turned, and whether it is mirrored';
 
     linked.hidden = copies < 2;
     linked.textContent =
@@ -1055,6 +1055,11 @@ export function startEditor(): void {
   });
 
   const deleteSelected = (): void => {
+    const assembly = doc.selectedAssemblyPath();
+    if (assembly !== null) {
+      change(removeInstance(doc.blueprint, assembly));
+      return;
+    }
     const origin = doc.selectedOrigin();
     if (origin === null) return;
     change(removeCopy(doc.blueprint, origin));
@@ -1077,29 +1082,29 @@ export function startEditor(): void {
     refresh();
   });
 
-  groupButton.addEventListener('click', () => {
-    const grouped = groupPlacements(doc.blueprint, doc.selectedOrigins());
-    if (grouped === null) return;
-    doc.apply(grouped.blueprint);
+  assemblyButton.addEventListener('click', () => {
+    const assembled = createAssembly(doc.blueprint, doc.selections);
+    if (assembled === null) return;
+    doc.apply(assembled.blueprint);
     // Selected straight away, because the next thing anybody does with a new
-    // group is place it again or mirror it, and both live on its own panel.
-    doc.select(grouped.path);
+    // assembly is place it again or mirror it, and both live on its own panel.
+    doc.select(assembled.path);
     refresh();
   });
 
-  addToGroupButton.addEventListener('click', () => {
-    const adding = doc.groupAndLooseSelection();
+  addToAssemblyButton.addEventListener('click', () => {
+    const adding = doc.additionTarget();
     if (adding === null) return;
-    const next = addToGroup(doc.blueprint, adding.group, adding.modules);
+    const next = addToAssembly(doc.blueprint, adding.assembly, adding.members);
     if (next === null) return;
     doc.apply(next.blueprint);
-    // The group is what is left, and what the player is now working on. Its own
+    // The assembly is what is left, and what the player is now working on. Its own
     // path, not the one picked: taking the modules out moved it up the list.
     doc.select(next.path);
     refresh();
   });
 
-  selectGroupButton.addEventListener('click', () => {
+  selectAssemblyButton.addEventListener('click', () => {
     const origin = doc.selectedOrigin();
     if (origin === null) return;
     const path = instanceOf(origin);
@@ -1118,8 +1123,8 @@ export function startEditor(): void {
   };
 
   for (const [input, key] of [
-    [groupX, 'x'],
-    [groupY, 'y'],
+    [assemblyX, 'x'],
+    [assemblyY, 'y'],
   ] as const) {
     input.addEventListener('input', () => {
       const value = Number(input.value);
@@ -1130,37 +1135,37 @@ export function startEditor(): void {
     });
   }
 
-  groupAngle.addEventListener('input', () => {
-    const value = Number(groupAngle.value);
+  assemblyAngle.addEventListener('input', () => {
+    const value = Number(assemblyAngle.value);
     if (Number.isFinite(value)) editInstance({ angle: degreesToRadians(value) }, true);
   });
-  groupAngle.addEventListener('change', () => {
+  assemblyAngle.addEventListener('change', () => {
     gesture = false;
   });
 
   // Live, like the ship's own name, so the box holds what is being typed and
   // the layout takes it as soon as it is a name it can use. A name already
-  // taken is simply not applied — the group keeps the one it has, and the
+  // taken is simply not applied — the assembly keeps the one it has, and the
   // panel says why rather than putting the old text back mid-word.
-  groupName.addEventListener('input', () => {
+  assemblyName.addEventListener('input', () => {
     const path = doc.selection;
     if (path === null) return;
-    const why = renameProblem(doc.blueprint, path, groupName.value);
+    const why = renameProblem(doc.blueprint, path, assemblyName.value);
     if (why !== null) {
-      groupOf.textContent = why;
+      assemblyOf.textContent = why;
       return;
     }
-    change(renameAssembly(doc.blueprint, path, groupName.value), true);
+    change(renameAssembly(doc.blueprint, path, assemblyName.value), true);
   });
-  groupName.addEventListener('focus', () => {
+  assemblyName.addEventListener('focus', () => {
     gesture = false;
   });
-  groupName.addEventListener('change', () => {
+  assemblyName.addEventListener('change', () => {
     gesture = false;
   });
 
   /**
-   * The step to give a group that is being repeated for the first time: its
+   * The step to give an assembly that is being repeated for the first time: its
    * own length along the row, so the second copy lands beyond the first.
    *
    * Measured off the drawn copy rather than guessed, and snapped to the same
@@ -1168,8 +1173,8 @@ export function startEditor(): void {
    * somebody could have typed. Zero would be the alternative, and it is the
    * one answer certain to be wrong: every copy would land on the first.
    */
-  const stepClearOfGroup = (): { x: number; y: number } => {
-    const outline = doc.selectedGroups().find((group) => group.primary);
+  const stepClearOfAssembly = (): { x: number; y: number } => {
+    const outline = doc.selectedAssemblies().find((assembly) => assembly.primary);
     const specs = (outline?.modules ?? []).map((index) => doc.view.modules[index]!);
     const rotation = doc.selectedOrigin()?.rotation ?? 0;
     const along = specs.length === 0 ? 0 : extentAlong(specs, rotation);
@@ -1182,25 +1187,25 @@ export function startEditor(): void {
     const instance = placement !== null && !isModuleSpec(placement) ? (placement as AssemblyInstance) : null;
     return {
       repeat: instance?.repeat ?? 1,
-      step: instance?.step ?? stepClearOfGroup(),
+      step: instance?.step ?? stepClearOfAssembly(),
     };
   };
 
-  groupRepeat.addEventListener('input', () => {
+  assemblyRepeat.addEventListener('input', () => {
     const path = doc.selection;
-    const value = Number(groupRepeat.value);
+    const value = Number(assemblyRepeat.value);
     if (path === null || !Number.isFinite(value)) return;
     const copies = Math.max(1, Math.min(MAX_REPEAT, Math.round(value)));
     change(setRepetition(doc.blueprint, path, copies, repeatOf().step), true);
   });
-  groupRepeat.addEventListener('change', () => {
+  assemblyRepeat.addEventListener('change', () => {
     gesture = false;
   });
 
   for (const [input, key] of [
-    [groupStepX, 'x'],
-    [groupStepY, 'y'],
-    [groupStepAngle, 'angle'],
+    [assemblyStepX, 'x'],
+    [assemblyStepY, 'y'],
+    [assemblyStepAngle, 'angle'],
   ] as const) {
     input.addEventListener('input', () => {
       const path = doc.selection;
@@ -1217,13 +1222,13 @@ export function startEditor(): void {
     });
   }
 
-  groupMirror.addEventListener('change', () => {
+  assemblyMirror.addEventListener('change', () => {
     const path = doc.selection;
     if (path === null) return;
-    change(setMirror(doc.blueprint, path, groupMirror.checked));
+    change(setMirror(doc.blueprint, path, assemblyMirror.checked));
   });
 
-  groupDuplicate.addEventListener('click', () => {
+  assemblyDuplicate.addEventListener('click', () => {
     const path = doc.selection;
     if (path === null) return;
     const placed = duplicateInstance(doc.blueprint, path);
@@ -1235,11 +1240,7 @@ export function startEditor(): void {
     refresh();
   });
 
-  groupDelete.addEventListener('click', () => {
-    const path = doc.selection;
-    if (path === null) return;
-    change(removePlacement(doc.blueprint, path));
-  });
+  assemblyDelete.addEventListener('click', deleteSelected);
 
   unlinkButton.addEventListener('click', () => {
     const origin = doc.selectedOrigin();
@@ -1451,7 +1452,7 @@ export function startEditor(): void {
    * opposite face stays put, so every copy moves the same way — mirrored where
    * the copy is.
    * The facing has to be converted on the way in: what the pointer names is a
-   * direction on screen, and a module inside a turned or mirrored group is
+   * direction on screen, and a module inside a turned or mirrored assembly is
    * written in another frame.
    */
   const dragHandle = (event: PointerEvent): void => {
@@ -1555,7 +1556,7 @@ export function startEditor(): void {
       return;
     }
     // Pressing on something the selection already covers leaves the selection
-    // alone, so that a group can be dragged as a group. Going *in* a level is
+    // alone, so that an assembly can be dragged as an assembly. Going *in* a level is
     // what a click does, and a click is a press that did not become a drag —
     // otherwise selecting a wing and then dragging it would quietly drag one
     // part of it instead, which is the difference between the two operations.
@@ -1613,7 +1614,7 @@ export function startEditor(): void {
 
   const endDrag = (): void => {
     // A press that never became a drag is a click, and a click on something
-    // already selected goes in a level: group, then part of the group, then
+    // already selected goes in a level: assembly, then part of the assembly, then
     // nothing further.
     if (drag !== null && drag.kind === 'module' && drag.drill && !drag.moved) {
       doc.selectAt(drag.hit, doc.resolveClick(drag.hit));
@@ -1689,7 +1690,7 @@ export function startEditor(): void {
     'Click a module to select it, drag to move, drag a corner or edge to size it ' +
     '(pushing its neighbours; Ctrl alone) or the knob to turn it; ' +
     'select two touching modules to drag the face between them; ' +
-    'Shift-click to pick several and Group them. Positions snap to a tenth of the grid on ' +
+    'Shift-click to pick several and Create assembly, or Add them to the last assembly picked. Positions snap to a tenth of the grid on ' +
     `screen and facings to ${ANGLE_SNAP_DEGREES}° — hold Alt to escape. ` +
     'Drag empty space to pan, scroll to zoom, F to fit, Delete to remove, Ctrl+Z to undo.';
 

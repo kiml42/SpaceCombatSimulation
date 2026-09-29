@@ -1,7 +1,7 @@
 import { math, moduleCentre, type ModuleSpec, type ShipDesign } from '../sim/index.js';
 import { describeStep, snapStep, type Camera } from '../render/camera.js';
 import { headingCost, type Envelopes } from './stats.js';
-import type { GroupOutline } from './document.js';
+import type { AssemblyOutline } from './document.js';
 import { HANDLE_RADIUS_PX, type Handle } from './handles.js';
 
 const { cos, sin, max, TAU } = math;
@@ -29,22 +29,22 @@ const { cos, sin, max, TAU } = math;
 const SELECTION = '#e9c05f';
 const SELECTION_LINKED = '#e9c05fcc';
 /**
- * A group is outlined in a different colour from a module, and once around
+ * An assembly is outlined in a different colour from a module, and once around
  * everything it holds rather than separately around each part.
  *
  * Both cues say the same thing, deliberately. The colour says *what kind of
  * thing* is selected, which is what decides what an edit will do — dragging a
- * group moves the group. The single box says *how many things* are selected,
- * which a selection of several modules and a selection of one group could
+ * assembly moves the assembly. The single box says *how many things* are selected,
+ * which a selection of several modules and a selection of one assembly could
  * otherwise look identical about: five outlines either way, and a drag that
  * behaves quite differently.
  */
 const GROUP_SELECTION = '#7fd4ff';
-/** The group's other copies, which a drag of the selected one leaves where they are. */
+/** The assembly's other copies, which a drag of the selected one leaves where they are. */
 const GROUP_LINKED = '#7fd4ffcc';
-/** The group a selected module sits in: context rather than selection, so it is faint. */
+/** The assembly a selected module sits in: context rather than selection, so it is faint. */
 const GROUP_CONTEXT = '#7fd4ff66';
-/** How far the group's box stands off what it contains, pixels. */
+/** How far the assembly's box stands off what it contains, pixels. */
 const GROUP_BOX_MARGIN_PX = 7;
 /**
  * A module some problem names, tinted red over its own shape.
@@ -88,11 +88,11 @@ export interface OverlayView {
   modules: readonly ModuleSpec[];
   /**
    * Indices of the drawn modules picked individually; the first is the one
-   * grabbed. Groups are not among them — they come through `groups`.
+   * grabbed. Assemblies are not among them — they come through `assemblies`.
    */
   selected: readonly number[];
-  /** One box per drawn copy of a selected group, and of the group a selected module is in. */
-  groups: readonly GroupOutline[];
+  /** One box per drawn copy of a selected assembly, and of the assembly a selected module is in. */
+  assemblies: readonly AssemblyOutline[];
   /** Indices of the drawn modules a problem names: overlapping, adrift, or unbuildable. */
   faulty: readonly number[];
   /**
@@ -204,7 +204,7 @@ function drawSelection(ctx: CanvasRenderingContext2D, view: OverlayView, camera:
     ctx.restore();
   }
 
-  drawGroups(ctx, view, lineWidth, GROUP_BOX_MARGIN_PX / camera.scale);
+  drawAssemblies(ctx, view, lineWidth, GROUP_BOX_MARGIN_PX / camera.scale);
 }
 
 /**
@@ -264,25 +264,25 @@ function drawHandles(ctx: CanvasRenderingContext2D, view: OverlayView, camera: C
 }
 
 /**
- * One box around each drawn copy of a selected group, about everything it
- * holds — and a faint one around the group a selected module sits in.
+ * One box around each drawn copy of a selected assembly, about everything it
+ * holds — and a faint one around the assembly a selected module sits in.
  *
  * Corners rather than centres, and every module's own corners after its own
- * rotation, so a group of turned parts is boxed by what it actually covers
+ * rotation, so an assembly of turned parts is boxed by what it actually covers
  * rather than by a rectangle its contents stick out of.
  */
-function drawGroups(
+function drawAssemblies(
   ctx: CanvasRenderingContext2D,
   view: OverlayView,
   lineWidth: number,
   margin: number,
 ): void {
-  for (const group of view.groups) {
+  for (const assembly of view.assemblies) {
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
     let maxY = -Infinity;
-    for (const index of group.modules) {
+    for (const index of assembly.modules) {
       const spec = view.modules[index];
       if (spec === undefined) continue;
       const angle = spec.angle ?? 0;
@@ -308,15 +308,15 @@ function drawGroups(
     if (!(maxX > minX) && !(maxY > minY)) continue;
 
     ctx.save();
-    ctx.strokeStyle = group.context
+    ctx.strokeStyle = assembly.context
       ? GROUP_CONTEXT
-      : group.primary
+      : assembly.primary
         ? GROUP_SELECTION
         : GROUP_LINKED;
     ctx.lineWidth = lineWidth;
     // Dashed for everything that is not the copy being edited, so the one a
     // drag would move reads as solid the way a grabbed module does.
-    if (!group.primary) ctx.setLineDash([lineWidth * 4, lineWidth * 3]);
+    if (!assembly.primary) ctx.setLineDash([lineWidth * 4, lineWidth * 3]);
     ctx.strokeRect(
       minX - margin,
       minY - margin,

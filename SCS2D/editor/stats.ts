@@ -175,9 +175,9 @@ export interface ModuleReadout {
 }
 
 /**
- * What a group weighs, and what all its copies weigh together.
+ * What an assembly weighs, and what all its copies weigh together.
  *
- * Mass is the one figure that means the same thing about a group as it does
+ * Mass is the one figure that means the same thing about an assembly as it does
  * about a module: it is a sum, so a part of a ship has one. Nothing else on
  * the module panel does — capacity and armour describe a wall, hit points
  * belong to a module that can be shot off on its own, and thrust and a gun's
@@ -185,7 +185,7 @@ export interface ModuleReadout {
  * single answer for.
  *
  * Read from `moduleStats`, the same derivation the ship totals are summed
- * from, so a group's mass and the change removing it would make to the ship
+ * from, so an assembly's mass and the change removing it would make to the ship
  * are the same number by construction.
  */
 /**
@@ -209,7 +209,7 @@ function exhaustEscaping(
   return exhaustObstruction({ modules }, index, rating, new HullPath(), [], []);
 }
 
-export function groupMass(modules: readonly ModuleSpec[]): number {
+export function assemblyMass(modules: readonly ModuleSpec[]): number {
   let total = 0;
   for (const spec of modules) total += moduleStats(spec).mass;
   return total;

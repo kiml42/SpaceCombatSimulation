@@ -82,8 +82,8 @@ export function positionHandle(blueprint: Blueprint, origin: ModuleOrigin): Posi
   if (entered === null || origin.path.length - entered.at !== 2) return own;
 
   const assembly = blueprint.assemblies?.[entered.step.assembly ?? ''];
-  // An assembly holding more than this one module is a *group*, and dragging
-  // one part of a group has to move that part rather than the whole group.
+  // An assembly holding more than this one module is a *assembly*, and dragging
+  // one part of an assembly has to move that part rather than the whole assembly.
   if (assembly === undefined || assembly.modules.length !== 1) return own;
 
   const frame = origin.instanceFrame;
@@ -167,9 +167,9 @@ export function updatePlacement(
  * is the whole of an assembly, the unit on the ship is the *copy*, so deleting
  * one should leave the others. Deleting the shared module instead made every
  * copy vanish at once, which is never what pressing Delete on one of them
- * meant. When the assembly holds other modules, the module is part of a group
- * and deleting it takes it out of every copy of that group, which is what
- * deleting part of a group has to mean.
+ * meant. When the assembly holds other modules, the module is part of an assembly
+ * and deleting it takes it out of every copy of that assembly, which is what
+ * deleting part of an assembly has to mean.
  *
  * Taking the last instance takes the assembly with it, so a layout does not
  * accumulate definitions nothing places.
@@ -184,6 +184,34 @@ export function removeCopy(blueprint: Blueprint, origin: ModuleOrigin): Blueprin
   const copy = removed as unknown as MutableBlueprint;
   delete copy.assemblies?.[name];
   return copy as unknown as Blueprint;
+}
+
+/**
+ * Delete a placed assembly, and any definition that leaves placed by nothing:
+ * its own, and those only it placed, however deep.
+ */
+export function removeInstance(blueprint: Blueprint, path: ModulePath): Blueprint | null {
+  const placed = placementAt(blueprint, path);
+  if (placed === null || !isInstance(placed)) return null;
+  const removed = removePlacement(blueprint, path);
+  if (removed === null) return null;
+  const copy = removed as unknown as MutableBlueprint;
+  const unplaced = [placed.use];
+  while (unplaced.length > 0) {
+    const name = unplaced.pop()!;
+    const definition = copy.assemblies?.[name];
+    if (definition === undefined || countInstances(removed, name) > 0) continue;
+    delete copy.assemblies![name];
+    const walk = (list: readonly Placement[]): void => {
+      for (const entry of list) {
+        if (!isInstance(entry)) continue;
+        unplaced.push(entry.use);
+        if (entry.extra !== undefined) walk(entry.extra);
+      }
+    };
+    walk(definition.modules);
+  }
+  return removed;
 }
 
 /** Drop the placement a path names. Every copy of it goes with it. */
@@ -239,7 +267,7 @@ export function toPlacementFrame(
 /**
  * Turn a facing in the blueprint's frame into the one to write on a placement.
  *
- * The inverse of what the expansion did: a module in a mirrored group is
+ * The inverse of what the expansion did: a module in a mirrored assembly is
  * written with the facing that comes out reflected, so turning a drawn copy
  * clockwise turns the written module anticlockwise. Kept beside
  * `toPlacementFrame` because the two are the same conversion for the two
@@ -383,7 +411,7 @@ export function duplicatePlacement(
  * Where a placement is written: which definition's list it sits in, and
  * whether it sits there directly.
  *
- * Two placements can be grouped only if they answer the same `root` and both
+ * Two placements can be assembled only if they answer the same `root` and both
  * sit one step inside it, because that is what "the same list" means — the
  * new instance has to go somewhere, and it goes where they were.
  */
@@ -399,68 +427,70 @@ function siblingOf(path: ModulePath, index: number): ModulePath {
 }
 
 /**
- * Why these modules cannot be made into a group, or null if they can.
+ * Why these placements cannot be made into an assembly, or null if they can.
  *
- * The first origin is the one the group will be built around, so order
- * matters and the caller has to pass them in the order they were picked.
+ * Modules and assemblies alike: an assembly picked with others goes inside the
+ * new one, which is how assemblies nest. The first path is the one the
+ * assembly will be built around, so pass them in the order they were picked.
  */
-export function groupProblem(
+export function createAssemblyProblem(
   blueprint: Blueprint,
-  origins: readonly ModuleOrigin[],
+  paths: readonly ModulePath[],
 ): string | null {
-  if (origins.length < 2) return 'Select two or more modules to group them';
+  if (paths.length < 2) return 'Select two or more things to make an assembly of them';
 
-  const first = writtenIn(origins[0]!.path);
-  for (const origin of origins) {
-    const placement = placementAt(blueprint, origin.path);
-    if (placement === null) return 'One of the modules is no longer there';
-    // Grouping instances would nest one assembly inside another, which the
-    // format allows and this does not yet build.
-    if (isInstance(placement)) return 'A group can only be made out of modules, not other groups';
-    const here = writtenIn(origin.path);
+  const first = writtenIn(paths[0]!);
+  for (const path of paths) {
+    if (placementAt(blueprint, path) === null) return 'One of them is no longer there';
+    const here = writtenIn(path);
     if (!here.direct || here.root !== first.root) {
-      return 'All of the modules have to be in the same group already';
+      return 'All of them have to be in the same assembly already';
     }
   }
   return null;
 }
 
 /**
- * Make an assembly out of several modules, and place it once where they were.
+ * Make an assembly out of several placements, and place it once where they were.
  *
  * The half of shared parts that `duplicatePlacement` cannot reach: that one
  * makes an assembly out of a *single* module, so a ship can have shared parts
  * but not shared *structures*. This is what a mirrored wing needs — build one
- * side, group it, place the group again with `mirror` set, and the two sides
- * cannot disagree about anything except which side they are on.
+ * side, make an assembly of it, place that again with `mirror` set, and the two
+ * sides cannot disagree about anything except which side they are on.
  *
- * **The first module picked is the origin**, and that is a choice worth
- * stating because it is not the obvious one. The centre of the selection would
- * be tidier on screen, but a group is usually a thing hanging off a single
+ * **The first one picked is the origin**, and that is a choice worth stating
+ * because it is not the obvious one. The centre of the selection would be
+ * tidier on screen, but an assembly is usually a thing hanging off a single
  * connecting module — a wing off its root, a turret and its barbette — and
  * that module is the one whose position means something. Making it the origin
- * means mirroring turns the group about the part that joins it to the ship,
+ * means mirroring turns the assembly about the part that joins it to the ship,
  * which is where a shipwright would put the hinge.
  *
+ * **An assembly among them is nested, not taken apart**: its instance moves
+ * into the new definition as it is, turn, reflection, repeat and extras
+ * included. The new assembly is placed unturned, so only the position needs
+ * re-expressing.
+ *
  * **Members keep the order they were written in**, not the order they were
- * clicked, so that the group's internals stay as close to the original ship as
+ * clicked, so that the assembly's internals stay as close to the original ship as
  * they can be.
  *
  * **The instance is appended**, like every other placement this editor makes,
  * because module order is part of the ship: engines are allocated over the
- * columns in order and turrets fire in order. Grouping therefore moves the
- * grouped modules to the end of the expansion, and a ship whose layout is
+ * columns in order and turrets fire in order. Assembling therefore moves the
+ * assembled modules to the end of the expansion, and a ship whose layout is
  * order-sensitive will fly slightly differently afterwards. Nothing about its
  * geometry moves.
  */
-export function groupPlacements(
+export function createAssembly(
   blueprint: Blueprint,
-  origins: readonly ModuleOrigin[],
+  paths: readonly ModulePath[],
 ): { blueprint: Blueprint; path: ModulePath } | null {
-  if (groupProblem(blueprint, origins) !== null) return null;
+  if (createAssemblyProblem(blueprint, paths) !== null) return null;
 
   const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
-  const pivot = containing(copy, origins[0]!.path);
+  const pivot = containing(copy, paths[0]!);
   if (pivot === null) return null;
   const list = pivot.list;
   const at = list[pivot.index]!;
@@ -468,8 +498,8 @@ export function groupPlacements(
   const originY = at.y;
 
   const indices: number[] = [];
-  for (const origin of origins) {
-    const found = containing(copy, origin.path);
+  for (const path of paths) {
+    const found = containing(copy, path);
     if (found === null || found.list !== list) return null;
     if (!indices.includes(found.index)) indices.push(found.index);
   }
@@ -482,7 +512,7 @@ export function groupPlacements(
     return { ...member, x: member.x - originX, y: member.y - originY };
   });
 
-  const name = unusedAssemblyName(copy, 'group');
+  const name = unusedAssemblyName(copy, 'assembly');
   copy.assemblies = { ...copy.assemblies, [name]: { modules: members } };
 
   // Descending, so that removing one does not move the next.
@@ -492,7 +522,7 @@ export function groupPlacements(
 
   return {
     blueprint: copy as unknown as Blueprint,
-    path: siblingOf(origins[0]!.path, index),
+    path: siblingOf(paths[0]!, index),
   };
 }
 
@@ -513,15 +543,15 @@ function assemblySpan(blueprint: Blueprint, name: string): number {
     seen = true;
   }
   const span = hi - lo;
-  // Something rather than nothing, for a group with no height to speak of.
+  // Something rather than nothing, for an assembly with no height to speak of.
   return span > 1 ? span : 1;
 }
 
 /**
- * Place a group a second time, alongside the copy that was selected.
+ * Place an assembly a second time, alongside the copy that was selected.
  *
  * The instance counterpart of `duplicatePlacement`, and the step that makes
- * grouping worth anything: one definition placed twice is a pair that cannot
+ * assembling worth anything: one definition placed twice is a pair that cannot
  * drift apart, and setting `mirror` on the second is what makes it the other
  * side rather than the same side again.
  */
@@ -544,7 +574,7 @@ export function duplicateInstance(
 /**
  * Every instance a module was placed through, outermost first.
  *
- * A group inside a group is reached one level at a time, so clicking picks the
+ * An assembly inside an assembly is reached one level at a time, so clicking picks the
  * outermost and clicking again goes in — which is how a person expects to get
  * at a wing before getting at a bracket on it.
  */
@@ -585,54 +615,77 @@ export function instanceHandle(
   return null;
 }
 
+/** Whether assembly `outer` places assembly `inner`, at any depth. */
+function places(blueprint: Blueprint, outer: string, inner: string, seen = new Set<string>()): boolean {
+  if (seen.has(outer)) return false;
+  seen.add(outer);
+  const walk = (list: readonly Placement[]): boolean =>
+    list.some(
+      (entry) =>
+        isInstance(entry) &&
+        (entry.use === inner ||
+          places(blueprint, entry.use, inner, seen) ||
+          (entry.extra !== undefined && walk(entry.extra))),
+    );
+  return walk(blueprint.assemblies?.[outer]?.modules ?? []);
+}
+
 /**
- * Why these modules cannot be added to this group, or null if they can.
+ * Why these placements cannot be added to this assembly, or null if they can.
+ *
+ * An assembly may go into another, but never into itself, however deep: a
+ * definition that places itself has no end.
  */
-export function addToGroupProblem(
+export function addToAssemblyProblem(
   blueprint: Blueprint,
   instance: ModulePath,
-  modules: readonly ModulePath[],
+  paths: readonly ModulePath[],
 ): string | null {
   const placed = placementAt(blueprint, instance);
-  if (placed === null || !isInstance(placed)) return 'Pick one group to add to';
-  if (blueprint.assemblies?.[placed.use] === undefined) return 'That group has no definition';
-  if (modules.length === 0) return 'Pick some modules to add';
+  if (placed === null || !isInstance(placed)) return 'Pick an assembly to add to';
+  if (blueprint.assemblies?.[placed.use] === undefined) return 'That assembly has no definition';
+  if (paths.length === 0) return 'Pick something to add to it';
 
   const where = writtenIn(instance);
-  for (const path of modules) {
-    const module = placementAt(blueprint, path);
-    if (module === null) return 'One of the modules is no longer there';
-    if (isInstance(module)) return 'Only modules can be added to a group, not other groups';
+  for (const path of paths) {
+    const member = placementAt(blueprint, path);
+    if (member === null) return 'One of them is no longer there';
+    if (samePlacement(path, instance)) return 'An assembly cannot be added to itself';
+    if (isInstance(member) && (member.use === placed.use || places(blueprint, member.use, placed.use))) {
+      return `${member.use} would end up inside itself`;
+    }
     const here = writtenIn(path);
     if (!here.direct || here.root !== where.root) {
-      return 'The modules have to be written alongside the group';
+      return 'They have to be written alongside the assembly';
     }
   }
   return null;
 }
 
 /**
- * Move modules into a group that is already placed.
+ * Move modules or assemblies into an assembly that is already placed.
  *
- * The other way to build up a group: rather than picking everything and
- * grouping it at once, add to one that exists. What makes it more than a list
- * operation is the frame — the modules are written in the parent's frame and
- * the group's are written in the group's, so each one has to be re-expressed
+ * The other way to build up an assembly: rather than picking everything and
+ * assembling it at once, add to one that exists. What makes it more than a list
+ * operation is the frame — what goes in is written in the parent's frame and
+ * the assembly's contents in the assembly's, so each one has to be re-expressed
  * through the instance's pose on the way in. Getting that wrong moves the
  * ship, and moves it in a way that only shows up on a turned or reflected
- * group, which is exactly the kind that gets built once and trusted.
+ * assembly, which is exactly the kind that gets built once and trusted. An
+ * assembly going in is re-expressed the same way, and gains the target's
+ * reflection on top of its own.
  *
- * **A group placed more than once gains a module in every copy**, so adding
+ * **An assembly placed more than once gains a member in every copy**, so adding
  * one part to a wing placed twice puts two parts on the ship. That is the
- * bargain rather than a surprise — it is why the group is worth having — but
+ * bargain rather than a surprise — it is why the assembly is worth having — but
  * it is the reason this is not simply a tidier way to write the same layout.
  */
-export function addToGroup(
+export function addToAssembly(
   blueprint: Blueprint,
   instance: ModulePath,
-  modules: readonly ModulePath[],
+  paths: readonly ModulePath[],
 ): { blueprint: Blueprint; path: ModulePath } | null {
-  if (addToGroupProblem(blueprint, instance, modules) !== null) return null;
+  if (addToAssemblyProblem(blueprint, instance, paths) !== null) return null;
 
   const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
   const found = containing(copy, instance);
@@ -642,7 +695,7 @@ export function addToGroup(
   if (definition === undefined) return null;
 
   // The instance's own pose, which everything going in has to be expressed
-  // through. Both the modules and the instance are written in the same frame,
+  // through. Both the members and the instance are written in the same frame,
   // so whatever that frame is cancels and only the instance's own pose is left.
   const turn = placed.angle ?? 0;
   const flipped = placed.mirror === true;
@@ -650,7 +703,7 @@ export function addToGroup(
   const sn = sin(-turn);
 
   const indices: number[] = [];
-  for (const path of modules) {
+  for (const path of paths) {
     const at = containing(copy, path);
     if (at === null || at.list !== found.list) return null;
     if (!indices.includes(at.index)) indices.push(at.index);
@@ -658,28 +711,32 @@ export function addToGroup(
   indices.sort((a, b) => a - b);
 
   for (const index of indices) {
-    const module = found.list[index] as ModuleSpec;
-    const dx = module.x - placed.x;
-    const dy = module.y - placed.y;
+    const entry = found.list[index]!;
+    const dx = entry.x - placed.x;
+    const dy = entry.y - placed.y;
     // Undo the placement: translate, then turn back, then unreflect — the
     // reverse of the order `place` applies them in.
     const localX = dx * c - dy * sn;
     const localY = dx * sn + dy * c;
-    const own = (module.angle ?? 0) - turn;
-    const member: ModuleSpec = {
-      ...module,
-      x: localX,
-      y: flipped ? -localY : localY,
+    const own = (entry.angle ?? 0) - turn;
+    const member = { ...entry, x: localX, y: flipped ? -localY : localY } as Placement & {
+      angle?: number;
+      mirror?: boolean;
     };
-    if (module.angle !== undefined || own !== 0) member.angle = flipped ? -own : own;
+    if (entry.angle !== undefined || own !== 0) member.angle = flipped ? -own : own;
+    if (isInstance(entry) && flipped) {
+      // A reflection inside a reflection is none, so the two cancel.
+      if (entry.mirror === true) delete member.mirror;
+      else member.mirror = true;
+    }
     definition.modules.push(member);
   }
 
   // Descending, so that removing one does not move the next. The instance
-  // itself is never among them: it is not in `modules`.
+  // itself is never among them: `addToAssemblyProblem` refuses that.
   for (let i = indices.length - 1; i >= 0; i--) found.list.splice(indices[i]!, 1);
 
-  // Every module taken out from ahead of the instance moves it down one, so
+  // Everything taken out from ahead of the instance moves it down one, so
   // the path handed back is not the one passed in. Without this the caller
   // keeps selecting whatever slid into the old slot.
   const ahead = indices.filter((index) => index < found.index).length;
@@ -694,8 +751,8 @@ export function addToGroup(
 /**
  * The instance that placed this module, or null if nothing did.
  *
- * What makes a group's own properties reachable at all: clicking a module
- * selects the module, and the pose — where the group sits, how far it is
+ * What makes an assembly's own properties reachable at all: clicking a module
+ * selects the module, and the pose — where the assembly sits, how far it is
  * turned, whether it is reflected — belongs to the instance above it.
  */
 export function instanceOf(origin: ModuleOrigin): ModulePath | null {
@@ -762,13 +819,13 @@ export function setRepetition(
 /**
  * How far a set of drawn modules reaches along a direction, metres.
  *
- * What it is for: a step that puts the next copy of a group beyond the last
+ * What it is for: a step that puts the next copy of an assembly beyond the last
  * one rather than on top of it. Turning a single instance into a repeat needs
  * *some* step, and a step of nothing is the one answer guaranteed to be wrong
  * — every copy would land on the first and the layout would complain about
  * geometry rather than about the number just typed.
  *
- * Measured over every module's own corners after its own rotation, so a group
+ * Measured over every module's own corners after its own rotation, so an assembly
  * of turned parts is measured by what it actually covers.
  */
 export function extentAlong(specs: readonly ModuleSpec[], rotation: number): number {
@@ -818,7 +875,7 @@ export function unlinkable(blueprint: Blueprint, origin: ModuleOrigin): number {
  * The inverse of `duplicatePlacement`, and the reason the editor can be useful
  * without being able to *build* an assembly: a part that was linked by
  * accident, or linked deliberately and then wanted different on one side, has
- * a way out. Grouping several modules into a new assembly is the harder half
+ * a way out. Assembling several modules into a new assembly is the harder half
  * and is not here.
  *
  * Two shapes, chosen by what would be left behind.
@@ -899,7 +956,7 @@ function eachList(blueprint: MutableBlueprint, visit: (list: Placement[]) => voi
 }
 
 /** How many times a layout places a named assembly, counting every copy of a repeat. */
-function countInstances(blueprint: Blueprint, name: string): number {
+export function countInstances(blueprint: Blueprint, name: string): number {
   let total = 0;
   const walk = (list: readonly Placement[]): void => {
     for (const entry of list) {
@@ -924,29 +981,29 @@ function appendCopy(blueprint: Blueprint, path: ModulePath, across: number): Blu
 }
 
 /**
- * What stops a group being called this, or null if nothing does.
+ * What stops an assembly being called this, or null if nothing does.
  *
- * A group's name is its key in the assemblies table and the `use` every
+ * An assembly's name is its key in the assemblies table and the `use` every
  * instance names it by, so the only rules are the ones that keep the table a
- * table: something has to be written, and two groups cannot share a name
+ * table: something has to be written, and two assemblies cannot share a name
  * without one of them disappearing into the other.
  */
 export function renameProblem(blueprint: Blueprint, path: ModulePath, name: string): string | null {
   const placed = placementAt(blueprint, path);
-  if (placed === null || !isInstance(placed)) return 'Only a group has a name';
+  if (placed === null || !isInstance(placed)) return 'Only an assembly has a name';
   const wanted = name.trim();
-  if (wanted === '') return 'A group needs a name';
+  if (wanted === '') return 'An assembly needs a name';
   if (wanted === placed.use) return null;
-  if (blueprint.assemblies?.[wanted] !== undefined) return `Another group is already called ${wanted}`;
+  if (blueprint.assemblies?.[wanted] !== undefined) return `Another assembly is already called ${wanted}`;
   return null;
 }
 
 /**
- * Rename the group an instance places, everywhere it is named.
+ * Rename the assembly an instance places, everywhere it is named.
  *
- * The name is worth editing because it is the only thing about a group that
+ * The name is worth editing because it is the only thing about an assembly that
  * says what it is *for* — an assembly is otherwise a list of modules and a
- * number of copies — and a layout accumulates `group`, `group2`, `group3`
+ * number of copies — and a layout accumulates `assembly`, `assembly2`, `assembly3`
  * faster than anyone can keep track of.
  *
  * Every instance is renamed with it, at every depth, because the name is a

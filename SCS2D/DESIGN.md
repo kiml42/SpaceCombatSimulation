@@ -69,8 +69,9 @@ inside any one file is not contiguous.
   way, so a gun made an engine has its bell where the barrel was — and a selected engine burns and a selected gun fires at the
   rate its own figures claim; a module can be duplicated into a shared part placed
   twice, and a shared part unlinked back into separate modules, with position, dragging
-  and deletion belonging to the copy and everything else to all of them; several modules can be
-  picked at once and grouped into one part, which is then placed again and reflected
+  and deletion belonging to the copy and everything else to all of them; several modules or assemblies can be
+  picked at once and made into an assembly, nesting any assemblies among them, or added to the last assembly
+  picked — never into itself — and an assembly is then placed again and reflected
   to build a symmetrical ship out of one side and a mirror of it, and clicked, dragged
   and added to as one thing, carries a name of its own, and is placed in a row or round
   an arc by a count and a step rather than by placing it again and again;
@@ -447,8 +448,8 @@ inside any one file is not contiguous.
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio
   belongs chief among them. ROADMAP.md §8 lists what is left of each partly built step, then the steps not started. Slice 1 has one
   thing left in it, not blocking: unlinking one copy of a shared part while the
-  others stay linked. Restructuring a group — dissolving one, or nesting one inside another —
-  is deliberately not part of it and is §8 step 6, after v1.
+  others stay linked. Dissolving an assembly is deliberately not part of it and is §8 step 6, after v1;
+  nesting one inside another is built.
 - **Blocked on:** nothing.
 - **Owed:** nothing outstanding. The `duel` golden scenario discharges the coverage that was owed
   for engine allocation and turrets: it drives both through the same loop the game uses, so a

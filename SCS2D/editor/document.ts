@@ -28,14 +28,14 @@ import { History } from './history.js';
  */
 
 /**
- * A box to draw around one drawn copy of a group.
+ * A box to draw around one drawn copy of an assembly.
  *
  * Copies are told apart because they are edited apart: dragging the selection
  * moves the copy that was clicked and leaves the others, exactly as a shared
  * module's copies behave.
  */
-export interface GroupOutline {
-  /** The drawn modules this copy of the group puts on the ship. */
+export interface AssemblyOutline {
+  /** The drawn modules this copy of the assembly puts on the ship. */
   modules: number[];
   /** The copy that was clicked, rather than one of the others it is placed as. */
   primary: boolean;
@@ -43,7 +43,7 @@ export interface GroupOutline {
   context: boolean;
 }
 
-/** The innermost group a placement is written in, by name. */
+/** The innermost assembly a placement is written in, by name. */
 function enclosingAssembly(path: ModulePath): string | null {
   for (let i = path.length - 1; i >= 0; i--) {
     const step = path[i]!;
@@ -137,12 +137,12 @@ export class EditorDocument {
    * selects the engine, because that is the thing an edit would change.
    *
    * An ordered list rather than a set, and the order is load-bearing: the
-   * first one picked is the module a group is built around, so which module
-   * was clicked first has to survive all the way to `groupPlacements`.
+   * first one picked is the module an assembly is built around, so which module
+   * was clicked first has to survive all the way to `createAssembly`.
    *
    * The properties panel edits one placement at a time, so everything that
    * reads a single selection reads the first of these. Picking several is for
-   * the operations that act on a *set* — grouping, today.
+   * the operations that act on a *set* — assembling, today.
    */
   private selected: ModulePath[] = [];
 
@@ -260,7 +260,7 @@ export class EditorDocument {
    * Select a placement that a particular drawn module led to.
    *
    * The index is kept as the grabbed copy even when the path names something
-   * above the module — a group dragged by one of its parts has to be written
+   * above the module — an assembly dragged by one of its parts has to be written
    * in that part's frame, and the highlight has to brighten the copy under the
    * pointer rather than whichever one the layout drew first.
    */
@@ -277,23 +277,26 @@ export class EditorDocument {
     else this.selected.push(path);
   }
 
-  /** The selected group, when exactly one thing is selected and it is a group. */
-  selectedGroupPath(): ModulePath | null {
+  /** The selected assembly, when exactly one thing is selected and it is an assembly. */
+  selectedAssemblyPath(): ModulePath | null {
     if (this.selected.length !== 1) return null;
     const path = this.selected[0]!;
-    return this.isGroup(path) ? path : null;
+    return this.isAssembly(path) ? path : null;
   }
 
   /**
-   * The one selected group and the loose modules picked alongside it, which is
-   * what adding to a group needs.
+   * What adding to an assembly would do with the selection: the last assembly
+   * picked takes in everything else picked, modules and assemblies alike.
    */
-  groupAndLooseSelection(): { group: ModulePath; modules: ModulePath[] } | null {
-    const groups = this.selected.filter((path) => this.isGroup(path));
-    if (groups.length !== 1) return null;
-    const modules = this.selected.filter((path) => !this.isGroup(path));
-    if (modules.length === 0) return null;
-    return { group: groups[0]!, modules };
+  additionTarget(): { assembly: ModulePath; members: ModulePath[] } | null {
+    if (this.selected.length < 2) return null;
+    let last = -1;
+    for (let i = 0; i < this.selected.length; i++) if (this.isAssembly(this.selected[i]!)) last = i;
+    if (last < 0) return null;
+    return {
+      assembly: this.selected[last]!,
+      members: this.selected.filter((_, i) => i !== last),
+    };
   }
 
   select(path: ModulePath | null): void {
@@ -351,7 +354,7 @@ export class EditorDocument {
   /**
    * One origin per picked placement, in the order they were picked — which is
    * what an operation over the whole selection needs, and what carries the
-   * "first one picked" that decides a group's origin.
+   * "first one picked" that decides an assembly's origin.
    */
   selectedOrigins(): ModuleOrigin[] {
     const out: ModuleOrigin[] = [];
@@ -366,9 +369,9 @@ export class EditorDocument {
    * Whether a placement accounts for a drawn module: either it wrote it, or it
    * is an instance somewhere above it.
    *
-   * The second half is what makes a group selectable at all. An instance draws
+   * The second half is what makes an assembly selectable at all. An instance draws
    * nothing itself — its assembly's modules do — so a test that only asked
-   * "did this placement write that module" would call every group selection
+   * "did this placement write that module" would call every assembly selection
    * dead, and the panel editing one would close on its own first edit.
    */
   private accountsFor(path: ModulePath, drawn: ModulePath): boolean {
@@ -387,16 +390,16 @@ export class EditorDocument {
   }
 
   /**
-   * What clicking a drawn module should select: the group it is in, or the
-   * module itself once you are already in that group.
+   * What clicking a drawn module should select: the assembly it is in, or the
+   * module itself once you are already in that assembly.
    *
-   * A grouped module is part of a thing before it is a module, and the thing
+   * An assembled module is part of a thing before it is a module, and the thing
    * is what you usually want — dragging a wing should move the wing. So a
-   * click lands on the outermost group and a second one goes in, a level at a
+   * click lands on the outermost assembly and a second one goes in, a level at a
    * time, which is how a person expects to get at a wing before getting at a
    * bracket on it.
    *
-   * "Already in that group" counts a sibling too, not only the group itself:
+   * "Already in that assembly" counts a sibling too, not only the assembly itself:
    * once you are working inside a wing, clicking its other parts should reach
    * them rather than throwing you back out to the wing each time.
    */
@@ -423,37 +426,37 @@ export class EditorDocument {
     return this.selected.some((each) => this.accountsFor(each, path));
   }
 
-  /** Whether a selected placement is a group rather than a module. */
-  private isGroup(path: ModulePath): boolean {
+  /** Whether a selected placement is an assembly rather than a module. */
+  private isAssembly(path: ModulePath): boolean {
     const placement = placementAt(this.current, path);
     return placement !== null && isInstance(placement);
   }
 
   /**
-   * The drawn modules of each selected group, one list per group.
+   * The drawn modules of each selected assembly, one list per assembly.
    *
    * Kept apart from the loose modules because the two are shown differently:
-   * a group is one thing and is outlined once, where several modules picked
+   * an assembly is one thing and is outlined once, where several modules picked
    * separately are several things and are outlined separately. Reading that
    * off the shape of the selection rather than off a flag means the picture
    * cannot disagree with what an edit would do.
    */
-  selectedGroups(): GroupOutline[] {
-    const out: GroupOutline[] = [];
+  selectedAssemblies(): AssemblyOutline[] {
+    const out: AssemblyOutline[] = [];
     const drawn: string[] = [];
     for (const path of this.selected) {
-      if (!this.isGroup(path)) continue;
+      if (!this.isAssembly(path)) continue;
       const placement = placementAt(this.current, path);
       if (placement === null || !isInstance(placement)) continue;
       if (drawn.includes(placement.use)) continue;
       drawn.push(placement.use);
       out.push(...this.outlinesOf(placement.use, false));
     }
-    // A module picked inside a group keeps its group's box, faintly: the thing
+    // A module picked inside an assembly keeps its assembly's box, faintly: the thing
     // being edited is one part *of* something, and which something is what
-    // decides where a drag of the group's own panel would take it.
+    // decides where a drag of the assembly's own panel would take it.
     for (const path of this.selected) {
-      if (this.isGroup(path)) continue;
+      if (this.isAssembly(path)) continue;
       const use = enclosingAssembly(path);
       if (use === null || drawn.includes(use)) continue;
       drawn.push(use);
@@ -466,14 +469,14 @@ export class EditorDocument {
    * One outline per drawn copy of an assembly.
    *
    * Per copy rather than one box over every module the selection accounts for,
-   * because a group placed twice is two things in two places and a single box
+   * because an assembly placed twice is two things in two places and a single box
    * round both would enclose most of the ship. The copy under the pointer is
    * the selection; the rest are drawn as copies, the same distinction the
    * module highlight makes between the one grabbed and the others it moves
    * with.
    */
-  private outlinesOf(use: string, context: boolean): GroupOutline[] {
-    const byCopy = new Map<string, GroupOutline>();
+  private outlinesOf(use: string, context: boolean): AssemblyOutline[] {
+    const byCopy = new Map<string, AssemblyOutline>();
     for (let i = 0; i < this.derived.origins.length; i++) {
       const path = this.derived.origins[i]!.path;
       for (let k = 0; k < path.length - 1; k++) {
@@ -497,11 +500,11 @@ export class EditorDocument {
     return outlines;
   }
 
-  /** The drawn modules of the selected placements that are not groups. */
+  /** The drawn modules of the selected placements that are not assemblies. */
   selectedLoose(): number[] {
     const out: number[] = [];
     for (const path of this.selected) {
-      if (this.isGroup(path)) continue;
+      if (this.isAssembly(path)) continue;
       for (const index of this.drawnFor(path)) if (!out.includes(index)) out.push(index);
     }
     const picked = out.indexOf(this.grabbed);
@@ -527,7 +530,7 @@ export class EditorDocument {
    * Distinct from `selectedModules`, which answers only for the placement the
    * panel is editing: a shared part selected once is drawn eight times and all
    * eight are highlighted, so is everything else picked alongside it, and so is
-   * every module of a selected group.
+   * every module of a selected assembly.
    */
   highlightedModules(): number[] {
     const out: number[] = [];
@@ -546,7 +549,7 @@ export class EditorDocument {
     return out;
   }
 
-  /** How many drawn modules a placement accounts for, groups included. */
+  /** How many drawn modules a placement accounts for, assemblies included. */
   accountedFor(path: ModulePath): number {
     return this.drawnFor(path).length;
   }
@@ -557,7 +560,7 @@ export class EditorDocument {
     // Keeping it would leave the properties panel editing a placement the
     // player cannot see. Checked per placement, since an edit can remove one
     // of several picked and leave the rest standing — and through
-    // `accountsFor`, so that editing a group's own pose does not dismiss the
+    // `accountsFor`, so that editing an assembly's own pose does not dismiss the
     // panel that just made the edit.
     this.selected = this.selected.filter((path) => this.drawnFor(path).length > 0);
   }
