@@ -137,9 +137,12 @@ describe('the evolution page in a browser', () => {
 
   it('previews the founders, and the first match paused at its start, before a run', async () => {
     await page.selectOption('#mode', 'fleet');
-    await page.waitForFunction(() => document.querySelectorAll('#fleet figure').length === 1);
-    expect(await page.textContent('#fleet figcaption b')).toBe('Dinky');
-    expect(await rows(page, 'ships')).toBe(0);
+    await page.waitForFunction(() => document.querySelectorAll('#fleet tbody tr').length === 1);
+    expect(await page.textContent('#fleet tbody td.who b')).toBe('Dinky');
+    // Named for what it is made of, which for a ship founder is itself.
+    expect(await page.textContent('#fleet tbody td.made .of')).toBe('Dinky');
+    // Nothing has been scored yet, so the figures are dashes.
+    expect(await page.textContent('#fleet tbody td.score')).toBe('');
     await page.selectOption('#mode', 'battle');
     await page.waitForFunction(() => /unmutated/.test(document.getElementById('watching')?.textContent ?? ''));
     expect(await distinctColours(page, 'view')).toBeGreaterThan(2);
@@ -166,7 +169,18 @@ describe('the evolution page in a browser', () => {
   });
 
   it('lists what it bred, and what each generation fought', async () => {
-    expect(await rows(page, 'ships')).toBe(4);
+    // Every combatant and everything known about it is a row of the
+    // combatants table: the sidebar no longer carries a copy of the figures.
+    await page.selectOption('#mode', 'fleet');
+    await page.waitForFunction(() => document.querySelectorAll('#fleet tbody tr').length === 4);
+    expect(await page.locator('#fleet tbody tr.champion').count()).toBe(1);
+    // Score, its five parts, and the tonnage, all on the row.
+    const best = page.locator('#fleet tbody tr').first();
+    expect(await best.locator('td.score').textContent()).toMatch(/^\d\.\d{3}$/);
+    expect(await best.locator('td.hull, td.func, td.dmg, td.dis, td.grnd').count()).toBe(5);
+    expect(await best.locator('td.mass').textContent()).toMatch(/^\d+\.\d$/);
+    // And what was done to make it, which used to be a line in the sidebar.
+    expect((await best.locator('td.done').textContent())?.length).toBeGreaterThan(0);
     expect(await rows(page, 'matches')).toBeGreaterThan(0);
     expect(await page.textContent('#championLine')).toMatch(/best of generation \d/);
   });
@@ -340,13 +354,13 @@ describe('the evolution page in a browser', () => {
     // space is for is the population: one tile per design, best first.
     await page.selectOption('#mode', 'fleet');
     await page.waitForTimeout(300);
-    const tiles = await page.$$('#fleet figure');
-    expect(tiles.length).toBe(4);
-    const first = (await page.textContent('#fleet figure:first-child figcaption')) ?? '';
+    const rows = await page.$$('#fleet tbody tr');
+    expect(rows.length).toBe(4);
+    const first = (await page.textContent('#fleet tbody td.who')) ?? '';
     expect(first).toMatch(/^1\. #\d/);
-    // Drawn, rather than an empty box with a caption under it.
+    // Drawn, rather than an empty box with a name under it.
     const colours = await page.evaluate(() => {
-      const canvas = document.querySelector('#fleet figure canvas') as HTMLCanvasElement;
+      const canvas = document.querySelector('#fleet .kind canvas') as HTMLCanvasElement;
       const ctx = canvas.getContext('2d');
       if (ctx === null) return 0;
       const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -452,11 +466,11 @@ describe('the evolution page in a browser', () => {
     await set(page, 'generations', '1');
     await page.click('#start');
     await page.selectOption('#mode', 'fleet');
-    await page.waitForFunction(() => document.querySelectorAll('#fleet figure').length >= 2);
+    await page.waitForFunction(() => document.querySelectorAll('#fleet tbody tr').length >= 2);
     // Long enough for the shared scale to settle.
     await page.waitForTimeout(1500);
     const widths = await page.evaluate(() =>
-      [...document.querySelectorAll('#fleet figure canvas')].map((node) => {
+      [...document.querySelectorAll('#fleet .kind canvas')].map((node) => {
         const canvas = node as HTMLCanvasElement;
         const ctx = canvas.getContext('2d');
         if (ctx === null) return 0;
@@ -480,6 +494,41 @@ describe('the evolution page in a browser', () => {
     );
     expect(Math.min(...widths)).toBeGreaterThan(0);
     expect(Math.max(...widths) / Math.min(...widths)).toBeGreaterThan(2);
+    expect(problems).toEqual([]);
+  }, 60_000);
+
+  it('draws the whole fleet beside its kinds, on a scale of its own', async () => {
+    // Two scales, each shared across the rows: formations compare with
+    // formations and hulls with hulls. One scale for both would put a
+    // formation a kilometre across and a hull ten metres long on the same
+    // ruler, and whichever it suited the other would be a dot or a smear.
+    await page.waitForFunction(() => document.querySelectorAll('#fleet tbody tr').length >= 2);
+    await page.waitForTimeout(1500);
+    const drawn = await page.evaluate(() => {
+      const ink = (node: Element): number => {
+        const canvas = node as HTMLCanvasElement;
+        const ctx = canvas.getContext('2d');
+        if (ctx === null) return 0;
+        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const bg = [data[0], data[1], data[2]];
+        let lit = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          const d =
+            Math.abs(data[i]! - bg[0]!) + Math.abs(data[i + 1]! - bg[1]!) + Math.abs(data[i + 2]! - bg[2]!);
+          if (d > 60) lit++;
+        }
+        return lit;
+      };
+      const rows = [...document.querySelectorAll('#fleet tbody tr')];
+      return {
+        rows: rows.length,
+        formations: rows.map((tr) => tr.querySelectorAll('td.formation canvas').length),
+        litFormations: rows.filter((tr) => ink(tr.querySelector('td.formation canvas')!) > 0).length,
+      };
+    });
+    // One per row, and every one of them actually drawn.
+    expect(drawn.formations.every((n) => n === 1)).toBe(true);
+    expect(drawn.litFormations).toBe(drawn.rows);
     expect(problems).toEqual([]);
   }, 60_000);
   it('skips a match nobody wants to watch, and puts another on', async () => {
@@ -600,8 +649,10 @@ describe('the evolution page in a browser', () => {
 
     await page.click('#start');
     await page.selectOption('#mode', 'fleet');
-    await page.waitForFunction(() =>
-      [...document.querySelectorAll('#fleet figcaption')].some((c) => / ships$/.test(c.textContent ?? '')),
+    // The composition, which is what a fleet run is shown by: several kinds
+    // of ship on one row, rather than one picture of the whole fleet.
+    await page.waitForFunction(
+      () => [...document.querySelectorAll('#fleet tbody tr')].some((tr) => tr.querySelectorAll('.kind').length > 1),
     );
     await page.waitForFunction(() => document.querySelectorAll('#matches tr').length > 0, undefined, { timeout: 60_000 });
     await page.selectOption('#mode', 'battle');
