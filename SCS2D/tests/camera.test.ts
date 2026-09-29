@@ -263,6 +263,32 @@ describe('the pace the camera keeps', () => {
     expect(previous).toBeCloseTo(300, 9);
   });
 
+  it('holds a ship wider than the view still, wherever on it the camera sits', () => {
+    // Zoomed in on a capital's stern. Its centre of mass is far outside the
+    // frame, and measured centre to centre that reads as a ship out on the
+    // edge — so the camera would keep only part of its pace and the view would
+    // slide down the hull towards the middle of the ship while the viewer was
+    // trying to watch the engines.
+    const capital = ship(0, 0, 300, 0);
+    capital.design = { radius: 1086 } as ShipView['design'];
+    // A 300 m view, a kilometre off the ship's middle and well inside its hull.
+    const camera: Camera = { x: -900, y: 0, scale: WIDTH / 300 };
+    moveWithVisibleShips(camera, snapshotOf([capital]), 1, WIDTH, HEIGHT);
+    expect(camera.x - -900).toBeCloseTo(300, 9);
+  });
+
+  it('still eases in a ship small enough for the frame to be about where it is', () => {
+    // The other half of the same rule: subtracting the radius must not turn
+    // the easing off for the ships it was written for. A fighter at the edge
+    // of a wide view is barely wider than a pixel, so it is still eased in.
+    const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+    const halfWidth = WIDTH / (2 * camera.scale);
+    const fighter = ship(halfWidth, 0, 300, 0);
+    moveWithVisibleShips(camera, snapshotOf([fighter]), 1, WIDTH, HEIGHT);
+    expect(camera.x).toBeLessThan(300);
+    expect(camera.x).toBeGreaterThan(0);
+  });
+
   it('lets a ship that flew in at the edge settle into the middle of the frame', () => {
     // End to end, against the whole camera rather than the feed-forward alone:
     // a lone ship under way is centred and held there.

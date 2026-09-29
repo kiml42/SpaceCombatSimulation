@@ -252,9 +252,25 @@ function keepPaceWith(
     if (outY > halfHeight + r) continue;
 
     // How far out of the middle it sits, by whichever axis has it nearer an
-    // edge. Capped at the edge itself, since a ship counts while any part of
-    // it is in shot and its centre may already be outside.
-    const out = min(1, max(outX / halfWidth, outY / halfHeight));
+    // edge — **measured to the nearest part of the hull rather than to the
+    // middle of it**, which is the difference between a small ship and a big
+    // one and not a refinement.
+    //
+    // A ship wider than the view is under the camera wherever the camera is
+    // pointed, so where its centre of mass happens to be says nothing about
+    // whether the viewer is looking at it. Measured centre to centre, zooming
+    // in on a capital's stern puts its middle far outside the frame, reads
+    // that as a ship out on the edge, and keeps only part of its pace — so the
+    // view slides down the hull towards the middle of the ship while the
+    // viewer is trying to watch the engines. Measured to the hull, the same
+    // ship is dead centre and held exactly.
+    //
+    // The bounding radius is generous for a long thin hull, so this errs
+    // towards holding a big ship still, which is the forgiving direction.
+    const out = min(
+      1,
+      max(max(0, outX - r) / halfWidth, max(0, outY - r) / halfHeight),
+    );
     const pace = matchedPace(out);
     vx += ship.vx * r * pace;
     vy += ship.vy * r * pace;

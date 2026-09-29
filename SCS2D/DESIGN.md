@@ -44,7 +44,8 @@ inside any one file is not contiguous.
   to the wreckage, so a fight that ends with every core shot out is still followed; and it
   keeps a shade less than the pace of a ship out past where a settled frame would put it, so
   something arriving at the edge is allowed to make ground towards the middle before the
-  camera matches it. Each ship also carries an arrowhead in its team's colour, which
+  camera matches it — how far out a ship sits being measured to the nearest part of its hull,
+  so that a ship wider than the view is held still wherever on it the camera has been zoomed. Each ship also carries an arrowhead in its team's colour, which
   fades in as its hull becomes too small on screen to read, so that zooming out to see a
   battle does not lose the small ships in it or which way they are facing. **What the picture asks
   about a ship is whether anybody is aboard it, not whether it can fight**: a hull with a sound core and
