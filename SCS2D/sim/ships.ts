@@ -2440,7 +2440,8 @@ export class Ships {
    * (`Damage.ragged`) makes the two bodies one, held by a seam. At least one of
    * them must be wreckage: a ship hooked onto a wreck carries it, and gains
    * nothing it can use, since command never crosses a seam. Two ships never
-   * join. A seam holds and tears like any weld, so a blow can part them again.
+   * join — a stop-gap until a body can be flown by two ships, each on its own
+   * side (ROADMAP.md §8, slice 0). A seam holds and tears like any weld, so a blow can part them again.
    *
    * Every weld *removes* a body rather than holding two in a lasting contact.
    */
