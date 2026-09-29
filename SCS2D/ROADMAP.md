@@ -121,6 +121,15 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
    and plants are hull internals, out of reach of deck turrets, so where they sit and what can reach them is
    the layer question.
 
+   **Firing Arcs** Once the two layers are in place, the limits on turrets' firing arcs become clear and should
+   be implemented properly. Hull guns are in the hull layer, so they would hit any part of the ship, so they 
+   should be unable to trigger when pointed at another part of the ship, but the barrel can traverse anywhere 
+   it it's available arc where it won't physically hit another part of the ship. Turrets are only blocked by thick
+   parts of the ship, so thick modules, and other turrets. As with hull guns, their traverse limit should be based
+   on what the barrel would hit, and their triggers should be limited by LOS in front of the barrel, just ignoring
+   everything in the hull layer because they're above it. This will lead to a single arc for traverse (possibly a
+   whole circle), but there may be multiple intervals in that arc where the turret cannot fire.
+
    **Ships hooked together should be able to shoot each other then.** Today a ship never targets anything on
    its own body, because a round never hits the body it left; with layers, a turret can hit its own hull and
    will (a beam held on for its duty cycle, sweeping across it), so that exemption has to go anyway. Two enemy
