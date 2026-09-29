@@ -699,7 +699,7 @@ export function addToAssemblyProblem(
   paths: readonly ModulePath[],
 ): string | null {
   const placed = placementAt(blueprint, instance);
-  if (placed === null || !isInstance(placed)) return 'Pick the assembly to add to first';
+  if (placed === null || !isInstance(placed)) return 'Pick an assembly to add to';
   if (blueprint.assemblies?.[placed.use] === undefined) return 'That assembly has no definition';
   if (paths.length === 0) return 'Pick something to add to it';
 
