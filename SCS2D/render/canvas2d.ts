@@ -13,6 +13,9 @@ import {
   type Snapshot,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
+import { NEUTRAL, shipColours } from './teams.js';
+
+export { teamColour } from './teams.js';
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha } from './strokes.js';
 import { flashFade, flashPosition, type FlashAnchor, type Flashes } from './flashes.js';
 import { iconAlpha, ICON_OUTLINE, ICON_PX } from './icons.js';
@@ -34,9 +37,9 @@ const { cos, sin, max, min, PI, sqrt, TAU } = math;
  * from projectile velocity. It never asks who is winning.
  */
 
-/** Colours by team, plus the furniture. Deliberately few. */
 /**
- * Colours by team, chosen so the three layers of a turret always separate.
+ * Colours, chosen so the three layers of a turret always separate. The sides'
+ * own palettes are in `teams.ts`.
  *
  * A mount is drawn as its module box, then the sector it can traverse through,
  * then the barrel — and the ordering of *values* is what makes all three
@@ -49,53 +52,7 @@ const { cos, sin, max, min, PI, sqrt, TAU } = math;
  * The sweep is deliberately not team-tinted. It marks where a gun *could*
  * point rather than anything belonging to the ship, and colouring it by team
  * made it read as hull.
- *
- * **A side differs from the others by hue alone.** Every palette here is the
- * same three tones — a mid hull, a pale trim, a dark pivot — turned round the
- * wheel, so the value ordering that makes a turret legible holds for every
- * side rather than being got right once for blue and approximated afterwards.
- * The hues are spread as far apart as four will go without colliding with
- * something that already means a thing: a barrel goes amber when it is on
- * target, and a beam is a bright green, so the sides take blue, red, green and
- * magenta and leave the yellows alone.
- *
- * Four because that is a free-for-all of a size worth watching — an evolution
- * match puts every entrant on its own side (DESIGN.md §7). A fifth side is
- * drawn neutral grey rather than in a colour nobody could name, which is
- * honest about there being more sides than the picture can tell apart.
  */
-const TEAM_COLOURS = [
-  {
-    hull: '#5b8dd6',
-    trim: '#a8c8f0',
-    pivot: '#2c4a72',
-    ready: '#e9c05f',
-  },
-  {
-    hull: '#d65b5b',
-    trim: '#f0a8a8',
-    pivot: '#722c2c',
-    ready: '#e9c05f',
-  },
-  {
-    hull: '#5bd66f',
-    trim: '#a8f0b4',
-    pivot: '#2c7238',
-    ready: '#e9c05f',
-  },
-  {
-    hull: '#d65bd6',
-    trim: '#f0a8f0',
-    pivot: '#722c72',
-    ready: '#e9c05f',
-  },
-];
-const NEUTRAL = {
-  hull: '#8a8a8a',
-  trim: '#c4c4c4',
-  pivot: '#4a4a4a',
-  ready: '#e9c05f',
-};
 const BACKGROUND = '#0b0f16';
 const GRID = '#161d29';
 const TRACER = '#ffe6a8';
@@ -205,14 +162,6 @@ const BURN = '255, 170, 90';
 const BURN_CORE = '255, 236, 200';
 
 
-function shipColours(team: number): (typeof TEAM_COLOURS)[number] {
-  return TEAM_COLOURS[team] ?? NEUTRAL;
-}
-
-/** A side's hull colour, for anything that names the side outside the picture. */
-export function teamColour(team: number): string {
-  return shipColours(team).hull;
-}
 
 function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
   const colours = shipColours(ship.team);
