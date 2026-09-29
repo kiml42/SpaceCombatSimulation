@@ -96,7 +96,8 @@ inside any one file is not contiguous.
   collision trades momentum and does no damage.
   **The damage model spends what it returns**: a round walks the modules along
   its path, each taking the energy its armour stopped, until it embeds, skids
-  off or comes out the far side; a beam pours its power into what it is burning
+  off or comes out the far side — at its own speed, so crossing a long hull
+  takes time; a beam pours its power into what it is burning
   through, and bores deeper as it destroys. A module that has taken all it can
   stops working and goes on stopping shells, so a battered ship is sluggish and
   quiet rather than lighter, and a ship that can neither move nor shoot drifts
@@ -817,6 +818,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
     phase stays one pass and the damage model stays out of the inner loop. Carrying the remaining
     `(1 − t)·dt` as a substep is the richer option if deflection ever needs to chain inside one step; it
     would need a cap on deflections per step, and each re-cast would have to ignore the body just struck.
+    A skid off a plate *inside* a hull is the exception: the round is already being walked in the hull's
+    frame, so it carries on along the new line within the step, capped, never re-striking the module it
+    is in.
   - **A round parked exactly on a surface must not re-hit it.** `segmentCircleT` therefore treats only
     *strictly* inside as an immediate hit, and settles the exactly-on-surface case by direction of travel.
     Otherwise a deflected round strikes the same hull again on its very next step, forever.

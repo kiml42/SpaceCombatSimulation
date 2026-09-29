@@ -3,7 +3,7 @@ import type { ShipDesign } from './blueprint.js';
 import { Terminal, deflected, incidenceAngle, strike } from './ballistics.js';
 import { HullPath, modulesAlong, type HullDesigns } from './hull.js';
 import { jointBetween, joints } from './connectivity.js';
-import type { ProjectileHits, Projectiles } from './projectiles.js';
+import { NOT_INSIDE, type ProjectileHits, type Projectiles } from './projectiles.js';
 import type { BeamHits, Beams } from './beams.js';
 import { RESTITUTION, type Contacts } from './collision.js';
 import { cos, max, min, sin, sqrt } from './math.js';
@@ -420,40 +420,232 @@ export function resolveCollision(
   return spent;
 }
 
-/** Where a round ended up, and what it left with. */
+/**
+ * Where a round got to on a walk through a hull, and what it left with.
+ *
+ * Everything positional is in the hull's frame, along the line the round is
+ * now on: the one it went in on, or a new one from the face it last skidded
+ * off.
+ */
 export interface RoundOutcome {
   /** What the last plate it met did to it. */
   outcome: Terminal;
-  /** Distance from the impact point at which it stopped, metres. */
-  distance: number;
+  /** The line it is now on: where it starts, and which way it runs. */
+  ox: number;
+  oy: number;
+  ux: number;
+  uy: number;
+  /** Whether it skidded off a plate, and so is on a line of its own. */
+  skidded: boolean;
+  /** How far along the line it has got, metres. */
+  along: number;
+  /** The next crossing on the line it has yet to strike. */
+  crossing: number;
   /** Speed it carries on at: zero when it embeds, its residual otherwise. */
   speed: number;
-  /** Where it is going now — the same direction unless it skidded. */
-  dirX: number;
-  dirY: number;
-  /** Distance from the impact at which it left the last module it crossed. */
-  exit: number;
-  /** Total energy the ship absorbed, which is what the impact was worth. */
+  /** Total energy the ship absorbed, which is what the walk was worth. */
   energy: number;
-  /** How many modules it went through, the one it stopped in included. */
+  /** How many modules it struck, the one it stopped in included. */
   crossed: number;
+  /** The first module it struck, and where, or -1 for none. */
+  first: number;
+  firstX: number;
+  firstY: number;
+  /** Still inside the hull, having run out of time to get further. */
+  inside: boolean;
+}
+
+export function roundOutcome(): RoundOutcome {
+  return {
+    outcome: Terminal.Perforate,
+    ox: 0,
+    oy: 0,
+    ux: 0,
+    uy: 0,
+    skidded: false,
+    along: 0,
+    crossing: -1,
+    speed: 0,
+    energy: 0,
+    crossed: 0,
+    first: -1,
+    firstX: 0,
+    firstY: 0,
+    inside: false,
+  };
 }
 
 /**
- * Walk a round through the ship it just hit, spending it plate by plate.
+ * How far behind the start of a line a crossing may begin and still be the
+ * one the round is arriving at, metres: float error on the impact point, and
+ * nothing like the depth of a module.
+ */
+const ARRIVAL_SLACK = 1e-6;
+
+/**
+ * How many plates a round may skid off inside a hull in one walk before it is
+ * let out where it is. A bound on a corner that would otherwise bat it back
+ * and forth for no time at all.
+ */
+const MAX_SKIDS = 8;
+
+/**
+ * Walk a round along a line through a hull for `time` seconds, spending it
+ * plate by plate as it reaches each one.
  *
- * The round arrives at `(x, y)` travelling along `(dirX, dirY)`, both in world
- * coordinates, having been stopped at the face of the first module it met. The
- * cast is taken from well outside the ship rather than from the impact point
- * itself: a segment beginning exactly on a face is *inside* the module by no
- * distance at all, which would report it entered by no face and so met it
- * square on, when the whole question is how oblique the meeting was.
+ * The line runs from `(ox, oy)` along `(ux, uy)`, in the hull's frame, and the
+ * walk picks up `along` metres down it at `crossing`, or at the first crossing
+ * that starts there when `crossing` is -1. It is cast from well outside the
+ * ship rather than from its start: a segment beginning exactly on a face is
+ * *inside* the module by no distance at all, which would report it entered by
+ * no face and so met it square on, when the whole question is how oblique the
+ * meeting was. A crossing that began behind the start is one the round is
+ * already inside, and is not struck again.
  *
  * Each module takes the energy its armour stopped, which for a perforation is
  * the energy of a round arriving at the limit velocity and for an embedding is
  * everything the round had left. **Overpenetration is therefore cheap**: a
  * heavy round through a light hull leaves most of its energy on the far side,
  * which is the honest answer and the reason a shell has a fuse.
+ */
+function walkRound(
+  design: ShipDesign,
+  damage: Damage,
+  bodyIndex: number,
+  path: HullPath,
+  ox: number,
+  oy: number,
+  ux: number,
+  uy: number,
+  along: number,
+  crossing: number,
+  mass: number,
+  calibre: number,
+  speed: number,
+  time: number,
+  out: RoundOutcome,
+): RoundOutcome {
+  out.outcome = Terminal.Perforate;
+  out.skidded = false;
+  out.energy = 0;
+  out.crossed = 0;
+  out.first = -1;
+  out.inside = false;
+
+  const reach = design.radius * 2 + 1;
+  let at = along;
+  let carried = speed;
+  let left = time;
+  // The module a skid left the round inside, which the new line starts on a
+  // face of and must not strike again.
+  let within = -1;
+  for (let skid = 0; ; skid++) {
+    out.ox = ox;
+    out.oy = oy;
+    out.ux = ux;
+    out.uy = uy;
+    out.speed = carried;
+    modulesAlong(design, ox - ux * reach, oy - uy * reach, ox + ux * reach, oy + uy * reach, path);
+
+    let k = crossing;
+    if (k < 0) {
+      k = 0;
+      while (
+        k < path.count &&
+        (path.entry[k]! - reach < -ARRIVAL_SLACK || path.module[k] === within)
+      ) {
+        k++;
+      }
+    }
+    let far = 0;
+    for (let j = 0; j < path.count; j++) far = max(far, path.exit[j]! - reach);
+
+    let skidded = false;
+    for (; k < path.count; k++) {
+      const entry = path.entry[k]! - reach;
+      const gap = max(0, entry - at);
+      if (gap > carried * left) {
+        out.along = at + carried * left;
+        out.crossing = k;
+        out.inside = true;
+        return out;
+      }
+      left -= gap / carried;
+      at = max(at, entry);
+
+      const module = path.module[k]!;
+      const nx = path.nx[k]!;
+      const ny = path.ny[k]!;
+      const incidence = nx === 0 && ny === 0 ? 0 : incidenceAngle(ux, uy, nx, ny);
+      const hit = strike(mass, calibre, carried, design.modules[module]!.stats.wallThickness, incidence);
+
+      damage.absorb(bodyIndex, module, hit.energy);
+      // A round that goes on from one module into the next has gone *through*
+      // the weld between them, and taken its own width out of it. Enough
+      // rounds along the same seam cut the piece free — a gun shearing a wing
+      // off at the root rather than knocking it off.
+      if (k > 0) {
+        damage.cutWeld(bodyIndex, jointBetween(design, path.module[k - 1]!, module), calibre * HOLE_CALIBRES);
+      }
+      if (out.first < 0) {
+        out.first = module;
+        out.firstX = ox + ux * at;
+        out.firstY = oy + uy * at;
+      }
+      out.energy += hit.energy;
+      out.crossed++;
+      out.outcome = hit.outcome;
+      carried = hit.residualSpeed;
+      out.speed = carried;
+
+      if (hit.outcome === Terminal.Embed) {
+        out.along = at;
+        out.speed = 0;
+        return out;
+      }
+      if (hit.outcome === Terminal.Deflect) {
+        out.along = at;
+        if (skid === MAX_SKIDS) return out;
+        // On along a new line from the face, the way the skid sent it.
+        within = k > 0 && path.exit[k - 1]! - reach >= at - ARRIVAL_SLACK ? path.module[k - 1]! : -1;
+        const away = deflected(ux, uy, nx, ny);
+        ox += ux * at;
+        oy += uy * at;
+        ux = away.x;
+        uy = away.y;
+        at = 0;
+        crossing = -1;
+        out.skidded = true;
+        skidded = true;
+        break;
+      }
+    }
+    if (skidded) continue;
+
+    // Through whatever is left of the last module and out the far side.
+    out.crossing = path.count;
+    const gap = far - at;
+    if (gap > carried * left) {
+      out.along = at + carried * left;
+      out.inside = true;
+      return out;
+    }
+    // And on for the rest of the time, so that a hull moving the way the
+    // round is going does not catch up with it and take it in again.
+    const spare = gap > 0 ? left - gap / carried : left;
+    out.along = max(at, far) + (spare < Infinity ? carried * spare : 0);
+    return out;
+  }
+}
+
+/**
+ * Walk a round all the way through the ship it just hit, as though it took no
+ * time to cross.
+ *
+ * The round arrives at `(x, y)` travelling along `(dirX, dirY)`, both in world
+ * coordinates, having been stopped at the face of the first module it met.
+ * `Impacts.rounds` walks the same way a step at a time; this is the whole walk
+ * at once, for asking what a round does to a hull.
  */
 export function resolveRound(
   design: ShipDesign,
@@ -468,81 +660,30 @@ export function resolveRound(
   mass: number,
   calibre: number,
   speed: number,
+  out: RoundOutcome = roundOutcome(),
 ): RoundOutcome {
-  const result: RoundOutcome = {
-    outcome: Terminal.Perforate,
-    distance: 0,
-    exit: 0,
-    speed,
-    dirX,
-    dirY,
-    energy: 0,
-    crossed: 0,
-  };
-
   const angle = bodies.angle[bodyIndex]!;
   const c = cos(angle);
   const s = sin(angle);
   const rx = x - bodies.x[bodyIndex]!;
   const ry = y - bodies.y[bodyIndex]!;
-  // The impact and the heading in the ship's frame, where its modules live.
-  const px = rx * c + ry * s;
-  const py = -rx * s + ry * c;
-  const ux = dirX * c + dirY * s;
-  const uy = -dirX * s + dirY * c;
-
-  // From outside the ship, through it, and out the other side.
-  const reach = design.radius * 2 + 1;
-  modulesAlong(design, px - ux * reach, py - uy * reach, px + ux * reach, py + uy * reach, path);
-
-  let carried = speed;
-  for (let k = 0; k < path.count; k++) {
-    const module = path.module[k]!;
-    const crossing = design.modules[module]!;
-    const nx = path.nx[k]!;
-    const ny = path.ny[k]!;
-    // A crossing with no face was entered from inside, which for a round
-    // arriving from outside means the two faces coincide; square on is the
-    // only answer the geometry supports.
-    const incidence = nx === 0 && ny === 0 ? 0 : incidenceAngle(ux, uy, nx, ny);
-    const hit = strike(mass, calibre, carried, crossing.stats.wallThickness, incidence);
-
-    damage.absorb(bodyIndex, module, hit.energy);
-    // A round that goes on from one module into the next has gone *through*
-    // the weld between them, and taken its own width out of it. Enough rounds
-    // along the same seam cut the piece free — a gun shearing a wing off at
-    // the root rather than knocking it off.
-    if (k > 0) {
-      const from = path.module[k - 1]!;
-      damage.cutWeld(bodyIndex, jointBetween(design, from, module), calibre * HOLE_CALIBRES);
-    }
-    result.energy += hit.energy;
-    result.crossed++;
-    result.outcome = hit.outcome;
-    // Distances are measured from the impact, which is where the cast crossed
-    // the first module rather than where it began.
-    const from = path.entry[0] ?? 0;
-    result.distance = max(0, path.entry[k]! - from);
-    result.exit = max(0, path.exit[k]! - from);
-
-    if (hit.outcome === Terminal.Embed) {
-      result.speed = 0;
-      return result;
-    }
-    if (hit.outcome === Terminal.Deflect) {
-      const away = deflected(ux, uy, nx, ny);
-      // Back into the world frame, where the round is flying.
-      result.dirX = away.x * c - away.y * s;
-      result.dirY = away.x * s + away.y * c;
-      result.speed = hit.residualSpeed;
-      return result;
-    }
-    carried = hit.residualSpeed;
-  }
-
-  // Out the far side, or into a ship it crossed no module of.
-  result.speed = carried;
-  return result;
+  return walkRound(
+    design,
+    damage,
+    bodyIndex,
+    path,
+    rx * c + ry * s,
+    -rx * s + ry * c,
+    dirX * c + dirY * s,
+    -dirX * s + dirY * c,
+    0,
+    -1,
+    mass,
+    calibre,
+    speed,
+    Infinity,
+    out,
+  );
 }
 
 /**
@@ -690,15 +831,30 @@ export const IMPACT_COLLISION = 2;
  */
 export class Impacts {
   private readonly path = new HullPath();
+  private readonly outcome = roundOutcome();
+  /** The design each round inside a hull is walking, by round. */
+  private readonly walking: (ShipDesign | null)[] = [];
   /** Impacts since the last time something drained this. Presentation only. */
   readonly log = new ImpactLog();
 
   /**
-   * Spend every round that hit something this step.
+   * Spend every round that hit something this step, and carry on every round
+   * already passing through a hull.
    *
-   * A round is killed where it stops and resumed where it does not: through
-   * the far side it carries on at what is left of its speed, and off a plate
-   * it carries on along the direction the skid gave it.
+   * **A round takes time to get through a hull.** It goes in at the speed it
+   * arrived at, loses speed at each plate, and crosses a module in the time
+   * that takes — so a round down the length of a capital ship is seen to go
+   * down it, and the far end is hurt after the near end rather than at the
+   * same instant. It is walked in the hull's frame, so it rides the hull while
+   * it is inside, and comes out still flying the way it went in.
+   *
+   * A round is killed where it stops and put back into flight where it does
+   * not: out the far side at what is left of its speed, and off a plate along
+   * the direction the skid gave it.
+   *
+   * `dt` is the step, and a round that hit this step has only the part of it
+   * after the hit to spend. Leave it out to walk every round the whole way at
+   * once.
    */
   rounds(
     designs: HullDesigns,
@@ -708,7 +864,26 @@ export class Impacts {
     hits: ProjectileHits,
     shocks?: Shocked,
     credit?: Credit,
+    dt = Infinity,
   ): void {
+    // Before this step's arrivals, which have only the rest of the step.
+    if (projectiles.insideCount > 0) {
+      for (let round = 0; round < projectiles.highWater; round++) {
+        if (projectiles.alive[round] === 0 || projectiles.inside[round] === NOT_INSIDE) continue;
+        const design = designs.designOf(projectiles.inside[round]!);
+        // Cut down or gone since the last step. The line was in a frame that
+        // no longer exists, so the round goes back into flight from where it
+        // got to, and the cast finds whatever is left in its way — without
+        // striking again the module it was already in.
+        if (design === null || design !== this.walking[round]) {
+          projectiles.leave(round);
+          this.walking[round] = null;
+          continue;
+        }
+        this.walk(design, damage, bodies, projectiles, round, dt, shocks, credit);
+      }
+    }
+
     for (let i = 0; i < hits.count; i++) {
       const round = hits.projectile[i]!;
       const body = hits.body[i]!;
@@ -727,47 +902,94 @@ export class Impacts {
         continue;
       }
 
-      const mass = projectiles.mass[round]!;
-      const outcome = resolveRound(
-        design,
-        damage,
-        bodies,
-        body,
-        this.path,
-        x,
-        y,
-        vx / speed,
-        vy / speed,
-        mass,
-        projectiles.width[round]!,
-        speed,
-      );
-      this.log.push(x, y, outcome.energy, IMPACT_ROUND, bodies, body);
-      credit?.push(projectiles.owner[round]!, body, outcome.energy);
-
-      // What the round left behind: the momentum it lost is the momentum the
-      // ship gained, which is a shove and — where it lands — a blow the hull
-      // has to hold together under.
-      const jx = mass * (vx - outcome.dirX * outcome.speed);
-      const jy = mass * (vy - outcome.dirY * outcome.speed);
-      shove(bodies, body, jx, jy, x, y);
-      if (shocks !== undefined && this.path.count > 0) {
-        shocks.blow(body, this.path.module[0]!, jx, jy, x, y);
-      }
-
-      if (outcome.speed <= 0) {
-        projectiles.kill(round);
-        continue;
-      }
-      // Back into flight from where it got to, which is the far side of the
-      // last module it crossed or the face it skidded off.
-      const travelled = outcome.outcome === Terminal.Deflect ? outcome.distance : outcome.exit;
-      projectiles.x[round] = x + (vx / speed) * travelled;
-      projectiles.y[round] = y + (vy / speed) * travelled;
-      projectiles.vx[round] = outcome.dirX * outcome.speed;
-      projectiles.vy[round] = outcome.dirY * outcome.speed;
-      projectiles.resume(round);
+      const angle = bodies.angle[body]!;
+      const c = cos(angle);
+      const s = sin(angle);
+      const rx = x - bodies.x[body]!;
+      const ry = y - bodies.y[body]!;
+      const ux = vx / speed;
+      const uy = vy / speed;
+      projectiles.enter(round, body, rx * c + ry * s, -rx * s + ry * c, ux * c + uy * s, -ux * s + uy * c);
+      this.walking[round] = design;
+      const time = dt === Infinity ? dt : (1 - hits.t[i]!) * dt;
+      this.walk(design, damage, bodies, projectiles, round, time, shocks, credit);
     }
+  }
+
+  /** Walk one round inside a hull on through it for `time` seconds. */
+  private walk(
+    design: ShipDesign,
+    damage: Damage,
+    bodies: Bodies,
+    projectiles: Projectiles,
+    round: number,
+    time: number,
+    shocks?: Shocked,
+    credit?: Credit,
+  ): void {
+    const body = projectiles.inside[round]!;
+    const mass = projectiles.mass[round]!;
+    const vx = projectiles.vx[round]!;
+    const vy = projectiles.vy[round]!;
+    const speed = sqrt(vx * vx + vy * vy);
+    const out = walkRound(
+      design,
+      damage,
+      body,
+      this.path,
+      projectiles.lineX[round]!,
+      projectiles.lineY[round]!,
+      projectiles.lineUx[round]!,
+      projectiles.lineUy[round]!,
+      projectiles.along[round]!,
+      projectiles.crossing[round]!,
+      mass,
+      projectiles.width[round]!,
+      speed,
+      time,
+      this.outcome,
+    );
+
+    const angle = bodies.angle[body]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    const bx = bodies.x[body]!;
+    const by = bodies.y[body]!;
+    // Where it has got to, back in the world.
+    const lx = out.ox + out.ux * out.along;
+    const ly = out.oy + out.uy * out.along;
+    projectiles.x[round] = bx + lx * c - ly * s;
+    projectiles.y[round] = by + lx * s + ly * c;
+
+    if (out.first >= 0) {
+      // It keeps flying the way it was in the world, unless it skidded.
+      const dirX = out.skidded ? out.ux * c - out.uy * s : vx / speed;
+      const dirY = out.skidded ? out.ux * s + out.uy * c : vy / speed;
+      projectiles.vx[round] = dirX * out.speed;
+      projectiles.vy[round] = dirY * out.speed;
+
+      const px = bx + out.firstX * c - out.firstY * s;
+      const py = by + out.firstX * s + out.firstY * c;
+      this.log.push(px, py, out.energy, IMPACT_ROUND, bodies, body);
+      credit?.push(projectiles.owner[round]!, body, out.energy);
+      // The momentum the round lost is the momentum the ship gained, which is
+      // a shove and — where it lands — a blow the hull has to hold together
+      // under.
+      const jx = mass * (vx - projectiles.vx[round]!);
+      const jy = mass * (vy - projectiles.vy[round]!);
+      shove(bodies, body, jx, jy, px, py);
+      shocks?.blow(body, out.first, jx, jy, px, py);
+    }
+
+    if (out.inside) {
+      if (out.skidded) projectiles.enter(round, body, out.ox, out.oy, out.ux, out.uy);
+      projectiles.along[round] = out.along;
+      projectiles.crossing[round] = out.crossing;
+      return;
+    }
+    if (out.speed <= 0) projectiles.kill(round);
+    else projectiles.leave(round);
+    this.walking[round] = null;
   }
 
   /**

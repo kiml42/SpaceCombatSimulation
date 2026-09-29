@@ -44,9 +44,9 @@ import type { Hulls } from './hull.js';
  * something else to say what became of it.
  *
  * That is what lets terminal ballistics live outside this file. A round that
- * penetrates is consumed with `kill`; one that embeds in the hull is consumed
- * after its mass and momentum are transferred; one that deflects has its
- * velocity rewritten and is returned to flight with `resume`. Ballistics does
+ * penetrates is taken `inside` the hull and walked through it; one that
+ * embeds is consumed after its mass and momentum are transferred; one that
+ * deflects has its velocity rewritten and is returned to flight with `resume`. Ballistics does
  * not need to know which, and consuming a round unilaterally would already be
  * applying an outcome.
  *
@@ -58,6 +58,8 @@ import type { Hulls } from './hull.js';
 
 /** A projectile with no firing ship to pass through. */
 export const NO_OWNER = -1;
+/** A projectile in open flight rather than passing through a hull. */
+export const NOT_INSIDE = -1;
 
 export interface ProjectileSpec {
   x: number;
@@ -194,12 +196,32 @@ export class Projectiles {
    * this file.
    */
   pending!: Uint8Array;
+  /**
+   * The body a round is passing through, or `NOT_INSIDE` for one in open
+   * flight. A round inside a hull is not cast: the damage model carries it
+   * through, a step's travel at a time, so a long hull takes time to cross.
+   */
+  inside!: Int32Array;
+  /**
+   * The line a round is walking through that hull, in the hull's own frame:
+   * where it went in, and which way.
+   */
+  lineX!: Float64Array;
+  lineY!: Float64Array;
+  lineUx!: Float64Array;
+  lineUy!: Float64Array;
+  /** How far along that line it has got, metres. */
+  along!: Float64Array;
+  /** The next crossing on the line it has yet to strike, or -1 to find it. */
+  crossing!: Int32Array;
 
   capacity = 0;
   /** Rounds currently in flight, including those awaiting resolution. */
   count = 0;
   /** Rounds stopped at an impact, awaiting resolution. */
   pendingCount = 0;
+  /** Rounds passing through a hull. */
+  insideCount = 0;
   /** One past the highest slot ever used; loops may stop here. */
   highWater = 0;
 
@@ -240,6 +262,14 @@ export class Projectiles {
     const pending = new Uint8Array(capacity);
     if (this.pending) pending.set(this.pending);
     this.pending = pending;
+
+    this.inside = i32(this.inside);
+    this.lineX = f64(this.lineX);
+    this.lineY = f64(this.lineY);
+    this.lineUx = f64(this.lineUx);
+    this.lineUy = f64(this.lineUy);
+    this.along = f64(this.along);
+    this.crossing = i32(this.crossing);
 
     this.capacity = capacity;
   }
@@ -285,6 +315,7 @@ export class Projectiles {
     this.kind[i] = kind;
     this.alive[i] = 1;
     this.pending[i] = 0;
+    this.inside[i] = NOT_INSIDE;
     this.count++;
     return i;
   }
@@ -316,6 +347,10 @@ export class Projectiles {
       this.pending[i] = 0;
       this.pendingCount--;
     }
+    if (this.inside[i] !== NOT_INSIDE) {
+      this.inside[i] = NOT_INSIDE;
+      this.insideCount--;
+    }
     this.alive[i] = 0;
     this.free.push(i);
     this.count--;
@@ -336,15 +371,41 @@ export class Projectiles {
     this.pendingCount--;
   }
 
+  /**
+   * Take a pending round into the hull it hit, to be walked through it along
+   * `(ux, uy)` from `(x, y)`, both in that hull's frame.
+   */
+  enter(i: number, body: number, x: number, y: number, ux: number, uy: number): void {
+    if (i < 0 || i >= this.highWater || this.alive[i] === 0) return;
+    this.resume(i);
+    if (this.inside[i] === NOT_INSIDE) this.insideCount++;
+    this.inside[i] = body;
+    this.lineX[i] = x;
+    this.lineY[i] = y;
+    this.lineUx[i] = ux;
+    this.lineUy[i] = uy;
+    this.along[i] = 0;
+    this.crossing[i] = -1;
+  }
+
+  /** Return a round that has come out of a hull to open flight. */
+  leave(i: number): void {
+    if (i < 0 || i >= this.highWater || this.inside[i] === NOT_INSIDE) return;
+    this.inside[i] = NOT_INSIDE;
+    this.insideCount--;
+  }
+
   /** Remove every round. */
   clear(): void {
     for (let i = 0; i < this.highWater; i++) {
       this.alive[i] = 0;
       this.pending[i] = 0;
+      this.inside[i] = NOT_INSIDE;
     }
     this.free.length = 0;
     this.count = 0;
     this.pendingCount = 0;
+    this.insideCount = 0;
     this.highWater = 0;
   }
 
@@ -374,7 +435,7 @@ export class Projectiles {
     const hit = this.hit;
 
     for (let i = 0; i < this.highWater; i++) {
-      if (this.alive[i] === 0 || this.pending[i] === 1) continue;
+      if (this.alive[i] === 0 || this.pending[i] === 1 || this.inside[i] !== NOT_INSIDE) continue;
 
       if (wells !== undefined) {
         let ax = 0;
