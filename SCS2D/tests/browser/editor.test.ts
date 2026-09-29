@@ -344,6 +344,24 @@ describe('the editor in a browser', () => {
     expect(await page.isHidden('#assemblyPanel')).toBe(false);
   });
 
+  it('dissolves an assembly back into its modules, leaving them picked', async () => {
+    await openShip(page, 'Corvette');
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x + 168, centre.y);
+    await page.keyboard.down('Shift');
+    await page.mouse.click(centre.x, centre.y);
+    await page.keyboard.up('Shift');
+    await page.click('#propAssembly');
+    expect(await page.isHidden('#assemblyPanel')).toBe(false);
+
+    await page.click('#assemblyDissolve');
+    expect(await page.isHidden('#assemblyPanel')).toBe(true);
+    expect(await page.textContent('#assemblyCount')).toMatch(/2 picked/);
+    // Picked, and so ready to be assembled again.
+    expect(await page.isDisabled('#propAssembly')).toBe(false);
+    await page.click('#undo');
+  });
+
   it('nests one assembly in another, and adds an assembly to one that is placed', async () => {
     await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);

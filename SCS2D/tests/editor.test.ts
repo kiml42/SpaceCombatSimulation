@@ -26,6 +26,7 @@ import {
   addToAssembly,
   addToAssemblyProblem,
   cloneBlueprint,
+  dissolveInstance,
   duplicateInstance,
   duplicatePlacement,
   createAssembly,
@@ -2133,6 +2134,85 @@ describe('nesting assemblies', () => {
     const twice = duplicateInstance(before, at(1))!;
     expect(addToAssemblyProblem(twice.blueprint, at(1), [twice.path])).toMatch(/inside itself/);
     expect(addToAssemblyProblem(before, at(1), [at(1)])).toMatch(/itself/);
+  });
+});
+
+describe('dissolving an assembly', () => {
+  const bar: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 2, width: 1 };
+  const layout = (): Blueprint => ({
+    name: 'Dissolve',
+    assemblies: {
+      pod: {
+        modules: [
+          { ...bar, x: 1 },
+          { kind: 'engine', x: 2, y: 0.5, angle: math.HALF_PI, length: 1, width: 1 },
+        ],
+      },
+      boom: { modules: [{ ...bar }, { use: 'pod', x: 0, y: 2, angle: 0.5 }] },
+    },
+    modules: [
+      { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+      { use: 'pod', x: 6, y: 1, angle: math.HALF_PI, mirror: true },
+      {
+        use: 'boom',
+        x: -6,
+        y: 0,
+        angle: 1,
+        mirror: true,
+        repeat: 2,
+        step: { x: 0, y: 3, angle: 0.25 },
+        extra: [{ ...bar, x: 4, y: -1, angle: 0.3 }],
+      },
+      { ...bar, x: 3, y: -3 },
+    ],
+  });
+  const at = (index: number): ModulePath => [{ index, copy: 0 }];
+
+  it('leaves a plain copy compiling to exactly the same ship, in the same order', () => {
+    const before = layout();
+    const dissolved = dissolveInstance(before, at(1))!;
+    expect(expandBlueprint(dissolved.blueprint)).toEqual(expandBlueprint(before));
+    expect(dissolved.paths).toEqual([at(1), at(2)]);
+  });
+
+  it('keeps the other copies linked, and the definition while anything places it', () => {
+    const twice = duplicateInstance(layout(), at(1))!.blueprint;
+    const dissolved = dissolveInstance(twice, at(1))!.blueprint;
+    expect(dissolved.assemblies!.pod).toBeDefined();
+    expect(dissolved.modules.filter((m) => 'use' in m && m.use === 'pod')).toHaveLength(1);
+  });
+
+  it('drops a definition nothing places any more', () => {
+    const dissolved = dissolveInstance(layout(), at(1))!.blueprint;
+    // `boom` still places `pod`, so it stays.
+    expect(dissolved.assemblies!.pod).toBeDefined();
+    const again = dissolveInstance(dissolved, at(3))!.blueprint;
+    expect(again.assemblies!.boom).toBeUndefined();
+  });
+
+  it('takes a repeated, turned, reflected copy apart one level, extras included', () => {
+    const before = layout();
+    const dissolved = dissolveInstance(before, at(2))!;
+    expect(drawn(dissolved.blueprint)).toEqual(drawn(before));
+    // Two copies of a bar, a nested pod and the extra bar.
+    expect(dissolved.paths).toHaveLength(6);
+    const pods = dissolved.paths.map((path) => placementAt(dissolved.blueprint, path)!);
+    expect(pods.filter((p) => 'use' in p && p.use === 'pod')).toHaveLength(2);
+  });
+
+  it('works on an assembly inside another, changing every copy of the outer one alike', () => {
+    const before = layout();
+    const nested: ModulePath = [
+      { index: 2, copy: 0, into: 'assembly', assembly: 'boom' },
+      { index: 1, copy: 0 },
+    ];
+    const dissolved = dissolveInstance(before, nested)!;
+    expect(drawn(dissolved.blueprint)).toEqual(drawn(before));
+    expect(dissolved.blueprint.assemblies!.boom!.modules).toHaveLength(3);
+  });
+
+  it('refuses a module', () => {
+    expect(dissolveInstance(layout(), at(0))).toBeNull();
   });
 });
 

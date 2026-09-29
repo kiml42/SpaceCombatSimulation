@@ -30,6 +30,7 @@ import {
   addModuleTo,
   addToAssembly,
   addToAssemblyProblem,
+  dissolveInstance,
   duplicateInstance,
   duplicatePlacement,
   countInstances,
@@ -243,6 +244,7 @@ export function startEditor(): void {
   const assemblyStepY = el<HTMLInputElement>('assemblyStepY');
   const assemblyStepAngle = el<HTMLInputElement>('assemblyStepAngle');
   const assemblyDuplicate = el<HTMLButtonElement>('assemblyDuplicate');
+  const assemblyDissolve = el<HTMLButtonElement>('assemblyDissolve');
   const assemblyDelete = el<HTMLButtonElement>('assemblyDelete');
   const saveButton = el<HTMLButtonElement>('saveShip');
   const exportButton = el<HTMLButtonElement>('exportShip');
@@ -1270,6 +1272,18 @@ export function startEditor(): void {
     // The new copy is selected, not the old one: it is the one about to be
     // mirrored or dragged.
     doc.select(placed.path);
+    refresh();
+  });
+
+  assemblyDissolve.addEventListener('click', () => {
+    const path = doc.selection;
+    if (path === null) return;
+    const dissolved = dissolveInstance(doc.blueprint, path);
+    if (dissolved === null) return;
+    doc.apply(dissolved.blueprint);
+    // What it was made of stays picked, ready to be assembled differently.
+    doc.select(dissolved.paths[0] ?? null);
+    for (const each of dissolved.paths.slice(1)) doc.togglePath(each);
     refresh();
   });
 

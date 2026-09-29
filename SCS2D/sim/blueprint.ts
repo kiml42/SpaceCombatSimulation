@@ -683,7 +683,7 @@ export const MAX_EXPANDED_MODULES = 1024;
  * different bits, which a checksum over raw doubles notices even though
  * nothing else does.
  */
-function foldAngle(a: number): number {
+export function foldAngle(a: number): number {
   let r = normalizeAngle(a);
   if (r <= -PI) r += TAU;
   else if (r > PI) r -= TAU;

@@ -157,6 +157,7 @@ export {
   expandBlueprint,
   expandWithOrigins,
   firingArc,
+  foldAngle,
   MAX_EXPANDED_MODULES,
   MAX_REPEAT,
   isInstance,
