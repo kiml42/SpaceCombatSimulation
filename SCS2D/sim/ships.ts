@@ -544,6 +544,12 @@ export class Ships {
    * `shipByBody` is the body's *primary* — the one that answers for its shape.
    */
   private readonly pilots: (Int32Array | null)[] = [];
+  /**
+   * Body index → the side each module came from, for drawing; null where it is
+   * all the primary's. A hull that hooked a piece of somebody else's keeps it
+   * in that side's colours, as a severed piece does.
+   */
+  private readonly sides: (Int32Array | null)[] = [];
 
   /**
    * Blows waiting to be answered: an impulse at a point on a hull, world
@@ -849,6 +855,7 @@ export class Ships {
     this.bodyStore = world.bodies;
     this.shipByBody[bodyIdx] = this.alive.length;
     this.pilots[bodyIdx] = null;
+    this.sides[bodyIdx] = null;
     this.hullDesign[bodyIdx] = design;
     this.hullBody[bodyIdx] = id;
     this.damage.register(bodyIdx, design);
@@ -2575,6 +2582,7 @@ export class Ships {
     this.damage.forget(bo);
     this.shipByBody[bo] = -1;
     this.pilots[bo] = null;
+    this.sides[bo] = null;
     if (flown) {
       const old = this.turretIndex[other]!;
       for (let t = 0; t < old.length; t++) this.turrets.remove(old[t]!);
@@ -2661,6 +2669,29 @@ export class Ships {
       radius = max(radius, length(bodies.x[b]! - x, bodies.y[b]! - y));
     }
     return { x, y, radius };
+  }
+
+  /** The side module `m` of body `b` came from. */
+  private sideAt(b: number, m: number): number {
+    const sides = this.sides[b];
+    return sides === null || sides === undefined ? this.team[this.shipByBody[b]!]! : sides[m]!;
+  }
+
+  /** The side module `m` of the body ship `i` rides came from, for drawing it in that side's colours. */
+  moduleSide(i: number, m: number): number {
+    const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
+    return b < 0 ? this.team[i]! : this.sideAt(b, m);
+  }
+
+  /** Each module's side, or null if every one is `team`'s. */
+  private sidesOf(sideOf: (m: number) => number, count: number, team: number): Int32Array | null {
+    let mixed = false;
+    const sides = new Int32Array(count);
+    for (let m = 0; m < count; m++) {
+      sides[m] = sideOf(m);
+      if (sides[m] !== team) mixed = true;
+    }
+    return mixed ? sides : null;
   }
 
   /** Whether ship `i`, riding body index `b`, works module `m` of it. */
@@ -3076,6 +3107,7 @@ export class Ships {
       this.weldScarsOf(b, design, chunk, keep),
     );
     this.shipByBody[chunkBody] = j;
+    this.sides[chunkBody] = this.sidesOf((m) => this.sideAt(b, keep[m]!), keep.length, this.team[j]!);
     return true;
   }
 
@@ -3125,6 +3157,7 @@ export class Ships {
   ): void {
     const bodies = this.bodyStore!;
     const bodyOf = (ship: number): number => bodies.indexOf(this.bodyIds[ship]!);
+    const sides = this.sidesOf((m) => this.sideAt(bodyOf(shipOf(m)), moduleOf(m)), design.modules.length, this.team[i]!);
     const scars: number[] = [];
     for (let m = 0; m < design.modules.length; m++) scars.push(this.damage.absorbedAt(bodyOf(shipOf(m)), moduleOf(m)));
     // A weld half sawn through stays half sawn through; a seam is new.
@@ -3178,6 +3211,7 @@ export class Ships {
 
     this.designs[i] = design;
     this.hullDesign[b] = design;
+    this.sides[b] = sides;
     this.turretIndex[i] = indices;
     this.cooldown[i] = cooldown;
     this.turretStates[i] = states;

@@ -199,6 +199,24 @@ describe('welding on a slow contact', () => {
       }
     });
 
+    it('keeps a side\'s colours on what it leaves hooked to the other', () => {
+      // In `hooked` the blue ship's core is shot away from the pair, leaving
+      // some of its hull on the red one: red's now, and still drawn blue.
+      const run = hookedScenario();
+      const snapshot = new Snapshot();
+      let leftBehind = false;
+      for (let s = 0; s < 3000 && !leftBehind; s++) {
+        run.step();
+        if (run.ships.body(0) === run.ships.body(1)) continue;
+        capture(snapshot, run.world, run.ships, run.projectiles, run.beams);
+        for (let v = 0; v < snapshot.shipCount; v++) {
+          const view = snapshot.ships[v]!;
+          if (view.sides!.some((side, m) => side !== view.team && view.drawn![m])) leftBehind = true;
+        }
+      }
+      expect(leftBehind).toBe(true);
+    });
+
     it('draws every module once, in its own ship', () => {
       const run = hooked();
       const snapshot = capture(new Snapshot(), run.world, run.ships, run.projectiles, run.beams);
