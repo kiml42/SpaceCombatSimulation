@@ -374,6 +374,28 @@ describe('the editor in a browser', () => {
     await page.click('#undo');
   });
 
+  it('adds a new module into the selected assembly', async () => {
+    await openShip(page, 'Corvette');
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x + 168, centre.y);
+    await page.keyboard.down('Shift');
+    await page.mouse.click(centre.x, centre.y);
+    await page.keyboard.up('Shift');
+    await page.click('#propAssembly');
+    const name = await page.inputValue('#assemblyName');
+    expect(await page.textContent('#addHeading')).toBe(`Add a module to ${name}`);
+
+    await page.click('[data-add="engine"]');
+    expect(await page.inputValue('#propKind')).toBe('engine');
+    // At the assembly's own origin, which is the first module picked.
+    expect(await page.inputValue('#propX')).toBe('0');
+    expect(await page.inputValue('#propY')).toBe('0');
+    await page.click('#propSelectAssembly');
+    expect(await page.textContent('#assemblyOf')).toMatch(/^3 modules/);
+    await page.click('#undo');
+    expect(await page.textContent('#assemblyOf')).toMatch(/^2 modules/);
+  });
+
   it('picks the whole assembly first, and the module inside it on a second click', async () => {
     // An assembly is a part, so clicking it selects the part. Reaching what is
     // inside is deliberate rather than accidental: click it again, once the

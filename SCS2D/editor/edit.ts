@@ -215,6 +215,36 @@ export function addModule(
 }
 
 /**
+ * Add a module to the end of an assembly's own list, given in the assembly's
+ * frame, and say where it landed — or null if the path is not an assembly.
+ *
+ * The definition gains it, so every copy of the assembly does. Appended for
+ * the same reason `addModule` appends: module order is part of the ship.
+ */
+export function addModuleTo(
+  blueprint: Blueprint,
+  instance: ModulePath,
+  spec: ModuleSpec,
+): { blueprint: Blueprint; path: ModulePath } | null {
+  const placed = placementAt(blueprint, instance);
+  if (placed === null || !isInstance(placed)) return null;
+  const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
+  const definition = copy.assemblies?.[placed.use];
+  if (definition === undefined) return null;
+  const index = definition.modules.length;
+  definition.modules.push(spec);
+  const last = instance[instance.length - 1]!;
+  return {
+    blueprint: copy as unknown as Blueprint,
+    path: [
+      ...instance.slice(0, -1),
+      { index: last.index, copy: last.copy, into: 'assembly', assembly: placed.use },
+      { index, copy: 0 },
+    ],
+  };
+}
+
+/**
  * Turn a movement in the blueprint's frame into one in the frame a placement
  * was written in.
  *
