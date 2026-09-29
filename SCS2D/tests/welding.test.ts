@@ -92,7 +92,7 @@ describe('welding on a slow contact', () => {
     const before = totals(run.world);
     runUntilWelded(run);
     expect(run.totalWelded).toBe(1);
-    // Hulks rather than wreckage — somebody is still aboard — so both ride it.
+    // Hulks rather than wreckage — ships whose cores are out — so both ride it.
     expect(run.ships.body(run.a)).toBe(run.ships.body(run.b));
     expect(run.world.bodies.count).toBe(1);
     const after = totals(run.world);
