@@ -48,9 +48,15 @@ an entry is either still open or it is gone.
 | 4 | Headless evolution and analysis | Built |
 | 5 | v1: skirmish | Partly built |
 | 6 | Editor restructuring | Not started |
-| 7 | Salvage and in-battle construction | Not started |
-| 8 | Mining and the two-resource economy | Not started |
-| 9 | Campaign | Not started |
+| 7 | Two layers | Not started |
+| 8 | Fuel | Not started |
+| 9 | Fuel harvesting | Not started |
+| 10 | Raw material | Not started |
+| 11 | Power | Not started |
+| 12 | In-battle construction | Not started |
+| 13 | Harvesting wrecks | Not started |
+| 14 | Mining | Not started |
+| 15 | Campaign | Not started |
 
 ### Partly built — what is left
 
@@ -112,14 +118,47 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
    — only the editor does not build it. Evolution's mutation operator already dissolves the plain case (one
    copy, no extras, nothing nested), so what the editor is short of is the interface rather than the
    arithmetic.
-7. **Salvage and in-battle construction** — wrecks from the current battle as the resource. The natural
-   bridge to an economy: no map features needed, and it ties income directly to combat.
-8. **Mining and the two-resource economy** — metals for hulls, volatiles for propellant, so maps can have
-   economic character and scarcity changes behaviour. *Note: this is a re-balance, not an addition — it
-   lengthens battles and replaces "did I spend 500 points well?" with "did I manage income well?". Scenarios
-   will need revisiting.*
-9. **Campaign** — Homeworld-shaped, with the adaptive enemy. Last, because it's mostly *authoring* (scripted
-   missions, pacing, narrative), which is the largest volume of work in the least-proven discipline.
+7. **Two layers** — the hull layer (the deck and below: hulls, their internals and hull-mounted weapons) and
+   the weapons layer above it (raised, "thick" modules and turrets, and later strike craft), as §3 already
+   describes and nothing yet implements. §12 tabulates what changes: firing arcs, traverse and projectile hits
+   read a *raised* flag, turrets and main engines are raised, structure may be either, and a hull weapon fires
+   in the hull layer. Before the resources, because it decides what each of them can be hit by: tanks, stores
+   and plants are hull internals, out of reach of deck turrets, so where they sit and what can reach them is
+   the layer question.
+
+Steps 8 to 13 walk into the resource system one resource and one use at a time, fuel first: it is the
+scarcity every battle feels (§2), and much of §12 is parked until it exists — what a longer bell buys, the
+dead zone on attitude hold, propellant-optimal allocation, how severed chunks divide their stores, and running
+cost. *Note: fuel is a re-balance, not an addition — tank mass moves the golden checksums, battles become
+about managing what a ship carries, and scenarios will need revisiting.*
+
+**The core carries a little of each resource as it arrives** — a built-in tank, store and generator, scaled
+with its size — so a bare core with one engine or one weapon can act, and a bigger core is worth its bulk.
+Today the best core is the smallest, most armoured one that can hide from a hit; this gives size a price in
+both directions.
+
+8. **Fuel** — tanks that start full and are drawn on by every engine, so a ship can run dry. With it, **leaks**:
+   a holed tank loses fuel and pushes on the hull at the hole. Leaks are what price tank size and placement —
+   without them evolution finds the one enormous tank (§5) — and sealing is what stops one hole ending a
+   battle (see §12). Fuel and its tanks join step 5's budget of materials.
+9. **Fuel harvesting** — siphoning what is left in a wreck, the first salvage, since pumping a liquid needs no
+   construction. It needs a part that holds a wreck to drain it, and a pilot that goes after one: an order or
+   picker for a wreck with fuel left, and a judgement about when to break off for it, close to step 3's
+   withdrawal. The pilot may cost more than the part.
+10. **Raw material** — a store of metal, spent as ammunition and on repair. It answers §12's ammunition
+    granularity and brings in the other half of §2's scarcity.
+11. **Power** — a generator that beams draw on, refilling each mount's bank at what the plant can spare, and a
+    module to hit to silence them. Straight after raw material, because once guns spend ammunition and beams
+    spend nothing, beams win by default; a plant gives them a resource to run short of and a part to lose.
+12. **In-battle construction** — new modules made from raw material during a battle, and new ships budded off.
+    The largest of the steps: it needs the build-time and complexity metric §2 leaves open, and build doctrine.
+13. **Harvesting wrecks** — metal regained from wreckage, with the grapple step 9 built. The natural bridge to
+    an economy: no map features needed, and income tied directly to combat.
+14. **Mining** — metal and fuel from map features, so maps have economic character. By here both resources
+    exist, so this step is the map and the income, not the resources. *It replaces "did I spend 500 points
+    well?" with "did I manage income well?"*
+15. **Campaign** — Homeworld-shaped, with the adaptive enemy. Last, because it's mostly *authoring* (scripted
+    missions, pacing, narrative), which is the largest volume of work in the least-proven discipline.
 
 **Scenario packs** are the cheapest way to make it a game with goals rather than a sandbox, and they teach the
 mechanics. Each scenario is a data file, not code.
@@ -461,6 +500,18 @@ Deliberately unresolved; decide when they block something.
   than in hull radii, and the urge wants a way to dominate rather than merely to vote. Neither is a large
   change; both want a scene to tune against, and the crowded ones are the Star Wars fleet action and the
   super-swarm.
+- **How a leak is sealed.** Suggested: sealing as a continuous parameter on a tank — how fast a hole closes,
+  bought with wall mass — rather than a separate self-sealing part, which is the §6 rule of archetypes with
+  continuous parameters and gives evolution a dial. A leak is also a new kind of damage response: today's are
+  capability curves over integrity, and a leak is an ongoing effect at a point, whose push needs to know where
+  the round struck. Check that the damage pass keeps the point before scoping step 8.
+- **Whether a grapple is a dock.** Step 9's hold on a wreck is a deliberate dock, and slice 0 still owes weld
+  on slow contact, which the docs call what makes a dock a dock. Suggested: build the grapple on the weld
+  rather than as a joint of its own — or decide on purpose that a tether is something else.
+- **Whether harvesting wrecks should come before construction.** Once metal has uses (rounds and repair) and
+  a grapple exists, harvesting could come straight after step 10, keeping each step small and leaving
+  construction, the largest, until last. The order built puts construction first, as the big use metal is
+  harvested for.
 - **How severed chunks divide fuel, ammunition and power.** Which piece goes on being a ship is settled —
   the one holding a working core, and every other piece with one becomes a ship of its own (DESIGN.md §4)
   — but what a piece takes *with* it is not. The interesting case is a magazine cut off from the gun it
@@ -645,7 +696,7 @@ Deliberately unresolved; decide when they block something.
   What the split buys is a better mission kill than "disabled". A ship stripped of its main engines still
   has manoeuvring thrusters on long moment arms, so it can still *rotate* well while barely translating: a
   fixed battery that can bring guns to bear but cannot close, break off, or dictate range. That is a state
-  worth fighting rather than a formality, and it is the drifting hulk §3 wants and the salvage §8 step 7
+  worth fighting rather than a formality, and it is the drifting hulk §3 wants and the salvage of §8 steps 9 and 13
   feeds on. Worth knowing that `hasFullAuthority()` is called by the editor's stats and tests and never by
   the sim, so a damaged ship failing it costs nothing — it looks like it would matter and does not.
 - **How a gun reaches the hull layer at all: proximity fuses.** §3 says HE shells give small guns light hull

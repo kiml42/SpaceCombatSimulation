@@ -429,7 +429,8 @@ inside any one file is not contiguous.
   that does not evolve, at the middle of the ring where the goal would be, each scored for what it does to
   the boss alone.
 - **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL — or step 6,
-  in ROADMAP.md §8.
+  editor restructuring; then step 7, the two layers, and step 8, fuel, which starts the resource system.
+  See ROADMAP.md §8.
   §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio
