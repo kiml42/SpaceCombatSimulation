@@ -247,7 +247,7 @@ export class Bodies {
   }
 
   /**
-   * A body-frame force applied at a body-frame point — the thruster case, and
+   * A body-frame force applied at a body-frame point — the engine case, and
    * the reason it exists as one call: doing it from outside would need either
    * an allocated vector or two rotations of the same angle.
    */
@@ -272,9 +272,9 @@ export class Bodies {
 
   /**
    * A body-frame force through the centre of mass plus a torque, applied
-   * together — the output of thruster allocation, which has already summed the
+   * together — the output of engine allocation, which has already summed the
    * whole layout. Doing it as one call takes a single sine and cosine for the
-   * ship instead of one per thruster.
+   * ship instead of one per engine.
    */
   applyLocalWrench(id: BodyId, localFx: number, localFy: number, torque: number): void {
     const i = this.indexOf(id);

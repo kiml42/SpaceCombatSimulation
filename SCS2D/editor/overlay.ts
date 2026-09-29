@@ -182,7 +182,7 @@ function drawFaults(ctx: CanvasRenderingContext2D, view: OverlayView): void {
 /**
  * Outline every copy the selection draws, the grabbed one brightest.
  *
- * Showing the others is the whole point rather than a courtesy: a thruster
+ * Showing the others is the whole point rather than a courtesy: an engine
  * placed eight times moves eight times when it is dragged once, and an editor
  * that let that come as a surprise would be worse than one with no assemblies
  * at all.
@@ -384,7 +384,7 @@ function drawCentreOfMass(
  * Four numbers on a panel say a ship accelerates hard forwards and poorly
  * sideways; only the curve shows which diagonal it is worst in, and whether a
  * layout is merely weak abeam or has a direction it cannot push at all — the
- * dent that says a thruster is missing.
+ * dent that says an engine is missing.
  *
  * **The filled curve is what the ship can use; the dashed one is what it could
  * have if it did not mind spinning.** The gap between them is what KSP shows

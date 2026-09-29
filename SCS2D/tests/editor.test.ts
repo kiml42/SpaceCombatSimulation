@@ -498,10 +498,10 @@ describe('sizing a module by a handle', () => {
     expect(resizedTo(box, face(1, 1), -5, -9, 10)).toMatchObject({ length: 10, width: 10 });
   });
 
-  it('keeps a thruster bolted on when its nozzle end is dragged', () => {
+  it('keeps an engine bolted on when its nozzle end is dragged', () => {
     // An engine's position is its mounting face, at +l, so dragging the -l end
     // does not move it — and dragging the mounting face moves it with the face.
-    const engine: ModuleSpec = { kind: 'thruster', x: 0, y: 0, angle: 0, length: 4, width: 4 };
+    const engine: ModuleSpec = { kind: 'engine', x: 0, y: 0, angle: 0, length: 4, width: 4 };
     expect(resizedTo(engine, face(-1, 0), -6, 0, 0.5)).toEqual({
       length: 6,
       width: 4,
@@ -597,13 +597,13 @@ describe('sizing a drawn module through the frame it was written in', () => {
   });
 
   it('widens a mirrored pair outward on both sides', () => {
-    // The corvette's retro thrusters are one part placed twice, the second
+    // The corvette's retro engines are one part placed twice, the second
     // mirrored. Widening the port one outward must widen the starboard one
     // outward too, not into the hull.
     const { modules } = expandWithOrigins(CORVETTE);
     const retros = modules
       .map((m, i) => ({ m, i }))
-      .filter(({ m }) => m.kind === 'thruster' && m.angle === math.PI && m.length === 2);
+      .filter(({ m }) => m.kind === 'engine' && m.angle === math.PI && m.length === 2);
     expect(retros).toHaveLength(2);
     const port = retros.find(({ m }) => moduleCentre(m).y > 0)!.i;
     const starboard = retros.find(({ m }) => moduleCentre(m).y < 0)!.i;
@@ -819,7 +819,7 @@ describe('designStats', () => {
     expect(stats.mass).toBe(design.mass);
     expect(stats.inertia).toBe(design.inertia);
     expect(stats.moduleCount).toBe(design.modules.length);
-    expect(stats.fullAuthority).toBe(design.thrusterLayout.hasFullAuthority());
+    expect(stats.fullAuthority).toBe(design.engineLayout.hasFullAuthority());
   });
 
   it('reports the acceleration a ship can use, not the most it can project', () => {
@@ -828,8 +828,8 @@ describe('designStats', () => {
     // The corvette is balanced on its axes, so on the cardinals the two agree —
     // which is what makes the diagonal gap below a statement about the layout
     // rather than about the measurement.
-    expect(stats.accelFore).toBeCloseTo(design.thrusterLayout.maxThrustAlong(1, 0) / design.mass, 2);
-    expect(stats.accelPort).toBeCloseTo(design.thrusterLayout.maxThrustAlong(0, 1) / design.mass, 2);
+    expect(stats.accelFore).toBeCloseTo(design.engineLayout.maxThrustAlong(1, 0) / design.mass, 2);
+    expect(stats.accelPort).toBeCloseTo(design.engineLayout.maxThrustAlong(0, 1) / design.mass, 2);
   });
 
   it('reports a gun in the figures a player compares', () => {
@@ -845,7 +845,7 @@ describe('designStats', () => {
 describe('the manoeuvring envelopes', () => {
   it('samples the unconstrained curve from the bow, anticlockwise', () => {
     const design = new EditorDocument(CORVETTE).view.design!;
-    const layout = design.thrusterLayout;
+    const layout = design.engineLayout;
     const envelope = envelopes(design, 4);
     expect(envelope.free[0]).toBeCloseTo(layout.maxThrustAlong(1, 0) / design.mass, 9);
     expect(envelope.free[1]).toBeCloseTo(layout.maxThrustAlong(0, 1) / design.mass, 9);
@@ -866,7 +866,7 @@ describe('the manoeuvring envelopes', () => {
   it('costs the corvette nothing on its axes and something on the diagonal', () => {
     const design = new EditorDocument(CORVETTE).view.design!;
     const envelope = envelopes(design, 8);
-    // The lateral thrusters are written at x = ±4 while the centre of mass sits
+    // The lateral engines are written at x = ±4 while the centre of mass sits
     // at x = +0.92, pulled forward by the bow turret — so pushing abeam needs
     // trimming, and the trim runs out where the main engine is already at full
     // throttle. That is the whole of what the two curves are drawn to show.
@@ -877,32 +877,32 @@ describe('the manoeuvring envelopes', () => {
   });
 
   it('is zero for a layout whose thrust is balanced about its centre of mass', () => {
-    // One thruster either side of the centre of mass, pushing the same way:
+    // One engine either side of the centre of mass, pushing the same way:
     // the torques cancel, so nothing is given up to avoid spinning.
     const design = new EditorDocument(
       ship({
         modules: [
           { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
-          { kind: 'thruster', x: 6, y: -4, angle: math.HALF_PI, length: 2, width: 3 },
-          { kind: 'thruster', x: -6, y: -4, angle: math.HALF_PI, length: 2, width: 3 },
+          { kind: 'engine', x: 6, y: -4, angle: math.HALF_PI, length: 2, width: 3 },
+          { kind: 'engine', x: -6, y: -4, angle: math.HALF_PI, length: 2, width: 3 },
         ],
       }),
     ).view.design!;
     // Eight samples, so index 2 is abeam to port — the direction those two
-    // thrusters push.
+    // engines push.
     const envelope = envelopes(design, 8);
     expect(envelope.free[2]!).toBeGreaterThan(0);
     expect(envelope.holding[2]).toBeCloseTo(envelope.free[2]!, 6);
   });
 
   it('gives up everything in a direction it can only push by spinning', () => {
-    // One lateral thruster, well forward of the centre of mass, with nothing to
+    // One lateral engine, well forward of the centre of mass, with nothing to
     // cancel the torque it makes.
     const design = new EditorDocument(
       ship({
         modules: [
           { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
-          { kind: 'thruster', x: 6, y: -4, angle: math.HALF_PI, length: 2, width: 3 },
+          { kind: 'engine', x: 6, y: -4, angle: math.HALF_PI, length: 2, width: 3 },
         ],
       }),
     ).view.design!;
@@ -992,7 +992,7 @@ describe('Library', () => {
       name: 'Adrift',
       modules: [
         { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
-        { kind: 'thruster', x: -20, y: 0, angle: 0, length: 3, width: 3 },
+        { kind: 'engine', x: -20, y: 0, angle: 0, length: 3, width: 3 },
       ],
     };
     library.save(adrift);
@@ -1125,7 +1125,7 @@ describe('unlinking a shared module', () => {
     expect(unlinkable(CORVETTE, origins[wing]!)).toBe(4);
 
     const unlinked = unlinkPlacement(CORVETTE, origins[wing]!)!;
-    // Exact, down to module order — which is part of the ship, since thruster
+    // Exact, down to module order — which is part of the ship, since engine
     // allocation and firing both run over it.
     expect(expandBlueprint(unlinked)).toEqual(before);
     expect(unlinked.assemblies?.['wingBox']).toBeUndefined();
@@ -1181,10 +1181,10 @@ describe('moduleReadout', () => {
     expect(readout.gun!.calibre).toBe(stats.gun!.calibre);
   });
 
-  it('gives a thruster a thrust row and a structure module none', () => {
-    const thruster = moduleReadout({ kind: 'thruster', x: 0, y: 0, length: 3, width: 3 });
-    expect(thruster.rows.some(([k]) => k === 'Thrust')).toBe(true);
-    expect(thruster.gun).toBeNull();
+  it('gives an engine a thrust row and a structure module none', () => {
+    const engine = moduleReadout({ kind: 'engine', x: 0, y: 0, length: 3, width: 3 });
+    expect(engine.rows.some(([k]) => k === 'Thrust')).toBe(true);
+    expect(engine.gun).toBeNull();
     const structure = moduleReadout({ kind: 'structure', x: 0, y: 0, length: 3, width: 3 });
     expect(structure.rows.some(([k]) => k === 'Thrust')).toBe(false);
   });
@@ -1262,7 +1262,7 @@ describe('Demonstration', () => {
         modules: [
           { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
           { kind: 'turret', x: 11, y: 0, length: 0.8, width: 0.8, barrels: 2 },
-          { kind: 'thruster', x: -11, y: 0, angle: 0, length: 2, width: 6 },
+          { kind: 'engine', x: -11, y: 0, angle: 0, length: 2, width: 6 },
         ],
       }),
     ).view.design!;
@@ -1276,10 +1276,10 @@ describe('Demonstration', () => {
   it('spools a selected engine up and back down', () => {
     const design = popgun();
     const demo = new Demonstration();
-    const thruster = design.modules.findIndex((m) => m.spec.kind === 'thruster');
+    const engine = design.modules.findIndex((m) => m.spec.kind === 'engine');
     const snapshot = previewSnapshot(design);
 
-    for (let i = 0; i < 120; i++) demo.step(design, [design.modules[thruster]!.index], 1 / 60);
+    for (let i = 0; i < 120; i++) demo.step(design, [design.modules[engine]!.index], 1 / 60);
     demo.writeInto(snapshot);
     expect(Math.max(...snapshot.ships[0]!.throttles)).toBe(1);
 
@@ -1292,8 +1292,8 @@ describe('Demonstration', () => {
   it('burns only the engine that was selected', () => {
     const design = new EditorDocument(GUNSHIP).view.design!;
     const demo = new Demonstration();
-    const thruster = design.modules.findIndex((m) => m.spec.kind === 'thruster');
-    for (let i = 0; i < 120; i++) demo.step(design, [design.modules[thruster]!.index], 1 / 60);
+    const engine = design.modules.findIndex((m) => m.spec.kind === 'engine');
+    for (let i = 0; i < 120; i++) demo.step(design, [design.modules[engine]!.index], 1 / 60);
     const snapshot = previewSnapshot(design);
     demo.writeInto(snapshot);
     expect(snapshot.ships[0]!.throttles.filter((t) => t > 0)).toHaveLength(1);
@@ -1345,7 +1345,7 @@ describe('Demonstration', () => {
         modules: [
           { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
           { kind: 'beamTurret', x: 11, y: 0, length: 4, width: 3 },
-          { kind: 'thruster', x: -11, y: 0, angle: 0, length: 2, width: 6 },
+          { kind: 'engine', x: -11, y: 0, angle: 0, length: 2, width: 6 },
         ],
       }),
     ).view.design!;
@@ -1439,7 +1439,7 @@ describe('grouping modules into an assembly', () => {
         hull,
         { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
         { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
-        { kind: 'thruster', x: -4, y: 9, angle: 0, length: 3, width: 3 },
+        { kind: 'engine', x: -4, y: 9, angle: 0, length: 3, width: 3 },
       ],
     });
 
@@ -1499,15 +1499,15 @@ describe('grouping modules into an assembly', () => {
     expect(definition.modules.map((m) => (m as ModuleSpec).kind)).toEqual([
       'structure',
       'turret',
-      'thruster',
+      'engine',
     ]);
-    // The thruster was picked first, so it is the origin even though it is
+    // The engine was picked first, so it is the origin even though it is
     // written last.
     expect(definition.modules[2]).toMatchObject({ x: 0, y: 0 });
   });
 
   it('appends the instance, which moves the group down the firing order', () => {
-    // Stated because it is a real consequence and not a detail: thrusters are
+    // Stated because it is a real consequence and not a detail: engines are
     // allocated over the columns in order and turrets fire in order, so a
     // layout that depended on the old order flies slightly differently.
     const doc = new EditorDocument(wing());
@@ -1874,7 +1874,7 @@ describe('adding modules to a group', () => {
           { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
           { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
           // The spare, written alongside and added later.
-          { kind: 'thruster', x: -6, y: 6, angle: 0, length: 3, width: 3 },
+          { kind: 'engine', x: -6, y: 6, angle: 0, length: 3, width: 3 },
         ],
       }),
     );
@@ -1895,7 +1895,7 @@ describe('adding modules to a group', () => {
   it('moves the module into the definition, leaving the ship where it was', () => {
     const { doc, group } = wingAndSpare();
     const spare = doc.view.origins.findIndex(
-      (_, i) => doc.view.modules[i]!.kind === 'thruster',
+      (_, i) => doc.view.modules[i]!.kind === 'engine',
     );
     const before = positions(doc.blueprint).sort();
 
@@ -1925,7 +1925,7 @@ describe('adding modules to a group', () => {
     )!;
     const withSpare = new EditorDocument(posed);
     const spare = withSpare.view.origins.findIndex(
-      (_, i) => withSpare.view.modules[i]!.kind === 'thruster',
+      (_, i) => withSpare.view.modules[i]!.kind === 'engine',
     );
     const before = positions(posed).sort();
 
@@ -1941,14 +1941,14 @@ describe('adding modules to a group', () => {
     const twice = duplicateInstance(doc.blueprint, group)!;
     const withSpare = new EditorDocument(twice.blueprint);
     const spare = withSpare.view.origins.findIndex(
-      (_, i) => withSpare.view.modules[i]!.kind === 'thruster',
+      (_, i) => withSpare.view.modules[i]!.kind === 'engine',
     );
-    const thrustersBefore = expandBlueprint(twice.blueprint).filter((m) => m.kind === 'thruster');
+    const enginesBefore = expandBlueprint(twice.blueprint).filter((m) => m.kind === 'engine');
 
     const next = addToGroup(twice.blueprint, group, [withSpare.view.origins[spare]!.path])!.blueprint;
 
-    expect(thrustersBefore).toHaveLength(1);
-    expect(expandBlueprint(next).filter((m) => m.kind === 'thruster')).toHaveLength(2);
+    expect(enginesBefore).toHaveLength(1);
+    expect(expandBlueprint(next).filter((m) => m.kind === 'engine')).toHaveLength(2);
   });
 
   it('offers the operation only when one group and some modules are picked', () => {
@@ -1956,7 +1956,7 @@ describe('adding modules to a group', () => {
     doc.select(group);
     expect(doc.groupAndLooseSelection()).toBeNull();
 
-    const spare = doc.view.origins.findIndex((_, i) => doc.view.modules[i]!.kind === 'thruster');
+    const spare = doc.view.origins.findIndex((_, i) => doc.view.modules[i]!.kind === 'engine');
     doc.togglePath(doc.view.origins[spare]!.path);
     const both = doc.groupAndLooseSelection()!;
     expect(both).not.toBeNull();

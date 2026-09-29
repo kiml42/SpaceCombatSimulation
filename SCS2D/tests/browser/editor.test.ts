@@ -281,8 +281,8 @@ describe('the editor in a browser', () => {
     // screen depends on how the camera framed the ship. A new module is
     // selected the moment it is placed, which is the state under test.
     await page.click('#newShip');
-    await page.click('[data-add="thruster"]');
-    expect(await page.inputValue('#propKind')).toBe('thruster');
+    await page.click('[data-add="engine"]');
+    expect(await page.inputValue('#propKind')).toBe('engine');
     const cold = await warmth();
 
     await page.waitForTimeout(1200);
@@ -299,11 +299,11 @@ describe('the editor in a browser', () => {
     await page.click('#newShip');
     await page.click('[data-add="hullGun"]');
     expect(await page.inputValue('#propAngle')).toBe('0');
-    await page.selectOption('#propKind', 'thruster');
-    expect(await page.inputValue('#propKind')).toBe('thruster');
+    await page.selectOption('#propKind', 'engine');
+    expect(await page.inputValue('#propKind')).toBe('engine');
     expect(await page.inputValue('#propAngle')).toBe('180');
     // The label is what a person calls it; the file keeps its own word.
-    expect(await page.textContent('#propKind option[value="thruster"]')).toBe('engine');
+    expect(await page.textContent('#propKind option[value="engine"]')).toBe('engine');
     await page.click('#undo');
     expect(await page.inputValue('#propKind')).toBe('hullGun');
   });
@@ -397,7 +397,7 @@ describe('the editor in a browser', () => {
     await page.click('#propGroup');
     expect(await page.textContent('#groupOf')).toMatch(/2 modules/);
 
-    // A module outside the group: the corvette's aft thruster, well behind the
+    // A module outside the group: the corvette's aft engine, well behind the
     // hull along the ship's -x.
     await page.keyboard.down('Shift');
     await page.mouse.click(centre.x - 200, centre.y);
@@ -414,7 +414,7 @@ describe('the editor in a browser', () => {
   it('reaches a group from a module inside it', async () => {
     await openShip(page, 'Gunship');
     const centre = await canvasCentre(page);
-    // The gunship's lateral thrusters are one thruster placed eight times, so
+    // The gunship's lateral engines are one engine placed eight times, so
     // any of them is inside an assembly.
     await page.mouse.click(centre.x, centre.y);
     const inGroup = (await page.isDisabled('#propSelectGroup')) === false;
@@ -916,7 +916,7 @@ describe('the editor in a browser', () => {
         name: 'Adrift',
         modules: [
           { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
-          { kind: 'thruster', x: -20, y: 0, angle: 0, length: 3, width: 3 },
+          { kind: 'engine', x: -20, y: 0, angle: 0, length: 3, width: 3 },
         ],
       };
       window.localStorage.setItem('scs2d.blueprint.Adrift', JSON.stringify(broken));

@@ -26,7 +26,7 @@ const MARKER: Blueprint = {
 };
 
 /**
- * The same hull with a thruster on the back, for the one test that needs a
+ * The same hull with an engine on the back, for the one test that needs a
  * hostile hull somebody will deliberately shoot at: a ship that can neither
  * shoot nor move is a hulk, and nothing aims at a hulk whatever side it is
  * on. It carries no gun, so it still never fires.
@@ -35,7 +35,7 @@ const MOBILE_MARKER: Blueprint = {
   name: 'Mobile marker',
   modules: [
     { kind: 'core', x: 0, y: 0, length: 12, width: 12 },
-    { kind: 'thruster', x: -6, y: 0, angle: 0, length: 4, width: 6 },
+    { kind: 'engine', x: -6, y: 0, angle: 0, length: 4, width: 6 },
   ],
 };
 

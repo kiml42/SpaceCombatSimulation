@@ -221,7 +221,7 @@ that answers the question most likely to change the design.
   whole assembly is expanded back inline, exactly; one that shares its assembly leaves the definition and
   every instance gets it as an `extra`, which drops it from any *new* instance and moves it down the
   expansion order.
-- **Module order is part of the ship, so restructuring is not bit-free.** Thruster allocation and firing both
+- **Module order is part of the ship, so restructuring is not bit-free.** Engine allocation and firing both
   run in list order, so a reordered layout does not check-sum the same — though `scenarios/ordering.ts`
   measures the behavioural difference as round-off (8.2e-13 m over 3,000 steps, identical shots and hits),
   too small to be worth warning about when an edit reorders a layout. Adding a module appends, which leaves even the bits alone; the authored ships place symmetric *pairs* adjacently for
@@ -248,7 +248,7 @@ that answers the question most likely to change the design.
 The remaining pickers and the order weight should follow the shape already there:
 
 - **Doctrine is a block in the blueprint file**, shared by reference and copied only when overridden — the
-  same copy-on-write split the thruster layout uses. A mount's own block holds only its *differences* from
+  same copy-on-write split the engine layout uses. A mount's own block holds only its *differences* from
   its ship's.
 - **Targets are chosen by a stack of preferences**, each discarding a candidate or adjusting its score, with a
   discard hiding a target from everything above it. A new picker is a new weight, not a new mechanism.
@@ -293,7 +293,7 @@ Deliberately unresolved; decide when they block something.
 
 - **Whether a flame should grow with its nozzle's width or with the square root of it.** Linear is the
   physics — a jet runs a fixed number of its own widths — and is what is built, to be looked at before it is
-  argued with. It gives the Star Destroyer's mains a 2.4 km flame and a Dinky's thrusters under 2 m. The
+  argued with. It gives the Star Destroyer's mains a 2.4 km flame and a Dinky's engines under 2 m. The
   square root keeps every trend and squashes both ends, to about 400 m and 12 m. One line in `plumeReach`.
 - **Turning to brake.** A craft brakes facing whatever it is fighting, on what it has pointing that way,
   because targeting alone decides its heading. One whose big engines are all at the back plans on a sliver
@@ -481,11 +481,11 @@ Deliberately unresolved; decide when they block something.
 - **How clever a pilot should be.** A bare core bred against the goal and nothing else *does* learn to move,
   given three hundred generations and a heading it did not choose — so the question is no longer whether a
   run can start from nothing. What is still true is that a hull with one engine can only use it if it
-  happens to point the right way: the allocator fires a thruster when the force being asked for has a
+  happens to point the right way: the allocator fires an engine when the force being asked for has a
   component along its thrust, so a first engine is worth 0.23 on one face and exactly nothing on the other
   three, and mounting it off-centre to give it torque changes nothing measurable. A lineage gets there by
   collecting engines until enough of them point usefully, which works and is slow.
-  A cleverer pilot would make every one of them useful. Any off-axis thruster can be flown with if you do
+  A cleverer pilot would make every one of them useful. Any off-axis engine can be flown with if you do
   not mind spinning: fire it to start the hull turning, then pulse it whenever the nose comes round to the
   heading you want. That is a real technique and a long way past what this controller does — it holds a
   demanded velocity through a linear allocation, and spinning deliberately is the opposite of everything
@@ -571,7 +571,7 @@ Deliberately unresolved; decide when they block something.
   and the shape exists: doctrine already weights which *kind* of module to aim at, and a seam would be one more
   aim point beside those. It is the point at which a beam ship stops being
   a gun that burns and starts being a surgeon.
-- **Gimballed thrusters** fit, with one change of variable. A gimbal makes the thrust *direction* an
+- **Gimballed engines** fit, with one change of variable. A gimbal makes the thrust *direction* an
   unknown, and the wrench then depends on sin and cos — nonlinear, and fatal to fixed columns and normal
   equations. The fix is to solve for the thrust **vector** `(Fx, Fy)` rather than a scalar throttle: the
   force is that vector and the torque is `px·Fy − py·Fx`, both linear again. The nonlinearity moves out of
@@ -583,45 +583,45 @@ Deliberately unresolved; decide when they block something.
     about the current angle (`d(θ+Δ) ≈ d(θ) + Δ·d⊥(θ)`) is very accurate. The unknowns become `(u, Δ)`
     with box bounds, which the existing solver already handles.
   - **Cost:** gimballed columns move, so they cannot be precomputed per blueprint. Keep the fixed
-    thrusters precomputed and treat gimbals as a small dynamic addendum — ships have a few gimbals and
-    many fixed thrusters, not the reverse.
+    engines precomputed and treat gimbals as a small dynamic addendum — ships have a few gimbals and
+    many fixed engines, not the reverse.
   - **The envelope survives exactly.** The achievable set stops being a zonotope, but support functions
     add under Minkowski sum whatever the summands are, and a sector's support function is trivial. So
     `support`, `maxThrustAlong` and `hasFullAuthority` keep working unchanged.
-  - It is a good design axis too: one large gimballed engine against many small fixed thrusters trades
+  - It is a good design axis too: one large gimballed engine against many small fixed engines trades
     mass and module count for slower response and a torque coupling that cannot be switched off.
-- **Throttle response is currently instantaneous**, which suits small RCS thrusters and badly misrepresents
-  a large main engine. Rate limits belong **inside** the solve as per-thruster bounds —
+- **Throttle response is currently instantaneous**, which suits small RCS engines and badly misrepresents
+  a large main engine. Rate limits belong **inside** the solve as per-engine bounds —
   `uᵢ ∈ [uᵢ⁻ − rᵢ·dt, uᵢ⁻ + rᵢ·dt]` intersected with `[0,1]` — not as a post-processing step. Limiting
-  afterwards would break the wrench: fast thrusters would reach their targets while a slow one lagged,
+  afterwards would break the wrench: fast engines would reach their targets while a slow one lagged,
   leaving a net torque nobody asked for. As bounds it stays a box constraint, so the active set is
   structurally unchanged; generalising means shifting by the lower bound (`u = lo + v`) and subtracting
   `A·lo` from the demand up front, after which the solver is identical.
   - **This constrains one thing now:** the `throttles` array is *per ship*, not per blueprint, and must
-    persist between steps for any of this to be possible. `ThrusterLayout` is shared between every ship of
+    persist between steps for any of this to be possible. `EngineLayout` is shared between every ship of
     a blueprint, so throttle state cannot live there. Do not turn `throttles` into a shared scratch buffer.
-- **Binary (on/off) thrusters** should be handled *after* allocation, not inside it. As a constraint they
+- **Binary (on/off) engines** should be handled *after* allocation, not inside it. As a constraint they
   would make the problem mixed-integer — 2ⁿ combinations, non-convex, inexpressible in least squares — which
   is far harder than the continuous version rather than simpler. Instead allocate continuously and let each
-  binary thruster interpret its throttle as a **duty cycle**, ideally with delta-sigma modulation so the
+  binary engine interpret its throttle as a **duty cycle**, ideally with delta-sigma modulation so the
   rounding error accumulates and is corrected on the following step; that tracks the demanded average much
   more closely than plain pulse-width modulation and stays deterministic. The allocator needs no change, and
   the envelope stays valid as a statement about *average* capability, which is the honest thing to show a
   player anyway.
-- **Whether thruster allocation needs to be exact.** It currently minimises Σuᵢ² by clamped least squares
+- **Whether engine allocation needs to be exact.** It currently minimises Σuᵢ² by clamped least squares
   with redistribution, which is smooth and fast but neither propellant-optimal nor exact: measured mean
   shortfall 0.016% and worst 5.4% against randomised, near-adversarial geometry. Two separate upgrades are
   available if either ever matters. Propellant-optimal allocation is a linear program, but its solutions sit
-  on vertices, so it burns fewer thrusters harder and switches abruptly as the demand rotates — cheaper in
-  fuel, worse to fly. Exactness means bounded-variable least squares, releasing pinned thrusters when the
+  on vertices, so it burns fewer engines harder and switches abruptly as the demand rotates — cheaper in
+  fuel, worse to fly. Exactness means bounded-variable least squares, releasing pinned engines when the
   gradient says they would help *with a line search to guarantee progress*; releasing without the line
   search was tried and made the worst case far worse, because the active set oscillates. Neither is worth
   doing until a ship visibly misbehaves or propellant accounting proves too generous.
   One way it *did* visibly misbehave has been closed in the answer rather than in the search: a pair of
-  thrusters that exactly undo each other could both come out alight, because pinning one at full and never
+  engines that exactly undo each other could both come out alight, because pinning one at full and never
   reconsidering it left the other free to claw back what it was overproducing. That is taken off afterwards,
   where it is exact and cheap. What remains open is the general shape of the same fault — three or more
-  thrusters wasteful together without any two of them being opposites — which no layout drawn or bred so far
+  engines wasteful together without any two of them being opposites — which no layout drawn or bred so far
   does, and which is a linear program rather than a loop to find.
 - **Whether capitals may mount hull-layer guns.** Not needed for torpedoes — §3 settles those — but it is
   an appealing separate axis. `hullGun` and `hullBeam` exist and have the narrow arcs and heavy bore this
@@ -691,17 +691,17 @@ Deliberately unresolved; decide when they block something.
   take by accident.
 
   One default is not free to choose: §3 has guns stripping "mounts, sensors and engines", so turrets and
-  thrusters have to be raised. Only `structure` is genuinely optional, which is also where all the arc
+  engines have to be raised. Only `structure` is genuinely optional, which is also where all the arc
   behaviour comes from.
 
   Still open beyond all of this: **hull-layer side-mounted guns**, which by their own definition are blocked
   by the whole ship rather than by its raised parts, and whose projectiles then travel in the hull layer.
   What that means for what they can hit is undecided — see the deck-versus-edge-gun question above.
-- **Engines split by layer, into two archetypes.** A single `thruster` kind cannot express the choice the
+- **Engines split by layer, into two archetypes.** A single `engine` kind cannot express the choice the
   weapons layer creates, so it becomes two — a new *archetype* rather than a new coefficient, which is the
   distinction the materials question above already draws.
   - A **raised main engine**: high thrust, efficient, heavy. In the weapons layer, so guns can strip it.
-  - A **hull-layer thruster**: small, and therefore low absolute thrust. Guns cannot reach it.
+  - A **hull-layer engine**: small, and therefore low absolute thrust. Guns cannot reach it.
 
   **Settled in direction: the hull-layer one is lighter in absolute terms and *worse* per unit of thrust.**
   Lighter because it is smaller; worse because a bank of them must outweigh one main engine of the same
@@ -716,7 +716,7 @@ Deliberately unresolved; decide when they block something.
   differ in thrust and mass alone.
 
   What the split buys is a better mission kill than "disabled". A ship stripped of its main engines still
-  has manoeuvring thrusters on long moment arms, so it can still *rotate* well while barely translating: a
+  has manoeuvring engines on long moment arms, so it can still *rotate* well while barely translating: a
   fixed battery that can bring guns to bear but cannot close, break off, or dictate range. That is a state
   worth fighting rather than a formality, and it is the drifting hulk §3 wants and the salvage of §8 steps 9 and 13
   feeds on. Worth knowing that `hasFullAuthority()` is called by the editor's stats and tests and never by
@@ -812,7 +812,7 @@ Deliberately unresolved; decide when they block something.
   thing it should buy and cannot yet is **efficiency**: expansion is what a real bell is for, and a long
   one gets more delta-v out of the same propellant rather than only more push. There is no propellant, so
   there is nothing for it to be efficient with, and pricing it now would mean inventing a second currency
-  to spend. When fuel arrives the number is already sitting in `ThrusterGeometry.divergence` and wants no
+  to spend. When fuel arrives the number is already sitting in `EngineGeometry.divergence` and wants no
   new law — which is also the argument for the shape the bell was given: one physical quantity with three
   consequences, two of them already paid for.
   The neighbouring question is what a *stubby* engine should do about it. A wide exit cannot be collimated
@@ -821,7 +821,7 @@ Deliberately unresolved; decide when they block something.
   nozzle count already gives them; whether the shipped ships should be re-drawn to take it, or left as
   evidence of what the law says about a hull drawn before it, is a decision about the fleet rather than
   about the model.
-- **Whether a ship should manoeuvre to bring an engine to bear.** A thruster marked as a weapon fires when
+- **Whether a ship should manoeuvre to bring an engine to bear.** An engine marked as a weapon fires when
   something worth burning is already behind it, and nothing turns the ship to put it there — so it is a
   weapon for what gets behind you rather than one you attack with. Aiming it is a genuinely different
   problem from aiming a gun and is the reason this was left out rather than forgotten: a turret is a small
@@ -839,7 +839,7 @@ Deliberately unresolved; decide when they block something.
   ever eat its own ship — and it is the kind of thing the editor exists to catch, since nothing about the
   picture says it.
 - **A dead zone on the pilot's attitude hold.** A ship parked on its target bearing still twitches its
-  thrusters continually, correcting an alignment error of almost nothing. Today that is only cosmetic — the
+  engines continually, correcting an alignment error of almost nothing. Today that is only cosmetic — the
   ships have no fuel to waste — but it is the same behaviour that will empty a propellant tank while
   station-keeping, and §2 makes scarcity one of the things that gives manoeuvre doctrine its teeth. The fix
   is a dead zone taken over *both* orientation error and angular rate, since either alone lets a ship drift

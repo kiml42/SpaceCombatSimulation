@@ -14,7 +14,7 @@ import {
   nozzleReach,
   plumeIntensity,
   shortfall,
-  thrusterGeometry,
+  engineGeometry,
   traverseAccel,
   traverseRate,
   type ModuleSpec,
@@ -61,7 +61,7 @@ export interface DesignStats {
   /** Bounding-circle radius about the centre of mass, metres. */
   radius: number;
   moduleCount: number;
-  thrusterCount: number;
+  engineCount: number;
   /**
    * Linear acceleration available while holding a heading, m/s², in each of
    * the ship's four senses.
@@ -92,16 +92,16 @@ export interface DesignStats {
    * This is the readable form of what KSP shows as a centre of thrust offset
    * from the centre of mass. It has to be a cost rather than an offset because
    * the misalignment never *becomes* a spin here: allocation is asked for zero
-   * torque and trims the imbalance with whatever thrusters have authority
+   * torque and trims the imbalance with whatever engines have authority
    * left. So what a badly balanced layout loses is acceleration, and it loses
-   * it hardest where the trimming thrusters are already at full throttle.
+   * it hardest where the trimming engines are already at full throttle.
    */
   headingCost: number;
   turrets: TurretReadout[];
 }
 
 export function designStats(design: ShipDesign, envelope: Envelopes): DesignStats {
-  const layout = design.thrusterLayout;
+  const layout = design.engineLayout;
   const mass = design.mass;
   const inertia = design.inertia;
   const trim = trimmer(design);
@@ -111,7 +111,7 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
     inertia,
     radius: design.radius,
     moduleCount: design.modules.length,
-    thrusterCount: design.thrusters.length,
+    engineCount: design.engines.length,
     // +x is the bow and +y is to port, matching the frame the layouts are
     // drawn in.
     accelFore: trim(1, 0),
@@ -283,11 +283,11 @@ export function moduleReadout(
         }`,
     ]);
   }
-  if (spec.kind === 'thruster') {
+  if (spec.kind === 'engine') {
     // What the bell is doing to the gas, which is the one number that says
     // whether the nozzle is worth the length it takes up. A designer shrinking
     // a bell sees the thrust fall before they see the ship fly worse.
-    const engine = thrusterGeometry(spec);
+    const engine = engineGeometry(spec);
     rows.push([
       'Bell',
       `${radiansToDegrees(engine.halfAngle).toLocaleString('en-GB', { maximumFractionDigits: 0 })}° ` +
@@ -346,7 +346,7 @@ export interface Envelopes {
   /**
    * The most acceleration a direction can be given, whatever that does to the
    * heading, m/s². Exact rather than searched: the achievable wrenches are a
-   * zonotope, so `ThrusterLayout.support` is a supporting plane of it.
+   * zonotope, so `EngineLayout.support` is a supporting plane of it.
    */
   readonly free: Float64Array;
   /** What the ship can actually use while holding its heading, m/s². */
@@ -365,8 +365,8 @@ export interface Envelopes {
  * says it is waiting for before replacing it.
  */
 function trimmer(design: ShipDesign): (dirX: number, dirY: number) => number {
-  const layout = design.thrusterLayout;
-  const throttles = new Float64Array(design.thrusters.length);
+  const layout = design.engineLayout;
+  const throttles = new Float64Array(design.engines.length);
   const result = new Allocation();
 
   return (dirX, dirY) => {
@@ -390,14 +390,14 @@ function trimmer(design: ShipDesign): (dirX: number, dirY: number) => number {
  * Four numbers on a panel say a ship accelerates hard forwards and poorly
  * sideways; only the curve shows which diagonal it is worst in, and whether a
  * layout is merely weak abeam or has a direction it cannot push at all — the
- * dent that says a thruster is missing. The gap between the two curves is the
+ * dent that says an engine is missing. The gap between the two curves is the
  * other thing a panel cannot say: where the ship's thrust is not balanced
  * about its centre of mass, and what that costs it.
  *
  * Sampled from the bow and running anticlockwise, in the ship's own frame.
  */
 export function envelopes(design: ShipDesign, samples: number = ENVELOPE_SAMPLES): Envelopes {
-  const layout = design.thrusterLayout;
+  const layout = design.engineLayout;
   const trim = trimmer(design);
   const free = new Float64Array(samples);
   const holding = new Float64Array(samples);

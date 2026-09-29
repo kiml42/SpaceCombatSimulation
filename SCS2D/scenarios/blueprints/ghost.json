@@ -33,7 +33,7 @@
           "width": 2
         },
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": -3.5,
           "y": 4,
           "angle": -90,
@@ -41,7 +41,7 @@
           "width": 2
         },
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": 4.5,
           "y": 1.05,
           "angle": 0,
@@ -64,7 +64,7 @@
           "width": 2.8
         },
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": 23,
           "y": 1.5,
           "angle": -90,
@@ -82,7 +82,7 @@
           "nozzle": 0.3
         },
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": 17.5,
           "y": 5.25,
           "angle": 180,

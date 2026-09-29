@@ -50,6 +50,17 @@ function file(overrides: Record<string, unknown> = {}): Record<string, unknown> 
 }
 
 describe('blueprint files', () => {
+  it('reads an engine written before the kind was renamed from thruster', () => {
+    const file = serialiseBlueprint({
+      name: 'Old',
+      modules: [{ kind: 'engine', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.4 }],
+    });
+    (file['modules'] as Record<string, unknown>[])[0]!['kind'] = 'thruster';
+    expect(blueprintFileProblem(file)).toBeNull();
+    expect((parseBlueprint(file).modules[0] as ModuleSpec).kind).toBe('engine');
+    expect((parseBlueprint(file).modules[0] as ModuleSpec).nozzle).toBe(0.4);
+  });
+
   it('accepts every ship that ships with the game', () => {
     for (const [name, raw] of FILES) {
       expect(blueprintFileProblem(raw), name).toBeNull();
@@ -119,13 +130,13 @@ describe('rejecting a file that arrived from somewhere else', () => {
   });
 
   it('carries an engine\'s bell and its nozzle count out and back', () => {
-    // Both are a thruster's own geometry rather than something derived, so
+    // Both are an engine's own geometry rather than something derived, so
     // they have to survive the file: a ship saved and loaded with a different
     // nozzle is a different ship.
     const raw = file({
       modules: [
         { kind: 'core', x: 0, y: 0, length: 10, width: 4 },
-        { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.3, barrels: 3 },
+        { kind: 'engine', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.3, barrels: 3 },
       ],
     }) as Record<string, unknown>;
     expect(blueprintFileProblem(raw)).toBeNull();
@@ -143,7 +154,7 @@ describe('rejecting a file that arrived from somewhere else', () => {
     const belledCore = file({
       modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4, nozzle: 0.3 }],
     });
-    expect(blueprintFileProblem(belledCore)).toMatch(/only a thruster or a hull mount/);
+    expect(blueprintFileProblem(belledCore)).toMatch(/only an engine or a hull mount/);
     expect(blueprintProblem(parseBlueprint(file({
       modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4 }],
     })))).toBeNull();

@@ -120,10 +120,10 @@ describe('module geometry', () => {
   });
 });
 
-describe('thruster scaling', () => {
+describe('engine scaling', () => {
   /** The same engine, with its bell forced so only the exit area differs. */
   const engine = (length: number, width: number, nozzle = 0.5, barrels?: number): ModuleSpec => ({
-    ...box('thruster', length, width),
+    ...box('engine', length, width),
     nozzle,
     ...(barrels === undefined ? {} : { barrels }),
   });
@@ -185,8 +185,8 @@ describe('thruster scaling', () => {
 
   it('refuses an engine that is all bell, and one whose nozzle is out of range', () => {
     expect(moduleProblem(engine(6, 2, 0.999))).toMatch(/no interior/);
-    expect(moduleProblem({ ...box('thruster', 6, 2), nozzle: 1 })).toMatch(/0 to under 1/);
-    expect(moduleProblem({ ...box('thruster', 6, 2), nozzle: -0.1 })).toMatch(/0 to under 1/);
+    expect(moduleProblem({ ...box('engine', 6, 2), nozzle: 1 })).toMatch(/0 to under 1/);
+    expect(moduleProblem({ ...box('engine', 6, 2), nozzle: -0.1 })).toMatch(/0 to under 1/);
     // On a kind that does not read it the value is dormant rather than wrong:
     // mutation keeps it against a refit back, and only the range applies.
     expect(moduleProblem({ ...box('structure', 6, 2), nozzle: 0.5 })).toBeNull();
@@ -417,7 +417,7 @@ describe('hull mount scaling', () => {
     // no bell at all is a legal, bad engine, where no barrel at all is a bore
     // with nothing to accelerate a shell down and is not a weapon.
     expect(moduleProblem(gun(8, 4, { nozzle: 0 }))).toMatch(/needs some barrel/);
-    expect(moduleProblem({ kind: 'thruster', x: 0, y: 0, length: 8, width: 4, nozzle: 0 })).toBeNull();
+    expect(moduleProblem({ kind: 'engine', x: 0, y: 0, length: 8, width: 4, nozzle: 0 })).toBeNull();
     expect(moduleProblem(gun(8, 4, { nozzle: 1 }))).toMatch(/from 0 to under 1/);
     // A turret does not read it, so on one it is dormant and allowed — and a
     // zero that would be refused on a hull mount says nothing on a turret.
@@ -439,7 +439,7 @@ describe('the gear that trains a weapon', () => {
     expect(moduleStats(turret()).traverseMass).toBeGreaterThan(0);
     expect(moduleStats(hullGun()).traverseMass).toBeGreaterThan(0);
     expect(moduleStats(box('structure', 6, 4)).traverseMass).toBe(0);
-    expect(moduleStats(box('thruster', 6, 4)).traverseMass).toBe(0);
+    expect(moduleStats(box('engine', 6, 4)).traverseMass).toBe(0);
   });
 
   it('weighs the same on a turret however far it is allowed to train', () => {
@@ -883,7 +883,7 @@ describe('refitModule', () => {
   const turret: ModuleSpec = { kind: 'turret', x: 6, y: 2, angle: 0, length: 4, width: 3, barrels: 2 };
 
   it('keeps the box where it was', () => {
-    for (const to of ['thruster', 'hullGun', 'structure', 'core'] as const) {
+    for (const to of ['engine', 'hullGun', 'structure', 'core'] as const) {
       const refitted = refitModule(turret, to);
       expect(refitted.kind).toBe(to);
       expect(moduleCentre(refitted).x).toBeCloseTo(6, 9);
@@ -893,7 +893,7 @@ describe('refitModule', () => {
   });
 
   it('turns a weapon swapped for an engine half round, so its bell faces out', () => {
-    const engine = refitModule(turret, 'thruster');
+    const engine = refitModule(turret, 'engine');
     expect(engine.angle).toBeCloseTo(Math.PI, 12);
     // Mounted on the inboard face, with the bell where the barrels were.
     expect(engine.x).toBeCloseTo(4, 9);
@@ -903,18 +903,18 @@ describe('refitModule', () => {
   });
 
   it('comes back to where it started, with the fields the other kind ignored', () => {
-    const engine: ModuleSpec = { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.37 };
-    expect(refitModule(refitModule(engine, 'hullGun'), 'thruster')).toEqual(engine);
+    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.37 };
+    expect(refitModule(refitModule(engine, 'hullGun'), 'engine')).toEqual(engine);
   });
 
   it('leaves the facing alone between kinds that do not face opposite ways', () => {
     expect(refitModule(turret, 'hullGun').angle).toBe(0);
     expect(refitModule(turret, 'structure').angle).toBe(0);
-    expect(refitModule({ ...turret, kind: 'structure' }, 'thruster').angle).toBe(0);
+    expect(refitModule({ ...turret, kind: 'structure' }, 'engine').angle).toBe(0);
   });
 
   it('keeps the facing folded into a half turn either way', () => {
-    const turned = refitModule({ ...turret, angle: Math.PI * 0.75 }, 'thruster');
+    const turned = refitModule({ ...turret, angle: Math.PI * 0.75 }, 'engine');
     expect(turned.angle).toBeCloseTo(-Math.PI * 0.25, 12);
   });
 });

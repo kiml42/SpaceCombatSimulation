@@ -4,7 +4,7 @@
   "notes": "A light escort: one main engine, one gun, and enough manoeuvring thrust to turn faster than anything can track it. Drawn as a deck plan on round numbers, +x the bow and +y to port, with modules abutting exactly.",
   "assemblies": {
     "wingBox": {
-      "notes": "The wings exist to hold the manoeuvring thrusters out where their moment arm is worth having. That they also foul the bow gun's traverse is the trade this layout makes, and it is visible in the arc the design compiles to.",
+      "notes": "The wings exist to hold the manoeuvring engines out where their moment arm is worth having. That they also foul the bow gun's traverse is the trade this layout makes, and it is visible in the arc the design compiles to.",
       "modules": [
         {
           "kind": "structure",
@@ -18,7 +18,7 @@
     "lateral": {
       "modules": [
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": 0,
           "y": -1,
           "angle": -90,
@@ -30,7 +30,7 @@
     "retro": {
       "modules": [
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": -1,
           "y": 0,
           "angle": 180,
@@ -64,7 +64,7 @@
       "width": 6
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": -8,
       "y": 0,
       "angle": 0,

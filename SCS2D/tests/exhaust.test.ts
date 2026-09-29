@@ -14,7 +14,7 @@ import {
   plumeReach,
   rayOffset,
   rayReach,
-  thrusterGeometry,
+  engineGeometry,
   type ModuleSpec,
   type ShipDesign,
 } from '../sim/index.js';
@@ -41,7 +41,7 @@ const hull = (x: number, length: number): ModuleSpec => ({
 
 /** An engine mounted at `x`, pushing along `angle` and exhausting the other way. */
 const engine = (x: number, angle: number): ModuleSpec => ({
-  kind: 'thruster',
+  kind: 'engine',
   x,
   y: 0,
   angle,
@@ -63,7 +63,7 @@ const engine = (x: number, angle: number): ModuleSpec => ({
  */
 /** How far the engine on a `design` throws at full throttle. */
 function fullReach(d: ShipDesign): number {
-  return nozzleReach(thrusterGeometry(d.modules[0]!.spec), d.thrusters[0]!.maxThrust);
+  return nozzleReach(engineGeometry(d.modules[0]!.spec), d.engines[0]!.maxThrust);
 }
 
 function design(gap?: number): ShipDesign {
@@ -89,7 +89,7 @@ const BLOCK = 3;
  * put it.
  */
 function nozzle(d: ShipDesign): { x: number; y: number; width: number } {
-  const t = d.thrusters[0]!;
+  const t = d.engines[0]!;
   const spec = d.modules[t.module!]!.spec;
   return { x: t.x - t.dirX * spec.length * 0.5, y: t.y - t.dirY * spec.length * 0.5, width: spec.width };
 }
@@ -121,7 +121,7 @@ function world(designs: readonly ShipDesign[]) {
 function burn(w: ReturnType<typeof world>, d: ShipDesign, body: number, seconds: number): void {
   const dt = 1 / 60;
   for (let step = 0; step * dt < seconds; step++) {
-    w.plumes.burn(d, 0, d.thrusters[0]!.maxThrust, w.damage, w.bodies, body, w.grid, w.hulls, dt);
+    w.plumes.burn(d, 0, d.engines[0]!.maxThrust, w.damage, w.bodies, body, w.grid, w.hulls, dt);
   }
 }
 
@@ -136,8 +136,8 @@ describe('how far a plume reaches', () => {
         name: 'Engine',
         modules: [{ ...engine(-5, 0), length: scale, width: 2 * scale }, hull(0, 10)],
       });
-      const t = d.thrusters[0]!;
-      return nozzleReach(thrusterGeometry(d.modules[t.module!]!.spec), t.maxThrust);
+      const t = d.engines[0]!;
+      return nozzleReach(engineGeometry(d.modules[t.module!]!.spec), t.maxThrust);
     });
     reaches.forEach((reach, i) => expect(reach).toBeCloseTo(reaches[0]! * [1, 2, 4, 8][i]!, 9));
   });
@@ -148,8 +148,8 @@ describe('how far a plume reaches', () => {
     const reach = (bell: number): number => {
       const spec: ModuleSpec = { ...engine(-5, 0), length: 1 + bell, width: 2, nozzle: bell / (1 + bell) };
       const d = compileBlueprint({ name: 'Engine', modules: [spec, hull(0, 10)] });
-      const t = d.thrusters[0]!;
-      return nozzleReach(thrusterGeometry(d.modules[t.module!]!.spec), t.maxThrust);
+      const t = d.engines[0]!;
+      return nozzleReach(engineGeometry(d.modules[t.module!]!.spec), t.maxThrust);
     };
     expect(reach(2)).toBeGreaterThan(reach(0.5) * 1.3);
     expect(reach(4)).toBeGreaterThan(reach(2));
@@ -164,8 +164,8 @@ describe('how far a plume reaches', () => {
         name: 'Engine',
         modules: [{ ...engine(-5, 0), length: 4, width: 4, barrels }, hull(0, 10)],
       });
-      const t = d.thrusters[0]!;
-      const geometry = thrusterGeometry(d.modules[t.module!]!.spec);
+      const t = d.engines[0]!;
+      const geometry = engineGeometry(d.modules[t.module!]!.spec);
       return {
         thrust: t.maxThrust,
         reach: nozzleReach(geometry, t.maxThrust),
@@ -190,8 +190,8 @@ describe('how far a plume reaches', () => {
         name: 'Engine',
         modules: [{ ...engine(-5, 0), nozzle }, hull(0, 10)],
       });
-      const t = d.thrusters[0]!;
-      return nozzleReach(thrusterGeometry(d.modules[t.module!]!.spec), t.maxThrust);
+      const t = d.engines[0]!;
+      return nozzleReach(engineGeometry(d.modules[t.module!]!.spec), t.maxThrust);
     };
     expect(reach(0.3)).toBeGreaterThan(reach(0.05) * 1.3);
     expect(reach(0.6)).toBeGreaterThan(reach(0.3));
@@ -200,7 +200,7 @@ describe('how far a plume reaches', () => {
 
   it('shortens with the throttle, so a low burn is a short flame', () => {
     const d = design();
-    const t = d.thrusters[0]!;
+    const t = d.engines[0]!;
     const width = d.modules[t.module!]!.spec.width;
     expect(plumeReach(t.maxThrust * 0.25, width)).toBeCloseTo(
       plumeReach(t.maxThrust, width) * 0.25,
@@ -217,13 +217,13 @@ describe('what an engine exhausts into', () => {
   // Worked out when the design is compiled, because a hull's geometry is
   // fixed: damage stops a module working without moving it.
   it('is nothing for a nozzle in clear air, on any of its rays', () => {
-    const t = design().thrusters[0]!;
+    const t = design().engines[0]!;
     expect(t.blocks).toEqual([-1, -1, -1]);
     expect(t.escaping).toBe(1);
   });
 
   it('names the module in the way, and how far aft of the nozzle it is', () => {
-    const t = design(5).thrusters[0]!;
+    const t = design(5).engines[0]!;
     expect(t.blocks).toEqual([BLOCK, BLOCK, BLOCK]);
     for (const at of t.blockedAt!) expect(at).toBeCloseTo(5, 9);
   });
@@ -233,17 +233,17 @@ describe('what an engine exhausts into', () => {
     // pushing, so that third of the engine is not thrust at all.
     const reach = fullReach(design());
     // Well inside the side rays' own reach, so all three are stopped.
-    expect(design(reach * 0.1).thrusters[0]!.escaping).toBe(0);
+    expect(design(reach * 0.1).engines[0]!.escaping).toBe(0);
     // Past where the side rays end but inside the core's, so only the core is.
-    expect(design(reach * 0.5).thrusters[0]!.escaping).toBeCloseTo(2 / 3, 9);
+    expect(design(reach * 0.5).engines[0]!.escaping).toBeCloseTo(2 / 3, 9);
     // Past the flame altogether: nothing is in it to stop.
-    expect(design(reach * 1.1).thrusters[0]!.escaping).toBe(1);
+    expect(design(reach * 1.1).engines[0]!.escaping).toBe(1);
   });
 
   it('is what the layout flies on, so a buried engine is a weak one', () => {
     const reach = fullReach(design());
-    const clear = design().thrusterLayout.maxThrustAlong(1, 0);
-    const buried = design(reach * 0.1).thrusterLayout.maxThrustAlong(1, 0);
+    const clear = design().engineLayout.maxThrustAlong(1, 0);
+    const buried = design(reach * 0.1).engineLayout.maxThrustAlong(1, 0);
     expect(clear).toBeGreaterThan(0);
     expect(buried).toBe(0);
   });
@@ -282,7 +282,7 @@ describe('an engine firing into its own ship', () => {
 
   it('does nothing to something standing beyond the flame', () => {
     const d0 = design();
-    const reach = nozzleReach(thrusterGeometry(d0.modules[0]!.spec), d0.thrusters[0]!.maxThrust);
+    const reach = nozzleReach(engineGeometry(d0.modules[0]!.spec), d0.engines[0]!.maxThrust);
     const d = design(reach * 1.01);
     const w = world([d]);
     burn(w, d, 0, 30);
@@ -295,7 +295,7 @@ describe('the three rays a plume is sampled by', () => {
     // Derived from the drawn plume rather than chosen: the flame is a triangle
     // narrowing to a point, so a ray a third of the width off the axis ends a
     // third of the way out.
-    const one = thrusterGeometry({ ...engine(0, 0), width: 6 });
+    const one = engineGeometry({ ...engine(0, 0), width: 6 });
     const force = 1e6;
     const reach = nozzleReach(one, force);
     expect(reach).toBeGreaterThan(0);
@@ -305,7 +305,7 @@ describe('the three rays a plume is sampled by', () => {
   });
 
   it('are spread across the nozzle, not stacked on its axis', () => {
-    const one = thrusterGeometry({ ...engine(0, 0), width: 6 });
+    const one = engineGeometry({ ...engine(0, 0), width: 6 });
     expect([0, 1, 2].map((ray) => rayOffset(ray, one))).toEqual([-2, 0, 2]);
   });
 
@@ -314,7 +314,7 @@ describe('the three rays a plume is sampled by', () => {
     // the whole face would fall in the gaps between them rather than in the
     // fire. Two nozzles across six metres are three metres each, centred a
     // metre and a half either side.
-    const two = thrusterGeometry({ ...engine(0, 0), width: 6, barrels: 2 });
+    const two = engineGeometry({ ...engine(0, 0), width: 6, barrels: 2 });
     expect([0, 1, 2, 3, 4, 5].map((ray) => rayOffset(ray, two))).toEqual([
       -2.5, -1.5, -0.5, 0.5, 1.5, 2.5,
     ]);
@@ -347,7 +347,7 @@ describe('the three rays a plume is sampled by', () => {
     const hulls = new Hulls({ designOf: (b: number) => [firing, victim][b] ?? null });
     const plumes = new Plumes();
 
-    const thrust = firing.thrusters[0]!.maxThrust;
+    const thrust = firing.engines[0]!.maxThrust;
     expect(plumes.cast(firing, 0, 1, thrust, bodies, 0, grid, hulls)).toBe(false);
     const outer =
       plumes.cast(firing, 0, 0, thrust, bodies, 0, grid, hulls) ||
@@ -382,7 +382,7 @@ describe('the push a plume carries', () => {
     const plumes = new Plumes();
     const dt = 1 / 60;
     for (let step = 0; step < 60; step++) {
-      plumes.burn(firing, 0, firing.thrusters[0]!.maxThrust, damage, bodies, 0, grid, hulls, dt);
+      plumes.burn(firing, 0, firing.engines[0]!.maxThrust, damage, bodies, 0, grid, hulls, dt);
     }
     return { vx: bodies.vx[1]!, vy: bodies.vy[1]!, spin: bodies.angularVel[1]! };
   }
@@ -476,7 +476,7 @@ describe('what the editor says about a buried engine', () => {
 /** An engine on a hull, with a block `gap` metres behind its nozzle. */
 function tug(gap: number): ModuleSpec[] {
   return [
-    { kind: 'thruster', x: -5, y: 0, angle: 0, length: 2, width: 4 },
+    { kind: 'engine', x: -5, y: 0, angle: 0, length: 2, width: 4 },
     { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 6 },
     { kind: 'structure', x: -9 - gap, y: 0, angle: 0, length: 4, width: 6 },
   ];

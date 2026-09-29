@@ -60,7 +60,7 @@ const FRAMES: readonly AssemblyInstance[] = [
 const PARTS: readonly ModuleSpec[] = [
   { kind: 'structure', x: 2, y: 1, length: 2, width: 1 },
   { kind: 'turret', x: -3, y: 2, angle: Math.PI / 6, length: 1.5, width: 1 },
-  { kind: 'thruster', x: 1, y: -2, angle: Math.PI, length: 1, width: 1 },
+  { kind: 'engine', x: 1, y: -2, angle: Math.PI, length: 1, width: 1 },
 ];
 
 function near(a: number, b: number): void {

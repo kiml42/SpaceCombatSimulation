@@ -58,7 +58,7 @@ const BEAM_CUT_ENERGY_PER_AREA = 6.0e7;
 
 /** What damage takes away from a module, beyond eventually stopping it. */
 export enum DamageEffect {
-  /** A thruster's push. */
+  /** An engine's push. */
   Thrust = 0,
   /** How often a gun can fire. */
   FireRate = 1,
@@ -109,7 +109,7 @@ const CONTROL_CUTOUT = 0.4;
 export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly DamageResponse[]>> = {
   structure: [],
   core: [{ effect: DamageEffect.Control, remaining: fadesOutAt(CONTROL_CUTOUT) }],
-  thruster: [{ effect: DamageEffect.Thrust, remaining: fadesOutAt(THRUST_CUTOUT) }],
+  engine: [{ effect: DamageEffect.Thrust, remaining: fadesOutAt(THRUST_CUTOUT) }],
   turret: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
   beamTurret: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
   // A hull mount is a gun by another route, so it stops shooting the same way.
@@ -124,7 +124,7 @@ export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly Dama
  * is what lets a wreck go on taking damage after its ship has been removed.
  *
  * `version` counts the edits to a body's damage, so that anything derived from
- * it — a thruster layout, most of all — can be rebuilt when it changes and
+ * it — an engine layout, most of all — can be rebuilt when it changes and
  * left alone when it has not, without a callback or a dirty flag per consumer.
  */
 export class Damage {

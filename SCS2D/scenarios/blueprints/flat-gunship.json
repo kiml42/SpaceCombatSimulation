@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "name": "Flat Gunship",
-  "notes": "The Gunship with its assemblies expanded away: the same eighteen modules, in the same places, listed flat. Every derived figure is identical to the Gunship's and so is every pixel drawn; only the order differs, which is what decides thruster allocation and firing order. Listed in expansion order, so this is the control — it should behave exactly as the Gunship does. Regenerate with: npx tsx scripts/flatten.ts gunship scenarios/flat-gunship.json --name=\"Flat Gunship\".",
+  "notes": "The Gunship with its assemblies expanded away: the same eighteen modules, in the same places, listed flat. Every derived figure is identical to the Gunship's and so is every pixel drawn; only the order differs, which is what decides engine allocation and firing order. Listed in expansion order, so this is the control — it should behave exactly as the Gunship does. Regenerate with: npx tsx scripts/flatten.ts gunship scenarios/flat-gunship.json --name=\"Flat Gunship\".",
   "modules": [
     {
       "kind": "structure",
@@ -83,7 +83,7 @@
       "notes": "Many narrow barrels rather than one wide one: the same bore budget spent on rate of fire instead of weight of shell. It goes after whatever is small, close and still dangerous while the main battery fights its own weight class — a shell this light is wasted on a capital, and a close-in gun exists for what can still do something rather than for what is already out of the fight. Caring about that is worth more than the whole of its proximity preference, so it passes over a drifting hulk at any range. It also takes no interest in what the ship as a whole is fighting, which leaves each of the pair free to take whichever threat is nearer to it rather than both piling onto one."
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": -20,
       "y": 3,
       "angle": 0,
@@ -91,7 +91,7 @@
       "width": 4
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": -20,
       "y": -3,
       "angle": 0,
@@ -127,7 +127,7 @@
       "width": 4
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": 12,
       "y": 9,
       "angle": -90,
@@ -135,7 +135,7 @@
       "width": 4
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": 12,
       "y": -9,
       "angle": 90,
@@ -143,7 +143,7 @@
       "width": 4
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": -12,
       "y": 9,
       "angle": -90,
@@ -151,7 +151,7 @@
       "width": 4
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": -12,
       "y": -9,
       "angle": 90,
@@ -159,7 +159,7 @@
       "width": 4
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": 15,
       "y": 7,
       "angle": 180,
@@ -167,7 +167,7 @@
       "width": 4
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": 15,
       "y": -7,
       "angle": 180,

@@ -21,7 +21,7 @@ import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
  *
  * The flat list a ship is built from has thrown away how it was written, and
  * an editor needs that back — "the eighth module" is not something a player
- * can edit when seven of the eight are copies of one thruster. The property
+ * can edit when seven of the eight are copies of one engine. The property
  * that matters is that the answer is *exactly* the placement, since every
  * edit an editor makes is applied through it.
  */
@@ -73,8 +73,8 @@ describe('expandWithOrigins', () => {
     const bp = ship({
       modules: [
         hull,
-        { kind: 'thruster', x: -11, y: 2, angle: 0, length: 2, width: 2 },
-        { kind: 'thruster', x: -11, y: -2, angle: 0, length: 2, width: 2 },
+        { kind: 'engine', x: -11, y: 2, angle: 0, length: 2, width: 2 },
+        { kind: 'engine', x: -11, y: -2, angle: 0, length: 2, width: 2 },
       ],
     });
     const { origins } = expandWithOrigins(bp);

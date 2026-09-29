@@ -123,7 +123,7 @@ const ANGLE_SNAP_DEGREES = 15;
 const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
   structure: { kind: 'structure', length: 8, width: 5 },
   core: { kind: 'core', length: 3, width: 3 },
-  thruster: { kind: 'thruster', angle: 0, length: 3, width: 3 },
+  engine: { kind: 'engine', angle: 0, length: 3, width: 3 },
   turret: { kind: 'turret', angle: 0, length: 4, width: 3, barrels: 1 },
   beamTurret: { kind: 'beamTurret', angle: 0, length: 4, width: 3, barrels: 1 },
   // Longer than they are wide: a hull mount's length is mostly barrel, and one
@@ -436,7 +436,7 @@ export function startEditor(): void {
     const rows = [
       ['Dry mass', `${numbers(s.mass / 1000, 2)} t`],
       ['Inertia', `${numbers(s.inertia / 1000, 0)} t·m²`],
-      ['Modules', `${s.moduleCount} (${s.thrusterCount} engines)`],
+      ['Modules', `${s.moduleCount} (${s.engineCount} engines)`],
       ['Radius', `${numbers(s.radius)} m`],
       ['Accel fore / aft', `${numbers(s.accelFore, 2)} / ${numbers(s.accelAft, 2)} m/s²`],
       ['Accel port / stbd', `${numbers(s.accelPort, 2)} / ${numbers(s.accelStarboard, 2)} m/s²`],
@@ -671,7 +671,7 @@ export function startEditor(): void {
     // mount would be the tool teaching the wrong thing about it. The
     // blueprint's own key stays `barrels` whatever it is labelled, since
     // renaming a field in the format would cost every file ever saved.
-    const nozzles = spec.kind === 'thruster';
+    const nozzles = spec.kind === 'engine';
     const hullMount = isHullMount(spec.kind);
     el<HTMLElement>('barrelsRow').hidden =
       !nozzles && !hullMount && spec.kind !== 'turret' && spec.kind !== 'beamTurret';
@@ -690,7 +690,7 @@ export function startEditor(): void {
         ? 'lens'
         : 'barrel';
     // Only an engine has a plume to point.
-    el<HTMLElement>('weaponRow').hidden = spec.kind !== 'thruster';
+    el<HTMLElement>('weaponRow').hidden = spec.kind !== 'engine';
     weaponInput.checked = spec.weapon === true;
 
     const origin = doc.selectedOrigin();

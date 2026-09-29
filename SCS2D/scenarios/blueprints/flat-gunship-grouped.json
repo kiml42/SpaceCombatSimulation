@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "name": "Flat Gunship",
-  "notes": "The Gunship with its assemblies expanded away: the same eighteen modules, in the same places, listed flat. Every derived figure is identical to the Gunship's and so is every pixel drawn; only the order differs, which is what decides thruster allocation and firing order. Listed kind by kind, as someone drawing the hull before hanging anything off it would arrive at. What that costs is what scenarios/ordering.ts shows. Regenerate with: npx tsx scripts/flatten.ts gunship scenarios/flat-gunship-grouped.json --order=kind --name=\"Flat Gunship (kinds together)\".",
+  "notes": "The Gunship with its assemblies expanded away: the same eighteen modules, in the same places, listed flat. Every derived figure is identical to the Gunship's and so is every pixel drawn; only the order differs, which is what decides engine allocation and firing order. Listed kind by kind, as someone drawing the hull before hanging anything off it would arrive at. What that costs is what scenarios/ordering.ts shows. Regenerate with: npx tsx scripts/flatten.ts gunship scenarios/flat-gunship-grouped.json --order=kind --name=\"Flat Gunship (kinds together)\".",
   "modules": [
     {
       "kind": "structure",
@@ -68,7 +68,7 @@
       "notes": "A bay amidships, where the spine is thickest and everything else is in the way. Cutting the spine here is what would part the ship, so it is also the last place a shell reaches."
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": -20,
       "y": 3,
       "angle": 0,
@@ -76,7 +76,7 @@
       "width": 4
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": -20,
       "y": -3,
       "angle": 0,
@@ -84,7 +84,7 @@
       "width": 4
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": 12,
       "y": 9,
       "angle": -90,
@@ -92,7 +92,7 @@
       "width": 4
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": 12,
       "y": -9,
       "angle": 90,
@@ -100,7 +100,7 @@
       "width": 4
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": -12,
       "y": 9,
       "angle": -90,
@@ -108,7 +108,7 @@
       "width": 4
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": -12,
       "y": -9,
       "angle": 90,
@@ -116,7 +116,7 @@
       "width": 4
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": 15,
       "y": 7,
       "angle": 180,
@@ -124,7 +124,7 @@
       "width": 4
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": 15,
       "y": -7,
       "angle": 180,

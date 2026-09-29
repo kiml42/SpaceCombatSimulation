@@ -47,11 +47,11 @@ export interface ShipView {
   turretBearings: number[];
   /** Which of those turrets are on target and clear to shoot. */
   turretReady: boolean[];
-  /** Throttle held by each thruster, 0 to 1, in the design's thruster order. */
+  /** Throttle held by each engine, 0 to 1, in the design's engine order. */
   throttles: number[];
   /**
    * How much of each flame ray landed on a hull last step, as that ray's
-   * share of its power — 0 where it met nothing. Every thruster's rays in
+   * share of its power — 0 where it met nothing. Every engine's rays in
    * turn, three per nozzle, starting where `plumeRayStarts` says.
    */
   landed: number[];
@@ -266,8 +266,8 @@ export function capture(
       view.turretDisabled[t] = ships.isTurretDisabled(i, t);
     }
 
-    view.throttles.length = design.thrusters.length;
-    for (let t = 0; t < design.thrusters.length; t++) {
+    view.throttles.length = design.engines.length;
+    for (let t = 0; t < design.engines.length; t++) {
       view.throttles[t] = ships.throttleOf(i, t);
     }
 

@@ -4,7 +4,7 @@ import { ORDERINGS, soloOrdering } from '../scenarios/ordering.js';
 
 /**
  * What listing a ship's modules in a different order actually costs, pinned so
- * that a change to thruster allocation or firing has to be argued for.
+ * that a change to engine allocation or firing has to be argued for.
  *
  * The bounds differ in kind on purpose. Grouping being free is exact and must
  * stay exact; ordering costing round-off is a measurement, bounded loosely
@@ -66,7 +66,7 @@ describe('module ordering, one battle each', () => {
   });
 
   it('costs only round-off to list the same parts in a different order', () => {
-    // Allocation is least squares over every thruster at once, not a walk down
+    // Allocation is least squares over every engine at once, not a walk down
     // the list, and a salvo's recoil is summed before it is applied. So
     // reordering changes only the order the arithmetic happens in — not free,
     // since a reordered blueprint still moves a golden checksum, but round-off

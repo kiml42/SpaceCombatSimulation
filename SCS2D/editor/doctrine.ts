@@ -109,8 +109,6 @@ function isAimField(field: string): boolean {
 
 /** What to call an archetype where a person is reading it rather than a file. */
 export function kindName(kind: ModuleKind): string {
-  // The file says `thruster`; the module is the whole engine.
-  if (kind === 'thruster') return 'engine';
   if (kind === 'beamTurret') return 'beam turret';
   if (kind === 'hullGun') return 'hull gun';
   if (kind === 'hullBeam') return 'hull beam';

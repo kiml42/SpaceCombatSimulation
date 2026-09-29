@@ -39,12 +39,12 @@ export {
   type BeamSpec,
 } from './beams.js';
 export {
-  ThrusterLayout,
+  EngineLayout,
   Allocation,
   applyAllocation,
   shortfall,
-  type ThrusterSpec,
-} from './thrusters.js';
+  type EngineSpec,
+} from './engines.js';
 export {
   DECK_HEIGHT,
   DEFAULT_NOZZLE_SHARE,
@@ -75,8 +75,8 @@ export {
   TRAVERSE_GEAR_FRACTION,
   nozzleOffset,
   weldBox,
-  thrusterGeometry,
-  thrusterMachinery,
+  engineGeometry,
+  engineMachinery,
   traverseAccel,
   traverseRate,
   TRAVERSE_SPINUP_TIME,
@@ -85,7 +85,7 @@ export {
   type ModuleSpec,
   type HullMountGeometry,
   type ModuleStats,
-  type ThrusterGeometry,
+  type EngineGeometry,
 } from './modules.js';
 export { HullPath, Hulls, modulesAlong, type HullDesigns } from './hull.js';
 export {

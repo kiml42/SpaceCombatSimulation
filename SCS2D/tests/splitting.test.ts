@@ -69,7 +69,7 @@ describe('a ship cut in half', () => {
       const design = after.run.ships.design(piece);
       expect(design.cores.length).toBe(1);
       expect(design.turrets.length).toBe(1);
-      expect(design.thrusters.length).toBeGreaterThan(0);
+      expect(design.engines.length).toBeGreaterThan(0);
       expect(after.run.ships.isDisarmed(piece)).toBe(false);
       expect(design.mass).toBeGreaterThan(catamaran.mass * 0.4);
     }

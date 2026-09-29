@@ -7,7 +7,7 @@ import {
   isHullMount,
   mountTraverse,
   hullMountGeometry,
-  thrusterGeometry,
+  engineGeometry,
   weldBox,
   traverseAccel,
   traverseRate,
@@ -22,7 +22,7 @@ import {
   type Doctrine,
   type Targeting,
 } from './doctrine.js';
-import { ThrusterLayout, type ThrusterSpec } from './thrusters.js';
+import { EngineLayout, type EngineSpec } from './engines.js';
 import { HullPath } from './hull.js';
 import { exhaustObstruction, nozzleReach, WEAPON_PLUME_SHARE } from './exhaust.js';
 import type { TurretSpec } from './turrets.js';
@@ -33,20 +33,20 @@ import type { TurretSpec } from './turrets.js';
  * A blueprint is authored data — where the modules go — and says nothing about
  * how the ship performs. Compiling one derives all of that: mass and moment of
  * inertia from the modules' own geometry, the centre of mass everything is
- * measured about, the thruster layout to solve allocation with, and each
+ * measured about, the engine layout to solve allocation with, and each
  * turret's mount including the arc the ship's own superstructure leaves it.
  *
  * **Compile once per design, not once per ship.** Everything here is fixed for
  * as long as the layout is, so a hundred strike craft off the same blueprint
- * share one compiled design and one thruster matrix between them (DESIGN.md
+ * share one compiled design and one engine matrix between them (DESIGN.md
  * §4). Damage does not invalidate it: a wrecked module keeps its mass and its
- * place, so only losing a thruster — or severing part of the hull — changes
+ * place, so only losing an engine — or severing part of the hull — changes
  * anything derived here.
  *
  * **The centre of mass is the body's origin.** Bodies rotate about their
  * centre of mass, so a layout authored about any convenient origin is shifted
  * onto it at compile time. Doing this once here means nothing downstream —
- * thruster arms, turret mounts, the renderer — has to remember to correct for
+ * engine arms, turret mounts, the renderer — has to remember to correct for
  * it, and a torque computed from a mount position is simply right.
  */
 
@@ -65,7 +65,7 @@ import type { TurretSpec } from './turrets.js';
  * built out of sines and cosines, so faces that ought to be flush miss by
  * fractions of a micron; at a nanometre, which is what this was, an angle
  * rounded for the sake of the file tilts a module eighty nanometres into its
- * neighbour and the layout is refused. Every thruster a mutation tried to bolt
+ * neighbour and the layout is refused. Every engine a mutation tried to bolt
  * on was lost that way.
  */
 const TOUCH_TOLERANCE = 0.005;
@@ -90,12 +90,12 @@ export const ATTACHMENT_TOLERANCE = 0.01;
  * share a single description.
  *
  * The point is that copies cannot drift. A ship with eight identical lateral
- * thrusters holds one thruster and eight placements of it, so making them all
+ * engines holds one engine and eight placements of it, so making them all
  * bigger is one edit and there is no state in which seven of them are.
  *
  * An assembly of a single module is the ordinary "shared part" case, and is
  * deliberately not a separate concept — one mechanism covers a repeated
- * thruster and a repeated wing, and having two would mean choosing between
+ * engine and a repeated wing, and having two would mean choosing between
  * them every time and converting between them eventually.
  *
  * Assemblies may contain instances of other assemblies, which is what makes a
@@ -191,7 +191,7 @@ export function isInstance(placement: Placement): placement is AssemblyInstance 
  * A path of these is how the editor names a placement: the flat list a ship is
  * built from has thrown away which assembly each module was written in, and
  * "the eighth module" is not something a player can edit, because seven of the
- * eight may be copies of one thruster.
+ * eight may be copies of one engine.
  */
 export interface PathStep {
   /** Index into the placement list at this level. */
@@ -323,16 +323,16 @@ export interface ShipDesign {
   /** Where the centre of mass sat in the blueprint's own frame, metres. */
   readonly centreOfMassX: number;
   readonly centreOfMassY: number;
-  readonly thrusters: readonly ThrusterSpec[];
+  readonly engines: readonly EngineSpec[];
   /**
    * Which of those the designer meant to point at things, as indices into
-   * `thrusters`. Almost always empty, which is why it is a list rather than a
+   * `engines`. Almost always empty, which is why it is a list rather than a
    * flag on each: flying a ship then costs one length check instead of a walk
    * over every engine it has.
    */
-  readonly weaponThrusters: readonly number[];
+  readonly weaponEngines: readonly number[];
   /** Shared by every ship built to this design. */
-  readonly thrusterLayout: ThrusterLayout;
+  readonly engineLayout: EngineLayout;
   readonly turrets: readonly DesignTurret[];
   /**
    * The modules that fly this ship, as indices into `modules`.
@@ -368,7 +368,7 @@ function corners(m: ModuleSpec, out: number[]): void {
   const s = sin(a);
   const hl = m.length * 0.5;
   const hw = m.width * 0.5;
-  // About the box's middle, which a thruster's position is not.
+  // About the box's middle, which an engine's position is not.
   const mid = moduleCentre(m);
   let k = 0;
   for (let i = 0; i < 4; i++) {
@@ -651,7 +651,7 @@ export const MAX_EXPANDED_MODULES = 1024;
  * both were found by the golden checksums rather than by reasoning. Mirroring
  * a module facing aft maps `PI` to `-PI`, and while those are the same
  * direction, `sin(-PI)` is `-1.2e-16` where `sin(PI)` is `+1.2e-16` — so an
- * aft thruster reflected onto the far beam would compile a hair differently
+ * aft engine reflected onto the far beam would compile a hair differently
  * from its unreflected twin. And `-0` compares equal to `0` while having
  * different bits, which a checksum over raw doubles notices even though
  * nothing else does.
@@ -692,7 +692,7 @@ export function expandBlueprint(blueprint: Blueprint): ModuleSpec[] {
  * a walk of its own because a second walk is a second set of rules about
  * mirroring, repetition and extras, and the two would drift. An editor
  * selecting a module needs to reach the *placement* — which may be one
- * thruster drawn eight times — and it has to be this walk that says so.
+ * engine drawn eight times — and it has to be this walk that says so.
  */
 export function expandWithOrigins(blueprint: Blueprint): Expansion {
   const modules: ModuleSpec[] = [];
@@ -828,7 +828,7 @@ function place(
         trail.pop();
         // Extras come after what the assembly defines, in the same frame. The
         // ordering is worth noticing rather than assuming harmless: module
-        // order decides thruster allocation and firing order, so moving a part
+        // order decides engine allocation and firing order, so moving a part
         // out of a definition and into an instance's extras moves it down the
         // list and changes the ship slightly, even though nothing about its
         // geometry has.
@@ -959,8 +959,8 @@ export function assemblyProblem(blueprint: Blueprint): string | null {
  * corner weld would be a joint of no width, which is not a weak joint but an
  * absent one.
  *
- * Measured about the middle of each box, which a thruster's position is not:
- * growing a thruster about the point it is *mounted* by would add its whole
+ * Measured about the middle of each box, which an engine's position is not:
+ * growing an engine about the point it is *mounted* by would add its whole
  * skin astern and have an engine reaching towards its own exhaust.
  */
 export function contactWidth(spec: ModuleSpec, other: ModuleSpec): number {
@@ -1278,7 +1278,7 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
  * The design that part of a ship makes on its own, once the rest has come off.
  *
  * Everything is derived again from the modules that are left — mass, the
- * centre of mass they turn about, inertia, bounding radius, which thrusters
+ * centre of mass they turn about, inertia, bounding radius, which engines
  * and guns went with them — because a chunk is a ship-shaped thing that
  * happens to have no crew, and nothing downstream should have to ask whether
  * the design it holds came from a blueprint or from a break.
@@ -1329,7 +1329,7 @@ function designFrom(
   comY /= mass;
 
   const modules: DesignModule[] = [];
-  const thrusters: ThrusterSpec[] = [];
+  const engines: EngineSpec[] = [];
   const turrets: DesignTurret[] = [];
   const cores: number[] = [];
   let inertia = 0;
@@ -1341,7 +1341,7 @@ function designFrom(
     const s = stats[i]!;
     // The middle of the box rather than where the module is attached: this is
     // what carries its mass, what the renderer draws about, and — for a
-    // thruster — a point on the same line of action as its mounting, so the
+    // engine — a point on the same line of action as its mounting, so the
     // force and torque it delivers are the same either way.
     const x = centres[i]!.x - comX;
     const y = centres[i]!.y - comY;
@@ -1361,8 +1361,8 @@ function designFrom(
 
     if (spec.kind === 'core') {
       cores.push(modules.length - 1);
-    } else if (spec.kind === 'thruster') {
-      thrusters.push({
+    } else if (spec.kind === 'engine') {
+      engines.push({
         x,
         y,
         dirX: cos(angle),
@@ -1487,16 +1487,16 @@ function designFrom(
     reach = max(reach, expects(doctrine.targeting.preferredMass, turret.gun));
   }
 
-  const weaponThrusters: number[] = [];
-  for (let t = 0; t < thrusters.length; t++) {
-    const thruster = thrusters[t]!;
-    if (thruster.weapon !== true) continue;
-    weaponThrusters.push(t);
+  const weaponEngines: number[] = [];
+  for (let t = 0; t < engines.length; t++) {
+    const engine = engines[t]!;
+    if (engine.weapon !== true) continue;
+    weaponEngines.push(t);
     // As far as the flame lands the share it fires for, so a torch ship's
     // doctrine closes to where its engine burns rather than to the skin.
-    const spec = modules[thruster.module ?? -1]?.spec;
+    const spec = modules[engine.module ?? -1]?.spec;
     if (spec === undefined) continue;
-    reach = max(reach, nozzleReach(thrusterGeometry(spec), thruster.maxThrust) * (1 - WEAPON_PLUME_SHARE));
+    reach = max(reach, nozzleReach(engineGeometry(spec), engine.maxThrust) * (1 - WEAPON_PLUME_SHARE));
   }
 
   // What each engine exhausts into, ray by ray. A plume needs it every step
@@ -1512,18 +1512,18 @@ function designFrom(
   const exhaust = new HullPath();
   const blocks: number[] = [];
   const blockedAt: number[] = [];
-  for (const thruster of thrusters) {
+  for (const engine of engines) {
     const escaping = exhaustObstruction(
       { modules },
-      thruster.module!,
-      thruster.maxThrust,
+      engine.module!,
+      engine.maxThrust,
       exhaust,
       blocks,
       blockedAt,
     );
-    thruster.blocks = [...blocks];
-    thruster.blockedAt = [...blockedAt];
-    thruster.escaping = escaping;
+    engine.blocks = [...blocks];
+    engine.blockedAt = [...blockedAt];
+    engine.escaping = escaping;
   }
 
   return {
@@ -1536,9 +1536,9 @@ function designFrom(
     radius,
     centreOfMassX: comX,
     centreOfMassY: comY,
-    thrusters,
-    weaponThrusters,
-    thrusterLayout: new ThrusterLayout(thrusters),
+    engines,
+    weaponEngines,
+    engineLayout: new EngineLayout(engines),
     turrets,
     cores,
   };

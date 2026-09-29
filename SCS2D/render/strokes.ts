@@ -61,7 +61,7 @@ export function beamAlpha(power: number): number {
  * square metre (`plumeIntensity`).
  *
  * Logarithmic for the reason a beam's is: the fleet runs from a capital's
- * main engines at about a kilowatt per square metre to a fighter's thrusters
+ * main engines at about a kilowatt per square metre to a fighter's engines
  * at over a megawatt, and a flame's size already says how far it reaches, so
  * its opacity is free to say how fiercely. `PLUME_MIN_ALPHA` keeps a burning
  * engine visible however gentle its flame.

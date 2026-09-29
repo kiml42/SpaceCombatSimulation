@@ -5,7 +5,7 @@ import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
 import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
 import { Choice, cohesionUrge, look, lookFrom, score } from './targeting.js';
-import { moduleRadius, thrusterGeometry } from './modules.js';
+import { moduleRadius, engineGeometry } from './modules.js';
 import {
   atan2,
   angleDelta,
@@ -21,7 +21,7 @@ import {
   sqrt,
 } from './math.js';
 import { Projectiles } from './projectiles.js';
-import { Allocation, ThrusterLayout } from './thrusters.js';
+import { Allocation, EngineLayout } from './engines.js';
 import { FiringSolution, Turrets, TurretState } from './turrets.js';
 import type { Targeting } from './doctrine.js';
 import type { World } from './world.js';
@@ -35,12 +35,12 @@ import { GunType, type GunStats, type ModuleKind } from './modules.js';
  * Ships: a compiled design bound to a body, flying itself and shooting.
  *
  * This is the layer that turns the derived numbers into behaviour. A design
- * says what a ship *is* — its mass, where its thrusters point, what its guns
+ * says what a ship *is* — its mass, where its engines point, what its guns
  * throw and how far each mount can train. A ship is one instance of that: a
  * body in the world, a set of throttles, a set of turrets, and an order.
  *
  * **Designs are shared, ships are not.** A hundred strike craft off one
- * blueprint hold one `ShipDesign` between them and one thruster matrix; what
+ * blueprint hold one `ShipDesign` between them and one engine matrix; what
  * each carries of its own is the state that differs — throttles, gun timers
  * and where it has been told to go.
  *
@@ -272,7 +272,7 @@ const NOTHING_AIMABLE = -2;
 /** What a doctrine thinks one kind of module is worth shooting at. */
 function partWeight(doctrine: Targeting, kind: ModuleKind): number {
   if (kind === 'core') return doctrine.coreWeight;
-  if (kind === 'thruster') return doctrine.engineWeight;
+  if (kind === 'engine') return doctrine.engineWeight;
   if (kind === 'structure') return doctrine.structureWeight;
   return doctrine.gunWeight;
 }
@@ -426,14 +426,14 @@ export class Ships {
   });
 
   /**
-   * Per-ship thruster layouts, and the damage version each was built at.
+   * Per-ship engine layouts, and the damage version each was built at.
    *
    * A design's layout is shared by every ship built to it, so a damaged ship
    * needs one of its own — rebuilt when its damage changes and not per step,
    * which is what §4's "damage never changes topology" buys: the geometry of
    * what can push is what changed, and mass properties are untouched.
    */
-  private readonly layouts: (ThrusterLayout | null)[] = [];
+  private readonly layouts: (EngineLayout | null)[] = [];
   private readonly layoutVersion: number[] = [];
   /** Persistent between steps, per §12: never shared scratch. */
   private readonly throttles: Float64Array[] = [];
@@ -633,32 +633,32 @@ export class Ships {
   }
 
   /**
-   * The thruster layout to fly this ship by: the design's own while it is
+   * The engine layout to fly this ship by: the design's own while it is
    * undamaged, and one of its own once it is not.
    *
    * Rebuilt only when the ship's damage has changed since the last time, which
    * is a version comparison rather than a dirty flag — nothing has to remember
    * to set it.
    */
-  private layoutOf(i: number): ThrusterLayout {
+  private layoutOf(i: number): EngineLayout {
     const design = this.designs[i]!;
     const bodies = this.bodyStore;
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
-    if (b < 0) return design.thrusterLayout;
+    if (b < 0) return design.engineLayout;
 
     const version = this.damage.version(b);
     const built = this.layouts[i];
     if (built !== null && built !== undefined && this.layoutVersion[i] === version) return built;
 
     let damaged = false;
-    const specs = design.thrusters.map((spec) => {
+    const specs = design.engines.map((spec) => {
       const left = this.damage.remaining(b, spec.module ?? -1, DamageEffect.Thrust);
       if (left < 1) damaged = true;
       return left === 1 ? spec : { ...spec, maxThrust: spec.maxThrust * left };
     });
     // An undamaged ship keeps the design's shared layout, so the common case
     // costs one comparison and no allocation.
-    const layout = damaged ? new ThrusterLayout(specs) : design.thrusterLayout;
+    const layout = damaged ? new EngineLayout(specs) : design.engineLayout;
     this.layouts[i] = layout;
     this.layoutVersion[i] = version;
     return layout;
@@ -704,8 +704,8 @@ export class Ships {
       if (!this.isTurretDisabled(i, t)) return false;
     }
     // An engine meant as a weapon is one while it can still burn.
-    for (const t of design.weaponThrusters) {
-      const module = design.thrusters[t]?.module ?? -1;
+    for (const t of design.weaponEngines) {
+      const module = design.engines[t]?.module ?? -1;
       if (this.damage.remaining(b, module, DamageEffect.Thrust) > 0) return false;
     }
     return true;
@@ -745,8 +745,8 @@ export class Ships {
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return true;
     const design = this.designs[i]!;
-    for (const thruster of design.thrusters) {
-      if (this.damage.remaining(b, thruster.module ?? -1, DamageEffect.Thrust) > 0) return false;
+    for (const engine of design.engines) {
+      if (this.damage.remaining(b, engine.module ?? -1, DamageEffect.Thrust) > 0) return false;
     }
     return true;
   }
@@ -828,8 +828,8 @@ export class Ships {
     const i = this.alive.length;
     this.designs.push(design);
     this.bodyIds.push(id);
-    this.throttles.push(new Float64Array(design.thrusters.length));
-    this.landed.push(new Float64Array(plumeRayStarts(design)[design.thrusters.length]!));
+    this.throttles.push(new Float64Array(design.engines.length));
+    this.landed.push(new Float64Array(plumeRayStarts(design)[design.engines.length]!));
     this.turretIndex.push(indices);
     this.cooldown.push(new Float64Array(mounts.length));
     this.turretStates.push(new Uint8Array(mounts.length));
@@ -1653,7 +1653,7 @@ export class Ships {
       const starts = plumeRayStarts(design);
       landed.fill(0);
 
-      for (let t = 0; t < design.thrusters.length; t++) {
+      for (let t = 0; t < design.engines.length; t++) {
         const force = throttles[t]! * this.exhaustOf(design, bodyIdx, t);
         if (!(force > 0)) continue;
         this.plumes.burn(design, t, force, this.damage, bodies, bodyIdx, grid, this.hulls, dt, landed, starts[t]!);
@@ -1858,10 +1858,10 @@ export class Ships {
     bodies: Bodies,
     grid: SpatialGrid | undefined,
     i: number,
-    layout: ThrusterLayout,
+    layout: EngineLayout,
   ): number {
     const design = this.designs[i]!;
-    const armed = design.weaponThrusters;
+    const armed = design.weaponEngines;
     if (grid === undefined || armed.length === 0) return 0;
 
     if (this.forced.length < layout.count) this.forced = new Uint8Array(layout.count);
@@ -1884,8 +1884,8 @@ export class Ships {
       // burning as one dead astern, and the rays exist precisely so that the
       // flame's width counts.
       let worth = false;
-      const engine = design.modules[design.thrusters[t]?.module ?? -1];
-      const rays = engine === undefined ? 0 : plumeRays(thrusterGeometry(engine.spec));
+      const engine = design.modules[design.engines[t]?.module ?? -1];
+      const rays = engine === undefined ? 0 : plumeRays(engineGeometry(engine.spec));
       for (let ray = 0; ray < rays && !worth; ray++) {
         if (!this.plumes.cast(design, t, ray, force, bodies, b, grid, this.hulls)) continue;
         if (this.plumes.share < WEAPON_PLUME_SHARE) continue;
@@ -2374,7 +2374,7 @@ export class Ships {
    * an absent one, and what it was holding is simply no longer attached.
    *
    * Walked only for hulls something has cut into since the last look, which
-   * is a version comparison like the thruster layout's.
+   * is a version comparison like the engine layout's.
    */
   private partCutWelds(world: World): number {
     const bodies = world.bodies;
@@ -2728,7 +2728,7 @@ export class Ships {
    *
    * Everything derived from the layout is derived again, because the layout
    * is what changed: mass and inertia, the centre of mass the body turns
-   * about, the thruster matrix, the mounts and their arcs. What is carried
+   * about, the engine matrix, the mounts and their arcs. What is carried
    * over is state that belongs to the ship rather than to its shape — its
    * orders, its gun timers, where its surviving turrets were pointing, and
    * what each remaining module had already taken.
@@ -2795,8 +2795,8 @@ export class Ships {
     this.turretAiming[i] = aiming;
     this.turretAimModule[i] = aims;
     this.turretRethinkAt[i] = schedule;
-    this.throttles[i] = new Float64Array(design.thrusters.length);
-    this.landed[i] = new Float64Array(plumeRayStarts(design)[design.thrusters.length]!);
+    this.throttles[i] = new Float64Array(design.engines.length);
+    this.landed[i] = new Float64Array(plumeRayStarts(design)[design.engines.length]!);
     this.layouts[i] = null;
     this.layoutVersion[i] = -1;
     this.damage.register(b, design, scars, weldScars);
@@ -2879,7 +2879,7 @@ export class Ships {
   }
 
   /**
-   * What one of a ship's thrusters is producing, as a fraction of its rating.
+   * What one of a ship's engines is producing, as a fraction of its rating.
    *
    * The throttle the allocator set, scaled by what damage has left of the
    * engine — so a half-wrecked engine at full throttle reports a half. That is
@@ -2890,8 +2890,8 @@ export class Ships {
    * How much of one flame ray landed on something last step, as its share of
    * the ray's power: 1 at the nozzle, 0 for a ray that met nothing.
    */
-  landedShare(i: number, thruster: number, ray: number): number {
-    return this.landed[i]![plumeRayStarts(this.designs[i]!)[thruster]! + ray] ?? 0;
+  landedShare(i: number, engine: number, ray: number): number {
+    return this.landed[i]![plumeRayStarts(this.designs[i]!)[engine]! + ray] ?? 0;
   }
 
   /** Every ray's `landedShare` for one ship, flat. Read-only. */
@@ -2899,13 +2899,13 @@ export class Ships {
     return this.landed[i]!;
   }
 
-  throttleOf(i: number, thruster: number): number {
+  throttleOf(i: number, engine: number): number {
     const bodies = this.bodyStore;
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
-    if (b < 0) return this.throttles[i]![thruster]!;
-    const spec = this.designs[i]!.thrusters[thruster]!;
+    if (b < 0) return this.throttles[i]![engine]!;
+    const spec = this.designs[i]!.engines[engine]!;
     const left = this.damage.remaining(b, spec.module ?? -1, DamageEffect.Thrust);
-    return this.throttles[i]![thruster]! * left;
+    return this.throttles[i]![engine]! * left;
   }
 
   /**
@@ -2917,8 +2917,8 @@ export class Ships {
    * one and simply getting nothing for it, so the flame it burns with is the
    * rating and the thrust it flies on is not.
    */
-  private exhaustOf(design: ShipDesign, bodyIndex: number, thruster: number): number {
-    const spec = design.thrusters[thruster]!;
+  private exhaustOf(design: ShipDesign, bodyIndex: number, engine: number): number {
+    const spec = design.engines[engine]!;
     return spec.maxThrust * this.damage.remaining(bodyIndex, spec.module ?? -1, DamageEffect.Thrust);
   }
 

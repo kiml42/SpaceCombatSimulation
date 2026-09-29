@@ -32,7 +32,7 @@
           "width": 60
         },
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": -663,
           "y": 138,
           "angle": 0,
@@ -128,23 +128,23 @@
           "angle": 90
         },
         {
-          "use": "thruster",
+          "use": "engine",
           "x": 874.5,
           "y": 9
         },
         {
-          "use": "thruster",
+          "use": "engine",
           "x": -522,
           "y": 489
         },
         {
-          "use": "thruster",
+          "use": "engine",
           "x": -429,
           "y": 467,
           "angle": -90
         },
         {
-          "use": "thruster",
+          "use": "engine",
           "x": 437,
           "y": 106,
           "angle": -90
@@ -187,10 +187,10 @@
         }
       ]
     },
-    "thruster": {
+    "engine": {
       "modules": [
         {
-          "kind": "thruster",
+          "kind": "engine",
           "x": 0,
           "y": 0,
           "angle": -90,
@@ -229,7 +229,7 @@
       "mirror": true
     },
     {
-      "kind": "thruster",
+      "kind": "engine",
       "x": -727.25,
       "y": 0,
       "angle": 0,

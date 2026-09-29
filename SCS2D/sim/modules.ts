@@ -482,7 +482,7 @@ export const TRAVERSE_SPINUP_TIME = 2;
 export type ModuleKind =
   | 'structure'
   | 'core'
-  | 'thruster'
+  | 'engine'
   | 'turret'
   | 'beamTurret'
   | 'hullGun'
@@ -503,7 +503,7 @@ export type ModuleKind =
 export const MODULE_KINDS: readonly ModuleKind[] = [
   'structure',
   'core',
-  'thruster',
+  'engine',
   'turret',
   'beamTurret',
   'hullGun',
@@ -520,13 +520,13 @@ export interface ModuleSpec {
   kind: ModuleKind;
   /**
    * Where the module is bolted to the ship, metres — which is its centre for
-   * every kind but a thruster.
+   * every kind but an engine.
    *
-   * A thruster is the one module with a side that means something: it is held
+   * An engine is the one module with a side that means something: it is held
    * on by the face it pushes from and exhausts out of the other, so that face
    * is the only part of it whose position the rest of the ship cares about.
    * Its position is therefore the middle of *that* face, and the engine runs
-   * back from there along its own facing — so a thruster made longer grows
+   * back from there along its own facing — so an engine made longer grows
    * out into the exhaust rather than half into the hull it is mounted on, and
    * lengthening one is one number rather than two. `moduleCentre` is where the
    * box actually sits, and everything geometric goes through it.
@@ -535,7 +535,7 @@ export interface ModuleSpec {
   y: number;
   /**
    * Which way it faces, radians, in the blueprint frame. This is the module's
-   * local +x: the direction a thruster pushes the ship and the bearing a
+   * local +x: the direction an engine pushes the ship and the bearing a
    * turret rests at.
    */
   angle?: number;
@@ -551,7 +551,7 @@ export interface ModuleSpec {
   reinforcement?: number;
 
   /**
-   * How many barrels a turret has, or how many nozzles a thruster has — the
+   * How many barrels a turret has, or how many nozzles an engine has — the
    * editor calls it Nozzles there.
    *
    * The same number because it is the same idea: one mount's budget divided
@@ -570,8 +570,8 @@ export interface ModuleSpec {
    * `DEFAULT_NOZZLE_SHARE` when unsaid.
    *
    * **One field for three archetypes, because it is one quantity**, the way
-   * `barrels` counts a turret's barrels and a thruster's nozzles alike: on a
-   * `thruster` the protrusion is the bell and the block is chamber and pumps;
+   * `barrels` counts a turret's barrels and an engine's nozzles alike: on a
+   * `engine` the protrusion is the bell and the block is chamber and pumps;
    * on a `hullGun` it is the barrel and the breech and loading gear; on a
    * `hullBeam` the lens housing and the bank and the plant. The editor names
    * it for the kind it is showing. Nothing else has one.
@@ -579,7 +579,7 @@ export interface ModuleSpec {
    * It cuts both ways on every kind that has it, which is what makes it a
    * knob rather than a slider: bell length is aim bought with flow, barrel
    * length is muzzle velocity bought with rate of fire and with the traverse
-   * the opening leaves. See `thrusterGeometry` and `hullMountGeometry`.
+   * the opening leaves. See `engineGeometry` and `hullMountGeometry`.
    *
    * Zero on an engine is legal and is a rocket whose bell has blown off: gas
    * thrown in every direction, about half the thrust, and a flame that goes
@@ -620,7 +620,7 @@ export interface ModuleSpec {
   targeting?: Partial<Targeting>;
 
   /**
-   * Whether this engine is pointed at things on purpose. Thrusters only.
+   * Whether this engine is pointed at things on purpose. Engines only.
    *
    * An exhaust burns whatever stands in it whoever meant it to (`exhaust.ts`),
    * so this changes nothing about what a plume *does* — it changes when the
@@ -706,7 +706,7 @@ export interface ModuleStats {
    * which it stops *functioning*.
    */
   hitPoints: number;
-  /** Thrust at full throttle, newtons. Zero unless the module is a thruster. */
+  /** Thrust at full throttle, newtons. Zero unless the module is an engine. */
   thrust: number;
   /** Gun derived from the mount, or null unless the module is a weapon. */
   gun: GunStats | null;
@@ -779,8 +779,8 @@ export function moduleProblem(spec: ModuleSpec): string | null {
   // For an engine it is the machinery block that has to be a box: the bell is
   // meant to be open at both ends. This is also what makes "all nozzle"
   // impossible by running out of block rather than by a rule of its own.
-  const boxLength = spec.kind === 'thruster'
-    ? thrusterGeometry(spec).machineryLength
+  const boxLength = spec.kind === 'engine'
+    ? engineGeometry(spec).machineryLength
     : isHullMount(spec.kind)
       ? hullMountGeometry(spec).blockLength
       : spec.length;
@@ -800,8 +800,8 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     if (!(outletWidth > 0)) return `${spec.kind}: ${spec.barrels ?? 1} outlets leave no bore`;
     if (!(traverse >= 0)) return `${spec.kind}: barrel does not fit its own opening`;
   }
-  if (spec.kind === 'thruster') {
-    const { exitWidth, throatWidth } = thrusterGeometry(spec);
+  if (spec.kind === 'engine') {
+    const { exitWidth, throatWidth } = engineGeometry(spec);
     const skin = thickness * NOZZLE_SKIN_FRACTION;
     if (2 * skin >= throatWidth) {
       return (
@@ -832,7 +832,7 @@ export function moduleRadius(spec: ModuleSpec): number {
 
 /**
  * Where a module's box sits, which is its position for every kind but a
- * thruster — see `ModuleSpec.x`.
+ * engine — see `ModuleSpec.x`.
  *
  * Everything that asks a geometric question about a module goes through this:
  * its corners, what it overlaps, what it blocks, where its mass acts, and
@@ -841,7 +841,7 @@ export function moduleRadius(spec: ModuleSpec): number {
  * the middle, which for an engine is half its length out.
  */
 export function moduleCentre(spec: ModuleSpec): { x: number; y: number } {
-  if (spec.kind !== 'thruster') return { x: spec.x, y: spec.y };
+  if (spec.kind !== 'engine') return { x: spec.x, y: spec.y };
   const angle = spec.angle ?? 0;
   const back = spec.length / 2;
   return { x: spec.x - cos(angle) * back, y: spec.y - sin(angle) * back };
@@ -863,8 +863,8 @@ export function moduleCentre(spec: ModuleSpec): { x: number; y: number } {
 export function refitModule(spec: ModuleSpec, to: ModuleKind, turn = 0): ModuleSpec {
   const centre = moduleCentre(spec);
   const flips =
-    (spec.kind === 'thruster' && isWeaponMount(to)) ||
-    (to === 'thruster' && isWeaponMount(spec.kind));
+    (spec.kind === 'engine' && isWeaponMount(to)) ||
+    (to === 'engine' && isWeaponMount(spec.kind));
   const next: ModuleSpec = { ...spec, kind: to };
   if (flips || turn !== 0) {
     // Folded into (-π, π], so a file says 180 rather than 540 after a few swaps.
@@ -885,7 +885,7 @@ function tidy(value: number): number {
 }
 
 /**
- * A thruster's two halves, and what the bell's shape does to the gas.
+ * An engine's two halves, and what the bell's shape does to the gas.
  *
  * An engine is a machinery block with a bell on the back of it. The block is
  * the structural part — it holds the chamber and the pumps, it is what the
@@ -913,7 +913,7 @@ function tidy(value: number): number {
  * Fuel is not modelled yet. When it is, expansion buys efficiency as well as
  * thrust and this is where that comes from — ROADMAP.md §12.
  */
-export interface ThrusterGeometry {
+export interface EngineGeometry {
   /** Nozzles across the exit face, at least one. */
   nozzles: number;
   /** The bell's share of the module's length, 0 to 1. */
@@ -932,8 +932,8 @@ export interface ThrusterGeometry {
   divergence: number;
 }
 
-/** A thruster's halves and its bell geometry. Thrusters only. */
-export function thrusterGeometry(spec: ModuleSpec): ThrusterGeometry {
+/** An engine's halves and its bell geometry. Engines only. */
+export function engineGeometry(spec: ModuleSpec): EngineGeometry {
   const nozzles = spec.barrels ?? 1;
   const share = spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
   const nozzleLength = spec.length * share;
@@ -961,12 +961,12 @@ export function thrusterGeometry(spec: ModuleSpec): ThrusterGeometry {
  * The machinery block as a box in its own right, for the questions that are
  * about how the engine is *held on*: what it overlaps, what it is welded to.
  *
- * A thruster's position is the middle of the face it pushes from, so the
+ * An engine's position is the middle of the face it pushes from, so the
  * block shares that position and is simply shorter — which is what makes this
  * a change of one field rather than a second geometry.
  */
-export function thrusterMachinery(spec: ModuleSpec): ModuleSpec {
-  return { ...spec, length: thrusterGeometry(spec).machineryLength };
+export function engineMachinery(spec: ModuleSpec): ModuleSpec {
+  return { ...spec, length: engineGeometry(spec).machineryLength };
 }
 
 /**
@@ -976,12 +976,12 @@ export function thrusterMachinery(spec: ModuleSpec): ModuleSpec {
  * barrels are: a gun's barrels are thin things with ship in between, while
  * nozzles divide up a face that is entirely exhaust.
  */
-export function nozzleOffset(geometry: ThrusterGeometry, index: number): number {
+export function nozzleOffset(geometry: EngineGeometry, index: number): number {
   return (index - (geometry.nozzles - 1) * 0.5) * geometry.exitWidth;
 }
 
 /**
- * Material in a thruster's bells, m³.
+ * Material in an engine's bells, m³.
  *
  * Every bell is an open-ended tapered duct: two flanks running down the slant
  * and a roof and floor spanning the taper, in skin a fraction of hull plate
@@ -989,7 +989,7 @@ export function nozzleOffset(geometry: ThrusterGeometry, index: number): number 
  * no interior to hollow out, and weighs a small fraction of what the same
  * length of machinery block does.
  */
-function nozzleSkinVolume(geometry: ThrusterGeometry, wallThickness: number): number {
+function nozzleSkinVolume(geometry: EngineGeometry, wallThickness: number): number {
   const { nozzles, nozzleLength, exitWidth, throatWidth } = geometry;
   if (!(nozzleLength > 0)) return 0;
   const flare = (exitWidth - throatWidth) * 0.5;
@@ -1001,7 +1001,7 @@ function nozzleSkinVolume(geometry: ThrusterGeometry, wallThickness: number): nu
 
 
 /**
- * A thruster's moment about its own centre, kg·m².
+ * An engine's moment about its own centre, kg·m².
  *
  * Two pieces sitting at different places along the engine, so the box formula
  * over the whole declared length would be wrong twice over: it puts the heavy
@@ -1009,9 +1009,9 @@ function nozzleSkinVolume(geometry: ThrusterGeometry, wallThickness: number): nu
  * were packed as densely as the block. A cluster of bells is spread across the
  * face as well, which the single-box formula cannot see at all.
  */
-function thrusterInertia(
+function engineInertia(
   spec: ModuleSpec,
-  geometry: ThrusterGeometry,
+  geometry: EngineGeometry,
   blockMass: number,
   skinMass: number,
 ): number {
@@ -1162,17 +1162,17 @@ export function isHullMount(kind: ModuleKind): boolean {
  * keeping one is that it is ready to be used.
  */
 export function readsNozzle(kind: ModuleKind): boolean {
-  return kind === 'thruster' || isHullMount(kind);
+  return kind === 'engine' || isHullMount(kind);
 }
 
 /** Whether `barrels` means anything on this kind: barrels, outlets or nozzles. */
 export function countsOutlets(kind: ModuleKind): boolean {
-  return kind === 'turret' || kind === 'beamTurret' || kind === 'thruster' || isHullMount(kind);
+  return kind === 'turret' || kind === 'beamTurret' || kind === 'engine' || isHullMount(kind);
 }
 
 /** Whether `weapon` means anything on this kind. Only an engine has a plume to point. */
 export function readsWeapon(kind: ModuleKind): boolean {
-  return kind === 'thruster';
+  return kind === 'engine';
 }
 
 /**
@@ -1314,9 +1314,9 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
   const reinforcement = spec.reinforcement ?? 1;
   const wallThickness = BASE_WALL_THICKNESS * reinforcement;
 
-  // A thruster is a box with a bell on the back of it rather than one box, and
+  // An engine is a box with a bell on the back of it rather than one box, and
   // only the box part is walled. Every other archetype is the box it declares.
-  const engine = spec.kind === 'thruster' ? thrusterGeometry(spec) : null;
+  const engine = spec.kind === 'engine' ? engineGeometry(spec) : null;
   const mount = isHullMount(spec.kind) ? hullMountGeometry(spec) : null;
   const boxLength =
     engine !== null ? engine.machineryLength : mount !== null ? mount.blockLength : spec.length;
@@ -1361,7 +1361,7 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
   } else if (engine !== null) {
     // Thrust comes out of the nozzle, so it scales with the area of the face
     // the exhaust leaves through — the module's width by the deck height,
-    // however many bells that face is divided into. A thruster therefore gets
+    // however many bells that face is divided into. An engine therefore gets
     // stronger by being made *wider*, which is what stops "just stretch it"
     // being the answer to every propulsion problem.
     //
@@ -1482,7 +1482,7 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
   const boxMass = mass - rodMass;
   const inertia =
     engine !== null
-      ? thrusterInertia(spec, engine, structureMass - skinVolume * HULL_DENSITY + fittingMass,
+      ? engineInertia(spec, engine, structureMass - skinVolume * HULL_DENSITY + fittingMass,
           skinVolume * HULL_DENSITY)
       : mount !== null
         ? // The block sits half a barrel aft of the module's middle, and the

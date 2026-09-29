@@ -371,7 +371,7 @@ describe('how a craft closes on its band', () => {
       },
       modules: [
         { kind: 'core', x: 0, y: 0, angle: 0, length: 6, width: 6 },
-        { kind: 'thruster', x: -3, y: 0, angle: 0, length: 2, width: 4 },
+        { kind: 'engine', x: -3, y: 0, angle: 0, length: 2, width: 4 },
       ],
     };
     const battle = makeBattle({ seed: 5 }, (ships, world) => {

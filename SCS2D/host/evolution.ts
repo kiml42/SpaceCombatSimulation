@@ -95,7 +95,7 @@ const FIELDS = [
   'damageWeight',
   'disablingWeight',
   'raceWeight',
-  'kindThruster',
+  'kindEngine',
   'kindStructure',
   'kindTurret',
   'kindBeamTurret',
@@ -331,7 +331,7 @@ export function startEvolution(): void {
     damageWeight: String(DEFAULT_MATCH.weights.damage),
     disablingWeight: String(DEFAULT_MATCH.weights.disabling),
     raceWeight: String(DEFAULT_MATCH.weights.race),
-    kindThruster: String(DEFAULT_KINDS.thruster),
+    kindEngine: String(DEFAULT_KINDS.engine),
     kindStructure: String(DEFAULT_KINDS.structure),
     kindTurret: String(DEFAULT_KINDS.turret),
     kindBeamTurret: String(DEFAULT_KINDS.beamTurret),
@@ -513,7 +513,7 @@ export function startEvolution(): void {
       },
       mutation: {
         kinds: {
-          thruster: Math.max(0, number(inputs.kindThruster, DEFAULT_KINDS.thruster)),
+          engine: Math.max(0, number(inputs.kindEngine, DEFAULT_KINDS.engine)),
           structure: Math.max(0, number(inputs.kindStructure, DEFAULT_KINDS.structure)),
           turret: Math.max(0, number(inputs.kindTurret, DEFAULT_KINDS.turret)),
           beamTurret: Math.max(0, number(inputs.kindBeamTurret, DEFAULT_KINDS.beamTurret)),
@@ -593,7 +593,7 @@ export function startEvolution(): void {
     inputs.damageWeight.value = String(match.weights.damage);
     inputs.disablingWeight.value = String(match.weights.disabling);
     inputs.raceWeight.value = String(match.weights.race);
-    inputs.kindThruster.value = String(kinds.thruster);
+    inputs.kindEngine.value = String(kinds.engine);
     inputs.kindStructure.value = String(kinds.structure);
     inputs.kindTurret.value = String(kinds.turret);
     inputs.kindBeamTurret.value = String(kinds.beamTurret);
@@ -1103,7 +1103,7 @@ export function startEvolution(): void {
    *
    * **Capped, because a run is longer than memory is.** Seeking across a
    * thousand generations of twelve would otherwise hold twelve thousand
-   * compiled designs, each with its modules, mounts and thrusters, for the
+   * compiled designs, each with its modules, mounts and engines, for the
    * sake of a page that is showing twelve of them. The oldest go first, which
    * on a seek means the ones already scrolled past.
    */

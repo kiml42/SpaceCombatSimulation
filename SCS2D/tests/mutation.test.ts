@@ -10,7 +10,7 @@ import {
   parseBlueprint,
   Rng,
   serialiseBlueprint,
-  thrusterGeometry,
+  engineGeometry,
   type Blueprint,
   type ModuleSpec,
 } from '../sim/index.js';
@@ -285,7 +285,7 @@ describe('mutation', () => {
     for (let i = 0; i < 400; i++) {
       const child = mutate(held, rng, {
         structural: 1,
-        kinds: { thruster: 0, structure: 0, turret: 0, beamTurret: 0, hullGun: 3, hullBeam: 1, core: 0 },
+        kinds: { engine: 0, structure: 0, turret: 0, beamTurret: 0, hullGun: 3, hullBeam: 1, core: 0 },
       });
       held = child.blueprint;
       for (const edit of child.edits) {
@@ -306,11 +306,11 @@ describe('mutation', () => {
       ],
     };
     const rng = new Rng(31);
-    const only = { thruster: 1, structure: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0 };
+    const only = { engine: 1, structure: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0 };
     let seen = 0;
     for (let i = 0; i < 400 && seen < 3; i++) {
       const child = mutate(casemate, rng, { structural: 0, kinds: only });
-      if (child.edits.length !== 1 || !/hullGun refitted as thruster/.test(child.edits[0]!)) continue;
+      if (child.edits.length !== 1 || !/hullGun refitted as engine/.test(child.edits[0]!)) continue;
       const engine = child.blueprint.modules[1] as ModuleSpec;
       expect(engine.angle).toBeCloseTo(Math.PI, 9);
       seen++;
@@ -353,7 +353,7 @@ describe('mutation', () => {
       name: 'Tug',
       modules: [
         { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 4 },
-        { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.7 },
+        { kind: 'engine', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.7 },
       ],
     };
     let refits = 0;
@@ -371,7 +371,7 @@ describe('mutation', () => {
     // aggregate: a bell nobody would have picked, a spell as a turret, and
     // the same bell on the way back.
     const tuned: ModuleSpec = {
-      kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.37,
+      kind: 'engine', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.37,
     };
     const site = { spec: { ...tuned }, where: 'module 1' };
     // Refitted by hand, since what is being tested is what a refit leaves
@@ -387,8 +387,8 @@ describe('mutation', () => {
         Record<string, unknown>[])[0]!['nozzle'],
     ).toBeUndefined();
 
-    site.spec.kind = 'thruster';
-    expect(thrusterGeometry(site.spec).share).toBe(0.37);
+    site.spec.kind = 'engine';
+    expect(engineGeometry(site.spec).share).toBe(0.37);
   });
 
   it('builds only the kinds it is told to', { timeout: 30_000 }, () => {
@@ -403,18 +403,18 @@ describe('mutation', () => {
     for (let i = 0; i < 400; i++) {
       const child = mutate(held, rng, {
         structural: 1,
-        kinds: { thruster: 1, structure: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0 },
+        kinds: { engine: 1, structure: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0 },
       });
       held = child.blueprint;
       for (const edit of child.edits) {
         const arrival = /a (\w+) added to/.exec(edit);
         if (arrival !== null) {
-          expect(arrival[1], edit).toEqual('thruster');
+          expect(arrival[1], edit).toEqual('engine');
           added++;
         }
         const change = /refitted as (\w+)/.exec(edit);
         if (change !== null) {
-          expect(change[1], edit).toEqual('thruster');
+          expect(change[1], edit).toEqual('engine');
           refitted++;
         }
       }
@@ -424,7 +424,7 @@ describe('mutation', () => {
   });
 
   it('refits a module into an engine without moving it', { timeout: 30_000 }, () => {
-    // A thruster's position is where it is *attached* rather than the middle
+    // An engine's position is where it is *attached* rather than the middle
     // of its box, so a refit that kept the coordinates would slide the module
     // half its own length into its neighbour and be refused every time —
     // closing the one route a lineage has to a large engine, since everything
@@ -435,7 +435,7 @@ describe('mutation', () => {
     for (let i = 0; i < 400 && engines < 5; i++) {
       const child = mutate(held, rng, { structural: 0, kinds: DEFAULT_KINDS });
       held = child.blueprint;
-      if (child.edits.some((edit) => /refitted as thruster/.test(edit))) engines++;
+      if (child.edits.some((edit) => /refitted as engine/.test(edit))) engines++;
     }
     expect(engines).toBeGreaterThan(0);
   });
@@ -488,7 +488,7 @@ describe('mutation', () => {
     let held: Blueprint = CORVETTE;
     for (let i = 0; i < 50; i++) {
       const child = mutate(held, rng, {
-        kinds: { thruster: 0, structure: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0 },
+        kinds: { engine: 0, structure: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0 },
       });
       expect(child.edits.length, `child ${i}`).toBeGreaterThan(0);
       expect(child.edits.some((edit) => /added to/.test(edit))).toBe(false);
