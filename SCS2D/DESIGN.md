@@ -70,8 +70,8 @@ inside any one file is not contiguous.
   rate its own figures claim; a module can be duplicated into a shared part placed
   twice, and a shared part unlinked back into separate modules, with position, dragging
   and deletion belonging to the copy and everything else to all of them; several modules or assemblies can be
-  picked at once and made into an assembly, nesting any assemblies among them, or added to the first one
-  picked when it is an assembly — never into itself — a module added with an assembly selected going into it at
+  picked at once and made into an assembly, nesting any assemblies among them, or added to the last assembly
+  picked — never into itself — a module added with an assembly selected going into it at
   its origin, and one selected alone turned by a knob of its own about that origin, and an assembly is then
   placed again and reflected
   to build a symmetrical ship out of one side and a mirror of it, and clicked, dragged

@@ -597,7 +597,7 @@ export function startEditor(): void {
 
   /**
    * What can be done with several things picked at once: make an assembly of
-   * them, or, when the first one picked is an assembly, put the rest into it.
+   * them, or put the rest of them into the last assembly picked.
    * Both are offered whenever both are possible, and the panel says what each
    * would do, or why it cannot.
    */
@@ -605,12 +605,12 @@ export function startEditor(): void {
     const why = createAssemblyProblem(doc.blueprint, doc.selections);
     assemblyButton.disabled = why !== null;
 
-    const adding = doc.additionToFirst();
+    const adding = doc.additionTarget();
     const into = adding === null ? null : placementAt(doc.blueprint, adding.assembly);
     const name = into !== null && !isModuleSpec(into) ? (into as AssemblyInstance).use : null;
     const addWhy =
       adding === null
-        ? 'Pick the assembly to add to first, then what goes into it'
+        ? 'Pick an assembly to add the rest of the selection to'
         : addToAssemblyProblem(doc.blueprint, adding.assembly, adding.members);
     addToAssemblyButton.disabled = adding === null || addWhy !== null;
     addToAssemblyButton.textContent = name === null ? 'Add to assembly' : `Add to ${name}`;
@@ -1119,7 +1119,7 @@ export function startEditor(): void {
   });
 
   addToAssemblyButton.addEventListener('click', () => {
-    const adding = doc.additionToFirst();
+    const adding = doc.additionTarget();
     if (adding === null) return;
     const next = addToAssembly(doc.blueprint, adding.assembly, adding.members);
     if (next === null) return;
@@ -1800,7 +1800,7 @@ export function startEditor(): void {
     'Click a module to select it, drag to move, drag a corner or edge to size it ' +
     '(pushing its neighbours; Ctrl alone) or the knob to turn it; ' +
     'select two touching modules to drag the face between them; ' +
-    'Shift-click to pick several and Create assembly, or pick an assembly first to Add to it; ' +
+    'Shift-click to pick several and Create assembly, or Add them to the last assembly picked; ' +
     'with an assembly selected, a new module goes into it. Positions snap to a tenth of the grid on ' +
     `screen and facings to ${ANGLE_SNAP_DEGREES}° — hold Alt to escape. ` +
     'Drag empty space to pan, scroll to zoom, F to fit, Delete to remove, Ctrl+Z to undo.';

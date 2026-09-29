@@ -1953,21 +1953,40 @@ describe('adding modules to an assembly', () => {
     expect(expandBlueprint(next).filter((m) => m.kind === 'engine')).toHaveLength(2);
   });
 
-  it('offers the operation when an assembly is picked first and something after it', () => {
+  it('adds everything else picked to the last assembly picked, whichever order they came in', () => {
     const { doc, assembly } = wingAndSpare();
     doc.select(assembly);
-    expect(doc.additionToFirst()).toBeNull();
+    expect(doc.additionTarget()).toBeNull();
 
-    const spare = doc.view.origins.findIndex((_, i) => doc.view.modules[i]!.kind === 'engine');
-    doc.togglePath(doc.view.origins[spare]!.path);
-    const both = doc.additionToFirst()!;
-    expect(both.assembly).toEqual(assembly);
-    expect(both.members).toHaveLength(1);
+    const spare = doc.view.origins[doc.view.origins.findIndex((_, i) => doc.view.modules[i]!.kind === 'engine')]!.path;
+    doc.togglePath(spare);
+    expect(doc.additionTarget()).toEqual({ assembly, members: [spare] });
 
-    // Picked the other way round, the module comes first and is not an assembly.
-    doc.select(doc.view.origins[spare]!.path);
+    doc.select(spare);
     doc.togglePath(assembly);
-    expect(doc.additionToFirst()).toBeNull();
+    expect(doc.additionTarget()).toEqual({ assembly, members: [spare] });
+
+    // Only modules picked: nothing to add them to.
+    doc.select(spare);
+    expect(doc.additionTarget()).toBeNull();
+  });
+
+  it('takes the last of several assemblies as the target, and the others as members', () => {
+    const doc = new EditorDocument({
+      name: 'Three',
+      assemblies: { a: { modules: [{ kind: 'structure', x: 0, y: 0, length: 1, width: 1 }] } },
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 2, width: 2 },
+        { use: 'a', x: 2, y: 0 },
+        { use: 'a', x: 4, y: 0 },
+        { kind: 'structure', x: -2, y: 0, length: 2, width: 2 },
+      ],
+    });
+    const at = (index: number): ModulePath => [{ index, copy: 0 }];
+    doc.select(at(1));
+    doc.togglePath(at(2));
+    doc.togglePath(at(3));
+    expect(doc.additionTarget()).toEqual({ assembly: at(2), members: [at(1), at(3)] });
   });
 });
 
