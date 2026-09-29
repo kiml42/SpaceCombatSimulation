@@ -142,9 +142,10 @@ inside any one file is not contiguous.
   anything: what it does instead is boil along every seam its tunnel crosses until one of them is gone,
   and whatever that seam was holding is then simply no longer attached. What comes away is a body of its own with its share of the momentum, the spin
   and the scars — a piece of ship with nobody aboard, which collides and takes damage like any other hull.
-  **Torn metal hooks.** Two bodies meeting slowly, one of them wreckage, with a module on either torn past
-  `RAGGED_INTEGRITY`, become one body joined by a seam. A ship can end up towing a wreck, but it commands
-  nothing across a seam, and nothing past a ragged module of its own either.
+  **Torn metal hooks.** Two bodies meeting slowly, with a module on either torn past `RAGGED_INTEGRITY`,
+  become one body joined by a seam. A ship can end up towing a wreck, but it commands nothing across a seam,
+  and nothing past a ragged module of its own either. Two ships hooked together both ride the one body, each
+  flying and fighting with what it brought, so they pull against each other until the seam goes.
   **Craft carry a doctrine, and fight without being told to.** A blueprint can hold a block of named
   numbers saying what its craft picks a fight with and how it wants to fight it; a ship with an empty
   order queue chooses a target through a stack of preferences — what is close, what can still shoot
@@ -863,8 +864,8 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   step, so the index is rebuilt in one linear pass with no hierarchy to rebalance, and cell traversal is
   plain ascending order, which keeps damage application order reproducible.
 - **Weld on slow contact** (`Ships.weld`, built). A module at or under `RAGGED_INTEGRITY` has ragged edges,
-  and two bodies closing at under `WELD_SPEED` hook together if either touching module is ragged, at least
-  one of them is wreckage rather than a ship (until two ships can share a body — ROADMAP.md §8), and neither has parted within `WELD_SETTLE`. They merge into
+  and two bodies closing at under `WELD_SPEED` hook together if either touching module is ragged and
+  neither has parted within `WELD_SETTLE`. They merge into
   one body, momentum and angular momentum kept, with their designs joined by a **seam** (`ShipDesign.seams`)
   a `HOOK_SHARE` of the narrower face wide. A seam tears like any weld, but carries no command. This makes
   wreckage into larger chunks worth chasing down and harvesting, instead of lots of tiny fragments.
@@ -872,6 +873,12 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   excepted), so a ship hooked to debris cannot use a live engine or gun on it — nor one of its own beyond a
   torn spine. An uncommanded module thrusts and fires at nothing, and scoring caps a ship's hull at what it
   started with, so a towed wreck is not counted as its own.
+  **Two ships on one body.** When both sides of a weld have somebody aboard, both ships ride the merged
+  body: each keeps its side, orders, doctrine and scoring slot, and works only the modules it brought
+  (`Ships.owns`), so each pilot flies the whole body with its own engines and the thrusts add up. Neither
+  can shoot the other, since a round never hits the body it left. A wreck hooked on after that is nobody's.
+  When the body comes apart, each ship goes with the piece it is flown from — its lowest working core —
+  so a torn seam parts them as the ships they were. Hits are credited to whoever works the module struck.
   Docking ports and claws will let ships connect to each other on purpose, by bumping together gently, with
   rules of their own — refuelling fighters, for example. Every case *removes* bodies rather than adding
   sustained contacts.

@@ -86,6 +86,12 @@ export interface ShipView {
    * able to shoot is one that can.
    */
   turretDisabled: boolean[];
+  /**
+   * Which modules this view draws, in module order; absent or empty for all.
+   * Two ships hooked together share a body and a design, and each draws only
+   * its own side — in its own colours — so nothing is drawn twice.
+   */
+  drawn?: boolean[];
 }
 
 export class Snapshot {
@@ -210,6 +216,7 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
     hasControl: true,
     isDerelict: false,
     turretDisabled: [],
+    drawn: [],
   };
   snapshot.ships[i] = created;
   return created;
@@ -279,6 +286,9 @@ export function capture(
     for (let m = 0; m < design.modules.length; m++) {
       view.integrity[m] = ships.damage.integrity(b, m);
     }
+    const drawn = (view.drawn ??= []);
+    drawn.length = design.modules.length;
+    for (let m = 0; m < design.modules.length; m++) drawn[m] = ships.draws(i, m);
 
     // Only the ships with somebody aboard are framed: a camera that kept
     // wreckage in shot would pull away from the battle to hold on it.

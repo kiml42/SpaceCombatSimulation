@@ -224,6 +224,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
 
   // Module boxes, in the body frame the design already put them in.
   for (let i = 0; i < design.modules.length; i++) {
+    if (ship.drawn?.[i] === false) continue;
     const m = design.modules[i]!;
     const spec = m.spec;
     ctx.save();
@@ -301,6 +302,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   const s = sin(ship.angle);
 
   for (let t = 0; t < design.turrets.length; t++) {
+    if (ship.drawn?.[design.turrets[t]!.module] === false) continue;
     const mount = design.turrets[t]!.mount;
     const mx = ship.x + mount.x * c - mount.y * s;
     const my = ship.y + mount.x * s + mount.y * c;

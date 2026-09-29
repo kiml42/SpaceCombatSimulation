@@ -41,7 +41,7 @@ an entry is either still open or it is gone.
 
 | Step | What | State |
 | --- | --- | --- |
-| Slice 0 | Two ships fight, deterministically | Built, bar live ships welding |
+| Slice 0 | Two ships fight, deterministically | Built |
 | 1 | Blueprint editor | Partly built |
 | 2 | Terminal ballistics and the damage model | Built |
 | 3 | Doctrine and orders | Partly built |
@@ -59,13 +59,6 @@ an entry is either still open or it is gone.
 | 15 | Campaign | Not started |
 
 ### Partly built — what is left
-
-**Slice 0 — two live ships welding.** Torn metal hooks only when one side is wreckage (`Ships.weld`), because
-a body is flown by one ship. Two ships stuck in a ram should instead share the body and each fly their own
-side: own team, orders, pilot and turrets, commanding only the engines and guns their cores reach, their
-thrust summing on the one body so they pull against each other. The seam tearing gives each its own body
-again. Needs `Ships` to allow several ships per body — throttles, engine layout, targeting, scoring and
-severing all assume one.
 
 **Step 1 — Blueprint editor.** One thing, not blocking:
 
@@ -839,8 +832,9 @@ Deliberately unresolved; decide when they block something.
   needs a rule for how much reaches a neighbour and a way to walk the connectivity graph outward from the
   contact, neither hard, and neither worth guessing at before there is something to watch it on.
 - **Docking ports and claws.** Welding is built for ragged metal only: two bodies meeting at under
-  `WELD_SPEED`, one of them wreckage, with a module on either torn past `RAGGED_INTEGRITY`, become one body
-  joined by a seam that carries no command (DESIGN.md §4). Two ships hooking is the slice 0 item in §8. A port or a claw is how a live ship does it on purpose, with rules of its own — which parts
+  `WELD_SPEED` with a module on either torn past `RAGGED_INTEGRITY` become one body joined by a seam that
+  carries no command, and two ships hooked that way both ride it (DESIGN.md §4). A port or a claw is how a
+  live ship joins on purpose, with rules of its own — which parts
   mate, whether the pair shares command, how a dock lets go — and is what makes §3's landing a landing.
 - **Credit for ramming.** Deferred; nothing depends on it. Damage is credited to whoever caused it only for
   shells and beams (`Credit`, filled in `Impacts.rounds` and `Impacts.beams`); a collision damages both

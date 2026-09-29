@@ -12,6 +12,7 @@ import {
   type Ships,
 } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
+import { capture, Snapshot } from '../sim/snapshot.js';
 import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
 import type { World } from '../sim/world.js';
 
@@ -90,7 +91,9 @@ describe('welding on a slow contact', () => {
     const before = totals(run.world);
     runUntilWelded(run);
     expect(run.totalWelded).toBe(1);
-    expect(run.ships.count).toBe(1);
+    // Hulks rather than wreckage — somebody is still aboard — so both ride it.
+    expect(run.ships.body(run.a)).toBe(run.ships.body(run.b));
+    expect(run.world.bodies.count).toBe(1);
     const after = totals(run.world);
     expect(after.mass).toBeCloseTo(before.mass, 6);
     expect(after.px).toBeCloseTo(before.px, 3);
@@ -123,13 +126,86 @@ describe('welding on a slow contact', () => {
     expect(run.totalContacts).toBeGreaterThan(0);
   });
 
-  it('never joins two ships', () => {
-    const run = drift(1, (ships, world, a, b) => {
-      tear(ships, world, a);
-      tear(ships, world, b);
+  describe('two ships', () => {
+    /** Two corvettes with their noses torn open, hooked together nose to nose. */
+    function hooked(): ReturnType<typeof drift> {
+      const run = drift(1, (ships, world, a, b) => {
+        for (const ship of [a, b]) wear(ships, world, ship, nose, RAGGED_INTEGRITY * 0.5);
+      });
+      runUntilWelded(run);
+      expect(run.totalWelded).toBe(1);
+      return run;
+    }
+    const front = Math.max(...corvette.modules.map((m) => m.x + m.spec.length / 2));
+    const nose = corvette.modules.findIndex((m) => m.x + m.spec.length / 2 === front);
+    const own = corvette.modules.length;
+
+    it('both ride one body, each on its own side', () => {
+      const run = hooked();
+      const { ships, a, b } = run;
+      expect(ships.body(a)).toBe(ships.body(b));
+      expect(ships.hasControl(a)).toBe(true);
+      expect(ships.hasControl(b)).toBe(true);
+      expect(ships.teamOf(b)).toBe(1);
+      const design = ships.design(a);
+      for (let m = 0; m < design.modules.length; m++) {
+        expect(ships.owns(a, m)).toBe(m < own);
+        expect(ships.owns(b, m)).toBe(m >= own);
+      }
+      // Who a hit on either side counts against, for scoring.
+      const body = run.world.bodies.indexOf(ships.body(a));
+      expect(ships.crewAt(body, 0)).toBe(a);
+      expect(ships.crewAt(body, own)).toBe(b);
     });
-    runUntilWelded(run, 30);
-    expect(run.totalWelded).toBe(0);
+
+    it('pull against each other, each with its own engines', () => {
+      const { ships, world, a, b } = hooked();
+      // An enemy for each, off in opposite directions.
+      ships.spawn(world, { design: corvette, x: -20000, y: 0, team: 1 });
+      ships.spawn(world, { design: corvette, x: 20000, y: 0, team: 0 });
+      for (let s = 0; s < 30; s++) ships.command(world.dt, world);
+      const engines = ships.design(a).engines;
+      const burning = (ship: number, side: (m: number) => boolean): number =>
+        engines.reduce((sum, e, k) => sum + (side(e.module!) ? ships.throttleOf(ship, k) : 0), 0);
+      expect(burning(a, (m) => m < own)).toBeGreaterThan(0);
+      expect(burning(b, (m) => m >= own)).toBeGreaterThan(0);
+      expect(burning(a, (m) => m >= own)).toBe(0);
+      expect(burning(b, (m) => m < own)).toBe(0);
+    });
+
+    it('draws every module once, in its own ship', () => {
+      const run = hooked();
+      const snapshot = capture(new Snapshot(), run.world, run.ships, run.projectiles, run.beams);
+      const views = snapshot.ships.slice(0, snapshot.shipCount);
+      expect(views).toHaveLength(2);
+      const drawn = new Array<number>(views[0]!.design.modules.length).fill(0);
+      for (const view of views) view.drawn!.forEach((d, m) => (drawn[m]! += d ? 1 : 0));
+      expect(drawn.every((n) => n === 1)).toBe(true);
+    });
+
+    it('part as the two ships they were when the seam goes', () => {
+      const run = hooked();
+      const { ships, world, a, b } = run;
+      const body = world.bodies.indexOf(ships.body(a));
+      const all = joints(ships.design(a));
+      const seam = all.findIndex((joint) => joint.seam === true);
+      run.step();
+      const before = totals(world);
+      ships.damage.cutWeld(body, seam, all[seam]!.width * 2);
+      run.step();
+      expect(ships.body(a)).not.toBe(ships.body(b));
+      for (const ship of [a, b]) {
+        expect(ships.design(ship).modules.length).toBe(own);
+        expect(ships.hasControl(ship)).toBe(true);
+        for (let m = 0; m < own; m++) expect(ships.owns(ship, m)).toBe(true);
+      }
+      expect(ships.teamOf(a)).toBe(0);
+      expect(ships.teamOf(b)).toBe(1);
+      const after = totals(world);
+      expect(after.mass).toBeCloseTo(before.mass, 6);
+      expect(after.px).toBeCloseTo(before.px, 3);
+      expect(after.py).toBeCloseTo(before.py, 3);
+    });
   });
 
   it('lets a ship carry a wreck it hooks, and command nothing on it', () => {
