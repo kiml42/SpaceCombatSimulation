@@ -118,6 +118,14 @@ the fix is small: credit each with the damage it did to the other. A head-on cra
 what it did and each charged for what it took, which is the trade a ram is. Credit is read only by scoring, so
 no golden moves; scores do.
 
+Next for evolution: **credit for ramming.** Damage is credited to whoever caused it only for shells and beams
+(`Credit`, filled in `Impacts.rounds` and `Impacts.beams`); a collision damages both hulls and credits nobody.
+So a ram costs the rammer hull and function and never pays in damage done or function taken, and a run cannot
+find it worth trying, even against a boss it could break in half. The collision code knows both bodies, so
+the fix is small: credit each with the damage it did to the other. A head-on crash then pays both, each for
+what it did and each charged for what it took, which is the trade a ram is. Credit is read only by scoring, so
+no golden moves; scores do.
+
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
 lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
 
