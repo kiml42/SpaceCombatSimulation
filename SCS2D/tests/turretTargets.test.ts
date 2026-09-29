@@ -106,7 +106,7 @@ describe('a mount choosing its own target', () => {
     // An arc is a discard rather than a penalty: a target behind the
     // superstructure is not one this gun gets an opinion about.
     const s = scene(gunship, [
-      { design: corvette, x: 0, y: 2000 },
+      { design: corvette, x: 0, y: 1500 },
       // Much nearer, much more appealing, and squarely behind the port
       // mount's obstruction.
       { design: corvette, x: 0, y: -300 },
@@ -158,7 +158,10 @@ describe('a mount choosing its own target', () => {
   });
 
   it('drops a target the moment it stops being one', () => {
-    const s = scene(gunship, [{ design: corvette, x: 2000, y: 0 }]);
+    // Inside the nose gun's 1,040 m reach against a corvette: past that it
+    // ignores the mark, and this is about a target that has *gone* rather than
+    // one out of range.
+    const s = scene(gunship, [{ design: corvette, x: 1000, y: 0 }]);
     s.run(60);
     expect(s.aim(NOSE)).toBe(1);
     s.ships.remove(1);
@@ -172,9 +175,12 @@ describe('a mount choosing its own target', () => {
     // new and get a shot away, so a close-in mount thinks several times a
     // second and an artillery piece thinks about as often as it can move.
     const switchSteps = (design: ShipDesign, turret: number): number => {
+      // Close in, because these are marks a gun's reach is measured against
+      // and a Dinky is two metres across: the gunship's bow gun is good for
+      // 386 m against one, and its own single mount for 423 m.
       const s = scene(design, [
-        { design: dinky, x: 600, y: 0 },
-        { design: dinky, x: 700, y: 0 },
+        { design: dinky, x: 280, y: 0 },
+        { design: dinky, x: 330, y: 0 },
       ]);
       s.run(300);
       const held = s.aim(turret);
@@ -250,8 +256,8 @@ describe('a mount with a doctrine of its own', () => {
     // differently. Without that, a broadside piles onto whichever one the
     // hull happened to prefer.
     const s = scene(compileBlueprint(GUNSHIP), [
-      { design: dinky, x: 700, y: 420 },
-      { design: dinky, x: 700, y: -420 },
+      { design: dinky, x: 450, y: 270 },
+      { design: dinky, x: 450, y: -270 },
     ]);
     s.run(60);
     expect(s.aim(PORT)).not.toBe(s.aim(STARBOARD));
@@ -266,7 +272,7 @@ describe('a mount with a doctrine of its own', () => {
     // the mission kill of §3 read from the other end.
     const s = scene(compileBlueprint(GUNSHIP), [
       { design: dinky, x: 250, y: 250 },
-      { design: dinky, x: 900, y: 500 },
+      { design: dinky, x: 520, y: 290 },
     ]);
     strip(s, 1);
     s.run(120);
@@ -279,9 +285,12 @@ describe('a mount with a doctrine of its own', () => {
     // eight-barrelled pom-pom is wasted on a capital, and the bow gun has
     // nothing better to do with a fighter than miss it.
     const capital = compileBlueprint(GUNSHIP);
+    // Both marks inside the reach of both kinds of mount, so what decides is
+    // the doctrine rather than the range: the bow gun could take the fighter
+    // and the pom-poms could take the capital, and neither does.
     const s = scene(capital, [
-      { design: corvette, x: 1400, y: 0 },
-      { design: dinky, x: 1000, y: 260 },
+      { design: corvette, x: 1000, y: 0 },
+      { design: dinky, x: 300, y: 100 },
     ]);
     s.run(60);
     expect(s.aim(NOSE)).toBe(1);

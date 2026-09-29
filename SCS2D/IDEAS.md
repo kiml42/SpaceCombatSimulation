@@ -4,6 +4,8 @@ Things that are obviously wrong.
 ## Simulation
 - Shots teleport through structural modules - ISD v ISD is a great example because they're so long it should take an appreciable time for the shot to travel through.
 
+-----------------------------------------------------------------------
+
 # Ideas
 Ideas that aren't planned to be implemented yet, they may or may not be good ideas.
 
@@ -16,28 +18,33 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Allow scaling an assembly - this could get messy, as it would create a duplicate that behaves differently due to different scaling laws.
 - Snap to hulls
 
-
 ## Turrets
 - Turrets fire a volley of one shot per barrel, and then reload. Can specify delay between shots to alow for firing all at once or staggered
   - Beam turrets should allow for multiple beams to be on at the same time.
   - Might need to allow for reloading one while firing another to have continuous firing, could possibly just have each barrel reload independently, and just stagger the triggers by the set amount.
 - Improve barrel spacing on hull guns
 - Bullet spread
-
+- Consider the target size for how far out a turret will consider attacking, larger targets are worth shooting at from further away because there's more likelihood of landing a hit.
 
 ## Maneuvering
 - Command ships with a max tangential velocity, also for doctrines
 - Ships need to have a max allowed rotational speed.
 - Ships need to be able to know when they're already turning towards the target, so not push themselves to turn faster.
+- Attack orientation
+  - Set manually, or define some weapons as main guns and use their overlapping angles to find the best orientation. (make sure engines used as weapons can be included.)
+- Thrust orientation - same as attack orientation, but considering engines.
 
 ## Evolution
-- Fleet evolution - one JSON file to define a formation of multiple ships.
-- Boss Battle - All evolving ships are on the same side competing to do the most damage (and take the least) from the "Boss" ship or fleet (defined in the config).
 - Mutate to change the whole scale of the ship
 - Crossing and closing velocity settings
-- Show first battle as a preview while changing settings
 - Measure yardstick should remember what it previously measured if it's the same ship as the yardstick.
   - Should be able to see a yardstick battle.
+- Mass and ship count graphs below score graph
+- Show score for both sides in the battle preview (including breakdown)
+- When mutation between gun and engine, the module should be rotates 180, to maintain the correct outward face.
+- Consider scoring for ramming
+  - Currently just loses score by everything taking damage
+  - Might want to attribute the damage to both ships to the other, this would be asymmetrical is one manages to ram its armour into an active component on the other.
 
 ## Fleet Editor
 - Allow grouping ships.

@@ -557,15 +557,28 @@ const MAX_ASSEMBLY_DEPTH = 16;
 
 /** How many copies one instance may place. A wing, not a city. */
 /**
- * How long a round is worth chasing a target for, seconds.
+ * How hard a gunner assumes a target might jink, m/s².
  *
- * What sets a gun's useful reach. A firing solution leads the target by where
- * it will be, and the further out it is the more of a guess that lead becomes
- * — so this is a statement about when aiming stops being worth the ammunition
- * rather than about how far a round can physically travel, which is much
- * further.
+ * **What sets a gun's useful reach, together with the target's own size.**
+ * Against something that does not manoeuvre, a shot is accurate at any range:
+ * the solution is exact and the round simply takes a while. What spoils it is
+ * the target changing its velocity after the trigger, and the spread of where
+ * it might then be grows as ½·a·t² — so the shot lands while the cloud is
+ * still smaller than the target, and misses once it is not. Setting the two
+ * equal gives the flight time worth taking, `√(2r/a)`, and multiplying by the
+ * muzzle velocity turns it into a distance.
+ *
+ * So a gun's reach is not a property of the gun alone. A big ship is worth
+ * shooting at from much further off than a small one — twice the radius is
+ * √2 the range — which is why a fighter has to close and a capital does not.
+ *
+ * **It is an assumption about the class of thing being shot at rather than a
+ * measurement of the target**, because a gunner cannot know what an enemy has
+ * left in its engines. Ten is a little above what the shipped fleet manages
+ * (a corvette makes 4.4 m/s², a TIE 12.9), which is the cautious direction:
+ * assume more dodge than there is and the gun holds its fire slightly early.
  */
-const ENGAGEMENT_FLIGHT_TIME = 2;
+const EVASION_ACCEL = 10;
 
 /**
  * How far a beam is worth using, metres.
@@ -573,18 +586,50 @@ const ENGAGEMENT_FLIGHT_TIME = 2;
  * A beam arrives instantly at any range, so nothing about its flight limits
  * it; what limits it is having to hold the emitter on one spot long enough to
  * burn through, which gets harder the further off the target is.
+ *
+ * It is a hard limit rather than a preference — a mount ignores what lies
+ * beyond it — so it has to be generous enough to cover the fight rather than
+ * tuned to where a beam is most effective. Five kilometres is twice the
+ * longest a gun turret is willing to shoot at these muzzle velocities, which
+ * keeps a beam mount from standing down while the guns beside it are working.
  */
-const BEAM_REACH = 1500;
+const BEAM_REACH = 5000;
 
 /**
- * How far one gun is worth shooting at, metres.
+ * How far this gun is worth shooting at something of that size, metres.
  *
  * A ship's reach is the best of these, and a mount's own reach is this — the
  * distinction is what lets a capital hold at artillery range while its
  * close-in mounts pick targets they can actually hit.
+ *
+ * A beam does not travel, so nothing about a flight time bounds it and the
+ * target's size does not come into it: what limits a beam is holding the
+ * emitter on one spot long enough to burn through.
  */
-export function gunReach(gun: GunStats): number {
-  return gun.type === GunType.Beam ? BEAM_REACH : gun.muzzleSpeed * ENGAGEMENT_FLIGHT_TIME;
+export function reachAgainst(gun: GunStats, targetRadius: number): number {
+  if (gun.type === GunType.Beam) return BEAM_REACH;
+  return gun.muzzleSpeed * sqrt((2 * targetRadius) / EVASION_ACCEL);
+}
+
+/**
+ * How far this gun is worth shooting at **the sort of thing its doctrine goes
+ * after**, metres — the figure to use when there is no target in hand.
+ *
+ * A pilot deciding how close to fly, and an editor drawing a ring round a
+ * ship it has never fought, both need a reach before there is anything to
+ * measure one against. Taking a constant for it would be inventing an enemy;
+ * the doctrine has already named one, as a multiple of the chooser's own mass.
+ *
+ * **Mass becomes size by assuming the target is built like the ship judging
+ * it**: area goes as the square of a length, so a hull of `n` times the mass
+ * is `√n` times the radius. That is an approximation and worth saying so —
+ * across the shipped fleet the implied constant spans a factor of three,
+ * mostly because a long thin hull has a large bounding radius for its mass —
+ * but it is an approximation in service of a nominal figure, and the real
+ * reach is worked out against the real target wherever there is one.
+ */
+export function nominalReach(gun: GunStats, ownRadius: number, preferredMass: number): number {
+  return reachAgainst(gun, ownRadius * sqrt(preferredMass > 0 ? preferredMass : 1));
 }
 
 export const MAX_REPEAT = 64;
@@ -1363,7 +1408,10 @@ function designFrom(
           muzzleOffset: gun.barrelLength,
         },
         gun,
-        reach: gunReach(gun),
+        // Filled once the hull's radius is final, which this loop is still
+        // growing: a mount's reach is measured against a target the size the
+        // *ship* expects, and the ship is not finished being measured yet.
+        reach: 0,
         targeting: resolveTargeting(spec.targeting, defaultTargeting(spec.kind)),
       });
     } else if ((spec.kind === 'turret' || spec.kind === 'beamTurret') && s.gun !== null) {
@@ -1411,14 +1459,33 @@ function designFrom(
           muzzleOffset: gun.barrelLength,
         },
         gun,
-        reach: gunReach(gun),
+        // Filled once the hull's radius is final, which this loop is still
+        // growing: a mount's reach is measured against a target the size the
+        // *ship* expects, and the ship is not finished being measured yet.
+        reach: 0,
         targeting: resolveTargeting(spec.targeting, defaultTargeting(spec.kind)),
       });
     }
   }
 
+  // **Two reaches, from one law and two different expectations.**
+  //
+  // A mount's is against the size of thing *it* goes after, since that is what
+  // it will be shooting at. The ship's is against the size *its own doctrine*
+  // goes after, because what the ship's reach decides is how close its pilot
+  // flies — and the pilot flies at what the hull chose, not at what the
+  // point-defence guns are watching for.
+  const expects = (preferredMass: number, gun: GunStats): number =>
+    nominalReach(gun, radius, preferredMass);
+  for (let t = 0; t < turrets.length; t++) {
+    const mount = turrets[t]!;
+    turrets[t] = { ...mount, reach: expects(mount.targeting.preferredMass, mount.gun) };
+  }
+
   let reach = 0;
-  for (const turret of turrets) reach = max(reach, turret.reach);
+  for (const turret of turrets) {
+    reach = max(reach, expects(doctrine.targeting.preferredMass, turret.gun));
+  }
 
   const weaponThrusters: number[] = [];
   for (let t = 0; t < thrusters.length; t++) {

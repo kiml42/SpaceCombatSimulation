@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { compileBlueprint, fleetHulls, fleetMass, fleetReach, Rng, shipFleet, type Fleet } from '../sim/index.js';
 import { isFleet, Match, runMatch } from '../evolution/match.js';
-import { fleetFits, mutateFleet, type FleetOperator } from '../evolution/fleetMutate.js';
+import { DEFAULT_FLEET_LIMITS, fleetFits, mutateFleet, type FleetOperator } from '../evolution/fleetMutate.js';
 import { entrantOf, runEvolution } from '../evolution/run.js';
-import { parseRunConfig, serialiseRunConfig } from '../evolution/configFile.js';
+import { parseRunConfig, runConfigFileProblem, serialiseRunConfig } from '../evolution/configFile.js';
 import { DEFAULT_RUN } from '../evolution/run.js';
 import { BARE_CORE, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 import { LINE_OF_BATTLE } from '../scenarios/fleets.js';
@@ -193,8 +193,15 @@ describe('a run of fleets', () => {
     expect(fleetMass(fleetHulls(fleet))).toBeCloseTo(compileBlueprint(CORVETTE).mass);
   });
 
-  it('stays a run of ships when no founder is a fleet', () => {
-    const run = runEvolution([DINKY], { ...settings, generations: 1 });
+  it('lets a ship founder grow into a fleet', () => {
+    const run = runEvolution([DINKY], { ...settings, generations: 3 });
+    for (const generation of run.generations) {
+      for (const individual of generation.individuals) expect(isFleet(entrantOf(individual))).toBe(true);
+    }
+  });
+
+  it('stays a run of ships when a ship may not grow', () => {
+    const run = runEvolution([DINKY], { ...settings, generations: 1, fleet: { maxShips: 1 } });
     for (const individual of run.generations[0]!.individuals) {
       expect(individual.fleet).toBeUndefined();
       expect(isFleet(entrantOf(individual))).toBe(false);
@@ -207,16 +214,26 @@ describe('a run-config file with fleets', () => {
     const setup = {
       founders: ['Corvette'],
       fleets: ['Line of Battle'],
-      config: { ...DEFAULT_RUN, fleet: { radius: 300, maxShips: 8 } },
+      config: { ...DEFAULT_RUN, fleet: { radius: 300, maxShips: 8, operators: { ...DEFAULT_FLEET_LIMITS.operators, add: 3 } } },
     };
     const read = parseRunConfig(JSON.parse(JSON.stringify(serialiseRunConfig(setup))));
     expect(read.fleets).toEqual(['Line of Battle']);
-    expect(read.config.fleet).toEqual({ radius: 300, maxShips: 8 });
+    expect(read.config.fleet).toEqual(setup.config.fleet);
   });
 
-  it('writes nothing about fleets for a run of ships', () => {
+  it('refuses a change it has never heard of', () => {
+    expect(runConfigFileProblem({ fleet: { operators: { teleport: 1 } } })).toMatch(/teleport/);
+    expect(runConfigFileProblem({ fleet: { operators: { add: -1 } } })).toMatch(/zero or more/);
+  });
+
+  it('writes the fleet limits for a run of ships, which may grow into fleets', () => {
     const file = serialiseRunConfig({ founders: ['Corvette'], config: DEFAULT_RUN });
     expect(file['fleets']).toBeUndefined();
-    expect(file['fleet']).toBeUndefined();
+    expect(file['fleet']).toMatchObject({ maxShips: DEFAULT_FLEET_LIMITS.maxShips });
+  });
+
+  it('reads a file from before fleets as a run of ships', () => {
+    expect(parseRunConfig({ founders: ['Corvette'] }).config.fleet.maxShips).toEqual(1);
+    expect(parseRunConfig({ founders: ['Corvette'], fleet: {} }).config.fleet.maxShips).toEqual(DEFAULT_FLEET_LIMITS.maxShips);
   });
 });

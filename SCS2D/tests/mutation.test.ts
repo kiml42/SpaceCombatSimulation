@@ -490,3 +490,25 @@ describe('mutation', () => {
     expect(child.blueprint).toBe(alone);
   });
 });
+
+describe('doctrine weights', () => {
+  const edits = (doctrine: { targeting: number; approach: number; gunnery: number }): string[] => {
+    const out: string[] = [];
+    const rng = new Rng(9);
+    for (let i = 0; i < 40; i++) out.push(...mutate(GUNSHIP, rng, { structural: 0, numbers: 1, doctrine }).edits);
+    return out;
+  };
+
+  it('never touches a doctrine weighted zero', () => {
+    const made = edits({ targeting: 0, approach: 0, gunnery: 0 });
+    expect(made.length).toBeGreaterThan(0);
+    expect(made.filter((edit) => edit.startsWith('doctrine.'))).toEqual([]);
+  });
+
+  it('turns mostly the doctrine weighted heavily', () => {
+    const made = edits({ targeting: 1000, approach: 0, gunnery: 0 });
+    const targeting = made.filter((edit) => edit.startsWith('doctrine.targeting.'));
+    expect(targeting.length / made.length).toBeGreaterThan(0.8);
+    expect(made.some((edit) => edit.startsWith('doctrine.approach.'))).toBe(false);
+  });
+});

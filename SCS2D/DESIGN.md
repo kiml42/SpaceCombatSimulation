@@ -146,9 +146,29 @@ inside any one file is not contiguous.
   holding, so a hull that keeps its guns on target brakes on its retros. The `standoff` scenario is the evidence: two fleets a kilometre apart, not one order
   between them, and a battle anyway.
   **Every mount picks its own target**, through the same preferences the hull uses but from the mount's
-  point of view: its own gun's reach, and nothing outside the arc it can train through — so a ship with an
-  enemy on each beam fights both, and a gun that cannot reach what its ship is fighting fights what it can
-  instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
+  point of view: nothing outside the arc it can train through, and **nothing beyond its own reach** — which
+  is a limit rather than a preference, so a mount with nothing in range trains back to its rest bearing
+  instead of firing at something it cannot hurt, and an order does not repeal it. The same distance bounds
+  the check for a consort in the line of fire, since a friend beyond where the shot goes is in the way of
+  nothing.
+  **A gun's reach is a property of the target as much as of the gun.** Against something that does not
+  manoeuvre a shot is accurate at any range: the solution is exact and the round merely takes a while. What
+  spoils it is the target changing velocity after the trigger, and the spread of where it might then be
+  grows as `½·a·t²` — so a shot is worth taking while that cloud is still smaller than the target and not
+  once it is bigger. Setting the two equal gives the flight time worth taking, `√(2r/a)`, and the muzzle
+  velocity turns it into a distance. A big ship is therefore worth shooting at from far further off than a
+  small one — twice the radius is `√2` the range — which is why a fighter has to close and a capital does
+  not. The assumed evasion `a` is a statement about the class of thing being shot at rather than a
+  measurement of it, since a gunner cannot know what an enemy has left in its engines; it is set a little
+  above what the shipped fleet manages, which errs towards holding fire. **Where there is no target there
+  is still a nominal reach**, for a pilot deciding how close to fly and an editor drawing a ring round a
+  ship it has never fought: the doctrine's `preferredMass` already names the sort of enemy expected, as a
+  multiple of the chooser's own mass, and a hull of `n` times the mass is taken to be `√n` times the
+  radius. That last is an approximation — across the shipped fleet the implied constant spans a factor of
+  three, mostly because a long thin hull has a large bounding radius for its mass — but it is an
+  approximation in service of a nominal figure, and the real reach is worked out against the real target
+  wherever there is one. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
+  fighting fights what it can instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
   is fighting, is what keeps a broadside concentrated without tying it together; an order given is still
   obeyed by every mount that can train on it. How often a mount reconsiders is derived from the mount:
   half a circle of traverse plus a firing cycle, which is what it costs to swing onto something new and
@@ -402,9 +422,15 @@ inside any one file is not contiguous.
   picture following every change, and started with Fight. It says how each side stands — ships still
   crewed, how many armed and how many mobile, and the share of its mass lost — and names the winner once no
   more than one side can fight on, without stopping the battle.
-  **Fleet evolution** runs headless: `npm run evolve -- --fleet` breeds fleets, scored as one entrant each,
-  under a total mass budget, a deployment radius and a ship count.
-- **Next:** §8 step 5 — a boss battle, and fleets on the evolution page, planned in ROADMAP.md §8.
+  **Fleet evolution** breeds fleets, scored as one entrant each, under a total mass budget, a deployment
+  radius and a ship count — headless with `npm run evolve -- --fleet`, and on the evolution page, whose
+  founders are ships and fleets alike; a ship grows into a fleet unless the most ships allowed is one. Before a run the page shows the founders unmutated and the run's
+  first match paused at its start. **A boss battle** sets every entrant on one side against a ship or fleet
+  that does not evolve, at the middle of the ring where the goal would be, each scored for what it does to
+  the boss alone.
+- **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL — or step 6,
+  editor restructuring; then step 7, the two layers, and step 8, fuel, which starts the resource system.
+  See ROADMAP.md §8.
   §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio

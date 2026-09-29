@@ -26,21 +26,35 @@ import type { Hulls } from './hull.js';
  * and no further: every metre is grid cells a cast walks through before it can
  * report a miss, and a missing beam pays for all of them.
  *
- * Ten kilometres is about five times the longest range the shipped scenarios
- * fight at, and costs about 156 cells a cast.
+ * Sixty kilometres is twice as far as a round carries — `ROUND_FLIGHT_TIME`
+ * at the muzzle velocities these guns reach — so a beam is never the weapon
+ * that runs out of range first, which is the property worth having: a beam
+ * that stopped short of where shells were still arriving would look broken
+ * rather than balanced. It costs about 1,300 cells a cast at 64 m cells, and
+ * measured that is a few microseconds.
  *
- * It must also stay inside what the index will actually cast. `SpatialGrid`
- * gives up after `MAX_CELLS_PER_RAY` cells, so a beam longer than
- * `MAX_CELLS_PER_RAY * cellSize` is silently cut short — at the 64 m cells the
- * scenarios use that limit is 262 km, which this is comfortably within. The
- * cell size is the grid's rather than this module's, so the relationship is
- * documented and asserted at the call site rather than computed here.
+ * **It must stay inside what the index will actually cast**, and the margin is
+ * smaller than the naive arithmetic suggests. `SpatialGrid` gives up after
+ * `MAX_CELLS_PER_RAY` cells, and a segment crosses `(|cos a| + |sin a|)/cell`
+ * of them per metre — up to √2 times as many as a length-over-cell-size sum
+ * says, at 45°. So the true ceiling is `MAX_CELLS_PER_RAY * cellSize / √2`,
+ * which at 64 m cells is about 185 km rather than 262. A beam past that is
+ * *silently* cut short: the cast stops and reports a miss, with nothing said.
+ *
+ * `castableBeamLength` computes it from a grid's own cell size, since the cell
+ * size belongs to the grid rather than to this module.
  */
-export const MAX_BEAM_LENGTH = 10_000;
+export const MAX_BEAM_LENGTH = 60_000;
 
-/** Longest beam the index can cast through a grid of this cell size, metres. */
+/**
+ * Longest beam the index can cast through a grid of this cell size, metres.
+ *
+ * Divided by √2 because the worst case is what matters: a beam fired at 45°
+ * crosses that many times more cells per metre than one along an axis, and a
+ * limit that held only for axis-aligned fire would be no limit at all.
+ */
 export function castableBeamLength(cellSize: number): number {
-  return MAX_CELLS_PER_RAY * cellSize;
+  return (MAX_CELLS_PER_RAY * cellSize) / sqrt(2);
 }
 
 export interface BeamSpec {

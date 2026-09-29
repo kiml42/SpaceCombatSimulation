@@ -86,9 +86,19 @@ export interface MutationLimits {
    * into gun mounts half the time.
    */
   readonly kinds: KindWeights;
+  /**
+   * How often a doctrine number is the one changed, against a number in the
+   * build at one: the ship's targeting, how it approaches, and each weapon's
+   * own gunnery. Zero freezes that part of the doctrine.
+   */
+  readonly doctrine: DoctrineWeights;
 }
 
 export type KindWeights = Readonly<Record<ModuleKind, number>>;
+export type DoctrineWeights = Readonly<Record<'targeting' | 'approach' | 'gunnery', number>>;
+
+/** Every number as likely as every other, doctrine or build. */
+export const DEFAULT_DOCTRINE_WEIGHTS: DoctrineWeights = { targeting: 1, approach: 1, gunnery: 1 };
 
 /**
  * What the operator reaches for, unless a run says otherwise.
@@ -140,6 +150,7 @@ export const DEFAULT_LIMITS: MutationLimits = {
   massBudget: Infinity,
   attempts: 24,
   kinds: DEFAULT_KINDS,
+  doctrine: DEFAULT_DOCTRINE_WEIGHTS,
 };
 
 /** A child, and what was done to its parent to get it. */
@@ -168,6 +179,7 @@ export function mutate(parent: Blueprint, rng: Rng, limits?: Partial<MutationLim
     ...DEFAULT_LIMITS,
     ...limits,
     kinds: { ...DEFAULT_LIMITS.kinds, ...limits?.kinds },
+    doctrine: { ...DEFAULT_LIMITS.doctrine, ...limits?.doctrine },
   };
 
   // Whether this is a structural generation is decided once, outside the
@@ -217,7 +229,9 @@ function breed(
     const available = knobs(draft);
     const wanted = 1 + rng.nextInt(max(1, bounds.numbers));
     for (let i = 0; i < wanted && available.length > 0; i++) {
-      const edit = renumber(available.splice(rng.nextInt(available.length), 1)[0]!, draft, rng, bounds);
+      const at = drawKnob(available, bounds.doctrine, rng);
+      if (at < 0) break;
+      const edit = renumber(available.splice(at, 1)[0]!, draft, rng, bounds);
       if (edit !== null) edits.push(edit);
     }
 
@@ -227,6 +241,28 @@ function breed(
     }
   }
   return null;
+}
+
+/**
+ * Which knob to turn, by index, or -1 if every one left is weighted zero.
+ * Evenly unless doctrine is weighted, so a run at the defaults draws exactly
+ * as it always has.
+ */
+function drawKnob(available: readonly Knob[], weights: DoctrineWeights, rng: Rng): number {
+  if (weights.targeting === 1 && weights.approach === 1 && weights.gunnery === 1) {
+    return rng.nextInt(available.length);
+  }
+  const weightOf = (knob: Knob): number =>
+    max(0, knob.at === 'doctrine' ? weights[knob.half] : knob.at === 'gunnery' ? weights.gunnery : 1);
+  let total = 0;
+  for (const knob of available) total += weightOf(knob);
+  if (!(total > 0)) return -1;
+  let draw = rng.nextFloat() * total;
+  for (let i = 0; i < available.length; i++) {
+    draw -= weightOf(available[i]!);
+    if (draw < 0) return i;
+  }
+  return available.length - 1;
 }
 
 /** Whether a candidate is a ship, and one the budget can afford. */

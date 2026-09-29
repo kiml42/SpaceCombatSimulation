@@ -169,6 +169,15 @@ export interface MatchConfig {
    * and a little structure, against a nine-gun lump that scored worse.
    */
   readonly scatter: number;
+  /**
+   * A ship or fleet every entrant fights together, or null for a free-for-all.
+   *
+   * The boss stands at the middle of the ring, where the goal would be — so a
+   * boss match has no goal — and every entrant is on one side against it,
+   * scored for what it does to the boss alone: a hit on another entrant is
+   * nobody's credit. It is not scored itself, and does not evolve.
+   */
+  readonly boss: Entrant | null;
 }
 
 export const DEFAULT_MATCH: MatchConfig = {
@@ -180,6 +189,7 @@ export const DEFAULT_MATCH: MatchConfig = {
   weights: { survival: 1, functional: 1, damage: 1, disabling: 1, race: 1 },
   wells: [],
   scatter: math.PI,
+  boss: null,
 };
 
 /** What one entrant did, each part scaled so that one is as good as it gets. */
@@ -241,6 +251,42 @@ export function hullCapacity(design: ShipDesign): number {
   return total;
 }
 
+/** The boss's side; every entrant is on side 0 against it. */
+const BOSS_TEAM = 1;
+/** Metres kept between a boss and the nearest entrant at the start. */
+const BOSS_CLEARANCE = 50;
+
+/**
+ * The ring's radius: the one asked for, or as far out as keeps fleets clear of
+ * each other and of the goal at the start. Lone ships never need it widened.
+ */
+function ringRadius(
+  placed: readonly (readonly { x: number; y: number; design: ShipDesign }[])[],
+  boss: readonly { x: number; y: number; design: ShipDesign }[] | undefined,
+  settings: MatchConfig,
+): number {
+  const reachOf = (ships: readonly { x: number; y: number; design: ShipDesign }[]): number => {
+    let reach = 0;
+    for (const ship of ships) reach = math.max(reach, math.length(ship.x, ship.y) + ship.design.radius);
+    return reach;
+  };
+  let first = 0;
+  let second = 0;
+  for (const ships of placed) {
+    const reach = reachOf(ships);
+    if (reach > first) {
+      second = first;
+      first = reach;
+    } else if (reach > second) second = reach;
+  }
+  let radius = settings.radius;
+  if (placed.length > 1) radius = math.max(radius, (first + second) / (2 * math.sin(math.PI / placed.length)));
+  if (settings.goal !== null) radius = math.max(radius, first + settings.goal.size);
+  // Clear of a boss at the middle, with room for either to turn before they meet.
+  if (boss !== undefined) radius = math.max(radius, reachOf(boss) + first + BOSS_CLEARANCE);
+  return radius;
+}
+
 /**
  * A match in progress: the battle it is, and the tally being kept of it.
  *
@@ -251,27 +297,6 @@ export function hullCapacity(design: ShipDesign): number {
  * which, everything here being decided by the seed, is the whole of what makes
  * a replay worth anything.
  */
-/**
- * The ring's radius: the one asked for, or as far out as keeps fleets clear of
- * each other and of the goal at the start. Lone ships never need it widened.
- */
-function ringRadius(placed: readonly (readonly { x: number; y: number; design: ShipDesign }[])[], settings: MatchConfig): number {
-  let first = 0;
-  let second = 0;
-  for (const ships of placed) {
-    let reach = 0;
-    for (const ship of ships) reach = math.max(reach, math.length(ship.x, ship.y) + ship.design.radius);
-    if (reach > first) {
-      second = first;
-      first = reach;
-    } else if (reach > second) second = reach;
-  }
-  let radius = settings.radius;
-  if (placed.length > 1) radius = math.max(radius, (first + second) / (2 * math.sin(math.PI / placed.length)));
-  if (settings.goal !== null) radius = math.max(radius, first + settings.goal.size);
-  return radius;
-}
-
 export class Match {
   /** Every ship the entrants put on the field, and which entrant each belongs to. */
   readonly battle: Battle & { slots: number[]; owners: number[]; marker: number };
@@ -279,6 +304,8 @@ export class Match {
   /** Per entrant: what its hulls could absorb between them. */
   private readonly capacities: number[];
   private readonly count: number;
+  /** The entrants, and the boss after them if there is one. */
+  private readonly sides: number;
   private readonly survival: Float64Array;
   private readonly race: Float64Array;
   /** Per ship. */
@@ -311,10 +338,13 @@ export class Match {
   private ending: Ending = 'timeout';
 
   constructor(entrants: readonly Entrant[], config?: Partial<MatchConfig>) {
-    const settings: MatchConfig = { ...DEFAULT_MATCH, ...config };
+    const given: MatchConfig = { ...DEFAULT_MATCH, ...config };
+    const settings: MatchConfig = given.boss === null ? given : { ...given, goal: null };
     this.settings = settings;
-    // Each entrant's ships in its own frame, with their designs compiled once.
-    const placed = entrants.map((entrant) => {
+    const boss = settings.boss;
+    // Each entrant's ships in its own frame, with their designs compiled once;
+    // the boss, if there is one, as a side after them.
+    const placed = [...entrants, ...(boss === null ? [] : [boss])].map((entrant) => {
       if (!isFleet(entrant)) return [{ x: 0, y: 0, angle: 0, design: compileBlueprint(entrant) }];
       const compiled = new Map<string, ShipDesign>();
       for (const [name, blueprint] of Object.entries(entrant.designs)) compiled.set(name, compileBlueprint(blueprint));
@@ -323,7 +353,9 @@ export class Match {
     this.capacities = placed.map((ships) => ships.reduce((sum, ship) => sum + hullCapacity(ship.design), 0));
     const count = entrants.length;
     this.count = count;
-    const ring = ringRadius(placed, settings);
+    const sides = placed.length;
+    this.sides = sides;
+    const ring = ringRadius(placed.slice(0, count), placed[count], settings);
     this.total = math.round(settings.duration / settings.dt);
 
     this.battle = makeBattle(
@@ -365,15 +397,17 @@ export class Match {
         // Taking turns between entrants, so no side is always first to act.
         const longest = placed.reduce((most, list) => math.max(most, list.length), 0);
         for (let k = 0; k < longest; k++) {
-          for (let i = 0; i < count; i++) {
+          for (let i = 0; i < sides; i++) {
             const ship = placed[i]![k];
             if (ship === undefined) continue;
             // Evenly round a ring. Every entrant is the same distance from every
-            // other and from the goal, so a slot is worth what any other is.
+            // other and from the goal, so a slot is worth what any other is. The
+            // boss is where the goal would be, turned by the same draw.
+            const isBoss = i === count;
             const bearing = (math.TAU * i) / count;
-            const ox = math.cos(bearing) * ring;
-            const oy = math.sin(bearing) * ring;
-            const heading = bearing + math.PI + turned;
+            const ox = isBoss ? 0 : math.cos(bearing) * ring;
+            const oy = isBoss ? 0 : math.sin(bearing) * ring;
+            const heading = isBoss ? turned : bearing + math.PI + turned;
             // A lone ship stands exactly where the entrant does.
             const alone = ship.x === 0 && ship.y === 0;
             const c = math.cos(heading);
@@ -384,7 +418,8 @@ export class Match {
                 x: alone ? ox : ox + ship.x * c - ship.y * s,
                 y: alone ? oy : oy + ship.x * s + ship.y * c,
                 angle: ship.angle === 0 ? heading : heading + ship.angle,
-                team: i,
+                // Every entrant on one side against a boss.
+                team: boss === null ? i : isBoss ? BOSS_TEAM : 0,
               }),
             );
             owners.push(i);
@@ -399,33 +434,33 @@ export class Match {
     // by, and a survival score of 1.0000000000000073 makes a liar of every
     // sentence saying these run from nothing to one.
     const fielded = this.battle.slots.length;
-    this.survival = new Float64Array(count);
-    this.race = new Float64Array(count);
+    this.survival = new Float64Array(sides);
+    this.race = new Float64Array(sides);
     this.nearness = new Float64Array(fielded);
     this.began = new Float64Array(fielded);
-    this.start = new Float64Array(count);
-    this.best = new Float64Array(count);
-    this.lifetime = new Float64Array(count);
-    this.fightingNow = new Uint8Array(count);
+    this.start = new Float64Array(sides);
+    this.best = new Float64Array(sides);
+    this.lifetime = new Float64Array(sides);
+    this.fightingNow = new Uint8Array(sides);
     this.dealt = [];
     this.disabled = [];
-    for (let i = 0; i < count; i++) {
-      this.dealt.push(new Float64Array(count));
-      this.disabled.push(new Float64Array(count));
+    for (let i = 0; i < sides; i++) {
+      this.dealt.push(new Float64Array(sides));
+      this.disabled.push(new Float64Array(sides));
     }
-    this.startCapability = new Float64Array(count * EFFECTS);
-    this.capability = new Float64Array(count * EFFECTS);
+    this.startCapability = new Float64Array(sides * EFFECTS);
+    this.capability = new Float64Array(sides * EFFECTS);
     this.hull = new Float64Array(fielded);
     for (let k = 0; k < fielded; k++) {
       const design = this.battle.ships.design(this.battle.slots[k]!);
       addCapability(this.startCapability, this.battle.owners[k]! * EFFECTS, design, null, -1);
       this.hull[k] = hullCapacity(design);
     }
-    this.working = new Float64Array(count);
-    for (let i = 0; i < count; i++) this.working[i] = workingShare(this.startCapability, this.startCapability, i * EFFECTS);
-    this.functional = new Float64Array(count);
-    this.lost = new Float64Array(count);
-    this.delivered = new Float64Array(count * count);
+    this.working = new Float64Array(sides);
+    for (let i = 0; i < sides; i++) this.working[i] = workingShare(this.startCapability, this.startCapability, i * EFFECTS);
+    this.functional = new Float64Array(sides);
+    this.lost = new Float64Array(sides);
+    this.delivered = new Float64Array(sides * sides);
 
     // Where everyone began, taken before a single step so that nothing has had
     // a chance to shove anybody: a craft knocked off its mark by a neighbour in
@@ -507,6 +542,7 @@ export class Match {
         best[i] = math.max(best[i]!, this.nearness[k]!);
       }
     }
+    // Entrants only: a boss left alone has nobody to score.
     let fighting = 0;
     for (let i = 0; i < this.count; i++) {
       fighting += fightingNow[i]!;
@@ -518,37 +554,40 @@ export class Match {
     // competitor — wreckage, or a piece that has come off something — is
     // nobody's credit: it is neither a ship damaged nor an entrant doing it.
     const credit = this.battle.credit;
-    const count = this.count;
+    const sides = this.sides;
     this.delivered.fill(0);
     for (let h = 0; h < credit.count; h++) {
       const attacker = this.entrantOf.get(credit.attacker[h]!);
       const victim = this.entrantOf.get(credit.victim[h]!);
       if (attacker === undefined || victim === undefined) continue;
-      this.delivered[attacker * count + victim]! += credit.energy[h]!;
+      this.delivered[attacker * sides + victim]! += credit.energy[h]!;
       if (attacker !== victim) this.dealt[attacker]![victim]! += credit.energy[h]!;
     }
 
     // Function lost this step goes to each attacker by its share of everything
     // the victim took — its own fire and its own exhaust included, which are
     // nobody's credit — so hurting yourself never pays anyone, least of all you.
-    for (let v = 0; v < count; v++) {
+    for (let v = 0; v < sides; v++) {
       const now = workingShare(this.capability, this.startCapability, v * EFFECTS);
       const drop = this.working[v]! - now;
       this.working[v] = now;
       this.functional[v]! += now;
       if (!(drop > 0)) continue;
       let credited = 0;
-      for (let a = 0; a < count; a++) credited += this.delivered[a * count + v]!;
+      for (let a = 0; a < sides; a++) credited += this.delivered[a * sides + v]!;
       const taken = math.max(this.lost[v]!, credited);
       if (!(taken > 0)) continue;
-      for (let a = 0; a < count; a++) {
-        if (a !== v) this.disabled[a]![v]! += (drop * this.delivered[a * count + v]!) / taken;
+      for (let a = 0; a < sides; a++) {
+        if (a !== v) this.disabled[a]![v]! += (drop * this.delivered[a * sides + v]!) / taken;
       }
     }
 
     this.step++;
     if (fighting === 0) this.ending = 'annihilated';
-    else if (this.count > 1 && fighting === 1) this.ending = 'decided';
+    else if (sides > this.count) {
+      // Against a boss, it is over once the boss can no longer fight.
+      if (fightingNow[this.count] === 0) this.ending = 'decided';
+    } else if (this.count > 1 && fighting === 1) this.ending = 'decided';
   }
 
   /** What every entrant was worth. Call once it is `done`. */
@@ -556,6 +595,7 @@ export class Match {
     const settings = this.settings;
     const { ships, world } = this.battle;
     const count = this.count;
+    const sides = this.sides;
     const taken = new Float64Array(count);
 
     // What is left of the match, credited to whoever is still fighting at its
@@ -573,8 +613,8 @@ export class Match {
     const left = this.total - this.step;
     if (left > 0) {
       for (let i = 0; i < count; i++) functional[i]! += this.working[i]! * left;
-      const best = new Float64Array(count);
-      const fighting = new Uint8Array(count);
+      const best = new Float64Array(sides);
+      const fighting = new Uint8Array(sides);
       for (let k = 0; k < this.battle.slots.length; k++) {
         const ship = this.battle.slots[k]!;
         const i = this.battle.owners[k]!;
@@ -593,17 +633,21 @@ export class Match {
     for (let i = 0; i < count; i++) {
       let hurt = 0;
       let disabling = 0;
-      for (let v = 0; v < count; v++) {
+      // Against a boss, the boss is the whole of the opposition: a hit on
+      // another entrant is on one's own side, and pays nothing.
+      const against = sides > count;
+      for (let v = 0; v < sides; v++) {
         if (v === i) continue;
+        taken[i]! += this.dealt[v]![i]!;
+        if (against && v !== count) continue;
         // Capped per victim: a ship can only be destroyed once, and without the
         // cap the best thing a gun could do is go on firing into a hull that has
         // already stopped — which is exactly the habit a fitness function must
         // not pay for.
         hurt += math.min(1, this.dealt[i]![v]! / this.capacities[v]!);
         disabling += math.min(1, this.disabled[i]![v]!);
-        taken[i]! += this.dealt[v]![i]!;
       }
-      const opposition = math.max(1, count - 1);
+      const opposition = against ? 1 : math.max(1, count - 1);
       const parts = {
         survival: survival[i]! / this.total,
         functional: functional[i]! / this.total,

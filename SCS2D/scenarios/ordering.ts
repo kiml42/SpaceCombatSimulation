@@ -60,11 +60,17 @@ function battle(which: readonly number[], seed: number): OrderingBattle {
     // Facing across the engagement with a crossing velocity, as the duel does.
     // A ship flying straight down a bearing barely uses its manoeuvring
     // thrusters, and thruster allocation is half of what is being measured.
+    // Half the crossing's usual separation, and that is the rig rather than a
+    // detail: a mount ignores what lies beyond its reach, and from the full
+    // 3.6 km these ships spend the whole run closing and never fire a shot.
+    // What is being measured is what module order does to thruster allocation
+    // and gunnery, so both have to actually happen.
     const contenders = which.map((i) => ({
       name: ORDERINGS[i]!.name,
       ship: ships.spawn(world, {
         design: compileBlueprint(ORDERINGS[i]!.blueprint),
         ...CROSSING.west,
+        x: CROSSING.west.x / 2,
         team: 0,
       }),
     }));
@@ -74,6 +80,7 @@ function battle(which: readonly number[], seed: number): OrderingBattle {
     const target = ships.spawn(world, {
       design: compileBlueprint(CORVETTE),
       ...CROSSING.east,
+      x: CROSSING.east.x / 2,
       team: 1,
     });
 

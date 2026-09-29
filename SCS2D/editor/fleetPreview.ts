@@ -8,7 +8,11 @@ export const FLEET_TEAM = 0;
  * A fleet as a `Snapshot` the battle renderer can draw, at rest, with the
  * fleet's origin at the world origin. The fleet editor's `previewSnapshot`.
  */
-export function fleetSnapshot(view: FleetView, out: Snapshot = new Snapshot()): Snapshot {
+export function fleetSnapshot(
+  view: Pick<FleetView, 'ships' | 'designs'>,
+  out: Snapshot = new Snapshot(),
+  team = FLEET_TEAM,
+): Snapshot {
   let count = 0;
   let minX = Infinity;
   let minY = Infinity;
@@ -23,7 +27,7 @@ export function fleetSnapshot(view: FleetView, out: Snapshot = new Snapshot()): 
     const shipView = ships[count] ?? freshView(design);
     ships[count++] = shipView;
     shipView.design = design;
-    shipView.team = FLEET_TEAM;
+    shipView.team = team;
     shipView.x = centre.x;
     shipView.y = centre.y;
     shipView.angle = ship.angle;
