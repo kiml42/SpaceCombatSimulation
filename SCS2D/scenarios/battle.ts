@@ -137,6 +137,7 @@ export function makeBattle<Extra extends object = Record<never, never>>(
     totalBeamHits: 0,
     totalContacts: 0,
     totalSevered: 0,
+    totalWelded: 0,
     totalCulled: 0,
 
     step(): void {
@@ -147,6 +148,9 @@ export function makeBattle<Extra extends object = Record<never, never>>(
       collisions.step(world.bodies, ships);
       run.totalContacts += collisions.contacts.count;
       impacts.collisions(ships, ships.damage, world.bodies, collisions.contacts);
+      // A slow contact onto torn metal hooks the two into one, once the crush
+      // has decided what is torn.
+      run.totalWelded += ships.weld(world, collisions.contacts);
       grid.rebuild(world.bodies);
       beams.clear();
       beamHits.clear();

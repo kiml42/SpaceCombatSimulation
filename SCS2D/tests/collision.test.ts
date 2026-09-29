@@ -64,6 +64,7 @@ function momentum(bodies: Bodies): { x: number; y: number } {
   let x = 0;
   let y = 0;
   for (let i = 0; i < bodies.highWater; i++) {
+    if (bodies.alive[i] === 0) continue;
     x += bodies.mass[i]! * bodies.vx[i]!;
     y += bodies.mass[i]! * bodies.vy[i]!;
   }
@@ -74,6 +75,7 @@ function momentum(bodies: Bodies): { x: number; y: number } {
 function angularMomentum(bodies: Bodies): number {
   let total = 0;
   for (let i = 0; i < bodies.highWater; i++) {
+    if (bodies.alive[i] === 0) continue;
     total += bodies.mass[i]! * (bodies.x[i]! * bodies.vy[i]! - bodies.y[i]! * bodies.vx[i]!);
     total += bodies.inertia[i]! * bodies.angularVel[i]!;
   }

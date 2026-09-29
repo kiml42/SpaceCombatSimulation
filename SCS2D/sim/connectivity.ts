@@ -42,6 +42,12 @@ export interface Joint {
    * shock of a collision decides whether what is left is enough.
    */
   readonly strength: number;
+  /**
+   * A ragged edge hooked on another piece's (`ShipDesign.seams`) rather than a
+   * weld the hull was built with. It holds and tears like any weld, but nothing
+   * is commanded across it.
+   */
+  readonly seam?: boolean;
 }
 
 /**
@@ -76,8 +82,11 @@ export function joints(design: ShipDesign): readonly Joint[] {
 
   const found: Joint[] = [];
   const n = design.modules.length;
+  const pieces = design.pieces;
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
+      // Welded pieces touch only where they hooked, however their faces lie.
+      if (pieces !== undefined && pieces[i] !== pieces[j]) continue;
       // Both modules are written in the blueprint's own frame, which is the
       // body frame shifted rather than turned, so the geometry the layout rule
       // asks is exactly the geometry asked here.
@@ -102,6 +111,21 @@ export function joints(design: ShipDesign): readonly Joint[] {
         strength: width * thickness * JOINT_IMPULSE_PER_AREA,
       });
     }
+  }
+  // After the built welds, so a hull in one piece keeps its joints' order.
+  for (const seam of design.seams ?? []) {
+    const lo = min(seam.a, seam.b);
+    const hi = seam.a < seam.b ? seam.b : seam.a;
+    const thickness = min(design.modules[lo]!.stats.wallThickness, design.modules[hi]!.stats.wallThickness);
+    found.push({
+      a: lo,
+      b: hi,
+      width: seam.width,
+      x: (design.modules[lo]!.x + design.modules[hi]!.x) * 0.5,
+      y: (design.modules[lo]!.y + design.modules[hi]!.y) * 0.5,
+      strength: seam.width * thickness * JOINT_IMPULSE_PER_AREA,
+      seam: true,
+    });
   }
   cache.set(design, found);
   return found;

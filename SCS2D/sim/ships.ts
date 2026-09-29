@@ -1,5 +1,5 @@
 import { Bodies, type BodyId } from './bodies.js';
-import { reachAgainst, subDesign, type DesignTurret, type ShipDesign } from './blueprint.js';
+import { reachAgainst, subDesign, weldDesigns, type DesignTurret, type ShipDesign } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
@@ -249,6 +249,22 @@ const FRIENDLY_LOOKAHEAD = 0.5;
  * — the blow has to land *somewhere*.
  */
 const SHOCK_REACH = 15;
+
+/**
+ * Closing speed at or below which a ragged edge hooks rather than glancing
+ * off, m/s — a drift, not a ram. A dial, in ROADMAP.md §12 with the others.
+ */
+export const WELD_SPEED = 2;
+
+/** How much of the smaller module's narrower side a hooked edge catches. */
+const HOOK_SHARE = 0.5;
+
+/**
+ * Seconds a hull that has just come apart must drift before it can hook
+ * again. A break leaves both faces torn and touching, and without this the
+ * pieces would catch each other again on the next step.
+ */
+const WELD_SETTLE = 2;
 
 export const NO_TARGET = -1;
 
@@ -531,6 +547,8 @@ export class Ships {
   /** The weld-cut version each ship was last checked at, so a hull is walked
    * only when something has taken a fresh bite out of one of its welds. */
   private readonly cutSeen: number[] = [];
+  /** The world tick each ship last came apart at, or was broken off at. */
+  private readonly partedAt: number[] = [];
 
   private readonly blowBody: number[] = [];
   private readonly blowModule: number[] = [];
@@ -846,6 +864,7 @@ export class Ships {
     this.team.push(spec.team ?? 0);
     this.derelict.push(0);
     this.cutSeen.push(-1);
+    this.partedAt.push(-Infinity);
     this.chosen.push(NO_TARGET);
     this.consort.push(NO_TARGET);
     // Staggered by index, so a fleet spawned together does not all stop to
@@ -2413,6 +2432,116 @@ export class Ships {
   }
 
   /**
+   * Hook together the hulls this step's slow contacts pressed a ragged edge
+   * into, and say how many pairs became one.
+   *
+   * Torn metal catches where a clean hull would glance off, so a contact
+   * closing at no more than `WELD_SPEED` where either module is ragged
+   * (`Damage.ragged`) makes the two bodies one, held by a seam. At least one of
+   * them must be wreckage: a ship hooked onto a wreck carries it, and gains
+   * nothing it can use, since command never crosses a seam. Two ships never
+   * join. A seam holds and tears like any weld, so a blow can part them again.
+   *
+   * Every weld *removes* a body rather than holding two in a lasting contact.
+   */
+  weld(world: World, contacts: Contacts): number {
+    const bodies = world.bodies;
+    this.bodyStore = bodies;
+    let welded = 0;
+    // Made only on a weld, which is rare, so a quiet step allocates nothing.
+    let joined = null as Set<number> | null;
+    const settled = world.tick - WELD_SETTLE / world.dt;
+    for (let k = 0; k < contacts.count; k++) {
+      // Pressed together, slowly: touching or drifting apart hooks nothing.
+      const closing = contacts.closing[k]!;
+      if (!(closing > 0) || closing > WELD_SPEED) continue;
+      const a = contacts.a[k]!;
+      const b = contacts.b[k]!;
+      const i = this.shipAt(bodies, a);
+      const j = this.shipAt(bodies, b);
+      if (i < 0 || j < 0 || joined?.has(i) === true || joined?.has(j) === true) continue;
+      if (this.partedAt[i]! > settled || this.partedAt[j]! > settled) continue;
+      if (this.damage.isProtected(a) || this.damage.isProtected(b)) continue;
+      const iFlies = this.hasControl(i);
+      const jFlies = this.hasControl(j);
+      if (iFlies && jFlies) continue;
+      const ma = contacts.moduleA[k]!;
+      const mb = contacts.moduleB[k]!;
+      if (!this.damage.ragged(a, ma) && !this.damage.ragged(b, mb)) continue;
+      // The ship goes on being the ship; two wrecks keep the older's slot.
+      if (jFlies) this.merge(world, j, i, mb, ma);
+      else this.merge(world, i, j, ma, mb);
+      joined ??= new Set<number>();
+      joined.add(i);
+      joined.add(j);
+      // The contact is now inside one body: its impulse is no blow to answer.
+      contacts.impulse[k] = 0;
+      welded++;
+    }
+    return welded;
+  }
+
+  /**
+   * Make `other` part of `keep`, hooked where module `mk` of one met module
+   * `mo` of the other. Momentum and angular momentum come out as they went in:
+   * one rigid body moving as the two did between them.
+   */
+  private merge(world: World, keep: number, other: number, mk: number, mo: number): void {
+    const bodies = world.bodies;
+    const idK = this.bodyIds[keep]!;
+    const bk = bodies.indexOf(idK);
+    const bo = bodies.indexOf(this.bodyIds[other]!);
+    const dk = this.designs[keep]!;
+    const dO = this.designs[other]!;
+
+    // The other's blueprint frame, in the keeper's.
+    const angleK = bodies.angle[bk]!;
+    const turn = bodies.angle[bo]! - angleK;
+    const ck = cos(angleK);
+    const sk = sin(angleK);
+    const ct = cos(turn);
+    const st = sin(turn);
+    const wx = bodies.x[bo]! - bodies.x[bk]!;
+    const wy = bodies.y[bo]! - bodies.y[bk]!;
+    const dx = dk.centreOfMassX + (wx * ck + wy * sk) - (dO.centreOfMassX * ct - dO.centreOfMassY * st);
+    const dy = dk.centreOfMassY + (-wx * sk + wy * ck) - (dO.centreOfMassX * st + dO.centreOfMassY * ct);
+    const specK = dk.modules[mk]!.spec;
+    const specO = dO.modules[mo]!.spec;
+    const width = HOOK_SHARE * min(min(specK.length, specK.width), min(specO.length, specO.width));
+    const design = weldDesigns(dk, dO, dx, dy, turn, mk, mo, width);
+
+    const massK = bodies.mass[bk]!;
+    const massO = bodies.mass[bo]!;
+    const total = massK + massO;
+    const cx = bodies.x[bk]! + (design.centreOfMassX - dk.centreOfMassX) * ck - (design.centreOfMassY - dk.centreOfMassY) * sk;
+    const cy = bodies.y[bk]! + (design.centreOfMassX - dk.centreOfMassX) * sk + (design.centreOfMassY - dk.centreOfMassY) * ck;
+    const vx = (massK * bodies.vx[bk]! + massO * bodies.vx[bo]!) / total;
+    const vy = (massK * bodies.vy[bk]! + massO * bodies.vy[bo]!) / total;
+    // About the new centre: each body's own spin, and its motion around it.
+    const spinOf = (body: number, mass: number): number =>
+      bodies.inertia[body]! * bodies.angularVel[body]! +
+      mass * ((bodies.x[body]! - cx) * bodies.vy[body]! - (bodies.y[body]! - cy) * bodies.vx[body]!);
+    const angular = spinOf(bk, massK) + spinOf(bo, massO);
+
+    bodies.x[bk] = cx;
+    bodies.y[bk] = cy;
+    bodies.vx[bk] = vx;
+    bodies.vy[bk] = vy;
+    bodies.setMass(idK, design.mass);
+    bodies.setInertia(idK, design.inertia);
+    bodies.angularVel[bk] = angular / design.inertia;
+    bodies.radius[bk] = design.radius;
+
+    const n = dk.modules.length;
+    this.adopt(keep, bk, design, (m) => (m < n ? keep : other), (m) => (m < n ? m : m - n));
+
+    this.damage.forget(bo);
+    this.shipByBody[bo] = -1;
+    this.remove(other);
+    world.destroy(this.bodyIds[other]!);
+  }
+
+  /**
    * Stop tracking wreckage that has drifted out of the fight, and say how
    * many pieces were let go.
    *
@@ -2706,6 +2835,7 @@ export class Ships {
       angularVel: spin,
       team: this.team[i]!,
     });
+    this.partedAt[j] = world.tick;
     if (flies) {
       this.orders[j] = this.orders[i]!.map((order) => ({ ...order }));
     } else {
@@ -2749,8 +2879,38 @@ export class Ships {
     bodies.setInertia(id, design.inertia);
     bodies.radius[b] = design.radius;
 
-    const scars = this.scarsOf(b, keep);
-    const weldScars = this.weldScarsOf(b, was, design, keep);
+    this.partedAt[i] = world.tick;
+    this.adopt(i, b, design, () => i, (m) => keep[m]!);
+  }
+
+  /**
+   * Make a ship's body carry a new design in place, keeping whatever belongs to
+   * the ship rather than its shape: each module's scars, each weld's cuts, and
+   * each surviving mount's state. `shipOf` and `moduleOf` say which ship and
+   * which of its modules each module of the new design was.
+   */
+  private adopt(
+    i: number,
+    b: number,
+    design: ShipDesign,
+    shipOf: (module: number) => number,
+    moduleOf: (module: number) => number,
+  ): void {
+    const bodies = this.bodyStore!;
+    const bodyOf = (ship: number): number => bodies.indexOf(this.bodyIds[ship]!);
+    const scars: number[] = [];
+    for (let m = 0; m < design.modules.length; m++) scars.push(this.damage.absorbedAt(bodyOf(shipOf(m)), moduleOf(m)));
+    // A weld half sawn through stays half sawn through; a seam is new.
+    const weldScars: number[] = [];
+    for (const joint of joints(design)) {
+      const ship = shipOf(joint.a);
+      if (shipOf(joint.b) !== ship) {
+        weldScars.push(0);
+        continue;
+      }
+      const k = jointBetween(this.designs[ship]!, moduleOf(joint.a), moduleOf(joint.b));
+      weldScars.push(this.damage.cutAt(bodyOf(ship), k));
+    }
 
     // Mounts are added before the old ones go, so that a freed slot cannot be
     // handed straight back out and leave two turrets sharing an index.
@@ -2767,20 +2927,22 @@ export class Ships {
       const index = this.turrets.add({ ...mount.mount, owner: b });
       indices[t] = index;
       // Which mount this was, by the module it sits on.
-      const module = keep[mount.module]!;
+      const ship = shipOf(mount.module);
+      const module = moduleOf(mount.module);
+      const was = this.designs[ship]!;
       let before = -1;
       for (let k = 0; k < was.turrets.length; k++) {
         if (was.turrets[k]!.module === module) before = k;
       }
       if (before < 0) continue;
-      this.turrets.bearing[index] = this.turrets.bearing[this.turretIndex[i]![before]!]!;
-      cooldown[t] = this.cooldown[i]![before]!;
-      states[t] = this.turretStates[i]![before]!;
-      barrels[t] = this.nextBarrelToFire[i]![before]!;
-      targets[t] = this.turretTarget[i]![before]!;
-      aiming[t] = this.turretAiming[i]![before]!;
-      aims[t] = this.turretAimModule[i]![before]!;
-      schedule[t] = this.turretRethinkAt[i]![before]!;
+      this.turrets.bearing[index] = this.turrets.bearing[this.turretIndex[ship]![before]!]!;
+      cooldown[t] = this.cooldown[ship]![before]!;
+      states[t] = this.turretStates[ship]![before]!;
+      barrels[t] = this.nextBarrelToFire[ship]![before]!;
+      targets[t] = this.turretTarget[ship]![before]!;
+      aiming[t] = this.turretAiming[ship]![before]!;
+      aims[t] = this.turretAimModule[ship]![before]!;
+      schedule[t] = this.turretRethinkAt[ship]![before]!;
     }
     const old = this.turretIndex[i]!;
     for (let t = 0; t < old.length; t++) this.turrets.remove(old[t]!);

@@ -164,6 +164,8 @@ export {
   placementAt,
   samePlacement,
   subDesign,
+  weldDesigns,
+  type Seam,
   type Assembly,
   type AssemblyInstance,
   type AssemblyStep,
@@ -250,6 +252,7 @@ export {
 export {
   Credit,
   DAMAGE_ENERGY_PER_KG,
+  RAGGED_INTEGRITY,
   DAMAGE_RESPONSES,
   Damage,
   DamageEffect,

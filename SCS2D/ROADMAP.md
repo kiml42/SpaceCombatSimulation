@@ -41,7 +41,7 @@ an entry is either still open or it is gone.
 
 | Step | What | State |
 | --- | --- | --- |
-| Slice 0 | Two ships fight, deterministically | Built, bar weld on slow contact |
+| Slice 0 | Two ships fight, deterministically | Built |
 | 1 | Blueprint editor | Partly built |
 | 2 | Terminal ballistics and the damage model | Built |
 | 3 | Doctrine and orders | Partly built |
@@ -59,9 +59,6 @@ an entry is either still open or it is gone.
 | 15 | Campaign | Not started |
 
 ### Partly built — what is left
-
-**Slice 0 — weld on slow contact.** A slow contact is still a gentle bounce; nothing welds. It is what makes a
-dock a dock and decides ram from landing (§4, §3). See the §12 entry.
 
 **Step 1 — Blueprint editor.** One thing, not blocking:
 
@@ -103,21 +100,6 @@ and a mutant over the total dry mass, the deployment radius or the ship count, o
 refused. **A boss battle** evolves against a fixed ship or fleet: every entrant on one side against it,
 scored for what it does to the boss alone (`match.boss`, `--boss`, and a boss picker on the page).
 
-Next for evolution: **credit for ramming.** Damage is credited to whoever caused it only for shells and beams
-(`Credit`, filled in `Impacts.rounds` and `Impacts.beams`); a collision damages both hulls and credits nobody.
-So a ram costs the rammer hull and function and never pays in damage done or function taken, and a run cannot
-find it worth trying, even against a boss it could break in half. The collision code knows both bodies, so
-the fix is small: credit each with the damage it did to the other. A head-on crash then pays both, each for
-what it did and each charged for what it took, which is the trade a ram is. Credit is read only by scoring, so
-no golden moves; scores do.
-
-Next for evolution: **credit for ramming.** Damage is credited to whoever caused it only for shells and beams
-(`Credit`, filled in `Impacts.rounds` and `Impacts.beams`); a collision damages both hulls and credits nobody.
-So a ram costs the rammer hull and function and never pays in damage done or function taken, and a run cannot
-find it worth trying, even against a boss it could break in half. The collision code knows both bodies, so
-the fix is small: credit each with the damage it did to the other. A head-on crash then pays both, each for
-what it did and each charged for what it took, which is the trade a ram is. Credit is read only by scoring, so
-no golden moves; scores do.
 
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
 lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
@@ -518,9 +500,9 @@ Deliberately unresolved; decide when they block something.
   continuous parameters and gives evolution a dial. A leak is also a new kind of damage response: today's are
   capability curves over integrity, and a leak is an ongoing effect at a point, whose push needs to know where
   the round struck. Check that the damage pass keeps the point before scoping step 8.
-- **Whether a grapple is a dock.** Step 9's hold on a wreck is a deliberate dock, and slice 0 still owes weld
-  on slow contact, which the docs call what makes a dock a dock. Suggested: build the grapple on the weld
-  rather than as a joint of its own — or decide on purpose that a tether is something else.
+- **Whether a grapple is a dock.** Step 9's hold on a wreck is a deliberate dock. Suggested: build it as a
+  claw on the ragged-metal weld (`Ships.weld`), with the claw's own rules for what it may grip — or decide
+  on purpose that a tether is something else.
 - **Whether harvesting wrecks should come before construction.** Once metal has uses (rounds and repair) and
   a grapple exists, harvesting could come straight after step 10, keeping each step small and leaving
   construction, the largest, until last. The order built puts construction first, as the big use metal is
@@ -849,9 +831,17 @@ Deliberately unresolved; decide when they block something.
   impact untouched. A real crush spreads: the plating either side of a rammed bow buckles too. Doing it
   needs a rule for how much reaches a neighbour and a way to walk the connectivity graph outward from the
   contact, neither hard, and neither worth guessing at before there is something to watch it on.
-- **Weld on slow contact, which is what makes a dock a dock.** §4 has the rule and §3 leans on it — a
-  craft closing slowly has landed, one closing fast has rammed, same threshold — but nothing welds yet:
-  a slow contact is simply a gentle bounce. The threshold is one of the concrete values below.
+- **Docking ports and claws.** Welding is built for ragged metal only: two bodies meeting at under
+  `WELD_SPEED`, one of them wreckage, with a module on either torn past `RAGGED_INTEGRITY`, become one body
+  joined by a seam that carries no command (DESIGN.md §4). Two ships never join, since neither has anything
+  to hook with. A port or a claw is how a live ship does it on purpose, with rules of its own — which parts
+  mate, whether the pair shares command, how a dock lets go — and is what makes §3's landing a landing.
+- **Credit for ramming.** Deferred; nothing depends on it. Damage is credited to whoever caused it only for
+  shells and beams (`Credit`, filled in `Impacts.rounds` and `Impacts.beams`); a collision damages both
+  hulls and credits nobody. So a ram costs the rammer hull and function and never pays in damage done or
+  function taken, and a run cannot find it worth trying, even against a boss it could break in half. The
+  collision code knows both bodies, so the fix is small: credit each with the damage it did to the other.
+  Credit is read only by scoring, so no golden moves; scores do.
 - **Whether collision pairing wants an index after all.** §4 says to test every body against every
   other, and at the scale the game is designed for that holds: the 21-ship swarm pays about 3% for
   solid hulls. The 301-ship stress fixture pays **82%** (2.8 s to 5.1 s over 3,000 steps), and almost
@@ -864,7 +854,7 @@ Deliberately unresolved; decide when they block something.
 - Ammunition model granularity — per-mount magazines, shared bunkerage, or both.
 - Whether the mothership's build priorities are a doctrine blob (so async PvP competes on them) or
   a player-driven queue.
-- Concrete values, now that the units are settled: budgets, engagement ranges, timestep, weld
-  velocity threshold, edit-distance bounds, muzzle velocities, armour densities, and how hard a plume
+- Concrete values, now that the units are settled: budgets, engagement ranges, timestep, the weld
+  dials (`WELD_SPEED`, `RAGGED_INTEGRITY`, `WELD_SETTLE`, `HOOK_SHARE`), edit-distance bounds, muzzle velocities, armour densities, and how hard a plume
   burns (`PLUME_POWER_PER_NEWTON`, chosen for a timescale rather than derived).
 - Project name.
