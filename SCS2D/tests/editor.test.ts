@@ -31,6 +31,7 @@ import {
   createAssembly,
   createAssemblyProblem,
   instanceHandle,
+  instancePose,
   instanceOf,
   setMirror,
   setRepetition,
@@ -2122,6 +2123,46 @@ describe('adding a module to an assembly', () => {
   it('adds nothing to what is not an assembly', () => {
     const spec: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 1, width: 1 };
     expect(addModuleTo(CORVETTE, [{ index: 0, copy: 0 }], spec)).toBeNull();
+  });
+});
+
+describe('where a drawn copy of an assembly sits', () => {
+  const bp: Blueprint = {
+    name: 'Poses',
+    assemblies: {
+      pod: { modules: [{ kind: 'structure', x: 1, y: 0.5, length: 2, width: 1 }] },
+      boom: { modules: [{ use: 'pod', x: 0, y: 2, angle: math.HALF_PI }] },
+    },
+    modules: [
+      { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+      { use: 'boom', x: 5, y: 1, mirror: true, repeat: 2, step: { x: 3, y: 0 } },
+    ],
+  };
+
+  it('reads the origin and turn off the expansion, through nesting and reflection', () => {
+    const outer = instancePose(bp, [{ index: 1, copy: 0 }])!;
+    expect(outer).toMatchObject({ x: 5, y: 1, rotation: 0, mirrored: true });
+    const inner: ModulePath = [
+      { index: 1, copy: 0, into: 'assembly', assembly: 'boom' },
+      { index: 0, copy: 0 },
+    ];
+    const pose = instancePose(bp, inner)!;
+    // Reflected, the boom puts the pod at y - 2 and turns it the other way.
+    expect(pose.x).toBeCloseTo(5, 12);
+    expect(pose.y).toBeCloseTo(-1, 12);
+    expect(pose.rotation).toBeCloseTo(-math.HALF_PI, 12);
+    expect(pose.written).toEqual({ rotation: 0, mirrored: true });
+  });
+
+  it('finds the copy asked for among a repeat', () => {
+    const drawn = expandWithOrigins(bp);
+    const second = drawn.origins.findIndex((o) => o.path[0]!.copy === 1);
+    const pose = instancePose(bp, [{ index: 1, copy: 0 }], drawn.origins[second]!.path)!;
+    expect(pose.x).toBeCloseTo(8, 12);
+  });
+
+  it('is nothing for what is not an assembly', () => {
+    expect(instancePose(bp, [{ index: 0, copy: 0 }])).toBeNull();
   });
 });
 

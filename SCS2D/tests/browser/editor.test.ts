@@ -810,6 +810,53 @@ describe('the editor in a browser', () => {
     expect(Number(await page.inputValue('#propLength'))).toBe(length);
   });
 
+  it('turns a selected assembly by its knob, about its origin', async () => {
+    await page.click('#newShip');
+    await page.click('[data-add="structure"]');
+    await page.click('#propDuplicate');
+    await page.click('#propSelectAssembly');
+    expect(await page.inputValue('#assemblyAngle')).toBe('0');
+    const x = await page.inputValue('#assemblyX');
+    const y = await page.inputValue('#assemblyY');
+    await page.keyboard.press('f');
+
+    // Found by colour, since the camera refits: the knob is the far end of a
+    // gold arm drawn out from the assembly's origin.
+    const arm = await page.evaluate(() => {
+      const canvas = document.getElementById('view') as HTMLCanvasElement;
+      const { data, width, height } = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height);
+      let far = { x: -1, y: -1 };
+      const gold: { x: number; y: number }[] = [];
+      for (let py = 0; py < height; py++) {
+        for (let px = 0; px < width; px++) {
+          const k = (py * width + px) * 4;
+          if (Math.abs(data[k]! - 233) + Math.abs(data[k + 1]! - 192) + Math.abs(data[k + 2]! - 95) > 30) continue;
+          gold.push({ x: px, y: py });
+          if (px > far.x) far = { x: px, y: py };
+        }
+      }
+      const row = gold.filter((p) => Math.abs(p.y - far.y) <= 1);
+      const near = Math.min(...row.map((p) => p.x));
+      const rect = canvas.getBoundingClientRect();
+      const toCss = rect.width / canvas.width;
+      return {
+        knob: { x: rect.left + (far.x - 4) * toCss, y: rect.top + far.y * toCss },
+        pivot: { x: rect.left + near * toCss, y: rect.top + far.y * toCss },
+      };
+    });
+    await page.mouse.move(arm.knob.x, arm.knob.y);
+    await page.mouse.down();
+    await page.mouse.move(arm.pivot.x, arm.pivot.y - 150, { steps: 8 });
+    await page.mouse.up();
+    expect(await page.inputValue('#assemblyAngle')).toBe('90');
+    // Turned about its origin, which has not moved.
+    expect(await page.inputValue('#assemblyX')).toBe(x);
+    expect(await page.inputValue('#assemblyY')).toBe(y);
+
+    await page.click('#undo');
+    expect(await page.inputValue('#assemblyAngle')).toBe('0');
+  });
+
   it('repeats an assembly, and takes the step away when it drops back to one', async () => {
     await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);

@@ -223,13 +223,18 @@ function drawHandles(ctx: CanvasRenderingContext2D, view: OverlayView, camera: C
   const spec = view.modules[view.selected[0] ?? -1];
 
   const knob = view.handles.find((handle) => handle.kind === 'rotate');
-  if (knob !== undefined && spec !== undefined) {
-    const mid = moduleCentre(spec);
+  const from =
+    knob?.fromX !== undefined && knob.fromY !== undefined
+      ? { x: knob.fromX, y: knob.fromY }
+      : spec === undefined
+        ? null
+        : moduleCentre(spec);
+  if (knob !== undefined && from !== null) {
     ctx.save();
     ctx.strokeStyle = SELECTION;
     ctx.lineWidth = lineWidth;
     ctx.beginPath();
-    ctx.moveTo(mid.x, mid.y);
+    ctx.moveTo(from.x, from.y);
     ctx.lineTo(knob.x, knob.y);
     ctx.stroke();
     ctx.restore();

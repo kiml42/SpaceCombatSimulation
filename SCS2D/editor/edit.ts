@@ -1,5 +1,6 @@
 import {
   expandBlueprint,
+  expandWithOrigins,
   isInstance,
   moduleCentre,
   samePlacement,
@@ -8,6 +9,7 @@ import {
   pushNeighbours,
   type Assembly,
   type AssemblyInstance,
+  type Frame,
   type Blueprint,
   type ModuleOrigin,
   type ModulePath,
@@ -269,6 +271,59 @@ export function addModuleTo(
       { index: last.index, copy: last.copy, into: 'assembly', assembly: placed.use },
       { index, copy: 0 },
     ],
+  };
+}
+
+/** Where one drawn copy of an assembly sits on the ship, and how it is turned. */
+export interface InstancePose {
+  /** The assembly's origin, blueprint frame. */
+  x: number;
+  y: number;
+  /** Which way the assembly's own +x points, and whether its contents are reflected. */
+  rotation: number;
+  mirrored: boolean;
+  /** The frame the instance itself is written in, which an edit to its angle is expressed in. */
+  written: Frame;
+}
+
+/**
+ * The pose of one drawn copy of an assembly, or null if the path is not one.
+ *
+ * Read off the expansion rather than worked out again: a probe is put at the
+ * assembly's origin and the expansion says where it landed, so nesting,
+ * turning, reflection and repeats are all exactly as the ship has them.
+ * `near` is a drawn module's path in the copy wanted; without it, the first.
+ */
+export function instancePose(
+  blueprint: Blueprint,
+  instance: ModulePath,
+  near: ModulePath | null = null,
+): InstancePose | null {
+  const probe: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 0, width: 0 };
+  const added = addModuleTo(blueprint, instance, probe);
+  if (added === null) return null;
+  let expansion;
+  try {
+    expansion = expandWithOrigins(added.blueprint);
+  } catch {
+    return null;
+  }
+  const depth = instance.length;
+  const sameCopy = (path: ModulePath): boolean =>
+    near === null ||
+    path.slice(0, depth).every((step, k) => step.index === near[k]?.index && step.copy === near[k]?.copy);
+  const at = expansion.origins.findIndex(
+    (origin) => samePlacement(origin.path, added.path) && sameCopy(origin.path),
+  );
+  if (at < 0) return null;
+  const drawn = expansion.modules[at]!;
+  const origin = expansion.origins[at]!;
+  return {
+    x: drawn.x,
+    y: drawn.y,
+    rotation: origin.rotation,
+    mirrored: origin.mirrored,
+    written: origin.instanceFrame ?? { rotation: 0, mirrored: false },
   };
 }
 

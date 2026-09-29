@@ -73,7 +73,8 @@ inside any one file is not contiguous.
   and deletion belonging to the copy and everything else to all of them; several modules or assemblies can be
   picked at once and made into an assembly, nesting any assemblies among them, or added to the last assembly
   picked — never into itself — a module added with an assembly selected going into it at
-  its origin, and an assembly is then placed again and reflected
+  its origin, and one selected alone turned by a knob of its own about that origin, and an assembly is then
+  placed again and reflected
   to build a symmetrical ship out of one side and a mirror of it, and clicked, dragged
   and added to as one thing, carries a name of its own, and is placed in a row or round
   an arc by a count and a step rather than by placing it again and again;
