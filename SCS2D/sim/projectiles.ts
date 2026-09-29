@@ -44,9 +44,9 @@ import type { Hulls } from './hull.js';
  * something else to say what became of it.
  *
  * That is what lets terminal ballistics live outside this file. A round that
- * penetrates is consumed with `kill`; one that embeds in the hull is consumed
- * after its mass and momentum are transferred; one that deflects has its
- * velocity rewritten and is returned to flight with `resume`. Ballistics does
+ * penetrates is taken `inside` the hull and walked through it; one that
+ * embeds is consumed after its mass and momentum are transferred; one that
+ * deflects has its velocity rewritten and is returned to flight with `resume`. Ballistics does
  * not need to know which, and consuming a round unilaterally would already be
  * applying an outcome.
  *
@@ -58,6 +58,8 @@ import type { Hulls } from './hull.js';
 
 /** A projectile with no firing ship to pass through. */
 export const NO_OWNER = -1;
+/** A projectile in open flight rather than passing through a hull. */
+export const NOT_INSIDE = -1;
 
 export interface ProjectileSpec {
   x: number;
@@ -194,12 +196,32 @@ export class Projectiles {
    * this file.
    */
   pending!: Uint8Array;
+  /**
+   * The body a round is passing through, or `NOT_INSIDE` for one in open
+   * flight. A round inside a hull is not cast: the damage model carries it
+   * through, a step's travel at a time, so a long hull takes time to cross.
+   */
+  inside!: Int32Array;
+  /**
+   * The line a round is walking through that hull, in the hull's own frame:
+   * where it went in, and which way.
+   */
+  lineX!: Float64Array;
+  lineY!: Float64Array;
+  lineUx!: Float64Array;
+  lineUy!: Float64Array;
+  /** How far along that line it has got, metres. */
+  along!: Float64Array;
+  /** The next crossing on the line it has yet to strike, or -1 to find it. */
+  crossing!: Int32Array;
 
   capacity = 0;
   /** Rounds currently in flight, including those awaiting resolution. */
   count = 0;
   /** Rounds stopped at an impact, awaiting resolution. */
   pendingCount = 0;
+  /** Rounds passing through a hull. */
+  insideCount = 0;
   /** One past the highest slot ever used; loops may stop here. */
   highWater = 0;
 
@@ -240,6 +262,14 @@ export class Projectiles {
     const pending = new Uint8Array(capacity);
     if (this.pending) pending.set(this.pending);
     this.pending = pending;
+
+    this.inside = i32(this.inside);
+    this.lineX = f64(this.lineX);
+    this.lineY = f64(this.lineY);
+    this.lineUx = f64(this.lineUx);
+    this.lineUy = f64(this.lineUy);
+    this.along = f64(this.along);
+    this.crossing = i32(this.crossing);
 
     this.capacity = capacity;
   }
@@ -285,6 +315,7 @@ export class Projectiles {
     this.kind[i] = kind;
     this.alive[i] = 1;
     this.pending[i] = 0;
+    this.inside[i] = NOT_INSIDE;
     this.count++;
     return i;
   }
@@ -316,6 +347,10 @@ export class Projectiles {
       this.pending[i] = 0;
       this.pendingCount--;
     }
+    if (this.inside[i] !== NOT_INSIDE) {
+      this.inside[i] = NOT_INSIDE;
+      this.insideCount--;
+    }
     this.alive[i] = 0;
     this.free.push(i);
     this.count--;
@@ -336,15 +371,41 @@ export class Projectiles {
     this.pendingCount--;
   }
 
+  /**
+   * Take a pending round into the hull it hit, to be walked through it along
+   * `(ux, uy)` from `(x, y)`, both in that hull's frame.
+   */
+  enter(i: number, body: number, x: number, y: number, ux: number, uy: number): void {
+    if (i < 0 || i >= this.highWater || this.alive[i] === 0) return;
+    this.resume(i);
+    if (this.inside[i] === NOT_INSIDE) this.insideCount++;
+    this.inside[i] = body;
+    this.lineX[i] = x;
+    this.lineY[i] = y;
+    this.lineUx[i] = ux;
+    this.lineUy[i] = uy;
+    this.along[i] = 0;
+    this.crossing[i] = -1;
+  }
+
+  /** Return a round that has come out of a hull to open flight. */
+  leave(i: number): void {
+    if (i < 0 || i >= this.highWater || this.inside[i] === NOT_INSIDE) return;
+    this.inside[i] = NOT_INSIDE;
+    this.insideCount--;
+  }
+
   /** Remove every round. */
   clear(): void {
     for (let i = 0; i < this.highWater; i++) {
       this.alive[i] = 0;
       this.pending[i] = 0;
+      this.inside[i] = NOT_INSIDE;
     }
     this.free.length = 0;
     this.count = 0;
     this.pendingCount = 0;
+    this.insideCount = 0;
     this.highWater = 0;
   }
 
@@ -371,10 +432,9 @@ export class Projectiles {
     hulls?: Hulls,
   ): void {
     hits.clear();
-    const hit = this.hit;
 
     for (let i = 0; i < this.highWater; i++) {
-      if (this.alive[i] === 0 || this.pending[i] === 1) continue;
+      if (this.alive[i] === 0 || this.pending[i] === 1 || this.inside[i] !== NOT_INSIDE) continue;
 
       if (wells !== undefined) {
         let ax = 0;
@@ -389,52 +449,94 @@ export class Projectiles {
         this.vy[i] += ay * dt;
       }
 
-      const x0 = this.x[i];
-      const y0 = this.y[i];
-      const dx = this.vx[i] * dt;
-      const dy = this.vy[i] * dt;
-
-      if (grid.raycast(bodies, x0, y0, x0 + dx, y0 + dy, hit, this.owner[i], hulls)) {
-        const bi = hit.bodyIndex;
-        let module = -1;
-        let nx = 0;
-        let ny = 0;
-        // The face of the module met, where there was a hull to meet. A body
-        // with no design keeps the circle's own normal, which is exact for a
-        // circle and is all there ever was before hulls.
-        if (hulls !== undefined && hulls.describe(bodies, bi, x0, y0, dx, dy)) {
-          module = hulls.module;
-          nx = hulls.nx;
-          ny = hulls.ny;
-        }
-        if (nx === 0 && ny === 0) {
-          const ox = hit.x - bodies.x[bi];
-          const oy = hit.y - bodies.y[bi];
-          const olen = sqrt(ox * ox + oy * oy);
-          // A round starting exactly at the centre has no meaningful normal;
-          // oppose its travel, which is the only defensible answer.
-          const oinv = olen > 0 ? 1 / olen : 0;
-          const seglen = sqrt(dx * dx + dy * dy);
-          const sinv = seglen > 0 ? 1 / seglen : 0;
-          nx = olen > 0 ? ox * oinv : -dx * sinv;
-          ny = olen > 0 ? oy * oinv : -dy * sinv;
-        }
-
-        // Stop at the point of contact and wait to be resolved. The round is
-        // deliberately left alive: see the note at the top of this file.
-        this.x[i] = hit.x;
-        this.y[i] = hit.y;
-        this.pending[i] = 1;
-        this.pendingCount++;
-        hits.push(i, bi, hit.t, hit.x, hit.y, nx, ny, module);
-        continue;
-      }
-
-      this.x[i] = x0 + dx;
-      this.y[i] = y0 + dy;
+      if (this.cast(i, this.vx[i] * dt, this.vy[i] * dt, 0, 1, bodies, grid, hits, hulls)) continue;
       this.ttl[i] -= dt;
       if (this.ttl[i] <= 0) this.kill(i);
     }
+  }
+
+  /**
+   * Fly a round that came out of a hull partway through a step on for the rest
+   * of it, from fraction `t` of the step, reporting what it runs into.
+   *
+   * Cast rather than moved, because what is just beyond a hull is as often as
+   * not another piece of the same ship. `left` is the hull it came out of,
+   * which nothing further along its line belongs to. Returns whether it hit
+   * something.
+   */
+  flyOn(
+    i: number,
+    left: number,
+    t: number,
+    dt: number,
+    bodies: Bodies,
+    grid: SpatialGrid,
+    hits: ProjectileHits,
+    hulls?: Hulls,
+  ): boolean {
+    const time = (1 - t) * dt;
+    return this.cast(i, this.vx[i]! * time, this.vy[i]! * time, t, 1 - t, bodies, grid, hits, hulls, left);
+  }
+
+  /**
+   * Cast one round along `(dx, dy)`, parking it on what it meets or moving it
+   * to the end. `t0` and `span` place the segment within the step, so the hit
+   * reports where in the *step* it happened.
+   */
+  private cast(
+    i: number,
+    dx: number,
+    dy: number,
+    t0: number,
+    span: number,
+    bodies: Bodies,
+    grid: SpatialGrid,
+    hits: ProjectileHits,
+    hulls?: Hulls,
+    skip = NOT_INSIDE,
+  ): boolean {
+    const hit = this.hit;
+    const x0 = this.x[i]!;
+    const y0 = this.y[i]!;
+    if (!grid.raycast(bodies, x0, y0, x0 + dx, y0 + dy, hit, this.owner[i]!, hulls, skip)) {
+      this.x[i] = x0 + dx;
+      this.y[i] = y0 + dy;
+      return false;
+    }
+
+    const bi = hit.bodyIndex;
+    let module = -1;
+    let nx = 0;
+    let ny = 0;
+    // The face of the module met, where there was a hull to meet. A body
+    // with no design keeps the circle's own normal, which is exact for a
+    // circle and is all there ever was before hulls.
+    if (hulls !== undefined && hulls.describe(bodies, bi, x0, y0, dx, dy)) {
+      module = hulls.module;
+      nx = hulls.nx;
+      ny = hulls.ny;
+    }
+    if (nx === 0 && ny === 0) {
+      const ox = hit.x - bodies.x[bi]!;
+      const oy = hit.y - bodies.y[bi]!;
+      const olen = sqrt(ox * ox + oy * oy);
+      // A round starting exactly at the centre has no meaningful normal;
+      // oppose its travel, which is the only defensible answer.
+      const oinv = olen > 0 ? 1 / olen : 0;
+      const seglen = sqrt(dx * dx + dy * dy);
+      const sinv = seglen > 0 ? 1 / seglen : 0;
+      nx = olen > 0 ? ox * oinv : -dx * sinv;
+      ny = olen > 0 ? oy * oinv : -dy * sinv;
+    }
+
+    // Stop at the point of contact and wait to be resolved. The round is
+    // deliberately left alive: see the note at the top of this file.
+    this.x[i] = hit.x;
+    this.y[i] = hit.y;
+    this.pending[i] = 1;
+    this.pendingCount++;
+    hits.push(i, bi, t0 + hit.t * span, hit.x, hit.y, nx, ny, module);
+    return true;
   }
 
   /**

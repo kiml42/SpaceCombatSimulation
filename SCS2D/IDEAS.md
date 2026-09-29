@@ -2,7 +2,6 @@
 Things that are obviously wrong.
 
 ## Simulation
-- Shots teleport through structural modules - ISD v ISD is a great example because they're so long it should take an appreciable time for the shot to travel through.
 
 -----------------------------------------------------------------------
 

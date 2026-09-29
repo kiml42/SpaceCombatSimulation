@@ -28,6 +28,7 @@ export {
   Projectiles,
   ProjectileHits,
   NO_OWNER,
+  NOT_INSIDE,
   type ProjectileSpec,
 } from './projectiles.js';
 export {

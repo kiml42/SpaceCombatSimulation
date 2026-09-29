@@ -291,7 +291,8 @@ export class SpatialGrid {
    * A segment beginning inside a body reports that body at `t = 0`, which is
    * what a shell spawned inside a hull should do.
    *
-   * `ignoreBody` skips one body index — the firing ship, normally.
+   * `ignoreBody` skips one body index — the firing ship, normally — and
+   * `alsoIgnore` a second: the hull a round has just come out of.
    *
    * Ties go to the lower body index, so two bodies at exactly the same range
    * resolve the same way everywhere.
@@ -305,6 +306,7 @@ export class SpatialGrid {
     hit: RayHit,
     ignoreBody = -1,
     narrow?: RayNarrowPhase,
+    alsoIgnore = -1,
   ): boolean {
     hit.clear();
 
@@ -321,7 +323,7 @@ export class SpatialGrid {
 
     if (dx === 0 && dy === 0) {
       // Degenerate: a point query against one cell.
-      this.testRayCell(bodies, cx, cy, x0, y0, dx, dy, ignoreBody, stampId, narrow);
+      this.testRayCell(bodies, cx, cy, x0, y0, dx, dy, ignoreBody, alsoIgnore, stampId, narrow);
     } else {
       const stepX = dx > 0 ? 1 : dx < 0 ? -1 : 0;
       const stepY = dy > 0 ? 1 : dy < 0 ? -1 : 0;
@@ -335,7 +337,7 @@ export class SpatialGrid {
       // Amanatides & Woo grid traversal: visit cells in the order the segment
       // enters them, so the first hit found is the nearest one.
       for (let visited = 0; visited < MAX_CELLS_PER_RAY; visited++) {
-        this.testRayCell(bodies, cx, cy, x0, y0, dx, dy, ignoreBody, stampId, narrow);
+        this.testRayCell(bodies, cx, cy, x0, y0, dx, dy, ignoreBody, alsoIgnore, stampId, narrow);
 
         // Distance at which the segment leaves this cell.
         const tExit = tMaxX < tMaxY ? tMaxX : tMaxY;
@@ -375,6 +377,7 @@ export class SpatialGrid {
     dx: number,
     dy: number,
     ignoreBody: number,
+    alsoIgnore: number,
     stampId: number,
     narrow?: RayNarrowPhase,
   ): void {
@@ -383,7 +386,7 @@ export class SpatialGrid {
       // The bucket may hold entries from other cells that hash the same.
       if (this.entryCx[e] === cx && this.entryCy[e] === cy) {
         const bi = this.entryBody[e];
-        if (bi !== ignoreBody && this.stamp[bi] !== stampId) {
+        if (bi !== ignoreBody && bi !== alsoIgnore && this.stamp[bi] !== stampId) {
           this.stamp[bi] = stampId;
           let t = segmentCircleT(x0, y0, dx, dy, bodies.x[bi], bodies.y[bi], bodies.radius[bi]);
           // The circle is the question "could this have been hit"; the narrow
