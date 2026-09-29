@@ -72,6 +72,8 @@ import {
   resizedTo,
   seamBetween,
   seamTo,
+  shareTo,
+  splitHandle,
   type Handle,
 } from '../editor/handles.js';
 import { previewSnapshot } from '../editor/preview.js';
@@ -428,6 +430,40 @@ describe('the handles on a selected module', () => {
     const handles = handlesFor(small, 4);
     expect(handleAt(handles, 0.5, 0.4, 4)).toBe(0);
     expect(handleAt(handles, 0.5, -0.4, 4)).toBe(1);
+  });
+});
+
+describe('the split between a block and what sticks out of it', () => {
+  // Facing aft: the bell is at -x, the mounting face at x = 0.
+  const engine: ModuleSpec = { kind: 'engine', x: 0, y: 0, angle: Math.PI, length: 4, width: 2, nozzle: 0.25 };
+  const gun: ModuleSpec = { kind: 'hullGun', x: 0, y: 0, angle: 0, length: 8, width: 4 };
+
+  it('sits where the bell or barrel begins, across the module', () => {
+    const split = splitHandle(engine);
+    // A quarter of 4 m of bell, from the far end at -4.
+    expect(split.x).toBeCloseTo(-3, 12);
+    expect(split.y).toBeCloseTo(0, 12);
+    expect(Math.abs(Math.cos(split.angle!))).toBeCloseTo(0, 12);
+    // Half of an 8 m gun is barrel by default, so the split is in the middle.
+    expect(splitHandle(gun).x).toBeCloseTo(0, 12);
+  });
+
+  it('is offered on an engine and a hull weapon, and nothing else', () => {
+    expect(handlesFor(engine, 10).some((h) => h.kind === 'split')).toBe(true);
+    expect(handlesFor(gun, 10).some((h) => h.kind === 'split')).toBe(true);
+    expect(handlesFor({ ...gun, kind: 'turret' }, 10).some((h) => h.kind === 'split')).toBe(false);
+  });
+
+  it('shares the length by where it is dragged to, on the grid', () => {
+    expect(shareTo(engine, -2.1, 0.7, 0.5)).toBe(0.5);
+    expect(shareTo(gun, 1, 0, 0.5)).toBe(0.375);
+  });
+
+  it('lets an engine lose its bell, but keeps some barrel on a gun, and never all of either', () => {
+    expect(shareTo(engine, -10, 0, 0.5)).toBe(0);
+    expect(shareTo(gun, 10, 0, 0.5)).toBe(0.0625);
+    expect(shareTo(gun, -10, 0, 0.5)).toBe(0.95);
+    expect(shareTo(gun, -10, 0, 0)).toBe(0.95);
   });
 });
 

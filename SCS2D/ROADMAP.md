@@ -63,12 +63,7 @@ an entry is either still open or it is gone.
 **Slice 0 — weld on slow contact.** A slow contact is still a gentle bounce; nothing welds. It is what makes a
 dock a dock and decides ram from landing (§4, §3). See the §12 entry.
 
-**Step 1 — Blueprint editor.** Planned, in this order, each its own change:
-
-- **A handle between an engine's machinery and its bell, or a hull weapon's and its barrel or lens**, drawn
-  and dragged like the seam between two selected modules, setting `nozzle` from where the boundary is put.
-
-And one thing, not blocking:
+**Step 1 — Blueprint editor.** One thing, not blocking:
 
 - **Unlinking one copy of a shared part while the others stay linked.** Unlink today dissolves every copy at
   once, because the editor cannot yet name a single instance.
