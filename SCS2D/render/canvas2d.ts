@@ -215,7 +215,6 @@ export function teamColour(team: number): string {
 }
 
 function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
-  const colours = shipColours(ship.team);
   const design = ship.design;
 
   ctx.save();
@@ -224,7 +223,10 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
 
   // Module boxes, in the body frame the design already put them in.
   for (let i = 0; i < design.modules.length; i++) {
+    if (ship.drawn?.[i] === false) continue;
     const m = design.modules[i]!;
+    // A piece hooked on from another ship keeps that ship's colours.
+    const colours = shipColours(ship.sides?.[i] ?? ship.team);
     const spec = m.spec;
     ctx.save();
     ctx.translate(m.x, m.y);
@@ -301,6 +303,8 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   const s = sin(ship.angle);
 
   for (let t = 0; t < design.turrets.length; t++) {
+    if (ship.drawn?.[design.turrets[t]!.module] === false) continue;
+    const colours = shipColours(ship.sides?.[design.turrets[t]!.module] ?? ship.team);
     const mount = design.turrets[t]!.mount;
     const mx = ship.x + mount.x * c - mount.y * s;
     const my = ship.y + mount.x * s + mount.y * c;

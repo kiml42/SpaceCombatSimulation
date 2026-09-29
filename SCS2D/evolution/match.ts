@@ -520,10 +520,10 @@ export class Match {
       const i = this.battle.owners[k]!;
       if (!ships.isAlive(ship)) continue;
       const body = world.bodies.indexOf(ships.body(ship));
-      this.entrantOf.set(body, i);
+      this.entrantOf.set(ship, i);
       const design = ships.design(ship);
       // Never more than it started with: a wreck hooked on is carried, not owned.
-      const hull = math.min(hullLeft(ships, design, body), this.hullAtStart[k]!);
+      const hull = math.min(hullLeft(ships, ship, design, body), this.hullAtStart[k]!);
       this.lost[i]! += math.max(0, this.hull[k]! - hull);
       this.hull[k] = hull;
       if (!ships.hasControl(ship)) continue;
@@ -532,7 +532,7 @@ export class Match {
       // scores nothing more for being wreckage that has not been finished off.
       fightingNow[i] = 1;
       this.survival[i]! += hull / this.capacities[i]!;
-      addCapability(this.capability, i * EFFECTS, design, ships, body);
+      addCapability(this.capability, i * EFFECTS, design, ships, body, ship);
       this.lifetime[i]! = this.step + 1;
 
       const goal = settings.goal;
@@ -561,8 +561,9 @@ export class Match {
     const sides = this.sides;
     this.delivered.fill(0);
     for (let h = 0; h < credit.count; h++) {
-      const attacker = this.entrantOf.get(credit.attacker[h]!);
-      const victim = this.entrantOf.get(credit.victim[h]!);
+      // By ship rather than body, since two ships hooked together share one.
+      const attacker = this.entrantOf.get(ships.pilotAt(credit.attacker[h]!));
+      const victim = this.entrantOf.get(ships.pilotAt(credit.victim[h]!, credit.module[h]!));
       if (attacker === undefined || victim === undefined) continue;
       this.delivered[attacker * sides + victim]! += credit.energy[h]!;
       if (attacker !== victim) this.dealt[attacker]![victim]! += credit.energy[h]!;
@@ -624,7 +625,7 @@ export class Match {
         const i = this.battle.owners[k]!;
         if (!ships.isAlive(ship) || !ships.hasControl(ship)) continue;
         const body = world.bodies.indexOf(ships.body(ship));
-        survival[i]! += (math.min(hullLeft(ships, ships.design(ship), body), this.hullAtStart[k]!) / this.capacities[i]!) * left;
+        survival[i]! += (math.min(hullLeft(ships, ship, ships.design(ship), body), this.hullAtStart[k]!) / this.capacities[i]!) * left;
         best[i] = math.max(best[i]!, this.nearness[k]!);
         fighting[i] = 1;
       }
@@ -696,9 +697,10 @@ export function runMatch(entrants: readonly Entrant[], config?: Partial<MatchCon
 }
 
 /** What a hull could still absorb, joules, in the units of `hullCapacity`. */
-function hullLeft(ships: Ships, design: ShipDesign, body: number): number {
+function hullLeft(ships: Ships, ship: number, design: ShipDesign, body: number): number {
   let left = 0;
   for (let m = 0; m < design.modules.length; m++) {
+    if (!ships.owns(ship, m)) continue;
     left += design.modules[m]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG * ships.damage.integrity(body, m);
   }
   return left;
