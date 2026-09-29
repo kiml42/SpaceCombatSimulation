@@ -1,7 +1,7 @@
 import type { Beams } from './beams.js';
 import type { Damage } from './damage.js';
 import { imul } from './math.js';
-import type { Projectiles } from './projectiles.js';
+import { NOT_INSIDE, type Projectiles } from './projectiles.js';
 import type { World } from './world.js';
 
 /**
@@ -98,6 +98,8 @@ export function checksumProjectiles(projectiles: Projectiles, seed = FNV_OFFSET)
     h = mixU32(h, projectiles.owner[i]!);
     h = mixU32(h, projectiles.kind[i]!);
     h = mixU32(h, projectiles.pending[i]!);
+    h = mixU32(h, projectiles.inside[i]!);
+    if (projectiles.inside[i] !== NOT_INSIDE) h = mixF64(h, projectiles.along[i]!);
   }
 
   return h >>> 0;

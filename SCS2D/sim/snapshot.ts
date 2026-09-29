@@ -1,7 +1,7 @@
 import type { Bodies } from './bodies.js';
 import type { ShipDesign } from './blueprint.js';
 import type { WellSpec } from './gravity.js';
-import type { Projectiles } from './projectiles.js';
+import { NOT_INSIDE, type Projectiles } from './projectiles.js';
 import type { Beams } from './beams.js';
 import type { ImpactLog } from './damage.js';
 import type { Ships } from './ships.js';
@@ -109,6 +109,8 @@ export class Snapshot {
   projectileVx = new Float64Array(0);
   projectileVy = new Float64Array(0);
   projectileWidth = new Float64Array(0);
+  /** 1 for a round passing through a hull, 0 for one in open flight. */
+  projectileInside = new Uint8Array(0);
   projectileCount = 0;
 
   /** Beams in flight, as flat pairs so a renderer can loop without objects. */
@@ -162,6 +164,7 @@ function growProjectiles(snapshot: Snapshot, needed: number): void {
   snapshot.projectileVx = new Float64Array(size);
   snapshot.projectileVy = new Float64Array(size);
   snapshot.projectileWidth = new Float64Array(size);
+  snapshot.projectileInside = new Uint8Array(size);
 }
 
 function growBeams(snapshot: Snapshot, needed: number): void {
@@ -311,6 +314,7 @@ export function capture(
     out.projectileVx[p] = projectiles.vx[i]!;
     out.projectileVy[p] = projectiles.vy[i]!;
     out.projectileWidth[p] = projectiles.width[i]!;
+    out.projectileInside[p] = projectiles.inside[i] === NOT_INSIDE ? 0 : 1;
     p++;
   }
   out.projectileCount = p;
