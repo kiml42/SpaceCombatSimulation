@@ -61,14 +61,15 @@ const DESIGNS_KEPT = 512;
 const MAX_STEPS_PER_FRAME = 16;
 
 /**
- * A fleet tile's drawing size, CSS pixels.
+ * The box one kind of ship is drawn in, CSS pixels.
  *
- * The tiles themselves share the width of the panel, so this is the backing
- * store rather than the layout: set at the wide end of what a tile is given so
- * a hull is scaled down to fit rather than blown up and blurred.
+ * One ship rather than a whole fleet: a fleet drawn entire is a scattering of
+ * specks at any size that fits a row, which loses both the hull and the
+ * composition. Drawn a kind at a time with a count beside it, the hull is
+ * large enough to recognise and nothing about the fleet is lost.
  */
-const TILE_WIDTH = 260;
-const TILE_HEIGHT = 96;
+const TILE_WIDTH = 96;
+const TILE_HEIGHT = 56;
 /** How much of the way the fleet's scale closes on its target each frame. */
 const FLEET_EASE = 0.15;
 
@@ -130,17 +131,80 @@ interface Row {
   readonly entrant: Entrant;
 }
 
-/** An individual laid out to draw — a ship as a fleet of one — and what it weighs. */
+/**
+ * The five parts a score is made of, in the order they are shown.
+ *
+ * One list rather than a header written here and a figure read there: a
+ * column and the number under it cannot drift apart if they are the same
+ * entry. The colours are the chart's, applied by `css` in the stylesheet.
+ */
+const SCORE_COLUMNS = [
+  { css: 'hull', head: 'hull', title: 'hull kept', of: (row: Row): number => row.survival },
+  { css: 'func', head: 'func', title: 'function kept', of: (row: Row): number => row.functional },
+  { css: 'dmg', head: 'dmg', title: 'damage done', of: (row: Row): number => row.damage },
+  { css: 'dis', head: 'dis', title: 'function taken', of: (row: Row): number => row.disabling },
+  { css: 'grnd', head: 'grnd', title: 'ground gained', of: (row: Row): number => row.race },
+] as const;
+
+/**
+ * The combatants table, built once: a header that never changes and an empty
+ * body for the rows to be appended to and reordered in.
+ */
+function buildCombatantTable(host: HTMLElement): {
+  table: HTMLTableElement;
+  body: HTMLTableSectionElement;
+  none: HTMLParagraphElement;
+} {
+  const none = document.createElement('p');
+  none.className = 'none';
+  const table = document.createElement('table');
+  const head = document.createElement('thead');
+  const headRow = document.createElement('tr');
+  for (const [css, text, title] of [
+    ['who', '#', 'rank, and what it was bred from'],
+    ['made', 'made of', 'every kind of ship in it, and how many'],
+    ['score', 'score', 'against this generation’s opponents'],
+    ...SCORE_COLUMNS.map((column) => [column.css, column.head, column.title] as const),
+    ['mass', 't', 'tonnes'],
+    ['done', 'changed', 'what was done to its parent to make it'],
+  ] as const) {
+    const th = document.createElement('th');
+    th.className = css;
+    th.textContent = text;
+    th.title = title;
+    headRow.append(th);
+  }
+  head.append(headRow);
+  const body = document.createElement('tbody');
+  table.append(head, body);
+  host.append(none, table);
+  return { table, body, none };
+}
+
+/** One kind of ship in a combatant, and how many of that kind it has. */
+interface ShipKind {
+  readonly name: string;
+  readonly design: ShipDesign;
+  readonly count: number;
+}
+
+/**
+ * An individual laid out to draw — a ship as a fleet of one — what it weighs,
+ * and what kinds of ship it is made of.
+ */
 interface Picture {
   readonly view: Pick<FleetView, 'ships' | 'designs'>;
   readonly mass: number;
+  /** Largest first: a fleet is read by its heaviest ship before its escorts. */
+  readonly kinds: readonly ShipKind[];
 }
 
-/** A design's tile in the population, and the scale it was last drawn at. */
+/** A combatant's row in the table, and the scale its hulls were last drawn at. */
 interface Tile {
-  readonly figure: HTMLElement;
-  readonly caption: HTMLElement;
-  readonly canvas: HTMLCanvasElement;
+  readonly tr: HTMLTableRowElement;
+  readonly cells: Record<'who' | 'made' | 'score' | 'mass' | 'done', HTMLTableCellElement>;
+  readonly parts: readonly HTMLTableCellElement[];
+  readonly canvases: readonly HTMLCanvasElement[];
   readonly picture: Picture;
   drawnAt: number;
 }
@@ -209,12 +273,12 @@ export function startEvolution(): void {
   const modeSelect = el<HTMLSelectElement>('mode');
   const battleControls = el<HTMLElement>('battleControls');
   const fleetBox = el<HTMLElement>('fleet');
+  const { table: fleetTable, body: fleetBody, none: emptyNote } = buildCombatantTable(fleetBox);
   const watchingLabel = el<HTMLElement>('watching');
   const latestButton = el<HTMLButtonElement>('latest');
   const shownGeneration = el<HTMLElement>('shownGeneration');
   const fightingLabel = el<HTMLElement>('fighting');
   const matchesBody = el<HTMLElement>('matches');
-  const editsLine = el<HTMLElement>('edits');
   const championLine = el<HTMLElement>('championLine');
   const saveButton = el<HTMLButtonElement>('saveChampion');
   const exportButton = el<HTMLButtonElement>('exportChampion');
@@ -359,7 +423,7 @@ export function startEvolution(): void {
     for (const id of [...pictures.keys()]) if (id < 0) pictures.delete(id);
     for (const [id, tile] of [...fleetTiles]) {
       if (id >= 0) continue;
-      tile.figure.remove();
+      tile.tr.remove();
       fleetTiles.delete(id);
     }
     const founders = chosenFounders();
@@ -969,25 +1033,26 @@ export function startEvolution(): void {
    * it lasts.
    */
   const showFleet = (rows: readonly Row[]): void => {
-    const empty = fleetBox.querySelector('p.none');
     if (rows.length === 0) {
-      for (const tile of fleetTiles.values()) tile.figure.remove();
+      for (const tile of fleetTiles.values()) tile.tr.remove();
       fleetTiles.clear();
-      const text = run === null ? 'Pick founders to see them here.' : 'Nothing bred yet.';
-      if (empty === null) {
-        const note = document.createElement('p');
-        note.className = 'none';
-        note.textContent = text;
-        fleetBox.append(note);
-      } else empty.textContent = text;
+      fleetTable.hidden = true;
+      emptyNote.hidden = false;
+      emptyNote.textContent = run === null ? 'Pick founders to see them here.' : 'Nothing bred yet.';
       return;
     }
-    empty?.remove();
+    emptyNote.hidden = true;
+    fleetTable.hidden = false;
 
+    // One scale for every hull on show, so a ship twice the size of another
+    // looks it — down a column as much as across a row. Set by whichever kind
+    // of ship is largest, since that is the one a cell has to hold.
     fleetTarget = Infinity;
     for (const row of rows) {
-      const shot = fleetSnapshot(pictureOf(row.id, row.entrant).view, tileSnapshot, NO_TEAM);
-      fleetTarget = Math.min(fleetTarget, fitScale(shot, TILE_WIDTH * ratio(), TILE_HEIGHT * ratio()));
+      for (const kind of pictureOf(row.id, row.entrant).kinds) {
+        const shot = oneShipSnapshot(kind);
+        fleetTarget = Math.min(fleetTarget, fitScale(shot, TILE_WIDTH * ratio(), TILE_HEIGHT * ratio()));
+      }
     }
     if (fleetScale === 0) fleetScale = fleetTarget;
 
@@ -995,7 +1060,7 @@ export function startEvolution(): void {
     const living = new Set(ranked.map((row) => row.id));
     for (const [id, tile] of fleetTiles) {
       if (!living.has(id)) {
-        tile.figure.remove();
+        tile.tr.remove();
         fleetTiles.delete(id);
       }
     }
@@ -1007,121 +1072,151 @@ export function startEvolution(): void {
         fleetTiles.set(row.id, tile);
       }
       // Appending something already here moves it, so this is the reordering.
-      fleetBox.append(tile.figure);
-      tile.figure.classList.toggle('picked', row.id === picked);
-      tile.figure.classList.toggle('champion', rank === 0 && row.id >= 0 && row.matches > 0);
-      writeCaption(tile, row, rank);
-      tile.figure.title = row.edits.length > 0 ? row.edits.join('\n') : 'a founder of the run';
+      fleetBody.append(tile.tr);
+      tile.tr.classList.toggle('picked', row.id === picked);
+      tile.tr.classList.toggle('champion', rank === 0 && row.id >= 0 && row.matches > 0);
+      writeRow(tile, row, rank);
     }
   };
 
-  /**
-   * What a tile says about its design: its rank and name, its score, what it
-   * weighs and came from, and the five parts the score is made of.
-   *
-   * **All of it, because the tile is the only place it is written.** A ranked
-   * table of the same figures used to sit in the sidebar, which meant reading
-   * a hull and reading its numbers were two different places to look and the
-   * table went unread while a battle was on. The parts carry the colours the
-   * chart plots them in, so the graph above and the tiles below are read with
-   * one key.
-   */
-  const writeCaption = (tile: Tile, row: Row, rank: number): void => {
-    tile.caption.replaceChildren();
+  /** One kind of ship alone at the origin, to draw or to measure. */
+  const oneShipSnapshot = (kind: ShipKind): Snapshot =>
+    fleetSnapshot(
+      {
+        ships: [{ design: kind.name, x: 0, y: 0, angle: 0, path: kind.name, entry: 0, trail: [] }],
+        designs: [kind.design],
+      },
+      tileSnapshot,
+      NO_TEAM,
+    );
 
-    const head = document.createElement('span');
-    head.className = 'tileHead';
+  /**
+   * Fill in a combatant's row: who it is, what it is made of, what it scored,
+   * and what was done to make it.
+   *
+   * **The figures are rewritten every refresh and the hulls are not.** A
+   * generation's scores move while it is being fought; its designs never
+   * change, since a design is replaced by a child rather than edited.
+   */
+  const writeRow = (tile: Tile, row: Row, rank: number): void => {
+    const { who, score, mass, done } = tile.cells;
+
+    who.replaceChildren();
     const name = document.createElement('b');
     // A preview's founders have no id yet; their names say more.
     name.textContent = row.id < 0 ? row.entrant.name : `${rank + 1}. #${row.id}`;
-    head.append(name);
-    // Lineage next to identity rather than down with the tonnage: what a
-    // design came from is part of which design it is.
-    if (row.id >= 0 && row.parent >= 0) {
+    who.append(name);
+    if (row.id >= 0) {
       const from = document.createElement('span');
       from.className = 'from';
-      from.textContent = `\u2190${row.parent}`;
-      from.title = `bred from #${row.parent}`;
-      head.append(from);
+      from.textContent = row.parent < 0 ? 'a founder' : `← #${row.parent}`;
+      if (row.parent >= 0) from.title = `bred from #${row.parent}`;
+      who.append(from);
     }
-    if (row.id >= 0) {
-      const score = document.createElement('span');
-      score.className = 'score';
-      score.textContent = row.matches > 0 ? row.fitness.toFixed(3) : '—';
-      score.title = `${row.matches} match${row.matches === 1 ? '' : 'es'} fought`;
-      head.append(score);
-    }
-    tile.caption.append(head);
 
-    const ships = tile.picture.view.ships.length;
-    const sub = document.createElement('span');
-    sub.className = 'tileSub';
-    sub.textContent =
-      `${(row.mass / 1000).toFixed(1)} t` +
-      (isFleet(row.entrant) ? ` · ${ships} ship${ships === 1 ? '' : 's'}` : '') +
-      (row.id >= 0 && row.parent < 0 ? ' · a founder' : '');
-    tile.caption.append(sub);
+    score.textContent = row.id < 0 ? '' : row.matches > 0 ? row.fitness.toFixed(3) : '—';
+    score.title = row.id < 0 ? '' : `${row.matches} match${row.matches === 1 ? '' : 'es'} fought`;
 
-    // Nothing has been scored before a run, so the founders' preview shows
-    // the hulls alone rather than a grid of zeroes.
-    if (row.id < 0) return;
-    const scores = document.createElement('span');
-    scores.className = 'tileScores';
-    for (const [css, label, value, title] of [
-      ['hull', 'hull', row.survival, 'hull kept'],
-      ['func', 'func', row.functional, 'function kept'],
-      ['dmg', 'dmg', row.damage, 'damage done'],
-      ['dis', 'dis', row.disabling, 'function taken'],
-      ['grnd', 'grnd', row.race, 'ground gained'],
-    ] as const) {
-      const part = document.createElement('span');
-      part.className = css;
-      part.title = title;
-      const figure = document.createElement('i');
+    for (const [i, part] of tile.parts.entries()) {
       // A dash rather than a row of zeroes for a design that has not fought:
-      // its parts are as unknown as the score above them, and a generation
+      // its parts are as unknown as the score beside them, and a generation
       // still being fought is mostly made of those.
-      figure.textContent = row.matches > 0 ? value.toFixed(2) : '—';
-      part.append(`${label} `, figure);
-      scores.append(part);
+      part.textContent =
+        row.id < 0 || row.matches === 0 ? '—' : SCORE_COLUMNS[i]!.of(row).toFixed(2);
     }
-    tile.caption.append(scores);
+
+    // The unit is in the column head, so it is not repeated down the column.
+    mass.textContent = (row.mass / 1000).toFixed(1);
+    done.firstElementChild!.textContent =
+      row.edits.length > 0 ? row.edits.join('; ') : row.id < 0 ? '' : '—';
   };
 
+  /**
+   * Build a combatant's row, with a picture of each kind of ship it has.
+   *
+   * The pictures are made here and never again: which kinds a design is made
+   * of is fixed for its life, so only the shared scale can make them stale.
+   */
   const makeTile = (row: Row): Tile => {
-    const figure = document.createElement('figure');
-    const canvas = document.createElement('canvas');
-    const caption = document.createElement('figcaption');
-    figure.append(canvas, caption);
-    figure.addEventListener('click', () => {
-      picked = row.id;
-      editsLine.textContent =
-        row.edits.length > 0 ? `#${row.id}: ${row.edits.join('; ')}` : `#${row.id}: a founder`;
-      for (const [id, tile] of fleetTiles) tile.figure.classList.toggle('picked', id === picked);
+    const picture = pictureOf(row.id, row.entrant);
+    const tr = document.createElement('tr');
+
+    const cell = (className: string): HTMLTableCellElement => {
+      const td = document.createElement('td');
+      td.className = className;
+      tr.append(td);
+      return td;
+    };
+
+    const who = cell('who');
+
+    const made = cell('made');
+    const kinds = document.createElement('div');
+    kinds.className = 'kinds';
+    const canvases: HTMLCanvasElement[] = [];
+    for (const kind of picture.kinds) {
+      const box = document.createElement('div');
+      box.className = 'kind';
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(TILE_WIDTH * ratio());
+      canvas.height = Math.round(TILE_HEIGHT * ratio());
+      canvas.style.width = `${TILE_WIDTH}px`;
+      canvas.style.height = `${TILE_HEIGHT}px`;
+      canvases.push(canvas);
+      const of = document.createElement('span');
+      of.className = 'of';
+      of.title = `${kind.count} × ${kind.name}`;
+      // No count on a lone ship: "×1" under one hull is noise.
+      if (kind.count > 1) {
+        const many = document.createElement('b');
+        many.textContent = `×${kind.count} `;
+        of.append(many);
+      }
+      of.append(kind.name);
+      box.append(canvas, of);
+      kinds.append(box);
+    }
+    made.append(kinds);
+
+    const score = cell('score');
+    const parts = SCORE_COLUMNS.map((column) => {
+      const td = cell(column.css);
+      td.title = column.title;
+      return td;
     });
-    canvas.width = Math.round(TILE_WIDTH * ratio());
-    canvas.height = Math.round(TILE_HEIGHT * ratio());
-    const tile: Tile = { figure, caption, canvas, picture: pictureOf(row.id, row.entrant), drawnAt: 0 };
+    const mass = cell('mass');
+    const done = cell('done');
+    done.append(document.createElement('div'));
+
+    tr.addEventListener('click', () => {
+      picked = row.id;
+      for (const [id, other] of fleetTiles) other.tr.classList.toggle('picked', id === picked);
+    });
+
+    const tile: Tile = { tr, cells: { who, made, score, mass, done }, parts, canvases, picture, drawnAt: 0 };
     drawTile(tile);
     return tile;
   };
 
   /**
-   * Draw a tile at the fleet's scale, centred on its own ship. Only when that
-   * scale has moved since it was last drawn: a design never changes, it is
-   * replaced by a child.
+   * Draw a row's hulls at the shared scale, one kind of ship to a canvas.
+   * Only when that scale has moved since they were last drawn: a design never
+   * changes, it is replaced by a child.
    */
   const drawTile = (tile: Tile): void => {
     if (tile.drawnAt === fleetScale) return;
-    const tileCtx = tile.canvas.getContext('2d');
-    if (tileCtx === null) return;
-    const shot = fleetSnapshot(tile.picture.view, tileSnapshot, NO_TEAM);
-    const eye: Camera = {
-      x: (shot.minX + shot.maxX) / 2,
-      y: (shot.minY + shot.maxY) / 2,
-      scale: fleetScale,
-    };
-    draw(tileCtx, shot, eye, tile.canvas.width, tile.canvas.height);
+    for (const [i, canvas] of tile.canvases.entries()) {
+      const kind = tile.picture.kinds[i];
+      const tileCtx = canvas.getContext('2d');
+      if (kind === undefined || tileCtx === null) continue;
+      const shot = oneShipSnapshot(kind);
+      const eye: Camera = {
+        x: (shot.minX + shot.maxX) / 2,
+        y: (shot.minY + shot.maxY) / 2,
+        scale: fleetScale,
+      };
+      draw(tileCtx, shot, eye, canvas.width, canvas.height);
+    }
     tile.drawnAt = fleetScale;
   };
 
@@ -1192,7 +1287,24 @@ export function startEvolution(): void {
       }
       return design;
     });
-    const picture: Picture = { view: { ships, designs }, mass: designs.reduce((sum, d) => sum + d.mass, 0) };
+    // One entry per kind of ship, heaviest first: what a fleet is made of,
+    // which is the thing a picture of the whole fleet cannot show at the size
+    // a row gives it.
+    const counted = new Map<string, { design: ShipDesign; count: number }>();
+    ships.forEach((ship, i) => {
+      const held = counted.get(ship.design);
+      if (held === undefined) counted.set(ship.design, { design: designs[i]!, count: 1 });
+      else held.count += 1;
+    });
+    const kinds: ShipKind[] = [...counted]
+      .map(([name, { design, count }]) => ({ name, design, count }))
+      .sort((a, b) => b.design.mass - a.design.mass || a.name.localeCompare(b.name));
+
+    const picture: Picture = {
+      view: { ships, designs },
+      mass: designs.reduce((sum, d) => sum + d.mass, 0),
+      kinds,
+    };
     pictures.set(id, picture);
     while (pictures.size > DESIGNS_KEPT) {
       const oldest = pictures.keys().next();
@@ -1432,9 +1544,9 @@ export function startEvolution(): void {
     replay = null;
     replayOf = null;
     skipping = false;
-    editsLine.textContent = '';
     watch(null);
-    fleetBox.replaceChildren();
+    // The rows, not the table: it is built once and kept.
+    fleetBody.replaceChildren();
     fleetTiles.clear();
     fleetScale = 0;
     setPaused(false);
