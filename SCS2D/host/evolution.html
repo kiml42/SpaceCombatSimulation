@@ -124,7 +124,14 @@
         white-space: nowrap;
         padding: 0.1rem 0.35rem 0.25rem;
       }
-      #fleet th.who, #fleet th.made, #fleet th.done { text-align: left; }
+      #fleet th.who, #fleet th.formation, #fleet th.made, #fleet th.done { text-align: left; }
+      #fleet td.formation { text-align: left; padding-right: 0.7rem; }
+      #fleet td.formation canvas {
+        display: block;
+        background: #0d1219;
+        border: 1px solid #141c28;
+        border-radius: 3px;
+      }
       /* The five parts head their columns in the colours the chart plots them
          in, so the graph above and the table below are read with one key. */
       #fleet th.hull { color: #7fd6a0; }
@@ -154,11 +161,11 @@
          them, which is better than a floor that pushes the table wider than
          the panel and cuts the last column off. */
       #fleet td.made { text-align: left; white-space: normal; }
-      .kinds { display: flex; flex-wrap: wrap; gap: 0.3rem 0.4rem; align-items: flex-start; }
+      .kinds { display: flex; flex-wrap: wrap; gap: 0.3rem 0.2rem; align-items: flex-start; }
       /* The count and the name under the hull rather than beside it: beside
          it, a name costs as much width as the picture and half as many kinds
          fit on a line. */
-      .kind { width: 6rem; }
+      .kind { width: 5.5rem; }
       .kind canvas { display: block; background: #0d1219; border-radius: 3px; }
       /* Wrapping rather than ellipsised: a design's name is the one thing here
          that has to be read rather than compared, and "Beam Corvet…" is not a
@@ -180,7 +187,7 @@
          names things like `doctrine.approach.standoff`, and an unbreakable
          token that long becomes the column's minimum and pushes the whole
          table wider than the panel on a narrow window. */
-      #fleet td.done div { max-width: 14rem; overflow-wrap: anywhere; }
+      #fleet td.done div { max-width: 10rem; overflow-wrap: anywhere; }
       #fleet p.none { padding: 0.5rem 0.2rem; }
       #viewBar { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; padding: 0.4rem 0; }
       #panelBody { padding: 0.7rem 0.9rem; display: flex; flex-direction: column; min-height: 0; flex: 1; }

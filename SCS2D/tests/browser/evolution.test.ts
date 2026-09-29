@@ -496,6 +496,41 @@ describe('the evolution page in a browser', () => {
     expect(Math.max(...widths) / Math.min(...widths)).toBeGreaterThan(2);
     expect(problems).toEqual([]);
   }, 60_000);
+
+  it('draws the whole fleet beside its kinds, on a scale of its own', async () => {
+    // Two scales, each shared across the rows: formations compare with
+    // formations and hulls with hulls. One scale for both would put a
+    // formation a kilometre across and a hull ten metres long on the same
+    // ruler, and whichever it suited the other would be a dot or a smear.
+    await page.waitForFunction(() => document.querySelectorAll('#fleet tbody tr').length >= 2);
+    await page.waitForTimeout(1500);
+    const drawn = await page.evaluate(() => {
+      const ink = (node: Element): number => {
+        const canvas = node as HTMLCanvasElement;
+        const ctx = canvas.getContext('2d');
+        if (ctx === null) return 0;
+        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const bg = [data[0], data[1], data[2]];
+        let lit = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          const d =
+            Math.abs(data[i]! - bg[0]!) + Math.abs(data[i + 1]! - bg[1]!) + Math.abs(data[i + 2]! - bg[2]!);
+          if (d > 60) lit++;
+        }
+        return lit;
+      };
+      const rows = [...document.querySelectorAll('#fleet tbody tr')];
+      return {
+        rows: rows.length,
+        formations: rows.map((tr) => tr.querySelectorAll('td.formation canvas').length),
+        litFormations: rows.filter((tr) => ink(tr.querySelector('td.formation canvas')!) > 0).length,
+      };
+    });
+    // One per row, and every one of them actually drawn.
+    expect(drawn.formations.every((n) => n === 1)).toBe(true);
+    expect(drawn.litFormations).toBe(drawn.rows);
+    expect(problems).toEqual([]);
+  }, 60_000);
   it('skips a match nobody wants to watch, and puts another on', async () => {
     // Most of what a run fights is not worth watching — two ships that
     // cannot steer drifting apart until the clock runs out — and the page

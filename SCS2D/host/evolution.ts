@@ -68,8 +68,21 @@ const MAX_STEPS_PER_FRAME = 16;
  * composition. Drawn a kind at a time with a count beside it, the hull is
  * large enough to recognise and nothing about the fleet is lost.
  */
-const TILE_WIDTH = 96;
-const TILE_HEIGHT = 56;
+const TILE_WIDTH = 88;
+const TILE_HEIGHT = 52;
+
+/**
+ * The box a whole fleet is drawn in, CSS pixels.
+ *
+ * Beside the kinds rather than instead of them: the kinds say what a fleet is
+ * made of and this says how it is arranged, and neither is the other. Its own
+ * scale, shared across the rows exactly as the ships' is, so formations
+ * compare with formations and ships with ships — one scale for both would put
+ * a formation a kilometre across and a hull ten metres long on the same ruler,
+ * and whichever the ruler suited the other would be a dot or a smear.
+ */
+const FORMATION_WIDTH = 88;
+const FORMATION_HEIGHT = 64;
 /** How much of the way the fleet's scale closes on its target each frame. */
 const FLEET_EASE = 0.15;
 
@@ -162,6 +175,7 @@ function buildCombatantTable(host: HTMLElement): {
   const headRow = document.createElement('tr');
   for (const [css, text, title] of [
     ['who', '#', 'rank, and what it was bred from'],
+    ['formation', 'fleet', 'how it is arranged, to its own scale'],
     ['made', 'made of', 'every kind of ship in it, and how many'],
     ['score', 'score', 'against this generation’s opponents'],
     ...SCORE_COLUMNS.map((column) => [column.css, column.head, column.title] as const),
@@ -205,8 +219,10 @@ interface Tile {
   readonly cells: Record<'who' | 'made' | 'score' | 'mass' | 'done', HTMLTableCellElement>;
   readonly parts: readonly HTMLTableCellElement[];
   readonly canvases: readonly HTMLCanvasElement[];
+  readonly formation: HTMLCanvasElement;
   readonly picture: Picture;
   drawnAt: number;
+  formationDrawnAt: number;
 }
 
 /** A founder or benchmark in a list, as its option's value: `ship:Name` or `fleet:Name`. */
@@ -352,6 +368,9 @@ export function startEvolution(): void {
    */
   let fleetScale = 0;
   let fleetTarget = 0;
+  /** The same, for the whole-fleet pictures: see `FORMATION_WIDTH`. */
+  let formationScale = 0;
+  let formationTarget = 0;
   let picked = -1;
   /** Where the chart drew itself, and which point the pointer is over. */
   let chartLayout: ChartLayout = { x: 0, y: 0, width: 0, height: 0, count: 0 };
@@ -1048,13 +1067,21 @@ export function startEvolution(): void {
     // looks it — down a column as much as across a row. Set by whichever kind
     // of ship is largest, since that is the one a cell has to hold.
     fleetTarget = Infinity;
+    formationTarget = Infinity;
     for (const row of rows) {
-      for (const kind of pictureOf(row.id, row.entrant).kinds) {
+      const picture = pictureOf(row.id, row.entrant);
+      for (const kind of picture.kinds) {
         const shot = oneShipSnapshot(kind);
         fleetTarget = Math.min(fleetTarget, fitScale(shot, TILE_WIDTH * ratio(), TILE_HEIGHT * ratio()));
       }
+      const whole = fleetSnapshot(picture.view, tileSnapshot, NO_TEAM);
+      formationTarget = Math.min(
+        formationTarget,
+        fitScale(whole, FORMATION_WIDTH * ratio(), FORMATION_HEIGHT * ratio()),
+      );
     }
     if (fleetScale === 0) fleetScale = fleetTarget;
+    if (formationScale === 0) formationScale = formationTarget;
 
     const ranked = [...rows].sort((a, b) => b.fitness - a.fitness);
     const living = new Set(ranked.map((row) => row.id));
@@ -1150,6 +1177,16 @@ export function startEvolution(): void {
 
     const who = cell('who');
 
+    // The fleet entire, to its own scale: what the kinds beside it cannot say.
+    const formationCell = cell('formation');
+    const formation = document.createElement('canvas');
+    formation.width = Math.round(FORMATION_WIDTH * ratio());
+    formation.height = Math.round(FORMATION_HEIGHT * ratio());
+    formation.style.width = `${FORMATION_WIDTH}px`;
+    formation.style.height = `${FORMATION_HEIGHT}px`;
+    formation.title = `${picture.view.ships.length} ship${picture.view.ships.length === 1 ? '' : 's'} in formation`;
+    formationCell.append(formation);
+
     const made = cell('made');
     const kinds = document.createElement('div');
     kinds.className = 'kinds';
@@ -1193,7 +1230,16 @@ export function startEvolution(): void {
       for (const [id, other] of fleetTiles) other.tr.classList.toggle('picked', id === picked);
     });
 
-    const tile: Tile = { tr, cells: { who, made, score, mass, done }, parts, canvases, picture, drawnAt: 0 };
+    const tile: Tile = {
+      tr,
+      cells: { who, made, score, mass, done },
+      parts,
+      canvases,
+      formation,
+      picture,
+      drawnAt: 0,
+      formationDrawnAt: 0,
+    };
     drawTile(tile);
     return tile;
   };
@@ -1204,6 +1250,20 @@ export function startEvolution(): void {
    * changes, it is replaced by a child.
    */
   const drawTile = (tile: Tile): void => {
+    if (tile.formationDrawnAt !== formationScale) {
+      const wholeCtx = tile.formation.getContext('2d');
+      if (wholeCtx !== null) {
+        const shot = fleetSnapshot(tile.picture.view, tileSnapshot, NO_TEAM);
+        const eye: Camera = {
+          x: (shot.minX + shot.maxX) / 2,
+          y: (shot.minY + shot.maxY) / 2,
+          scale: formationScale,
+        };
+        draw(wholeCtx, shot, eye, tile.formation.width, tile.formation.height);
+        tile.formationDrawnAt = formationScale;
+      }
+    }
+
     if (tile.drawnAt === fleetScale) return;
     for (const [i, canvas] of tile.canvases.entries()) {
       const kind = tile.picture.kinds[i];
@@ -1549,6 +1609,7 @@ export function startEvolution(): void {
     fleetBody.replaceChildren();
     fleetTiles.clear();
     fleetScale = 0;
+    formationScale = 0;
     setPaused(false);
     pauseButton.disabled = false;
     stopButton.disabled = false;
@@ -1626,8 +1687,15 @@ export function startEvolution(): void {
       if (steps === MAX_STEPS_PER_FRAME) accumulator = 0;
     }
 
-    if (!fleetBox.hidden && fleetScale !== fleetTarget && fleetTarget > 0) {
-      fleetScale = easeScale(fleetScale, fleetTarget, FLEET_EASE);
+    if (
+      !fleetBox.hidden &&
+      ((fleetScale !== fleetTarget && fleetTarget > 0) ||
+        (formationScale !== formationTarget && formationTarget > 0))
+    ) {
+      if (fleetTarget > 0) fleetScale = easeScale(fleetScale, fleetTarget, FLEET_EASE);
+      if (formationTarget > 0) {
+        formationScale = easeScale(formationScale, formationTarget, FLEET_EASE);
+      }
       for (const tile of fleetTiles.values()) drawTile(tile);
     }
 
