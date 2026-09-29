@@ -257,7 +257,7 @@ function tidy(value: number): number {
  * in the box beside the ship.
  *
  * In the blueprint's frame, like everything else drawn — a module inside a
- * turned or mirrored group is written in another, and converting between the
+ * turned or mirrored assembly is written in another, and converting between the
  * two is the caller's job, as it is for a drag.
  */
 export function facingTo(spec: ModuleSpec, x: number, y: number, stepDegrees: number): number {

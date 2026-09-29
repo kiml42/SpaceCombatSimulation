@@ -309,8 +309,8 @@ describe('the editor in a browser', () => {
     expect(await page.inputValue('#propKind')).toBe('hullGun');
   });
 
-  it('groups two modules, places the group again, and mirrors the copy', async () => {
-    // The whole reason grouping exists, driven the way a person would: this is
+  it('makes an assembly of two modules, places it again, and mirrors the copy', async () => {
+    // The whole reason assembling exists, driven the way a person would: this is
     // what replaces a mirrored editing mode, so symmetry is structural rather
     // than something the editor has to keep in step.
     await openShip(page, 'Corvette');
@@ -321,53 +321,83 @@ describe('the editor in a browser', () => {
     await page.keyboard.down('Shift');
     await page.mouse.click(centre.x, centre.y);
     await page.keyboard.up('Shift');
-    expect(await page.isHidden('#groupSelection')).toBe(false);
-    expect(await page.textContent('#groupCount')).toMatch(/2 modules picked/);
+    expect(await page.isHidden('#assemblySelection')).toBe(false);
+    expect(await page.textContent('#assemblyCount')).toMatch(/2 picked/);
 
-    await page.click('#propGroup');
-    // The module panel gives way to the group's own, which edits a pose and
+    await page.click('#propAssembly');
+    // The module panel gives way to the assembly's own, which edits a pose and
     // not a size.
     expect(await page.isHidden('#properties')).toBe(true);
-    expect(await page.isHidden('#groupPanel')).toBe(false);
-    expect(await page.textContent('#groupOf')).toMatch(/2 modules/);
+    expect(await page.isHidden('#assemblyPanel')).toBe(false);
+    expect(await page.textContent('#assemblyOf')).toMatch(/2 modules/);
 
-    await page.click('#groupDuplicate');
-    await page.check('#groupMirror');
+    await page.click('#assemblyDuplicate');
+    await page.check('#assemblyMirror');
     // Still on the new copy's panel: an edit made from a panel must not
     // dismiss the panel that made it.
-    expect(await page.isHidden('#groupPanel')).toBe(false);
-    expect(await page.isChecked('#groupMirror')).toBe(true);
+    expect(await page.isHidden('#assemblyPanel')).toBe(false);
+    expect(await page.isChecked('#assemblyMirror')).toBe(true);
 
-    // And the ship now has two of everything that was grouped: clicking where
-    // the original's turret is picks a group rather than nothing.
+    // And the ship now has two of everything that was assembled: clicking where
+    // the original's turret is picks an assembly rather than nothing.
     await page.mouse.click(centre.x + 168, centre.y);
-    expect(await page.isHidden('#groupPanel')).toBe(false);
+    expect(await page.isHidden('#assemblyPanel')).toBe(false);
   });
 
-  it('picks the whole group first, and the module inside it on a second click', async () => {
-    // A group is a part, so clicking it selects the part. Reaching what is
+  it('nests one assembly in another, and adds an assembly to one that is placed', async () => {
+    await openShip(page, 'Corvette');
+    const centre = await canvasCentre(page);
+    const shiftClick = async (x: number, y: number) => {
+      await page.keyboard.down('Shift');
+      await page.mouse.click(x, y);
+      await page.keyboard.up('Shift');
+    };
+    // Turret and core into one assembly, then placed a second time.
+    await page.mouse.click(centre.x + 168, centre.y);
+    await shiftClick(centre.x, centre.y);
+    await page.click('#propAssembly');
+    const first = await page.inputValue('#assemblyName');
+    await page.click('#assemblyDuplicate');
+    const second = await page.inputValue('#assemblyName');
+    expect(second).toBe(first);
+
+    // The copy is selected; picking the original after it offers both.
+    await shiftClick(centre.x + 168, centre.y);
+    expect(await page.isDisabled('#propAssembly')).toBe(false);
+    expect(await page.textContent('#propAddToAssembly')).toBe(`Add to ${first}`);
+    // Two copies of one assembly: adding one into the other would nest it in itself.
+    expect(await page.isDisabled('#propAddToAssembly')).toBe(true);
+    expect(await page.getAttribute('#propAddToAssembly', 'title')).toMatch(/inside itself/);
+
+    await page.click('#propAssembly');
+    expect(await page.textContent('#assemblyOf')).toMatch(/^2 assemblies/);
+    await page.click('#undo');
+  });
+
+  it('picks the whole assembly first, and the module inside it on a second click', async () => {
+    // An assembly is a part, so clicking it selects the part. Reaching what is
     // inside is deliberate rather than accidental: click it again, once the
-    // group it belongs to is already the selection.
+    // assembly it belongs to is already the selection.
     await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x + 168, centre.y);
     await page.keyboard.down('Shift');
     await page.mouse.click(centre.x, centre.y);
     await page.keyboard.up('Shift');
-    await page.click('#propGroup');
+    await page.click('#propAssembly');
     await page.keyboard.press('Escape');
 
     await page.mouse.click(centre.x + 168, centre.y);
-    expect(await page.isHidden('#groupPanel')).toBe(false);
+    expect(await page.isHidden('#assemblyPanel')).toBe(false);
     expect(await page.isHidden('#properties')).toBe(true);
 
     await page.mouse.click(centre.x + 168, centre.y);
-    expect(await page.isHidden('#groupPanel')).toBe(true);
+    expect(await page.isHidden('#assemblyPanel')).toBe(true);
     expect(await page.inputValue('#propKind')).toBe('turret');
   });
 
-  it('drags a selected group as one part', async () => {
-    // Dragging has to move what is selected. Drilling into the group on the
+  it('drags a selected assembly as one part', async () => {
+    // Dragging has to move what is selected. Drilling into the assembly on the
     // press would have moved one module out of it instead, which is both the
     // wrong thing and hard to notice until the ship is wrong.
     await openShip(page, 'Corvette');
@@ -376,93 +406,93 @@ describe('the editor in a browser', () => {
     await page.keyboard.down('Shift');
     await page.mouse.click(centre.x, centre.y);
     await page.keyboard.up('Shift');
-    await page.click('#propGroup');
+    await page.click('#propAssembly');
 
-    const before = Number(await page.inputValue('#groupX'));
+    const before = Number(await page.inputValue('#assemblyX'));
     await page.mouse.move(centre.x + 168, centre.y);
     await page.mouse.down();
     await page.mouse.move(centre.x + 228, centre.y - 40, { steps: 8 });
     await page.mouse.up();
-    // Still the group's panel, and the group is where it was dragged to.
-    expect(await page.isHidden('#groupPanel')).toBe(false);
-    expect(Number(await page.inputValue('#groupX'))).not.toBe(before);
+    // Still the assembly's panel, and the assembly is where it was dragged to.
+    expect(await page.isHidden('#assemblyPanel')).toBe(false);
+    expect(Number(await page.inputValue('#assemblyX'))).not.toBe(before);
   });
 
-  it('adds a loose module to a group that is already placed', async () => {
+  it('adds a loose module to an assembly that is already placed', async () => {
     await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x + 168, centre.y);
     await page.keyboard.down('Shift');
     await page.mouse.click(centre.x, centre.y);
     await page.keyboard.up('Shift');
-    await page.click('#propGroup');
-    expect(await page.textContent('#groupOf')).toMatch(/2 modules/);
+    await page.click('#propAssembly');
+    expect(await page.textContent('#assemblyOf')).toMatch(/2 modules/);
 
-    // A module outside the group: the corvette's aft engine, well behind the
+    // A module outside the assembly: the corvette's aft engine, well behind the
     // hull along the ship's -x.
     await page.keyboard.down('Shift');
     await page.mouse.click(centre.x - 200, centre.y);
     await page.keyboard.up('Shift');
-    expect(await page.isDisabled('#propAddToGroup')).toBe(false);
+    expect(await page.isDisabled('#propAddToAssembly')).toBe(false);
 
-    await page.click('#propAddToGroup');
-    // The group gained it, and the selection is the group rather than whatever
+    await page.click('#propAddToAssembly');
+    // The assembly gained it, and the selection is the assembly rather than whatever
     // slid into the module's place in the list.
-    expect(await page.isHidden('#groupPanel')).toBe(false);
-    expect(await page.textContent('#groupOf')).toMatch(/3 modules/);
+    expect(await page.isHidden('#assemblyPanel')).toBe(false);
+    expect(await page.textContent('#assemblyOf')).toMatch(/3 modules/);
   });
 
-  it('reaches a group from a module inside it', async () => {
+  it('reaches an assembly from a module inside it', async () => {
     await openShip(page, 'Gunship');
     const centre = await canvasCentre(page);
     // The gunship's lateral engines are one engine placed eight times, so
     // any of them is inside an assembly.
     await page.mouse.click(centre.x, centre.y);
-    const inGroup = (await page.isDisabled('#propSelectGroup')) === false;
-    if (!inGroup) return; // whichever module the camera put under the centre
-    await page.click('#propSelectGroup');
-    expect(await page.isHidden('#groupPanel')).toBe(false);
+    const inAssembly = (await page.isDisabled('#propSelectAssembly')) === false;
+    if (!inAssembly) return; // whichever module the camera put under the centre
+    await page.click('#propSelectAssembly');
+    expect(await page.isHidden('#assemblyPanel')).toBe(false);
   });
 
-  it('shows what a selected group weighs, and what all its copies weigh', async () => {
+  it('shows what a selected assembly weighs, and what all its copies weigh', async () => {
     await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x + 168, centre.y);
     await page.keyboard.down('Shift');
     await page.mouse.click(centre.x, centre.y);
     await page.keyboard.up('Shift');
-    await page.click('#propGroup');
+    await page.click('#propAssembly');
 
-    const one = (await page.textContent('#groupStats')) ?? '';
+    const one = (await page.textContent('#assemblyStats')) ?? '';
     expect(one).toMatch(/Mass/);
     // One copy, so there is nothing to total.
     expect(one).not.toMatch(/copies/);
 
-    await page.click('#groupDuplicate');
-    const two = (await page.textContent('#groupStats')) ?? '';
+    await page.click('#assemblyDuplicate');
+    const two = (await page.textContent('#assemblyStats')) ?? '';
     expect(two).toMatch(/All 2 copies/);
   });
 
-  it('renames a group, and keeps the ship it names', async () => {
+  it('renames an assembly, and keeps the ship it names', async () => {
     await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x + 168, centre.y);
     await page.keyboard.down('Shift');
     await page.mouse.click(centre.x, centre.y);
     await page.keyboard.up('Shift');
-    await page.click('#propGroup');
+    await page.click('#propAssembly');
     const mass = (await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0];
 
-    await page.fill('#groupName', 'bow mount');
+    await page.fill('#assemblyName', 'bow mount');
     // The rename reaches the instance as well as the definition — a `use` left
     // pointing at the old name would place nothing, so the ship standing still
     // is the check that both halves happened.
     expect((await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0]).toBe(mass);
     expect(await page.textContent('#problems')).toMatch(/No problems/);
 
-    // Still the group's own panel, holding what was typed.
-    expect(await page.isHidden('#groupPanel')).toBe(false);
-    expect(await page.inputValue('#groupName')).toBe('bow mount');
+    // Still the assembly's own panel, holding what was typed.
+    expect(await page.isHidden('#assemblyPanel')).toBe(false);
+    expect(await page.inputValue('#assemblyName')).toBe('bow mount');
   });
 
   it('steps size by the same amount every time the arrow is pressed', async () => {
@@ -709,27 +739,27 @@ describe('the editor in a browser', () => {
     expect(Number(await page.inputValue('#propLength'))).toBe(length);
   });
 
-  it('repeats a group, and takes the step away when it drops back to one', async () => {
+  it('repeats an assembly, and takes the step away when it drops back to one', async () => {
     await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
-    // The hull, made into a shared part so that there is a group to place in a
-    // row, and then selected as the group rather than as the module.
+    // The hull, made into a shared part so that there is an assembly to place in a
+    // row, and then selected as the assembly rather than as the module.
     await page.mouse.click(centre.x, centre.y);
     await page.click('#propDuplicate');
-    await page.click('#propSelectGroup');
-    expect(await page.inputValue('#groupRepeat')).toBe('1');
+    await page.click('#propSelectAssembly');
+    expect(await page.inputValue('#assemblyRepeat')).toBe('1');
     // A step means nothing with one copy, so its boxes are not offered.
-    expect(await page.isHidden('#groupStepRow')).toBe(true);
+    expect(await page.isHidden('#assemblyStepRow')).toBe(true);
 
-    await page.fill('#groupRepeat', '3');
-    expect(await page.isHidden('#groupStepRow')).toBe(false);
-    // Seeded from the group's own length, so the copies land beyond each other
+    await page.fill('#assemblyRepeat', '3');
+    expect(await page.isHidden('#assemblyStepRow')).toBe(false);
+    // Seeded from the assembly's own length, so the copies land beyond each other
     // rather than all on the first.
-    expect(Number(await page.inputValue('#groupStepX'))).toBeGreaterThan(0);
+    expect(Number(await page.inputValue('#assemblyStepX'))).toBeGreaterThan(0);
     expect((await page.textContent('#stats')) ?? '').toMatch(/Modules/);
 
-    await page.fill('#groupRepeat', '1');
-    expect(await page.isHidden('#groupStepRow')).toBe(true);
+    await page.fill('#assemblyRepeat', '1');
+    expect(await page.isHidden('#assemblyStepRow')).toBe(true);
     await page.click('#undo');
   });
 

@@ -65,11 +65,6 @@ dock a dock and decides ram from landing (§4, §3). See the §12 entry.
 
 **Step 1 — Blueprint editor.** Planned, in this order, each its own change:
 
-- **Assemblies, named as such and nestable.** The panel says "group" where the format and the author say
-  *assembly*; it should say assembly. Two or more things selected offer **Create assembly**, whether they are
-  modules or assemblies already, and **Add to** the first one picked when that is an assembly — so an
-  assembly goes into another as easily as a module does. Lifts two of step 6's refusals (grouping a group,
-  adding a group to a group); an assembly cannot be put inside itself, at any depth.
 - **Adding a module with an assembly selected adds it to that assembly**, at the assembly's origin, and
   every copy of it gains one — said in the hint, as adding to a group already is.
 - **A rotate knob on a single selected assembly**, as a module has, turning the instance about its origin with
@@ -130,16 +125,13 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
 
 ### Not started — in order
 
-6. **Editor restructuring — dissolving a group, and grouping what is already grouped.** Making a group is
-   what building a symmetrical ship needs; unmaking one, nesting one inside another and adding a group to a
-   group are what *reworking* a ship needs, and that pressure only arrives once there are ships people want
-   to keep and rebuild rather than replace. Until then the way out of a group is undo and the way to a nested
-   one is the file, which is a poor tool and an adequate stop-gap. What is missing today: a group cannot be
-   dissolved (`unlink` takes one module out at a time); grouping modules already in different assemblies is
-   refused, as is grouping a group; and adding to a group takes loose modules only. The format allows nesting
-   — only the editor does not build it. Evolution's mutation operator already dissolves the plain case (one
-   copy, no extras, nothing nested), so what the editor is short of is the interface rather than the
-   arithmetic.
+6. **Editor restructuring — dissolving an assembly, and assembling across assemblies.** Making and nesting
+   assemblies is built; unmaking one is what *reworking* a ship needs, and that pressure only arrives once
+   there are ships people want to keep and rebuild rather than replace. Until then the way out of an
+   assembly is undo. What is missing today: an assembly cannot be dissolved (`unlink` takes one module out
+   at a time), and making an assembly of things written in different assemblies is refused. Evolution's
+   mutation operator already dissolves the plain case (one copy, no extras, nothing nested), so what the
+   editor is short of is the interface rather than the arithmetic.
 7. **Two layers** — the hull layer (the deck and below: hulls, their internals and hull-mounted weapons) and
    the weapons layer above it (raised, "thick" modules and turrets, and later strike craft), as §3 already
    describes and nothing yet implements. §12 tabulates what changes: firing arcs, traverse and projectile hits
