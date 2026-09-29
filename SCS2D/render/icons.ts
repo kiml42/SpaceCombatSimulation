@@ -37,8 +37,14 @@ export const ICON_MAX_ALPHA = 0.3;
  * The far end is well above a pixel because the hull is unreadable long before
  * it is invisible — at twelve pixels a ship is a smudge whose facing cannot be
  * made out, which is exactly what the icon is there to replace.
+ *
+ * **The near end is set by when the hull stops speaking for itself, not by
+ * when it starts getting small.** An icon over a hull that is still perfectly
+ * legible is clutter, and worse, it is clutter on exactly the ships that need
+ * it least — so the ramp starts late, once a hull is down to a size where its
+ * shape is going rather than merely reduced.
  */
-export const ICON_FADE_START_PX = 24;
+export const ICON_FADE_START_PX = 16;
 export const ICON_FADE_FULL_PX = 8;
 
 /**

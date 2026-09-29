@@ -22,7 +22,14 @@ const WIDTH = 1000;
 const HEIGHT = 600;
 const DT = 1 / 60;
 
-function ship(x: number, y: number, vx = 0, vy = 0, hasControl = true): ShipView {
+function ship(
+  x: number,
+  y: number,
+  vx = 0,
+  vy = 0,
+  hasControl = true,
+  isDerelict = false,
+): ShipView {
   return {
     // The camera reads position, velocity and radius; the rest is for drawing.
     design: { radius: 20 } as ShipView['design'],
@@ -39,7 +46,7 @@ function ship(x: number, y: number, vx = 0, vy = 0, hasControl = true): ShipView
     integrity: [],
     body: -1,
     hasControl,
-    isDerelict: false,
+    isDerelict,
     turretDisabled: [],
   };
 }
@@ -201,25 +208,147 @@ describe('what the camera keeps up with', () => {
   });
 
   it('counts a ship crossing the edge, so it does not flick in and out', () => {
-    // Just outside by its centre, still in shot by its hull.
+    // Just outside by its centre, still in shot by its hull. Followed, but at
+    // the edge's reduced pace rather than at its full speed — which is the
+    // next test's subject; what this one asks is that it counts at all.
     const camera: Camera = { x: 0, y: 0, scale: 0.1 };
     const halfWidth = WIDTH / (2 * camera.scale);
     const straddling = ship(halfWidth + 10, 0, 300, 0);
     moveWithVisibleShips(camera, snapshotOf([straddling]), 1, WIDTH, HEIGHT);
-    expect(camera.x).toBeCloseTo(300, 9);
+    expect(camera.x).toBeGreaterThan(0);
+    expect(camera.x).toBeLessThan(300);
+  });
+});
+
+describe('the pace the camera keeps', () => {
+  /** How far the camera moves in a second, for a lone ship that far out of the middle. */
+  function paceAt(outFraction: number): number {
+    const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+    const halfWidth = WIDTH / (2 * camera.scale);
+    const lone = ship(halfWidth * outFraction, 0, 300, 0);
+    moveWithVisibleShips(camera, snapshotOf([lone]), 1, WIDTH, HEIGHT);
+    return camera.x;
+  }
+
+  it('matches a ship exactly while it is inside where a fitted frame would put it', () => {
+    // The feed-forward's whole job, and the thing that must not be traded away
+    // for the easing below: a settled scene sits at four fifths of the way out
+    // — `fitScale`'s margin, whatever the scene — and is held perfectly still.
+    expect(paceAt(0)).toBeCloseTo(300, 9);
+    expect(paceAt(0.5)).toBeCloseTo(300, 9);
+    expect(paceAt(0.8)).toBeCloseTo(300, 9);
   });
 
-  it('holds still when nothing it could follow is in shot', () => {
-    // Panned away, or nobody aboard any of them: either way there is nothing
-    // to keep up with, and dividing by none of them would put the camera at NaN.
-    const camera: Camera = { x: 10, y: -5, scale: 0.1 };
-    moveWithVisibleShips(camera, snapshotOf([ship(0, 0, 400, 0, false)]), 1, WIDTH, HEIGHT);
-    expect(camera.x).toBe(10);
-    expect(camera.y).toBe(-5);
+  it('falls short of a ship out past that, so it makes ground towards the middle', () => {
+    // A ship the frame has not caught up with. Matching it exactly would pin
+    // it to the edge for as long as it flew straight, which is the camera
+    // faithfully keeping the worst composition it was handed.
+    const atEdge = paceAt(1);
+    expect(atEdge).toBeGreaterThan(0);
+    expect(atEdge).toBeLessThan(300);
+    // And the shortfall is what the ship closes the gap with: over a second at
+    // 300 m/s it comes this much nearer the middle.
+    expect(300 - atEdge).toBeGreaterThan(100);
+  });
 
+  it('comes up to meet the ship as it arrives, rather than in a step', () => {
+    // A jump in pace would read as a lurch. Monotonic all the way in, and
+    // level once inside.
+    let previous = 0;
+    for (let out = 1; out >= 0; out -= 0.05) {
+      const pace = paceAt(out);
+      expect(pace).toBeGreaterThanOrEqual(previous - 1e-9);
+      previous = pace;
+    }
+    expect(previous).toBeCloseTo(300, 9);
+  });
+
+  it('holds a ship wider than the view still, wherever on it the camera sits', () => {
+    // Zoomed in on a capital's stern. Its centre of mass is far outside the
+    // frame, and measured centre to centre that reads as a ship out on the
+    // edge — so the camera would keep only part of its pace and the view would
+    // slide down the hull towards the middle of the ship while the viewer was
+    // trying to watch the engines.
+    const capital = ship(0, 0, 300, 0);
+    capital.design = { radius: 1086 } as ShipView['design'];
+    // A 300 m view, a kilometre off the ship's middle and well inside its hull.
+    const camera: Camera = { x: -900, y: 0, scale: WIDTH / 300 };
+    moveWithVisibleShips(camera, snapshotOf([capital]), 1, WIDTH, HEIGHT);
+    expect(camera.x - -900).toBeCloseTo(300, 9);
+  });
+
+  it('still eases in a ship small enough for the frame to be about where it is', () => {
+    // The other half of the same rule: subtracting the radius must not turn
+    // the easing off for the ships it was written for. A fighter at the edge
+    // of a wide view is barely wider than a pixel, so it is still eased in.
+    const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+    const halfWidth = WIDTH / (2 * camera.scale);
+    const fighter = ship(halfWidth, 0, 300, 0);
+    moveWithVisibleShips(camera, snapshotOf([fighter]), 1, WIDTH, HEIGHT);
+    expect(camera.x).toBeLessThan(300);
+    expect(camera.x).toBeGreaterThan(0);
+  });
+
+  it('lets a ship that flew in at the edge settle into the middle of the frame', () => {
+    // End to end, against the whole camera rather than the feed-forward alone:
+    // a lone ship under way is centred and held there.
+    const flying = ship(0, 0, 400, 0);
+    const camera: Camera = { x: -4000, y: 0, scale: 0.1 };
+    follow(camera, [flying], 20);
+    expect(Math.abs(camera.x - flying.x)).toBeLessThan(1);
+  });
+
+  it('is steered by the capital rather than by whoever brought most fighters', () => {
+    // Same frame, opposite courses, and the big ship wins by its radius.
+    const capital = ship(0, 0, 200, 0);
+    capital.design = { radius: 300 } as ShipView['design'];
+    const fighters = [ship(50, 0, -200, 0), ship(-50, 0, -200, 0), ship(0, 50, -200, 0)];
+    const camera: Camera = { x: 0, y: 0, scale: 0.05 };
+    moveWithVisibleShips(camera, snapshotOf([capital, ...fighters]), 1, WIDTH, HEIGHT);
+    expect(camera.x).toBeGreaterThan(0);
+  });
+
+  it('holds still when there is nothing in shot at all', () => {
+    // Panned away: nothing to keep up with, and dividing by none of them would
+    // put the camera at NaN and take the view with it. Emptiness rather than a
+    // scene of wreckage, which is followed — see below.
     const panned: Camera = { x: 100_000, y: 0, scale: 0.1 };
     moveWithVisibleShips(panned, snapshotOf([ship(0, 0, 400, 0)]), 1, WIDTH, HEIGHT);
     expect(panned.x).toBe(100_000);
+    expect(panned.y).toBe(0);
+  });
+
+  it('falls back to the hulks once nobody is aboard anything', () => {
+    // A fight that ends with every core shot out should leave the camera
+    // travelling with what it made, rather than letting it slide off the edge.
+    const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+    moveWithVisibleShips(camera, snapshotOf([ship(0, 0, 400, 0, false)]), 1, WIDTH, HEIGHT);
+    expect(camera.x).toBeCloseTo(400, 9);
+  });
+
+  it('falls back again to the wreckage when even the hulks have gone', () => {
+    const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+    const pieces = [ship(0, 0, 400, 0, false, true), ship(100, 0, 400, 0, false, true)];
+    moveWithVisibleShips(camera, snapshotOf(pieces), 1, WIDTH, HEIGHT);
+    expect(camera.x).toBeCloseTo(400, 9);
+  });
+
+  it('prefers a hulk to the debris around it, and neither to a ship still flown', () => {
+    // Three kinds in one frame, each moving differently, so whichever is being
+    // followed is plain from the answer alone.
+    const flown = ship(0, 0, 100, 0);
+    const hulk = ship(0, 0, -900, 0, false);
+    const piece = ship(0, 0, 500, 0, false, true);
+
+    const watching: Camera = { x: 0, y: 0, scale: 0.1 };
+    moveWithVisibleShips(watching, snapshotOf([flown, hulk, piece]), 1, WIDTH, HEIGHT);
+    expect(watching.x).toBeCloseTo(100, 9);
+
+    // The same scene with nobody aboard: the hulk, not the debris, and not the
+    // mean of the two.
+    const afterwards: Camera = { x: 0, y: 0, scale: 0.1 };
+    moveWithVisibleShips(afterwards, snapshotOf([hulk, piece]), 1, WIDTH, HEIGHT);
+    expect(afterwards.x).toBeCloseTo(-900, 9);
   });
 
   it('still frames the wreckage when that is all there is', () => {
