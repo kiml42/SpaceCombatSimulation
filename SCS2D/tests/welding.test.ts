@@ -181,7 +181,7 @@ describe('welding on a slow contact', () => {
       expect(burning(b, (m) => m < own)).toBe(0);
     });
 
-    it('puts turret recoil on the ship still flying, not on one whose cores are out', () => {
+    it('holds the wrench of a ship whose cores are out, gathering no recoil from the other', () => {
       const run = hookedUnderFire();
       const { ships, world } = run;
       const body = world.bodies.indexOf(ships.body(0));
@@ -232,6 +232,27 @@ describe('welding on a slow contact', () => {
       expect(after.px).toBeCloseTo(before.px, 3);
       expect(after.py).toBeCloseTo(before.py, 3);
     });
+  });
+
+  it('leaves two hulks it hooks together no spin to gather', () => {
+    // Nobody flies either, but their mounts still swing back to rest, and each
+    // step's recoil must be spent once rather than held and added to.
+    const run = makeBattle({ seed: 1 }, (ships, world) => {
+      const gap = corvette.radius * 2 + 2;
+      const a = ships.spawn(world, { design: corvette, x: -gap / 2, y: 0, angle: 0, vx: 0.5 });
+      const b = ships.spawn(world, { design: corvette, x: gap / 2, y: 3, angle: Math.PI, vx: -0.5, team: 1 });
+      for (const ship of [a, b]) {
+        wreck(ships, world, ship);
+        tear(ships, world, ship);
+        for (let t = 0; t < corvette.turrets.length; t++) ships.turrets.bearing[ships.turretIndexOf(ship, t)] = 2;
+      }
+      return { a, b };
+    });
+    for (let s = 0; s < 60 * 60 && run.totalWelded === 0; s++) run.step();
+    expect(run.totalWelded).toBe(1);
+    for (let s = 0; s < 60 * 30; s++) run.step();
+    const body = run.world.bodies.indexOf(run.ships.body(run.a));
+    expect(Math.abs(run.world.bodies.angularVel[body]!)).toBeLessThan(1);
   });
 
   it('lets a ship carry a wreck it hooks, and command nothing on it', () => {

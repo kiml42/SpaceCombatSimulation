@@ -610,6 +610,12 @@ export class Ships {
   private readonly demandFx: number[] = [];
   private readonly demandFy: number[] = [];
   private readonly demandTorque: number[] = [];
+  /**
+   * This step's turret recoil on each ship's body, replayed with the wrench.
+   * Kept apart and set afresh every step, because the wrench of a ship nobody
+   * is flying is held rather than recomputed, and recoil added into it piled up.
+   */
+  private readonly recoil: number[] = [];
 
   private readonly alive: number[] = [];
 
@@ -891,6 +897,7 @@ export class Ships {
     this.demandFx.push(0);
     this.demandFy.push(0);
     this.demandTorque.push(0);
+    this.recoil.push(0);
     this.alive.push(1);
 
     return i;
@@ -1416,7 +1423,7 @@ export class Ships {
           this.bodyIds[i]!,
           this.demandFx[i]!,
           this.demandFy[i]!,
-          this.demandTorque[i]!,
+          this.demandTorque[i]! + this.recoil[i]!,
         );
       }
     };
@@ -1468,11 +1475,8 @@ export class Ships {
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
       const b = bodies.indexOf(this.bodyIds[i]!);
-      if (b < 0 || this.reaction[b] === 0) continue;
-      // Once per body, and to a ship flying it: an uncommanded one's demand is
-      // never reset, so recoil from another's guns would pile up on it.
-      if (i !== this.pilotOf(bodies, b)) continue;
-      this.demandTorque[i] = this.demandTorque[i]! + this.reaction[b]!;
+      // Once per body, however many ships ride it.
+      this.recoil[i] = b >= 0 && this.shipByBody[b] === i ? this.reaction[b]! : 0;
     }
   }
 
@@ -2702,15 +2706,6 @@ export class Ships {
     return owner >= 0 && this.alive[owner] === 1 ? owner : primary;
   }
 
-  /** The ship a body's turret recoil goes to: its primary, or the first rider flying it if the primary is not. */
-  private pilotOf(bodies: Bodies, b: number): number {
-    const primary = this.shipByBody[b]!;
-    const crew = this.crews[b];
-    if (crew === null || crew === undefined || this.hasControl(primary)) return primary;
-    for (const r of this.ridersOf(bodies, b)) if (this.hasControl(r)) return r;
-    return primary;
-  }
-
   /** Every ship riding a body, primary included, in slot order. */
   private ridersOf(bodies: Bodies, b: number): number[] {
     const riders: number[] = [];
@@ -3252,6 +3247,7 @@ export class Ships {
     this.demandFx[i] = 0;
     this.demandFy[i] = 0;
     this.demandTorque[i] = 0;
+    this.recoil[i] = 0;
   }
 
   /**
