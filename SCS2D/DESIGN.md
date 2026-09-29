@@ -38,7 +38,13 @@ inside any one file is not contiguous.
   given in advance and worked through as targets are put out of the fight. A Canvas2D
   viewer draws snapshots of all of it — ships, turret bearings, tracers and the wells
   bending them — with pause, single-step, time scaling, and zoom and pan over an
-  auto-framing camera. Each ship also carries an arrowhead in its team's colour, which
+  auto-framing camera. **The camera carries itself along with what it is watching rather
+  than easing after it**, weighting the ships in shot by radius so a fleet action is steered
+  by the capital in it; it falls back from the ships anybody is aboard to the hulks and then
+  to the wreckage, so a fight that ends with every core shot out is still followed; and it
+  keeps a shade less than the pace of a ship out past where a settled frame would put it, so
+  something arriving at the edge is allowed to make ground towards the middle before the
+  camera matches it. Each ship also carries an arrowhead in its team's colour, which
   fades in as its hull becomes too small on screen to read, so that zooming out to see a
   battle does not lose the small ships in it or which way they are facing. **What the picture asks
   about a ship is whether anybody is aboard it, not whether it can fight**: a hull with a sound core and

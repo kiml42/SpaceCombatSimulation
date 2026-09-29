@@ -1,4 +1,4 @@
-import { math, type Snapshot } from '../sim/index.js';
+import { math, type ShipView, type Snapshot } from '../sim/index.js';
 
 const { abs, max, min } = math;
 
@@ -84,11 +84,18 @@ export function frame(
   contain(camera, snapshot, widthPx, heightPx);
 }
 
+/**
+ * How much wider than its bounds a fitted view is — the breathing room round
+ * the scene. Named because it decides more than the zoom: the outermost ship
+ * in a settled frame sits at exactly its reciprocal of the way out, which is
+ * what `FULL_PACE_FRACTION` is placed against.
+ */
+const FIT_MARGIN = 1.25;
+
 /** Pixels per metre at which a snapshot's bounds fill a view, with a margin round them. */
 export function fitScale(snapshot: Snapshot, widthPx: number, heightPx: number): number {
-  const margin = 1.25;
-  const spanX = max(snapshot.maxX - snapshot.minX, 1) * margin;
-  const spanY = max(snapshot.maxY - snapshot.minY, 1) * margin;
+  const spanX = max(snapshot.maxX - snapshot.minX, 1) * FIT_MARGIN;
+  const spanY = max(snapshot.maxY - snapshot.minY, 1) * FIT_MARGIN;
   return min(widthPx / spanX, heightPx / spanY);
 }
 
@@ -104,21 +111,90 @@ export function easeScale(current: number, target: number, ease: number): number
 }
 
 /**
- * Up to half the distance out from the centre, still consider the ship's velocity at full weight.
+ * How far out a ship may sit and still be kept up with at its own speed, as a
+ * fraction of the distance from the middle of the frame to its edge.
+ *
+ * **Set outside where a settled frame puts anything.** `fitScale` leaves
+ * `FIT_MARGIN` round the bounds, so a camera that has finished fitting a scene
+ * has its outermost ship at exactly the reciprocal of that — four fifths of
+ * the way out, whatever the scene is. Holding back inside that would tax every
+ * ordinary battle, and the feed-forward exists precisely to stop the camera
+ * trailing its ships. Past it lies only what the camera has *not* caught up
+ * with: the scale widens the instant something distant appears, while the
+ * centre still has a second of easing to cross, and for that second the
+ * newcomer is out on the edge. That second is the one this is for.
  */
-const FULL_SPEED_WEIGHTING_PROPORTION = 0.5;
+const FULL_PACE_FRACTION = 0.85;
 
 /**
- * Carry the camera along with the mean velocity of the ships it is looking at.
+ * How much of a ship's speed the camera takes up when that ship is right at
+ * the edge of the frame.
  *
- * With one ship this holds it perfectly still on screen; with several it
- * removes the part of their motion they share and leaves only the spread.
+ * Short of all of it on purpose. Matching a ship exactly holds it wherever it
+ * happens to be, so something entering at the edge stays pinned to the edge
+ * for as long as it flies straight — the camera dutifully keeping the worst
+ * composition it was handed. Falling short lets the ship make ground towards
+ * the middle under its own speed, and the pace comes up to meet it as it gets
+ * there.
+ */
+const EDGE_PACE = 0.5;
+
+/** How much of a ship's speed to take up, for a ship that far out of the middle. */
+function matchedPace(out: number): number {
+  if (out <= FULL_PACE_FRACTION) return 1;
+  const past = (out - FULL_PACE_FRACTION) / (1 - FULL_PACE_FRACTION);
+  return 1 - past * (1 - EDGE_PACE);
+}
+
+/**
+ * What the camera would rather be following, best first.
+ *
+ * A battle is what anybody is watching, so ships with somebody aboard come
+ * first and nothing else is looked at while there is one in shot. Past that
+ * the fallbacks are about not abandoning the viewer: a fight that ends with
+ * every core shot out should leave the camera travelling with the hulks it
+ * made rather than watching them slide off the edge, and a hull that came
+ * apart entirely should leave it travelling with the pieces.
+ *
+ * Wreckage is last rather than lumped in with the hulks because the two are
+ * different pictures. A hulk is a ship — a thing that was being flown a moment
+ * ago, and the one the viewer was watching; a severed piece is debris, and
+ * there is usually far more of it, so counting both together would hand the
+ * frame to whichever hull shed the most.
+ *
+ * Fixed at module scope so a frame allocates nothing.
+ */
+const FOLLOW_ORDER: readonly ((ship: ShipView) => boolean)[] = [
+  (ship) => ship.hasControl,
+  (ship) => !ship.hasControl && !ship.isDerelict,
+  (ship) => ship.isDerelict,
+];
+
+/**
+ * Carry the camera along with the ships it is looking at.
+ *
+ * With one ship in the middle of the frame this holds it perfectly still on
+ * screen; with several it removes the part of their motion they share and
+ * leaves only the spread.
  *
  * **Only the ships on screen count.** The camera's job is to hold what the
  * viewer is looking at still, so a ship they have panned away from, or zoomed
- * past, is not part of the answer — and neither is a hulk, which is drifting
- * out of the fight rather than flying in it. A ship counts while any part of
- * it is in shot, so one crossing the edge does not flick in and out.
+ * past, is not part of the answer. A ship counts while any part of it is in
+ * shot, so one crossing the edge does not flick in and out.
+ *
+ * **Bigger ships pull harder**, by their radius: when a capital and its
+ * escorts are in frame together it is the capital the eye is on, and a camera
+ * that averaged them evenly would be steered by whichever side brought the
+ * most fighters.
+ *
+ * **And ships near the middle pull harder than ships near the edge — which is
+ * a statement about pace, not only about the average.** The attenuated
+ * velocities are divided by the *unattenuated* weights, so holding back is
+ * not normalised away: a lone ship entering at the edge is followed at part of
+ * its speed, comes in under the difference, and is matched exactly once it is
+ * within `FULL_PACE_FRACTION` of the middle. Dividing by the attenuated
+ * weights instead would cancel the whole effect for a single ship, which is
+ * the case it is most wanted in.
  *
  * `dt` is *simulated* seconds — this is the half of the camera that chases the
  * battle, so it runs on the battle's clock. The easing in `frame` is the half
@@ -131,52 +207,64 @@ export function moveWithVisibleShips(
   widthPx: number,
   heightPx: number,
 ): void {
-  if (!(dt > 0) || snapshot.shipCount === 0 || !(camera.scale > 0)) return;
+  if (!(dt > 0) || snapshot.shipCount === 0) return;
+  if (!(camera.scale > 0) || !(widthPx > 0) || !(heightPx > 0)) return;
 
   // The view in metres, about the camera.
   const halfWidth = widthPx / (2 * camera.scale);
   const halfHeight = heightPx / (2 * camera.scale);
 
-  let totalVx = 0;
-  let totalVy = 0;
-  let weightedCount = 0;
-
-  sumOverShipsInFrame(false);
-  if (weightedCount === 0) {
-    sumOverShipsInFrame(true);
-  }
-  // TODO add further fall back to even follow completely dead ships.
-
-  // Nothing in shot to keep up with: hold still rather than drift after ships
-  // the viewer has deliberately left behind — and rather than divide by none
+  // The first kind of thing that has anything in shot is the one followed, and
+  // the rest are not looked at. Nothing in shot at all — panned away, or an
+  // empty field — and the camera holds still rather than drifting after ships
+  // the viewer has deliberately left behind, and rather than dividing by none
   // of them, which would put the camera at NaN and take the view with it.
-  if (weightedCount === 0) return;
-  camera.x += (totalVx / weightedCount) * dt;
-  camera.y += (totalVy / weightedCount) * dt;
-
-  function sumOverShipsInFrame(includeDisabled: Boolean) {
-    for (let i = 0; i < snapshot.shipCount; i++) {
-      const ship = snapshot.ships[i]!;
-      if (!includeDisabled && !ship.hasControl) continue;
-      const r = ship.design.radius;
-      const xDistance = abs(ship.x - camera.x);
-      if (xDistance > halfWidth + r) continue;
-      const yDistance = abs(ship.y - camera.y);
-      if (yDistance > halfHeight + r) continue;
-      const proportionalXDistance = xDistance/halfWidth;
-      const proportionalYDistance = yDistance/halfHeight;
-
-      // weight by whichever is further out
-      const furthestProportion = max(proportionalXDistance, proportionalYDistance);
-      // weight larger ships higher, they're more likely to be the focus of the battle.
-      const weight = max(0, min(1, 1 - furthestProportion * FULL_SPEED_WEIGHTING_PROPORTION)) * ship.design.radius;
-
-      // TODO adjust how the arrow fades in, make it based on radius, and make it fade in a bit later.
-      totalVx += ship.vx * weight;
-      totalVy += ship.vy * weight;
-      weightedCount += weight;
-    }
+  for (const worthFollowing of FOLLOW_ORDER) {
+    if (keepPaceWith(camera, snapshot, dt, halfWidth, halfHeight, worthFollowing)) return;
   }
+}
+
+/**
+ * Move the camera with the ships in shot that `worthFollowing` accepts, and
+ * say whether there were any. A pass that finds nothing leaves the camera
+ * exactly as it was, so the caller can try the next kind.
+ */
+function keepPaceWith(
+  camera: Camera,
+  snapshot: Snapshot,
+  dt: number,
+  halfWidth: number,
+  halfHeight: number,
+  worthFollowing: (ship: ShipView) => boolean,
+): boolean {
+  let vx = 0;
+  let vy = 0;
+  // Unattenuated on purpose: see the note on pace above.
+  let weight = 0;
+
+  for (let i = 0; i < snapshot.shipCount; i++) {
+    const ship = snapshot.ships[i]!;
+    if (!worthFollowing(ship)) continue;
+    const r = ship.design.radius;
+    const outX = abs(ship.x - camera.x);
+    if (outX > halfWidth + r) continue;
+    const outY = abs(ship.y - camera.y);
+    if (outY > halfHeight + r) continue;
+
+    // How far out of the middle it sits, by whichever axis has it nearer an
+    // edge. Capped at the edge itself, since a ship counts while any part of
+    // it is in shot and its centre may already be outside.
+    const out = min(1, max(outX / halfWidth, outY / halfHeight));
+    const pace = matchedPace(out);
+    vx += ship.vx * r * pace;
+    vy += ship.vy * r * pace;
+    weight += r;
+  }
+
+  if (!(weight > 0)) return false;
+  camera.x += (vx / weight) * dt;
+  camera.y += (vy / weight) * dt;
+  return true;
 }
 
 /**
