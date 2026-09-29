@@ -12,6 +12,7 @@ import {
   type Ships,
 } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
+import { hooked as hookedScenario } from '../scenarios/hooked.js';
 import { capture, Snapshot } from '../sim/snapshot.js';
 import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
 import type { World } from '../sim/world.js';
@@ -136,6 +137,13 @@ describe('welding on a slow contact', () => {
       expect(run.totalWelded).toBe(1);
       return run;
     }
+    /** The `hooked` scenario a second in: welded, and both ships training their guns. */
+    function hookedUnderFire(): ReturnType<typeof hookedScenario> {
+      const run = hookedScenario();
+      for (let s = 0; s < 60; s++) run.step();
+      expect(run.ships.body(0)).toBe(run.ships.body(1));
+      return run;
+    }
     const front = Math.max(...corvette.modules.map((m) => m.x + m.spec.length / 2));
     const nose = corvette.modules.findIndex((m) => m.x + m.spec.length / 2 === front);
     const own = corvette.modules.length;
@@ -171,6 +179,24 @@ describe('welding on a slow contact', () => {
       expect(burning(b, (m) => m >= own)).toBeGreaterThan(0);
       expect(burning(a, (m) => m >= own)).toBe(0);
       expect(burning(b, (m) => m < own)).toBe(0);
+    });
+
+    it('puts turret recoil on the ship still flying, not on one whose cores are out', () => {
+      const run = hookedUnderFire();
+      const { ships, world } = run;
+      const body = world.bodies.indexOf(ships.body(0));
+      const design = ships.design(0);
+      for (const core of design.cores) {
+        if (ships.owns(0, core)) ships.damage.absorb(body, core, design.modules[core]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
+      }
+      expect(ships.hasControl(0)).toBe(false);
+      // Its last demand is held — a throttle left where it was — but nothing is added to it.
+      run.step();
+      const held = ships['demandTorque'][0];
+      for (let s = 0; s < 300 && ships.body(0) === ships.body(1); s++) {
+        run.step();
+        expect(ships['demandTorque'][0]).toBe(held);
+      }
     });
 
     it('draws every module once, in its own ship', () => {

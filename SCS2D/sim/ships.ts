@@ -1468,8 +1468,10 @@ export class Ships {
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
       const b = bodies.indexOf(this.bodyIds[i]!);
-      // Once per body, however many ships ride it.
-      if (b < 0 || this.shipByBody[b] !== i) continue;
+      if (b < 0 || this.reaction[b] === 0) continue;
+      // Once per body, and to a ship flying it: an uncommanded one's demand is
+      // never reset, so recoil from another's guns would pile up on it.
+      if (i !== this.pilotOf(bodies, b)) continue;
       this.demandTorque[i] = this.demandTorque[i]! + this.reaction[b]!;
     }
   }
@@ -2698,6 +2700,15 @@ export class Ships {
     if (crew === null || crew === undefined || module < 0) return primary;
     const owner = crew[module] ?? -1;
     return owner >= 0 && this.alive[owner] === 1 ? owner : primary;
+  }
+
+  /** The ship a body's turret recoil goes to: its primary, or the first rider flying it if the primary is not. */
+  private pilotOf(bodies: Bodies, b: number): number {
+    const primary = this.shipByBody[b]!;
+    const crew = this.crews[b];
+    if (crew === null || crew === undefined || this.hasControl(primary)) return primary;
+    for (const r of this.ridersOf(bodies, b)) if (this.hasControl(r)) return r;
+    return primary;
   }
 
   /** Every ship riding a body, primary included, in slot order. */
