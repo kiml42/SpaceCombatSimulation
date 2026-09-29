@@ -145,7 +145,8 @@ describe('the evolution page in a browser', () => {
     expect(await page.textContent('#fleet tbody td.score')).toBe('');
     await page.selectOption('#mode', 'battle');
     await page.waitForFunction(() => /unmutated/.test(document.getElementById('watching')?.textContent ?? ''));
-    expect(await distinctColours(page, 'view')).toBeGreaterThan(2);
+    // Polled: the label and the picture are drawn on different beats, so the label can come first.
+    await expect.poll(() => distinctColours(page, 'view')).toBeGreaterThan(2);
     await page.selectOption('#mode', 'fleet');
     expect(problems).toEqual([]);
   });
