@@ -464,6 +464,39 @@ describe('sizing a module by a handle', () => {
     });
   });
 
+  it('sizes about the middle from centre, moving both faces by whole steps', () => {
+    // The +w edge at y = 0, dragged 1.2 m out: a whole metre on the half-metre
+    // grid, and the -w edge a metre the other way.
+    expect(resizedTo(box, face(0, 1), 12, 1.2, 0.5, true)).toEqual({ length: 8, width: 6, dx: 0, dy: 0 });
+    // A corner does both dimensions alike.
+    expect(resizedTo(box, face(1, 1), 9, 2, 0.5, true)).toEqual({ length: 12, width: 8, dx: 0, dy: 0 });
+    // Dragged past the middle, it stops at one step rather than turning inside out.
+    expect(resizedTo(box, face(0, 1), 3, -9, 0.5, true)).toMatchObject({ width: 0.5, dy: 0 });
+  });
+
+  it('keeps an engine’s middle from centre, moving its mounting face instead', () => {
+    // Facing aft, the box runs from the mounting face at x = 0 back to -4.
+    const engine: ModuleSpec = { kind: 'engine', x: 0, y: 0, angle: Math.PI, length: 4, width: 2 };
+    const sized = resizedTo(engine, face(1, 0), -5, 0, 0.5, true);
+    expect(sized).toEqual({ length: 6, width: 2, dx: 1, dy: 0 });
+    expect(moduleCentre({ ...engine, x: sized.dx, length: sized.length }).x).toBeCloseTo(-2, 12);
+  });
+
+  it('pushes the neighbours on both sides when it sizes from centre', () => {
+    const bp: Blueprint = {
+      name: 'Sandwich',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+        { kind: 'structure', x: 0, y: 3, length: 4, width: 2 },
+        { kind: 'structure', x: 0, y: -3, length: 4, width: 2 },
+      ],
+    };
+    const doc = new EditorDocument(bp);
+    const sized = resizedTo(doc.view.modules[0]!, face(0, 1), 0, 3, 0.5, true);
+    const next = resizePlacement(bp, doc.view.origins[0]!, sized.length, sized.width, sized.dx, sized.dy, true)!;
+    expect(next.modules.map((m) => m.y)).toEqual([0, 4, -4]);
+  });
+
   it('measures in the module’s own frame', () => {
     // Along the module's length is now along the world's +y, so the +l edge is
     // at (3, 2); dragged two metres further, the middle moves one up.
