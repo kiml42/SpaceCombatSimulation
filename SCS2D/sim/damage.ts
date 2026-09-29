@@ -106,6 +106,16 @@ const FIRE_RATE_CUTOUT = 0.15;
  */
 const CONTROL_CUTOUT = 0.4;
 
+/**
+ * Integrity at or below which a module is **ragged**: torn open enough to
+ * hook on whatever it is pushed against slowly (`Ships.weld`), and too broken
+ * to carry command through. A ship commands a module only by a path from a
+ * working core through modules that are not ragged, so a spine shot through
+ * cuts off whatever lies beyond it, and a wreck hooked onto a ship brings
+ * nothing it carries under that ship's command.
+ */
+export const RAGGED_INTEGRITY = 0.25;
+
 export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly DamageResponse[]>> = {
   structure: [],
   core: [{ effect: DamageEffect.Control, remaining: fadesOutAt(CONTROL_CUTOUT) }],
@@ -116,6 +126,22 @@ export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly Dama
   hullGun: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
   hullBeam: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
 };
+
+/** Each module's neighbours by built weld, seams left out, kept per design. */
+const linkCache = new WeakMap<ShipDesign, readonly (readonly number[])[]>();
+
+function commandLinks(design: ShipDesign): readonly (readonly number[])[] {
+  const known = linkCache.get(design);
+  if (known !== undefined) return known;
+  const links: number[][] = design.modules.map(() => []);
+  for (const joint of joints(design)) {
+    if (joint.seam === true) continue;
+    links[joint.a]!.push(joint.b);
+    links[joint.b]!.push(joint.a);
+  }
+  linkCache.set(design, links);
+  return links;
+}
 
 /**
  * What every ship in the world has taken, by body index and module.
@@ -143,6 +169,12 @@ export class Damage {
   private readonly capacity: (Float64Array | null)[] = [];
   private readonly kinds: (ModuleSpec['kind'][] | null)[] = [];
   private readonly versions: number[] = [];
+  /** Each body's design, for working out what its cores still command. */
+  private readonly designs: (ShipDesign | null)[] = [];
+  /** Which modules a working core reaches, and the damage version that was worked out at. */
+  private readonly commanded: (Uint8Array | null)[] = [];
+  private readonly commandedAt: number[] = [];
+  private readonly frontier: number[] = [];
   /** Bodies nothing can hurt, by body index. */
   private readonly protectedBody: boolean[] = [];
 
@@ -182,6 +214,8 @@ export class Damage {
     this.capacity[bodyIndex] = capacity;
     this.kinds[bodyIndex] = kinds;
     this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
+    this.designs[bodyIndex] = design;
+    this.commanded[bodyIndex] = null;
   }
 
   /** Put energy into a module. Energy past what it can take is simply gone. */
@@ -298,7 +332,49 @@ export class Damage {
     for (const response of DAMAGE_RESPONSES[kind]) {
       if (response.effect === effect) left = min(left, response.remaining(integrity));
     }
+    // A core is where command comes from, so it answers for itself.
+    if (left > 0 && effect !== DamageEffect.Control && this.commandOf(bodyIndex)?.[module] === 0) return 0;
     return left;
+  }
+
+  /** Whether a module is torn open enough to hook, and to stop carrying command. */
+  ragged(bodyIndex: number, module: number): boolean {
+    return this.integrity(bodyIndex, module) <= RAGGED_INTEGRITY;
+  }
+
+  /**
+   * Which modules a working core commands: those it reaches through built
+   * welds without passing through a ragged module. Never across a seam.
+   * Worked out again only when the body's damage has changed.
+   */
+  private commandOf(bodyIndex: number): Uint8Array | null {
+    const version = this.versions[bodyIndex] ?? 0;
+    const known = this.commanded[bodyIndex];
+    if (known && this.commandedAt[bodyIndex] === version) return known;
+    const design = this.designs[bodyIndex];
+    if (!design) return null;
+    const n = design.modules.length;
+    const mask = known && known.length === n ? known.fill(0) : new Uint8Array(n);
+    const frontier = this.frontier;
+    frontier.length = 0;
+    for (const core of design.cores) {
+      if (this.integrity(bodyIndex, core) <= CONTROL_CUTOUT) continue;
+      mask[core] = 1;
+      frontier.push(core);
+    }
+    const links = commandLinks(design);
+    while (frontier.length > 0) {
+      const at = frontier.pop()!;
+      if (design.modules[at]!.spec.kind !== 'core' && this.ragged(bodyIndex, at)) continue;
+      for (const next of links[at]!) {
+        if (mask[next] === 1) continue;
+        mask[next] = 1;
+        frontier.push(next);
+      }
+    }
+    this.commanded[bodyIndex] = mask;
+    this.commandedAt[bodyIndex] = version;
+    return mask;
   }
 
   /** How many times this body's damage has changed. */
@@ -322,6 +398,8 @@ export class Damage {
   }
 
   forget(bodyIndex: number): void {
+    this.designs[bodyIndex] = null;
+    this.commanded[bodyIndex] = null;
     this.protectedBody[bodyIndex] = false;
     this.cut[bodyIndex] = null;
     this.absorbed[bodyIndex] = null;

@@ -364,6 +364,28 @@ export interface ShipDesign {
   readonly reach: number;
   /** What a ship of this design does when it has no orders. */
   readonly doctrine: Doctrine;
+  /**
+   * Which body each module came from, for a hull that is two or more welded
+   * together (`weldDesigns`); absent for one built in one piece. Faces only
+   * join within a piece: pieces are held by their seams alone.
+   */
+  readonly pieces?: readonly number[];
+  /** Where the pieces hooked onto each other, by module index. */
+  readonly seams?: readonly Seam[];
+}
+
+/** Two modules of different pieces, hooked together by a ragged edge. */
+export interface Seam {
+  readonly a: number;
+  readonly b: number;
+  /** How much edge is caught, metres: what the seam's section is cut from. */
+  readonly width: number;
+}
+
+/** How welded pieces hold together, carried by a design through a sever. */
+interface Joins {
+  readonly pieces: readonly number[];
+  readonly seams: readonly Seam[];
 }
 
 /** Corner offsets of a module, body frame, written into `out` as x,y pairs. */
@@ -1304,7 +1326,63 @@ export function subDesign(design: ShipDesign, keep: readonly number[]): ShipDesi
     stats.push(module.stats);
     layoutIndex.push(module.index);
   }
-  return designFrom(design.name, specs, stats, layoutIndex, design.doctrine);
+  let joins: Joins | undefined;
+  if (design.pieces !== undefined) {
+    const at = new Map<number, number>();
+    keep.forEach((module, k) => at.set(module, k));
+    const seams: Seam[] = [];
+    for (const seam of design.seams ?? []) {
+      const a = at.get(seam.a);
+      const b = at.get(seam.b);
+      if (a !== undefined && b !== undefined) seams.push({ a, b, width: seam.width });
+    }
+    joins = { pieces: keep.map((module) => design.pieces![module]!), seams };
+  }
+  return designFrom(design.name, specs, stats, layoutIndex, design.doctrine, joins);
+}
+
+/**
+ * One hull made of two, welded where module `a` of the first met module `b` of
+ * the second. The second's modules follow the first's, moved into the first's
+ * blueprint frame by `dx`, `dy` and turned by `dangle`, so every index into the
+ * first design still means the same module.
+ */
+export function weldDesigns(
+  first: ShipDesign,
+  second: ShipDesign,
+  dx: number,
+  dy: number,
+  dangle: number,
+  a: number,
+  b: number,
+  width: number,
+): ShipDesign {
+  const c = cos(dangle);
+  const s = sin(dangle);
+  const specs: ModuleSpec[] = first.modules.map((module) => module.spec);
+  const stats: ModuleStats[] = first.modules.map((module) => module.stats);
+  const layoutIndex = first.modules.map((module) => module.index);
+  for (const module of second.modules) {
+    const spec = module.spec;
+    specs.push({
+      ...spec,
+      x: dx + spec.x * c - spec.y * s,
+      y: dy + spec.x * s + spec.y * c,
+      angle: (spec.angle ?? 0) + dangle,
+    });
+    stats.push(module.stats);
+    layoutIndex.push(module.index);
+  }
+  const n = first.modules.length;
+  const firstPieces = first.pieces ?? first.modules.map(() => 0);
+  const offset = firstPieces.reduce((most, piece) => max(most, piece), 0) + 1;
+  const pieces = [...firstPieces, ...(second.pieces ?? second.modules.map(() => 0)).map((piece) => piece + offset)];
+  const seams: Seam[] = [
+    ...(first.seams ?? []),
+    ...(second.seams ?? []).map((seam) => ({ a: seam.a + n, b: seam.b + n, width: seam.width })),
+    { a, b: b + n, width },
+  ];
+  return designFrom(first.name, specs, stats, layoutIndex, first.doctrine, { pieces, seams });
 }
 
 /**
@@ -1319,6 +1397,7 @@ function designFrom(
   stats: readonly ModuleStats[],
   layoutIndex: readonly number[],
   doctrine: Doctrine = DEFAULT_DOCTRINE,
+  joins?: Joins,
 ): ShipDesign {
   const centres = specs.map(moduleCentre);
   let mass = 0;
@@ -1548,5 +1627,6 @@ function designFrom(
     engineLayout: new EngineLayout(engines),
     turrets,
     cores,
+    ...(joins === undefined ? {} : { pieces: joins.pieces, seams: joins.seams }),
   };
 }

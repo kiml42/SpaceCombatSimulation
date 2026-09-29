@@ -50,6 +50,8 @@ export interface Battle {
   totalContacts: number;
   /** Cumulative pieces broken off hulls, which is how severing shows up. */
   totalSevered: number;
+  /** Pairs of bodies a slow ragged contact has hooked into one. */
+  totalWelded: number;
   /** Wreckage the world stopped tracking, as pieces let go. */
   totalCulled: number;
   step(): void;

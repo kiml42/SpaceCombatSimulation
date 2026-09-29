@@ -142,6 +142,9 @@ inside any one file is not contiguous.
   anything: what it does instead is boil along every seam its tunnel crosses until one of them is gone,
   and whatever that seam was holding is then simply no longer attached. What comes away is a body of its own with its share of the momentum, the spin
   and the scars — a piece of ship with nobody aboard, which collides and takes damage like any other hull.
+  **Torn metal hooks.** Two bodies meeting slowly, one of them wreckage, with a module on either torn past
+  `RAGGED_INTEGRITY`, become one body joined by a seam. A ship can end up towing a wreck, but it commands
+  nothing across a seam, and nothing past a ragged module of its own either.
   **Craft carry a doctrine, and fight without being told to.** A blueprint can hold a block of named
   numbers saying what its craft picks a fight with and how it wants to fight it; a ship with an empty
   order queue chooses a target through a stack of preferences — what is close, what can still shoot
@@ -587,9 +590,9 @@ Rules:
   This is what makes "a torpedo is a fighter that crashes into things" literal — the crash is how a
   craft reaches the hull layer — so a pure kinetic-kill vehicle needs no warhead at all.
 
-  **Ram versus dock needs no new mechanism**: the weld-on-slow-contact threshold in §4 already decides
-  it. A craft closing slowly welds — it has landed. One closing fast delivers an impulse — it has
-  rammed. Same rule.
+  **Ram versus dock is a closing speed**: under the §4 weld threshold a craft has landed, over it the
+  craft has rammed. What it lands *with* is a docking port or a claw, which have rules of their own
+  (ROADMAP.md §12); the weld built so far hooks only torn metal, so a sound craft just bounces.
 
   In implementation this is one bit per body — *hull collision enabled* — read by the collision filter,
   plus a guard on changing it. **Projectiles carry no such state**: they are weapons-layer without
@@ -859,8 +862,19 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   body count multiplied by query count. A uniform grid (rather than a tree) because everything moves every
   step, so the index is rebuilt in one linear pass with no hierarchy to rebalance, and cell traversal is
   plain ascending order, which keeps damage application order reproducible.
-- **Weld on slow contact:** Heavily damaged modules are treated as having ragged edges and can become locked together on a slow contact. This merges them into one body for the simulation to track. This will work well with the wreckage harvesting mechanic as it creates larger chunks worth chasing down and harvesting instead of lots of tiny fragments.
-  Similarly, ships can have docking ports that will allow them to connect to each other deliberately by bumping together gently. This could be used for refiling fighters or other larger craft, for example. Every case *removes* bodies rather than adding sustained contacts.
+- **Weld on slow contact** (`Ships.weld`, built). A module at or under `RAGGED_INTEGRITY` has ragged edges,
+  and two bodies closing at under `WELD_SPEED` hook together if either touching module is ragged, at least
+  one of them is wreckage rather than a ship (until two ships can share a body — ROADMAP.md §8), and neither has parted within `WELD_SETTLE`. They merge into
+  one body, momentum and angular momentum kept, with their designs joined by a **seam** (`ShipDesign.seams`)
+  a `HOOK_SHARE` of the narrower face wide. A seam tears like any weld, but carries no command. This makes
+  wreckage into larger chunks worth chasing down and harvesting, instead of lots of tiny fragments.
+  **Command** runs from a working core through its hull's welds, and stops at a ragged module (a core
+  excepted), so a ship hooked to debris cannot use a live engine or gun on it — nor one of its own beyond a
+  torn spine. An uncommanded module thrusts and fires at nothing, and scoring caps a ship's hull at what it
+  started with, so a towed wreck is not counted as its own.
+  Docking ports and claws will let ships connect to each other on purpose, by bumping together gently, with
+  rules of their own — refuelling fighters, for example. Every case *removes* bodies rather than adding
+  sustained contacts.
 - **Engine allocation** is solved **once per blueprint**, not per tick: given desired body-frame
   force and torque, find non-negative throttles minimising propellant, subject to
   `Σ uᵢTᵢdᵢ = F` and `Σ uᵢTᵢ(rᵢ × dᵢ) = τ`. Three constraints in a plane. Per-tick control is then
