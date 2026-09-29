@@ -675,9 +675,10 @@ function reinforce(site: ModuleSite, rng: Rng, bounds: MutationLimits): string |
  *
  * **An engine is the awkward one.** Its position is its mounting face rather
  * than the middle of its box, so `refitModule` keeps the centre rather than
- * the coordinates, and it turns an engine swapped with a weapon half round so
- * whatever faced outboard still does. Refitted from anything else, which way
- * a new engine pushes is a free choice, so it is drawn here and the attempts
+ * the coordinates, and it turns a module half round on the way into or out of
+ * being an engine, so whatever faced outboard still does. Refitted from a
+ * structure or a core, which have no outward face, which way a new engine
+ * pushes is a free choice, so a quarter turn is drawn here and the attempts
  * try different ones.
  *
  * Neither is a nicety: without them a refit into an engine is refused every

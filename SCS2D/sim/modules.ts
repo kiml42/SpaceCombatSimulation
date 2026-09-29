@@ -853,18 +853,17 @@ export function moduleCentre(spec: ModuleSpec): { x: number; y: number } {
  * The centre is what is kept, not the coordinates: an engine's position is its
  * mounting face, so changing the kind alone would slide it half its length.
  *
- * An engine points at the way it pushes, with its bell behind, while a weapon
- * points at the way it fires. So swapping one for the other turns it half
- * round, and whatever faced out of the ship still does. `turn` is any further
- * rotation the caller wants.
+ * An engine points the way it pushes, with its bell behind; every other kind
+ * points the way its business end faces. So becoming or ceasing to be an
+ * engine turns it half round, whatever it was or becomes: whatever faced out
+ * of the ship still does, and any round trip ends facing the way it began.
+ * `turn` is any further rotation the caller wants.
  *
  * Fields the new kind does not read are kept, so swapping back restores them.
  */
 export function refitModule(spec: ModuleSpec, to: ModuleKind, turn = 0): ModuleSpec {
   const centre = moduleCentre(spec);
-  const flips =
-    (spec.kind === 'engine' && isWeaponMount(to)) ||
-    (to === 'engine' && isWeaponMount(spec.kind));
+  const flips = (spec.kind === 'engine') !== (to === 'engine');
   const next: ModuleSpec = { ...spec, kind: to };
   if (flips || turn !== 0) {
     // Folded into (-π, π], so a file says 180 rather than 540 after a few swaps.

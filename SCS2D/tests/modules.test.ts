@@ -907,10 +907,19 @@ describe('refitModule', () => {
     expect(refitModule(refitModule(engine, 'hullGun'), 'engine')).toEqual(engine);
   });
 
-  it('leaves the facing alone between kinds that do not face opposite ways', () => {
+  it('turns only on the way into or out of being an engine', () => {
     expect(refitModule(turret, 'hullGun').angle).toBe(0);
     expect(refitModule(turret, 'structure').angle).toBe(0);
-    expect(refitModule({ ...turret, kind: 'structure' }, 'engine').angle).toBe(0);
+    expect(refitModule({ ...turret, kind: 'structure' }, 'engine').angle).toBeCloseTo(Math.PI, 12);
+    expect(refitModule({ ...turret, kind: 'engine' }, 'core').angle).toBeCloseTo(Math.PI, 12);
+  });
+
+  it('comes back facing the way it began, whatever it passes through', () => {
+    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 1, angle: 0.5, length: 4, width: 4 };
+    const trip = refitModule(refitModule(refitModule(engine, 'turret'), 'structure'), 'engine');
+    expect(trip.angle).toBeCloseTo(0.5, 12);
+    expect(trip.x).toBeCloseTo(-5, 9);
+    expect(trip.y).toBeCloseTo(1, 9);
   });
 
   it('keeps the facing folded into a half turn either way', () => {

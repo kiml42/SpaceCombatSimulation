@@ -65,8 +65,8 @@ inside any one file is not contiguous.
   together get a bar on their shared face that grows one as it shrinks the other; every snap is escaped by
   holding Alt —
   with the rest of their values typed into a panel beside the module's own mass,
-  capacity, armour and gun — its kind among them, swapped for another in the same space, a gun made an engine
-  turning round so that what faced outboard still does — and a selected engine burns and a selected gun fires at the
+  capacity, armour and gun — its kind among them, swapped for another in the same space, a module made an
+  engine or unmade one turning round so that what faced outboard still does — and a selected engine burns and a selected gun fires at the
   rate its own figures claim; a module can be duplicated into a shared part placed
   twice, and a shared part unlinked back into separate modules, with position, dragging
   and deletion belonging to the copy and everything else to all of them; several modules can be
@@ -260,9 +260,9 @@ inside any one file is not contiguous.
   mounts half the time would be answering a question nobody asked. A refit keeps the space rather than the
   coordinates, because an engine's position is where it is attached and every other kind's is the middle
   of its box — left alone, the numbers slide the module half its own length into its neighbour, which
-  refused every refit into an engine there was. A weapon refitted as an engine, or an engine as a weapon, is
-  turned half round, since one points the way it pushes and the other the way it fires: whatever faced
-  outboard still does. The editor's kind swap is the same rule (`refitModule`). **The grouping is bred as well as the
+  refused every refit into an engine there was. A module refitted into or out of being an engine is turned half
+  round, since an engine points the way it pushes and every other kind the way its business end faces:
+  whatever faced outboard still does, and a round trip through any kinds ends where it began. The editor's kind swap is the same rule (`refitModule`). **The grouping is bred as well as the
   modules.** A lineage can make a part of a module, dissolve one back into the layout, take a neighbour into
   a part, grow one with a new module — on its outer edge by preference, which is the face likely to be free
   at every instance rather than at one, and the only way a part placed twice grows at all — place another
