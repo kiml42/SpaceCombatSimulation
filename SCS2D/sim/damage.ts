@@ -1,7 +1,8 @@
 import type { Bodies } from './bodies.js';
 import type { ShipDesign } from './blueprint.js';
 import { Terminal, deflected, incidenceAngle, strike } from './ballistics.js';
-import { HullPath, modulesAlong, type HullDesigns } from './hull.js';
+import { HullPath, modulesAlong, type HullDesigns, type Hulls } from './hull.js';
+import type { SpatialGrid } from './spatialGrid.js';
 import { jointBetween, joints } from './connectivity.js';
 import { NOT_INSIDE, type ProjectileHits, type Projectiles } from './projectiles.js';
 import type { BeamHits, Beams } from './beams.js';
@@ -453,6 +454,8 @@ export interface RoundOutcome {
   firstY: number;
   /** Still inside the hull, having run out of time to get further. */
   inside: boolean;
+  /** Seconds left over after it came out of the far side. */
+  time: number;
 }
 
 export function roundOutcome(): RoundOutcome {
@@ -472,6 +475,7 @@ export function roundOutcome(): RoundOutcome {
     firstX: 0,
     firstY: 0,
     inside: false,
+    time: 0,
   };
 }
 
@@ -488,6 +492,9 @@ const ARRIVAL_SLACK = 1e-6;
  * and forth for no time at all.
  */
 const MAX_SKIDS = 8;
+
+/** Hulls a round may go on into within one step after coming out of one. */
+const MAX_HULLS_PER_STEP = 4;
 
 /**
  * Walk a round along a line through a hull for `time` seconds, spending it
@@ -531,6 +538,7 @@ function walkRound(
   out.crossed = 0;
   out.first = -1;
   out.inside = false;
+  out.time = 0;
 
   const reach = design.radius * 2 + 1;
   let at = along;
@@ -630,10 +638,8 @@ function walkRound(
       out.inside = true;
       return out;
     }
-    // And on for the rest of the time, so that a hull moving the way the
-    // round is going does not catch up with it and take it in again.
-    const spare = gap > 0 ? left - gap / carried : left;
-    out.along = max(at, far) + (spare < Infinity ? carried * spare : 0);
+    out.along = max(at, far);
+    out.time = gap > 0 ? left - gap / carried : left;
     return out;
   }
 }
@@ -834,6 +840,17 @@ export class Impacts {
   private readonly outcome = roundOutcome();
   /** The design each round inside a hull is walking, by round. */
   private readonly walking: (ShipDesign | null)[] = [];
+  /** What `rounds` was given to fly a round on with, for the step in hand. */
+  private readonly flight: {
+    dt: number;
+    grid: SpatialGrid | undefined;
+    hulls: Hulls | undefined;
+    hits: ProjectileHits | undefined;
+  } = { dt: Infinity, grid: undefined, hulls: undefined, hits: undefined };
+  /** Hulls each round has met this step, stamped by step. */
+  private chainStamp = new Int32Array(0);
+  private chains = new Uint8Array(0);
+  private stamp = 0;
   /** Impacts since the last time something drained this. Presentation only. */
   readonly log = new ImpactLog();
 
@@ -854,7 +871,10 @@ export class Impacts {
    *
    * `dt` is the step, and a round that hit this step has only the part of it
    * after the hit to spend. Leave it out to walk every round the whole way at
-   * once.
+   * once. Given `grid`, a round out of the far side flies on for the rest of
+   * the step, and what it meets is added to `hits` and spent in turn — so a
+   * hull moving the way it is going cannot catch it again, and a piece of
+   * ship just behind the one it came out of is hit rather than skipped.
    */
   rounds(
     designs: HullDesigns,
@@ -865,7 +885,18 @@ export class Impacts {
     shocks?: Shocked,
     credit?: Credit,
     dt = Infinity,
+    grid?: SpatialGrid,
+    hulls?: Hulls,
   ): void {
+    this.flight.dt = dt;
+    this.flight.grid = grid;
+    this.flight.hulls = hulls;
+    this.flight.hits = hits;
+    this.stamp++;
+    if (this.chainStamp.length < projectiles.capacity) {
+      this.chainStamp = new Int32Array(projectiles.capacity);
+      this.chains = new Uint8Array(projectiles.capacity);
+    }
     // Before this step's arrivals, which have only the rest of the step.
     if (projectiles.insideCount > 0) {
       for (let round = 0; round < projectiles.highWater; round++) {
@@ -987,9 +1018,28 @@ export class Impacts {
       projectiles.crossing[round] = out.crossing;
       return;
     }
-    if (out.speed <= 0) projectiles.kill(round);
-    else projectiles.leave(round);
     this.walking[round] = null;
+    if (out.speed <= 0) {
+      projectiles.kill(round);
+      return;
+    }
+    projectiles.leave(round);
+    this.flyOn(bodies, projectiles, round, body, out.time);
+  }
+
+  /** Cast a round that came out of a hull on for the `time` left in the step. */
+  private flyOn(bodies: Bodies, projectiles: Projectiles, round: number, left: number, time: number): void {
+    const { dt, grid, hulls, hits } = this.flight;
+    if (grid === undefined || hits === undefined || !(time > 0) || !(dt < Infinity)) return;
+    // A bound on hulls met in one step, for a corner where two pieces of ship
+    // could hand a round back and forth.
+    if (this.chainStamp[round] !== this.stamp) {
+      this.chainStamp[round] = this.stamp;
+      this.chains[round] = 0;
+    }
+    if (this.chains[round]! >= MAX_HULLS_PER_STEP) return;
+    this.chains[round]!++;
+    projectiles.flyOn(round, left, max(0, 1 - time / dt), dt, bodies, grid, hits, hulls);
   }
 
   /**

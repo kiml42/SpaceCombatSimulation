@@ -159,12 +159,13 @@ export function makeBattle<Extra extends object = Record<never, never>>(
       // a gun and answers to the same rebuilt index.
       ships.scorch(world, grid, dt);
       projectiles.step(dt, world.bodies, grid, hits, wells, ships.hulls);
-      run.totalProjectileHits += hits.count;
       run.totalBeamHits += beamHits.count;
       // What the hits did. Rounds walk the modules along their path, a step's
       // travel at a time, and are killed or sent on their way; beams pour their power into what they are
       // burning through.
-      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits, ships, credit, dt);
+      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits, ships, credit, dt, grid, ships.hulls);
+      // After, so that a round going on from one hull into the next counts.
+      run.totalProjectileHits += hits.count;
       impacts.beams(ships.damage, beams, beamHits, dt, world.bodies, ships, credit);
       run.totalSevered += ships.sever(world, collisions.contacts);
       run.totalCulled += ships.cull(world);

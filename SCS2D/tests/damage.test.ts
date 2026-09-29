@@ -20,7 +20,7 @@ import {
   resolveRound,
   type ShipDesign,
 } from '../sim/index.js';
-import { CORVETTE, STAR_DESTROYER } from '../scenarios/blueprints.js';
+import { BARE_CORE, CORVETTE, STAR_DESTROYER } from '../scenarios/blueprints.js';
 import { joints } from '../sim/connectivity.js';
 
 /**
@@ -389,7 +389,7 @@ describe('a round taking time to cross a hull', () => {
     const counts: number[] = [];
     for (let step = 0; step < 120 && left < 0; step++) {
       r.projectiles.step(1 / 60, r.bodies, r.grid, r.hits, undefined, r.ships.hulls);
-      r.impacts.rounds(r.ships, r.ships.damage, r.bodies, r.projectiles, r.hits, undefined, undefined, 1 / 60);
+      r.impacts.rounds(r.ships, r.ships.damage, r.bodies, r.projectiles, r.hits, undefined, undefined, 1 / 60, r.grid, r.ships.hulls);
       if (entered < 0 && r.hits.count > 0) entered = step;
       if (entered >= 0) counts.push(damaged());
       if (entered >= 0 && r.projectiles.inside[0] !== r.body) left = step;
@@ -412,6 +412,42 @@ describe('a round taking time to cross a hull', () => {
     }
   });
 
+  it('goes on into a hull just behind the one it came out of', () => {
+    // The core of a broken-up ship, drifting against a piece that came off
+    // it: a round out of one must hit the other, not skip it for lying within
+    // the same step.
+    const core = compileBlueprint(BARE_CORE);
+    const world = new World({ dt: 1 / 60, seed: 6 });
+    const ships = new Ships();
+    const bodies = world.bodies;
+    let minX = Infinity;
+    let maxX = -Infinity;
+    for (const m of corvette.modules) {
+      minX = Math.min(minX, m.x - m.spec.length / 2);
+      maxX = Math.max(maxX, m.x + m.spec.length / 2);
+    }
+    const front = bodies.indexOf(ships.body(ships.spawn(world, { design: corvette, x: 0, y: 0, team: 0 })));
+    const behind = bodies.indexOf(
+      ships.body(ships.spawn(world, { design: core, x: maxX + core.radius + 0.5, y: 0, team: 0 })),
+    );
+    const grid = new SpatialGrid(64);
+    grid.rebuild(bodies);
+    const projectiles = new Projectiles(8);
+    const hits = new ProjectileHits();
+    const impacts = new Impacts();
+    projectiles.spawn({ x: minX - 5, y: 0, vx: 3000, vy: 0, width: 0.3, ttl: 5, mass: 2000 });
+
+    const struck = new Set<number>();
+    for (let step = 0; step < 30; step++) {
+      projectiles.step(1 / 60, bodies, grid, hits, undefined, ships.hulls);
+      impacts.rounds(ships, ships.damage, bodies, projectiles, hits, undefined, undefined, 1 / 60, grid, ships.hulls);
+      for (let h = 0; h < hits.count; h++) struck.add(hits.body[h]!);
+    }
+    expect(struck.has(front)).toBe(true);
+    expect(struck.has(behind)).toBe(true);
+    expect(ships.damage.integrity(behind, 0)).toBeLessThan(1);
+  });
+
   it('is not caught again by a hull moving the way it is going', () => {
     // A round out of the far side is where the hull was; the hull, moving
     // after it, must not sweep it up and walk it through a second time.
@@ -422,7 +458,7 @@ describe('a round taking time to cross a hull', () => {
       r.grid.rebuild(r.bodies);
       r.projectiles.step(1 / 60, r.bodies, r.grid, r.hits, undefined, r.ships.hulls);
       hits += r.hits.count;
-      r.impacts.rounds(r.ships, r.ships.damage, r.bodies, r.projectiles, r.hits, undefined, undefined, 1 / 60);
+      r.impacts.rounds(r.ships, r.ships.damage, r.bodies, r.projectiles, r.hits, undefined, undefined, 1 / 60, r.grid, r.ships.hulls);
     }
     expect(r.projectiles.alive[0]).toBe(1);
     expect(r.projectiles.inside[0]).toBe(-1);
