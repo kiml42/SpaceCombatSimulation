@@ -162,8 +162,8 @@ describe('welding on a slow contact', () => {
       }
       // Who a hit on either side counts against, for scoring.
       const body = run.world.bodies.indexOf(ships.body(a));
-      expect(ships.crewAt(body, 0)).toBe(a);
-      expect(ships.crewAt(body, own)).toBe(b);
+      expect(ships.pilotAt(body, 0)).toBe(a);
+      expect(ships.pilotAt(body, own)).toBe(b);
     });
 
     it('pull against each other, each with its own engines', () => {

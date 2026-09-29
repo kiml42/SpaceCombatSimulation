@@ -536,14 +536,14 @@ export class Ships {
    */
   private readonly shipByBody: number[] = [];
   /**
-   * Body index → which ship works each of its modules, where more than one
-   * ship rides that body; null where one ship works all of it. -1 is nobody's.
+   * Body index → which ship's computer works each of its modules, where more
+   * than one ship rides that body; null where one works all of it. -1 is nobody's.
    *
    * Two ships hooked together are one body flown by both (`Ships.weld`): each
    * keeps its own side, orders and guns, and works only the modules it brought.
    * `shipByBody` is the body's *primary* — the one that answers for its shape.
    */
-  private readonly crews: (Int32Array | null)[] = [];
+  private readonly pilots: (Int32Array | null)[] = [];
 
   /**
    * Blows waiting to be answered: an impulse at a point on a hull, world
@@ -848,7 +848,7 @@ export class Ships {
     const bodyIdx = world.bodies.indexOf(id);
     this.bodyStore = world.bodies;
     this.shipByBody[bodyIdx] = this.alive.length;
-    this.crews[bodyIdx] = null;
+    this.pilots[bodyIdx] = null;
     this.hullDesign[bodyIdx] = design;
     this.hullBody[bodyIdx] = id;
     this.damage.register(bodyIdx, design);
@@ -2488,7 +2488,7 @@ export class Ships {
       const ma = contacts.moduleA[k]!;
       const mb = contacts.moduleB[k]!;
       if (!this.damage.ragged(a, ma) && !this.damage.ragged(b, mb)) continue;
-      // A crewed hull keeps its body; two wrecks keep the older's slot.
+      // A flown hull keeps its body; two wrecks keep the older's slot.
       if (this.derelict[i] === 1 && this.derelict[j] === 0) this.merge(world, j, i, mb, ma);
       else this.merge(world, i, j, ma, mb);
       joined ??= new Set<number>();
@@ -2552,29 +2552,29 @@ export class Ships {
     bodies.angularVel[bk] = angular / design.inertia;
     bodies.radius[bk] = design.radius;
 
-    // Who works what: a wreck is nobody's once a second crew is aboard, and a
+    // Who works what: a wreck is nobody's once a second pilot is aboard, and a
     // ship alone keeps working all of it.
     const n = dk.modules.length;
-    const crewed = this.derelict[other] === 0;
+    const flown = this.derelict[other] === 0;
     const staying = this.ridersOf(bodies, bk);
-    const moving = crewed ? this.ridersOf(bodies, bo) : [];
-    const wasK = this.crews[bk] ?? null;
-    const wasO = this.crews[bo] ?? null;
-    let crew: Int32Array | null = null;
-    if (crewed || wasK !== null) {
-      crew = new Int32Array(design.modules.length);
-      for (let m = 0; m < n; m++) crew[m] = wasK === null ? keep : wasK[m]!;
-      for (let m = n; m < crew.length; m++) crew[m] = !crewed ? -1 : wasO === null ? other : wasO[m - n]!;
+    const moving = flown ? this.ridersOf(bodies, bo) : [];
+    const wasK = this.pilots[bk] ?? null;
+    const wasO = this.pilots[bo] ?? null;
+    let pilots: Int32Array | null = null;
+    if (flown || wasK !== null) {
+      pilots = new Int32Array(design.modules.length);
+      for (let m = 0; m < n; m++) pilots[m] = wasK === null ? keep : wasK[m]!;
+      for (let m = n; m < pilots.length; m++) pilots[m] = !flown ? -1 : wasO === null ? other : wasO[m - n]!;
     }
 
     this.adopt(keep, bk, design, (m) => (m < n ? keep : other), (m) => (m < n ? m : m - n));
-    this.crews[bk] = crew;
+    this.pilots[bk] = pilots;
 
     const gone = this.bodyIds[other]!;
     this.damage.forget(bo);
     this.shipByBody[bo] = -1;
-    this.crews[bo] = null;
-    if (crewed) {
+    this.pilots[bo] = null;
+    if (flown) {
       const old = this.turretIndex[other]!;
       for (let t = 0; t < old.length; t++) this.turrets.remove(old[t]!);
       for (const r of staying) if (r !== keep) this.board(r, keep);
@@ -2664,8 +2664,8 @@ export class Ships {
 
   /** Whether ship `i`, riding body index `b`, works module `m` of it. */
   private ownsAt(i: number, b: number, m: number): boolean {
-    const crew = this.crews[b];
-    return crew === null || crew === undefined || crew[m] === i;
+    const pilots = this.pilots[b];
+    return pilots === null || pilots === undefined || pilots[m] === i;
   }
 
   /** What damage has left of a module's effect, for the ship working it: none for anyone else. */
@@ -2686,23 +2686,23 @@ export class Ships {
   draws(i: number, m: number): boolean {
     const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
     if (b < 0) return false;
-    const crew = this.crews[b];
-    if (crew === null || crew === undefined) return true;
-    return crew[m] === i || (crew[m] === -1 && this.shipByBody[b] === i);
+    const pilots = this.pilots[b];
+    if (pilots === null || pilots === undefined) return true;
+    return pilots[m] === i || (pilots[m] === -1 && this.shipByBody[b] === i);
   }
 
   /**
    * The ship answering for a module of a body: whoever works it, or the body's
    * primary when nobody does or no module is named. -1 for no ship.
    */
-  crewAt(bodyIndex: number, module = -1): number {
+  pilotAt(bodyIndex: number, module = -1): number {
     const bodies = this.bodyStore;
     if (bodies === null) return -1;
     const primary = this.shipAt(bodies, bodyIndex);
     if (primary < 0) return -1;
-    const crew = this.crews[bodyIndex];
-    if (crew === null || crew === undefined || module < 0) return primary;
-    const owner = crew[module] ?? -1;
+    const pilots = this.pilots[bodyIndex];
+    if (pilots === null || pilots === undefined || module < 0) return primary;
+    const owner = pilots[module] ?? -1;
     return owner >= 0 && this.alive[owner] === 1 ? owner : primary;
   }
 
@@ -2852,9 +2852,9 @@ export class Ships {
   private breakUp(world: World, i: number, design: ShipDesign, parts: readonly number[][]): number {
     const bodies = world.bodies;
     const b = bodies.indexOf(this.bodyIds[i]!);
-    const crew = this.crews[b] ?? null;
+    const pilots = this.pilots[b] ?? null;
     let pieces = 0;
-    if (crew === null) {
+    if (pilots === null) {
       const keeper = this.keeperOf(b, design, parts);
       for (let p = 0; p < parts.length; p++) {
         if (p === keeper) continue;
@@ -2867,13 +2867,13 @@ export class Ships {
     const partOf = new Int32Array(design.modules.length);
     for (let p = 0; p < parts.length; p++) for (const m of parts[p]!) partOf[m] = p;
     const riders = this.ridersOf(bodies, b);
-    const home = riders.map((r) => partOf[this.anchorOf(b, design, crew, r)]!);
+    const home = riders.map((r) => partOf[this.anchorOf(b, design, pilots, r)]!);
     const keeper = home[riders.indexOf(i)]!;
     for (let p = 0; p < parts.length; p++) {
       if (p === keeper) continue;
       const aboard = riders.filter((_, k) => home[k] === p);
       if (aboard.length > 0) {
-        this.rehome(world, i, aboard, design, parts[p]!, crew);
+        this.rehome(world, i, aboard, design, parts[p]!, pilots);
         pieces++;
         continue;
       }
@@ -2881,25 +2881,25 @@ export class Ships {
       const core = design.cores.find(
         (c) => partOf[c] === p && this.damage.remaining(b, c, DamageEffect.Control) > 0,
       );
-      const owner = core === undefined ? -1 : crew[core]!;
+      const owner = core === undefined ? -1 : pilots[core]!;
       if (this.detach(world, i, design, parts[p]!, owner >= 0 && this.alive[owner] === 1 ? owner : i)) pieces++;
     }
     const staying = riders.filter((_, k) => home[k] === keeper);
     this.reshape(world, i, design, parts[keeper]!);
-    this.crewUp(b, i, staying, crew, parts[keeper]!);
+    this.assignPilots(b, i, staying, pilots, parts[keeper]!);
     return pieces;
   }
 
   /** The module ship `r` is flown from: its lowest working core, its first core, or its lowest module. */
-  private anchorOf(b: number, design: ShipDesign, crew: Int32Array, r: number): number {
+  private anchorOf(b: number, design: ShipDesign, pilots: Int32Array, r: number): number {
     let first = -1;
     for (const core of design.cores) {
-      if (crew[core] !== r) continue;
+      if (pilots[core] !== r) continue;
       if (this.damage.remaining(b, core, DamageEffect.Control) > 0) return core;
       if (first < 0) first = core;
     }
     if (first >= 0) return first;
-    for (let m = 0; m < crew.length; m++) if (crew[m] === r) return m;
+    for (let m = 0; m < pilots.length; m++) if (pilots[m] === r) return m;
     return 0;
   }
 
@@ -2907,17 +2907,17 @@ export class Ships {
    * Carry who works what over to body `b`, now cut down to `keep`, and put
    * everyone `aboard` on its primary `p`. One ship alone works all of it.
    */
-  private crewUp(b: number, p: number, aboard: readonly number[], was: Int32Array, keep: readonly number[]): void {
+  private assignPilots(b: number, p: number, aboard: readonly number[], was: Int32Array, keep: readonly number[]): void {
     if (aboard.length < 2) {
-      this.crews[b] = null;
+      this.pilots[b] = null;
       return;
     }
-    const crew = new Int32Array(keep.length);
+    const pilots = new Int32Array(keep.length);
     for (let k = 0; k < keep.length; k++) {
       const owner = was[keep[k]!]!;
-      crew[k] = aboard.includes(owner) ? owner : -1;
+      pilots[k] = aboard.includes(owner) ? owner : -1;
     }
-    this.crews[b] = crew;
+    this.pilots[b] = pilots;
     for (const r of aboard) if (r !== p) this.board(r, p);
   }
 
@@ -2927,7 +2927,7 @@ export class Ships {
    * leaving as a rigid split does (`detach`) and taking its own orders and
    * mount state with it.
    */
-  private rehome(world: World, from: number, aboard: readonly number[], was: ShipDesign, keep: readonly number[], crew: Int32Array): void {
+  private rehome(world: World, from: number, aboard: readonly number[], was: ShipDesign, keep: readonly number[], pilots: Int32Array): void {
     const bodies = world.bodies;
     const b = bodies.indexOf(this.bodyIds[from]!);
     const chunk = subDesign(was, keep);
@@ -2953,7 +2953,7 @@ export class Ships {
     this.bodyIds[p] = id;
     this.shipByBody[nb] = p;
     for (const r of aboard) this.partedAt[r] = world.tick;
-    this.crewUp(nb, p, aboard, crew, keep);
+    this.assignPilots(nb, p, aboard, pilots, keep);
   }
 
   /**
@@ -3079,7 +3079,7 @@ export class Ships {
   }
 
   /**
-   * Cut a ship down to the piece its crew is on, in place.
+   * Cut a ship down to the piece it is flown from, in place.
    *
    * Everything derived from the layout is derived again, because the layout
    * is what changed: mass and inertia, the centre of mass the body turns
