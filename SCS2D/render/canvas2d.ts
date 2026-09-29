@@ -100,6 +100,12 @@ const BACKGROUND = '#0b0f16';
 const GRID = '#161d29';
 const TRACER = '#ffe6a8';
 const TRACER_GLOW = '#ffb2a888';
+/**
+ * A round passing through a hull, drawn as though seen through it. Null hides
+ * that part, leaving only the flashes along its path.
+ */
+const TRACER_INSIDE: string | null = '#ffe6a840';
+const TRACER_GLOW_INSIDE: string | null = null;
 
 const BEAM = '#3df72c';
 const BEAM_GLOW = '#a8f132';
@@ -720,8 +726,10 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
   // Worth it for a halo that is the round's own size, and rare enough not to
   // read as anything but two tracers crossing.
   ctx.lineCap = 'round';
-  ctx.strokeStyle = TRACER_GLOW;
   for (let i = 0; i < snapshot.projectileCount; i++) {
+    const colour = snapshot.projectileInside[i] === 1 ? TRACER_GLOW_INSIDE : TRACER_GLOW;
+    if (colour === null) continue;
+    ctx.strokeStyle = colour;
     const calibre = snapshot.projectileWidth[i]!;
     const x = snapshot.projectileX[i]! + snapshot.projectileVx[i]! * GLOW_LEAD * calibre;
     const y = snapshot.projectileY[i]! + snapshot.projectileVy[i]! * GLOW_LEAD * calibre;
@@ -738,8 +746,10 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
   // A pass per round, because each carries its own width. Cheap at the round
   // counts a battle reaches; if that ever stops being true, bucket by width
   // rather than reaching for a single average.
-  ctx.strokeStyle = TRACER;
   for (let i = 0; i < snapshot.projectileCount; i++) {
+    const colour = snapshot.projectileInside[i] === 1 ? TRACER_INSIDE : TRACER;
+    if (colour === null) continue;
+    ctx.strokeStyle = colour;
     const calibre = snapshot.projectileWidth[i]!;
     const x = snapshot.projectileX[i]!;
     const y = snapshot.projectileY[i]!;

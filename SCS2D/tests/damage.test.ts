@@ -393,6 +393,9 @@ describe('a round taking time to cross a hull', () => {
       if (entered < 0 && r.hits.count > 0) entered = step;
       if (entered >= 0) counts.push(damaged());
       if (entered >= 0 && r.projectiles.inside[0] !== r.body) left = step;
+      // The picture is told, so a round inside can be drawn as one.
+      const view = capture(new Snapshot(), r.world, r.ships, r.projectiles, new Beams(4));
+      expect(view.projectileInside[0]).toBe(entered >= 0 && left < 0 ? 1 : 0);
     }
     expect(entered).toBeGreaterThanOrEqual(0);
     expect(r.projectiles.alive[0]).toBe(1);
