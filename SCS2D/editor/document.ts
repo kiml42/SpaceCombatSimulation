@@ -285,13 +285,18 @@ export class EditorDocument {
   }
 
   /**
-   * What adding to an assembly would do with the selection: the first thing
-   * picked, when it is an assembly, takes in everything picked after it.
+   * What adding to an assembly would do with the selection: the last assembly
+   * picked takes in everything else picked, modules and assemblies alike.
    */
-  additionToFirst(): { assembly: ModulePath; members: ModulePath[] } | null {
-    const [first, ...rest] = this.selected;
-    if (first === undefined || rest.length === 0 || !this.isAssembly(first)) return null;
-    return { assembly: first, members: rest };
+  additionTarget(): { assembly: ModulePath; members: ModulePath[] } | null {
+    if (this.selected.length < 2) return null;
+    let last = -1;
+    for (let i = 0; i < this.selected.length; i++) if (this.isAssembly(this.selected[i]!)) last = i;
+    if (last < 0) return null;
+    return {
+      assembly: this.selected[last]!,
+      members: this.selected.filter((_, i) => i !== last),
+    };
   }
 
   select(path: ModulePath | null): void {
