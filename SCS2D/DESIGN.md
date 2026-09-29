@@ -876,7 +876,8 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   **Two ships on one body.** When both sides of a weld have cores, both ships ride the merged
   body: each keeps its side, orders, doctrine and scoring slot, and works only the modules it brought
   (`Ships.owns`), so each pilot flies the whole body with its own engines and the thrusts add up. Neither
-  can shoot the other, since a round never hits the body it left. A hulk whose cores are out rides too,
+  can shoot the other, since a round never hits the body it left — a stop-gap until two layers let a
+  shot land on its own hull (ROADMAP.md §8, step 7). A hulk whose cores are out rides too,
   flying nothing, so its side still has it to score. A wreck hooked on after that is nobody's.
   When the body comes apart, each ship goes with the piece it is flown from — its lowest working core —
   so a torn seam parts them as the ships they were. Hits are credited to whoever works the module struck.

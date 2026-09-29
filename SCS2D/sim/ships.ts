@@ -1098,7 +1098,8 @@ export class Ships {
         if (e === i || this.alive[e] === 0) continue;
         if (this.derelict[e] === 1 || !this.hostile(i, e) || !this.hasControl(e)) continue;
         const tb = bodies.indexOf(this.bodyIds[e]!);
-        // A round never hits the body it left, so an enemy hooked on is out of reach.
+        // A round never hits the body it left, so an enemy hooked on is out of reach —
+        // until two layers let a shot land on its own hull (ROADMAP.md §8, step 7).
         if (tb < 0 || tb === b) continue;
         if (!this.turrets.bearsOn(bodies, ti, bearing(gunX, gunY, bodies.x[tb]!, bodies.y[tb]!))) {
           continue;
