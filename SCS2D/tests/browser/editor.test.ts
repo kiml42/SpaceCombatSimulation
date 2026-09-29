@@ -715,6 +715,35 @@ describe('the editor in a browser', () => {
     expect(await box.inputValue()).toBe('');
   });
 
+  it('sizes a module about its middle when Shift is held', async () => {
+    await page.click('#newShip');
+    await page.click('[data-add="structure"]');
+    await page.keyboard.press('f');
+    const centre = await canvasCentre(page);
+    await page.keyboard.down('Alt');
+    await page.mouse.move(centre.x, centre.y);
+    await page.mouse.down();
+    await page.mouse.move(centre.x + 200, centre.y, { steps: 6 });
+    await page.mouse.up();
+    await page.keyboard.up('Alt');
+    const scale = 200 / Number(await page.inputValue('#propX'));
+    await page.click('#undo');
+
+    const width = Number(await page.inputValue('#propWidth'));
+    // The +y edge, dragged a metre out with Shift: both edges move, the middle stays.
+    const edge = { x: centre.x, y: centre.y - (width / 2) * scale };
+    await page.mouse.move(edge.x, edge.y);
+    await page.keyboard.down('Shift');
+    await page.mouse.down();
+    await page.mouse.move(edge.x, edge.y - 1 * scale, { steps: 6 });
+    await page.mouse.up();
+    await page.keyboard.up('Shift');
+    expect(Number(await page.inputValue('#propWidth'))).toBe(width + 2);
+    expect(await page.inputValue('#propY')).toBe('0');
+    await page.click('#undo');
+    expect(Number(await page.inputValue('#propWidth'))).toBe(width);
+  });
+
   it('sizes a module by a corner or an edge and turns it by its knob', async () => {
     // A ship of one module, so the camera's fit puts that module's centre at
     // the middle of the canvas and its handles can be worked out rather than

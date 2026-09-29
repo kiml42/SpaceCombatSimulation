@@ -179,6 +179,11 @@ export function handleAt(
  * changes one dimension only. The size snaps rather than the dragged face, so a
  * module whose faces were on the grid keeps them there.
  *
+ * With `fromCentre` the opposite face moves as far the other way instead, so
+ * the middle stays put: what a module on a ship's centre line needs to stay
+ * on it. The dragged face's movement snaps then, so both faces move by whole
+ * grid steps.
+ *
  * `dx`/`dy` are in the blueprint's frame, for `movePlacement` on the module
  * itself rather than its copy's instance, so every copy of a shared part moves
  * the same way within its own frame and a mirrored pair stays mirrored.
@@ -189,6 +194,7 @@ export function resizedTo(
   x: number,
   y: number,
   step: number,
+  fromCentre = false,
 ): { length: number; width: number; dx: number; dy: number } {
   const angle = spec.angle ?? 0;
   const c = cos(angle);
@@ -203,6 +209,10 @@ export function resizedTo(
   // would put the face off the grid its neighbours abut on.
   const side = (face: number, half: number, pointer: number, held: number) => {
     if (face === 0) return { size: held, middle: 0 };
+    if (fromCentre) {
+      const size = max(MIN_SIZE, step, held + 2 * snap(face * pointer - half, step));
+      return { size, middle: 0 };
+    }
     const anchor = -face * half;
     const size = max(MIN_SIZE, step, snap(face * (pointer - anchor), step));
     return { size, middle: anchor + (face * size) / 2 };
