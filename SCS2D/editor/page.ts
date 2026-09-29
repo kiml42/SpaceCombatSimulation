@@ -70,6 +70,7 @@ import { drawOverlay } from './overlay.js';
 import {
   assemblyKnob,
   facingTo,
+  shareTo,
   handleAt,
   handlesFor,
   resizedTo,
@@ -1504,8 +1505,11 @@ export function startEditor(): void {
         moved: boolean;
       }
     | {
-        /** A corner or edge is dragged to size the module, the knob to turn it. */
-        kind: 'size' | 'rotate';
+        /**
+         * A corner or edge is dragged to size the module, the knob to turn it,
+         * the split to share its length between block and bell or barrel.
+         */
+        kind: 'size' | 'rotate' | 'split';
         from: Blueprint;
         /** The handle grabbed, which says which faces move. */
         handle: Handle;
@@ -1580,7 +1584,10 @@ export function startEditor(): void {
     if (path === null || origin === null) return;
     const world = worldAt(event);
     let next: Blueprint | null;
-    if (drag.kind === 'size') {
+    if (drag.kind === 'split') {
+      const nozzle = shareTo(drag.spec, world.x, world.y, event.altKey ? 0 : snapMetres());
+      next = updatePlacement(drag.from, path, (p) => ({ ...p, nozzle }));
+    } else if (drag.kind === 'size') {
       const step = event.altKey ? 0 : snapMetres();
       // Shift sizes about the middle, keeping it where it was.
       const { length, width, dx, dy } = resizedTo(drag.spec, drag.handle, world.x, world.y, step, event.shiftKey);
@@ -1638,7 +1645,7 @@ export function startEditor(): void {
     if (grabbed >= 0 && spec !== undefined) {
       gesture = false;
       drag = {
-        kind: handles[grabbed]!.kind === 'rotate' ? 'rotate' : 'size',
+        kind: handles[grabbed]!.kind === 'rotate' ? 'rotate' : handles[grabbed]!.kind === 'split' ? 'split' : 'size',
         from: doc.blueprint,
         handle: handles[grabbed]!,
         spec,

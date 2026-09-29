@@ -857,6 +857,26 @@ describe('the editor in a browser', () => {
     expect(await page.inputValue('#assemblyAngle')).toBe('0');
   });
 
+  it('shares a hull gun between block and barrel by dragging the split between them', async () => {
+    await page.click('#newShip');
+    await page.click('[data-add="hullGun"]');
+    expect(Number(await page.inputValue('#propNozzle'))).toBe(0.5);
+    // Half barrel, so the split is in the middle, where a new module is drawn.
+    const centre = await canvasCentre(page);
+    await page.mouse.move(centre.x, centre.y);
+    await page.mouse.down();
+    await page.mouse.move(centre.x + 40, centre.y + 30, { steps: 6 });
+    await page.mouse.up();
+    // Towards the muzzle is less barrel, and the gun has not moved.
+    const shorter = Number(await page.inputValue('#propNozzle'));
+    expect(shorter).toBeLessThan(0.5);
+    expect(shorter).toBeGreaterThan(0);
+    expect(await page.inputValue('#propX')).toBe('0');
+    expect(await page.inputValue('#propY')).toBe('0');
+    await page.click('#undo');
+    expect(Number(await page.inputValue('#propNozzle'))).toBe(0.5);
+  });
+
   it('repeats an assembly, and takes the step away when it drops back to one', async () => {
     await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);

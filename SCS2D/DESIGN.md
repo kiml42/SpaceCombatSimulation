@@ -63,7 +63,8 @@ inside any one file is not contiguous.
   or an edge with the opposite one held still, or with Shift held about its middle, so a module on the
   centre line stays on it — carrying whatever sits against the moving face along with it,
   unless Ctrl is held — and turned by dragging a knob beyond the bow, while two touching modules selected
-  together get a bar on their shared face that grows one as it shrinks the other; every snap is escaped by
+  together get a bar on their shared face that grows one as it shrinks the other, and an engine or hull weapon
+  gets the same bar where its bell, barrel or lens meets the block behind it; every snap is escaped by
   holding Alt —
   with the rest of their values typed into a panel beside the module's own mass,
   capacity, armour and gun — its kind among them, swapped for another in the same space and facing the same

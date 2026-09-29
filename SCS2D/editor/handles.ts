@@ -4,14 +4,16 @@ import {
   shiftSeam,
   type SharedFace,
   math,
+  DEFAULT_NOZZLE_SHARE,
   moduleCentre,
+  readsNozzle,
   moduleRadius,
   radiansToDegrees,
   type ModuleSpec,
 } from '../sim/index.js';
 import { snap } from './edit.js';
 
-const { atan2, cos, sin, max, round, sqrt } = math;
+const { atan2, cos, sin, max, round, sqrt, HALF_PI } = math;
 
 /**
  * The grab points on a selected module: a corner or an edge to size it by, and
@@ -34,10 +36,11 @@ const { atan2, cos, sin, max, round, sqrt } = math;
 export interface Handle {
   /**
    * A corner or edge, which sizes the module; the knob beyond the bow, which
-   * turns it; or the seam between two selected modules, which moves the face
-   * they share.
+   * turns it; the seam between two selected modules, which moves the face
+   * they share; or the split between an engine's machinery and its bell, or a
+   * hull weapon's block and its barrel, which sets how much is which.
    */
-  kind: 'size' | 'rotate' | 'seam';
+  kind: 'size' | 'rotate' | 'seam' | 'split';
   x: number;
   y: number;
   /**
@@ -131,6 +134,7 @@ export function handlesFor(spec: ModuleSpec, scale: number): Handle[] {
     across,
   });
   const arm = hl + ROTATE_ARM_PX / scale;
+  const split = readsNozzle(spec.kind) ? [splitHandle(spec)] : [];
   return [
     size(1, 1),
     size(1, -1),
@@ -147,7 +151,55 @@ export function handlesFor(spec: ModuleSpec, scale: number): Handle[] {
       along: 0,
       across: 0,
     },
+    ...split,
   ];
+}
+
+/**
+ * The fraction of an engine or hull weapon that sticks out: its bell, barrel
+ * or lens, at the far end of its facing.
+ */
+function share(spec: ModuleSpec): number {
+  return spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
+}
+
+/** The most of a module that can be what sticks out, as the panel allows. */
+export const MAX_SHARE = 0.95;
+
+/**
+ * The bar across a module where what sticks out meets the block behind it,
+ * drawn and dragged like the seam between two modules.
+ */
+export function splitHandle(spec: ModuleSpec): Handle {
+  const angle = spec.angle ?? 0;
+  const mid = moduleCentre(spec);
+  const along = spec.length * (0.5 - share(spec));
+  return {
+    kind: 'split',
+    x: mid.x + along * cos(angle),
+    y: mid.y + along * sin(angle),
+    along: 0,
+    across: 0,
+    angle: angle + HALF_PI,
+  };
+}
+
+/**
+ * The share of the module that sticks out when the split is dragged to a
+ * point: the length from the far end to the pointer, snapped to the grid.
+ *
+ * An engine may have no bell at all; a hull weapon must keep some barrel,
+ * so its floor is one grid step, or a twentieth of the module off the grid.
+ */
+export function shareTo(spec: ModuleSpec, x: number, y: number, step: number): number {
+  const angle = spec.angle ?? 0;
+  const mid = moduleCentre(spec);
+  const along = (x - mid.x) * cos(angle) + (y - mid.y) * sin(angle);
+  const out = snap(spec.length / 2 - along, step);
+  const floor = spec.kind === 'engine' ? 0 : max(step, spec.length * 0.05);
+  const most = spec.length * MAX_SHARE;
+  const length = out < floor ? floor : out > most ? most : out;
+  return round((length / spec.length) * 1e6) / 1e6;
 }
 
 /** Which handle a point is within reach of — the nearest of them — or -1. */

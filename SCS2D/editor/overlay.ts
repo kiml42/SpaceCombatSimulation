@@ -245,7 +245,7 @@ function drawHandles(ctx: CanvasRenderingContext2D, view: OverlayView, camera: C
     ctx.beginPath();
     // A seam is a bar along the face it moves; an edge changes one dimension,
     // so it is a square rather than a corner's dot.
-    if (handle.kind === 'seam') {
+    if (handle.kind === 'seam' || handle.kind === 'split') {
       ctx.translate(handle.x, handle.y);
       ctx.rotate(handle.angle ?? 0);
       ctx.rect(-radius * 2, -radius * 0.7, radius * 4, radius * 1.4);
