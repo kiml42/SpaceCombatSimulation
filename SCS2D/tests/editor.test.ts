@@ -38,6 +38,7 @@ import {
   toPlacementAngle,
   positionHandle,
   removeCopy,
+  removeInstance,
   unlinkable,
   unlinkPlacement,
   moduleAt,
@@ -2088,6 +2089,37 @@ describe('adding a module to an assembly', () => {
   it('adds nothing to what is not an assembly', () => {
     const spec: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 1, width: 1 };
     expect(addModuleTo(CORVETTE, [{ index: 0, copy: 0 }], spec)).toBeNull();
+  });
+});
+
+describe('deleting an assembly', () => {
+  const bp: Blueprint = {
+    name: 'Pods',
+    assemblies: {
+      pod: { modules: [{ kind: 'structure', x: 0, y: 0, length: 1, width: 1 }] },
+      boom: { modules: [{ use: 'pod', x: 0, y: 0 }] },
+      spare: { modules: [{ kind: 'structure', x: 0, y: 0, length: 1, width: 1 }] },
+    },
+    modules: [
+      { kind: 'core', x: 0, y: 0, length: 2, width: 2 },
+      { use: 'boom', x: 2, y: 0 },
+      { use: 'pod', x: -2, y: 0 },
+    ],
+  };
+  const at = (index: number): ModulePath => [{ index, copy: 0 }];
+
+  it('takes the definition with its last copy, and what only it placed', () => {
+    const once = removeInstance(bp, at(2))!;
+    // The boom still places a pod, so the pod stays.
+    expect(Object.keys(once.assemblies!)).toEqual(['pod', 'boom', 'spare']);
+    const twice = removeInstance(once, at(1))!;
+    expect(twice.modules).toHaveLength(1);
+    // One nobody placed to begin with is not this delete's business.
+    expect(Object.keys(twice.assemblies!)).toEqual(['spare']);
+  });
+
+  it('deletes nothing that is not an assembly', () => {
+    expect(removeInstance(bp, at(0))).toBeNull();
   });
 });
 

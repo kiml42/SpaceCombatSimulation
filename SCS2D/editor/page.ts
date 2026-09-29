@@ -38,7 +38,6 @@ import {
   instanceHandle,
   instanceOf,
   moduleAt,
-  removePlacement,
   resizePlacement,
   renameAssembly,
   renameProblem,
@@ -49,6 +48,7 @@ import {
   toPlacementAngle,
   positionHandle,
   removeCopy,
+  removeInstance,
   snap,
   unlinkable,
   unlinkPlacement,
@@ -1063,6 +1063,11 @@ export function startEditor(): void {
   });
 
   const deleteSelected = (): void => {
+    const assembly = doc.selectedAssemblyPath();
+    if (assembly !== null) {
+      change(removeInstance(doc.blueprint, assembly));
+      return;
+    }
     const origin = doc.selectedOrigin();
     if (origin === null) return;
     change(removeCopy(doc.blueprint, origin));
@@ -1243,11 +1248,7 @@ export function startEditor(): void {
     refresh();
   });
 
-  assemblyDelete.addEventListener('click', () => {
-    const path = doc.selection;
-    if (path === null) return;
-    change(removePlacement(doc.blueprint, path));
-  });
+  assemblyDelete.addEventListener('click', deleteSelected);
 
   unlinkButton.addEventListener('click', () => {
     const origin = doc.selectedOrigin();
