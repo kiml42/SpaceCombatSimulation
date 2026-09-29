@@ -601,6 +601,12 @@ export class Ships {
   private readonly demandFx: number[] = [];
   private readonly demandFy: number[] = [];
   private readonly demandTorque: number[] = [];
+  /**
+   * This step's turret recoil on each ship's body, replayed with the wrench.
+   * Kept apart and set afresh every step, because the wrench of a ship nobody
+   * is flying is held rather than recomputed, and recoil added into it piled up.
+   */
+  private readonly recoil: number[] = [];
 
   private readonly alive: number[] = [];
 
@@ -881,6 +887,7 @@ export class Ships {
     this.demandFx.push(0);
     this.demandFy.push(0);
     this.demandTorque.push(0);
+    this.recoil.push(0);
     this.alive.push(1);
 
     return i;
@@ -1403,7 +1410,7 @@ export class Ships {
           this.bodyIds[i]!,
           this.demandFx[i]!,
           this.demandFy[i]!,
-          this.demandTorque[i]!,
+          this.demandTorque[i]! + this.recoil[i]!,
         );
       }
     };
@@ -1452,8 +1459,7 @@ export class Ships {
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
       const b = bodies.indexOf(this.bodyIds[i]!);
-      if (b < 0) continue;
-      this.demandTorque[i] = this.demandTorque[i]! + this.reaction[b]!;
+      this.recoil[i] = b < 0 ? 0 : this.reaction[b]!;
     }
   }
 
@@ -3020,6 +3026,7 @@ export class Ships {
     this.demandFx[i] = 0;
     this.demandFy[i] = 0;
     this.demandTorque[i] = 0;
+    this.recoil[i] = 0;
   }
 
   /**
