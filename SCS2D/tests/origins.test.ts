@@ -104,25 +104,6 @@ describe('expandWithOrigins', () => {
     for (const copy of copies) expect(samePlacement(copy.path, copies[0]!.path)).toBe(true);
   });
 
-  it('separates an instance’s extras from the assembly’s own modules', () => {
-    const bp = ship({
-      assemblies: { pod: { modules: [{ kind: 'structure', x: 0, y: 0, length: 2, width: 2 }] } },
-      modules: [
-        hull,
-        {
-          use: 'pod',
-          x: 0,
-          y: 5,
-          extra: [{ kind: 'structure', x: 0, y: 3, length: 2, width: 2 }],
-        },
-      ],
-    });
-    const { origins } = expandWithOrigins(bp);
-    expect(origins[1]!.path[0]!.into).toBe('assembly');
-    expect(origins[2]!.path[0]!.into).toBe('extra');
-    expect(samePlacement(origins[1]!.path, origins[2]!.path)).toBe(false);
-  });
-
   it('returns null for a path that no longer leads anywhere', () => {
     expect(placementAt(CORVETTE, [{ index: 99, copy: 0 }])).toBeNull();
   });

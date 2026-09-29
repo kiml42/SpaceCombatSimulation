@@ -133,15 +133,9 @@ function containing(
     if (entry === undefined) return null;
     if (i === path.length - 1) return { list, index: step.index };
     if (!isInstance(entry)) return null;
-    if (step.into === 'extra') {
-      const extra = (entry as AssemblyInstance).extra as Placement[] | undefined;
-      if (extra === undefined) return null;
-      list = extra;
-    } else {
-      const assembly = blueprint.assemblies?.[entry.use];
-      if (assembly === undefined) return null;
-      list = assembly.modules;
-    }
+    const assembly = blueprint.assemblies?.[entry.use];
+    if (assembly === undefined) return null;
+    list = assembly.modules;
   }
   return null;
 }
@@ -205,14 +199,7 @@ export function removeInstance(blueprint: Blueprint, path: ModulePath): Blueprin
     const definition = copy.assemblies?.[name];
     if (definition === undefined || countInstances(removed, name) > 0) continue;
     delete copy.assemblies![name];
-    const walk = (list: readonly Placement[]): void => {
-      for (const entry of list) {
-        if (!isInstance(entry)) continue;
-        unplaced.push(entry.use);
-        if (entry.extra !== undefined) walk(entry.extra);
-      }
-    };
-    walk(definition.modules);
+    for (const entry of definition.modules) if (isInstance(entry)) unplaced.push(entry.use);
   }
   return removed;
 }
@@ -554,8 +541,7 @@ export function createAssemblyProblem(
  * which is where a shipwright would put the hinge.
  *
  * **An assembly among them is nested, not taken apart**: its instance moves
- * into the new definition as it is, turn, reflection, repeat and extras
- * included. The new assembly is placed unturned, so only the position needs
+ * into the new definition as it is, turn, reflection and repeat included. The new assembly is placed unturned, so only the position needs
  * re-expressing.
  *
  * **Members keep the order they were written in**, not the order they were
@@ -668,8 +654,6 @@ export function instanceChain(path: ModulePath): ModulePath[] {
   const out: ModulePath[] = [];
   for (let i = 0; i < path.length - 1; i++) {
     const step = path[i]!;
-    // Either hop is through an instance: `assembly` reaches its definition and
-    // `extra` reaches what this copy carries on top of it.
     if (step.into === undefined) continue;
     out.push([...path.slice(0, i), { index: step.index, copy: step.copy }]);
   }
@@ -705,15 +689,9 @@ export function instanceHandle(
 function places(blueprint: Blueprint, outer: string, inner: string, seen = new Set<string>()): boolean {
   if (seen.has(outer)) return false;
   seen.add(outer);
-  const walk = (list: readonly Placement[]): boolean =>
-    list.some(
-      (entry) =>
-        isInstance(entry) &&
-        (entry.use === inner ||
-          places(blueprint, entry.use, inner, seen) ||
-          (entry.extra !== undefined && walk(entry.extra))),
-    );
-  return walk(blueprint.assemblies?.[outer]?.modules ?? []);
+  return (blueprint.assemblies?.[outer]?.modules ?? []).some(
+    (entry) => isInstance(entry) && (entry.use === inner || places(blueprint, entry.use, inner, seen)),
+  );
 }
 
 /**
@@ -943,10 +921,11 @@ export function extentAlong(specs: readonly ModuleSpec[], rotation: number): num
 }
 
 /**
- * Whether a module could be unlinked: is it shared, and how many copies are
- * about to become separate parts.
+ * How many copies taking this module out of its assembly would leave behind —
+ * one per placed copy of the assembly, counting a repeat's — or 0 when it is
+ * not written directly in an assembly and there is nothing to take it out of.
  */
-export function unlinkable(blueprint: Blueprint, origin: ModuleOrigin): number {
+export function takeOutCount(blueprint: Blueprint, origin: ModuleOrigin): number {
   const entered = enteredAssembly(origin.path);
   if (entered === null || origin.path.length - entered.at !== 2) return 0;
   const name = entered.step.assembly ?? '';
@@ -955,34 +934,21 @@ export function unlinkable(blueprint: Blueprint, origin: ModuleOrigin): number {
 }
 
 /**
- * Give every copy of a shared module one of its own, so they stop being the
- * same part.
+ * Take a module out of the assembly it is written in, leaving a loose copy of
+ * it beside every placed copy of that assembly.
  *
- * The inverse of `duplicatePlacement`, and the reason the editor can be useful
- * without being able to *build* an assembly: a part that was linked by
- * accident, or linked deliberately and then wanted different on one side, has
- * a way out. Assembling several modules into a new assembly is the harder half
- * and is not here.
+ * The part leaves the definition, so a *new* copy of the assembly will not have
+ * it, and each copy it was in gets one of its own, written in the list that
+ * copy sits in and in the same place — so the ship's geometry is unchanged and
+ * every copy of the part is separately editable. A loose copy does not move with
+ * the assembly afterwards; wrapping the two in a new assembly is how to have that.
  *
- * Two shapes, chosen by what would be left behind.
- *
- * **When the module is the whole of its assembly**, each instance is replaced
- * by what it expanded to, written straight into the list the instance was in,
- * and the assembly goes. That is exact: the modules come out of the same
- * expansion the ship is built from, in the same order and at the same
- * coordinates, so the ship does not change at all — not its geometry, and not
- * the order that decides engine allocation and firing.
- *
- * **When the assembly holds other modules too**, the module is taken out of
- * the definition and handed to every instance as an `extra` of its own, which
- * is the mechanism the format has for exactly this. Two costs the caller
- * should say out loud rather than let the player discover: the part is gone
- * from the assembly, so a *new* instance will not have it; and extras are
- * placed after the assembly's own modules, so the part moves down the
- * expansion order — a slightly different ship, though nothing about its
- * geometry has moved.
+ * Written straight after the copy it came out of, so it moves down the
+ * expansion order a little: module order is part of the ship, since engine
+ * allocation and firing run over it. An assembly left empty goes, and its
+ * copies are replaced by what came out of them, which is exact.
  */
-export function unlinkPlacement(blueprint: Blueprint, origin: ModuleOrigin): Blueprint | null {
+export function takeOutOfAssembly(blueprint: Blueprint, origin: ModuleOrigin): Blueprint | null {
   const entered = enteredAssembly(origin.path);
   if (entered === null || origin.path.length - entered.at !== 2) return null;
   const name = entered.step.assembly ?? '';
@@ -994,44 +960,34 @@ export function unlinkPlacement(blueprint: Blueprint, origin: ModuleOrigin): Blu
   if (spec === undefined || isInstance(spec)) return null;
 
   const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
-
-  if (assembly.modules.length === 1) {
-    // Expanded in isolation, which reuses the one walk that knows how an
-    // instance's rotation, reflection and repeat compose with what it places.
-    // The result is in the frame the instance itself was written in, which is
-    // the list it is being spliced into.
-    eachList(copy, (list) => {
-      for (let i = list.length - 1; i >= 0; i--) {
-        const entry = list[i]!;
-        if (!isInstance(entry) || entry.use !== name) continue;
-        const inline = expandBlueprint({
-          name: blueprint.name,
-          assemblies: blueprint.assemblies ?? {},
-          modules: [entry],
-        });
-        list.splice(i, 1, ...inline);
-      }
-    });
-    delete copy.assemblies?.[name];
-    return copy as unknown as Blueprint;
-  }
-
-  const definition = copy.assemblies?.[name];
-  if (definition === undefined) return null;
+  const definition = copy.assemblies![name]!;
   definition.modules.splice(moduleIndex, 1);
+  const emptied = definition.modules.length === 0;
+
+  // Expanded through each copy as an assembly of just this module, which
+  // reuses the one walk that knows how an instance's turn, reflection and
+  // repeat compose with what it places. It lands in the frame the copy was
+  // written in, which is the list it is being written into.
   eachList(copy, (list) => {
-    for (const entry of list) {
+    for (let i = list.length - 1; i >= 0; i--) {
+      const entry = list[i]!;
       if (!isInstance(entry) || entry.use !== name) continue;
-      const instance = entry as AssemblyInstance & { extra?: Placement[] };
-      instance.extra = [...(instance.extra ?? []), { ...spec }];
+      const loose = expandBlueprint({
+        name: blueprint.name,
+        assemblies: { [name]: { modules: [spec] } },
+        modules: [entry],
+      });
+      if (emptied) list.splice(i, 1, ...loose);
+      else list.splice(i + 1, 0, ...loose);
     }
   });
+  if (emptied) delete copy.assemblies![name];
   return copy as unknown as Blueprint;
 }
 
 /**
  * Replace one placed copy of an assembly with what it is made of, written
- * where the copy was: its modules, the assemblies it places, and its extras.
+ * where the copy was: its modules and the assemblies it places.
  *
  * One level only — an assembly inside stays an assembly, so taking a ship
  * apart is one step at a time. Every other copy stays linked, which makes this
@@ -1054,7 +1010,7 @@ export function dissolveInstance(
   const definition = copy.assemblies?.[placed.use];
   if (definition === undefined) return null;
 
-  const members = [...definition.modules, ...(placed.extra ?? [])];
+  const members = definition.modules;
   const out: Placement[] = [];
   const flipped = placed.mirror === true;
   let cx = placed.x;
@@ -1098,30 +1054,20 @@ export function dissolveInstance(
   };
 }
 
-/** Every placement list in a layout: the ship's, each assembly's, and each instance's extras. */
+/** Every placement list in a layout: the ship's, and each assembly's. */
 function eachList(blueprint: MutableBlueprint, visit: (list: Placement[]) => void): void {
-  const walk = (list: Placement[]): void => {
-    visit(list);
-    for (const entry of list) {
-      if (isInstance(entry) && entry.extra !== undefined) walk(entry.extra as Placement[]);
-    }
-  };
-  walk(blueprint.modules);
-  for (const assembly of Object.values(blueprint.assemblies ?? {})) walk(assembly.modules);
+  visit(blueprint.modules);
+  for (const assembly of Object.values(blueprint.assemblies ?? {})) visit(assembly.modules);
 }
 
 /** How many times a layout places a named assembly, counting every copy of a repeat. */
 export function countInstances(blueprint: Blueprint, name: string): number {
   let total = 0;
-  const walk = (list: readonly Placement[]): void => {
-    for (const entry of list) {
-      if (!isInstance(entry)) continue;
-      if (entry.use === name) total += entry.repeat ?? 1;
-      if (entry.extra !== undefined) walk(entry.extra);
-    }
+  const count = (list: readonly Placement[]): void => {
+    for (const entry of list) if (isInstance(entry) && entry.use === name) total += entry.repeat ?? 1;
   };
-  walk(blueprint.modules);
-  for (const assembly of Object.values(blueprint.assemblies ?? {})) walk(assembly.modules);
+  count(blueprint.modules);
+  for (const assembly of Object.values(blueprint.assemblies ?? {})) count(assembly.modules);
   return total;
 }
 
@@ -1186,16 +1132,11 @@ export function renameAssembly(
   }
   copy.assemblies = renamed;
 
-  const walk = (list: Placement[]): void => {
+  eachList(copy, (list) => {
     for (const entry of list) {
-      if (!isInstance(entry)) continue;
-      const instance = entry as unknown as { use: string; extra?: Placement[] };
-      if (instance.use === placed.use) instance.use = wanted;
-      if (instance.extra !== undefined) walk(instance.extra);
+      if (isInstance(entry) && entry.use === placed.use) (entry as { use: string }).use = wanted;
     }
-  };
-  walk(copy.modules);
-  for (const assembly of Object.values(renamed)) walk(assembly.modules);
+  });
 
   return copy as unknown as Blueprint;
 }

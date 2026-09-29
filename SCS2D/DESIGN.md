@@ -70,7 +70,7 @@ inside any one file is not contiguous.
   capacity, armour and gun — its kind among them, swapped for another in the same space and facing the same
   way, so a gun made an engine has its bell where the barrel was — and a selected engine burns and a selected gun fires at the
   rate its own figures claim; a module can be duplicated into a shared part placed
-  twice, and a shared part unlinked back into separate modules, or one copy of an assembly dissolved into
+  twice, and a part taken out of its assembly, leaving a separate copy beside every copy of it, or one copy of an assembly dissolved into
   the modules and assemblies it is made of while the others stay linked, with position, dragging
   and deletion belonging to the copy and everything else to all of them; several modules or assemblies can be
   picked at once and made into an assembly, nesting any assemblies among them, or added to the last assembly

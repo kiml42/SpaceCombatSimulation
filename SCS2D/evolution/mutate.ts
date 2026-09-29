@@ -360,7 +360,6 @@ function refresh(draft: Draft): void {
     lists.push({ label, placements: placements as Placement[] });
     for (const placement of placements) {
       if (!isInstance(placement)) continue;
-      if (placement.extra !== undefined) walk(placement.extra, `${label}/${placement.use}`);
       if (wanted.has(placement.use)) continue;
       wanted.add(placement.use);
       const assembly = draft.assemblies[placement.use];
@@ -398,11 +397,6 @@ function clonePlacements(
       continue;
     }
     const instance: AssemblyInstance = { ...placement };
-    // An instance's extras are placements written in the layout like any
-    // other, so they are collected and mutated like any other.
-    if (placement.extra !== undefined) {
-      instance.extra = clonePlacements(placement.extra, `${label}/${placement.use}`, lists);
-    }
     if (placement.step !== undefined) instance.step = { ...placement.step };
     copies.push(instance);
   }
@@ -1043,15 +1037,15 @@ function group(draft: Draft, rng: Rng): string | null {
  * being stuck with a part is being stuck with every copy of it moving
  * together for ever.
  *
- * Only a plain instance is dissolved: one copy, nothing nested inside, and no
- * extras of its own. The rest would be the same arithmetic several times over
- * for an edit that is rarely the one wanted, and a lineage reaches them by
- * taking the repeat down and the extras out first.
+ * Only a plain instance is dissolved: one copy, and nothing nested inside. The
+ * rest would be the same arithmetic several times over for an edit that is
+ * rarely the one wanted, and a lineage reaches them by taking the repeat down
+ * first.
  */
 function ungroup(draft: Draft, rng: Rng): string | null {
   const sites = instanceSites(draft).filter((site) => {
     const instance = site.instance;
-    if ((instance.repeat ?? 1) !== 1 || instance.extra !== undefined) return false;
+    if ((instance.repeat ?? 1) !== 1) return false;
     const assembly = draft.assemblies[instance.use];
     return assembly !== undefined && assembly.modules.every((placement) => !isInstance(placement));
   });

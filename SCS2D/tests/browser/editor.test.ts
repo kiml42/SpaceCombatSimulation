@@ -225,7 +225,7 @@ describe('the editor in a browser', () => {
     expect(await page.textContent('#linked')).toMatch(/drawn 2 times/);
   });
 
-  it('unlinks a shared part, leaving the ship as it was', async () => {
+  it('takes a shared part out of its assembly, leaving the ship as it was', async () => {
     await openShip(page, 'Corvette');
     // Made shared here rather than hunting for one of the corvette's own by
     // pixel: where a given module lands on screen depends on how the camera
@@ -236,13 +236,12 @@ describe('the editor in a browser', () => {
     expect(await page.textContent('#linked')).toMatch(/drawn 2 times/);
     const mass = (await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0];
 
-    await page.click('#propUnlink');
-    // Unlinking is exact: the same modules in the same places, no longer the
-    // same part.
+    await page.click('#propTakeOut');
+    // Exact: the same modules in the same places, no longer the same part.
     expect((await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0]).toBe(mass);
     await page.mouse.click(centre.x, centre.y);
     expect(await page.isVisible('#linked')).toBe(false);
-    expect(await page.isDisabled('#propUnlink')).toBe(true);
+    expect(await page.isDisabled('#propTakeOut')).toBe(true);
   });
 
   it('shows the selected module’s own figures', async () => {

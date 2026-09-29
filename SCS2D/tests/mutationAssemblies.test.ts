@@ -112,14 +112,13 @@ describe('the frame a part is written in', () => {
   });
 });
 
-/** Every instance in a layout, however deeply it is written. */
+/** Every instance in a layout, in whichever list it is written. */
 function instances(blueprint: Blueprint): AssemblyInstance[] {
   const out: AssemblyInstance[] = [];
   const walk = (placements: readonly Placement[]): void => {
     for (const placement of placements) {
       if (!isInstance(placement)) continue;
       out.push(placement);
-      if (placement.extra !== undefined) walk(placement.extra);
     }
   };
   walk(blueprint.modules);

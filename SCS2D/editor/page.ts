@@ -53,8 +53,8 @@ import {
   removeCopy,
   removeInstance,
   snap,
-  unlinkable,
-  unlinkPlacement,
+  takeOutCount,
+  takeOutOfAssembly,
   updatePlacement,
 } from './edit.js';
 import {
@@ -223,7 +223,7 @@ export function startEditor(): void {
   const deleteShipButton = el<HTMLButtonElement>('deleteShip');
   const moduleStats = el<HTMLElement>('moduleStats');
   const duplicateButton = el<HTMLButtonElement>('propDuplicate');
-  const unlinkButton = el<HTMLButtonElement>('propUnlink');
+  const takeOutButton = el<HTMLButtonElement>('propTakeOut');
   const selectAssemblyButton = el<HTMLButtonElement>('propSelectAssembly');
   const assemblySelection = el<HTMLElement>('assemblySelection');
   const assemblyCount = el<HTMLElement>('assemblyCount');
@@ -729,12 +729,14 @@ export function startEditor(): void {
     weaponInput.checked = spec.weapon === true;
 
     const origin = doc.selectedOrigin();
-    const shared = origin === null ? 0 : unlinkable(doc.blueprint, origin);
-    unlinkButton.disabled = shared < 2;
-    unlinkButton.title =
-      shared < 2
-        ? 'Only a shared part can be unlinked'
-        : `Give each of the ${shared} copies its own module, so they stop changing together`;
+    const leaving = origin === null ? 0 : takeOutCount(doc.blueprint, origin);
+    takeOutButton.disabled = leaving === 0;
+    takeOutButton.title =
+      leaving === 0
+        ? 'Only a part of an assembly can be taken out of one'
+        : leaving === 1
+          ? 'Take this part out of its assembly, leaving it where it is'
+          : `Take this part out of its assembly, leaving a separate copy beside each of its ${leaving} copies`;
 
     const within = origin === null ? null : instanceOf(origin);
     selectAssemblyButton.disabled = within === null;
@@ -1289,10 +1291,26 @@ export function startEditor(): void {
 
   assemblyDelete.addEventListener('click', deleteSelected);
 
-  unlinkButton.addEventListener('click', () => {
+  takeOutButton.addEventListener('click', () => {
     const origin = doc.selectedOrigin();
-    if (origin === null) return;
-    change(unlinkPlacement(doc.blueprint, origin));
+    const picked = doc.view.modules[doc.selectedModules()[0] ?? -1];
+    if (origin === null || picked === undefined) return;
+    const next = takeOutOfAssembly(doc.blueprint, origin);
+    if (next === null) return;
+    doc.apply(next);
+    // The part picked stays picked, as the loose copy it became: the nearest of
+    // its kind, since a copy re-expressed in a new frame is exact only to round-off.
+    let nearest = -1;
+    let best = Infinity;
+    doc.view.modules.forEach((m, i) => {
+      const d = (m.x - picked.x) ** 2 + (m.y - picked.y) ** 2;
+      if (m.kind === picked.kind && d < best) {
+        best = d;
+        nearest = i;
+      }
+    });
+    doc.selectModule(nearest);
+    refresh();
   });
 
   /**

@@ -86,7 +86,6 @@ const INSTANCE_KEYS: readonly string[] = [
   'mirror',
   'repeat',
   'step',
-  'extra',
   'notes',
 ];
 
@@ -228,10 +227,6 @@ function instanceShapeProblem(value: Record<string, unknown>, where: string): st
   const mirror = value['mirror'];
   if (mirror !== undefined && typeof mirror !== 'boolean') {
     return `${where}: mirror must be true or false, got ${JSON.stringify(mirror)}`;
-  }
-  if (value['extra'] !== undefined) {
-    const problem = placementsShapeProblem(value['extra'], `${where}: extra`);
-    if (problem !== null) return problem;
   }
   const step = value['step'];
   if (step !== undefined) {
@@ -379,7 +374,6 @@ function toPlacements(raws: unknown[]): Placement[] {
         if (rawStep['angle'] !== undefined) step.angle = degreesToRadians(rawStep['angle'] as number);
         instance.step = step;
       }
-      if (raw['extra'] !== undefined) instance.extra = toPlacements(raw['extra'] as unknown[]);
       if (raw['notes'] !== undefined) instance.notes = raw['notes'] as string;
       return instance;
     }
@@ -465,7 +459,6 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
       if (placement.step.angle !== undefined) step['angle'] = radiansToDegrees(placement.step.angle);
       raw['step'] = step;
     }
-    if (placement.extra !== undefined) raw['extra'] = placement.extra.map(serialisePlacement);
     if (placement.notes !== undefined) raw['notes'] = placement.notes;
     return raw;
   }
