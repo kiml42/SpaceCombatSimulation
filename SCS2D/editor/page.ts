@@ -36,6 +36,8 @@ import {
   createAssembly,
   createAssemblyProblem,
   instanceHandle,
+  instancePose,
+  type InstancePose,
   instanceOf,
   moduleAt,
   removePlacement,
@@ -66,6 +68,7 @@ import { battleHref, shipFleet } from './handoff.js';
 import { Demonstration } from './demonstrate.js';
 import { drawOverlay } from './overlay.js';
 import {
+  assemblyKnob,
   facingTo,
   handleAt,
   handlesFor,
@@ -315,10 +318,30 @@ export function startEditor(): void {
    * under the pointer, which is the copy the highlight draws brightest and the
    * one a drag would move.
    */
+  /** The selected assembly's pose, in the copy that was picked, and the modules it draws there. */
+  const selectedAssemblyPose = (): { path: ModulePath; pose: InstancePose; modules: ModuleSpec[] } | null => {
+    const path = doc.selectedAssemblyPath();
+    if (path === null) return null;
+    // The outlines are of every placement of the assembly; the ones that are
+    // this instance's are those whose modules it accounts for.
+    const under = (drawn: number) => {
+      const at = doc.view.origins[drawn]?.path;
+      return at !== undefined && path.every((step, k) => step.index === at[k]?.index && step.copy === at[k]?.copy);
+    };
+    const own = doc.selectedAssemblies().filter((each) => !each.context && under(each.modules[0]!));
+    const outline = own.find((each) => each.primary) ?? own[0];
+    const near = outline === undefined ? null : doc.view.origins[outline.modules[0]!]!.path;
+    const pose = instancePose(doc.blueprint, path, near);
+    if (pose === null) return null;
+    return { path, pose, modules: (outline?.modules ?? []).map((i) => doc.view.modules[i]!) };
+  };
+
   const currentHandles = (): Handle[] => {
     const seam = seamPair();
     if (seam !== null) return [seam.seam.handle];
     if (doc.selections.length !== 1) return [];
+    const assembly = selectedAssemblyPose();
+    if (assembly !== null) return [assemblyKnob(assembly.pose, assembly.modules, camera.scale)];
     const drawn = doc.selectedLoose()[0];
     if (drawn === undefined) return [];
     const spec = doc.view.modules[drawn];
@@ -1112,7 +1135,8 @@ export function startEditor(): void {
     if (origin === null) return;
     const path = instanceOf(origin);
     if (path === null) return;
-    doc.select(path);
+    // The copy the module was picked in, not whichever the layout drew first.
+    doc.selectAt(doc.selectedModules()[0] ?? 0, path);
     refresh();
   });
 
@@ -1464,6 +1488,14 @@ export function startEditor(): void {
         drill: boolean;
       }
     | {
+        /** The knob on a selected assembly, dragged to turn it about its origin. */
+        kind: 'turn';
+        from: Blueprint;
+        path: ModulePath;
+        pose: InstancePose;
+        moved: boolean;
+      }
+    | {
         /** The face two selected modules share, moved to size both. */
         kind: 'seam';
         from: Blueprint;
@@ -1503,6 +1535,32 @@ export function startEditor(): void {
    */
   const dragHandle = (event: PointerEvent): void => {
     if (drag === null || drag.kind === 'pan' || drag.kind === 'module') return;
+    if (drag.kind === 'turn') {
+      const world = worldAt(event);
+      const { pose } = drag;
+      // The bearing the assembly's +x should take on screen, then the angle
+      // that gives it written in the frame the instance is placed in.
+      const bearing = facingTo(
+        { kind: 'structure', x: pose.x, y: pose.y, length: 0, width: 0 },
+        world.x,
+        world.y,
+        event.altKey ? 0 : ANGLE_SNAP_DEGREES,
+      );
+      const origin: ModuleOrigin = { path: drag.path, ...pose.written, instanceFrame: null };
+      const angle = toPlacementAngle(origin, bearing);
+      const next = updatePlacement(drag.from, drag.path, (p) => {
+        const turned = { ...p } as AssemblyInstance;
+        if (angle === 0) delete turned.angle;
+        else turned.angle = angle;
+        return turned;
+      });
+      if (next === null) return;
+      if (drag.moved) doc.amend(next);
+      else doc.apply(next);
+      drag = { ...drag, moved: true };
+      refresh();
+      return;
+    }
     if (drag.kind === 'seam') {
       const { a, b, seam } = drag.pair;
       const world = worldAt(event);
@@ -1566,6 +1624,12 @@ export function startEditor(): void {
     if (grabbed >= 0 && pair !== null) {
       gesture = false;
       drag = { kind: 'seam', from: doc.blueprint, pair, moved: false };
+      return;
+    }
+    const assembly = grabbed >= 0 ? selectedAssemblyPose() : null;
+    if (assembly !== null) {
+      gesture = false;
+      drag = { kind: 'turn', from: doc.blueprint, path: assembly.path, pose: assembly.pose, moved: false };
       return;
     }
     const spec = doc.view.modules[doc.selectedLoose()[0] ?? -1];

@@ -65,8 +65,6 @@ dock a dock and decides ram from landing (§4, §3). See the §12 entry.
 
 **Step 1 — Blueprint editor.** Planned, in this order, each its own change:
 
-- **A rotate knob on a single selected assembly**, as a module has, turning the instance about its origin with
-  the same 15° snap and Alt to escape.
 - **A handle between an engine's machinery and its bell, or a hull weapon's and its barrel or lens**, drawn
   and dragged like the seam between two selected modules, setting `nozzle` from where the boundary is put.
 

@@ -5,6 +5,7 @@ import {
   type SharedFace,
   math,
   moduleCentre,
+  moduleRadius,
   radiansToDegrees,
   type ModuleSpec,
 } from '../sim/index.js';
@@ -47,6 +48,38 @@ export interface Handle {
   across: -1 | 0 | 1;
   /** Which way a seam runs, radians, so it can be drawn along it. */
   angle?: number;
+  /** Where a knob's arm starts, when that is not the selected module's middle. */
+  fromX?: number;
+  fromY?: number;
+}
+
+/**
+ * The knob that turns a selected assembly: beyond everything it holds, along
+ * the way its own +x points, on an arm from its origin — the point it turns
+ * about, which is the module it was built around.
+ */
+export function assemblyKnob(
+  pose: { x: number; y: number; rotation: number },
+  modules: readonly ModuleSpec[],
+  scale: number,
+): Handle {
+  let reach = 0;
+  for (const spec of modules) {
+    const mid = moduleCentre(spec);
+    const dx = mid.x - pose.x;
+    const dy = mid.y - pose.y;
+    reach = max(reach, sqrt(dx * dx + dy * dy) + moduleRadius(spec));
+  }
+  const arm = reach + ROTATE_ARM_PX / scale;
+  return {
+    kind: 'rotate',
+    x: pose.x + arm * cos(pose.rotation),
+    y: pose.y + arm * sin(pose.rotation),
+    along: 0,
+    across: 0,
+    fromX: pose.x,
+    fromY: pose.y,
+  };
 }
 
 /** How big a handle is drawn, pixels. */
