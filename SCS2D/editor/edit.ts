@@ -188,6 +188,34 @@ export function removeCopy(blueprint: Blueprint, origin: ModuleOrigin): Blueprin
   return copy as unknown as Blueprint;
 }
 
+/**
+ * Delete a placed assembly, and any definition that leaves placed by nothing:
+ * its own, and those only it placed, however deep.
+ */
+export function removeInstance(blueprint: Blueprint, path: ModulePath): Blueprint | null {
+  const placed = placementAt(blueprint, path);
+  if (placed === null || !isInstance(placed)) return null;
+  const removed = removePlacement(blueprint, path);
+  if (removed === null) return null;
+  const copy = removed as unknown as MutableBlueprint;
+  const unplaced = [placed.use];
+  while (unplaced.length > 0) {
+    const name = unplaced.pop()!;
+    const definition = copy.assemblies?.[name];
+    if (definition === undefined || countInstances(removed, name) > 0) continue;
+    delete copy.assemblies![name];
+    const walk = (list: readonly Placement[]): void => {
+      for (const entry of list) {
+        if (!isInstance(entry)) continue;
+        unplaced.push(entry.use);
+        if (entry.extra !== undefined) walk(entry.extra);
+      }
+    };
+    walk(definition.modules);
+  }
+  return removed;
+}
+
 /** Drop the placement a path names. Every copy of it goes with it. */
 export function removePlacement(blueprint: Blueprint, path: ModulePath): Blueprint | null {
   const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
