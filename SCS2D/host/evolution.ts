@@ -60,8 +60,14 @@ const DESIGNS_KEPT = 512;
 /** Cap on replay steps per frame, so a tab left in the background cannot catch up in one lurch. */
 const MAX_STEPS_PER_FRAME = 16;
 
-/** A fleet tile's size, CSS pixels. */
-const TILE_WIDTH = 152;
+/**
+ * A fleet tile's drawing size, CSS pixels.
+ *
+ * The tiles themselves share the width of the panel, so this is the backing
+ * store rather than the layout: set at the wide end of what a tile is given so
+ * a hull is scaled down to fit rather than blown up and blurred.
+ */
+const TILE_WIDTH = 260;
 const TILE_HEIGHT = 96;
 /** How much of the way the fleet's scale closes on its target each frame. */
 const FLEET_EASE = 0.15;
@@ -207,7 +213,6 @@ export function startEvolution(): void {
   const latestButton = el<HTMLButtonElement>('latest');
   const shownGeneration = el<HTMLElement>('shownGeneration');
   const fightingLabel = el<HTMLElement>('fighting');
-  const shipsBody = el<HTMLElement>('ships');
   const matchesBody = el<HTMLElement>('matches');
   const editsLine = el<HTMLElement>('edits');
   const championLine = el<HTMLElement>('championLine');
@@ -1004,17 +1009,83 @@ export function startEvolution(): void {
       // Appending something already here moves it, so this is the reordering.
       fleetBox.append(tile.figure);
       tile.figure.classList.toggle('picked', row.id === picked);
-      tile.caption.replaceChildren();
-      const name = document.createElement('b');
-      // A preview's founders have no id yet; their names say more.
-      name.textContent = row.id < 0 ? row.entrant.name : `${rank + 1}. #${row.id}`;
-      const ships = tile.picture.view.ships.length;
-      const weight = document.createElement('span');
-      weight.textContent =
-        `${(row.mass / 1000).toFixed(1)} t` + (isFleet(row.entrant) ? ` · ${ships} ship${ships === 1 ? '' : 's'}` : '');
-      tile.caption.append(name, row.id < 0 ? '' : ` ${row.matches > 0 ? row.fitness.toFixed(3) : '—'}`, weight);
+      tile.figure.classList.toggle('champion', rank === 0 && row.id >= 0 && row.matches > 0);
+      writeCaption(tile, row, rank);
       tile.figure.title = row.edits.length > 0 ? row.edits.join('\n') : 'a founder of the run';
     }
+  };
+
+  /**
+   * What a tile says about its design: its rank and name, its score, what it
+   * weighs and came from, and the five parts the score is made of.
+   *
+   * **All of it, because the tile is the only place it is written.** A ranked
+   * table of the same figures used to sit in the sidebar, which meant reading
+   * a hull and reading its numbers were two different places to look and the
+   * table went unread while a battle was on. The parts carry the colours the
+   * chart plots them in, so the graph above and the tiles below are read with
+   * one key.
+   */
+  const writeCaption = (tile: Tile, row: Row, rank: number): void => {
+    tile.caption.replaceChildren();
+
+    const head = document.createElement('span');
+    head.className = 'tileHead';
+    const name = document.createElement('b');
+    // A preview's founders have no id yet; their names say more.
+    name.textContent = row.id < 0 ? row.entrant.name : `${rank + 1}. #${row.id}`;
+    head.append(name);
+    // Lineage next to identity rather than down with the tonnage: what a
+    // design came from is part of which design it is.
+    if (row.id >= 0 && row.parent >= 0) {
+      const from = document.createElement('span');
+      from.className = 'from';
+      from.textContent = `\u2190${row.parent}`;
+      from.title = `bred from #${row.parent}`;
+      head.append(from);
+    }
+    if (row.id >= 0) {
+      const score = document.createElement('span');
+      score.className = 'score';
+      score.textContent = row.matches > 0 ? row.fitness.toFixed(3) : '—';
+      score.title = `${row.matches} match${row.matches === 1 ? '' : 'es'} fought`;
+      head.append(score);
+    }
+    tile.caption.append(head);
+
+    const ships = tile.picture.view.ships.length;
+    const sub = document.createElement('span');
+    sub.className = 'tileSub';
+    sub.textContent =
+      `${(row.mass / 1000).toFixed(1)} t` +
+      (isFleet(row.entrant) ? ` · ${ships} ship${ships === 1 ? '' : 's'}` : '') +
+      (row.id >= 0 && row.parent < 0 ? ' · a founder' : '');
+    tile.caption.append(sub);
+
+    // Nothing has been scored before a run, so the founders' preview shows
+    // the hulls alone rather than a grid of zeroes.
+    if (row.id < 0) return;
+    const scores = document.createElement('span');
+    scores.className = 'tileScores';
+    for (const [css, label, value, title] of [
+      ['hull', 'hull', row.survival, 'hull kept'],
+      ['func', 'func', row.functional, 'function kept'],
+      ['dmg', 'dmg', row.damage, 'damage done'],
+      ['dis', 'dis', row.disabling, 'function taken'],
+      ['grnd', 'grnd', row.race, 'ground gained'],
+    ] as const) {
+      const part = document.createElement('span');
+      part.className = css;
+      part.title = title;
+      const figure = document.createElement('i');
+      // A dash rather than a row of zeroes for a design that has not fought:
+      // its parts are as unknown as the score above them, and a generation
+      // still being fought is mostly made of those.
+      figure.textContent = row.matches > 0 ? value.toFixed(2) : '—';
+      part.append(`${label} `, figure);
+      scores.append(part);
+    }
+    tile.caption.append(scores);
   };
 
   const makeTile = (row: Row): Tile => {
@@ -1211,35 +1282,6 @@ export function startEvolution(): void {
     // Nothing to skip to once a run is over and the generation on show
     // fought one match: the list is all there will ever be.
     skipButton.disabled = run === null || (run.done && matches.length < 2);
-
-    const ranked = [...rows].sort((a, b) => b.fitness - a.fitness);
-    const best = ranked[0];
-    shipsBody.replaceChildren();
-    for (const row of run === null ? [] : ranked) {
-      const tr = document.createElement('tr');
-      if (row === best) tr.className = 'champion';
-      for (const cell of [
-        String(row.id),
-        row.parent < 0 ? '—' : String(row.parent),
-        row.fitness.toFixed(3),
-        row.survival.toFixed(2),
-        row.functional.toFixed(2),
-        row.damage.toFixed(2),
-        row.disabling.toFixed(2),
-        row.race.toFixed(2),
-        (row.mass / 1000).toFixed(1),
-      ]) {
-        const td = document.createElement('td');
-        td.textContent = cell;
-        tr.append(td);
-      }
-      tr.title = row.edits.length > 0 ? row.edits.join('\n') : 'a founder of the run';
-      tr.addEventListener('click', () => {
-        editsLine.textContent =
-          row.edits.length > 0 ? `#${row.id}: ${row.edits.join('; ')}` : `#${row.id}: a founder`;
-      });
-      shipsBody.append(tr);
-    }
 
     matchesBody.replaceChildren();
     for (const [i, record] of matches.entries()) {

@@ -139,7 +139,9 @@ describe('the evolution page in a browser', () => {
     await page.selectOption('#mode', 'fleet');
     await page.waitForFunction(() => document.querySelectorAll('#fleet figure').length === 1);
     expect(await page.textContent('#fleet figcaption b')).toBe('Dinky');
-    expect(await rows(page, 'ships')).toBe(0);
+    // Nothing has been scored yet, so a founder's tile is its hull and its
+    // tonnage without a grid of dashes under it.
+    expect(await page.locator('#fleet .tileScores').count()).toBe(0);
     await page.selectOption('#mode', 'battle');
     await page.waitForFunction(() => /unmutated/.test(document.getElementById('watching')?.textContent ?? ''));
     expect(await distinctColours(page, 'view')).toBeGreaterThan(2);
@@ -166,7 +168,14 @@ describe('the evolution page in a browser', () => {
   });
 
   it('lists what it bred, and what each generation fought', async () => {
-    expect(await rows(page, 'ships')).toBe(4);
+    // Every combatant and everything known about it is in the tiles: the
+    // sidebar no longer carries a table of the same figures.
+    await page.selectOption('#mode', 'fleet');
+    await page.waitForFunction(() => document.querySelectorAll('#fleet figure').length === 4);
+    expect(await page.locator('#fleet .tileScores').count()).toBe(4);
+    expect(await page.locator('#fleet figure.champion').count()).toBe(1);
+    // The five parts of a score, so a tile says what the table used to.
+    expect(await page.locator('#fleet figure').first().locator('.tileScores span').count()).toBe(5);
     expect(await rows(page, 'matches')).toBeGreaterThan(0);
     expect(await page.textContent('#championLine')).toMatch(/best of generation \d/);
   });
@@ -600,8 +609,10 @@ describe('the evolution page in a browser', () => {
 
     await page.click('#start');
     await page.selectOption('#mode', 'fleet');
+    // On the tonnage line, which is where a tile says what it is made of —
+    // the scores follow it in the same caption.
     await page.waitForFunction(() =>
-      [...document.querySelectorAll('#fleet figcaption')].some((c) => / ships$/.test(c.textContent ?? '')),
+      [...document.querySelectorAll('#fleet .tileSub')].some((c) => / ships$/.test(c.textContent ?? '')),
     );
     await page.waitForFunction(() => document.querySelectorAll('#matches tr').length > 0, undefined, { timeout: 60_000 });
     await page.selectOption('#mode', 'battle');

@@ -45,7 +45,7 @@
         padding: 0.7rem 0.9rem 2rem;
       }
       #setup { border-right: 1px solid #1c2533; }
-      #results { width: 25rem; border-left: 1px solid #1c2533; }
+      #results { width: 18rem; border-left: 1px solid #1c2533; }
       section#middle { flex: 1; display: flex; flex-direction: column; min-width: 0; }
       h2 {
         font-size: 11px;
@@ -110,38 +110,68 @@
       }
       #viewWrap { flex: 1; position: relative; min-height: 12rem; }
       #view { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+      /* As many tiles as fit, sharing the width evenly rather than packing at
+         a fixed size and leaving a column of dead space at the end. The floor
+         is what a caption needs: below it the scores would clip. */
       #fleet {
         position: absolute;
         inset: 0;
         overflow-y: auto;
-        display: flex;
-        flex-wrap: wrap;
-        align-content: flex-start;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(14.5rem, 1fr));
+        align-content: start;
         gap: 0.5rem;
         padding: 0.2rem 0 1rem;
       }
       #fleet figure {
         margin: 0;
-        width: 9.5rem;
         border: 1px solid #1c2533;
         border-radius: 4px;
         background: #0d1219;
         cursor: pointer;
       }
       #fleet figure:hover { border-color: #2b3a50; }
-      #fleet figure.picked { border-color: #7fd6a0; }
+      #fleet figure.picked { border-color: #7fa8e0; }
       #fleet canvas { display: block; width: 100%; height: 6rem; }
       #fleet figcaption {
         padding: 0.15rem 0.4rem 0.3rem;
         color: #7f93aa;
         border-top: 1px solid #1c2533;
+        overflow: hidden;
+      }
+      #fleet figcaption b { color: #e6edf5; font-weight: 600; }
+      /* Name on the left, score hard against the right, so a column of tiles
+         reads as a ranking however long the names are. */
+      .tileHead { display: flex; gap: 0.4rem; white-space: nowrap; }
+      .tileHead b { overflow: hidden; text-overflow: ellipsis; }
+      .tileHead .from { color: #5d6f85; }
+      .tileHead .score { margin-left: auto; color: #dbe6f2; }
+      figure.champion .tileHead .score { color: #7fd6a0; }
+      .tileSub {
+        display: block;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        color: #5d6f85;
       }
-      #fleet figcaption b { color: #e6edf5; font-weight: 600; }
-      #fleet figcaption span { display: block; }
-      #fleet p.none { padding: 0.5rem 0.2rem; }
+      /* The five parts of a score, in the colours the chart plots them in, so
+         a tile and the graph above it are read with one key. */
+      .tileScores {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0 0.3rem;
+        margin-top: 0.15rem;
+      }
+      .tileScores span { display: flex; gap: 0.3rem; }
+      .tileScores span i { margin-left: auto; }
+      .tileScores span { white-space: nowrap; color: #5d6f85; }
+      .tileScores span i { font-style: normal; }
+      .tileScores .hull i { color: #7fd6a0; }
+      .tileScores .func i { color: #b48ee0; }
+      .tileScores .dmg i { color: #e0655f; }
+      .tileScores .dis i { color: #e08ec0; }
+      .tileScores .grnd i { color: #e9c05f; }
+      #fleet p.none { grid-column: 1 / -1; padding: 0.5rem 0.2rem; }
       #viewBar { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; padding: 0.4rem 0; }
       #panelBody { padding: 0.7rem 0.9rem; display: flex; flex-direction: column; min-height: 0; flex: 1; }
       table { width: 100%; border-collapse: collapse; }
@@ -325,13 +355,9 @@
           <div class="buttons">
             <button id="latest" title="Follow the newest generation again">Latest</button>
           </div>
-          <table>
-            <thead>
-              <tr><th>#</th><th>from</th><th>score</th><th title="hull kept">hull</th><th title="function kept">func</th><th title="damage done">dmg</th><th title="function taken">dis</th><th title="ground gained">grnd</th><th>t</th></tr>
-            </thead>
-            <tbody id="ships"></tbody>
-          </table>
           <p class="note" id="edits"></p>
+          <p class="note">Every combatant and its scores are in the panel to the left. Click one to
+            read what was changed to make it.</p>
         </details>
         <details open data-key="matches">
           <summary><h2>Matches</h2></summary>
