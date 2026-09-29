@@ -121,6 +121,12 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
    and plants are hull internals, out of reach of deck turrets, so where they sit and what can reach them is
    the layer question.
 
+   **Ships hooked together should be able to shoot each other then.** Today a ship never targets anything on
+   its own body, because a round never hits the body it left; with layers, a turret can hit its own hull and
+   will (a beam held on for its duty cycle, sweeping across it), so that exemption has to go anyway. Two enemy
+   ships sharing a body are then the closest targets either has, and have every reason to take them: lift
+   the same-body skip in `decide` and `decideTurrets` for hostile riders, and let a shot land on its own body.
+
 Steps 8 to 13 walk into the resource system one resource and one use at a time, fuel first: it is the
 scarcity every battle feels (§2), and much of §12 is parked until it exists — what a longer bell buys, the
 dead zone on attitude hold, propellant-optimal allocation, how severed chunks divide their stores, and running
