@@ -44,7 +44,7 @@
               "kind": "engine",
               "x": 4,
               "y": 0,
-              "angle": 0,
+              "angle": 180,
               "length": 8,
               "width": 4
             }
@@ -69,7 +69,7 @@
               "kind": "engine",
               "x": 0,
               "y": -1,
-              "angle": -90,
+              "angle": 90,
               "length": 2,
               "width": 4
             }
@@ -82,7 +82,7 @@
               "kind": "engine",
               "x": -1.5,
               "y": 0,
-              "angle": 180,
+              "angle": 0,
               "length": 3,
               "width": 4
             }
@@ -228,7 +228,7 @@
               "kind": "engine",
               "x": 0,
               "y": -1,
-              "angle": -90,
+              "angle": 90,
               "length": 2,
               "width": 3
             }
@@ -240,7 +240,7 @@
               "kind": "engine",
               "x": -1,
               "y": 0,
-              "angle": 180,
+              "angle": 0,
               "length": 2,
               "width": 3
             }
@@ -283,7 +283,7 @@
           "kind": "engine",
           "x": -8,
           "y": 0,
-          "angle": 0,
+          "angle": 180,
           "length": 4,
           "width": 6
         },
@@ -367,7 +367,7 @@
               "kind": "engine",
               "x": 0,
               "y": -1,
-              "angle": -90,
+              "angle": 90,
               "length": 2,
               "width": 3
             }
@@ -379,7 +379,7 @@
               "kind": "engine",
               "x": -1,
               "y": 0,
-              "angle": 180,
+              "angle": 0,
               "length": 2,
               "width": 3
             }
@@ -413,7 +413,7 @@
           "kind": "engine",
           "x": -8,
           "y": 0,
-          "angle": 0,
+          "angle": 180,
           "length": 4,
           "width": 6
         },
@@ -494,7 +494,7 @@
               "kind": "engine",
               "x": 0,
               "y": 0,
-              "angle": -180,
+              "angle": 0,
               "length": 0.2,
               "width": 0.5
             }
@@ -506,7 +506,7 @@
               "kind": "engine",
               "x": 0,
               "y": 0,
-              "angle": -90,
+              "angle": 90,
               "length": 0.1,
               "width": 0.4
             }
@@ -518,7 +518,7 @@
               "kind": "engine",
               "x": 0,
               "y": 0,
-              "angle": 180,
+              "angle": 0,
               "length": 0.1,
               "width": 0.1
             }

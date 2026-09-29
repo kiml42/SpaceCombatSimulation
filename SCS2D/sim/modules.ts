@@ -526,7 +526,7 @@ export interface ModuleSpec {
    * on by the face it pushes from and exhausts out of the other, so that face
    * is the only part of it whose position the rest of the ship cares about.
    * Its position is therefore the middle of *that* face, and the engine runs
-   * back from there along its own facing — so an engine made longer grows
+   * out from there along its own facing, bell last — so an engine made longer grows
    * out into the exhaust rather than half into the hull it is mounted on, and
    * lengthening one is one number rather than two. `moduleCentre` is where the
    * box actually sits, and everything geometric goes through it.
@@ -535,8 +535,9 @@ export interface ModuleSpec {
   y: number;
   /**
    * Which way it faces, radians, in the blueprint frame. This is the module's
-   * local +x: the direction an engine pushes the ship and the bearing a
-   * turret rests at.
+   * local +x, the way whatever sticks out of it points: the bearing a turret
+   * rests at, a hull weapon's barrel, and an engine's bell — so an engine
+   * pushes the ship the opposite way.
    */
   angle?: number;
   /** Extent along the facing, metres. */
@@ -831,7 +832,7 @@ export function moduleRadius(spec: ModuleSpec): number {
 }
 
 /**
- * Where a module's box sits, which is its position for every kind but a
+ * Where a module's box sits, which is its position for every kind but an
  * engine — see `ModuleSpec.x`.
  *
  * Everything that asks a geometric question about a module goes through this:
@@ -842,9 +843,29 @@ export function moduleRadius(spec: ModuleSpec): number {
  */
 export function moduleCentre(spec: ModuleSpec): { x: number; y: number } {
   if (spec.kind !== 'engine') return { x: spec.x, y: spec.y };
-  const angle = spec.angle ?? 0;
+  // The box runs from the mounting face against the way it pushes.
+  const angle = boxAngle(spec);
   const back = spec.length / 2;
   return { x: spec.x - cos(angle) * back, y: spec.y - sin(angle) * back };
+}
+
+/**
+ * The angle a module's box is laid out at, which is its facing for every kind
+ * but an engine: an engine's box is laid out along the way it pushes, half a
+ * turn from its facing.
+ *
+ * The same box either way, but not the same arithmetic. The usual engine faces
+ * aft, and `sin(PI)` is 1.2e-16 rather than 0, so laying its box out at its
+ * facing would put last-bit noise into every aft engine's corners — enough to
+ * turn a flush joint into an overlap, and to lean a symmetric ship off its
+ * spine. Laid out at the way it pushes, an aft engine is at exactly 0. So
+ * every geometric question about a module's box asks this, not `angle`.
+ */
+export function boxAngle(spec: ModuleSpec): number {
+  const angle = spec.angle ?? 0;
+  if (spec.kind !== 'engine') return angle;
+  const turned = angle + PI;
+  return turned > PI ? turned - 2 * PI : turned;
 }
 
 /**
@@ -853,21 +874,18 @@ export function moduleCentre(spec: ModuleSpec): { x: number; y: number } {
  * The centre is what is kept, not the coordinates: an engine's position is its
  * mounting face, so changing the kind alone would slide it half its length.
  *
- * An engine points the way it pushes, with its bell behind; every other kind
- * points the way its business end faces. So becoming or ceasing to be an
- * engine turns it half round, whatever it was or becomes: whatever faced out
- * of the ship still does, and any round trip ends facing the way it began.
- * `turn` is any further rotation the caller wants.
+ * The facing is kept: every kind faces the way whatever sticks out of it
+ * points, so what faced out of the ship still does. `turn` is any rotation
+ * the caller wants on top.
  *
  * Fields the new kind does not read are kept, so swapping back restores them.
  */
 export function refitModule(spec: ModuleSpec, to: ModuleKind, turn = 0): ModuleSpec {
   const centre = moduleCentre(spec);
-  const flips = (spec.kind === 'engine') !== (to === 'engine');
   const next: ModuleSpec = { ...spec, kind: to };
-  if (flips || turn !== 0) {
-    // Folded into (-π, π], so a file says 180 rather than 540 after a few swaps.
-    let angle = (spec.angle ?? 0) + turn + (flips ? PI : 0);
+  if (turn !== 0) {
+    // Folded into (-π, π], so a file says 180 rather than 540 after a few turns.
+    let angle = (spec.angle ?? 0) + turn;
     while (angle > PI) angle -= 2 * PI;
     while (angle <= -PI) angle += 2 * PI;
     next.angle = angle;
@@ -880,7 +898,8 @@ export function refitModule(spec: ModuleSpec, to: ModuleKind, turn = 0): ModuleS
 
 /** Rounds away the last-bit noise a turn leaves, so a file does not gain 1e-16s. */
 function tidy(value: number): number {
-  return round(value * 1e9) / 1e9;
+  const tidied = round(value * 1e9) / 1e9;
+  return tidied === 0 ? 0 : tidied;
 }
 
 /**

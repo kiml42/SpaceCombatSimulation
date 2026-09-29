@@ -39,12 +39,12 @@ const hull = (x: number, length: number): ModuleSpec => ({
   width: 6,
 });
 
-/** An engine mounted at `x`, pushing along `angle` and exhausting the other way. */
-const engine = (x: number, angle: number): ModuleSpec => ({
+/** An engine mounted at `x`, pushing along `pushing` and facing, with its bell, the other way. */
+const engine = (x: number, pushing: number): ModuleSpec => ({
   kind: 'engine',
   x,
   y: 0,
-  angle,
+  angle: pushing > 0 ? pushing - Math.PI : pushing + Math.PI,
   length: 2,
   width: 4,
 });
@@ -476,7 +476,7 @@ describe('what the editor says about a buried engine', () => {
 /** An engine on a hull, with a block `gap` metres behind its nozzle. */
 function tug(gap: number): ModuleSpec[] {
   return [
-    { kind: 'engine', x: -5, y: 0, angle: 0, length: 2, width: 4 },
+    { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 2, width: 4 },
     { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 6 },
     { kind: 'structure', x: -9 - gap, y: 0, angle: 0, length: 4, width: 6 },
   ];

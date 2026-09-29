@@ -283,6 +283,8 @@ describe('the editor in a browser', () => {
     await page.click('#newShip');
     await page.click('[data-add="engine"]');
     expect(await page.inputValue('#propKind')).toBe('engine');
+    // Facing aft along its bell, so it pushes the ship forward.
+    expect(await page.inputValue('#propAngle')).toBe('180');
     const cold = await warmth();
 
     await page.waitForTimeout(1200);
@@ -295,15 +297,14 @@ describe('the editor in a browser', () => {
     expect(await warmth()).toBeLessThan(burning / 2);
   });
 
-  it('swaps a module for another kind, turning a gun into an engine that faces the other way', async () => {
+  it('swaps a module for another kind, keeping the way it faces', async () => {
     await page.click('#newShip');
     await page.click('[data-add="hullGun"]');
     expect(await page.inputValue('#propAngle')).toBe('0');
     await page.selectOption('#propKind', 'engine');
     expect(await page.inputValue('#propKind')).toBe('engine');
-    expect(await page.inputValue('#propAngle')).toBe('180');
-    // The label is what a person calls it; the file keeps its own word.
-    expect(await page.textContent('#propKind option[value="engine"]')).toBe('engine');
+    // Its bell where the barrel was.
+    expect(await page.inputValue('#propAngle')).toBe('0');
     await page.click('#undo');
     expect(await page.inputValue('#propKind')).toBe('hullGun');
   });

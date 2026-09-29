@@ -50,15 +50,22 @@ function file(overrides: Record<string, unknown> = {}): Record<string, unknown> 
 }
 
 describe('blueprint files', () => {
-  it('reads an engine written before the kind was renamed from thruster', () => {
+  it('reads a thruster, which faced the way it pushed, as an engine facing along its bell', () => {
     const file = serialiseBlueprint({
       name: 'Old',
-      modules: [{ kind: 'engine', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.4 }],
+      modules: [
+        { kind: 'engine', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.4 },
+        { kind: 'engine', x: 0, y: 3, angle: degreesToRadians(-90), length: 2, width: 2 },
+        { kind: 'engine', x: 5, y: 0, length: 2, width: 2 },
+      ],
     });
-    (file['modules'] as Record<string, unknown>[])[0]!['kind'] = 'thruster';
+    for (const module of file['modules'] as Record<string, unknown>[]) module['kind'] = 'thruster';
     expect(blueprintFileProblem(file)).toBeNull();
-    expect((parseBlueprint(file).modules[0] as ModuleSpec).kind).toBe('engine');
-    expect((parseBlueprint(file).modules[0] as ModuleSpec).nozzle).toBe(0.4);
+    const [aft, lateral, bare] = parseBlueprint(file).modules as ModuleSpec[];
+    expect(aft).toMatchObject({ kind: 'engine', x: -5, angle: Math.PI, nozzle: 0.4 });
+    expect(lateral!.angle).toBe(degreesToRadians(90));
+    // No angle was a thruster pushing along +x, so its bell faces aft.
+    expect(bare!.angle).toBe(Math.PI);
   });
 
   it('accepts every ship that ships with the game', () => {
@@ -136,7 +143,7 @@ describe('rejecting a file that arrived from somewhere else', () => {
     const raw = file({
       modules: [
         { kind: 'core', x: 0, y: 0, length: 10, width: 4 },
-        { kind: 'engine', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.3, barrels: 3 },
+        { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4, nozzle: 0.3, barrels: 3 },
       ],
     }) as Record<string, unknown>;
     expect(blueprintFileProblem(raw)).toBeNull();

@@ -35,7 +35,7 @@
           "kind": "engine",
           "x": -663,
           "y": 138,
-          "angle": 0,
+          "angle": 180,
           "length": 150,
           "width": 100,
           "nozzle": 0.35
@@ -193,7 +193,7 @@
           "kind": "engine",
           "x": 0,
           "y": 0,
-          "angle": -90,
+          "angle": 90,
           "length": 10,
           "width": 43,
           "barrels": 4
@@ -232,7 +232,7 @@
       "kind": "engine",
       "x": -727.25,
       "y": 0,
-      "angle": 0,
+      "angle": 180,
       "length": 150,
       "width": 100,
       "nozzle": 0.35

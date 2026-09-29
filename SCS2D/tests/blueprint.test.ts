@@ -177,11 +177,12 @@ describe('blueprint validation', () => {
     // and the only rule left about where one may go is the one every module
     // obeys — it has to be attached to the ship.
     const hull = core(0, 0, 10, 4);
-    const engine = (angle: number): ModuleSpec => ({
+    // Given the way it pushes; an engine faces the other way, along its bell.
+    const engine = (pushing: number): ModuleSpec => ({
       kind: 'engine',
       x: -5,
       y: 0,
-      angle,
+      angle: pushing > 0 ? pushing - Math.PI : pushing + Math.PI,
       length: 2,
       width: 4,
     });
@@ -198,17 +199,17 @@ describe('blueprint validation', () => {
       expect(
         blueprintProblem({ name: 'Backwards', modules: [hull, { ...engine(PI), x: -7 }] }),
       ).toBeNull();
-      const bellFirst: ModuleSpec = { kind: 'engine', x: -9, y: 0, angle: PI, length: 4, width: 4 };
+      const bellFirst: ModuleSpec = { kind: 'engine', x: -9, y: 0, angle: 0, length: 4, width: 4 };
       expect(blueprintProblem({ name: 'Bell', modules: [hull, bellFirst] })).toBeNull();
     });
 
     it('accepts one bolted to another engine or to a gun', () => {
-      const stack: ModuleSpec = { kind: 'engine', x: -7, y: 0, angle: 0, length: 2, width: 4 };
+      const stack: ModuleSpec = { kind: 'engine', x: -7, y: 0, angle: Math.PI, length: 2, width: 4 };
       expect(blueprintProblem({ name: 'Stacked', modules: [hull, engine(0), stack] })).toBeNull();
     });
 
     it('still rejects one floating free of the ship', () => {
-      const adrift: ModuleSpec = { kind: 'engine', x: -20, y: 0, angle: 0, length: 2, width: 4 };
+      const adrift: ModuleSpec = { kind: 'engine', x: -20, y: 0, angle: Math.PI, length: 2, width: 4 };
       expect(blueprintProblem({ name: 'Adrift', modules: [hull, adrift] })).toMatch(
         /touches nothing/,
       );
@@ -241,16 +242,16 @@ describe('where a module sits', () => {
   });
 
   it('hangs an engine back from its mounting face', () => {
-    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: 0, length: 4, width: 4 };
+    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4 };
     expect(moduleCentre(engine).x).toBeCloseTo(-7, 12);
-    // Turned, it hangs back along its own facing rather than along the world's.
-    expect(moduleCentre({ ...engine, angle: HALF_PI }).y).toBeCloseTo(-2, 12);
+    // Turned, it runs out along its own facing, bell last, rather than along the world's.
+    expect(moduleCentre({ ...engine, angle: HALF_PI }).y).toBeCloseTo(2, 12);
   });
 
   it('measures overlap and attachment from the box, not from the mounting', () => {
     // Bolted flush to the hull's -x face: the position is *on* the hull and
     // the engine is entirely clear of it.
-    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: 0, length: 4, width: 4 };
+    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4 };
     expect(blueprintProblem({ name: 'Flush', modules: [hull, engine] })).toBeNull();
     expect(modulesOverlap(hull, engine)).toBe(false);
   });
@@ -261,7 +262,7 @@ describe('where a module sits', () => {
     // Growing an engine from its *mounting* would add the length astern, so
     // an engine would reach towards its own exhaust and a ship listed engine
     // first would look like two pieces.
-    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: 0, length: 4, width: 4 };
+    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4 };
     expect(blueprintProblem({ name: 'Hull first', modules: [hull, engine] })).toBeNull();
     expect(blueprintProblem({ name: 'Engine first', modules: [engine, hull] })).toBeNull();
   });
@@ -270,7 +271,7 @@ describe('where a module sits', () => {
     // The point of measuring an engine from its mounting face: making it
     // bigger is one number, and it stays bolted where it was rather than
     // growing half into the hull.
-    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: 0, length: 4, width: 4 };
+    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4 };
     const longer: ModuleSpec = { ...engine, length: 9 };
     expect(blueprintProblem({ name: 'Longer', modules: [hull, longer] })).toBeNull();
     expect(moduleCentre(longer).x).toBeCloseTo(-9.5, 12);
@@ -401,7 +402,7 @@ describe('derived engines', () => {
       name: 'Pusher',
       modules: [
         core(0, 0, 10, 4),
-        { kind: 'engine', x: -5, y: 0, angle: 0, length: 4, width: 4 },
+        { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4 },
       ],
     });
 

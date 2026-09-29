@@ -240,7 +240,9 @@ export function seamTo(
 
 /** Rounds away the last-bit noise a turned frame leaves, so a file does not gain 1e-16s. */
 function tidy(value: number): number {
-  return round(value * 1e9) / 1e9;
+  const tidied = round(value * 1e9) / 1e9;
+  // A negative zero is a frame turned half round, not a direction.
+  return tidied === 0 ? 0 : tidied;
 }
 
 /**

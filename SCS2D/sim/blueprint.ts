@@ -8,6 +8,7 @@ import {
   mountTraverse,
   hullMountGeometry,
   engineGeometry,
+  boxAngle,
   weldBox,
   traverseAccel,
   traverseRate,
@@ -294,7 +295,11 @@ export interface DesignModule {
   /** Centre of the module relative to the centre of mass, body frame. */
   readonly x: number;
   readonly y: number;
-  /** Facing, radians, body frame. */
+  /**
+   * The angle the box is laid out at, radians, body frame (`boxAngle`): the
+   * facing for every kind but an engine, whose box is laid out along the way
+   * it pushes.
+   */
   readonly angle: number;
 }
 
@@ -363,7 +368,7 @@ export interface ShipDesign {
 
 /** Corner offsets of a module, body frame, written into `out` as x,y pairs. */
 function corners(m: ModuleSpec, out: number[]): void {
-  const a = m.angle ?? 0;
+  const a = boxAngle(m);
   const c = cos(a);
   const s = sin(a);
   const hl = m.length * 0.5;
@@ -395,8 +400,8 @@ export function modulesOverlap(a: ModuleSpec, b: ModuleSpec): boolean {
   // Four candidate axes: the two face normals of each box. In the plane that
   // is all of them, because a box's edges are its normals rotated a quarter
   // turn.
-  const angleA = a.angle ?? 0;
-  const angleB = b.angle ?? 0;
+  const angleA = boxAngle(a);
+  const angleB = boxAngle(b);
   const axes = [
     cos(angleA), sin(angleA),
     -sin(angleA), cos(angleA),
@@ -430,7 +435,7 @@ export function modulesOverlap(a: ModuleSpec, b: ModuleSpec): boolean {
 
 /** Distance from a point to the nearest point of a module's box, metres. */
 function distanceToModule(m: ModuleSpec, px: number, py: number): number {
-  const a = m.angle ?? 0;
+  const a = boxAngle(m);
   const c = cos(a);
   const s = sin(a);
   const mid = moduleCentre(m);
@@ -969,8 +974,8 @@ export function contactWidth(spec: ModuleSpec, other: ModuleSpec): number {
   // somewhere to hang a ship from.
   const a = weldBox(spec);
   const b = weldBox(other);
-  const aa = a.angle ?? 0;
-  const ba = b.angle ?? 0;
+  const aa = boxAngle(a);
+  const ba = boxAngle(b);
   const aux = cos(aa);
   const auy = sin(aa);
   const bux = cos(ba);
@@ -1345,7 +1350,9 @@ function designFrom(
     // force and torque it delivers are the same either way.
     const x = centres[i]!.x - comX;
     const y = centres[i]!.y - comY;
-    const angle = normalizeAngle(spec.angle ?? 0);
+    // An engine's is the way it pushes (`boxAngle`), which is what its box,
+    // its thrust and its plume are all laid out along.
+    const angle = normalizeAngle(boxAngle(spec));
 
     // Parallel axis: each module's own inertia, carried out to where it sits.
     inertia += s.inertia + s.mass * (x * x + y * y);

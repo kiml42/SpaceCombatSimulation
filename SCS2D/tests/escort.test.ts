@@ -35,7 +35,7 @@ const MOBILE_MARKER: Blueprint = {
   name: 'Mobile marker',
   modules: [
     { kind: 'core', x: 0, y: 0, length: 12, width: 12 },
-    { kind: 'engine', x: -6, y: 0, angle: 0, length: 4, width: 6 },
+    { kind: 'engine', x: -6, y: 0, angle: Math.PI, length: 4, width: 6 },
   ],
 };
 

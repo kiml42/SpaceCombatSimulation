@@ -34,7 +34,7 @@ function tug(weapon: boolean): Blueprint {
     kind: 'engine',
     x: -5,
     y: 0,
-    angle: 0,
+    angle: Math.PI,
     length: 2,
     width: 4,
   };
@@ -52,7 +52,7 @@ function tug(weapon: boolean): Blueprint {
       { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 6 },
       // Something to push the other way with, so the hull is not obliged to
       // fire the weapon engine merely to hold station.
-      { kind: 'engine', x: 5, y: 0, angle: Math.PI, length: 2, width: 4 },
+      { kind: 'engine', x: 5, y: 0, angle: 0, length: 2, width: 4 },
     ],
   };
 }
@@ -71,9 +71,9 @@ const TARGET: Blueprint = {
     { kind: 'core', x: 0, y: 0, angle: 0, length: 6, width: 6 },
     // Hung off the far face, so it is not itself the thing standing in the
     // plume — an engine's position is the face it pushes from and its body
-    // runs back from there, so this one lies beyond the core rather than in
+    // runs out from there, bell last, so this one lies beyond the core rather than in
     // front of it.
-    { kind: 'engine', x: -3, y: 0, angle: 0, length: 2, width: 4 },
+    { kind: 'engine', x: -3, y: 0, angle: Math.PI, length: 2, width: 4 },
   ],
 };
 
@@ -224,7 +224,7 @@ describe('the flag itself', () => {
     const gun: ModuleSpec = { kind: 'turret', x: 0, y: 0, length: 4, width: 3, weapon: true };
     expect(moduleProblem(gun)).toBeNull();
     expect(
-      moduleProblem({ kind: 'engine', x: 0, y: 0, length: 2, width: 2, weapon: true }),
+      moduleProblem({ kind: 'engine', angle: Math.PI, x: 0, y: 0, length: 2, width: 2, weapon: true }),
     ).toBeNull();
 
     const saved = serialiseBlueprint({ name: 'Dormant', modules: [gun] });

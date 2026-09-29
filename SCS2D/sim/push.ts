@@ -1,5 +1,5 @@
 import { abs, atan2, cos, HALF_PI, max, min, round, sin } from './math.js';
-import { moduleCentre, type ModuleSpec } from './modules.js';
+import { boxAngle, moduleCentre, type ModuleSpec } from './modules.js';
 import {
   ATTACHMENT_TOLERANCE,
   contactWidth,
@@ -188,8 +188,8 @@ function firstContact(
 function contact(a: ModuleSpec, b: ModuleSpec, dx: number, dy: number, limit: number): number | null {
   const ca = corners(a);
   const cb = corners(b);
-  const aa = a.angle ?? 0;
-  const ba = b.angle ?? 0;
+  const aa = boxAngle(a);
+  const ba = boxAngle(b);
   const axes = [cos(aa), sin(aa), -sin(aa), cos(aa), cos(ba), sin(ba), -sin(ba), cos(ba), -dy, dx];
   // When the two start to touch, and the window in which they would overlap
   // by more than the tolerance; they meet only if that window opens in reach.
@@ -231,7 +231,7 @@ function contact(a: ModuleSpec, b: ModuleSpec, dx: number, dy: number, limit: nu
 
 function corners(box: ModuleSpec): number[] {
   const mid = moduleCentre(box);
-  const angle = box.angle ?? 0;
+  const angle = boxAngle(box);
   const c = cos(angle);
   const s = sin(angle);
   const hl = box.length / 2;
@@ -250,7 +250,7 @@ function corners(box: ModuleSpec): number[] {
 
 /** The four faces of `before`, keeping those that are somewhere else in `after`. */
 function movedFaces(before: ModuleSpec, after: ModuleSpec): Face[] {
-  const angle = before.angle ?? 0;
+  const angle = boxAngle(before);
   const ux = cos(angle);
   const uy = sin(angle);
   const was = moduleCentre(before);
@@ -282,7 +282,7 @@ function movedFaces(before: ModuleSpec, after: ModuleSpec): Face[] {
  */
 function against(box: ModuleSpec, face: Face): boolean {
   const centre = moduleCentre(box);
-  const angle = box.angle ?? 0;
+  const angle = boxAngle(box);
   const c = cos(angle);
   const s = sin(angle);
   const depth = extent(box, c, s, face.nx, face.ny);
@@ -335,8 +335,8 @@ export interface SharedFace {
 
 /** The face two modules share, or null unless they are square to each other and joined along one. */
 export function sharedFace(a: ModuleSpec, b: ModuleSpec): SharedFace | null {
-  const angleA = a.angle ?? 0;
-  const turn = ((((b.angle ?? 0) - angleA) % HALF_PI) + HALF_PI) % HALF_PI;
+  const angleA = boxAngle(a);
+  const turn = ((((boxAngle(b)) - angleA) % HALF_PI) + HALF_PI) % HALF_PI;
   if (min(turn, HALF_PI - turn) > 1e-9) return null;
   if (contactWidth(a, b) <= 0) return null;
 
@@ -344,8 +344,8 @@ export function sharedFace(a: ModuleSpec, b: ModuleSpec): SharedFace | null {
   const cb = moduleCentre(b);
   const c = cos(angleA);
   const s = sin(angleA);
-  const cbA = cos(b.angle ?? 0);
-  const sbA = sin(b.angle ?? 0);
+  const cbA = cos(boxAngle(b));
+  const sbA = sin(boxAngle(b));
   for (const [along, across] of [
     [1, 0],
     [-1, 0],
@@ -411,7 +411,7 @@ export function shiftSeam(
 export function withFaceMoved(spec: ModuleSpec, face: FaceOf, delta: number): ModuleSpec {
   const length = face.along !== 0 ? tidy(spec.length + delta) : spec.length;
   const width = face.across !== 0 ? tidy(spec.width + delta) : spec.width;
-  const angle = spec.angle ?? 0;
+  const angle = boxAngle(spec);
   const c = cos(angle);
   const s = sin(angle);
   const lx = (face.along * delta) / 2;

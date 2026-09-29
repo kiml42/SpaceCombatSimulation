@@ -73,8 +73,8 @@ describe('expandWithOrigins', () => {
     const bp = ship({
       modules: [
         hull,
-        { kind: 'engine', x: -11, y: 2, angle: 0, length: 2, width: 2 },
-        { kind: 'engine', x: -11, y: -2, angle: 0, length: 2, width: 2 },
+        { kind: 'engine', x: -11, y: 2, angle: Math.PI, length: 2, width: 2 },
+        { kind: 'engine', x: -11, y: -2, angle: Math.PI, length: 2, width: 2 },
       ],
     });
     const { origins } = expandWithOrigins(bp);

@@ -86,7 +86,7 @@
       "kind": "engine",
       "x": -20,
       "y": 3,
-      "angle": 0,
+      "angle": 180,
       "length": 8,
       "width": 4
     },
@@ -94,7 +94,7 @@
       "kind": "engine",
       "x": -20,
       "y": -3,
-      "angle": 0,
+      "angle": 180,
       "length": 8,
       "width": 4
     },
@@ -130,7 +130,7 @@
       "kind": "engine",
       "x": 12,
       "y": 9,
-      "angle": -90,
+      "angle": 90,
       "length": 2,
       "width": 4
     },
@@ -138,14 +138,6 @@
       "kind": "engine",
       "x": 12,
       "y": -9,
-      "angle": 90,
-      "length": 2,
-      "width": 4
-    },
-    {
-      "kind": "engine",
-      "x": -12,
-      "y": 9,
       "angle": -90,
       "length": 2,
       "width": 4
@@ -153,8 +145,16 @@
     {
       "kind": "engine",
       "x": -12,
-      "y": -9,
+      "y": 9,
       "angle": 90,
+      "length": 2,
+      "width": 4
+    },
+    {
+      "kind": "engine",
+      "x": -12,
+      "y": -9,
+      "angle": -90,
       "length": 2,
       "width": 4
     },
@@ -162,7 +162,7 @@
       "kind": "engine",
       "x": 15,
       "y": 7,
-      "angle": 180,
+      "angle": 0,
       "length": 3,
       "width": 4
     },
@@ -170,7 +170,7 @@
       "kind": "engine",
       "x": 15,
       "y": -7,
-      "angle": 180,
+      "angle": 0,
       "length": 3,
       "width": 4
     }

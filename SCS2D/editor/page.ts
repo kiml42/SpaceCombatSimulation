@@ -123,7 +123,8 @@ const ANGLE_SNAP_DEGREES = 15;
 const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
   structure: { kind: 'structure', length: 8, width: 5 },
   core: { kind: 'core', length: 3, width: 3 },
-  engine: { kind: 'engine', angle: 0, length: 3, width: 3 },
+  // Facing aft along its bell, so it pushes the ship forward.
+  engine: { kind: 'engine', angle: math.PI, length: 3, width: 3 },
   turret: { kind: 'turret', angle: 0, length: 4, width: 3, barrels: 1 },
   beamTurret: { kind: 'beamTurret', angle: 0, length: 4, width: 3, barrels: 1 },
   // Longer than they are wide: a hull mount's length is mostly barrel, and one

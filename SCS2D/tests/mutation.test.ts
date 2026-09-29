@@ -297,7 +297,7 @@ describe('mutation', () => {
     expect(refitted).toBeGreaterThan(0);
   });
 
-  it('turns a weapon refitted as an engine half round, so its bell faces outboard', () => {
+  it('keeps a weapon\'s facing when it is refitted as an engine, so its bell faces outboard', () => {
     const casemate: Blueprint = {
       name: 'Casemate',
       modules: [
@@ -312,7 +312,7 @@ describe('mutation', () => {
       const child = mutate(casemate, rng, { structural: 0, kinds: only });
       if (child.edits.length !== 1 || !/hullGun refitted as engine/.test(child.edits[0]!)) continue;
       const engine = child.blueprint.modules[1] as ModuleSpec;
-      expect(engine.angle).toBeCloseTo(Math.PI, 9);
+      expect(engine.angle).toBe(0);
       seen++;
     }
     expect(seen).toBeGreaterThan(0);
@@ -353,7 +353,7 @@ describe('mutation', () => {
       name: 'Tug',
       modules: [
         { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 4 },
-        { kind: 'engine', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.7 },
+        { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4, nozzle: 0.7 },
       ],
     };
     let refits = 0;
@@ -371,7 +371,7 @@ describe('mutation', () => {
     // aggregate: a bell nobody would have picked, a spell as a turret, and
     // the same bell on the way back.
     const tuned: ModuleSpec = {
-      kind: 'engine', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.37,
+      kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4, nozzle: 0.37,
     };
     const site = { spec: { ...tuned }, where: 'module 1' };
     // Refitted by hand, since what is being tested is what a refit leaves

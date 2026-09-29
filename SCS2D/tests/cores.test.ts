@@ -95,7 +95,7 @@ describe('a layout needs a core', () => {
   it('lets an engine be bolted straight to a core', () => {
     const flown: Blueprint = {
       name: 'Minimal',
-      modules: [core(0, 0, 4, 4), { kind: 'engine', x: -2, y: 0, angle: 0, length: 2, width: 4 }],
+      modules: [core(0, 0, 4, 4), { kind: 'engine', x: -2, y: 0, angle: Math.PI, length: 2, width: 4 }],
     };
     expect(blueprintProblem(flown)).toBeNull();
   });
@@ -108,7 +108,7 @@ describe('a ship with its core shot out', () => {
       core(0, 0, 4, 4),
       structure(4, 0, 4, 4),
       { kind: 'turret', x: 8, y: 0, length: 4, width: 4, barrels: 1 },
-      { kind: 'engine', x: -2, y: 0, angle: 0, length: 2, width: 4 },
+      { kind: 'engine', x: -2, y: 0, angle: Math.PI, length: 2, width: 4 },
     ],
   });
 

@@ -499,16 +499,17 @@ describe('sizing a module by a handle', () => {
   });
 
   it('keeps an engine bolted on when its nozzle end is dragged', () => {
-    // An engine's position is its mounting face, at +l, so dragging the -l end
-    // does not move it — and dragging the mounting face moves it with the face.
-    const engine: ModuleSpec = { kind: 'engine', x: 0, y: 0, angle: 0, length: 4, width: 4 };
-    expect(resizedTo(engine, face(-1, 0), -6, 0, 0.5)).toEqual({
+    // An engine's position is its mounting face, at -l, so dragging the +l end,
+    // the bell, does not move it — and dragging the mounting face moves it with
+    // the face. Facing aft, the bell is at -x.
+    const engine: ModuleSpec = { kind: 'engine', x: 0, y: 0, angle: Math.PI, length: 4, width: 4 };
+    expect(resizedTo(engine, face(1, 0), -6, 0, 0.5)).toEqual({
       length: 6,
       width: 4,
       dx: 0,
       dy: 0,
     });
-    expect(resizedTo(engine, face(1, 0), 1, 0, 0.5)).toEqual({
+    expect(resizedTo(engine, face(-1, 0), 1, 0, 0.5)).toEqual({
       length: 5,
       width: 4,
       dx: 1,
@@ -603,7 +604,7 @@ describe('sizing a drawn module through the frame it was written in', () => {
     const { modules } = expandWithOrigins(CORVETTE);
     const retros = modules
       .map((m, i) => ({ m, i }))
-      .filter(({ m }) => m.kind === 'engine' && m.angle === math.PI && m.length === 2);
+      .filter(({ m }) => m.kind === 'engine' && m.angle === 0 && m.length === 2);
     expect(retros).toHaveLength(2);
     const port = retros.find(({ m }) => moduleCentre(m).y > 0)!.i;
     const starboard = retros.find(({ m }) => moduleCentre(m).y < 0)!.i;
@@ -883,8 +884,8 @@ describe('the manoeuvring envelopes', () => {
       ship({
         modules: [
           { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
-          { kind: 'engine', x: 6, y: -4, angle: math.HALF_PI, length: 2, width: 3 },
-          { kind: 'engine', x: -6, y: -4, angle: math.HALF_PI, length: 2, width: 3 },
+          { kind: 'engine', x: 6, y: -4, angle: -math.HALF_PI, length: 2, width: 3 },
+          { kind: 'engine', x: -6, y: -4, angle: -math.HALF_PI, length: 2, width: 3 },
         ],
       }),
     ).view.design!;
@@ -902,7 +903,7 @@ describe('the manoeuvring envelopes', () => {
       ship({
         modules: [
           { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
-          { kind: 'engine', x: 6, y: -4, angle: math.HALF_PI, length: 2, width: 3 },
+          { kind: 'engine', x: 6, y: -4, angle: -math.HALF_PI, length: 2, width: 3 },
         ],
       }),
     ).view.design!;
@@ -992,7 +993,7 @@ describe('Library', () => {
       name: 'Adrift',
       modules: [
         { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
-        { kind: 'engine', x: -20, y: 0, angle: 0, length: 3, width: 3 },
+        { kind: 'engine', x: -20, y: 0, angle: Math.PI, length: 3, width: 3 },
       ],
     };
     library.save(adrift);
@@ -1182,7 +1183,7 @@ describe('moduleReadout', () => {
   });
 
   it('gives an engine a thrust row and a structure module none', () => {
-    const engine = moduleReadout({ kind: 'engine', x: 0, y: 0, length: 3, width: 3 });
+    const engine = moduleReadout({ kind: 'engine', angle: Math.PI, x: 0, y: 0, length: 3, width: 3 });
     expect(engine.rows.some(([k]) => k === 'Thrust')).toBe(true);
     expect(engine.gun).toBeNull();
     const structure = moduleReadout({ kind: 'structure', x: 0, y: 0, length: 3, width: 3 });
@@ -1262,7 +1263,7 @@ describe('Demonstration', () => {
         modules: [
           { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
           { kind: 'turret', x: 11, y: 0, length: 0.8, width: 0.8, barrels: 2 },
-          { kind: 'engine', x: -11, y: 0, angle: 0, length: 2, width: 6 },
+          { kind: 'engine', x: -11, y: 0, angle: Math.PI, length: 2, width: 6 },
         ],
       }),
     ).view.design!;
@@ -1345,7 +1346,7 @@ describe('Demonstration', () => {
         modules: [
           { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
           { kind: 'beamTurret', x: 11, y: 0, length: 4, width: 3 },
-          { kind: 'engine', x: -11, y: 0, angle: 0, length: 2, width: 6 },
+          { kind: 'engine', x: -11, y: 0, angle: Math.PI, length: 2, width: 6 },
         ],
       }),
     ).view.design!;
@@ -1439,7 +1440,7 @@ describe('grouping modules into an assembly', () => {
         hull,
         { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
         { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
-        { kind: 'engine', x: -4, y: 9, angle: 0, length: 3, width: 3 },
+        { kind: 'engine', x: -4, y: 9, angle: Math.PI, length: 3, width: 3 },
       ],
     });
 
@@ -1874,7 +1875,7 @@ describe('adding modules to a group', () => {
           { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
           { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
           // The spare, written alongside and added later.
-          { kind: 'engine', x: -6, y: 6, angle: 0, length: 3, width: 3 },
+          { kind: 'engine', x: -6, y: 6, angle: Math.PI, length: 3, width: 3 },
         ],
       }),
     );

@@ -57,6 +57,7 @@ export {
   gunStats,
   beamGunStats,
   moduleCentre,
+  boxAngle,
   refitModule,
   moduleRadius,
   moduleProblem,

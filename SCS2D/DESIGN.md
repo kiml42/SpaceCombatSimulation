@@ -65,8 +65,8 @@ inside any one file is not contiguous.
   together get a bar on their shared face that grows one as it shrinks the other; every snap is escaped by
   holding Alt —
   with the rest of their values typed into a panel beside the module's own mass,
-  capacity, armour and gun — its kind among them, swapped for another in the same space, a module made an
-  engine or unmade one turning round so that what faced outboard still does — and a selected engine burns and a selected gun fires at the
+  capacity, armour and gun — its kind among them, swapped for another in the same space and facing the same
+  way, so a gun made an engine has its bell where the barrel was — and a selected engine burns and a selected gun fires at the
   rate its own figures claim; a module can be duplicated into a shared part placed
   twice, and a shared part unlinked back into separate modules, with position, dragging
   and deletion belonging to the copy and everything else to all of them; several modules can be
@@ -260,9 +260,9 @@ inside any one file is not contiguous.
   mounts half the time would be answering a question nobody asked. A refit keeps the space rather than the
   coordinates, because an engine's position is where it is attached and every other kind's is the middle
   of its box — left alone, the numbers slide the module half its own length into its neighbour, which
-  refused every refit into an engine there was. A module refitted into or out of being an engine is turned half
-  round, since an engine points the way it pushes and every other kind the way its business end faces:
-  whatever faced outboard still does, and a round trip through any kinds ends where it began. The editor's kind swap is the same rule (`refitModule`). **The grouping is bred as well as the
+  refused every refit into an engine there was. The facing is kept, since every kind faces the way whatever sticks out
+  of it points — an engine's bell as much as a gun's barrel — so whatever faced outboard still does. The editor's
+  kind swap is the same rule (`refitModule`). **The grouping is bred as well as the
   modules.** A lineage can make a part of a module, dissolve one back into the layout, take a neighbour into
   a part, grow one with a new module — on its outer edge by preference, which is the face likely to be free
   at every instance rather than at one, and the only way a part placed twice grows at all — place another
@@ -909,9 +909,9 @@ Mass from wall volume, capacity from interior area, strength from thickness and 
   craft here is computer-flown.
 - **A module's position is where it is attached, which is its middle for every kind but an engine.**
   An engine is the one module with a side that means something: it is held on by the face it pushes
-  from and exhausts out of the other, and a layout only cares where that mounting face is. So a
-  engine's position is the middle of that face and the engine runs back from it along its own
-  facing — which is what makes an engine scalable by one number, since a longer one grows into its
+  from and exhausts out of the other, and a layout only cares where that mounting face is. So an
+  engine's position is the middle of that face and the engine runs out from it along its own
+  facing, bell last — which is what makes an engine scalable by one number, since a longer one grows into its
   exhaust rather than half into the hull it is bolted to. Everything geometric goes through
   `moduleCentre`; the mounting face and the box's middle lie on the same line of action, so which of
   them thrust is applied at makes no difference to the force or the torque.

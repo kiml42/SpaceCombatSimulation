@@ -4,6 +4,7 @@ import {
   exhaustObstruction,
   firingArc,
   math,
+  boxAngle,
   moduleCentre,
   moduleStats,
   radiansToDegrees,
@@ -203,7 +204,7 @@ function exhaustEscaping(
   if (index < 0 || index >= layout.length) return 1;
   const modules = layout.map((spec) => {
     const centre = moduleCentre(spec);
-    return { spec, stats: moduleStats(spec), x: centre.x, y: centre.y, angle: spec.angle ?? 0, index: 0 };
+    return { spec, stats: moduleStats(spec), x: centre.x, y: centre.y, angle: boxAngle(spec), index: 0 };
   });
   return exhaustObstruction({ modules }, index, rating, new HullPath(), [], []);
 }

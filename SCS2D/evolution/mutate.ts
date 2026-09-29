@@ -675,11 +675,11 @@ function reinforce(site: ModuleSite, rng: Rng, bounds: MutationLimits): string |
  *
  * **An engine is the awkward one.** Its position is its mounting face rather
  * than the middle of its box, so `refitModule` keeps the centre rather than
- * the coordinates, and it turns a module half round on the way into or out of
- * being an engine, so whatever faced outboard still does. Refitted from a
- * structure or a core, which have no outward face, which way a new engine
- * pushes is a free choice, so a quarter turn is drawn here and the attempts
- * try different ones.
+ * the coordinates. Every kind faces the way what sticks out of it points, so
+ * a weapon refitted as an engine keeps its facing and its bell goes where the
+ * barrel was. Refitted from a structure or a core, which have no outward
+ * face, which way a new engine points is a free choice, so a quarter turn is
+ * drawn here and the attempts try different ones.
  *
  * Neither is a nicety: without them a refit into an engine is refused every
  * time, so the one route to a *large* engine is closed and a lineage can only
@@ -813,13 +813,13 @@ function moveFace(site: ModuleSite, draft: Draft, rng: Rng, bounds: MutationLimi
   if (now <= 0) return null;
 
   // Where the module's *position* has to go for the other face to stay put.
-  // An engine is held on by the face it pushes from and its position is the
-  // middle of that face, so lengthening one from the nozzle end moves nothing
-  // at all — every other case moves the box's centre by half the change.
+  // An engine is held on by the face behind it, at -x, and its position is
+  // the middle of that face, so lengthening one from the bell end moves
+  // nothing at all — every other case moves the box's centre by half the change.
   let localX = 0;
   let localY = 0;
   if (along) {
-    if (spec.kind === 'engine') localX = side > 0 ? delta : 0;
+    if (spec.kind === 'engine') localX = side > 0 ? 0 : -delta;
     else localX = (side * delta) / 2;
   } else {
     localY = (side * delta) / 2;
@@ -1548,14 +1548,13 @@ function against(
   // Which way a module has to face to be *held on* by this face is the
   // archetype's business, and two of them answer differently.
   //
-  // An engine is mounted facing *into* the anchor, which puts its position
-  // exactly on the face and its exhaust pointing out into clear air. Nothing
-  // refuses an engine pointed the other way any more; it is simply the only
-  // way round worth guessing, since the other burns the ship it is bolted to.
-  // A hull weapon is the mirror of that: it is held on by the block behind
-  // its barrel, so it faces *out* and the barrel clears the ship. Everything
-  // else has no front and sits on the face, half its own depth out, lying
-  // along it.
+  // An engine and a hull weapon both face *out*, bell or barrel into clear
+  // air, held on by the block behind it. An engine's position is the middle
+  // of the face it is bolted on by, so it sits exactly on the anchor's face;
+  // a hull weapon's is its middle, half its depth out. Nothing refuses an
+  // engine pointed the other way; it is simply the only way round worth
+  // guessing, since the other burns the ship it is bolted to. Everything else
+  // has no front and sits on the face, half its own depth out, lying along it.
   // **The angle is not rounded, and that is load-bearing.** Positions are
   // tidied because they are worked out through sines and cosines and land on
   // values no file should carry; an angle is not, because a module sits
@@ -1563,10 +1562,9 @@ function against(
   // count as overlapping. Rounding a right angle to six places tilts a module
   // by three ten-millionths of a radian, which puts a corner of it some
   // eighty nanometres inside the hull it is bolted to — and the overlap test
-  // is exact, so the layout is refused. It cost every engine: mounted
-  // facing *into* its anchor, an engine's angle is a right angle plus half a
-  // turn and so was never one of the two values that survive rounding, and
-  // not one could be added to any face of any ship. Angles are exact in
+  // is exact, so the layout is refused. It once cost every engine, whose angle
+  // was then a right angle plus half a turn and so never one of the two values
+  // that survive rounding: not one could be added to any face of any ship. Angles are exact in
   // radians here and exact in degrees in the file, which is where legibility
   // was the concern in the first place.
   const added: ModuleSpec =
@@ -1575,7 +1573,7 @@ function against(
           kind,
           x: tidy(faceX, 6),
           y: tidy(faceY, 6),
-          angle: normalAngle + PI,
+          angle: normalAngle,
           length: out,
           width: across,
         }
