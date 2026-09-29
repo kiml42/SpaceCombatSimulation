@@ -1,6 +1,7 @@
 import {
   expandBlueprint,
   expandWithOrigins,
+  foldAngle,
   isInstance,
   moduleCentre,
   samePlacement,
@@ -1026,6 +1027,75 @@ export function unlinkPlacement(blueprint: Blueprint, origin: ModuleOrigin): Blu
     }
   });
   return copy as unknown as Blueprint;
+}
+
+/**
+ * Replace one placed copy of an assembly with what it is made of, written
+ * where the copy was: its modules, the assemblies it places, and its extras.
+ *
+ * One level only — an assembly inside stays an assembly, so taking a ship
+ * apart is one step at a time. Every other copy stays linked, which makes this
+ * the way to free one copy of a shared part. A repeat comes out as each of its
+ * copies, in turn.
+ *
+ * The contents land in expansion order, so the ship flies the same; geometry
+ * is exact up to round-off from composing the frames. The definition goes if
+ * nothing else places it. Returns the new placements' paths, first to last.
+ */
+export function dissolveInstance(
+  blueprint: Blueprint,
+  path: ModulePath,
+): { blueprint: Blueprint; paths: ModulePath[] } | null {
+  const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
+  const found = containing(copy, path);
+  if (found === null) return null;
+  const placed = found.list[found.index]!;
+  if (!isInstance(placed)) return null;
+  const definition = copy.assemblies?.[placed.use];
+  if (definition === undefined) return null;
+
+  const members = [...definition.modules, ...(placed.extra ?? [])];
+  const out: Placement[] = [];
+  const flipped = placed.mirror === true;
+  let cx = placed.x;
+  let cy = placed.y;
+  let turn = foldAngle(placed.angle ?? 0);
+  const copies = placed.repeat ?? 1;
+  for (let k = 0; k < copies; k++) {
+    const c = cos(turn);
+    const s = sin(turn);
+    for (const member of members) {
+      const localY = flipped ? -member.y : member.y;
+      const own = member.angle ?? 0;
+      const angle = foldAngle(turn + (flipped ? -own : own));
+      const loose = {
+        ...member,
+        x: cx + member.x * c - localY * s,
+        y: cy + member.x * s + localY * c,
+      } as Placement & { angle?: number; mirror?: boolean };
+      if (angle !== 0 || member.angle !== undefined) loose.angle = angle;
+      else delete loose.angle;
+      if (isInstance(member) && flipped) {
+        if (member.mirror === true) delete loose.mirror;
+        else loose.mirror = true;
+      }
+      out.push(loose);
+    }
+    const step = placed.step;
+    if (step === undefined) continue;
+    // Each copy steps on in its own frame, as the expansion walks a repeat.
+    const stepY = flipped ? -step.y : step.y;
+    cx += step.x * c - stepY * s;
+    cy += step.x * s + stepY * c;
+    turn = foldAngle(turn + (flipped ? -(step.angle ?? 0) : (step.angle ?? 0)));
+  }
+
+  found.list.splice(found.index, 1, ...out);
+  if (countInstances(copy as unknown as Blueprint, placed.use) === 0) delete copy.assemblies![placed.use];
+  return {
+    blueprint: copy as unknown as Blueprint,
+    paths: out.map((_, i) => siblingOf(path, found.index + i)),
+  };
 }
 
 /** Every placement list in a layout: the ship's, each assembly's, and each instance's extras. */

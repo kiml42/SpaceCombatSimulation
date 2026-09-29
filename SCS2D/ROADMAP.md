@@ -42,12 +42,12 @@ an entry is either still open or it is gone.
 | Step | What | State |
 | --- | --- | --- |
 | Slice 0 | Two ships fight, deterministically | Built |
-| 1 | Blueprint editor | Partly built |
+| 1 | Blueprint editor | Built |
 | 2 | Terminal ballistics and the damage model | Built |
 | 3 | Doctrine and orders | Partly built |
 | 4 | Headless evolution and analysis | Built |
 | 5 | v1: skirmish | Partly built |
-| 6 | Editor restructuring | Not started |
+| 6 | Editor restructuring | Partly built |
 | 7 | Two layers | Not started |
 | 8 | Fuel | Not started |
 | 9 | Fuel harvesting | Not started |
@@ -59,15 +59,6 @@ an entry is either still open or it is gone.
 | 15 | Campaign | Not started |
 
 ### Partly built — what is left
-
-**Step 1 — Blueprint editor.** One thing, not blocking:
-
-- **Unlinking one copy of a shared part while the others stay linked.** Unlink today dissolves every copy at
-  once, because the editor cannot yet name a single instance.
-
-Deliberately left out of the editor's first iteration, and still unclaimed by any step: **test flight** (the
-editor could have a throwaway sim of its own; it does not need the battle page's), budgets (fleets are step 5),
-and **interval-based firing arcs** (the §12 entry on traverse and firing permission).
 
 **Step 3 — Doctrine and orders.** What the step deferred, plus one thing using it turned up:
 
@@ -104,31 +95,60 @@ scored for what it does to the boss alone (`match.boss`, `--boss`, and a boss pi
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
 lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
 
+**Step 6 — Editor restructuring.** Dissolving an assembly is built; one thing is left:
+
+- **Assembling across assemblies.** Making an assembly of things written in different assemblies is
+  refused. Until there are ships people rebuild rather than replace, the way round is to dissolve down to a
+  common list first.
+
 ### Not started — in order
 
-6. **Editor restructuring — dissolving an assembly, and assembling across assemblies.** Making and nesting
-   assemblies is built; unmaking one is what *reworking* a ship needs, and that pressure only arrives once
-   there are ships people want to keep and rebuild rather than replace. Until then the way out of an
-   assembly is undo. What is missing today: an assembly cannot be dissolved (`unlink` takes one module out
-   at a time), and making an assembly of things written in different assemblies is refused. Evolution's
-   mutation operator already dissolves the plain case (one copy, no extras, nothing nested), so what the
-   editor is short of is the interface rather than the arithmetic.
 7. **Two layers** — the hull layer (the deck and below: hulls, their internals and hull-mounted weapons) and
    the weapons layer above it (raised, "thick" modules and turrets, and later strike craft), as §3 already
-   describes and nothing yet implements. §12 tabulates what changes: firing arcs, traverse and projectile hits
+   describes and nothing yet implements. Firing arcs, traverse and projectile hits
    read a *raised* flag, turrets and main engines are raised, structure may be either, and a hull weapon fires
    in the hull layer. Before the resources, because it decides what each of them can be hit by: tanks, stores
    and plants are hull internals, out of reach of deck turrets, so where they sit and what can reach them is
    the layer question.
 
-   **Firing Arcs** Once the two layers are in place, the limits on turrets' firing arcs become clear and should
-   be implemented properly. Hull guns are in the hull layer, so they would hit any part of the ship, so they 
-   should be unable to trigger when pointed at another part of the ship, but the barrel can traverse anywhere 
-   it it's available arc where it won't physically hit another part of the ship. Turrets are only blocked by thick
+   **Firing arcs.** Once the two layers are in place, the limits on turrets' firing arcs become clear and should
+   be implemented properly. Hull guns are in the hull layer, so they would hit any part of the ship, so they
+   should be unable to trigger when pointed at another part of the ship, but the barrel can traverse anywhere
+   in its available arc where it won't physically hit another part of the ship. Turrets are only blocked by thick
    parts of the ship, so thick modules, and other turrets. As with hull guns, their traverse limit should be based
    on what the barrel would hit, and their triggers should be limited by LOS in front of the barrel, just ignoring
    everything in the hull layer because they're above it. This will lead to a single arc for traverse (possibly a
    whole circle), but there may be multiple intervals in that arc where the turret cannot fire.
+
+   Today one arc does both jobs: a mount may fire wherever it may point, bar firing discipline's
+   friendly-hull cast, and `firingArc` takes the `min` over obstructions, which collapses a set of clear
+   sectors to its narrowest and throws away every one past the first blockage. The shape of the fix: each
+   mount compiles, alongside its two traverse bounds, a short sorted list of blocked intervals; §4's
+   `blocked` test becomes an interval lookup; target selection prefers a target in a *permitted* interval
+   over merely the nearest reachable bearing. Slew is untouched, and the mask is compile-time work — a
+   property of the layout, not of a step. Bounds stay measured as sweeps (§8's notes on the editor).
+
+   | | Today | With layers |
+   | --- | --- | --- |
+   | **Trigger arc** | Blocked by any module within *barrel length* | Blocked by raised modules and other turrets' domes, at **any** range down the round's path |
+   | **Traverse limit** | Blocked by any module within barrel length | Blocked by **raised** modules within barrel length |
+   | **Projectile hits** | Strike any module of any ship | Strike **raised** sections only |
+
+   Worth keeping in mind while building it:
+
+   - **The trigger mask is a superset of the traverse mask**, so the traverse limit never decides whether a
+     mount may fire — anything the barrel fouls is also on the round's path. Its only job is which way round
+     the mount has to turn.
+   - **Barrel length buys no reach past an obstruction.** To point along a bearing a long barrel occupies
+     the space a short barrel's round would have flown through. Length matters only the other way: an
+     obstruction *beyond* barrel reach stops the round while leaving the barrel free.
+   - **The trigger mask stays bearing-only rather than a ray cast per shot.** Under the fast-projectile
+     assumption it compiles once, and it is the conservative model: a mount should not fire along a bearing
+     with its own hull downrange, since misses and penetrations both come home.
+   - **Marking every module raised reproduces today exactly**, and is a safe first step for that reason —
+     but it is vacuous rather than a model. Un-raising a module then both opens every arc across it and
+     makes it immune to gunfire; the two cannot be tuned apart. Turrets and engines have to be raised (§3
+     has guns stripping "mounts, sensors and engines"), so `structure` is where all the choice is.
 
    **Ships hooked together should be able to shoot each other then.** Today a ship never targets anything on
    its own body, because a round never hits the body it left; with layers, a turret can hit its own hull and
@@ -204,11 +224,12 @@ that answers the question most likely to change the design.
 - **A group is built around the first module picked**, not the centre of the selection, because a group is
   usually a thing hanging off one connecting module and reflection should turn it about that joint.
 - **How one copy differs from another is additive**: an instance may carry `extra` modules in the
-  assembly's frame. That is the whole divergence mechanism, and unlinking one copy (above) should be built
-  from it rather than from anything new in the format. Unlink has two shapes today — a module that is its
+  assembly's frame. That is the whole divergence mechanism, and nothing new in the format should be added
+  for it. Unlink has two shapes — a module that is its
   whole assembly is expanded back inline, exactly; one that shares its assembly leaves the definition and
   every instance gets it as an `extra`, which drops it from any *new* instance and moves it down the
-  expansion order.
+  expansion order. Dissolving one copy is the other way out, and changes neither geometry nor
+  order: its contents are written where it was, one level at a time.
 - **Module order is part of the ship, so restructuring is not bit-free.** Engine allocation and firing both
   run in list order, so a reordered layout does not check-sum the same — though `scenarios/ordering.ts`
   measures the behavioural difference as round-off (8.2e-13 m over 3,000 steps, identical shots and hits),
@@ -222,7 +243,7 @@ that answers the question most likely to change the design.
 - **Firing arcs are measured as sweeps**, how far a mount turns to reach each edge, not as signed bearings: an
   obstruction wholly to port has both edges at positive bearings, and one dead astern is reached by turning
   either way. Every consumer must agree which bound is which — the clamp and the renderer once had them
-  transposed consistently, which is invisible while every arc is symmetric. The interval mask in §12 has to
+  transposed consistently, which is invisible while every arc is symmetric. Step 7's interval mask has to
   keep this.
 
 #### Damage model (step 2)
@@ -269,6 +290,12 @@ The remaining pickers and the order weight should follow the shape already there
 ## 12. Open questions
 
 Deliberately unresolved; decide when they block something.
+
+- **Whether the editor needs a test flight of its own.** A throwaway sim inside the editor, flying the ship
+  being edited without leaving the page. The Battle link already takes that ship into a custom battle, which
+  is a good enough way into testing it; what an in-editor sim would add is a faster loop, and that is worth
+  deciding once the round trip is what slows design down. Whatever it is, it must not grow out of the
+  editor's animation (§8's notes on the editor).
 
 - **How far a gun should look for a consort in its line of fire.** It casts for half a second of the
   round's flight, on the reasoning that a gun asking about the whole flight would never fire. That covers
@@ -618,73 +645,8 @@ Deliberately unresolved; decide when they block something.
   can only strip mounts. Edge-mounted hull-layer guns would be **perimeter**-limited: few, narrow arcs, but
   able to hole a hull directly. Big ships would then have to *specialise* rather than simply scale, and the
   "guns mission-kill, ordnance destroys" line in §3 would become "deck turrets mission-kill; edge guns and
-  ordnance destroy", with edge guns paying for it in coverage. The mounting concept now exists in the editor; what
-  is left to decide is the layer, and it arrives with the raised flag below.
-- **Whether a turret's traverse limit and its firing permission are the same thing.** Today they are, bar
-  firing discipline's friendly-hull cast: a mount may fire wherever it may point. Arcs are asymmetric
-  already — a bound each way, measured as sweeps (see §8's notes on the editor).
-  - **Traversing through what you may not fire through.** A barrel can usually sweep *past*
-    superstructure or a neighbouring mount and reach clear bearings beyond it — it simply must not shoot
-    while crossing them. So these are two different quantities. The **traverse limit** is mechanical:
-    where the barrel can go before it fouls something. **Firing permission** is a *set* of allowed
-    bearing intervals — one gap per obstruction, so a mount ringed by neighbours has several. That is a
-    mask, not a half-width, and it is why the `min` over obstructions in `firingArc` can only ever be
-    pessimistic: it collapses the set to its narrowest member and throws away every clear sector past
-    the first blockage.
-
-  Shape of the fix when it comes: each mount compiles a short sorted list of blocked intervals from the
-  layout, alongside its two traverse bounds. §4's `blocked` test becomes an interval lookup rather than a
-  comparison against one arc, and target selection has to prefer a target lying in a *permitted* interval
-  over merely the nearest reachable bearing. Slew is untouched, and it stays compile-time work — the mask
-  is a property of the layout, so it costs a build step, not a per-step one.
-
-  It was waiting on the blueprint editor, to show a player what their arrangement bought; the editor now
-  draws each mount's arc, so nothing blocks it.
-
-  **What is implemented is knowingly inconsistent, and the three parts disagree in different directions.**
-  §3 already settles the principle — the weapons layer is above the deck, guns fire over friendly and enemy
-  decks alike, and large modules may be flagged as *protruding* into the weapons layer at the cost of being
-  gun-vulnerable. Nothing implements that flag, so every module is treated as though it were raised in one
-  place and flat in another:
-
-  | | Today | Should be |
-  | --- | --- | --- |
-  | **Trigger arc** | Blocked by any module within *barrel length* | Blocked by raised modules and other turrets' domes, at **any** range down the round's path |
-  | **Traverse limit** | Blocked by any module within barrel length | Blocked by **raised** modules within barrel length |
-  | **Projectile hits** | Strike any module of any ship | Strike **raised** sections only |
-
-  Three things follow that are worth having written down.
-
-  **The trigger mask is a superset of the traverse mask**, so the traverse limit never decides whether a
-  mount may fire — anything the barrel fouls is also on the round's path, at a range shorter than the
-  barrel. Its only job is deciding which way round the mount has to turn, which is real but narrow.
-
-  **Barrel length buys no reach past an obstruction.** To point along a bearing a long barrel has to occupy
-  the space a short barrel's round would have flown through, so it fouls rather than clearing. Length
-  matters only in the other direction: an obstruction *beyond* barrel reach stops the round while leaving
-  the barrel free, which is exactly why the two masks differ in range and not in kind.
-
-  **The trigger mask can stay bearing-only rather than a ray cast per shot.** Under the fast-projectile
-  assumption it is a property of the layout, so it compiles once. That is also the more conservative
-  model, and conservative is right here: a mount should not be firing along a bearing with its own hull
-  downrange whether or not a particular round would have cleared it, because misses and penetrations both
-  come home.
-
-  **A transition that keeps today's behaviour** is to add the flag, have the trigger and traverse masks read
-  it, and mark most existing hull as raised. Worth being clear that this is deliberately vacuous rather
-  than a model: with everything raised, arcs and hits are exactly as they are now, and the flag carries no
-  information until something is *un*-raised. The two effects then arrive together and cannot be tuned
-  apart — un-raising a module both opens every arc across it and makes it immune to gunfire. That is
-  coherent, and it is what §3 intends by "guns mission-kill; ordnance destroys", but it is a large step to
-  take by accident.
-
-  One default is not free to choose: §3 has guns stripping "mounts, sensors and engines", so turrets and
-  engines have to be raised. Only `structure` is genuinely optional, which is also where all the arc
-  behaviour comes from.
-
-  Still open beyond all of this: **hull-layer side-mounted guns**, which by their own definition are blocked
-  by the whole ship rather than by its raised parts, and whose projectiles then travel in the hull layer.
-  What that means for what they can hit is undecided — see the deck-versus-edge-gun question above.
+  ordnance destroy", with edge guns paying for it in coverage. Step 7 (§8) puts hull weapons in the hull
+  layer; what is left is whether edge guns then earn their place against deck turrets.
 - **Engines split by layer, into two archetypes.** A single `engine` kind cannot express the choice the
   weapons layer creates, so it becomes two — a new *archetype* rather than a new coefficient, which is the
   distinction the materials question above already draws.

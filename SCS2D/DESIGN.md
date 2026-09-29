@@ -70,7 +70,8 @@ inside any one file is not contiguous.
   capacity, armour and gun — its kind among them, swapped for another in the same space and facing the same
   way, so a gun made an engine has its bell where the barrel was — and a selected engine burns and a selected gun fires at the
   rate its own figures claim; a module can be duplicated into a shared part placed
-  twice, and a shared part unlinked back into separate modules, with position, dragging
+  twice, and a shared part unlinked back into separate modules, or one copy of an assembly dissolved into
+  the modules and assemblies it is made of while the others stay linked, with position, dragging
   and deletion belonging to the copy and everything else to all of them; several modules or assemblies can be
   picked at once and made into an assembly, nesting any assemblies among them, or added to the last assembly
   picked — never into itself — a module added with an assembly selected going into it at
@@ -448,16 +449,16 @@ inside any one file is not contiguous.
   first match paused at its start. **A boss battle** sets every entrant on one side against a ship or fleet
   that does not evolve, at the middle of the ring where the goal would be, each scored for what it does to
   the boss alone.
-- **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL — or step 6,
-  editor restructuring; then step 7, the two layers, and step 8, fuel, which starts the resource system.
+- **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL — or the rest of
+  step 6, assembling across assemblies; then step 7, the two layers, and step 8, fuel, which starts the
+  resource system.
   See ROADMAP.md §8.
   §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio
-  belongs chief among them. ROADMAP.md §8 lists what is left of each partly built step, then the steps not started. Slice 1 has one
-  thing left in it, not blocking: unlinking one copy of a shared part while the
-  others stay linked. Dissolving an assembly is deliberately not part of it and is §8 step 6, after v1;
-  nesting one inside another is built.
+  belongs chief among them. ROADMAP.md §8 lists what is left of each partly built step, then the steps not started. The blueprint
+  editor, step 1, is built; test flight inside it is an open question (§12), since the Battle link already
+  takes the ship being edited into a custom battle.
 - **Blocked on:** nothing.
 - **Owed:** nothing outstanding. The `duel` golden scenario discharges the coverage that was owed
   for engine allocation and turrets: it drives both through the same loop the game uses, so a
@@ -554,7 +555,7 @@ Rules:
 - Large modules may be flagged as **protruding** into the weapons layer: useful, but gun-vulnerable.
   *Not implemented.* Firing arcs, traverse limits and projectile hits currently treat every module as
   though it were in the weapons layer, which contradicts this section in three different ways —
-  ROADMAP.md §12 tabulates them.
+  ROADMAP.md §8 step 7 tabulates them, and is where they are fixed.
 - **Strike craft fly in the weapons layer; a committed craft occupies both.** Under a deck-plan
   projection the weapons layer is *above the deck* and the hull layer is *the deck and below*. A
   strafing run skims the deck, so its gunfire stays in the weapons layer and can only strip mounts and
