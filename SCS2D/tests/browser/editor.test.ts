@@ -374,6 +374,26 @@ describe('the editor in a browser', () => {
     await page.click('#undo');
   });
 
+  it('deletes a selected assembly with the Delete key', async () => {
+    await openShip(page, 'Corvette');
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x + 168, centre.y);
+    await page.keyboard.down('Shift');
+    await page.mouse.click(centre.x, centre.y);
+    await page.keyboard.up('Shift');
+    await page.click('#propAssembly');
+    expect(await page.isHidden('#assemblyPanel')).toBe(false);
+    await page.keyboard.press('Delete');
+    expect(await page.isHidden('#assemblyPanel')).toBe(true);
+    // Gone from the ship: where its turret was is empty space now.
+    await page.mouse.click(centre.x + 168, centre.y);
+    expect(await page.isHidden('#assemblyPanel')).toBe(true);
+    expect(await page.isHidden('#properties')).toBe(true);
+    await page.click('#undo');
+    await page.mouse.click(centre.x + 168, centre.y);
+    expect(await page.isHidden('#assemblyPanel')).toBe(false);
+  });
+
   it('picks the whole assembly first, and the module inside it on a second click', async () => {
     // An assembly is a part, so clicking it selects the part. Reaching what is
     // inside is deliberate rather than accidental: click it again, once the
